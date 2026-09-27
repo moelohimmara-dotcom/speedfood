@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 27 septembre 2026.** Ce document existe pour qu'une
+**Dernière mise à jour : 27 septembre 2026 (bloc 6).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -30,7 +30,7 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 3 | Composants UI partagés (bouton, champ, carte, badge, alerte) | Fait, sous-ensemble volontaire | Rendu visuel dans le navigateur |
 | 4 | Authentification, onboarding restaurateur | Fait | **Deux comptes réels créés**, isolation confirmée à l'écran (le compte B ne voit jamais le restaurant du compte A) |
 | 5 | Catalogue public connecté | Fait | Testé dans le navigateur : seuls les restaurants publiés apparaissent (les deux comptes du bloc 4, non validés, sont invisibles) ; accès direct par URL à un restaurant non publié renvoie une vraie 404, pas de fuite d'information ; filtres et recherche fonctionnels |
-| 6 | Console restaurant (menu, commandes, horaires) | Pas commencé | — |
+| 6 | Console restaurant (menu, commandes, horaires) | Fait | Testé dans le navigateur avec un compte réel (créé puis nettoyé en base après test) : ajout/modification/bascule disponibilité d'un plat, fermeture/réouverture du restaurant, horaires/consignes enregistrés, tout revérifié après rechargement de page |
 | 7 | Panier, commande, suivi client | Pas commencé | — |
 | 8 | CMS système | Pas commencé (tables prêtes avec RLS restrictive, aucun écran) | — |
 | 9 | PWA installable | Pas commencé | — |
@@ -64,6 +64,23 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 - **Données de seed** : `supabase/seed.sql` contient des lignes préfixées
   `[DEV]`, déjà appliquées au projet Supabase actuel (pas seulement au fichier
   local). Volontairement différentes des données du prototype de démonstration.
+- **Suppression logique du menu** (bloc 6) : un plat n'est jamais supprimé
+  physiquement, seulement marqué `archive_le` (timestamp), pour respecter la
+  contrainte "ne jamais supprimer un plat référencé par une commande passée".
+  Les pages de la console filtrent systématiquement `archive_le is null`.
+- **Bug de débordement horizontal global (bloc 6, corrigé)** : `body` a
+  `display: flex; flex-direction: column` (`globals.css`). Un enfant direct de
+  `body` contenant du texte non coupable (`white-space: nowrap`, comme les
+  onglets de la nav console) peut se retrouver rendu plus large que `body`
+  lui-même — l'alignement `stretch` par défaut n'empêchait pas ce débordement,
+  contrairement à l'intuition CSS habituelle. Repéré en testant le bloc 6 sur
+  un viewport mobile (375px), avec des outils de mesure (`getBoundingClientRect`,
+  `scrollWidth`), pas seulement à l'œil. Corrigé une fois pour toutes avec une
+  règle globale `body > * { min-width: 0; width: 100%; }` dans `globals.css` —
+  potentiellement, ce bug touchait silencieusement toutes les pages existantes
+  avant ce correctif, pas seulement la console. **Si un futur écran affiche à
+  nouveau un débordement horizontal mobile, vérifier en premier que cette règle
+  n'a pas été supprimée par erreur.**
 
 ## Ce qui n'est pas testé / connu comme incomplet
 
@@ -73,7 +90,8 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 - Aucun écran admin/CMS (bloc 8) : impossible de publier un restaurant ou gérer
   un rôle système autrement qu'en SQL direct.
 - Aucune route serveur de commande (bloc 7) : `orders` et tables liées existent
-  en base avec RLS, mais rien ne les écrit encore.
+  en base avec RLS, mais rien ne les écrit encore. La page `/restaurant/commandes`
+  du bloc 6 affiche déjà la liste (lecture seule) pour quand ça existera.
 - Pas de CI/CD.
 
 ## Comment vérifier soi-même que tout est toujours cohérent

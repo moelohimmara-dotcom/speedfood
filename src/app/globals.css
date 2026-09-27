@@ -70,6 +70,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Un enfant direct de body (flex column) peut se retrouver plus large que
+   body lui-même dès qu'il contient du contenu non coupable (ex. la nav à
+   onglets de la console, texte en white-space: nowrap) : min-width: 0 ne
+   suffit pas seul ici, il faut aussi fixer explicitly width: 100% pour que
+   l'alignement stretch soit réellement respecté plutôt qu'un fit-content.
+   Repéré en testant le bloc 6 sur mobile — sans ce correctif, un débordement
+   horizontal silencieux touchait potentiellement toutes les pages. */
+body > * {
+  min-width: 0;
+  width: 100%;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

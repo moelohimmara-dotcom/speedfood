@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Manrope } from "next/font/google";
 import "./globals.css";
 import "./components.css";
@@ -20,6 +20,14 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Speedfood",
   description: "Découvrez et commandez chez vos restaurants préférés à Conakry.",
+};
+
+// Sans ceci, les navigateurs mobiles utilisent un viewport de mise en page ~980px
+// par défaut et affichent le site dézoomé plutôt qu'à sa taille réelle (bug repéré
+// en testant le bloc 6 sur mobile, mais qui touchait déjà toutes les pages).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
