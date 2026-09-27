@@ -1,7 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
-  "name": "speedfood",
+  // Nom distinct du projet Cloudflare Pages statique existant "speedfood"
+  // (landing + prototype de démonstration) pour ne jamais les confondre.
+  "name": "speedfood-app",
   "compatibility_date": "2026-09-27",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -12,7 +14,16 @@
     {
       // Self-reference nécessaire à OpenNext (voir https://opennext.js.org/cloudflare/caching).
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "speedfood"
+      "service": "speedfood-app"
     }
-  ]
+  ],
+  // Valeurs publiques uniquement (clé anon soumise aux policies RLS, sans
+  // risque à exposer — voir .env.example). Les secrets réels (clé service-role,
+  // clé de dérivation des jetons) sont configurés via `wrangler secret put`,
+  // jamais ici : ce fichier est committé dans le dépôt.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ggldjdizqrtpetdiohxy.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_SlSk3qzeo4vqq-eJhQkB6A_3jeey8X8",
+    "COMMANDE_PROPOSITION_DELAI_MINUTES": "30"
+  }
 }
