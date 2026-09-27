@@ -4,7 +4,8 @@
 
 Ce dépôt est le code de production du portail Speedfood (Conakry), distinct du
 prototype de démonstration (`docs/cadrage` en parle, le prototype lui-même vit
-ailleurs, dans le workspace personnel de Malika — pas dans ce dépôt).
+dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
+`docs/PROTOCOLE-COLLABORATION.md` pour la répartition exacte).
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 

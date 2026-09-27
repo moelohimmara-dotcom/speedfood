@@ -4,6 +4,8 @@
 **Approche :** contrats et sécurité d’abord; blocs verticaux; services externes après validation terrain.  
 **Règle de délégation :** un seul agent par bloc, propriétaires de fichiers assignés avant exécution. Les délais sont volontairement omis : ils dépendent du nombre d’agents, de l’accès au dépôt et des choix ouverts.
 
+**Déjà en ligne :** landing + prototype hébergés sur Cloudflare Pages (projet `speedfood`, https://speedfood.pages.dev/). Toute mise à jour se fait avec `wrangler pages deploy dist --project-name speedfood` après reconstruction du dossier `dist/` (landing à la racine, prototype sous `prototype/`).
+
 ## Vue d’ensemble et dépendances
 
 ```mermaid
@@ -69,19 +71,26 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 ## Bloc 2 — Base de données, migrations et isolation tenant
 
 **Type :** agent backend/data/security.  
-**Dépendances :** bloc 1 accepté; ADR-003/004 confirmés par le propriétaire.
+**Dépendances :** bloc 1 accepté; ADR-003/004/011 confirmés par le propriétaire.  
+**Situation :** le schéma existe déjà dans le projet Supabase `ggldjdizqrtpetdiohxy` (14 tables, RLS, fonctions de sécurité, 9 migrations non versionnées dans le dépôt). Ce bloc **reprend et corrige** plutôt qu’il ne crée. Voir `AUDIT-SUPABASE.md` pour l’état des lieux et la liste des écarts.
 
 **Tâches**
 
-- Créer migrations versionnées pour `restaurants`, `restaurant_memberships`, `system_admin_memberships`, `menu_categories`, `neighborhoods`, `menu_items`, `orders`, `order_items`, `order_proposals`, `order_status_events`, `content_pages`, `content_banners`, `featured_placements` et `audit_events`, avec les seuls champs nécessaires.
-- Définir enums/check constraints, clés étrangères, index, horodatages et stratégie d’effacement/archivage.
-- Activer RLS et privilèges minimaux sur chaque table accessible via API; ajouter policies publiques limitées au contenu publié et policies de membre au restaurant associé.
-- Définir les vues/champs publics sans contacts privés.
-- Prévoir seeds de développement explicitement fictifs et séparés des environnements pilotes.
-- Documenter choix de région et variables sans créer de projet Supabase.
+- Exporter les migrations existantes depuis la base (`supabase/migrations/*`) et les versionner dans le dépôt; documenter la procédure d’application.
+- Traiter les écarts de `AUDIT-SUPABASE.md` §6 :
+  - restreindre les colonnes modifiables par un membre de restaurant (pas d’auto-publication, pas de suppression de suspension, pas de modification de `sous_total`/`reference` après coup) — trigger ou `REVOKE` au niveau colonne ;
+  - compléter `order_proposals` (chemin de réponse et d’expiration) selon ADR-011 ;
+  - écrire `order_status_events` de façon fiable (trigger sur transition) ;
+  - compléter le schéma : contact restaurant, modes de service et frais de livraison par restaurant, sections de menu, champs visuels si décision produit.
+- Implémenter les endpoints invités de l’ADR-011 (création commande, suivi par jeton, réponse à proposition) dans les routes serveur du bloc 7 — le bloc 2 livre seulement les garanties de base (RLS fermée à `anon` sur les tables de commande, contraintes, fonctions utilitaires).
+- Garder les enums/check constraints, clés étrangères, index, horodatages et stratégie d’effacement/archivage déjà en place; les étendre si nécessaire.
+- Maintenir les vues/champs publics sans contacts privés.
+- Fournir seeds de développement explicitement fictifs et séparés des environnements pilotes; purger ou marquer les données `[DEV]` présentes.
+- Créer le premier `super_admin` par une procédure contrôlée avec la `service_role` (jamais depuis le navigateur) et documenter la récupération d’accès.
+- Documenter choix de région (`eu-west-1` à confirmer), variables et `.env.example` sans valeurs réelles.
 
 **Fichiers possédés :** `supabase/migrations/*`, `supabase/seed.*`, `src/lib/db/*` ou équivalent, doc modèle de données.  
-**Acceptation :** migration depuis base vide; RLS partout où exposé; accès d’un membre A refusé aux données de B; visiteur ne voit que restaurants publiés; clé privilégiée absente du navigateur; montants en GNF entiers.
+**Acceptation :** migrations versionnées dans le dépôt et rejouables; RLS partout où exposé; accès d’un membre A refusé aux données de B; un membre ne peut ni s’auto-publier ni modifier un prix de commande déjà envoyée; visiteur ne voit que restaurants publiés; aucune politique `anon` sur les tables de commande; clé privilégiée absente du navigateur; montants en GNF entiers.
 
 ## Bloc 3 — Design system et shell responsive
 
@@ -158,7 +167,8 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 
 **Type :** agent parcours de commande.  
 **Dépendances :** blocs 2, 3, 5 et 6 acceptés; schéma/order contract gelé.  
-**Fichiers possédés :** panier/checkout public, endpoint création commande, page de suivi, handlers statut à coordonner avec bloc 6.
+**Fichiers possédés :** panier/checkout public, endpoint création commande, page de suivi, handlers statut à coordonner avec bloc 6.  
+**Note d’architecture :** le parcours invité passe par des routes serveur avec `service_role` (ADR-011); aucune politique RLS `anon` n’est ajoutée sur les tables de commande.
 
 **Tâches**
 

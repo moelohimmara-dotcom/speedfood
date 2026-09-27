@@ -154,6 +154,8 @@ Les cibles numériques seront fixées après entretiens et mesure de référence
 
 ## 11. Livrables
 
+> **État actuel (27 septembre 2026) :** la présentation publique et la démo cliquable sont déjà en ligne sur Cloudflare Pages — https://speedfood.pages.dev/ (prototype sous `/prototype/`). Données fictives, aucun backend. Les livrables ci-dessous concernent le MVP réel.
+
 1. Application web responsive et installable PWA avec code source documenté.
 2. Schéma de données, migrations versionnées et politiques d’accès.
 3. Parcours client, console restaurant et CMS système du MVP.

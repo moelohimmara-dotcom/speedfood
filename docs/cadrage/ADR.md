@@ -18,15 +18,16 @@
 - **Décision :** utiliser Next.js avec App Router et TypeScript; conserver les composants serveur pour les pages publiques quand adaptés, et les composants client seulement pour l’interactivité. Utiliser routes serveur dédiées pour les écritures et règles métier.
 - **Alternatives considérées :** SPA seule (plus simple, moins adaptée aux pages catalogue partageables); backend séparé (plus de déploiement et contrats à maintenir pour ce stade).
 - **Conséquences :** agents doivent éviter de dupliquer une logique métier sensible dans le navigateur; les appels et autorisations serveur sont la source d’autorité. La documentation officielle décrit l’App Router comme le routeur actuel fondé sur le système de fichiers et React Server Components : https://nextjs.org/docs/app
+- **Déploiement sur Cloudflare (27 septembre 2026) :** la landing et le prototype sont déjà hébergés sur Cloudflare Pages (`speedfood.pages.dev`). Pour le futur MVP Next.js, Cloudflare recommande **vinext** (https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/) plutôt qu’OpenNext pour toute nouvelle application : vinext réimplémente la surface d’API Next.js sous forme de plugin Vite et se déploie sur Workers. À vérifier au bloc 1 (maturité, compatibilité des fonctionnalités requises); OpenNext reste la voie de repli pour maintenir une application existante (https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/).
 - **Réexamen :** si les coûts ou les contraintes d’hébergement de Conakry imposent une architecture différente.
 
-## ADR-003 — PostgreSQL managé et Supabase comme option initiale
+## ADR-003 — PostgreSQL managé sur Supabase
 
-- **Statut :** PROPOSÉ, sous réserve d’examiner région, coût, disponibilité et exigences de données avant création du projet
+- **Statut :** ACCEPTÉ — projet `ggldjdizqrtpetdiohxy` créé (PostgreSQL 17, région `eu-west-1`)
 - **Contexte :** menus, commandes, rôles et historique ont des relations fortes et nécessitent des transactions ainsi qu’une isolation fiable.
-- **Décision :** modéliser en PostgreSQL. Évaluer Supabase managé (Postgres + Auth) pour réduire l’opération de départ; les migrations restent versionnées et la logique doit rester portable.
+- **Décision :** modéliser en PostgreSQL et utiliser Supabase managé (Postgres + Auth). Le projet est provisionné; les migrations restent versionnées dans le dépôt et la logique doit rester portable.
 - **Alternatives considérées :** base locale JSON (seulement prototype); base NoSQL (plus de travail pour cohérence commande/menu); hébergement PostgreSQL auto-opéré (charge d’exploitation prématurée).
-- **Conséquences :** vérifier le coût au moment de provisionner. Mesurer la latence depuis Conakry et choisir une région disponible après vérification; la région choisie influe aussi sur l’emplacement des données. La liste officielle des régions est évolutive : https://supabase.com/docs/guides/platform/regions
+- **Conséquences :** la région retenue est `eu-west-1` (Irlande); la latence depuis Conakry reste à mesurer et la résidence des données à confirmer avant pilote, faute de région africaine Supabase. La liste officielle des régions est évolutive : https://supabase.com/docs/guides/platform/regions
 - **Sécurité :** activer RLS sur toute table exposée et combiner RLS, privilèges minimaux et validations côté serveur; l’absence de politique ne doit jamais exposer une table. Documentation : https://supabase.com/docs/guides/database/postgres/row-level-security
 
 ## ADR-004 — Un restaurant est le tenant de sécurité
@@ -82,16 +83,25 @@
 - **Conséquences :** plus de travail qu’un tableau admin minimal, mais séparation des responsabilités, simplicité pour les restaurants et meilleure traçabilité. « CMS complet » désigne toutes les opérations nécessaires au portail pilote ci-dessus, pas un constructeur de site généraliste.
 - **Réexamen :** après pilote, selon le volume d’établissements et la taille de l’équipe opérationnelle.
 
+## ADR-011 — Commande invitée créée et suivie par routes serveur, RLS fermée côté client
+
+- **Statut :** ACCEPTÉ (arbitrage du 27 septembre 2026, à relire avant le bloc 7)
+- **Contexte :** la base (`AUDIT-SUPABASE.md`) ne donne aujourd’hui aucun accès client aux tables de commande : pas d’INSERT pour créer une commande, pas de lecture par `jeton_suivi`, pas de réponse aux `order_proposals`. Le parcours « commande invitée sans compte » (ADR-005) n’a donc aucun chemin de données.
+- **Décision :** créer, suivre et répondre à une proposition passent par des **routes serveur Next.js** (route handlers) qui utilisent la `service_role` uniquement côté serveur, avec validation stricte (recalcul des prix depuis la base, transitions autorisées, jeton opaque imprévisible, idempotence). Les politiques RLS des tables `orders`, `order_items`, `order_status_events`, `order_proposals` restent **fermées à `anon`** : aucune politique d’INSERT ou de SELECT par jeton n’est ajoutée. Les opérations des membres de restaurant continuent d’aller directement en base avec leur session authentifiée, sous RLS.
+- **Alternatives considérées :** fonctions `SECURITY DEFINER` exposées à `anon` (ex. `fn_creer_commande`) — logique plus près de la base, mais étend la surface SQL exposée publiquement et double la validation déjà prévue côté serveur par l’ADR-002 et les règles métier; politiques RLS avec accès par jeton — rend le jeton équivalent d’un mot de passe stocké en clair dans la table et expose le modèle de commande au public.
+- **Conséquences :** tout le parcours invité dépend du serveur Next.js disponible (cohérent avec l’ADR-002); la `service_role` ne quitte jamais le serveur; les écritures invitées sont testables en un seul point; le coût opérationnel reste celui d’une seule application. Les endpoints doivent être protégés contre les abus (limites de débit, tailles bornées) puisqu’ils sont ouverts à des visiteurs sans compte.
+- **Réexamen :** si une fonction `SECURITY DEFINER` devient nécessaire pour la cohérence transactionnelle (ex. création commande + lignes + événements en un appel atomique depuis plusieurs surfaces), l’ajouter en complément des routes serveur, jamais en remplacement des validations.
+
 ## Décisions ouvertes avant préproduction
 
-1. Région de base de données et hébergeur après mesure de latence et vérification des exigences de résidence.
+1. Région de base de données : `eu-west-1` provisionnée par défaut; confirmer après mesure de latence depuis Conakry et vérification des exigences de résidence (voir ADR-003).
 2. Mode d’inscription restaurateur : ouvert, invitation ou validation manuelle; la recommandation pilote est l’invitation/validation manuelle.
 3. Canal de notification et solution de secours.
 4. Durée de conservation des coordonnées clients et procédure de suppression.
 5. Conditions d’utilisation, politique de confidentialité et obligations locales avec un conseil compétent.
 6. Modalités de livraison/retrait à afficher et responsabilité en cas de litige.
 7. Modèle et prix après validation du pilote.
-8. Noms définitifs des rôles système, création du premier super-admin et procédure de récupération d’accès.
+8. Noms définitifs des rôles système, création du premier super-admin (aucun compte système n’existe encore en base, le CMS est inutilisable en l’état) et procédure de récupération d’accès.
 9. Liste exacte des pages éditoriales et indicateurs du CMS pilote.
 
 ## Références techniques officielles

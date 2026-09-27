@@ -46,7 +46,9 @@ Réutilisable sans risquer de transporter des données fictives :
 
 ## 6. Questions bloquantes
 
-1. Valides-tu `git init` dans `speedfood/` ?
+**Mise à jour (27 septembre 2026, après audit Supabase) :** la pile est tranchée — Next.js App Router + TypeScript (ADR-002) et Supabase managé (ADR-003, projet `ggldjdizqrtpetdiohxy`). Git est initialisé; `DESIGN-SYSTEM.md` existe; les noms sont harmonisés en « Speedfood ». Voir `AUDIT-SUPABASE.md` pour l’état de la base. Restent ouvertes les questions 2 (emplacement du code MVP) et 5 (validations terrain).
+
+1. Valides-tu `git init` dans `speedfood/` ? *(fait)*
 2. Le code MVP doit-il vivre hors OneDrive (recommandé) ? Si oui, quel chemin ?
 3. Harmoniser les noms (Bon → Speedfood) : oui ?
 4. `DESIGN-SYSTEM.md` : il manque ; qui le produit (toi ou le bloc 3) ?

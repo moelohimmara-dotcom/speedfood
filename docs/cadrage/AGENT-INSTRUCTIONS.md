@@ -17,7 +17,7 @@ Tu contribues au MVP de Speedfood, un portail web français de découverte et co
 7. Respecte accessibilité, mobile-first, français, montants GNF entiers et états de chargement/vide/erreur/succès.
    Pour l’interface, applique `DESIGN-SYSTEM.md` et `FRONTEND-DESIGN-BRIEF.md`; une direction marquée « proposée » n’est pas verrouillée tant qu’elle n’a pas été validée.
 8. N’ajoute pas de dépendance sans expliquer le besoin, le coût opérationnel et l’alternative intégrée. Consulte la documentation officielle pour les versions/API qui peuvent avoir changé.
-9. Ne modifie pas les migrations déjà fusionnées. Ajoute une nouvelle migration versionnée et indique les impacts de mise à niveau.
+9. Ne modifie pas les migrations déjà fusionnées. Ajoute une nouvelle migration versionnée et indique les impacts de mise à niveau. Aucun changement de schéma directement dans la base Supabase de production : tout changement passe par une migration versionnée dans `supabase/migrations/`, appliquée ensuite.
 10. À la fin, fournis : résumé, fichiers touchés, décisions/assumptions, commandes réellement exécutées et résultats, limites, risques ou blocages. Ne prétends jamais avoir exécuté une vérification non faite.
 
 ## Règles de sécurité minimales
