@@ -1,0 +1,9 @@
+# Copier en .dev.vars pour tester localement avec `wrangler dev` / `npm run cf:preview`.
+# wrangler ne lit PAS .env.local : ces variables doivent être dupliquées ici.
+# Ne jamais committer .dev.vars (déjà exclu par .gitignore).
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+COMMANDE_PROPOSITION_DELAI_MINUTES=30
+COMMANDE_JETON_SECRET=
