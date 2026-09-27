@@ -43,7 +43,13 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname.startsWith("/restaurant")) {
+  // "/restaurant/..." et "/restaurant" exact = console protégée ; "/restaurants/..."
+  // = fiches publiques du catalogue, qui doivent rester accessibles sans compte.
+  const cheminProtege =
+    request.nextUrl.pathname === "/restaurant" ||
+    request.nextUrl.pathname.startsWith("/restaurant/");
+
+  if (!user && cheminProtege) {
     const urlConnexion = request.nextUrl.clone();
     urlConnexion.pathname = "/connexion";
     urlConnexion.searchParams.set("suite", request.nextUrl.pathname);
