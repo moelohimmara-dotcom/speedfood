@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import type { Database } from "./database.types";
 
 /**
  * Client Supabase lié à la session utilisateur (cookies), en clé anon — la RLS
@@ -22,7 +23,7 @@ export async function creerClientServeur() {
 
   const magasinCookies = await cookies();
 
-  return createServerClient(url, cle, {
+  return createServerClient<Database>(url, cle, {
     cookies: {
       getAll() {
         return magasinCookies.getAll();

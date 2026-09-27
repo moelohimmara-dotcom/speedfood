@@ -29,7 +29,7 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 2 | Schéma Supabase (14 tables), RLS, isolation tenant | Fait | Requêtes REST réelles avec la clé anon (restaurant non publié invisible, `orders` vide, RPC interne refusé) |
 | 3 | Composants UI partagés (bouton, champ, carte, badge, alerte) | Fait, sous-ensemble volontaire | Rendu visuel dans le navigateur |
 | 4 | Authentification, onboarding restaurateur | Fait | **Deux comptes réels créés**, isolation confirmée à l'écran (le compte B ne voit jamais le restaurant du compte A) |
-| 5 | Catalogue public connecté | En cours | — |
+| 5 | Catalogue public connecté | Fait | Testé dans le navigateur : seuls les restaurants publiés apparaissent (les deux comptes du bloc 4, non validés, sont invisibles) ; accès direct par URL à un restaurant non publié renvoie une vraie 404, pas de fuite d'information ; filtres et recherche fonctionnels |
 | 6 | Console restaurant (menu, commandes, horaires) | Pas commencé | — |
 | 7 | Panier, commande, suivi client | Pas commencé | — |
 | 8 | CMS système | Pas commencé (tables prêtes avec RLS restrictive, aucun écran) | — |
@@ -55,6 +55,12 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
   Repéré deux fois par `get_advisors(type: "security")` (blocs 2 et 4) — **lancer
   systématiquement cette vérification après toute migration touchant une
   fonction ou une policy RLS.**
+- **Types Supabase générés** (`src/lib/db/database.types.ts`, bloc 5) : sans ce
+  fichier, une jointure comme `restaurants.select("menu_categories(nom)")` est
+  typée `any[]` par défaut (TypeScript ne peut pas déduire qu'une seule ligne est
+  attendue), ce qui masque de vraies erreurs. **Régénérer ce fichier après toute
+  migration qui change le schéma** (`generate_typescript_types` côté MCP, ou
+  `supabase gen types typescript --project-id ggldjdizqrtpetdiohxy` en CLI).
 - **Données de seed** : `supabase/seed.sql` contient des lignes préfixées
   `[DEV]`, déjà appliquées au projet Supabase actuel (pas seulement au fichier
   local). Volontairement différentes des données du prototype de démonstration.

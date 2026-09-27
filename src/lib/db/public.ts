@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
 /**
  * Client Supabase en clé publique (anon), sans session utilisateur.
@@ -19,5 +20,5 @@ export function creerClientPublic() {
     );
   }
 
-  return createClient(url, cle);
+  return createClient<Database>(url, cle);
 }
