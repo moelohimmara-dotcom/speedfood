@@ -1,0 +1,350 @@
+import "server-only";
+import { ErreurMetier } from "@/lib/contracts/erreurs";
+import type { StatutCommande } from "@/lib/contracts/statuts";
+import type {
+  PropositionRevisee,
+  ReponseProposition,
+  ValeursProposition,
+} from "@/lib/contracts/commande";
+import { creerClientAdmin } from "@/lib/db/admin";
+import type { ClientCommandeDb } from "./commun";
+import { estMontantGnfEntier, versStatutCommande, versStatutProposition } from "./commun";
+import { appliquerTransitionStatut } from "./transitions";
+
+/**
+ * Propositions révisées (`order_proposals`) — bloc 7.
+ *
+ * Règles :
+ * - Toute modification de prix/frais/conditions par le restaurant crée une
+ *   nouvelle version immuable ; une seule version est active à la fois.
+ * - Aucune préparation ni acceptation de la commande tant que la version active
+ *   n'a pas été acceptée par le client.
+ * - Refus du client : commande annulée. Expiration (échéance dépassée) :
+ *   proposition expirée ET commande terminée, sans préparation ni frais encaissés.
+ */
+
+/** Durée pilote de validité d'une proposition, configurable (défaut : 30 minutes). */
+export function delaiPropositionMinutes(): number {
+  const brut = Number.parseInt(process.env.COMMANDE_PROPOSITION_DELAI_MINUTES ?? "", 10);
+  if (Number.isFinite(brut) && brut >= 1 && brut <= 1440) {
+    return brut;
+  }
+  return 30;
+}
+
+interface LignePropositionDb {
+  id: string;
+  order_id: string;
+  version: number;
+  nouveau_sous_total: number;
+  nouveaux_frais_livraison: number;
+  conditions_modifiees: string | null;
+  statut: string;
+  expire_le: string | null;
+  cree_le: string;
+  repondu_le: string | null;
+}
+
+function versProposition(ligne: LignePropositionDb): PropositionRevisee {
+  return {
+    id: ligne.id,
+    commandeId: ligne.order_id,
+    version: ligne.version,
+    nouveauSousTotal: ligne.nouveau_sous_total,
+    nouveauxFraisLivraison: ligne.nouveaux_frais_livraison,
+    conditionsModifiees: ligne.conditions_modifiees,
+    statut: versStatutProposition(ligne.statut),
+    expireLe: ligne.expire_le,
+    creeLe: ligne.cree_le,
+    reponduLe: ligne.repondu_le,
+  };
+}
+
+const CHAMPS_PROPOSITION =
+  "id, order_id, version, nouveau_sous_total, nouveaux_frais_livraison, conditions_modifiees, statut, expire_le, cree_le, repondu_le";
+
+/** Toutes les propositions d'une commande, de la plus récente à la plus ancienne. */
+export async function lirePropositions(
+  db: ClientCommandeDb,
+  commandeId: string
+): Promise<PropositionRevisee[]> {
+  const { data, error } = await db
+    .from("order_proposals")
+    .select(CHAMPS_PROPOSITION)
+    .eq("order_id", commandeId)
+    .order("version", { ascending: false });
+
+  if (error) {
+    throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de lire les propositions. Réessayez.");
+  }
+  return (data ?? []).map(versProposition);
+}
+
+/** La proposition active : version courante, `en_attente`, non expirée. */
+export function propositionActiveParmi(
+  propositions: PropositionRevisee[],
+  maintenant: Date = new Date()
+): PropositionRevisee | null {
+  for (const proposition of propositions) {
+    if (proposition.statut !== "en_attente") {
+      continue;
+    }
+    if (proposition.expireLe !== null && new Date(proposition.expireLe) <= maintenant) {
+      continue;
+    }
+    return proposition;
+  }
+  return null;
+}
+
+/**
+ * Traite l'expiration d'une proposition échue : proposition → `expiree`, puis
+ * commande → `annulee` (aucune préparation, aucun frais encaissé).
+ *
+ * C'est un effet d'horloge système, pas une action d'un membre : les tables
+ * `order_proposals` (aucune policy UPDATE) et `orders` sont donc touchées avec le
+ * client service-role, pas avec la session du membre (ADR-011). Idempotent :
+ * renvoie `true` seulement si cette exécution a fait expirer la proposition.
+ */
+export async function traiterPropositionEchue(commandeId: string): Promise<boolean> {
+  const admin = creerClientAdmin();
+  const { data, error } = await admin
+    .from("order_proposals")
+    .select(CHAMPS_PROPOSITION)
+    .eq("order_id", commandeId)
+    .eq("statut", "en_attente")
+    .lte("expire_le", new Date().toISOString())
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de vérifier l'échéance. Réessayez.");
+  }
+  if (!data) {
+    return false;
+  }
+
+  const { error: erreurMaj } = await admin
+    .from("order_proposals")
+    .update({ statut: "expiree" })
+    .eq("id", data.id)
+    .eq("statut", "en_attente");
+  if (erreurMaj) {
+    // Une réponse du client est arrivée en même temps : rien à faire ici.
+    return false;
+  }
+
+  const { data: commande } = await admin
+    .from("orders")
+    .select("id, statut")
+    .eq("id", commandeId)
+    .maybeSingle();
+  if (commande) {
+    const statut = versStatutCommande(commande.statut);
+    if (statut === "en_attente") {
+      await appliquerTransitionStatut(
+        admin,
+        { id: commande.id, statut },
+        "annulee",
+        "systeme:proposition_expiree"
+      );
+    }
+  }
+  return true;
+}
+
+/**
+ * Crée une nouvelle version immuable de proposition. Utilise le client de la
+ * session membre : la policy RLS `membres_creation_propositions` suffit
+ * (insertion seulement), sans élévation service-role.
+ */
+export async function creerPropositionRevisee(
+  db: ClientCommandeDb,
+  commande: {
+    id: string;
+    statut: StatutCommande;
+    sousTotal: number;
+    fraisLivraisonEstime: number;
+  },
+  valeurs: ValeursProposition
+): Promise<PropositionRevisee> {
+  if (commande.statut !== "en_attente") {
+    throw new ErreurMetier(
+      "CONFLIT_ETAT",
+      "Une proposition révisée n'est possible que sur une commande en attente de confirmation."
+    );
+  }
+  if (
+    !estMontantGnfEntier(valeurs.nouveauSousTotal) ||
+    !estMontantGnfEntier(valeurs.nouveauxFraisLivraison)
+  ) {
+    throw new ErreurMetier(
+      "VALIDATION",
+      "Les montants doivent être des entiers en GNF (0 à 10 000 000).",
+      { montants: "Montants invalides." }
+    );
+  }
+  const conditions = valeurs.conditionsModifiees?.trim() ?? "";
+  if (conditions.length > 500) {
+    throw new ErreurMetier("VALIDATION", "Les conditions ne peuvent pas dépasser 500 caractères.", {
+      conditions: "500 caractères maximum.",
+    });
+  }
+  const modifie =
+    valeurs.nouveauSousTotal !== commande.sousTotal ||
+    valeurs.nouveauxFraisLivraison !== commande.fraisLivraisonEstime ||
+    conditions.length > 0;
+  if (!modifie) {
+    throw new ErreurMetier(
+      "VALIDATION",
+      "Aucune modification à proposer : changez le montant, les frais ou les conditions.",
+      { montants: "Rien à proposer." }
+    );
+  }
+
+  const existantes = await lirePropositions(db, commande.id);
+  const active = propositionActiveParmi(existantes);
+  if (active) {
+    throw new ErreurMetier(
+      "CONFLIT_ETAT",
+      "Une proposition est déjà en attente de réponse du client. Attendez sa réponse ou l'échéance avant d'en créer une nouvelle."
+    );
+  }
+
+  const version = existantes.reduce((max, p) => Math.max(max, p.version), 0) + 1;
+  const expireLe = new Date(Date.now() + delaiPropositionMinutes() * 60_000).toISOString();
+
+  const { data: creee, error } = await db
+    .from("order_proposals")
+    .insert({
+      order_id: commande.id,
+      version,
+      nouveau_sous_total: valeurs.nouveauSousTotal,
+      nouveaux_frais_livraison: valeurs.nouveauxFraisLivraison,
+      conditions_modifiees: conditions.length > 0 ? conditions : null,
+      statut: "en_attente",
+      expire_le: expireLe,
+    })
+    .select(CHAMPS_PROPOSITION)
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new ErreurMetier(
+        "CONFLIT_ETAT",
+        "Une version de proposition vient d'être créée en même temps. Rechargez et réessayez."
+      );
+    }
+    throw new ErreurMetier("ERREUR_SERVEUR", "Impossible d'enregistrer la proposition. Réessayez.");
+  }
+  return versProposition(creee);
+}
+
+/**
+ * Réponse du client à la proposition courante (depuis `/suivi/[jeton]`).
+ *
+ * Idempotent : rejouer la même réponse renvoie le succès. Seule la version
+ * courante (active) peut être acceptée. `refusee` annule la commande ;
+ * `acceptee` fige les nouveaux montants sur la commande, qui reste `en_attente`
+ * jusqu'à la confirmation du restaurant.
+ *
+ * Client service-role obligatoire : aucun accès invité aux tables de commande
+ * (aucune policy anon) et aucune policy UPDATE sur `order_proposals` (ADR-011).
+ * L'autorisation tient à la connaissance du jeton de suivi opaque.
+ */
+export async function repondreProposition(
+  jeton: string,
+  propositionId: string,
+  reponse: ReponseProposition
+): Promise<void> {
+  const admin = creerClientAdmin();
+
+  const { data: commande, error: erreurCommande } = await admin
+    .from("orders")
+    .select("id, reference, statut")
+    .eq("jeton_suivi", jeton)
+    .maybeSingle();
+  if (erreurCommande) {
+    throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de lire la commande. Réessayez.");
+  }
+  if (!commande) {
+    throw new ErreurMetier("INTROUVABLE", "Lien de suivi introuvable.");
+  }
+
+  await traiterPropositionEchue(commande.id);
+
+  const { data: proposition, error: erreurProposition } = await admin
+    .from("order_proposals")
+    .select(CHAMPS_PROPOSITION)
+    .eq("id", propositionId)
+    .maybeSingle();
+  if (erreurProposition) {
+    throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de lire la proposition. Réessayez.");
+  }
+  if (!proposition || proposition.order_id !== commande.id) {
+    throw new ErreurMetier("INTROUVABLE", "Proposition introuvable pour cette commande.");
+  }
+
+  const courante = versProposition(proposition);
+
+  // Rejeu idempotent : la même réponse, déjà traitée, est un succès.
+  if (courante.statut === reponse) {
+    return;
+  }
+  if (courante.statut === "expiree") {
+    throw new ErreurMetier("CONFLIT_ETAT", "Cette proposition a expiré. Rechargez la page.");
+  }
+  if (courante.statut !== "en_attente") {
+    throw new ErreurMetier(
+      "CONFLIT_ETAT",
+      "Cette proposition a déjà reçu une réponse. Rechargez la page."
+    );
+  }
+  if (propositionActiveParmi([courante]) === null) {
+    throw new ErreurMetier("CONFLIT_ETAT", "Cette proposition a expiré. Rechargez la page.");
+  }
+
+  // Une proposition n'est applicable que sur une commande encore en attente :
+  // si le restaurant a annulé entre-temps, la réponse du client n'a plus d'objet.
+  const statutActuel = versStatutCommande(commande.statut);
+  if (statutActuel !== "en_attente") {
+    throw new ErreurMetier(
+      "CONFLIT_ETAT",
+      "Cette commande n'est plus en attente : la proposition n'est plus applicable. Rechargez la page."
+    );
+  }
+
+  const { error: erreurMaj } = await admin
+    .from("order_proposals")
+    .update({ statut: reponse, repondu_le: new Date().toISOString() })
+    .eq("id", courante.id)
+    .eq("statut", "en_attente");
+  if (erreurMaj) {
+    throw new ErreurMetier("CONFLIT_ETAT", "La proposition vient d'être traitée. Rechargez la page.");
+  }
+
+  if (reponse === "acceptee") {
+    // Le client accepte les nouveaux montants : ils deviennent ceux de la
+    // commande (le statut reste `en_attente`, le restaurant confirme ensuite).
+    const { error } = await admin
+      .from("orders")
+      .update({
+        sous_total: courante.nouveauSousTotal,
+        frais_livraison_estime: courante.nouveauxFraisLivraison,
+      })
+      .eq("id", commande.id);
+    if (error) {
+      throw new ErreurMetier("ERREUR_SERVEUR", "Montants non mis à jour. Réessayez.");
+    }
+    return;
+  }
+
+  // Refus : la commande est annulée, sans préparation ni frais encaissés.
+  await appliquerTransitionStatut(
+    admin,
+    { id: commande.id, statut: statutActuel },
+    "annulee",
+    `client:${commande.reference}`
+  );
+}

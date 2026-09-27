@@ -1,52 +1,48 @@
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { Card, Badge } from "@/components/ui";
+import { chargerApercusCommandes } from "@/lib/commande/requetes";
+import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { Card, Alert } from "@/components/ui";
+import { CommandeCarte } from "./CommandeCarte";
 
-const LIBELLES_STATUT: Record<string, string> = {
-  en_attente: "En attente",
-  acceptee: "Acceptée",
-  refusee: "Refusée",
-  prete: "Prête",
-  terminee: "Terminée",
-  annulee: "Annulée",
-};
-
+/**
+ * Console restaurant — commandes (bloc 7).
+ *
+ * Lecture via la session du membre : la RLS `membres_lecture_leurs_commandes`
+ * garantit que le restaurant ne voit que ses propres commandes. Les actions
+ * (accepter/refuser/prête/terminée/annuler, proposition révisée) sont dans
+ * CommandeCarte et validées côté serveur.
+ */
 export default async function CommandesPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/commandes");
 
-  const { data: commandes } = await supabase
-    .from("orders")
-    .select("id, reference, client_nom, mode, sous_total, statut, cree_le")
-    .eq("restaurant_id", membership.restaurant_id)
-    .order("cree_le", { ascending: false });
+  let commandes: Awaited<ReturnType<typeof chargerApercusCommandes>> = [];
+  let erreurChargement: string | null = null;
+  try {
+    commandes = await chargerApercusCommandes(supabase, membership.restaurant_id);
+  } catch (erreur) {
+    erreurChargement =
+      erreur instanceof ErreurMetier
+        ? erreur.message
+        : "Impossible de charger les commandes. Réessayez dans un instant.";
+  }
 
   return (
     <div>
       <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-4)" }}>Commandes</h1>
 
-      {!commandes || commandes.length === 0 ? (
+      {erreurChargement ? (
+        <Alert ton="danger">{erreurChargement}</Alert>
+      ) : commandes.length === 0 ? (
         <Card>
           <p style={{ margin: 0, color: "var(--secondaire)" }}>
-            Aucune commande pour l&apos;instant. Vos commandes clients apparaîtront ici dès que la
-            prise de commande sera activée.
+            Aucune commande pour l&apos;instant. Vos commandes clients apparaîtront ici dès qu&apos;un
+            client en passera une.
           </p>
         </Card>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {commandes.map((commande) => (
-            <Card key={commande.id} style={{ display: "flex", justifyContent: "space-between" }}>
-              <div>
-                <strong>{commande.reference}</strong>
-                <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
-                  {commande.client_nom} · {commande.mode === "livraison" ? "Livraison" : "Retrait"}
-                </p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <Badge ton="neutre">{LIBELLES_STATUT[commande.statut] ?? commande.statut}</Badge>
-                <p style={{ margin: 0, fontWeight: 700 }}>
-                  {commande.sous_total.toLocaleString("fr-FR")} GNF
-                </p>
-              </div>
-            </Card>
+            <CommandeCarte key={commande.id} commande={commande} />
           ))}
         </div>
       )}

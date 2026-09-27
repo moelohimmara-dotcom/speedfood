@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
 import { Badge, Alert } from "@/components/ui";
+import { ControleQuantiteArticle } from "@/components/panier/ControleQuantiteArticle";
+import { LienPanier } from "@/components/panier/LienPanier";
 
 export default async function FicheRestaurantPage({
   params,
@@ -89,11 +91,21 @@ export default async function FicheRestaurantPage({
                   </p>
                 ) : null}
               </div>
-              <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
+                {restaurant.ouvert && item.disponible ? (
+                  <ControleQuantiteArticle
+                    restaurant={{ id: restaurant.id, nom: restaurant.nom }}
+                    article={{ id: item.id, nom: item.nom, prix: item.prix }}
+                  />
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <LienPanier />
     </main>
   );
 }

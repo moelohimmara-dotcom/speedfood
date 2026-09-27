@@ -1,0 +1,132 @@
+"use client";
+
+import Link from "next/link";
+import {
+  changerQuantite,
+  nombreArticlesPanier,
+  sousTotalPanier,
+  supprimerArticle,
+  usePanier,
+  QUANTITE_MAX_LIGNE,
+} from "@/components/panier/panier";
+import { Button, Card, Alert } from "@/components/ui";
+
+/**
+ * Panier mono-restaurant (TDR.md §5). Entièrement local au navigateur :
+ * aucun envoi serveur à cette étape, tout sera recalculé à la commande.
+ */
+export default function PanierPage() {
+  const panier = usePanier();
+  const total = sousTotalPanier(panier);
+  const nombre = nombreArticlesPanier(panier);
+
+  return (
+    <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+      <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Mon panier</h1>
+
+      {panier.lignes.length === 0 ? (
+        <Card>
+          <p style={{ marginTop: 0 }}>Votre panier est vide.</p>
+          <p style={{ color: "var(--secondaire)" }}>
+            Parcourez le catalogue et ajoutez les plats d&apos;un seul restaurant.
+          </p>
+          <Link href="/" className="btn btn-primary">
+            Voir les restaurants
+          </Link>
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <p style={{ marginTop: 0, fontWeight: 700 }}>
+              Restaurant : {panier.restaurantNom ?? "—"}
+            </p>
+            <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+              Un panier ne peut contenir qu&apos;un seul restaurant.
+            </p>
+          </Card>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: "var(--space-4)" }}>
+            {panier.lignes.map((ligne) => (
+              <Card
+                key={ligne.menuItemId}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <strong>{ligne.nom}</strong>
+                  <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+                    {ligne.prix.toLocaleString("fr-FR")} GNF l&apos;unité
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Button
+                    type="button"
+                    variante="secondary"
+                    aria-label={`Retirer un « ${ligne.nom} »`}
+                    onClick={() => changerQuantite(ligne.menuItemId, ligne.quantite - 1)}
+                    style={{ padding: "6px 12px" }}
+                  >
+                    −
+                  </Button>
+                  <span style={{ fontWeight: 700, minWidth: 20, textAlign: "center" }}>
+                    {ligne.quantite}
+                  </span>
+                  <Button
+                    type="button"
+                    variante="secondary"
+                    aria-label={`Ajouter un « ${ligne.nom} »`}
+                    disabled={ligne.quantite >= QUANTITE_MAX_LIGNE}
+                    onClick={() => changerQuantite(ligne.menuItemId, ligne.quantite + 1)}
+                    style={{ padding: "6px 12px" }}
+                  >
+                    +
+                  </Button>
+                  <Button
+                    type="button"
+                    variante="danger"
+                    onClick={() => supprimerArticle(ligne.menuItemId)}
+                    style={{ padding: "6px 12px" }}
+                  >
+                    Retirer
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <Card style={{ marginTop: "var(--space-4)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+              <span>
+                Sous-total ({nombre} article{nombre > 1 ? "s" : ""})
+              </span>
+              <span>{total.toLocaleString("fr-FR")} GNF</span>
+            </div>
+            <p style={{ margin: "8px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+              Les prix et la disponibilité seront revérifiés par le restaurant à l&apos;envoi de la
+              commande. Le règlement se fait directement avec le restaurant.
+            </p>
+          </Card>
+
+          <div style={{ display: "flex", gap: 8, marginTop: "var(--space-4)", flexWrap: "wrap" }}>
+            <Link href="/commande" className="btn btn-primary">
+              Passer la commande
+            </Link>
+            {panier.restaurantId ? (
+              <Link href={`/restaurants/${panier.restaurantId}`} className="btn btn-secondary">
+                Continuer mes achats
+              </Link>
+            ) : null}
+          </div>
+
+          <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+            Votre panier est conservé uniquement sur cet appareil.
+          </Alert>
+        </>
+      )}
+    </main>
+  );
+}
