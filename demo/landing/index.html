@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speedfood — Commandez chez vos restaurants préférés à Conakry</title>
+<meta name="description" content="Speedfood réunit les meilleurs restaurants de Conakry sur un seul portail. Découvrez, commandez, récupérez. Bientôt disponible." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="demo-banner">Démo — Speedfood n'est pas encore lancé publiquement à Conakry</div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#top" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 11c0-3.87 3.13-7 7-7h2c3.87 0 7 3.13 7 7v0c0 .55-.45 1-1 1H5c-.55 0-1-.45-1-1v0Z"/><path d="M4 15h16M9 19h6"/></svg>
+        </span>
+        <span class="brand-name">Speedfood</span>
+      </a>
+      <nav class="topnav">
+        <a href="#comment-ca-marche">Comment ça marche</a>
+        <a href="#restaurateurs">Restaurateurs</a>
+        <a href="#inscription">Rejoindre</a>
+      </nav>
+      <a href="../prototype/index.html" class="btn btn-secondary btn-nav-cta">Essayer la démo</a>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="eyebrow">Bientôt à Conakry</span>
+        <h1>Vos restaurants préférés,<br />à portée de main.</h1>
+        <p class="hero-sub">
+          Speedfood réunit les meilleurs restaurants de Conakry sur un seul portail. Découvrez un menu, envoyez votre commande, récupérez sur place ou faites-vous livrer.
+        </p>
+        <div class="hero-actions">
+          <a href="#inscription" class="btn btn-primary btn-lg">Je veux être prévenu·e du lancement</a>
+          <a href="../prototype/index.html" class="btn btn-secondary btn-lg">Voir la démo cliquable</a>
+        </div>
+        <div class="hero-trust">
+          <span aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg></span>
+          <span>Projet en phase de validation terrain à Conakry, vos retours façonnent le produit final.</span>
+        </div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-card card-a">
+          <span class="hero-card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M4 12h16c0 4.42-3.58 8-8 8s-8-3.58-8-8Z"/><path d="M12 12V5M9 7l1.5-2M15 7l-1.5-2"/></svg></span>
+          <strong>Chez Mama Kadiatou</strong>
+          <span class="meta-line">Riz & sauces · Kaloum</span>
+        </div>
+        <div class="hero-card card-b">
+          <span class="hero-card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3c1.5 2 2 3.5 1 5-.7 1-1 1.8-1 2.5A2.5 2.5 0 0 0 14.5 13c1.4 0 2.2-.9 2.5-1.8.8 1.2 1 2.6.6 4A5.5 5.5 0 0 1 6.6 14c-.5-2 .2-3.4 1.2-4.6C9.2 7.7 9 5.3 12 3Z"/></svg></span>
+          <strong>Grill Dixinn</strong>
+          <span class="meta-line">Grillades · Dixinn</span>
+        </div>
+        <div class="hero-card card-c">
+          <span class="hero-card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 4c0 1-1 1-1 2M12 4c0 1-1 1-1 2"/></svg></span>
+          <strong>Café Matam</strong>
+          <span class="meta-line">Petit-déjeuner · Matam</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preuve sociale factice mais signalée comme telle -->
+    <section class="strip">
+      <p class="strip-label">Restaurants pilotes envisagés à Conakry <span>(exemples, à confirmer)</span></p>
+      <ul class="strip-row">
+        <li>
+          <span class="strip-icon" style="background:var(--couleur-riz)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 12h16c0 4.42-3.58 8-8 8s-8-3.58-8-8Z"/><path d="M12 12V5M9 7l1.5-2M15 7l-1.5-2"/></svg></span>
+          Chez Mama Kadiatou
+        </li>
+        <li>
+          <span class="strip-icon" style="background:var(--couleur-grill)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3c1.5 2 2 3.5 1 5-.7 1-1 1.8-1 2.5A2.5 2.5 0 0 0 14.5 13c1.4 0 2.2-.9 2.5-1.8.8 1.2 1 2.6.6 4A5.5 5.5 0 0 1 6.6 14c-.5-2 .2-3.4 1.2-4.6C9.2 7.7 9 5.3 12 3Z"/></svg></span>
+          Grill Dixinn
+        </li>
+        <li>
+          <span class="strip-icon" style="background:var(--couleur-fast)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 10a8 8 0 0 1 16 0Z"/><path d="M3.5 10h17M4 14h16M5 18h14"/></svg></span>
+          Speedy Snack
+        </li>
+        <li>
+          <span class="strip-icon" style="background:var(--couleur-cafe)"><svg class="icon" viewBox="0 0 24 24"><path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 4c0 1-1 1-1 2M12 4c0 1-1 1-1 2"/></svg></span>
+          Café Matam
+        </li>
+      </ul>
+    </section>
+
+    <!-- Comment ça marche -->
+    <section id="comment-ca-marche" class="section">
+      <h2>Comment ça marche</h2>
+      <p class="section-sub">Trois étapes, sans compte obligatoire pour commander.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Découvrez</h3>
+          <p>Parcourez les restaurants ouverts près de chez vous, filtrez par quartier ou par type de plat.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Commandez</h3>
+          <p>Choisissez vos plats, indiquez retrait ou livraison, envoyez votre demande en quelques secondes.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Récupérez</h3>
+          <p>Le restaurant confirme, vous suivez votre commande en temps réel jusqu'à la remise.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pour les restaurateurs -->
+    <section id="restaurateurs" class="section section-alt">
+      <div class="two-col">
+        <div>
+          <span class="eyebrow">Pour les restaurateurs</span>
+          <h2>Gérez vos commandes sans effort technique.</h2>
+          <ul class="check-list">
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Une console simple pensée pour un téléphone, pas un ordinateur</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Vous gardez la main sur vos prix, vos horaires et vos plats disponibles</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Gratuit pendant la phase pilote</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Vous acceptez ou refusez chaque commande, rien n'est automatique</li>
+          </ul>
+          <a href="#inscription" class="btn btn-primary">Inscrire mon restaurant</a>
+        </div>
+        <div class="mockup-card" aria-hidden="true">
+          <div class="mockup-header">Espace restaurant</div>
+          <div class="mockup-row"><span>SF-4KVB9 · Malika T.</span><span class="badge badge-demo">En attente</span></div>
+          <div class="mockup-row"><span>1 × Riz gras au poisson</span></div>
+          <div class="mockup-actions">
+            <span class="btn btn-primary btn-sm">Accepter</span>
+            <span class="btn btn-danger btn-sm">Refuser</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone de lancement -->
+    <section class="section">
+      <h2>Le lancement démarre à Conakry</h2>
+      <p class="section-sub">Le pilote se concentre d'abord sur un petit groupe de quartiers pour bien faire les choses avant d'aller plus loin.</p>
+      <div class="chip-row centered">
+        <span class="chip static">Kaloum</span>
+        <span class="chip static">Dixinn</span>
+        <span class="chip static">Ratoma</span>
+        <span class="chip static">Matam</span>
+      </div>
+    </section>
+
+    <!-- Formulaire d'inscription -->
+    <section id="inscription" class="section section-cta">
+      <div class="cta-box">
+        <h2>Soyez prévenu·e au lancement</h2>
+        <p class="section-sub">Laissez vos coordonnées. Aucune donnée n'est transmise à un serveur réel : ceci est une démonstration de validation produit.</p>
+
+        <div class="role-toggle" id="role-toggle" role="group" aria-label="Vous êtes">
+          <button type="button" class="active" data-role="client" aria-pressed="true">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            Je suis client
+          </button>
+          <button type="button" data-role="restaurateur" aria-pressed="false">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 10v9h16v-9M3 10l2-6h14l2 6M3 10h18M9 19v-5h6v5"/></svg>
+            Je suis restaurateur
+          </button>
+        </div>
+
+        <form id="signup-form">
+          <div class="field">
+            <label for="su-nom">Votre nom</label>
+            <input type="text" id="su-nom" required />
+          </div>
+          <div class="field">
+            <label for="su-tel">Numéro de téléphone</label>
+            <input type="tel" id="su-tel" placeholder="622 00 00 00" required />
+          </div>
+          <div class="field" id="field-restaurant" hidden>
+            <label for="su-resto">Nom de votre restaurant</label>
+            <input type="text" id="su-resto" />
+          </div>
+          <div class="field">
+            <label for="su-quartier">Votre quartier</label>
+            <select id="su-quartier">
+              <option>Kaloum</option>
+              <option>Dixinn</option>
+              <option>Ratoma</option>
+              <option>Matam</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">M'inscrire</button>
+        </form>
+
+        <div id="signup-confirm" class="confirm-box" hidden>
+          <span class="confirm-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>
+          <h3>Merci !</h3>
+          <p>Votre inscription (démo) a bien été enregistrée localement dans ce navigateur. Nous vous contacterons au lancement.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>Speedfood — page de présentation, projet en phase de validation. Restaurants et informations à titre d'exemple.</p>
+    <p><a href="../prototype/index.html">Essayer la démo cliquable</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

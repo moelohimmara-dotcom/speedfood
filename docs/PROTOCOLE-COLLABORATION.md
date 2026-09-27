@@ -12,18 +12,17 @@ code, cadrage (`docs/cadrage/`), statut (`docs/STATUT-PROJET.md`), migrations
 (`supabase/migrations/`), documentation de déploiement.
 
 Un ancien dépôt documentaire existe dans le workspace OneDrive
-(`...\Jarvis\speedfood\`) : il ne contient plus que les **sources statiques**
-`landing/` et `prototype/` (démo cliquable, déployées sur le projet Cloudflare
-Pages `speedfood`, `speedfood.pages.dev`). Le cadrage qui y figure est une
-ancienne copie archivée — **ne jamais y travailler ni s'y fier**, sauf pour
-modifier `landing/` ou `prototype/` eux-mêmes.
+(`...\Jarvis\speedfood\`) : il n'est plus qu'une **archive en lecture seule**
+(cadrage périmé + anciennes copies de `landing/` et `prototype/`). Ne jamais y
+travailler. Les sources de la démo sont désormais dans `demo/` de ce dépôt
+(voir `demo/README.md`).
 
 Correspondance des surfaces déployées :
 
 | Surface | Projet Cloudflare | Source |
 |---|---|---|
 | Application réelle (MVP) | Worker `speedfood-app` (`speedfood-app.moelohimmara.workers.dev`) | **ce dépôt** |
-| Landing + prototype de démonstration | Pages `speedfood` (`speedfood.pages.dev`) | `landing/` et `prototype/` du dépôt OneDrive |
+| Landing + prototype de démonstration | Pages `speedfood` (`speedfood.pages.dev`) | **`demo/` de ce dépôt** |
 
 ## 2. Règles de travail parallèle
 
@@ -67,5 +66,5 @@ Correspondance des surfaces déployées :
 - Application : `npm.cmd run cf:deploy` (build OpenNext + `wrangler deploy` sur
   `speedfood-app`) — voir `docs/DEPLOIEMENT-CLOUDFLARE.md`.
 - Landing/prototype : `wrangler pages deploy dist --project-name speedfood`
-  depuis le dépôt OneDrive (voir son README).
+  depuis un dossier `dist/` construit à partir de `demo/` (voir `demo/README.md`).
 - Tout déploiement est consigné dans `docs/STATUT-PROJET.md`.

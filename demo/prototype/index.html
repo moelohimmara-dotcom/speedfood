@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speedfood — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="demo-banner">Démo — données fictives, aucune commande réelle</div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#/" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 11c0-3.87 3.13-7 7-7h2c3.87 0 7 3.13 7 7v0c0 .55-.45 1-1 1H5c-.55 0-1-.45-1-1v0Z"/><path d="M4 15h16M9 19h6"/></svg>
+        </span>
+        <span class="brand-name">Speedfood</span>
+      </a>
+      <nav class="topnav">
+        <a href="#/" data-nav="client">Client</a>
+        <a href="#/favoris" data-nav="favoris">Favoris</a>
+        <a href="#/mes-commandes" data-nav="commandes">Mes commandes</a>
+        <a href="#/restaurant-console" data-nav="restaurant">Espace restaurant</a>
+      </nav>
+      <button id="fav-btn" class="fav-header-btn" aria-label="Voir mes favoris">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 20s-7-4.35-9.5-8.8C.9 8.1 2.3 4.8 5.6 4.2c1.9-.35 3.7.5 4.7 2 .3.45.8 1.05 1.7 1.05.9 0 1.4-.6 1.7-1.05 1-1.5 2.8-2.35 4.7-2C21.7 4.8 23.1 8.1 21.5 11.2 19 15.65 12 20 12 20Z"/></svg>
+        <span id="fav-count" class="fav-header-count" hidden>0</span>
+      </button>
+      <button id="cart-btn" class="cart-btn" aria-label="Voir le panier">
+        Panier <span id="cart-count" class="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="app" role="main"></main>
+
+  <div id="sticky-cart-bar" class="sticky-cart-bar" hidden></div>
+
+  <footer class="footer">
+    <p>Speedfood — prototype de validation produit. Restaurants, plats et prix fictifs.</p>
+  </footer>
+
+  <nav class="bottom-tabs" aria-label="Navigation principale">
+    <a href="#/" data-tab="client">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/></svg>
+      <span>Découvrir</span>
+    </a>
+    <a href="#/mes-commandes" data-tab="commandes">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M8 3l-3 2M16 3l3 2"/></svg>
+      <span>Commandes</span>
+    </a>
+    <a href="#/panier" data-tab="panier">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16l-1.5 12.5A2 2 0 0 1 16.5 20h-9a2 2 0 0 1-2-1.8L4 6Z"/><path d="M4 6l-1-3M9 10v5M15 10v5M8 6a4 4 0 0 1 8 0"/></svg>
+      <span>Panier</span>
+      <span id="bottom-cart-count" class="bottom-cart-count" hidden>0</span>
+    </a>
+    <a href="#/restaurant-console" data-tab="restaurant">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 10v9h16v-9M3 10l2-6h14l2 6M3 10h18M9 19v-5h6v5"/></svg>
+      <span>Restaurant</span>
+    </a>
+  </nav>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
