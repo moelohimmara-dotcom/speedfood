@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 27 septembre 2026 (bloc 8b).** Ce document existe pour qu'une
+**Dernière mise à jour : 27 septembre 2026 (bloc 8c).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -34,7 +34,8 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 7 | Panier, commande, suivi client | Fait | Testé dans le navigateur : panier mono-restaurant, checkout invité (recalcul serveur des prix, consentement), commande créée avec référence publique et jeton de suivi (aucune donnée personnelle visible sur `/suivi/[jeton]`), actions restaurant accepter/refuser/prête/terminée avec historisation, proposition révisée versionnée avec échéance puis acceptation client appliquant le nouveau total (35 000 GNF au lieu de 25 000) et retour en attente de confirmation |
 | 8a | CMS système — rôles, permissions, shell `/system` | Fait | Testé dans le navigateur : anonyme → 404 sans fuite ; compte `super_admin` réel accepté (autre session) ; compte de test avec rôle `support` (créé puis nettoyé) voit uniquement les sections autorisées à son rôle, `/system/roles` (hors permission) renvoie 404 |
 | 8b | Restaurants & comptes (modération, équipe) | Fait | Testé dans le navigateur avec un compte `operations` réel et un restaurant/deux comptes de test (créés puis nettoyés en base) : approuver, demander une correction (visible ensuite sur la console du restaurateur), suspendre (retiré du catalogue public, vérifié), réactiver, inviter un équipier existant, refus propre pour un email sans compte, retrait d'équipier |
-| 8c/8d | Contenus éditoriaux, support commandes/audit | Pas commencé (placeholders protégés en place) | — |
+| 8c | CMS éditorial et taxonomie | Fait | Testé dans le navigateur avec un compte `content_editor` et un compte `operations` réels (créés, non nettoyables — voir plus bas) : page créée en brouillon puis publiée (aperçu mobile reflète la frappe en direct avant sauvegarde), bannière créée et publiée, catégorie de taxonomie ajoutée puis supprimée, mise en avant ajoutée/désactivée par `operations` ; séparation croisée confirmée (`content_editor` → 404 sur `/system/mises-en-avant`, `operations` → 404 sur `/system/contenus`) |
+| 8d | Support commandes, audit | Pas commencé (placeholder protégé en place) | — |
 | 9 | PWA installable | Pas commencé | — |
 | 10 | Notifications pilote | Bloqué par design (ADR-007) tant que le canal n'est pas choisi avec de vrais restaurateurs | — |
 | 11 | Préproduction / lancement | Pas commencé | — |
@@ -81,6 +82,23 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   pour toute migration DDL, sous peine de désynchroniser l'historique visible par
   `list_migrations`/`supabase migration list` de ce qui tourne réellement en base.
 
+- **Trou RLS comblé (bloc 8c)** : `menu_categories` et `neighborhoods`
+  n'avaient **aucune policy d'écriture** depuis le bloc 2 — gérables uniquement
+  en SQL direct jusqu'ici, pas un oubli mineur. Comblé avec la permission
+  `taxonomie.editer` (content_editor, super_admin — matrice v1.0.0 inchangée).
+  `content_banners` a aussi reçu `auteur_id`/`mis_a_jour_le` (`content_pages`
+  les avait déjà) pour respecter l'exigence d'acceptation du bloc 8c ("chaque
+  contenu porte auteur, date et état").
+- **Tags non implémentés (bloc 8c)** : `PLAN-EXECUTION.md` mentionne des tags
+  pour la taxonomie, mais aucune table ni aucune UI de filtrage par tag
+  n'existe dans le schéma ou le catalogue public — pas dans le périmètre
+  d'acceptation du bloc, volontairement pas construit par anticipation.
+- **Mises en avant : permission différente des contenus éditoriaux (bloc 8c)** :
+  `contenu.mettre_en_avant` appartient à `operations`/`super_admin`, **pas**
+  `content_editor` (matrice v1.0.0) — décision opérationnelle/commerciale, pas
+  éditoriale. D'où une page séparée `/system/mises-en-avant`, distincte de
+  `/system/contenus`, déjà anticipée par le commentaire du placeholder du
+  bloc 8a. Vérifié : chaque rôle est bien bloqué (404) sur la section de l'autre.
 - **Invitation d'équipier sans email (bloc 8b)** : « inviter » un équipier ne
   crée ni compte ni email — aucun canal de notification n'est choisi (ADR-007,
   bloc 10 bloqué). La personne doit déjà avoir un compte Speedfood (créé via
@@ -92,15 +110,16 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   trigger `fn_proteger_colonnes_restaurant` que `publie`/`suspendu_*` (bloc 7) —
   un restaurateur ne peut jamais l'écrire ni l'effacer lui-même. Affichée sur sa
   console (`/restaurant`, bloc 6) quand un admin en a saisi une.
-- **Comptes de test orphelins acceptables** : `bloc8b-ops-test@gmail.com` et
-  `bloc8b-recheck-admin@gmail.com` (comptes auth existent encore, sans aucun
-  rôle système) n'ont pas pu être supprimés — leurs `id` sont référencés par
-  des lignes `audit_events` produites pendant les tests, et `audit_events` est
-  append-only par design (ADR-010, aucune policy de suppression). Les deux
-  comptes sont inertes (aucun rôle, aucun restaurant) : laissés tels quels
-  plutôt que de compromettre l'intégrité du journal d'audit. **Ce sera
-  systématique pour tout futur test impliquant une action journalisée** — ne
-  pas essayer de forcer leur suppression, c'est le comportement voulu.
+- **Comptes de test orphelins acceptables** : `bloc8b-ops-test@gmail.com`,
+  `bloc8b-recheck-admin@gmail.com`, `bloc8c-editor-test@gmail.com` et
+  `bloc8c-ops-test@gmail.com` (comptes auth existent encore, sans aucun rôle
+  système) n'ont pas pu être supprimés — leurs `id` sont référencés par des
+  lignes `audit_events` produites pendant les tests, et `audit_events` est
+  append-only par design (ADR-010, aucune policy de suppression). Tous sont
+  inertes (aucun rôle, aucun restaurant) : laissés tels quels plutôt que de
+  compromettre l'intégrité du journal d'audit. **Ce sera systématique pour
+  tout futur test impliquant une action journalisée** — ne pas essayer de
+  forcer leur suppression, c'est le comportement voulu.
 - **Masquage des coordonnées clients par défaut (bloc 8a)** : dans le CMS
   système, téléphone et adresse d'une commande sont toujours masqués
   (`src/lib/system-admin/coordonnees.ts`) ; seule la permission `coordonees.voir`

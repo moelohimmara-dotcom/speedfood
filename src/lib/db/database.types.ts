@@ -46,27 +46,33 @@ export type Database = {
       }
       content_banners: {
         Row: {
+          auteur_id: string | null
           cree_le: string
           id: string
           lien: string | null
+          mis_a_jour_le: string
           ordre: number
           statut: string
           texte: string
           titre: string
         }
         Insert: {
+          auteur_id?: string | null
           cree_le?: string
           id?: string
           lien?: string | null
+          mis_a_jour_le?: string
           ordre?: number
           statut?: string
           texte?: string
           titre: string
         }
         Update: {
+          auteur_id?: string | null
           cree_le?: string
           id?: string
           lien?: string | null
+          mis_a_jour_le?: string
           ordre?: number
           statut?: string
           texte?: string

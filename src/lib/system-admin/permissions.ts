@@ -164,6 +164,13 @@ export const SECTIONS_SYSTEME: readonly SectionSysteme[] = [
     resume: "Pages d'aide et FAQ, bannières, contenus d'accueil, taxonomie.",
   },
   {
+    href: "/system/mises-en-avant",
+    libelle: "Mises en avant",
+    bloc: "8c",
+    permission: "contenu.mettre_en_avant",
+    resume: "Sélection des restaurants mis en avant au catalogue public — décision opérations, pas éditoriale.",
+  },
+  {
     href: "/system/commandes",
     libelle: "Support commandes",
     bloc: "8d",
