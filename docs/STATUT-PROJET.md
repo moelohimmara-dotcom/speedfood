@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 27 septembre 2026 (bloc 6).** Ce document existe pour qu'une
+**Dernière mise à jour : 27 septembre 2026 (bloc 8a + déploiement + fusion landing).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -32,10 +32,27 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 5 | Catalogue public connecté | Fait | Testé dans le navigateur : seuls les restaurants publiés apparaissent (les deux comptes du bloc 4, non validés, sont invisibles) ; accès direct par URL à un restaurant non publié renvoie une vraie 404, pas de fuite d'information ; filtres et recherche fonctionnels |
 | 6 | Console restaurant (menu, commandes, horaires) | Fait | Testé dans le navigateur avec un compte réel (créé puis nettoyé en base après test) : ajout/modification/bascule disponibilité d'un plat, fermeture/réouverture du restaurant, horaires/consignes enregistrés, tout revérifié après rechargement de page |
 | 7 | Panier, commande, suivi client | Fait | Testé dans le navigateur : panier mono-restaurant, checkout invité (recalcul serveur des prix, consentement), commande créée avec référence publique et jeton de suivi (aucune donnée personnelle visible sur `/suivi/[jeton]`), actions restaurant accepter/refuser/prête/terminée avec historisation, proposition révisée versionnée avec échéance puis acceptation client appliquant le nouveau total (35 000 GNF au lieu de 25 000) et retour en attente de confirmation |
-| 8 | CMS système | Pas commencé (tables prêtes avec RLS restrictive, aucun écran) | — |
+| 8a | CMS système — rôles, permissions, shell `/system` | Fait | Testé dans le navigateur : anonyme → 404 sans fuite ; compte `super_admin` réel accepté (autre session) ; compte de test avec rôle `support` (créé puis nettoyé) voit uniquement les sections autorisées à son rôle, `/system/roles` (hors permission) renvoie 404 |
+| 8b/8c/8d | Écrans métier du CMS (restaurants, contenus, commandes support) | Pas commencé (placeholders protégés en place) | — |
 | 9 | PWA installable | Pas commencé | — |
 | 10 | Notifications pilote | Bloqué par design (ADR-007) tant que le canal n'est pas choisi avec de vrais restaurateurs | — |
 | 11 | Préproduction / lancement | Pas commencé | — |
+
+## Déploiement
+
+Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
+
+- **Le vrai système est en ligne** : https://speedfood-app.moelohimmara.workers.dev
+  (Cloudflare Workers via `@opennextjs/cloudflare`). Redéployer après tout
+  changement de code avec `npm run cf:build && npx wrangler deploy`.
+- **`/`** est la landing marketing (fusionnée depuis `Jarvis/speedfood/landing`,
+  27/09/2026) ; **`/restaurants`** est le vrai catalogue connecté à Supabase
+  (anciennement à `/`, avant la fusion — tout lien externe vers l'ancienne racine
+  comme catalogue est désormais invalide).
+- **Un projet Cloudflare Pages statique distinct existe déjà**,
+  `speedfood.pages.dev` (landing + prototype cliquable de démonstration, sans
+  aucun backend). Décision explicite de Malika : les deux déploiements coexistent
+  pour l'instant, ne pas supprimer l'un ou l'autre sans consigne.
 
 ## Compte administrateur système
 
@@ -63,6 +80,19 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
   pour toute migration DDL, sous peine de désynchroniser l'historique visible par
   `list_migrations`/`supabase migration list` de ce qui tourne réellement en base.
 
+- **Masquage des coordonnées clients par défaut (bloc 8a)** : dans le CMS
+  système, téléphone et adresse d'une commande sont toujours masqués
+  (`src/lib/system-admin/coordonnees.ts`) ; seule la permission `coordonees.voir`
+  (support, super_admin) permet de les révéler, et uniquement après un motif
+  obligatoire et une trace écrite dans `audit_events` **avant** l'affichage
+  (`revelerCoordonneesCommande`, refuse l'action si la trace échoue).
+- **Fusion de la landing page (27/09/2026)** : le contenu marketing de
+  `Jarvis/speedfood/landing` a été porté dans ce dépôt comme vraie page Next.js
+  à `/`. Le catalogue réel (bloc 5) a été déplacé de `/` vers `/restaurants` —
+  tout lien ou favori pointant vers l'ancienne racine comme catalogue est
+  désormais faux. Le faux formulaire d'inscription de la landing (localStorage
+  uniquement) a été remplacé par de vraies actions (`/restaurants`,
+  `/inscription`). Voir `docs/DEPLOIEMENT-CLOUDFLARE.md`.
 - **Inscription restaurateur** : auto-inscription libre (email + mot de passe),
   restaurant créé non publié par défaut, validation manuelle par un admin en
   attendant le vrai CMS d'invitation. Confirmé par Malika (répondait à la
@@ -111,11 +141,9 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 - Aucun test automatisé (unitaire, intégration, e2e) n'existe encore. Toute la
   vérification jusqu'ici s'est faite manuellement (navigateur + requêtes REST
   directes), documentée dans les messages de commit Git.
-- Aucun écran admin/CMS (bloc 8) : publier un restaurant ou gérer un rôle système passe encore par du SQL direct — mais un compte `super_admin` existe désormais (`admin.speedfood.dev@gmail.com`, voir section dédiée), prêt pour le branchement du CMS.
-- Aucune route serveur de commande (bloc 7) : `orders` et tables liées existent
-  en base avec RLS, mais rien ne les écrit encore. La page `/restaurant/commandes`
-  du bloc 6 affiche déjà la liste (lecture seule) pour quand ça existera.
+- Le CMS système (bloc 8a) a un shell fonctionnel et des rôles/permissions vérifiés, mais aucun écran métier réel derrière (publier un restaurant, gérer un rôle, modérer du contenu passent encore par du SQL direct — blocs 8b/8c/8d).
 - Pas de CI/CD.
+- Aucun test de charge ni de bout en bout automatisé en environnement Cloudflare réel (voir `docs/DEPLOIEMENT-CLOUDFLARE.md`).
 
 ## Comment vérifier soi-même que tout est toujours cohérent
 
