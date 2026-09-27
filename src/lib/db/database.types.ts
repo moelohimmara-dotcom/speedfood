@@ -538,6 +538,18 @@ export type Database = {
         Args: { p_restaurant_id: string }
         Returns: boolean
       }
+      fn_lister_audit: {
+        Args: { p_action?: string; p_depuis?: string; p_limite?: number }
+        Returns: {
+          acteur_email: string
+          action: string
+          cible_id: string
+          cible_type: string
+          horodatage: string
+          id: string
+          motif: string
+        }[]
+      }
       fn_lister_membres_restaurant: {
         Args: { p_restaurant_id: string }
         Returns: {

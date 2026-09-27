@@ -1,51 +1,95 @@
+import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
-import { masquerAdresse, masquerTelephone } from "@/lib/system-admin/coordonnees";
-import { PlaceholderSection } from "../PlaceholderSection";
+import { rechercherCommandesAdmin } from "@/lib/system-admin/commandes";
+import { STATUTS_COMMANDE, type StatutCommande } from "@/lib/contracts/statuts";
+import { Card, Badge } from "@/components/ui";
 
-// Exemple fictif, uniquement pour montrer la règle de masquage appliquée par
-// les helpers — aucune donnée réelle sur cette page, et surtout aucune donnée
-// en clair : la valeur complète n'apparaît jamais par défaut, même en exemple.
-const EXEMPLE_TELEPHONE = "+224 622 34 56 78";
-const EXEMPLE_ADRESSE = "12 rue du Marché, Madina";
+const LIBELLES_STATUT: Record<StatutCommande, string> = {
+  en_attente: "En attente",
+  acceptee: "Acceptée",
+  refusee: "Refusée",
+  prete: "Prête",
+  terminee: "Terminée",
+  annulee: "Annulée",
+};
 
-/**
- * Placeholder du bloc 8d (support commandes) : la permission est vérifiée dès
- * maintenant. Le masquage des coordonnées est déjà actif — affiché ici par les
- * vrais helpers pour en donner la preuve ; la révélation réelle passera par
- * `revelerCoordonneesCommande` (permission `coordonees.voir`, motif obligatoire
- * et trace d'audit).
- */
-export default async function SupportCommandesSystemePage() {
+interface Recherche {
+  reference?: string;
+  statut?: string;
+}
+
+export default async function SupportCommandesSystemePage({
+  searchParams,
+}: {
+  searchParams: Promise<Recherche>;
+}) {
   await exigerPermissionPage("commande.consulter");
+  const { reference, statut: statutBrut } = await searchParams;
+  const statut: StatutCommande | "tous" = (STATUTS_COMMANDE as readonly string[]).includes(
+    statutBrut ?? ""
+  )
+    ? (statutBrut as StatutCommande)
+    : "tous";
+
+  const commandes = await rechercherCommandesAdmin({ reference, statut });
 
   return (
-    <PlaceholderSection
-      titre="Support commandes"
-      bloc="8d"
-      permission="commande.consulter"
-      description="Recherche par référence, statut, date et restaurant, historique des transitions, indicateurs d'activité, accès exceptionnel aux coordonnées avec permission, motif et audit."
-    >
-      <div
-        style={{
-          marginTop: "var(--space-4)",
-          padding: "var(--space-3)",
-          border: "1px solid var(--bordure)",
-          borderRadius: "var(--radius-md)",
-          fontSize: "0.85rem",
-        }}
-      >
-        <p style={{ fontWeight: 700, marginBottom: 4 }}>
-          Règle de masquage — exemple fictif (les écrans 8d afficheront ainsi par défaut)
-        </p>
-        <p style={{ color: "var(--secondaire)" }}>
-          Téléphone : {masquerTelephone(EXEMPLE_TELEPHONE)} — Adresse : {masquerAdresse(EXEMPLE_ADRESSE)}
-        </p>
-        <p style={{ color: "var(--secondaire)" }}>
-          Les valeurs complètes ne s&apos;affichent jamais par défaut : la révélation exige la
-          permission coordonees.voir (support et super_admin), un motif, et laisse une trace
-          dans le journal d&apos;audit.
-        </p>
+    <div>
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Support commandes</h1>
+      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-4)", fontSize: "0.9rem" }}>
+        Coordonnées masquées par défaut. La révélation exige un motif et laisse une trace d&apos;audit.
+      </p>
+
+      <form method="GET" style={{ marginBottom: "var(--space-4)" }}>
+        {statut !== "tous" ? <input type="hidden" name="statut" value={statut} /> : null}
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="reference">Référence</label>
+          <input id="reference" name="reference" type="search" defaultValue={reference ?? ""} placeholder="SF-4KVB9" />
+        </div>
+      </form>
+
+      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-5)" }}>
+        {(["tous", ...STATUTS_COMMANDE] as const).map((valeur) => {
+          const params = new URLSearchParams();
+          if (reference) params.set("reference", reference);
+          if (valeur !== "tous") params.set("statut", valeur);
+          const chaine = params.toString();
+          return (
+            <Link
+              key={valeur}
+              href={chaine ? `/system/commandes?${chaine}` : "/system/commandes"}
+              className={`chip ${statut === valeur ? "actif" : ""}`}
+            >
+              {valeur === "tous" ? "Tous" : LIBELLES_STATUT[valeur]}
+            </Link>
+          );
+        })}
       </div>
-    </PlaceholderSection>
+
+      {commandes.length === 0 ? (
+        <Card>
+          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune commande ne correspond à cette recherche.</p>
+        </Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {commandes.map((c) => (
+            <Link key={c.id} href={`/system/commandes/${c.id}`} style={{ textDecoration: "none" }}>
+              <Card style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <strong style={{ color: "var(--encre)" }}>{c.reference}</strong>
+                  <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
+                    {c.restaurantNom} · {c.clientNom} · {c.telephoneAffiche}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <Badge ton="neutre">{LIBELLES_STATUT[c.statut]}</Badge>
+                  <p style={{ margin: 0, fontWeight: 700 }}>{c.sousTotal.toLocaleString("fr-FR")} GNF</p>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

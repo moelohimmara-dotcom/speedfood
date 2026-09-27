@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 27 septembre 2026 (bloc 8c).** Ce document existe pour qu'une
+**Dernière mise à jour : 27 septembre 2026 (bloc 8d — CMS système complet).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -35,7 +35,7 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 8a | CMS système — rôles, permissions, shell `/system` | Fait | Testé dans le navigateur : anonyme → 404 sans fuite ; compte `super_admin` réel accepté (autre session) ; compte de test avec rôle `support` (créé puis nettoyé) voit uniquement les sections autorisées à son rôle, `/system/roles` (hors permission) renvoie 404 |
 | 8b | Restaurants & comptes (modération, équipe) | Fait | Testé dans le navigateur avec un compte `operations` réel et un restaurant/deux comptes de test (créés puis nettoyés en base) : approuver, demander une correction (visible ensuite sur la console du restaurateur), suspendre (retiré du catalogue public, vérifié), réactiver, inviter un équipier existant, refus propre pour un email sans compte, retrait d'équipier |
 | 8c | CMS éditorial et taxonomie | Fait | Testé dans le navigateur avec un compte `content_editor` et un compte `operations` réels (créés, non nettoyables — voir plus bas) : page créée en brouillon puis publiée (aperçu mobile reflète la frappe en direct avant sauvegarde), bannière créée et publiée, catégorie de taxonomie ajoutée puis supprimée, mise en avant ajoutée/désactivée par `operations` ; séparation croisée confirmée (`content_editor` → 404 sur `/system/mises-en-avant`, `operations` → 404 sur `/system/contenus`) |
-| 8d | Support commandes, audit | Pas commencé (placeholder protégé en place) | — |
+| 8d | Support commandes, indicateurs et audit | Fait — **CMS système (bloc 8) entièrement livré** | Testé dans le navigateur avec un compte `support` réel sur une vraie commande de test du bloc 7 : recherche/filtre par statut, coordonnées masquées par défaut (`+2246******54`), révélation refusée sans motif puis acceptée et journalisée, transition de statut de support distincte de celle du restaurant (`support:<id>` dans l'historique, visible du restaurant), indicateurs corrects, journal filtrable par action/période (confirmé par navigation directe après un faux négatif de timing) |
 | 9 | PWA installable | Pas commencé | — |
 | 10 | Notifications pilote | Bloqué par design (ADR-007) tant que le canal n'est pas choisi avec de vrais restaurateurs | — |
 | 11 | Préproduction / lancement | Pas commencé | — |
@@ -82,6 +82,22 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   pour toute migration DDL, sous peine de désynchroniser l'historique visible par
   `list_migrations`/`supabase migration list` de ce qui tourne réellement en base.
 
+- **Trou RLS comblé (bloc 8d)** : `orders`/`order_items`/`order_status_events`
+  n'avaient aucune policy pour un rôle système (seuls les membres du
+  restaurant concerné pouvaient les lire/modifier), malgré les permissions
+  `commande.consulter`/`commande.support` déjà définies au bloc 8a — même trou
+  que la taxonomie au bloc 8c. Comblé, réservé à `support`/`super_admin`
+  uniquement (pas `operations`, qui n'a pas ces permissions). Le trigger
+  `fn_proteger_colonnes_commande` (bloc 7) continue de protéger
+  référence/montants/coordonnées même pour ces rôles : seul `statut` reste
+  modifiable, y compris par le support.
+- **Action de support distincte de l'action restaurant (bloc 8d)** : une
+  transition de statut appliquée par le support utilise l'acteur
+  `support:<utilisateur_id>` dans `order_status_events` (visible du
+  restaurant ET du client via `/suivi/[jeton]`), jamais `restaurant:<id>` —
+  et exige systématiquement un motif journalisé séparément dans
+  `audit_events`, contrairement à l'action normale du restaurant qui n'en
+  demande pas.
 - **Trou RLS comblé (bloc 8c)** : `menu_categories` et `neighborhoods`
   n'avaient **aucune policy d'écriture** depuis le bloc 2 — gérables uniquement
   en SQL direct jusqu'ici, pas un oubli mineur. Comblé avec la permission
@@ -111,9 +127,9 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   un restaurateur ne peut jamais l'écrire ni l'effacer lui-même. Affichée sur sa
   console (`/restaurant`, bloc 6) quand un admin en a saisi une.
 - **Comptes de test orphelins acceptables** : `bloc8b-ops-test@gmail.com`,
-  `bloc8b-recheck-admin@gmail.com`, `bloc8c-editor-test@gmail.com` et
-  `bloc8c-ops-test@gmail.com` (comptes auth existent encore, sans aucun rôle
-  système) n'ont pas pu être supprimés — leurs `id` sont référencés par des
+  `bloc8b-recheck-admin@gmail.com`, `bloc8c-editor-test@gmail.com`,
+  `bloc8c-ops-test@gmail.com` et `bloc8d-support-test@gmail.com` (comptes auth
+  existent encore, sans aucun rôle système) n'ont pas pu être supprimés — leurs `id` sont référencés par des
   lignes `audit_events` produites pendant les tests, et `audit_events` est
   append-only par design (ADR-010, aucune policy de suppression). Tous sont
   inertes (aucun rôle, aucun restaurant) : laissés tels quels plutôt que de
