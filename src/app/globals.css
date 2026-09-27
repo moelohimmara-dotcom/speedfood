@@ -1,13 +1,53 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Tokens de design — verrouillés dans DESIGN-SYSTEM.md (Jarvis/speedfood/).
+ * Ne pas modifier ces valeurs sans mettre à jour ce document en même temps.
+ * Un seul thème clair est défini pour le pilote ; le mode sombre n'a pas été conçu.
+ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --rouge: #d9362b;
+  --rouge-fonce: #b82a20;
+  --orange: #ff7a1a;
+  --mangue: #ffc247;
+  --creme: #fff6ed;
+  --surface: #fffefc;
+  --encre: #2b211d;
+  --secondaire: #75695f;
+  --bordure: #e9dcd2;
+  --succes: #2e7d32;
+  --succes-fond: #e7f4e8;
+  --danger: #c62828;
+  --danger-fond: #fbeaea;
+
+  /* Réservé à l'action principale (bouton, barre de panier) — voir DESIGN-SYSTEM.md */
+  --gradient-marque: linear-gradient(135deg, #ff7a1a 0%, #d9362b 60%);
+
+  --couleur-riz: var(--rouge);
+  --couleur-grill: var(--orange);
+  --couleur-fast: var(--mangue);
+  --couleur-cafe: var(--encre);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(43, 33, 29, 0.06), 0 1px 1px rgba(43, 33, 29, 0.04);
+  --shadow-md: 0 6px 16px rgba(43, 33, 29, 0.1), 0 2px 4px rgba(43, 33, 29, 0.06);
+  --shadow-lg: 0 16px 32px rgba(43, 33, 29, 0.14), 0 4px 8px rgba(43, 33, 29, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(255, 122, 26, 0.35);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
 }
 
 html {
@@ -24,11 +64,10 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--encre);
+  background: var(--creme);
+  font-family: var(--font-manrope), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -37,13 +76,28 @@ body {
   margin: 0;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-weight: 800;
+}
+
 a {
   color: inherit;
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }
