@@ -9,7 +9,7 @@ export default async function AccueilConsolePage() {
   const [{ data: restaurant }, { count: commandesATraiter }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("nom, publie, ouvert")
+      .select("nom, publie, ouvert, motif_correction")
       .eq("id", membership.restaurant_id)
       .maybeSingle(),
     supabase
@@ -33,7 +33,14 @@ export default async function AccueilConsolePage() {
         </Badge>
       </div>
 
-      {!restaurant?.publie ? (
+      {restaurant?.motif_correction ? (
+        <Card style={{ marginBottom: "var(--space-4)", background: "#fdf0de", borderColor: "var(--mangue)" }}>
+          <p style={{ margin: 0, fontSize: "0.9rem" }}>
+            <strong>Une correction est demandée avant publication :</strong>{" "}
+            {restaurant.motif_correction}
+          </p>
+        </Card>
+      ) : !restaurant?.publie ? (
         <Card style={{ marginBottom: "var(--space-4)", background: "#fdf0de", borderColor: "var(--mangue)" }}>
           <p style={{ margin: 0, fontSize: "0.9rem" }}>
             Votre restaurant n&apos;est pas encore visible au catalogue. Une personne de

@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 27 septembre 2026 (bloc 8a + déploiement + fusion landing).** Ce document existe pour qu'une
+**Dernière mise à jour : 27 septembre 2026 (bloc 8b).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -33,7 +33,8 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 6 | Console restaurant (menu, commandes, horaires) | Fait | Testé dans le navigateur avec un compte réel (créé puis nettoyé en base après test) : ajout/modification/bascule disponibilité d'un plat, fermeture/réouverture du restaurant, horaires/consignes enregistrés, tout revérifié après rechargement de page |
 | 7 | Panier, commande, suivi client | Fait | Testé dans le navigateur : panier mono-restaurant, checkout invité (recalcul serveur des prix, consentement), commande créée avec référence publique et jeton de suivi (aucune donnée personnelle visible sur `/suivi/[jeton]`), actions restaurant accepter/refuser/prête/terminée avec historisation, proposition révisée versionnée avec échéance puis acceptation client appliquant le nouveau total (35 000 GNF au lieu de 25 000) et retour en attente de confirmation |
 | 8a | CMS système — rôles, permissions, shell `/system` | Fait | Testé dans le navigateur : anonyme → 404 sans fuite ; compte `super_admin` réel accepté (autre session) ; compte de test avec rôle `support` (créé puis nettoyé) voit uniquement les sections autorisées à son rôle, `/system/roles` (hors permission) renvoie 404 |
-| 8b/8c/8d | Écrans métier du CMS (restaurants, contenus, commandes support) | Pas commencé (placeholders protégés en place) | — |
+| 8b | Restaurants & comptes (modération, équipe) | Fait | Testé dans le navigateur avec un compte `operations` réel et un restaurant/deux comptes de test (créés puis nettoyés en base) : approuver, demander une correction (visible ensuite sur la console du restaurateur), suspendre (retiré du catalogue public, vérifié), réactiver, inviter un équipier existant, refus propre pour un email sans compte, retrait d'équipier |
+| 8c/8d | Contenus éditoriaux, support commandes/audit | Pas commencé (placeholders protégés en place) | — |
 | 9 | PWA installable | Pas commencé | — |
 | 10 | Notifications pilote | Bloqué par design (ADR-007) tant que le canal n'est pas choisi avec de vrais restaurateurs | — |
 | 11 | Préproduction / lancement | Pas commencé | — |
@@ -80,6 +81,26 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   pour toute migration DDL, sous peine de désynchroniser l'historique visible par
   `list_migrations`/`supabase migration list` de ce qui tourne réellement en base.
 
+- **Invitation d'équipier sans email (bloc 8b)** : « inviter » un équipier ne
+  crée ni compte ni email — aucun canal de notification n'est choisi (ADR-007,
+  bloc 10 bloqué). La personne doit déjà avoir un compte Speedfood (créé via
+  `/inscription`) ; l'admin la retrouve par email (`fn_trouver_utilisateur_par_email`,
+  `SECURITY DEFINER`, vérifie elle-même la permission) et l'ajoute directement
+  au restaurant. Email inconnu → message clair, pas de fausse promesse d'envoi.
+  Toute évolution vers un vrai flux d'invitation par email dépend du bloc 10.
+- **Colonne `restaurants.motif_correction`** (bloc 8b) : protégée par le même
+  trigger `fn_proteger_colonnes_restaurant` que `publie`/`suspendu_*` (bloc 7) —
+  un restaurateur ne peut jamais l'écrire ni l'effacer lui-même. Affichée sur sa
+  console (`/restaurant`, bloc 6) quand un admin en a saisi une.
+- **Comptes de test orphelins acceptables** : `bloc8b-ops-test@gmail.com` et
+  `bloc8b-recheck-admin@gmail.com` (comptes auth existent encore, sans aucun
+  rôle système) n'ont pas pu être supprimés — leurs `id` sont référencés par
+  des lignes `audit_events` produites pendant les tests, et `audit_events` est
+  append-only par design (ADR-010, aucune policy de suppression). Les deux
+  comptes sont inertes (aucun rôle, aucun restaurant) : laissés tels quels
+  plutôt que de compromettre l'intégrité du journal d'audit. **Ce sera
+  systématique pour tout futur test impliquant une action journalisée** — ne
+  pas essayer de forcer leur suppression, c'est le comportement voulu.
 - **Masquage des coordonnées clients par défaut (bloc 8a)** : dans le CMS
   système, téléphone et adresse d'une commande sont toujours masqués
   (`src/lib/system-admin/coordonnees.ts`) ; seule la permission `coordonees.voir`
