@@ -53,17 +53,15 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 
 - **Bug proxy corrigé (bloc 7)** : la protection `/restaurant/*` du proxy utilisait `startsWith("/restaurant")`, ce qui capturait aussi `/restaurants/[id]` — les fiches publiques du catalogue redirigeaient vers la connexion sans raison. Corrigé dans `src/proxy.ts` (chemin exact `/restaurant` ou préfixe `/restaurant/`). **Si une page publique redirige vers `/connexion`, vérifier ce matcher en premier.**
 - **Durcissement RLS (bloc 7)** : migration `20260927200000_durcissement_colonnes_protegees.sql` qui ferme les élévations de privilèges de l'audit (`AUDIT-SUPABASE.md` §6.2–6.3) : un membre de restaurant ne peut plus s'auto-publier, effacer une suspension, ni modifier montants/coordonnées/référence d'une commande (trigger `BEFORE UPDATE`, seuls `statut` et champs de fiche restent modifiables ; le `service_role` n'a pas de JWT utilisateur et n'est pas affecté). Vérifié en base : tentatives d'élévation refusées, transition normale de statut toujours possible.
-- **Écart de suivi des migrations (repéré lors d'un état des lieux post-bloc-7)** :
+- **Écart de suivi des migrations (repéré lors d'un état des lieux post-bloc-7, corrigé le 27/09/2026)** :
   cette même migration (`20260927200000`) a été appliquée via `execute_sql` et non
-  `apply_migration` — elle est donc **absente** de
+  `apply_migration` — elle était donc **absente** de
   `supabase_migrations.schema_migrations` alors que les 8 migrations précédentes y
-  figurent. Vérifié que les triggers `trg_restaurants_proteger_colonnes` et
-  `trg_orders_proteger_colonnes` sont bien actifs en base (`pg_trigger.tgenabled =
-  'O'`) : la protection est réellement en place, ce n'est qu'un écart de
-  traçabilité. **Vigilance pour la suite :** toujours utiliser `apply_migration`
-  (jamais `execute_sql`) pour toute migration DDL, sous peine de désynchroniser
-  l'historique visible par `list_migrations`/`supabase migration list` de ce qui
-  tourne réellement en base.
+  figuraient. L'entrée a depuis été créée manuellement dans l'historique (version,
+  nom et contenu SQL complet) : les 9 migrations y figurent désormais. **Vigilance
+  pour la suite :** toujours utiliser `apply_migration` (jamais `execute_sql`)
+  pour toute migration DDL, sous peine de désynchroniser l'historique visible par
+  `list_migrations`/`supabase migration list` de ce qui tourne réellement en base.
 
 - **Inscription restaurateur** : auto-inscription libre (email + mot de passe),
   restaurant créé non publié par défaut, validation manuelle par un admin en
