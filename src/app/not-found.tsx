@@ -15,7 +15,7 @@ export default function NotFound() {
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
         Ce restaurant n&apos;existe pas, ou n&apos;est plus publié.
       </p>
-      <Link href="/">
+      <Link href="/restaurants">
         <Button>Retour au catalogue</Button>
       </Link>
     </main>

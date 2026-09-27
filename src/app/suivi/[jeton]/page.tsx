@@ -89,7 +89,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link href="/" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
+      <Link href="/restaurants" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
         ← Retour aux restaurants
       </Link>
 

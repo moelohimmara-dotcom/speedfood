@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefacts de build @opennextjs/cloudflare (voir docs/DEPLOIEMENT-CLOUDFLARE.md) :
+    // jamais committés, mais lint les scannait quand ils traînaient sur disque.
+    ".open-next/**",
+    ".wrangler/**",
   ]),
 ]);
 

@@ -30,7 +30,7 @@ export default function PanierPage() {
           <p style={{ color: "var(--secondaire)" }}>
             Parcourez le catalogue et ajoutez les plats d&apos;un seul restaurant.
           </p>
-          <Link href="/" className="btn btn-primary">
+          <Link href="/restaurants" className="btn btn-primary">
             Voir les restaurants
           </Link>
         </Card>

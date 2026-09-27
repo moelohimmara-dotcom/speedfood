@@ -18,7 +18,7 @@ export default function CommandePage() {
         <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Votre commande</h1>
         <Card>
           <p style={{ marginTop: 0 }}>Votre panier est vide : rien à commander pour le moment.</p>
-          <Link href="/" className="btn btn-primary">
+          <Link href="/restaurants" className="btn btn-primary">
             Voir les restaurants
           </Link>
         </Card>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Manrope } from "next/font/google";
 import "./globals.css";
 import "./components.css";
+import "./landing.css";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :
 // répond à la note performance de DESIGN-SYSTEM.md sur le coût des données mobiles à Conakry.
