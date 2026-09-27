@@ -104,6 +104,8 @@ développement local une fois nécessaire.
       `restaurant_memberships` renvoient vide, l'appel direct à
       `fn_est_membre_restaurant` est refusé (`permission denied`) — voir le seed
       `[DEV]` appliqué au projet pour reproduire
-- [ ] Isolation testée avec deux comptes réels (membre A ne voit pas les données de
-      B) — **à faire au bloc 4**, une fois l'authentification branchée : ce test a
-      besoin d'au moins deux utilisateurs `auth.users` réels pour être significatif
+- [x] Isolation testée avec deux comptes réels (bloc 4) : deux inscriptions
+      complètes via l'UI, chacune avec son propre restaurant. Le second compte
+      connecté à `/restaurant` ne voit que son propre établissement ("Le Deuxième
+      Compte"), jamais celui du premier ("Chez Test Auth") — vérifié à l'écran,
+      pas juste supposé
