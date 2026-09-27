@@ -37,6 +37,18 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | 10 | Notifications pilote | Bloqué par design (ADR-007) tant que le canal n'est pas choisi avec de vrais restaurateurs | — |
 | 11 | Préproduction / lancement | Pas commencé | — |
 
+## Compte administrateur système
+
+**Premier `super_admin` créé le 27/09/2026** : `admin.speedfood.dev@gmail.com` (id `95da37c3-b274-4a43-9720-63cf2ba39f17`), inséré dans `system_admin_memberships` via la `service_role` — jamais depuis le navigateur. Vérifié : le compte voit son rôle et accède aux restaurants non publiés (policies `admins_*`). Le mot de passe provisoire a été transmis hors dépôt ; **le changer immédiatement dans le dashboard Supabase** (Authentication → Users → Reset password).
+
+**Récupération d'accès** (si le super_admin perd son mot de passe ou son compte) :
+
+1. Se connecter au dashboard Supabase avec le compte propriétaire du projet (`mistermarcket@gmail.com`).
+2. Authentication → Users → réinitialiser le mot de passe du compte admin, ou créer un nouveau compte.
+3. Si c'est le rôle qui manque : SQL Editor (ou API avec la `service_role`), puis
+   `insert into system_admin_memberships (utilisateur_id, role) values ('<uuid-utilisateur>', 'super_admin');`
+4. Ne jamais donner le rôle `super_admin` à un compte de test ni à un propriétaire de restaurant (règle de sécurité du TDR).
+
 ## Décisions prises en cours de route (pas dans les documents de cadrage d'origine)
 
 - **Bug proxy corrigé (bloc 7)** : la protection `/restaurant/*` du proxy utilisait `startsWith("/restaurant")`, ce qui capturait aussi `/restaurants/[id]` — les fiches publiques du catalogue redirigeaient vers la connexion sans raison. Corrigé dans `src/proxy.ts` (chemin exact `/restaurant` ou préfixe `/restaurant/`). **Si une page publique redirige vers `/connexion`, vérifier ce matcher en premier.**
@@ -101,8 +113,7 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 - Aucun test automatisé (unitaire, intégration, e2e) n'existe encore. Toute la
   vérification jusqu'ici s'est faite manuellement (navigateur + requêtes REST
   directes), documentée dans les messages de commit Git.
-- Aucun écran admin/CMS (bloc 8) : impossible de publier un restaurant ou gérer
-  un rôle système autrement qu'en SQL direct.
+- Aucun écran admin/CMS (bloc 8) : publier un restaurant ou gérer un rôle système passe encore par du SQL direct — mais un compte `super_admin` existe désormais (`admin.speedfood.dev@gmail.com`, voir section dédiée), prêt pour le branchement du CMS.
 - Aucune route serveur de commande (bloc 7) : `orders` et tables liées existent
   en base avec RLS, mais rien ne les écrit encore. La page `/restaurant/commandes`
   du bloc 6 affiche déjà la liste (lecture seule) pour quand ça existera.
