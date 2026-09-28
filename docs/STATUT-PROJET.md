@@ -216,26 +216,27 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   réels, 404 sans fuite pour un anonyme et pour les sections hors permissions, aucun
   débordement horizontal en 375 px.
 
-- **Trou RLS latent sur `order_proposals` (constaté le 28/09/2026, non corrigé — migration
-  hors périmètre de la tâche)** : cette table n'a aucune policy pour un rôle système (seuls
-  les membres du restaurant concerné la lisent, policies `membres_*` du bloc 2) — même trou
-  que `orders`/`order_items`/`order_status_events` comblé au bloc 8d, mais `order_proposals`
-  avait été oublié dans cette migration. Constaté en direct : avec le JWT d'un `super_admin`,
-  PostgREST renvoie 0 ligne sur `order_proposals` alors que la `service_role` en voit.
-  Conséquence : le compteur « Propositions client en attente » et la file de priorité du
-  tableau de bord afficheront 0 (et une file vide) même quand des propositions attendent une
-  réponse client. Correction proposée, à appliquer par migration `apply_migration` après
-  décision du propriétaire :
-  `create policy "support_lecture_propositions" on order_proposals for select using (fn_est_admin_systeme(array['support', 'super_admin']));`
-  (lecture seule suffit au pilotage ; les écritures sur les propositions restent celles du
-  bloc 7, côté restaurant/client).
+- **Trou RLS sur `order_proposals` — corrigé (28/09/2026)** : cette table n'avait
+  aucune policy pour un rôle système (seuls les membres du restaurant concerné
+  la lisaient, policies `membres_*` du bloc 2) — même trou que
+  `orders`/`order_items`/`order_status_events` comblé au bloc 8d, mais
+  `order_proposals` avait été oublié dans cette migration. Corrigé le jour même
+  par la migration `20260927250000_lecture_propositions_support.sql`
+  (`support_lecture_propositions`, lecture seule, `support`/`super_admin`) —
+  vérifiée en base le 28/09/2026 lors d'un état des lieux : la policy existe et
+  est correctement scopée (`pg_policies`). Les écritures sur les propositions
+  restent celles du bloc 7 (restaurant/client). **Note pour la suite :** une
+  version antérieure de ce document décrivait ce trou comme "non corrigé" alors
+  que le correctif avait déjà été appliqué le même jour — toujours vérifier
+  l'état réel en base plutôt que de faire confiance à une note qui n'a pas été
+  mise à jour après coup.
 
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - Aucun test automatisé (unitaire, intégration, e2e) n'existe encore. Toute la
   vérification jusqu'ici s'est faite manuellement (navigateur + requêtes REST
   directes), documentée dans les messages de commit Git.
-- Le CMS système (bloc 8a) a un shell fonctionnel et des rôles/permissions vérifiés, mais aucun écran métier réel derrière (publier un restaurant, gérer un rôle, modérer du contenu passent encore par du SQL direct — blocs 8b/8c/8d).
+- Le CMS système (blocs 8a à 8d + centre de commandement post-8d) est entièrement livré — voir le tableau ci-dessus. Seule l'attribution/le retrait d'un rôle système (`/system/roles`) reste un placeholder (bloc 8a) : gérable pour l'instant uniquement en SQL direct (`system_admin_memberships`).
 - Pas de CI/CD.
 - Aucun test de charge ni de bout en bout automatisé en environnement Cloudflare réel (voir `docs/DEPLOIEMENT-CLOUDFLARE.md`).
 

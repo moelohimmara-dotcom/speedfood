@@ -16,6 +16,10 @@ const eslintConfig = defineConfig([
     // jamais committés, mais lint les scannait quand ils traînaient sur disque.
     ".open-next/**",
     ".wrangler/**",
+    // demo/ = landing + prototype statiques (vanilla JS, voir demo/README.md) :
+    // ne fait pas partie de l'app Next.js, jamais destiné à passer les règles
+    // TypeScript du vrai projet.
+    "demo/**",
   ]),
 ]);
 
