@@ -20,7 +20,7 @@ export function BanniereItem({ banniere }: { banniere: Banniere }) {
           <img
             src={banniere.image_url}
             alt=""
-            style={{ width: 96, height: 54, objectFit: "cover", borderRadius: "var(--rayon-2)", flexShrink: 0 }}
+            style={{ width: 96, height: 54, objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }}
           />
         ) : null}
         <div>

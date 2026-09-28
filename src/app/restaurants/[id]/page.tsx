@@ -44,18 +44,7 @@ export default async function FicheRestaurantPage({
 
       {restaurant.photo_url ? (
         // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-        <img
-          src={restaurant.photo_url}
-          alt=""
-          style={{
-            width: "100%",
-            height: 220,
-            objectFit: "cover",
-            borderRadius: "var(--rayon-2)",
-            marginTop: "var(--space-3)",
-            display: "block",
-          }}
-        />
+        <img src={restaurant.photo_url} alt="" className="fiche-restaurant-hero" />
       ) : null}
 
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 4px" }}>{restaurant.nom}</h1>
@@ -86,24 +75,11 @@ export default async function FicheRestaurantPage({
       ) : (
         <div>
           {menu.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: "14px 0",
-                borderBottom: "1px solid var(--bordure)",
-              }}
-            >
+            <div key={item.id} className="menu-item-row">
               <div style={{ display: "flex", gap: 12 }}>
                 {item.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-                  <img
-                    src={item.photo_url}
-                    alt=""
-                    style={{ width: 64, height: 64, objectFit: "cover", borderRadius: "var(--rayon-2)", flexShrink: 0 }}
-                  />
+                  <img src={item.photo_url} alt="" className="menu-item-photo" />
                 ) : null}
                 <div>
                   <h4 style={{ margin: "0 0 4px", fontWeight: 700 }}>{item.nom}</h4>

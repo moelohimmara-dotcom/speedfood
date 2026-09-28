@@ -26,7 +26,7 @@ export function FormulaireProfil({
           <img
             src={photoUrl}
             alt=""
-            style={{ width: 160, height: 120, objectFit: "cover", borderRadius: "var(--rayon-2)", marginBottom: 8, display: "block" }}
+            style={{ width: 160, height: 120, objectFit: "cover", borderRadius: "var(--radius-md)", marginBottom: 8, display: "block" }}
           />
         ) : null}
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />

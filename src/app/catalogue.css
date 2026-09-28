@@ -1,0 +1,84 @@
+/*
+ * Catalogue public (/restaurants) et fiche restaurant (/restaurants/[id]) —
+ * ne redéfinit aucun token de globals.css/components.css (CLAUDE.md), sort
+ * ces deux pages du tout-inline-style vers des classes réutilisables.
+ * Aucun dégradé (réservé au CTA principal, DESIGN-SYSTEM.md), aucune étoile
+ * ou avis (hors périmètre MVP, TDR.md).
+ */
+
+/* --- Carte restaurant (catalogue) ---------------------------------------- */
+
+.carte-restaurant {
+  padding: 0;
+  overflow: hidden;
+  transition: box-shadow var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
+}
+.carte-restaurant:hover,
+.carte-restaurant:focus-within {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .carte-restaurant:hover,
+  .carte-restaurant:focus-within {
+    transform: none;
+  }
+}
+
+.carte-restaurant-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: var(--bordure);
+}
+
+.carte-restaurant-corps {
+  padding: var(--space-4);
+}
+
+.carte-restaurant-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+  margin: 0 0 var(--space-3);
+}
+
+.pastille-categorie {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+/* --- Fiche restaurant ----------------------------------------------------- */
+
+.fiche-restaurant-hero {
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-3);
+  display: block;
+  background: var(--bordure);
+}
+
+.menu-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.menu-item-photo {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  background: var(--bordure);
+}

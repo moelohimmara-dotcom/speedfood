@@ -42,7 +42,7 @@ export function PlatItem({ plat }: { plat: Plat }) {
               <img
                 src={plat.photo_url}
                 alt=""
-                style={{ width: 120, height: 90, objectFit: "cover", borderRadius: "var(--rayon-2)", marginBottom: 8, display: "block" }}
+                style={{ width: 120, height: 90, objectFit: "cover", borderRadius: "var(--radius-md)", marginBottom: 8, display: "block" }}
               />
             ) : null}
             <input
