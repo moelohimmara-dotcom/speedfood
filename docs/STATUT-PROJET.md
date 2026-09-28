@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 28 septembre 2026 (centre de commandement `/system`, après le bloc 8d).** Ce document existe pour qu'une
+**Dernière mise à jour : 28 septembre 2026 (logo, prix promo, suppléments).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -46,6 +46,7 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
 | post-8d (refonte admin) | Lien de bascule entre les deux consoles (`/restaurant` ↔ `/system`) pour un compte qui cumule les deux accès | Fait | Constat en test manuel : `admin.speedfood.dev@gmail.com` est à la fois propriétaire de « barbie » et `super_admin`, mais rien ne permettait de passer d'une console à l'autre sans taper l'URL à la main. Ajout de `src/lib/auth/doubleAcces.ts` (`aUnRoleSysteme`, `aUnMembershipRestaurant`, lecture de sa propre ligne dans l'autre table — déjà autorisée par les policies RLS existantes, aucune migration nécessaire) : un lien « Console admin → » apparaît dans `/restaurant` uniquement si le compte a aussi un rôle système, et un lien « Mon restaurant » apparaît dans l'en-tête `/system` uniquement si le compte a aussi un membership restaurant. Par défaut (restaurateur ou rôle système ordinaire), rien ne change — conforme à ADR-010 et à l'exigence TDR "sans naviguer dans le CMS système" pour un restaurateur classique. Testé dans le navigateur : `admin.speedfood.dev@gmail.com` voit les deux liens et l'aller-retour fonctionne dans les deux sens ; un compte restaurateur de test sans rôle système (créé puis supprimé) ne voit aucun lien vers `/system`. |
 | post-8d (catalogue démo) | Catalogue « bien fourni » — 12 restaurants fictifs + 60 plats (24 avec photo), refonte visuelle `/restaurants` et `/restaurants/[id]` | Fait | Migration `restaurants_donnees_demo` (colonne `donnees_demo boolean`, `get_advisors(security)` : aucune nouvelle alerte) — `delete from restaurants where donnees_demo = true` supprimera tout ce lot plus tard, cascade vers `menu_items`. 12 restaurants (3 par quartier × 4 catégories), noms/textes à consonance conakryenne, `publie = true` dès l'insertion. Photos Unsplash hotlinkées (licence libre, aucun compte/coût engagé) : sourcées via recherche par mot-clé sur unsplash.com puis **vérifiées visuellement une par une** (screenshot réel de chaque image) — une première passe basée sur des identifiants de mémoire s'est révélée non fiable (~40 % d'erreurs : pancakes pour un restaurant de riz, intérieur de restaurant pour une boulangerie, burger pour un grill, salade pour un riz gras) et a été entièrement corrigée avant validation. Correctif au passage : token CSS mort `var(--rayon-2)` (jamais défini) remplacé par `var(--radius-md)` dans 4 fichiers (`restaurants/[id]/page.tsx`, `BanniereItem.tsx`, `PlatItem.tsx`, `FormulaireProfil.tsx`) — les images concernées n'avaient jusqu'ici aucun arrondi. Nouveau `src/app/catalogue.css` (importé dans `layout.tsx`) : carte restaurant avec ratio photo 4:3, élévation au survol, pastille de couleur par catégorie (tokens `--couleur-riz/grill/fast/cafe` existants, aucun dégradé — respect de DESIGN-SYSTEM.md) ; fiche restaurant avec héro 16:7 et lignes de menu unifiées. Aucune fausse note/avis ajoutée (hors périmètre MVP, TDR). Vérifié dans le navigateur (desktop et mobile 375px) : grille, filtres catégorie/quartier, fiche détaillée, aucune régression sur les restaurants `[DEV]...` existants (laissés tels quels, décision explicite). `npm run typecheck`/`lint` propres. |
 | post-8d (marque restaurant) | Couleur d'accent personnalisable par restaurant (identité de marque) | Fait | Migration `restaurants_couleur_accent` (colonne `couleur_accent text`, nullable, `get_advisors(security)` : aucune nouvelle alerte). Palette fermée de 16 teintes (`src/lib/design/paletteMarque.ts`), chacune vérifiée ≥4.5:1 de contraste sur blanc par script (formule de luminance relative WCAG) avant d'être retenue — pas de champ hex libre, zéro risque d'accessibilité. `SelecteurCouleur.tsx` (pastilles cliquables, `aria-pressed`, focus visible global) ajouté à `/restaurant/profil` ; `modifierProfilAction` valide contre la palette (défense en profondeur). Affichage : liseré en haut de carte catalogue (`RestaurantCard.tsx`) et cadre autour de la photo héro + accent sous le titre sur la fiche (`restaurants/[id]/page.tsx`) — jamais sur un bouton d'action ni un badge de statut (règle DESIGN-SYSTEM.md respectée). Les 12 restaurants de démo ont chacun reçu une couleur distincte. Testé dans le navigateur avec un compte restaurateur de test (créé puis supprimé) : sélection, sauvegarde et persistance après rechargement vérifiées en base (`#1A5276`), remise à zéro (`✕`) vérifiée (`null` en base) ; aucune régression sur les restaurants sans couleur choisie. `npm run typecheck`/`lint` propres. |
+| post-8d (offre marchande) | Logo restaurant, prix promo par plat, suppléments au choix du client (commit `9400bf2`) | Fait | Trois migrations : `restaurants_logo_url` (colonne `logo_url`), `menu_items_prix_promo` (colonne `prix_promo`, contrainte `0 ≤ prix_promo ≤ prix`), `menu_item_options` (nouvelle table + table `order_item_options` en miroir d'`order_items`, RLS fermée par défaut). **Logo** : deuxième champ d'upload dans `/restaurant/profil` (même mécanique que la photo, dossier `logos`), badge circulaire superposé sur la carte catalogue et la fiche restaurant. **Prix promo** : second prix optionnel par plat, jamais un code coupon (TDR §5 exclut les coupons du MVP) ; `recalculerLignes()` (`src/lib/commande/calculs.ts`) utilise `prix_promo ?? prix` comme prix effectif — aucun autre point de calcul. **Suppléments** : extras optionnels cumulables (pas de choix unique obligatoire), gérés sous chaque plat dans `/restaurant/menu` (`OptionsPlat.tsx`), choisis par cases à cocher côté client ; le panier fusionne désormais par plat + combinaison d'options triée (`LignePanier.cle`), deux mêmes plats avec des extras différents restent deux lignes distinctes. Vérifié dans un vrai navigateur avec un compte et un restaurant de test (créés puis entièrement supprimés en base après coup) : ajout au panier avec/sans extras (deux lignes distinctes confirmées), commande créée avec montants corrects (`order_items.prix` = prix promo + somme des suppléments, vérifié en base), `order_item_options` corrects, affichage dans la console restaurant et sur `/suivi/[jeton]`. **Vérification adversariale explicitement demandée par le plan** : panier falsifié en `localStorage` avec un `optionId` appartenant à un autre plat, tentative de commande via le vrai formulaire — rejetée côté serveur (« Supplément indisponible pour : … »), aucune commande créée. **Deux trous RLS trouvés et corrigés pendant cette vérification** (migrations `menu_item_options_rls_roles_fix` et `order_item_options_lecture_membres_et_support`) : voir la décision dédiée plus bas. `get_advisors(security)` propre après chaque migration (seules les alertes déjà connues et acceptées). `npm run typecheck`/`lint` propres. |
 
 ## Déploiement
 
@@ -260,6 +261,37 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   que le correctif avait déjà été appliqué le même jour — toujours vérifier
   l'état réel en base plutôt que de faire confiance à une note qui n'a pas été
   mise à jour après coup.
+
+- **Policy RLS "publique" cassée par une policy voisine non scopée à `authenticated`
+  (28/09/2026)** : en ajoutant `menu_item_options`, les policies de gestion par les
+  membres du restaurant (`membres_lecture/gestion/maj/suppression_leurs_options`)
+  avaient été créées sans `TO authenticated`, contrairement au modèle déjà en place
+  sur `menu_items`. Conséquence concrète : Postgres évalue **toutes** les policies
+  applicables à un rôle sur un `SELECT` (combinées en `OR`), donc même la policy de
+  lecture publique (`lecture_publique_options_restaurants_publies`, elle correctement
+  ouverte à tous) échouait pour `anon` — l'appel à `fn_est_membre_restaurant()` dans
+  une policy voisine renvoyait `permission denied for function` faute de droit
+  d'exécution pour `anon`, et bloquait toute la requête. Repéré en testant la fiche
+  publique d'un restaurant avec des suppléments : les cases à cocher n'apparaissaient
+  jamais, sans erreur visible côté client (l'échec RLS renvoyait juste un tableau
+  vide). Corrigé par la migration `menu_item_options_rls_roles_fix` (les quatre
+  policies de gestion recréées avec `TO authenticated`). **Leçon pour toute future
+  table avec une policy de lecture publique + des policies réservées aux membres :
+  toujours vérifier que les policies réservées portent bien `TO authenticated` (ou le
+  rôle concerné), jamais aucune restriction — sinon elles peuvent silencieusement
+  casser la policy publique voisine pour `anon`.**
+- **`order_item_options` : policy de lecture manquante pour la console restaurant
+  (28/09/2026)** : cette table avait été créée fermée par défaut (aucune policy,
+  calquée sur `order_items` pour le `service_role`), mais `order_items` a en plus une
+  policy `membres_lecture_lignes_commandes` (`TO authenticated`) qui laisse un membre
+  du restaurant lire les lignes de ses propres commandes via sa propre session — sans
+  l'équivalent sur `order_item_options`, la console restaurant (`/restaurant/commandes`,
+  lue avec la session du membre, pas le `service_role`) affichait les commandes sans
+  jamais montrer les suppléments choisis. Corrigé par la migration
+  `order_item_options_lecture_membres_et_support`, qui ajoute les deux policies
+  manquantes en miroir exact d'`order_items` (`membres_lecture_options_commandes` et
+  `support_lecture_options_commandes`). La page `/suivi/[jeton]` (lue avec le
+  `service_role` via `creerClientAdmin()`) n'était pas affectée par ce trou.
 
 ## Ce qui n'est pas testé / connu comme incomplet
 
