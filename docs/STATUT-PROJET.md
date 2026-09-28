@@ -72,6 +72,17 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   `/system/acces/roles`, `/system/contenu/medias`, etc.). Vérifié en ligne :
   `/restaurants` affiche le catalogue sans régression, `/system/parametres`
   renvoie 404 sans session (aucune fuite).
+- **Redéployé le 28/09/2026** après le lien de bascule entre consoles
+  (`968c07d`), la refonte de la landing (badge « Aperçu — restaurants
+  d'exemple » sur le visuel hero, cohérent avec le bandeau « (exemples, à
+  confirmer) » plus bas — commit `c357dbb`) et un correctif de token CSS
+  (`--radius` inexistant → `--radius-md`, commit `f9642cf`) : `npm run
+  cf:deploy`, succès. Vérifié en ligne : le badge « APERÇU — RESTAURANTS
+  D'EXEMPLE » est bien présent sur `/`, `admin.speedfood.dev@gmail.com` voit
+  le lien « Console admin → » sur `/restaurant`. Restaurants `[DEV]...`
+  toujours publiés volontairement (décision explicite de Malika, non
+  nettoyés) — reste un signal visuel un peu confus pour un vrai visiteur,
+  à traiter plus tard si besoin.
 
 ## Compte administrateur système
 
