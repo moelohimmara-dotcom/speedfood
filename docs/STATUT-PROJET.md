@@ -64,6 +64,13 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   commandement, annuaire des comptes, correctifs RLS) : `npm run cf:build &&
   npx wrangler deploy`, succès, `/system/comptes` confirmé en place (404 sans
   session, comme attendu).
+- **Redéployé le 28/09/2026** après la refonte de la console d'administration
+  (nav regroupée, Rôles système, Paramètres globaux, Médias — commit
+  `54035e7`) : `npm run cf:deploy`, succès (26 fichiers statiques mis à jour),
+  toutes les nouvelles routes présentes dans le build (`/system/parametres`,
+  `/system/acces/roles`, `/system/contenu/medias`, etc.). Vérifié en ligne :
+  `/restaurants` affiche le catalogue sans régression, `/system/parametres`
+  renvoie 404 sans session (aucune fuite).
 
 ## Compte administrateur système
 
