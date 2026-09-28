@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { STATUTS_COMMANDE, type StatutCommande } from "@/lib/contracts/statuts";
-import { versStatutCommande } from "@/lib/commande/commun";
+import type { StatutProposition } from "@/lib/contracts/commande";
+import { versStatutCommande, versStatutProposition } from "@/lib/commande/commun";
 import { appliquerTransitionStatut } from "@/lib/commande/transitions";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme, revelerCoordonneesCommande } from "./audit";
@@ -45,8 +46,30 @@ export interface EvenementStatutAdmin {
   horodatage: string;
 }
 
+/**
+ * Proposition révisée telle qu'affichée au support — LECTURE SEULE (règle
+ * « propositions immuables », ADR-006 : aucune écriture côté support, la table
+ * n'a de toute façon aucune policy UPDATE pour ces rôles).
+ */
+export interface PropositionRevisseeAdmin {
+  version: number;
+  /** Montant constaté avant cette version (lignes d'origine pour la version 1). */
+  sousTotalPrecedent: number;
+  nouveauSousTotal: number;
+  /** Frais constatés avant cette version — `null` pour la version 1 (non conservés dans `orders`, qui sont écrasés à l'acceptation). */
+  fraisLivraisonPrecedent: number | null;
+  nouveauxFraisLivraison: number;
+  conditionsModifiees: string | null;
+  statut: StatutProposition;
+  expireLe: string | null;
+  creeLe: string;
+  reponduLe: string | null;
+}
+
 export interface CommandeDetailAdmin extends CommandeApercuAdmin {
   historique: EvenementStatutAdmin[];
+  /** Toutes les versions de proposition, de la plus ancienne à la plus récente. */
+  propositions: PropositionRevisseeAdmin[];
 }
 
 function versMode(valeur: string): "retrait" | "livraison" {
@@ -112,7 +135,12 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
   await verifierPermission("commande.consulter");
   const supabase = await creerClientServeur();
 
-  const [{ data: commande, error }, { data: evenements }] = await Promise.all([
+  const [
+    { data: commande, error },
+    { data: evenements },
+    { data: propositions },
+    { data: lignes },
+  ] = await Promise.all([
     supabase
       .from("orders")
       .select(
@@ -125,6 +153,14 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
       .select("statut_precedent, statut_suivant, acteur, horodatage")
       .eq("order_id", id)
       .order("horodatage", { ascending: true }),
+    supabase
+      .from("order_proposals")
+      .select(
+        "version, nouveau_sous_total, nouveaux_frais_livraison, conditions_modifiees, statut, expire_le, cree_le, repondu_le"
+      )
+      .eq("order_id", id)
+      .order("version", { ascending: true }),
+    supabase.from("order_items").select("prix, quantite").eq("order_id", id),
   ]);
 
   if (error || !commande) {
@@ -135,6 +171,34 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
     { client_telephone: commande.client_telephone, client_adresse: commande.client_adresse },
     false
   );
+
+  // Montant d'origine de la commande : somme des lignes figées (ADR-006), qui
+  // ne change jamais. Sert de « ancien » montant pour la toute première version
+  // de proposition — `orders.sous_total` ayant été écrasé si elle a été acceptée.
+  const montantInitial = (lignes ?? []).reduce(
+    (total, ligne) => total + ligne.prix * ligne.quantite,
+    0
+  );
+
+  let sousTotalPrecedent = montantInitial;
+  let fraisLivraisonPrecedent: number | null = null;
+  const propositionsDetaillees: PropositionRevisseeAdmin[] = (propositions ?? []).map((p) => {
+    const detail: PropositionRevisseeAdmin = {
+      version: p.version,
+      sousTotalPrecedent,
+      nouveauSousTotal: p.nouveau_sous_total,
+      fraisLivraisonPrecedent,
+      nouveauxFraisLivraison: p.nouveaux_frais_livraison,
+      conditionsModifiees: p.conditions_modifiees,
+      statut: versStatutProposition(p.statut),
+      expireLe: p.expire_le,
+      creeLe: p.cree_le,
+      reponduLe: p.repondu_le,
+    };
+    sousTotalPrecedent = p.nouveau_sous_total;
+    fraisLivraisonPrecedent = p.nouveaux_frais_livraison;
+    return detail;
+  });
 
   return {
     id: commande.id,
@@ -154,6 +218,7 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
       acteur: e.acteur,
       horodatage: e.horodatage,
     })),
+    propositions: propositionsDetaillees,
   };
 }
 

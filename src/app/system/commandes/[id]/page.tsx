@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
-import { obtenirCommandeAdmin } from "@/lib/system-admin/commandes";
+import { obtenirCommandeAdmin, type PropositionRevisseeAdmin } from "@/lib/system-admin/commandes";
+import type { StatutProposition } from "@/lib/contracts/commande";
 import { Card, Badge } from "@/components/ui";
+import { formaterDateCourte, formaterEcheance } from "../../formatage";
 import { RevelerCoordonnees } from "./RevelerCoordonnees";
 import { ActionSupportStatut } from "./ActionSupportStatut";
 
@@ -13,6 +15,20 @@ const LIBELLES_STATUT: Record<string, string> = {
   prete: "Prête",
   terminee: "Terminée",
   annulee: "Annulée",
+};
+
+const LIBELLES_STATUT_PROPOSITION: Record<StatutProposition, string> = {
+  en_attente: "En attente de réponse client",
+  acceptee: "Acceptée par le client",
+  refusee: "Refusée par le client",
+  expiree: "Expirée",
+};
+
+const TONS_STATUT_PROPOSITION: Record<StatutProposition, "succes" | "danger" | "neutre"> = {
+  en_attente: "neutre",
+  acceptee: "succes",
+  refusee: "danger",
+  expiree: "neutre",
 };
 
 export default async function CommandeDetailSystemePage({
@@ -61,6 +77,23 @@ export default async function CommandeDetailSystemePage({
       </Card>
 
       <Card style={{ marginBottom: "var(--space-4)" }}>
+        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Propositions révisées</h2>
+        <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginTop: 0 }}>
+          Historique complet des versions proposées par le restaurant — lecture seule : les
+          propositions sont immuables, seule la réponse du client les fait évoluer.
+        </p>
+        {commande.propositions.length === 0 ? (
+          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune proposition révisée.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {commande.propositions.map((proposition) => (
+              <LigneProposition key={proposition.version} proposition={proposition} />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card style={{ marginBottom: "var(--space-4)" }}>
         <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Historique des transitions</h2>
         {commande.historique.length === 0 ? (
           <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucun événement.</p>
@@ -89,6 +122,57 @@ export default async function CommandeDetailSystemePage({
         </p>
         <ActionSupportStatut commandeId={commande.id} statutActuel={commande.statut} />
       </Card>
+    </div>
+  );
+}
+
+function formaterMontant(montant: number): string {
+  return `${montant.toLocaleString("fr-FR")} GNF`;
+}
+
+/** Une version de proposition — bloc d'affichage pur, lecture seule. */
+function LigneProposition({ proposition }: { proposition: PropositionRevisseeAdmin }) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--bordure)",
+        borderRadius: "var(--radius)",
+        padding: "var(--space-3)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <strong>Version {proposition.version}</strong>
+        <Badge ton={TONS_STATUT_PROPOSITION[proposition.statut]}>
+          {LIBELLES_STATUT_PROPOSITION[proposition.statut]}
+        </Badge>
+      </div>
+      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+        <strong>Sous-total :</strong> {formaterMontant(proposition.sousTotalPrecedent)} →{" "}
+        {formaterMontant(proposition.nouveauSousTotal)}
+      </p>
+      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+        <strong>Frais de livraison :</strong>{" "}
+        {proposition.fraisLivraisonPrecedent === null
+          ? formaterMontant(proposition.nouveauxFraisLivraison)
+          : `${formaterMontant(proposition.fraisLivraisonPrecedent)} → ${formaterMontant(proposition.nouveauxFraisLivraison)}`}
+      </p>
+      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+        <strong>Conditions :</strong>{" "}
+        {proposition.conditionsModifiees ? proposition.conditionsModifiees : "—"}
+      </p>
+      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
+        Échéance : {formaterEcheance(proposition.expireLe)} · Créée le{" "}
+        {formaterDateCourte(proposition.creeLe)}
+      </p>
+      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
+        Réponse :{" "}
+        {proposition.reponduLe
+          ? `le ${formaterDateCourte(proposition.reponduLe)}`
+          : "en attente de réponse client"}
+      </p>
     </div>
   );
 }

@@ -142,8 +142,8 @@ export function rolesAvecPermission(permission: Permission): readonly RoleSystem
 export interface SectionSysteme {
   readonly href: string;
   readonly libelle: string;
-  /** Bloc de PLAN-EXECUTION.md qui implémentera l'écran réel derrière ce placeholder. */
-  readonly bloc: "8a" | "8b" | "8c" | "8d";
+  /** Bloc de PLAN-EXECUTION.md qui implémentera l'écran réel derrière ce placeholder ; `post-8d` pour les ajouts ultérieurs au CMS. */
+  readonly bloc: "8a" | "8b" | "8c" | "8d" | "post-8d";
   readonly permission: Permission;
   readonly resume: string;
 }
@@ -183,6 +183,13 @@ export const SECTIONS_SYSTEME: readonly SectionSysteme[] = [
     bloc: "8a",
     permission: "systeme.roles",
     resume: "Attribution et retrait des rôles système — réservée à super_admin.",
+  },
+  {
+    href: "/system/comptes",
+    libelle: "Comptes utilisateurs",
+    bloc: "post-8d",
+    permission: "compte.consulter",
+    resume: "Annuaire en lecture seule des comptes : emails, affiliations restaurant, rôles système.",
   },
   {
     href: "/system/audit",
