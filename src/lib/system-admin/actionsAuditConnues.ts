@@ -31,4 +31,5 @@ export const ACTIONS_AUDIT_CONNUES = [
   "commande.support_transition",
   "systeme.attribution_role",
   "systeme.retrait_role",
+  "parametres.modification",
 ] as const;
