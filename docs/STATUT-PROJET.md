@@ -54,8 +54,13 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   comme catalogue est désormais invalide).
 - **Un projet Cloudflare Pages statique distinct existe déjà**,
   `speedfood.pages.dev` (landing + prototype cliquable de démonstration, sans
-  aucun backend). Décision explicite de Malika : les deux déploiements coexistent
-  pour l'instant, ne pas supprimer l'un ou l'autre sans consigne.
+  aucun backend, sources désormais dans `demo/` de ce dépôt). Décision explicite
+  de Malika : les deux déploiements coexistent pour l'instant, ne pas supprimer
+  l'un ou l'autre sans consigne.
+- **Redéployé le 28/09/2026** après l'état des lieux d'unification (centre de
+  commandement, annuaire des comptes, correctifs RLS) : `npm run cf:build &&
+  npx wrangler deploy`, succès, `/system/comptes` confirmé en place (404 sans
+  session, comme attendu).
 
 ## Compte administrateur système
 
