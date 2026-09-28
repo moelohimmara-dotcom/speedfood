@@ -29,4 +29,6 @@ export const ACTIONS_AUDIT_CONNUES = [
   "mise_en_avant.suppression",
   "coordonnees.revelation",
   "commande.support_transition",
+  "systeme.attribution_role",
+  "systeme.retrait_role",
 ] as const;

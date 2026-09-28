@@ -5,7 +5,7 @@ import {
   type TypeCompteAnnuaire,
 } from "@/lib/system-admin/annuaire";
 import { Card, Badge } from "@/components/ui";
-import { formaterDateCourte } from "../formatage";
+import { formaterDateCourte } from "../../formatage";
 
 const LIBELLES_FILTRE: Record<TypeCompteAnnuaire, string> = {
   tous: "Tous",
@@ -30,8 +30,8 @@ interface Recherche {
  * Annuaire global des comptes utilisateurs (post-bloc 8d). Permission
  * `compte.consulter` vérifiée ici (page) et de nouveau dans
  * `src/lib/system-admin/annuaire.ts` (défense en profondeur). Lecture seule :
- * l'attribution des rôles reste dans `/system/roles`, les memberships
- * restaurant dans `/system/restaurants`.
+ * l'attribution des rôles reste dans `/system/acces/roles`, les memberships
+ * restaurant dans `/system/catalogue/restaurants`.
  */
 export default async function ComptesSystemePage({
   searchParams,
@@ -53,7 +53,7 @@ export default async function ComptesSystemePage({
       <p style={{ color: "var(--secondaire)", marginTop: 0, marginBottom: "var(--space-4)" }}>
         Annuaire en lecture seule : emails des comptes Speedfood, affiliations restaurant
         et rôles système. Pour attribuer un rôle, utilisez&nbsp;
-        <Link href="/system/roles">Rôles système</Link>&nbsp;; pour gérer une équipe,
+        <Link href="/system/acces/roles">Rôles système</Link>&nbsp;; pour gérer une équipe,
         la fiche du restaurant concerné.
       </p>
 
@@ -74,7 +74,7 @@ export default async function ComptesSystemePage({
           return (
             <Link
               key={valeur}
-              href={chaine ? `/system/comptes?${chaine}` : "/system/comptes"}
+              href={chaine ? `/system/acces/comptes?${chaine}` : "/system/acces/comptes"}
               className={`chip ${type === valeur ? "actif" : ""}`}
             >
               {LIBELLES_FILTRE[valeur]}
@@ -130,7 +130,7 @@ export default async function ComptesSystemePage({
                 <ul style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: "0.85rem" }}>
                   {compte.restaurants.map((affiliation) => (
                     <li key={affiliation.restaurantId}>
-                      <Link href={`/system/restaurants/${affiliation.restaurantId}`}>{affiliation.nom}</Link>
+                      <Link href={`/system/catalogue/restaurants/${affiliation.restaurantId}`}>{affiliation.nom}</Link>
                       {" — "}
                       {affiliation.role === "owner" ? "propriétaire" : "équipier"}
                     </li>

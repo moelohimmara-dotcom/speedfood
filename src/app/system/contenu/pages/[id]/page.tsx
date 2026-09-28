@@ -20,7 +20,7 @@ export default async function EditionPageSystemePage({
 
   return (
     <div>
-      <Link href="/system/contenus" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
+      <Link href="/system/contenu/pages" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
         ← Retour aux pages
       </Link>
 

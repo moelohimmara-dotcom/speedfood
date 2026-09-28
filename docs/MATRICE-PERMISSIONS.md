@@ -1,6 +1,7 @@
-# Matrice de permissions du CMS système — v1.0.0
+# Matrice de permissions du CMS système — v1.1.0
 
-**Statut :** proposée par le bloc 8a, **à valider avant de brancher les blocs 8b/8c/8d.**
+**Statut :** livrée (blocs 8a-8d) et étendue lors de la refonte de la console
+d'administration (navigation groupée par domaine + `parametres.editer`).
 **Source de vérité applicative :** `src/lib/system-admin/permissions.ts` (constante
 `VERSION_MATRICE`). Ce document est sa traduction lisible : les deux doivent évoluer
 ensemble, et toute modification incrémenté `VERSION_MATRICE` (semver : correctif =
@@ -57,6 +58,7 @@ Cadrage : `docs/cadrage/PLAN-EXECUTION.md` (bloc 8a), `docs/cadrage/ADR.md`
 | `coordonees.voir` | Révéler les coordonnées clients (motif + audit) | ✓ | — | — | ✓ |
 | `systeme.roles` | Attribuer ou retirer les rôles système | ✓ | — | — | — |
 | `systeme.audit` | Consulter le journal d'audit et les indicateurs | ✓ | ✓ | ✓ | ✓ |
+| `parametres.editer` | Modifier les paramètres globaux de l'application | ✓ | — | — | — |
 
 Justifications de périmètre :
 
@@ -65,6 +67,11 @@ Justifications de périmètre :
   exceptionnel avec permission dédiée, motif et trace d'audit).
 - `systeme.roles` est réservée à `super_admin` : aucun utilisateur ne s'attribue
   lui-même un rôle privilégié (ADR-010).
+- `parametres.editer` est réservée à `super_admin`, même périmètre que
+  `systeme.roles` : les réglages globaux (délai de proposition, plafond de prix)
+  ne se délèguent pas. `COMMANDE_JETON_SECRET` reste hors de ce périmètre —
+  jamais éditable depuis l'admin, car changer sa valeur invaliderait tous les
+  jetons de suivi déjà émis (reste un secret Cloudflare).
 - `content_editor` ne modifie ni commande ni rôle (critère d'acceptation 8c).
 - `contenu.mettre_en_avant` suit la policy RLS existante
   `operations_gestion_mises_en_avant` (operations + super_admin), même si
@@ -120,38 +127,43 @@ suppression) : les traces ne sont pas altérables depuis l'application.
 
 ## Shell `/system`
 
-| Route | Contenu | Bloc | Permission vérifiée dans la page |
-|---|---|---|---|
-| `/system` | Vue d'ensemble, permissions du rôle | 8a | tout rôle système |
-| `/system/restaurants` | Restaurants & comptes | 8b | `restaurant.moderer` |
-| `/system/contenus` | Contenus | 8c | `contenu.editer` |
-| `/system/commandes` | Support commandes | 8d | `commande.consulter` |
-| `/system/roles` | Rôles système | 8a | `systeme.roles` |
-| `/system/audit` | Journal d'audit | 8d | `systeme.audit` |
+Navigation groupée par domaine (refonte post-8d) : chaque **groupe** ne
+s'affiche que si le rôle a au moins une permission parmi celles de ses
+sous-écrans (`entreesNavPourRole`) ; chaque **sous-item** ne s'affiche que si
+sa propre permission est accordée (`sousSectionsAccessibles`, généralisation de
+l'ancien `SousNavContenus` en `SousNav`). Purement une réorganisation visuelle
+— aucun changement de permission réelle.
 
-Le groupe « Rôles & audit » du plan est scindé en deux routes (`/system/roles`
-et `/system/audit`) pour que chaque page porte sa propre permission — un
-`support` consulte le journal sans accéder à la gestion des rôles.
+| Route | Contenu | Permission vérifiée dans la page |
+|---|---|---|
+| `/system` | Centre de commandement (indicateurs, file prioritaire) | tout rôle système |
+| `/system/catalogue/restaurants` | Restaurants & comptes | `restaurant.moderer` |
+| `/system/catalogue/taxonomie` | Taxonomie (catégories, quartiers) | `taxonomie.editer` |
+| `/system/catalogue/mises-en-avant` | Mises en avant | `contenu.mettre_en_avant` |
+| `/system/contenu/pages` | Pages | `contenu.editer` |
+| `/system/contenu/bannieres` | Bannières | `contenu.editer` |
+| `/system/commandes` | Support commandes | `commande.consulter` |
+| `/system/acces/comptes` | Annuaire des comptes (lecture seule) | `compte.consulter` |
+| `/system/acces/roles` | Rôles système | `systeme.roles` |
+| `/system/audit` | Journal d'audit | `systeme.audit` |
 
-## Écarts connus à traiter dans les blocs suivants
+`/system/acces/roles` et `/system/audit` restent deux routes distinctes,
+chacune portant sa propre permission — un `support` consulte le journal sans
+accéder à la gestion des rôles.
 
-- **`taxonomie.editer` sans policy d'écriture** : `menu_categories` et
-  `neighborhoods` n'ont qu'une policy de lecture publique. Le bloc 8c devra
-  soit écrire via `service_role` avec vérification `verifierPermission` +
-  trace d'audit, soit demander une nouvelle migration de policies (le schéma
-  est gelé pour 8a — décision du propriétaire requise).
-- **`orders` sans policy admin** : aucune policy `admins_*` sur `orders` /
-  `order_items` / `order_status_events` / `order_proposals`. Le bloc 8d lira
-  donc les commandes via `service_role` côté serveur, après
-  `verifierPermission(...)`, en affichant des coordonnées masquées — ou
-  demandera une migration dédiée. La permission applicative reste obligatoire
-  dans les deux cas.
-- **Mises en avant** : voir la note de la matrice (`contenu.mettre_en_avant`
-  alignée sur la RLS existante, pas sur le découpage 8c du plan).
+## Écarts connus
+
+Les écarts d'origine du bloc 8a (policies d'écriture manquantes sur
+`menu_categories`/`neighborhoods` et sur `orders`) sont résolus depuis les
+blocs 8b/8d : les écritures passent par `service_role` après
+`verifierPermission(...)` et une trace d'audit, comme prévu. Aucun écart connu
+actuellement — la « Mises en avant » reste alignée sur la policy RLS existante
+`operations_gestion_mises_en_avant`, pas sur un découpage éditorial, choix
+assumé et documenté dans la matrice ci-dessus.
 
 ## Validation
 
-Avant de brancher 8b/8c/8d : relire cette matrice, confirmer que chaque
-sous-bloc ne consomme que les permissions prévues, et figer `VERSION_MATRICE`.
-Toute permission ajoutée ultérieurement passe par une révision de ce document,
-de `permissions.ts` et un incrément de version.
+Toute permission ajoutée ou modifiée passe par une révision de ce document,
+de `src/lib/system-admin/permissions.ts` et un incrément de `VERSION_MATRICE`
+(semver : correctif = clarification de libellé, mineur = permission ajoutée,
+majeur = suppression ou changement de périmètre d'une permission).

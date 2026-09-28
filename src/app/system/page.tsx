@@ -70,7 +70,7 @@ export default async function AccueilCmsSystemePage() {
           libelle: "En attente de validation",
           definition:
             "Créés mais jamais examinés : ni publiés, ni suspendus, ni en attente d'une correction.",
-          href: "/system/restaurants?statut=en_attente",
+          href: "/system/catalogue/restaurants?statut=en_attente",
           ton: compteursRestaurants.enAttente > 0 ? "danger" : "neutre",
         },
         {
@@ -78,21 +78,21 @@ export default async function AccueilCmsSystemePage() {
           valeur: compteursRestaurants.publies,
           libelle: "Publiés",
           definition: "Visibles dans le catalogue public (publiés et non suspendus).",
-          href: "/system/restaurants?statut=publies",
+          href: "/system/catalogue/restaurants?statut=publies",
         },
         {
           cle: "restaurants_suspendus",
           valeur: compteursRestaurants.suspendus,
           libelle: "Suspendus",
           definition: "Suspension active : retirés du catalogue public jusqu'à réactivation.",
-          href: "/system/restaurants?statut=suspendus",
+          href: "/system/catalogue/restaurants?statut=suspendus",
         },
         {
           cle: "restaurants_correction",
           valeur: compteursRestaurants.correction,
           libelle: "Correction demandée",
           definition: "En attente d'une correction de la part du restaurateur (motif envoyé).",
-          href: "/system/restaurants?statut=correction",
+          href: "/system/catalogue/restaurants?statut=correction",
           ton: compteursRestaurants.correction > 0 ? "danger" : "neutre",
         },
       ],
@@ -141,14 +141,14 @@ export default async function AccueilCmsSystemePage() {
           valeur: compteursContenus.pagesPubliees,
           libelle: "Pages publiées",
           definition: "Pages d'aide/FAQ actuellement visibles publiquement.",
-          href: "/system/contenus?statut=publie",
+          href: "/system/contenu/pages?statut=publie",
         },
         {
           cle: "pages_brouillon",
           valeur: compteursContenus.pagesBrouillon,
           libelle: "Pages en brouillon",
           definition: "Pages créées mais pas encore publiées.",
-          href: "/system/contenus?statut=brouillon",
+          href: "/system/contenu/pages?statut=brouillon",
           ton: compteursContenus.pagesBrouillon > 0 ? "danger" : "neutre",
         },
         {
@@ -156,14 +156,14 @@ export default async function AccueilCmsSystemePage() {
           valeur: compteursContenus.bannieresPubliees,
           libelle: "Bannières publiées",
           definition: "Bannières actuellement diffusées sur les écrans publics.",
-          href: "/system/contenus/bannieres?statut=publie",
+          href: "/system/contenu/bannieres?statut=publie",
         },
         {
           cle: "bannieres_brouillon",
           valeur: compteursContenus.bannieresBrouillon,
           libelle: "Bannières en brouillon",
           definition: "Bannières créées mais pas encore publiées.",
-          href: "/system/contenus/bannieres?statut=brouillon",
+          href: "/system/contenu/bannieres?statut=brouillon",
           ton: compteursContenus.bannieresBrouillon > 0 ? "danger" : "neutre",
         },
       ],
@@ -178,7 +178,7 @@ export default async function AccueilCmsSystemePage() {
         valeur: compte.valeur,
         libelle: compte.libelle,
         definition: `Comptes disposant du rôle système « ${compte.libelle} » (matrice v${VERSION_MATRICE}).`,
-        href: "/system/roles",
+        href: "/system/acces/roles",
       })),
     });
   }
@@ -198,7 +198,7 @@ export default async function AccueilCmsSystemePage() {
   }
   for (const restaurant of restaurantsEnAttente ?? []) {
     lignesFile.push({
-      href: `/system/restaurants/${restaurant.id}`,
+      href: `/system/catalogue/restaurants/${restaurant.id}`,
       titre: restaurant.nom,
       meta: `Demande de mise en ligne créée le ${formaterDateCourte(restaurant.creeLe)}`,
       badge: "À valider",
@@ -222,7 +222,7 @@ export default async function AccueilCmsSystemePage() {
   const actionsRapides: ActionRapide[] = [];
   if (roleAPermission(role, "restaurant.moderer")) {
     actionsRapides.push({
-      href: "/system/restaurants?statut=en_attente",
+      href: "/system/catalogue/restaurants?statut=en_attente",
       libelle: "Valider un restaurant",
       description: "Ouvrir la file des demandes en attente de validation.",
     });
@@ -241,21 +241,21 @@ export default async function AccueilCmsSystemePage() {
   }
   if (roleAPermission(role, "contenu.editer")) {
     actionsRapides.push({
-      href: "/system/contenus",
+      href: "/system/contenu/pages",
       libelle: "Créer une page",
       description: "Formulaire de création en haut de la liste des contenus.",
     });
   }
   if (roleAPermission(role, "contenu.mettre_en_avant")) {
     actionsRapides.push({
-      href: "/system/mises-en-avant",
+      href: "/system/catalogue/mises-en-avant",
       libelle: "Gérer les mises en avant",
       description: "Sélection des restaurants mis en avant au catalogue public.",
     });
   }
   if (roleAPermission(role, "systeme.roles")) {
     actionsRapides.push({
-      href: "/system/roles",
+      href: "/system/acces/roles",
       libelle: "Gérer les rôles système",
       description: "Attribuer ou retirer un rôle système — réservé à super_admin.",
     });

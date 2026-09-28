@@ -24,7 +24,7 @@ export default async function RestaurantDetailSystemePage({
   return (
     <div>
       <Link
-        href="/system/restaurants"
+        href="/system/catalogue/restaurants"
         style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}
       >
         ← Retour à la liste

@@ -3,26 +3,27 @@ import { deconnexionAction } from "@/lib/auth/actions";
 import { Badge, Button } from "@/components/ui";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import {
+  entreesNavPourRole,
   LIBELLES_ROLES,
-  roleAPermission,
-  SECTIONS_SYSTEME,
   VERSION_MATRICE,
 } from "@/lib/system-admin/permissions";
 import { SystemNav } from "./SystemNav";
 
 /**
- * Shell du CMS système (bloc 8a) : en-tête avec rôle courant, navigation vers
- * les sous-blocs (8b/8c/8d), rappel de la séparation des surfaces.
+ * Shell du CMS système : en-tête avec rôle courant, navigation groupée par
+ * domaine (Catalogue/Contenu/Commandes/Accès/Paramètres/Audit), rappel de la
+ * séparation des surfaces.
  *
  * Défense en profondeur : `obtenirContexteSysteme()` refait le contrôle de rôle
  * dans chaque rendu (404 sans rôle système) — jamais sur le proxy seul
- * (src/proxy.ts). Les entrées de navigation sont filtrées par permission.
+ * (src/proxy.ts). Les entrées de navigation sont filtrées par permission
+ * (`entreesNavPourRole` : un groupe apparaît si au moins une de ses
+ * sous-sections est accessible ; chaque page affiche ensuite sa propre
+ * sous-navigation via `SousNav`).
  */
 export default async function SystemLayout({ children }: { children: React.ReactNode }) {
   const contexte = await obtenirContexteSysteme();
-  const entrees = SECTIONS_SYSTEME.filter((section) =>
-    roleAPermission(contexte.role, section.permission)
-  );
+  const entrees = entreesNavPourRole(contexte.role);
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>

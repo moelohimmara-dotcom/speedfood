@@ -97,7 +97,7 @@ export async function ajouterMiseEnAvantAction(
     cibleId: restaurantId,
   });
 
-  revalidatePath("/system/mises-en-avant");
+  revalidatePath("/system/catalogue/mises-en-avant");
   return { succes: true };
 }
 
@@ -118,7 +118,7 @@ export async function basculerMiseEnAvantAction(id: string, actif: boolean): Pro
     cibleId: data?.restaurant_id ?? id,
   });
 
-  revalidatePath("/system/mises-en-avant");
+  revalidatePath("/system/catalogue/mises-en-avant");
 }
 
 export async function retirerMiseEnAvantAction(id: string): Promise<void> {
@@ -138,5 +138,5 @@ export async function retirerMiseEnAvantAction(id: string): Promise<void> {
     cibleId: data?.restaurant_id ?? id,
   });
 
-  revalidatePath("/system/mises-en-avant");
+  revalidatePath("/system/catalogue/mises-en-avant");
 }

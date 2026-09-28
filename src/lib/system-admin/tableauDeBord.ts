@@ -17,7 +17,7 @@ import type { EntreeAudit } from "./journalAudit";
  * ouvertes au rôle courant, toutes en parallèle (aucun waterfall).
  */
 
-/** Compteurs de modération restaurants — mêmes définitions que les filtres de `/system/restaurants`. */
+/** Compteurs de modération restaurants — mêmes définitions que les filtres de `/system/catalogue/restaurants`. */
 export interface CompteursRestaurants {
   enAttente: number;
   publies: number;
@@ -27,7 +27,7 @@ export interface CompteursRestaurants {
 
 export async function obtenirCompteursRestaurants(): Promise<CompteursRestaurants> {
   // `restaurant.moderer` et non `restaurant.consulter` : ces compteurs ouvrent
-  // `/system/restaurants` (modération), qui exige cette permission — pas de
+  // `/system/catalogue/restaurants` (modération), qui exige cette permission — pas de
   // compteur affiché vers un écran qui renverrait une 404 au rôle courant.
   await verifierPermission("restaurant.moderer");
   const supabase = await creerClientServeur();

@@ -1,11 +1,12 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerTaxonomie } from "@/lib/system-admin/taxonomie";
 import { Card } from "@/components/ui";
-import { SousNavContenus } from "../SousNavContenus";
+import { SousNav } from "../../SousNav";
 import { ListeTaxonomie } from "./ListeTaxonomie";
 
 export default async function TaxonomieSystemePage() {
-  await exigerPermissionPage("taxonomie.editer");
+  const contexte = await exigerPermissionPage("taxonomie.editer");
 
   const [categories, quartiers] = await Promise.all([
     listerTaxonomie("menu_categories"),
@@ -14,8 +15,8 @@ export default async function TaxonomieSystemePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenus</h1>
-      <SousNavContenus />
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Catalogue</h1>
+      <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
         <Card>

@@ -1,11 +1,13 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerMisesEnAvant, listerRestaurantsPublies } from "@/lib/system-admin/misesEnAvant";
 import { Card } from "@/components/ui";
+import { SousNav } from "../../SousNav";
 import { FormulaireNouvelleMiseEnAvant } from "./FormulaireNouvelleMiseEnAvant";
 import { MiseEnAvantItem } from "./MiseEnAvantItem";
 
 export default async function MisesEnAvantSystemePage() {
-  await exigerPermissionPage("contenu.mettre_en_avant");
+  const contexte = await exigerPermissionPage("contenu.mettre_en_avant");
 
   const [misesEnAvant, restaurants] = await Promise.all([
     listerMisesEnAvant(),
@@ -17,7 +19,8 @@ export default async function MisesEnAvantSystemePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Mises en avant</h1>
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Catalogue</h1>
+      <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
         Décision opérationnelle (permission distincte des contenus éditoriaux) : quels restaurants
         publiés apparaissent en avant au catalogue.

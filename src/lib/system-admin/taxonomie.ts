@@ -81,7 +81,7 @@ export async function creerElementTaxonomieAction(
     motif: nom,
   });
 
-  revalidatePath("/system/contenus/taxonomie");
+  revalidatePath("/system/catalogue/taxonomie");
   return { succes: true };
 }
 
@@ -126,7 +126,7 @@ export async function modifierElementTaxonomieAction(
     motif: nom,
   });
 
-  revalidatePath("/system/contenus/taxonomie");
+  revalidatePath("/system/catalogue/taxonomie");
   return { succes: true };
 }
 
@@ -155,6 +155,6 @@ export async function supprimerElementTaxonomieAction(
     cibleId: id,
   });
 
-  revalidatePath("/system/contenus/taxonomie");
+  revalidatePath("/system/catalogue/taxonomie");
   return {};
 }

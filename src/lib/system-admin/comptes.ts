@@ -98,7 +98,7 @@ export async function inviterEquipierAction(
     motif: `Ajout de ${email} comme équipier`,
   });
 
-  revalidatePath(`/system/restaurants/${restaurantId}`);
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
   return { succes: true };
 }
 
@@ -126,5 +126,5 @@ export async function revoquerEquipierAction(
     motif: `Retrait de l'équipier ${utilisateurId}`,
   });
 
-  revalidatePath(`/system/restaurants/${restaurantId}`);
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
 }

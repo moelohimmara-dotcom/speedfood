@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerPages } from "@/lib/system-admin/contenus";
 import { Card, Badge } from "@/components/ui";
-import { SousNavContenus } from "./SousNavContenus";
+import { SousNav } from "../../SousNav";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
 
 interface Recherche {
@@ -20,21 +21,21 @@ export default async function ContenusSystemePage({
 }: {
   searchParams: Promise<Recherche>;
 }) {
-  await exigerPermissionPage("contenu.editer");
+  const contexte = await exigerPermissionPage("contenu.editer");
   const { statut: statutBrut } = await searchParams;
   const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
   const pages = (await listerPages()).filter((p) => statut === "tous" || p.statut === statut);
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenus</h1>
-      <SousNavContenus />
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenu</h1>
+      <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
       <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-4)" }}>
         {(["tous", "publie", "brouillon"] as const).map((valeur) => (
           <Link
             key={valeur}
-            href={valeur === "tous" ? "/system/contenus" : `/system/contenus?statut=${valeur}`}
+            href={valeur === "tous" ? "/system/contenu/pages" : `/system/contenu/pages?statut=${valeur}`}
             className={`chip ${statut === valeur ? "actif" : ""}`}
           >
             {valeur === "tous" ? "Toutes" : valeur === "publie" ? "Publiées" : "Brouillons"}
@@ -54,7 +55,7 @@ export default async function ContenusSystemePage({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {pages.map((p) => (
-            <Link key={p.id} href={`/system/contenus/pages/${p.id}`} style={{ textDecoration: "none" }}>
+            <Link key={p.id} href={`/system/contenu/pages/${p.id}`} style={{ textDecoration: "none" }}>
               <Card style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <strong style={{ color: "var(--encre)" }}>{p.titre}</strong>

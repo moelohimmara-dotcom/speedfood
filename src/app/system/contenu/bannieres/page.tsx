@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerBannieres } from "@/lib/system-admin/contenus";
 import { Card } from "@/components/ui";
-import { SousNavContenus } from "../SousNavContenus";
+import { SousNav } from "../../SousNav";
 import { FormulaireNouvelleBanniere } from "./FormulaireNouvelleBanniere";
 import { BanniereItem } from "./BanniereItem";
 
@@ -12,7 +13,7 @@ interface Recherche {
 
 /**
  * Ajustement léger post-tableau de bord : le filtre `statut` permet aux
- * compteurs du centre de commandement (`/system/contenus/bannieres?statut=…`)
+ * compteurs du centre de commandement (`/system/contenu/bannieres?statut=…`)
  * d'ouvrir directement la liste correspondante. Le reste de l'écran (bloc 8c)
  * est inchangé.
  */
@@ -21,15 +22,15 @@ export default async function BannieresSystemePage({
 }: {
   searchParams: Promise<Recherche>;
 }) {
-  await exigerPermissionPage("contenu.editer");
+  const contexte = await exigerPermissionPage("contenu.editer");
   const { statut: statutBrut } = await searchParams;
   const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
   const bannieres = (await listerBannieres()).filter((b) => statut === "tous" || b.statut === statut);
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenus</h1>
-      <SousNavContenus />
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenu</h1>
+      <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
       <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-4)" }}>
         {(["tous", "publie", "brouillon"] as const).map((valeur) => (
@@ -37,8 +38,8 @@ export default async function BannieresSystemePage({
             key={valeur}
             href={
               valeur === "tous"
-                ? "/system/contenus/bannieres"
-                : `/system/contenus/bannieres?statut=${valeur}`
+                ? "/system/contenu/bannieres"
+                : `/system/contenu/bannieres?statut=${valeur}`
             }
             className={`chip ${statut === valeur ? "actif" : ""}`}
           >

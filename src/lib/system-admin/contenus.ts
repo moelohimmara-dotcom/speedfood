@@ -113,7 +113,7 @@ export async function creerPageAction(
     motif: slug,
   });
 
-  revalidatePath("/system/contenus");
+  revalidatePath("/system/contenu/pages");
   return { succes: true };
 }
 
@@ -153,8 +153,8 @@ export async function modifierPageAction(
     cibleId: id,
   });
 
-  revalidatePath("/system/contenus");
-  revalidatePath(`/system/contenus/pages/${id}`);
+  revalidatePath("/system/contenu/pages");
+  revalidatePath(`/system/contenu/pages/${id}`);
   return { succes: true };
 }
 
@@ -176,8 +176,8 @@ export async function basculerPublicationPageAction(id: string, publier: boolean
     cibleId: id,
   });
 
-  revalidatePath("/system/contenus");
-  revalidatePath(`/system/contenus/pages/${id}`);
+  revalidatePath("/system/contenu/pages");
+  revalidatePath(`/system/contenu/pages/${id}`);
 }
 
 // --- Bannières -------------------------------------------------------------
@@ -242,7 +242,7 @@ export async function creerBanniereAction(
     motif: titre,
   });
 
-  revalidatePath("/system/contenus/bannieres");
+  revalidatePath("/system/contenu/bannieres");
   return { succes: true };
 }
 
@@ -267,7 +267,7 @@ export async function basculerPublicationBanniereAction(
     cibleId: id,
   });
 
-  revalidatePath("/system/contenus/bannieres");
+  revalidatePath("/system/contenu/bannieres");
 }
 
 export async function supprimerBanniereAction(id: string): Promise<void> {
@@ -282,5 +282,5 @@ export async function supprimerBanniereAction(id: string): Promise<void> {
     cibleId: id,
   });
 
-  revalidatePath("/system/contenus/bannieres");
+  revalidatePath("/system/contenu/bannieres");
 }

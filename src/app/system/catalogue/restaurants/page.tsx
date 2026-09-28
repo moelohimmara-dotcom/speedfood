@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerRestaurantsAdmin, type StatutFiltre } from "@/lib/system-admin/restaurants";
 import { Card, Badge } from "@/components/ui";
+import { SousNav } from "../../SousNav";
 
 const LIBELLES_FILTRE: Record<StatutFiltre, string> = {
   tous: "Tous",
@@ -28,7 +30,7 @@ export default async function RestaurantsComptesSystemePage({
 }: {
   searchParams: Promise<Recherche>;
 }) {
-  await exigerPermissionPage("restaurant.moderer");
+  const contexte = await exigerPermissionPage("restaurant.moderer");
 
   const { q, statut: statutBrut } = await searchParams;
   const statut: StatutFiltre = ORDRE_FILTRES.includes(statutBrut as StatutFiltre)
@@ -39,7 +41,8 @@ export default async function RestaurantsComptesSystemePage({
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Restaurants &amp; comptes</h1>
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Catalogue</h1>
+      <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
 
       <form method="GET" style={{ marginBottom: "var(--space-4)" }}>
         {statut !== "tous" ? <input type="hidden" name="statut" value={statut} /> : null}
@@ -58,7 +61,7 @@ export default async function RestaurantsComptesSystemePage({
           return (
             <Link
               key={valeur}
-              href={chaine ? `/system/restaurants?${chaine}` : "/system/restaurants"}
+              href={chaine ? `/system/catalogue/restaurants?${chaine}` : "/system/catalogue/restaurants"}
               className={`chip ${statut === valeur ? "actif" : ""}`}
             >
               {LIBELLES_FILTRE[valeur]}
@@ -74,7 +77,7 @@ export default async function RestaurantsComptesSystemePage({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {restaurants.map((r) => (
-            <Link key={r.id} href={`/system/restaurants/${r.id}`} style={{ textDecoration: "none" }}>
+            <Link key={r.id} href={`/system/catalogue/restaurants/${r.id}`} style={{ textDecoration: "none" }}>
               <Card style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <strong style={{ color: "var(--encre)" }}>{r.nom}</strong>

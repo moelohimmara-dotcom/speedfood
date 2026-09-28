@@ -135,8 +135,8 @@ export async function approuverRestaurantAction(
     cibleId: restaurantId,
   });
 
-  revalidatePath("/system/restaurants");
-  revalidatePath(`/system/restaurants/${restaurantId}`);
+  revalidatePath("/system/catalogue/restaurants");
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
   return { succes: true };
 }
 
@@ -176,8 +176,8 @@ export async function demanderCorrectionAction(
     motif,
   });
 
-  revalidatePath("/system/restaurants");
-  revalidatePath(`/system/restaurants/${restaurantId}`);
+  revalidatePath("/system/catalogue/restaurants");
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
   return { succes: true };
 }
 
@@ -217,8 +217,8 @@ export async function suspendreRestaurantAction(
     motif,
   });
 
-  revalidatePath("/system/restaurants");
-  revalidatePath(`/system/restaurants/${restaurantId}`);
+  revalidatePath("/system/catalogue/restaurants");
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
   return { succes: true };
 }
 
@@ -237,6 +237,6 @@ export async function reactiverRestaurantAction(restaurantId: string): Promise<v
     cibleId: restaurantId,
   });
 
-  revalidatePath("/system/restaurants");
-  revalidatePath(`/system/restaurants/${restaurantId}`);
+  revalidatePath("/system/catalogue/restaurants");
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
 }
