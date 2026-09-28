@@ -15,7 +15,9 @@ export default async function FicheRestaurantPage({
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, nom, horaires, consignes, ouvert, photo_url, menu_categories(nom), neighborhoods(nom)")
+    .select(
+      "id, nom, horaires, consignes, ouvert, photo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -44,10 +46,21 @@ export default async function FicheRestaurantPage({
 
       {restaurant.photo_url ? (
         // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-        <img src={restaurant.photo_url} alt="" className="fiche-restaurant-hero" />
+        <img
+          src={restaurant.photo_url}
+          alt=""
+          className="fiche-restaurant-hero"
+          style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}
+        />
       ) : null}
 
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 4px" }}>{restaurant.nom}</h1>
+      {restaurant.couleur_accent ? (
+        <div
+          aria-hidden="true"
+          style={{ width: 48, height: 4, borderRadius: "var(--radius-pill)", background: restaurant.couleur_accent, marginBottom: 8 }}
+        />
+      ) : null}
       <p style={{ color: "var(--secondaire)", marginBottom: 4 }}>
         {restaurant.menu_categories?.nom} · {restaurant.neighborhoods?.nom}
       </p>

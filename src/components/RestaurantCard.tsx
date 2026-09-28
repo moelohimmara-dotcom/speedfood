@@ -8,6 +8,7 @@ interface RestaurantCardProps {
   quartier: string;
   ouvert: boolean;
   photoUrl?: string | null;
+  couleurAccent?: string | null;
 }
 
 /**
@@ -23,12 +24,27 @@ const COULEUR_PAR_CATEGORIE: Record<string, string> = {
   "Petit-déjeuner": "var(--couleur-cafe)",
 };
 
-export function RestaurantCard({ id, nom, categorie, quartier, ouvert, photoUrl }: RestaurantCardProps) {
+export function RestaurantCard({
+  id,
+  nom,
+  categorie,
+  quartier,
+  ouvert,
+  photoUrl,
+  couleurAccent,
+}: RestaurantCardProps) {
   const couleurCategorie = COULEUR_PAR_CATEGORIE[categorie] ?? "var(--secondaire)";
 
   return (
     <Link href={`/restaurants/${id}`} style={{ textDecoration: "none" }}>
-      <Card className="carte-restaurant" style={{ height: "100%" }}>
+      <Card
+        className="carte-restaurant"
+        style={{
+          height: "100%",
+          borderTopColor: couleurAccent ?? undefined,
+          borderTopWidth: couleurAccent ? 4 : undefined,
+        }}
+      >
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
           <img src={photoUrl} alt="" className="carte-restaurant-photo" />

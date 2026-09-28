@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { modifierProfilAction, type EtatFormulaireProfil } from "@/lib/restaurant/actions";
 import { Button, Alert } from "@/components/ui";
+import { SelecteurCouleur } from "./SelecteurCouleur";
 
 const etatInitial: EtatFormulaireProfil = {};
 
@@ -10,10 +11,12 @@ export function FormulaireProfil({
   horaires,
   consignes,
   photoUrl,
+  couleurAccent,
 }: {
   horaires: string;
   consignes: string;
   photoUrl: string | null;
+  couleurAccent: string | null;
 }) {
   const [etat, action, enCours] = useActionState(modifierProfilAction, etatInitial);
 
@@ -32,6 +35,14 @@ export function FormulaireProfil({
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
         <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
           JPEG, PNG ou WebP, 5 Mo maximum. Laissez vide pour ne pas changer la photo actuelle.
+        </p>
+      </div>
+      <div className="field">
+        <label>Couleur d&apos;accent</label>
+        <SelecteurCouleur valeurInitiale={couleurAccent} />
+        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          Un liseré décoratif propre à votre restaurant, visible dans le catalogue et sur votre
+          fiche. Facultatif.
         </p>
       </div>
       <div className="field">

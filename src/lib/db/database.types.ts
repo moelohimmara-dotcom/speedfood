@@ -477,7 +477,9 @@ export type Database = {
         Row: {
           categorie_id: string
           consignes: string | null
+          couleur_accent: string | null
           cree_le: string
+          donnees_demo: boolean
           horaires: string
           id: string
           mis_a_jour_le: string
@@ -493,7 +495,9 @@ export type Database = {
         Insert: {
           categorie_id: string
           consignes?: string | null
+          couleur_accent?: string | null
           cree_le?: string
+          donnees_demo?: boolean
           horaires?: string
           id?: string
           mis_a_jour_le?: string
@@ -509,7 +513,9 @@ export type Database = {
         Update: {
           categorie_id?: string
           consignes?: string | null
+          couleur_accent?: string | null
           cree_le?: string
+          donnees_demo?: boolean
           horaires?: string
           id?: string
           mis_a_jour_le?: string
