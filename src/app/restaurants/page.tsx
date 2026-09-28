@@ -30,7 +30,7 @@ export default async function CataloguePage({
 
   let requete = supabase
     .from("restaurants")
-    .select("id, nom, ouvert, menu_categories(nom), neighborhoods(nom)")
+    .select("id, nom, ouvert, photo_url, menu_categories(nom), neighborhoods(nom)")
     .order("nom")
     .limit(LIMITE_CATALOGUE);
 
@@ -99,6 +99,7 @@ export default async function CataloguePage({
               id={r.id}
               nom={r.nom}
               ouvert={r.ouvert}
+              photoUrl={r.photo_url}
               categorie={r.menu_categories?.nom ?? ""}
               quartier={r.neighborhoods?.nom ?? ""}
             />

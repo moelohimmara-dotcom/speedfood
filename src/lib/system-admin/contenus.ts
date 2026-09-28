@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
+import { televerserImage, supprimerImage } from "@/lib/storage/images";
+import { ErreurMetier } from "@/lib/contracts/erreurs";
 
 /**
  * Pages éditoriales (aide/FAQ/accueil) et bannières — bloc 8c. Toute mutation
@@ -40,6 +42,7 @@ export interface Banniere {
   auteur_id: string | null;
   cree_le: string;
   mis_a_jour_le: string;
+  image_url: string | null;
 }
 
 const REGEX_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -187,7 +190,7 @@ export async function listerBannieres(): Promise<Banniere[]> {
   const supabase = await creerClientServeur();
   const { data, error } = await supabase
     .from("content_banners")
-    .select("id, titre, texte, lien, statut, ordre, auteur_id, cree_le, mis_a_jour_le")
+    .select("id, titre, texte, lien, statut, ordre, auteur_id, cree_le, mis_a_jour_le, image_url")
     .order("ordre");
   if (error || !data) {
     return [];
@@ -216,6 +219,17 @@ export async function creerBanniereAction(
   }
 
   const contexte = await verifierPermission("contenu.editer");
+
+  let imageUrl: string | null = null;
+  const fichierImage = formData.get("image");
+  if (fichierImage instanceof File && fichierImage.size > 0) {
+    try {
+      imageUrl = await televerserImage(fichierImage, "bannieres");
+    } catch (erreur) {
+      return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Impossible d'enregistrer l'image." };
+    }
+  }
+
   const supabase = await creerClientServeur();
 
   const { data, error } = await supabase
@@ -227,6 +241,7 @@ export async function creerBanniereAction(
       ordre,
       statut: "brouillon",
       auteur_id: contexte.utilisateurId,
+      image_url: imageUrl,
     })
     .select("id")
     .single();
@@ -274,7 +289,14 @@ export async function supprimerBanniereAction(id: string): Promise<void> {
   const contexte = await verifierPermission("contenu.editer");
   const supabase = await creerClientServeur();
 
+  const { data: banniere } = await supabase
+    .from("content_banners")
+    .select("image_url")
+    .eq("id", id)
+    .maybeSingle();
+
   await supabase.from("content_banners").delete().eq("id", id);
+  await supprimerImage(banniere?.image_url ?? null);
 
   await journaliserActionSysteme(contexte, {
     action: "contenu.banniere_suppression",

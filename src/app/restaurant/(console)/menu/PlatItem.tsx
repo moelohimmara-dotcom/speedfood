@@ -15,6 +15,7 @@ interface Plat {
   description: string;
   prix: number;
   disponible: boolean;
+  photo_url: string | null;
 }
 
 const etatInitial: EtatFormulaireMenu = {};
@@ -34,6 +35,26 @@ export function PlatItem({ plat }: { plat: Plat }) {
           }}
         >
           <input type="hidden" name="id" value={plat.id} />
+          <div className="field">
+            <label htmlFor={`photo-${plat.id}`}>Photo du plat</label>
+            {plat.photo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+              <img
+                src={plat.photo_url}
+                alt=""
+                style={{ width: 120, height: 90, objectFit: "cover", borderRadius: "var(--rayon-2)", marginBottom: 8, display: "block" }}
+              />
+            ) : null}
+            <input
+              id={`photo-${plat.id}`}
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+            />
+            <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+              Laissez vide pour ne pas changer la photo actuelle.
+            </p>
+          </div>
           <Input label="Nom du plat" name="nom" type="text" required maxLength={120} defaultValue={plat.nom} />
           <Input
             label="Description"

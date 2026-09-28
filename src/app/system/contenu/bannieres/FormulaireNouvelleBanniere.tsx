@@ -18,6 +18,13 @@ export function FormulaireNouvelleBanniere() {
 
   return (
     <form action={action} ref={formRef}>
+      <div className="field">
+        <label htmlFor="image">Image (optionnel)</label>
+        <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" />
+        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          JPEG, PNG ou WebP, 5 Mo maximum.
+        </p>
+      </div>
       <Input label="Titre" name="titre" type="text" required maxLength={200} />
       <Input label="Texte" name="texte" type="text" maxLength={500} />
       <Input label="Lien (optionnel)" name="lien" type="text" placeholder="/restaurants" />

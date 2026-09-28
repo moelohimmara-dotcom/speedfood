@@ -8,7 +8,7 @@ export default async function MenuPage() {
 
   const { data: plats } = await supabase
     .from("menu_items")
-    .select("id, nom, description, prix, disponible")
+    .select("id, nom, description, prix, disponible, photo_url")
     .eq("restaurant_id", membership.restaurant_id)
     .is("archive_le", null)
     .order("nom");

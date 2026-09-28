@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
+import { televerserImage, supprimerImage } from "@/lib/storage/images";
+import { ErreurMetier } from "@/lib/contracts/erreurs";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
@@ -33,12 +35,23 @@ export async function creerPlatAction(
     };
   }
 
+  let photoUrl: string | null = null;
+  const fichierPhoto = formData.get("photo");
+  if (fichierPhoto instanceof File && fichierPhoto.size > 0) {
+    try {
+      photoUrl = await televerserImage(fichierPhoto, "plats");
+    } catch (erreur) {
+      return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Impossible d'enregistrer la photo." };
+    }
+  }
+
   const supabase = await creerClientServeur();
   const { error } = await supabase.from("menu_items").insert({
     restaurant_id: membership.restaurant_id,
     nom,
     description,
     prix,
+    photo_url: photoUrl,
   });
 
   if (error) {
@@ -78,14 +91,44 @@ export async function modifierPlatAction(
   }
 
   const supabase = await creerClientServeur();
-  const { error } = await supabase
-    .from("menu_items")
-    .update({ nom, description, prix })
-    .eq("id", id)
-    .eq("restaurant_id", membership.restaurant_id);
 
-  if (error) {
-    return { erreur: "Impossible de modifier le plat. Réessayez dans un instant." };
+  const fichierPhoto = formData.get("photo");
+  const changerPhoto = fichierPhoto instanceof File && fichierPhoto.size > 0;
+  let photoUrl: string | undefined;
+
+  if (changerPhoto) {
+    try {
+      photoUrl = await televerserImage(fichierPhoto as File, "plats");
+    } catch (erreur) {
+      return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Impossible d'enregistrer la photo." };
+    }
+  }
+
+  if (changerPhoto) {
+    const { data: ancien } = await supabase
+      .from("menu_items")
+      .select("photo_url")
+      .eq("id", id)
+      .eq("restaurant_id", membership.restaurant_id)
+      .maybeSingle();
+    const { error } = await supabase
+      .from("menu_items")
+      .update({ nom, description, prix, photo_url: photoUrl })
+      .eq("id", id)
+      .eq("restaurant_id", membership.restaurant_id);
+    if (error) {
+      return { erreur: "Impossible de modifier le plat. Réessayez dans un instant." };
+    }
+    await supprimerImage(ancien?.photo_url ?? null);
+  } else {
+    const { error } = await supabase
+      .from("menu_items")
+      .update({ nom, description, prix })
+      .eq("id", id)
+      .eq("restaurant_id", membership.restaurant_id);
+    if (error) {
+      return { erreur: "Impossible de modifier le plat. Réessayez dans un instant." };
+    }
   }
 
   revalidatePath("/restaurant/menu");

@@ -15,7 +15,7 @@ export default async function FicheRestaurantPage({
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, nom, horaires, consignes, ouvert, menu_categories(nom), neighborhoods(nom)")
+    .select("id, nom, horaires, consignes, ouvert, photo_url, menu_categories(nom), neighborhoods(nom)")
     .eq("id", id)
     .maybeSingle();
 
@@ -31,7 +31,7 @@ export default async function FicheRestaurantPage({
 
   const { data: menu } = await supabase
     .from("menu_items")
-    .select("id, nom, description, prix, disponible")
+    .select("id, nom, description, prix, disponible, photo_url")
     .eq("restaurant_id", id)
     .is("archive_le", null)
     .order("nom");
@@ -41,6 +41,22 @@ export default async function FicheRestaurantPage({
       <Link href="/restaurants" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
         ← Retour aux restaurants
       </Link>
+
+      {restaurant.photo_url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+        <img
+          src={restaurant.photo_url}
+          alt=""
+          style={{
+            width: "100%",
+            height: 220,
+            objectFit: "cover",
+            borderRadius: "var(--rayon-2)",
+            marginTop: "var(--space-3)",
+            display: "block",
+          }}
+        />
+      ) : null}
 
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 4px" }}>{restaurant.nom}</h1>
       <p style={{ color: "var(--secondaire)", marginBottom: 4 }}>
@@ -80,16 +96,26 @@ export default async function FicheRestaurantPage({
                 borderBottom: "1px solid var(--bordure)",
               }}
             >
-              <div>
-                <h4 style={{ margin: "0 0 4px", fontWeight: 700 }}>{item.nom}</h4>
-                <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
-                  {item.description}
-                </p>
-                {!item.disponible ? (
-                  <p style={{ margin: "4px 0 0", color: "var(--danger)", fontSize: "0.8rem", fontWeight: 600 }}>
-                    Indisponible aujourd&apos;hui
-                  </p>
+              <div style={{ display: "flex", gap: 12 }}>
+                {item.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+                  <img
+                    src={item.photo_url}
+                    alt=""
+                    style={{ width: 64, height: 64, objectFit: "cover", borderRadius: "var(--rayon-2)", flexShrink: 0 }}
+                  />
                 ) : null}
+                <div>
+                  <h4 style={{ margin: "0 0 4px", fontWeight: 700 }}>{item.nom}</h4>
+                  <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+                    {item.description}
+                  </p>
+                  {!item.disponible ? (
+                    <p style={{ margin: "4px 0 0", color: "var(--danger)", fontSize: "0.8rem", fontWeight: 600 }}>
+                      Indisponible aujourd&apos;hui
+                    </p>
+                  ) : null}
+                </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>

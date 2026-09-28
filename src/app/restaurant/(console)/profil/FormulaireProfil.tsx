@@ -6,11 +6,34 @@ import { Button, Alert } from "@/components/ui";
 
 const etatInitial: EtatFormulaireProfil = {};
 
-export function FormulaireProfil({ horaires, consignes }: { horaires: string; consignes: string }) {
+export function FormulaireProfil({
+  horaires,
+  consignes,
+  photoUrl,
+}: {
+  horaires: string;
+  consignes: string;
+  photoUrl: string | null;
+}) {
   const [etat, action, enCours] = useActionState(modifierProfilAction, etatInitial);
 
   return (
     <form action={action}>
+      <div className="field">
+        <label htmlFor="photo">Photo du restaurant</label>
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+          <img
+            src={photoUrl}
+            alt=""
+            style={{ width: 160, height: 120, objectFit: "cover", borderRadius: "var(--rayon-2)", marginBottom: 8, display: "block" }}
+          />
+        ) : null}
+        <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
+        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          JPEG, PNG ou WebP, 5 Mo maximum. Laissez vide pour ne pas changer la photo actuelle.
+        </p>
+      </div>
       <div className="field">
         <label htmlFor="horaires">Horaires</label>
         <textarea
