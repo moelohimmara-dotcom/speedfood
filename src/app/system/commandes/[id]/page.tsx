@@ -136,7 +136,7 @@ function LigneProposition({ proposition }: { proposition: PropositionRevisseeAdm
     <div
       style={{
         border: "1px solid var(--bordure)",
-        borderRadius: "var(--radius)",
+        borderRadius: "var(--radius-md)",
         padding: "var(--space-3)",
         display: "flex",
         flexDirection: "column",
