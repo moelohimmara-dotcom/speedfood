@@ -47,9 +47,9 @@ export default function AccueilPage() {
               <br />à portée de main.
             </h1>
             <p className="hero-sub">
-              Speedfood réunit les meilleurs restaurants de Conakry sur un seul portail.
-              Découvrez un menu, envoyez votre commande, récupérez sur place ou faites-vous
-              livrer.
+              Commandez directement auprès des restaurants de Conakry, sans compte ni
+              application à installer. Si le restaurant doit changer un prix ou des frais,
+              vous donnez votre accord avant que la commande parte en préparation.
             </p>
             <div className="hero-actions">
               <Link href="#rejoindre" className="btn btn-primary btn-lg">
@@ -59,6 +59,26 @@ export default function AccueilPage() {
                 Voir les restaurants déjà en ligne
               </Link>
             </div>
+            <ul className="check-list hero-check-list">
+              <li>
+                <svg className="icon" viewBox="0 0 24 24">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                Aucun compte ni application à installer pour commander
+              </li>
+              <li>
+                <svg className="icon" viewBox="0 0 24 24">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                Le restaurant garde la main sur ses prix, ses horaires et sa livraison
+              </li>
+              <li>
+                <svg className="icon" viewBox="0 0 24 24">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                Tout changement de montant vous est soumis avant préparation, jamais imposé
+              </li>
+            </ul>
             <div className="hero-trust">
               <span aria-hidden="true">
                 <svg className="icon" viewBox="0 0 24 24">
@@ -155,7 +175,10 @@ export default function AccueilPage() {
 
         <section id="comment-ca-marche" className="section">
           <h2>Comment ça marche</h2>
-          <p className="section-sub">Trois étapes, sans compte obligatoire pour commander.</p>
+          <p className="section-sub">
+            Sans compte ni application à installer — juste un navigateur, sur téléphone ou
+            ordinateur.
+          </p>
           <div className="steps">
             <div className="step">
               <div className="step-num">1</div>
@@ -175,8 +198,12 @@ export default function AccueilPage() {
             </div>
             <div className="step">
               <div className="step-num">3</div>
-              <h3>Récupérez</h3>
-              <p>Le restaurant confirme, vous suivez votre commande en temps réel jusqu&apos;à la remise.</p>
+              <h3>Vous validez</h3>
+              <p>
+                Le restaurant confirme votre commande. S&apos;il doit changer un prix, des frais
+                ou un délai, il vous propose la nouvelle version et rien n&apos;est préparé sans
+                votre accord.
+              </p>
             </div>
           </div>
         </section>
