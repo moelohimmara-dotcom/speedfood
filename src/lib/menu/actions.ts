@@ -3,12 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
+import { obtenirParametresApplication } from "@/lib/parametres/lire";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
 }
-
-const PRIX_MAX_GNF = 5_000_000;
 
 export async function creerPlatAction(
   _etatPrecedent: EtatFormulaireMenu,
@@ -27,8 +26,11 @@ export async function creerPlatAction(
   if (description.length > 500) {
     return { erreur: "La description ne peut pas dépasser 500 caractères." };
   }
-  if (!Number.isFinite(prix) || prix < 0 || prix > PRIX_MAX_GNF) {
-    return { erreur: "Le prix doit être un nombre entier en GNF, entre 0 et 5 000 000." };
+  const { prixPlatMaxGnf } = await obtenirParametresApplication();
+  if (!Number.isFinite(prix) || prix < 0 || prix > prixPlatMaxGnf) {
+    return {
+      erreur: `Le prix doit être un nombre entier en GNF, entre 0 et ${prixPlatMaxGnf.toLocaleString("fr-FR")}.`,
+    };
   }
 
   const supabase = await creerClientServeur();
@@ -68,8 +70,11 @@ export async function modifierPlatAction(
   if (description.length > 500) {
     return { erreur: "La description ne peut pas dépasser 500 caractères." };
   }
-  if (!Number.isFinite(prix) || prix < 0 || prix > PRIX_MAX_GNF) {
-    return { erreur: "Le prix doit être un nombre entier en GNF, entre 0 et 5 000 000." };
+  const { prixPlatMaxGnf } = await obtenirParametresApplication();
+  if (!Number.isFinite(prix) || prix < 0 || prix > prixPlatMaxGnf) {
+    return {
+      erreur: `Le prix doit être un nombre entier en GNF, entre 0 et ${prixPlatMaxGnf.toLocaleString("fr-FR")}.`,
+    };
   }
 
   const supabase = await creerClientServeur();

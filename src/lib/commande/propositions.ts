@@ -7,6 +7,7 @@ import type {
   ValeursProposition,
 } from "@/lib/contracts/commande";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import type { ClientCommandeDb } from "./commun";
 import { estMontantGnfEntier, versStatutCommande, versStatutProposition } from "./commun";
 import { appliquerTransitionStatut } from "./transitions";
@@ -23,13 +24,15 @@ import { appliquerTransitionStatut } from "./transitions";
  *   proposition expirée ET commande terminée, sans préparation ni frais encaissés.
  */
 
-/** Durée pilote de validité d'une proposition, configurable (défaut : 30 minutes). */
-export function delaiPropositionMinutes(): number {
-  const brut = Number.parseInt(process.env.COMMANDE_PROPOSITION_DELAI_MINUTES ?? "", 10);
-  if (Number.isFinite(brut) && brut >= 1 && brut <= 1440) {
-    return brut;
-  }
-  return 30;
+/**
+ * Durée pilote de validité d'une proposition (défaut : 30 minutes).
+ * Éditable par `super_admin` dans `/system/parametres` (console d'administration) —
+ * anciennement une variable d'environnement, désormais dans
+ * `parametres_application` (voir `src/lib/parametres/lire.ts`).
+ */
+export async function delaiPropositionMinutes(): Promise<number> {
+  const { commandePropositionDelaiMinutes } = await obtenirParametresApplication();
+  return commandePropositionDelaiMinutes;
 }
 
 interface LignePropositionDb {
@@ -213,7 +216,7 @@ export async function creerPropositionRevisee(
   }
 
   const version = existantes.reduce((max, p) => Math.max(max, p.version), 0) + 1;
-  const expireLe = new Date(Date.now() + delaiPropositionMinutes() * 60_000).toISOString();
+  const expireLe = new Date(Date.now() + (await delaiPropositionMinutes()) * 60_000).toISOString();
 
   const { data: creee, error } = await db
     .from("order_proposals")

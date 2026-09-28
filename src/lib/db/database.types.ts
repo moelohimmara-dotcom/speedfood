@@ -49,6 +49,7 @@ export type Database = {
           auteur_id: string | null
           cree_le: string
           id: string
+          image_url: string | null
           lien: string | null
           mis_a_jour_le: string
           ordre: number
@@ -60,6 +61,7 @@ export type Database = {
           auteur_id?: string | null
           cree_le?: string
           id?: string
+          image_url?: string | null
           lien?: string | null
           mis_a_jour_le?: string
           ordre?: number
@@ -71,6 +73,7 @@ export type Database = {
           auteur_id?: string | null
           cree_le?: string
           id?: string
+          image_url?: string | null
           lien?: string | null
           mis_a_jour_le?: string
           ordre?: number
@@ -181,6 +184,7 @@ export type Database = {
           id: string
           mis_a_jour_le: string
           nom: string
+          photo_url: string | null
           prix: number
           restaurant_id: string
         }
@@ -192,6 +196,7 @@ export type Database = {
           id?: string
           mis_a_jour_le?: string
           nom: string
+          photo_url?: string | null
           prix: number
           restaurant_id: string
         }
@@ -203,6 +208,7 @@ export type Database = {
           id?: string
           mis_a_jour_le?: string
           nom?: string
+          photo_url?: string | null
           prix?: number
           restaurant_id?: string
         }
@@ -414,6 +420,30 @@ export type Database = {
           },
         ]
       }
+      parametres_application: {
+        Row: {
+          commande_proposition_delai_minutes: number
+          id: boolean
+          mis_a_jour_le: string
+          mis_a_jour_par: string | null
+          prix_plat_max_gnf: number
+        }
+        Insert: {
+          commande_proposition_delai_minutes?: number
+          id?: boolean
+          mis_a_jour_le?: string
+          mis_a_jour_par?: string | null
+          prix_plat_max_gnf?: number
+        }
+        Update: {
+          commande_proposition_delai_minutes?: number
+          id?: boolean
+          mis_a_jour_le?: string
+          mis_a_jour_par?: string | null
+          prix_plat_max_gnf?: number
+        }
+        Relationships: []
+      }
       restaurant_memberships: {
         Row: {
           cree_le: string
@@ -454,6 +484,7 @@ export type Database = {
           motif_correction: string | null
           nom: string
           ouvert: boolean
+          photo_url: string | null
           publie: boolean
           quartier_id: string
           suspendu_le: string | null
@@ -469,6 +500,7 @@ export type Database = {
           motif_correction?: string | null
           nom: string
           ouvert?: boolean
+          photo_url?: string | null
           publie?: boolean
           quartier_id: string
           suspendu_le?: string | null
@@ -484,6 +516,7 @@ export type Database = {
           motif_correction?: string | null
           nom?: string
           ouvert?: boolean
+          photo_url?: string | null
           publie?: boolean
           quartier_id?: string
           suspendu_le?: string | null
