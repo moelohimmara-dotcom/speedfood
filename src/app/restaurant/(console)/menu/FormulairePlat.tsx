@@ -6,7 +6,12 @@ import { Input, Button, Alert } from "@/components/ui";
 
 const etatInitial: EtatFormulaireMenu = {};
 
-export function FormulairePlat() {
+interface Section {
+  id: string;
+  nom: string;
+}
+
+export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
   const [etat, action, enCours] = useActionState(creerPlatAction, etatInitial);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -36,6 +41,19 @@ export function FormulairePlat() {
           proposer de promo.
         </p>
       </div>
+      {sections.length > 0 ? (
+        <div className="field">
+          <label htmlFor="section_id">Section du menu</label>
+          <select id="section_id" name="section_id" defaultValue="">
+            <option value="">Aucune section</option>
+            {sections.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.nom}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       {etat.erreur ? (
         <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
           {etat.erreur}

@@ -188,6 +188,7 @@ export type Database = {
           prix: number
           prix_promo: number | null
           restaurant_id: string
+          section_id: string | null
         }
         Insert: {
           archive_le?: string | null
@@ -201,6 +202,7 @@ export type Database = {
           prix: number
           prix_promo?: number | null
           restaurant_id: string
+          section_id?: string | null
         }
         Update: {
           archive_le?: string | null
@@ -214,10 +216,50 @@ export type Database = {
           prix?: number
           prix_promo?: number | null
           restaurant_id?: string
+          section_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "menu_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "menu_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_sections: {
+        Row: {
+          cree_le: string
+          id: string
+          nom: string
+          position: number
+          restaurant_id: string
+        }
+        Insert: {
+          cree_le?: string
+          id?: string
+          nom: string
+          position?: number
+          restaurant_id: string
+        }
+        Update: {
+          cree_le?: string
+          id?: string
+          nom?: string
+          position?: number
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_sections_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"

@@ -10,6 +10,11 @@ import {
 import { Card, Badge, Button, Input, Alert } from "@/components/ui";
 import { OptionsPlat } from "./OptionsPlat";
 
+interface Section {
+  id: string;
+  nom: string;
+}
+
 interface Plat {
   id: string;
   nom: string;
@@ -18,12 +23,13 @@ interface Plat {
   prix_promo: number | null;
   disponible: boolean;
   photo_url: string | null;
+  section_id: string | null;
   options: { id: string; nom: string; prix: number }[];
 }
 
 const etatInitial: EtatFormulaireMenu = {};
 
-export function PlatItem({ plat }: { plat: Plat }) {
+export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Section[] }) {
   const [enEdition, setEnEdition] = useState(false);
   const [etat, action, enCours] = useActionState(modifierPlatAction, etatInitial);
   const [enTransition, demarrerTransition] = useTransition();
@@ -90,6 +96,19 @@ export function PlatItem({ plat }: { plat: Plat }) {
               Facultatif — inférieur ou égal au prix normal. Laissez vide pour retirer la promo.
             </p>
           </div>
+          {sections.length > 0 ? (
+            <div className="field">
+              <label htmlFor={`section_id-${plat.id}`}>Section du menu</label>
+              <select id={`section_id-${plat.id}`} name="section_id" defaultValue={plat.section_id ?? ""}>
+                <option value="">Aucune section</option>
+                {sections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           {etat.erreur ? (
             <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
               {etat.erreur}

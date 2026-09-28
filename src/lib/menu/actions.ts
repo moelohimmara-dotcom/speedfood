@@ -31,6 +31,34 @@ function lireEtValiderPrixPromo(
   return { ok: true, prixPromo };
 }
 
+/**
+ * Section optionnelle (`section_id`) : si fournie, doit appartenir au même
+ * restaurant (défense en profondeur, la RLS sur menu_items le refuserait de
+ * toute façon via la contrainte de clé étrangère + policy, mais un mauvais
+ * id d'un autre restaurant doit produire un message clair, pas une erreur SQL
+ * brute). Une valeur vide = plat non classé (comportement historique).
+ */
+async function lireEtValiderSection(
+  formData: FormData,
+  restaurantId: string,
+  supabase: Awaited<ReturnType<typeof creerClientServeur>>
+): Promise<{ ok: true; sectionId: string | null } | { ok: false; erreur: string }> {
+  const brut = String(formData.get("section_id") ?? "").trim();
+  if (!brut) {
+    return { ok: true, sectionId: null };
+  }
+  const { data: section } = await supabase
+    .from("menu_sections")
+    .select("id")
+    .eq("id", brut)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (!section) {
+    return { ok: false, erreur: "Section introuvable." };
+  }
+  return { ok: true, sectionId: section.id };
+}
+
 export async function creerPlatAction(
   _etatPrecedent: EtatFormulaireMenu,
   formData: FormData
@@ -60,6 +88,13 @@ export async function creerPlatAction(
     return { erreur: prixPromoResultat.erreur };
   }
 
+  const supabase = await creerClientServeur();
+
+  const sectionResultat = await lireEtValiderSection(formData, membership.restaurant_id, supabase);
+  if (!sectionResultat.ok) {
+    return { erreur: sectionResultat.erreur };
+  }
+
   let photoUrl: string | null = null;
   const fichierPhoto = formData.get("photo");
   if (fichierPhoto instanceof File && fichierPhoto.size > 0) {
@@ -70,7 +105,6 @@ export async function creerPlatAction(
     }
   }
 
-  const supabase = await creerClientServeur();
   const { error } = await supabase.from("menu_items").insert({
     restaurant_id: membership.restaurant_id,
     nom,
@@ -78,6 +112,7 @@ export async function creerPlatAction(
     prix,
     prix_promo: prixPromoResultat.prixPromo,
     photo_url: photoUrl,
+    section_id: sectionResultat.sectionId,
   });
 
   if (error) {
@@ -123,6 +158,11 @@ export async function modifierPlatAction(
 
   const supabase = await creerClientServeur();
 
+  const sectionResultat = await lireEtValiderSection(formData, membership.restaurant_id, supabase);
+  if (!sectionResultat.ok) {
+    return { erreur: sectionResultat.erreur };
+  }
+
   const fichierPhoto = formData.get("photo");
   const changerPhoto = fichierPhoto instanceof File && fichierPhoto.size > 0;
   let photoUrl: string | undefined;
@@ -144,7 +184,14 @@ export async function modifierPlatAction(
       .maybeSingle();
     const { error } = await supabase
       .from("menu_items")
-      .update({ nom, description, prix, prix_promo: prixPromoResultat.prixPromo, photo_url: photoUrl })
+      .update({
+        nom,
+        description,
+        prix,
+        prix_promo: prixPromoResultat.prixPromo,
+        photo_url: photoUrl,
+        section_id: sectionResultat.sectionId,
+      })
       .eq("id", id)
       .eq("restaurant_id", membership.restaurant_id);
     if (error) {
@@ -154,7 +201,13 @@ export async function modifierPlatAction(
   } else {
     const { error } = await supabase
       .from("menu_items")
-      .update({ nom, description, prix, prix_promo: prixPromoResultat.prixPromo })
+      .update({
+        nom,
+        description,
+        prix,
+        prix_promo: prixPromoResultat.prixPromo,
+        section_id: sectionResultat.sectionId,
+      })
       .eq("id", id)
       .eq("restaurant_id", membership.restaurant_id);
     if (error) {
@@ -260,6 +313,130 @@ export async function retirerOptionAction(id: string): Promise<void> {
   // propre restaurant ; pas de .eq(restaurant_id) direct possible ici (la
   // colonne vit sur menu_items, pas sur menu_item_options).
   await supabase.from("menu_item_options").delete().eq("id", id);
+
+  revalidatePath("/restaurant/menu");
+}
+
+export interface EtatFormulaireSection {
+  erreur?: string;
+}
+
+const NOM_SECTION_MAX = 60;
+
+/**
+ * Sections de menu libres par restaurant (décision explicite : pas de
+ * taxonomie imposée, chaque restaurant compose son menu comme il veut —
+ * ex. « Entrées froides », « Entrées chaudes », « Plats — Riz »,
+ * « Desserts »). Un seul niveau, pas de sous-catégories.
+ */
+export async function creerSectionAction(
+  _etatPrecedent: EtatFormulaireSection,
+  formData: FormData
+): Promise<EtatFormulaireSection> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const nom = String(formData.get("nom") ?? "").trim();
+
+  if (!nom || nom.length > NOM_SECTION_MAX) {
+    return { erreur: `Le nom de la section est obligatoire (${NOM_SECTION_MAX} caractères maximum).` };
+  }
+
+  const supabase = await creerClientServeur();
+
+  const { data: derniere } = await supabase
+    .from("menu_sections")
+    .select("position")
+    .eq("restaurant_id", membership.restaurant_id)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("menu_sections").insert({
+    restaurant_id: membership.restaurant_id,
+    nom,
+    position: (derniere?.position ?? -1) + 1,
+  });
+  if (error) {
+    return { erreur: "Impossible d'ajouter la section. Réessayez dans un instant." };
+  }
+
+  revalidatePath("/restaurant/menu");
+  return {};
+}
+
+export async function renommerSectionAction(
+  _etatPrecedent: EtatFormulaireSection,
+  formData: FormData
+): Promise<EtatFormulaireSection> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const id = String(formData.get("id") ?? "");
+  const nom = String(formData.get("nom") ?? "").trim();
+
+  if (!id) {
+    return { erreur: "Section introuvable." };
+  }
+  if (!nom || nom.length > NOM_SECTION_MAX) {
+    return { erreur: `Le nom de la section est obligatoire (${NOM_SECTION_MAX} caractères maximum).` };
+  }
+
+  const supabase = await creerClientServeur();
+  const { error } = await supabase
+    .from("menu_sections")
+    .update({ nom })
+    .eq("id", id)
+    .eq("restaurant_id", membership.restaurant_id);
+  if (error) {
+    return { erreur: "Impossible de renommer la section. Réessayez dans un instant." };
+  }
+
+  revalidatePath("/restaurant/menu");
+  return {};
+}
+
+export async function supprimerSectionAction(id: string): Promise<void> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const supabase = await creerClientServeur();
+
+  // Les plats de la section ne sont jamais supprimés : section_id repasse à
+  // null (contrainte on delete set null), le plat redevient non classé.
+  await supabase.from("menu_sections").delete().eq("id", id).eq("restaurant_id", membership.restaurant_id);
+
+  revalidatePath("/restaurant/menu");
+}
+
+export async function deplacerSectionAction(id: string, direction: "haut" | "bas"): Promise<void> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const supabase = await creerClientServeur();
+
+  const { data: sections } = await supabase
+    .from("menu_sections")
+    .select("id, position")
+    .eq("restaurant_id", membership.restaurant_id)
+    .order("position", { ascending: true });
+
+  if (!sections) {
+    return;
+  }
+  const index = sections.findIndex((s) => s.id === id);
+  const indexVoisin = direction === "haut" ? index - 1 : index + 1;
+  if (index === -1 || indexVoisin < 0 || indexVoisin >= sections.length) {
+    return;
+  }
+
+  const courante = sections[index];
+  const voisine = sections[indexVoisin];
+
+  await Promise.all([
+    supabase
+      .from("menu_sections")
+      .update({ position: voisine.position })
+      .eq("id", courante.id)
+      .eq("restaurant_id", membership.restaurant_id),
+    supabase
+      .from("menu_sections")
+      .update({ position: courante.position })
+      .eq("id", voisine.id)
+      .eq("restaurant_id", membership.restaurant_id),
+  ]);
 
   revalidatePath("/restaurant/menu");
 }

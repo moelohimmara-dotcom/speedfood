@@ -30,14 +30,19 @@ export default async function FicheRestaurantPage({
   if (!restaurant) {
     notFound();
   }
+  const restaurantSur = restaurant;
 
-  const { data: menu } = await supabase
-    .from("menu_items")
-    .select("id, nom, description, prix, prix_promo, disponible, photo_url")
-    .eq("restaurant_id", id)
-    .is("archive_le", null)
-    .order("nom");
+  const [{ data: menu }, { data: sections }] = await Promise.all([
+    supabase
+      .from("menu_items")
+      .select("id, nom, description, prix, prix_promo, disponible, photo_url, section_id")
+      .eq("restaurant_id", id)
+      .is("archive_le", null)
+      .order("nom"),
+    supabase.from("menu_sections").select("id, nom").eq("restaurant_id", id).order("position"),
+  ]);
 
+  const sectionsListe = sections ?? [];
   const idsPlats = (menu ?? []).map((item) => item.id);
   const { data: optionsBrutes } =
     idsPlats.length > 0
@@ -53,6 +58,74 @@ export default async function FicheRestaurantPage({
     const liste = optionsParPlat.get(option.menu_item_id) ?? [];
     liste.push({ id: option.id, nom: option.nom, prix: option.prix });
     optionsParPlat.set(option.menu_item_id, liste);
+  }
+
+  const menuListe = menu ?? [];
+  const platsParSection = new Map<string | null, typeof menuListe>();
+  for (const item of menuListe) {
+    const cle = item.section_id;
+    const liste = platsParSection.get(cle) ?? [];
+    liste.push(item);
+    platsParSection.set(cle, liste);
+  }
+  const platsSansSection = platsParSection.get(null) ?? [];
+
+  function ligneMenu(item: (typeof menuListe)[number]) {
+    return (
+      <div key={item.id} className="menu-item-row">
+        <div style={{ display: "flex", gap: 12 }}>
+          {item.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+            <img src={item.photo_url} alt="" className="menu-item-photo" />
+          ) : null}
+          <div>
+            <h4 style={{ margin: "0 0 4px", fontWeight: 700 }}>{item.nom}</h4>
+            <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+              {item.description}
+            </p>
+            {item.prix_promo !== null ? (
+              <Badge ton="danger" style={{ marginTop: 4 }}>
+                Promo
+              </Badge>
+            ) : null}
+            {!item.disponible ? (
+              <p style={{ margin: "4px 0 0", color: "var(--danger)", fontSize: "0.8rem", fontWeight: 600 }}>
+                Indisponible aujourd&apos;hui
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          {item.prix_promo !== null ? (
+            <>
+              <span
+                style={{
+                  textDecoration: "line-through",
+                  color: "var(--secondaire)",
+                  fontSize: "0.85rem",
+                  marginRight: 6,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {formaterGNF(item.prix)}
+              </span>
+              <strong style={{ whiteSpace: "nowrap", color: "var(--rouge)" }}>
+                {formaterGNF(item.prix_promo)}
+              </strong>
+            </>
+          ) : (
+            <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
+          )}
+          {restaurantSur.ouvert && item.disponible ? (
+            <ControleQuantiteArticle
+              restaurant={{ id: restaurantSur.id, nom: restaurantSur.nom }}
+              article={{ id: item.id, nom: item.nom, prix: item.prix_promo ?? item.prix }}
+              optionsDisponibles={optionsParPlat.get(item.id) ?? []}
+            />
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -120,65 +193,32 @@ export default async function FicheRestaurantPage({
         Menu
       </h2>
 
-      {!menu || menu.length === 0 ? (
+      {menuListe.length === 0 ? (
         <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>
+      ) : sectionsListe.length === 0 ? (
+        <div>{menuListe.map((item) => ligneMenu(item))}</div>
       ) : (
         <div>
-          {menu.map((item) => (
-            <div key={item.id} className="menu-item-row">
-              <div style={{ display: "flex", gap: 12 }}>
-                {item.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-                  <img src={item.photo_url} alt="" className="menu-item-photo" />
-                ) : null}
-                <div>
-                  <h4 style={{ margin: "0 0 4px", fontWeight: 700 }}>{item.nom}</h4>
-                  <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
-                    {item.description}
-                  </p>
-                  {item.prix_promo !== null ? (
-                    <Badge ton="danger" style={{ marginTop: 4 }}>
-                      Promo
-                    </Badge>
-                  ) : null}
-                  {!item.disponible ? (
-                    <p style={{ margin: "4px 0 0", color: "var(--danger)", fontSize: "0.8rem", fontWeight: 600 }}>
-                      Indisponible aujourd&apos;hui
-                    </p>
-                  ) : null}
-                </div>
+          {sectionsListe.map((section) => {
+            const platsDeSection = platsParSection.get(section.id) ?? [];
+            if (platsDeSection.length === 0) {
+              return null;
+            }
+            return (
+              <div key={section.id} style={{ marginBottom: "var(--space-5)" }}>
+                <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>{section.nom}</h3>
+                {platsDeSection.map((item) => ligneMenu(item))}
               </div>
-              <div style={{ textAlign: "right" }}>
-                {item.prix_promo !== null ? (
-                  <>
-                    <span
-                      style={{
-                        textDecoration: "line-through",
-                        color: "var(--secondaire)",
-                        fontSize: "0.85rem",
-                        marginRight: 6,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formaterGNF(item.prix)}
-                    </span>
-                    <strong style={{ whiteSpace: "nowrap", color: "var(--rouge)" }}>
-                      {formaterGNF(item.prix_promo)}
-                    </strong>
-                  </>
-                ) : (
-                  <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
-                )}
-                {restaurant.ouvert && item.disponible ? (
-                  <ControleQuantiteArticle
-                    restaurant={{ id: restaurant.id, nom: restaurant.nom }}
-                    article={{ id: item.id, nom: item.nom, prix: item.prix_promo ?? item.prix }}
-                    optionsDisponibles={optionsParPlat.get(item.id) ?? []}
-                  />
-                ) : null}
-              </div>
+            );
+          })}
+          {platsSansSection.length > 0 ? (
+            <div>
+              {sectionsListe.length > 0 ? (
+                <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>Autres plats</h3>
+              ) : null}
+              {platsSansSection.map((item) => ligneMenu(item))}
             </div>
-          ))}
+          ) : null}
         </div>
       )}
 
