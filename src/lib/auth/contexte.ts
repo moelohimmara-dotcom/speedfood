@@ -29,6 +29,16 @@ export async function obtenirContexteRestaurant(cheminActuel: string) {
     .maybeSingle();
 
   if (!membership) {
+    // Un admin système sans restaurant n'a rien à faire dans l'onboarding
+    // restaurateur : on le renvoie vers sa console (ADR-010, deux consoles).
+    const { data: roleSysteme } = await supabase
+      .from("system_admin_memberships")
+      .select("utilisateur_id")
+      .eq("utilisateur_id", user.id)
+      .maybeSingle();
+    if (roleSysteme) {
+      redirect("/system");
+    }
     redirect("/restaurant/nouveau");
   }
 

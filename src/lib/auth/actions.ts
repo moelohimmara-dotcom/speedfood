@@ -36,7 +36,7 @@ export async function connexionAction(
 ): Promise<EtatFormulaire> {
   const email = String(formData.get("email") ?? "").trim();
   const motDePasse = String(formData.get("mot_de_passe") ?? "");
-  const suite = String(formData.get("suite") ?? "/restaurant");
+  const suite = String(formData.get("suite") ?? "").trim();
 
   if (!email || !motDePasse) {
     return { erreur: "Email et mot de passe sont obligatoires." };
@@ -49,7 +49,34 @@ export async function connexionAction(
     return { erreur: traduireErreurAuth(error.message) };
   }
 
-  redirect(suite.startsWith("/") ? suite : "/restaurant");
+  // Destination explicite (utilisateur redirigé depuis une page protégée) :
+  // on la respecte telle quelle.
+  if (suite.startsWith("/")) {
+    redirect(suite);
+  }
+
+  // Sinon, routage par type de compte (deux consoles distinctes, ADR-010) :
+  // un admin système pur va dans son CMS, un restaurateur dans sa console.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [{ data: roleSysteme }, { data: membership }] = await Promise.all([
+    supabase
+      .from("system_admin_memberships")
+      .select("utilisateur_id")
+      .eq("utilisateur_id", user?.id ?? "")
+      .maybeSingle(),
+    supabase
+      .from("restaurant_memberships")
+      .select("restaurant_id")
+      .eq("utilisateur_id", user?.id ?? "")
+      .maybeSingle(),
+  ]);
+
+  if (roleSysteme && !membership) {
+    redirect("/system");
+  }
+  redirect("/restaurant");
 }
 
 export async function deconnexionAction(): Promise<void> {

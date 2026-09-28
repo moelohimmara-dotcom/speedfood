@@ -72,36 +72,39 @@ export default function AccueilPage() {
               </span>
             </div>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <div className="hero-card card-a">
-              <span className="hero-card-icon">
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M4 12h16c0 4.42-3.58 8-8 8s-8-3.58-8-8Z" />
-                  <path d="M12 12V5M9 7l1.5-2M15 7l-1.5-2" />
-                </svg>
-              </span>
-              <strong>Chez Mama Kadiatou</strong>
-              <span className="meta-line">Riz &amp; sauces · Kaloum</span>
-            </div>
-            <div className="hero-card card-b">
-              <span className="hero-card-icon">
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M12 3c1.5 2 2 3.5 1 5-.7 1-1 1.8-1 2.5A2.5 2.5 0 0 0 14.5 13c1.4 0 2.2-.9 2.5-1.8.8 1.2 1 2.6.6 4A5.5 5.5 0 0 1 6.6 14c-.5-2 .2-3.4 1.2-4.6C9.2 7.7 9 5.3 12 3Z" />
-                </svg>
-              </span>
-              <strong>Grill Dixinn</strong>
-              <span className="meta-line">Grillades · Dixinn</span>
-            </div>
-            <div className="hero-card card-c">
-              <span className="hero-card-icon">
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z" />
-                  <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" />
-                  <path d="M8 4c0 1-1 1-1 2M12 4c0 1-1 1-1 2" />
-                </svg>
-              </span>
-              <strong>Café Matam</strong>
-              <span className="meta-line">Petit-déjeuner · Matam</span>
+          <div className="hero-visual-wrap">
+            <span className="badge badge-neutre hero-visual-tag">Aperçu — restaurants d&apos;exemple</span>
+            <div className="hero-visual" aria-hidden="true">
+              <div className="hero-card card-a">
+                <span className="hero-card-icon">
+                  <svg className="icon" viewBox="0 0 24 24">
+                    <path d="M4 12h16c0 4.42-3.58 8-8 8s-8-3.58-8-8Z" />
+                    <path d="M12 12V5M9 7l1.5-2M15 7l-1.5-2" />
+                  </svg>
+                </span>
+                <strong>Chez Mama Kadiatou</strong>
+                <span className="meta-line">Riz &amp; sauces · Kaloum</span>
+              </div>
+              <div className="hero-card card-b">
+                <span className="hero-card-icon">
+                  <svg className="icon" viewBox="0 0 24 24">
+                    <path d="M12 3c1.5 2 2 3.5 1 5-.7 1-1 1.8-1 2.5A2.5 2.5 0 0 0 14.5 13c1.4 0 2.2-.9 2.5-1.8.8 1.2 1 2.6.6 4A5.5 5.5 0 0 1 6.6 14c-.5-2 .2-3.4 1.2-4.6C9.2 7.7 9 5.3 12 3Z" />
+                  </svg>
+                </span>
+                <strong>Grill Dixinn</strong>
+                <span className="meta-line">Grillades · Dixinn</span>
+              </div>
+              <div className="hero-card card-c">
+                <span className="hero-card-icon">
+                  <svg className="icon" viewBox="0 0 24 24">
+                    <path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z" />
+                    <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" />
+                    <path d="M8 4c0 1-1 1-1 2M12 4c0 1-1 1-1 2" />
+                  </svg>
+                </span>
+                <strong>Café Matam</strong>
+                <span className="meta-line">Petit-déjeuner · Matam</span>
+              </div>
             </div>
           </div>
         </section>

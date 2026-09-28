@@ -25,6 +25,16 @@ export default async function NouvelEtablissementPage() {
     redirect("/restaurant");
   }
 
+  // Un admin système pur n'a pas à créer d'établissement : sa console est /system.
+  const { data: roleSysteme } = await supabaseServeur
+    .from("system_admin_memberships")
+    .select("utilisateur_id")
+    .eq("utilisateur_id", user.id)
+    .maybeSingle();
+  if (roleSysteme) {
+    redirect("/system");
+  }
+
   const publicClient = creerClientPublic();
   const [{ data: categories }, { data: quartiers }] = await Promise.all([
     publicClient.from("menu_categories").select("id, nom").order("ordre"),
