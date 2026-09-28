@@ -72,50 +72,30 @@ export default async function FicheRestaurantPage({
 
   function ligneMenu(item: (typeof menuListe)[number]) {
     return (
-      <div key={item.id} className="menu-item-row">
-        <div style={{ display: "flex", gap: 12 }}>
+      <div key={item.id} className={`menu-item-row${!item.disponible ? " indisponible" : ""}`}>
+        <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
           {item.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
             <img src={item.photo_url} alt="" className="menu-item-photo" />
           ) : null}
-          <div>
-            <h4 style={{ margin: "0 0 4px", fontWeight: 700 }}>{item.nom}</h4>
-            <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
-              {item.description}
-            </p>
-            {item.prix_promo !== null ? (
-              <Badge ton="danger" style={{ marginTop: 4 }}>
-                Promo
-              </Badge>
-            ) : null}
-            {!item.disponible ? (
-              <p style={{ margin: "4px 0 0", color: "var(--danger)", fontSize: "0.8rem", fontWeight: 600 }}>
-                Indisponible aujourd&apos;hui
-              </p>
+          <div style={{ minWidth: 0 }}>
+            <h4 className="menu-item-nom">{item.nom}</h4>
+            {item.description ? <p className="menu-item-desc">{item.description}</p> : null}
+            {item.prix_promo !== null || !item.disponible ? (
+              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                {item.prix_promo !== null ? <Badge ton="danger">Promo</Badge> : null}
+                {!item.disponible ? <Badge ton="neutre">Indisponible aujourd&apos;hui</Badge> : null}
+              </div>
             ) : null}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div className="menu-item-prix-bloc">
           {item.prix_promo !== null ? (
-            <>
-              <span
-                style={{
-                  textDecoration: "line-through",
-                  color: "var(--secondaire)",
-                  fontSize: "0.85rem",
-                  marginRight: 6,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {formaterGNF(item.prix)}
-              </span>
-              <strong style={{ whiteSpace: "nowrap", color: "var(--rouge)" }}>
-                {formaterGNF(item.prix_promo)}
-              </strong>
-            </>
-          ) : (
-            <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
-          )}
+            <span className="menu-item-prix-barre">{formaterGNF(item.prix)}</span>
+          ) : null}
+          <span className="menu-item-prix" style={item.prix_promo !== null ? { color: "var(--rouge)" } : undefined}>
+            {formaterGNF(item.prix_promo ?? item.prix)}
+          </span>
           {restaurantSur.ouvert && item.disponible ? (
             <ControleQuantiteArticle
               restaurant={{ id: restaurantSur.id, nom: restaurantSur.nom }}
@@ -127,6 +107,18 @@ export default async function FicheRestaurantPage({
       </div>
     );
   }
+
+  const groupesAffiches =
+    sectionsListe.length === 0
+      ? []
+      : [
+          ...sectionsListe
+            .map((section) => ({ id: section.id, nom: section.nom, plats: platsParSection.get(section.id) ?? [] }))
+            .filter((groupe) => groupe.plats.length > 0),
+          ...(platsSansSection.length > 0
+            ? [{ id: "autres", nom: "Autres plats", plats: platsSansSection }]
+            : []),
+        ];
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
@@ -195,31 +187,26 @@ export default async function FicheRestaurantPage({
 
       {menuListe.length === 0 ? (
         <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>
-      ) : sectionsListe.length === 0 ? (
-        <div>{menuListe.map((item) => ligneMenu(item))}</div>
+      ) : groupesAffiches.length === 0 ? (
+        <div className="card">{menuListe.map((item) => ligneMenu(item))}</div>
       ) : (
-        <div>
-          {sectionsListe.map((section) => {
-            const platsDeSection = platsParSection.get(section.id) ?? [];
-            if (platsDeSection.length === 0) {
-              return null;
-            }
-            return (
-              <div key={section.id} style={{ marginBottom: "var(--space-5)" }}>
-                <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>{section.nom}</h3>
-                {platsDeSection.map((item) => ligneMenu(item))}
-              </div>
-            );
-          })}
-          {platsSansSection.length > 0 ? (
-            <div>
-              {sectionsListe.length > 0 ? (
-                <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>Autres plats</h3>
-              ) : null}
-              {platsSansSection.map((item) => ligneMenu(item))}
-            </div>
+        <>
+          {groupesAffiches.length > 1 ? (
+            <nav className="menu-nav" aria-label="Sections du menu">
+              {groupesAffiches.map((groupe) => (
+                <a key={groupe.id} href={`#section-${groupe.id}`} className="chip">
+                  {groupe.nom}
+                </a>
+              ))}
+            </nav>
           ) : null}
-        </div>
+          {groupesAffiches.map((groupe) => (
+            <div key={groupe.id} id={`section-${groupe.id}`} className="menu-section">
+              <h3 className="menu-section-titre">{groupe.nom}</h3>
+              <div className="card">{groupe.plats.map((item) => ligneMenu(item))}</div>
+            </div>
+          ))}
+        </>
       )}
 
       <LienPanier />

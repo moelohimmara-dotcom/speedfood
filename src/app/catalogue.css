@@ -118,20 +118,105 @@
   flex-shrink: 0;
 }
 
+/* --- Menu (fiche restaurant) ----------------------------------------------
+ * Générique : ce rendu s'applique tel quel au menu de n'importe quel
+ * restaurant, avec ou sans sections, avec ou sans photos par plat.
+ */
+
+/* Navigation d'ancrage vers les sections — affichée seulement à partir de
+   2 sections (inutile, donc absente, pour un menu à une seule section ou
+   sans section du tout). Barre collante sous l'en-tête pour un menu long. */
+.menu-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-4);
+  position: sticky;
+  top: 0;
+  background: var(--creme);
+  z-index: 5;
+  scrollbar-width: none;
+}
+.menu-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-section {
+  margin-bottom: var(--space-5);
+  scroll-margin-top: 52px;
+}
+
+.menu-section-titre {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+  margin: 0 0 var(--space-3);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--bordure);
+}
+
 .menu-item-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-4) 0;
+  padding: var(--space-4) var(--space-3);
+  margin: 0 calc(var(--space-3) * -1);
+  border-radius: var(--radius-md);
   border-bottom: 1px solid var(--bordure);
+  transition: background var(--duration-base) var(--ease);
+}
+.menu-section .menu-item-row:last-child {
+  border-bottom: none;
+}
+.menu-item-row:hover {
+  background: var(--surface);
+}
+
+.menu-item-row.indisponible {
+  opacity: 0.55;
 }
 
 .menu-item-photo {
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   object-fit: cover;
   border-radius: var(--radius-md);
   flex-shrink: 0;
   background: var(--bordure);
+}
+
+.menu-item-nom {
+  margin: 0 0 3px;
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+
+.menu-item-desc {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.menu-item-prix-bloc {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.menu-item-prix {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+.menu-item-prix-barre {
+  display: block;
+  text-decoration: line-through;
+  color: var(--secondaire);
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
