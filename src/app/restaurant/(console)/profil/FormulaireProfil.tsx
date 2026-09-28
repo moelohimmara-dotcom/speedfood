@@ -11,11 +11,13 @@ export function FormulaireProfil({
   horaires,
   consignes,
   photoUrl,
+  logoUrl,
   couleurAccent,
 }: {
   horaires: string;
   consignes: string;
   photoUrl: string | null;
+  logoUrl: string | null;
   couleurAccent: string | null;
 }) {
   const [etat, action, enCours] = useActionState(modifierProfilAction, etatInitial);
@@ -35,6 +37,30 @@ export function FormulaireProfil({
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
         <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
           JPEG, PNG ou WebP, 5 Mo maximum. Laissez vide pour ne pas changer la photo actuelle.
+        </p>
+      </div>
+      <div className="field">
+        <label htmlFor="logo">Logo</label>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+          <img
+            src={logoUrl}
+            alt=""
+            style={{
+              width: 64,
+              height: 64,
+              objectFit: "cover",
+              borderRadius: "var(--radius-pill)",
+              marginBottom: 8,
+              display: "block",
+              border: "1px solid var(--bordure)",
+            }}
+          />
+        ) : null}
+        <input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" />
+        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          Distinct de la photo de couverture, affiché en petit emblème. JPEG, PNG ou WebP, 5 Mo
+          maximum. Laissez vide pour ne pas changer le logo actuel.
         </p>
       </div>
       <div className="field">

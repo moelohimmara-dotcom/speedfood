@@ -6,6 +6,9 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { televerserImage, supprimerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { estCouleurValide } from "@/lib/design/paletteMarque";
+import type { Database } from "@/lib/db/database.types";
+
+type MiseAJourRestaurant = Database["public"]["Tables"]["restaurants"]["Update"];
 
 export interface EtatFormulaireProfil {
   erreur?: string;
@@ -38,45 +41,49 @@ export async function modifierProfilAction(
 
   const supabase = await creerClientServeur();
 
-  // Photo optionnelle : gouvernée par l'appartenance au restaurant, comme
-  // horaires/consignes — aucune permission système distincte n'est requise.
-  const fichierPhoto = formData.get("photo");
-  const changerPhoto = fichierPhoto instanceof File && fichierPhoto.size > 0;
-  let photoUrl: string | undefined;
+  // Photo et logo optionnels : gouvernés par l'appartenance au restaurant,
+  // comme horaires/consignes — aucune permission système distincte requise.
+  // Chacun est indépendant (on peut changer l'un sans l'autre).
+  const payload: MiseAJourRestaurant = { horaires, consignes, couleur_accent: couleurAccent };
+  const anciennesImages: { colonne: "photo_url" | "logo_url" }[] = [];
 
-  if (changerPhoto) {
-    try {
-      photoUrl = await televerserImage(fichierPhoto as File, "restaurants");
-    } catch (erreur) {
-      if (erreur instanceof ErreurMetier) {
-        return { erreur: erreur.message };
+  for (const [champ, colonne, dossier] of [
+    ["photo", "photo_url", "restaurants"],
+    ["logo", "logo_url", "logos"],
+  ] as const) {
+    const fichier = formData.get(champ);
+    if (fichier instanceof File && fichier.size > 0) {
+      try {
+        payload[colonne] = await televerserImage(fichier, dossier);
+      } catch (erreur) {
+        if (erreur instanceof ErreurMetier) {
+          return { erreur: erreur.message };
+        }
+        return { erreur: "Impossible d'enregistrer l'image. Réessayez dans un instant." };
       }
-      return { erreur: "Impossible d'enregistrer la photo. Réessayez dans un instant." };
+      anciennesImages.push({ colonne });
     }
   }
 
-  if (changerPhoto) {
-    const { data: ancien } = await supabase
-      .from("restaurants")
-      .select("photo_url")
-      .eq("id", membership.restaurant_id)
-      .maybeSingle();
-    const { error } = await supabase
-      .from("restaurants")
-      .update({ horaires, consignes, photo_url: photoUrl, couleur_accent: couleurAccent })
-      .eq("id", membership.restaurant_id);
-    if (error) {
-      return { erreur: "Impossible d'enregistrer les modifications. Réessayez dans un instant." };
-    }
-    await supprimerImage(ancien?.photo_url ?? null);
-  } else {
-    const { error } = await supabase
-      .from("restaurants")
-      .update({ horaires, consignes, couleur_accent: couleurAccent })
-      .eq("id", membership.restaurant_id);
-    if (error) {
-      return { erreur: "Impossible d'enregistrer les modifications. Réessayez dans un instant." };
-    }
+  const { data: ancien } =
+    anciennesImages.length > 0
+      ? await supabase
+          .from("restaurants")
+          .select("photo_url, logo_url")
+          .eq("id", membership.restaurant_id)
+          .maybeSingle()
+      : { data: null };
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update(payload)
+    .eq("id", membership.restaurant_id);
+  if (error) {
+    return { erreur: "Impossible d'enregistrer les modifications. Réessayez dans un instant." };
+  }
+
+  for (const { colonne } of anciennesImages) {
+    await supprimerImage(ancien?.[colonne] ?? null);
   }
 
   revalidatePath("/restaurant/profil");

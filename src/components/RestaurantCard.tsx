@@ -8,6 +8,7 @@ interface RestaurantCardProps {
   quartier: string;
   ouvert: boolean;
   photoUrl?: string | null;
+  logoUrl?: string | null;
   couleurAccent?: string | null;
 }
 
@@ -31,6 +32,7 @@ export function RestaurantCard({
   quartier,
   ouvert,
   photoUrl,
+  logoUrl,
   couleurAccent,
 }: RestaurantCardProps) {
   const couleurCategorie = COULEUR_PAR_CATEGORIE[categorie] ?? "var(--secondaire)";
@@ -46,10 +48,23 @@ export function RestaurantCard({
         }}
       >
         {photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-          <img src={photoUrl} alt="" className="carte-restaurant-photo" />
+          <div className="carte-restaurant-photo-wrap">
+            {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
+            <img src={photoUrl} alt="" className="carte-restaurant-photo" />
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+              <img src={logoUrl} alt="" className="carte-restaurant-logo" />
+            ) : null}
+          </div>
         ) : null}
-        <div className="carte-restaurant-corps">
+        <div
+          className="carte-restaurant-corps"
+          style={photoUrl && logoUrl ? { paddingTop: "calc(var(--space-4) + 18px)" } : undefined}
+        >
+          {!photoUrl && logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+            <img src={logoUrl} alt="" className="carte-restaurant-logo-inline" />
+          ) : null}
           <h3 style={{ fontSize: "1.2rem", marginBottom: 6 }}>{nom}</h3>
           <p className="carte-restaurant-meta">
             <span className="pastille-categorie" style={{ background: couleurCategorie }} aria-hidden="true" />

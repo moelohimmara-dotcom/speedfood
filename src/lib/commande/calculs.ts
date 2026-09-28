@@ -57,16 +57,24 @@ export async function recalculerLignes(
   lignesClient: LigneCommandeClient[]
 ): Promise<LignesRecalculees> {
   const ids = lignesClient.map((l) => l.menuItemId);
-  const { data: plats, error } = await db
-    .from("menu_items")
-    .select("id, nom, prix, disponible, archive_le, restaurant_id")
-    .in("id", ids);
+  const optionIds = [...new Set(lignesClient.flatMap((l) => l.optionIds))];
 
-  if (error) {
+  const [{ data: plats, error }, { data: options, error: erreurOptions }] = await Promise.all([
+    db
+      .from("menu_items")
+      .select("id, nom, prix, prix_promo, disponible, archive_le, restaurant_id")
+      .in("id", ids),
+    optionIds.length > 0
+      ? db.from("menu_item_options").select("id, nom, prix, disponible, menu_item_id").in("id", optionIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (error || erreurOptions) {
     throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de vérifier le menu. Réessayez.");
   }
 
   const parId = new Map((plats ?? []).map((p) => [p.id, p]));
+  const optionsParId = new Map((options ?? []).map((o) => [o.id, o]));
   const lignes: LigneCommande[] = [];
   let sousTotal = 0;
 
@@ -87,15 +95,49 @@ export async function recalculerLignes(
     if (!Number.isInteger(plat.prix) || plat.prix < 0 || plat.prix > PRIX_MAX_GNF) {
       throw new ErreurMetier("ERREUR_SERVEUR", "Prix de plat invalide en base.");
     }
+    if (
+      plat.prix_promo !== null &&
+      (!Number.isInteger(plat.prix_promo) || plat.prix_promo < 0 || plat.prix_promo > plat.prix)
+    ) {
+      throw new ErreurMetier("ERREUR_SERVEUR", "Prix promo invalide en base.");
+    }
 
-    // Instantané (ADR-006) : nom et prix copiés tels quels au moment de l'envoi.
+    // Suppléments choisis : chacun doit appartenir à CE plat et être encore
+    // disponible — jamais faire confiance à un optionId envoyé par le
+    // navigateur sans revérifier son rattachement (sinon un client pourrait
+    // s'attribuer le supplément d'un autre plat, moins cher ou gratuit).
+    const optionsChoisies: { id: string; nom: string; prix: number }[] = [];
+    for (const optionId of ligne.optionIds) {
+      const option = optionsParId.get(optionId);
+      if (!option || option.menu_item_id !== plat.id || !option.disponible) {
+        throw new ErreurMetier(
+          "VALIDATION",
+          "Un ou plusieurs suppléments de votre panier ne sont plus disponibles. Mettez à jour votre panier avant de commander.",
+          { lignes: `Supplément indisponible pour : ${plat.nom}` }
+        );
+      }
+      if (!Number.isInteger(option.prix) || option.prix < 0 || option.prix > PRIX_MAX_GNF) {
+        throw new ErreurMetier("ERREUR_SERVEUR", "Prix de supplément invalide en base.");
+      }
+      optionsChoisies.push({ id: option.id, nom: option.nom, prix: option.prix });
+    }
+
+    // Prix effectif = prix promo s'il existe, sinon prix normal, plus la
+    // somme des suppléments. Instantané (ADR-006) : nom et prix copiés tels
+    // quels au moment de l'envoi — un changement ultérieur du prix, du promo
+    // ou d'un supplément ne modifie jamais une commande déjà créée.
+    const prixPlatEffectif = plat.prix_promo ?? plat.prix;
+    const prixOptions = optionsChoisies.reduce((total, o) => total + o.prix, 0);
+    const prixLigne = prixPlatEffectif + prixOptions;
+
     lignes.push({
       menuItemId: plat.id,
       nom: plat.nom,
-      prix: plat.prix,
+      prix: prixLigne,
       quantite: ligne.quantite,
+      options: optionsChoisies,
     });
-    sousTotal += plat.prix * ligne.quantite;
+    sousTotal += prixLigne * ligne.quantite;
   }
 
   return { lignes, sousTotal };

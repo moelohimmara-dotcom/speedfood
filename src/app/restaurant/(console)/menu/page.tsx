@@ -8,7 +8,7 @@ export default async function MenuPage() {
 
   const { data: plats } = await supabase
     .from("menu_items")
-    .select("id, nom, description, prix, disponible, photo_url")
+    .select("id, nom, description, prix, prix_promo, disponible, photo_url, menu_item_options(id, nom, prix)")
     .eq("restaurant_id", membership.restaurant_id)
     .is("archive_le", null)
     .order("nom");
@@ -31,7 +31,10 @@ export default async function MenuPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {plats.map((plat) => (
-            <PlatItem key={plat.id} plat={plat} />
+            <PlatItem
+              key={plat.id}
+              plat={{ ...plat, options: plat.menu_item_options ?? [] }}
+            />
           ))}
         </div>
       )}

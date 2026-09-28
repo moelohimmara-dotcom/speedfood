@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   changerQuantite,
   nombreArticlesPanier,
+  prixLigne,
   sousTotalPanier,
   supprimerArticle,
   usePanier,
@@ -48,7 +49,7 @@ export default function PanierPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: "var(--space-4)" }}>
             {panier.lignes.map((ligne) => (
               <Card
-                key={ligne.menuItemId}
+                key={ligne.cle}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -58,8 +59,17 @@ export default function PanierPage() {
               >
                 <div>
                   <strong>{ligne.nom}</strong>
+                  {ligne.options.length > 0 ? (
+                    <ul style={{ margin: "2px 0 0", paddingLeft: 16, fontSize: "0.8rem", color: "var(--secondaire)" }}>
+                      {ligne.options.map((o) => (
+                        <li key={o.id}>
+                          {o.nom} (+{o.prix.toLocaleString("fr-FR")} GNF)
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
-                    {ligne.prix.toLocaleString("fr-FR")} GNF l&apos;unité
+                    {prixLigne(ligne).toLocaleString("fr-FR")} GNF l&apos;unité
                   </p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -67,7 +77,7 @@ export default function PanierPage() {
                     type="button"
                     variante="secondary"
                     aria-label={`Retirer un « ${ligne.nom} »`}
-                    onClick={() => changerQuantite(ligne.menuItemId, ligne.quantite - 1)}
+                    onClick={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
                     style={{ padding: "6px 12px" }}
                   >
                     −
@@ -80,7 +90,7 @@ export default function PanierPage() {
                     variante="secondary"
                     aria-label={`Ajouter un « ${ligne.nom} »`}
                     disabled={ligne.quantite >= QUANTITE_MAX_LIGNE}
-                    onClick={() => changerQuantite(ligne.menuItemId, ligne.quantite + 1)}
+                    onClick={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
                     style={{ padding: "6px 12px" }}
                   >
                     +
@@ -88,7 +98,7 @@ export default function PanierPage() {
                   <Button
                     type="button"
                     variante="danger"
-                    onClick={() => supprimerArticle(ligne.menuItemId)}
+                    onClick={() => supprimerArticle(ligne.cle)}
                     style={{ padding: "6px 12px" }}
                   >
                     Retirer

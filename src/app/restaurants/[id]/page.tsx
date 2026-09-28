@@ -16,7 +16,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, photo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, photo_url, logo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -33,10 +33,27 @@ export default async function FicheRestaurantPage({
 
   const { data: menu } = await supabase
     .from("menu_items")
-    .select("id, nom, description, prix, disponible, photo_url")
+    .select("id, nom, description, prix, prix_promo, disponible, photo_url")
     .eq("restaurant_id", id)
     .is("archive_le", null)
     .order("nom");
+
+  const idsPlats = (menu ?? []).map((item) => item.id);
+  const { data: optionsBrutes } =
+    idsPlats.length > 0
+      ? await supabase
+          .from("menu_item_options")
+          .select("id, menu_item_id, nom, prix")
+          .in("menu_item_id", idsPlats)
+          .eq("disponible", true)
+          .order("nom")
+      : { data: [] };
+  const optionsParPlat = new Map<string, { id: string; nom: string; prix: number }[]>();
+  for (const option of optionsBrutes ?? []) {
+    const liste = optionsParPlat.get(option.menu_item_id) ?? [];
+    liste.push({ id: option.id, nom: option.nom, prix: option.prix });
+    optionsParPlat.set(option.menu_item_id, liste);
+  }
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
@@ -45,16 +62,36 @@ export default async function FicheRestaurantPage({
       </Link>
 
       {restaurant.photo_url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-        <img
-          src={restaurant.photo_url}
-          alt=""
-          className="fiche-restaurant-hero"
-          style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}
-        />
+        <div className="fiche-restaurant-hero-wrap">
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
+          <img
+            src={restaurant.photo_url}
+            alt=""
+            className="fiche-restaurant-hero"
+            style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}
+          />
+          {restaurant.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+            <img src={restaurant.logo_url} alt="" className="fiche-restaurant-logo" />
+          ) : null}
+        </div>
       ) : null}
 
-      <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 4px" }}>{restaurant.nom}</h1>
+      <h1
+        style={{
+          fontSize: "2rem",
+          margin: restaurant.photo_url && restaurant.logo_url ? "28px 0 4px" : "var(--space-3) 0 4px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        {!restaurant.photo_url && restaurant.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+          <img src={restaurant.logo_url} alt="" className="fiche-restaurant-logo-inline" />
+        ) : null}
+        {restaurant.nom}
+      </h1>
       {restaurant.couleur_accent ? (
         <div
           aria-hidden="true"
@@ -99,6 +136,11 @@ export default async function FicheRestaurantPage({
                   <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
                     {item.description}
                   </p>
+                  {item.prix_promo !== null ? (
+                    <Badge ton="danger" style={{ marginTop: 4 }}>
+                      Promo
+                    </Badge>
+                  ) : null}
                   {!item.disponible ? (
                     <p style={{ margin: "4px 0 0", color: "var(--danger)", fontSize: "0.8rem", fontWeight: 600 }}>
                       Indisponible aujourd&apos;hui
@@ -107,11 +149,31 @@ export default async function FicheRestaurantPage({
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
+                {item.prix_promo !== null ? (
+                  <>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        color: "var(--secondaire)",
+                        fontSize: "0.85rem",
+                        marginRight: 6,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formaterGNF(item.prix)}
+                    </span>
+                    <strong style={{ whiteSpace: "nowrap", color: "var(--rouge)" }}>
+                      {formaterGNF(item.prix_promo)}
+                    </strong>
+                  </>
+                ) : (
+                  <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(item.prix)}</strong>
+                )}
                 {restaurant.ouvert && item.disponible ? (
                   <ControleQuantiteArticle
                     restaurant={{ id: restaurant.id, nom: restaurant.nom }}
-                    article={{ id: item.id, nom: item.nom, prix: item.prix }}
+                    article={{ id: item.id, nom: item.nom, prix: item.prix_promo ?? item.prix }}
+                    optionsDisponibles={optionsParPlat.get(item.id) ?? []}
                   />
                 ) : null}
               </div>

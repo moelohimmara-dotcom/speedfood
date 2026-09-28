@@ -14,16 +14,31 @@ export interface ClientCommande {
 }
 
 /**
+ * Supplément choisi sur une ligne — instantané au même titre que la ligne
+ * elle-même (ADR-006) : nom et prix copiés au moment de l'envoi.
+ */
+export interface OptionCommande {
+  /** Identifiant de l'option au moment de l'envoi — conservé pour traçabilité (`order_item_options.option_id`), mis à NULL si l'option est supprimée depuis. */
+  id: string;
+  nom: string;
+  prix: number;
+}
+
+/**
  * Ligne de commande — instantané figé au moment de l'envoi (ADR-006).
  * Le nom et le prix sont copiés depuis MenuItem à l'instant T et ne changent plus
  * même si le plat est modifié ou supprimé ensuite. Ne jamais recalculer une ligne
- * historique à partir du menu courant.
+ * historique à partir du menu courant. `prix` est le prix unitaire total déjà
+ * chargé — prix promo du plat (s'il est actif) PLUS la somme des suppléments
+ * choisis (`options`) ; `options` n'est là que pour l'affichage détaillé, pas
+ * pour un recalcul supplémentaire.
  */
 export interface LigneCommande {
   menuItemId: string;
   nom: string;
   prix: number;
   quantite: number;
+  options: OptionCommande[];
 }
 
 export interface Commande {
@@ -100,13 +115,15 @@ export interface PropositionRevisee {
 export type EtatDeriveCommande = StatutCommande | "attente_confirmation_client";
 
 /**
- * Ligne telle qu'envoyée par le navigateur. Seuls l'identifiant du plat et la
- * quantité font foi : le nom et le prix sont systématiquement recalculés côté
- * serveur depuis `menu_items` (TDR.md §6, ADR-006).
+ * Ligne telle qu'envoyée par le navigateur. Seuls l'identifiant du plat, la
+ * quantité et les identifiants des suppléments choisis font foi : le nom et
+ * le prix (plat comme suppléments) sont systématiquement recalculés côté
+ * serveur depuis `menu_items`/`menu_item_options` (TDR.md §6, ADR-006).
  */
 export interface LigneCommandeClient {
   menuItemId: string;
   quantite: number;
+  optionIds: string[];
 }
 
 /**
@@ -132,11 +149,18 @@ export type ResultatCreationCommande =
 /** Réponse uniforme des actions de statut / proposition. */
 export type ResultatActionCommande = { ok: true } | { ok: false; erreur: ErreurApi };
 
+/** Supplément affiché (suivi client ou console) — sans identifiant, lecture seule. */
+export interface OptionCommandeApercu {
+  nom: string;
+  prix: number;
+}
+
 /** Ligne affichée (suivi client ou console) — instantané figé, sans identifiant de menu. */
 export interface LigneCommandeApercu {
   nom: string;
   prix: number;
   quantite: number;
+  options: OptionCommandeApercu[];
 }
 
 /** Restaurant tel qu'exposé sur la page de suivi (aucune donnée de gestion). */

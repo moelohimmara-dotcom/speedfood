@@ -8,7 +8,7 @@ export default async function ProfilPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("nom, horaires, consignes, ouvert, publie, photo_url, couleur_accent")
+    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent")
     .eq("id", membership.restaurant_id)
     .maybeSingle();
 
@@ -36,6 +36,7 @@ export default async function ProfilPage() {
           horaires={restaurant.horaires}
           consignes={restaurant.consignes ?? ""}
           photoUrl={restaurant.photo_url}
+          logoUrl={restaurant.logo_url}
           couleurAccent={restaurant.couleur_accent}
         />
       </Card>

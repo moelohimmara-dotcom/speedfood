@@ -24,7 +24,7 @@ const EXTENSIONS_PAR_TYPE: Record<string, string> = {
   "image/webp": "webp",
 };
 
-export type DossierMedia = "restaurants" | "plats" | "bannieres";
+export type DossierMedia = "restaurants" | "plats" | "bannieres" | "logos";
 
 /**
  * Valide et téléverse une image, renvoie son URL publique.

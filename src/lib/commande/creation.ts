@@ -87,17 +87,38 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
 
     if (!error && inseree) {
       try {
-        const { error: erreurLignes } = await db.from("order_items").insert(
-          lignes.map((ligne) => ({
-            order_id: inseree.id,
-            menu_item_id: ligne.menuItemId,
-            nom: ligne.nom,
-            prix: ligne.prix,
-            quantite: ligne.quantite,
+        const { data: lignesInserees, error: erreurLignes } = await db
+          .from("order_items")
+          .insert(
+            lignes.map((ligne) => ({
+              order_id: inseree.id,
+              menu_item_id: ligne.menuItemId,
+              nom: ligne.nom,
+              prix: ligne.prix,
+              quantite: ligne.quantite,
+            }))
+          )
+          .select("id");
+        if (erreurLignes || !lignesInserees) {
+          throw new ErreurMetier("ERREUR_SERVEUR", "Commande non enregistrée. Réessayez.");
+        }
+
+        // Suppléments choisis par ligne — insérés après coup car ils
+        // référencent l'id généré de chaque order_item (insert renvoie les
+        // lignes dans le même ordre que celui envoyé).
+        const optionsAInserer = lignes.flatMap((ligne, index) =>
+          ligne.options.map((option) => ({
+            order_item_id: lignesInserees[index].id,
+            option_id: option.id,
+            nom: option.nom,
+            prix: option.prix,
           }))
         );
-        if (erreurLignes) {
-          throw new ErreurMetier("ERREUR_SERVEUR", "Commande non enregistrée. Réessayez.");
+        if (optionsAInserer.length > 0) {
+          const { error: erreurOptions } = await db.from("order_item_options").insert(optionsAInserer);
+          if (erreurOptions) {
+            throw new ErreurMetier("ERREUR_SERVEUR", "Commande non enregistrée. Réessayez.");
+          }
         }
 
         // Historisation : création = transition depuis un état vide.

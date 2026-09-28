@@ -186,6 +186,7 @@ export type Database = {
           nom: string
           photo_url: string | null
           prix: number
+          prix_promo: number | null
           restaurant_id: string
         }
         Insert: {
@@ -198,6 +199,7 @@ export type Database = {
           nom: string
           photo_url?: string | null
           prix: number
+          prix_promo?: number | null
           restaurant_id: string
         }
         Update: {
@@ -210,6 +212,7 @@ export type Database = {
           nom?: string
           photo_url?: string | null
           prix?: number
+          prix_promo?: number | null
           restaurant_id?: string
         }
         Relationships: [
@@ -218,6 +221,41 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_item_options: {
+        Row: {
+          cree_le: string
+          disponible: boolean
+          id: string
+          menu_item_id: string
+          nom: string
+          prix: number
+        }
+        Insert: {
+          cree_le?: string
+          disponible?: boolean
+          id?: string
+          menu_item_id: string
+          nom: string
+          prix?: number
+        }
+        Update: {
+          cree_le?: string
+          disponible?: boolean
+          id?: string
+          menu_item_id?: string
+          nom?: string
+          prix?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_options_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
             referencedColumns: ["id"]
           },
         ]
@@ -278,6 +316,45 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_item_options: {
+        Row: {
+          id: string
+          nom: string
+          option_id: string | null
+          order_item_id: string
+          prix: number
+        }
+        Insert: {
+          id?: string
+          nom: string
+          option_id?: string | null
+          order_item_id: string
+          prix: number
+        }
+        Update: {
+          id?: string
+          nom?: string
+          option_id?: string | null
+          order_item_id?: string
+          prix?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_options_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "menu_item_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_options_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
         ]
@@ -482,6 +559,7 @@ export type Database = {
           donnees_demo: boolean
           horaires: string
           id: string
+          logo_url: string | null
           mis_a_jour_le: string
           motif_correction: string | null
           nom: string
@@ -500,6 +578,7 @@ export type Database = {
           donnees_demo?: boolean
           horaires?: string
           id?: string
+          logo_url?: string | null
           mis_a_jour_le?: string
           motif_correction?: string | null
           nom: string
@@ -518,6 +597,7 @@ export type Database = {
           donnees_demo?: boolean
           horaires?: string
           id?: string
+          logo_url?: string | null
           mis_a_jour_le?: string
           motif_correction?: string | null
           nom?: string

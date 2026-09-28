@@ -25,12 +25,40 @@
   }
 }
 
+.carte-restaurant-photo-wrap {
+  position: relative;
+}
+
 .carte-restaurant-photo {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
   background: var(--bordure);
+}
+
+/* Emblème de marque, distinct de la photo de couverture — superposé au coin
+   si une photo existe, sinon affiché en ligne (.carte-restaurant-logo-inline
+   ci-dessous). Jamais un placeholder inventé si le restaurant n'en a pas. */
+.carte-restaurant-logo {
+  position: absolute;
+  left: var(--space-3);
+  bottom: -18px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  background: var(--surface);
+  border: 2px solid var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.carte-restaurant-logo-inline {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  margin-bottom: 6px;
 }
 
 .carte-restaurant-corps {
@@ -55,6 +83,10 @@
 
 /* --- Fiche restaurant ----------------------------------------------------- */
 
+.fiche-restaurant-hero-wrap {
+  position: relative;
+}
+
 .fiche-restaurant-hero {
   width: 100%;
   aspect-ratio: 16 / 7;
@@ -63,6 +95,27 @@
   margin-top: var(--space-3);
   display: block;
   background: var(--bordure);
+}
+
+.fiche-restaurant-logo {
+  position: absolute;
+  left: var(--space-4);
+  bottom: -24px;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  background: var(--surface);
+  border: 3px solid var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.fiche-restaurant-logo-inline {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .menu-item-row {

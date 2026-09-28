@@ -122,6 +122,11 @@ export function CommandeCarte({ commande }: { commande: ApercuCommandeRestaurant
           >
             <span>
               {ligne.quantite} × {ligne.nom}
+              {ligne.options.length > 0 ? (
+                <span style={{ display: "block", color: "var(--secondaire)", fontSize: "0.8rem" }}>
+                  {ligne.options.map((o) => o.nom).join(", ")}
+                </span>
+              ) : null}
             </span>
             <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(ligne.prix * ligne.quantite)}</strong>
           </div>

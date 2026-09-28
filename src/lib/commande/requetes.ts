@@ -100,7 +100,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
         .maybeSingle(),
       db
         .from("order_items")
-        .select("nom, prix, quantite")
+        .select("nom, prix, quantite, order_item_options(nom, prix)")
         .eq("order_id", commande.id)
         .order("nom"),
       db
@@ -131,7 +131,12 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
       ouvert: restaurant?.ouvert ?? true,
     },
     lignes: (lignes ?? []).map(
-      (l): LigneCommandeApercu => ({ nom: l.nom, prix: l.prix, quantite: l.quantite })
+      (l): LigneCommandeApercu => ({
+        nom: l.nom,
+        prix: l.prix,
+        quantite: l.quantite,
+        options: (l.order_item_options ?? []).map((o) => ({ nom: o.nom, prix: o.prix })),
+      })
     ),
     sousTotal: fraiche?.sous_total ?? commande.sous_total,
     fraisLivraisonEstime: fraiche?.frais_livraison_estime ?? commande.frais_livraison_estime,
@@ -161,7 +166,7 @@ export async function chargerApercusCommandes(
   const { data: commandes, error } = await db
     .from("orders")
     .select(
-      `id, reference, client_nom, client_telephone, client_adresse, mode, sous_total, frais_livraison_estime, statut, cree_le, order_items(nom, prix, quantite), order_proposals(${CHAMPS_PROPOSITION})`
+      `id, reference, client_nom, client_telephone, client_adresse, mode, sous_total, frais_livraison_estime, statut, cree_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
     )
     .eq("restaurant_id", restaurantId)
     .order("cree_le", { ascending: false });
@@ -204,7 +209,12 @@ export async function chargerApercusCommandes(
       fraisLivraisonEstime: commande.frais_livraison_estime,
       creeLe: commande.cree_le,
       lignes: (commande.order_items ?? []).map(
-        (l): LigneCommandeApercu => ({ nom: l.nom, prix: l.prix, quantite: l.quantite })
+        (l): LigneCommandeApercu => ({
+          nom: l.nom,
+          prix: l.prix,
+          quantite: l.quantite,
+          options: (l.order_item_options ?? []).map((o) => ({ nom: o.nom, prix: o.prix })),
+        })
       ),
       propositionActive,
     });

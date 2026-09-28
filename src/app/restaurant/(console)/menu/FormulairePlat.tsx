@@ -28,6 +28,14 @@ export function FormulairePlat() {
       <Input label="Nom du plat" name="nom" type="text" required maxLength={120} />
       <Input label="Description" name="description" type="text" maxLength={500} />
       <Input label="Prix (GNF)" name="prix" type="number" min={0} max={5_000_000} step={1} required />
+      <div className="field">
+        <label htmlFor="prix_promo">Prix promo (GNF)</label>
+        <input id="prix_promo" name="prix_promo" type="number" min={0} step={1} />
+        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          Facultatif — doit être inférieur ou égal au prix normal. Laissez vide pour ne pas
+          proposer de promo.
+        </p>
+      </div>
       {etat.erreur ? (
         <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
           {etat.erreur}

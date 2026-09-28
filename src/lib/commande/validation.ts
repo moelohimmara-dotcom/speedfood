@@ -24,6 +24,7 @@ import { estUuid } from "./commun";
 export const QUANTITE_MAX_LIGNE = 30;
 export const LIGNES_MAX_COMMANDE = 50;
 export const PRIX_MAX_GNF = 5_000_000;
+export const OPTIONS_MAX_LIGNE = 20;
 
 export type ResultatValidationCreation =
   | { ok: true; valeurs: CreationCommandePayload }
@@ -51,7 +52,12 @@ function erreurValidation(
   return { ok: false, erreur: { code: "VALIDATION", message, champs } };
 }
 
-/** Valide et normalise les lignes du panier ; fusionne les doublons de plat. */
+/**
+ * Valide et normalise les lignes du panier ; fusionne les doublons
+ * (même plat ET mêmes suppléments — deux mêmes plats avec des suppléments
+ * différents restent deux lignes distinctes, ce ne sont pas les mêmes
+ * produits).
+ */
 export function validerLignes(brut: unknown): { ok: true; lignes: LigneCommandeClient[] } | { ok: false; erreur: ErreurApi } {
   if (!Array.isArray(brut) || brut.length === 0) {
     return erreurValidation("Votre panier est vide.", { lignes: "Ajoutez au moins un plat." });
@@ -60,32 +66,45 @@ export function validerLignes(brut: unknown): { ok: true; lignes: LigneCommandeC
     return erreurValidation(`Une commande ne peut pas dépasser ${LIGNES_MAX_COMMANDE} lignes.`);
   }
 
-  const parPlat = new Map<string, number>();
+  const parCle = new Map<string, { menuItemId: string; quantite: number; optionIds: string[] }>();
   for (const ligne of brut) {
     if (typeof ligne !== "object" || ligne === null) {
       return erreurValidation("Ligne de commande invalide.");
     }
-    const { menuItemId, quantite } = ligne as { menuItemId?: unknown; quantite?: unknown };
+    const { menuItemId, quantite, optionIds } = ligne as {
+      menuItemId?: unknown;
+      quantite?: unknown;
+      optionIds?: unknown;
+    };
     if (!estUuid(menuItemId)) {
       return erreurValidation("Plat invalide dans le panier.");
     }
     if (typeof quantite !== "number" || !Number.isInteger(quantite) || quantite < 1) {
       return erreurValidation("Quantité invalide.", { lignes: "Chaque quantité doit être un entier ≥ 1." });
     }
-    const cumul = (parPlat.get(menuItemId) ?? 0) + quantite;
+    const optionIdsBrut = optionIds === undefined ? [] : optionIds;
+    if (!Array.isArray(optionIdsBrut) || optionIdsBrut.length > OPTIONS_MAX_LIGNE) {
+      return erreurValidation("Suppléments invalides dans le panier.");
+    }
+    const optionIdsUniques = [...new Set(optionIdsBrut)];
+    if (!optionIdsUniques.every((o) => estUuid(o))) {
+      return erreurValidation("Suppléments invalides dans le panier.");
+    }
+    const optionIdsTries = (optionIdsUniques as string[]).sort();
+
+    const cle = `${menuItemId}|${optionIdsTries.join(",")}`;
+    const existante = parCle.get(cle);
+    const cumul = (existante?.quantite ?? 0) + quantite;
     if (cumul > QUANTITE_MAX_LIGNE) {
       return erreurValidation(
-        `Quantité maximale : ${QUANTITE_MAX_LIGNE} par plat.`,
+        `Quantité maximale : ${QUANTITE_MAX_LIGNE} par plat (avec les mêmes suppléments).`,
         { lignes: "Réduisez la quantité de certains plats." }
       );
     }
-    parPlat.set(menuItemId, cumul);
+    parCle.set(cle, { menuItemId, quantite: cumul, optionIds: optionIdsTries });
   }
 
-  const lignes: LigneCommandeClient[] = [...parPlat.entries()].map(([menuItemId, quantite]) => ({
-    menuItemId,
-    quantite,
-  }));
+  const lignes: LigneCommandeClient[] = [...parCle.values()];
   return { ok: true, lignes };
 }
 

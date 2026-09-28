@@ -8,14 +8,17 @@ import {
   type EtatFormulaireMenu,
 } from "@/lib/menu/actions";
 import { Card, Badge, Button, Input, Alert } from "@/components/ui";
+import { OptionsPlat } from "./OptionsPlat";
 
 interface Plat {
   id: string;
   nom: string;
   description: string;
   prix: number;
+  prix_promo: number | null;
   disponible: boolean;
   photo_url: string | null;
+  options: { id: string; nom: string; prix: number }[];
 }
 
 const etatInitial: EtatFormulaireMenu = {};
@@ -73,6 +76,20 @@ export function PlatItem({ plat }: { plat: Plat }) {
             required
             defaultValue={plat.prix}
           />
+          <div className="field">
+            <label htmlFor={`prix_promo-${plat.id}`}>Prix promo (GNF)</label>
+            <input
+              id={`prix_promo-${plat.id}`}
+              name="prix_promo"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={plat.prix_promo ?? ""}
+            />
+            <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+              Facultatif — inférieur ou égal au prix normal. Laissez vide pour retirer la promo.
+            </p>
+          </div>
           {etat.erreur ? (
             <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
               {etat.erreur}
@@ -92,50 +109,62 @@ export function PlatItem({ plat }: { plat: Plat }) {
   }
 
   return (
-    <Card style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-          <strong>{plat.nom}</strong>
-          <Badge ton={plat.disponible ? "succes" : "neutre"}>
-            {plat.disponible ? "Disponible" : "Indisponible"}
-          </Badge>
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <strong>{plat.nom}</strong>
+            <Badge ton={plat.disponible ? "succes" : "neutre"}>
+              {plat.disponible ? "Disponible" : "Indisponible"}
+            </Badge>
+          </div>
+          {plat.description ? (
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>{plat.description}</p>
+          ) : null}
+          {plat.prix_promo !== null ? (
+            <p style={{ margin: 0 }}>
+              <span style={{ textDecoration: "line-through", color: "var(--secondaire)", marginRight: 6 }}>
+                {plat.prix.toLocaleString("fr-FR")} GNF
+              </span>
+              <strong style={{ color: "var(--rouge)" }}>{plat.prix_promo.toLocaleString("fr-FR")} GNF</strong>
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontWeight: 700 }}>{plat.prix.toLocaleString("fr-FR")} GNF</p>
+          )}
         </div>
-        {plat.description ? (
-          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>{plat.description}</p>
-        ) : null}
-        <p style={{ margin: 0, fontWeight: 700 }}>{plat.prix.toLocaleString("fr-FR")} GNF</p>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 140 }}>
-        <Button
-          type="button"
-          variante="secondary"
-          disabled={enTransition}
-          onClick={() =>
-            demarrerTransition(() => {
-              basculerDisponibiliteAction(plat.id, !plat.disponible);
-            })
-          }
-        >
-          {plat.disponible ? "Marquer indisponible" : "Marquer disponible"}
-        </Button>
-        <Button type="button" variante="secondary" onClick={() => setEnEdition(true)}>
-          Modifier
-        </Button>
-        <Button
-          type="button"
-          variante="danger"
-          disabled={enTransition}
-          onClick={() => {
-            if (confirm(`Archiver « ${plat.nom} » ? Ce plat ne sera plus visible dans votre menu.`)) {
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 140 }}>
+          <Button
+            type="button"
+            variante="secondary"
+            disabled={enTransition}
+            onClick={() =>
               demarrerTransition(() => {
-                archiverPlatAction(plat.id);
-              });
+                basculerDisponibiliteAction(plat.id, !plat.disponible);
+              })
             }
-          }}
-        >
-          Archiver
-        </Button>
+          >
+            {plat.disponible ? "Marquer indisponible" : "Marquer disponible"}
+          </Button>
+          <Button type="button" variante="secondary" onClick={() => setEnEdition(true)}>
+            Modifier
+          </Button>
+          <Button
+            type="button"
+            variante="danger"
+            disabled={enTransition}
+            onClick={() => {
+              if (confirm(`Archiver « ${plat.nom} » ? Ce plat ne sera plus visible dans votre menu.`)) {
+                demarrerTransition(() => {
+                  archiverPlatAction(plat.id);
+                });
+              }
+            }}
+          >
+            Archiver
+          </Button>
+        </div>
       </div>
+      <OptionsPlat menuItemId={plat.id} options={plat.options} />
     </Card>
   );
 }

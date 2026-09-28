@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePanier, sousTotalPanier, nombreArticlesPanier } from "@/components/panier/panier";
+import { usePanier, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
 import { Card, Alert } from "@/components/ui";
 import { FormulaireCommande } from "./FormulaireCommande";
 
@@ -46,7 +46,7 @@ export default function CommandePage() {
         </p>
         {panier.lignes.map((ligne) => (
           <div
-            key={ligne.menuItemId}
+            key={ligne.cle}
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -57,9 +57,14 @@ export default function CommandePage() {
           >
             <span>
               {ligne.quantite} × {ligne.nom}
+              {ligne.options.length > 0 ? (
+                <span style={{ display: "block", color: "var(--secondaire)", fontSize: "0.8rem" }}>
+                  {ligne.options.map((o) => o.nom).join(", ")}
+                </span>
+              ) : null}
             </span>
             <strong style={{ whiteSpace: "nowrap" }}>
-              {(ligne.prix * ligne.quantite).toLocaleString("fr-FR")} GNF
+              {(prixLigne(ligne) * ligne.quantite).toLocaleString("fr-FR")} GNF
             </strong>
           </div>
         ))}

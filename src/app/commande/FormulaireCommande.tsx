@@ -81,6 +81,7 @@ export function FormulaireCommande({ panier }: Props) {
       lignes: panier.lignes.map((ligne) => ({
         menuItemId: ligne.menuItemId,
         quantite: ligne.quantite,
+        optionIds: ligne.options.map((o) => o.id),
       })),
       consentementReglement: true,
     };
