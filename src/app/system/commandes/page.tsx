@@ -16,6 +16,7 @@ const LIBELLES_STATUT: Record<StatutCommande, string> = {
 interface Recherche {
   reference?: string;
   statut?: string;
+  jour?: string;
 }
 
 export default async function SupportCommandesSystemePage({
@@ -24,14 +25,20 @@ export default async function SupportCommandesSystemePage({
   searchParams: Promise<Recherche>;
 }) {
   await exigerPermissionPage("commande.consulter");
-  const { reference, statut: statutBrut } = await searchParams;
+  const { reference, statut: statutBrut, jour: jourBrut } = await searchParams;
   const statut: StatutCommande | "tous" = (STATUTS_COMMANDE as readonly string[]).includes(
     statutBrut ?? ""
   )
     ? (statutBrut as StatutCommande)
     : "tous";
+  const jour = jourBrut === "1";
 
-  const commandes = await rechercherCommandesAdmin({ reference, statut });
+  const commandes = await rechercherCommandesAdmin({ reference, statut, jour });
+
+  const parametresSansJour = new URLSearchParams();
+  if (reference) parametresSansJour.set("reference", reference);
+  if (statut !== "tous") parametresSansJour.set("statut", statut);
+  const lienSansJour = parametresSansJour.toString();
 
   return (
     <div>
@@ -42,16 +49,27 @@ export default async function SupportCommandesSystemePage({
 
       <form method="GET" style={{ marginBottom: "var(--space-4)" }}>
         {statut !== "tous" ? <input type="hidden" name="statut" value={statut} /> : null}
+        {jour ? <input type="hidden" name="jour" value="1" /> : null}
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="reference">Référence</label>
           <input id="reference" name="reference" type="search" defaultValue={reference ?? ""} placeholder="SF-4KVB9" />
         </div>
       </form>
 
+      {jour ? (
+        <div className="alerte alerte-info" role="note" style={{ marginBottom: "var(--space-4)", fontSize: "0.85rem" }}>
+          Filtre « du jour » : seules les commandes créées depuis minuit (UTC) sont affichées.{" "}
+          <Link href={lienSansJour ? `/system/commandes?${lienSansJour}` : "/system/commandes"} style={{ fontWeight: 700 }}>
+            Voir toutes les périodes
+          </Link>
+        </div>
+      ) : null}
+
       <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-5)" }}>
         {(["tous", ...STATUTS_COMMANDE] as const).map((valeur) => {
           const params = new URLSearchParams();
           if (reference) params.set("reference", reference);
+          if (jour) params.set("jour", "1");
           if (valeur !== "tous") params.set("statut", valeur);
           const chaine = params.toString();
           return (

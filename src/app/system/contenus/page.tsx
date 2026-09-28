@@ -5,14 +5,42 @@ import { Card, Badge } from "@/components/ui";
 import { SousNavContenus } from "./SousNavContenus";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
 
-export default async function ContenusSystemePage() {
+interface Recherche {
+  statut?: string;
+}
+
+/**
+ * Ajustement léger post-tableau de bord : le filtre `statut` permet aux
+ * compteurs du centre de commandement (`/system?statut=publie|brouillon`)
+ * d'ouvrir directement la liste correspondante. Le reste de l'écran (bloc 8c)
+ * est inchangé.
+ */
+export default async function ContenusSystemePage({
+  searchParams,
+}: {
+  searchParams: Promise<Recherche>;
+}) {
   await exigerPermissionPage("contenu.editer");
-  const pages = await listerPages();
+  const { statut: statutBrut } = await searchParams;
+  const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
+  const pages = (await listerPages()).filter((p) => statut === "tous" || p.statut === statut);
 
   return (
     <div>
       <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenus</h1>
       <SousNavContenus />
+
+      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-4)" }}>
+        {(["tous", "publie", "brouillon"] as const).map((valeur) => (
+          <Link
+            key={valeur}
+            href={valeur === "tous" ? "/system/contenus" : `/system/contenus?statut=${valeur}`}
+            className={`chip ${statut === valeur ? "actif" : ""}`}
+          >
+            {valeur === "tous" ? "Toutes" : valeur === "publie" ? "Publiées" : "Brouillons"}
+          </Link>
+        ))}
+      </div>
 
       <Card style={{ marginBottom: "var(--space-5)" }}>
         <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Nouvelle page</h2>

@@ -56,6 +56,8 @@ function versMode(valeur: string): "retrait" | "livraison" {
 export async function rechercherCommandesAdmin(filtres: {
   reference?: string;
   statut?: StatutCommande | "tous";
+  /** Restreint aux commandes créées depuis minuit (UTC) — filtre « du jour » du tableau de bord. */
+  jour?: boolean;
 }): Promise<CommandeApercuAdmin[]> {
   await verifierPermission("commande.consulter");
   const supabase = await creerClientServeur();
@@ -73,6 +75,11 @@ export async function rechercherCommandesAdmin(filtres: {
   }
   if (filtres.statut && filtres.statut !== "tous") {
     requete = requete.eq("statut", filtres.statut);
+  }
+  if (filtres.jour) {
+    const debutJour = new Date();
+    debutJour.setUTCHours(0, 0, 0, 0);
+    requete = requete.gte("cree_le", debutJour.toISOString());
   }
 
   const { data, error } = await requete;

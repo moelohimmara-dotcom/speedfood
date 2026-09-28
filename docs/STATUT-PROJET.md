@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 27 septembre 2026 (bloc 8d — CMS système complet).** Ce document existe pour qu'une
+**Dernière mise à jour : 28 septembre 2026 (centre de commandement `/system`, après le bloc 8d).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
@@ -191,6 +191,43 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   avant ce correctif, pas seulement la console. **Si un futur écran affiche à
   nouveau un débordement horizontal mobile, vérifier en premier que cette règle
   n'a pas été supprimée par erreur.**
+
+- **Centre de commandement `/system` (post-8d, 28/09/2026)** : l'accueil `/system` est un vrai
+  tableau de bord opérationnel (plus une liste de liens) : file « à traiter en priorité »
+  (restaurants en attente de validation avec lien direct vers leur fiche de modération,
+  propositions de commande en attente de réponse client avec échéance), indicateurs clés
+  tous cliquables vers la section déjà filtrée (restaurants par état, commandes actives du
+  jour / en attente / propositions en attente, pages et bannières publiés vs brouillons,
+  comptes système par rôle), activité récente (`audit_events` via `fn_lister_audit`) et
+  accès rapides. Chaque zone n'est ni lue ni affichée sans la permission du rôle courant
+  (`roleAPermission` côté page, `verifierPermission` dans chaque helper de
+  `src/lib/system-admin/tableauDeBord.ts`), les lectures sont ciblées (comptages
+  `head: true`, quelques colonnes, jamais `select *`) et lancées en parallèle (aucun
+  waterfall). **Ajustements légers des écrans existants** pour que chaque compteur ouvre
+  la section filtrée correspondante : filtre `?jour=1` sur `/system/commandes` (commandes
+  créées depuis minuit UTC), filtres `?statut=publie|brouillon` sur `/system/contenus` et
+  `/system/contenus/bannieres`. La zone « Restaurants » est réservée à `restaurant.moderer`
+  (et non `restaurant.consulter`) parce que ses compteurs ouvrent `/system/restaurants`, qui
+  exige `restaurant.moderer` — sinon `support`/`content_editor` hériteraient de liens en
+  404. Matrice de permissions inchangée (v1.0.0). Vérifié dans un vrai navigateur (Chrome
+  piloté en DevTools Protocol, test automatisé hors dépôt puis supprimé) contre la base :
+  compteurs identiques aux comptages REST réels, comptes `super_admin` et `content_editor`
+  réels, 404 sans fuite pour un anonyme et pour les sections hors permissions, aucun
+  débordement horizontal en 375 px.
+
+- **Trou RLS latent sur `order_proposals` (constaté le 28/09/2026, non corrigé — migration
+  hors périmètre de la tâche)** : cette table n'a aucune policy pour un rôle système (seuls
+  les membres du restaurant concerné la lisent, policies `membres_*` du bloc 2) — même trou
+  que `orders`/`order_items`/`order_status_events` comblé au bloc 8d, mais `order_proposals`
+  avait été oublié dans cette migration. Constaté en direct : avec le JWT d'un `super_admin`,
+  PostgREST renvoie 0 ligne sur `order_proposals` alors que la `service_role` en voit.
+  Conséquence : le compteur « Propositions client en attente » et la file de priorité du
+  tableau de bord afficheront 0 (et une file vide) même quand des propositions attendent une
+  réponse client. Correction proposée, à appliquer par migration `apply_migration` après
+  décision du propriétaire :
+  `create policy "support_lecture_propositions" on order_proposals for select using (fn_est_admin_systeme(array['support', 'super_admin']));`
+  (lecture seule suffit au pilotage ; les écritures sur les propositions restent celles du
+  bloc 7, côté restaurant/client).
 
 ## Ce qui n'est pas testé / connu comme incomplet
 
