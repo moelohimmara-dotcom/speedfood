@@ -2,6 +2,7 @@ import Link from "next/link";
 import { deconnexionAction } from "@/lib/auth/actions";
 import { Badge, Button } from "@/components/ui";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
+import { aUnMembershipRestaurant } from "@/lib/auth/doubleAcces";
 import {
   entreesNavPourRole,
   LIBELLES_ROLES,
@@ -24,6 +25,7 @@ import { SystemNav } from "./SystemNav";
 export default async function SystemLayout({ children }: { children: React.ReactNode }) {
   const contexte = await obtenirContexteSysteme();
   const entrees = entreesNavPourRole(contexte.role);
+  const aAussiUnRestaurant = await aUnMembershipRestaurant(contexte.supabase, contexte.utilisateurId);
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>
@@ -48,6 +50,11 @@ export default async function SystemLayout({ children }: { children: React.React
           </p>
         </div>
         <Badge ton="neutre">Rôle : {LIBELLES_ROLES[contexte.role]}</Badge>
+        {aAussiUnRestaurant ? (
+          <Link href="/restaurant" className="btn btn-secondary">
+            Mon restaurant
+          </Link>
+        ) : null}
         <form action={deconnexionAction}>
           <Button type="submit" variante="secondary">
             Se déconnecter
