@@ -32,26 +32,35 @@ Tant qu'il n'y a que des données fictives, la perte est sans gravité (le catal
 2. **Ou rester gratuit** et accepter : exports manuels réguliers (§4), risque de pause, aucune restauration rapide.
 3. **Éviter la pause tout de suite, sans payer :** une visite du tableau de bord Supabase ou quelques requêtes par jour suffisent (« quelques requêtes par jour sur la semaine » selon la documentation). Aucun mécanisme automatique n'existe aujourd'hui ; si le site reste sans visite une semaine, il peut se mettre en pause.
 
-## 4. Procédure d'export manuel (offre gratuite)
+## 4. Export régulier (offre gratuite) : outil fourni, décision du 3 octobre 2026
 
-À faire par **toi** (ou une personne de confiance) car elle demande le mot de passe de la base, que je ne dois jamais recevoir. Prérequis : le CLI Supabase (déjà installé sur ta machine) et ton mot de passe de base (tableau de bord → Settings → Database).
+Décision de Malika : **exports réguliers** (pas de passage à l'offre Pro pour l'instant). L'outil est dans le dépôt et ne
+demande **aucun mot de passe de base** : il lit la clé de service déjà présente dans `.env.local` de la machine.
 
 ```bash
-# Données seules (ce qui n'est pas reconstructible depuis le dépôt)
-supabase db dump --data-only --linked -f sauvegarde-donnees-AAAA-MM-JJ.sql
+npm run export:donnees
 ```
 
-- Rythme proposé : **hebdomadaire** avant le pilote, **quotidien** pendant le pilote.
-- Stockage : sur un disque ou un cloud **chiffré, hors de Supabase et hors du dépôt Git** (le fichier contient des données personnelles : ne jamais le commiter ni l'envoyer par messagerie).
-- Photos : télécharger le contenu du bucket `medias` depuis le tableau de bord (ou conserver les originaux chez les restaurants).
-- Conserver les 4 dernières sauvegardes, supprimer les plus anciennes (cohérent avec la durée de conservation de `CONSERVATION-ET-CONFIDENTIALITE.md`).
+Il écrit dans `C:\Users\<profil>\speedfood-exports\AAAA-MM-JJ-HH-MM\` (hors du dépôt Git) :
+- `tables/*.json` : les 19 tables du schéma public (la liste est lue sur la base, rien à maintenir) ;
+- `comptes.json` : identifiants, emails, dates, fournisseur de connexion, **sans mots de passe** (l'API n'en donne pas) ;
+- `stockage/` : tous les fichiers du bucket `medias` (photos, logos, bannières) ;
+- `manifeste.json` : lignes par table, empreinte SHA-256 de chaque fichier, migrations connues.
+
+Il ne fait que lire, n'affiche que des compteurs, et garde les **4 derniers exports** (supprime les plus anciens).
+Les fichiers contiennent des téléphones et des adresses : dossier sur un **disque chiffré** (BitLocker), jamais dans Git, jamais
+envoyé par messagerie. Rythme : hebdomadaire avant le pilote, quotidien pendant.
+
+**Limites à connaître** : l'export ne contient pas les mots de passe (après une restauration, les personnes réinitialisent le
+leur) ; il ne remplace pas une sauvegarde au niveau du serveur de base (offre Pro) : entre deux exports, on peut perdre
+jusqu'à une journée ou une semaine de données.
 
 ## 5. Procédure de restauration et test (à exécuter une fois avant le pilote)
 
 Une sauvegarde qu'on n'a jamais restaurée n'est pas une preuve. Test proposé, **sans toucher à la production** :
 
 1. **Rejeu des migrations sur une base vide : FAIT le 3 octobre 2026**, avec PGlite (PostgreSQL en mémoire, sans Docker) via `supabase/rejeu/` : les 26 fichiers se rejouent sans erreur et le schéma obtenu est **identique à celui de la production** (19 tables, 134 colonnes, 66 contraintes, 45 index, 54 policies RLS, 8 triggers, 12 fonctions ; hachages égaux). Limites : moteur PostgreSQL 18 contre 17 en production, éléments Supabase remplacés par des bouchons, droits (`GRANT`/`REVOKE`), données et stockage non comparés (voir `supabase/rejeu/README.md`). À refaire après chaque migration.
-2. **Restauration des données** : appliquer ensuite un export de données (§4) sur cette base de test, puis vérifier le nombre de lignes par table et une commande de bout en bout.
+2. **Restauration des données : FAIT le 3 octobre 2026** avec `npm run export:verifier` : un vrai export (19 tables, 12 comptes, 1 fichier) est rechargé dans une base jetable reconstruite par les 32 migrations ; les empreintes de tous les fichiers sont vérifiées, le nombre de lignes de chacune des 19 tables est identique au manifeste, et aucun lien ne pointe dans le vide (lignes sans commande, commandes sans restaurant, plats sans restaurant, propositions sans commande : 0). Le test a révélé qu'il faut vider les lignes de départ créées par les migrations avant de charger l'export ; c'est intégré à l'outil. **Limite** : moteur PostgreSQL 18 jetable, pas un vrai projet Supabase ; à refaire dans une préproduction si elle existe un jour.
 3. **Consigner** la date, la durée, les écarts, et qui a fait le test, dans `STATUT-PROJET.md`.
 
 Pour une vraie panne de production : restaurer dans un **nouveau projet Supabase** (jamais par-dessus l'ancien), rejouer les migrations, importer l'export, recréer le bucket `medias` et recharger les photos, mettre à jour les variables du Worker (`NEXT_PUBLIC_SUPABASE_URL`, clé anon publique, puis `wrangler secret put` pour la clé service-role et `COMMANDE_JETON_SECRET`), puis déployer.

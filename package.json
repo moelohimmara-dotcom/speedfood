@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:unit": "node scripts/tests/lancer.mjs",
+    "export:donnees": "node scripts/export/exporter.mjs",
+    "export:verifier": "node scripts/export/verifier-restauration.mjs",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
