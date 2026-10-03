@@ -632,3 +632,42 @@
   line-height: 44px;
   font-weight: 700;
 }
+
+/* --- Administration : en-tête compact (audit H6) --- */
+.sys-entete {
+  margin-bottom: var(--space-4);
+}
+.sys-entete-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.sys-entete-liens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 16px;
+}
+.lien-console-bouton {
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.sys-note {
+  margin-bottom: var(--space-5);
+  font-size: 0.85rem;
+  color: var(--secondaire);
+}
+.sys-note summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.sys-note p {
+  margin: 0 0 var(--space-3);
+}

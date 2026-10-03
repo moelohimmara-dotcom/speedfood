@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { deconnexionAction } from "@/lib/auth/actions";
-import { Badge, Button } from "@/components/ui";
+import { Badge } from "@/components/ui";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import { aUnMembershipRestaurant } from "@/lib/auth/doubleAcces";
 import {
@@ -30,56 +30,45 @@ export default async function SystemLayout({ children }: { children: React.React
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>
-      <header
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: "var(--space-3)",
-          marginBottom: "var(--space-5)",
-        }}
-      >
-        <div style={{ flex: "1 1 260px" }}>
+      <header className="sys-entete">
+        <div className="sys-entete-titre">
           <Link
             href="/system"
             style={{ fontFamily: "var(--font-barlow)", fontSize: "1.5rem", fontWeight: 800 }}
           >
             Administration Speedfood
           </Link>
-          <p style={{ color: "var(--secondaire)", fontSize: "0.85rem" }}>
-            CMS système — accès réservé aux rôles système.
-          </p>
+          <Badge ton="neutre">Rôle : {LIBELLES_ROLES[contexte.role]}</Badge>
         </div>
-        <Badge ton="neutre">Rôle : {LIBELLES_ROLES[contexte.role]}</Badge>
-        <Link href="/compte/securite" className="btn btn-secondary">
-          Sécurité du compte
-        </Link>
-        {aAussiUnRestaurant ? (
-          <Link href="/restaurant" className="btn btn-secondary">
-            Mon restaurant
+        <div className="sys-entete-liens">
+          <Link href="/compte/securite" className="lien-console">
+            Sécurité du compte
           </Link>
-        ) : null}
-        <form action={deconnexionAction}>
-          <Button type="submit" variante="secondary">
-            Se déconnecter
-          </Button>
-        </form>
+          {aAussiUnRestaurant ? (
+            <Link href="/restaurant" className="lien-console">
+              Mon restaurant
+            </Link>
+          ) : null}
+          <form action={deconnexionAction}>
+            <button type="submit" className="lien-console lien-console-bouton">
+              Se déconnecter
+            </button>
+          </form>
+        </div>
       </header>
 
       <SystemNav entrees={entrees} />
 
       <RappelDoubleAuthentification supabase={contexte.supabase} administrateur />
 
-      <div
-        className="alerte alerte-info"
-        role="note"
-        style={{ marginBottom: "var(--space-5)", fontSize: "0.85rem" }}
-      >
-        Séparation des surfaces (ADR-010) : un membership restaurant n&apos;ouvre jamais
-        cette console, et un rôle système ne donne aucun accès à la console restaurant
-        (/restaurant). Les coordonnées clients restent masquées par défaut ; leur
-        révélation exige la permission dédiée, un motif et laisse une trace d&apos;audit.
-      </div>
+      <details className="sys-note">
+        <summary>Séparation des surfaces</summary>
+        <p>
+          (ADR-010) Un membership restaurant n&apos;ouvre jamais cette console, et un rôle système ne donne
+          aucun accès à la console restaurant (/restaurant). Les coordonnées clients restent masquées par
+          défaut ; leur révélation exige la permission dédiée, un motif et laisse une trace d&apos;audit.
+        </p>
+      </details>
 
       {children}
 
