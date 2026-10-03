@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Directions de refonte · Speedfood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rouge:#d9362b; --rouge-fonce:#b82a20; --orange:#ff7a1a; --mangue:#ffc247;
+  --fond:#fff6ed; --surface:#fffefc; --encre:#2b211d; --secondaire:#75695f; --bordure:#e9dcd2;
+  --succes:#1f7a3d; --succes-fond:#e6f4ea; --danger-fond:#fbe9e7;
+  --gradient:linear-gradient(135deg,#ff7a1a 0%,#d9362b 60%);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --page:#171210; --carte:#241c18; --txt:#f5ebe3; --txt2:#c9bbb0; --ligne:#3a2f29; }
+}
+:root{ --page:#f1e6db; --carte:#fffefc; --txt:#2b211d; --txt2:#5d524a; --ligne:#e0d2c6; }
+@media (prefers-color-scheme: dark){ :root{ --page:#171210; --carte:#241c18; --txt:#f5ebe3; --txt2:#c9bbb0; --ligne:#3a2f29; } }
+*{box-sizing:border-box}
+figure{margin:0}
+.defile{overflow-x:auto}
+body{margin:0;background:var(--page);color:var(--txt);font-family:Manrope,system-ui,sans-serif;line-height:1.5}
+.page{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+h1{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;margin:0 0 6px}
+h2{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;margin:0 0 4px}
+.lead{color:var(--txt2);max-width:760px;margin:0 0 20px}
+.note{background:var(--carte);border:1px solid var(--ligne);border-radius:12px;padding:12px 16px;font-size:.9rem;margin:0 0 28px}
+section.dir{margin:0 0 48px}
+.etiq{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--mangue);color:#2b211d;border-radius:99px;padding:3px 10px;margin-bottom:6px}
+.carte-dir{background:var(--carte);border:1px solid var(--ligne);border-radius:14px;padding:14px 16px;margin:10px 0 18px;font-size:.9rem}
+.carte-dir dl{display:grid;grid-template-columns:150px 1fr;gap:4px 14px;margin:0}
+.carte-dir dt{font-weight:800;color:var(--txt2)}
+.carte-dir dd{margin:0}
+.telephones{display:flex;flex-wrap:wrap;gap:28px}
+.tel{width:320px}
+.tel figcaption{font-size:.85rem;font-weight:700;margin:0 0 8px;color:var(--txt2)}
+.ecran{width:320px;height:620px;overflow:hidden;border-radius:28px;border:8px solid #2b211d;background:var(--fond);position:relative;color:#2b211d;font-size:13px}
+.ecran *{box-sizing:border-box}
+.def{font-family:'Barlow Condensed',sans-serif;font-weight:800}
+.pad{padding:12px 14px}
+.chip{display:inline-block;border:1px solid var(--bordure);background:var(--surface);border-radius:99px;padding:5px 11px;font-size:11px;font-weight:700;margin:0 4px 6px 0}
+.chip.on{background:#2b211d;color:#fff;border-color:#2b211d}
+.btn{display:inline-block;border-radius:99px;padding:9px 16px;font-weight:800;font-size:12px;border:1px solid var(--bordure);background:var(--surface)}
+.btn.prim{background:var(--gradient);color:#fff;border:0}
+.badge{display:inline-block;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:800;text-transform:uppercase}
+.b-ok{background:var(--succes-fond);color:var(--succes)} .b-cf{background:#efe3d9;color:#5d4a3d} .b-ep{background:#ece7e3;color:#6c625b}
+.card{background:var(--surface);border:1px solid var(--bordure);border-radius:14px}
+.photo{background:#c9a27a;color:rgba(43,33,29,.55);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.p2{background:#b9553f;color:rgba(255,246,237,.7)} .p3{background:#7a6a4f;color:rgba(255,246,237,.7)}
+.tab{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--bordure);display:flex;justify-content:space-around;padding:8px 4px;font-size:10px;font-weight:700;color:var(--secondaire)}
+.tab b{color:var(--rouge-fonce)}
+.stamp{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:11px;color:var(--succes)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--succes);display:inline-block}
+.ligne-plat{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--bordure)}
+.prix{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;white-space:nowrap}
+.sec{color:var(--secondaire)}
+.barre-panier{position:absolute;left:12px;right:12px;bottom:12px;background:var(--gradient);color:#fff;border-radius:99px;padding:12px 16px;display:flex;justify-content:space-between;font-weight:800}
+.etat-geant{display:flex;gap:8px;margin:10px 14px}
+.etat-geant div{flex:1;border-radius:14px;padding:12px;font-weight:800;text-align:center;border:2px solid var(--bordure);background:var(--surface)}
+.etat-geant .on{border-color:var(--succes);background:var(--succes-fond);color:var(--succes)}
+.cmd{margin:10px 14px;border-radius:16px;background:var(--surface);border:2px solid var(--rouge)}
+.gros{display:block;text-align:center;border-radius:14px;padding:16px;font-weight:800;font-size:15px;margin-top:8px}
+.gros.p{background:var(--gradient);color:#fff} .gros.s{background:var(--surface);border:2px solid var(--bordure)}
+table.comp{border-collapse:collapse;width:100%;font-size:.85rem;background:var(--carte);border:1px solid var(--ligne);border-radius:12px;overflow:hidden}
+table.comp th,table.comp td{border-bottom:1px solid var(--ligne);padding:8px 10px;text-align:left;vertical-align:top}
+table.comp th{background:var(--page)}
+@media (max-width:700px){.carte-dir dl{grid-template-columns:1fr}.tel,.ecran{width:100%;max-width:320px}}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Trois directions pour la refonte de l'interface</h1>
+<p class="lead">Maquettes de la première vue de chaque écran clé, à l'échelle d'un téléphone (320 px), construites avec les couleurs, les polices et les textes réels de Speedfood. Ce sont des <strong>maquettes de comparaison</strong>, pas l'application : rien n'y est cliquable. Choisissez une direction (ou un mélange) ; le détail, les décisions à prendre et le plan de mise en œuvre sont dans <code>docs/PROPOSITION-REFONTE-UI.md</code>.</p>
+<div class="note"><strong>Contrainte à connaître :</strong> le design system actuel (couleurs, polices, un seul dégradé réservé à l'action principale) est verrouillé. Les trois directions respectent donc les mêmes couleurs et les mêmes polices et se distinguent par la <strong>structure des écrans</strong> et par le <strong>moment mémorable</strong> qu'elles soignent. Une quatrième piste, qui rouvrirait couleurs et polices, est décrite dans le document mais n'est pas maquettée.</div>
+
+<!-- ================= A ================= -->
+<section class="dir">
+<span class="etiq">Direction A</span>
+<h2>Carnet de table — « Un menu bien tenu, lisible d'un coup d'œil »</h2>
+<div class="carte-dir"><dl>
+<dt>Idée</dt><dd>On garde l'identité actuelle et on la rend cohérente : l'accueil devient une vraie page de découverte (recherche d'abord, plus de page de lancement), une barre de navigation en bas, et surtout l'heure de confirmation d'un plat devient l'élément le plus lisible de la fiche.</dd>
+<dt>Moment mémorable</dt><dd>Le « tampon de fraîcheur » : <em>confirmé il y a 1 h</em> en vert, gros, au bon endroit, sur chaque plat. C'est ce qui différencie Speedfood.</dd>
+<dt>Squelette</dt><dd>Une colonne, recherche en tête, cartes de restaurants en liste, navigation en bas.</dd>
+<dt>À ne pas faire</dt><dd>Notes et étoiles, promotions, fil social.</dd>
+</dl></div>
+<div class="telephones">
+<figure class="tel"><figcaption>A · Accueil client</figcaption>
+<div class="ecran">
+ <div class="pad" style="display:flex;justify-content:space-between;align-items:center"><span class="def" style="font-size:22px;color:#b82a20">Speedfood</span><span class="sec" style="font-size:11px">Kaloum ▾</span></div>
+ <div class="pad" style="padding-top:0"><div class="card" style="padding:11px 14px;color:var(--secondaire)">🔍 Un plat, un restaurant…</div></div>
+ <div class="pad" style="padding-top:0"><span class="chip on">Ouvert maintenant</span><span class="chip">Plat disponible</span><span class="chip">Riz & sauces</span><span class="chip">Grillades</span></div>
+ <div class="pad" style="padding-top:2px"><div class="def" style="font-size:19px;margin-bottom:6px">Disponible maintenant</div>
+  <div class="card" style="overflow:hidden;margin-bottom:10px"><div class="photo" style="height:92px">photo du restaurant</div><div class="pad"><div style="font-weight:800;font-size:15px">La Marmite de Kaloum</div><div class="sec" style="font-size:11px">Riz & sauces · Kaloum</div><div style="margin-top:6px"><span class="stamp"><span class="dot"></span>Riz gras au poisson · confirmé il y a 1 h</span></div></div></div>
+  <div class="card" style="padding:10px 14px"><div style="font-weight:800">Chez Fatoumata</div><div class="stamp" style="margin-top:4px"><span class="dot"></span>Riz au gras, poulet · confirmé il y a 25 min</div></div>
+ </div>
+ <div class="tab"><b>Accueil</b><span>Restos</span><span>Panier</span><span>Commandes</span><span>Compte</span></div>
+</div></figure>
+<figure class="tel"><figcaption>A · Fiche restaurant</figcaption>
+<div class="ecran">
+ <div class="photo" style="height:110px">photo de couverture</div>
+ <div class="pad"><div class="def" style="font-size:24px;line-height:1">La Marmite de Kaloum</div><div class="sec" style="font-size:11px">Riz & sauces · Kaloum · 11h–22h</div>
+ <div style="margin-top:6px"><span class="badge b-ok">Ouvert</span> <span class="sec" style="font-size:11px">accepte les commandes</span></div></div>
+ <div class="pad" style="padding-top:0">
+  <div class="ligne-plat"><div style="min-width:0"><div style="font-weight:800">Riz gras au poisson</div><div class="sec" style="font-size:11px">Sauce tomate relevée, poisson braisé</div><div class="stamp" style="margin-top:4px"><span class="dot"></span>Disponible · confirmé il y a 1 h</div></div><div style="text-align:right"><div class="prix">25 000 GNF</div><span class="btn" style="margin-top:6px">Ajouter</span></div></div>
+  <div class="ligne-plat"><div style="min-width:0"><div style="font-weight:800">Feuille de manioc et riz</div><div class="sec" style="font-size:11px">Feuille pilée, riz blanc</div><span class="badge b-cf" style="margin-top:4px">À confirmer</span></div><div style="text-align:right"><div class="prix">20 000 GNF</div><span class="btn" style="margin-top:6px">Ajouter</span></div></div>
+ </div>
+ <div class="tab"><span>Accueil</span><b>Restos</b><span>Panier</span><span>Commandes</span><span>Compte</span></div>
+</div></figure>
+</div></section>
+
+<!-- ================= B ================= -->
+<section class="dir">
+<span class="etiq">Direction B</span>
+<h2>Marché en photos — « Je vois, j'ai faim, je commande »</h2>
+<div class="carte-dir"><dl>
+<dt>Idée</dt><dd>La photo mène : carrousels de plats et de restaurants à l'accueil, grande photo en tête de fiche, plats en vignettes sur deux colonnes, et une barre de panier flottante qui se remplit.</dd>
+<dt>Moment mémorable</dt><dd>La barre de panier flottante : la quantité et le total montent à chaque ajout, au pouce, sans quitter la fiche.</dd>
+<dt>Squelette</dt><dd>Carrousels horizontaux, vignettes 2 colonnes, barre de commande fixe en bas (le dégradé est autorisé sur cette barre par le design system).</dd>
+<dt>Prérequis</dt><dd>De vraies photos de plats, fournies par les restaurateurs. Sans elles, cette direction paraît vide.</dd>
+</dl></div>
+<div class="telephones">
+<figure class="tel"><figcaption>B · Accueil client</figcaption>
+<div class="ecran">
+ <div class="pad" style="display:flex;justify-content:space-between;align-items:center"><span class="def" style="font-size:22px;color:#b82a20">Speedfood</span><span class="btn" style="padding:6px 12px">🔍</span></div>
+ <div class="pad" style="padding-top:0"><div class="def" style="font-size:26px;line-height:1">Qu'est-ce qui vous ferait plaisir ?</div></div>
+ <div class="pad" style="padding-top:2px;display:flex;gap:10px;overflow:hidden">
+  <div class="card" style="min-width:200px;overflow:hidden"><div class="photo p2" style="height:120px">photo du plat</div><div class="pad"><div style="font-weight:800">Riz gras au poisson</div><div class="sec" style="font-size:11px">La Marmite de Kaloum</div><div class="stamp" style="margin-top:4px"><span class="dot"></span>il y a 1 h</div></div></div>
+  <div class="card" style="min-width:200px;overflow:hidden"><div class="photo p3" style="height:120px">photo du plat</div><div class="pad"><div style="font-weight:800">Poulet braisé</div><div class="sec" style="font-size:11px">Le Braisier du Port</div><span class="badge b-cf" style="margin-top:4px">À confirmer</span></div></div>
+ </div>
+ <div class="pad" style="padding-top:2px"><div class="def" style="font-size:19px;margin-bottom:6px">Restaurants du quartier</div><div style="display:flex;gap:10px;overflow:hidden"><div class="photo" style="width:130px;height:84px;border-radius:12px">photo</div><div class="photo p2" style="width:130px;height:84px;border-radius:12px">photo</div></div></div>
+ <div class="tab"><b>Accueil</b><span>Restos</span><span>Panier</span><span>Commandes</span><span>Compte</span></div>
+</div></figure>
+<figure class="tel"><figcaption>B · Fiche restaurant avec panier flottant</figcaption>
+<div class="ecran">
+ <div class="photo" style="height:150px;position:relative">photo plein cadre<span class="badge b-ok" style="position:absolute;left:12px;bottom:12px">Ouvert</span></div>
+ <div class="pad"><div class="def" style="font-size:24px;line-height:1">La Marmite de Kaloum</div><div class="sec" style="font-size:11px">Riz & sauces · Kaloum</div></div>
+ <div class="pad" style="padding-top:0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div class="card" style="overflow:hidden"><div class="photo p2" style="height:70px">photo</div><div class="pad" style="padding:8px 10px"><div style="font-weight:800;font-size:12px">Riz gras au poisson</div><div class="prix" style="font-size:14px">25 000</div><div class="stamp" style="font-size:10px"><span class="dot"></span>il y a 1 h</div></div></div>
+  <div class="card" style="overflow:hidden"><div class="photo" style="height:70px">photo</div><div class="pad" style="padding:8px 10px"><div style="font-weight:800;font-size:12px">Feuille de manioc</div><div class="prix" style="font-size:14px">20 000</div><span class="badge b-cf" style="font-size:9px">À confirmer</span></div></div>
+ </div>
+ <div class="barre-panier"><span>2 plats</span><span>Commander · 45 000 GNF</span></div>
+</div></figure>
+</div></section>
+
+<!-- ================= C ================= -->
+<section class="dir">
+<span class="etiq">Direction C</span>
+<h2>Pass de cuisine — « Une commande, un geste »</h2>
+<div class="carte-dir"><dl>
+<dt>Idée</dt><dd>La console du restaurateur est pensée pour une main, debout, dans une cuisine : le bouton Ouvert / En pause toujours visible en haut, chaque commande en grande carte avec une action principale énorme, aucun tableau de bord décoratif.</dd>
+<dt>Moment mémorable</dt><dd>Le grand sélecteur Ouvert / En pause en haut de la console, qui se confirme par le serveur et se voit de loin.</dd>
+<dt>Squelette</dt><dd>Pile verticale de cartes de commande, actions de 56 px, état du restaurant fixe en tête.</dd>
+<dt>À ne pas faire</dt><dd>Statistiques, graphiques, QR code et partage au premier plan.</dd>
+</dl></div>
+<div class="telephones">
+<figure class="tel"><figcaption>C · Console : commandes</figcaption>
+<div class="ecran">
+ <div class="pad" style="display:flex;justify-content:space-between;align-items:center"><span class="def" style="font-size:20px">La Marmite de Kaloum</span></div>
+ <div class="etat-geant"><div class="on">● Ouvert</div><div>Mettre en pause</div></div>
+ <div class="pad" style="padding:0 14px"><span class="chip on">À traiter · 2</span><span class="chip">En cours</span><span class="chip">Terminées</span></div>
+ <div class="cmd"><div class="pad"><div style="display:flex;justify-content:space-between"><b class="def" style="font-size:18px">SF-4KVB9</b><span class="badge b-cf">à traiter</span></div><div class="sec" style="font-size:11px">il y a 3 min · Retrait sur place</div><div style="margin-top:6px;font-weight:700">1 × Riz gras au poisson<br>1 × Feuille de manioc et riz</div><div class="prix" style="margin-top:6px">45 000 GNF</div>
+ <span class="gros p">Accepter</span><span class="gros s">Refuser ou proposer une modification</span></div></div>
+ <div class="tab"><b>Commandes</b><span>Menu</span><span>Mon resto</span><span>Compte</span></div>
+</div></figure>
+<figure class="tel"><figcaption>C · Console : disponibilité du menu</figcaption>
+<div class="ecran">
+ <div class="pad"><div class="def" style="font-size:22px">Disponibilité du jour</div><div class="sec" style="font-size:11px">Touchez un plat pour le déclarer épuisé. Les clients voient « à confirmer » après 6 h.</div></div>
+ <div class="pad" style="padding-top:0"><span class="btn prim" style="display:block;text-align:center;padding:14px">Tout confirmer disponible</span></div>
+ <div class="pad" style="padding-top:0">
+  <div class="card" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><b>Riz gras au poisson</b><div class="stamp" style="font-size:10px"><span class="dot"></span>confirmé il y a 1 h</div></div><span class="badge b-ok" style="font-size:11px;padding:6px 12px">Disponible</span></div>
+  <div class="card" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><b>Feuille de manioc et riz</b><div class="sec" style="font-size:10px">jamais confirmé</div></div><span class="badge b-cf" style="font-size:11px;padding:6px 12px">À confirmer</span></div>
+  <div class="card" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;opacity:.8"><div><b>Sauce arachide et riz</b><div class="sec" style="font-size:10px">épuisé depuis 10 h 20</div></div><span class="badge b-ep" style="font-size:11px;padding:6px 12px">Épuisé</span></div>
+ </div>
+ <div class="tab"><span>Commandes</span><b>Menu</b><span>Mon resto</span><span>Compte</span></div>
+</div></figure>
+</div></section>
+
+<h2>Comparaison rapide</h2>
+<div class="defile"><table class="comp">
+<tr><th></th><th>A · Carnet de table</th><th>B · Marché en photos</th><th>C · Pass de cuisine</th></tr>
+<tr><th>Pour qui d'abord</th><td>Clients</td><td>Clients</td><td>Restaurateurs</td></tr>
+<tr><th>Ce qui change</th><td>Accueil de découverte, navigation en bas, fraîcheur mise en valeur</td><td>Carrousels, vignettes, panier flottant</td><td>Console des commandes et du menu</td></tr>
+<tr><th>Dépend de</th><td>Rien</td><td>Vraies photos de plats</td><td>Rien</td></tr>
+<tr><th>Risque</th><td>Faible</td><td>Moyen (vide sans photos)</td><td>Moyen (ne change rien côté client)</td></tr>
+<tr><th>Moment mémorable</th><td>Tampon de fraîcheur</td><td>Barre de panier</td><td>Sélecteur Ouvert / En pause</td></tr>
+</table></div>
+<p class="lead" style="margin-top:20px">Recommandation : <strong>A comme base commune, C en premier</strong> (un restaurateur qui rate une commande fait perdre un client), <strong>B ensuite</strong>, quand de vraies photos existent.</p>
+</div>
+</body>
+</html>
