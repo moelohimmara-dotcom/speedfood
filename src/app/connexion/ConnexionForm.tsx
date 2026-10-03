@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { connexionAction, type EtatFormulaire } from "@/lib/auth/actions";
 import { Button, Input, Alert } from "@/components/ui";
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 
 const etatInitial: EtatFormulaire = {};
 
@@ -14,10 +15,9 @@ export function ConnexionForm({ suite }: { suite: string }) {
     <form action={action}>
       <input type="hidden" name="suite" value={suite} />
       <Input label="Email" name="email" type="email" required autoComplete="email" />
-      <Input
+      <ChampMotDePasse
         label="Mot de passe"
         name="mot_de_passe"
-        type="password"
         required
         autoComplete="current-password"
       />
