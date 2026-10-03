@@ -333,6 +333,28 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
 - **Réconciliation de la documentation du pilote (3 octobre 2026)** : les documents rédigés hors dépôt partaient du point de vue du **prototype** (démo HTML, `localStorage`) et ignoraient l'application réelle. Corrections apportées avant de les adopter : (1) l'**ADR-011 d'origine** (commande invitée par routes serveur, RLS fermée à `anon`), supprimée et dont le numéro avait été réutilisé, est rétablie ; les quatre nouvelles décisions sont **ADR-015 à ADR-018** ; (2) **ADR-003 (Supabase)** rétablie « ACCEPTÉ » et bloc 2 marqué « FAIT » ; (3) **états de commande** alignés sur le code : `attente_confirmation_client` est un état *dérivé* et `expiree` un statut de *proposition* (la commande devient `annulee`) ; (4) **design system** : `--secondaire` reste `#75695F` (la version hors dépôt revenait à `#80736C`, 4,29:1, sous AA), règle du dégradé unique et section accessibilité rétablies, section 0 « règles verrouillées » ajoutée ; (5) règle « pas de changement de schéma sans fichier de migration » rétablie dans `AGENT-INSTRUCTIONS.md` ; (6) encarts de réconciliation sur les documents qui parlent « de la démo ». Les ajouts du 3 octobre eux-mêmes (recherche locale, disponibilité horodatée, alternatives, Google/téléphone, partage WhatsApp, notifications, procédure de sécurité) sont conservés tels quels comme **cibles produit**.
 - **Écart entre la direction du 3 octobre et le code (feuille de route)** : *absents* — recherche par plat, disponibilité horodatée avec statut « à confirmer » et distinction ouvert / accepte les commandes / plat disponible (le code a deux booléens `ouvert` et `disponible`), alternatives en cas de rupture, connexion Google/téléphone (le code utilise email + mot de passe), partage WhatsApp et QR code, localisation facultative, PWA (ni manifest ni service worker), notifications. *Déjà en place* — prix recalculés côté serveur, isolation par restaurant, proposition révisée avec accord explicite du client, consoles séparées, audit et masquage des coordonnées pour le support, sections de menu, suppléments, prix promo, logo. **Porte de sécurité traitée et déployée** : limitation de débit sur la commande invitée (voir la ligne « sécurité (3 octobre 2026) » du tableau ; état porte par porte en `PROCEDURE-SECURITE.md` §9). Restent bloquants avant tout pilote : préproduction (décision à prendre), sauvegarde restaurée, revue indépendante, plan d'incident, durée de conservation des données personnelles.
 
+- **En-têtes de sécurité ajoutés (3 octobre 2026)** : la revue de sécurité classait
+  les en-têtes HTTP en « non vérifié ». Vérification manuelle en production : aucune
+  protection — ni `Content-Security-Policy`, ni `X-Frame-Options`, ni
+  `X-Content-Type-Options`, ni `Referrer-Policy` (la démo statique
+  `speedfood.pages.dev` en avait, ironiquement). Corrigé dans `next.config.ts` via
+  `headers()` — API vérifiée dans la documentation Next 16 locale
+  (`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/headers.md`,
+  qui précise que ces en-têtes sont examinés **avant** le système de fichiers) —
+  avec quatre en-têtes appliqués à `/:path*` : `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY` (protège les consoles `/restaurant` et `/system` du
+  détournement de clic), `Referrer-Policy: strict-origin-when-cross-origin`,
+  `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`.
+  **CSP volontairement écartée de ce lot** : elle exige un essai séparé (scripts
+  inline du App Router, widget Turnstile sur `challenges.cloudflare.com`, images
+  Unsplash). `npm run typecheck` et `npm run lint` propres. Déployé en production le
+  3 octobre 2026 (version Worker `ce8a191b`), vérifié en ligne par requêtes réelles :
+  8 routes sur 9 portent les 4 en-têtes, aucune régression de statut. **Limite
+  connue** : la 404 renvoyée par `src/proxy.ts` pour `/system` sans session ne porte
+  pas ces en-têtes, ce code construisant sa propre réponse en dehors de la couche de
+  routage Next — sans conséquence aujourd'hui (page vide, aucun contenu), à corriger
+  si cette 404 devient un vrai écran.
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - Aucun test automatisé (unitaire, intégration, e2e) n'existe encore. Toute la
