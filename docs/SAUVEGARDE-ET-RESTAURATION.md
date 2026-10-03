@@ -34,6 +34,8 @@ Tant qu'il n'y a que des données fictives, la perte est sans gravité (le catal
 
 ## 4. Export régulier (offre gratuite) : outil fourni, décision du 3 octobre 2026
 
+> **Guide d'exploitation complet, pour une personne ou un agent autonome : `docs/RUNBOOK-EXPORT.md`** (accès, planification, vérification, restauration, dépannage).
+
 Décision de Malika : **exports réguliers** (pas de passage à l'offre Pro pour l'instant). L'outil est dans le dépôt et ne
 demande **aucun mot de passe de base** : il lit la clé de service déjà présente dans `.env.local` de la machine.
 
