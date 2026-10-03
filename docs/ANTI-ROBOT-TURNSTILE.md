@@ -7,32 +7,16 @@ résoudre dans la plupart des cas. Gratuit, dans le compte Cloudflare qui héber
 
 ## État (3 octobre 2026)
 
-- Le widget Cloudflare `speedfood` est **créé** (mode Géré, nom d'hôte
-  `speedfood-app.moelohimmara.workers.dev`). Sa clé de site, publique, est déjà dans
-  `wrangler.jsonc` (`TURNSTILE_SITE_KEY`).
-- Le code est livré. La vérification reste **inactive** tant que le secret du Worker
-  `TURNSTILE_SECRET_KEY` n'est pas posé : la commande fonctionne comme avant.
-- **Reste à faire par Malika : la clé secrète seulement** (voir ci-dessous). Elle n'a pas été
-  posée par un agent : la pose et la rotation d'un secret relèvent du propriétaire.
-- **La clé secrète actuelle est à remplacer** : elle a été affichée par erreur dans une session de
-  travail. Il faut donc la faire pivoter AVANT de la poser, ce qui rend la fuite sans effet.
-
-## Ce que Malika doit faire pour finir (environ cinq minutes)
-
-1. Dans le tableau de bord Cloudflare : Sécurité des applications, **Turnstile**, widget
-   `speedfood`, menu « … », **Modifier le widget**.
-2. Cliquer **Faire pivoter la clé secrète**, confirmer. L'ancienne clé cesse de fonctionner.
-3. Cliquer **Afficher** sur la nouvelle clé secrète puis **Cliquer pour copier**. Ne la coller dans
-   aucune conversation.
-4. Dans un terminal, dans le dossier du projet :
-
-   ```bash
-   npx wrangler secret put TURNSTILE_SECRET_KEY
-   ```
-
-   Coller la clé quand Wrangler la demande (rien ne s'affiche), valider.
-5. Demander le déploiement dans la conversation. Un test de bout en bout en production est fait
-   ensuite.
+- Widget Cloudflare `speedfood` créé (mode Géré, nom d'hôte `speedfood-app.moelohimmara.workers.dev`).
+- Clé de site (publique) dans `wrangler.jsonc` ; clé secrète posée par Malika dans les variables et
+  secrets du Worker (tableau de bord Cloudflare), après rotation de la clé d'origine.
+- **Déployé en production** (version Worker `7dafe86b`). Vérifié : la page `/commande` sert la clé de
+  site, le widget se charge, et une soumission sans jeton est refusée côté formulaire (« Confirmez
+  que vous n'êtes pas un robot ») sans créer de commande.
+- **Non vérifié** : le chemin positif en production (jeton réel accepté par le serveur avec la vraie
+  clé secrète). Un navigateur automatisé ne peut pas, et ne doit pas, passer un contrôle
+  anti-robot : il faut une commande de test passée par une personne (téléphone ou Chrome de Malika),
+  que l'on supprime ensuite en base.
 
 ## Procédure d'origine (pour mémoire, si le widget devait être recréé)
 
