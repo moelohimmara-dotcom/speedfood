@@ -13,10 +13,9 @@ résoudre dans la plupart des cas. Gratuit, dans le compte Cloudflare qui héber
 - **Déployé en production** (version Worker `7dafe86b`). Vérifié : la page `/commande` sert la clé de
   site, le widget se charge, et une soumission sans jeton est refusée côté formulaire (« Confirmez
   que vous n'êtes pas un robot ») sans créer de commande.
-- **Non vérifié** : le chemin positif en production (jeton réel accepté par le serveur avec la vraie
-  clé secrète). Un navigateur automatisé ne peut pas, et ne doit pas, passer un contrôle
-  anti-robot : il faut une commande de test passée par une personne (téléphone ou Chrome de Malika),
-  que l'on supprime ensuite en base.
+- **Vérifié par Malika** : une commande réelle passée depuis son navigateur, avec un vrai jeton, est
+  acceptée en production (commande de test supprimée ensuite en base). Un navigateur automatisé ne
+  peut pas, et ne doit pas, passer un contrôle anti-robot.
 
 ## Procédure d'origine (pour mémoire, si le widget devait être recréé)
 
