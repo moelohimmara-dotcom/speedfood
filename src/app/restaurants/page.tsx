@@ -170,6 +170,10 @@ export default async function CataloguePage({
       ) : (
         <div className="grille-restaurants">{resultats.map((r) => carte(r, recherche.maintenant))}</div>
       )}
+      <p className="pied-decouverte">
+        <Link href="/a-propos" className="lien-console">À propos de Speedfood</Link>
+        <Link href="/confidentialite" className="lien-console">Confidentialité</Link>
+      </p>
     </main>
   );
 }

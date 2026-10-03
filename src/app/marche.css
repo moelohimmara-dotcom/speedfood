@@ -671,3 +671,11 @@
 .sys-note p {
   margin: 0 0 var(--space-3);
 }
+
+.pied-decouverte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+  margin: var(--space-6) 0 0;
+  font-size: 0.85rem;
+}
