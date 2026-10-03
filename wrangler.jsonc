@@ -21,6 +21,23 @@
   // risque à exposer — voir .env.example). Les secrets réels (clé service-role,
   // clé de dérivation des jetons) sont configurés via `wrangler secret put`,
   // jamais ici : ce fichier est committé dans le dépôt.
+  // Journalisation (Workers Logs). Inclus dans l'offre gratuite : 0,5 Go/jour et
+  // 7 jours de rétention, l'ingestion s'arrêtant au plafond sans facturation
+  // possible. Sans cela, aucune trace n'est conservée après coup — le plan
+  // d'incident (docs/PLAN-INCIDENT.md) ne pouvait pas être appliqué.
+  //
+  // redact_query_string : le retour d'authentification Supabase passe un code à
+  // usage unique dans la chaîne de requête de /auth/confirmation ; il n'a rien à
+  // faire dans des journaux conservés sept jours. Contrepartie assumée : les
+  // filtres d'URL (?statut=, ?jour=) n'apparaîtront plus dans les journaux.
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": {
+      "invocation_logs": true,
+      "persist": true
+    }
+  },
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://ggldjdizqrtpetdiohxy.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_SlSk3qzeo4vqq-eJhQkB6A_3jeey8X8",

@@ -355,12 +355,35 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   routage Next — sans conséquence aujourd'hui (page vide, aucun contenu), à corriger
   si cette 404 devient un vrai écran.
 
+- **Journaux du Worker activés (3 octobre 2026)** : la revue de sécurité et le
+  plan d'incident signalaient des journaux non activés (`logpush: false`, aucune
+  trace conservée après coup — le plan d'incident ne pouvait pas être appliqué).
+  Corrigé par la configuration `observability` de `wrangler.jsonc`
+  (`enabled`, `logs.invocation_logs`, `logs.persist`) — forme vérifiée dans le
+  schéma local `node_modules/wrangler/config-schema.json` avant écriture.
+  **Aucun coût possible** : Workers Logs est inclus dans l'offre gratuite
+  (0,5 Go/jour, 7 jours de rétention), l'ingestion s'arrêtant au plafond au lieu
+  d'être facturée. `redact_query_string` est activé : le retour d'authentification
+  Supabase transporte un code à usage unique dans l'URL de `/auth/confirmation`,
+  qui n'a rien à faire dans un journal conservé sept jours (contrepartie assumée :
+  les filtres d'URL `?statut=`, `?jour=` n'apparaissent plus dans les journaux).
+  Déployé en production le 3 octobre 2026 (version Worker `d4ef928b`) et vérifié
+  par appel direct à l'API Cloudflare : `enabled: true`, `logs.persist: true`,
+  `invocation_logs: true`, `redact_query_string: true`, échantillonnage à 1.
+  Aucun changement de code applicatif, aucun en-tête de sécurité perdu
+  (revérifiés : 4/4 sur les routes publiques).
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
-- Aucun test automatisé (unitaire, intégration, e2e) n'existe encore. Toute la
-  vérification jusqu'ici s'est faite manuellement (navigateur + requêtes REST
-  directes), documentée dans les messages de commit Git.
-- Le CMS système (blocs 8a à 8d + centre de commandement post-8d) est entièrement livré — voir le tableau ci-dessus. Seule l'attribution/le retrait d'un rôle système (`/system/roles`) reste un placeholder (bloc 8a) : gérable pour l'instant uniquement en SQL direct (`system_admin_memberships`).
+- **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires
+  purs existent (`scripts/tests/`, lancés par `npm run test:unit` : découverte,
+  redirections de sécurité, IP, alternatives, partage, tuile typographique).
+  Aucun test d'intégration ni de bout en bout. Tout le reste de la vérification
+  s'est fait manuellement (navigateur + requêtes REST directes), documenté dans
+  les messages de commit Git. Cette section a affirmé « aucun test automatisé »
+  jusqu'au 3 octobre 2026 alors que la suite existait déjà — même cause que la
+  ligne suivante.
+- Le CMS système (blocs 8a à 8d + centre de commandement post-8d) est entièrement livré — voir le tableau ci-dessus, **y compris l'attribution et le retrait des rôles système** (`/system/acces/roles`, livré après le bloc 8a et vérifié avec le compte `super_admin` réel). Cette section l'a décrit comme un « placeholder » jusqu'au 3 octobre 2026 ; c'était faux. Seul le clic de retrait n'avait pas pu être exercé, le `confirm()` du navigateur étant auto-annulé par l'outil de test — la base, elle, a été vérifiée.
 - Pas de CI/CD.
 - Aucun test de charge ni de bout en bout automatisé en environnement Cloudflare réel (voir `docs/DEPLOIEMENT-CLOUDFLARE.md`).
 
