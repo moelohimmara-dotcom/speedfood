@@ -24,6 +24,7 @@
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://ggldjdizqrtpetdiohxy.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_SlSk3qzeo4vqq-eJhQkB6A_3jeey8X8",
-    "COMMANDE_PROPOSITION_DELAI_MINUTES": "30"
+    "COMMANDE_PROPOSITION_DELAI_MINUTES": "30",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFMsB5gHaBVE2WkX"
   }
 }
