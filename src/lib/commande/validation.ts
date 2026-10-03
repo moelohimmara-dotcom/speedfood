@@ -193,6 +193,10 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     valeurs: {
       cleIdempotence,
       sousTotalAffiche: sousTotalAffiche as number,
+      jetonVerification:
+        typeof payload.jetonVerification === "string" && payload.jetonVerification.length <= 2048
+          ? payload.jetonVerification
+          : undefined,
       restaurantId: payload.restaurantId as string,
       client: { nom, telephone, adresse },
       mode: mode as ModeRetrait,

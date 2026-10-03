@@ -11,9 +11,12 @@ import { creerCommandeAction } from "@/lib/commande/actions";
 import type { CreationCommandePayload, ModeRetrait } from "@/lib/contracts/commande";
 import type { ErreurApi } from "@/lib/contracts/erreurs";
 import { Button, Input, Alert } from "@/components/ui";
+import { Turnstile } from "@/components/Turnstile";
 
 interface Props {
   panier: Panier;
+  /** Clé de site Turnstile (publique) ; absente = vérification anti-robot désactivée. */
+  cleSiteTurnstile?: string;
 }
 
 /**
@@ -24,7 +27,7 @@ interface Props {
  * La validation serveur fait foi ; celle-ci n'est qu'un confort d'affichage.
  * Aucun montant n'est envoyé : le serveur recalcule tout (ADR-006).
  */
-export function FormulaireCommande({ panier }: Props) {
+export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
   const router = useRouter();
   const [nom, setNom] = useState("");
   const [telephone, setTelephone] = useState("");
@@ -34,6 +37,8 @@ export function FormulaireCommande({ panier }: Props) {
   const [champs, setChamps] = useState<Record<string, string>>({});
   const [erreurGenerale, setErreurGenerale] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
+  const [jetonVerification, setJetonVerification] = useState<string | null>(null);
+  const [renouvelerVerification, setRenouvelerVerification] = useState(0);
 
   // Une seule clé d'idempotence par passage au formulaire : un double clic ou un
   // retry réseau ne créera jamais deux commandes (voir lib/commande/creation.ts).
@@ -75,6 +80,9 @@ export function FormulaireCommande({ panier }: Props) {
     if (!panier.restaurantId || panier.lignes.length === 0) {
       erreurs.lignes = "Votre panier est vide.";
     }
+    if (cleSiteTurnstile && !jetonVerification) {
+      erreurs.verification = "Confirmez que vous n'êtes pas un robot.";
+    }
     setChamps(erreurs);
     if (Object.keys(erreurs).length > 0) {
       return;
@@ -96,11 +104,14 @@ export function FormulaireCommande({ panier }: Props) {
         optionIds: ligne.options.map((o) => o.id),
       })),
       consentementReglement: true,
+      jetonVerification: jetonVerification ?? undefined,
     };
 
     setErreurGenerale(null);
     demarrer(async () => {
       const resultat = await creerCommandeAction(payload);
+      // Un jeton ne se valide qu'une fois : un jeton neuf est redemandé après chaque envoi.
+      setRenouvelerVerification((n) => n + 1);
       if (resultat.ok) {
         viderPanier();
         router.push(`/suivi/${resultat.jeton}`);
@@ -226,6 +237,21 @@ export function FormulaireCommande({ panier }: Props) {
         <p className="field-error" style={{ marginTop: -8, marginBottom: "var(--space-4)" }}>
           {champs.consentement}
         </p>
+      ) : null}
+
+      {cleSiteTurnstile ? (
+        <>
+          <Turnstile
+            siteKey={cleSiteTurnstile}
+            onToken={setJetonVerification}
+            renouveler={renouvelerVerification}
+          />
+          {champs.verification ? (
+            <p className="field-error" style={{ marginTop: -8, marginBottom: "var(--space-4)" }}>
+              {champs.verification}
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       {champs.lignes ? (

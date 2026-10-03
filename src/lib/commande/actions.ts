@@ -12,6 +12,7 @@ import { creerCommande } from "./creation";
 import { repondreProposition } from "./propositions";
 import { estJetonValide } from "./jetons";
 import { limiterCreationCommande, limiterReponseProposition } from "@/lib/securite/limitation-debit";
+import { verifierAntiRobot } from "@/lib/securite/turnstile";
 
 /**
  * Actions serveur du parcours client invité (ADR-005).
@@ -42,6 +43,8 @@ export async function creerCommandeAction(
   }
 
   try {
+    // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
+    await verifierAntiRobot(validation.valeurs.jetonVerification);
     await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone);
     const cree = await creerCommande(validation.valeurs);
     return {

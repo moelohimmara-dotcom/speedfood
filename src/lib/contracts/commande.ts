@@ -140,6 +140,8 @@ export interface CreationCommandePayload {
   client: ClientCommande;
   mode: ModeRetrait;
   lignes: LigneCommandeClient[];
+  /** Jeton Cloudflare Turnstile (usage unique), exigé seulement si la vérification anti-robot est active. */
+  jetonVerification?: string;
   /** Sous-total (GNF, entier) que le client a vu à l'écran ; jamais utilisé comme prix. */
   sousTotalAffiche: number;
   /** Consentement explicite au règlement hors portail et à la confirmation par le restaurant. */
