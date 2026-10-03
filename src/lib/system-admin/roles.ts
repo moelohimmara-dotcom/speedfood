@@ -56,14 +56,17 @@ export async function listerRolesSysteme(): Promise<MembreRoleSysteme[]> {
   return membres;
 }
 
-/** Nombre de `super_admin` restants — sert au garde-fou du dernier super_admin. */
-async function compterSuperAdmins(): Promise<number> {
-  const admin = creerClientAdmin();
-  const { count } = await admin
-    .from("system_admin_memberships")
-    .select("utilisateur_id", { count: "exact", head: true })
-    .eq("role", "super_admin");
-  return count ?? 0;
+/**
+ * Le garde-fou « dernier super_admin » est appliqué EN BASE par le trigger
+ * `fn_garder_dernier_super_admin` (revue de sécurité, point 5) : suppression ou
+ * rétrogradation du dernier super_admin refusée, même par appel direct à l'API ou
+ * en cas de demandes simultanées. Ces messages ne servent qu'à l'expliquer.
+ */
+const MESSAGE_DERNIER_SUPER_ADMIN =
+  "Impossible de retirer le dernier super_admin : au moins un compte doit conserver ce rôle.";
+
+function estRefusDernierSuperAdmin(erreur: { message?: string } | null): boolean {
+  return Boolean(erreur?.message?.includes("Dernier super_admin"));
 }
 
 export async function attribuerRoleAction(
@@ -105,6 +108,9 @@ export async function attribuerRoleAction(
     .upsert({ utilisateur_id: utilisateur.id, role }, { onConflict: "utilisateur_id" });
 
   if (erreurUpsert) {
+    if (estRefusDernierSuperAdmin(erreurUpsert)) {
+      return { erreur: MESSAGE_DERNIER_SUPER_ADMIN.replace("retirer", "rétrograder") };
+    }
     return { erreur: "Impossible d'attribuer ce rôle. Réessayez dans un instant." };
   }
 
@@ -121,29 +127,31 @@ export async function attribuerRoleAction(
 
 export async function retirerRoleAction(
   utilisateurId: string,
-  email: string,
-  role: RoleSysteme
+  email: string
 ): Promise<{ erreur?: string }> {
   const contexte = await verifierPermission("systeme.roles");
 
-  // Garde-fou obligatoire : jamais retirer le dernier super_admin, sinon plus
-  // personne ne peut attribuer de rôle système (verrouillage définitif).
-  if (role === "super_admin") {
-    const nombreSuperAdmins = await compterSuperAdmins();
-    if (nombreSuperAdmins <= 1) {
-      return {
-        erreur: "Impossible de retirer le dernier super_admin : au moins un compte doit conserver ce rôle.",
-      };
-    }
-  }
-
+  // Le rôle est relu en base : jamais pris d'un paramètre envoyé par le navigateur.
   const admin = creerClientAdmin();
+  const { data: existant } = await admin
+    .from("system_admin_memberships")
+    .select("role")
+    .eq("utilisateur_id", utilisateurId)
+    .maybeSingle();
+  if (!existant) {
+    return { erreur: "Ce compte n'a pas de rôle système." };
+  }
+  const role = existant.role;
+
   const { error } = await admin
     .from("system_admin_memberships")
     .delete()
     .eq("utilisateur_id", utilisateurId);
 
   if (error) {
+    if (estRefusDernierSuperAdmin(error)) {
+      return { erreur: MESSAGE_DERNIER_SUPER_ADMIN };
+    }
     return { erreur: "Impossible de retirer ce rôle. Réessayez dans un instant." };
   }
 

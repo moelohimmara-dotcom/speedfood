@@ -27,7 +27,7 @@ export function RoleItem({ membre }: { membre: MembreRoleSysteme }) {
             }
             setErreur(null);
             demarrerTransition(async () => {
-              const resultat = await retirerRoleAction(membre.utilisateurId, membre.email, membre.role);
+              const resultat = await retirerRoleAction(membre.utilisateurId, membre.email);
               if (resultat.erreur) {
                 setErreur(resultat.erreur);
               }
