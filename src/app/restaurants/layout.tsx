@@ -1,11 +1,6 @@
-import { NavigationClient } from "@/components/NavigationClient";
+import { CadreSite } from "@/components/CadreSite";
 
-/** Parcours client : navigation basse et barre de panier flottante sur toutes les pages du catalogue. */
+/** Parcours client : en-tête et pied de page (grand écran), navigation basse et barre de panier (téléphone). */
 export default function RestaurantsLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="avec-navigation">
-      {children}
-      <NavigationClient />
-    </div>
-  );
+  return <CadreSite>{children}</CadreSite>;
 }

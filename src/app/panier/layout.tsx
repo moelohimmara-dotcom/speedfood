@@ -1,11 +1,6 @@
-import { NavigationClient } from "@/components/NavigationClient";
+import { CadreSite } from "@/components/CadreSite";
 
-/** Le panier garde la navigation basse (sans barre de panier flottante : le panier est déjà affiché). */
+/** Le panier garde le cadre du site ; la barre de panier flottante se masque d'elle-même sur cette page. */
 export default function PanierLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="avec-navigation">
-      {children}
-      <NavigationClient />
-    </div>
-  );
+  return <CadreSite>{children}</CadreSite>;
 }

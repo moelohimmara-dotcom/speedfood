@@ -1,0 +1,512 @@
+/*
+ * Mise en page « application » : cadre du site, en-tête, pied de page, découverte structurée,
+ * fiche en deux colonnes, console avec barre latérale. Mobile d'abord (375 px), enrichi à partir
+ * de 900 px. Tokens verrouillés uniquement (voir globals.css).
+ */
+
+.cadre-site {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.cadre-site-contenu {
+  flex: 1;
+}
+
+/* --- En-tête (grand écran seulement) --- */
+.site-entete {
+  display: none;
+}
+
+/* --- Pied de page --- */
+.site-pied {
+  background: var(--encre);
+  color: rgba(255, 255, 255, 0.82);
+  margin-top: var(--space-8);
+  padding: var(--space-8) var(--space-4) var(--space-6);
+}
+.site-pied-interieur {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+.site-pied-colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+.site-pied-colonne p {
+  margin: 0;
+}
+.site-pied-colonne .site-pied-titre {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 1.15rem;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.site-pied-colonne a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #fff;
+  text-decoration: none;
+}
+.site-pied-colonne a:hover,
+.site-pied-colonne a:focus-visible {
+  text-decoration: underline;
+}
+.site-pied-mentions {
+  max-width: 1160px;
+  margin: var(--space-6) auto 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.8rem;
+}
+/* La navigation basse (téléphone) ne doit pas masquer le pied de page. */
+.avec-navigation .site-pied {
+  padding-bottom: calc(var(--space-6) + 96px);
+}
+
+/* --- Découverte : bandeau, filtres, résultats --- */
+.decouverte-bandeau {
+  background: var(--surface);
+  border-bottom: 1px solid var(--bordure);
+}
+.decouverte-bandeau-interieur {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-5);
+}
+.decouverte-surtitre {
+  margin: 0 0 var(--space-2);
+  color: var(--rouge-fonce);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.decouverte-sous {
+  margin: 0 0 var(--space-4);
+  max-width: 56ch;
+  color: var(--secondaire);
+}
+.decouverte-recherche {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.decouverte-recherche input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  font: inherit;
+  background: var(--creme);
+  border: 1.5px solid var(--bordure);
+  border-radius: var(--radius-pill);
+}
+.decouverte-recherche input[type="search"]:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: var(--shadow-focus);
+}
+.decouverte-recherche-bouton {
+  display: none;
+  min-height: 52px;
+  padding: 0 var(--space-6);
+}
+.decouverte-puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.decouverte-corps {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) 0;
+}
+.decouverte-filtres {
+  margin-bottom: var(--space-5);
+}
+.decouverte-collage {
+  display: none;
+}
+.decouverte-filtre-titre {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--secondaire);
+}
+.decouverte-filtres .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-4);
+}
+
+/* --- Fiche restaurant : le résumé du panier n'existe qu'à partir de 900 px --- */
+.fiche-panier {
+  display: none;
+}
+
+/* --- Console : cadre simple sur téléphone, barre latérale sur grand écran --- */
+.console-cadre {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+.console-marque {
+  display: none;
+}
+.console-liens {
+  margin: 0 0 var(--space-4);
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  font-size: 0.85rem;
+}
+
+@media (min-width: 900px) {
+  /* Le panier et la navigation passent dans l'en-tête et le résumé : plus de barre basse client. */
+  .avec-navigation {
+    padding-bottom: 0;
+  }
+  .avec-navigation .site-pied {
+    padding-bottom: var(--space-6);
+  }
+  .avec-navigation .nav-basse:not(.nav-console),
+  .avec-navigation .barre-panier {
+    display: none;
+  }
+
+  .site-entete {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255, 254, 252, 0.94);
+    backdrop-filter: saturate(160%) blur(10px);
+    border-bottom: 1px solid var(--bordure);
+  }
+  .site-entete-interieur {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+  }
+  .site-marque {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    font-family: var(--font-barlow), system-ui, sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--encre);
+    text-decoration: none;
+  }
+  .site-marque-pastille {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: var(--gradient-marque);
+    color: #fff;
+  }
+  .site-entete-espace {
+    flex: 1;
+  }
+  .site-recherche {
+    flex: 1;
+    max-width: 460px;
+  }
+  .site-recherche input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    font: inherit;
+    background: var(--creme);
+    border: 1.5px solid var(--bordure);
+    border-radius: var(--radius-pill);
+  }
+  .site-recherche input:focus {
+    outline: none;
+    border-color: var(--orange);
+    box-shadow: var(--shadow-focus);
+  }
+  .site-nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .site-nav-lien {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-pill);
+    color: var(--secondaire);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .site-nav-lien:hover,
+  .site-nav-lien.actif {
+    color: var(--rouge-fonce);
+  }
+  .site-panier {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    border: 1.5px solid var(--bordure);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--encre);
+    font-weight: 800;
+    text-decoration: none;
+  }
+  .site-panier.actif,
+  .site-panier:hover {
+    border-color: var(--rouge-fonce);
+    color: var(--rouge-fonce);
+  }
+  .site-panier-badge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--radius-pill);
+    background: var(--rouge-fonce);
+    color: #fff;
+    font-size: 0.75rem;
+    line-height: 22px;
+    text-align: center;
+  }
+
+  .site-pied {
+    padding-top: 48px;
+  }
+  .site-pied-interieur {
+    grid-template-columns: 1.6fr 1fr 1fr 1fr;
+    gap: var(--space-8);
+  }
+
+  /* Découverte : bandeau large, filtres à gauche, résultats à droite */
+  .decouverte-bandeau-interieur {
+    padding: 48px var(--space-4) 36px;
+  }
+  .decouverte-hero {
+    font-size: 3.4rem;
+    max-width: 18ch;
+  }
+  .decouverte-recherche {
+    max-width: 640px;
+  }
+  .decouverte-recherche-bouton {
+    display: inline-flex;
+    align-items: center;
+  }
+  .decouverte-corps {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: var(--space-8);
+    padding-top: var(--space-6);
+    align-items: start;
+  }
+  .decouverte-filtres {
+    position: sticky;
+    top: 92px;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--bordure);
+    border-radius: var(--radius-md);
+    margin-bottom: 0;
+  }
+  .decouverte-filtres .chip-row:last-child {
+    margin-bottom: 0;
+  }
+  /* « Plats du moment » : une seule rangée défilante, jamais un mur de cartes */
+  .carrousel {
+    margin: 0;
+    padding: 2px 0 var(--space-3);
+    scrollbar-width: thin;
+  }
+  .carte-vedette {
+    flex: 0 0 220px;
+    max-width: none;
+  }
+  .grille-restaurants {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-4);
+  }
+
+  /* Bandeau : texte à gauche, collage de plats à droite */
+  .decouverte-bandeau-interieur {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: var(--space-8);
+    align-items: center;
+  }
+  .decouverte-collage {
+    position: relative;
+    display: block;
+    height: 300px;
+  }
+  .decouverte-collage img {
+    position: absolute;
+    object-fit: cover;
+    border: 4px solid var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+  .decouverte-collage img:nth-child(1) { width: 58%; height: 70%; left: 0; top: 4%; transform: rotate(-3deg); }
+  .decouverte-collage img:nth-child(2) { width: 50%; height: 58%; right: 4%; top: 0; transform: rotate(2.5deg); }
+  .decouverte-collage img:nth-child(3) { width: 46%; height: 52%; right: 12%; bottom: 0; transform: rotate(-1.5deg); }
+
+  /* Fiche restaurant : cadre large, menu à gauche, panier collant à droite */
+  .fiche {
+    max-width: 1160px;
+  }
+  .fiche-hero {
+    aspect-ratio: 16 / 6;
+  }
+  .fiche-grille {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: var(--space-8);
+    align-items: start;
+  }
+  .fiche-panier {
+    display: block;
+    position: sticky;
+    top: 92px;
+    margin-top: var(--space-6);
+    padding: var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--bordure);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .fiche-panier-titre {
+    margin: 0 0 var(--space-3);
+    font-size: 1.3rem;
+  }
+  .fiche-panier-vide,
+  .fiche-panier-note {
+    margin: 0;
+    color: var(--secondaire);
+    font-size: 0.9rem;
+  }
+  .fiche-panier-note {
+    margin-top: var(--space-3);
+    font-size: 0.8rem;
+  }
+  .fiche-panier-lignes {
+    list-style: none;
+    margin: 0 0 var(--space-3);
+    padding: 0;
+  }
+  .fiche-panier-lignes li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bordure);
+    font-size: 0.95rem;
+  }
+  .fiche-panier-total {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 0 var(--space-3);
+  }
+
+  /* Console : barre latérale à gauche */
+  .console-cadre {
+    max-width: 1160px;
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: var(--space-8);
+    padding: var(--space-6) var(--space-4);
+    align-items: start;
+  }
+  .avec-navigation-console {
+    padding-bottom: var(--space-8) !important;
+  }
+  .console-cote {
+    position: sticky;
+    top: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--bordure);
+    border-radius: var(--radius-md);
+  }
+  .console-marque {
+    display: block;
+    margin: 0;
+    font-family: var(--font-barlow), system-ui, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .console-marque span {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--secondaire);
+  }
+  .nav-console {
+    position: static;
+    width: auto;
+    transform: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .nav-console .nav-basse-item {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+  }
+  .nav-console .nav-basse-item.actif {
+    background: var(--creme);
+  }
+  .nav-console .nav-basse-badge {
+    top: -8px;
+    right: -12px;
+  }
+  .console-liens {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--bordure);
+  }
+}

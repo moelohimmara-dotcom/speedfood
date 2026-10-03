@@ -46,65 +46,80 @@ export default async function CataloguePage({
   const resultats = recherche.resultats;
 
   return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <h1 className="decouverte-hero">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
+    <main className="decouverte">
+      <section className="decouverte-bandeau">
+        <div className="decouverte-bandeau-interieur">
+          <div className="decouverte-bandeau-texte">
+          <p className="decouverte-surtitre">Conakry · phase pilote</p>
+          <h1 className="decouverte-hero">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
+          <p className="decouverte-sous">
+            Des plats que les restaurants ont confirmés récemment, avec l&apos;heure de la confirmation : pas de promesse
+            sans preuve.
+          </p>
 
-      <form action="/restaurants" method="GET" style={{ marginBottom: "var(--space-4)" }}>
-        {categorie ? <input type="hidden" name="categorie" value={categorie} /> : null}
-        {quartier ? <input type="hidden" name="quartier" value={quartier} /> : null}
-        {filtres.ouvert ? <input type="hidden" name="ouvert" value="1" /> : null}
-        {filtres.commandes ? <input type="hidden" name="commandes" value="1" /> : null}
-        {filtres.dispo ? <input type="hidden" name="dispo" value="1" /> : null}
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="q">Rechercher</label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            defaultValue={q}
-            maxLength={100}
-            placeholder="Un plat, un restaurant…"
-          />
+          <form action="/restaurants" method="GET" role="search" className="decouverte-recherche">
+            {categorie ? <input type="hidden" name="categorie" value={categorie} /> : null}
+            {quartier ? <input type="hidden" name="quartier" value={quartier} /> : null}
+            {filtres.ouvert ? <input type="hidden" name="ouvert" value="1" /> : null}
+            {filtres.commandes ? <input type="hidden" name="commandes" value="1" /> : null}
+            {filtres.dispo ? <input type="hidden" name="dispo" value="1" /> : null}
+            <label htmlFor="q" className="sr-only">Rechercher un plat ou un restaurant</label>
+            <input id="q" name="q" type="search" defaultValue={q} maxLength={100} placeholder="Un plat, un restaurant…" />
+            <button type="submit" className="btn btn-primary decouverte-recherche-bouton">Rechercher</button>
+          </form>
+
+          <div className="chip-row decouverte-puces">
+            <Link href={lien(etat, { ouvert: !filtres.ouvert })} className={`chip ${filtres.ouvert ? "actif" : ""}`}>
+              Ouvert maintenant
+            </Link>
+            <Link href={lien(etat, { commandes: !filtres.commandes })} className={`chip ${filtres.commandes ? "actif" : ""}`}>
+              Accepte les commandes
+            </Link>
+            <Link href={lien(etat, { dispo: !filtres.dispo })} className={`chip ${filtres.dispo ? "actif" : ""}`}>
+              Plat disponible
+            </Link>
+          </div>
+          </div>
+          {recherche.vedettes.length >= 3 ? (
+            <div className="decouverte-collage" aria-hidden="true">
+              {recherche.vedettes.slice(0, 3).map((vedette) => (
+                // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+                <img key={vedette.platId} src={vedette.photoUrl} alt="" />
+              ))}
+            </div>
+          ) : null}
         </div>
-      </form>
+      </section>
 
-      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-        <Link href={lien(etat, { ouvert: !filtres.ouvert })} className={`chip ${filtres.ouvert ? "actif" : ""}`}>
-          Ouvert maintenant
-        </Link>
-        <Link
-          href={lien(etat, { commandes: !filtres.commandes })}
-          className={`chip ${filtres.commandes ? "actif" : ""}`}
-        >
-          Accepte les commandes
-        </Link>
-        <Link href={lien(etat, { dispo: !filtres.dispo })} className={`chip ${filtres.dispo ? "actif" : ""}`}>
-          Plat disponible
-        </Link>
-      </div>
-      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-        {(categories ?? []).map((c) => (
-          <Link
-            key={c.id}
-            href={lien(etat, { categorie: categorie === c.id ? undefined : c.id })}
-            className={`chip ${categorie === c.id ? "actif" : ""}`}
-          >
-            {c.nom}
-          </Link>
-        ))}
-      </div>
-      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-5)" }}>
-        {(quartiers ?? []).map((quartierOption) => (
-          <Link
-            key={quartierOption.id}
-            href={lien(etat, { quartier: quartier === quartierOption.id ? undefined : quartierOption.id })}
-            className={`chip ${quartier === quartierOption.id ? "actif" : ""}`}
-          >
-            {quartierOption.nom}
-          </Link>
-        ))}
-      </div>
+      <div className="decouverte-corps">
+        <aside className="decouverte-filtres" aria-label="Filtres">
+          <h2 className="decouverte-filtre-titre">Type de cuisine</h2>
+          <div className="chip-row">
+            {(categories ?? []).map((c) => (
+              <Link
+                key={c.id}
+                href={lien(etat, { categorie: categorie === c.id ? undefined : c.id })}
+                className={`chip ${categorie === c.id ? "actif" : ""}`}
+              >
+                {c.nom}
+              </Link>
+            ))}
+          </div>
+          <h2 className="decouverte-filtre-titre">Quartier</h2>
+          <div className="chip-row">
+            {(quartiers ?? []).map((quartierOption) => (
+              <Link
+                key={quartierOption.id}
+                href={lien(etat, { quartier: quartier === quartierOption.id ? undefined : quartierOption.id })}
+                className={`chip ${quartier === quartierOption.id ? "actif" : ""}`}
+              >
+                {quartierOption.nom}
+              </Link>
+            ))}
+          </div>
+        </aside>
 
+        <div className="decouverte-resultats">
       {!erreur && !q && recherche.vedettes.length > 0 ? (
         <section aria-labelledby="titre-vedettes" style={{ marginBottom: "var(--space-5)" }}>
           <h2 id="titre-vedettes" className="groupe-resultats-titre">
@@ -170,10 +185,8 @@ export default async function CataloguePage({
       ) : (
         <div className="grille-restaurants">{resultats.map((r) => carte(r, recherche.maintenant))}</div>
       )}
-      <p className="pied-decouverte">
-        <Link href="/a-propos" className="lien-console">À propos de Speedfood</Link>
-        <Link href="/confidentialite" className="lien-console">Confidentialité</Link>
-      </p>
+        </div>
+      </div>
     </main>
   );
 }

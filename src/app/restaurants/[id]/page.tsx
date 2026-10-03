@@ -3,6 +3,7 @@ import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
 import { Badge, Alert } from "@/components/ui";
 import { VignettePlat } from "@/components/VignettePlat";
+import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { classeTuile, initialePlat } from "@/lib/design/tuile";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
@@ -237,6 +238,8 @@ export default async function FicheRestaurantPage({
         </Alert>
       ) : null}
 
+      <div className="fiche-grille">
+      <div className="fiche-menu">
       <h2 className="fiche-section-titre">Menu</h2>
 
       {menuListe.length === 0 ? (
@@ -262,6 +265,9 @@ export default async function FicheRestaurantPage({
           ))}
         </>
       )}
+      </div>
+      <ResumePanierFiche restaurantId={restaurantSur.id} restaurantNom={restaurantSur.nom} />
+      </div>
     </main>
   );
 }

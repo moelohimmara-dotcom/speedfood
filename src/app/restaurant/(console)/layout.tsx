@@ -22,23 +22,25 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   ]);
 
   return (
-    <div className="avec-navigation-console" style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-4) var(--space-4)" }}>
-      <p style={{ margin: "0 0 var(--space-4)", textAlign: "right", fontSize: "0.85rem" }}>
-        <Link href="/compte/securite" className="lien-console">
-          Sécurité du compte
-        </Link>
-        {aAussiUnRoleSysteme ? (
-          <>
-            {" · "}
+    <div className="console-cadre avec-navigation-console">
+      <aside className="console-cote">
+        <p className="console-marque">Speedfood <span>Espace restaurateur</span></p>
+        <NavigationConsole aTraiter={aTraiter ?? 0} />
+        <p className="console-liens">
+          <Link href="/compte/securite" className="lien-console">
+            Sécurité du compte
+          </Link>
+          {aAussiUnRoleSysteme ? (
             <Link href="/system" className="lien-console">
               Console admin →
             </Link>
-          </>
-        ) : null}
-      </p>
-      <RappelDoubleAuthentification supabase={supabase} administrateur={aAussiUnRoleSysteme} />
-      {children}
-      <NavigationConsole aTraiter={aTraiter ?? 0} />
+          ) : null}
+        </p>
+      </aside>
+      <div className="console-principal">
+        <RappelDoubleAuthentification supabase={supabase} administrateur={aAussiUnRoleSysteme} />
+        {children}
+      </div>
     </div>
   );
 }

@@ -72,7 +72,7 @@ const ELEMENTS = [
 export function NavigationConsole({ aTraiter }: { aTraiter: number }) {
   const chemin = usePathname() ?? "";
   return (
-    <nav className="nav-basse" aria-label="Navigation de la console">
+    <nav className="nav-basse nav-console" aria-label="Navigation de la console">
       {ELEMENTS.map((element) => {
         const actif = element.exact ? chemin === element.href : chemin.startsWith(element.href);
         const badge = element.href === "/restaurant/commandes" && aTraiter > 0;
