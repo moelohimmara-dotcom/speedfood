@@ -23,7 +23,7 @@ export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
 
   return (
     <form action={action} ref={formRef}>
-      <div className="field">
+      <div className="field depot-photo">
         <label htmlFor="photo">Photo du plat</label>
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
         <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
@@ -32,15 +32,14 @@ export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
       </div>
       <Input label="Nom du plat" name="nom" type="text" required maxLength={120} />
       <Input label="Description" name="description" type="text" maxLength={500} />
-      <Input label="Prix (GNF)" name="prix" type="number" min={0} max={5_000_000} step={1} required />
-      <div className="field">
-        <label htmlFor="prix_promo">Prix promo (GNF)</label>
-        <input id="prix_promo" name="prix_promo" type="number" min={0} step={1} />
-        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
-          Facultatif — doit être inférieur ou égal au prix normal. Laissez vide pour ne pas
-          proposer de promo.
-        </p>
+      <div className="champs-ligne">
+        <Input label="Prix (GNF)" name="prix" type="number" min={0} max={5_000_000} step={1} required />
+        <div className="field">
+          <label htmlFor="prix_promo">Prix promo (GNF)</label>
+          <input id="prix_promo" name="prix_promo" type="number" min={0} step={1} />
+        </div>
       </div>
+      <p className="aide-champ">Prix promo : facultatif, inférieur ou égal au prix normal. Laissez vide pour ne pas proposer de promo.</p>
       {sections.length > 0 ? (
         <div className="field">
           <label htmlFor="section_id">Section du menu</label>
@@ -59,7 +58,7 @@ export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
           {etat.erreur}
         </Alert>
       ) : null}
-      <Button type="submit" disabled={enCours}>
+      <Button type="submit" pleineLargeur disabled={enCours}>
         {enCours ? "Ajout…" : "Ajouter le plat"}
       </Button>
     </form>

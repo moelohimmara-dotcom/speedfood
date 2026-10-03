@@ -54,29 +54,42 @@ export default async function MenuPage() {
   const platsSansSection = platsParSection.get(null) ?? [];
 
   return (
-    <div>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-4)" }}>Mon menu</h1>
-
-      <Card style={{ marginBottom: "var(--space-5)" }}>
-        <h3 style={{ marginBottom: "var(--space-2)" }}>Disponibilité du jour</h3>
-        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.9rem", color: "var(--secondaire)" }}>
-          {nombreAReconfirmer > 0
-            ? `${nombreAReconfirmer} plat${nombreAReconfirmer > 1 ? "s" : ""} à reconfirmer : les clients les voient « à confirmer » tant que vous ne les reconfirmez pas (au-delà de ${disponibiliteFraicheurHeures} h).`
-            : "Tous vos plats disponibles sont confirmés récemment."}
+    <div className="tableau">
+      <header className="tableau-entete">
+        <h1>Mon menu</h1>
+        <p className="tableau-sous">
+          {platsListe.length} plat{platsListe.length > 1 ? "s" : ""}
+          {sectionsListe.length > 0 ? ` · ${sectionsListe.length} section${sectionsListe.length > 1 ? "s" : ""}` : ""}
         </p>
-        <form action={confirmerToutesDisponibilitesAction}>
-          <Button type="submit" variante="secondary">
-            Tout reconfirmer disponible
-          </Button>
-        </form>
-      </Card>
+      </header>
+
+      <div className="menu-colonnes">
+        <div className="menu-liste">
+          <div className="bandeau-dispo">
+            <p>
+              <strong>Disponibilité du jour.</strong>{" "}
+              {nombreAReconfirmer > 0
+                ? `${nombreAReconfirmer} plat${nombreAReconfirmer > 1 ? "s" : ""} à reconfirmer : les clients les voient « à confirmer » tant que vous ne les reconfirmez pas (au-delà de ${disponibiliteFraicheurHeures} h).`
+                : "Tous vos plats disponibles sont confirmés récemment."}
+            </p>
+            <form action={confirmerToutesDisponibilitesAction}>
+              <Button type="submit" variante="secondary">
+                Tout reconfirmer disponible
+              </Button>
+            </form>
+          </div>
 
       {platsListe.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>
-            Aucun plat pour l&apos;instant. Ajoutez votre premier plat ci-dessus.
-          </p>
-        </Card>
+        <div className="etat-vide">
+          <span className="etat-vide-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10" />
+              <path d="M17 3c-2 1.5-3 4-3 7h3v11" />
+            </svg>
+          </span>
+          <p className="etat-vide-titre">Votre menu est vide</p>
+          <p>Ajoutez votre premier plat avec le formulaire « Ajouter un plat ». Une photo aide beaucoup les clients à choisir.</p>
+        </div>
       ) : sectionsListe.length === 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {platsListe.map((plat) => (
@@ -114,14 +127,16 @@ export default async function MenuPage() {
         </div>
       )}
 
-      <div style={{ marginTop: "var(--space-6)" }}>
-        <SectionsMenu sections={sectionsListe} />
-      </div>
+        </div>
 
-      <Card style={{ marginTop: "var(--space-6)" }}>
-        <h3 style={{ marginBottom: "var(--space-3)" }}>Ajouter un plat</h3>
-        <FormulairePlat sections={sectionsListe} />
-      </Card>
+        <aside className="menu-panneau" aria-label="Ajouter et organiser">
+          <Card>
+            <h3 style={{ marginBottom: "var(--space-3)" }}>Ajouter un plat</h3>
+            <FormulairePlat sections={sectionsListe} />
+          </Card>
+          <SectionsMenu sections={sectionsListe} />
+        </aside>
+      </div>
     </div>
   );
 }

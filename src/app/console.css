@@ -1,0 +1,380 @@
+/*
+ * Console restaurateur : tableau de bord, menu en deux colonnes, lignes de plats, interrupteur de
+ * disponibilité. Mobile d'abord, enrichi à partir de 900 px. Tokens verrouillés uniquement.
+ */
+
+.tableau {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.tableau-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.tableau-entete h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1.05;
+}
+.tableau-puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tableau-sous {
+  margin: 0;
+  color: var(--secondaire);
+}
+
+/* --- Tuiles d'indicateurs --- */
+.kpi-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: transform var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
+}
+.kpi:hover,
+.kpi:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.kpi-alerte {
+  border: 2px solid var(--rouge-fonce);
+}
+.kpi-libelle {
+  color: var(--secondaire);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.kpi-valeur {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.kpi-alerte .kpi-valeur {
+  color: var(--rouge-fonce);
+}
+.kpi-lien {
+  margin-top: 4px;
+  color: var(--rouge-fonce);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tableau-colonnes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+.partage-contenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+.partage-qr {
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+}
+.partage-contenu > div {
+  flex: 1 1 220px;
+}
+.partage-texte {
+  margin: 0 0 var(--space-3);
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.partage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* --- Barre latérale : bas de colonne --- */
+.console-cote-bas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.console-voir-page {
+  display: none;
+}
+
+/* --- Menu : bandeau de disponibilité, liste, état vide --- */
+.menu-colonnes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.menu-liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.menu-panneau {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.bandeau-dispo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--succes-fond);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+}
+.bandeau-dispo p {
+  margin: 0;
+  flex: 1 1 260px;
+  font-size: 0.9rem;
+}
+.etat-vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  background: var(--surface);
+  border: 1.5px dashed var(--bordure);
+  border-radius: var(--radius-md);
+}
+.etat-vide p {
+  margin: 0;
+  max-width: 44ch;
+  color: var(--secondaire);
+}
+.etat-vide .etat-vide-titre {
+  color: var(--encre);
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+.etat-vide-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--creme);
+  color: var(--rouge-fonce);
+}
+
+/* --- Ligne de plat --- */
+.plat-ligne-corps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.plat-ligne-media {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+}
+.plat-ligne-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.plat-ligne-initiale {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--rouge-fonce);
+}
+.plat-ligne-infos {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.plat-ligne-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.plat-ligne-detail {
+  margin: 2px 0 0;
+  color: var(--secondaire);
+  font-size: 0.82rem;
+}
+.plat-ligne-prix {
+  margin: 4px 0 0;
+}
+.plat-ligne-prix-barre {
+  margin-right: 6px;
+  color: var(--secondaire);
+  text-decoration: line-through;
+}
+.plat-ligne-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--bordure);
+}
+
+/* --- Interrupteur disponible / épuisé --- */
+.interrupteur {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.interrupteur input {
+  position: absolute;
+  opacity: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  cursor: pointer;
+}
+.interrupteur-piste {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--secondaire);
+  transition: background var(--duration-base) var(--ease);
+}
+.interrupteur-piste::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--duration-base) var(--ease);
+}
+.interrupteur input:checked + .interrupteur-piste {
+  background: var(--succes);
+}
+.interrupteur input:checked + .interrupteur-piste::after {
+  transform: translateX(18px);
+}
+.interrupteur input:focus-visible + .interrupteur-piste {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.interrupteur-texte {
+  min-width: 70px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  .interrupteur-piste,
+  .interrupteur-piste::after,
+  .kpi {
+    transition: none;
+  }
+}
+
+/* --- Formulaires du menu --- */
+.champs-ligne {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.aide-champ {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.depot-photo input[type="file"] {
+  padding: var(--space-4);
+  background: var(--creme);
+  border: 1.5px dashed var(--bordure);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 900px) {
+  .tableau-entete h1 {
+    font-size: 2.4rem;
+  }
+  .kpi-grille {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .tableau-colonnes {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  /* Barre latérale pleine hauteur : marque, navigation, puis page publique et compte en bas */
+  .console-cote {
+    min-height: calc(100vh - 2 * var(--space-6));
+    max-height: calc(100vh - 2 * var(--space-6));
+    overflow-y: auto;
+  }
+  .console-cote-bas {
+    margin-top: auto;
+  }
+  .console-voir-page {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    border: 1.5px solid var(--bordure);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--rouge-fonce);
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+  .console-voir-page:hover {
+    border-color: var(--rouge-fonce);
+  }
+}
+
+/* Menu : liste à gauche, formulaires collants à droite, seulement quand la place le permet */
+@media (min-width: 1180px) {
+  .menu-colonnes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: var(--space-6);
+    align-items: start;
+  }
+  .menu-panneau {
+    position: sticky;
+    top: var(--space-6);
+    max-height: calc(100vh - 2 * var(--space-6));
+    overflow-y: auto;
+  }
+}

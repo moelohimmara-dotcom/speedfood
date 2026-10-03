@@ -132,77 +132,84 @@ export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Secti
   }
 
   return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+    <Card className="plat-ligne">
+      <div className="plat-ligne-corps">
+        <div className="plat-ligne-media" aria-hidden="true">
+          {plat.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+            <img src={plat.photo_url} alt="" />
+          ) : (
+            <span className="plat-ligne-initiale">{plat.nom.trim().charAt(0).toLocaleUpperCase("fr") || "?"}</span>
+          )}
+        </div>
+        <div className="plat-ligne-infos">
+          <div className="plat-ligne-titre">
             <strong>{plat.nom}</strong>
             <Badge ton={plat.disponibilite.ton}>{plat.disponibilite.court}</Badge>
           </div>
-          {plat.disponibilite.detail ? (
-            <p style={{ margin: "0 0 2px", fontSize: "0.78rem", color: "var(--secondaire)" }}>
-              {plat.disponibilite.detail}
-            </p>
-          ) : null}
-          {plat.description ? (
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>{plat.description}</p>
-          ) : null}
+          {plat.disponibilite.detail ? <p className="plat-ligne-detail">{plat.disponibilite.detail}</p> : null}
+          {plat.description ? <p className="plat-ligne-detail">{plat.description}</p> : null}
           {plat.prix_promo !== null ? (
-            <p style={{ margin: 0 }}>
-              <span style={{ textDecoration: "line-through", color: "var(--secondaire)", marginRight: 6 }}>
-                {plat.prix.toLocaleString("fr-FR")} GNF
-              </span>
-              <strong style={{ color: "var(--rouge)" }}>{plat.prix_promo.toLocaleString("fr-FR")} GNF</strong>
+            <p className="plat-ligne-prix">
+              <span className="plat-ligne-prix-barre">{plat.prix.toLocaleString("fr-FR")} GNF</span>
+              <strong style={{ color: "var(--rouge-fonce)" }}>{plat.prix_promo.toLocaleString("fr-FR")} GNF</strong>
             </p>
           ) : (
-            <p style={{ margin: 0, fontWeight: 700 }}>{plat.prix.toLocaleString("fr-FR")} GNF</p>
+            <p className="plat-ligne-prix">
+              <strong>{plat.prix.toLocaleString("fr-FR")} GNF</strong>
+            </p>
           )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 140 }}>
-          {plat.disponible ? (
-            <Button
-              type="button"
-              variante="secondary"
-              disabled={enTransition}
-              onClick={() =>
-                demarrerTransition(() => {
-                  confirmerDisponibiliteAction(plat.id);
-                })
-              }
-            >
-              Confirmer disponible
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variante="secondary"
+        <label className="interrupteur" title="Un plat épuisé n'est plus proposé aux clients">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={plat.disponible}
             disabled={enTransition}
-            onClick={() =>
+            onChange={() =>
               demarrerTransition(() => {
                 basculerDisponibiliteAction(plat.id, !plat.disponible);
               })
             }
-          >
-            {plat.disponible ? "Épuisé" : "Remettre disponible"}
-          </Button>
-          <Button type="button" variante="secondary" onClick={() => setEnEdition(true)}>
-            Modifier
-          </Button>
+          />
+          <span className="interrupteur-piste" aria-hidden="true" />
+          <span className="interrupteur-texte">{plat.disponible ? "Disponible" : "Épuisé"}</span>
+        </label>
+      </div>
+      <div className="plat-ligne-actions">
+        {plat.disponible ? (
           <Button
             type="button"
-            variante="danger"
+            variante="secondary"
+            className="btn-compact"
             disabled={enTransition}
-            onClick={() => {
-              if (confirm(`Archiver « ${plat.nom} » ? Ce plat ne sera plus visible dans votre menu.`)) {
-                demarrerTransition(() => {
-                  archiverPlatAction(plat.id);
-                });
-              }
-            }}
+            onClick={() =>
+              demarrerTransition(() => {
+                confirmerDisponibiliteAction(plat.id);
+              })
+            }
           >
-            Archiver
+            Confirmer disponible
           </Button>
-        </div>
+        ) : null}
+        <Button type="button" variante="secondary" className="btn-compact" onClick={() => setEnEdition(true)}>
+          Modifier
+        </Button>
+        <Button
+          type="button"
+          variante="danger"
+          className="btn-compact"
+          disabled={enTransition}
+          onClick={() => {
+            if (confirm(`Archiver « ${plat.nom} » ? Ce plat ne sera plus visible dans votre menu.`)) {
+              demarrerTransition(() => {
+                archiverPlatAction(plat.id);
+              });
+            }
+          }}
+        >
+          Archiver
+        </Button>
       </div>
       <OptionsPlat menuItemId={plat.id} options={plat.options} />
     </Card>

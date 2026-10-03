@@ -6,6 +6,7 @@ import "./landing.css";
 import "./catalogue.css";
 import "./marche.css";
 import "./cadre.css";
+import "./console.css";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :
 // répond à la note performance de DESIGN-SYSTEM.md sur le coût des données mobiles à Conakry.
