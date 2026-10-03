@@ -216,7 +216,11 @@ export default async function FicheRestaurantPage({
       </div>
 
       <div style={{ marginTop: "var(--space-3)" }}>
-        <BoutonsPartage texte={texteRestaurant(restaurant.nom, urlRestaurant)} url={urlRestaurant} />
+        <BoutonsPartage
+          texte={texteRestaurant(restaurant.nom, urlRestaurant)}
+          url={urlRestaurant}
+          variante="liens"
+        />
       </div>
 
       {restaurant.consignes ? (

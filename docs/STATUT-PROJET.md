@@ -518,6 +518,22 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   les deux cas (fiche avec et sans photo). **Lots 2 (partage) et 3 (panier vide, grille
   de menu) non commencés.**
 
+- **Fiche restaurant : partage remis à sa place, lot 2 (3 octobre 2026)** : sur la fiche
+  publique, « Partager sur WhatsApp » et « Copier le lien » étaient deux boutons
+  secondaires de pleine hauteur, placés entre le titre et le menu, au même poids visuel
+  que le futur bouton de commande. Ils deviennent des **actions de texte discrètes avec
+  icône** (`BoutonsPartage`, nouvelle variante `liens` : icône 16 px de la famille du
+  design system, couleur secondaire, zone tactile conservée à 44 px). **Ils restent
+  volontairement à leur place** : la colonne de droite (`.fiche-panier`) est masquée sous
+  900 px, donc y déplacer le partage l'aurait fait disparaître sur téléphone — or c'est
+  là que le partage WhatsApp sert le plus. C'est la **hiérarchie** qui les sort du
+  parcours de commande, pas la position. La variante `boutons` reste le défaut : la
+  console restaurateur (« Votre lien et votre QR code », où le partage *est* l'action)
+  est inchangée. `npm run typecheck` et `npm run lint` propres ; déployé (version Worker
+  `ffa4bae1`) ; rendu vérifié dans un vrai Chrome en 1500 px et en 390 px (le partage
+  tient sur une ligne, sans débordement). **Lot 3** (panier vide, grille de menu) non
+  commencé.
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires

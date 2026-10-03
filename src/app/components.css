@@ -226,6 +226,36 @@
   flex: none;
 }
 
+/* Actions de partage en texte, sur la fiche publique : le partage doit rester accessible
+   sur téléphone (la colonne de droite y est masquée) sans disputer la vedette au parcours
+   de commande avec deux boutons pleine largeur. Icônes de la famille (grille 24, tracé 2). */
+.partage-liens {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+.partage-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--secondaire);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.partage-lien:hover {
+  color: var(--encre);
+}
+.partage-lien svg {
+  flex: none;
+}
+
 /* Bouton « Choisir un fichier » aligné sur les boutons de l'application (au lieu du bouton brut du navigateur). */
 input[type="file"]::file-selector-button {
   margin-right: 10px;
