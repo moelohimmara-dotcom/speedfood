@@ -34,13 +34,13 @@ export default async function ConnexionPage({
       </Card>
       {pourSysteme ? (
         <p style={{ marginTop: "var(--space-4)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          Vous êtes restaurateur ? <Link href="/connexion">Connexion restaurateur</Link>
+          Vous êtes restaurateur ? <Link href="/connexion" className="lien-texte">Connexion restaurateur</Link>
         </p>
       ) : (
         <p style={{ marginTop: "var(--space-4)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          Pas encore de compte ? <Link href="/inscription">Inscrivez votre restaurant</Link>
+          Pas encore de compte ? <Link href="/inscription" className="lien-texte">Inscrivez votre restaurant</Link>
           <br />
-          Équipe Speedfood ? <Link href="/connexion?suite=/system">Administration</Link>
+          Équipe Speedfood ? <Link href="/connexion?suite=/system" className="lien-texte">Administration</Link>
         </p>
       )}
     </main>

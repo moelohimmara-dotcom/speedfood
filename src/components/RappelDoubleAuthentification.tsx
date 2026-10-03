@@ -31,9 +31,9 @@ export async function RappelDoubleAuthentification({
           : "Protégez votre compte : activez la double authentification."}
       </strong>{" "}
       {administrateur
-        ? "Sans elle, une seule fuite de votre mot de passe suffit pour consulter les coordonnées de tous les clients et modifier les commandes. "
-        : "Sans elle, quelqu'un qui découvre votre mot de passe peut gérer vos commandes et votre menu à votre place. "}
-      Cela prend deux minutes avec une application d&apos;authentification sur votre téléphone. C&apos;est facultatif.{" "}
+        ? "Un mot de passe seul suffit à lire les coordonnées de tous les clients. "
+        : "Un mot de passe découvert suffit à gérer vos commandes à votre place. "}
+      Facultatif, deux minutes avec une application sur votre téléphone.{" "}
       <Link href="/compte/securite" style={{ fontWeight: 700 }}>
         Activer maintenant
       </Link>

@@ -159,6 +159,7 @@
 
 .menu-item-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
@@ -201,9 +202,39 @@
   line-height: 1.4;
 }
 
+/* Texte du plat : prend la place disponible (au moins 220 px) ; s'il n'y en a pas, le bloc prix
+   passe SOUS le texte au lieu de l'écraser (téléphone étroit, contrôle de quantité). */
+.menu-item-principal {
+  display: flex;
+  gap: 12px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
 .menu-item-prix-bloc {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
   text-align: right;
-  flex-shrink: 0;
+}
+
+.menu-item-partage {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .menu-item-photo {
+    width: 64px;
+    height: 64px;
+  }
 }
 
 .menu-item-prix {

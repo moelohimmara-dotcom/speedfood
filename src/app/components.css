@@ -140,9 +140,7 @@
 }
 
 .alerte {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: block;
   border-radius: var(--radius-sm);
   padding: 13px 16px;
   font-size: 0.9rem;
@@ -195,4 +193,29 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--space-5);
+}
+
+/* Lien de texte reconnaissable (connexion, inscription) : couleur d'action, souligné, zone tactile de 44 px. */
+.lien-texte {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--rouge-fonce);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Bouton « Choisir un fichier » aligné sur les boutons de l'application (au lieu du bouton brut du navigateur). */
+input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }

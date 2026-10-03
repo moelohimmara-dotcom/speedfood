@@ -49,11 +49,23 @@
 
 L'application a **une bonne base d'identité** (couleurs, typographie, cartes), mais elle n'est **pas encore unifiée** : l'accueil, le catalogue, les consoles et l'administration ont chacun leur style de composants. Les défauts les plus visibles viennent de la **mise en page mobile des lignes de menu** et de **blocs d'information ajoutés sans arbitrage de priorité** (rappel de sécurité, partage, QR code). Les écrans clés pour un pilote sont, dans l'ordre : fiche restaurant, commande, console restaurateur (commandes), puis le reste.
 
-## 5. Proposition de suite
+## 5. Corrections déjà faites (3 octobre 2026, vérifiées en mobile)
 
-1. **Corriger tout de suite les défauts que j'ai introduits (H2, H3, H4)** et le chevauchement H1 : ce sont des erreurs de mise en page, pas des choix de design. Rien ne change dans le design system.
-2. **Présenter deux ou trois directions** sur les écrans clés (accueil, liste, fiche restaurant, commande, console des commandes) pour que Malika choisisse.
-3. **Appliquer la direction retenue** écran par écran, avec vérification mobile et contrôle d'accessibilité (contraste, cibles de 44 px, focus clavier) à chaque lot.
-4. **Compléter l'audit** avec une vraie largeur de bureau, la navigation au clavier et un appareil réel avant de figer les choix.
+Corrigées sans toucher au design system, vérifiées dans le navigateur à 375 px :
+
+- **H1** lignes de menu : le texte garde au moins 220 px de large, le bloc prix et quantité passe **sous** le texte quand la place manque ; plus de chevauchement ni de texte d'un mot par ligne.
+- **H2** rappel de double authentification : cause trouvée dans la règle commune des alertes (`.alerte` était une rangée de colonnes) ; elle est maintenant un bloc de texte, ce qui corrige aussi les autres alertes à plusieurs morceaux (réglages de conservation, suppression de compte, sécurité du compte). Texte du rappel raccourci.
+- **H3** un seul lien discret « Partager ce plat » par plat (le bouton « Copier le lien » reste au niveau du restaurant).
+- **H4** console, accueil : commandes à traiter, puis état du restaurant, puis lien et QR code.
+- **H5** console, page Menu : la liste des plats vient avant « Sections du menu » et « Ajouter un plat » ; le bouton de choix de fichier reprend le style des boutons.
+- **M2 (partie visuelle)** liens de connexion et d'inscription : couleur d'action foncée (contraste 5,8 : 1), soulignés, zone tactile de 44 px.
+
+**Reste ouvert** : H6 (en-tête d'administration sur écran étroit), M1 (onglets coupés), M2 (« mot de passe oublié » : manque fonctionnel), M3 (cases du paiement), M4 (autres cibles sous 44 px, badges à 11,5 px), M5, M6, M7.
+
+## 6. Suite proposée
+
+1. **Présenter deux ou trois directions** sur les écrans clés (accueil, liste, fiche restaurant, commande, console des commandes) pour que Malika choisisse.
+2. **Appliquer la direction retenue** écran par écran, avec vérification mobile et contrôle d'accessibilité (contraste, cibles de 44 px, focus clavier) à chaque lot.
+3. **Compléter l'audit** avec une vraie largeur de bureau, la navigation au clavier et un appareil réel avant de figer les choix.
 
 Les décisions de design (couleurs, typographie, icônes) restent verrouillées par `cadrage/DESIGN-SYSTEM.md` tant que Malika ne les rouvre pas.

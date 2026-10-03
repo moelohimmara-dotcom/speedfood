@@ -14,7 +14,7 @@ export default function InscriptionPage() {
         <InscriptionForm />
       </Card>
       <p style={{ marginTop: "var(--space-4)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-        Déjà un compte ? <Link href="/connexion">Connectez-vous</Link>
+        Déjà un compte ? <Link href="/connexion" className="lien-texte">Connectez-vous</Link>
       </p>
     </main>
   );

@@ -71,13 +71,6 @@ export default async function MenuPage() {
         </form>
       </Card>
 
-      <SectionsMenu sections={sectionsListe} />
-
-      <Card style={{ marginBottom: "var(--space-5)" }}>
-        <h3 style={{ marginBottom: "var(--space-3)" }}>Ajouter un plat</h3>
-        <FormulairePlat sections={sectionsListe} />
-      </Card>
-
       {platsListe.length === 0 ? (
         <Card>
           <p style={{ margin: 0, color: "var(--secondaire)" }}>
@@ -120,6 +113,15 @@ export default async function MenuPage() {
           ) : null}
         </div>
       )}
+
+      <div style={{ marginTop: "var(--space-6)" }}>
+        <SectionsMenu sections={sectionsListe} />
+      </div>
+
+      <Card style={{ marginTop: "var(--space-6)" }}>
+        <h3 style={{ marginBottom: "var(--space-3)" }}>Ajouter un plat</h3>
+        <FormulairePlat sections={sectionsListe} />
+      </Card>
     </div>
   );
 }

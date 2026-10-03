@@ -5,7 +5,7 @@ import { Badge, Alert } from "@/components/ui";
 import { ControleQuantiteArticle } from "@/components/panier/ControleQuantiteArticle";
 import { LienPanier } from "@/components/panier/LienPanier";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
-import { cheminRestaurant, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
+import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import {
@@ -128,7 +128,7 @@ export default async function FicheRestaurantPage({
     );
     return (
       <div key={item.id} id={`plat-${item.id}`} className={`menu-item-row${!item.disponible ? " indisponible" : ""}`}>
-        <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
+        <div className="menu-item-principal">
           {item.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
             <img src={item.photo_url} alt="" className="menu-item-photo" />
@@ -143,13 +143,14 @@ export default async function FicheRestaurantPage({
                 <small style={{ color: "var(--secondaire)", fontSize: "0.78rem" }}>{disponibilite.detail}</small>
               ) : null}
             </div>
-            <div style={{ marginTop: 6 }}>
-              <BoutonsPartage
-                compact
-                texte={textePlat(item.nom, restaurantSur.nom, urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id)))}
-                url={urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id))}
-              />
-            </div>
+            <a
+              href={lienWhatsApp(textePlat(item.nom, restaurantSur.nom, urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id))))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="menu-item-partage"
+            >
+              Partager ce plat
+            </a>
           </div>
         </div>
         <div className="menu-item-prix-bloc">

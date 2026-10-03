@@ -61,6 +61,26 @@ export default async function AccueilConsolePage() {
       ) : null}
 
       <Card style={{ marginBottom: "var(--space-4)" }}>
+        <p style={{ color: "var(--secondaire)", fontSize: "0.85rem", marginBottom: 4 }}>
+          Commandes à traiter
+        </p>
+        <p style={{ fontSize: "2.2rem", fontWeight: 800, fontFamily: "var(--font-barlow)", color: "var(--rouge)" }}>
+          {commandesATraiter ?? 0}
+        </p>
+        <Link href="/restaurant/commandes">
+          <Button variante="secondary">Voir les commandes</Button>
+        </Link>
+      </Card>
+
+      {restaurant ? (
+        <BasculesStatut
+          ouvert={restaurant.ouvert}
+          accepteCommandes={restaurant.accepte_commandes}
+          miseAJour={ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), new Date())}
+        />
+      ) : null}
+
+      <Card style={{ marginBottom: "var(--space-4)" }}>
         <h3 style={{ marginBottom: "var(--space-2)" }}>Votre lien et votre QR code</h3>
         {restaurant?.publie ? (
           <>
@@ -90,26 +110,6 @@ export default async function AccueilConsolePage() {
           </p>
         )}
       </Card>
-
-      <Card style={{ marginBottom: "var(--space-4)" }}>
-        <p style={{ color: "var(--secondaire)", fontSize: "0.85rem", marginBottom: 4 }}>
-          Commandes à traiter
-        </p>
-        <p style={{ fontSize: "2.2rem", fontWeight: 800, fontFamily: "var(--font-barlow)", color: "var(--rouge)" }}>
-          {commandesATraiter ?? 0}
-        </p>
-        <Link href="/restaurant/commandes">
-          <Button variante="secondary">Voir les commandes</Button>
-        </Link>
-      </Card>
-
-      {restaurant ? (
-        <BasculesStatut
-          ouvert={restaurant.ouvert}
-          accepteCommandes={restaurant.accepte_commandes}
-          miseAJour={ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), new Date())}
-        />
-      ) : null}
 
       <Card>
         <h3 style={{ marginBottom: "var(--space-3)" }}>Accès rapide</h3>
