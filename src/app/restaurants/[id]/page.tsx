@@ -118,6 +118,14 @@ export default async function FicheRestaurantPage({
           <span className="menu-item-prix" style={item.prix_promo !== null ? { color: "var(--rouge)" } : undefined}>
             {formaterGNF(item.prix_promo ?? item.prix)}
           </span>
+          {!item.disponible ? (
+            <Link
+              href={`/restaurants/${restaurantSur.id}/alternatives?plat=${item.id}`}
+              style={{ fontSize: "0.85rem", fontWeight: 700 }}
+            >
+              Trouver ailleurs
+            </Link>
+          ) : null}
           {estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes }) && item.disponible ? (
             <ControleQuantiteArticle
               restaurant={{ id: restaurantSur.id, nom: restaurantSur.nom }}

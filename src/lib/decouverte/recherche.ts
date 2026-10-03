@@ -24,6 +24,7 @@ const LIMITE_PLATS_LUS = 2000;
 export const LIMITE_RESULTATS_AFFICHES = 60;
 
 export interface RestaurantCatalogue extends RestaurantClassable {
+  categorieId: string | null;
   couleurAccent: string | null;
   categorie: string;
   quartier: string;
@@ -43,7 +44,18 @@ export interface ResultatRecherche {
   erreur: boolean;
 }
 
-export async function rechercherCatalogue(recherche: RechercheCatalogue): Promise<ResultatRecherche> {
+export interface CatalogueLu {
+  restaurants: RestaurantCatalogue[];
+  platsParRestaurant: Map<string, PlatPublic[]>;
+  fraicheurHeures: number;
+  maintenant: Date;
+  erreur: boolean;
+}
+
+/** Lecture publique du catalogue (restaurants publiés et leurs plats), partagée par la recherche et les alternatives. */
+export async function lireCatalogue(
+  filtres: { categorie?: string; quartier?: string } = {}
+): Promise<CatalogueLu> {
   const supabase = creerClientPublic();
   const maintenant = new Date();
   const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
@@ -51,12 +63,12 @@ export async function rechercherCatalogue(recherche: RechercheCatalogue): Promis
   let requete = supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(nom)"
     )
     .order("nom")
     .limit(LIMITE_RESTAURANTS_LUS);
-  if (recherche.categorie) requete = requete.eq("categorie_id", recherche.categorie);
-  if (recherche.quartier) requete = requete.eq("quartier_id", recherche.quartier);
+  if (filtres.categorie) requete = requete.eq("categorie_id", filtres.categorie);
+  if (filtres.quartier) requete = requete.eq("quartier_id", filtres.quartier);
 
   const [{ data: restaurantsBruts, error: erreurRestaurants }, { data: platsBruts, error: erreurPlats }] =
     await Promise.all([
@@ -69,7 +81,13 @@ export async function rechercherCatalogue(recherche: RechercheCatalogue): Promis
     ]);
 
   if (erreurRestaurants || erreurPlats) {
-    return { resultats: [], fraicheurHeures: disponibiliteFraicheurHeures, maintenant, erreur: true };
+    return {
+      restaurants: [],
+      platsParRestaurant: new Map(),
+      fraicheurHeures: disponibiliteFraicheurHeures,
+      maintenant,
+      erreur: true,
+    };
   }
 
   const restaurants: RestaurantCatalogue[] = (restaurantsBruts ?? []).map((r) => ({
@@ -78,6 +96,7 @@ export async function rechercherCatalogue(recherche: RechercheCatalogue): Promis
     horaires: r.horaires,
     ouvert: r.ouvert,
     accepteCommandes: r.accepte_commandes,
+    categorieId: r.categorie_id,
     photoUrl: r.photo_url,
     logoUrl: r.logo_url,
     couleurAccent: r.couleur_accent,
@@ -99,14 +118,23 @@ export async function rechercherCatalogue(recherche: RechercheCatalogue): Promis
     platsParRestaurant.set(p.restaurant_id, liste);
   }
 
+  return { restaurants, platsParRestaurant, fraicheurHeures: disponibiliteFraicheurHeures, maintenant, erreur: false };
+}
+
+export async function rechercherCatalogue(recherche: RechercheCatalogue): Promise<ResultatRecherche> {
+  const catalogue = await lireCatalogue({ categorie: recherche.categorie, quartier: recherche.quartier });
+  if (catalogue.erreur) {
+    return { resultats: [], fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: true };
+  }
+
   const resultats = classerResultats({
     terme: recherche.q,
-    restaurants,
-    platsParRestaurant,
-    fraicheurHeures: disponibiliteFraicheurHeures,
-    maintenant,
+    restaurants: catalogue.restaurants,
+    platsParRestaurant: catalogue.platsParRestaurant,
+    fraicheurHeures: catalogue.fraicheurHeures,
+    maintenant: catalogue.maintenant,
     filtres: recherche.filtres,
   }).slice(0, LIMITE_RESULTATS_AFFICHES);
 
-  return { resultats, fraicheurHeures: disponibiliteFraicheurHeures, maintenant, erreur: false };
+  return { resultats, fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: false };
 }

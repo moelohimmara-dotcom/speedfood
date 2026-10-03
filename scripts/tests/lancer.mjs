@@ -24,9 +24,11 @@ copier("scripts/tests/decouverte.test.mts");
 copier("scripts/tests/securite.test.mts");
 copier("src/lib/securite/ip.ts");
 copier("scripts/tests/ip.test.mts");
+copier("src/lib/decouverte/alternatives.ts");
+copier("scripts/tests/alternatives.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit" });
   statut = statut || (resultat.status ?? 1);
 }
