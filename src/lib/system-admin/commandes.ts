@@ -6,16 +6,14 @@ import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { STATUTS_COMMANDE, type StatutCommande } from "@/lib/contracts/statuts";
 import type { StatutProposition } from "@/lib/contracts/commande";
 import { versStatutCommande, versStatutProposition } from "@/lib/commande/commun";
-import { appliquerTransitionStatut } from "@/lib/commande/transitions";
 import { verifierPermission } from "./contexte";
-import { journaliserActionSysteme, revelerCoordonneesCommande } from "./audit";
-import { afficherCoordonnees, type CoordonneesAffichees } from "./coordonnees";
+import { revelerCoordonneesCommande } from "./audit";
+import type { CoordonneesAffichees } from "./coordonnees";
 
 /**
- * Support des commandes (bloc 8d). Lecture et action passent par la session
- * du rôle système, gouvernée par les policies `support_*` (migration
- * 20260927240000) — réservées à `support`/`super_admin`, jamais `operations`
- * ni `content_editor` (matrice v1.0.0). Coordonnées toujours masquées par
+ * Support des commandes (bloc 8d). Lecture et action passent par des fonctions de
+ * base réservées à `support`/`super_admin` (migration securite_support_commandes) :
+ * le rôle système n'a plus aucun accès direct à `orders`. Coordonnées toujours masquées par
  * défaut ; la révélation passe exclusivement par `revelerCoordonneesCommande`
  * (bloc 8a), déjà motivée et journalisée.
  */
@@ -76,6 +74,37 @@ function versMode(valeur: string): "retrait" | "livraison" {
   return valeur === "livraison" ? "livraison" : "retrait";
 }
 
+type LigneSupport = {
+  id: string;
+  reference: string;
+  restaurant_nom: string | null;
+  statut: string;
+  mode: string;
+  client_nom: string;
+  telephone_masque: string;
+  adresse_masquee: string;
+  sous_total: number;
+  frais_livraison_estime: number;
+  cree_le: string;
+};
+
+/** Les coordonnées arrivent DÉJÀ masquées de la base : le navigateur ne voit jamais le brut. */
+function versApercu(c: LigneSupport): CommandeApercuAdmin {
+  return {
+    id: c.id,
+    reference: c.reference,
+    restaurantNom: c.restaurant_nom ?? "",
+    statut: versStatutCommande(c.statut),
+    mode: versMode(c.mode),
+    clientNom: c.client_nom,
+    telephoneAffiche: c.telephone_masque,
+    adresseAffichee: c.adresse_masquee,
+    sousTotal: c.sous_total,
+    fraisLivraisonEstime: c.frais_livraison_estime,
+    creeLe: c.cree_le,
+  };
+}
+
 export async function rechercherCommandesAdmin(filtres: {
   reference?: string;
   statut?: StatutCommande | "tous";
@@ -85,50 +114,16 @@ export async function rechercherCommandesAdmin(filtres: {
   await verifierPermission("commande.consulter");
   const supabase = await creerClientServeur();
 
-  let requete = supabase
-    .from("orders")
-    .select(
-      "id, reference, statut, mode, client_nom, client_telephone, client_adresse, sous_total, frais_livraison_estime, cree_le, restaurants(nom)"
-    )
-    .order("cree_le", { ascending: false })
-    .limit(100);
-
-  if (filtres.reference) {
-    requete = requete.ilike("reference", `%${filtres.reference}%`);
-  }
-  if (filtres.statut && filtres.statut !== "tous") {
-    requete = requete.eq("statut", filtres.statut);
-  }
-  if (filtres.jour) {
-    const debutJour = new Date();
-    debutJour.setUTCHours(0, 0, 0, 0);
-    requete = requete.gte("cree_le", debutJour.toISOString());
-  }
-
-  const { data, error } = await requete;
+  const { data, error } = await supabase.rpc("fn_support_lister_commandes", {
+    p_reference: filtres.reference || undefined,
+    p_statut: filtres.statut && filtres.statut !== "tous" ? filtres.statut : undefined,
+    p_jour: filtres.jour ?? false,
+  });
   if (error || !data) {
     return [];
   }
 
-  return data.map((c) => {
-    const coordonnees = afficherCoordonnees(
-      { client_telephone: c.client_telephone, client_adresse: c.client_adresse },
-      false
-    );
-    return {
-      id: c.id,
-      reference: c.reference,
-      restaurantNom: c.restaurants?.nom ?? "",
-      statut: versStatutCommande(c.statut),
-      mode: versMode(c.mode),
-      clientNom: c.client_nom,
-      telephoneAffiche: coordonnees.telephone,
-      adresseAffichee: coordonnees.adresse,
-      sousTotal: c.sous_total,
-      fraisLivraisonEstime: c.frais_livraison_estime,
-      creeLe: c.cree_le,
-    };
-  });
+  return data.map(versApercu);
 }
 
 export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAdmin | null> {
@@ -136,18 +131,12 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
   const supabase = await creerClientServeur();
 
   const [
-    { data: commande, error },
+    { data: lignesCommande, error },
     { data: evenements },
     { data: propositions },
     { data: lignes },
   ] = await Promise.all([
-    supabase
-      .from("orders")
-      .select(
-        "id, reference, statut, mode, client_nom, client_telephone, client_adresse, sous_total, frais_livraison_estime, cree_le, restaurants(nom)"
-      )
-      .eq("id", id)
-      .maybeSingle(),
+    supabase.rpc("fn_support_lister_commandes", { p_id: id }),
     supabase
       .from("order_status_events")
       .select("statut_precedent, statut_suivant, acteur, horodatage")
@@ -163,14 +152,11 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
     supabase.from("order_items").select("prix, quantite").eq("order_id", id),
   ]);
 
+  const commande = lignesCommande?.[0];
   if (error || !commande) {
     return null;
   }
-
-  const coordonnees = afficherCoordonnees(
-    { client_telephone: commande.client_telephone, client_adresse: commande.client_adresse },
-    false
-  );
+  const apercu = versApercu(commande);
 
   // Montant d'origine de la commande : somme des lignes figées (ADR-006), qui
   // ne change jamais. Sert de « ancien » montant pour la toute première version
@@ -201,17 +187,7 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
   });
 
   return {
-    id: commande.id,
-    reference: commande.reference,
-    restaurantNom: commande.restaurants?.nom ?? "",
-    statut: versStatutCommande(commande.statut),
-    mode: versMode(commande.mode),
-    clientNom: commande.client_nom,
-    telephoneAffiche: coordonnees.telephone,
-    adresseAffichee: coordonnees.adresse,
-    sousTotal: commande.sous_total,
-    fraisLivraisonEstime: commande.frais_livraison_estime,
-    creeLe: commande.cree_le,
+    ...apercu,
     historique: (evenements ?? []).map((e) => ({
       statutPrecedent: e.statut_precedent ? versStatutCommande(e.statut_precedent) : null,
       statutSuivant: versStatutCommande(e.statut_suivant),
@@ -233,26 +209,9 @@ export async function reveleCoordonneesCommandeAction(
   motif: string
 ): Promise<{ erreur?: string; coordonnees?: CoordonneesAffichees }> {
   await verifierPermission("commande.consulter");
-  const supabase = await creerClientServeur();
-  const { data: commande, error } = await supabase
-    .from("orders")
-    .select("id, client_telephone, client_adresse")
-    .eq("id", commandeId)
-    .maybeSingle();
-
-  if (error || !commande) {
-    return { erreur: "Commande introuvable." };
-  }
 
   try {
-    const coordonnees = await revelerCoordonneesCommande(
-      {
-        id: commande.id,
-        client_telephone: commande.client_telephone,
-        client_adresse: commande.client_adresse,
-      },
-      motif
-    );
+    const coordonnees = await revelerCoordonneesCommande(commandeId, motif);
     return { coordonnees };
   } catch (erreur) {
     return {
@@ -288,40 +247,23 @@ export async function changerStatutSupportAction(
     return { erreur: "Statut cible invalide." };
   }
 
-  const contexte = await verifierPermission("commande.support");
+  await verifierPermission("commande.support");
   const supabase = await creerClientServeur();
 
-  const { data: commande, error } = await supabase
-    .from("orders")
-    .select("id, statut")
-    .eq("id", commandeId)
-    .maybeSingle();
-  if (error || !commande) {
-    return { erreur: "Commande introuvable." };
-  }
-
-  const statutActuel = versStatutCommande(commande.statut);
-  const versStatut = versStatutBrut as StatutCommande;
-
-  try {
-    await appliquerTransitionStatut(
-      supabase,
-      { id: commandeId, statut: statutActuel },
-      versStatut,
-      `support:${contexte.utilisateurId}`
-    );
-  } catch (erreur) {
-    return {
-      erreur: erreur instanceof ErreurMetier ? erreur.message : "Impossible d'appliquer la transition.",
-    };
-  }
-
-  await journaliserActionSysteme(contexte, {
-    action: "commande.support_transition",
-    cibleType: "commande",
-    cibleId: commandeId,
-    motif: `${statutActuel} -> ${versStatut} : ${motif}`,
+  // Transition, historique (acteur `support:<id>`) et audit : une seule transaction en
+  // base (`fn_support_changer_statut`). La validité de la transition est imposée par le
+  // trigger `fn_valider_transition_commande`.
+  const { error } = await supabase.rpc("fn_support_changer_statut", {
+    p_order_id: commandeId,
+    p_vers: versStatutBrut,
+    p_motif: motif,
   });
+  if (error) {
+    const message = error.message.includes("Transition de statut invalide")
+      ? "Transition impossible depuis le statut actuel. Rechargez la page."
+      : "Impossible d'appliquer la transition.";
+    return { erreur: message };
+  }
 
   revalidatePath("/system/commandes");
   revalidatePath(`/system/commandes/${commandeId}`);

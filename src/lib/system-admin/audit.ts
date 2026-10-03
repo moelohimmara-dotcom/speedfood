@@ -1,16 +1,7 @@
 import "server-only";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { verifierPermission, type ContexteSysteme } from "./contexte";
-import {
-  afficherCoordonnees,
-  type CoordonneesAffichees,
-  type CoordonneesBrutes,
-} from "./coordonnees";
-
-/** Coordonnées brutes d'une commande, telles que stockées dans `orders`. */
-export interface CoordonneesBrutesCommande extends CoordonneesBrutes {
-  id: string;
-}
+import { afficherCoordonnees, type CoordonneesAffichees } from "./coordonnees";
 
 /**
  * Journalisation des actions sensibles du CMS système (bloc 8a) dans
@@ -61,15 +52,20 @@ export async function journaliserActionSysteme(
 }
 
 /**
- * Dévoile les coordonnées d'une commande — seul chemin normal de révélation.
+ * Dévoile les coordonnées d'une commande — seul chemin de révélation.
  *
  * Conditions cumulatives (TDR.md §4, ADR-010) :
  * 1. permission `coordonees.voir` (support et super_admin uniquement) ;
  * 2. motif explicite fourni par l'opérateur ;
  * 3. trace `coordonnees.revelation` écrite dans `audit_events` AVANT affichage.
+ *
+ * Les points 2 et 3 sont appliqués EN BASE par `fn_support_reveler_coordonnees`
+ * (SECURITY DEFINER, même transaction) : le rôle système n'a plus aucun accès direct
+ * aux colonnes `client_telephone` / `client_adresse` de `orders` (revue de sécurité,
+ * point 3). Aucun code applicatif ne peut donc lire ces colonnes sans trace.
  */
 export async function revelerCoordonneesCommande(
-  commande: CoordonneesBrutesCommande,
+  commandeId: string,
   motif: string
 ): Promise<CoordonneesAffichees> {
   const contexte = await verifierPermission("coordonees.voir");
@@ -88,12 +84,17 @@ export async function revelerCoordonneesCommande(
     });
   }
 
-  await journaliserActionSysteme(contexte, {
-    action: ACTION_REVELATION_COORDONNEES,
-    cibleType: "commande",
-    cibleId: commande.id,
-    motif: motifPropre,
+  const { data, error } = await contexte.supabase.rpc("fn_support_reveler_coordonnees", {
+    p_order_id: commandeId,
+    p_motif: motifPropre,
   });
+  const ligne = data?.[0];
+  if (error || !ligne) {
+    throw new ErreurMetier(
+      "ERREUR_SERVEUR",
+      "Les coordonnées n'ont pas pu être révélées (ou n'ont pas pu être journalisées). Par prudence, l'action est refusée."
+    );
+  }
 
-  return afficherCoordonnees(commande, true);
+  return afficherCoordonnees(ligne, true);
 }

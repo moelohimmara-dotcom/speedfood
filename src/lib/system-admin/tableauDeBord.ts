@@ -18,6 +18,23 @@ import type { EntreeAudit } from "./journalAudit";
  */
 
 /** Compteurs de modération restaurants — mêmes définitions que les filtres de `/system/catalogue/restaurants`. */
+/**
+ * Compte les commandes par la fonction réservée au support : le rôle système n'a plus
+ * aucun accès direct à `orders` (revue de sécurité, point 3). Un rôle sans droit
+ * obtient 0, comme avant avec la RLS.
+ */
+async function compterCommandesSupport(
+  supabase: Awaited<ReturnType<typeof creerClientServeur>>,
+  statuts: string[],
+  depuis?: string
+): Promise<number> {
+  const { data, error } = await supabase.rpc("fn_support_compter_commandes", {
+    p_statuts: statuts,
+    p_depuis: depuis,
+  });
+  return error || typeof data !== "number" ? 0 : data;
+}
+
 export interface CompteursRestaurants {
   enAttente: number;
   publies: number;
@@ -79,20 +96,13 @@ export async function obtenirCompteursCommandes(): Promise<CompteursCommandes> {
   debutJour.setUTCHours(0, 0, 0, 0);
 
   const [
-    { count: activesDuJour },
-    { count: enAttente },
+    activesDuJour,
+    enAttente,
     { count: propositionsSansEcheance },
     { count: propositionsAvantEcheance },
   ] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .in("statut", [...STATUTS_ACTIFS])
-      .gte("cree_le", debutJour.toISOString()),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("statut", "en_attente"),
+    compterCommandesSupport(supabase, [...STATUTS_ACTIFS], debutJour.toISOString()),
+    compterCommandesSupport(supabase, ["en_attente"]),
     supabase
       .from("order_proposals")
       .select("id", { count: "exact", head: true })
@@ -106,8 +116,8 @@ export async function obtenirCompteursCommandes(): Promise<CompteursCommandes> {
   ]);
 
   return {
-    activesDuJour: activesDuJour ?? 0,
-    enAttente: enAttente ?? 0,
+    activesDuJour,
+    enAttente,
     propositionsEnAttente: (propositionsSansEcheance ?? 0) + (propositionsAvantEcheance ?? 0),
   };
 }

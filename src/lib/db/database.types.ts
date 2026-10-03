@@ -729,6 +729,34 @@ export type Database = {
         Args: { p_restaurant_id: string }
         Returns: boolean
       }
+      fn_support_changer_statut: {
+        Args: { p_motif: string; p_order_id: string; p_vers: string }
+        Returns: undefined
+      }
+      fn_support_compter_commandes: {
+        Args: { p_depuis?: string; p_statuts?: string[] }
+        Returns: number
+      }
+      fn_support_lister_commandes: {
+        Args: { p_id?: string; p_jour?: boolean; p_reference?: string; p_statut?: string }
+        Returns: {
+          adresse_masquee: string
+          client_nom: string
+          cree_le: string
+          frais_livraison_estime: number
+          id: string
+          mode: string
+          reference: string
+          restaurant_nom: string
+          sous_total: number
+          statut: string
+          telephone_masque: string
+        }[]
+      }
+      fn_support_reveler_coordonnees: {
+        Args: { p_motif: string; p_order_id: string }
+        Returns: { client_adresse: string; client_telephone: string }[]
+      }
       fn_limiter_debit: {
         Args: { p_cle: string; p_fenetre_secondes: number; p_max: number }
         Returns: boolean

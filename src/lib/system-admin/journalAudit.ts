@@ -70,7 +70,7 @@ export async function obtenirIndicateurs(): Promise<Indicateur[]> {
   const [
     { count: restaurantsEnAttente },
     { count: restaurantsSuspendus },
-    { count: commandesActives },
+    { data: commandesActives },
     { count: revelationsCoordonnees7j },
   ] = await Promise.all([
     supabase
@@ -83,10 +83,8 @@ export async function obtenirIndicateurs(): Promise<Indicateur[]> {
       .from("restaurants")
       .select("id", { count: "exact", head: true })
       .not("suspendu_le", "is", null),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .in("statut", ["en_attente", "acceptee", "prete"]),
+    // Fonction réservée au support (plus d'accès direct à `orders`) : 0 pour les autres rôles.
+    supabase.rpc("fn_support_compter_commandes", { p_statuts: ["en_attente", "acceptee", "prete"] }),
     supabase
       .from("audit_events")
       .select("id", { count: "exact", head: true })
@@ -113,7 +111,7 @@ export async function obtenirIndicateurs(): Promise<Indicateur[]> {
       libelle: "Commandes actives",
       definition:
         "Commandes dont le statut est « en attente », « acceptée » ou « prête » (ni terminale, ni refusée, ni annulée), tous restaurants confondus.",
-      valeur: commandesActives ?? 0,
+      valeur: typeof commandesActives === "number" ? commandesActives : 0,
     },
     {
       cle: "revelations_coordonnees_7j",
