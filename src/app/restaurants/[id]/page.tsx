@@ -4,6 +4,9 @@ import { creerClientPublic } from "@/lib/db/public";
 import { Badge, Alert } from "@/components/ui";
 import { ControleQuantiteArticle } from "@/components/panier/ControleQuantiteArticle";
 import { LienPanier } from "@/components/panier/LienPanier";
+import { BoutonsPartage } from "@/components/BoutonsPartage";
+import { cheminRestaurant, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
+import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import {
   ancienneteLisible,
@@ -13,6 +16,35 @@ import {
   libelleDisponibilite,
   libelleEtatRestaurant,
 } from "@/lib/disponibilite/etat";
+
+/**
+ * Aperçu de lien (WhatsApp, réseaux) : nom, catégorie et quartier, photo si elle existe. Aucune
+ * donnée de commande ni de client. Un restaurant non publié n'est pas lisible (RLS) : l'aperçu
+ * reste alors générique.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { data } = await creerClientPublic()
+    .from("restaurants")
+    .select("nom, photo_url, menu_categories(nom), neighborhoods(nom)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) {
+    return { title: "Speedfood" };
+  }
+  const description = `${data.menu_categories?.nom ?? "Restaurant"} · ${data.neighborhoods?.nom ?? "Conakry"} — menu et commande sur Speedfood`;
+  return {
+    title: `${data.nom} · Speedfood`,
+    description,
+    openGraph: {
+      title: data.nom,
+      description,
+      type: "website",
+      siteName: "Speedfood",
+      ...(data.photo_url ? { images: [data.photo_url] } : {}),
+    },
+  };
+}
 
 export default async function FicheRestaurantPage({
   params,
@@ -41,6 +73,8 @@ export default async function FicheRestaurantPage({
   }
   const restaurantSur = restaurant;
   const maintenant = new Date();
+  const origine = await origineDuSite();
+  const urlRestaurant = urlAbsolue(origine, cheminRestaurant(restaurant.id));
   const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
   const etatResto = etatRestaurant({ ouvert: restaurant.ouvert, accepteCommandes: restaurant.accepte_commandes });
   const libelleResto = libelleEtatRestaurant(etatResto);
@@ -93,7 +127,7 @@ export default async function FicheRestaurantPage({
       maintenant
     );
     return (
-      <div key={item.id} className={`menu-item-row${!item.disponible ? " indisponible" : ""}`}>
+      <div key={item.id} id={`plat-${item.id}`} className={`menu-item-row${!item.disponible ? " indisponible" : ""}`}>
         <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
           {item.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
@@ -108,6 +142,13 @@ export default async function FicheRestaurantPage({
               {disponibilite.detail ? (
                 <small style={{ color: "var(--secondaire)", fontSize: "0.78rem" }}>{disponibilite.detail}</small>
               ) : null}
+            </div>
+            <div style={{ marginTop: 6 }}>
+              <BoutonsPartage
+                compact
+                texte={textePlat(item.nom, restaurantSur.nom, urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id)))}
+                url={urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id))}
+              />
             </div>
           </div>
         </div>
@@ -201,6 +242,10 @@ export default async function FicheRestaurantPage({
       <small style={{ marginLeft: 8, color: "var(--secondaire)", fontSize: "0.78rem" }}>
         statut mis à jour {ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), maintenant)}
       </small>
+
+      <div style={{ marginTop: "var(--space-3)" }}>
+        <BoutonsPartage texte={texteRestaurant(restaurant.nom, urlRestaurant)} url={urlRestaurant} />
+      </div>
 
       {restaurant.consignes ? (
         <p style={{ marginTop: "var(--space-3)", color: "var(--secondaire)" }}>{restaurant.consignes}</p>

@@ -3,6 +3,9 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Card, Badge, Button } from "@/components/ui";
 import { deconnexionAction } from "@/lib/auth/actions";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
+import { BoutonsPartage } from "@/components/BoutonsPartage";
+import { cheminRestaurant, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
+import { origineDuSite } from "@/lib/partage/origine";
 import { BasculesStatut } from "./BasculesStatut";
 
 export default async function AccueilConsolePage() {
@@ -20,6 +23,9 @@ export default async function AccueilConsolePage() {
       .eq("restaurant_id", membership.restaurant_id)
       .eq("statut", "en_attente"),
   ]);
+
+  const origine = await origineDuSite();
+  const urlRestaurant = urlAbsolue(origine, cheminRestaurant(membership.restaurant_id));
 
   return (
     <div>
@@ -53,6 +59,37 @@ export default async function AccueilConsolePage() {
           </p>
         </Card>
       ) : null}
+
+      <Card style={{ marginBottom: "var(--space-4)" }}>
+        <h3 style={{ marginBottom: "var(--space-2)" }}>Votre lien et votre QR code</h3>
+        {restaurant?.publie ? (
+          <>
+            <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.9rem", color: "var(--secondaire)" }}>
+              Affichez ce QR code dans votre établissement ou sur vos affiches : le client le scanne et arrive sur votre
+              page Speedfood. Il ne contient que l&apos;adresse de votre page.
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- SVG généré par notre propre route, pas un asset du site. */}
+            <img
+              src={`/restaurants/${membership.restaurant_id}/qr`}
+              alt="QR code de votre page Speedfood"
+              width={180}
+              height={180}
+              style={{ display: "block", marginBottom: "var(--space-3)", background: "#fff" }}
+            />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-3)" }}>
+              <a href={`/restaurants/${membership.restaurant_id}/qr?telecharger=1`} className="btn btn-secondary">
+                Télécharger le QR code
+              </a>
+            </div>
+            <BoutonsPartage texte={texteRestaurant(restaurant?.nom ?? "Notre restaurant", urlRestaurant)} url={urlRestaurant} />
+          </>
+        ) : (
+          <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--secondaire)" }}>
+            Votre lien, votre QR code et le partage WhatsApp seront disponibles dès que l&apos;équipe Speedfood aura
+            validé et publié votre page.
+          </p>
+        )}
+      </Card>
 
       <Card style={{ marginBottom: "var(--space-4)" }}>
         <p style={{ color: "var(--secondaire)", fontSize: "0.85rem", marginBottom: 4 }}>
