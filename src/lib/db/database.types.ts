@@ -729,6 +729,10 @@ export type Database = {
         Args: { p_restaurant_id: string }
         Returns: boolean
       }
+      fn_repondre_proposition: {
+        Args: { p_jeton: string; p_proposition_id: string; p_reponse: string }
+        Returns: string
+      }
       fn_support_changer_statut: {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
         Returns: undefined

@@ -265,7 +265,7 @@ export async function repondreProposition(
 
   const { data: commande, error: erreurCommande } = await admin
     .from("orders")
-    .select("id, reference, statut")
+    .select("id")
     .eq("jeton_suivi", jeton)
     .maybeSingle();
   if (erreurCommande) {
@@ -277,77 +277,41 @@ export async function repondreProposition(
 
   await traiterPropositionEchue(commande.id);
 
-  const { data: proposition, error: erreurProposition } = await admin
-    .from("order_proposals")
-    .select(CHAMPS_PROPOSITION)
-    .eq("id", propositionId)
-    .maybeSingle();
-  if (erreurProposition) {
-    throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de lire la proposition. Réessayez.");
+  // Tout le reste se passe en UNE transaction, ligne de commande verrouillée
+  // (`fn_repondre_proposition`, revue de sécurité point 7) : deux réponses simultanées
+  // ou une acceptation du restaurant entre-temps ne peuvent plus produire d'effets
+  // contradictoires. Le rejeu de la même réponse est un succès.
+  const { error } = await admin.rpc("fn_repondre_proposition", {
+    p_jeton: jeton,
+    p_proposition_id: propositionId,
+    p_reponse: reponse,
+  });
+  if (error) {
+    throw erreurReponseProposition(error.message);
   }
-  if (!proposition || proposition.order_id !== commande.id) {
-    throw new ErreurMetier("INTROUVABLE", "Proposition introuvable pour cette commande.");
-  }
+}
 
-  const courante = versProposition(proposition);
-
-  // Rejeu idempotent : la même réponse, déjà traitée, est un succès.
-  if (courante.statut === reponse) {
-    return;
+function erreurReponseProposition(message: string): ErreurMetier {
+  if (message.includes("INTROUVABLE:commande")) {
+    return new ErreurMetier("INTROUVABLE", "Lien de suivi introuvable.");
   }
-  if (courante.statut === "expiree") {
-    throw new ErreurMetier("CONFLIT_ETAT", "Cette proposition a expiré. Rechargez la page.");
+  if (message.includes("INTROUVABLE:proposition")) {
+    return new ErreurMetier("INTROUVABLE", "Proposition introuvable pour cette commande.");
   }
-  if (courante.statut !== "en_attente") {
-    throw new ErreurMetier(
+  if (message.includes("CONFLIT:expiree")) {
+    return new ErreurMetier("CONFLIT_ETAT", "Cette proposition a expiré. Rechargez la page.");
+  }
+  if (message.includes("CONFLIT:deja_repondue")) {
+    return new ErreurMetier(
       "CONFLIT_ETAT",
       "Cette proposition a déjà reçu une réponse. Rechargez la page."
     );
   }
-  if (propositionActiveParmi([courante]) === null) {
-    throw new ErreurMetier("CONFLIT_ETAT", "Cette proposition a expiré. Rechargez la page.");
-  }
-
-  // Une proposition n'est applicable que sur une commande encore en attente :
-  // si le restaurant a annulé entre-temps, la réponse du client n'a plus d'objet.
-  const statutActuel = versStatutCommande(commande.statut);
-  if (statutActuel !== "en_attente") {
-    throw new ErreurMetier(
+  if (message.includes("CONFLIT:commande_non_en_attente")) {
+    return new ErreurMetier(
       "CONFLIT_ETAT",
       "Cette commande n'est plus en attente : la proposition n'est plus applicable. Rechargez la page."
     );
   }
-
-  const { error: erreurMaj } = await admin
-    .from("order_proposals")
-    .update({ statut: reponse, repondu_le: new Date().toISOString() })
-    .eq("id", courante.id)
-    .eq("statut", "en_attente");
-  if (erreurMaj) {
-    throw new ErreurMetier("CONFLIT_ETAT", "La proposition vient d'être traitée. Rechargez la page.");
-  }
-
-  if (reponse === "acceptee") {
-    // Le client accepte les nouveaux montants : ils deviennent ceux de la
-    // commande (le statut reste `en_attente`, le restaurant confirme ensuite).
-    const { error } = await admin
-      .from("orders")
-      .update({
-        sous_total: courante.nouveauSousTotal,
-        frais_livraison_estime: courante.nouveauxFraisLivraison,
-      })
-      .eq("id", commande.id);
-    if (error) {
-      throw new ErreurMetier("ERREUR_SERVEUR", "Montants non mis à jour. Réessayez.");
-    }
-    return;
-  }
-
-  // Refus : la commande est annulée, sans préparation ni frais encaissés.
-  await appliquerTransitionStatut(
-    admin,
-    { id: commande.id, statut: statutActuel },
-    "annulee",
-    `client:${commande.reference}`
-  );
+  return new ErreurMetier("ERREUR_SERVEUR", "Impossible d'enregistrer votre réponse. Réessayez.");
 }
