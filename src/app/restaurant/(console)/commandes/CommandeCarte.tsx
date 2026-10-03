@@ -33,7 +33,7 @@ function formaterDate(iso: string) {
  * de la machine à états. Les transitions sont validées côté serveur
  * (src/lib/commande/actions-restaurant.ts) ; cette carte n'est qu'un affichage.
  */
-export function CommandeCarte({ commande }: { commande: ApercuCommandeRestaurant }) {
+export function CommandeCarte({ commande, age }: { commande: ApercuCommandeRestaurant; age?: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
   const [enCours, demarrer] = useTransition();
@@ -54,7 +54,7 @@ export function CommandeCarte({ commande }: { commande: ApercuCommandeRestaurant
   const total = commande.sousTotal + commande.fraisLivraisonEstime;
 
   return (
-    <Card>
+    <Card className={`cmd-carte cmd-carte-${commande.etatDerive}`}>
       <div
         style={{
           display: "flex",
@@ -81,7 +81,7 @@ export function CommandeCarte({ commande }: { commande: ApercuCommandeRestaurant
             </Badge>
           </div>
           <p style={{ margin: "4px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
-            {formaterDate(commande.creeLe)} ·{" "}
+            {age ? `${age} · ` : ""}{formaterDate(commande.creeLe)} ·{" "}
             {commande.mode === "livraison" ? "Livraison" : "Retrait sur place"}
           </p>
         </div>
@@ -98,7 +98,7 @@ export function CommandeCarte({ commande }: { commande: ApercuCommandeRestaurant
       <div style={{ marginTop: "var(--space-3)" }}>
         <p style={{ margin: 0, fontWeight: 700 }}>{commande.clientNom}</p>
         <p style={{ margin: "2px 0 0", fontSize: "0.9rem" }}>
-          <a href={`tel:${commande.clientTelephone}`}>{commande.clientTelephone}</a>
+          <a href={`tel:${commande.clientTelephone}`} className="cmd-appel">{commande.clientTelephone}</a>
         </p>
         {commande.clientAdresse ? (
           <p style={{ margin: "2px 0 0", color: "var(--secondaire)", fontSize: "0.9rem" }}>
@@ -182,70 +182,76 @@ export function CommandeCarte({ commande }: { commande: ApercuCommandeRestaurant
       ) : null}
 
       {commande.etatDerive === "en_attente" ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-          <Button type="button" disabled={enCours} onClick={() => traiter("accepter")}>
-            Accepter
+        <div className="cmd-actions">
+          <Button type="button" className="cmd-principale" disabled={enCours} onClick={() => traiter("accepter")}>
+            Accepter la commande
           </Button>
-          <Button
-            type="button"
-            variante="danger"
-            disabled={enCours}
-            onClick={() => traiter("refuser", `Refuser la commande ${commande.reference} ?`)}
-          >
-            Refuser
-          </Button>
-          <Button
-            type="button"
-            variante="secondary"
-            disabled={enCours}
-            onClick={() => setPropositionOuverte((ouvert) => !ouvert)}
-          >
-            Proposer une modification
-          </Button>
-          <Button
-            type="button"
-            variante="secondary"
-            disabled={enCours}
-            onClick={() => traiter("annuler", `Annuler la commande ${commande.reference} ?`)}
-          >
-            Annuler
-          </Button>
+          <div className="cmd-secondaires">
+            <Button
+              type="button"
+              variante="secondary"
+              disabled={enCours}
+              onClick={() => setPropositionOuverte((ouvert) => !ouvert)}
+            >
+              Proposer une modification
+            </Button>
+            <Button
+              type="button"
+              variante="danger"
+              disabled={enCours}
+              onClick={() => traiter("refuser", `Refuser la commande ${commande.reference} ?`)}
+            >
+              Refuser
+            </Button>
+            <Button
+              type="button"
+              variante="secondary"
+              disabled={enCours}
+              onClick={() => traiter("annuler", `Annuler la commande ${commande.reference} ?`)}
+            >
+              Annuler
+            </Button>
+          </div>
         </div>
       ) : null}
 
       {commande.etatDerive === "attente_confirmation_client" ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-          <Button
-            type="button"
-            variante="secondary"
-            disabled={enCours}
-            onClick={() => traiter("annuler", `Annuler la commande ${commande.reference} ?`)}
-          >
-            Annuler la commande
-          </Button>
+        <div className="cmd-actions">
+          <div className="cmd-secondaires">
+            <Button
+              type="button"
+              variante="secondary"
+              disabled={enCours}
+              onClick={() => traiter("annuler", `Annuler la commande ${commande.reference} ?`)}
+            >
+              Annuler la commande
+            </Button>
+          </div>
         </div>
       ) : null}
 
       {commande.etatDerive === "acceptee" ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-          <Button type="button" disabled={enCours} onClick={() => traiter("prete")}>
+        <div className="cmd-actions">
+          <Button type="button" className="cmd-principale" disabled={enCours} onClick={() => traiter("prete")}>
             Marquer prête
           </Button>
-          <Button
-            type="button"
-            variante="secondary"
-            disabled={enCours}
-            onClick={() => traiter("annuler", `Annuler la commande ${commande.reference} ?`)}
-          >
-            Annuler
-          </Button>
+          <div className="cmd-secondaires">
+            <Button
+              type="button"
+              variante="secondary"
+              disabled={enCours}
+              onClick={() => traiter("annuler", `Annuler la commande ${commande.reference} ?`)}
+            >
+              Annuler
+            </Button>
+          </div>
         </div>
       ) : null}
 
       {commande.etatDerive === "prete" ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-          <Button type="button" disabled={enCours} onClick={() => traiter("terminee")}>
-            Marquer terminée
+        <div className="cmd-actions">
+          <Button type="button" className="cmd-principale" disabled={enCours} onClick={() => traiter("terminee")}>
+            {commande.mode === "livraison" ? "Marquer livrée" : "Marquer remise au client"}
           </Button>
         </div>
       ) : null}
