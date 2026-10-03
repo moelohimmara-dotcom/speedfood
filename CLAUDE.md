@@ -60,7 +60,7 @@ pour ce dépôt, pas une copie secondaire à ignorer.
   secondaire non conforme au contraste AA (`#75695F`, pas `#80736C`).
 - Toute migration appliquée en base (`apply_migration`) a son fichier dans
   `supabase/migrations/`, **dans le même commit** (le dépôt doit pouvoir reconstruire
-  la base ; 24 migrations en base = 24 fichiers). Les policies réservées aux membres
+  la base ; chaque migration en base a son fichier, même nombre des deux côtés). Les policies réservées aux membres
   portent `to authenticated`, jamais aucune restriction de rôle : sinon elles sont
   évaluées pour `anon` et cassent la lecture publique voisine (`fn_est_membre_restaurant`
   n'est pas exécutable par `anon`).

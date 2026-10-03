@@ -11,6 +11,7 @@ import { validerCreationCommande } from "./validation";
 import { creerCommande } from "./creation";
 import { repondreProposition } from "./propositions";
 import { estJetonValide } from "./jetons";
+import { limiterCreationCommande, limiterReponseProposition } from "@/lib/securite/limitation-debit";
 
 /**
  * Actions serveur du parcours client invité (ADR-005).
@@ -41,6 +42,7 @@ export async function creerCommandeAction(
   }
 
   try {
+    await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone);
     const cree = await creerCommande(validation.valeurs);
     return {
       ok: true,
@@ -76,6 +78,7 @@ export async function repondrePropositionAction(
   }
 
   try {
+    await limiterReponseProposition();
     await repondreProposition(jeton, propositionId, reponse);
     return { ok: true };
   } catch (erreur) {

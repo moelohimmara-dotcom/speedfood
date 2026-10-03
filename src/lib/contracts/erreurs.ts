@@ -9,6 +9,7 @@ export interface ErreurApi {
     | "VALIDATION"
     | "INTROUVABLE"
     | "CONFLIT_ETAT"
+    | "TROP_DE_REQUETES"
     | "ERREUR_SERVEUR";
   message: string;
   /** Détails de validation par champ, si pertinent. Ne jamais y placer de données sensibles. */

@@ -214,14 +214,14 @@ Ne pas envoyer de notification vers un abonnement sans rattachement autorisé au
 | Proposition modifiée : préparation bloquée | Vérifié | Bloc 7 (acceptation, expiration, version supersédée). |
 | PII minimisées, masquées, rétention définie | Partiel | Masquage support et motif audité vérifiés ; **durée de conservation et suppression non définies**. |
 | Cache PWA examiné | Sans objet | **La PWA n'existe pas encore** (bloc 9 non commencé : ni manifest ni service worker). |
-| Limites contre les soumissions abusives | **Bloquant** | **Aucune limitation de débit dans le code** ; règles Cloudflare non vérifiées. La création de commande invitée est ouverte au public. |
+| Limites contre les soumissions abusives | Partiel | Limitation de débit implémentée (3 octobre 2026, `src/lib/securite/limitation-debit.ts`) : commande invitée par IP (10 / 10 min), par téléphone (5 / h) et par restaurant (60 / 10 min), réponse à une proposition par IP (30 / 10 min). Vérifiée en local : 1re commande acceptée, refus au-delà de la limite, aucune écriture lors du refus, clés stockées sous forme d'empreintes. **Non vérifié** : lecture de `cf-connecting-ip` en production, limites propres de Supabase Auth sur l'inscription/connexion, règles Cloudflare. Les pages de suivi (lecture par jeton) ne sont pas limitées. **Valable en production seulement après déploiement.** |
 | Journaux et audit sans secret ni PII inutile | Non vérifié | Audit conçu sans PII ; journaux d'exécution Cloudflare non examinés. |
 | Sauvegarde puis restauration effectuées | Non fait | Aucune restauration testée. |
 | Plan d'incident et contact technique | Non fait | Procédure décrite en section 6 mais aucun contact ni exercice. |
 | Revue indépendante terminée | **Non faite** | Toutes les vérifications ont été faites par l'auteur des changements. |
 | Autorisation explicite du propriétaire | Non donnée | Aucun pilote avec données réelles n'est ouvert. |
 
-**Conséquence :** l'application reste au niveau « Démonstration » du guide propriétaire (feux de mise en service). Elle ne doit recevoir ni vraies commandes ni vraies coordonnées de clients tant que les lignes « Bloquant », « Non fait » et « Non vérifié » ne sont pas traitées.
+**Conséquence :** l'application reste au niveau « Démonstration » du guide propriétaire (feux de mise en service). Elle ne doit recevoir ni vraies commandes ni vraies coordonnées de clients tant que les lignes « Non fait », « Non vérifié » et « Partiel » ne sont pas traitées.
 
 **Points de procédure à trancher par le propriétaire :**
 - La procédure suppose une préproduction. En créer une demanderait un second projet Supabase et un second Worker (coût et nouveau compte à autoriser explicitement) ; sinon, adapter la procédure et le consigner.

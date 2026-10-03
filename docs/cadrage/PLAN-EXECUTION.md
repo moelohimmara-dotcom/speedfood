@@ -70,7 +70,7 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 
 **Type :** agent backend/data/security.  
 **Dépendances :** bloc 1 accepté; ADR-003/004/011 confirmés par le propriétaire.  
-**Statut : FAIT** (voir `docs/STATUT-PROJET.md`). Le schéma existe dans le projet Supabase `ggldjdizqrtpetdiohxy` (24 migrations, toutes versionnées dans `supabase/migrations/`, RLS partout, fonctions de sécurité). Les tâches ci-dessous décrivent le périmètre d'origine; toute évolution passe désormais par une **nouvelle migration versionnée**, jamais par la modification d'une migration existante ni par un changement direct en base sans fichier correspondant.
+**Statut : FAIT** (voir `docs/STATUT-PROJET.md`). Le schéma existe dans le projet Supabase `ggldjdizqrtpetdiohxy` (25 migrations, toutes versionnées dans `supabase/migrations/`, RLS partout, fonctions de sécurité). Les tâches ci-dessous décrivent le périmètre d'origine; toute évolution passe désormais par une **nouvelle migration versionnée**, jamais par la modification d'une migration existante ni par un changement direct en base sans fichier correspondant.
 
 **Tâches**
 
@@ -162,7 +162,7 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 **Type :** agent parcours de commande.  
 **Dépendances :** blocs 2, 3, 5 et 6 acceptés; schéma/order contract gelé.  
 **Fichiers possédés :** panier/checkout public, endpoint création commande, page de suivi, handlers statut à coordonner avec bloc 6.  
-**Note d’architecture :** le parcours invité passe par des routes serveur avec `service_role` (ADR-011); aucune politique RLS `anon` n’est ajoutée sur les tables de commande. **Statut : FAIT**; reste la limitation de débit (voir ADR-011, état réel).
+**Note d’architecture :** le parcours invité passe par des routes serveur avec `service_role` (ADR-011); aucune politique RLS `anon` n’est ajoutée sur les tables de commande. **Statut : FAIT**; limitation de débit ajoutée le 3 octobre 2026 (voir ADR-011, état réel).
 
 **Tâches**
 

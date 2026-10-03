@@ -23,7 +23,7 @@
 
 ## ADR-003 — PostgreSQL managé sur Supabase
 
-- **Statut :** ACCEPTÉ — projet `ggldjdizqrtpetdiohxy` créé (PostgreSQL 17, région `eu-west-1`), 24 migrations appliquées
+- **Statut :** ACCEPTÉ — projet `ggldjdizqrtpetdiohxy` créé (PostgreSQL 17, région `eu-west-1`), 25 migrations appliquées
 - **Contexte :** menus, commandes, rôles et historique ont des relations fortes et nécessitent des transactions ainsi qu’une isolation fiable.
 - **Décision :** modéliser en PostgreSQL et utiliser Supabase managé (Postgres + Auth). Les migrations sont versionnées dans `supabase/migrations/` et la logique doit rester portable.
 - **Alternatives considérées :** base locale JSON (seulement prototype); base NoSQL (plus de travail pour cohérence commande/menu); hébergement PostgreSQL auto-opéré (charge d’exploitation prématurée).
@@ -91,7 +91,7 @@
 - **Décision :** créer, suivre et répondre à une proposition passent par des **routes serveur Next.js** qui utilisent la `service_role` uniquement côté serveur, avec validation stricte (recalcul des prix depuis la base, transitions autorisées, jeton opaque imprévisible, idempotence). Les politiques RLS des tables `orders`, `order_items`, `order_item_options`, `order_status_events`, `order_proposals` restent **fermées à `anon`** : aucune politique d’INSERT ou de SELECT par jeton n’est ajoutée. Les opérations des membres de restaurant continuent d’aller directement en base avec leur session authentifiée, sous RLS.
 - **Alternatives considérées :** fonctions `SECURITY DEFINER` exposées à `anon` (ex. `fn_creer_commande`) — logique plus près de la base, mais étend la surface SQL exposée publiquement et double la validation déjà prévue côté serveur (ADR-002); politiques RLS avec accès par jeton — rend le jeton équivalent d’un mot de passe stocké en clair dans la table et expose le modèle de commande au public.
 - **Conséquences :** tout le parcours invité dépend du serveur Next.js disponible; la `service_role` ne quitte jamais le serveur; les écritures invitées sont testables en un seul point. Les endpoints sont ouverts à des visiteurs sans compte et doivent être protégés contre les abus (limites de débit, tailles bornées).
-- **État réel de la protection anti-abus :** tailles et quantités sont bornées dans le code ; **aucune limitation de débit n’existe dans le code**. C’est une porte bloquante de `PROCEDURE-SECURITE.md` §7, à traiter avant tout pilote (règle Cloudflare ou compteur serveur) — non vérifié côté Cloudflare.
+- **État réel de la protection anti-abus :** tailles et quantités bornées dans le code, **et limitation de débit implémentée le 3 octobre 2026** (`src/lib/securite/limitation-debit.ts`, table `rate_limits` + fonction `fn_limiter_debit` réservée au service-role) : compteur à fenêtre fixe dans la base existante, sans service externe, clés = empreintes HMAC (jamais d'IP ni de téléphone en clair). En cas de panne du compteur, la requête passe (journalisée) plutôt que de bloquer toutes les commandes. Limites initiales à ajuster avec l'usage réel. Restent à vérifier : `cf-connecting-ip` en production, règles Cloudflare complémentaires, limites de Supabase Auth.
 - **Réexamen :** si une fonction `SECURITY DEFINER` devient nécessaire pour la cohérence transactionnelle, l’ajouter en complément des routes serveur, jamais en remplacement des validations.
 
 ## Décisions ouvertes avant préproduction

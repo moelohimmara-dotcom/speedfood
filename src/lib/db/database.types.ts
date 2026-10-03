@@ -563,6 +563,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          cle: string
+          compteur: number
+          fenetre: string
+        }
+        Insert: {
+          cle: string
+          compteur?: number
+          fenetre: string
+        }
+        Update: {
+          cle?: string
+          compteur?: number
+          fenetre?: string
+        }
+        Relationships: []
+      }
       restaurant_memberships: {
         Row: {
           cree_le: string
@@ -697,6 +715,10 @@ export type Database = {
       fn_est_admin_systeme: { Args: { p_roles?: string[] }; Returns: boolean }
       fn_est_membre_restaurant: {
         Args: { p_restaurant_id: string }
+        Returns: boolean
+      }
+      fn_limiter_debit: {
+        Args: { p_cle: string; p_fenetre_secondes: number; p_max: number }
         Returns: boolean
       }
       fn_lister_audit: {
