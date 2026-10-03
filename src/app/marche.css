@@ -553,3 +553,82 @@
   min-height: 44px;
   font-weight: 700;
 }
+
+/* --- Commande : choix du mode, bloc de règlement, consentement lisible (lot R5) --- */
+.choix-groupe {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+.choix-groupe legend {
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 0;
+}
+.choix-carte {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--bordure);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.choix-carte:has(input:checked) {
+  border-color: var(--rouge-fonce);
+  box-shadow: 0 0 0 1px var(--rouge-fonce);
+}
+.choix-carte:has(input:focus-visible) {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.choix-carte input,
+.consentement input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--rouge-fonce);
+}
+.choix-texte {
+  display: flex;
+  flex-direction: column;
+}
+.choix-texte small {
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.bloc-reglement {
+  margin-bottom: var(--space-4);
+  padding: 12px 14px;
+  background: var(--surface);
+  border-left: 4px solid var(--rouge-fonce);
+  border-radius: var(--radius-md);
+}
+.bloc-reglement-cle {
+  margin: 0;
+  font-weight: 800;
+}
+.bloc-reglement-detail {
+  margin: 4px 0 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.consentement {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: var(--space-4);
+  padding: 10px 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.consentement a {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  font-weight: 700;
+}

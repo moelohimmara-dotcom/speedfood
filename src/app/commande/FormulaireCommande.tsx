@@ -162,9 +162,9 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
         erreur={champs.telephone}
       />
 
-      <fieldset style={{ border: 0, padding: 0, margin: "0 0 var(--space-4)" }}>
-        <legend style={{ fontWeight: 700, marginBottom: 8 }}>Mode de réception</legend>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+      <fieldset className="choix-groupe">
+        <legend>Mode de réception</legend>
+        <label className="choix-carte">
           <input
             type="radio"
             name="mode"
@@ -172,9 +172,12 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
             checked={mode === "retrait"}
             onChange={() => setMode("retrait")}
           />
-          Retrait sur place
+          <span className="choix-texte">
+            <strong>Retrait sur place</strong>
+            <small>Vous passez récupérer votre commande</small>
+          </span>
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <label className="choix-carte">
           <input
             type="radio"
             name="mode"
@@ -182,7 +185,10 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
             checked={mode === "livraison"}
             onChange={() => setMode("livraison")}
           />
-          Livraison (à confirmer avec le restaurant)
+          <span className="choix-texte">
+            <strong>Livraison</strong>
+            <small>À confirmer avec le restaurant</small>
+          </span>
         </label>
       </fieldset>
 
@@ -200,38 +206,27 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
         />
       ) : null}
 
-      <div className="card" style={{ marginBottom: "var(--space-4)" }}>
-        <p style={{ marginTop: 0, fontWeight: 700 }}>Règlement et confirmation</p>
-        <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          Speedfood n&apos;encaisse aucun paiement : vous réglez directement avec le restaurant
-          (espèces ou mobile money), selon ses modalités. Votre commande n&apos;est pas confirmée
-          tant que le restaurant ne l&apos;a pas acceptée. Les prix et la disponibilité viennent du
-          menu du restaurant et sont revérifiés à l&apos;envoi.
+      <div className="bloc-reglement">
+        <p className="bloc-reglement-cle">Vous payez le restaurant directement, pas Speedfood.</p>
+        <p className="bloc-reglement-detail">
+          Espèces ou mobile money, selon ses modalités. La commande n&apos;est confirmée que lorsque le
+          restaurant l&apos;accepte. Prix et disponibilité sont revérifiés à l&apos;envoi.
         </p>
       </div>
 
-      <label
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
-          marginBottom: "var(--space-4)",
-          fontSize: "0.9rem",
-        }}
-      >
+      <label className="consentement">
         <input
           type="checkbox"
           name="consentement"
           checked={consentement}
           onChange={(e) => setConsentement(e.target.checked)}
-          style={{ marginTop: 3 }}
         />
         <span>
           J&apos;accepte que mon nom, mon numéro de téléphone et, le cas échéant, mon adresse soient
           transmis au restaurant uniquement pour traiter ma commande. Je comprends que le règlement
           se fait directement avec le restaurant et que ma commande doit être confirmée par ce
           dernier.{" "}
-          <a href="/confidentialite" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700 }}>
+          <a href="/confidentialite" target="_blank" rel="noopener noreferrer">
             Voir comment mes données sont utilisées
           </a>
         </span>

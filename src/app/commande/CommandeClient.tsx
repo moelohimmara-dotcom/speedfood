@@ -30,7 +30,7 @@ export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
       <Link
         href="/panier"
-        style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}
+        style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem", display: "inline-flex", alignItems: "center", minHeight: 44 }}
       >
         ← Retour au panier
       </Link>
