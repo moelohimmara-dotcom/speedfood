@@ -11,14 +11,38 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
   manuellement par Malika et ce choix a été accepté tel quel plutôt que de
   recréer un projet, voir historique Git du bloc 1)
 - Compte : `mistermarcket@gmail.com`
-- **Deux réglages d'Auth ont été changés à la main dans le dashboard Supabase,
-  aucun outil ne permet de les gérer par migration ou API MCP :**
-  - "Confirm email" est **désactivé** (compte actif immédiatement après
-    inscription, sans clic sur un lien reçu par email). À reconsidérer avant un
-    vrai pilote public — voir plus bas.
-  - "Leaked password protection" (HaveIBeenPwned) est encore **désactivée** au
-    27/09/2026, signalé par l'audit de sécurité Supabase. Recommandé de
-    l'activer avant le pilote.
+- **État vérifié le 3 octobre 2026 par l'API de gestion Supabase**
+  (`GET /v1/projects/ggldjdizqrtpetdiohxy`) : projet `ACTIVE_HEALTHY`, région
+  `eu-west-1`, organisation `celytzqqoodmsbuucbqk`.
+- **Réglages d'Auth — état vérifié le 3 octobre 2026.** L'ancienne note affirmait
+  qu'« aucun outil ne permet de les gérer par migration ou API » : **c'est faux**,
+  l'API de gestion Supabase les lit et les écrit ; c'est l'accès qui manquait, pas
+  l'outil. État réel :
+  - "Confirm email" est **désactivé** (`mailer_autoconfirm = true`) : le compte est
+    actif immédiatement après l'inscription. **Ne pas l'activer avant d'avoir un
+    service d'envoi dédié.** Preuve chiffrée : `smtp` n'est pas configuré et
+    `rate_limit_email_sent = 2`, soit **deux courriels par heure** — activer la
+    confirmation aujourd'hui plafonnerait l'inscription à deux restaurateurs par
+    heure, avec un fort risque de courrier indésirable. À faire dans cet ordre :
+    SMTP dédié, essai réel avec un restaurant, puis activation.
+  - "Leaked password protection" est **impossible sur l'offre actuelle**, ce n'est
+    pas un réglage oublié : tentative d'activation par l'API le 3 octobre 2026,
+    refus explicite `HTTP 402 — "Configuring leaked password protection via
+    HaveIBeenPwned.org is available on Pro Plans and up."` Décision de coût (offre
+    Pro), pas de configuration.
+  - `password_min_length` est passé de **6 à 8** le 3 octobre 2026. Motif :
+    l'application impose déjà 8 caractères côté serveur
+    (`src/lib/auth/actions.ts`, `src/lib/auth/recuperation.ts`), mais le plancher
+    Supabase en acceptait 6 — un appel direct à l'API d'inscription pouvait donc
+    créer un compte plus faible que ce que l'application autorise. Tout compte créé
+    via l'application a ≥ 8 caractères (règle serveur appliquée à l'inscription et
+    au changement de mot de passe), ce durcissement ne peut donc pas verrouiller un
+    compte créé normalement. **Retour arrière** en une requête si une connexion
+    échoue de façon inattendue en invoquant un mot de passe faible.
+  - Vérifiés également : `uri_allow_list` contient bien
+    `…/auth/confirmation` ; MFA TOTP activée (enrôlement et vérification) ;
+    aucune CAPTCHA Supabase (`security_captcha_enabled = false`) — l'anti-robot
+    Turnstile agit à l'étape commande, pas à l'authentification.
 
 ## Ce qui est fait, bloc par bloc (voir `docs/cadrage/PLAN-EXECUTION.md`)
 
@@ -402,6 +426,19 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   inline (`'unsafe-inline'` oblige), mais elle ferme le chargement de scripts
   tiers, les connexions sortantes vers des domaines non prévus, le détournement de
   cadre, les formulaires détournés, la balise `base` et les objets embarqués.
+
+- **Secret Turnstile pivoté (3 octobre 2026)** : la clé secrète d'origine était
+  apparue par erreur dans une session de travail (voir la ligne Turnstile du
+  tableau). Rotation effectuée par Malika dans le dashboard Cloudflare à
+  `20:47:33Z`, puis nouvelle clé relevée par l'API de gestion et posée comme secret
+  du Worker `speedfood-app` (`TURNSTILE_SECRET_KEY`) à `20:49:41Z`. **Aucune
+  coupure** : Cloudflare conserve l'ancienne et la nouvelle clé valides pendant
+  deux heures, ce qui rend la rotation progressive. Vérification faite directement
+  auprès de Cloudflare : un appel à `siteverify` avec la clé posée et un jeton
+  bidon renvoie `invalid-input-response` (et non `invalid-input-secret`), ce qui
+  prouve que la clé installée est valide et acceptée. Nouvelle version Worker
+  `75f7c15a`. **Reste à confirmer par Malika** : une commande réelle de bout en
+  bout, comme elle l'avait fait pour la mise en place initiale.
 
 ## Ce qui n'est pas testé / connu comme incomplet
 
