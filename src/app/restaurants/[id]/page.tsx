@@ -274,7 +274,7 @@ export default async function FicheRestaurantPage({
         </>
       )}
       </div>
-      <ResumePanierFiche restaurantId={restaurantSur.id} restaurantNom={restaurantSur.nom} />
+      <ResumePanierFiche restaurantId={restaurantSur.id} />
       </div>
     </main>
   );

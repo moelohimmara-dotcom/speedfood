@@ -383,15 +383,21 @@
   }
   .fiche-grille {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: var(--space-8);
+    /* La colonne de droite est dimensionnée par son contenu : quand le panier est vide,
+       `ResumePanierFiche` ne rend rien, la colonne tombe à zéro et le menu occupe toute la
+       largeur. Une gouttière fixe laisserait un vide résiduel dans ce cas, d'où le retrait
+       porté par la carte elle-même (`.fiche-panier`). */
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 0;
     align-items: start;
   }
   .fiche-panier {
     display: block;
     position: sticky;
     top: 92px;
+    width: 340px;
     margin-top: var(--space-6);
+    margin-left: var(--space-8);
     padding: var(--space-5);
     background: var(--surface);
     border: 1px solid var(--bordure);

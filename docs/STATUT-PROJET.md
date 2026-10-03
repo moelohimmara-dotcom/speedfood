@@ -534,6 +534,24 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   tient sur une ligne, sans débordement). **Lot 3** (panier vide, grille de menu) non
   commencé.
 
+- **Fiche restaurant : panier vide, lot 3 (3 octobre 2026)** : sur grand écran, la colonne
+  de droite réservait 340 px en permanence — une carte de ~200 px pour deux lignes de
+  texte quand le panier était vide. `ResumePanierFiche` ne rend plus rien dans ce cas, et
+  `grid-template-columns: minmax(0, 1fr) auto` (au lieu de `… 340px`) fait tomber la
+  colonne à zéro : le menu occupe alors toute la largeur. La gouttière est portée par la
+  carte (`margin-left`) et non par un `column-gap` fixe, qui aurait laissé un vide
+  résiduel. Mesuré dans un vrai Chrome : panier vide → menu **1128 px**, aucune colonne ;
+  panier garni → colonne revenue, menu **756 px**, sous-total et bouton « Commander »
+  corrects. **À noter** : le composant ne rend rien au premier affichage (le panier vit
+  dans `localStorage`), donc un visiteur qui a déjà un panier verra le menu se resserrer
+  après hydratation — décalage accepté, il ne concerne que le grand écran. Le paramètre
+  `restaurantNom`, devenu inutile, a été retiré du composant et de son appelant.
+  `npm run typecheck` et `npm run lint` propres (0 erreur, 0 avertissement) ; déployé
+  (version Worker `0b08ab84`). **Correction de l'analyse initiale** : le lot 3 annonçait
+  une grille de menu affichant « des affiches » ; vérification faite, `.vignettes` est
+  déjà une grille de vignettes à média `4/3` (marche.css) — aucun changement n'y a été
+  apporté, faute de problème réel.
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires
