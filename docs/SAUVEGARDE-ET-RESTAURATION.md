@@ -16,7 +16,7 @@ Ton organisation Supabase est sur l'offre **gratuite** (`free`, vérifié par l'
 
 | Élément | Récupérable aujourd'hui ? | Comment |
 |---|---|---|
-| Structure de la base (tables, règles d'accès, fonctions) | **Oui** | Les 25 fichiers de `supabase/migrations/` la reconstruisent (versionnés le 3 octobre ; **rejeu complet jamais testé**, voir §5) |
+| Structure de la base (tables, règles d'accès, fonctions) | **Oui** | Les 25 fichiers de `supabase/migrations/` la reconstruisent (versionnés ; **rejeu complet vérifié le 3 octobre 2026**, voir §5) |
 | Code de l'application | Oui | Dépôt Git |
 | Réglages Worker (variables publiques) | Oui | `wrangler.jsonc` |
 | Secrets du Worker (`SUPABASE_SERVICE_ROLE_KEY`, `COMMANDE_JETON_SECRET`) | **Non, par conception** | Ils ne sont dans aucun fichier. Ils se régénèrent (voir `PLAN-INCIDENT.md`), mais **personne d'autre que toi n'a leur valeur** : garde-les dans un gestionnaire de mots de passe |
@@ -50,7 +50,7 @@ supabase db dump --data-only --linked -f sauvegarde-donnees-AAAA-MM-JJ.sql
 
 Une sauvegarde qu'on n'a jamais restaurée n'est pas une preuve. Test proposé, **sans toucher à la production** :
 
-1. **Rejeu des migrations sur une base vide** : base PostgreSQL jetable en local (Docker), puis application des 25 fichiers de `supabase/migrations/` dans l'ordre. Doit se terminer sans erreur et produire les mêmes tables, policies et fonctions que la production (comparer les listes). *Docker Desktop doit être lancé ; je peux préparer et exécuter ce test sur ta demande. Les migrations utilisent des éléments propres à Supabase (rôles `anon`/`authenticated`, schémas `auth` et `storage`) : la base de test doit les fournir.*
+1. **Rejeu des migrations sur une base vide : FAIT le 3 octobre 2026**, avec PGlite (PostgreSQL en mémoire, sans Docker) via `supabase/rejeu/` : les 26 fichiers se rejouent sans erreur et le schéma obtenu est **identique à celui de la production** (19 tables, 134 colonnes, 66 contraintes, 45 index, 54 policies RLS, 8 triggers, 12 fonctions ; hachages égaux). Limites : moteur PostgreSQL 18 contre 17 en production, éléments Supabase remplacés par des bouchons, droits (`GRANT`/`REVOKE`), données et stockage non comparés (voir `supabase/rejeu/README.md`). À refaire après chaque migration.
 2. **Restauration des données** : appliquer ensuite un export de données (§4) sur cette base de test, puis vérifier le nombre de lignes par table et une commande de bout en bout.
 3. **Consigner** la date, la durée, les écarts, et qui a fait le test, dans `STATUT-PROJET.md`.
 

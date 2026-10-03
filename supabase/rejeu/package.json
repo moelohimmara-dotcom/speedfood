@@ -1,0 +1,12 @@
+{
+  "name": "speedfood-rejeu-migrations",
+  "private": true,
+  "type": "module",
+  "description": "Outil de controle : rejoue supabase/migrations sur une base jetable. Dossier autonome, pas une dependance de l'application.",
+  "scripts": {
+    "rejeu": "node rejeu.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}
