@@ -287,6 +287,8 @@ export default function AccueilPage() {
         <p>Speedfood — projet en phase de validation à Conakry.</p>
         <p>
           <Link href="/restaurants">Voir les restaurants déjà en ligne</Link>
+          {" · "}
+          <Link href="/confidentialite">Confidentialité</Link>
         </p>
       </footer>
     </>

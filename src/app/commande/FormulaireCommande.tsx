@@ -230,7 +230,10 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
           J&apos;accepte que mon nom, mon numéro de téléphone et, le cas échéant, mon adresse soient
           transmis au restaurant uniquement pour traiter ma commande. Je comprends que le règlement
           se fait directement avec le restaurant et que ma commande doit être confirmée par ce
-          dernier.
+          dernier.{" "}
+          <a href="/confidentialite" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700 }}>
+            Voir comment mes données sont utilisées
+          </a>
         </span>
       </label>
       {champs.consentement ? (

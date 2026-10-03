@@ -139,5 +139,5 @@ puis journalise la demande dans l'audit **avec un motif sans coordonnées**. Pen
 
 ### 6.6 Ce qui reste à faire
 
-- Publier la page `/confidentialite` (le texte du §5 est prêt). **Responsable indiqué par Malika le 3 octobre 2026 : Mo elohim.** Il manque encore l'adresse de contact à publier ; la date de mise à jour sera celle de la publication.
+- Publier la page `/confidentialite` (le texte du §5 est prêt). **Responsable indiqué par Malika le 3 octobre 2026 : Mo elohim.** **Contact publié : moelohimmara@gmail.com** (confirmé par Malika le 3 octobre 2026). La page `/confidentialite` est écrite (durée lue en direct dans le réglage de conservation, donc toujours exacte), liée depuis l'accueil et depuis le consentement de la commande ; **pas encore déployée**. Reste la validation juridique en Guinée.
 - Faire valider les durées et les obligations en Guinée par un conseil compétent avant le pilote avec de vraies données.
