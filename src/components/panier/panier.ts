@@ -25,6 +25,8 @@ export interface LignePanier {
   prix: number;
   quantite: number;
   options: OptionPanier[];
+  /** Miniature affichée dans la barre de panier. Affichage seulement : le serveur ne s'en sert jamais. */
+  photoUrl?: string | null;
 }
 
 /** Construit la clé d'identité d'une ligne à partir du plat et des suppléments choisis. */
@@ -100,6 +102,7 @@ function assainir(valeur: unknown): Panier {
       prix: l.prix,
       quantite: Math.min(l.quantite, QUANTITE_MAX_LIGNE),
       options,
+      photoUrl: photoSure(l.photoUrl),
     });
   }
   return {
@@ -107,6 +110,11 @@ function assainir(valeur: unknown): Panier {
     restaurantNom: typeof brut.restaurantNom === "string" ? brut.restaurantNom : null,
     lignes,
   };
+}
+
+/** Une miniature n'est conservée que si c'est une adresse https de longueur raisonnable. */
+function photoSure(valeur: unknown): string | null {
+  return typeof valeur === "string" && valeur.startsWith("https://") && valeur.length <= 500 ? valeur : null;
 }
 
 function charger(): void {
@@ -183,6 +191,7 @@ export interface ArticlePanier {
   prix: number;
   /** Suppléments choisis pour cet ajout (vide si le plat n'en propose pas ou qu'aucun n'est coché). */
   options?: OptionPanier[];
+  photoUrl?: string | null;
 }
 
 /**
@@ -225,7 +234,15 @@ export function ajouterArticle(
       )
     : [
         ...base.lignes,
-        { cle, menuItemId: article.id, nom: article.nom, prix: article.prix, quantite: 1, options },
+        {
+          cle,
+          menuItemId: article.id,
+          nom: article.nom,
+          prix: article.prix,
+          quantite: 1,
+          options,
+          photoUrl: photoSure(article.photoUrl),
+        },
       ];
 
   etat = { restaurantId: restaurant.id, restaurantNom: restaurant.nom, lignes };

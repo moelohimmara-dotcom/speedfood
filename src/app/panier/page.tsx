@@ -11,6 +11,7 @@ import {
   QUANTITE_MAX_LIGNE,
 } from "@/components/panier/panier";
 import { Button, Card, Alert } from "@/components/ui";
+import { initialePlat } from "@/lib/design/tuile";
 
 /**
  * Panier mono-restaurant (TDR.md §5). Entièrement local au navigateur :
@@ -52,12 +53,23 @@ export default function PanierPage() {
                 key={ligne.cle}
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: 12,
                 }}
               >
-                <div>
+                <div className="panier-ligne-media" aria-hidden="true">
+                  {ligne.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- miniature d'une photo déjà affichée, URL Supabase Storage dynamique.
+                    <img src={ligne.photoUrl} alt="" />
+                  ) : (
+                    <span className="tuile tuile-neutre" style={{ fontSize: "1.6rem" }}>
+                      {initialePlat(ligne.nom)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: "1 1 140px", minWidth: 0 }}>
                   <strong>{ligne.nom}</strong>
                   {ligne.options.length > 0 ? (
                     <ul style={{ margin: "2px 0 0", paddingLeft: 16, fontSize: "0.8rem", color: "var(--secondaire)" }}>
@@ -72,7 +84,7 @@ export default function PanierPage() {
                     {prixLigne(ligne).toLocaleString("fr-FR")} GNF l&apos;unité
                   </p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
                   <Button
                     type="button"
                     variante="secondary"

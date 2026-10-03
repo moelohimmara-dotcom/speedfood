@@ -2,6 +2,7 @@ import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
 import { RestaurantCard, type PlatCarte } from "@/components/RestaurantCard";
 import { Alert } from "@/components/ui";
+import { StampFraicheur } from "@/components/StampFraicheur";
 import { rechercherCatalogue } from "@/lib/decouverte/recherche";
 import { LIBELLES_GROUPES, ORDRE_GROUPES, type ResultatClasse } from "@/lib/decouverte/classement";
 import { etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
@@ -46,9 +47,7 @@ export default async function CataloguePage({
 
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-5)" }}>
-        Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?
-      </h1>
+      <h1 className="decouverte-hero">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
 
       <form action="/restaurants" method="GET" style={{ marginBottom: "var(--space-4)" }}>
         {categorie ? <input type="hidden" name="categorie" value={categorie} /> : null}
@@ -105,6 +104,34 @@ export default async function CataloguePage({
           </Link>
         ))}
       </div>
+
+      {!erreur && !q && recherche.vedettes.length > 0 ? (
+        <section aria-labelledby="titre-vedettes" style={{ marginBottom: "var(--space-5)" }}>
+          <h2 id="titre-vedettes" className="groupe-resultats-titre">
+            Plats du moment
+          </h2>
+          <div className="carrousel">
+            {recherche.vedettes.map((vedette) => (
+              <Link key={vedette.platId} href={`/restaurants/${vedette.restaurantId}#plat-${vedette.platId}`} className="carte-vedette">
+                {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
+                <img src={vedette.photoUrl} alt="" loading="lazy" />
+                <span className="carte-vedette-corps">
+                  <span className="carte-vedette-nom">{vedette.nom}</span>
+                  <span className="carte-vedette-resto">
+                    {vedette.restaurantNom} · {vedette.quartier}
+                  </span>
+                  <StampFraicheur disponibilite={libelleDisponibilite(vedette.etat, recherche.maintenant)} />
+                  <span className="carte-vedette-prix">{vedette.prixAffiche.toLocaleString("fr-FR")} GNF</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {!q && !erreur && resultats.length > 0 ? (
+        <h2 className="groupe-resultats-titre">Restaurants</h2>
+      ) : null}
 
       {q || filtres.dispo ? (
         <p style={{ color: "var(--secondaire)", fontSize: "0.85rem", margin: "0 0 var(--space-3)" }}>

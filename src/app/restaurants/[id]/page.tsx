@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
 import { Badge, Alert } from "@/components/ui";
-import { ControleQuantiteArticle } from "@/components/panier/ControleQuantiteArticle";
-import { LienPanier } from "@/components/panier/LienPanier";
+import { VignettePlat } from "@/components/VignettePlat";
+import { classeTuile, initialePlat } from "@/lib/design/tuile";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
@@ -117,7 +117,15 @@ export default async function FicheRestaurantPage({
   }
   const platsSansSection = platsParSection.get(null) ?? [];
 
-  function ligneMenu(item: (typeof menuListe)[number]) {
+  const commandable = estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes });
+  const categorie = restaurantSur.menu_categories?.nom ?? "";
+
+  const etatsPlats = menuListe.map((item) =>
+    etatDisponibilite({ disponible: item.disponible, confirmeLe: item.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant)
+  );
+  const nombreConfirmes = etatsPlats.filter((etat) => etat.type === "disponible").length;
+
+  function vignette(item: (typeof menuListe)[number]) {
     const disponibilite = libelleDisponibilite(
       etatDisponibilite(
         { disponible: item.disponible, confirmeLe: item.disponibilite_confirmee_le },
@@ -126,57 +134,25 @@ export default async function FicheRestaurantPage({
       ),
       maintenant
     );
+    const lien = urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id));
     return (
-      <div key={item.id} id={`plat-${item.id}`} className={`menu-item-row${!item.disponible ? " indisponible" : ""}`}>
-        <div className="menu-item-principal">
-          {item.photo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-            <img src={item.photo_url} alt="" className="menu-item-photo" />
-          ) : null}
-          <div style={{ minWidth: 0 }}>
-            <h4 className="menu-item-nom">{item.nom}</h4>
-            {item.description ? <p className="menu-item-desc">{item.description}</p> : null}
-            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {item.prix_promo !== null ? <Badge ton="danger">Promo</Badge> : null}
-              <Badge ton={disponibilite.ton}>{disponibilite.court}</Badge>
-              {disponibilite.detail ? (
-                <small style={{ color: "var(--secondaire)", fontSize: "0.78rem" }}>{disponibilite.detail}</small>
-              ) : null}
-            </div>
-            <a
-              href={lienWhatsApp(textePlat(item.nom, restaurantSur.nom, urlAbsolue(origine, cheminRestaurant(restaurantSur.id, item.id))))}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="menu-item-partage"
-            >
-              Partager ce plat
-            </a>
-          </div>
-        </div>
-        <div className="menu-item-prix-bloc">
-          {item.prix_promo !== null ? (
-            <span className="menu-item-prix-barre">{formaterGNF(item.prix)}</span>
-          ) : null}
-          <span className="menu-item-prix" style={item.prix_promo !== null ? { color: "var(--rouge)" } : undefined}>
-            {formaterGNF(item.prix_promo ?? item.prix)}
-          </span>
-          {!item.disponible ? (
-            <Link
-              href={`/restaurants/${restaurantSur.id}/alternatives?plat=${item.id}`}
-              style={{ fontSize: "0.85rem", fontWeight: 700 }}
-            >
-              Trouver ailleurs
-            </Link>
-          ) : null}
-          {estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes }) && item.disponible ? (
-            <ControleQuantiteArticle
-              restaurant={{ id: restaurantSur.id, nom: restaurantSur.nom }}
-              article={{ id: item.id, nom: item.nom, prix: item.prix_promo ?? item.prix }}
-              optionsDisponibles={optionsParPlat.get(item.id) ?? []}
-            />
-          ) : null}
-        </div>
-      </div>
+      <VignettePlat
+        key={item.id}
+        restaurant={{ id: restaurantSur.id, nom: restaurantSur.nom, categorie }}
+        plat={{
+          id: item.id,
+          nom: item.nom,
+          description: item.description,
+          prix: item.prix,
+          prixPromo: item.prix_promo,
+          photoUrl: item.photo_url,
+          disponible: item.disponible,
+        }}
+        disponibilite={disponibilite}
+        commandable={commandable}
+        options={optionsParPlat.get(item.id) ?? []}
+        lienPartage={lienWhatsApp(textePlat(item.nom, restaurantSur.nom, lien))}
+      />
     );
   }
 
@@ -187,62 +163,50 @@ export default async function FicheRestaurantPage({
           ...sectionsListe
             .map((section) => ({ id: section.id, nom: section.nom, plats: platsParSection.get(section.id) ?? [] }))
             .filter((groupe) => groupe.plats.length > 0),
-          ...(platsSansSection.length > 0
-            ? [{ id: "autres", nom: "Autres plats", plats: platsSansSection }]
-            : []),
+          ...(platsSansSection.length > 0 ? [{ id: "autres", nom: "Autres plats", plats: platsSansSection }] : []),
         ];
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link href="/restaurants" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
+    <main className="fiche">
+      <Link href="/restaurants" className="fiche-retour">
         ← Retour aux restaurants
       </Link>
 
-      {restaurant.photo_url ? (
-        <div className="fiche-restaurant-hero-wrap">
-          {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
-          <img
-            src={restaurant.photo_url}
-            alt=""
-            className="fiche-restaurant-hero"
-            style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}
-          />
-          {restaurant.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-            <img src={restaurant.logo_url} alt="" className="fiche-restaurant-logo" />
-          ) : null}
-        </div>
-      ) : null}
-
-      <h1
-        style={{
-          fontSize: "2rem",
-          margin: restaurant.photo_url && restaurant.logo_url ? "28px 0 4px" : "var(--space-3) 0 4px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        {!restaurant.photo_url && restaurant.logo_url ? (
+      <div className="fiche-hero" style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}>
+        {restaurant.photo_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-          <img src={restaurant.logo_url} alt="" className="fiche-restaurant-logo-inline" />
+          <img src={restaurant.photo_url} alt="" />
+        ) : (
+          <span className={`tuile ${classeTuile(categorie)}`} style={{ fontSize: "6rem" }} aria-hidden="true">
+            {initialePlat(restaurant.nom)}
+          </span>
+        )}
+        <span className="fiche-hero-statut">
+          <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
+        </span>
+        {restaurant.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+          <img src={restaurant.logo_url} alt="" className="fiche-hero-logo" />
         ) : null}
-        {restaurant.nom}
-      </h1>
+      </div>
+
+      <h1 className="fiche-titre">{restaurant.nom}</h1>
       {restaurant.couleur_accent ? (
         <div
           aria-hidden="true"
           style={{ width: 48, height: 4, borderRadius: "var(--radius-pill)", background: restaurant.couleur_accent, marginBottom: 8 }}
         />
       ) : null}
-      <p style={{ color: "var(--secondaire)", marginBottom: 4 }}>
-        {restaurant.menu_categories?.nom} · {restaurant.neighborhoods?.nom}
+      <p className="fiche-meta">
+        {categorie} · {restaurant.neighborhoods?.nom}
       </p>
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-3)" }}>{restaurant.horaires}</p>
-      <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
-      <small style={{ marginLeft: 8, color: "var(--secondaire)", fontSize: "0.78rem" }}>
-        statut mis à jour {ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), maintenant)}
-      </small>
+      <p className="fiche-meta">{restaurant.horaires}</p>
+      <p className="fiche-meta" style={{ fontSize: "0.85rem" }}>
+        Statut mis à jour {ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), maintenant)}
+        {menuListe.length > 0
+          ? ` · ${nombreConfirmes} plat${nombreConfirmes > 1 ? "s" : ""} confirmé${nombreConfirmes > 1 ? "s" : ""} récemment`
+          : ""}
+      </p>
 
       <div style={{ marginTop: "var(--space-3)" }}>
         <BoutonsPartage texte={texteRestaurant(restaurant.nom, urlRestaurant)} url={urlRestaurant} />
@@ -258,19 +222,17 @@ export default async function FicheRestaurantPage({
         </Alert>
       ) : etatResto === "pause" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
-          Ce restaurant est ouvert mais ne prend plus de commandes pour le moment. Vous pouvez
-          consulter le menu et réessayer plus tard.
+          Ce restaurant est ouvert mais ne prend plus de commandes pour le moment. Vous pouvez consulter le menu et
+          réessayer plus tard.
         </Alert>
       ) : null}
 
-      <h2 style={{ fontSize: "1.5rem", marginTop: "var(--space-6)", marginBottom: "var(--space-3)" }}>
-        Menu
-      </h2>
+      <h2 className="fiche-section-titre">Menu</h2>
 
       {menuListe.length === 0 ? (
         <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>
       ) : groupesAffiches.length === 0 ? (
-        <div className="card">{menuListe.map((item) => ligneMenu(item))}</div>
+        <div className="vignettes">{menuListe.map((item) => vignette(item))}</div>
       ) : (
         <>
           {groupesAffiches.length > 1 ? (
@@ -283,19 +245,13 @@ export default async function FicheRestaurantPage({
             </nav>
           ) : null}
           {groupesAffiches.map((groupe) => (
-            <div key={groupe.id} id={`section-${groupe.id}`} className="menu-section">
+            <section key={groupe.id} id={`section-${groupe.id}`} className="menu-section">
               <h3 className="menu-section-titre">{groupe.nom}</h3>
-              <div className="card">{groupe.plats.map((item) => ligneMenu(item))}</div>
-            </div>
+              <div className="vignettes">{groupe.plats.map((item) => vignette(item))}</div>
+            </section>
           ))}
         </>
       )}
-
-      <LienPanier />
     </main>
   );
-}
-
-function formaterGNF(montant: number) {
-  return `${montant.toLocaleString("fr-FR")} GNF`;
 }

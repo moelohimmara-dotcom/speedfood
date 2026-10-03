@@ -1,6 +1,7 @@
 import "server-only";
 import { creerClientPublic } from "@/lib/db/public";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
+import { etatDisponibilite, scoreFraicheur, type EtatDisponibilite } from "@/lib/disponibilite/etat";
 import {
   classerResultats,
   type FiltresDecouverte,
@@ -37,7 +38,20 @@ export interface RechercheCatalogue {
   filtres: FiltresDecouverte;
 }
 
+/** Plat mis en avant dans le carrousel « Plats du moment » : jamais sans photo, jamais épuisé. */
+export interface PlatVedette {
+  platId: string;
+  nom: string;
+  prixAffiche: number;
+  photoUrl: string;
+  restaurantId: string;
+  restaurantNom: string;
+  quartier: string;
+  etat: EtatDisponibilite;
+}
+
 export interface ResultatRecherche {
+  vedettes: PlatVedette[];
   resultats: ResultatClasse<RestaurantCatalogue>[];
   fraicheurHeures: number;
   maintenant: Date;
@@ -75,7 +89,7 @@ export async function lireCatalogue(
       requete,
       supabase
         .from("menu_items")
-        .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le")
+        .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url")
         .is("archive_le", null)
         .limit(LIMITE_PLATS_LUS),
     ]);
@@ -114,6 +128,7 @@ export async function lireCatalogue(
       prixPromo: p.prix_promo,
       disponible: p.disponible,
       confirmeLe: p.disponibilite_confirmee_le,
+      photoUrl: p.photo_url,
     });
     platsParRestaurant.set(p.restaurant_id, liste);
   }
@@ -124,7 +139,7 @@ export async function lireCatalogue(
 export async function rechercherCatalogue(recherche: RechercheCatalogue): Promise<ResultatRecherche> {
   const catalogue = await lireCatalogue({ categorie: recherche.categorie, quartier: recherche.quartier });
   if (catalogue.erreur) {
-    return { resultats: [], fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: true };
+    return { vedettes: [], resultats: [], fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: true };
   }
 
   const resultats = classerResultats({
@@ -136,5 +151,53 @@ export async function rechercherCatalogue(recherche: RechercheCatalogue): Promis
     filtres: recherche.filtres,
   }).slice(0, LIMITE_RESULTATS_AFFICHES);
 
-  return { resultats, fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: false };
+  const vedettes = choisirVedettes(resultats, catalogue.platsParRestaurant, catalogue.fraicheurHeures, catalogue.maintenant);
+  return { vedettes, resultats, fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: false };
+}
+
+const MAX_VEDETTES = 12;
+
+/**
+ * Plats du moment : parmi les restaurants du résultat, les plats DISPONIBLES qui ont une photo,
+ * les plus récemment confirmés d'abord, un seul plat par restaurant (pour varier), ordre
+ * alphabétique à égalité (déterministe). Rien n'est inventé : un plat jamais confirmé reste « à
+ * confirmer » et passe après les plats confirmés.
+ */
+function choisirVedettes(
+  resultats: ResultatClasse<RestaurantCatalogue>[],
+  platsParRestaurant: Map<string, PlatPublic[]>,
+  fraicheurHeures: number,
+  maintenant: Date
+): PlatVedette[] {
+  const candidats: PlatVedette[] = [];
+  for (const { restaurant } of resultats) {
+    const meilleurs = (platsParRestaurant.get(restaurant.id) ?? [])
+      .filter((p) => p.disponible && p.photoUrl)
+      .map((p) => ({ p, etat: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.confirmeLe }, fraicheurHeures, maintenant) }))
+      .sort(
+        (a, b) =>
+          scoreFraicheur(b.etat, fraicheurHeures, maintenant) - scoreFraicheur(a.etat, fraicheurHeures, maintenant) ||
+          a.p.nom.localeCompare(b.p.nom, "fr")
+      );
+    const choisi = meilleurs[0];
+    if (choisi && choisi.p.photoUrl) {
+      candidats.push({
+        platId: choisi.p.id,
+        nom: choisi.p.nom,
+        prixAffiche: choisi.p.prixPromo ?? choisi.p.prix,
+        photoUrl: choisi.p.photoUrl,
+        restaurantId: restaurant.id,
+        restaurantNom: restaurant.nom,
+        quartier: restaurant.quartier,
+        etat: choisi.etat,
+      });
+    }
+  }
+  return candidats
+    .sort(
+      (a, b) =>
+        scoreFraicheur(b.etat, fraicheurHeures, maintenant) - scoreFraicheur(a.etat, fraicheurHeures, maintenant) ||
+        a.restaurantNom.localeCompare(b.restaurantNom, "fr")
+    )
+    .slice(0, MAX_VEDETTES);
 }

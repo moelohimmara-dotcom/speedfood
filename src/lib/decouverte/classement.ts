@@ -48,6 +48,7 @@ export interface PlatPublic {
   prixPromo: number | null;
   disponible: boolean;
   confirmeLe: string | null;
+  photoUrl?: string | null;
 }
 
 export interface RestaurantClassable {
