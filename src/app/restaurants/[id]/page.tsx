@@ -10,7 +10,6 @@ import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue 
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import {
-  ancienneteLisible,
   estCommandable,
   etatDisponibilite,
   etatRestaurant,
@@ -124,9 +123,9 @@ export default async function FicheRestaurantPage({
   const etatsPlats = menuListe.map((item) =>
     etatDisponibilite({ disponible: item.disponible, confirmeLe: item.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant)
   );
-  const nombreConfirmes = etatsPlats.filter((etat) => etat.type === "disponible").length;
   // Aucun plat confirmé récemment : un seul message pour le restaurant, au lieu de « À confirmer » répété sur chaque plat.
-  const aucunConfirme = nombreConfirmes === 0 && etatsPlats.some((etat) => etat.type === "a_confirmer");
+  const aucunConfirme =
+    etatsPlats.every((etat) => etat.type !== "disponible") && etatsPlats.some((etat) => etat.type === "a_confirmer");
 
   function vignette(item: (typeof menuListe)[number]) {
     const disponibilite = libelleDisponibilite(
@@ -174,41 +173,47 @@ export default async function FicheRestaurantPage({
     <main className="fiche">
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
 
-      <div className="fiche-hero" style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}>
-        {restaurant.photo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+      {/* Photo de couverture : hauteur plafonnée (voir .fiche-hero), et aucun bloc du tout
+          quand le restaurant n'a pas de photo — un cadre vide de 570 px n'apporte rien. */}
+      {restaurant.photo_url ? (
+        <div
+          className="fiche-hero"
+          style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
           <img src={restaurant.photo_url} alt="" />
-        ) : (
-          <span className={`tuile ${classeTuile(categorie)}`} style={{ fontSize: "6rem" }} aria-hidden="true">
+          <span className="fiche-hero-statut">
+            <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
+          </span>
+          {restaurant.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+            <img src={restaurant.logo_url} alt="" className="fiche-hero-logo" />
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        className="fiche-identite"
+        style={restaurant.couleur_accent ? { borderLeftColor: restaurant.couleur_accent } : undefined}
+      >
+        {restaurant.photo_url ? null : (
+          <span className={`tuile fiche-identite-initiale ${classeTuile(categorie)}`} aria-hidden="true">
             {initialePlat(restaurant.nom)}
           </span>
         )}
-        <span className="fiche-hero-statut">
-          <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
-        </span>
-        {restaurant.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-          <img src={restaurant.logo_url} alt="" className="fiche-hero-logo" />
-        ) : null}
+        <div>
+          <h1 className="fiche-titre">{restaurant.nom}</h1>
+          <p className="fiche-meta">
+            {categorie} · {restaurant.neighborhoods?.nom}
+          </p>
+          <p className="fiche-meta">{restaurant.horaires}</p>
+          {restaurant.photo_url ? null : (
+            <p className="fiche-statut-ligne">
+              <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
+            </p>
+          )}
+        </div>
       </div>
-
-      <h1 className="fiche-titre">{restaurant.nom}</h1>
-      {restaurant.couleur_accent ? (
-        <div
-          aria-hidden="true"
-          style={{ width: 48, height: 4, borderRadius: "var(--radius-pill)", background: restaurant.couleur_accent, marginBottom: 8 }}
-        />
-      ) : null}
-      <p className="fiche-meta">
-        {categorie} · {restaurant.neighborhoods?.nom}
-      </p>
-      <p className="fiche-meta">{restaurant.horaires}</p>
-      <p className="fiche-meta" style={{ fontSize: "0.85rem" }}>
-        Statut mis à jour {ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), maintenant)}
-        {menuListe.length > 0
-          ? ` · ${nombreConfirmes} plat${nombreConfirmes > 1 ? "s" : ""} confirmé${nombreConfirmes > 1 ? "s" : ""} récemment`
-          : ""}
-      </p>
 
       <div style={{ marginTop: "var(--space-3)" }}>
         <BoutonsPartage texte={texteRestaurant(restaurant.nom, urlRestaurant)} url={urlRestaurant} />
@@ -229,16 +234,17 @@ export default async function FicheRestaurantPage({
         </Alert>
       ) : null}
 
-      {aucunConfirme ? (
-        <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
-          Ce restaurant n&apos;a pas confirmé ses plats récemment. La disponibilité sera confirmée par le restaurant à la
-          commande.
-        </Alert>
-      ) : null}
-
       <div className="fiche-grille">
       <div className="fiche-menu">
       <h2 className="fiche-section-titre">Menu</h2>
+
+      {/* Le message « à confirmer » vit ici, au moment du choix, et une seule fois :
+          il était auparavant répété dans l'en-tête sous deux formes différentes. */}
+      {aucunConfirme ? (
+        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+          Aucun plat n&apos;a été confirmé récemment. La disponibilité sera confirmée par le restaurant à la commande.
+        </Alert>
+      ) : null}
 
       {menuListe.length === 0 ? (
         <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>

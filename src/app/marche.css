@@ -197,7 +197,10 @@
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  aspect-ratio: 16 / 10;
+  /* Hauteur plafonnée plutôt qu'un ratio : un ratio appliqué à une largeur de 1160 px
+     produit toujours un bloc de 500 à 570 px — soit un cadre crème vide de cette taille
+     pour une fiche sans photo. */
+  height: clamp(200px, 26vw, 340px);
   background: var(--bordure);
 }
 .fiche-hero img {
@@ -222,10 +225,32 @@
   border: 3px solid var(--surface);
   background: var(--surface);
 }
+/* En-tête d'identité : le nom est l'ancre visuelle de la fiche. Le filet vertical reprend la
+   couleur d'accent du restaurant (teinte déjà vérifiée AA) au lieu d'un trait posé sous le
+   titre, qui se lisait comme un soulignement parasite. Sans photo, l'initiale prend la place
+   de la vignette, à côté du nom, au lieu d'être perdue au centre d'un grand cadre vide. */
+.fiche-identite {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 4px solid transparent;
+}
+.fiche-identite-initiale {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  font-size: 1.75rem;
+}
 .fiche-titre {
-  font-size: 2rem;
+  font-size: clamp(2rem, 3.4vw, 3rem);
   line-height: 1.05;
-  margin: var(--space-4) 0 var(--space-1);
+  margin: 0 0 var(--space-1);
+}
+.fiche-statut-ligne {
+  margin: var(--space-2) 0 0;
 }
 .fiche-meta {
   color: var(--secondaire);
@@ -452,10 +477,6 @@
     border-bottom: 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
-}
-
-@media (min-width: 640px) {
-  .fiche-hero { aspect-ratio: 16 / 7; }
 }
 
 /* --- Console restaurateur : navigation basse, commandes par urgence, action principale de 56 px --- */

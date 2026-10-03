@@ -381,9 +381,6 @@
   .fiche {
     max-width: 1160px;
   }
-  .fiche-hero {
-    aspect-ratio: 16 / 6;
-  }
   .fiche-grille {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 340px;

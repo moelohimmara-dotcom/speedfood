@@ -500,6 +500,24 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   `/system/commandes/[id]` : elles y expriment une transformation de données
   (« 35 000 GNF → 25 000 GNF »), pas une commande.
 
+- **Fiche restaurant : en-tête retravaillé, lot 1 (3 octobre 2026)** : sur une fiche
+  sans photo, `aspect-ratio: 16/10` puis `16/6` produisaient un cadre crème de ~570 px
+  contenant une initiale de 96 px — l'écran le plus vide occupait le plus de place, et
+  le nom du restaurant, l'information la plus importante, restait en 2 rem entre trois
+  lignes grises identiques. Corrigé : (1) `height: clamp(200px, 26vw, 340px)` sur
+  `.fiche-hero`, et suppression des deux dérogations `aspect-ratio` (640 px et 900 px) —
+  un ratio appliqué à une largeur de 1160 px produit mécaniquement un bloc trop haut ;
+  (2) **plus de héro du tout sans photo** : un en-tête d'identité prend le relais —
+  initiale dans une tuile de 64 px à côté du nom, titre en `clamp(2rem, 3.4vw, 3rem)`,
+  filet vertical à la couleur d'accent du restaurant (teinte déjà vérifiée AA) au lieu
+  d'un trait de 48 × 4 px qui se lisait comme un soulignement parasite ; (3) la ligne
+  « Statut mis à jour il y a 18 h · 0 plat confirmé récemment » est supprimée, ainsi que
+  l'alerte qui la répétait : le message de fraîcheur vit désormais **une seule fois**,
+  dans la colonne du menu, au moment du choix. `npm run typecheck` et `npm run lint`
+  propres ; déployé (version Worker `bb7f07e7`) ; rendu vérifié dans un vrai Chrome dans
+  les deux cas (fiche avec et sans photo). **Lots 2 (partage) et 3 (panier vide, grille
+  de menu) non commencés.**
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires
