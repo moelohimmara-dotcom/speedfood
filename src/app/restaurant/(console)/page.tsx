@@ -2,6 +2,8 @@ import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Card, Badge, Button } from "@/components/ui";
 import { deconnexionAction } from "@/lib/auth/actions";
+import { ancienneteLisible } from "@/lib/disponibilite/etat";
+import { BasculesStatut } from "./BasculesStatut";
 
 export default async function AccueilConsolePage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant");
@@ -9,7 +11,7 @@ export default async function AccueilConsolePage() {
   const [{ data: restaurant }, { count: commandesATraiter }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("nom, publie, ouvert, motif_correction")
+      .select("nom, publie, ouvert, accepte_commandes, statut_mis_a_jour_le, motif_correction")
       .eq("id", membership.restaurant_id)
       .maybeSingle(),
     supabase
@@ -31,6 +33,9 @@ export default async function AccueilConsolePage() {
         <Badge ton={restaurant?.ouvert ? "succes" : "danger"}>
           {restaurant?.ouvert ? "Ouvert" : "Fermé"}
         </Badge>
+        {restaurant?.ouvert && restaurant.accepte_commandes === false ? (
+          <Badge ton="neutre">Commandes en pause</Badge>
+        ) : null}
       </div>
 
       {restaurant?.motif_correction ? (
@@ -61,17 +66,20 @@ export default async function AccueilConsolePage() {
         </Link>
       </Card>
 
+      {restaurant ? (
+        <BasculesStatut
+          ouvert={restaurant.ouvert}
+          accepteCommandes={restaurant.accepte_commandes}
+          miseAJour={ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), new Date())}
+        />
+      ) : null}
+
       <Card>
         <h3 style={{ marginBottom: "var(--space-3)" }}>Accès rapide</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Link href="/restaurant/profil">
-            <Button variante="secondary" pleineLargeur>
-              {restaurant?.ouvert ? "Fermer temporairement" : "Rouvrir mon restaurant"}
-            </Button>
-          </Link>
           <Link href="/restaurant/menu">
             <Button variante="secondary" pleineLargeur>
-              Marquer un plat indisponible
+              Disponibilité des plats
             </Button>
           </Link>
         </div>

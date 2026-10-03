@@ -18,18 +18,21 @@ import { creerClientAdmin } from "@/lib/db/admin";
 export interface ParametresApplication {
   commandePropositionDelaiMinutes: number;
   prixPlatMaxGnf: number;
+  /** Au-delà, une disponibilité non reconfirmée s'affiche « à confirmer ». */
+  disponibiliteFraicheurHeures: number;
 }
 
 const VALEURS_REPLI: ParametresApplication = {
   commandePropositionDelaiMinutes: 30,
   prixPlatMaxGnf: 5_000_000,
+  disponibiliteFraicheurHeures: 6,
 };
 
 export async function obtenirParametresApplication(): Promise<ParametresApplication> {
   const admin = creerClientAdmin();
   const { data, error } = await admin
     .from("parametres_application")
-    .select("commande_proposition_delai_minutes, prix_plat_max_gnf")
+    .select("commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures")
     .eq("id", true)
     .maybeSingle();
 
@@ -40,5 +43,6 @@ export async function obtenirParametresApplication(): Promise<ParametresApplicat
   return {
     commandePropositionDelaiMinutes: data.commande_proposition_delai_minutes,
     prixPlatMaxGnf: data.prix_plat_max_gnf,
+    disponibiliteFraicheurHeures: data.disponibilite_fraicheur_heures,
   };
 }

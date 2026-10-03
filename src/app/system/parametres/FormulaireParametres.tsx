@@ -42,6 +42,25 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
           defaultValue={parametres.prixPlatMaxGnf}
         />
       </div>
+      <div className="field" style={{ marginBottom: 0 }}>
+        <label htmlFor="disponibilite_fraicheur_heures">
+          Durée de fraîcheur d&apos;une disponibilité (heures)
+        </label>
+        <input
+          id="disponibilite_fraicheur_heures"
+          name="disponibilite_fraicheur_heures"
+          type="number"
+          min={1}
+          max={72}
+          step={1}
+          required
+          defaultValue={parametres.disponibiliteFraicheurHeures}
+        />
+        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          Passé ce délai sans reconfirmation par le restaurant, un plat disponible s&apos;affiche
+          « à confirmer ».
+        </p>
+      </div>
       {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
       {etat.succes ? <Alert ton="succes">Paramètres enregistrés.</Alert> : null}
       <div>

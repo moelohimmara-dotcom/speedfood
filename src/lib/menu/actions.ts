@@ -233,6 +233,39 @@ export async function basculerDisponibiliteAction(id: string, disponible: boolea
   revalidatePath("/restaurant");
 }
 
+/**
+ * Reconfirme qu'un plat est toujours disponible. L'heure de confirmation est
+ * posée par la base (trigger) : le navigateur ne peut pas l'imposer.
+ */
+export async function confirmerDisponibiliteAction(id: string): Promise<void> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const supabase = await creerClientServeur();
+
+  await supabase
+    .from("menu_items")
+    .update({ disponibilite_confirmee_le: new Date().toISOString() })
+    .eq("id", id)
+    .eq("restaurant_id", membership.restaurant_id)
+    .eq("disponible", true);
+
+  revalidatePath("/restaurant/menu");
+}
+
+/** Reconfirme en une fois tous les plats actuellement disponibles du restaurant. */
+export async function confirmerToutesDisponibilitesAction(): Promise<void> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const supabase = await creerClientServeur();
+
+  await supabase
+    .from("menu_items")
+    .update({ disponibilite_confirmee_le: new Date().toISOString() })
+    .eq("restaurant_id", membership.restaurant_id)
+    .eq("disponible", true)
+    .is("archive_le", null);
+
+  revalidatePath("/restaurant/menu");
+}
+
 export async function archiverPlatAction(id: string): Promise<void> {
   const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
   const supabase = await creerClientServeur();

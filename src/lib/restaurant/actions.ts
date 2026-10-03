@@ -91,12 +91,41 @@ export async function modifierProfilAction(
   return { succes: true };
 }
 
-export async function basculerOuvertAction(ouvert: boolean): Promise<void> {
-  const { membership } = await obtenirContexteRestaurant("/restaurant/profil");
+export type ChampStatut = "ouvert" | "accepte_commandes";
+
+export interface ResultatStatut {
+  ok: boolean;
+  erreur?: string;
+}
+
+/**
+ * Statuts opérationnels, distincts : « ouvert » (le restaurant est ouvert) et
+ * « accepte_commandes » (il prend des commandes en ce moment). Le statut n'est
+ * considéré comme enregistré qu'après confirmation du serveur ; l'heure du
+ * changement est posée par la base (trigger), jamais par le navigateur.
+ */
+export async function definirStatutRestaurantAction(
+  champ: ChampStatut,
+  valeur: boolean
+): Promise<ResultatStatut> {
+  if ((champ !== "ouvert" && champ !== "accepte_commandes") || typeof valeur !== "boolean") {
+    return { ok: false, erreur: "Statut inconnu." };
+  }
+  const { membership } = await obtenirContexteRestaurant("/restaurant");
   const supabase = await creerClientServeur();
 
-  await supabase.from("restaurants").update({ ouvert }).eq("id", membership.restaurant_id);
+  const miseAJour: MiseAJourRestaurant = champ === "ouvert" ? { ouvert: valeur } : { accepte_commandes: valeur };
+  const { data, error } = await supabase
+    .from("restaurants")
+    .update(miseAJour)
+    .eq("id", membership.restaurant_id)
+    .select("id");
 
-  revalidatePath("/restaurant/profil");
+  if (error || !data || data.length === 0) {
+    return { ok: false, erreur: "Impossible d'enregistrer le changement. Réessayez dans un instant." };
+  }
+
   revalidatePath("/restaurant");
+  revalidatePath("/restaurant/profil");
+  return { ok: true };
 }

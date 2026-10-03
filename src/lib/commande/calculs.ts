@@ -16,7 +16,7 @@ export interface LignesRecalculees {
 }
 
 /**
- * Vérifie que le restaurant est commandable (publié, non suspendu, ouvert) et
+ * Vérifie que le restaurant est commandable (publié, non suspendu, ouvert, commandes non mises en pause) et
  * renvoie son nom. Une 404 volontaire en cas d'indisponibilité : pas de fuite
  * d'information sur un restaurant non publié.
  */
@@ -26,7 +26,7 @@ export async function verifierRestaurantCommandable(
 ): Promise<{ nom: string }> {
   const { data: restaurant, error } = await db
     .from("restaurants")
-    .select("id, nom, publie, ouvert, suspendu_le")
+    .select("id, nom, publie, ouvert, accepte_commandes, suspendu_le")
     .eq("id", restaurantId)
     .maybeSingle();
 
@@ -41,6 +41,13 @@ export async function verifierRestaurantCommandable(
       "VALIDATION",
       "Ce restaurant est actuellement fermé : impossible de passer commande pour le moment.",
       { restaurant: "Restaurant fermé." }
+    );
+  }
+  if (!restaurant.accepte_commandes) {
+    throw new ErreurMetier(
+      "VALIDATION",
+      "Ce restaurant ne prend plus de commandes pour le moment. Réessayez plus tard.",
+      { restaurant: "Commandes en pause." }
     );
   }
   return { nom: restaurant.nom };

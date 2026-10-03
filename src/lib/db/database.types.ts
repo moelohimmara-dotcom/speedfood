@@ -177,6 +177,7 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          disponibilite_confirmee_le: string | null
           archive_le: string | null
           cree_le: string
           description: string
@@ -191,6 +192,7 @@ export type Database = {
           section_id: string | null
         }
         Insert: {
+          disponibilite_confirmee_le?: string | null
           archive_le?: string | null
           cree_le?: string
           description?: string
@@ -205,6 +207,7 @@ export type Database = {
           section_id?: string | null
         }
         Update: {
+          disponibilite_confirmee_le?: string | null
           archive_le?: string | null
           cree_le?: string
           description?: string
@@ -541,6 +544,7 @@ export type Database = {
       }
       parametres_application: {
         Row: {
+          disponibilite_fraicheur_heures: number
           commande_proposition_delai_minutes: number
           id: boolean
           mis_a_jour_le: string
@@ -548,6 +552,7 @@ export type Database = {
           prix_plat_max_gnf: number
         }
         Insert: {
+          disponibilite_fraicheur_heures?: number
           commande_proposition_delai_minutes?: number
           id?: boolean
           mis_a_jour_le?: string
@@ -555,6 +560,7 @@ export type Database = {
           prix_plat_max_gnf?: number
         }
         Update: {
+          disponibilite_fraicheur_heures?: number
           commande_proposition_delai_minutes?: number
           id?: boolean
           mis_a_jour_le?: string
@@ -612,6 +618,8 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          accepte_commandes: boolean
+          statut_mis_a_jour_le: string
           categorie_id: string
           consignes: string | null
           couleur_accent: string | null
@@ -631,6 +639,8 @@ export type Database = {
           suspendu_motif: string | null
         }
         Insert: {
+          accepte_commandes?: boolean
+          statut_mis_a_jour_le?: string
           categorie_id: string
           consignes?: string | null
           couleur_accent?: string | null
@@ -650,6 +660,8 @@ export type Database = {
           suspendu_motif?: string | null
         }
         Update: {
+          accepte_commandes?: boolean
+          statut_mis_a_jour_le?: string
           categorie_id?: string
           consignes?: string | null
           couleur_accent?: string | null

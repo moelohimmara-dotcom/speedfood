@@ -4,6 +4,15 @@ import { creerClientPublic } from "@/lib/db/public";
 import { Badge, Alert } from "@/components/ui";
 import { ControleQuantiteArticle } from "@/components/panier/ControleQuantiteArticle";
 import { LienPanier } from "@/components/panier/LienPanier";
+import { obtenirParametresApplication } from "@/lib/parametres/lire";
+import {
+  ancienneteLisible,
+  estCommandable,
+  etatDisponibilite,
+  etatRestaurant,
+  libelleDisponibilite,
+  libelleEtatRestaurant,
+} from "@/lib/disponibilite/etat";
 
 export default async function FicheRestaurantPage({
   params,
@@ -16,7 +25,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, photo_url, logo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -31,11 +40,15 @@ export default async function FicheRestaurantPage({
     notFound();
   }
   const restaurantSur = restaurant;
+  const maintenant = new Date();
+  const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
+  const etatResto = etatRestaurant({ ouvert: restaurant.ouvert, accepteCommandes: restaurant.accepte_commandes });
+  const libelleResto = libelleEtatRestaurant(etatResto);
 
   const [{ data: menu }, { data: sections }] = await Promise.all([
     supabase
       .from("menu_items")
-      .select("id, nom, description, prix, prix_promo, disponible, photo_url, section_id")
+      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id")
       .eq("restaurant_id", id)
       .is("archive_le", null)
       .order("nom"),
@@ -71,6 +84,14 @@ export default async function FicheRestaurantPage({
   const platsSansSection = platsParSection.get(null) ?? [];
 
   function ligneMenu(item: (typeof menuListe)[number]) {
+    const disponibilite = libelleDisponibilite(
+      etatDisponibilite(
+        { disponible: item.disponible, confirmeLe: item.disponibilite_confirmee_le },
+        disponibiliteFraicheurHeures,
+        maintenant
+      ),
+      maintenant
+    );
     return (
       <div key={item.id} className={`menu-item-row${!item.disponible ? " indisponible" : ""}`}>
         <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
@@ -81,12 +102,13 @@ export default async function FicheRestaurantPage({
           <div style={{ minWidth: 0 }}>
             <h4 className="menu-item-nom">{item.nom}</h4>
             {item.description ? <p className="menu-item-desc">{item.description}</p> : null}
-            {item.prix_promo !== null || !item.disponible ? (
-              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                {item.prix_promo !== null ? <Badge ton="danger">Promo</Badge> : null}
-                {!item.disponible ? <Badge ton="neutre">Indisponible aujourd&apos;hui</Badge> : null}
-              </div>
-            ) : null}
+            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {item.prix_promo !== null ? <Badge ton="danger">Promo</Badge> : null}
+              <Badge ton={disponibilite.ton}>{disponibilite.court}</Badge>
+              {disponibilite.detail ? (
+                <small style={{ color: "var(--secondaire)", fontSize: "0.78rem" }}>{disponibilite.detail}</small>
+              ) : null}
+            </div>
           </div>
         </div>
         <div className="menu-item-prix-bloc">
@@ -96,7 +118,7 @@ export default async function FicheRestaurantPage({
           <span className="menu-item-prix" style={item.prix_promo !== null ? { color: "var(--rouge)" } : undefined}>
             {formaterGNF(item.prix_promo ?? item.prix)}
           </span>
-          {restaurantSur.ouvert && item.disponible ? (
+          {estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes }) && item.disponible ? (
             <ControleQuantiteArticle
               restaurant={{ id: restaurantSur.id, nom: restaurantSur.nom }}
               article={{ id: item.id, nom: item.nom, prix: item.prix_promo ?? item.prix }}
@@ -167,17 +189,23 @@ export default async function FicheRestaurantPage({
         {restaurant.menu_categories?.nom} · {restaurant.neighborhoods?.nom}
       </p>
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-3)" }}>{restaurant.horaires}</p>
-      <Badge ton={restaurant.ouvert ? "succes" : "danger"}>
-        {restaurant.ouvert ? "Ouvert" : "Fermé"}
-      </Badge>
+      <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
+      <small style={{ marginLeft: 8, color: "var(--secondaire)", fontSize: "0.78rem" }}>
+        statut mis à jour {ancienneteLisible(new Date(restaurant.statut_mis_a_jour_le), maintenant)}
+      </small>
 
       {restaurant.consignes ? (
         <p style={{ marginTop: "var(--space-3)", color: "var(--secondaire)" }}>{restaurant.consignes}</p>
       ) : null}
 
-      {!restaurant.ouvert ? (
+      {etatResto === "ferme" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
           Ce restaurant est actuellement fermé. Vous pouvez consulter le menu, mais pas commander.
+        </Alert>
+      ) : etatResto === "pause" ? (
+        <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+          Ce restaurant est ouvert mais ne prend plus de commandes pour le moment. Vous pouvez
+          consulter le menu et réessayer plus tard.
         </Alert>
       ) : null}
 

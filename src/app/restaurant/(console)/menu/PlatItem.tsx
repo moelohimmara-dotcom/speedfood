@@ -4,9 +4,11 @@ import { useActionState, useState, useTransition } from "react";
 import {
   modifierPlatAction,
   basculerDisponibiliteAction,
+  confirmerDisponibiliteAction,
   archiverPlatAction,
   type EtatFormulaireMenu,
 } from "@/lib/menu/actions";
+import type { LibelleDisponibilite } from "@/lib/disponibilite/etat";
 import { Card, Badge, Button, Input, Alert } from "@/components/ui";
 import { OptionsPlat } from "./OptionsPlat";
 
@@ -25,6 +27,8 @@ interface Plat {
   photo_url: string | null;
   section_id: string | null;
   options: { id: string; nom: string; prix: number }[];
+  /** État de disponibilité tel que les clients le voient (calculé côté serveur). */
+  disponibilite: LibelleDisponibilite;
 }
 
 const etatInitial: EtatFormulaireMenu = {};
@@ -133,10 +137,13 @@ export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Secti
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
             <strong>{plat.nom}</strong>
-            <Badge ton={plat.disponible ? "succes" : "neutre"}>
-              {plat.disponible ? "Disponible" : "Indisponible"}
-            </Badge>
+            <Badge ton={plat.disponibilite.ton}>{plat.disponibilite.court}</Badge>
           </div>
+          {plat.disponibilite.detail ? (
+            <p style={{ margin: "0 0 2px", fontSize: "0.78rem", color: "var(--secondaire)" }}>
+              {plat.disponibilite.detail}
+            </p>
+          ) : null}
           {plat.description ? (
             <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>{plat.description}</p>
           ) : null}
@@ -152,6 +159,20 @@ export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Secti
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 140 }}>
+          {plat.disponible ? (
+            <Button
+              type="button"
+              variante="secondary"
+              disabled={enTransition}
+              onClick={() =>
+                demarrerTransition(() => {
+                  confirmerDisponibiliteAction(plat.id);
+                })
+              }
+            >
+              Confirmer disponible
+            </Button>
+          ) : null}
           <Button
             type="button"
             variante="secondary"
@@ -162,7 +183,7 @@ export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Secti
               })
             }
           >
-            {plat.disponible ? "Marquer indisponible" : "Marquer disponible"}
+            {plat.disponible ? "Épuisé" : "Remettre disponible"}
           </Button>
           <Button type="button" variante="secondary" onClick={() => setEnEdition(true)}>
             Modifier

@@ -220,3 +220,54 @@
   font-size: 0.8rem;
   white-space: nowrap;
 }
+
+/* Plats correspondant à une recherche, sur la carte restaurant : nom, prix,
+   état de disponibilité et son ancienneté (jamais affirmé sans horodatage). */
+.carte-restaurant-plats {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) 0 0;
+  border-top: 1px solid var(--bordure);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.carte-restaurant-plat-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+}
+.carte-restaurant-plat-nom {
+  font-weight: 700;
+  min-width: 0;
+}
+.carte-restaurant-plat-prix {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.carte-restaurant-plat-etat {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.carte-restaurant-plat-etat small {
+  color: var(--secondaire);
+  font-size: 0.78rem;
+}
+.carte-restaurant-plat-autres {
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+
+.groupe-resultats-titre {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin: var(--space-6) 0 var(--space-3);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--bordure);
+}

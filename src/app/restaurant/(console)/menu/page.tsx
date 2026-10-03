@@ -1,13 +1,16 @@
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { Card } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { PlatItem } from "./PlatItem";
 import { FormulairePlat } from "./FormulairePlat";
 import { SectionsMenu } from "./SectionsMenu";
+import { confirmerToutesDisponibilitesAction } from "@/lib/menu/actions";
+import { obtenirParametresApplication } from "@/lib/parametres/lire";
+import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
 
 export default async function MenuPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/menu");
 
-  const [{ data: sections }, { data: plats }] = await Promise.all([
+  const [{ data: sections }, { data: plats }, { disponibiliteFraicheurHeures }] = await Promise.all([
     supabase
       .from("menu_sections")
       .select("id, nom")
@@ -16,15 +19,30 @@ export default async function MenuPage() {
     supabase
       .from("menu_items")
       .select(
-        "id, nom, description, prix, prix_promo, disponible, photo_url, section_id, menu_item_options(id, nom, prix)"
+        "id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, menu_item_options(id, nom, prix)"
       )
       .eq("restaurant_id", membership.restaurant_id)
       .is("archive_le", null)
       .order("nom"),
+    obtenirParametresApplication(),
   ]);
 
   const sectionsListe = sections ?? [];
-  const platsListe = (plats ?? []).map((plat) => ({ ...plat, options: plat.menu_item_options ?? [] }));
+  const maintenant = new Date();
+  const platsListe = (plats ?? []).map((plat) => {
+    const etat = etatDisponibilite(
+      { disponible: plat.disponible, confirmeLe: plat.disponibilite_confirmee_le },
+      disponibiliteFraicheurHeures,
+      maintenant
+    );
+    return {
+      ...plat,
+      options: plat.menu_item_options ?? [],
+      disponibilite: libelleDisponibilite(etat, maintenant),
+      aReconfirmer: etat.type === "a_confirmer",
+    };
+  });
+  const nombreAReconfirmer = platsListe.filter((plat) => plat.aReconfirmer).length;
 
   const platsParSection = new Map<string | null, typeof platsListe>();
   for (const plat of platsListe) {
@@ -38,6 +56,20 @@ export default async function MenuPage() {
   return (
     <div>
       <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-4)" }}>Mon menu</h1>
+
+      <Card style={{ marginBottom: "var(--space-5)" }}>
+        <h3 style={{ marginBottom: "var(--space-2)" }}>Disponibilité du jour</h3>
+        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.9rem", color: "var(--secondaire)" }}>
+          {nombreAReconfirmer > 0
+            ? `${nombreAReconfirmer} plat${nombreAReconfirmer > 1 ? "s" : ""} à reconfirmer : les clients les voient « à confirmer » tant que vous ne les reconfirmez pas (au-delà de ${disponibiliteFraicheurHeures} h).`
+            : "Tous vos plats disponibles sont confirmés récemment."}
+        </p>
+        <form action={confirmerToutesDisponibilitesAction}>
+          <Button type="submit" variante="secondary">
+            Tout reconfirmer disponible
+          </Button>
+        </form>
+      </Card>
 
       <SectionsMenu sections={sectionsListe} />
 
