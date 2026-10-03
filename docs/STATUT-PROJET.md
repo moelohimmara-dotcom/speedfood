@@ -373,6 +373,36 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   Aucun changement de code applicatif, aucun en-tête de sécurité perdu
   (revérifiés : 4/4 sur les routes publiques).
 
+- **Politique de sécurité du contenu (CSP) posée et testée en navigateur réel
+  (3 octobre 2026)** : la CSP a été conçue puis **validée avant d'être rendue
+  bloquante**, comme l'exige un lot qui peut casser le rendu. Méthode : déploiement
+  d'abord en `Content-Security-Policy-Report-Only` (aucun blocage possible), puis
+  vérification dans un vrai Chrome piloté en CDP (port de débogage, profil isolé)
+  sur 13 pages — accueil, découverte, fiche restaurant, alternatives, panier,
+  commande, connexion, inscription, mot de passe oublié, à-propos, confidentialité,
+  suivi, `/system` — avec un écouteur `securitypolicyviolation` injecté avant les
+  scripts de chaque page. La fiabilité du détecteur a elle-même été prouvée par un
+  **test négatif** (meta CSP restrictive injectée à la volée : la violation a bien
+  été capturée), sans quoi un « zéro violation » n'aurait rien prouvé. Le chemin le
+  plus risqué, le widget Turnstile, a été exercé pour de vrai (panier injecté en
+  `localStorage`, `/commande` rend son formulaire) : **sous CSP bloquante**,
+  `challenges.cloudflare.com` charge bien `turnstile/v0/api.js`, sa seconde
+  ressource et le défi, sans aucune violation. Sources autorisées : le site
+  lui-même (scripts et styles inline du App Router, d'où `'unsafe-inline'`, qui
+  reste nécessaire), `challenges.cloudflare.com` (Turnstile), le projet Supabase
+  (données), `https:` pour les images (photos externes fournies par les
+  restaurateurs). Directives fermées : `object-src 'none'`, `base-uri 'self'`,
+  `form-action 'self'`, `frame-ancestors 'none'`. Résultat en mode bloquant :
+  **0 violation et 0 erreur console sur les 13 pages**, aucune requête hors liste
+  blanche. Déployé le 3 octobre 2026 (version Worker `224cc2fc`). **Limite** : les
+  pages authentifiées (`/restaurant` et `/system`) n'ont pas pu être parcourues
+  faute d'identifiants — elles utilisent les mêmes scripts et styles que les pages
+  publiques, mais restent non vérifiées et méritent un contrôle au prochain test
+  avec un compte réel. **Gain réel** : la CSP ne bloque pas l'injection de script
+  inline (`'unsafe-inline'` oblige), mais elle ferme le chargement de scripts
+  tiers, les connexions sortantes vers des domaines non prévus, le détournement de
+  cadre, les formulaires détournés, la balise `base` et les objets embarqués.
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires
