@@ -28,8 +28,13 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
   - "Leaked password protection" est **impossible sur l'offre actuelle**, ce n'est
     pas un réglage oublié : tentative d'activation par l'API le 3 octobre 2026,
     refus explicite `HTTP 402 — "Configuring leaked password protection via
-    HaveIBeenPwned.org is available on Pro Plans and up."` Décision de coût (offre
-    Pro), pas de configuration.
+    HaveIBeenPwned.org is available on Pro Plans and up."`
+    **Décision de Malika, 3 octobre 2026 : rester sur l'offre gratuite.** Cette
+    protection reste donc indisponible, et c'est un choix assumé, pas un reste à
+    faire. Mesures compensatoires en place à ce jour : plancher de longueur porté à
+    8 (voir ci-dessous), double authentification TOTP disponible pour tous les
+    comptes, limitation de débit à la commande, anti-robot Turnstile. À réévaluer
+    si le pilote ouvre des comptes au-delà des restaurants de test.
   - `password_min_length` est passé de **6 à 8** le 3 octobre 2026. Motif :
     l'application impose déjà 8 caractères côté serveur
     (`src/lib/auth/actions.ts`, `src/lib/auth/recuperation.ts`), mais le plancher
