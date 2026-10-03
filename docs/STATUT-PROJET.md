@@ -552,6 +552,28 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   déjà une grille de vignettes à média `4/3` (marche.css) — aucun changement n'y a été
   apporté, faute de problème réel.
 
+- **Bannière d'identité : photo de couverture et logo, proposition 1 (3 octobre 2026)** :
+  le logo n'était affiché sur la fiche **que s'il existait une photo de couverture** — sans
+  photo, il était purement ignoré, alors que la carte du catalogue savait l'afficher seul.
+  Un composant unique `BanniereRestaurant` remplace l'ancien en-tête et traite
+  explicitement les quatre combinaisons : photo + logo (bandeau + pastille à cheval sur le
+  bord bas), photo seule (l'initiale prend la place du logo), logo seul (bande courte
+  teintée de la couleur d'accent), ni l'un ni l'autre (bande courte + initiale en tuile de
+  catégorie). Points de conception : **la bande sans photo mesure 120 px**, pour que le
+  grand cadre vide corrigé au lot 1 ne revienne pas par la bande ; **le logo est
+  prioritaire sur l'initiale** ; la pastille (88 px, 72 px sous 640 px) est alignée sur le
+  bord du contenu, ce qui la met en accord avec le reste de la page. Le filet vertical du
+  lot 1 disparaît : la bande porte désormais l'identité. Console `/restaurant/profil` : les
+  champs deviennent « Photo de couverture » et « Logo (votre emblème) », avec les formats
+  conseillés (3/2 pour la couverture, carré pour le logo) et la mention « sans logo, c'est
+  votre initiale qui est affichée » — **aucun restaurant n'a de logo aujourd'hui (0 sur
+  18)**, le champ doit donc dire à quoi il sert. `npm run typecheck` et `npm run lint`
+  propres ; déployé (version Worker `25cd1bb1`). Vérifié dans un vrai Chrome sur les
+  quatre cas, dont deux obtenus en posant **temporairement** un logo en base (retiré
+  aussitôt : base revenue à 0 logo) : bandeau 300 px avec photo, bande 120 px sans photo,
+  pastille image ou initiale selon le cas, et mobile à 390 px où la bande se teinte de la
+  couleur d'accent du restaurant.
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires

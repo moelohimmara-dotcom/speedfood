@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { creerClientPublic } from "@/lib/db/public";
-import { Badge, Alert } from "@/components/ui";
+import { Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
 import { VignettePlat } from "@/components/VignettePlat";
 import { ResumePanierFiche } from "@/components/ResumePanierFiche";
-import { classeTuile, initialePlat } from "@/lib/design/tuile";
+import { BanniereRestaurant } from "@/components/BanniereRestaurant";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
@@ -173,47 +173,16 @@ export default async function FicheRestaurantPage({
     <main className="fiche">
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
 
-      {/* Photo de couverture : hauteur plafonnée (voir .fiche-hero), et aucun bloc du tout
-          quand le restaurant n'a pas de photo — un cadre vide de 570 px n'apporte rien. */}
-      {restaurant.photo_url ? (
-        <div
-          className="fiche-hero"
-          style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
-          <img src={restaurant.photo_url} alt="" />
-          <span className="fiche-hero-statut">
-            <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
-          </span>
-          {restaurant.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-            <img src={restaurant.logo_url} alt="" className="fiche-hero-logo" />
-          ) : null}
-        </div>
-      ) : null}
-
-      <div
-        className="fiche-identite"
-        style={restaurant.couleur_accent ? { borderLeftColor: restaurant.couleur_accent } : undefined}
-      >
-        {restaurant.photo_url ? null : (
-          <span className={`tuile fiche-identite-initiale ${classeTuile(categorie)}`} aria-hidden="true">
-            {initialePlat(restaurant.nom)}
-          </span>
-        )}
-        <div>
-          <h1 className="fiche-titre">{restaurant.nom}</h1>
-          <p className="fiche-meta">
-            {categorie} · {restaurant.neighborhoods?.nom}
-          </p>
-          <p className="fiche-meta">{restaurant.horaires}</p>
-          {restaurant.photo_url ? null : (
-            <p className="fiche-statut-ligne">
-              <Badge ton={libelleResto.ton}>{libelleResto.texte}</Badge>
-            </p>
-          )}
-        </div>
-      </div>
+      <BanniereRestaurant
+        nom={restaurant.nom}
+        categorie={categorie}
+        quartier={restaurant.neighborhoods?.nom ?? ""}
+        horaires={restaurant.horaires}
+        statut={libelleResto}
+        photoUrl={restaurant.photo_url}
+        logoUrl={restaurant.logo_url}
+        couleurAccent={restaurant.couleur_accent}
+      />
 
       <div style={{ marginTop: "var(--space-3)" }}>
         <BoutonsPartage

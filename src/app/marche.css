@@ -193,56 +193,64 @@
   margin: 0 auto;
   padding: var(--space-3) var(--space-4) var(--space-6);
 }
-.fiche-hero {
-  position: relative;
+/* --- Bannière d'identité : photo de couverture + logo ---
+   Un seul composant pour les quatre combinaisons (photo + logo, photo seule, logo seul, ni
+   l'un ni l'autre). Sans photo, une bande courte teintée de la couleur d'accent remplace le
+   grand cadre vide corrigé au lot 1 — le défaut ne doit pas revenir par la bande. Le logo est
+   prioritaire sur l'initiale : il était auparavant ignoré faute de photo de couverture. */
+.banniere {
+  --pastille: 88px;
+  margin-top: var(--space-3);
+}
+.banniere-media {
   border-radius: var(--radius-lg);
   overflow: hidden;
-  /* Hauteur plafonnée plutôt qu'un ratio : un ratio appliqué à une largeur de 1160 px
-     produit toujours un bloc de 500 à 570 px — soit un cadre crème vide de cette taille
-     pour une fiche sans photo. */
-  height: clamp(200px, 26vw, 340px);
+  height: clamp(180px, 24vw, 300px);
   background: var(--bordure);
 }
-.fiche-hero img {
+.banniere-media--teinte {
+  height: 120px;
+}
+.banniere-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.fiche-hero-statut {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
+/* Le bloc d'identité remonte d'une demi-pastille : le logo chevauche le bord bas du bandeau.
+   Il est dans un frère de celui-ci — qui masque son propre débordement — donc jamais rogné. */
+.banniere-identite {
+  margin-top: calc(var(--pastille) / -2);
 }
-.fiche-hero-logo {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--surface);
+.banniere-pastille {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--pastille);
+  height: var(--pastille);
+  border-radius: var(--radius-md);
+  border: 4px solid var(--creme);
+  font-size: 2rem;
+  overflow: hidden;
+}
+/* Le fond n'est posé que pour un logo : sans logo, c'est la tuile de catégorie qui le porte. */
+.banniere-pastille--image {
   background: var(--surface);
 }
-/* En-tête d'identité : le nom est l'ancre visuelle de la fiche. Le filet vertical reprend la
-   couleur d'accent du restaurant (teinte déjà vérifiée AA) au lieu d'un trait posé sous le
-   titre, qui se lisait comme un soulignement parasite. Sans photo, l'initiale prend la place
-   de la vignette, à côté du nom, au lieu d'être perdue au centre d'un grand cadre vide. */
-.fiche-identite {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-  padding-left: var(--space-3);
-  border-left: 4px solid transparent;
+.banniere-pastille img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
-.fiche-identite-initiale {
-  flex: none;
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-md);
-  font-size: 1.75rem;
+.banniere-texte {
+  min-width: 0;
+  margin-top: var(--space-2);
+}
+@media (max-width: 639px) {
+  .banniere {
+    --pastille: 72px;
+  }
 }
 .fiche-titre {
   font-size: clamp(2rem, 3.4vw, 3rem);

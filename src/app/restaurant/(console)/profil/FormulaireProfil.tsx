@@ -25,7 +25,7 @@ export function FormulaireProfil({
   return (
     <form action={action}>
       <div className="field">
-        <label htmlFor="photo">Photo du restaurant</label>
+        <label htmlFor="photo">Photo de couverture</label>
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
           <img
@@ -36,11 +36,12 @@ export function FormulaireProfil({
         ) : null}
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
         <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          Affichée en haut de votre fiche publique. Format conseillé 3/2 (par exemple 1200 × 800).
           JPEG, PNG ou WebP, 5 Mo maximum. Laissez vide pour ne pas changer la photo actuelle.
         </p>
       </div>
       <div className="field">
-        <label htmlFor="logo">Logo</label>
+        <label htmlFor="logo">Logo (votre emblème)</label>
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
           <img
@@ -50,7 +51,7 @@ export function FormulaireProfil({
               width: 64,
               height: 64,
               objectFit: "cover",
-              borderRadius: "var(--radius-pill)",
+              borderRadius: "var(--radius-md)",
               marginBottom: 8,
               display: "block",
               border: "1px solid var(--bordure)",
@@ -59,8 +60,9 @@ export function FormulaireProfil({
         ) : null}
         <input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" />
         <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
-          Distinct de la photo de couverture, affiché en petit emblème. JPEG, PNG ou WebP, 5 Mo
-          maximum. Laissez vide pour ne pas changer le logo actuel.
+          Affiché en pastille sur le bord de votre bannière et sur votre carte dans le catalogue.
+          Format conseillé : carré (par exemple 512 × 512). JPEG, PNG ou WebP, 5 Mo maximum.
+          Sans logo, c&apos;est votre initiale qui est affichée à cet emplacement.
         </p>
       </div>
       <div className="field">
