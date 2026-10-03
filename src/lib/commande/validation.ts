@@ -169,6 +169,11 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     adresse = adresseBrute;
   }
 
+  const sousTotalAffiche = payload.sousTotalAffiche;
+  if (typeof sousTotalAffiche !== "number" || !Number.isSafeInteger(sousTotalAffiche) || sousTotalAffiche < 0) {
+    champs.sousTotalAffiche = "Total affiché invalide. Rechargez la page.";
+  }
+
   if (payload.consentementReglement !== true) {
     champs.consentement =
       "Vous devez confirmer avoir pris connaissance du règlement directement avec le restaurant.";
@@ -187,6 +192,7 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     ok: true,
     valeurs: {
       cleIdempotence,
+      sousTotalAffiche: sousTotalAffiche as number,
       restaurantId: payload.restaurantId as string,
       client: { nom, telephone, adresse },
       mode: mode as ModeRetrait,

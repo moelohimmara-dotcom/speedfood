@@ -26,7 +26,20 @@ export interface ElementTaxonomie {
 
 type TableTaxonomie = "menu_categories" | "neighborhoods";
 
+/**
+ * Les Server Actions sont appelables avec des arguments arbitraires : le type
+ * TypeScript ne protège pas à l'exécution (revue de sécurité, point 11). Liste blanche.
+ */
+const TABLES_TAXONOMIE: readonly string[] = ["menu_categories", "neighborhoods"];
+
+function verifierTable(table: string): void {
+  if (!TABLES_TAXONOMIE.includes(table)) {
+    throw new Error("Table de taxonomie inconnue.");
+  }
+}
+
 export async function listerTaxonomie(table: TableTaxonomie): Promise<ElementTaxonomie[]> {
+  verifierTable(table);
   await verifierPermission("taxonomie.editer");
   const supabase = await creerClientServeur();
   const { data, error } = await supabase.from(table).select("id, nom, ordre").order("ordre");
@@ -45,6 +58,7 @@ export async function creerElementTaxonomieAction(
   _etatPrecedent: EtatActionTaxonomie,
   formData: FormData
 ): Promise<EtatActionTaxonomie> {
+  verifierTable(table);
   const nom = String(formData.get("nom") ?? "").trim();
   const ordreBrut = String(formData.get("ordre") ?? "0");
   const ordre = Number.parseInt(ordreBrut, 10);
@@ -90,6 +104,7 @@ export async function modifierElementTaxonomieAction(
   _etatPrecedent: EtatActionTaxonomie,
   formData: FormData
 ): Promise<EtatActionTaxonomie> {
+  verifierTable(table);
   const id = String(formData.get("id") ?? "");
   const nom = String(formData.get("nom") ?? "").trim();
   const ordreBrut = String(formData.get("ordre") ?? "0");
@@ -134,6 +149,7 @@ export async function supprimerElementTaxonomieAction(
   table: TableTaxonomie,
   id: string
 ): Promise<{ erreur?: string }> {
+  verifierTable(table);
   const contexte = await verifierPermission("taxonomie.editer");
   const supabase = await creerClientServeur();
 

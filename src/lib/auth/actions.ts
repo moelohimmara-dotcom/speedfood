@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { estUuid } from "@/lib/commande/commun";
 import { creerClientServeur } from "@/lib/db/server";
 import { estCheminInterneSur } from "./redirection";
 
@@ -98,6 +99,12 @@ export async function creerEtablissementAction(
   if (!nom || !categorieId || !quartierId) {
     return { erreur: "Tous les champs sont obligatoires." };
   }
+  if (nom.length < 2 || nom.length > 120) {
+    return { erreur: "Le nom de l'établissement doit compter de 2 à 120 caractères." };
+  }
+  if (!estUuid(categorieId) || !estUuid(quartierId)) {
+    return { erreur: "Catégorie ou quartier invalide." };
+  }
 
   const supabase = await creerClientServeur();
   const { error } = await supabase.rpc("fn_creer_restaurant_et_owner", {
@@ -107,7 +114,8 @@ export async function creerEtablissementAction(
   });
 
   if (error) {
-    return { erreur: error.message };
+    // Jamais le message brut de la base (revue de sécurité, point 14).
+    return { erreur: "Impossible de créer l'établissement pour le moment. Réessayez dans un instant." };
   }
 
   redirect("/restaurant");

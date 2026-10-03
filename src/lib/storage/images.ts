@@ -25,6 +25,21 @@ const EXTENSIONS_PAR_TYPE: Record<string, string> = {
   "image/webp": "webp",
 };
 
+function signatureCorrespond(o: Uint8Array, type: string): boolean {
+  const ascii = (debut: number, texte: string) =>
+    [...texte].every((c, i) => o[debut + i] === c.charCodeAt(0));
+  if (type === "image/jpeg") {
+    return o[0] === 0xff && o[1] === 0xd8 && o[2] === 0xff;
+  }
+  if (type === "image/png") {
+    return o[0] === 0x89 && ascii(1, "PNG") && o[4] === 0x0d && o[5] === 0x0a && o[6] === 0x1a && o[7] === 0x0a;
+  }
+  if (type === "image/webp") {
+    return ascii(0, "RIFF") && ascii(8, "WEBP");
+  }
+  return false;
+}
+
 export type DossierMedia = "restaurants" | "plats" | "bannieres" | "logos";
 
 /**
@@ -47,6 +62,15 @@ export async function televerserImage(
   if (fichier.size > TAILLE_MAX_OCTETS) {
     throw new ErreurMetier("VALIDATION", "L'image ne peut pas dépasser 5 Mo.", {
       image: "Fichier trop volumineux.",
+    });
+  }
+
+  // Le type MIME déclaré par le navigateur ne prouve rien : on vérifie la signature
+  // réelle du fichier (revue de sécurité, point 14).
+  const entete = new Uint8Array(await fichier.slice(0, 12).arrayBuffer());
+  if (!signatureCorrespond(entete, fichier.type)) {
+    throw new ErreurMetier("VALIDATION", "Le fichier n'est pas une image valide.", {
+      image: "Fichier invalide.",
     });
   }
 

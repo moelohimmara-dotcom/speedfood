@@ -50,6 +50,12 @@ export function FormulaireCommande({ panier }: Props) {
     return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   });
 
+  // Total que le client a réellement sous les yeux. Il vaut le total du panier, sauf si le
+  // serveur a signalé un changement de prix : il affiche alors le nouveau total, que le
+  // client confirme explicitement en validant de nouveau.
+  const [totalServeur, setTotalServeur] = useState<number | null>(null);
+  const totalAffiche = totalServeur ?? sousTotalPanier(panier);
+
   function soumettre() {
     const erreurs: Record<string, string> = {};
     if (nom.trim().length < 2 || nom.trim().length > 120) {
@@ -76,6 +82,7 @@ export function FormulaireCommande({ panier }: Props) {
 
     const payload: CreationCommandePayload = {
       cleIdempotence,
+      sousTotalAffiche: totalAffiche,
       restaurantId: panier.restaurantId as string,
       client: {
         nom: nom.trim(),
@@ -104,6 +111,10 @@ export function FormulaireCommande({ panier }: Props) {
   }
 
   function appliquerErreur(erreur: ErreurApi) {
+    const nouveauTotal = Number(erreur.champs?.sousTotalServeur);
+    if (erreur.code === "CONFLIT_ETAT" && Number.isSafeInteger(nouveauTotal)) {
+      setTotalServeur(nouveauTotal);
+    }
     setChamps(erreur.champs ?? {});
     setErreurGenerale(erreur.message);
   }
@@ -231,7 +242,7 @@ export function FormulaireCommande({ panier }: Props) {
       <Button type="submit" pleineLargeur disabled={enCours}>
         {enCours
           ? "Envoi de la commande…"
-          : `Confirmer la commande · ${sousTotalPanier(panier).toLocaleString("fr-FR")} GNF`}
+          : `Confirmer la commande · ${totalAffiche.toLocaleString("fr-FR")} GNF`}
       </Button>
     </form>
   );

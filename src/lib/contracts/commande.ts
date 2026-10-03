@@ -128,7 +128,10 @@ export interface LigneCommandeClient {
 
 /**
  * Charge utile de création d'une commande invitée (ADR-005).
- * Aucun montant n'est transmis : tout total envoyé par le navigateur est ignoré.
+ * Aucun prix n'est transmis ni jamais utilisé : le serveur recalcule tout. Seul le
+ * sous-total AFFICHÉ au client est envoyé, uniquement pour être comparé au total
+ * recalculé : s'il diffère (prix modifié entre l'affichage et l'envoi), la commande
+ * est refusée et le client confirme le nouveau total (revue de sécurité, point 8).
  */
 export interface CreationCommandePayload {
   /** Clé d'idempotence générée par le navigateur pour une soumission donnée (anti double-envoi réseau). */
@@ -137,6 +140,8 @@ export interface CreationCommandePayload {
   client: ClientCommande;
   mode: ModeRetrait;
   lignes: LigneCommandeClient[];
+  /** Sous-total (GNF, entier) que le client a vu à l'écran ; jamais utilisé comme prix. */
+  sousTotalAffiche: number;
   /** Consentement explicite au règlement hors portail et à la confirmation par le restaurant. */
   consentementReglement: boolean;
 }

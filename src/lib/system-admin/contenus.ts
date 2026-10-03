@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { estLienBanniereSur } from "@/lib/auth/redirection";
 import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
@@ -216,6 +217,9 @@ export async function creerBanniereAction(
   }
   if (!Number.isFinite(ordre)) {
     return { erreur: "Ordre d'affichage invalide." };
+  }
+  if (lien && !estLienBanniereSur(lien)) {
+    return { erreur: "Le lien doit être un chemin du site (/restaurants) ou une adresse https://." };
   }
 
   const contexte = await verifierPermission("contenu.editer");

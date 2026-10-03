@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { regrouperIpv6 } from "./ip";
 
 /**
  * Limitation de débit des actions publiques (PROCEDURE-SECURITE.md §7, ADR-011).
@@ -55,11 +56,11 @@ async function adresseClient(): Promise<string> {
   const entetes = await headers();
   const cloudflare = entetes.get("cf-connecting-ip");
   if (cloudflare) {
-    return cloudflare.trim();
+    return regrouperIpv6(cloudflare.trim());
   }
   const transmis = entetes.get("x-forwarded-for");
   if (transmis) {
-    return transmis.split(",")[0].trim();
+    return regrouperIpv6(transmis.split(",")[0].trim());
   }
   return "inconnue";
 }

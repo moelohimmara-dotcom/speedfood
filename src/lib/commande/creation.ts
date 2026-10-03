@@ -74,6 +74,17 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
     payload.lignes
   );
 
+  // Le client doit avoir vu le bon total : si un prix a changé entre l'affichage et
+  // l'envoi, rien n'est créé et le nouveau total lui est présenté (revue de sécurité,
+  // point 8). Le prix utilisé reste TOUJOURS celui du serveur.
+  if (payload.sousTotalAffiche !== sousTotal) {
+    throw new ErreurMetier(
+      "CONFLIT_ETAT",
+      `Les prix ont changé : le total est maintenant de ${sousTotal.toLocaleString("fr-FR")} GNF (au lieu de ${payload.sousTotalAffiche.toLocaleString("fr-FR")} GNF). Vérifiez, puis confirmez de nouveau.`,
+      { sousTotalServeur: String(sousTotal) }
+    );
+  }
+
   // Trois tentatives au cas (rare) où la référence aléatoire serait déjà prise.
   for (let tentative = 0; tentative < 3; tentative += 1) {
     const reference = genererReference();

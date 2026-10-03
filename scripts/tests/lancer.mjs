@@ -1,4 +1,4 @@
-// Lance les tests purs (disponibilité, classement) sans bibliothèque de test :
+// Lance les tests purs (disponibilité, classement, liens et redirections) sans bibliothèque de test :
 // copie les sources dans un dossier temporaire en ajoutant les suffixes ".ts"
 // que Node exige, puis exécute le fichier de tests. Usage : npm run test:unit
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
@@ -19,8 +19,16 @@ function copier(rel) {
 
 copier("src/lib/disponibilite/etat.ts");
 copier("src/lib/decouverte/classement.ts");
+copier("src/lib/auth/redirection.ts");
 copier("scripts/tests/decouverte.test.mts");
+copier("scripts/tests/securite.test.mts");
+copier("src/lib/securite/ip.ts");
+copier("scripts/tests/ip.test.mts");
 
-const resultat = spawnSync(process.execPath, [join(tmp, "scripts/tests/decouverte.test.mts")], { stdio: "inherit" });
+let statut = 0;
+for (const fichier of ["decouverte", "securite", "ip"]) {
+  const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit" });
+  statut = statut || (resultat.status ?? 1);
+}
 rmSync(tmp, { recursive: true, force: true });
-process.exit(resultat.status ?? 1);
+process.exit(statut);

@@ -72,11 +72,11 @@ export async function traiterCommandeAction(
   }
 
   try {
-    // Une proposition échue est d'abord traitée par le système : la commande
-    // peut alors être déjà annulée, et la transition sera légitimement refusée.
-    await traiterPropositionEchue(commandeId);
-
-    const commande = await lireCommandeMinimale(supabase, commandeId);
+    // L'appartenance est vérifiée AVANT tout traitement en clé serveur (revue de
+    // sécurité, point 12) ; une proposition échue est ensuite traitée par le système
+    // et la commande relue : elle peut être déjà annulée, la transition sera alors
+    // légitimement refusée.
+    let commande = await lireCommandeMinimale(supabase, commandeId);
     if (!commande) {
       return {
         ok: false,
@@ -88,6 +88,9 @@ export async function traiterCommandeAction(
         ok: false,
         erreur: { code: "NON_AUTORISE", message: "Cette commande ne relève pas de votre restaurant." },
       };
+    }
+    if (await traiterPropositionEchue(commandeId)) {
+      commande = (await lireCommandeMinimale(supabase, commandeId)) ?? commande;
     }
 
     // Aucune préparation ni acceptation tant que le client n'a pas répondu à la
@@ -135,9 +138,7 @@ export async function creerPropositionAction(
   }
 
   try {
-    await traiterPropositionEchue(commandeId);
-
-    const commande = await lireCommandeMinimale(supabase, commandeId);
+    let commande = await lireCommandeMinimale(supabase, commandeId);
     if (!commande) {
       return {
         ok: false,
@@ -149,6 +150,9 @@ export async function creerPropositionAction(
         ok: false,
         erreur: { code: "NON_AUTORISE", message: "Cette commande ne relève pas de votre restaurant." },
       };
+    }
+    if (await traiterPropositionEchue(commandeId)) {
+      commande = (await lireCommandeMinimale(supabase, commandeId)) ?? commande;
     }
 
     await creerPropositionRevisee(supabase, commande, valeurs);
