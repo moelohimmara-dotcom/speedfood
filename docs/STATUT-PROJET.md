@@ -472,9 +472,10 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   boîte de réception » dans le style de la confirmation d'envoi déjà existante, et
   l'erreur de connexion d'un compte non confirmé est traduite.
   `npm run typecheck` et `npm run lint` propres ; déployé (version Worker
-  `e437c13f`) ; routes publiques revérifiées. **Reste à vérifier par Malika** : une
-  inscription réelle de bout en bout (écran de confirmation, courriel en français,
-  lien menant à l'onboarding). **Limite connue** : le lien passe par un échange de
+  `e437c13f`) ; routes publiques revérifiées. **Vérifié de bout en bout par Malika
+  le 3 octobre 2026** : inscription réelle — écran « Vérifiez votre boîte de
+  réception » affiché, courriel en français reçu, lien du courriel menant à
+  l'onboarding, compte actif. **Limite connue** : le lien passe par un échange de
   code PKCE, il doit donc être ouvert dans le **même navigateur** que celui utilisé
   pour l'inscription — comportement identique à celui de la réinitialisation du mot
   de passe, mais à expliquer à l'utilisateur si le cas se présente.
