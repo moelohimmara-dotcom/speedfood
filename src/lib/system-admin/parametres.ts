@@ -30,6 +30,9 @@ export interface ParametresAffiches {
   commandePropositionDelaiMinutes: number;
   prixPlatMaxGnf: number;
   disponibiliteFraicheurHeures: number;
+  conservationCoordonneesJours: number;
+  conservationNonClotureeJours: number;
+  conservationAuditMois: number;
 }
 
 export async function listerParametresApplication(): Promise<ParametresAffiches> {
@@ -37,7 +40,9 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
   const supabase = await creerClientServeur();
   const { data } = await supabase
     .from("parametres_application")
-    .select("commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures")
+    .select(
+      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois"
+    )
     .eq("id", true)
     .single();
 
@@ -45,6 +50,9 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
     commandePropositionDelaiMinutes: data?.commande_proposition_delai_minutes ?? 30,
     prixPlatMaxGnf: data?.prix_plat_max_gnf ?? 5_000_000,
     disponibiliteFraicheurHeures: data?.disponibilite_fraicheur_heures ?? 6,
+    conservationCoordonneesJours: data?.conservation_coordonnees_jours ?? 90,
+    conservationNonClotureeJours: data?.conservation_non_cloturee_jours ?? 30,
+    conservationAuditMois: data?.conservation_audit_mois ?? 12,
   };
 }
 
@@ -59,6 +67,9 @@ export async function modifierParametresAction(
   const delai = Number.parseInt(delaiBrut, 10);
   const prix = Number.parseInt(prixBrut, 10);
   const fraicheur = Number.parseInt(fraicheurBrute, 10);
+  const conservation = Number.parseInt(String(formData.get("conservation_coordonnees_jours") ?? ""), 10);
+  const nonCloturee = Number.parseInt(String(formData.get("conservation_non_cloturee_jours") ?? ""), 10);
+  const auditMois = Number.parseInt(String(formData.get("conservation_audit_mois") ?? ""), 10);
 
   if (!Number.isFinite(delai) || delai < 1 || delai > 1440) {
     return { erreur: "Le délai de proposition doit être compris entre 1 et 1440 minutes." };
@@ -71,6 +82,18 @@ export async function modifierParametresAction(
     return { erreur: "La durée de fraîcheur de la disponibilité doit être comprise entre 1 et 72 heures." };
   }
 
+  // Conservation des données personnelles : bornes alignées sur la base (l'anonymisation est
+  // irréversible, d'où le minimum de 7 jours).
+  if (!Number.isFinite(conservation) || conservation < 7 || conservation > 3650) {
+    return { erreur: "La durée de conservation des coordonnées doit être comprise entre 7 et 3650 jours." };
+  }
+  if (!Number.isFinite(nonCloturee) || nonCloturee < 7 || nonCloturee > 3650) {
+    return { erreur: "Le délai pour une commande jamais clôturée doit être compris entre 7 et 3650 jours." };
+  }
+  if (!Number.isFinite(auditMois) || auditMois < 1 || auditMois > 120) {
+    return { erreur: "La durée de conservation du journal d'audit doit être comprise entre 1 et 120 mois." };
+  }
+
   const contexte = await verifierPermission("parametres.editer");
   const supabase = await creerClientServeur();
 
@@ -80,6 +103,9 @@ export async function modifierParametresAction(
       commande_proposition_delai_minutes: delai,
       prix_plat_max_gnf: prix,
       disponibilite_fraicheur_heures: fraicheur,
+      conservation_coordonnees_jours: conservation,
+      conservation_non_cloturee_jours: nonCloturee,
+      conservation_audit_mois: auditMois,
       mis_a_jour_le: new Date().toISOString(),
       mis_a_jour_par: contexte.utilisateurId,
     })
@@ -93,7 +119,7 @@ export async function modifierParametresAction(
     action: "parametres.modification",
     cibleType: "parametres_application",
     cibleId: "singleton",
-    motif: `Délai proposition → ${delai} min, plafond prix plat → ${prix} GNF, fraîcheur disponibilité → ${fraicheur} h`,
+    motif: `Délai proposition → ${delai} min, plafond prix plat → ${prix} GNF, fraîcheur disponibilité → ${fraicheur} h, conservation coordonnées → ${conservation} j, commande non clôturée → ${nonCloturee} j, audit → ${auditMois} mois`,
   });
 
   revalidatePath("/system/parametres");

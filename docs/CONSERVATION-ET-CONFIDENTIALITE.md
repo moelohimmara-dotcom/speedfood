@@ -1,7 +1,7 @@
 # Conservation des données et confidentialité — Speedfood
 
-**Version :** 0.1 — proposition du 3 octobre 2026, **à valider par Malika**  
-**Statut :** les durées ci-dessous sont des **propositions de travail**, pas des décisions ni un avis juridique. Les obligations en Guinée (protection des données, notification, durées minimales de conservation) doivent être confirmées avec un conseil compétent avant le pilote avec de vraies données (`PROCEDURE-SECURITE.md` §7).
+**Version :** 0.2 — 3 octobre 2026  
+**Statut :** Malika a **validé le 3 octobre 2026 la durée de 90 jours**, avec la possibilité de la **raccourcir ou de l'allonger** (voir §6). Ce n'est **pas un avis juridique**. Les obligations en Guinée (protection des données, notification, durées minimales de conservation) doivent être confirmées avec un conseil compétent avant le pilote avec de vraies données (`PROCEDURE-SECURITE.md` §7).
 
 ## 1. Ce que la base contient réellement
 
@@ -36,7 +36,7 @@ Hébergement : base Supabase en Irlande (`eu-west-1`), application sur Cloudflar
 | Email d'un compte restaurateur | Tant que le compte existe ; effacé à la fermeture du compte sur demande | Nécessaire pour se connecter |
 | Compte de test | Supprimé dès la fin du test (c'est déjà la règle) | |
 
-À trancher par toi : ces 90 jours, et si un restaurateur a besoin de retrouver un client plus longtemps (dans ce cas, c'est au restaurateur de le noter lui-même, hors Speedfood).
+**Décision de Malika (3 octobre 2026) : 90 jours retenus, réglables** dans `/system/parametres` (§6). Si un restaurateur a besoin de retrouver un client plus longtemps, c'est à lui de le noter lui-même, hors Speedfood.
 
 ## 3. Droits des personnes et demandes
 
@@ -49,7 +49,7 @@ Une personne peut demander de **voir, corriger ou effacer** ses données. Procé
 ## 4. État de l'implémentation
 
 - **Fait :** coordonnées masquées par défaut pour le support, révélation seulement avec motif obligatoire et trace d'audit (bloc 8d) ; la page de suivi publique n'affiche ni téléphone ni adresse ; consentement explicite à la commande ; clés de limitation de débit sous forme d'empreintes.
-- **Pas fait :** **aucune purge ni anonymisation automatique n'existe.** Tant qu'elle n'est pas construite, les coordonnées sont conservées sans limite de durée, ce qui est exactement ce que cette proposition veut éviter. À construire après ta validation des durées : une fonction SQL d'anonymisation, appelée chaque nuit (extension `pg_cron` si disponible sur ton offre, sinon un déclenchement planifié côté application) ; en attendant, un nettoyage manuel mensuel par le `super_admin`.
+- **Fait le 3 octobre 2026 :** anonymisation et purge automatiques (migration `conservation_donnees`). La fonction `fn_anonymiser_donnees()` tourne **chaque nuit à 3 h 15 UTC** par `pg_cron` (job `speedfood-anonymisation`, extension activée dans Supabase) ; les trois durées sont réglables par le `super_admin` dans `/system/parametres`. Testé en base avec des commandes de dates variées (voir §6).
 - **Pas fait :** page publique de confidentialité (le texte du §5 est prêt à y être publié) ; écran de demande d'effacement.
 
 ## 5. Texte de confidentialité (brouillon à publier sur `/confidentialite`)
@@ -75,3 +75,67 @@ Une personne peut demander de **voir, corriger ou effacer** ses données. Procé
 > **Responsable :** **[nom de la structure ou de la personne à compléter]**. Dernière mise à jour : **[date]**.
 
 Les trois champs entre crochets ne peuvent pas être inventés : ils dépendent de toi (adresse de contact, identité du responsable, date de publication).
+
+## 6. Régler et exploiter la conservation : mode d'emploi (humain ou agent)
+
+### 6.1 Ce qui est réglable
+
+| Réglage (`/system/parametres`) | Colonne de `parametres_application` | Défaut | Bornes | Effet |
+|---|---|---|---|---|
+| Coordonnées d'une commande terminée, refusée ou annulée | `conservation_coordonnees_jours` | 90 | 7 à 3650 jours | Délai compté depuis la **dernière mise à jour du statut** (la clôture) |
+| Commande jamais clôturée | `conservation_non_cloturee_jours` | 30 | 7 à 3650 jours | Délai compté depuis la **création** pour une commande restée en attente, acceptée ou prête |
+| Journal d'audit | `conservation_audit_mois` | 12 | 1 à 120 mois | Les événements plus anciens sont **supprimés** |
+
+Les bornes sont imposées par la base (contraintes `CHECK`) : impossible d'enregistrer 0 ou une valeur négative. Le minimum de
+7 jours protège d'une faute de frappe, car **l'anonymisation est irréversible**.
+
+### 6.2 Ce que fait l'anonymisation
+
+Chaque nuit, `fn_anonymiser_donnees()` remplace sur les commandes échues le nom par « Client », le téléphone par du vide, l'adresse par
+« rien », et date l'opération (`orders.anonymise_le`). Une commande déjà anonymisée n'est jamais retraitée. Les montants, les plats, les
+suppléments, l'historique de statut et les propositions sont conservés. Elle supprime aussi les événements d'audit plus anciens que la durée
+réglée, puis écrit **un** événement d'audit sans donnée personnelle (« N commande(s) anonymisée(s), M événement(s) purgé(s) »).
+La fonction n'est appelable par aucun rôle de l'API (ni visiteur, ni compte connecté) : seulement par la planification interne.
+
+### 6.3 Raccourcir ou allonger : conséquences
+
+- **Raccourcir (par exemple 90 vers 30 jours)** : dès la nuit suivante, toutes les commandes clôturées depuis plus de 30 jours perdent leurs
+  coordonnées, **définitivement**. Vérifier avant que personne n'en a besoin (réclamation en cours, litige). Les exports de sauvegarde
+  déjà réalisés gardent les anciennes coordonnées jusqu'à leur rotation (voir `RUNBOOK-EXPORT.md` §7).
+- **Allonger (par exemple 90 vers 180 jours)** : n'a d'effet que pour l'avenir. Les commandes **déjà anonymisées ne reviennent pas**.
+- **Dans tous les cas** : mettre à jour le texte de la page de confidentialité (§5) pour qu'il affiche la durée réellement appliquée. Une durée
+  annoncée différente de la durée appliquée est un manquement, quelle que soit la direction. Une durée supérieure à 90 jours demande aussi de
+  confirmer sa justification (obligation légale ou besoin réel), puisque le principe est de ne pas conserver plus que nécessaire.
+- Toute modification est journalisée dans l'audit (`parametres.modification`, avec les nouvelles valeurs).
+
+### 6.4 Vérifier et exploiter
+
+```sql
+-- Le job tourne-t-il ? (dernières exécutions)
+select jobname, schedule, active from cron.job where jobname = 'speedfood-anonymisation';
+select status, start_time, return_message from cron.job_run_details order by start_time desc limit 5;
+
+-- Réglages actuels
+select conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois from parametres_application;
+
+-- Combien de commandes sont anonymisées ou encore identifiantes (compteurs seulement)
+select count(*) filter (where anonymise_le is not null) as anonymisees, count(*) filter (where anonymise_le is null) as identifiantes from orders;
+```
+
+Lancer l'anonymisation tout de suite (administrateur de base, par exemple depuis l'éditeur SQL de Supabase) : `select public.fn_anonymiser_donnees();`
+renvoie les nombres traités. **Ne jamais écrire de téléphone ou d'adresse dans un motif d'audit ni dans une conversation.**
+
+**Si le job ne tourne plus** (extension désactivée, projet en pause) : le relancer en recréant la planification
+(`select cron.schedule('speedfood-anonymisation', '15 3 * * *', 'select public.fn_anonymiser_donnees()');`) ou, à défaut, appeler la fonction à la main chaque
+semaine. Un projet Supabase gratuit en pause n'exécute rien : l'anonymisation reprend à sa réactivation.
+
+### 6.5 Effacement à la demande d'une personne
+
+Procédure du §3 inchangée. Pour anonymiser **une** commande sans attendre, le `super_admin` exécute en base :
+`update orders set client_nom = 'Client', client_telephone = '', client_adresse = null, anonymise_le = now() where reference = 'SF-XXXXX';`
+puis journalise la demande dans l'audit **avec un motif sans coordonnées**. Penser aux exports de sauvegarde existants (rotation à 4).
+
+### 6.6 Ce qui reste à faire
+
+- Publier la page `/confidentialite` (le texte du §5 est prêt) : il manque l'identité du responsable, l'adresse de contact et la date, qui dépendent de Malika.
+- Faire valider les durées et les obligations en Guinée par un conseil compétent avant le pilote avec de vraies données.

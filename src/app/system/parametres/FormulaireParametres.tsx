@@ -61,6 +61,71 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
           « à confirmer ».
         </p>
       </div>
+      <fieldset
+        style={{
+          border: "1px solid var(--bordure)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-4)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-4)",
+        }}
+      >
+        <legend style={{ fontWeight: 700, padding: "0 6px" }}>Conservation des données personnelles</legend>
+        <Alert ton="info">
+          Passé ces délais, le nom, le téléphone et l&apos;adresse des clients sont <strong>effacés définitivement</strong>{" "}
+          (le nom devient « Client »). Les montants et les plats restent. L&apos;anonymisation tourne chaque nuit vers
+          3 h 15 (UTC) et <strong>ne peut pas être annulée</strong> : raccourcir un délai efface dès la nuit suivante des
+          coordonnées qui étaient encore conservées. Allonger un délai n&apos;a d&apos;effet que pour l&apos;avenir. Les
+          durées doivent rester cohérentes avec la page de confidentialité publiée.
+        </Alert>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="conservation_coordonnees_jours">
+            Coordonnées d&apos;une commande terminée, refusée ou annulée : jours conservés (7 à 3650)
+          </label>
+          <input
+            id="conservation_coordonnees_jours"
+            name="conservation_coordonnees_jours"
+            type="number"
+            min={7}
+            max={3650}
+            step={1}
+            required
+            defaultValue={parametres.conservationCoordonneesJours}
+          />
+          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            Valeur retenue le 3 octobre 2026 : 90 jours après la clôture.
+          </p>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="conservation_non_cloturee_jours">
+            Commande jamais clôturée : jours après sa création (7 à 3650)
+          </label>
+          <input
+            id="conservation_non_cloturee_jours"
+            name="conservation_non_cloturee_jours"
+            type="number"
+            min={7}
+            max={3650}
+            step={1}
+            required
+            defaultValue={parametres.conservationNonClotureeJours}
+          />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="conservation_audit_mois">Journal d&apos;audit : mois conservés (1 à 120)</label>
+          <input
+            id="conservation_audit_mois"
+            name="conservation_audit_mois"
+            type="number"
+            min={1}
+            max={120}
+            step={1}
+            required
+            defaultValue={parametres.conservationAuditMois}
+          />
+        </div>
+      </fieldset>
       {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
       {etat.succes ? <Alert ton="succes">Paramètres enregistrés.</Alert> : null}
       <div>

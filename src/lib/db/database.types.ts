@@ -488,6 +488,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          anonymise_le: string | null
           client_adresse: string | null
           client_nom: string
           client_telephone: string
@@ -503,6 +504,7 @@ export type Database = {
           statut: string
         }
         Insert: {
+          anonymise_le?: string | null
           client_adresse?: string | null
           client_nom: string
           client_telephone: string
@@ -518,6 +520,7 @@ export type Database = {
           statut?: string
         }
         Update: {
+          anonymise_le?: string | null
           client_adresse?: string | null
           client_nom?: string
           client_telephone?: string
@@ -544,6 +547,9 @@ export type Database = {
       }
       parametres_application: {
         Row: {
+          conservation_audit_mois: number
+          conservation_coordonnees_jours: number
+          conservation_non_cloturee_jours: number
           disponibilite_fraicheur_heures: number
           commande_proposition_delai_minutes: number
           id: boolean
@@ -552,6 +558,9 @@ export type Database = {
           prix_plat_max_gnf: number
         }
         Insert: {
+          conservation_audit_mois?: number
+          conservation_coordonnees_jours?: number
+          conservation_non_cloturee_jours?: number
           disponibilite_fraicheur_heures?: number
           commande_proposition_delai_minutes?: number
           id?: boolean
@@ -560,6 +569,9 @@ export type Database = {
           prix_plat_max_gnf?: number
         }
         Update: {
+          conservation_audit_mois?: number
+          conservation_coordonnees_jours?: number
+          conservation_non_cloturee_jours?: number
           disponibilite_fraicheur_heures?: number
           commande_proposition_delai_minutes?: number
           id?: boolean
