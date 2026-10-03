@@ -17,27 +17,6 @@ export default function AProposPage() {
         Speedfood n&apos;est pas encore lancé publiquement à Conakry — projet en phase pilote
       </div>
 
-      <header className="topbar">
-        <div className="topbar-inner">
-          <a href="#haut" className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <svg className="icon" viewBox="0 0 24 24">
-                <path d="M4 11c0-3.87 3.13-7 7-7h2c3.87 0 7 3.13 7 7v0c0 .55-.45 1-1 1H5c-.55 0-1-.45-1-1v0Z" />
-                <path d="M4 15h16M9 19h6" />
-              </svg>
-            </span>
-            <span className="brand-name">Speedfood</span>
-          </a>
-          <nav className="topnav">
-            <a href="#comment-ca-marche">Comment ça marche</a>
-            <a href="#restaurateurs">Restaurateurs</a>
-            <a href="#rejoindre">Rejoindre</a>
-          </nav>
-          <Link href="/restaurants" className="btn btn-secondary btn-nav-cta">
-            Voir les restaurants
-          </Link>
-        </div>
-      </header>
 
       <main id="haut">
         <section className="hero">
@@ -283,15 +262,6 @@ export default function AProposPage() {
           </div>
         </section>
       </main>
-
-      <footer className="footer">
-        <p>Speedfood — projet en phase de validation à Conakry.</p>
-        <p>
-          <Link href="/restaurants">Voir les restaurants déjà en ligne</Link>
-          {" · "}
-          <Link href="/confidentialite">Confidentialité</Link>
-        </p>
-      </footer>
     </>
   );
 }

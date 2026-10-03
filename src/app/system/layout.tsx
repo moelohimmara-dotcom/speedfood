@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { deconnexionAction } from "@/lib/auth/actions";
-import { Badge } from "@/components/ui";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import { aUnMembershipRestaurant } from "@/lib/auth/doubleAcces";
 import {
@@ -29,18 +28,14 @@ export default async function SystemLayout({ children }: { children: React.React
   const aAussiUnRestaurant = await aUnMembershipRestaurant(contexte.supabase, contexte.utilisateurId);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>
-      <header className="sys-entete">
-        <div className="sys-entete-titre">
-          <Link
-            href="/system"
-            style={{ fontFamily: "var(--font-barlow)", fontSize: "1.5rem", fontWeight: 800 }}
-          >
-            Administration Speedfood
-          </Link>
-          <Badge ton="neutre">Rôle : {LIBELLES_ROLES[contexte.role]}</Badge>
-        </div>
-        <div className="sys-entete-liens">
+    <div className="console-cadre console-cadre-large">
+      <aside className="console-cote">
+        <p className="console-marque console-marque-visible">
+          Administration Speedfood
+          <span>Rôle : {LIBELLES_ROLES[contexte.role]}</span>
+        </p>
+        <SystemNav entrees={entrees} />
+        <div className="console-liens">
           <Link href="/compte/securite" className="lien-console">
             Sécurité du compte
           </Link>
@@ -55,20 +50,19 @@ export default async function SystemLayout({ children }: { children: React.React
             </button>
           </form>
         </div>
-      </header>
+      </aside>
 
-      <SystemNav entrees={entrees} />
+      <div className="console-principal">
+        <RappelDoubleAuthentification supabase={contexte.supabase} administrateur />
 
-      <RappelDoubleAuthentification supabase={contexte.supabase} administrateur />
-
-      <details className="sys-note">
-        <summary>Séparation des surfaces</summary>
-        <p>
-          (ADR-010) Un membership restaurant n&apos;ouvre jamais cette console, et un rôle système ne donne
-          aucun accès à la console restaurant (/restaurant). Les coordonnées clients restent masquées par
-          défaut ; leur révélation exige la permission dédiée, un motif et laisse une trace d&apos;audit.
-        </p>
-      </details>
+        <details className="sys-note">
+          <summary>Séparation des surfaces</summary>
+          <p>
+            (ADR-010) Un membership restaurant n&apos;ouvre jamais cette console, et un rôle système ne donne
+            aucun accès à la console restaurant (/restaurant). Les coordonnées clients restent masquées par
+            défaut ; leur révélation exige la permission dédiée, un motif et laisse une trace d&apos;audit.
+          </p>
+        </details>
 
       {children}
 
@@ -82,6 +76,7 @@ export default async function SystemLayout({ children }: { children: React.React
       >
         Matrice de permissions v{VERSION_MATRICE} — voir docs/MATRICE-PERMISSIONS.md
       </p>
+      </div>
     </div>
   );
 }

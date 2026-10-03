@@ -17,20 +17,7 @@ export function SystemNav({ entrees }: { entrees: readonly EntreeNavSysteme[] })
   const pathname = usePathname();
 
   return (
-    <nav
-      aria-label="Sections de l'administration"
-      style={{
-        display: "flex",
-        gap: 4,
-        background: "var(--surface)",
-        border: "1px solid var(--bordure)",
-        borderRadius: "var(--radius-pill)",
-        padding: 4,
-        marginBottom: "var(--space-5)",
-        overflowX: "auto",
-        maxWidth: "100%",
-      }}
-    >
+    <nav aria-label="Sections de l'administration" className="sys-nav">
       {entrees.map((entree) => {
         const actif =
           pathname === entree.href ||
@@ -40,18 +27,7 @@ export function SystemNav({ entrees }: { entrees: readonly EntreeNavSysteme[] })
             key={entree.href}
             href={entree.href}
             aria-current={actif ? "page" : undefined}
-            style={{
-              flex: "1 1 auto",
-              textAlign: "center",
-              padding: "10px 14px",
-              borderRadius: "var(--radius-pill)",
-              fontWeight: 700,
-              fontSize: "0.9rem",
-              color: actif ? "white" : "var(--secondaire)",
-              background: actif ? "var(--encre)" : "transparent",
-              whiteSpace: "nowrap",
-              textDecoration: "none",
-            }}
+            className={`sys-nav-lien${actif ? " actif" : ""}`}
           >
             {entree.libelle}
           </Link>
