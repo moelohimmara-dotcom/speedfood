@@ -334,6 +334,22 @@ Les écrans et critères d’acceptation correspondants sont dans le brief front
 
 Le parcours complet de bout en bout et les mesures d’ergonomie sont définis dans `PARCOURS-CIBLE-CLIENT-MVP.md`. Les écrans existants de la démo sont la base de travail : documenter la transition vers le pilote connecté écran par écran, au lieu de repartir d’un produit abstrait.
 
+### État d'avancement des lots de l'addendum (3 octobre 2026, fin de journée)
+
+À lire avec `docs/STATUT-PROJET.md` (détail et preuves). **Fait** = livré et déployé ; **Partiel** = livré avec des limites écrites ; **Pas commencé**.
+
+| Lot | État | Ce qui existe, ce qui manque |
+|---|---|---|
+| 4a — Connexion Google et téléphone | Pas commencé | Dépend de décisions de la propriétaire (compte Google à configurer, fournisseur et coût SMS). Connexion actuelle : email et mot de passe, **double authentification facultative** livrée. |
+| 5a — Recherche et classement explicable | **Fait**, sans localisation | Recherche par plat insensible aux accents, groupes exact confirmé, exact à confirmer, restaurant, épuisé ; filtres ouvert, accepte les commandes, plat disponible ; score explicable (proximité omise et renormalisée). **Manque** : localisation facultative, quartier manuel comme repère de distance, groupe « équivalent déclaré ». |
+| 6a — Disponibilité article et statut restaurant | **Fait** | Trois états distincts (ouvert, accepte les commandes, plat disponible horodaté), seuil de fraîcheur réglable (6 h), horodatage imposé par la base, bascules confirmées par le serveur, « Tout reconfirmer disponible ». |
+| Alternatives en cas de rupture (SPEC 3.3) | **Partiel** | Page « Trouver ailleurs » : même plat confirmé, même plat à confirmer, suggestions de la même cuisine ; jamais de substitution au panier. **Manque** : équivalent déclaré par le restaurateur, distance, lien pour un restaurant fermé ou en pause. |
+| 6b — Page restaurant, publication et diffusion | **Partiel** | Page publique mobile, validation manuelle par l'équipe, photo, logo, couleur de marque, sections de menu. **Manque** : partage WhatsApp prérempli, QR code, aperçu avant publication. |
+| 11a — Télémétrie pilote responsable | Pas commencé | Aucun événement mesuré ; à définir avec la propriétaire avant toute collecte. |
+| 9 — PWA installable | Pas commencé | Ni manifest ni service worker. |
+| 10 — Notifications du pilote | Pas commencé, **bloquant pour le pilote** | Canal à choisir avec la propriétaire (WhatsApp, notification de l'application installée, SMS) ; voir bloc 11b. |
+| 11 — Préproduction, exploitation | **Partiel** | Fait : limitation de débit, anti-robot, exports planifiés et restauration vérifiée, anonymisation automatique, plan d'incident écrit. **Manque** : préproduction, journaux d'exécution du Worker, contacts du plan d'incident, page de confidentialité, relecture indépendante des corrections. |
+
 ### Bloc 3a — Système d’icônes Speedfood et notifications de démonstration
 
 **Dépendances :** bloc 3 et `NOTIFICATIONS-ICONES-OUTILS.md`.  
