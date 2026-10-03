@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirRestaurantAdmin } from "@/lib/system-admin/restaurants";
 import { listerMembresAdmin } from "@/lib/system-admin/comptes";
 import { Card, Badge } from "@/components/ui";
+import { LienRetour } from "@/components/LienRetour";
 import { ActionsModeration } from "./ActionsModeration";
 import { GestionEquipe } from "./GestionEquipe";
 
@@ -23,12 +23,7 @@ export default async function RestaurantDetailSystemePage({
 
   return (
     <div>
-      <Link
-        href="/system/catalogue/restaurants"
-        style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}
-      >
-        ← Retour à la liste
-      </Link>
+      <LienRetour href="/system/catalogue/restaurants">Retour à la liste</LienRetour>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "var(--space-3) 0" }}>
         <h1 style={{ fontSize: "1.6rem", margin: 0 }}>{restaurant.nom}</h1>

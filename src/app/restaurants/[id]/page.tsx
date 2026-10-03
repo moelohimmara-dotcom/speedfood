@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
 import { Badge, Alert } from "@/components/ui";
+import { LienRetour } from "@/components/LienRetour";
 import { VignettePlat } from "@/components/VignettePlat";
 import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { classeTuile, initialePlat } from "@/lib/design/tuile";
@@ -172,9 +172,7 @@ export default async function FicheRestaurantPage({
 
   return (
     <main className="fiche">
-      <Link href="/restaurants" className="fiche-retour">
-        ← Retour aux restaurants
-      </Link>
+      <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
 
       <div className="fiche-hero" style={restaurant.couleur_accent ? { boxShadow: `0 0 0 3px ${restaurant.couleur_accent}` } : undefined}>
         {restaurant.photo_url ? (

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
 import { lireEtatMfa } from "@/lib/auth/mfa-etat";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
 import { Alert, Card } from "@/components/ui";
+import { LienRetour } from "@/components/LienRetour";
 import { ActivationMfa } from "./ActivationMfa";
 
 /**
@@ -24,12 +24,7 @@ export default async function SecuriteComptePage() {
 
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link
-        href={administrateur ? "/system" : "/restaurant"}
-        style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}
-      >
-        ← Retour
-      </Link>
+      <LienRetour href={administrateur ? "/system" : "/restaurant"}>Retour</LienRetour>
       <h1 style={{ fontSize: "1.8rem", margin: "var(--space-3) 0 var(--space-2)" }}>Sécurité du compte</h1>
       <p style={{ color: "var(--secondaire)", marginTop: 0 }}>Connecté en tant que {user.email}.</p>
 

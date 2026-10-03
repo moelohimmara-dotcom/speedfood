@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Card, Badge } from "@/components/ui";
+import { Chevron } from "@/components/Chevron";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
@@ -66,17 +67,17 @@ export default async function AccueilConsolePage() {
         <Link href="/restaurant/commandes" className={`kpi${aTraiter > 0 ? " kpi-alerte" : ""}`}>
           <span className="kpi-libelle">À traiter</span>
           <span className="kpi-valeur">{aTraiter}</span>
-          <span className="kpi-lien">Voir les commandes →</span>
+          <span className="kpi-lien">Voir les commandes <Chevron sens="droite" /></span>
         </Link>
         <Link href="/restaurant/commandes" className="kpi">
           <span className="kpi-libelle">En cours</span>
           <span className="kpi-valeur">{commandesEnCours ?? 0}</span>
-          <span className="kpi-lien">Acceptées ou prêtes →</span>
+          <span className="kpi-lien">Acceptées ou prêtes <Chevron sens="droite" /></span>
         </Link>
         <Link href="/restaurant/menu" className="kpi">
           <span className="kpi-libelle">Plats au menu</span>
           <span className="kpi-valeur">{nombrePlats ?? 0}</span>
-          <span className="kpi-lien">Gérer le menu →</span>
+          <span className="kpi-lien">Gérer le menu <Chevron sens="droite" /></span>
         </Link>
       </div>
 

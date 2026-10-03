@@ -33,7 +33,7 @@ export function EnteteSite({ compact = false }: { compact?: boolean }) {
           <>
             <span className="site-entete-espace" />
             <Link href="/restaurants" className="site-nav-lien">
-              ← Retour au site
+              Retour au site
             </Link>
           </>
         ) : null}

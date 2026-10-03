@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirCommandeAdmin, type PropositionRevisseeAdmin } from "@/lib/system-admin/commandes";
 import type { StatutProposition } from "@/lib/contracts/commande";
 import { Card, Badge } from "@/components/ui";
+import { LienRetour } from "@/components/LienRetour";
 import { formaterDateCourte, formaterEcheance } from "../../formatage";
 import { RevelerCoordonnees } from "./RevelerCoordonnees";
 import { ActionSupportStatut } from "./ActionSupportStatut";
@@ -46,9 +46,7 @@ export default async function CommandeDetailSystemePage({
 
   return (
     <div>
-      <Link href="/system/commandes" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
-        ← Retour aux commandes
-      </Link>
+      <LienRetour href="/system/commandes">Retour aux commandes</LienRetour>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "var(--space-3) 0 var(--space-5)" }}>
         <h1 style={{ fontSize: "1.5rem", margin: 0 }}>{commande.reference}</h1>

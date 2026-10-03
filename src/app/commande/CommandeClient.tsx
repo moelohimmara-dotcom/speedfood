@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePanier, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
 import { Card, Alert } from "@/components/ui";
+import { LienRetour } from "@/components/LienRetour";
 import { FormulaireCommande } from "./FormulaireCommande";
 
 /**
@@ -28,12 +29,7 @@ export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link
-        href="/panier"
-        style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem", display: "inline-flex", alignItems: "center", minHeight: 44 }}
-      >
-        ← Retour au panier
-      </Link>
+      <LienRetour href="/panier">Retour au panier</LienRetour>
 
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 var(--space-4)" }}>
         Votre commande

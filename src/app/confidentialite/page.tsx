@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LienRetour } from "@/components/LienRetour";
 import { creerClientAdmin } from "@/lib/db/admin";
 
 export const metadata: Metadata = {
@@ -30,9 +30,7 @@ export default async function ConfidentialitePage() {
 
   return (
     <main style={{ maxWidth: 680, margin: "0 auto", padding: "var(--space-8) var(--space-4)", lineHeight: 1.6 }}>
-      <Link href="/restaurants" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
-        ← Retour aux restaurants
-      </Link>
+      <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 var(--space-4)" }}>Vos données sur Speedfood</h1>
       <p>
         Speedfood est un portail qui vous aide à trouver un restaurant et à lui envoyer une demande de commande. Voici,

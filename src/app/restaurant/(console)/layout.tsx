@@ -3,6 +3,7 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { deconnexionAction } from "@/lib/auth/actions";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
+import { Chevron } from "@/components/Chevron";
 import { NavigationConsole } from "./NavigationConsole";
 
 /**
@@ -43,7 +44,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
             </Link>
             {aAussiUnRoleSysteme ? (
               <Link href="/system" className="lien-console">
-                Console admin →
+                Console admin <Chevron sens="droite" />
               </Link>
             ) : null}
             <form action={deconnexionAction}>

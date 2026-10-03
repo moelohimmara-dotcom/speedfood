@@ -71,6 +71,9 @@
   color: var(--rouge-fonce);
 }
 .kpi-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 4px;
   color: var(--rouge-fonce);
   font-size: 0.8rem;

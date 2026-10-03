@@ -193,14 +193,6 @@
   margin: 0 auto;
   padding: var(--space-3) var(--space-4) var(--space-6);
 }
-.fiche-retour {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--secondaire);
-  font-weight: 700;
-  font-size: 0.9rem;
-}
 .fiche-hero {
   position: relative;
   border-radius: var(--radius-lg);
@@ -473,6 +465,7 @@
 .lien-console {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 44px;
   padding: 0 4px;
   color: var(--secondaire);

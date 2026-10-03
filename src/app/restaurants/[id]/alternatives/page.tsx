@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { RestaurantCard } from "@/components/RestaurantCard";
+import { LienRetour } from "@/components/LienRetour";
 import { Alert } from "@/components/ui";
 import { estUuid } from "@/lib/commande/commun";
 import { lireCatalogue } from "@/lib/decouverte/recherche";
@@ -61,9 +62,7 @@ export default async function AlternativesPage({
 
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link href={`/restaurants/${id}`} style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem", display: "inline-flex", alignItems: "center", minHeight: 44 }}>
-        ← Retour à {restaurantSource.nom}
-      </Link>
+      <LienRetour href={`/restaurants/${id}`}>Retour à {restaurantSource.nom}</LienRetour>
       <h1 style={{ fontSize: "1.8rem", margin: "var(--space-3) 0 var(--space-2)" }}>Trouver ailleurs</h1>
       <p style={{ color: "var(--secondaire)", margin: "0 0 var(--space-2)" }}>
         « {platSource.nom} » {epuise ? "est épuisé" : "n'est pas forcément disponible"} chez {restaurantSource.nom}

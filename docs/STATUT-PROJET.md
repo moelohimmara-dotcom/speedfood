@@ -480,6 +480,26 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   pour l'inscription — comportement identique à celui de la réinitialisation du mot
   de passe, mais à expliquer à l'utilisateur si le cas se présente.
 
+- **Famille d'icônes appliquée : fin des flèches unicode (3 octobre 2026)** : la
+  règle de `DESIGN-SYSTEM.md` §4 (« ne pas utiliser emoji, caractères unicode ou
+  icônes improvisées comme icônes de contrôle en production ») était violée par
+  **dix liens de retour** écrits `← Retour …` dans neuf fichiers, plus **cinq
+  affordances `→`** (trois tuiles d'indicateur de la console, « Console admin → »,
+  « Voir tout le journal d'audit → »). Ces glyphes héritent de la graisse de la
+  police, s'alignent sur la ligne de base au lieu du texte, et changent de dessin
+  selon l'appareil du visiteur. Remplacés par deux composants partagés :
+  `src/components/Chevron.tsx` (grille 24 × 24, tracé 2, terminaisons arrondies,
+  `aria-hidden`) et `src/components/LienRetour.tsx` (chevron + libellé, zone tactile
+  44 px, style `.lien-retour`), ce qui supprime au passage neuf styles en ligne
+  dupliqués. **L'indicateur d'en-tête « Retour au site » perd sa flèche sans la
+  remplacer** : dans un en-tête, elle annonçait un retour en arrière alors que
+  l'action mène au site public — d'où la gêne signalée par Malika. `npm run
+  typecheck` et `npm run lint` propres ; déployé (version Worker `dddb5317`) ;
+  vérifié en ligne : les pages concernées servent bien le chevron SVG et plus aucune
+  flèche unicode. **Trois flèches subsistent volontairement** dans
+  `/system/commandes/[id]` : elles y expriment une transformation de données
+  (« 35 000 GNF → 25 000 GNF »), pas une commande.
+
 ## Ce qui n'est pas testé / connu comme incomplet
 
 - **Tests automatisés : partiels depuis le 3 octobre 2026.** Des tests unitaires

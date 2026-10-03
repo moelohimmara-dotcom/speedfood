@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import type { EtatDeriveCommande, LigneCommandeApercu } from "@/lib/contracts/commande";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
+import { LienRetour } from "@/components/LienRetour";
 import { PropositionCarte } from "./PropositionCarte";
 import { RafraichissementAuto } from "./RafraichissementAuto";
 
@@ -94,9 +94,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link href="/restaurants" style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
-        ← Retour aux restaurants
-      </Link>
+      <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
 
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 4px" }}>Suivi de votre commande</h1>
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-3)" }}>

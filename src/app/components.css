@@ -206,6 +206,26 @@
   text-underline-offset: 3px;
 }
 
+/* Lien de retour : chevron de la famille d'icônes, centré optiquement sur le libellé.
+   Remplace les caractères « ← » disséminés dans l'application — un glyphe de police
+   s'aligne sur la ligne de base, hérite de la graisse du texte et change de dessin
+   selon l'appareil (DESIGN-SYSTEM.md §4 interdit l'unicode comme icône de contrôle). */
+.lien-retour {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--secondaire);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.lien-retour:hover {
+  color: var(--encre);
+}
+.lien-retour svg {
+  flex: none;
+}
+
 /* Bouton « Choisir un fichier » aligné sur les boutons de l'application (au lieu du bouton brut du navigateur). */
 input[type="file"]::file-selector-button {
   margin-right: 10px;
