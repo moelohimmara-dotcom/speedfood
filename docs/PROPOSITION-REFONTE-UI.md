@@ -1,6 +1,6 @@
 # Proposition de refonte de l'interface Speedfood
 
-**Version :** 1.0, 3 octobre 2026. **Statut :** **B + A retenues par Malika (3 octobre 2026)**. Lots R1 à R7 réalisés (R3 : `/` redirige vers la découverte, l’ancienne page est à `/a-propos`), sauf en-tête d’administration non vérifié visuellement ; réalisés en local pour le parcours client (voir `STATUT-PROJET.md`) ; R1, R2 (console), R5, R6 restent à faire.
+**Version :** 1.0, 3 octobre 2026. **Statut :** **B + A retenues par Malika (3 octobre 2026)**. Lots R1 à R7 réalisés en local (R3 : `/` redirige vers la découverte, l’ancienne page est à `/a-propos`). Restent : vérification visuelle de l’en-tête d’administration, revue indépendante, test avec de vrais utilisateurs (voir `STATUT-PROJET.md`).
 **À lire avec :** `AUDIT-VISUEL-2026-10-03.md` (les défauts constatés), `cadrage/DESIGN-SYSTEM.md` (règles verrouillées) et la **page de comparaison** `design/directions-refonte.html` (maquettes des trois directions, à ouvrir dans un navigateur).
 
 ## 0. Méthode et ses limites
