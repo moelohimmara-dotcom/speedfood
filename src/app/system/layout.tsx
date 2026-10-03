@@ -8,6 +8,7 @@ import {
   LIBELLES_ROLES,
   VERSION_MATRICE,
 } from "@/lib/system-admin/permissions";
+import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { SystemNav } from "./SystemNav";
 
 /**
@@ -50,6 +51,9 @@ export default async function SystemLayout({ children }: { children: React.React
           </p>
         </div>
         <Badge ton="neutre">Rôle : {LIBELLES_ROLES[contexte.role]}</Badge>
+        <Link href="/compte/securite" className="btn btn-secondary">
+          Sécurité du compte
+        </Link>
         {aAussiUnRestaurant ? (
           <Link href="/restaurant" className="btn btn-secondary">
             Mon restaurant
@@ -63,6 +67,8 @@ export default async function SystemLayout({ children }: { children: React.React
       </header>
 
       <SystemNav entrees={entrees} />
+
+      <RappelDoubleAuthentification supabase={contexte.supabase} administrateur />
 
       <div
         className="alerte alerte-info"

@@ -84,6 +84,22 @@ export async function proxy(request: NextRequest) {
     });
   }
 
+  // Double authentification (facultative mais, une fois activée, EXIGÉE) : un compte qui a un
+  // facteur confirmé ne peut pas utiliser les consoles avec une session au seul mot de passe
+  // (niveau aal1). Il est renvoyé saisir son code. Les comptes sans double authentification
+  // ne sont pas touchés. La même règle est appliquée côté base (migration
+  // double_authentification_aal2) pour les appels directs à l'API.
+  if (user && (cheminProtege || cheminSysteme)) {
+    const { data: niveau } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (niveau && niveau.nextLevel === "aal2" && niveau.currentLevel !== "aal2") {
+      const urlVerification = request.nextUrl.clone();
+      urlVerification.pathname = "/connexion/verification";
+      urlVerification.search = "";
+      urlVerification.searchParams.set("suite", request.nextUrl.pathname);
+      return NextResponse.redirect(urlVerification);
+    }
+  }
+
   return reponse;
 }
 

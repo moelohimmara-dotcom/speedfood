@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
+import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { OngletNav } from "./OngletNav";
 
 /**
@@ -34,13 +35,20 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         <OngletNav href="/restaurant/menu" label="Menu" />
         <OngletNav href="/restaurant/profil" label="Mon restaurant" />
       </nav>
-      {aAussiUnRoleSysteme ? (
-        <p style={{ marginTop: -16, marginBottom: "var(--space-5)", textAlign: "right" }}>
-          <Link href="/system" style={{ fontSize: "0.85rem", color: "var(--secondaire)", fontWeight: 700 }}>
-            Console admin →
-          </Link>
-        </p>
-      ) : null}
+      <p style={{ marginTop: -16, marginBottom: "var(--space-5)", textAlign: "right", fontSize: "0.85rem" }}>
+        <Link href="/compte/securite" style={{ color: "var(--secondaire)", fontWeight: 700 }}>
+          Sécurité du compte
+        </Link>
+        {aAussiUnRoleSysteme ? (
+          <>
+            {" · "}
+            <Link href="/system" style={{ color: "var(--secondaire)", fontWeight: 700 }}>
+              Console admin →
+            </Link>
+          </>
+        ) : null}
+      </p>
+      <RappelDoubleAuthentification supabase={supabase} administrateur={aAussiUnRoleSysteme} />
       {children}
     </div>
   );
