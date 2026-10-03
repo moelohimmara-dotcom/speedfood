@@ -3,16 +3,24 @@
 import { redirect } from "next/navigation";
 import { estUuid } from "@/lib/commande/commun";
 import { creerClientServeur } from "@/lib/db/server";
+import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "./redirection";
 
 export interface EtatFormulaire {
   erreur?: string;
 }
 
+export interface EtatInscription extends EtatFormulaire {
+  /** Compte créé mais pas encore actif : la confirmation par e-mail est exigée. */
+  confirmationRequise?: boolean;
+  /** Adresse saisie, renvoyée pour l'afficher dans la confirmation (jamais pour dire si un compte existe déjà). */
+  email?: string;
+}
+
 export async function inscriptionAction(
-  _etatPrecedent: EtatFormulaire,
+  _etatPrecedent: EtatInscription,
   formData: FormData
-): Promise<EtatFormulaire> {
+): Promise<EtatInscription> {
   const email = String(formData.get("email") ?? "").trim();
   const motDePasse = String(formData.get("mot_de_passe") ?? "");
 
@@ -24,9 +32,25 @@ export async function inscriptionAction(
   }
 
   const supabase = await creerClientServeur();
-  const { error } = await supabase.auth.signUp({ email, password: motDePasse });
+  const origine = await origineDuSite();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: motDePasse,
+    options: {
+      // Le lien du courriel revient sur notre route d'échange, qui ouvre la session
+      // puis renvoie vers l'onboarding — même motif que la réinitialisation du mot de passe.
+      emailRedirectTo: `${origine}/auth/confirmation?suite=/restaurant/nouveau`,
+    },
+  });
   if (error) {
     return { erreur: traduireErreurAuth(error.message) };
+  }
+
+  // Confirmation d'e-mail activée : Supabase n'ouvre AUCUNE session tant que le lien
+  // n'a pas été suivi. Sans ce test, l'inscrit repartait vers une page protégée et
+  // atterrissait sur la connexion, sans jamais comprendre qu'il doit ouvrir sa boîte.
+  if (!data.session) {
+    return { confirmationRequise: true, email };
   }
 
   redirect("/restaurant/nouveau");
@@ -125,6 +149,10 @@ export async function creerEtablissementAction(
 function traduireErreurAuth(message: string): string {
   if (message.includes("already registered") || message.includes("already exists")) {
     return "Un compte existe déjà avec cet email.";
+  }
+  if (message.includes("Email not confirmed")) {
+    // Confirmation d'e-mail activée : le compte existe mais le lien n'a pas été suivi.
+    return "Confirmez d'abord votre adresse : ouvrez le lien reçu par e-mail (regardez aussi les courriers indésirables).";
   }
   if (message.includes("Invalid login credentials")) {
     return "Email ou mot de passe incorrect.";

@@ -18,13 +18,14 @@ est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer
   qu'« aucun outil ne permet de les gérer par migration ou API » : **c'est faux**,
   l'API de gestion Supabase les lit et les écrit ; c'est l'accès qui manquait, pas
   l'outil. État réel :
-  - "Confirm email" est **désactivé** (`mailer_autoconfirm = true`) : le compte est
-    actif immédiatement après l'inscription. **Ne pas l'activer avant d'avoir un
-    service d'envoi dédié.** Preuve chiffrée : `smtp` n'est pas configuré et
-    `rate_limit_email_sent = 2`, soit **deux courriels par heure** — activer la
-    confirmation aujourd'hui plafonnerait l'inscription à deux restaurateurs par
-    heure, avec un fort risque de courrier indésirable. À faire dans cet ordre :
-    SMTP dédié, essai réel avec un restaurant, puis activation.
+  - "Confirm email" est **activé depuis le 3 octobre 2026** (`mailer_autoconfirm =
+    false`) : le compte n'est actif qu'après avoir suivi le lien reçu par e-mail. Il
+    était désactivé jusque-là parce que le service d'envoi par défaut de Supabase
+    **ne délivre qu'aux adresses membres de l'équipe du projet**
+    (`rate_limit_email_sent = 2`) : un restaurateur n'aurait jamais pu activer son
+    compte, et la fonction « mot de passe oublié » était de fait **inutilisable pour
+    un vrai client**. Un SMTP dédié a levé cette restriction, puis l'application a
+    été adaptée avant la bascule (voir la décision correspondante plus bas).
   - "Leaked password protection" est **impossible sur l'offre actuelle**, ce n'est
     pas un réglage oublié : tentative d'activation par l'API le 3 octobre 2026,
     refus explicite `HTTP 402 — "Configuring leaked password protection via
@@ -444,6 +445,39 @@ Voir `docs/DEPLOIEMENT-CLOUDFLARE.md` pour le détail complet. En résumé :
   prouve que la clé installée est valide et acceptée. Nouvelle version Worker
   `75f7c15a`. **Reste à confirmer par Malika** : une commande réelle de bout en
   bout, comme elle l'avait fait pour la mise en place initiale.
+
+- **Envoi de courriels réparé, modèles traduits, confirmation d'e-mail activée
+  (3 octobre 2026)** : la documentation Supabase indique que le service d'envoi par
+  défaut **ne délivre qu'aux adresses membres de l'équipe du projet** (« Email
+  address not authorized » pour toutes les autres), avec un plafond de 2 courriels
+  par heure. Conséquence constatée : la fonction « mot de passe oublié », testée
+  avec succès par Malika, ne fonctionnait en réalité **que pour sa propre adresse** —
+  un restaurateur n'aurait jamais pu récupérer son compte. Corrigé en trois temps :
+  (1) SMTP personnalisé Gmail configuré par Malika (`smtp.gmail.com`, port 465,
+  expéditeur `moelohimmara@gmail.com`, nom d'expéditeur « Speedfood », mot de passe
+  d'application Google) — le plafond est passé automatiquement de 2 à 30 courriels
+  par heure, signe que Supabase a bien pris la configuration, et **une livraison
+  réelle vers une adresse hors équipe a été constatée** ; (2) modèles de courriels
+  traduits en français (`recovery`, `confirmation`, `email_change`), variables
+  `{{ .ConfirmationURL }}` préservées — la réinitialisation partait en anglais ;
+  (3) `mailer_autoconfirm` passé à `false`.
+  **Le code a été adapté AVANT la bascule**, car il ne savait pas gérer un compte
+  non confirmé : `inscriptionAction` ignorait la session renvoyée par `signUp` et
+  redirigeait vers `/restaurant/nouveau`, une page protégée — l'inscrit aurait
+  atterri sur la page de connexion sans la moindre explication ; et
+  `traduireErreurAuth` ne connaissait pas « Email not confirmed », ce qui aurait
+  affiché « Une erreur est survenue » en boucle. Désormais `signUp` reçoit un
+  `emailRedirectTo` vers `/auth/confirmation?suite=/restaurant/nouveau` (même motif
+  que la réinitialisation), l'absence de session affiche un écran « Vérifiez votre
+  boîte de réception » dans le style de la confirmation d'envoi déjà existante, et
+  l'erreur de connexion d'un compte non confirmé est traduite.
+  `npm run typecheck` et `npm run lint` propres ; déployé (version Worker
+  `e437c13f`) ; routes publiques revérifiées. **Reste à vérifier par Malika** : une
+  inscription réelle de bout en bout (écran de confirmation, courriel en français,
+  lien menant à l'onboarding). **Limite connue** : le lien passe par un échange de
+  code PKCE, il doit donc être ouvert dans le **même navigateur** que celui utilisé
+  pour l'inscription — comportement identique à celui de la réinitialisation du mot
+  de passe, mais à expliquer à l'utilisateur si le cas se présente.
 
 ## Ce qui n'est pas testé / connu comme incomplet
 
