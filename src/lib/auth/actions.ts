@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
+import { estCheminInterneSur } from "./redirection";
 
 export interface EtatFormulaire {
   erreur?: string;
@@ -50,8 +51,9 @@ export async function connexionAction(
   }
 
   // Destination explicite (utilisateur redirigé depuis une page protégée) :
-  // on la respecte telle quelle.
-  if (suite.startsWith("/")) {
+  // uniquement un chemin interne. `//hote`, `/\hote`, un schéma ou un caractère
+  // de contrôle seraient une redirection ouverte (hameçonnage après connexion).
+  if (estCheminInterneSur(suite)) {
     redirect(suite);
   }
 

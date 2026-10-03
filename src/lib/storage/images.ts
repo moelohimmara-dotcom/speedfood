@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { cheminMediaDepuisUrl } from "./chemins";
 
 /**
  * Téléversement d'images (bucket Storage `medias`, voir migration
@@ -71,17 +72,36 @@ export async function televerserImage(
  * erreur de suppression n'empêche jamais l'enregistrement de la nouvelle
  * image (le fichier orphelin reste dans le bucket, sans conséquence
  * fonctionnelle — juste un peu de stockage inutilisé).
+ *
+ * À appeler APRÈS la mise à jour de la ligne concernée. Garde-fou entre
+ * restaurants : un membre peut écrire une URL arbitraire dans sa propre ligne
+ * (RLS), y compris celle d'une image d'un autre restaurant. Tant qu'une autre
+ * ligne référence encore ce fichier, on ne le supprime pas.
  */
 export async function supprimerImage(url: string | null): Promise<void> {
   if (!url) {
     return;
   }
-  const marqueur = "/object/public/medias/";
-  const index = url.indexOf(marqueur);
-  if (index === -1) {
+  const chemin = cheminMediaDepuisUrl(url);
+  if (!chemin) {
     return;
   }
-  const chemin = url.slice(index + marqueur.length);
+
   const admin = creerClientAdmin();
+  const [restaurantsPhoto, restaurantsLogo, plats, bannieres] = await Promise.all([
+    admin.from("restaurants").select("id", { count: "exact", head: true }).eq("photo_url", url),
+    admin.from("restaurants").select("id", { count: "exact", head: true }).eq("logo_url", url),
+    admin.from("menu_items").select("id", { count: "exact", head: true }).eq("photo_url", url),
+    admin.from("content_banners").select("id", { count: "exact", head: true }).eq("image_url", url),
+  ]);
+  const erreurs = [restaurantsPhoto, restaurantsLogo, plats, bannieres].some((r) => r.error);
+  const encoreReference = [restaurantsPhoto, restaurantsLogo, plats, bannieres].some(
+    (r) => (r.count ?? 0) > 0
+  );
+  // En cas de doute (erreur de lecture), on conserve le fichier.
+  if (erreurs || encoreReference) {
+    return;
+  }
+
   await admin.storage.from("medias").remove([chemin]);
 }
