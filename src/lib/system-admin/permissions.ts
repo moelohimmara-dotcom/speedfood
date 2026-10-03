@@ -19,7 +19,7 @@
  */
 
 /** Version de la matrice de permissions. À incrémenter à chaque changement. */
-export const VERSION_MATRICE = "1.1.0";
+export const VERSION_MATRICE = "1.2.0";
 
 /** Rôles système MVP (TDR.md §4) — miroir du CHECK de `system_admin_memberships`. */
 export type RoleSysteme = "super_admin" | "operations" | "content_editor" | "support";
@@ -45,6 +45,7 @@ export type Permission =
   | "restaurant.moderer"
   | "compte.consulter"
   | "compte.inviter"
+  | "compte.supprimer"
   | "contenu.editer"
   | "contenu.mettre_en_avant"
   | "taxonomie.editer"
@@ -74,6 +75,7 @@ export const LIBELLES_PERMISSIONS: Record<Permission, string> = {
   "restaurant.moderer": "Approuver, suspendre, réactiver ou demander une correction",
   "compte.consulter": "Consulter les comptes et memberships restaurant",
   "compte.inviter": "Inviter ou révoquer propriétaires et équipiers",
+  "compte.supprimer": "Supprimer définitivement un compte (comptes de test, comptes à fermer)",
   "contenu.editer": "Créer, modifier et ordonner pages, FAQ, bannières et médias",
   "contenu.mettre_en_avant": "Gérer les sélections et mises en avant",
   "taxonomie.editer": "Gérer catégories, cuisines, quartiers et tags",
@@ -101,6 +103,7 @@ export const PERMISSIONS_PAR_ROLE: Record<RoleSysteme, readonly Permission[]> = 
     "restaurant.moderer",
     "compte.consulter",
     "compte.inviter",
+    "compte.supprimer",
     "contenu.editer",
     "contenu.mettre_en_avant",
     "taxonomie.editer",

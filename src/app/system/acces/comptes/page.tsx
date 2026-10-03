@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { roleAPermission } from "@/lib/system-admin/permissions";
+import { SuppressionCompte } from "./SuppressionCompte";
 import {
   listerComptesAnnuaire,
   type TypeCompteAnnuaire,
 } from "@/lib/system-admin/annuaire";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Alert } from "@/components/ui";
 import { formaterDateCourte } from "../../formatage";
 
 const LIBELLES_FILTRE: Record<TypeCompteAnnuaire, string> = {
@@ -24,6 +26,9 @@ const ORDRE_FILTRES: TypeCompteAnnuaire[] = [
 interface Recherche {
   q?: string;
   type?: string;
+  supprime?: string;
+  rs?: string;
+  rc?: string;
 }
 
 /**
@@ -38,9 +43,12 @@ export default async function ComptesSystemePage({
 }: {
   searchParams: Promise<Recherche>;
 }) {
-  await exigerPermissionPage("compte.consulter");
+  const contexte = await exigerPermissionPage("compte.consulter");
+  const peutSupprimer = roleAPermission(contexte.role, "compte.supprimer");
 
-  const { q, type: typeBrut } = await searchParams;
+  const { q, type: typeBrut, supprime, rs, rc } = await searchParams;
+  const restaurantsSupprimes = Number.parseInt(rs ?? "0", 10) || 0;
+  const restaurantsConserves = Number.parseInt(rc ?? "0", 10) || 0;
   const type: TypeCompteAnnuaire = ORDRE_FILTRES.includes(typeBrut as TypeCompteAnnuaire)
     ? (typeBrut as TypeCompteAnnuaire)
     : "tous";
@@ -51,11 +59,21 @@ export default async function ComptesSystemePage({
     <div>
       <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-2)" }}>Comptes utilisateurs</h1>
       <p style={{ color: "var(--secondaire)", marginTop: 0, marginBottom: "var(--space-4)" }}>
-        Annuaire en lecture seule : emails des comptes Speedfood, affiliations restaurant
+        Annuaire : emails des comptes Speedfood, affiliations restaurant
         et rôles système. Pour attribuer un rôle, utilisez&nbsp;
         <Link href="/system/acces/roles">Rôles système</Link>&nbsp;; pour gérer une équipe,
         la fiche du restaurant concerné.
       </p>
+
+      {supprime === "1" ? (
+        <Alert ton="succes" style={{ marginBottom: "var(--space-4)" }}>
+          Compte supprimé définitivement.
+          {restaurantsSupprimes > 0 ? ` ${restaurantsSupprimes} restaurant(s) supprimé(s).` : ""}
+          {restaurantsConserves > 0
+            ? ` ${restaurantsConserves} restaurant(s) conservé(s) sans membre (commandes existantes, ou suppression non demandée).`
+            : ""}
+        </Alert>
+      ) : null}
 
       <form method="GET" style={{ marginBottom: "var(--space-4)" }}>
         {type !== "tous" ? <input type="hidden" name="type" value={type} /> : null}
@@ -136,6 +154,13 @@ export default async function ComptesSystemePage({
                     </li>
                   ))}
                 </ul>
+              ) : null}
+              {peutSupprimer && compte.utilisateurId !== contexte.utilisateurId && compte.roleSysteme !== "super_admin" ? (
+                <SuppressionCompte
+                  utilisateurId={compte.utilisateurId}
+                  email={compte.email}
+                  nombreRestaurants={compte.restaurants.length}
+                />
               ) : null}
             </Card>
           ))}

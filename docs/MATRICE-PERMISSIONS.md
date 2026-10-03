@@ -1,4 +1,4 @@
-# Matrice de permissions du CMS système — v1.1.0
+# Matrice de permissions du CMS système — v1.2.0
 
 **Statut :** livrée (blocs 8a-8d) et étendue lors de la refonte de la console
 d'administration (navigation groupée par domaine + `parametres.editer`).
@@ -50,6 +50,7 @@ Cadrage : `docs/cadrage/PLAN-EXECUTION.md` (bloc 8a), `docs/cadrage/ADR.md`
 | `restaurant.moderer` | Approuver, suspendre, réactiver ou demander une correction | ✓ | ✓ | — | — |
 | `compte.consulter` | Consulter les comptes et memberships restaurant | ✓ | ✓ | — | — |
 | `compte.inviter` | Inviter ou révoquer propriétaires et équipiers | ✓ | ✓ | — | — |
+| `compte.supprimer` | Supprimer définitivement un compte (comptes de test, comptes à fermer) | ✓ | — | — | — |
 | `contenu.editer` | Créer, modifier et ordonner pages, FAQ et bannières | ✓ | — | ✓ | — |
 | `contenu.mettre_en_avant` | Gérer les sélections et mises en avant | ✓ | ✓ | — | — |
 | `taxonomie.editer` | Gérer catégories, cuisines, quartiers et tags | ✓ | — | ✓ | — |

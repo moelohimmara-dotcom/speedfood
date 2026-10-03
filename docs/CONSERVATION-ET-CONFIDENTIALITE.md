@@ -131,11 +131,13 @@ semaine. Un projet Supabase gratuit en pause n'exécute rien : l'anonymisation r
 
 ### 6.5 Effacement à la demande d'une personne
 
+(Cette section concerne les **clients**. La suppression d'un **compte** de restaurateur ou de test se fait par le `super_admin` dans `/system/acces/comptes`, bouton « Supprimer ce compte » : voir `STATUT-PROJET.md`.)
+
 Procédure du §3 inchangée. Pour anonymiser **une** commande sans attendre, le `super_admin` exécute en base :
 `update orders set client_nom = 'Client', client_telephone = '', client_adresse = null, anonymise_le = now() where reference = 'SF-XXXXX';`
 puis journalise la demande dans l'audit **avec un motif sans coordonnées**. Penser aux exports de sauvegarde existants (rotation à 4).
 
 ### 6.6 Ce qui reste à faire
 
-- Publier la page `/confidentialite` (le texte du §5 est prêt) : il manque l'identité du responsable, l'adresse de contact et la date, qui dépendent de Malika.
+- Publier la page `/confidentialite` (le texte du §5 est prêt). **Responsable indiqué par Malika le 3 octobre 2026 : Mo elohim.** Il manque encore l'adresse de contact à publier ; la date de mise à jour sera celle de la publication.
 - Faire valider les durées et les obligations en Guinée par un conseil compétent avant le pilote avec de vraies données.

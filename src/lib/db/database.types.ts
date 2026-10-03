@@ -741,6 +741,10 @@ export type Database = {
         Args: { p_restaurant_id: string }
         Returns: boolean
       }
+      fn_preparer_suppression_compte: {
+        Args: { p_motif: string; p_supprimer_restaurants: boolean; p_utilisateur: string }
+        Returns: Json
+      }
       fn_repondre_proposition: {
         Args: { p_jeton: string; p_proposition_id: string; p_reponse: string }
         Returns: string
