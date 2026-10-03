@@ -31,6 +31,9 @@ export type ResultatValidationCreation =
   | { ok: false; erreur: ErreurApi };
 
 /** Normalise un numéro guinéen en `+224XXXXXXXXX`, ou null si invalide. */
+const CLE_IDEMPOTENCE_VALIDE =
+  /^(panier-)?[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function normaliserTelephone(brut: string): string | null {
   const chiffres = brut.replace(/[\s.\-()]/g, "");
   const m = chiffres.match(/^(?:\+|00)?224(?:0)?([67]\d{8})$/);
@@ -123,7 +126,10 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
 
   const cleIdempotence =
     typeof payload.cleIdempotence === "string" ? payload.cleIdempotence.trim() : "";
-  if (cleIdempotence.length < 8 || cleIdempotence.length > 100) {
+  // Revue de sécurité, point 10 : une clé courte ou devinable permettrait de rejouer la
+  // commande d'un tiers et d'en récupérer le jeton de suivi. On exige un UUID (122 bits
+  // aléatoires), avec l'ancien préfixe « panier- » toléré pour les pages déjà ouvertes.
+  if (!CLE_IDEMPOTENCE_VALIDE.test(cleIdempotence)) {
     champs.cleIdempotence = "Clé d'idempotence invalide.";
   }
 

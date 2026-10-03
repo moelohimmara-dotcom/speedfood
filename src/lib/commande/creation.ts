@@ -36,6 +36,16 @@ function estViolationUniqueReference(error: { code?: string; message: string }):
   return error.code === "23505" && error.message.includes("reference");
 }
 
+/**
+ * Un rejeu idempotent ne doit jamais renvoyer la commande d'un AUTRE restaurant que
+ * celui demandé : la clé n'est pas un secret partageable (revue de sécurité, point 10).
+ */
+function verifierMemeRestaurant(restaurantExistant: string, restaurantDemande: string): void {
+  if (restaurantExistant !== restaurantDemande) {
+    throw new ErreurMetier("VALIDATION", "Cette commande ne peut pas être rejouée. Rechargez la page.");
+  }
+}
+
 export async function creerCommande(payload: CreationCommandePayload): Promise<CommandeCreee> {
   const db = creerClientAdmin();
   const jeton = genererJetonSuivi(payload.cleIdempotence);
@@ -43,10 +53,11 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
   // Rejeu idempotent : la commande existe déjà pour cette clé d'idempotence.
   const { data: existante } = await db
     .from("orders")
-    .select("id, reference, jeton_suivi")
+    .select("id, reference, jeton_suivi, restaurant_id")
     .eq("jeton_suivi", jeton)
     .maybeSingle();
   if (existante) {
+    verifierMemeRestaurant(existante.restaurant_id, payload.restaurantId);
     return {
       id: existante.id,
       reference: existante.reference,
@@ -150,10 +161,11 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
       // Course gagnée par une soumission jumelle de la même commande.
       const { data: concurrente } = await db
         .from("orders")
-        .select("id, reference, jeton_suivi")
+        .select("id, reference, jeton_suivi, restaurant_id")
         .eq("jeton_suivi", jeton)
         .maybeSingle();
       if (concurrente) {
+        verifierMemeRestaurant(concurrente.restaurant_id, payload.restaurantId);
         return {
           id: concurrente.id,
           reference: concurrente.reference,

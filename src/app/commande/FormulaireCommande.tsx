@@ -38,11 +38,16 @@ export function FormulaireCommande({ panier }: Props) {
   // Une seule clé d'idempotence par passage au formulaire : un double clic ou un
   // retry réseau ne créera jamais deux commandes (voir lib/commande/creation.ts).
   const [cleIdempotence] = useState(() => {
-    const aleatoire =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    return `panier-${aleatoire}`;
+    // UUID v4 exigé par le serveur ; `randomUUID` n'existe qu'en contexte sécurisé (HTTPS),
+    // sinon on le fabrique à partir de `getRandomValues` (jamais de Math.random).
+    if (typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    const o = crypto.getRandomValues(new Uint8Array(16));
+    o[6] = (o[6] & 0x0f) | 0x40;
+    o[8] = (o[8] & 0x3f) | 0x80;
+    const h = Array.from(o, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   });
 
   function soumettre() {
