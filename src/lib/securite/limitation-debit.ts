@@ -44,6 +44,11 @@ export const LIMITE_REPONSE_PROPOSITION_PAR_IP: RegleLimite = {
   fenetreSecondes: 600,
 };
 
+// Récupération de mot de passe : protège la boîte d'un tiers (par adresse) et le quota d'envoi
+// d'e-mails du projet (par IP).
+export const LIMITE_RECUPERATION_PAR_IP: RegleLimite = { nom: "recup-ip", max: 5, fenetreSecondes: 3600 };
+export const LIMITE_RECUPERATION_PAR_EMAIL: RegleLimite = { nom: "recup-mail", max: 3, fenetreSecondes: 3600 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -101,6 +106,13 @@ export async function limiterCreationCommande(restaurantId: string, telephone: s
     appliquerLimite(LIMITE_COMMANDE_PAR_IP, ip),
     appliquerLimite(LIMITE_COMMANDE_PAR_TELEPHONE, telephone.replace(/\D/g, "")),
     appliquerLimite(LIMITE_COMMANDE_PAR_RESTAURANT, restaurantId),
+  ]);
+}
+
+export async function limiterRecuperationMotDePasse(email: string): Promise<void> {
+  await Promise.all([
+    appliquerLimite(LIMITE_RECUPERATION_PAR_IP, await adresseClient()),
+    appliquerLimite(LIMITE_RECUPERATION_PAR_EMAIL, email.trim().toLowerCase()),
   ]);
 }
 

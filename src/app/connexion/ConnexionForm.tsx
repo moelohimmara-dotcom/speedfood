@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { connexionAction, type EtatFormulaire } from "@/lib/auth/actions";
 import { Button, Input, Alert } from "@/components/ui";
@@ -28,6 +29,9 @@ export function ConnexionForm({ suite }: { suite: string }) {
       <Button type="submit" pleineLargeur disabled={enCours}>
         {enCours ? "Connexion…" : "Se connecter"}
       </Button>
+      <p style={{ marginTop: "var(--space-3)", marginBottom: 0, fontSize: "0.9rem" }}>
+        <Link href="/connexion/oubli" className="lien-texte">Mot de passe oublié ?</Link>
+      </p>
     </form>
   );
 }
