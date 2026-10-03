@@ -9,6 +9,8 @@ import type { EtatFormulaire } from "./actions";
 
 export interface EtatRecuperation extends EtatFormulaire {
   envoye?: boolean;
+  /** Adresse saisie, renvoyée pour l'afficher dans la confirmation (jamais pour dire si le compte existe). */
+  email?: string;
 }
 
 /** Même réponse que le compte existe ou non : on ne révèle jamais quelles adresses ont un compte. */
@@ -41,7 +43,7 @@ export async function demanderReinitialisationAction(
     console.error("recuperation_mot_de_passe_echec", error.status ?? "inconnu");
     return { erreur: "L'e-mail n'a pas pu être envoyé pour le moment. Réessayez dans quelques minutes." };
   }
-  return { envoye: true };
+  return { envoye: true, email };
 }
 
 export async function nouveauMotDePasseAction(

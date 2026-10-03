@@ -599,3 +599,141 @@
 .cadre-site-contenu > main {
   width: 100%;
 }
+
+/* --- Pages de compte : titre, carte, panneau de réassurance --- */
+.page-compte {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+.page-compte-colonne {
+  max-width: 460px;
+  margin: 0 auto;
+}
+.page-compte-titre {
+  margin: 0 0 var(--space-2);
+  font-size: 1.9rem;
+}
+.page-compte-sous {
+  margin: 0 0 var(--space-5);
+  color: var(--secondaire);
+  font-size: 0.95rem;
+}
+.page-compte-pied {
+  margin-top: var(--space-4);
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.page-compte-pied p {
+  margin: 0;
+}
+.page-compte-panneau {
+  display: none;
+}
+
+.criteres {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.88rem;
+  color: var(--secondaire);
+}
+.critere-ok {
+  color: var(--succes);
+  font-weight: 700;
+}
+
+.confirmation-envoi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.confirmation-envoi p {
+  margin: 0;
+}
+.confirmation-envoi-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--succes-fond);
+  color: var(--succes);
+}
+.confirmation-envoi-titre {
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+.confirmation-envoi-aide {
+  margin: 0;
+  padding-left: 1.1em;
+  color: var(--secondaire);
+  font-size: 0.88rem;
+}
+.confirmation-envoi-retour {
+  align-self: flex-start;
+}
+
+@media (min-width: 900px) {
+  .page-compte {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+  .page-compte-avec-panneau {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 460px;
+    gap: 64px;
+    align-items: center;
+  }
+  .page-compte-avec-panneau .page-compte-colonne {
+    margin: 0;
+  }
+  .page-compte-panneau {
+    display: block;
+    padding: var(--space-8);
+    background: var(--surface);
+    border: 1px solid var(--bordure);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .page-compte-panneau-titre {
+    margin: 0 0 var(--space-5);
+    font-family: var(--font-barlow), system-ui, sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1.05;
+  }
+  .page-compte-panneau ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .page-compte-panneau li {
+    position: relative;
+    padding-left: 32px;
+    line-height: 1.45;
+  }
+  .page-compte-panneau li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--succes-fond);
+    color: var(--succes);
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 22px;
+    text-align: center;
+  }
+}

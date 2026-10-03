@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ConnexionForm } from "./ConnexionForm";
 import { Card } from "@/components/ui";
+import { PageCompte } from "@/components/PageCompte";
 
 /**
  * Page de connexion unique, contextualisée par `suite` (ADR-010 : deux consoles
@@ -20,29 +21,43 @@ export default async function ConnexionPage({
   const pourSysteme = (suite ?? "").startsWith("/system");
 
   return (
-    <main style={{ maxWidth: 420, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <h1 style={{ fontSize: "1.8rem", marginBottom: "var(--space-2)" }}>
-        {pourSysteme ? "Administration Speedfood" : "Connexion restaurateur"}
-      </h1>
-      <p style={{ color: "var(--secondaire)", fontSize: "0.9rem", marginTop: 0, marginBottom: "var(--space-5)" }}>
-        {pourSysteme
+    <PageCompte
+      titre={pourSysteme ? "Administration Speedfood" : "Connexion restaurateur"}
+      sousTitre={
+        pourSysteme
           ? "Accès réservé aux comptes de l'équipe Speedfood (rôles système)."
-          : "Gérez votre établissement : commandes, menu et informations."}
-      </p>
+          : "Gérez votre établissement : commandes, menu et informations."
+      }
+      panneau={
+        pourSysteme
+          ? undefined
+          : {
+              titre: "Votre restaurant, dans votre poche.",
+              points: [
+                "Voyez arriver les commandes et répondez d'un geste.",
+                "Confirmez vos plats du jour : le client voit depuis quand.",
+                "Partagez votre page par WhatsApp ou avec un QR code.",
+                "Aucun paiement en ligne à gérer : vous réglez directement avec le client.",
+              ],
+            }
+      }
+      pied={
+        pourSysteme ? (
+          <p>
+            Vous êtes restaurateur ? <Link href="/connexion" className="lien-texte">Connexion restaurateur</Link>
+          </p>
+        ) : (
+          <p>
+            Pas encore de compte ? <Link href="/inscription" className="lien-texte">Inscrivez votre restaurant</Link>
+            <br />
+            Équipe Speedfood ? <Link href="/connexion?suite=/system" className="lien-texte">Administration</Link>
+          </p>
+        )
+      }
+    >
       <Card>
         <ConnexionForm suite={suite ?? ""} />
       </Card>
-      {pourSysteme ? (
-        <p style={{ marginTop: "var(--space-4)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          Vous êtes restaurateur ? <Link href="/connexion" className="lien-texte">Connexion restaurateur</Link>
-        </p>
-      ) : (
-        <p style={{ marginTop: "var(--space-4)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          Pas encore de compte ? <Link href="/inscription" className="lien-texte">Inscrivez votre restaurant</Link>
-          <br />
-          Équipe Speedfood ? <Link href="/connexion?suite=/system" className="lien-texte">Administration</Link>
-        </p>
-      )}
-    </main>
+    </PageCompte>
   );
 }

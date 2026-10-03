@@ -685,6 +685,8 @@
   position: relative;
 }
 .champ-mdp input {
+  width: 100%;
+  box-sizing: border-box;
   padding-right: 104px;
 }
 .champ-mdp-bascule {
