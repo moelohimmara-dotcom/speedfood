@@ -247,7 +247,7 @@ export default function AProposPage() {
             <div className="mockup-card" aria-hidden="true">
               <div className="mockup-header">Espace restaurant</div>
               <div className="mockup-row">
-                <span>SF-4KVB9 · Malika T.</span>
+                <span>SF-4KVB9 · Client exemple</span>
                 <span className="badge badge-demo">En attente</span>
               </div>
               <div className="mockup-row">

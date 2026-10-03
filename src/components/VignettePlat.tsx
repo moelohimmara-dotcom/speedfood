@@ -17,6 +17,8 @@ interface Props {
     disponible: boolean;
   };
   disponibilite: LibelleDisponibilite;
+  /** Vrai quand le restaurant l'annonce déjà en haut de page : on n'affiche pas « À confirmer » sur chaque plat. */
+  masquerAConfirmer?: boolean;
   /** Vrai si le restaurant est ouvert ET accepte des commandes : sinon aucun bouton d'ajout. */
   commandable: boolean;
   options: OptionPanier[];
@@ -32,7 +34,7 @@ function formaterGNF(montant: number) {
  * fraîcheur, prix, action. Jamais de bouton d'ajout pour un plat épuisé ni pour un restaurant
  * fermé ou en pause.
  */
-export function VignettePlat({ restaurant, plat, disponibilite, commandable, options, lienPartage }: Props) {
+export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirmer = false, commandable, options, lienPartage }: Props) {
   const prixEffectif = plat.prixPromo ?? plat.prix;
   return (
     <article id={`plat-${plat.id}`} className={`vignette${plat.disponible ? "" : " vignette-epuisee"}`}>
@@ -50,7 +52,7 @@ export function VignettePlat({ restaurant, plat, disponibilite, commandable, opt
       <div className="vignette-corps">
         <h4 className="vignette-nom">{plat.nom}</h4>
         {plat.description ? <p className="vignette-desc">{plat.description}</p> : null}
-        <StampFraicheur disponibilite={disponibilite} />
+        {masquerAConfirmer && disponibilite.court === "À confirmer" ? null : <StampFraicheur disponibilite={disponibilite} />}
         <div className="vignette-prix">
           {plat.prixPromo !== null ? <span className="vignette-prix-barre">{formaterGNF(plat.prix)}</span> : null}
           <span className="vignette-prix-valeur" style={plat.prixPromo !== null ? { color: "var(--rouge-fonce)" } : undefined}>

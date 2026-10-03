@@ -124,6 +124,8 @@ export default async function FicheRestaurantPage({
     etatDisponibilite({ disponible: item.disponible, confirmeLe: item.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant)
   );
   const nombreConfirmes = etatsPlats.filter((etat) => etat.type === "disponible").length;
+  // Aucun plat confirmé récemment : un seul message pour le restaurant, au lieu de « À confirmer » répété sur chaque plat.
+  const aucunConfirme = nombreConfirmes === 0 && etatsPlats.some((etat) => etat.type === "a_confirmer");
 
   function vignette(item: (typeof menuListe)[number]) {
     const disponibilite = libelleDisponibilite(
@@ -149,6 +151,7 @@ export default async function FicheRestaurantPage({
           disponible: item.disponible,
         }}
         disponibilite={disponibilite}
+        masquerAConfirmer={aucunConfirme}
         commandable={commandable}
         options={optionsParPlat.get(item.id) ?? []}
         lienPartage={lienWhatsApp(textePlat(item.nom, restaurantSur.nom, lien))}
@@ -224,6 +227,13 @@ export default async function FicheRestaurantPage({
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
           Ce restaurant est ouvert mais ne prend plus de commandes pour le moment. Vous pouvez consulter le menu et
           réessayer plus tard.
+        </Alert>
+      ) : null}
+
+      {aucunConfirme ? (
+        <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+          Ce restaurant n&apos;a pas confirmé ses plats récemment. La disponibilité sera confirmée par le restaurant à la
+          commande.
         </Alert>
       ) : null}
 

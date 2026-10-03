@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { Alert } from "@/components/ui";
 import { estUuid } from "@/lib/commande/commun";
@@ -40,8 +40,12 @@ export default async function AlternativesPage({
 
   const restaurantSource = catalogue.restaurants.find((r) => r.id === id);
   const platSource = catalogue.platsParRestaurant.get(id)?.find((p) => p.id === platId);
-  if (!restaurantSource || !platSource) {
+  if (!restaurantSource) {
     notFound();
+  }
+  if (!platSource) {
+    // Le restaurant existe, c'est le plat qui n'est plus au menu : on revient à sa fiche.
+    redirect(`/restaurants/${id}`);
   }
 
   const { maintenant, fraicheurHeures } = catalogue;
@@ -57,7 +61,7 @@ export default async function AlternativesPage({
 
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <Link href={`/restaurants/${id}`} style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem" }}>
+      <Link href={`/restaurants/${id}`} style={{ color: "var(--secondaire)", fontWeight: 700, fontSize: "0.9rem", display: "inline-flex", alignItems: "center", minHeight: 44 }}>
         ← Retour à {restaurantSource.nom}
       </Link>
       <h1 style={{ fontSize: "1.8rem", margin: "var(--space-3) 0 var(--space-2)" }}>Trouver ailleurs</h1>

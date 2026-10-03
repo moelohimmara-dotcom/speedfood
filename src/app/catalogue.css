@@ -305,7 +305,7 @@
 
 /* Bouton compact (partage sur une ligne de menu) : cible tactile d'au moins 40 px. */
 .btn-compact {
-  min-height: 40px;
+  min-height: 44px;
   padding: 6px 12px;
   font-size: 0.8rem;
 }
