@@ -25,6 +25,21 @@ Avant toute tâche, lire dans cet ordre :
    `src/app/components.css`, ne pas les redéfinir ailleurs
 6. `docs/STATUT-PROJET.md` : où en est le projet bloc par bloc, ce qui est vérifié
    contre ce qui est juste supposé, les décisions prises en cours de route
+7. `docs/cadrage/SPEC-PILOTE-DISCOVERY-IDENTITE-DESIGN.md` (direction du 3 octobre
+   2026 : recherche locale, disponibilité horodatée, alternatives, Google/téléphone,
+   partage WhatsApp) et `docs/cadrage/PARCOURS-CIBLE-CLIENT-MVP.md` : **cibles
+   produit**, pas état actuel. Elles prévalent sur les anciens passages pour ces
+   sujets, mais ne décrivent pas ce qui existe (voir STATUT-PROJET).
+8. `docs/cadrage/PROCEDURE-SECURITE.md` : procédure de livraison et portes avant
+   pilote ; sa section 9 donne l'état réel de chaque porte (plusieurs sont
+   bloquantes). `NOTIFICATIONS-ICONES-OUTILS.md` pour toast/push/icônes.
+
+**En cas de contradiction entre un document et le code, ne pas trancher en
+silence** : le code, `STATUT-PROJET.md`, l'ADR-011 et la section 0 de
+`DESIGN-SYSTEM.md` décrivent l'application réelle. Les documents « parlent de la
+démo » quand ils citent `index.html`/`localStorage` : c'est le prototype hors dépôt,
+pas cette application. Les ADR 015 à 018 sont les décisions du 3 octobre
+(renumérotées : l'ADR-011 désigne la commande invitée par routes serveur).
 
 Ces fichiers sont une **copie synchronisée manuellement** depuis le dossier de
 travail personnel de Malika (voir `docs/cadrage/README.md`) — c'est la référence
@@ -43,6 +58,14 @@ pour ce dépôt, pas une copie secondaire à ignorer.
 - Respecter les tokens de `DESIGN-SYSTEM.md` tels quels : ne pas réintroduire de
   dégradé décoratif hors bouton d'action principal, ne pas revenir à la couleur
   secondaire non conforme au contraste AA (`#75695F`, pas `#80736C`).
+- Toute migration appliquée en base (`apply_migration`) a son fichier dans
+  `supabase/migrations/`, **dans le même commit** (le dépôt doit pouvoir reconstruire
+  la base ; 24 migrations en base = 24 fichiers). Les policies réservées aux membres
+  portent `to authenticated`, jamais aucune restriction de rôle : sinon elles sont
+  évaluées pour `anon` et cassent la lecture publique voisine (`fn_est_membre_restaurant`
+  n'est pas exécutable par `anon`).
+- Aucun agent ne déploie en production sans feu vert explicite de Malika dans la
+  conversation (`PROCEDURE-SECURITE.md`).
 - Après toute migration touchant RLS ou une fonction `SECURITY DEFINER`, lancer
   `get_advisors(type: "security")` et corriger ce qui est signalé avant de
   continuer (voir l'historique Git des blocs 2 et 4 pour des exemples de ce que

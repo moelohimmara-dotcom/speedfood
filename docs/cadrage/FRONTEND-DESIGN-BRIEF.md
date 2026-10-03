@@ -20,13 +20,15 @@ Commencer par un inventaire des écrans et des wireframes basse fidélité couvr
 4. `DESIGN-SYSTEM.md` pour les tokens et composants validés.
 5. `ARCHITECTURE-DESIGN.md` et `ADR.md` pour les surfaces et limites techniques.
 6. Le bloc attribué dans `PLAN-EXECUTION.md`.
+7. `SPEC-PILOTE-DISCOVERY-IDENTITE-DESIGN.md` et `PARCOURS-CIBLE-CLIENT-MVP.md`, qui intègrent les nouvelles décisions et prennent comme point de départ la démo interactive déjà existante.
+8. `NOTIFICATIONS-ICONES-OUTILS.md` pour différencier toast/dialogue/centre/push et appliquer le jeu d’icônes culinaires.
 
-En cas de contradiction, la signaler et proposer une résolution; ne pas trancher silencieusement une règle métier.
+En cas de contradiction, la signaler et proposer une résolution; ne pas trancher silencieusement une règle métier. L’agent doit d’abord analyser l’interface et le code de la démo existante, préserver les composants utiles et documenter les changements; une réécriture complète nécessite une justification produit/technique.
 
 ## 3. Décisions de design déjà validées
 
 - Marque : **Speedfood**.
-- Palette : rouge `#D9362B`, orange `#FF7A1A`, mangue `#FFC247`, fond crème `#FFF6ED`, surface `#FFFEFC`, encre `#2B211D`, secondaire `#75695F` (ajusté depuis `#80736C` le 2026-09-27 : la valeur d'origine ne passait pas le contraste AA sur fond crème, 4.29:1 au lieu de 4.5:1 minimum ; `#75695F` donne 4.99:1 sans changement visuel perceptible), bordure `#E9DCD2`.
+- Palette : rouge `#D9362B`, orange `#FF7A1A`, mangue `#FFC247`, fond crème `#FFF6ED`, surface `#FFFEFC`, encre `#2B211D`, secondaire `#75695F` (ajusté depuis `#80736C` le 2026-09-27 : la valeur d’origine ne passait pas le contraste AA sur fond crème, 4.29:1 au lieu de 4.5:1 minimum ; `#75695F` donne 4.99:1 sans changement visuel perceptible — ne pas revenir en arrière), bordure `#E9DCD2`.
 - Typographie : **Barlow Condensed 700/800** pour marque, grands titres et accroches courtes; **Manrope** pour l’interface, descriptions, formulaires, tables et boutons. Prévoir Latin étendu et solution de secours; ne pas dépendre d’un fournisseur de polices en production.
 - Icônes : SVG linéaires au trait arrondi régulier, grille 24 × 24, épaisseur visuelle 1,75–2 px. Pas d’emoji comme contrôle.
 - Style : énergique, chaleureux et net; éditorial côté client, calme et utilitaire dans console/CMS.
@@ -237,4 +239,24 @@ Rapport final de l’agent : chemins des livrables; nombre d’écrans par surfa
 
 ## 13. Hors périmètre
 
-Sans attribution distincte, ne pas connecter paiement, WhatsApp/SMS ou livraison; ne pas revendiquer de persistance serveur; ne pas implémenter backend, autorisations ou migrations; ne pas ajouter panier multi-restaurant, avis publics ou recommandation algorithmique; ne pas inventer frais, échéances, permissions ou substitutions; ne pas exposer les données personnelles; ne pas déclarer un prototype prêt pour la production.
+Sans attribution distincte, ne pas connecter paiement, SMS transactionnel, WhatsApp Business API ou livraison; ne pas revendiquer de persistance serveur; ne pas implémenter backend, autorisations ou migrations; ne pas ajouter panier multi-restaurant, avis publics ou recommandation personnalisée opaque. La recherche et le classement par règles sont inclus comme défini dans la spécification pilote. Les boutons de partage/ouverture de WhatsApp sont inclus, mais le prototype ne doit pas prétendre envoyer un message. Ne pas inventer frais, échéances, permissions ou substitutions; ne pas exposer les données personnelles; ne pas déclarer un prototype prêt pour la production.
+
+## Addendum écran par écran — recherche locale, page partageable et identité (3 octobre 2026)
+
+La spécification `SPEC-PILOTE-DISCOVERY-IDENTITE-DESIGN.md` complète l’inventaire existant. Ajouter les écrans `CLI-SEARCH-01..04`, `CLI-ALT-01`, `CLI-RESTAURANT-01`, `CLI-SHARE-01`, `CLI-AUTH-01`, `RES-STATUS-01`, `RES-MENU-AVAIL-01`, `RES-PUBLISH-01`, `RES-PAGE-01` et CMS de synonymes/modération/disponibilité. `CLI-FOLLOW-01` et statistiques détaillées sont P1 sauf décision produit contraire.
+
+Dessiner les variantes mobile étroit et desktop, positions avec localisation autorisée et quartier manuel, erreur/refus de localisation, résultats frais et périmés, filtres actifs, rupture et alternatives, horaires versus prise de commandes, OTP manquant/indisponible, connexion Google annulée, partage WhatsApp et retour au portail. Le bouton WhatsApp doit citer Speedfood et montrer un aperçu du texte/lien; le prototype ne doit pas prétendre avoir envoyé le message.
+
+Prototype visuel : interface client éditoriale et appétissante; grandes photos légères; cartes de restaurants avec quartier/statut/fraîcheur; console à actions mobiles simples; CMS à permissions et densité maîtrisées. Voir le système de couleur/typo/icônes déjà validé et son addendum dans `DESIGN-SYSTEM.md`.
+
+### Addendum d’écrans — états notification et iconographie
+
+Ajouter les variantes suivantes à la bibliothèque et aux parcours, conformes à `NOTIFICATIONS-ICONES-OUTILS.md` :
+
+- `NTF-TOAST-01` succès, erreur réessayable, chargement/annulation sans masquer l’action;
+- `NTF-DIALOG-01` confirmation/destructive avec focus et choix explicites;
+- `NTF-INBOX-01` centre in-app et état lu/non lu si les notifications durables sont activées;
+- `NTF-PUSH-01` invitation contextualisée à activer les alertes, préférences, permission refusée/non prise en charge, désactivation;
+- `NTF-REST-01` nouvelle demande urgente dans la console et ouverture du détail de demande.
+
+Le popup navigateur de permission ne s’ouvre qu’après clic volontaire sur une action expliquant l’intérêt. Aucun push de promotion dans le pilote par défaut. Dessiner les badges cloche/non lu, pictogrammes gourmands et exemples de notifications sans téléphone ni détail privé en écran verrouillé.

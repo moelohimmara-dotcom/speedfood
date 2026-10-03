@@ -7,9 +7,11 @@
 
 ## 1. Résumé exécutif
 
-Speedfood est un portail web mobile-first et installable (PWA) qui rassemble des menus à jour et permet aux clients de transmettre une commande directement au restaurant. Chaque restaurant possède sa propre console de gestion, conçue pour être utilisable sans formation technique. L’équipe Speedfood dispose d’un CMS système pour administrer les restaurants, le contenu public, la modération et les opérations. Le restaurant garde la décision finale sur la disponibilité, l’acceptation, le retrait ou la livraison. Le MVP ne collecte aucun paiement et n’opère pas de livraison.
+Speedfood est un portail web mobile-first et installable (PWA) qui rassemble des menus à jour et permet aux clients de transmettre une commande directement au restaurant. Chaque restaurant possède sa propre console de gestion, conçue pour être utilisable sans formation technique. L’équipe Speedfood dispose d’un CMS système pour administrer les restaurants, le contenu public, la modération et les opérations. Le restaurant garde la décision finale sur la disponibilité et la préparation; toute modification du prix total ou des conditions de livraison attend l’accord explicite du client. Le MVP ne collecte aucun paiement et n’opère pas de livraison.
 
 Le présent TDR définit le périmètre produit et technique à réaliser avant un pilote. Les noms, restaurants, plats, prix et quartiers du prototype sont des données fictives. Les hypothèses de paiement, livraison, tarification et intégration de messagerie restent à valider avec des utilisateurs à Conakry.
+
+Le déroulé détaillé des parcours client, restaurant, administrateur système et PWA est dans [PARCOURS-UTILISATEUR.md](PARCOURS-UTILISATEUR.md). La description technique et design se trouve dans [ARCHITECTURE-DESIGN.md](ARCHITECTURE-DESIGN.md). Ces documents distinguent le prototype existant des éléments à construire.
 
 ## 2. Contexte et problème
 
@@ -69,14 +71,14 @@ Le CMS distingue au minimum les rôles `super_admin`, `operations`, `content_edi
 ### Exclus du MVP
 
 - Paiement encaissé ou conservé par Speedfood.
-- Calcul automatique de frais de livraison ou flotte de livreurs Speedfood.
+- Calcul ou exécution de la livraison par Speedfood.
 - Application native Android/iOS.
 - Commandes hors ligne, synchronisation différée d’actions métier ou stockage hors ligne de données personnelles.
 - Notifications push dans la première tranche PWA; à envisager après mesure de compatibilité et validation du besoin terrain.
-- Avis publics, commentaires, coupons, fidélité, publicité avancée, recommandation algorithmique.
+- Avis publics, commentaires, coupons, fidélité, publicité avancée, recommandation personnalisée opaque ou prédictive par IA. La recherche et le classement déterministe par règles sont inclus selon la spécification pilote.
 - Abonnement, commission, facturation et rapprochement financiers automatisés.
 - Commande groupée ou panier multi-restaurant.
-- Intégration WhatsApp automatisée tant que le canal, les coûts, les règles applicables et le processus de secours ne sont pas confirmés.
+- Intégration WhatsApp Business automatisée tant que le canal, les coûts, les règles applicables et le processus de secours ne sont pas confirmés. Les liens de partage et d’ouverture de conversation sont inclus selon la spécification pilote.
 
 ## 6. Parcours métier et règles
 
@@ -87,20 +89,23 @@ Le CMS distingue au minimum les rôles `super_admin`, `operations`, `content_edi
 3. Il ajoute des articles d’un seul établissement au panier.
 4. Il saisit un nom, un numéro de contact, le retrait ou une demande de livraison, et l’adresse si nécessaire.
 5. Le serveur recalcule le total à partir des prix de référence, enregistre un instantané des libellés et prix, puis crée la commande en attente.
-6. Le visiteur reçoit un numéro/lien de suivi non devinable et une indication claire que la commande reste à confirmer.
-7. Le restaurant accepte ou refuse. Le client voit le changement de statut.
+6. Le visiteur reçoit un numéro/lien de suivi non devinable et une indication claire que la demande reste à confirmer.
+7. Le restaurant peut accepter les conditions initiales, refuser, ou proposer une révision du prix total/conditions de livraison.
+8. Si une révision est proposée, la commande reste `en_attente` et son état affiché devient « attente de confirmation du client » (état dérivé, `attente_confirmation_client`); le client voit les conditions initiales et proposées, les frais détaillés et le nouveau total, puis accepte ou refuse explicitement.
+9. Seule l’acceptation explicite du client fait passer la commande à `acceptee`. Un refus la clôt en `annulee`; l’absence de réponse à l’échéance fait passer la proposition à `expiree` et la commande à `annulee`. Aucune préparation ne commence avant l’accord.
+10. Le client voit les états jusqu’à la préparation et la remise du repas.
 
 ### Parcours restaurant
 
 1. Un restaurateur crée un compte ou reçoit une invitation contrôlée par l’administrateur.
 2. Il complète les données de son établissement et son menu.
 3. Le restaurant reste non publié jusqu’à validation administrative.
-4. Une nouvelle commande apparaît dans son espace et déclenche le canal de notification retenu pour le pilote.
+4. Une nouvelle commande apparaît dans son espace; un canal de notification ne s’ajoute que s’il est réellement choisi et configuré pour le pilote.
 5. Le restaurateur accepte, refuse, marque prête, puis terminée; il peut annuler selon les règles définies.
 
 ### États de commande
 
-`en_attente` → `acceptee` ou `refusee`; `acceptee` → `prete`; `prete` → `terminee`. `annulee` est autorisée selon les règles d’annulation et doit garder l’acteur et l’horodatage. Chaque transition est validée côté serveur et historisée. Une commande en attente n’est ni payée, ni confirmée, ni une promesse de livraison.
+États stockés de la commande : `en_attente` → `acceptee` ou `refusee`; `acceptee` → `prete` → `terminee`; `annulee` selon les règles d’annulation. Quand le restaurant propose une révision, la commande reste `en_attente` et son **état dérivé** est `attente_confirmation_client` : elle passe à `acceptee` après accord explicite du client, ou à `annulee` après refus. L’**échéance** (30 minutes par défaut, paramètre global modifiable dans `/system/parametres`) fait passer la *proposition* à `expiree` et la commande à `annulee`. Toute proposition révisée garde les conditions et montants initiaux, le détail de la proposition, son auteur, son heure, son échéance et la réponse du client. Chaque transition est validée côté serveur et historisée. Une commande en attente n’est ni payée, ni confirmée, ni une promesse de livraison.
 
 ### Règles de données
 
@@ -154,8 +159,6 @@ Les cibles numériques seront fixées après entretiens et mesure de référence
 
 ## 11. Livrables
 
-> **État actuel (27 septembre 2026) :** la présentation publique et la démo cliquable sont déjà en ligne sur Cloudflare Pages — https://speedfood.pages.dev/ (prototype sous `/prototype/`). Données fictives, aucun backend. Les livrables ci-dessous concernent le MVP réel.
-
 1. Application web responsive et installable PWA avec code source documenté.
 2. Schéma de données, migrations versionnées et politiques d’accès.
 3. Parcours client, console restaurant et CMS système du MVP.
@@ -163,6 +166,7 @@ Les cibles numériques seront fixées après entretiens et mesure de référence
 5. Matrice d’autorisations et registre des événements/statuts.
 6. Rapport de revue de sécurité et liste des décisions restant à prendre.
 7. Procédure d’onboarding et guide court du restaurateur.
+8. Guide sécurité du propriétaire, procédure sécurité des agents, modèle de revue indépendante et porte de mise en service dans `SECURITE-GUIDE-PROPRIETAIRE.md`, `PROCEDURE-SECURITE.md` et `PROMPTS-AGENTS-SECURITE.md`.
 
 ## 12. Critères d’acceptation globaux
 
@@ -185,3 +189,24 @@ Les cibles numériques seront fixées après entretiens et mesure de référence
 ## 13. Gouvernance et validation
 
 Le propriétaire produit valide le périmètre, les libellés, les hypothèses de paiement/livraison et l’entrée en pilote. Un agent IA reçoit un bloc de tâches unique avec fichiers attribués; il doit lire le brief commun, respecter le dépôt, produire une synthèse des fichiers modifiés et des limites, puis laisser le propriétaire intégrer/revoir les changements. Les blocs dépendants ne démarrent qu’après acceptation de leurs contrats et critères.
+
+## 14. Addendum de périmètre — pilote découverte et comptes (3 octobre 2026)
+
+L’addendum consolidé `SPEC-PILOTE-DISCOVERY-IDENTITE-DESIGN.md` complète et prévaut sur les formulations antérieures pour les fonctions ci-dessous :
+
+- Recherche par plat, quartier/proximité et statuts distincts « restaurant ouvert », « accepte les commandes » et « plat disponible ».
+- Disponibilité gérée par le restaurant, horodatée et présentée « à confirmer » quand elle est périmée; pas de garantie d’inventaire automatique.
+- Alternatives organisées en correspondance exacte confirmée, exacte à confirmer, équivalent confirmé et suggestions catégorielles, avec labels visibles.
+- Classement initial explicable par règles; personnalisation opaque/IA reste hors pilote.
+- Consultation publique sans compte; méthodes souhaitées Google et téléphone +224, OTP activé seulement après essai fournisseur/coût/couverture en Guinée et protections anti-abus.
+- Création de pages restaurant en brouillon, vérification manuelle initiale puis publication.
+- Partage Speedfood vers WhatsApp avec lien/texte prérempli; pas d’envoi automatique, de bot ou de synchronisation de commandes.
+- L’identité visuelle précise la différence entre le portail client éditorial et les consoles restaurant/CMS fonctionnelles, sans inventer avis, popularité ou stock.
+
+Ces besoins ajoutent aux objectifs, critères d’acceptation et indicateurs du TDR. Les tâches déléguées doivent suivre la spécification pilote lorsqu’un ancien passage dit que recherche algorithmique, accès téléphone/Google ou partage WhatsApp ne sont pas inclus.
+
+## Addendum — notifications et outils d’interface (3 octobre 2026)
+
+La démo possède déjà un toast; il est à améliorer pour les retours immédiats. Les notifications transactionnelles du pilote peuvent d’abord vivre dans l’application; les push navigateur/PWA sont un lot ultérieur, activé après consentement explicite et validation sur appareils cibles. Le push n’est jamais requis pour utiliser le portail et ne remplace pas le suivi Speedfood.
+
+La collection d’icônes fonctionnelles conserve le trait arrondi régulier validé; une petite famille d’illustrations culinaires SVG originales apporte la signature de marque. Les bibliothèques proposées sont conditionnelles à la pile réellement retenue et à l’inspection du dépôt. Le détail, les fournisseurs candidats et les règles d’usage sont dans `NOTIFICATIONS-ICONES-OUTILS.md`.

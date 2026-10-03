@@ -4,8 +4,6 @@
 **Approche :** contrats et sécurité d’abord; blocs verticaux; services externes après validation terrain.  
 **Règle de délégation :** un seul agent par bloc, propriétaires de fichiers assignés avant exécution. Les délais sont volontairement omis : ils dépendent du nombre d’agents, de l’accès au dépôt et des choix ouverts.
 
-**Déjà en ligne :** landing + prototype hébergés sur Cloudflare Pages (projet `speedfood`, https://speedfood.pages.dev/). Toute mise à jour se fait avec `wrangler pages deploy dist --project-name speedfood` après reconstruction du dossier `dist/` (landing à la racine, prototype sous `prototype/`).
-
 ## Vue d’ensemble et dépendances
 
 ```mermaid
@@ -72,25 +70,19 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 
 **Type :** agent backend/data/security.  
 **Dépendances :** bloc 1 accepté; ADR-003/004/011 confirmés par le propriétaire.  
-**Situation :** le schéma existe déjà dans le projet Supabase `ggldjdizqrtpetdiohxy` (14 tables, RLS, fonctions de sécurité, 9 migrations non versionnées dans le dépôt). Ce bloc **reprend et corrige** plutôt qu’il ne crée. Voir `AUDIT-SUPABASE.md` pour l’état des lieux et la liste des écarts.
+**Statut : FAIT** (voir `docs/STATUT-PROJET.md`). Le schéma existe dans le projet Supabase `ggldjdizqrtpetdiohxy` (24 migrations, toutes versionnées dans `supabase/migrations/`, RLS partout, fonctions de sécurité). Les tâches ci-dessous décrivent le périmètre d'origine; toute évolution passe désormais par une **nouvelle migration versionnée**, jamais par la modification d'une migration existante ni par un changement direct en base sans fichier correspondant.
 
 **Tâches**
 
-- Exporter les migrations existantes depuis la base (`supabase/migrations/*`) et les versionner dans le dépôt; documenter la procédure d’application.
-- Traiter les écarts de `AUDIT-SUPABASE.md` §6 :
-  - restreindre les colonnes modifiables par un membre de restaurant (pas d’auto-publication, pas de suppression de suspension, pas de modification de `sous_total`/`reference` après coup) — trigger ou `REVOKE` au niveau colonne ;
-  - compléter `order_proposals` (chemin de réponse et d’expiration) selon ADR-011 ;
-  - écrire `order_status_events` de façon fiable (trigger sur transition) ;
-  - compléter le schéma : contact restaurant, modes de service et frais de livraison par restaurant, sections de menu, champs visuels si décision produit.
-- Implémenter les endpoints invités de l’ADR-011 (création commande, suivi par jeton, réponse à proposition) dans les routes serveur du bloc 7 — le bloc 2 livre seulement les garanties de base (RLS fermée à `anon` sur les tables de commande, contraintes, fonctions utilitaires).
-- Garder les enums/check constraints, clés étrangères, index, horodatages et stratégie d’effacement/archivage déjà en place; les étendre si nécessaire.
-- Maintenir les vues/champs publics sans contacts privés.
-- Fournir seeds de développement explicitement fictifs et séparés des environnements pilotes; purger ou marquer les données `[DEV]` présentes.
-- Créer le premier `super_admin` par une procédure contrôlée avec la `service_role` (jamais depuis le navigateur) et documenter la récupération d’accès.
-- Documenter choix de région (`eu-west-1` à confirmer), variables et `.env.example` sans valeurs réelles.
+- Créer migrations versionnées pour `restaurants`, `restaurant_memberships`, `system_admin_memberships`, `menu_categories`, `neighborhoods`, `menu_items`, `orders`, `order_items`, `order_proposals`, `order_status_events`, `content_pages`, `content_banners`, `featured_placements` et `audit_events`, avec les seuls champs nécessaires.
+- Définir enums/check constraints, clés étrangères, index, horodatages et stratégie d’effacement/archivage.
+- Activer RLS et privilèges minimaux sur chaque table accessible via API; ajouter policies publiques limitées au contenu publié et policies de membre au restaurant associé.
+- Définir les vues/champs publics sans contacts privés.
+- Prévoir seeds de développement explicitement fictifs et séparés des environnements pilotes.
+- Documenter choix de région et variables sans créer de projet Supabase.
 
 **Fichiers possédés :** `supabase/migrations/*`, `supabase/seed.*`, `src/lib/db/*` ou équivalent, doc modèle de données.  
-**Acceptation :** migrations versionnées dans le dépôt et rejouables; RLS partout où exposé; accès d’un membre A refusé aux données de B; un membre ne peut ni s’auto-publier ni modifier un prix de commande déjà envoyée; visiteur ne voit que restaurants publiés; aucune politique `anon` sur les tables de commande; clé privilégiée absente du navigateur; montants en GNF entiers.
+**Acceptation :** migration depuis base vide; RLS partout où exposé; accès d’un membre A refusé aux données de B; visiteur ne voit que restaurants publiés; clé privilégiée absente du navigateur; montants en GNF entiers.
 
 ## Bloc 3 — Design system et shell responsive
 
@@ -99,6 +91,8 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 **Fichiers possédés :** `src/components/ui/*`, `src/app/globals.css`, composants de navigation partagés uniquement après accord.
 
 **Brief d’exécution des écrans :** appliquer `FRONTEND-DESIGN-BRIEF.md`. Le bloc commence par l’inventaire des écrans et les wireframes basse fidélité des trois surfaces; après revue produit, il livre le prototype haute fidélité interactif des parcours P0. Le développement des composants réutilisables peut avancer en parallèle, mais les écrans ne sont pas considérés comme spécifiés par le seul shell responsive.
+
+**Démo existante :** commencer par `PARCOURS-CIBLE-CLIENT-MVP.md` et inspecter `index.html`, `styles.css`, `app.js`. Consigner les écrans/composants réutilisables, les données/actions fictives et les écarts au parcours. Faire évoluer cette démo de manière incrémentale; ne pas jeter ni remplacer l’interface complète sans motif concret et validation du propriétaire produit.
 
 **Tâches**
 
@@ -168,7 +162,7 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 **Type :** agent parcours de commande.  
 **Dépendances :** blocs 2, 3, 5 et 6 acceptés; schéma/order contract gelé.  
 **Fichiers possédés :** panier/checkout public, endpoint création commande, page de suivi, handlers statut à coordonner avec bloc 6.  
-**Note d’architecture :** le parcours invité passe par des routes serveur avec `service_role` (ADR-011); aucune politique RLS `anon` n’est ajoutée sur les tables de commande.
+**Note d’architecture :** le parcours invité passe par des routes serveur avec `service_role` (ADR-011); aucune politique RLS `anon` n’est ajoutée sur les tables de commande. **Statut : FAIT**; reste la limitation de débit (voir ADR-011, état réel).
 
 **Tâches**
 
@@ -176,12 +170,12 @@ Blocs parallélisables après acceptation du socle : 2 et 3 (fichiers isolés); 
 - Créer commande invitée avec données minimales, validation téléphone selon règle retenue, adresse conditionnelle et consentement/info de confidentialité approprié.
 - Recalculer quantité, disponibilité, prix et total côté serveur; utiliser idempotency pour éviter double soumission accidentelle.
 - Créer snapshot de lignes, statut initial `en_attente`, événement d’audit, référence publique et jeton opaque de suivi.
-- Si le restaurant modifie prix total, frais ou conditions de livraison, créer une proposition immuable versionnée (`order_proposals`) et passer à `attente_confirmation_client`; montrer au client valeurs initiales et proposées, frais détaillés, nouveau total et échéance.
+- Si le restaurant modifie prix total, frais ou conditions de livraison, créer une proposition immuable versionnée (`order_proposals`); la commande reste `en_attente` et son état dérivé affiché est `attente_confirmation_client`; montrer au client valeurs initiales et proposées, frais détaillés, nouveau total et échéance.
 - Permettre au client invité d’accepter ou refuser depuis le suivi protégé; n’accepter que la proposition active/version courante et traiter la réponse de façon idempotente. Refus = commande annulée; absence de réponse jusqu’à l’échéance = proposition expirée et aucune préparation. Définir une durée d’échéance configurable ou une valeur pilote décidée avant implémentation.
 - Créer transitions serveur valides, actions restaurant accepter/refuser/prête/terminée, et rafraîchissement visible côté client.
 - Présenter explicitement le mode de règlement hors portail et la confirmation requise.
 
-**Acceptation :** prix manipulé par le client sans effet; plat désactivé/refusé; duplication réseau maîtrisée; jeton de suivi imprévisible et non divulgué dans logs; transitions invalides rejetées; suivi n’expose pas téléphone/adresse. Si une proposition change prix/frais/conditions, état `attente_confirmation_client`; aucune acceptation ni préparation avant accord sur la version active; refus/expiration terminent la commande sans frais encaissés.
+**Acceptation :** prix manipulé par le client sans effet; plat désactivé/refusé; duplication réseau maîtrisée; jeton de suivi imprévisible et non divulgué dans logs; transitions invalides rejetées; suivi n’expose pas téléphone/adresse. Si une proposition change prix/frais/conditions, état dérivé `attente_confirmation_client`; aucune acceptation ni préparation avant accord sur la version active; refus/expiration terminent la commande sans frais encaissés.
 
 ## Bloc 8 — CMS complet de l’administration système
 
@@ -268,6 +262,8 @@ Le CMS interne couvre les opérations du portail : onboarding/modération, resta
 
 **Acceptation :** déploiement reproductible en préproduction; restauration documentée et exercée si autorisée; risques connus attribués; aucun secret dans artefacts; accord explicite requis avant lancement public.
 
+**Porte sécurité obligatoire :** appliquer `PROCEDURE-SECURITE.md`, fournir les preuves de la section 7 et faire réaliser une revue indépendante. Une case non vérifiée bloque les données réelles ou la fonction concernée. Le rapport final distingue « prêt », « bloqué » et « non vérifié »; il ne constitue pas une certification.
+
 ## Revues transversales à planifier
 
 ### Revue sécurité/données
@@ -301,3 +297,51 @@ Le CMS interne couvre les opérations du portail : onboarding/modération, resta
 - [ ] Dépendances acceptées, contrats de données/API disponibles.
 - [ ] Pas de service payant ou ressource externe implicitement autorisé.
 - [ ] Résultat attendu et format de compte rendu convenus.
+
+## Addendum lots délégués — discovery, disponibilité et comptes (3 octobre 2026)
+
+Les formulations de tâches antérieures sont complétées par `SPEC-PILOTE-DISCOVERY-IDENTITE-DESIGN.md`. Ne pas considérer ce lot comme permission d’ajouter les intégrations externes payantes ou de lancer en production.
+
+### Bloc 4a — Connexion Google et téléphone
+
+**Dépendances :** identité/membership du bloc 4 accepté, fournisseur SMS et configuration OAuth décidés par le propriétaire.  
+**Tâches :** Google OAuth avec autorisations minimales; saisie normalisée +224 et OTP via fournisseur serveur uniquement après test de livraison/coût; UX alternative si SMS indisponible; association contrôlée des méthodes au même compte; limites de débit/CAPTCHA; aucune fusion par simple correspondance d’identité.  
+**Acceptation :** aucun secret côté client; Google redirect vérifié; OTP jamais simulé; numéros non logués en clair; visite publique accessible sans compte; rapport de couverture/coût SMS prêt avant activation.
+
+### Bloc 5a — Recherche et classement explicable
+
+**Dépendances :** modèles publics, taxonomie et états opérationnels acceptés; décisions quartiers/repères terrain.  
+**Tâches :** recherche article/restaurant; filtres ouverts/commandes actives/disponibilité; groupes exact, à confirmer, équivalent, suggestion; classement par règles selon spécification; localisation facultative et quartier manuel; distances non promises; états vide/erreur/localisation refusée.  
+**Acceptation :** aucune suggestion ne remplace l’article silencieusement; sponsorisé futur est séparé; le client comprend la fraîcheur et peut rechercher sans GPS.
+
+### Bloc 6a — Disponibilité article et statut restaurant
+
+**Dépendances :** bloc 2 migrations/RLS et bloc 6 console.  
+**Tâches :** bascules ouvert/fermé, commande active/en pause et article disponible/indisponible/à confirmer; heure de dernière confirmation; fermeture temporaire facultative; endpoints autorisés par restaurant; affichage public filtré. Pas d’inventaire exact/autodécrément tant que tous les canaux de vente ne sont pas représentés.  
+**Acceptation :** utilisateur comprend chaque statut; restaurant ne modifie que ses articles; résultat ancien devient à confirmer; pas de statut optimiste sans succès serveur.
+
+### Bloc 6b — Page restaurant, publication et diffusion
+
+**Tâches :** brouillon, complétude, preview, soumission/validation manuelle, page publique mobile, lien stable, QR/visuel si inclus, partage WhatsApp via texte prérempli.  
+**Acceptation :** pages non validées non indexables/non publiques; photos avec provenance/accord; partage mène à Speedfood et n’annonce pas un envoi ou une commande réussie.
+
+### Bloc 11a — Télémétrie pilote responsable
+
+**Tâches :** définir événements agrégés nécessaires pour recherche, disponibilité, ouverture fiche, partage, clic WhatsApp et demandes; minimiser PII; documenter durée de conservation et définitions de métriques; Sentry/analytics uniquement selon configuration retenue.  
+**Acceptation :** clic WhatsApp distinct d’une commande; pas de contenu de messages, jetons, téléphone complet ou géolocalisation précise dans événements/logs; propriétaire reçoit une explication en langage simple avant collecte.
+
+Les écrans et critères d’acceptation correspondants sont dans le brief frontend et la spécification pilote. L’ordre de dépendance reste schéma/RLS avant mutations, puis wireframes/prototype avant intégration des écrans concernés.
+
+Le parcours complet de bout en bout et les mesures d’ergonomie sont définis dans `PARCOURS-CIBLE-CLIENT-MVP.md`. Les écrans existants de la démo sont la base de travail : documenter la transition vers le pilote connecté écran par écran, au lieu de repartir d’un produit abstrait.
+
+### Bloc 3a — Système d’icônes Speedfood et notifications de démonstration
+
+**Dépendances :** bloc 3 et `NOTIFICATIONS-ICONES-OUTILS.md`.  
+**Tâches :** inspecter et améliorer le toast déjà présent; définir toast, dialogue et badge in-app; produire un petit jeu SVG gourmand réutilisable cohérent avec les icônes fonctionnelles au trait rond. Le prototype affiche les interactions de façon honnête; aucun push serveur n’est simulé.  
+**Acceptation :** clavier/lecteur d’écran pris en compte; message persistant dans le contexte quand l’erreur est importante; icônes décoratives ne remplacent pas le texte; aucune dépendance ajoutée sans justification de pile et maintenance.
+
+### Bloc 11b — Push Web/PWA (option post-MVP)
+
+**Dépendances :** événements transactionnels serveur stables, authentification et consentement, Service Worker/cache revus, preuve d’un besoin pilote et essai sur Android/iOS installé/desktop.  
+**Tâches :** évaluer FCM ou Web Push standard; gérer abonnements par compte/appareil, stockage protégé, révocation et rotation; envoyer depuis un environnement serveur; préférences type/fréquence; déduplication et payload minimal; tester fallback in-app.  
+**Acceptation :** permission demandée après action contextualisée; pas de promotion non consentie; push jamais source d’état; refus/non-support n’empêche pas le parcours; essais documentés pour appareils ciblés; aucune clé privée dans navigateur ou dépôt.
