@@ -8,6 +8,7 @@ import { LIBELLES_GROUPES, ORDRE_GROUPES, type ResultatClasse } from "@/lib/deco
 import { etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import type { RestaurantCatalogue } from "@/lib/decouverte/recherche";
 import type { Metadata } from "next";
+import { origineDuSite } from "@/lib/partage/origine";
 
 interface Recherche {
   q?: string;
@@ -20,7 +21,24 @@ interface Recherche {
 
 const MAX_PLATS_PAR_CARTE = 3;
 
-export const metadata: Metadata = { title: "Découvrir les restaurants" };
+// Aperçu de partage de l'accueil et du catalogue : logo officiel (adresse absolue, requise par WhatsApp et les réseaux).
+export async function generateMetadata(): Promise<Metadata> {
+  const origine = await origineDuSite();
+  const description = "Trouvez un plat, vérifiez qu'il est confirmé, commandez sans compte ni paiement en ligne. Restaurants de Conakry.";
+  return {
+    title: "Découvrir les restaurants",
+    description,
+    alternates: { canonical: `${origine}/restaurants` },
+    openGraph: {
+      title: "Speedfood · Restaurants de Conakry",
+      description,
+      type: "website",
+      siteName: "Speedfood",
+      locale: "fr_FR",
+      images: [{ url: `${origine}/logo-speedfood.webp`, width: 1024, height: 1024, alt: "Speedfood" }],
+    },
+  };
+}
 
 export default async function CataloguePage({
   searchParams,

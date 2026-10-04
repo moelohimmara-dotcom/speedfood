@@ -41,6 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       description,
       type: "website",
       siteName: "Speedfood",
+      locale: "fr_FR",
       ...(data.photo_url ? { images: [data.photo_url] } : {}),
     },
   };
@@ -170,8 +171,30 @@ export default async function FicheRestaurantPage({
           ...(platsSansSection.length > 0 ? [{ id: "autres", nom: "Autres plats", plats: platsSansSection }] : []),
         ];
 
+  // Données structurées pour les moteurs de recherche : uniquement des faits connus (nom, catégorie, quartier, photo).
+  // Pas de note, pas de fourchette de prix ni de délai : rien qui ne soit calculé ou déclaré par le restaurateur.
+  const donneesStructurees = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: restaurant.nom,
+    url: urlRestaurant,
+    ...(categorie ? { servesCuisine: categorie } : {}),
+    ...(restaurant.photo_url ? { image: restaurant.photo_url } : {}),
+    address: {
+      "@type": "PostalAddress",
+      ...(restaurant.neighborhoods?.nom ? { addressLocality: restaurant.neighborhoods.nom } : {}),
+      addressRegion: "Conakry",
+      addressCountry: "GN",
+    },
+  };
+
   return (
     <main className="fiche">
+      <script
+        type="application/ld+json"
+        // Échappe `<` pour qu'un nom de restaurant ne puisse pas fermer la balise script.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c") }}
+      />
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
 
       <BanniereRestaurant
