@@ -48,7 +48,7 @@ const PERIODES = [7, 14, 30] as const;
 const PERIODE_PAR_DEFAUT = 14;
 
 function formaterGnf(montant: number): string {
-  return `${Math.round(montant).toLocaleString("fr-FR")} GNF`;
+  return `${Math.round(montant).toLocaleString("fr-FR")} GNF`;
 }
 
 /**

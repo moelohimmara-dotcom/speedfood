@@ -407,7 +407,7 @@
   color: var(--rouge-fonce);
 }
 .rappel-securite-texte {
-  flex: 1;
+  flex: 1 1 150px;
   min-width: 0;
   margin: 0;
 }
@@ -418,6 +418,14 @@
 .rappel-securite-action {
   flex: none;
   min-height: 44px;
+}
+@media (max-width: 559px) {
+  .rappel-securite {
+    flex-wrap: wrap;
+  }
+  .rappel-securite-action {
+    flex: 1 1 100%;
+  }
 }
 .rappel-securite-fermer {
   position: absolute;
