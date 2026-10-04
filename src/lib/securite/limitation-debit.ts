@@ -49,6 +49,9 @@ export const LIMITE_REPONSE_PROPOSITION_PAR_IP: RegleLimite = {
 export const LIMITE_RECUPERATION_PAR_IP: RegleLimite = { nom: "recup-ip", max: 5, fenetreSecondes: 3600 };
 export const LIMITE_RECUPERATION_PAR_EMAIL: RegleLimite = { nom: "recup-mail", max: 3, fenetreSecondes: 3600 };
 
+// Essai de notification push depuis la console : une personne ne peut pas inonder ses propres appareils ni les services de push.
+export const LIMITE_ESSAI_PUSH: RegleLimite = { nom: "essai-push", max: 3, fenetreSecondes: 300 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -114,6 +117,10 @@ export async function limiterRecuperationMotDePasse(email: string): Promise<void
     appliquerLimite(LIMITE_RECUPERATION_PAR_IP, await adresseClient()),
     appliquerLimite(LIMITE_RECUPERATION_PAR_EMAIL, email.trim().toLowerCase()),
   ]);
+}
+
+export async function limiterEssaiPush(utilisateurId: string): Promise<void> {
+  await appliquerLimite(LIMITE_ESSAI_PUSH, utilisateurId);
 }
 
 export async function limiterReponseProposition(): Promise<void> {

@@ -581,6 +581,53 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          agent: string | null
+          auth: string
+          cree_le: string
+          derniere_reussite_le: string | null
+          echecs: number
+          endpoint: string
+          id: string
+          p256dh: string
+          restaurant_id: string
+          utilisateur_id: string
+        }
+        Insert: {
+          agent?: string | null
+          auth: string
+          cree_le?: string
+          derniere_reussite_le?: string | null
+          echecs?: number
+          endpoint: string
+          id?: string
+          p256dh: string
+          restaurant_id: string
+          utilisateur_id: string
+        }
+        Update: {
+          agent?: string | null
+          auth?: string
+          cree_le?: string
+          derniere_reussite_le?: string | null
+          echecs?: number
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          restaurant_id?: string
+          utilisateur_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limits: {
         Row: {
           cle: string

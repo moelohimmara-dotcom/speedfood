@@ -13,6 +13,8 @@ import { repondreProposition } from "./propositions";
 import { estJetonValide } from "./jetons";
 import { limiterCreationCommande, limiterReponseProposition } from "@/lib/securite/limitation-debit";
 import { verifierAntiRobot } from "@/lib/securite/turnstile";
+import { after } from "next/server";
+import { notifierRestaurant } from "@/lib/push/envoi";
 
 /**
  * Actions serveur du parcours client invité (ADR-005).
@@ -47,6 +49,17 @@ export async function creerCommandeAction(
     await verifierAntiRobot(validation.valeurs.jetonVerification);
     await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone);
     const cree = await creerCommande(validation.valeurs);
+    if (!cree.idempotent) {
+      // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.
+      const restaurantId = validation.valeurs.restaurantId;
+      after(async () => {
+        try {
+          await notifierRestaurant(restaurantId);
+        } catch {
+          console.error("push_indisponible");
+        }
+      });
+    }
     return {
       ok: true,
       reference: cree.reference,

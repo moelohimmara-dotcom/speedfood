@@ -42,17 +42,16 @@ Réglages (bloc « Alertes actives » de la barre latérale, sur téléphone en 
   coupure du réseau simulée → « Connexion perdue : alertes en pause » avec point rouge.
 - **Non vérifié** : le son réellement entendu (le compteur prouve l'appel, pas le volume), les notifications du navigateur (nécessitent une autorisation dans un vrai navigateur), un téléphone réel.
 
-## 5. Étape suivante (A2) : notification push web — décisions requises
+## 5. Lot A2 : notification push web (page fermée)
 
-Pour être alerté **page fermée**, il faut une notification push (Service Worker + abonnement + serveur d'envoi). Ce que cela suppose, avant tout code :
+**État : code et base prêts en local, non déployés. Secret de production à poser avant usage.**
 
-| Besoin | Détail | Qui |
-|---|---|---|
-| Paire de clés VAPID | Une clé publique (dans le code) et une clé privée **à stocker comme secret du Worker** | Malika autorise ; la clé privée n'apparaît ni dans le dépôt ni dans une conversation |
-| Table des abonnements | `push_subscriptions` (restaurant, utilisateur, point d'accès, clés), RLS, migration + fichier de migration, puis `get_advisors` | Développement |
-| Envoi | À la création d'une commande : envoyer aux abonnés du restaurant (sans donnée client dans le message). La bibliothèque classique `web-push` s'appuie sur Node ; sur Cloudflare Workers, prévoir une implémentation compatible WebCrypto | Développement |
-| Consentement | Bouton « Être averti même page fermée », écran de gestion et de retrait, jamais de demande automatique | Développement |
-| iPhone | Les push web exigent que l'application soit **ajoutée à l'écran d'accueil** (iOS 16.4 ou plus) : dépend du lot B (manifeste) | Lot B |
-| Limites | Quota et coût : aucun service payant n'est requis pour Web Push ; vérifier les limites du plan Cloudflare | À valider |
-
-Ordre conseillé : **lot B (application installable) puis A2**, car sur iPhone le push n'existe qu'après l'installation.
+- **Sans contenu** : le serveur envoie un push vide signé VAPID (RFC 8292) ; le Service Worker (`public/sw.js`) affiche le texte générique « Nouvelle commande ». Aucune donnée client ne passe par Google, Mozilla ou Apple.
+- **Table** `push_subscriptions` (migration `20261004022747_abonnements_push.sql`, RLS, 10 appareils max par personne).
+- **Routes** `/restaurant/alertes/abonnement` (POST/DELETE) et `/restaurant/alertes/test` (3 essais par 5 min) : session obligatoire, en-tête `Origin` vérifié, point d'accès limité aux services de push connus (anti-SSRF).
+- **Envoi** : `after()` dans la création de commande, abonnés du restaurant, abonnements expirés (404/410) supprimés, trois échecs passagers de suite aussi.
+- **Consentement** : bouton explicite dans la console, jamais de demande automatique ; sans clé configurée le bouton n'apparaît pas.
+- **Variables** : `VAPID_PUBLIC_KEY` et `VAPID_SUBJECT` dans `wrangler.jsonc` ; **`VAPID_PRIVATE_KEY` = secret Cloudflare** (`npx wrangler secret put VAPID_PRIVATE_KEY`), jamais dans le dépôt.
+- **Vérifié** (compte de test, supprimé ensuite) : abonnement valide accepté ; hôte inconnu, http et clés manquantes refusés (400) ; 11e appareil refusé (409) ; essai d'envoi signé réellement émis vers le service de push, abonnements factices supprimés ; 17 tests purs. Routes sans session redirigées vers la connexion.
+- **Non vérifié** : réception réelle sur un téléphone, déclenchement par une vraie commande invitée (même code d'envoi que l'essai), iPhone.
+- **iPhone** : le push n'existe qu'après « Ajouter à l'écran d'accueil » (iOS 16.4+), donc dépend du lot B (manifeste).

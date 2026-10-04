@@ -4,6 +4,7 @@ import { deconnexionAction } from "@/lib/auth/actions";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AlerteCommandes } from "@/components/AlerteCommandes";
+import { lireClesVapid } from "@/lib/push/envoi";
 import { Chevron } from "@/components/Chevron";
 import { NavigationConsole } from "./NavigationConsole";
 
@@ -37,7 +38,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         </p>
         <NavigationConsole aTraiter={aTraiter ?? 0} />
         <div className="console-cote-bas">
-          <AlerteCommandes />
+          <AlerteCommandes clePublique={lireClesVapid()?.clePublique ?? null} />
           {restaurant?.publie ? (
             <Link href={`/restaurants/${membership.restaurant_id}`} className="console-voir-page" target="_blank" rel="noopener noreferrer">
               Voir ma page publique <span aria-hidden="true">↗</span>

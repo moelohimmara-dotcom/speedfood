@@ -8,6 +8,7 @@ import {
   relanceSonDue,
   titreAlerte,
 } from "@/lib/alertes/commandes";
+import { depuisBase64Url } from "@/lib/push/vapid";
 
 /**
  * Alertes de nouvelle commande, console ouverte (lot A de l'analyse du 4 octobre 2026).
@@ -25,6 +26,21 @@ import {
  */
 
 type Etat = "ok" | "reseau" | "session";
+type EtatPush = "inconnu" | "nonconfigure" | "indisponible" | "refuse" | "inactif" | "actif";
+
+/** Le navigateur sait-il recevoir des notifications push (Service Worker + PushManager + Notification) ? */
+function pushSupporte(): boolean {
+  return "serviceWorker" in navigator && "PushManager" in window && typeof Notification !== "undefined";
+}
+
+async function envoyerAbonnement(methode: "POST" | "DELETE", corps: unknown): Promise<Response> {
+  return fetch("/restaurant/alertes/abonnement", {
+    method: methode,
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(corps),
+  });
+}
 
 const CLE_SON = "speedfood.alerte-commandes.son";
 const abonnesSon = new Set<() => void>();
@@ -94,7 +110,7 @@ function jouerCarillon(ctx: ContexteAudio): void {
   }
 }
 
-export function AlerteCommandes() {
+export function AlerteCommandes({ clePublique }: { clePublique: string | null }) {
   const router = useRouter();
   const son = useSyncExternalStore(abonnerSon, sonActif, () => true);
   const permission = useSyncExternalStore(abonnerNotif, permissionNotif, () => "indisponible");
@@ -105,6 +121,9 @@ export function AlerteCommandes() {
   const [annonce, setAnnonce] = useState("");
   const [sonBloque, setSonBloque] = useState(false);
   const [alertesJouees, setAlertesJouees] = useState(0);
+  const [etatPush, setEtatPush] = useState<EtatPush>("inconnu");
+  const [messagePush, setMessagePush] = useState("");
+  const [pushEnCours, setPushEnCours] = useState(false);
 
   const connues = useRef<Set<string> | null>(null);
   const contexte = useRef<ContexteAudio | null>(null);
@@ -193,6 +212,126 @@ export function AlerteCommandes() {
       }
     };
   }, [nombreAlertes]);
+
+  useEffect(() => {
+    let annule = false;
+    const detecter = async () => {
+      let resultat: EtatPush;
+      if (!clePublique) {
+        resultat = "nonconfigure";
+      } else if (!pushSupporte()) {
+        resultat = "indisponible";
+      } else if (Notification.permission === "denied") {
+        resultat = "refuse";
+      } else {
+        try {
+          const enregistrement = await navigator.serviceWorker.getRegistration("/sw.js");
+          const abonnement = await enregistrement?.pushManager.getSubscription();
+          resultat = abonnement ? "actif" : "inactif";
+          if (abonnement) {
+            // Rafraîchit l'abonnement côté serveur (appareil repris par un autre compte, abonnement supprimé après des échecs).
+            void envoyerAbonnement("POST", abonnement.toJSON()).catch(() => undefined);
+          }
+        } catch {
+          resultat = "inactif";
+        }
+      }
+      if (!annule) {
+        setEtatPush(resultat);
+      }
+    };
+    void detecter();
+    return () => {
+      annule = true;
+    };
+  }, [clePublique]);
+
+  const activerPush = async () => {
+    if (!clePublique || !pushSupporte()) {
+      return;
+    }
+    setPushEnCours(true);
+    setMessagePush("");
+    try {
+      const permission = await Notification.requestPermission();
+      for (const notifier of abonnesNotif) {
+        notifier();
+      }
+      if (permission !== "granted") {
+        setEtatPush(permission === "denied" ? "refuse" : "inactif");
+        return;
+      }
+      const enregistrement = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      const abonnement =
+        (await enregistrement.pushManager.getSubscription()) ??
+        (await enregistrement.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: depuisBase64Url(clePublique),
+        }));
+      const reponse = await envoyerAbonnement("POST", abonnement.toJSON());
+      if (!reponse.ok) {
+        await abonnement.unsubscribe();
+        setEtatPush("inactif");
+        setMessagePush(
+          reponse.status === 409
+            ? "Trop d'appareils sont déjà enregistrés sur ce compte (10 au maximum)."
+            : "L'activation a échoué. Réessayez dans un instant."
+        );
+        return;
+      }
+      setEtatPush("actif");
+      setMessagePush("Alerte activée. Utilisez « Envoyer un essai » pour vérifier.");
+    } catch {
+      setMessagePush("Ce navigateur n'a pas pu activer l'alerte. Réessayez, ou utilisez Chrome, Edge ou Firefox.");
+    } finally {
+      setPushEnCours(false);
+    }
+  };
+
+  const desactiverPush = async () => {
+    setPushEnCours(true);
+    setMessagePush("");
+    try {
+      const enregistrement = await navigator.serviceWorker.getRegistration("/sw.js");
+      const abonnement = await enregistrement?.pushManager.getSubscription();
+      if (abonnement) {
+        const endpoint = abonnement.endpoint;
+        await abonnement.unsubscribe();
+        await envoyerAbonnement("DELETE", { endpoint }).catch(() => undefined);
+      }
+      setEtatPush("inactif");
+      setMessagePush("Alerte page fermée désactivée sur cet appareil.");
+    } catch {
+      setMessagePush("La désactivation a échoué. Réessayez.");
+    } finally {
+      setPushEnCours(false);
+    }
+  };
+
+  const essaiPush = async () => {
+    setPushEnCours(true);
+    setMessagePush("");
+    try {
+      const reponse = await fetch("/restaurant/alertes/test", { method: "POST", credentials: "same-origin" });
+      if (reponse.status === 429) {
+        setMessagePush("Trop d'essais : patientez quelques minutes.");
+      } else if (!reponse.ok) {
+        setMessagePush("L'essai n'a pas pu partir. Réessayez dans un instant.");
+      } else {
+        const donnees = (await reponse.json()) as { abonnes: number; envoyes: number };
+        setMessagePush(
+          donnees.envoyes > 0
+            ? `Essai envoyé à ${donnees.envoyes} appareil${donnees.envoyes > 1 ? "s" : ""}. Vous devriez voir « Nouvelle commande ».`
+            : "Aucun appareil n'a reçu l'essai : désactivez puis réactivez l'alerte."
+        );
+      }
+    } catch {
+      setMessagePush("L'essai n'a pas pu partir : vérifiez votre connexion.");
+    } finally {
+      setPushEnCours(false);
+    }
+  };
 
   const verifier = useCallback(async () => {
     try {
@@ -351,6 +490,42 @@ export function AlerteCommandes() {
             </button>
           ) : null}
         </div>
+        {etatPush !== "nonconfigure" && etatPush !== "inconnu" ? (
+          <div className="alerte-commandes-push">
+            <p className="alerte-commandes-note">
+              <strong>Alerte page fermée</strong> :{" "}
+              {etatPush === "actif"
+                ? "activée sur cet appareil."
+                : etatPush === "indisponible"
+                  ? "indisponible sur ce navigateur. Sur iPhone, ajoutez d'abord Speedfood à l'écran d'accueil."
+                  : etatPush === "refuse"
+                    ? "notifications refusées : autorisez-les dans les réglages du navigateur pour le site."
+                    : "désactivée. Recevez l'alerte même quand cette page est fermée."}
+            </p>
+            <div className="alerte-commandes-actions">
+              {etatPush === "inactif" ? (
+                <button type="button" className="btn btn-primary btn-compact" disabled={pushEnCours} onClick={activerPush}>
+                  Être alerté page fermée
+                </button>
+              ) : null}
+              {etatPush === "actif" ? (
+                <>
+                  <button type="button" className="btn btn-secondary btn-compact" disabled={pushEnCours} onClick={essaiPush}>
+                    Envoyer un essai
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-compact" disabled={pushEnCours} onClick={desactiverPush}>
+                    Désactiver
+                  </button>
+                </>
+              ) : null}
+            </div>
+            {messagePush ? (
+              <p className="alerte-commandes-note" role="status">
+                {messagePush}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {permission === "granted" ? <p className="alerte-commandes-note">Notifications du navigateur : activées.</p> : null}
         {permission === "denied" ? (
           <p className="alerte-commandes-note">Notifications refusées dans le navigateur : modifiez l&apos;autorisation du site pour les recevoir.</p>
