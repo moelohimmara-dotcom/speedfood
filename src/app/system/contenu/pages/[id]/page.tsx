@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirPage } from "@/lib/system-admin/contenus";
-import { Badge } from "@/components/ui";
-import { LienRetour } from "@/components/LienRetour";
+import { PageHeader, Pastille } from "@/components/admin/blocs";
 import { EditeurPage } from "./EditeurPage";
+
+export const metadata = { title: "Édition d'une page (administration)" };
 
 export default async function EditionPageSystemePage({
   params,
@@ -20,14 +21,11 @@ export default async function EditionPageSystemePage({
 
   return (
     <div>
-      <LienRetour href="/system/contenu/pages">Retour aux pages</LienRetour>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "var(--space-3) 0 var(--space-5)" }}>
-        <h1 style={{ fontSize: "1.5rem", margin: 0 }}>{page.titre}</h1>
-        <Badge ton={page.statut === "publie" ? "succes" : "neutre"}>
-          {page.statut === "publie" ? "Publié" : "Brouillon"}
-        </Badge>
-      </div>
+      <PageHeader
+        titre={page.titre}
+        retour={{ href: "/system/contenu/pages", libelle: "Toutes les pages" }}
+        actions={<Pastille ton={page.statut === "publie" ? "succes" : "neutre"}>{page.statut === "publie" ? "Publié" : "Brouillon"}</Pastille>}
+      />
 
       <EditeurPage page={page} />
     </div>

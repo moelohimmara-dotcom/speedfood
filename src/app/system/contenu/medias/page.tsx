@@ -2,8 +2,11 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerBannieres } from "@/lib/system-admin/contenus";
+import { PageHeader } from "@/components/admin/blocs";
 import { Card, Badge } from "@/components/ui";
 import { SousNav } from "../../SousNav";
+
+export const metadata = { title: "Médias (administration)" };
 
 /**
  * Bibliothèque de bannières (lecture seule) : les images déjà utilisées par
@@ -17,7 +20,7 @@ export default async function MediasSystemePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenu</h1>
+      <PageHeader titre="Contenu" description="Images utilisées par les bannières." />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-4)" }}>
         Images actuellement utilisées par une bannière. Pour ajouter ou remplacer une image,

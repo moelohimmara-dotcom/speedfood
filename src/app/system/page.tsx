@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui";
+import { PageHeader } from "@/components/admin/blocs";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import {
   LIBELLES_PERMISSIONS,
@@ -21,6 +21,8 @@ import { FilePrioritaire, type LigneFilePriorite } from "./FilePrioritaire";
 import { ActiviteRecente, type LigneActivite } from "./ActiviteRecente";
 import { AccesRapides, type ActionRapide } from "./AccesRapides";
 import { formaterDateCourte, formaterEcheance } from "./formatage";
+
+export const metadata = { title: "Tableau de bord" };
 
 /**
  * Centre de commandement `/system` : tableau de bord opérationnel, plus une
@@ -268,50 +270,42 @@ export default async function AccueilCmsSystemePage() {
     });
   }
 
+  const dateDuJour = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
+
   return (
     <div>
-      <h1 style={{ fontSize: "1.8rem", marginBottom: "var(--space-2)" }}>Centre de commandement</h1>
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
-        Vous êtes connecté en tant que {LIBELLES_ROLES[role]}. Ce qui attend une décision
-        d&apos;abord, puis les compteurs clés (chacun ouvre sa section filtrée), puis les
-        dernières actions sensibles. Les zones hors permissions de votre rôle ne sont ni
-        lues ni affichées.
-      </p>
+      <PageHeader
+        titre="Tableau de bord"
+        description={`${LIBELLES_ROLES[role]} · ${dateDuJour}. Ce qui attend une décision d'abord, puis les chiffres clés.`}
+      />
 
-      {fichierOuvert ? <FilePrioritaire lignes={lignesFile} /> : null}
+      <div className="ad-grille-deux" style={{ marginTop: 0 }}>
+        {fichierOuvert ? <FilePrioritaire lignes={lignesFile} /> : null}
+        {actionsRapides.length > 0 ? <AccesRapides actions={actionsRapides} /> : null}
+      </div>
 
       {zones.map((zone) => (
         <ZoneIndicateurs key={zone.titre} zone={zone} />
       ))}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
-          gap: "var(--space-5)",
-          marginBottom: "var(--space-6)",
-        }}
-      >
-        {lignesActivite.length > 0 ? <ActiviteRecente evenements={lignesActivite} /> : null}
-        <AccesRapides actions={actionsRapides} />
-      </div>
+      {lignesActivite.length > 0 ? (
+        <div style={{ marginTop: "var(--space-6)" }}>
+          <ActiviteRecente evenements={lignesActivite} />
+        </div>
+      ) : null}
 
-      <Card>
-        <h2 style={{ fontSize: "1.15rem", marginBottom: "var(--space-3)" }}>
-          Ce que votre rôle permet
-        </h2>
-        <ul style={{ paddingLeft: "1.2rem", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          {permissions.map((permission) => (
-            <li key={permission} style={{ marginBottom: 4 }}>
-              {LIBELLES_PERMISSIONS[permission]}
-            </li>
-          ))}
-        </ul>
-        <p style={{ marginTop: "var(--space-3)", fontSize: "0.8rem", color: "var(--secondaire)" }}>
-          Matrice de permissions v{VERSION_MATRICE} — toute évolution est versionnée dans
-          docs/MATRICE-PERMISSIONS.md et dans src/lib/system-admin/permissions.ts.
-        </p>
-      </Card>
+      <div className="ad-pied" style={{ borderTop: 0, marginTop: "var(--space-6)", paddingTop: 0 }}>
+        <details>
+          <summary>Ce que votre rôle permet</summary>
+          <ul style={{ paddingLeft: "1.2rem", margin: "0 0 var(--space-2)" }}>
+            {permissions.map((permission) => (
+              <li key={permission} style={{ marginBottom: 4 }}>
+                {LIBELLES_PERMISSIONS[permission]}
+              </li>
+            ))}
+          </ul>
+        </details>
+      </div>
     </div>
   );
 }

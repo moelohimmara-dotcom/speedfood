@@ -2,11 +2,13 @@ import { notFound } from "next/navigation";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirCommandeAdmin, type PropositionRevisseeAdmin } from "@/lib/system-admin/commandes";
 import type { StatutProposition } from "@/lib/contracts/commande";
-import { Card, Badge } from "@/components/ui";
-import { LienRetour } from "@/components/LienRetour";
+import { Badge } from "@/components/ui";
+import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { formaterDateCourte, formaterEcheance } from "../../formatage";
 import { RevelerCoordonnees } from "./RevelerCoordonnees";
 import { ActionSupportStatut } from "./ActionSupportStatut";
+
+export const metadata = { title: "Commande (administration)" };
 
 const LIBELLES_STATUT: Record<string, string> = {
   en_attente: "En attente",
@@ -46,80 +48,82 @@ export default async function CommandeDetailSystemePage({
 
   return (
     <div>
-      <LienRetour href="/system/commandes">Retour aux commandes</LienRetour>
+      <PageHeader
+        titre={commande.reference}
+        retour={{ href: "/system/commandes", libelle: "Toutes les commandes" }}
+        description={`${commande.restaurantNom} · ${commande.mode === "livraison" ? "livraison" : "retrait"} · ${commande.sousTotal.toLocaleString("fr-FR")} GNF`}
+        actions={<Pastille ton="neutre">{LIBELLES_STATUT[commande.statut] ?? commande.statut}</Pastille>}
+      />
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "var(--space-3) 0 var(--space-5)" }}>
-        <h1 style={{ fontSize: "1.5rem", margin: 0 }}>{commande.reference}</h1>
-        <Badge ton="neutre">{LIBELLES_STATUT[commande.statut] ?? commande.statut}</Badge>
-      </div>
+      <div className="ad-grille-deux" style={{ marginTop: 0 }}>
+        <div className="ad-pile">
+          <Panneau titre="Détails">
+            <dl className="ad-donnees">
+              <dt>Restaurant</dt>
+              <dd>{commande.restaurantNom}</dd>
+              <dt>Client</dt>
+              <dd>{commande.clientNom}</dd>
+              <dt>Mode</dt>
+              <dd>{commande.mode === "livraison" ? "Livraison" : "Retrait"}</dd>
+              <dt>Montant</dt>
+              <dd>{commande.sousTotal.toLocaleString("fr-FR")} GNF</dd>
+            </dl>
+            <div style={{ marginTop: "var(--space-4)" }}>
+              <RevelerCoordonnees
+                commandeId={commande.id}
+                telephoneAffiche={commande.telephoneAffiche}
+                adresseAffichee={commande.adresseAffichee}
+              />
+            </div>
+          </Panneau>
 
-      <Card style={{ marginBottom: "var(--space-4)" }}>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Détails</h2>
-        <p style={{ margin: "0 0 4px" }}>
-          <strong>Restaurant :</strong> {commande.restaurantNom}
-        </p>
-        <p style={{ margin: "0 0 4px" }}>
-          <strong>Client :</strong> {commande.clientNom}
-        </p>
-        <p style={{ margin: "0 0 4px" }}>
-          <strong>Mode :</strong> {commande.mode === "livraison" ? "Livraison" : "Retrait"}
-        </p>
-        <p style={{ margin: "0 0 4px" }}>
-          <strong>Montant :</strong> {commande.sousTotal.toLocaleString("fr-FR")} GNF
-        </p>
-        <RevelerCoordonnees
-          commandeId={commande.id}
-          telephoneAffiche={commande.telephoneAffiche}
-          adresseAffichee={commande.adresseAffichee}
-        />
-      </Card>
-
-      <Card style={{ marginBottom: "var(--space-4)" }}>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Propositions révisées</h2>
-        <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginTop: 0 }}>
-          Historique complet des versions proposées par le restaurant — lecture seule : les
-          propositions sont immuables, seule la réponse du client les fait évoluer.
-        </p>
-        {commande.propositions.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune proposition révisée.</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {commande.propositions.map((proposition) => (
-              <LigneProposition key={proposition.version} proposition={proposition} />
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <Card style={{ marginBottom: "var(--space-4)" }}>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Historique des transitions</h2>
-        {commande.historique.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucun événement.</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {commande.historique.map((e, index) => (
-              <div key={index} style={{ fontSize: "0.85rem" }}>
-                <strong>
-                  {e.statutPrecedent ? `${LIBELLES_STATUT[e.statutPrecedent]} → ` : ""}
-                  {LIBELLES_STATUT[e.statutSuivant]}
-                </strong>{" "}
-                <span style={{ color: "var(--secondaire)" }}>
-                  par {e.acteur} le {new Date(e.horodatage).toLocaleString("fr-FR")}
-                </span>
+          <Panneau titre="Propositions révisées">
+            <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginTop: 0 }}>
+              Historique complet des versions proposées par le restaurant. Lecture seule : les propositions sont immuables, seule
+              la réponse du client les fait évoluer.
+            </p>
+            {commande.propositions.length === 0 ? (
+              <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune proposition révisée.</p>
+            ) : (
+              <div className="ad-pile" style={{ gap: 10 }}>
+                {commande.propositions.map((proposition) => (
+                  <LigneProposition key={proposition.version} proposition={proposition} />
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+            )}
+          </Panneau>
+        </div>
 
-      <Card>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Action de support</h2>
-        <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginBottom: "var(--space-3)" }}>
-          Réservée à une procédure de support explicite (motif obligatoire, journalisée) — ce n&apos;est
-          pas l&apos;action normale du restaurant.
-        </p>
-        <ActionSupportStatut commandeId={commande.id} statutActuel={commande.statut} />
-      </Card>
+        <div className="ad-pile">
+          <Panneau titre="Historique">
+            {commande.historique.length === 0 ? (
+              <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucun événement.</p>
+            ) : (
+              <ol className="ad-chronologie">
+                {commande.historique.map((e, index) => (
+                  <li key={index}>
+                    <strong>
+                      {e.statutPrecedent ? `${LIBELLES_STATUT[e.statutPrecedent]} → ` : ""}
+                      {LIBELLES_STATUT[e.statutSuivant]}
+                    </strong>
+                    <span>
+                      par {e.acteur} le {new Date(e.horodatage).toLocaleString("fr-FR")}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Panneau>
+
+          <Panneau titre="Action de support">
+            <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginTop: 0 }}>
+              Réservée à une procédure de support explicite (motif obligatoire, journalisée). Ce n&apos;est pas l&apos;action
+              normale du restaurant.
+            </p>
+            <ActionSupportStatut commandeId={commande.id} statutActuel={commande.statut} />
+          </Panneau>
+        </div>
+      </div>
     </div>
   );
 }
@@ -131,16 +135,7 @@ function formaterMontant(montant: number): string {
 /** Une version de proposition — bloc d'affichage pur, lecture seule. */
 function LigneProposition({ proposition }: { proposition: PropositionRevisseeAdmin }) {
   return (
-    <div
-      style={{
-        border: "1px solid var(--bordure)",
-        borderRadius: "var(--radius-md)",
-        padding: "var(--space-3)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-      }}
-    >
+    <div className="ad-version">
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <strong>Version {proposition.version}</strong>
         <Badge ton={TONS_STATUT_PROPOSITION[proposition.statut]}>

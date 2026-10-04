@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { Badge, Card } from "@/components/ui";
+import { EtatVide, Panneau, Pastille } from "@/components/admin/blocs";
+import { IconeAdmin } from "@/components/admin/icones";
 
 /**
- * File « à traiter en priorité » du tableau de bord : uniquement ce qui
- * attend une décision humaine, avec lien direct vers l'écran d'action.
- * Une ligne vide n'est jamais affichée ; la section reste visible avec un
- * message « rien à faire » quand le rôle a accès à une file mais qu'elle est
- * vide — c'est une information de pilotage en soi.
+ * File « à traiter » du tableau de bord : uniquement ce qui attend une décision humaine, avec lien direct vers l'écran
+ * d'action. Quand le rôle a accès à une file mais qu'elle est vide, un état vide le dit : c'est une information de
+ * pilotage en soi.
  */
 export interface LigneFilePriorite {
   href: string;
@@ -18,50 +17,30 @@ export interface LigneFilePriorite {
 
 export function FilePrioritaire({ lignes }: { lignes: LigneFilePriorite[] }) {
   return (
-    <section id="file-prioritaire" style={{ marginBottom: "var(--space-6)" }}>
-      <h2 style={{ fontSize: "1.15rem", marginBottom: "var(--space-3)" }}>
-        À traiter en priorité
-      </h2>
+    <Panneau id="file-prioritaire" titre="À traiter" compteur={lignes.length > 0 ? lignes.length : undefined} sansMarge>
       {lignes.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>
-            Rien en attente : aucune validation de restaurant ni de proposition client
-            dans les files ouvertes à votre rôle.
-          </p>
-        </Card>
+        <EtatVide
+          titre="Tout est à jour"
+          texte="Aucune validation de restaurant ni de proposition client n'attend dans les files ouvertes à votre rôle."
+        />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <ul className="ad-liste">
           {lignes.map((ligne) => (
-            <Link key={ligne.href} href={ligne.href} style={{ textDecoration: "none" }}>
-              <Card
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  padding: "var(--space-4)",
-                }}
-              >
-                <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-                  <strong style={{ color: "var(--encre)" }}>{ligne.titre}</strong>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.85rem",
-                      color: "var(--secondaire)",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {ligne.meta}
-                  </p>
-                </div>
-                <Badge ton={ligne.ton}>{ligne.badge}</Badge>
-              </Card>
-            </Link>
+            <li key={ligne.href}>
+              <Link href={ligne.href} className="ad-liste-lien">
+                <span className="ad-liste-texte">
+                  <span className="ad-liste-titre">{ligne.titre}</span>
+                  <span className="ad-liste-meta">{ligne.meta}</span>
+                </span>
+                <span className="ad-liste-fin">
+                  <Pastille ton={ligne.ton === "danger" ? "attention" : ligne.ton}>{ligne.badge}</Pastille>
+                  <IconeAdmin nom="chevron" taille={18} />
+                </span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </section>
+    </Panneau>
   );
 }

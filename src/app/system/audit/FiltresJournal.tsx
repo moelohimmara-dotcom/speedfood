@@ -17,7 +17,7 @@ export function FiltresJournal({
   depuisJoursActuel?: number;
 }) {
   return (
-    <form method="GET" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
+    <form method="GET" role="search" className="ad-outils" style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
       <div className="field" style={{ marginBottom: 0, flex: "1 1 220px" }}>
         <label htmlFor="action">Type d&apos;action</label>
         <select id="action" name="action" defaultValue={actionActuelle ?? ""}>

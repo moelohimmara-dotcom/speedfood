@@ -2,7 +2,10 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { rechercherCommandesAdmin } from "@/lib/system-admin/commandes";
 import { STATUTS_COMMANDE, type StatutCommande } from "@/lib/contracts/statuts";
-import { Card, Badge } from "@/components/ui";
+import { EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
+import { formaterDateCourte } from "../formatage";
+
+export const metadata = { title: "Support commandes (administration)" };
 
 const LIBELLES_STATUT: Record<StatutCommande, string> = {
   en_attente: "En attente",
@@ -11,6 +14,15 @@ const LIBELLES_STATUT: Record<StatutCommande, string> = {
   prete: "Prête",
   terminee: "Terminée",
   annulee: "Annulée",
+};
+
+const TON_STATUT: Record<StatutCommande, "neutre" | "danger" | "succes" | "attention"> = {
+  en_attente: "attention",
+  acceptee: "neutre",
+  prete: "succes",
+  terminee: "succes",
+  refusee: "danger",
+  annulee: "danger",
 };
 
 interface Recherche {
@@ -26,9 +38,7 @@ export default async function SupportCommandesSystemePage({
 }) {
   await exigerPermissionPage("commande.consulter");
   const { reference, statut: statutBrut, jour: jourBrut } = await searchParams;
-  const statut: StatutCommande | "tous" = (STATUTS_COMMANDE as readonly string[]).includes(
-    statutBrut ?? ""
-  )
+  const statut: StatutCommande | "tous" = (STATUTS_COMMANDE as readonly string[]).includes(statutBrut ?? "")
     ? (statutBrut as StatutCommande)
     : "tous";
   const jour = jourBrut === "1";
@@ -42,71 +52,103 @@ export default async function SupportCommandesSystemePage({
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Support commandes</h1>
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-4)", fontSize: "0.9rem" }}>
-        Coordonnées masquées par défaut. La révélation exige un motif et laisse une trace d&apos;audit.
-      </p>
+      <PageHeader
+        titre="Support commandes"
+        description="Coordonnées masquées par défaut. La révélation exige un motif et laisse une trace d'audit."
+      />
 
-      <form method="GET" style={{ marginBottom: "var(--space-4)" }}>
-        {statut !== "tous" ? <input type="hidden" name="statut" value={statut} /> : null}
-        {jour ? <input type="hidden" name="jour" value="1" /> : null}
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="reference">Référence</label>
-          <input id="reference" name="reference" type="search" defaultValue={reference ?? ""} placeholder="SF-4KVB9" />
-        </div>
-      </form>
+      <div className="ad-outils">
+        <form method="GET" role="search" className="ad-recherche">
+          {statut !== "tous" ? <input type="hidden" name="statut" value={statut} /> : null}
+          {jour ? <input type="hidden" name="jour" value="1" /> : null}
+          <label htmlFor="reference" className="sr-only">
+            Référence de la commande
+          </label>
+          <input id="reference" name="reference" type="search" defaultValue={reference ?? ""} placeholder="Référence, ex. SF-4KVB9" />
+          <button type="submit" className="btn btn-secondary btn-compact">
+            Rechercher
+          </button>
+        </form>
 
-      {jour ? (
-        <div className="alerte alerte-info" role="note" style={{ marginBottom: "var(--space-4)", fontSize: "0.85rem" }}>
-          Filtre « du jour » : seules les commandes créées depuis minuit (UTC) sont affichées.{" "}
-          <Link href={lienSansJour ? `/system/commandes?${lienSansJour}` : "/system/commandes"} style={{ fontWeight: 700 }}>
-            Voir toutes les périodes
-          </Link>
-        </div>
-      ) : null}
-
-      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-5)" }}>
-        {(["tous", ...STATUTS_COMMANDE] as const).map((valeur) => {
-          const params = new URLSearchParams();
-          if (reference) params.set("reference", reference);
-          if (jour) params.set("jour", "1");
-          if (valeur !== "tous") params.set("statut", valeur);
-          const chaine = params.toString();
-          return (
-            <Link
-              key={valeur}
-              href={chaine ? `/system/commandes?${chaine}` : "/system/commandes"}
-              className={`chip ${statut === valeur ? "actif" : ""}`}
-            >
-              {valeur === "tous" ? "Tous" : LIBELLES_STATUT[valeur]}
+        {jour ? (
+          <div className="alerte alerte-info" role="note" style={{ fontSize: "0.85rem" }}>
+            Filtre « du jour » : seules les commandes créées depuis minuit (UTC) sont affichées.{" "}
+            <Link href={lienSansJour ? `/system/commandes?${lienSansJour}` : "/system/commandes"} style={{ fontWeight: 700 }}>
+              Voir toutes les périodes
             </Link>
-          );
-        })}
+          </div>
+        ) : null}
+
+        <div className="ad-filtres" role="group" aria-label="Filtrer par statut">
+          {(["tous", ...STATUTS_COMMANDE] as const).map((valeur) => {
+            const params = new URLSearchParams();
+            if (reference) params.set("reference", reference);
+            if (jour) params.set("jour", "1");
+            if (valeur !== "tous") params.set("statut", valeur);
+            const chaine = params.toString();
+            return (
+              <Link
+                key={valeur}
+                href={chaine ? `/system/commandes?${chaine}` : "/system/commandes"}
+                className={`chip ${statut === valeur ? "actif" : ""}`}
+                aria-current={statut === valeur ? "true" : undefined}
+              >
+                {valeur === "tous" ? "Tous" : LIBELLES_STATUT[valeur]}
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {commandes.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune commande ne correspond à cette recherche.</p>
-        </Card>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {commandes.map((c) => (
-            <Link key={c.id} href={`/system/commandes/${c.id}`} style={{ textDecoration: "none" }}>
-              <Card style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                <div>
-                  <strong style={{ color: "var(--encre)" }}>{c.reference}</strong>
-                  <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
-                    {c.restaurantNom} · {c.clientNom} · {c.telephoneAffiche}
-                  </p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <Badge ton="neutre">{LIBELLES_STATUT[c.statut]}</Badge>
-                  <p style={{ margin: 0, fontWeight: 700 }}>{c.sousTotal.toLocaleString("fr-FR")} GNF</p>
-                </div>
-              </Card>
-            </Link>
-          ))}
+        <div className="ad-panneau">
+          <EtatVide icone="commandes" titre="Aucune commande" texte="Aucune commande ne correspond à cette recherche." />
         </div>
+      ) : (
+        <>
+          <p className="ad-resume" role="status">
+            {commandes.length} commande{commandes.length > 1 ? "s" : ""}
+          </p>
+          <div className="ad-table-cadre">
+            <table className="ad-table">
+              <caption className="sr-only">Commandes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Référence</th>
+                  <th scope="col">Restaurant</th>
+                  <th scope="col">Client</th>
+                  <th scope="col">Créée le</th>
+                  <th scope="col" className="ad-droite">
+                    Montant
+                  </th>
+                  <th scope="col">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commandes.map((c) => (
+                  <tr key={c.id}>
+                    <td className="ad-cellule-principale" data-label="Référence">
+                      <Link href={`/system/commandes/${c.id}`}>{c.reference}</Link>
+                    </td>
+                    <td data-label="Restaurant">{c.restaurantNom}</td>
+                    <td className="ad-secondaire" data-label="Client">
+                      {c.clientNom} · {c.telephoneAffiche}
+                    </td>
+                    <td className="ad-secondaire" data-label="Créée le">
+                      {formaterDateCourte(c.creeLe)}
+                    </td>
+                    <td className="ad-nombre ad-droite" data-label="Montant">
+                      {c.sousTotal.toLocaleString("fr-FR")} GNF
+                    </td>
+                    <td data-label="Statut">
+                      <Pastille ton={TON_STATUT[c.statut]}>{LIBELLES_STATUT[c.statut]}</Pastille>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

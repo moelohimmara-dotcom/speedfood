@@ -1,7 +1,9 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { listerJournalAudit, obtenirIndicateurs } from "@/lib/system-admin/journalAudit";
-import { Card } from "@/components/ui";
+import { EtatVide, PageHeader, Tuile } from "@/components/admin/blocs";
 import { FiltresJournal } from "./FiltresJournal";
+
+export const metadata = { title: "Journal d'audit (administration)" };
 
 interface Recherche {
   action?: string;
@@ -24,50 +26,61 @@ export default async function AuditSystemePage({
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-4)" }}>Journal d&apos;audit</h1>
+      <PageHeader titre="Journal d'audit" description="Toutes les actions sensibles de l'équipe, avec leur auteur et leur motif." />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "var(--space-4)",
-          marginBottom: "var(--space-5)",
-        }}
-      >
+      <div className="ad-tuiles" style={{ marginBottom: "var(--space-5)" }}>
         {indicateurs.map((ind) => (
-          <Card key={ind.cle}>
-            <p style={{ fontSize: "2rem", fontWeight: 800, fontFamily: "var(--font-barlow)", margin: 0 }}>
-              {ind.valeur}
-            </p>
-            <p style={{ fontWeight: 700, margin: "4px 0" }}>{ind.libelle}</p>
-            <p style={{ fontSize: "0.8rem", color: "var(--secondaire)", margin: 0 }}>{ind.definition}</p>
-          </Card>
+          <Tuile key={ind.cle} valeur={ind.valeur} libelle={ind.libelle} definition={ind.definition} />
         ))}
       </div>
 
       <FiltresJournal actionActuelle={action} depuisJoursActuel={depuisJours} />
 
       {journal.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune action ne correspond à ces filtres.</p>
-        </Card>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {journal.map((entree) => (
-            <Card key={entree.id} style={{ fontSize: "0.85rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                <strong>{entree.action}</strong>
-                <span style={{ color: "var(--secondaire)" }}>
-                  {new Date(entree.horodatage).toLocaleString("fr-FR")}
-                </span>
-              </div>
-              <p style={{ margin: "4px 0 0", color: "var(--secondaire)" }}>
-                {entree.acteurEmail ?? "acteur inconnu"} · {entree.cibleType} {entree.cibleId.slice(0, 8)}
-                {entree.motif ? ` · ${entree.motif}` : ""}
-              </p>
-            </Card>
-          ))}
+        <div className="ad-panneau">
+          <EtatVide icone="audit" titre="Aucune action" texte="Aucune action ne correspond à ces filtres." />
         </div>
+      ) : (
+        <>
+          <p className="ad-resume" role="status">
+            {journal.length} action{journal.length > 1 ? "s" : ""}
+          </p>
+          <div className="ad-table-cadre">
+            <table className="ad-table">
+              <caption className="sr-only">Journal d&apos;audit</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Auteur</th>
+                  <th scope="col">Cible</th>
+                  <th scope="col">Motif</th>
+                </tr>
+              </thead>
+              <tbody>
+                {journal.map((entree) => (
+                  <tr key={entree.id}>
+                    <td className="ad-secondaire" data-label="Date" style={{ whiteSpace: "nowrap" }}>
+                      {new Date(entree.horodatage).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                    </td>
+                    <td className="ad-nombre" data-label="Action">
+                      {entree.action}
+                    </td>
+                    <td className="ad-secondaire" data-label="Auteur">
+                      {entree.acteurEmail ?? "acteur inconnu"}
+                    </td>
+                    <td className="ad-secondaire" data-label="Cible">
+                      {entree.cibleType} {entree.cibleId.slice(0, 8)}
+                    </td>
+                    <td className="ad-secondaire" data-label="Motif">
+                      {entree.motif || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

@@ -3,19 +3,23 @@
 import { useState, useTransition } from "react";
 import { retirerRoleAction, type MembreRoleSysteme } from "@/lib/system-admin/roles";
 import { LIBELLES_ROLES } from "@/lib/system-admin/permissions";
-import { Card, Badge, Button, Alert } from "@/components/ui";
+import { Button, Alert } from "@/components/ui";
+import { Pastille } from "@/components/admin/blocs";
 
+/** Une ligne du tableau des rôles système (rendu dans un `<tbody>`). */
 export function RoleItem({ membre }: { membre: MembreRoleSysteme }) {
   const [enTransition, demarrerTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
   return (
-    <Card style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <strong>{membre.email}</strong>
-        <Badge ton="neutre">{LIBELLES_ROLES[membre.role]}</Badge>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <tr>
+      <td className="ad-cellule-principale" data-label="Compte" style={{ overflowWrap: "anywhere" }}>
+        <span style={{ fontWeight: 800 }}>{membre.email}</span>
+      </td>
+      <td data-label="Rôle">
+        <Pastille ton="neutre">{LIBELLES_ROLES[membre.role]}</Pastille>
+      </td>
+      <td className="ad-droite" data-label="Action">
         {erreur ? <Alert ton="danger">{erreur}</Alert> : null}
         <Button
           type="button"
@@ -36,7 +40,7 @@ export function RoleItem({ membre }: { membre: MembreRoleSysteme }) {
         >
           Retirer
         </Button>
-      </div>
-    </Card>
+      </td>
+    </tr>
   );
 }

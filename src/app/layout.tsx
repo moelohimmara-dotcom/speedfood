@@ -7,6 +7,7 @@ import "./landing.css";
 import "./catalogue.css";
 import "./marche.css";
 import "./cadre.css";
+import "./admin.css";
 import "./console.css";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :

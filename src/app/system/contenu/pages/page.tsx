@@ -2,19 +2,18 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerPages } from "@/lib/system-admin/contenus";
-import { Card, Badge } from "@/components/ui";
+import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
+
+export const metadata = { title: "Pages (administration)" };
 
 interface Recherche {
   statut?: string;
 }
 
 /**
- * Ajustement léger post-tableau de bord : le filtre `statut` permet aux
- * compteurs du centre de commandement (`/system?statut=publie|brouillon`)
- * d'ouvrir directement la liste correspondante. Le reste de l'écran (bloc 8c)
- * est inchangé.
+ * Le filtre `statut` permet aux compteurs du tableau de bord (`/system`) d'ouvrir directement la liste correspondante.
  */
 export default async function ContenusSystemePage({
   searchParams,
@@ -28,47 +27,63 @@ export default async function ContenusSystemePage({
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenu</h1>
+      <PageHeader titre="Contenu" description="Pages d'aide et d'information du site." />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
-      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-4)" }}>
-        {(["tous", "publie", "brouillon"] as const).map((valeur) => (
-          <Link
-            key={valeur}
-            href={valeur === "tous" ? "/system/contenu/pages" : `/system/contenu/pages?statut=${valeur}`}
-            className={`chip ${statut === valeur ? "actif" : ""}`}
-          >
-            {valeur === "tous" ? "Toutes" : valeur === "publie" ? "Publiées" : "Brouillons"}
-          </Link>
-        ))}
-      </div>
-
-      <Card style={{ marginBottom: "var(--space-5)" }}>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Nouvelle page</h2>
-        <FormulaireNouvellePage />
-      </Card>
-
-      {pages.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune page pour l&apos;instant.</p>
-        </Card>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {pages.map((p) => (
-            <Link key={p.id} href={`/system/contenu/pages/${p.id}`} style={{ textDecoration: "none" }}>
-              <Card style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                <div>
-                  <strong style={{ color: "var(--encre)" }}>{p.titre}</strong>
-                  <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>/{p.slug}</p>
-                </div>
-                <Badge ton={p.statut === "publie" ? "succes" : "neutre"}>
-                  {p.statut === "publie" ? "Publié" : "Brouillon"}
-                </Badge>
-              </Card>
+      <div className="ad-outils">
+        <div className="ad-filtres" role="group" aria-label="Filtrer par statut">
+          {(["tous", "publie", "brouillon"] as const).map((valeur) => (
+            <Link
+              key={valeur}
+              href={valeur === "tous" ? "/system/contenu/pages" : `/system/contenu/pages?statut=${valeur}`}
+              className={`chip ${statut === valeur ? "actif" : ""}`}
+              aria-current={statut === valeur ? "true" : undefined}
+            >
+              {valeur === "tous" ? "Toutes" : valeur === "publie" ? "Publiées" : "Brouillons"}
             </Link>
           ))}
         </div>
-      )}
+      </div>
+
+      <Panneau titre="Nouvelle page">
+        <FormulaireNouvellePage />
+      </Panneau>
+
+      <div style={{ marginTop: "var(--space-5)" }}>
+        {pages.length === 0 ? (
+          <div className="ad-panneau">
+            <EtatVide icone="contenu" titre="Aucune page" texte="Aucune page pour l'instant." />
+          </div>
+        ) : (
+          <div className="ad-table-cadre">
+            <table className="ad-table">
+              <caption className="sr-only">Pages</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Titre</th>
+                  <th scope="col">Adresse</th>
+                  <th scope="col">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pages.map((p) => (
+                  <tr key={p.id}>
+                    <td className="ad-cellule-principale" data-label="Titre">
+                      <Link href={`/system/contenu/pages/${p.id}`}>{p.titre}</Link>
+                    </td>
+                    <td className="ad-secondaire" data-label="Adresse">
+                      /{p.slug}
+                    </td>
+                    <td data-label="Statut">
+                      <Pastille ton={p.statut === "publie" ? "succes" : "neutre"}>{p.statut === "publie" ? "Publié" : "Brouillon"}</Pastille>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

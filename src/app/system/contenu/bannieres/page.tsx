@@ -3,9 +3,12 @@ import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerBannieres } from "@/lib/system-admin/contenus";
 import { Card } from "@/components/ui";
+import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
 import { FormulaireNouvelleBanniere } from "./FormulaireNouvelleBanniere";
 import { BanniereItem } from "./BanniereItem";
+
+export const metadata = { title: "Bannières (administration)" };
 
 interface Recherche {
   statut?: string;
@@ -29,10 +32,10 @@ export default async function BannieresSystemePage({
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Contenu</h1>
+      <PageHeader titre="Contenu" description="Bannières diffusées sur les écrans publics." />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
-      <div className="chip-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "var(--space-4)" }}>
+      <div className="ad-filtres" role="group" aria-label="Filtrer par statut" style={{ marginBottom: "var(--space-4)" }}>
         {(["tous", "publie", "brouillon"] as const).map((valeur) => (
           <Link
             key={valeur}
@@ -48,10 +51,11 @@ export default async function BannieresSystemePage({
         ))}
       </div>
 
-      <Card style={{ marginBottom: "var(--space-5)" }}>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Nouvelle bannière</h2>
-        <FormulaireNouvelleBanniere />
-      </Card>
+      <div style={{ marginBottom: "var(--space-5)" }}>
+        <Panneau titre="Nouvelle bannière">
+          <FormulaireNouvelleBanniere />
+        </Panneau>
+      </div>
 
       {bannieres.length === 0 ? (
         <Card>

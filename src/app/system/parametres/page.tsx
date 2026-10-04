@@ -1,9 +1,10 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
-import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerParametresApplication } from "@/lib/system-admin/parametres";
-import { Card, Alert } from "@/components/ui";
-import { SousNav } from "../SousNav";
+import { Alert } from "@/components/ui";
+import { PageHeader } from "@/components/admin/blocs";
 import { FormulaireParametres } from "./FormulaireParametres";
+
+export const metadata = { title: "Paramètres (administration)" };
 
 /**
  * Paramètres globaux de l'application, réservé à `super_admin`
@@ -13,13 +14,12 @@ import { FormulaireParametres } from "./FormulaireParametres";
  * étaient jusqu'ici en dur dans le code ou en variable d'environnement.
  */
 export default async function ParametresSystemePage() {
-  const contexte = await exigerPermissionPage("parametres.editer");
+  await exigerPermissionPage("parametres.editer");
   const parametres = await listerParametresApplication();
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Paramètres</h1>
-      <SousNav entrees={sousSectionsAccessibles("Paramètres", contexte.role)} />
+      <PageHeader titre="Paramètres" description="Règles métier, comptes clients, assistance et textes d'accueil. Réservé aux super administrateurs." />
 
       <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
         Le jeton de suivi des commandes (`COMMANDE_JETON_SECRET`) n&apos;est jamais
@@ -27,9 +27,7 @@ export default async function ParametresSystemePage() {
         envoyés aux clients. Il reste géré comme secret Cloudflare.
       </Alert>
 
-      <Card>
-        <FormulaireParametres parametres={parametres} />
-      </Card>
+      <FormulaireParametres parametres={parametres} />
     </div>
   );
 }

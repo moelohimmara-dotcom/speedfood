@@ -1,9 +1,11 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerTaxonomie } from "@/lib/system-admin/taxonomie";
-import { Card } from "@/components/ui";
+import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
 import { ListeTaxonomie } from "./ListeTaxonomie";
+
+export const metadata = { title: "Taxonomie (administration)" };
 
 export default async function TaxonomieSystemePage() {
   const contexte = await exigerPermissionPage("taxonomie.editer");
@@ -15,19 +17,16 @@ export default async function TaxonomieSystemePage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "var(--space-3)" }}>Catalogue</h1>
+      <PageHeader titre="Catalogue" description="Les catégories de menu et les quartiers proposés aux restaurants et aux clients." />
       <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-        <Card>
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Catégories de menu</h2>
+      <div className="ad-grille-deux" style={{ marginTop: 0 }}>
+        <Panneau titre="Catégories de menu">
           <ListeTaxonomie table="menu_categories" elements={categories} />
-        </Card>
-
-        <Card>
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "var(--space-3)" }}>Quartiers</h2>
+        </Panneau>
+        <Panneau titre="Quartiers">
           <ListeTaxonomie table="neighborhoods" elements={quartiers} />
-        </Card>
+        </Panneau>
       </div>
     </div>
   );
