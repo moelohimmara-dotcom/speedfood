@@ -5,10 +5,10 @@
  * Mobile d'abord ; les animations respectent prefers-reduced-motion.
  */
 
-/* --- Enveloppe : réserve la place de la navigation basse et de la barre de panier --- */
-.avec-navigation {
-  padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));
-}
+/* --- Enveloppe : la réserve d'espace pour la navigation basse et la barre de panier est
+   désormais portée par le pied de page lui-même (`.avec-navigation .site-pied`, dans
+   cadre.css). Placée ici, sur cette enveloppe transparente, elle se transformait en bande de
+   fond crème sous le pied de page sombre — visible dès qu'on atteignait le bas d'une page. --- */
 
 /* --- Navigation basse --- */
 .nav-basse {

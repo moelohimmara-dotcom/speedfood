@@ -127,7 +127,32 @@ l'écrire plutôt que de les laisser passer pour des trouvailles.
 | 5 | Libellés de navigation à 11,5 px | Faible | Trivial |
 | 6 | Rupture de fond entre les groupes de chips | Faible — esthétique | Faible |
 
-## 6. Suites possibles
+## 6. Ajout après relecture de Malika — la bande sous le pied de page (corrigée)
+
+Signalé par Malika après l'audit : en bas de « Mon panier », une bande de fond crème
+apparaissait sous le pied de page sombre, donnant l'impression d'un pied de page qui ne tient
+pas le bas de l'écran.
+
+**L'audit ne l'avait pas vu, et il faut le dire :** je vérifiais que les barres fixes **ne
+recouvrent rien** (`piedMasque: false`), jamais qu'elles **laissent un vide**. Le test était
+incomplet.
+
+**Cause mesurée :** `.cadre-site.avec-navigation` portait `padding-bottom: 150px` — la réserve
+d'espace pour la navigation basse et la barre de panier. Le pied de page étant le dernier enfant
+de cette enveloppe, la réserve tombait **après** lui, sur une boîte transparente : c'est le fond
+crème du `body` qui apparaissait sous le pied sombre. Une seconde réserve, de 96 px, existait
+déjà dans le pied de page — les deux se cumulaient.
+
+**Correctif :** la réserve est déplacée sur le pied de page lui-même
+(`.avec-navigation .site-pied { padding-bottom: calc(var(--space-6) + 150px + safe-area) }`),
+pour que son fond sombre descende jusqu'au bas de la page. Elle doit couvrir les **deux**
+éléments fixes : la barre de panier (58 px) s'ajoute à la navigation (61 px).
+
+**Vérifié par mesure :** écart sous le pied de page **0 px** (150 px avant), fond sombre
+jusqu'au bas, et le dernier texte du pied de page reste **au-dessus** de la barre de panier
+(670 contre 718) et de la navigation (783).
+
+## 7. Suites possibles
 
 Rien n'a été corrigé dans cet audit. Les points 1, 3, 4, 5 et 6 sont des correctifs courts
 (quelques lignes de CSS chacun) et vérifiables par la même instrumentation. Le point 2 demande une

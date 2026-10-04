@@ -65,9 +65,13 @@
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   font-size: 0.8rem;
 }
-/* La navigation basse (téléphone) ne doit pas masquer le pied de page. */
+/* La navigation basse (téléphone) et la barre de panier sont fixes : la réserve d'espace qui
+   les empêche de masquer le pied de page est portée par le pied LUI-MÊME, pour que son fond
+   sombre descende jusqu'au bas de la page au lieu de laisser apparaître le fond crème.
+   Elle doit couvrir les deux éléments fixes : la barre de panier (58 px) s'ajoute à la
+   navigation (61 px). */
 .avec-navigation .site-pied {
-  padding-bottom: calc(var(--space-6) + 96px);
+  padding-bottom: calc(var(--space-6) + 150px + env(safe-area-inset-bottom, 0px));
 }
 
 /* --- Découverte : bandeau, filtres, résultats --- */
