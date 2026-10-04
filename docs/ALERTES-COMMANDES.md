@@ -60,7 +60,7 @@ Réglages (bloc « Alertes actives » de la barre latérale, sur téléphone en 
 ## 6. Lot B : application installable
 
 - `src/app/manifest.ts` : nom, couleurs du design system, affichage `standalone`, raccourcis « Commandes à traiter » et « Restaurants », icônes `any` et `maskable`.
-- Icônes générées par `node scripts/generer-icones.mjs` (éclair blanc sur le dégradé de marque) dans `public/icons/` : 192, 512, maskable 512, `apple-touch-icon` 180, badge de notification 96 (blanc sur transparent). **Visuel provisoire** : à remplacer par un vrai logo, puis relancer le script.
+- Icônes générées par `node scripts/generer-icones.mjs` (emblème du logo officiel `public/logo-speedfood.webp`, sur son fond crème) dans `public/icons/` : 192, 512, maskable 512, `apple-touch-icon` 180, badge de notification 96 (blanc sur transparent). Pour changer de logo : remplacer le fichier source et relancer le script.
 - `layout.tsx` : `theme-color`, icône iOS, mode application iOS.
 - Console : bloc « Installer l'application » (`InstallationApp.tsx`) : bouton natif sur Android quand Chrome le propose, mode d'emploi sur iPhone/iPad (condition du push iOS 16.4+), conseil batterie Android ; invisible une fois installée et sur ordinateur.
 - Notifications : `icon` et `badge` renseignés (push et notification locale).

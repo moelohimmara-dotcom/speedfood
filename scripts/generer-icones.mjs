@@ -1,43 +1,51 @@
-// Génère les icônes de l'application installable (lot B) dans public/icons.
+// Génère les icônes de l'application installable (lot B) dans public/icons, à partir du logo officiel
+// `public/logo-speedfood.webp` (1024 x 1024, fond crème). On en extrait l'emblème (burger ailé et vapeur).
 // Usage : node scripts/generer-icones.mjs   (utilise `sharp`, déjà présent via Next.js)
-// Le motif est un éclair (vitesse) blanc sur le dégradé de marque ; couleurs = tokens de DESIGN-SYSTEM.md.
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
-const SORTIE = new URL("../public/icons/", import.meta.url);
+const LOGO = fileURLToPath(new URL("../public/logo-speedfood.webp", import.meta.url));
+const SORTIE = fileURLToPath(new URL("../public/icons/", import.meta.url));
 await mkdir(SORTIE, { recursive: true });
 
-// Éclair dessiné dans une boîte de 100 x 100, centré.
-const ECLAIR = "M58 6 L22 56 H44 L36 94 L78 40 H55 Z";
+// Emblème seul (sans le texte du logo) : carré de 380 px centré sur le burger ailé, mesuré sur l'image source.
+const EMBLEME = { left: 280, top: 235, width: 380, height: 380 };
+const FOND = { r: 243, g: 242, b: 224, alpha: 1 }; // crème du logo
 
-// `marge` : part du côté laissée vide autour de l'éclair (la zone sûre « maskable » exige ~20 %).
-function icone({ taille, arrondi, marge, fond }) {
-  const echelle = (taille * (1 - 2 * marge)) / 100;
-  const decalage = taille * marge;
-  const fondSvg = fond
-    ? `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-         <stop offset="0" stop-color="#d4430f"/><stop offset="0.7" stop-color="#b82a20"/></linearGradient></defs>
-       <rect width="${taille}" height="${taille}" rx="${arrondi}" fill="url(#g)"/>`
-    : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${taille}" height="${taille}" viewBox="0 0 ${taille} ${taille}">
-    ${fondSvg}
-    <path d="${ECLAIR}" fill="#ffffff" transform="translate(${decalage} ${decalage}) scale(${echelle})"/>
-  </svg>`;
-}
-
+// `part` : fraction de l'icône occupée par ce carré (le reste est du fond crème).
+// Maskable : Android applique son propre masque, donc l'emblème doit tenir dans les 80 % centraux.
 const fichiers = [
-  // Icône standard (coins arrondis intégrés).
-  ["icon-192.png", { taille: 192, arrondi: 40, marge: 0.2, fond: true }],
-  ["icon-512.png", { taille: 512, arrondi: 108, marge: 0.2, fond: true }],
-  // Maskable : plein cadre, Android applique son propre masque (cercle, carré arrondi...).
-  ["maskable-512.png", { taille: 512, arrondi: 0, marge: 0.28, fond: true }],
-  // iOS : plein cadre, iOS arrondit lui-même.
-  ["apple-touch-icon.png", { taille: 180, arrondi: 0, marge: 0.22, fond: true }],
-  // Badge de notification Android : blanc sur transparent (Android le teinte).
-  ["badge-96.png", { taille: 96, arrondi: 0, marge: 0.1, fond: false }],
+  ["icon-192.png", 192, 0.94],
+  ["icon-512.png", 512, 0.94],
+  ["maskable-512.png", 512, 0.72],
+  ["apple-touch-icon.png", 180, 0.84],
 ];
 
-for (const [nom, options] of fichiers) {
-  await sharp(Buffer.from(icone(options))).png().toFile(new URL(nom, SORTIE).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+for (const [nom, taille, part] of fichiers) {
+  const interieur = Math.round(taille * part);
+  const marge = Math.floor((taille - interieur) / 2);
+  const emb = await sharp(LOGO).extract(EMBLEME).resize(interieur, interieur).png().toBuffer();
+  await sharp({ create: { width: taille, height: taille, channels: 4, background: FOND } })
+    .composite([{ input: emb, left: marge, top: marge }])
+    .png()
+    .toFile(SORTIE + nom);
   console.log("ok", nom);
+}
+
+// Badge de notification Android : silhouette blanche sur fond transparent (Android la teinte).
+// L'opacité vient de la « distance » au fond crème : plus un pixel est foncé, plus il est opaque.
+{
+  const { data, info } = await sharp(LOGO)
+    .extract(EMBLEME)
+    .resize(96, 96)
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const rgba = Buffer.alloc(info.width * info.height * 4, 255);
+  for (let i = 0; i < data.length; i++) {
+    rgba[i * 4 + 3] = Math.max(0, Math.min(255, (235 - data[i]) * 3));
+  }
+  await sharp(rgba, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toFile(SORTIE + "badge-96.png");
+  console.log("ok badge-96.png");
 }
