@@ -9,6 +9,7 @@ import {
 } from "@/lib/system-admin/permissions";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { SystemNav } from "./SystemNav";
+import type { Metadata } from "next";
 
 /**
  * Shell du CMS système : en-tête avec rôle courant, navigation groupée par
@@ -22,6 +23,8 @@ import { SystemNav } from "./SystemNav";
  * sous-sections est accessible ; chaque page affiche ensuite sa propre
  * sous-navigation via `SousNav`).
  */
+export const metadata: Metadata = { title: "Administration" };
+
 export default async function SystemLayout({ children }: { children: React.ReactNode }) {
   const contexte = await obtenirContexteSysteme();
   const entrees = entreesNavPourRole(contexte.role);
@@ -29,6 +32,9 @@ export default async function SystemLayout({ children }: { children: React.React
 
   return (
     <div className="console-cadre console-cadre-large">
+      <a href="#contenu" className="lien-evitement">
+        Aller au contenu
+      </a>
       <aside className="console-cote">
         <p className="console-marque console-marque-visible">
           Administration Speedfood
@@ -52,7 +58,7 @@ export default async function SystemLayout({ children }: { children: React.React
         </div>
       </aside>
 
-      <div className="console-principal">
+      <main id="contenu" tabIndex={-1} className="console-principal">
         <RappelDoubleAuthentification supabase={contexte.supabase} administrateur />
 
         <details className="sys-note">
@@ -76,7 +82,7 @@ export default async function SystemLayout({ children }: { children: React.React
       >
         Matrice de permissions v{VERSION_MATRICE} — voir docs/MATRICE-PERMISSIONS.md
       </p>
-      </div>
+      </main>
     </div>
   );
 }

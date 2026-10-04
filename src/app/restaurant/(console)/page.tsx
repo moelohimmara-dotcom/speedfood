@@ -7,8 +7,11 @@ import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
 import { BasculesStatut } from "./BasculesStatut";
+import type { Metadata } from "next";
 
 /** Accueil de la console : tableau de bord (ce qui demande une action, l'état du restaurant, le partage). */
+export const metadata: Metadata = { title: "Tableau de bord" };
+
 export default async function AccueilConsolePage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant");
   const id = membership.restaurant_id;

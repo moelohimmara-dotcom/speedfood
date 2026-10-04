@@ -3,7 +3,7 @@ import { LienRetour } from "@/components/LienRetour";
 import { creerClientAdmin } from "@/lib/db/admin";
 
 export const metadata: Metadata = {
-  title: "Confidentialité · Speedfood",
+  title: "Confidentialité",
   description: "Les informations que Speedfood demande, pourquoi, qui les voit et combien de temps elles sont gardées.",
 };
 

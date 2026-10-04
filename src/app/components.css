@@ -91,9 +91,7 @@
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  outline: none;
-  border-color: var(--orange);
-  box-shadow: var(--shadow-focus);
+  border-color: var(--rouge-fonce);
 }
 
 .field-error {

@@ -7,6 +7,7 @@ import { rechercherCatalogue } from "@/lib/decouverte/recherche";
 import { LIBELLES_GROUPES, ORDRE_GROUPES, type ResultatClasse } from "@/lib/decouverte/classement";
 import { etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import type { RestaurantCatalogue } from "@/lib/decouverte/recherche";
+import type { Metadata } from "next";
 
 interface Recherche {
   q?: string;
@@ -18,6 +19,8 @@ interface Recherche {
 }
 
 const MAX_PLATS_PAR_CARTE = 3;
+
+export const metadata: Metadata = { title: "Découvrir les restaurants" };
 
 export default async function CataloguePage({
   searchParams,

@@ -100,9 +100,12 @@ a {
   text-decoration: none;
 }
 
+/* Anneau de focus plein, 3 px, `--rouge-fonce` (5,8 : 1 sur le crème) avec décalage : l'ancien halo orange à 35 % ne valait que 1,4 : 1
+   (audit du 4 octobre 2026, M2 — WCAG 2.4.7 et 1.4.11). Sur fond sombre (pied de page), voir cadre.css. */
 :focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

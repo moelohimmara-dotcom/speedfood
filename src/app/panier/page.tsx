@@ -8,6 +8,7 @@ import {
   sousTotalPanier,
   supprimerArticle,
   usePanier,
+  usePanierPret,
   QUANTITE_MAX_LIGNE,
 } from "@/components/panier/panier";
 import { Button, Card, Alert } from "@/components/ui";
@@ -19,6 +20,7 @@ import { initialePlat } from "@/lib/design/tuile";
  */
 export default function PanierPage() {
   const panier = usePanier();
+  const pret = usePanierPret();
   const total = sousTotalPanier(panier);
   const nombre = nombreArticlesPanier(panier);
 
@@ -26,7 +28,11 @@ export default function PanierPage() {
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
       <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Mon panier</h1>
 
-      {panier.lignes.length === 0 ? (
+      {!pret ? (
+        <div className="squelette" role="status" aria-busy="true">
+          <span className="sr-only">Chargement du panier…</span>
+        </div>
+      ) : panier.lignes.length === 0 ? (
         <Card>
           <p style={{ marginTop: 0 }}>Votre panier est vide.</p>
           <p style={{ color: "var(--secondaire)" }}>
@@ -90,7 +96,7 @@ export default function PanierPage() {
                     variante="secondary"
                     aria-label={`Retirer un « ${ligne.nom} »`}
                     onClick={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
-                    style={{ padding: "6px 12px" }}
+                    style={{ padding: "6px 12px", minWidth: 44, minHeight: 44 }}
                   >
                     −
                   </Button>
@@ -103,7 +109,7 @@ export default function PanierPage() {
                     aria-label={`Ajouter un « ${ligne.nom} »`}
                     disabled={ligne.quantite >= QUANTITE_MAX_LIGNE}
                     onClick={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
-                    style={{ padding: "6px 12px" }}
+                    style={{ padding: "6px 12px", minWidth: 44, minHeight: 44 }}
                   >
                     +
                   </Button>
@@ -111,7 +117,7 @@ export default function PanierPage() {
                     type="button"
                     variante="danger"
                     onClick={() => supprimerArticle(ligne.cle)}
-                    style={{ padding: "6px 12px" }}
+                    style={{ padding: "6px 12px", minWidth: 44, minHeight: 44 }}
                   >
                     Retirer
                   </Button>

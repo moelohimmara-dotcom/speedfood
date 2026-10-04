@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePanier, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
+import { usePanier, usePanierPret, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
 import { Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
 import { FormulaireCommande } from "./FormulaireCommande";
@@ -12,6 +12,18 @@ import { FormulaireCommande } from "./FormulaireCommande";
  */
 export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string }) {
   const panier = usePanier();
+  const pret = usePanierPret();
+
+  if (!pret) {
+    return (
+      <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+        <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Votre commande</h1>
+        <div className="squelette" role="status" aria-busy="true">
+          <span className="sr-only">Chargement de votre commande…</span>
+        </div>
+      </main>
+    );
+  }
 
   if (panier.lignes.length === 0 || panier.restaurantId === null) {
     return (

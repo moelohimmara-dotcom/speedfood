@@ -165,6 +165,21 @@ export function usePanier(): Panier {
   return useSyncExternalStore(abonnerPanier, lirePanier, panierVide);
 }
 
+const sansAbonnement = () => () => {};
+
+/**
+ * Vrai une fois le panier lu dans le navigateur. Côté serveur et pendant l'hydratation, il vaut faux :
+ * les écrans n'affichent alors ni « panier vide » (faux et trompeur) ni le contenu, seulement un
+ * indicateur de chargement (audit du 4 octobre 2026, M7).
+ */
+export function usePanierPret(): boolean {
+  return useSyncExternalStore(
+    sansAbonnement,
+    () => true,
+    () => false
+  );
+}
+
 /** Prix unitaire d'une ligne, suppléments choisis inclus. */
 export function prixLigne(ligne: LignePanier): number {
   return ligne.prix + ligne.options.reduce((total, o) => total + o.prix, 0);

@@ -11,12 +11,15 @@ import {
   trouverAlternatives,
 } from "@/lib/decouverte/alternatives";
 import { ancienneteLisible, etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
+import type { Metadata } from "next";
 
 /**
  * « Trouver ailleurs » : alternatives à un plat épuisé (SPEC-PILOTE 3.3). Rien n'est
  * jamais ajouté au panier : le client choisit, chaque proposition porte sa disponibilité
  * horodatée et son groupe (même plat, ou suggestion d'un plat différent).
  */
+export const metadata: Metadata = { title: "Trouver ailleurs" };
+
 export default async function AlternativesPage({
   params,
   searchParams,
@@ -80,7 +83,7 @@ export default async function AlternativesPage({
       {alternatives.length === 0 ? (
         <Alert ton="info">
           Aucune alternative ouverte pour le moment.{" "}
-          <Link href={`/restaurants?q=${encodeURIComponent(platSource.nom)}`} style={{ fontWeight: 700 }}>
+          <Link href={`/restaurants?q=${encodeURIComponent(platSource.nom)}`} style={{ fontWeight: 700, display: "inline-flex", alignItems: "center", minHeight: 44 }}>
             Chercher « {platSource.nom} » dans tout le catalogue
           </Link>
         </Alert>

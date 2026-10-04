@@ -18,8 +18,13 @@ export function CadreSite({
 }) {
   return (
     <div className={`cadre-site${focus ? "" : " avec-navigation"}`}>
+      <a href="#contenu" className="lien-evitement">
+        Aller au contenu
+      </a>
       <EnteteSite compact={compact} />
-      <div className="cadre-site-contenu">{children}</div>
+      <div id="contenu" tabIndex={-1} className="cadre-site-contenu">
+        {children}
+      </div>
       <PiedSite />
       {focus ? null : <NavigationClient />}
     </div>

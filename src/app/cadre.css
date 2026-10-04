@@ -58,6 +58,10 @@
 .site-pied-colonne a:focus-visible {
   text-decoration: underline;
 }
+/* Fond sombre : anneau blanc (le rouge ne contraste pas assez sur `--encre`) */
+.site-pied :focus-visible {
+  outline-color: #fff;
+}
 .site-pied-mentions {
   max-width: 1160px;
   margin: var(--space-6) auto 0;
@@ -113,9 +117,7 @@
   border-radius: var(--radius-pill);
 }
 .decouverte-recherche input[type="search"]:focus {
-  outline: none;
-  border-color: var(--orange);
-  box-shadow: var(--shadow-focus);
+  border-color: var(--rouge-fonce);
 }
 .decouverte-recherche-bouton {
   display: none;
@@ -246,9 +248,7 @@
     border-radius: var(--radius-pill);
   }
   .site-recherche input:focus {
-    outline: none;
-    border-color: var(--orange);
-    box-shadow: var(--shadow-focus);
+    border-color: var(--rouge-fonce);
   }
   .site-nav {
     margin-left: auto;
@@ -907,7 +907,7 @@
     background: var(--surface);
   }
   .fiche-panier-pas button {
-    width: 36px;
+    width: 44px;
     height: 44px;
     background: none;
     border: 0;
@@ -938,4 +938,73 @@
 }
 .panier-article-etat {
   white-space: nowrap;
+}
+
+/* --- Accessibilité transversale (audit du 4 octobre 2026, lot 1) --- */
+.lien-evitement {
+  position: absolute;
+  left: 8px;
+  top: -80px;
+  z-index: 200;
+  padding: 12px 18px;
+  background: var(--encre);
+  color: #fff;
+  font-weight: 800;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+.lien-evitement:focus-visible {
+  top: 8px;
+  outline-color: #fff;
+  outline-offset: -4px;
+}
+#contenu:focus {
+  outline: none;
+}
+
+/* --- Parcours client : état de chargement, page introuvable (audit du 4 octobre 2026, lot 2) --- */
+.squelette {
+  min-height: 160px;
+  border-radius: var(--radius-md);
+  background: var(--bordure);
+  opacity: 0.5;
+  animation: squelette-pouls 1.2s ease-in-out infinite;
+}
+@keyframes squelette-pouls {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .squelette {
+    animation: none;
+  }
+}
+.page-introuvable {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+.page-introuvable-code {
+  margin: 0;
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--rouge-fonce);
+}
+.page-introuvable h1 {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: 1.9rem;
+}
+.page-introuvable p {
+  color: var(--secondaire);
+}
+.page-introuvable-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
 }

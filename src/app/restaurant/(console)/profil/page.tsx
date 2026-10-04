@@ -2,6 +2,9 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Card } from "@/components/ui";
 import { FormulaireProfil } from "./FormulaireProfil";
 import { ToggleOuvert } from "./ToggleOuvert";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Mon restaurant" };
 
 export default async function ProfilPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/profil");

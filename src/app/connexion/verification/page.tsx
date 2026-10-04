@@ -4,8 +4,11 @@ import { estCheminInterneSur } from "@/lib/auth/redirection";
 import { Card } from "@/components/ui";
 import { PageCompte } from "@/components/PageCompte";
 import { FormulaireVerification } from "./FormulaireVerification";
+import type { Metadata } from "next";
 
 /** Seconde étape de connexion : code de la double authentification (uniquement si elle est activée). */
+export const metadata: Metadata = { title: "Vérification en deux étapes" };
+
 export default async function VerificationConnexionPage({
   searchParams,
 }: {

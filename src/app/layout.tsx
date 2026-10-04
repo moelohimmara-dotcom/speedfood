@@ -23,7 +23,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Speedfood",
+  title: { default: "Speedfood", template: "%s · Speedfood" },
   description: "Découvrez et commandez chez vos restaurants préférés à Conakry.",
 };
 

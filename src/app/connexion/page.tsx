@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConnexionForm } from "./ConnexionForm";
 import { Card } from "@/components/ui";
 import { PageCompte } from "@/components/PageCompte";
+import type { Metadata } from "next";
 
 /**
  * Page de connexion unique, contextualisée par `suite` (ADR-010 : deux consoles
@@ -12,6 +13,8 @@ import { PageCompte } from "@/components/PageCompte";
  * Après connexion, `connexionAction` route selon le type de compte réel :
  * admin système pur → `/system`, restaurateur → `/restaurant`.
  */
+export const metadata: Metadata = { title: "Connexion" };
+
 export default async function ConnexionPage({
   searchParams,
 }: {

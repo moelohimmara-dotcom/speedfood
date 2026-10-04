@@ -508,23 +508,15 @@ svg.icon {
   transition: color 120ms var(--ease);
 }
 .role-toggle button.active {
-  border-color: var(--rouge);
+  border-color: var(--rouge-fonce);
   background: #fdedeb;
-  color: var(--rouge);
+  color: var(--rouge-fonce);
 }
 .role-toggle button.active svg.icon {
-  color: var(--rouge);
+  color: var(--rouge-fonce);
 }
 .role-toggle button:hover:not(.active) {
   border-color: var(--secondaire);
-}
-.role-toggle button:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-.chip.static:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
 }
 
 .cta-resultat {

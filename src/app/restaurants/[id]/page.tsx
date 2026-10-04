@@ -30,11 +30,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .eq("id", id)
     .maybeSingle();
   if (!data) {
-    return { title: "Speedfood" };
+    return { title: "Restaurant" };
   }
   const description = `${data.menu_categories?.nom ?? "Restaurant"} · ${data.neighborhoods?.nom ?? "Conakry"} — menu et commande sur Speedfood`;
   return {
-    title: `${data.nom} · Speedfood`,
+    title: data.nom,
     description,
     openGraph: {
       title: data.nom,

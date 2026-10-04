@@ -27,6 +27,9 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
 
   return (
     <div className="console-cadre avec-navigation-console">
+      <a href="#contenu" className="lien-evitement">
+        Aller au contenu
+      </a>
       <aside className="console-cote">
         <p className="console-marque">
           Speedfood <span>{restaurant?.nom ?? "Espace restaurateur"}</span>
@@ -55,10 +58,10 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           </div>
         </div>
       </aside>
-      <div className="console-principal">
+      <main id="contenu" tabIndex={-1} className="console-principal">
         <RappelDoubleAuthentification supabase={supabase} administrateur={aAussiUnRoleSysteme} />
         {children}
-      </div>
+      </main>
     </div>
   );
 }

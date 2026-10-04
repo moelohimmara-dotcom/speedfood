@@ -1,24 +1,33 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { CadreSite } from "@/components/CadreSite";
 
+export const metadata: Metadata = { title: "Page introuvable" };
+
+/**
+ * Page introuvable : dans le cadre du site (en-tête, pied de page, navigation) pour ne jamais laisser
+ * l'utilisateur dans une impasse. Le message est neutre : il sert aussi bien à une adresse mal saisie
+ * qu'à un restaurant retiré du catalogue (audit du 4 octobre 2026, M6).
+ */
 export default function NotFound() {
   return (
-    <main
-      style={{
-        maxWidth: 480,
-        margin: "0 auto",
-        padding: "var(--space-8) var(--space-4)",
-        textAlign: "center",
-      }}
-    >
-      <h1 style={{ fontSize: "1.8rem", marginBottom: "var(--space-3)" }}>Page introuvable</h1>
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
-        Ce restaurant n&apos;existe pas, ou n&apos;est plus publié.
-      </p>
-      {/* Lien présenté comme un bouton, et non bouton imbriqué dans un lien : un <button> dans
-          un <a> est du HTML invalide, et la zone tactile mesurée retombait à 22 px. */}
-      <Link href="/restaurants" className="btn btn-primary">
-        Retour au catalogue
-      </Link>
-    </main>
+    <CadreSite focus>
+      <main className="page-introuvable">
+        <p className="page-introuvable-code" aria-hidden="true">404</p>
+        <h1>Page introuvable</h1>
+        <p>
+          Cette page n&apos;existe pas ou n&apos;est plus disponible. Si vous cherchiez un restaurant, il a peut-être
+          été retiré du catalogue.
+        </p>
+        <div className="page-introuvable-actions">
+          <Link href="/restaurants" className="btn btn-primary">
+            Découvrir les restaurants
+          </Link>
+          <Link href="/a-propos" className="btn btn-secondary">
+            Comment ça marche
+          </Link>
+        </div>
+      </main>
+    </CadreSite>
   );
 }

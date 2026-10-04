@@ -5,6 +5,7 @@ import type { ApercuCommandeRestaurant } from "@/lib/contracts/commande";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { Card, Alert } from "@/components/ui";
 import { CommandeCarte } from "./CommandeCarte";
+import type { Metadata } from "next";
 
 /**
  * Console restaurant — commandes (bloc 7).
@@ -17,6 +18,8 @@ import { CommandeCarte } from "./CommandeCarte";
  * Présentation : par urgence plutôt qu'en liste chronologique unique. « À traiter » en tête (c'est
  * là qu'une commande ratée coûte un client), puis « En cours », puis l'historique replié.
  */
+export const metadata: Metadata = { title: "Commandes" };
+
 export default async function CommandesPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/commandes");
 

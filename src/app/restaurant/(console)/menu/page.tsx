@@ -6,6 +6,9 @@ import { SectionsMenu } from "./SectionsMenu";
 import { confirmerToutesDisponibilitesAction } from "@/lib/menu/actions";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Mon menu" };
 
 export default async function MenuPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/menu");
