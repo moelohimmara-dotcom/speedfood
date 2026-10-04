@@ -1,4 +1,5 @@
 import "server-only";
+import { optionsCookieSession } from "./cookies";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
@@ -31,7 +32,7 @@ export async function creerClientServeur() {
       setAll(cookiesASetter) {
         try {
           for (const { name, value, options } of cookiesASetter) {
-            magasinCookies.set(name, value, options);
+            magasinCookies.set(name, value, optionsCookieSession(options));
           }
         } catch {
           // Appelé depuis un Server Component (lecture seule) : la session sera

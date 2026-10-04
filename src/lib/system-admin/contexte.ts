@@ -44,6 +44,14 @@ async function chargerContexteSysteme(): Promise<ContexteSysteme | null> {
     return null;
   }
 
+  // Double authentification (audit du 4 octobre 2026) : un compte qui a un facteur confirmé n'a aucun rôle système
+  // avec une session au seul mot de passe (aal1). Le proxy le fait déjà par chemin ; ceci le garantit aussi dans
+  // chaque action serveur, même si le proxy était contourné ou en échec.
+  const { data: niveau } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (niveau && niveau.nextLevel === "aal2" && niveau.currentLevel !== "aal2") {
+    return null;
+  }
+
   // Lecture RLS : l'utilisateur ne voit que sa propre ligne (les super_admin
   // voient aussi celles des autres, inutile ici).
   const { data: membership, error } = await supabase

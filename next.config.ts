@@ -54,6 +54,8 @@ const enTetesSecurite = [
 const nextConfig: NextConfig = {
   // Ne pas annoncer « X-Powered-By: Next.js » à chaque réponse.
   poweredByHeader: false,
+  // Les actions serveur sont limitées à 1 Mo par défaut ; une photo peut aller jusqu'à 5 Mo (storage/images.ts).
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   async headers() {
     return [{ source: "/:path*", headers: enTetesSecurite }];
   },

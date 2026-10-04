@@ -50,8 +50,8 @@ export function validerIllustration(brut: unknown): Illustration | null {
   }
   const { style, motif, fond, forme, accent } = o;
   const texte = typeof o.texte === "string" ? o.texte.toUpperCase() : "";
-  if (typeof style !== "string" || !(style in STYLES)) return null;
-  if (typeof motif !== "string" || !(motif in MOTIFS)) return null;
+  if (typeof style !== "string" || !Object.hasOwn(STYLES, style)) return null;
+  if (typeof motif !== "string" || !Object.hasOwn(MOTIFS, motif)) return null;
   for (const c of [fond, forme, accent]) {
     if (typeof c !== "string" || !HEX.test(c)) return null;
   }

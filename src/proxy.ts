@@ -1,3 +1,4 @@
+import { optionsCookieSession } from "@/lib/db/cookies";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -45,7 +46,7 @@ export async function proxy(request: NextRequest) {
         }
         reponse = NextResponse.next({ request });
         for (const { name, value, options } of cookiesASetter) {
-          reponse.cookies.set(name, value, options);
+          reponse.cookies.set(name, value, optionsCookieSession(options));
         }
       },
     },

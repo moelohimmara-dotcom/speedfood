@@ -82,7 +82,7 @@ export default async function AidePage() {
     <main className="pub-conteneur pub-rubrique">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\u003c") }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c") }}
       />
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">Aide</p>

@@ -8,10 +8,12 @@ const FORME_CHEMIN_MEDIA =
  * (dossier connu, UUID, extension autorisée). Aucune traversée de chemin possible.
  */
 export function cheminMediaDepuisUrl(url: string): string | null {
-  const index = url.indexOf(MARQUEUR_URL_PUBLIQUE);
-  if (index === -1) {
+  // L'hôte doit être celui du projet : une adresse d'un autre projet Supabase ne désigne jamais un de nos fichiers.
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const prefixe = base ? `${base.replace(/\/$/, "")}/storage/v1${MARQUEUR_URL_PUBLIQUE}` : null;
+  if (!prefixe || !url.startsWith(prefixe)) {
     return null;
   }
-  const chemin = url.slice(index + MARQUEUR_URL_PUBLIQUE.length);
+  const chemin = url.slice(prefixe.length);
   return FORME_CHEMIN_MEDIA.test(chemin) ? chemin : null;
 }
