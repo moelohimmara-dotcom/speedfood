@@ -19,6 +19,8 @@ export default function InscriptionPage() {
       pied={
         <p>
           Déjà un compte ? <Link href="/connexion" className="lien-texte">Connectez-vous</Link>
+          {" · "}
+          <Link href="/devenir-partenaire" className="lien-texte">Voir les étapes</Link>
         </p>
       }
     >

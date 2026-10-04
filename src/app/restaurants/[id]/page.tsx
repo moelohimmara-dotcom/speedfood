@@ -7,6 +7,7 @@ import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { BanniereRestaurant } from "@/components/BanniereRestaurant";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
+import { libellesMoyensPaiement } from "@/lib/restaurant/paiement";
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import {
@@ -58,7 +59,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, couleur_accent, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, couleur_accent, moyens_paiement, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -219,6 +220,15 @@ export default async function FicheRestaurantPage({
       {restaurant.consignes ? (
         <p style={{ marginTop: "var(--space-3)", color: "var(--secondaire)" }}>{restaurant.consignes}</p>
       ) : null}
+
+      {/* Information déclarée par le restaurateur : Speedfood n'encaisse rien, le règlement se fait avec le restaurant. */}
+      <p className="fiche-paiement">
+        <strong>Paiement :</strong>{" "}
+        {libellesMoyensPaiement(restaurant.moyens_paiement).length > 0
+          ? `${libellesMoyensPaiement(restaurant.moyens_paiement).join(", ")} (déclaré par le restaurant)`
+          : "à convenir avec le restaurant"}
+        . Aucun paiement en ligne sur Speedfood.
+      </p>
 
       {etatResto === "ferme" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>

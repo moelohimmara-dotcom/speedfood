@@ -699,3 +699,86 @@
   font-weight: 800;
   font-size: 0.9rem;
 }
+
+/* --- Moyens de paiement déclarés (lot D) --- */
+.moyens-paiement {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.moyens-paiement legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.moyen-paiement {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.moyen-paiement input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--rouge-fonce);
+}
+
+/* --- Liste « Préparez votre page » (lot E) --- */
+.liste-demarrage-titre {
+  margin: 0 0 var(--space-2);
+  font-size: 1.25rem;
+}
+.liste-demarrage-avancement {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 var(--space-3);
+  color: var(--secondaire);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.liste-demarrage-avancement progress {
+  flex: 1 1 140px;
+  max-width: 260px;
+  height: 10px;
+  accent-color: var(--rouge-fonce);
+}
+.liste-demarrage-etapes {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.liste-demarrage-etapes li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 0.92rem;
+}
+.liste-demarrage-etapes li.fait {
+  color: var(--secondaire);
+}
+.liste-demarrage-coche {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--bordure);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.liste-demarrage-etapes li.fait .liste-demarrage-coche {
+  background: var(--succes);
+  border-color: var(--succes);
+  color: #fff;
+}

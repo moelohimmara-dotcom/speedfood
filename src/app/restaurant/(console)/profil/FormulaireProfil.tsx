@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { modifierProfilAction, type EtatFormulaireProfil } from "@/lib/restaurant/actions";
 import { Button, Alert, Card } from "@/components/ui";
 import { SelecteurCouleur } from "./SelecteurCouleur";
+import { MOYENS_PAIEMENT } from "@/lib/restaurant/paiement";
 
 const etatInitial: EtatFormulaireProfil = {};
 
@@ -17,12 +18,14 @@ export function FormulaireProfil({
   photoUrl,
   logoUrl,
   couleurAccent,
+  moyensPaiement,
 }: {
   horaires: string;
   consignes: string;
   photoUrl: string | null;
   logoUrl: string | null;
   couleurAccent: string | null;
+  moyensPaiement: string[];
 }) {
   const [etat, action, enCours] = useActionState(modifierProfilAction, etatInitial);
 
@@ -91,6 +94,21 @@ export function FormulaireProfil({
             placeholder="Ex. Livraison uniquement dans un rayon de 5 km"
           />
         </div>
+      </Card>
+
+      <Card>
+        <h2 className="profil-bloc-titre">Moyens de paiement acceptés</h2>
+        <fieldset className="moyens-paiement">
+          <legend className="aide-champ">
+            Information affichée sur votre fiche. Speedfood n&apos;encaisse rien : le client règle directement avec vous.
+          </legend>
+          {MOYENS_PAIEMENT.map((moyen) => (
+            <label key={moyen.valeur} className="moyen-paiement">
+              <input type="checkbox" name="moyens_paiement" value={moyen.valeur} defaultChecked={moyensPaiement.includes(moyen.valeur)} />
+              {moyen.libelle}
+            </label>
+          ))}
+        </fieldset>
       </Card>
 
       <div className="barre-enregistrement">

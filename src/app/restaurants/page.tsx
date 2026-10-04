@@ -8,6 +8,7 @@ import { LIBELLES_GROUPES, ORDRE_GROUPES, type ResultatClasse } from "@/lib/deco
 import { etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import type { RestaurantCatalogue } from "@/lib/decouverte/recherche";
 import type { Metadata } from "next";
+import { lireChiffresEnDirect } from "@/lib/decouverte/chiffres";
 import { origineDuSite } from "@/lib/partage/origine";
 
 interface Recherche {
@@ -62,6 +63,10 @@ export default async function CataloguePage({
       rechercherCatalogue({ q, categorie, quartier, filtres }),
     ]);
 
+  // Accueil « nu » (sans recherche ni filtre) : preuve en direct et trois étapes ; une recherche affiche d'abord ses résultats.
+  const accueilNu = !q && !categorie && !quartier && !filtres.ouvert && !filtres.commandes && !filtres.dispo;
+  const chiffres = accueilNu ? await lireChiffresEnDirect() : null;
+
   const erreur = erreurCategories || erreurQuartiers || recherche.erreur;
   const etat = { q, categorie, quartier, ...filtres };
   const resultats = recherche.resultats;
@@ -74,8 +79,8 @@ export default async function CataloguePage({
           <p className="decouverte-surtitre">Conakry · phase pilote</p>
           <h1 className="decouverte-hero">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
           <p className="decouverte-sous">
-            Des plats que les restaurants ont confirmés récemment, avec l&apos;heure de la confirmation : pas de promesse
-            sans preuve.
+            Commandez en 30 secondes, sans application, sans compte. Des plats que les restaurants ont confirmés
+            récemment, avec l&apos;heure de la confirmation : pas de promesse sans preuve.
           </p>
 
           <form action="/restaurants" method="GET" role="search" className="decouverte-recherche">
@@ -111,6 +116,41 @@ export default async function CataloguePage({
           ) : null}
         </div>
       </section>
+
+      {accueilNu ? (
+        <section className="accueil-preuve" aria-label="Comment ça marche">
+          {chiffres && (chiffres.platsConfirmes > 0 || chiffres.restaurantsOuverts > 0) ? (
+            <p className="accueil-preuve-direct" role="status">
+              <span className="accueil-preuve-point" aria-hidden="true" />
+              En ce moment :{" "}
+              {chiffres.restaurantsOuverts > 0 ? (
+                <strong>
+                  {chiffres.restaurantsOuverts} restaurant{chiffres.restaurantsOuverts > 1 ? "s" : ""} ouvert
+                  {chiffres.restaurantsOuverts > 1 ? "s" : ""} aux commandes
+                </strong>
+              ) : null}
+              {chiffres.restaurantsOuverts > 0 && chiffres.platsConfirmes > 0 ? " · " : null}
+              {chiffres.platsConfirmes > 0 ? (
+                <strong>
+                  {chiffres.platsConfirmes} plat{chiffres.platsConfirmes > 1 ? "s" : ""} confirmé
+                  {chiffres.platsConfirmes > 1 ? "s" : ""} depuis moins d&apos;une heure
+                </strong>
+              ) : null}
+            </p>
+          ) : null}
+          <ol className="accueil-etapes">
+            <li>
+              <strong>Cherchez</strong> un plat ou un restaurant près de chez vous.
+            </li>
+            <li>
+              <strong>Vérifiez</strong> l&apos;heure à laquelle le restaurant a confirmé le plat.
+            </li>
+            <li>
+              <strong>Commandez</strong> sans compte et réglez directement au restaurant.
+            </li>
+          </ol>
+        </section>
+      ) : null}
 
       <div className="decouverte-corps">
         <aside className="decouverte-filtres" aria-label="Filtres">

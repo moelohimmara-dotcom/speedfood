@@ -11,6 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data } = await creerClientPublic().from("restaurants").select("id, mis_a_jour_le").limit(1000);
   return [
     { url: `${origine}/restaurants`, changeFrequency: "daily", priority: 1 },
+    { url: `${origine}/aide`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${origine}/devenir-partenaire`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${origine}/a-propos`, changeFrequency: "monthly", priority: 0.4 },
     ...(data ?? []).map((restaurant) => ({
       url: `${origine}/restaurants/${restaurant.id}`,

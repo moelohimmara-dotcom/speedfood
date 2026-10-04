@@ -19,10 +19,12 @@ export function PiedSite() {
           <p className="site-pied-titre">Clients</p>
           <Link href="/restaurants">Découvrir les restaurants</Link>
           <Link href="/panier">Mon panier</Link>
+          <Link href="/aide">Aide et questions</Link>
           <Link href="/a-propos">Comment ça marche</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Restaurateurs">
           <p className="site-pied-titre">Restaurateurs</p>
+          <Link href="/devenir-partenaire">Devenir partenaire</Link>
           <Link href="/inscription">Inscrire mon restaurant</Link>
           <Link href="/connexion">Se connecter</Link>
         </nav>

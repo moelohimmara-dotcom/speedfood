@@ -687,6 +687,7 @@ export type Database = {
           horaires: string
           id: string
           logo_url: string | null
+          moyens_paiement: string[]
           mis_a_jour_le: string
           motif_correction: string | null
           nom: string
@@ -708,6 +709,7 @@ export type Database = {
           horaires?: string
           id?: string
           logo_url?: string | null
+          moyens_paiement?: string[]
           mis_a_jour_le?: string
           motif_correction?: string | null
           nom: string
@@ -729,6 +731,7 @@ export type Database = {
           horaires?: string
           id?: string
           logo_url?: string | null
+          moyens_paiement?: string[]
           mis_a_jour_le?: string
           motif_correction?: string | null
           nom?: string

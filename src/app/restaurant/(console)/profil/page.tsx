@@ -17,7 +17,7 @@ export default async function ProfilPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent")
+    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement")
     .eq("id", membership.restaurant_id)
     .maybeSingle();
 
@@ -44,6 +44,7 @@ export default async function ProfilPage() {
           photoUrl={restaurant.photo_url}
           logoUrl={restaurant.logo_url}
           couleurAccent={restaurant.couleur_accent}
+          moyensPaiement={restaurant.moyens_paiement}
         />
 
         <aside className="profil-apercu" aria-label="Ce que voient vos clients">

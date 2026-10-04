@@ -6,6 +6,7 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { televerserImage, supprimerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { estCouleurValide } from "@/lib/design/paletteMarque";
+import { moyensPaiementValides, normaliserMoyensPaiement } from "@/lib/restaurant/paiement";
 import type { Database } from "@/lib/db/database.types";
 
 type MiseAJourRestaurant = Database["public"]["Tables"]["restaurants"]["Update"];
@@ -31,6 +32,13 @@ export async function modifierProfilAction(
     return { erreur: "Les consignes ne peuvent pas dépasser 1000 caractères." };
   }
 
+  // Moyens de paiement déclarés : liste fermée, jamais une valeur libre.
+  const moyensBruts = formData.getAll("moyens_paiement");
+  if (!moyensPaiementValides(moyensBruts)) {
+    return { erreur: "Moyen de paiement inconnu." };
+  }
+  const moyensPaiement = normaliserMoyensPaiement(moyensBruts);
+
   // Chaîne vide = pas de couleur d'accent (repli neutre) ; toute autre valeur
   // doit venir de la palette fermée — jamais un hex saisi librement.
   const couleurAccentBrut = String(formData.get("couleur_accent") ?? "").trim();
@@ -44,7 +52,12 @@ export async function modifierProfilAction(
   // Photo et logo optionnels : gouvernés par l'appartenance au restaurant,
   // comme horaires/consignes — aucune permission système distincte requise.
   // Chacun est indépendant (on peut changer l'un sans l'autre).
-  const payload: MiseAJourRestaurant = { horaires, consignes, couleur_accent: couleurAccent };
+  const payload: MiseAJourRestaurant = {
+    horaires,
+    consignes,
+    couleur_accent: couleurAccent,
+    moyens_paiement: moyensPaiement,
+  };
   const anciennesImages: { colonne: "photo_url" | "logo_url" }[] = [];
 
   for (const [champ, colonne, dossier] of [

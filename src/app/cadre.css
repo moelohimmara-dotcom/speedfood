@@ -1064,3 +1064,163 @@
     position: static;
   }
 }
+
+/* --- Paiement déclaré sur la fiche (lot D) --- */
+.fiche-paiement {
+  margin: var(--space-3) 0 0;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+
+/* --- Pages de texte : aide, devenir partenaire (lots D et E) --- */
+.page-texte {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  line-height: 1.6;
+}
+.page-texte h1 {
+  margin: var(--space-3) 0 var(--space-3);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+.page-texte-intro {
+  margin: 0 0 var(--space-5);
+  color: var(--secondaire);
+  font-size: 1.05rem;
+}
+.page-texte-sous-titre {
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: 1.25rem;
+}
+.page-texte-liste {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.page-texte-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+.page-texte-contact {
+  margin-top: var(--space-6);
+}
+.faq {
+  display: grid;
+  gap: var(--space-2);
+}
+.faq-item {
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+}
+.faq-item summary {
+  min-height: 44px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.faq-item p {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: var(--secondaire);
+}
+.etapes-partenaire {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: etape;
+}
+.etapes-partenaire li {
+  position: relative;
+  padding: 14px 14px 14px 60px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  counter-increment: etape;
+}
+.etapes-partenaire li::before {
+  content: counter(etape);
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--rouge-fonce);
+  color: #fff;
+  font-weight: 800;
+}
+.etapes-partenaire h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+.etapes-partenaire p {
+  margin: 0;
+  color: var(--secondaire);
+}
+
+/* --- Preuve en direct et trois étapes sous l'accueil (lot C) --- */
+.accueil-preuve {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-4) 0;
+}
+.accueil-preuve-direct {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 var(--space-3);
+  font-size: 0.95rem;
+}
+.accueil-preuve-point {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--succes);
+}
+.accueil-etapes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: accueil;
+}
+.accueil-etapes li {
+  position: relative;
+  padding: 12px 14px 12px 52px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  counter-increment: accueil;
+}
+.accueil-etapes li::before {
+  content: counter(accueil);
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--rouge-fonce);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+@media (max-width: 720px) {
+  .accueil-etapes {
+    grid-template-columns: 1fr;
+  }
+}

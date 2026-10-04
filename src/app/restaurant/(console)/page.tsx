@@ -6,6 +6,7 @@ import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
+import { ListeDemarrage } from "@/components/ListeDemarrage";
 import { BasculesStatut } from "./BasculesStatut";
 import type { Metadata } from "next";
 
@@ -20,7 +21,7 @@ export default async function AccueilConsolePage() {
     await Promise.all([
       supabase
         .from("restaurants")
-        .select("nom, publie, ouvert, accepte_commandes, statut_mis_a_jour_le, motif_correction")
+        .select("nom, publie, ouvert, accepte_commandes, statut_mis_a_jour_le, motif_correction, photo_url, logo_url, horaires, moyens_paiement")
         .eq("id", id)
         .maybeSingle(),
       supabase.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", id).eq("statut", "en_attente"),
@@ -64,6 +65,19 @@ export default async function AccueilConsolePage() {
             d&apos;abord le valider.
           </p>
         </Card>
+      ) : null}
+
+      {restaurant ? (
+        <ListeDemarrage
+          etat={{
+            photo: Boolean(restaurant.photo_url),
+            logo: Boolean(restaurant.logo_url),
+            plats: (nombrePlats ?? 0) > 0,
+            horaires: restaurant.horaires.trim().length > 0,
+            paiement: restaurant.moyens_paiement.length > 0,
+            publie: restaurant.publie,
+          }}
+        />
       ) : null}
 
       <div className="kpi-grille">
