@@ -1,3 +1,6 @@
+import { MOTIFS } from "../../src/lib/illustrations/motifs";
+import { ICONES } from "../../src/lib/illustrations/icones.generated";
+import { contraste, initiales, validerIllustration } from "../../src/lib/illustrations/modele";
 import { analyserPosition } from "../../src/lib/restaurant/position";
 import { libellesMoyensPaiement, moyensPaiementValides, normaliserMoyensPaiement } from "../../src/lib/restaurant/paiement";
 import { formaterDelaiValidation, lienWhatsAppAssistance, liensCarte } from "../../src/lib/parametres/assistance-format";
@@ -172,6 +175,21 @@ verifier("stats : champ absent ou invalide à 0", [stats.catalogue.plats, stats.
 verifier("stats : liste tolérante", stats.topPlats, [{ nom: "Riz gras", nb: 12 }, { nom: "", nb: 0 }]);
 verifier("stats : réponse nulle", normaliserStatistiques(null).evenementsAudit, 0);
 verifier("pourcentage", [pourcentage(1, 3), pourcentage(5, 0)], [33, 0]);
+
+const bonne = { style: "assiette", motif: "riz-sauce", fond: "#FFE9C7", forme: "#b82a20", accent: "#ffc247", texte: "", genere: true };
+verifier("illustration : valeur valide normalisée", validerIllustration(bonne)?.fond, "#ffe9c7");
+verifier("illustration : motif hors liste refusé", validerIllustration({ ...bonne, motif: "<script>" }), null);
+verifier("illustration : couleur non hexadécimale refusée", validerIllustration({ ...bonne, fond: "red" }), null);
+verifier("illustration : clé en trop refusée (pas de SVG brut)", validerIllustration({ ...bonne, svg: "<svg/>" }), null);
+verifier("illustration : style inconnu refusé", validerIllustration({ ...bonne, style: "autre" }), null);
+verifier("illustration : initiales en majuscules, 3 au plus", validerIllustration({ ...bonne, style: "monogramme", texte: "cfa", forme: "#2b211d" })?.texte, "CFA");
+verifier("illustration : 4 initiales refusées", validerIllustration({ ...bonne, texte: "ABCD" }), null);
+verifier("illustration : monogramme illisible refusé", validerIllustration({ ...bonne, style: "monogramme", texte: "AB", fond: "#ffe9c7", forme: "#ffc247" }), null);
+verifier("illustration : tableau ou null refusés", [validerIllustration(null), validerIllustration([])], [null, null]);
+verifier("illustration : contraste noir/blanc", Math.round(contraste("#000000", "#ffffff")), 21);
+verifier("initiales : articles et marqueur de test ignorés", [initiales("Chez Fatoumata"), initiales("[DEV] Le Braisier du Port"), initiales("Café des Ambassades")], ["F", "BP", "CA"]);
+verifier("motifs : la liste française et les dessins sont identiques", Object.keys(MOTIFS).sort(), Object.keys(ICONES).sort());
+verifier("dessins : aucun contenu actif", Object.values(ICONES).some((i) => /<script|foreignObject|\son[a-z]+\s*=|javascript:|<image|href=/i.test(i.c)), false);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);
