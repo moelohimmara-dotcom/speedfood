@@ -39,7 +39,7 @@ export function BasculesStatut({ ouvert, accepteCommandes, miseAJour }: Props) {
 
   return (
     <Card style={{ marginBottom: "var(--space-4)" }}>
-      <h3 style={{ marginBottom: "var(--space-3)" }}>État du restaurant</h3>
+      <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>État du restaurant</h2>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         <div>

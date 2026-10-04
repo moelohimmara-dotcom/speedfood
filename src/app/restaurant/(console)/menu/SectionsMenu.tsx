@@ -22,50 +22,47 @@ function LigneSection({ section, index, total }: { section: Section; index: numb
   const [enTransition, demarrerTransition] = useTransition();
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="section-ligne">
+      <div className="section-fleches">
         <button
           type="button"
+          className="section-bouton-icone"
           aria-label={`Monter « ${section.nom} »`}
           disabled={index === 0 || enTransition}
           onClick={() => demarrerTransition(() => deplacerSectionAction(section.id, "haut"))}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}
         >
           ▲
         </button>
         <button
           type="button"
+          className="section-bouton-icone"
           aria-label={`Descendre « ${section.nom} »`}
           disabled={index === total - 1 || enTransition}
           onClick={() => demarrerTransition(() => deplacerSectionAction(section.id, "bas"))}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}
         >
           ▼
         </button>
       </div>
-      <form action={action} style={{ display: "flex", gap: 6, flex: 1, alignItems: "center" }}>
+      <form action={action} className="section-renommer">
         <input type="hidden" name="id" value={section.id} />
+        <label htmlFor={`section-nom-${section.id}`} className="sr-only">
+          Nom de la section
+        </label>
         <input
+          id={`section-nom-${section.id}`}
           name="nom"
           type="text"
           defaultValue={section.nom}
           maxLength={60}
           required
-          style={{
-            flex: 1,
-            padding: "6px 10px",
-            border: "1px solid var(--bordure)",
-            borderRadius: "var(--radius-sm)",
-            fontFamily: "inherit",
-            fontSize: "0.9rem",
-          }}
         />
-        <Button type="submit" variante="secondary" disabled={enCours} style={{ padding: "6px 12px" }}>
+        <Button type="submit" variante="secondary" disabled={enCours}>
           {enCours ? "…" : "Renommer"}
         </Button>
       </form>
       <button
         type="button"
+        className="section-bouton-icone section-supprimer"
         aria-label={`Supprimer la section « ${section.nom} »`}
         disabled={enTransition}
         onClick={() => {
@@ -77,12 +74,11 @@ function LigneSection({ section, index, total }: { section: Section; index: numb
             demarrerTransition(() => supprimerSectionAction(section.id));
           }
         }}
-        style={{ background: "none", border: "none", cursor: "pointer", padding: "6px", color: "var(--danger)", fontWeight: 700 }}
       >
         ✕
       </button>
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginTop: 4 }}>
+        <Alert ton="danger" style={{ flexBasis: "100%" }}>
           {etat.erreur}
         </Alert>
       ) : null}
@@ -102,7 +98,7 @@ export function SectionsMenu({ sections }: { sections: Section[] }) {
 
   return (
     <Card style={{ marginBottom: "var(--space-5)" }}>
-      <h3 style={{ marginBottom: "var(--space-3)" }}>Sections du menu</h3>
+      <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>Sections du menu</h2>
       <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.85rem", color: "var(--secondaire)" }}>
         Organisez vos plats comme vous voulez (ex. Entrées froides, Plats — Riz, Desserts).
         Facultatif : un plat sans section reste visible normalement.

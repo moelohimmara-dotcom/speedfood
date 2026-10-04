@@ -108,7 +108,7 @@ export default async function MenuPage() {
             }
             return (
               <div key={section.id}>
-                <h3 style={{ marginBottom: "var(--space-3)" }}>{section.nom}</h3>
+                <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>{section.nom}</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {platsDeSection.map((plat) => (
                     <PlatItem key={plat.id} plat={plat} sections={sectionsListe} />
@@ -119,7 +119,7 @@ export default async function MenuPage() {
           })}
           {platsSansSection.length > 0 ? (
             <div>
-              <h3 style={{ marginBottom: "var(--space-3)" }}>Sans section</h3>
+              <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>Sans section</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {platsSansSection.map((plat) => (
                   <PlatItem key={plat.id} plat={plat} sections={sectionsListe} />
@@ -134,7 +134,7 @@ export default async function MenuPage() {
 
         <aside className="menu-panneau" aria-label="Ajouter et organiser">
           <Card>
-            <h3 style={{ marginBottom: "var(--space-3)" }}>Ajouter un plat</h3>
+            <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>Ajouter un plat</h2>
             <FormulairePlat sections={sectionsListe} />
           </Card>
           <SectionsMenu sections={sectionsListe} />

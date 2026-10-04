@@ -82,4 +82,34 @@ Le script de mesure est un utilitaire jetable (injecté dans l'onglet, non commi
 | 3 | M1 | **Corrigé (local, non déployé), option A choisie par Malika** | Dégradé `--gradient-marque` : `#d4430f` → `#b82a20` (70 %). Contraste du texte blanc **de 4,56 : 1 à 6,19 : 1 sur tout le dégradé** (calcul à 0, 25, 50, 75 et 100 %), AA partout. Le réglage qui décalait le dégradé de la barre de panier est retiré (devenu inutile). `DESIGN-SYSTEM.md` mis à jour. Vérifié à l'écran : dégradé visible, texte lisible. |
 | 4 | Y2 à Y6 | **Corrigé (local, non déployé)** | Console : 0 cible sous 44 px (avant : 18 sur « Mon restaurant »), rappel de double authentification en une ligne et masquable pour la session, « Mon restaurant » en deux blocs avec barre d'enregistrement collée et aperçu à droite (≥ 1180 px), doublon « Fermer temporairement » supprimé (un seul endroit : l'accueil), commande en deux colonnes à partir de 900 px (récapitulatif collant). Administration vérifiée avec un rôle de test temporaire (supprimé). |
 
-**Reste** : m1 (sauts de niveaux de titres), vérifications manuelles (lecteur d'écran, zoom 200 %, téléphone réel).
+**Reste** : le téléphone réel et un vrai lecteur d'écran (voir §9).
+
+## 9. Constat m1 corrigé et vérifications manuelles (4 octobre 2026, soir)
+
+### m1 — sauts de niveaux de titres : **corrigé (local)**
+- Console : « État du restaurant », « Votre lien et votre QR code », sections du menu, « Ajouter un plat » et « Sections du menu » passent de h3 à h2 (directement sous le h1).
+- Administration : l'éditeur de page passe de h3 à h2.
+- Fiche restaurant : le nom d'un plat est un h3 quand le menu n'a pas de sections, un h4 sous un h3 de section.
+- **Mesure** (plan des titres relevé sur chaque page) : 0 saut sur les 9 écrans publics et les 5 écrans de console mesurés.
+
+### Vérifications manuelles — ce qui a pu être fait, et ce qui ne l'a pas été
+
+| Vérification | Réalisée ? | Méthode et résultat |
+|---|---|---|
+| Zoom 400 % (reflow, WCAG 1.4.10) | **Oui, simulé** | Fenêtre de 320 px de large : 0 débordement horizontal sur les pages publiques ; consoles : 1 défaut trouvé et corrigé (voir plus bas). |
+| Zoom 200 % | **Oui, simulé** | Fenêtre de 640 px + texte à 200 % : 0 débordement, 0 cible sous 44 px sur les pages publiques et les consoles. |
+| Fenêtre basse (zoom sur ordinateur, 640 × 400 px) | **Oui, simulé** | **Défaut trouvé et corrigé** : la navigation du bas et la barre de panier, fixes, occupaient près de la moitié de la hauteur visible. Désormais la navigation redevient un bloc ordinaire et seule la barre de panier reste fixe (≈ 14 %). |
+| Lecteur d'écran | **Simulé seulement** | Lecture de l'arbre d'accessibilité de la fiche restaurant : ordre logique (lien d'évitement, bannière, recherche, navigation, contenu, panier, pied de page), noms clairs pour les boutons (« Retirer un « Escalope… » »), groupe « Quantité de … », panier annoncé. Aucun défaut relevé. **Ceci n'est pas un test avec NVDA ou VoiceOver.** |
+| Téléphone réel | **Non réalisé** | Impossible depuis cet environnement. Voir la liste à faire soi-même ci-dessous. |
+
+### Défauts trouvés pendant ces vérifications (et corrigés)
+1. **Fenêtres basses** : barres fixes trop envahissantes (voir ci-dessus).
+2. **« Mon restaurant », 1000 px** : le champ de dépôt du logo dépassait du bord droit (de 697 à 1064 px).
+3. **Menu de la console, 320 px** : le formulaire de renommage des sections débordait, avec des flèches de 13 px, un champ de 33 px et une croix de 23 px. Refait : ligne qui se replie, boutons et champ de 44 px, champ étiqueté pour les lecteurs d'écran. Le formulaire d'ajout de supplément se replie aussi et sa croix de retrait fait 44 px.
+
+### À faire sur un vrai téléphone (5 minutes)
+1. Ouvrir le site, chercher un plat, ajouter un plat au panier : la barre de panier doit rester visible sans masquer le contenu.
+2. Passer une commande jusqu'à l'écran de confirmation (sans l'envoyer si besoin) : le clavier du téléphone ne doit pas cacher le champ en cours de saisie ni le bouton.
+3. Se connecter à la console, accepter une commande de test : le bouton « Accepter la commande » doit se toucher du premier coup.
+4. Tourner le téléphone en paysage : rien ne doit être coupé.
+5. Activer TalkBack (Android) ou VoiceOver (iPhone) et parcourir la fiche d'un restaurant : chaque bouton doit être annoncé avec un nom clair.

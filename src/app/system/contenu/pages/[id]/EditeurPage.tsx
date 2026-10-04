@@ -65,7 +65,7 @@ export function EditeurPage({ page }: { page: PageEditoriale }) {
         <p style={{ fontSize: "0.75rem", color: "var(--secondaire)", marginBottom: "var(--space-2)" }}>
           Aperçu mobile (375px)
         </p>
-        <h3 style={{ fontSize: "1.2rem", marginBottom: "var(--space-2)" }}>{titre}</h3>
+        <h2 style={{ fontSize: "1.2rem", marginBottom: "var(--space-2)" }}>{titre}</h2>
         <div style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem", color: "var(--encre)" }}>
           {contenu || <span style={{ color: "var(--secondaire)" }}>(contenu vide)</span>}
         </div>

@@ -94,7 +94,7 @@ export default async function AccueilConsolePage() {
         ) : null}
 
         <Card className="partage-carte">
-          <h3 style={{ marginBottom: "var(--space-2)" }}>Votre lien et votre QR code</h3>
+          <h2 style={{ marginBottom: "var(--space-2)", fontSize: "1.25rem" }}>Votre lien et votre QR code</h2>
           {restaurant?.publie ? (
             <div className="partage-contenu">
               {/* eslint-disable-next-line @next/next/no-img-element -- SVG généré par notre propre route, pas un asset du site. */}

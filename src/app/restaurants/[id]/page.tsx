@@ -127,7 +127,7 @@ export default async function FicheRestaurantPage({
   const aucunConfirme =
     etatsPlats.every((etat) => etat.type !== "disponible") && etatsPlats.some((etat) => etat.type === "a_confirmer");
 
-  function vignette(item: (typeof menuListe)[number]) {
+  function vignette(item: (typeof menuListe)[number], niveauTitre: 3 | 4 = 4) {
     const disponibilite = libelleDisponibilite(
       etatDisponibilite(
         { disponible: item.disponible, confirmeLe: item.disponibilite_confirmee_le },
@@ -155,6 +155,7 @@ export default async function FicheRestaurantPage({
         commandable={commandable}
         options={optionsParPlat.get(item.id) ?? []}
         lienPartage={lienWhatsApp(textePlat(item.nom, restaurantSur.nom, lien))}
+        niveauTitre={niveauTitre}
       />
     );
   }
@@ -222,7 +223,7 @@ export default async function FicheRestaurantPage({
       {menuListe.length === 0 ? (
         <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>
       ) : groupesAffiches.length === 0 ? (
-        <div className="vignettes">{menuListe.map((item) => vignette(item))}</div>
+        <div className="vignettes">{menuListe.map((item) => vignette(item, 3))}</div>
       ) : (
         <>
           {groupesAffiches.length > 1 ? (

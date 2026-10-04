@@ -39,14 +39,7 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
                 aria-label={`Retirer le supplément ${option.nom}`}
                 disabled={enTransition}
                 onClick={() => demarrerTransition(() => retirerOptionAction(option.id))}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                  color: "inherit",
-                  fontWeight: 700,
-                }}
+                className="retirer-supplement"
               >
                 ✕
               </button>
@@ -65,14 +58,14 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
           action(formData);
           formRef.current?.reset();
         }}
-        style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}
+        className="option-formulaire"
       >
         <input type="hidden" name="menu_item_id" value={menuItemId} />
-        <div className="field" style={{ marginBottom: 0, flex: "1 1 160px" }}>
+        <div className="field option-champ-nom">
           <label htmlFor={`option-nom-${menuItemId}`}>Nom</label>
           <input id={`option-nom-${menuItemId}`} name="nom" type="text" maxLength={80} placeholder="Ex. Fromage en plus" required />
         </div>
-        <div className="field" style={{ marginBottom: 0, width: 120 }}>
+        <div className="field option-champ-prix">
           <label htmlFor={`option-prix-${menuItemId}`}>Prix (GNF)</label>
           <input id={`option-prix-${menuItemId}`} name="prix" type="number" min={0} step={1} required />
         </div>

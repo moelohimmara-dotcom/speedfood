@@ -1039,3 +1039,28 @@
     margin-top: 0 !important;
   }
 }
+
+/* --- Fenêtres basses (zoom 200 % ou 400 %, téléphone en paysage) : les barres fixes ne doivent pas masquer le
+   contenu (WCAG 1.4.10, reflow). La navigation du bas redevient un bloc ordinaire en fin de page ; seule la
+   barre de panier, utile en permanence, reste collée en bas. (Vérification manuelle du 4 octobre 2026.) --- */
+@media (max-height: 520px) and (max-width: 899px) {
+  .nav-basse {
+    position: static;
+  }
+  .barre-panier {
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    min-height: 48px;
+  }
+  .avec-navigation {
+    padding-bottom: 0;
+  }
+  .avec-navigation .site-pied {
+    padding-bottom: calc(var(--space-6) + 64px);
+  }
+  .avec-navigation-console {
+    padding-bottom: var(--space-4) !important;
+  }
+  .barre-enregistrement {
+    position: static;
+  }
+}

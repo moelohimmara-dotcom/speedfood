@@ -540,3 +540,102 @@
     top: var(--space-6);
   }
 }
+
+/* Champs de fichier : jamais plus larges que leur colonne (le champ du logo dépassait du bord droit à 1000 px) */
+.champs-ligne > .field {
+  min-width: 0;
+}
+.depot-photo input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Suppléments d'un plat : le formulaire d'ajout se replie au lieu de déborder (à 320 px), la croix de retrait fait 44 px */
+.option-formulaire {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+.option-formulaire .field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.option-formulaire .field input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.option-champ-nom {
+  flex: 1 1 160px;
+}
+.option-champ-prix {
+  flex: 0 1 120px;
+}
+.retirer-supplement {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -14px -14px -14px -10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Sections du menu : ligne qui se replie, boutons de 44 px, champ lisible */
+.section-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.section-fleches {
+  display: flex;
+  gap: 4px;
+}
+.section-bouton-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  color: var(--encre);
+  font-weight: 700;
+  cursor: pointer;
+}
+.section-bouton-icone:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.section-supprimer {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.section-renommer {
+  display: flex;
+  flex: 1 1 200px;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.section-renommer input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}

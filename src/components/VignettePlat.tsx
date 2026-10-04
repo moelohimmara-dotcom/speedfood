@@ -23,6 +23,8 @@ interface Props {
   commandable: boolean;
   options: OptionPanier[];
   lienPartage: string;
+  /** Niveau du titre du plat : 3 sous le h2 « Menu », 4 sous un h3 de section. */
+  niveauTitre?: 3 | 4;
 }
 
 function formaterGNF(montant: number) {
@@ -34,7 +36,8 @@ function formaterGNF(montant: number) {
  * fraîcheur, prix, action. Jamais de bouton d'ajout pour un plat épuisé ni pour un restaurant
  * fermé ou en pause.
  */
-export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirmer = false, commandable, options, lienPartage }: Props) {
+export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirmer = false, commandable, options, lienPartage, niveauTitre = 4 }: Props) {
+  const Titre = niveauTitre === 3 ? "h3" : "h4";
   const prixEffectif = plat.prixPromo ?? plat.prix;
   return (
     <article id={`plat-${plat.id}`} className={`vignette${plat.disponible ? "" : " vignette-epuisee"}`}>
@@ -51,7 +54,7 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
       </div>
       <div className="vignette-corps">
         <div className="vignette-infos">
-        <h4 className="vignette-nom">{plat.nom}</h4>
+        <Titre className="vignette-nom">{plat.nom}</Titre>
         {plat.description ? <p className="vignette-desc">{plat.description}</p> : null}
         {masquerAConfirmer && disponibilite.court === "À confirmer" ? null : <StampFraicheur disponibilite={disponibilite} />}
         <div className="vignette-prix">
