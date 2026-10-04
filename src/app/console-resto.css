@@ -134,14 +134,31 @@
   font-weight: 800;
 }
 
-/* Alerte de commandes et installation : sur le fond sombre de la barre latérale ou du tiroir, le texte hérité était crème sur crème. */
+/* Alerte de commandes dans la barre sombre : même hauteur et même texte que les liens de navigation, sans grande carte crème. */
 .ad-barre-laterale .alerte-commandes,
 .ad-tiroir .alerte-commandes {
-  color: var(--encre);
+  padding: 0 12px;
+  background: rgba(255, 246, 237, 0.08);
+  border-color: rgba(255, 246, 237, 0.16);
+  color: rgba(255, 246, 237, 0.92);
+  font-size: 0.85rem;
+}
+.ad-barre-laterale .alerte-commandes-resume,
+.ad-tiroir .alerte-commandes-resume {
+  min-height: 40px;
+  font-weight: 600;
+}
+.ad-barre-laterale .alerte-commandes[open] .alerte-commandes-resume,
+.ad-tiroir .alerte-commandes[open] .alerte-commandes-resume {
+  margin-bottom: 4px;
 }
 .ad-barre-laterale .alerte-commandes-note,
 .ad-tiroir .alerte-commandes-note {
-  color: var(--secondaire);
+  color: rgba(255, 246, 237, 0.72);
+}
+.ad-barre-laterale .alerte-commandes-details[open],
+.ad-tiroir .alerte-commandes-details[open] {
+  padding-bottom: 10px;
 }
 
 /* Bascules du service : côte à côte dès que la place le permet */
