@@ -1397,3 +1397,6 @@ a.ad-carte-lien:hover {
 }
 
 .ad-liens-contexte { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+
+.ad-sous-titre { font-size: 0.85rem; font-weight: 600; margin: var(--space-4) 0 var(--space-2); }
+.ad-sous-titre:first-child { margin-top: 0; }

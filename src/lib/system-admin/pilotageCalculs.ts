@@ -154,3 +154,84 @@ export function maximumAxe(maximum: number): number {
 export function estElementDeTest(nom: string): boolean {
   return /^\s*\[dev\]/i.test(nom) || /(^|[^a-zà-ÿ])(test|essai)([^a-zà-ÿ]|$)/i.test(nom);
 }
+
+/** Statistiques agrégées de toute l'application (réponse de `fn_statistiques_application`), toutes en nombres. */
+export interface StatistiquesApplication {
+  restaurants: Record<"total" | "publies" | "enAttente" | "correction" | "suspendus" | "ouverts" | "acceptentCommandes" | "avecLogo" | "avecPhoto" | "nouveaux", number>;
+  catalogue: Record<"plats" | "disponibles" | "enPromo" | "avecPhoto" | "nouveaux" | "supplements", number>;
+  commandes: Record<"total" | "livraison" | "retrait" | "panierMoyen" | "restaurantsActifs", number>;
+  propositions: Record<"total" | "acceptees" | "refusees" | "expirees" | "enAttente", number>;
+  clients: Record<"comptes" | "nouveaux" | "avecCoordonnees", number>;
+  alertes: Record<"abonnements" | "restaurantsEquipes" | "actifs7j" | "enEchec", number>;
+  contenus: Record<"pagesPubliees" | "pagesBrouillon" | "bannieresPubliees" | "bannieresBrouillon" | "misesEnAvantActives", number>;
+  equipes: Record<"membresRestaurants" | "comptesSysteme", number>;
+  evenementsAudit: number;
+  topRestaurants: { nom: string; nb: number; montant: number }[];
+  topPlats: { nom: string; nb: number }[];
+  quartiers: { nom: string; nb: number }[];
+}
+
+function nombre(valeur: unknown): number {
+  const n = Number(valeur);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function objet(valeur: unknown): Record<string, unknown> {
+  return valeur !== null && typeof valeur === "object" && !Array.isArray(valeur) ? (valeur as Record<string, unknown>) : {};
+}
+
+function liste(valeur: unknown): Record<string, unknown>[] {
+  return Array.isArray(valeur) ? valeur.map(objet) : [];
+}
+
+/** Transforme la réponse JSON de la base en objet typé ; tout champ absent ou invalide vaut 0 (jamais d'erreur d'écran). */
+export function normaliserStatistiques(brut: unknown): StatistiquesApplication {
+  const b = objet(brut);
+  const r = objet(b.restaurants);
+  const c = objet(b.catalogue);
+  const o = objet(b.commandes);
+  const p = objet(b.propositions);
+  const cl = objet(b.clients);
+  const a = objet(b.alertes);
+  const ct = objet(b.contenus);
+  const e = objet(b.equipes);
+  return {
+    restaurants: {
+      total: nombre(r.total), publies: nombre(r.publies), enAttente: nombre(r.en_attente), correction: nombre(r.correction),
+      suspendus: nombre(r.suspendus), ouverts: nombre(r.ouverts), acceptentCommandes: nombre(r.acceptent_commandes),
+      avecLogo: nombre(r.avec_logo), avecPhoto: nombre(r.avec_photo), nouveaux: nombre(r.nouveaux),
+    },
+    catalogue: {
+      plats: nombre(c.plats), disponibles: nombre(c.disponibles), enPromo: nombre(c.en_promo),
+      avecPhoto: nombre(c.avec_photo), nouveaux: nombre(c.nouveaux), supplements: nombre(c.supplements),
+    },
+    commandes: {
+      total: nombre(o.total), livraison: nombre(o.livraison), retrait: nombre(o.retrait),
+      panierMoyen: nombre(o.panier_moyen), restaurantsActifs: nombre(o.restaurants_actifs),
+    },
+    propositions: {
+      total: nombre(p.total), acceptees: nombre(p.acceptees), refusees: nombre(p.refusees),
+      expirees: nombre(p.expirees), enAttente: nombre(p.en_attente),
+    },
+    clients: { comptes: nombre(cl.comptes), nouveaux: nombre(cl.nouveaux), avecCoordonnees: nombre(cl.avec_coordonnees) },
+    alertes: {
+      abonnements: nombre(a.abonnements), restaurantsEquipes: nombre(a.restaurants_equipes),
+      actifs7j: nombre(a.actifs_7j), enEchec: nombre(a.en_echec),
+    },
+    contenus: {
+      pagesPubliees: nombre(ct.pages_publiees), pagesBrouillon: nombre(ct.pages_brouillon),
+      bannieresPubliees: nombre(ct.bannieres_publiees), bannieresBrouillon: nombre(ct.bannieres_brouillon),
+      misesEnAvantActives: nombre(ct.mises_en_avant_actives),
+    },
+    equipes: { membresRestaurants: nombre(e.membres_restaurants), comptesSysteme: nombre(e.comptes_systeme) },
+    evenementsAudit: nombre(objet(b.audit).evenements),
+    topRestaurants: liste(b.top_restaurants).map((l) => ({ nom: String(l.nom ?? ""), nb: nombre(l.nb), montant: nombre(l.montant) })),
+    topPlats: liste(b.top_plats).map((l) => ({ nom: String(l.nom ?? ""), nb: nombre(l.nb) })),
+    quartiers: liste(b.quartiers).map((l) => ({ nom: String(l.nom ?? ""), nb: nombre(l.nb) })),
+  };
+}
+
+/** Part en pourcentage entier (0 si le total est nul). */
+export function pourcentage(partie: number, total: number): number {
+  return total > 0 ? Math.round((partie / total) * 100) : 0;
+}

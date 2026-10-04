@@ -866,6 +866,10 @@ export type Database = {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
         Returns: undefined
       }
+      fn_statistiques_application: {
+        Args: { p_jours: number }
+        Returns: Json
+      }
       fn_support_serie_commandes: {
         Args: { p_jours: number }
         Returns: { jour: string; statut: string; nb: number; montant: number }[]

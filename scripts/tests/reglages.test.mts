@@ -12,6 +12,8 @@ import {
   estElementDeTest,
   heuresPleines,
   maximumAxe,
+  normaliserStatistiques,
+  pourcentage,
   tauxAcceptation,
   variation,
   type LigneSerie,
@@ -159,6 +161,17 @@ verifier("test : [DEV] Restaurant", estElementDeTest("[DEV] Restaurant publié")
 verifier("test : Chez Test Auth", estElementDeTest("Chez Test Auth"), true);
 verifier("pas test : « Contestation »", estElementDeTest("La Contestation"), false);
 verifier("pas test : restaurant réel", estElementDeTest("Chez Fatoumata"), false);
+
+const stats = normaliserStatistiques({
+  restaurants: { total: 8, publies: "3" },
+  top_plats: [{ nom: "Riz gras", nb: 12 }, null],
+  commandes: { panier_moyen: "abc" },
+});
+verifier("stats : nombre lu depuis du texte", [stats.restaurants.total, stats.restaurants.publies], [8, 3]);
+verifier("stats : champ absent ou invalide à 0", [stats.catalogue.plats, stats.commandes.panierMoyen, stats.clients.comptes], [0, 0, 0]);
+verifier("stats : liste tolérante", stats.topPlats, [{ nom: "Riz gras", nb: 12 }, { nom: "", nb: 0 }]);
+verifier("stats : réponse nulle", normaliserStatistiques(null).evenementsAudit, 0);
+verifier("pourcentage", [pourcentage(1, 3), pourcentage(5, 0)], [33, 0]);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

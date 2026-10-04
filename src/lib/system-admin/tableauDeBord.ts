@@ -5,7 +5,7 @@ import { STATUTS_ACTIFS } from "@/lib/contracts/statuts";
 import { verifierPermission } from "./contexte";
 import { LIBELLES_ROLES, ROLES_SYSTEME, type RoleSysteme } from "./permissions";
 import type { EntreeAudit } from "./journalAudit";
-import type { LigneSerie } from "./pilotageCalculs";
+import { normaliserStatistiques, type LigneSerie, type StatistiquesApplication } from "./pilotageCalculs";
 
 /**
  * Lectures d'indicateurs du tableau de bord `/system` (post-bloc 8d).
@@ -331,4 +331,12 @@ export async function obtenirPilotageCommandes(jours: number): Promise<PilotageC
     })),
     heures: (heures.data ?? []).map((ligne) => ({ heure: Number(ligne.heure), nb: Number(ligne.nb) })),
   };
+}
+
+/** Statistiques de toute l'application sur la période (agrégats seulement). Chaque bloc de l'écran vérifie sa permission. */
+export async function obtenirStatistiquesApplication(jours: number): Promise<StatistiquesApplication> {
+  const supabase = await creerClientServeur();
+  const duree = Math.min(90, Math.max(1, Math.trunc(jours)));
+  const { data } = await supabase.rpc("fn_statistiques_application", { p_jours: duree });
+  return normaliserStatistiques(data);
 }

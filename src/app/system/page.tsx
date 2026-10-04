@@ -19,6 +19,7 @@ import {
   construireJours,
   estElementDeTest,
   heuresPleines,
+  pourcentage,
   tauxAcceptation,
   variation,
 } from "@/lib/system-admin/pilotageCalculs";
@@ -34,10 +35,8 @@ import {
   listerRestaurantsEnAttenteValidation,
   obtenirActiviteRecente,
   obtenirComptesSystemeParRole,
-  obtenirCompteursCommandes,
-  obtenirCompteursContenus,
-  obtenirCompteursRestaurants,
   obtenirPilotageCommandes,
+  obtenirStatistiquesApplication,
 } from "@/lib/system-admin/tableauDeBord";
 import { FilePrioritaire, type LigneFilePriorite } from "./FilePrioritaire";
 import { ListeActivite, type LigneActivite } from "./ActiviteRecente";
@@ -71,25 +70,16 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
   const periodeDemandee = Number.parseInt(periodeBrute ?? "", 10);
   const periode = (PERIODES as readonly number[]).includes(periodeDemandee) ? periodeDemandee : PERIODE_PAR_DEFAUT;
 
-  const [
-    compteursRestaurants,
-    compteursCommandes,
-    compteursContenus,
-    comptesSysteme,
-    restaurantsEnAttente,
-    propositionsEnAttente,
-    activite,
-    pilotage,
-  ] = await Promise.all([
-    roleAPermission(role, "restaurant.moderer") ? obtenirCompteursRestaurants() : null,
-    roleAPermission(role, "commande.consulter") ? obtenirCompteursCommandes() : null,
-    roleAPermission(role, "contenu.editer") ? obtenirCompteursContenus() : null,
+  const peutVoirRestaurants = roleAPermission(role, "restaurant.consulter");
+  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage] = await Promise.all([
+    obtenirStatistiquesApplication(periode),
     roleAPermission(role, "systeme.roles") ? obtenirComptesSystemeParRole() : null,
     roleAPermission(role, "restaurant.moderer") ? listerRestaurantsEnAttenteValidation() : null,
     roleAPermission(role, "commande.consulter") ? listerPropositionsEnAttente() : null,
     roleAPermission(role, "systeme.audit") ? obtenirActiviteRecente() : null,
     roleAPermission(role, "commande.consulter") ? obtenirPilotageCommandes(periode) : null,
   ]);
+  const compteursRestaurants = peutVoirRestaurants ? stats.restaurants : null;
 
   const maintenant = new Date();
 
@@ -258,6 +248,45 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         </section>
       ) : null}
 
+      {/* Autres chiffres clés : toute l'application */}
+      <section className="ad-cartes" aria-label="Autres chiffres clés">
+        {roleAPermission(role, "compte.consulter") ? (
+          <CarteChiffre
+            libelle="Comptes clients"
+            valeur={stats.clients.comptes}
+            href="/system/acces/comptes"
+            sous={`${stats.clients.nouveaux} nouveau${stats.clients.nouveaux > 1 ? "x" : ""} sur ${periode} jours`}
+          />
+        ) : null}
+        {peutVoirRestaurants ? (
+          <CarteChiffre
+            libelle="Plats disponibles"
+            valeur={stats.catalogue.disponibles}
+            sous={`${stats.catalogue.plats} plats au total, ${pourcentage(stats.catalogue.disponibles, stats.catalogue.plats)} % disponibles`}
+          />
+        ) : null}
+        {peutVoirRestaurants ? (
+          <CarteChiffre
+            libelle="Restaurants équipés d'alertes"
+            valeur={`${stats.alertes.restaurantsEquipes} / ${stats.restaurants.publies}`}
+            sous={
+              stats.restaurants.publies > stats.alertes.restaurantsEquipes
+                ? "Certains restaurants publiés ne recevront pas d'alerte de commande"
+                : "Tous les restaurants publiés reçoivent les alertes"
+            }
+            ton={stats.restaurants.publies > stats.alertes.restaurantsEquipes ? "danger" : "neutre"}
+          />
+        ) : null}
+        {roleAPermission(role, "systeme.audit") ? (
+          <CarteChiffre
+            libelle="Actions enregistrées"
+            valeur={stats.evenementsAudit}
+            href="/system/audit"
+            sous={`Dans le journal d'audit sur ${periode} jours`}
+          />
+        ) : null}
+      </section>
+
       {/* 2. À traiter et restaurants */}
       {fileOuverte || compteursRestaurants ? (
         <div className="ad-pilotage-deux">
@@ -363,8 +392,145 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         </div>
       ) : null}
 
-      {/* 4. Tiroirs */}
+      {/* 4. Tiroirs thématiques : le détail de chaque aspect de l'application */}
       <div className="ad-volets">
+        {pilotage ? (
+          <Volet
+            titre="Commandes en détail"
+            ouvert
+            resume={`${stats.commandes.total} commande${stats.commandes.total > 1 ? "s" : ""} · panier moyen ${formaterGnf(stats.commandes.panierMoyen)}`}
+          >
+            <div className="ad-tuiles">
+              <Tuile valeur={stats.commandes.restaurantsActifs} libelle="Restaurants actifs" definition={`Ont reçu au moins une commande sur ${periode} jours.`} />
+              <Tuile valeur={formaterGnf(stats.commandes.panierMoyen)} libelle="Panier moyen" definition="Moyenne des commandes acceptées, prêtes ou terminées (hors frais de livraison)." />
+              <Tuile valeur={stats.propositions.total} libelle="Propositions de prix" definition={`${stats.propositions.acceptees} acceptées, ${stats.propositions.refusees} refusées, ${stats.propositions.expirees} expirées, ${stats.propositions.enAttente} en attente.`} href="/system/commandes?statut=en_attente" ton={stats.propositions.enAttente > 0 ? "danger" : "neutre"} />
+            </div>
+            <div className="ad-pilotage-deux" style={{ marginTop: "var(--space-4)" }}>
+              <div>
+                <h3 className="ad-sous-titre">Livraison ou retrait</h3>
+                <BarresHorizontales
+                  lignes={[
+                    { cle: "livraison", libelle: "Livraison", valeur: stats.commandes.livraison, couleur: "var(--rouge-fonce)" },
+                    { cle: "retrait", libelle: "Retrait sur place", valeur: stats.commandes.retrait, couleur: "var(--secondaire)" },
+                  ]}
+                />
+                <h3 className="ad-sous-titre">Quartiers les plus actifs</h3>
+                {stats.quartiers.length === 0 ? (
+                  <p className="ad-aide-champ">Pas encore de commande sur la période.</p>
+                ) : (
+                  <BarresHorizontales lignes={stats.quartiers.map((q) => ({ cle: q.nom, libelle: q.nom, valeur: q.nb, couleur: "var(--orange)" }))} />
+                )}
+              </div>
+              <div>
+                <h3 className="ad-sous-titre">Restaurants les plus commandés</h3>
+                {stats.topRestaurants.length === 0 ? (
+                  <p className="ad-aide-champ">Pas encore de commande sur la période.</p>
+                ) : (
+                  <BarresHorizontales lignes={stats.topRestaurants.map((r) => ({ cle: r.nom, libelle: r.nom, valeur: r.nb, couleur: "var(--succes)" }))} />
+                )}
+                <h3 className="ad-sous-titre">Plats les plus commandés</h3>
+                {stats.topPlats.length === 0 ? (
+                  <p className="ad-aide-champ">Pas encore de commande sur la période.</p>
+                ) : (
+                  <BarresHorizontales lignes={stats.topPlats.map((pl) => ({ cle: pl.nom, libelle: pl.nom, valeur: pl.nb, couleur: "var(--secondaire)" }))} />
+                )}
+              </div>
+            </div>
+          </Volet>
+        ) : null}
+
+        {peutVoirRestaurants ? (
+          <Volet
+            titre="Qualité des restaurants publiés"
+            resume={`${stats.restaurants.ouverts} ouvert${stats.restaurants.ouverts > 1 ? "s" : ""} sur ${stats.restaurants.publies} publié${stats.restaurants.publies > 1 ? "s" : ""}`}
+          >
+            <BarresHorizontales
+              lignes={[
+                { cle: "ouverts", libelle: "Ouverts en ce moment", valeur: stats.restaurants.ouverts, couleur: "var(--succes)" },
+                { cle: "commandes", libelle: "Acceptent les commandes", valeur: stats.restaurants.acceptentCommandes, couleur: "var(--succes)" },
+                { cle: "logo", libelle: "Avec un logo", valeur: stats.restaurants.avecLogo, couleur: "var(--secondaire)" },
+                { cle: "photo", libelle: "Avec une photo", valeur: stats.restaurants.avecPhoto, couleur: "var(--secondaire)" },
+              ]}
+            />
+            <p className="ad-aide-champ">
+              Sur {stats.restaurants.publies} restaurant{stats.restaurants.publies > 1 ? "s" : ""} publié{stats.restaurants.publies > 1 ? "s" : ""} ·{" "}
+              {stats.restaurants.nouveaux} nouveau{stats.restaurants.nouveaux > 1 ? "x" : ""} sur {periode} jours.
+            </p>
+          </Volet>
+        ) : null}
+
+        {peutVoirRestaurants ? (
+          <Volet titre="Menus et plats" resume={`${stats.catalogue.plats} plats · ${stats.catalogue.enPromo} en promotion`}>
+            <div className="ad-tuiles">
+              <Tuile valeur={stats.catalogue.plats} libelle="Plats au menu" definition="Plats non archivés, tous restaurants." />
+              <Tuile valeur={`${pourcentage(stats.catalogue.disponibles, stats.catalogue.plats)} %`} libelle="Disponibles" definition={`${stats.catalogue.disponibles} plats que les clients peuvent commander.`} />
+              <Tuile valeur={stats.catalogue.enPromo} libelle="En promotion" definition="Plats avec un prix promo." />
+              <Tuile valeur={`${pourcentage(stats.catalogue.avecPhoto, stats.catalogue.plats)} %`} libelle="Avec une photo" definition="Les plats illustrés se vendent mieux." />
+              <Tuile valeur={stats.catalogue.supplements} libelle="Suppléments proposés" definition="Options au choix du client (boissons, extras)." />
+              <Tuile valeur={stats.catalogue.nouveaux} libelle={`Nouveaux sur ${periode} jours`} definition="Plats ajoutés par les restaurateurs." />
+            </div>
+          </Volet>
+        ) : null}
+
+        {roleAPermission(role, "compte.consulter") ? (
+          <Volet titre="Clients" resume={`${stats.clients.comptes} compte${stats.clients.comptes > 1 ? "s" : ""}`}>
+            <div className="ad-tuiles">
+              <Tuile valeur={stats.clients.comptes} libelle="Comptes clients" definition="Clients inscrits (téléphone ou Facebook)." href="/system/acces/comptes" />
+              <Tuile valeur={stats.clients.nouveaux} libelle={`Nouveaux sur ${periode} jours`} definition="Inscriptions de la période." />
+              <Tuile valeur={`${pourcentage(stats.clients.avecCoordonnees, stats.clients.comptes)} %`} libelle="Coordonnées enregistrées" definition="Commande plus rapide : nom, téléphone et adresse déjà remplis." />
+            </div>
+          </Volet>
+        ) : null}
+
+        {peutVoirRestaurants ? (
+          <Volet
+            titre="Alertes de commande sur téléphone"
+            resume={`${stats.alertes.abonnements} appareil${stats.alertes.abonnements > 1 ? "s" : ""} abonné${stats.alertes.abonnements > 1 ? "s" : ""}`}
+          >
+            <div className="ad-tuiles">
+              <Tuile valeur={stats.alertes.abonnements} libelle="Appareils abonnés" definition="Téléphones et ordinateurs qui reçoivent les alertes." />
+              <Tuile valeur={`${stats.alertes.restaurantsEquipes} / ${stats.restaurants.publies}`} libelle="Restaurants équipés" definition="Restaurants publiés avec au moins un appareil abonné." ton={stats.restaurants.publies > stats.alertes.restaurantsEquipes ? "danger" : "neutre"} />
+              <Tuile valeur={stats.alertes.actifs7j} libelle="Alertes reçues sur 7 jours" definition="Appareils dont la dernière alerte a réussi cette semaine." />
+              <Tuile valeur={stats.alertes.enEchec} libelle="Appareils en échec" definition="Alertes qui n'arrivent plus : l'abonnement est à refaire." ton={stats.alertes.enEchec > 0 ? "danger" : "neutre"} />
+            </div>
+          </Volet>
+        ) : null}
+
+        {roleAPermission(role, "contenu.editer") ? (
+          <Volet
+            titre="Contenus éditoriaux"
+            resume={`${stats.contenus.pagesBrouillon + stats.contenus.bannieresBrouillon} brouillon(s) · ${stats.contenus.misesEnAvantActives} mise(s) en avant`}
+          >
+            <div className="ad-tuiles">
+              <Tuile valeur={stats.contenus.pagesPubliees} libelle="Pages publiées" definition="Pages d'aide visibles publiquement." href="/system/contenu/pages?statut=publie" />
+              <Tuile valeur={stats.contenus.pagesBrouillon} libelle="Pages en brouillon" definition="Créées mais pas encore publiées." href="/system/contenu/pages?statut=brouillon" ton={stats.contenus.pagesBrouillon > 0 ? "danger" : "neutre"} />
+              <Tuile valeur={stats.contenus.bannieresPubliees} libelle="Bannières publiées" definition="Diffusées sur les écrans publics." href="/system/contenu/bannieres?statut=publie" />
+              <Tuile valeur={stats.contenus.bannieresBrouillon} libelle="Bannières en brouillon" definition="Créées mais pas encore publiées." href="/system/contenu/bannieres?statut=brouillon" ton={stats.contenus.bannieresBrouillon > 0 ? "danger" : "neutre"} />
+              <Tuile valeur={stats.contenus.misesEnAvantActives} libelle="Mises en avant actives" definition="Restaurants épinglés en tête du catalogue." href="/system/catalogue/mises-en-avant" />
+            </div>
+          </Volet>
+        ) : null}
+
+        {comptesSysteme ? (
+          <Volet
+            titre="Équipes"
+            resume={`${stats.equipes.comptesSysteme} administrateur(s) · ${stats.equipes.membresRestaurants} membre(s) de restaurants`}
+          >
+            <div className="ad-tuiles">
+              {comptesSysteme.map((compte) => (
+                <Tuile
+                  key={compte.role}
+                  valeur={compte.valeur}
+                  libelle={compte.libelle}
+                  definition={`Comptes disposant du rôle « ${compte.libelle} ».`}
+                  href="/system/acces/roles"
+                />
+              ))}
+              <Tuile valeur={stats.equipes.membresRestaurants} libelle="Membres de restaurants" definition="Propriétaires et équipiers rattachés à un restaurant." href="/system/acces/comptes" />
+            </div>
+          </Volet>
+        ) : null}
+
         {lignesTest.length > 0 ? (
           <Volet
             titre="Éléments de test à nettoyer"
@@ -403,52 +569,6 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         {lignesActivite.length > 0 ? (
           <Volet titre="Activité récente" resume={`${lignesActivite.length} dernières actions`}>
             <ListeActivite evenements={lignesActivite} />
-          </Volet>
-        ) : null}
-
-        {compteursContenus ? (
-          <Volet
-            titre="Contenus éditoriaux"
-            resume={`${compteursContenus.pagesBrouillon + compteursContenus.bannieresBrouillon} brouillon(s)`}
-          >
-            <div className="ad-tuiles">
-              <Tuile valeur={compteursContenus.pagesPubliees} libelle="Pages publiées" definition="Pages d'aide visibles publiquement." href="/system/contenu/pages?statut=publie" />
-              <Tuile valeur={compteursContenus.pagesBrouillon} libelle="Pages en brouillon" definition="Créées mais pas encore publiées." href="/system/contenu/pages?statut=brouillon" ton={compteursContenus.pagesBrouillon > 0 ? "danger" : "neutre"} />
-              <Tuile valeur={compteursContenus.bannieresPubliees} libelle="Bannières publiées" definition="Diffusées sur les écrans publics." href="/system/contenu/bannieres?statut=publie" />
-              <Tuile valeur={compteursContenus.bannieresBrouillon} libelle="Bannières en brouillon" definition="Créées mais pas encore publiées." href="/system/contenu/bannieres?statut=brouillon" ton={compteursContenus.bannieresBrouillon > 0 ? "danger" : "neutre"} />
-            </div>
-          </Volet>
-        ) : null}
-
-        {comptesSysteme ? (
-          <Volet
-            titre="Équipe d'administration"
-            resume={`${comptesSysteme.reduce((somme, c) => somme + c.valeur, 0)} compte(s) avec un rôle`}
-          >
-            <div className="ad-tuiles">
-              {comptesSysteme.map((compte) => (
-                <Tuile
-                  key={compte.role}
-                  valeur={compte.valeur}
-                  libelle={compte.libelle}
-                  definition={`Comptes disposant du rôle « ${compte.libelle} ».`}
-                  href="/system/acces/roles"
-                />
-              ))}
-            </div>
-          </Volet>
-        ) : null}
-
-        {compteursCommandes ? (
-          <Volet
-            titre="Support commandes"
-            resume={`${compteursCommandes.enAttente} en attente · ${compteursCommandes.propositionsEnAttente} proposition(s) sans réponse`}
-          >
-            <div className="ad-tuiles">
-              <Tuile valeur={compteursCommandes.activesDuJour} libelle="Actives du jour" definition="Créées depuis minuit (UTC) et encore actives : en attente, acceptée ou prête." href="/system/commandes?jour=1" />
-              <Tuile valeur={compteursCommandes.enAttente} libelle="En attente de confirmation" definition="Commandes attendant la décision d'un restaurant, toutes dates." href="/system/commandes?statut=en_attente" />
-              <Tuile valeur={compteursCommandes.propositionsEnAttente} libelle="Propositions sans réponse" definition="Révisions de prix envoyées au client et toujours sans réponse." href="/system/commandes?statut=en_attente" ton={compteursCommandes.propositionsEnAttente > 0 ? "danger" : "neutre"} />
-            </div>
           </Volet>
         ) : null}
 
