@@ -108,10 +108,12 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
       </Button>
 
       {lignesDuPlat.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+        /* Empilé et non côte à côte : dans une vignette étroite, le libellé et les commandes se
+           comprimaient — « Sans supplément » passait sur deux lignes et les boutons se touchaient. */
+        <div className="panier-article-lignes">
           {lignesDuPlat.map((ligne) => (
-            <div key={ligne.cle} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            <div key={ligne.cle} className="panier-article-ligne">
+              <span className="panier-article-options">
                 {ligne.options.length > 0 ? ligne.options.map((o) => o.nom).join(", ") : "Sans supplément"}
               </span>
               <ControleQuantiteLigne
@@ -126,6 +128,33 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
         </div>
       ) : null}
     </div>
+  );
+}
+
+/* Icônes de la famille du design system : grille 24 × 24, tracé 2, extrémités arrondies.
+   Les glyphes « − », « + » et « ✕ » dépendaient de la police du poste et n'avaient pas le
+   même poids optique que le reste des icônes (DESIGN-SYSTEM.md §4). */
+function IconeMoins() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M6 12h12" />
+    </svg>
+  );
+}
+
+function IconePlus() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 6v12M6 12h12" />
+    </svg>
+  );
+}
+
+function IconeCroix() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M7 7l10 10M17 7L7 17" />
+    </svg>
   );
 }
 
@@ -152,6 +181,8 @@ function ControleQuantiteLigne({
         border: "1px solid var(--bordure)",
         borderRadius: "var(--radius-pill)",
         padding: "4px 8px",
+        background: "var(--surface)",
+        alignSelf: "flex-start",
       }}
     >
       <Button
@@ -159,9 +190,9 @@ function ControleQuantiteLigne({
         variante="secondary"
         aria-label={`Retirer un « ${nomAffiche} »`}
         onClick={onDecrementer}
-        style={{ padding: "6px 12px" }}
+        style={{ padding: "6px 10px" }}
       >
-        −
+        <IconeMoins />
       </Button>
       <span aria-live="polite" style={{ fontWeight: 700, minWidth: 20, textAlign: "center" }}>
         {quantite}
@@ -172,18 +203,18 @@ function ControleQuantiteLigne({
         aria-label={`Ajouter un « ${nomAffiche} »`}
         disabled={quantite >= QUANTITE_MAX_LIGNE}
         onClick={onIncrementer}
-        style={{ padding: "6px 12px" }}
+        style={{ padding: "6px 10px" }}
       >
-        +
+        <IconePlus />
       </Button>
       <Button
         type="button"
         variante="danger"
         aria-label={`Supprimer « ${nomAffiche} » du panier`}
         onClick={onSupprimer}
-        style={{ padding: "6px 12px" }}
+        style={{ padding: "6px 10px" }}
       >
-        ✕
+        <IconeCroix />
       </Button>
     </div>
   );

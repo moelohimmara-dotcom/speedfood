@@ -168,7 +168,34 @@ Version Worker `016d9708`. Chaque point a été revérifié par la même instrum
 d'architecture (rendu serveur ou squelette de chargement), et la rupture de fond entre les deux
 groupes de chips (§ 4), esthétique.
 
-## 8. Suites possibles
+## 8. Retouche du bloc « article au panier » (4 octobre 2026)
+
+Signalé par Malika : sous une vignette de plat, le bloc du plat déjà au panier était à l'étroit —
+« Sans supplément » se cassait sur deux lignes et les commandes se serraient.
+
+**Deux causes, dont une plus profonde que prévu :**
+
+1. **Mise en page horizontale.** Le libellé et la pilule `− 1 + ✕` étaient sur la même ligne, en
+   `justify-content: space-between`. Dans une vignette étroite, le libellé se comprimait et
+   passait sur deux lignes. Corrigé par empilement : libellé sur sa propre ligne, commandes
+   dessous, dans une zone légèrement teintée qui distingue le plat déjà commandé.
+
+2. **La vignette elle-même était trop étroite.** Mesure : à 360 px de large, une grille à deux
+   colonnes ne laisse que **158 px** par vignette — alors que la pilule de commandes demande
+   **192 px** (trois boutons de 44 px). Elle débordait donc de la carte : invisible sur un grand
+   téléphone, systématique sur les Android d'entrée de gamme. Aucune réduction de taille n'aurait
+   suffi sans descendre sous les 44 px fixés par le design system : **la grille passe à une seule
+   colonne sous 480 px**, deux au-delà, trois à partir de 640 px. `.vignettes` ne sert qu'au menu
+   d'une fiche restaurant — le catalogue de découverte n'est pas touché.
+
+**Au passage :** les glyphes `−`, `+` et `✕` sont remplacés par des icônes SVG de la famille du
+design system (grille 24, tracé 2, extrémités arrondies) — même argument que pour les flèches :
+un caractère de police dépend de l'appareil et n'a pas le poids optique du reste.
+
+**Vérifié par mesure** à 360 et 390 px : libellé sur **une ligne** (17 px de haut, pleine largeur),
+**trois boutons de 44 px**, trois icônes SVG, bloc de 99 px, **aucun débordement**.
+
+## 9. Suites possibles
 
 Rien n'a été corrigé dans cet audit. Les points 1, 3, 4, 5 et 6 sont des correctifs courts
 (quelques lignes de CSS chacun) et vérifiables par la même instrumentation. Le point 2 demande une
