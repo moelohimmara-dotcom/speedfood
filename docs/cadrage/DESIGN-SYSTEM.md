@@ -146,3 +146,15 @@ Rouge/orange sont réservés aux actions, accents et états où leur significati
 Le jeu fonctionnel reste un trait arrondi régulier; Lucide SVG est candidat pour recherche, panier, localisation, horloge, partage, cœur et cloche. Pour donner à Speedfood une signature plus gourmande, créer en complément une petite famille de 8–12 icônes/illustrations SVG originales (marmite, bol, brochette, bissap, plantain, piment, jus, menu du jour), avec mêmes proportions et accents rouge/orange/mangue. Ce ne sont pas des substituts aux photos réelles. Les boutons conservent libellé texte; aucune signification ne dépend de l’emoji ou de la couleur seule.
 
 Distinguer toast de succès/erreur, dialogue de confirmation, centre in-app et Web Push système. Les règles de style, accessibilité, fréquence et événements autorisés sont dans `NOTIFICATIONS-ICONES-OUTILS.md`. La démo actuelle a déjà un toast HTML à améliorer; ne pas ajouter une dépendance React tant que le dépôt n’a pas migré vers React.
+
+## Addendum — site public, direction B « Marché » (4 octobre 2026)
+
+Décisions de Malika, qui **modifient** les points suivants pour le **site public uniquement** (console admin et espace restaurateur inchangés) :
+
+- **Polices** : Bricolage Grotesque (700/800) s'ajoute à Barlow Condensed et Manrope pour les titres du site public. Chargée par `next/font` sans préchargement global.
+- **Ombres** : ombres décalées et contours épais (effet autocollant) autorisés sur le site public, derrière la classe de portée `.theme-public`. L'interdiction des « ombres lourdes » de la section 1 continue de s'appliquer ailleurs.
+- **Illustrations** : les illustrations vectorielles modifiables (logo, couverture, plat) tiennent lieu de visuel tant qu'il n'y a pas de photo ; une photo réelle les remplace toujours. Elles sont signalées « illustration de démonstration » dans la console.
+- **Contraste** : jamais de texte rouge sur fond mangue (2,9 pour 1) ; sur mangue, texte encre.
+- Inchangé : tokens de couleur, dégradé unique réservé à l'action principale, `--secondaire` = `#75695F`, accessibilité (section 0).
+
+Le détail est dans `docs/specs/2026-10-04-site-public-direction-b-design.md`.
