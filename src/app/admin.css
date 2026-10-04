@@ -843,28 +843,75 @@ a.ad-tuile-lien:hover {
   color: var(--secondaire);
   font-size: 0.8rem;
 }
-.barre-enregistrement.ad-barre-enregistrement {
+/* Barre d'enregistrement : opaque (aucun texte ne transparaît), flottante au bas de l'écran, une seule ligne. */
+.ad-barre-enregistrement-conteneur {
   position: sticky;
   bottom: 0;
   z-index: 5;
-  margin: 0 calc(var(--space-4) * -1);
-  padding: var(--space-3) var(--space-4);
-  background: rgba(255, 246, 237, 0.96);
-  border-top: 1px solid var(--bordure);
+  padding: var(--space-3) 0;
+  pointer-events: none;
 }
-@media (min-width: 1024px) {
-  .barre-enregistrement.ad-barre-enregistrement {
-    margin: 0;
-    border: 1px solid var(--bordure);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+.ad-barre-enregistrement {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: 10px var(--space-3) 10px var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+.ad-barre-etat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 200px;
+  min-width: 0;
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.ad-barre-etat-modifie {
+  color: #8a4b00;
+}
+.ad-barre-etat-modifie::before {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+.ad-barre-etat-erreur {
+  color: var(--danger);
+}
+.ad-barre-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+@media (max-width: 479px) {
+  .ad-barre-actions {
+    width: 100%;
+  }
+  .ad-barre-actions .btn {
+    flex: 1;
   }
 }
+/* Les ancres des sections ne se cachent pas derrière la barre collante. */
+html:has(.ad-app) {
+  scroll-padding-bottom: 96px;
+}
 
-/* L'en-tête mobile est collant : `overflow-x: hidden` sur html et body (règle globale du site) le casserait.
-   Sur les pages d'administration seulement, on le remplace par `clip`, qui coupe pareil sans créer de conteneur de défilement. */
+/* L'en-tête mobile et les barres d'enregistrement sont collants : `overflow-x: hidden` sur html et body (règle globale du site)
+   les casserait. Sur les pages d'administration et des consoles seulement, on le remplace par `clip`, qui coupe pareil sans créer de conteneur de défilement. */
 html:has(.ad-app),
-body:has(.ad-app) {
+body:has(.ad-app),
+html:has(.console-cadre),
+body:has(.console-cadre) {
   overflow-x: clip;
 }
 
@@ -971,5 +1018,22 @@ body:has(.ad-app) {
   .ad-case-ligne {
     margin: 0;
     justify-self: start;
+  }
+}
+
+.ad-pied .ad-pied-version {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.74rem;
+  opacity: 0.85;
+}
+
+/* Variante pour la console restaurateur : la barre flotte au-dessus de la navigation basse (téléphone). */
+.ad-barre-enregistrement-conteneur.ad-barre-console {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 900px) {
+  .ad-barre-enregistrement-conteneur.ad-barre-console {
+    bottom: var(--space-2);
   }
 }

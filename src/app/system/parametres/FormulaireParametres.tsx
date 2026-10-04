@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import {
   modifierParametresAction,
   type EtatActionParametres,
   type ParametresAffiches,
 } from "@/lib/system-admin/parametres";
-import { Button, Alert } from "@/components/ui";
+import { Alert } from "@/components/ui";
 import { Panneau } from "@/components/admin/blocs";
+import { BarreEnregistrement, useSuiviModifications } from "@/components/admin/BarreEnregistrement";
 
 const etatInitial: EtatActionParametres = {};
 
@@ -31,9 +32,11 @@ function Aide({ children }: { children: React.ReactNode }) {
  */
 export function FormulaireParametres({ parametres }: { parametres: ParametresAffiches }) {
   const [etat, action, enCours] = useActionState(modifierParametresAction, etatInitial);
+  const formulaire = useRef<HTMLFormElement>(null);
+  const { modifie, mesurer, annuler } = useSuiviModifications(formulaire, Boolean(etat.succes));
 
   return (
-    <form action={action} className="ad-formulaire">
+    <form ref={formulaire} action={action} className="ad-formulaire" onInput={mesurer} onChange={mesurer}>
       <nav aria-label="Sections des paramètres" className="ad-ancres">
         {SECTIONS.map((section) => (
           <a key={section.id} href={`#${section.id}`} className="chip">
@@ -249,15 +252,13 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
         </Panneau>
       </div>
 
-      <div className="barre-enregistrement ad-barre-enregistrement">
-        <div className="barre-enregistrement-message" role="status">
-          {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
-          {etat.succes ? <Alert ton="succes">Paramètres enregistrés.</Alert> : null}
-        </div>
-        <Button type="submit" disabled={enCours}>
-          {enCours ? "Enregistrement…" : "Enregistrer les paramètres"}
-        </Button>
-      </div>
+      <BarreEnregistrement
+        modifie={modifie}
+        enCours={enCours}
+        etat={etat}
+        onAnnuler={annuler}
+        messageSucces="Paramètres enregistrés"
+      />
     </form>
   );
 }

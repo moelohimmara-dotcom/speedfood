@@ -87,14 +87,14 @@ export default async function SystemLayout({ children }: { children: React.React
 
           <footer className="ad-pied">
             <details>
-              <summary>Séparation des surfaces</summary>
+              <summary>Comment les accès sont-ils séparés ?</summary>
               <p>
-                (ADR-010) Un membership restaurant n&apos;ouvre jamais cette console, et un rôle système ne donne aucun accès à la
-                console restaurant. Les coordonnées clients restent masquées par défaut ; leur révélation exige la permission
-                dédiée, un motif et laisse une trace d&apos;audit.
+                Un restaurateur ne peut jamais ouvrir cette console, et un compte de l&apos;équipe n&apos;a pas accès à la console des
+                restaurants. Les coordonnées des clients restent masquées : les afficher demande une permission, un motif écrit, et
+                laisse une trace dans le journal d&apos;audit.
               </p>
             </details>
-            <p>Matrice de permissions v{VERSION_MATRICE} (docs/MATRICE-PERMISSIONS.md).</p>
+            <p className="ad-pied-version">Administration Speedfood · droits d&apos;accès, version {VERSION_MATRICE}</p>
           </footer>
         </main>
       </div>

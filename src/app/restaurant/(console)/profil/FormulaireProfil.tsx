@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { modifierProfilAction, type EtatFormulaireProfil } from "@/lib/restaurant/actions";
-import { Button, Alert, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
+import { BarreEnregistrement, useSuiviModifications } from "@/components/admin/BarreEnregistrement";
 import { SelecteurCouleur } from "./SelecteurCouleur";
 import { MOYENS_PAIEMENT } from "@/lib/restaurant/paiement";
 
@@ -34,6 +35,8 @@ export function FormulaireProfil({
   longitude: number | null;
 }) {
   const [etat, action, enCours] = useActionState(modifierProfilAction, etatInitial);
+  const formulaire = useRef<HTMLFormElement>(null);
+  const { modifie, mesurer, annuler } = useSuiviModifications(formulaire, Boolean(etat.succes));
   const [lat, setLat] = useState(latitude === null ? "" : String(latitude));
   const [lon, setLon] = useState(longitude === null ? "" : String(longitude));
   const [messagePosition, setMessagePosition] = useState("");
@@ -49,6 +52,7 @@ export function FormulaireProfil({
       (resultat) => {
         setLat(resultat.coords.latitude.toFixed(6));
         setLon(resultat.coords.longitude.toFixed(6));
+        window.setTimeout(mesurer, 50);
         setMessagePosition("Position trouvée. Placez-vous dans votre établissement pour plus de précision, puis enregistrez.");
       },
       () => setMessagePosition("Position refusée ou indisponible : autorisez-la dans le navigateur, ou saisissez-la à la main."),
@@ -57,7 +61,7 @@ export function FormulaireProfil({
   }
 
   return (
-    <form action={action} className="profil-formulaire">
+    <form ref={formulaire} action={action} className="profil-formulaire" onInput={mesurer} onChange={mesurer}>
       <Card>
         <h2 className="profil-bloc-titre">Identité visuelle</h2>
         <div className="champs-ligne profil-medias">
@@ -166,18 +170,13 @@ export function FormulaireProfil({
         </Card>
       ) : null}
 
-      <div className="barre-enregistrement">
-        <div className="barre-enregistrement-message" role="status">
-          {etat.erreur ? (
-            <Alert ton="danger">{etat.erreur}</Alert>
-          ) : etat.succes ? (
-            <Alert ton="succes">Modifications enregistrées.</Alert>
-          ) : null}
-        </div>
-        <Button type="submit" disabled={enCours}>
-          {enCours ? "Enregistrement…" : "Enregistrer les modifications"}
-        </Button>
-      </div>
+      <BarreEnregistrement
+        variante="console"
+        modifie={modifie}
+        enCours={enCours}
+        etat={etat}
+        onAnnuler={annuler}
+      />
     </form>
   );
 }

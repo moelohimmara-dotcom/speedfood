@@ -51,3 +51,17 @@ Décisions de Malika : refonte complète (architecture et design), identité Spe
 Défauts trouvés en testant, corrigés : après une erreur de confirmation, React **vidait le motif saisi** et **décochait les cases de sélection** liées au formulaire (le compteur affichait encore « 2 »). Les champs sont maintenant contrôlés et l'envoi se fait sans réinitialisation du formulaire.
 
 Vérifié en local avec un compte super admin de test (supprimé) : filtre, sélection, refus d'une mauvaise confirmation (sélection et motif conservés), suppression réelle de 2 comptes jetables (« 2 comptes supprimés définitivement »), 8 nouveaux tests purs (52 au total pour ce fichier).
+
+## Barre d'enregistrement (retouche du 4 octobre 2026, captures de Malika sur Paramètres)
+
+`src/components/admin/BarreEnregistrement.tsx` (barre + `useSuiviModifications`), utilisée par **Paramètres** et par **Mon restaurant** (console restaurateur).
+
+| Défaut vu | Correction |
+|---|---|
+| Fond translucide : le texte du dernier champ transparaissait ; grande carte vide pour un seul bouton | Fond opaque, une seule ligne de 67 px flottant à 12 px du bas |
+| Aucun état, bouton toujours actif, saisie perdue si on quitte la page | La barre **apparaît seulement** quand il y a des modifications (ou une erreur, ou la confirmation pendant 4 s). Bouton « Annuler ». Retour à la valeur d'origine = plus de modification. Avertissement du navigateur avant de quitter avec des modifications non enregistrées |
+| Texte de pied de page en jargon (« ADR-010 », « membership », chemin `docs/…`) | « Comment les accès sont-ils séparés ? » en langage clair ; version des droits d'accès en petit |
+| Barre **jamais collée** dans la console restaurateur : `overflow-x: hidden` sur html et body casse `position: sticky` (défaut déjà présent avant) | `overflow-x: clip` aussi sur les pages de console ; la barre flotte au-dessus de la navigation basse (76 px) |
+| Libellé du bouton sur deux lignes sur téléphone | « Enregistrer » |
+
+Accessibilité : un message `status` reste monté en permanence (annoncé par les lecteurs d'écran, même quand la barre est masquée). Vérifié en local : états à la saisie, à l'annulation et au retour à la valeur d'origine ; enregistrement réel d'un restaurant de test (valeur écrite en base, confirmation, barre retirée après 4 s) ; restaurant et comptes de test supprimés. Enregistrer les vrais paramètres n'a volontairement pas été essayé.
