@@ -1044,3 +1044,18 @@ body:has(.console-cadre) {
     display: none;
   }
 }
+
+/* Ordinateur : la barre n'est plus collée à l'écran, elle fait partie de la page, au même niveau que les autres blocs
+   (même largeur, même ombre, même espacement), tout en bas du formulaire. Sur téléphone elle reste collée et n'apparaît
+   qu'à la modification. */
+@media (min-width: 900px) {
+  .ad-barre-enregistrement-conteneur,
+  .ad-barre-enregistrement-conteneur.ad-barre-console {
+    position: static;
+    padding: 0;
+    pointer-events: auto;
+  }
+  .ad-barre-enregistrement {
+    box-shadow: var(--shadow-sm);
+  }
+}
