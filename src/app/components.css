@@ -168,6 +168,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   border: 1px solid var(--bordure);
   background: var(--surface);
   border-radius: var(--radius-pill);

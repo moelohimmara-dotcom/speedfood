@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Button } from "@/components/ui";
 
 export default function NotFound() {
   return (
@@ -15,8 +14,10 @@ export default function NotFound() {
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
         Ce restaurant n&apos;existe pas, ou n&apos;est plus publié.
       </p>
-      <Link href="/restaurants">
-        <Button>Retour au catalogue</Button>
+      {/* Lien présenté comme un bouton, et non bouton imbriqué dans un lien : un <button> dans
+          un <a> est du HTML invalide, et la zone tactile mesurée retombait à 22 px. */}
+      <Link href="/restaurants" className="btn btn-primary">
+        Retour au catalogue
       </Link>
     </main>
   );

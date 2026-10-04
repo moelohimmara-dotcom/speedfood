@@ -32,7 +32,7 @@
   min-height: 48px;
   justify-content: center;
   color: var(--secondaire);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -128,6 +128,20 @@
   padding-right: 10px;
   font-size: 0.9rem;
   white-space: nowrap;
+}
+/* Sous 380 px — la largeur des Android d'entrée de gamme — la barre n'a plus la place de tout
+   afficher : le libellé débordait de 16 px et le montant était coupé. Le nombre d'articles est
+   déjà porté par la pastille de la navigation basse et par le libellé accessible du lien : on
+   le retire, plutôt que de laisser le montant sortir de l'écran. */
+@media (max-width: 379px) {
+  .barre-panier {
+    left: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+  .barre-panier-nombre {
+    display: none;
+  }
 }
 @keyframes panier-saut {
   0% { transform: scale(0.85); }

@@ -152,7 +152,23 @@ pour que son fond sombre descende jusqu'au bas de la page. Elle doit couvrir les
 jusqu'au bas, et le dernier texte du pied de page reste **au-dessus** de la barre de panier
 (670 contre 718) et de la navigation (783).
 
-## 7. Suites possibles
+## 7. Correctifs appliqués (4 octobre 2026)
+
+Version Worker `016d9708`. Chaque point a été revérifié par la même instrumentation que l'audit.
+
+| Défaut | Correctif | Vérification |
+|---|---|---|
+| Barre de panier débordante sous 380 px | Sous 380 px : marges ramenées à 8 px, écart à 6 px, et **nombre d'articles retiré** — il est déjà porté par la pastille de la navigation basse et par le libellé accessible du lien | Débordement **0 px** à 360 et 375 px (contre +16 px) ; le montant n'est plus coupé |
+| Chips de filtre à 38 px | `min-height: 44px` sur `.chip` | Hauteur **44 px**, et **plus aucune cible sous 44 px** sur la découverte (11 avant) |
+| Liens à 22 px | `<Link><Button>` — un `<button>` imbriqué dans un `<a>`, HTML invalide — remplacé par un lien portant les classes de bouton | « Retour au catalogue » **45 px**, aucune cible sous 44 px sur la 404, à-propos et confidentialité |
+| Adresse de contact à 22 px | Lien en pleine phrase : `padding: 11px 0` (n'agrandit pas la ligne, porte la zone tactile à 44 px — exception « lien en ligne » de WCAG 2.5.5) | Plus aucune cible sous 44 px sur la confidentialité |
+| Libellés de navigation basse à 11,5 px | `font-size: 0.75rem` | **12 px** |
+
+**Non traités :** le premier affichage vide de la découverte (§ 2.3), qui demande un choix
+d'architecture (rendu serveur ou squelette de chargement), et la rupture de fond entre les deux
+groupes de chips (§ 4), esthétique.
+
+## 8. Suites possibles
 
 Rien n'a été corrigé dans cet audit. Les points 1, 3, 4, 5 et 6 sont des correctifs courts
 (quelques lignes de CSS chacun) et vérifiables par la même instrumentation. Le point 2 demande une

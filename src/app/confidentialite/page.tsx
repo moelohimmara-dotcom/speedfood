@@ -68,7 +68,9 @@ export default async function ConfidentialitePage() {
       <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Vos droits</h2>
       <p>
         Vous pouvez demander à voir, corriger ou effacer vos informations, à tout moment, en écrivant à{" "}
-        <a href={`mailto:${CONTACT}`} style={{ fontWeight: 700 }}>
+        {/* Lien en pleine phrase : la marge verticale n'agrandit pas la ligne, mais porte la
+            zone tactile à 44 px (WCAG 2.5.5, exception « lien en ligne »). */}
+        <a href={`mailto:${CONTACT}`} style={{ fontWeight: 700, padding: "11px 0" }}>
           {CONTACT}
         </a>
         . Nous répondons sous 30 jours. Pour aller plus vite, indiquez la référence de votre commande (de la forme SF-XXXXX).

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui";
 
 /**
  * Remplace l'ancien faux formulaire d'inscription du prototype (qui ne
@@ -49,8 +48,10 @@ export function SelecteurRole() {
             Aucun compte n&apos;est nécessaire pour commander : parcourez les restaurants déjà
             disponibles et commandez directement.
           </p>
-          <Link href="/restaurants">
-            <Button pleineLargeur>Voir les restaurants disponibles</Button>
+          {/* Lien présenté comme un bouton : un <button> imbriqué dans un <a> est invalide et
+              ramenait la zone tactile à 22 px. */}
+          <Link href="/restaurants" className="btn btn-primary btn-block">
+            Voir les restaurants disponibles
           </Link>
         </div>
       ) : (
@@ -59,8 +60,8 @@ export function SelecteurRole() {
             Créez votre compte restaurateur : gratuit pendant la phase pilote, votre établissement
             reste en attente de validation avant d&apos;apparaître au catalogue public.
           </p>
-          <Link href="/inscription">
-            <Button pleineLargeur>Créer mon compte restaurateur</Button>
+          <Link href="/inscription" className="btn btn-primary btn-block">
+            Créer mon compte restaurateur
           </Link>
         </div>
       )}
