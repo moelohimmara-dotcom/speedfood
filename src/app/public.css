@@ -46,12 +46,18 @@
   width: 38px;
   height: 38px;
   border: var(--pub-trait) solid var(--encre);
+  overflow: hidden;
   border-radius: 12px;
-  background: var(--rouge);
-  color: #fff;
+  background: var(--creme);
   box-shadow: 2px 2px 0 var(--encre);
   transform: rotate(-6deg);
   transition: transform 0.35s var(--ease);
+}
+.pub-marque-pastille img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .pub-marque:hover .pub-marque-pastille {
   transform: rotate(4deg) scale(1.06);
@@ -440,4 +446,11 @@
   .pub-marque-pastille {
     transition: none;
   }
+}
+
+/* Logo en pied de page : petit, arrondi, sur le fond sombre. */
+.site-pied-logo {
+  display: block;
+  margin-bottom: var(--space-2);
+  border-radius: 14px;
 }

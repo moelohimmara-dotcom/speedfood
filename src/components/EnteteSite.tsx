@@ -39,10 +39,8 @@ export function EnteteSite({ compact = false, compteActif = false }: { compact?:
       <div className="pub-entete-interieur">
         <Link href="/" className="pub-marque" aria-label="Speedfood, accueil">
           <span className="pub-marque-pastille" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 11c0-3.87 3.13-7 7-7h2c3.87 0 7 3.13 7 7v0c0 .55-.45 1-1 1H5c-.55 0-1-.45-1-1v0Z" />
-              <path d="M4 15h16M9 19h6" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo local déjà optimisé. */}
+            <img src="/icons/icon-192.png" alt="" width={38} height={38} />
           </span>
           <span>Speedfood</span>
         </Link>

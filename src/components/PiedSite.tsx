@@ -10,6 +10,8 @@ export function PiedSite() {
       <div className="pub-motif" aria-hidden="true" />
       <div className="site-pied-interieur">
         <div className="site-pied-colonne site-pied-marque">
+          {/* eslint-disable-next-line @next/next/no-img-element -- logo local déjà optimisé. */}
+          <img src="/icons/icon-192.png" alt="" width={56} height={56} className="site-pied-logo" />
           <p className="site-pied-titre">Speedfood</p>
           <p>
             Trouvez un plat, voyez depuis quand le restaurant l&apos;a confirmé et envoyez votre commande, sans compte
