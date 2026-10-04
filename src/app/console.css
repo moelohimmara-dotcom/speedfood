@@ -433,8 +433,15 @@
   .rappel-securite {
     flex-wrap: wrap;
   }
+  /* Le bouton passe sous le texte, aligné sur lui et à sa taille naturelle (pas une barre pleine largeur de 56 px). */
+  .rappel-securite {
+    gap: 6px var(--space-3);
+    padding-block: 8px;
+  }
   .rappel-securite-action {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
+    min-height: 44px;
+    margin-left: calc(20px + var(--space-3));
   }
 }
 .rappel-securite-fermer {

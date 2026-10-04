@@ -549,6 +549,18 @@ a.ad-tuile-lien:hover {
   background: var(--rouge-fonce);
 }
 
+/* Mobile : les onglets se partagent la largeur et passent à la ligne si besoin (le dernier était coupé sous une barre de défilement). */
+@media (max-width: 559px) {
+  .ad-onglets {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .ad-onglet {
+    padding: 0 10px;
+    font-size: 0.92rem;
+  }
+}
+
 /* --- Pied de page de la console --- */
 .ad-pied {
   margin-top: var(--space-8);
@@ -1102,18 +1114,7 @@ body:has(.console-cadre) {
   font-weight: 700;
   text-decoration: none;
 }
-@media (max-width: 759px) {
-  .ad-raccourcis {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    padding-bottom: var(--space-2);
-  }
-  .ad-raccourcis li {
-    flex: none;
-    scroll-snap-align: start;
-  }
-}
+/* Sur mobile les raccourcis passent à la ligne (une barre de défilement horizontale visible coupait « Commandes… » sans le dire). */
 .ad-raccourcis a:hover {
   border-color: var(--rouge-fonce);
   color: var(--rouge-fonce);
@@ -1322,6 +1323,17 @@ a.ad-carte-lien:hover {
   gap: var(--space-3);
   color: inherit;
   text-decoration: none;
+}
+/* Mobile : le libellé prend toute la largeur au-dessus de sa barre (il se coupait sur trois lignes dans 110 px). */
+@media (max-width: 559px) {
+  .ad-barres-h a,
+  .ad-barres-h div {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px var(--space-3);
+  }
+  .ad-barres-h-libelle {
+    grid-column: 1 / -1;
+  }
 }
 .ad-barres-h a:hover .ad-barres-h-libelle {
   color: var(--rouge-fonce);
