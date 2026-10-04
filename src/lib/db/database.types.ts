@@ -552,6 +552,7 @@ export type Database = {
           conservation_non_cloturee_jours: number
           disponibilite_fraicheur_heures: number
           commande_proposition_delai_minutes: number
+          connexion_facebook_active: boolean
           id: boolean
           mis_a_jour_le: string
           mis_a_jour_par: string | null
@@ -569,6 +570,7 @@ export type Database = {
           conservation_non_cloturee_jours?: number
           disponibilite_fraicheur_heures?: number
           commande_proposition_delai_minutes?: number
+          connexion_facebook_active?: boolean
           id?: boolean
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
@@ -586,6 +588,7 @@ export type Database = {
           conservation_non_cloturee_jours?: number
           disponibilite_fraicheur_heures?: number
           commande_proposition_delai_minutes?: number
+          connexion_facebook_active?: boolean
           id?: boolean
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
@@ -596,6 +599,30 @@ export type Database = {
           whatsapp_assistance?: string | null
           delai_validation_heures?: number | null
           position_carte_active?: boolean
+        }
+        Relationships: []
+      }
+      client_profils: {
+        Row: {
+          avatar: string
+          cree_le: string
+          mis_a_jour_le: string
+          pseudo: string
+          utilisateur_id: string
+        }
+        Insert: {
+          avatar: string
+          cree_le?: string
+          mis_a_jour_le?: string
+          pseudo: string
+          utilisateur_id: string
+        }
+        Update: {
+          avatar?: string
+          cree_le?: string
+          mis_a_jour_le?: string
+          pseudo?: string
+          utilisateur_id?: string
         }
         Relationships: []
       }

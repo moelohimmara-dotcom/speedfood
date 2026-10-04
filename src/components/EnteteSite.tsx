@@ -9,7 +9,7 @@ import { nombreArticlesPanier, sousTotalPanier, usePanier } from "@/components/p
  * relais) : marque, recherche, navigation et panier avec son total. Sur la page de découverte la
  * recherche n'est pas répétée : elle est déjà en grand dans l'en-tête de la page.
  */
-export function EnteteSite({ compact = false }: { compact?: boolean }) {
+export function EnteteSite({ compact = false, compteActif = false }: { compact?: boolean; compteActif?: boolean }) {
   const chemin = usePathname() ?? "";
   const panier = usePanier();
   const nombre = nombreArticlesPanier(panier);
@@ -51,6 +51,11 @@ export function EnteteSite({ compact = false }: { compact?: boolean }) {
           <Link href="/restaurants" className={`site-nav-lien${chemin.startsWith("/restaurants") ? " actif" : ""}`}>
             Découvrir
           </Link>
+          {compteActif ? (
+            <Link href="/entrer" className={`site-nav-lien${chemin.startsWith("/entrer") || chemin === "/compte" ? " actif" : ""}`}>
+              Mon compte
+            </Link>
+          ) : null}
           <Link href="/connexion" className="site-nav-lien">
             Espace restaurateur
           </Link>

@@ -1224,3 +1224,200 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Compte client : entrée, bienvenue, compte (connexion Facebook, profil amusant) --- */
+.btn-facebook {
+  background: #166fe5;
+  border-color: #166fe5;
+  color: #fff;
+  background-image: none;
+}
+.btn-facebook:hover {
+  background: #1260c9;
+  border-color: #1260c9;
+}
+.entrer-formulaire {
+  display: grid;
+  gap: var(--space-3);
+}
+.bienvenue {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+}
+.bienvenue-etape {
+  margin: 0 0 6px;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.bienvenue-barre {
+  height: 8px;
+  margin-bottom: var(--space-4);
+  background: var(--bordure);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bienvenue-barre span {
+  display: block;
+  height: 100%;
+  background: var(--gradient-marque);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.bienvenue-carte {
+  padding: var(--space-5) var(--space-4);
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  animation: bienvenue-entree 0.35s ease both;
+}
+.bienvenue-carte h1 {
+  margin: 0 0 6px;
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+.bienvenue-sous {
+  margin: 0 0 var(--space-4);
+  color: var(--secondaire);
+}
+.bienvenue-avatars {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: var(--space-4);
+}
+.bienvenue-avatar {
+  aspect-ratio: 1;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  background: var(--creme);
+  border: 2px solid var(--bordure);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.bienvenue-avatar:hover {
+  transform: scale(1.06);
+}
+.bienvenue-avatar.choisi {
+  border-color: var(--rouge-fonce);
+  background: #fff;
+  transform: scale(1.08);
+}
+.bienvenue-apercu {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto var(--space-3);
+  font-size: 3rem;
+  background: var(--creme);
+  border: 3px solid var(--rouge-fonce);
+  border-radius: 50%;
+  animation: bienvenue-rebond 0.5s ease both;
+}
+.bienvenue-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.bienvenue-actions .btn {
+  white-space: nowrap;
+}
+.bienvenue-actions .btn:last-child {
+  flex: 1;
+}
+@keyframes bienvenue-entree {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bienvenue-rebond {
+  0% {
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bienvenue-carte,
+  .bienvenue-apercu,
+  .bienvenue-barre span,
+  .bienvenue-avatar {
+    animation: none;
+    transition: none;
+  }
+}
+.compte-profil {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+.compte-profil > div {
+  flex: 1 1 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.compte-profil .btn {
+  margin-left: auto;
+}
+.compte-avatar {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  font-size: 1.9rem;
+  background: var(--creme);
+  border: 2px solid var(--rouge-fonce);
+  border-radius: 50%;
+}
+.compte-pseudo {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+.compte-suppression {
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+}
+.compte-suppression summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+.compte-suppression form {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+}
+
+.accueil-confirmation {
+  max-width: 1120px;
+  margin: var(--space-3) auto 0;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-left: 4px solid var(--succes);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}

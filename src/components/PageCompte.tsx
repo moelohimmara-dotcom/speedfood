@@ -9,6 +9,7 @@ export function PageCompte({
   titre,
   sousTitre,
   panneau,
+  libellePanneau = "À propos de l'espace restaurateur",
   children,
   pied,
 }: {
@@ -16,13 +17,15 @@ export function PageCompte({
   sousTitre?: string;
   /** Points rassurants affichés à gauche sur grand écran (masqués sur téléphone). */
   panneau?: { titre: string; points: string[] };
+  /** Nom accessible du panneau (par défaut : espace restaurateur). */
+  libellePanneau?: string;
   children: ReactNode;
   pied?: ReactNode;
 }) {
   return (
     <main className={`page-compte${panneau ? " page-compte-avec-panneau" : ""}`}>
       {panneau ? (
-        <aside className="page-compte-panneau" aria-label="À propos de l'espace restaurateur">
+        <aside className="page-compte-panneau" aria-label={libellePanneau}>
           <p className="page-compte-panneau-titre">{panneau.titre}</p>
           <ul>
             {panneau.points.map((point) => (

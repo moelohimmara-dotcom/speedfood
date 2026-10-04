@@ -19,6 +19,7 @@ interface Recherche {
   ouvert?: string;
   commandes?: string;
   dispo?: string;
+  compte?: string;
 }
 
 const MAX_PLATS_PAR_CARTE = 3;
@@ -75,6 +76,11 @@ export default async function CataloguePage({
 
   return (
     <main className="decouverte">
+      {params.compte === "supprime" ? (
+        <p className="accueil-confirmation" role="status">
+          Votre compte a été supprimé. Vous pouvez toujours commander sans compte.
+        </p>
+      ) : null}
       <section className="decouverte-bandeau">
         <div className="decouverte-bandeau-interieur">
           <div className="decouverte-bandeau-texte">

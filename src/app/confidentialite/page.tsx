@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 const RESPONSABLE = "Mo elohim";
 const CONTACT = "moelohimmara@gmail.com";
-const DERNIERE_MISE_A_JOUR = "3 octobre 2026";
+const DERNIERE_MISE_A_JOUR = "4 octobre 2026";
 const DUREE_PAR_DEFAUT = 90;
 
 async function lireDureeConservation(): Promise<number> {
@@ -54,6 +54,16 @@ export default async function ConfidentialitePage() {
         Le restaurant que vous avez choisi, pour votre commande. L&apos;équipe Speedfood ne voit votre téléphone et votre adresse
         que si une aide est nécessaire, avec un motif obligatoire qui est enregistré. Votre lien de suivi est secret : ne le
         partagez pas.
+      </p>
+
+      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Si vous créez un compte (facultatif)</h2>
+      <p>
+        Vous pouvez créer un compte avec Facebook. Facebook nous transmet votre nom et votre adresse e-mail, jamais vos amis, vos
+        publications ni vos pages. Speedfood garde l&apos;identifiant de votre compte, votre pseudo et l&apos;avatar que vous avez
+        choisis, pour vous reconnaître d&apos;une visite à l&apos;autre. Ces informations ne sont vues que par vous et par l&apos;équipe
+        Speedfood en cas d&apos;aide, et elles sont conservées tant que votre compte existe. Vous pouvez supprimer votre compte
+        vous-même depuis la page « Mon compte » : le pseudo, l&apos;avatar et l&apos;accès sont alors effacés. Les commandes passées
+        suivent les durées indiquées plus bas.
       </p>
 
       <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Paiement</h2>

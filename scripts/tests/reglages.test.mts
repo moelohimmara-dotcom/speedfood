@@ -2,6 +2,7 @@ import { analyserPosition } from "../../src/lib/restaurant/position";
 import { libellesMoyensPaiement, moyensPaiementValides, normaliserMoyensPaiement } from "../../src/lib/restaurant/paiement";
 import { formaterDelaiValidation, lienWhatsAppAssistance, liensCarte } from "../../src/lib/parametres/assistance-format";
 
+import { AVATARS, emojiAvatar, estAvatarValide, genererPseudo, validerPseudo } from "../../src/lib/client/profil";
 import { fusionnerPromesse, PROMESSE_PAR_DEFAUT } from "../../src/lib/parametres/promesse-defauts";
 
 let ko = 0;
@@ -59,6 +60,29 @@ verifier("promesse : espaces seuls = défaut", fusionnerPromesse({ signature: " 
 verifier("promesse : texte saisi conservé et nettoyé", fusionnerPromesse({ sousTitre: "  Mon texte " }).sousTitre, "Mon texte");
 verifier("promesse : un champ n'écrase pas les autres", fusionnerPromesse({ signature: "A" }).partage, PROMESSE_PAR_DEFAUT.partage);
 verifier("promesse : signature de la recommandation", PROMESSE_PAR_DEFAUT.signature, "Confirmé, l'heure à l'appui");
+
+// Profil client
+verifier("avatar connu valide", estAvatarValide("pizza"), true);
+verifier("avatar inconnu refusé", estAvatarValide("<script>"), false);
+verifier("avatar non texte refusé", estAvatarValide(3), false);
+verifier("10 avatars", AVATARS.length, 10);
+verifier("emoji de repli", emojiAvatar("inconnu"), "🍽️");
+verifier("pseudo valide", validerPseudo("  Piment   Malin 42 "), { ok: true, pseudo: "Piment Malin 42" });
+verifier("pseudo trop court", validerPseudo("ab").ok, false);
+verifier("pseudo trop long", validerPseudo("a".repeat(25)).ok, false);
+verifier("pseudo avec balise refusé", validerPseudo("<b>gras</b>").ok, false);
+verifier("pseudo avec accents accepté", validerPseudo("Épicé Délice").ok, true);
+let toujoursValide = true;
+for (let i = 0; i <= 100; i++) {
+  const alea = () => i / 100;
+  const pseudo = genererPseudo(alea);
+  if (!validerPseudo(pseudo).ok || pseudo.length > 24) {
+    toujoursValide = false;
+    console.log("pseudo généré invalide :", pseudo);
+  }
+}
+verifier("pseudos générés toujours valides (24 caractères max)", toujoursValide, true);
+verifier("pseudos extrêmes valides", [genererPseudo(() => 0), genererPseudo(() => 0.999999)].every((x) => validerPseudo(x).ok), true);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);
