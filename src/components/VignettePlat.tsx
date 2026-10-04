@@ -50,6 +50,7 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
         {plat.prixPromo !== null ? <span className="vignette-promo">Promo</span> : null}
       </div>
       <div className="vignette-corps">
+        <div className="vignette-infos">
         <h4 className="vignette-nom">{plat.nom}</h4>
         {plat.description ? <p className="vignette-desc">{plat.description}</p> : null}
         {masquerAConfirmer && disponibilite.court === "À confirmer" ? null : <StampFraicheur disponibilite={disponibilite} />}
@@ -59,6 +60,8 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
             {formaterGNF(prixEffectif)}
           </span>
         </div>
+        </div>
+        <div className="vignette-bas">
         <div className="vignette-action">
           {commandable && plat.disponible ? (
             <ControleQuantiteArticle
@@ -76,6 +79,7 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
         <a href={lienPartage} target="_blank" rel="noopener noreferrer" className="menu-item-partage">
           Partager ce plat
         </a>
+        </div>
       </div>
     </article>
   );

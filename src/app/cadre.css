@@ -803,20 +803,37 @@
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
     gap: var(--space-4);
   }
+  /* Carte en grille : en haut la photo (160 px) et les infos côte à côte, en dessous le bloc de
+     commande (supplément, ajout, panier, partage) sur TOUTE la largeur de la carte. Le corps de la
+     carte « disparaît » (display: contents) pour que ses deux blocs deviennent des cellules de la grille. */
   .fiche .vignette {
-    flex-direction: row;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    align-items: start;
+  }
+  .fiche .vignette-corps {
+    display: contents;
   }
   /* Photo carrée arrondie à l'intérieur de la carte : jamais une bande étirée sur toute la hauteur */
   .fiche .vignette-media {
-    flex: 0 0 160px;
-    width: 160px;
-    height: 160px;
+    grid-column: 1;
+    grid-row: 1;
+    width: 136px;
+    height: 136px;
     aspect-ratio: auto;
-    align-self: flex-start;
-    margin: var(--space-3) 0 var(--space-3) var(--space-3);
+    margin: var(--space-3) 0 0 var(--space-3);
     border-radius: var(--radius-sm);
     overflow: hidden;
+  }
+  .fiche .vignette-infos {
+    grid-column: 2;
+    grid-row: 1;
+    padding: var(--space-3) var(--space-3) 0 var(--space-3);
+  }
+  .fiche .vignette-bas {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding: var(--space-2) var(--space-3) var(--space-3);
   }
   .fiche .panier-article-pas {
     max-width: 240px;
@@ -908,4 +925,17 @@
     text-align: center;
     font-weight: 800;
   }
+}
+
+.vignette-infos,
+.vignette-bas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vignette-infos {
+  flex: 1;
+}
+.panier-article-etat {
+  white-space: nowrap;
 }
