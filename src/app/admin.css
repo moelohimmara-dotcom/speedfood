@@ -1037,3 +1037,10 @@ body:has(.console-cadre) {
     bottom: var(--space-2);
   }
 }
+
+/* Barre au repos : cachée sur téléphone, visible (boutons grisés) sur ordinateur. */
+@media (max-width: 899px) {
+  .ad-barre-enregistrement-conteneur.ad-barre-repos {
+    display: none;
+  }
+}
