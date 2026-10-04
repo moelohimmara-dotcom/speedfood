@@ -15,6 +15,30 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
 
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <fieldset
+        id="comptes-clients"
+        style={{
+          border: "1px solid var(--bordure)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-4)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-4)",
+        }}
+      >
+        <legend style={{ fontWeight: 700, padding: "0 6px" }}>Comptes clients</legend>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label className="case-parametre">
+            <input type="checkbox" name="connexion_facebook_active" defaultChecked={parametres.connexionFacebookActive} />
+            Activer la connexion Facebook des clients
+          </label>
+          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            À cocher seulement après avoir créé l&apos;application Meta et activé « Facebook » dans Supabase
+            (Authentication, Providers). Tant que c&apos;est décoché, la page « Rejoindre Speedfood » indique que la création
+            de compte arrive bientôt et aucun bouton Facebook n&apos;est proposé.
+          </p>
+        </div>
+      </fieldset>
       <div className="field" style={{ marginBottom: 0 }}>
         <label htmlFor="commande_proposition_delai_minutes">
           Délai de réponse à une proposition client (minutes)
@@ -180,29 +204,6 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
             Les restaurateurs peuvent alors indiquer la position de leur établissement (bouton « Utiliser ma position »), et
             la fiche affiche des liens « Voir sur la carte » et « Itinéraire ». Aucune carte n&apos;est chargée dans la page :
             ce sont de simples liens.
-          </p>
-        </div>
-      </fieldset>
-      <fieldset
-        style={{
-          border: "1px solid var(--bordure)",
-          borderRadius: "var(--radius-md)",
-          padding: "var(--space-4)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--space-4)",
-        }}
-      >
-        <legend style={{ fontWeight: 700, padding: "0 6px" }}>Comptes clients</legend>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label className="case-parametre">
-            <input type="checkbox" name="connexion_facebook_active" defaultChecked={parametres.connexionFacebookActive} />
-            Activer la connexion Facebook des clients
-          </label>
-          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
-            À cocher seulement après avoir créé l&apos;application Meta et activé « Facebook » dans Supabase
-            (Authentication, Providers). Tant que c&apos;est décoché, la page « Rejoindre Speedfood » indique que la création
-            de compte arrive bientôt et aucun bouton Facebook n&apos;est proposé.
           </p>
         </div>
       </fieldset>
