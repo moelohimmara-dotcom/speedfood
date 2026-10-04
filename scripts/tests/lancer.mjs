@@ -30,9 +30,11 @@ copier("src/lib/partage/liens.ts");
 copier("scripts/tests/partage.test.mts");
 copier("src/lib/design/tuile.ts");
 copier("scripts/tests/tuile.test.mts");
+copier("src/lib/alertes/commandes.ts");
+copier("scripts/tests/alertes.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit" });
   statut = statut || (resultat.status ?? 1);
 }

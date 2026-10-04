@@ -3,6 +3,7 @@ import { chargerApercusCommandes } from "@/lib/commande/requetes";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import type { ApercuCommandeRestaurant } from "@/lib/contracts/commande";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
+import { minutesDepuis, enRetard } from "@/lib/alertes/commandes";
 import { Card, Alert } from "@/components/ui";
 import { CommandeCarte } from "./CommandeCarte";
 import type { Metadata } from "next";
@@ -36,6 +37,9 @@ export default async function CommandesPage() {
 
   const maintenant = new Date();
   const age = (c: ApercuCommandeRestaurant) => ancienneteLisible(new Date(c.creeLe), maintenant);
+  // Seules les commandes à traiter attendent une réponse : on affiche leur attente exacte quand elle devient longue.
+  const attente = (c: ApercuCommandeRestaurant) =>
+    c.etatDerive === "en_attente" && enRetard(c.creeLe, maintenant) ? minutesDepuis(c.creeLe, maintenant) : null;
   const aTraiter = commandes.filter((c) => c.etatDerive === "en_attente");
   const enCours = commandes.filter((c) => ["attente_confirmation_client", "acceptee", "prete"].includes(c.etatDerive));
   const historique = commandes.filter((c) => ["terminee", "refusee", "annulee"].includes(c.etatDerive));
@@ -64,7 +68,7 @@ export default async function CommandesPage() {
             ) : (
               <div className="cmd-liste">
                 {aTraiter.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} />
                 ))}
               </div>
             )}
@@ -77,7 +81,7 @@ export default async function CommandesPage() {
               </h2>
               <div className="cmd-liste">
                 {enCours.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} />
                 ))}
               </div>
             </section>
@@ -90,7 +94,7 @@ export default async function CommandesPage() {
               </summary>
               <div className="cmd-liste">
                 {historique.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} />
                 ))}
               </div>
             </details>

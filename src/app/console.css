@@ -639,3 +639,63 @@
   font-size: 0.95rem;
   box-sizing: border-box;
 }
+
+/* --- Alertes de nouvelle commande (lot A) --- */
+.alerte-commandes {
+  padding: 8px 10px;
+  background: var(--creme);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+.alerte-commandes-resume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.alerte-commandes-point {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--succes);
+}
+.alerte-commandes-point-reseau,
+.alerte-commandes-point-session {
+  background: var(--danger);
+}
+.alerte-commandes-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+.alerte-commandes-note {
+  margin: 0 0 6px;
+  color: var(--secondaire);
+  font-size: 0.78rem;
+}
+.alerte-commandes-probleme {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--danger-fond);
+  border-left: 4px solid var(--danger);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-weight: 700;
+}
+.cmd-carte-retard {
+  border-color: var(--danger);
+}
+.cmd-retard {
+  margin: 0 0 var(--space-3);
+  padding: 8px 12px;
+  background: var(--danger-fond);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 0.9rem;
+}

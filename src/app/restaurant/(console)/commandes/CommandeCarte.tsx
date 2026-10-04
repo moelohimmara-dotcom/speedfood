@@ -33,7 +33,16 @@ function formaterDate(iso: string) {
  * de la machine à états. Les transitions sont validées côté serveur
  * (src/lib/commande/actions-restaurant.ts) ; cette carte n'est qu'un affichage.
  */
-export function CommandeCarte({ commande, age }: { commande: ApercuCommandeRestaurant; age?: string }) {
+export function CommandeCarte({
+  commande,
+  age,
+  retardMinutes = null,
+}: {
+  commande: ApercuCommandeRestaurant;
+  age?: string;
+  /** Minutes d'attente quand la commande « à traiter » dépasse le seuil de retard. */
+  retardMinutes?: number | null;
+}) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
   const [enCours, demarrer] = useTransition();
@@ -54,7 +63,12 @@ export function CommandeCarte({ commande, age }: { commande: ApercuCommandeResta
   const total = commande.sousTotal + commande.fraisLivraisonEstime;
 
   return (
-    <Card className={`cmd-carte cmd-carte-${commande.etatDerive}`}>
+    <Card className={`cmd-carte cmd-carte-${commande.etatDerive}${retardMinutes !== null ? " cmd-carte-retard" : ""}`}>
+      {retardMinutes !== null ? (
+        <p className="cmd-retard" role="note">
+          En attente depuis {retardMinutes} min : le client attend votre réponse.
+        </p>
+      ) : null}
       <div
         style={{
           display: "flex",
