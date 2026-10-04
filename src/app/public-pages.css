@@ -155,20 +155,26 @@
   .pub-grille-cartes {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .pub-grille-cartes {
+    grid-auto-flow: dense;
+  }
+  /* Carte « à la une » : deux colonnes et deux rangées, les autres cartes s'empilent à côté (jamais de case vide). */
   .pub-carte-grande {
     grid-column: span 2;
+    grid-row: span 2;
   }
   .pub-carte-grande .pub-carte-lien {
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     height: 100%;
   }
   .pub-carte-grande .pub-carte-visuel {
-    height: 100%;
+    flex: 1;
     aspect-ratio: auto;
     min-height: 260px;
-    border-bottom: 0;
-    border-right: var(--pub-trait) solid var(--encre);
+  }
+  .pub-carte-grande .pub-carte-nom {
+    font-size: 2rem;
   }
 }
 .pub-carte-resto {
