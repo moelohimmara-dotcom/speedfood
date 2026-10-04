@@ -866,6 +866,14 @@ export type Database = {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
         Returns: undefined
       }
+      fn_support_serie_commandes: {
+        Args: { p_jours: number }
+        Returns: { jour: string; statut: string; nb: number; montant: number }[]
+      }
+      fn_support_commandes_par_heure: {
+        Args: { p_jours: number }
+        Returns: { heure: number; nb: number }[]
+      }
       fn_support_compter_commandes: {
         Args: { p_depuis?: string; p_statuts?: string[] }
         Returns: number

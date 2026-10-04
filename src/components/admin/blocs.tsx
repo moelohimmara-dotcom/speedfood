@@ -116,3 +116,67 @@ export function EtatVide({ titre, texte, icone = "coche" }: { titre: string; tex
 export function Pastille({ ton = "neutre", children }: { ton?: "neutre" | "danger" | "succes" | "attention"; children: React.ReactNode }) {
   return <span className={`ad-pastille ad-pastille-${ton}`}>{children}</span>;
 }
+
+/**
+ * Volet (tiroir repliable) : un titre, un résumé visible même fermé, un contenu qui se déploie. Repose sur l'élément natif
+ * `<details>` : clavier, lecteurs d'écran et retour au texte sans JavaScript.
+ */
+export function Volet({
+  titre,
+  resume,
+  ouvert = false,
+  children,
+  id,
+}: {
+  titre: string;
+  resume?: React.ReactNode;
+  ouvert?: boolean;
+  children: React.ReactNode;
+  id?: string;
+}) {
+  return (
+    <details className="ad-volet" open={ouvert} id={id}>
+      <summary>
+        <span className="ad-volet-titre">{titre}</span>
+        {resume ? <span className="ad-volet-resume">{resume}</span> : null}
+        <span className="ad-volet-chevron" aria-hidden="true">
+          <IconeAdmin nom="chevron" taille={18} />
+        </span>
+      </summary>
+      <div className="ad-volet-corps">{children}</div>
+    </details>
+  );
+}
+
+/** Grande carte de chiffre clé : valeur, libellé, ligne d'explication (variation, détail) et courbe facultative. */
+export function CarteChiffre({
+  libelle,
+  valeur,
+  sous,
+  href,
+  ton = "neutre",
+  tendance,
+}: {
+  libelle: string;
+  valeur: React.ReactNode;
+  sous?: React.ReactNode;
+  href?: string;
+  ton?: "neutre" | "danger" | "succes";
+  tendance?: React.ReactNode;
+}) {
+  const contenu = (
+    <>
+      <span className="ad-carte-libelle">{libelle}</span>
+      <span className={`ad-carte-valeur ad-ton-${ton}`}>{valeur}</span>
+      {sous ? <span className="ad-carte-sous">{sous}</span> : null}
+      {tendance ? <span className="ad-carte-tendance">{tendance}</span> : null}
+    </>
+  );
+  return href ? (
+    <Link href={href} className="ad-carte ad-carte-lien">
+      {contenu}
+    </Link>
+  ) : (
+    <div className="ad-carte">{contenu}</div>
+  );
+}

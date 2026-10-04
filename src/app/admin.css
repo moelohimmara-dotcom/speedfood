@@ -1059,3 +1059,339 @@ body:has(.console-cadre) {
     box-shadow: var(--shadow-sm);
   }
 }
+
+/* =====================================================================================================
+   Tableau de bord de pilotage (4 octobre 2026) : cartes de chiffres, graphiques, volets repliables
+   ===================================================================================================== */
+
+/* --- Période et raccourcis --- */
+.ad-periode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ad-periode-titre {
+  color: var(--secondaire);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.ad-raccourcis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+}
+.ad-raccourcis a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  color: var(--encre);
+  font-weight: 700;
+  text-decoration: none;
+}
+.ad-raccourcis a:hover {
+  border-color: var(--rouge-fonce);
+  color: var(--rouge-fonce);
+}
+
+/* --- Cartes de chiffres clés --- */
+.ad-cartes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+@media (min-width: 1100px) {
+  .ad-cartes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.ad-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  color: inherit;
+  text-decoration: none;
+}
+a.ad-carte-lien:hover {
+  border-color: var(--rouge-fonce);
+  box-shadow: var(--shadow-md);
+}
+.ad-carte-libelle {
+  color: var(--secondaire);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.ad-carte-valeur {
+  font-family: var(--font-barlow), sans-serif;
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.ad-carte-sous {
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.ad-carte-tendance {
+  display: block;
+  margin-top: 4px;
+  height: 28px;
+}
+.ad-tendance {
+  width: 100%;
+  height: 28px;
+}
+.ad-variation {
+  font-weight: 700;
+}
+.ad-variation-bon {
+  color: var(--succes);
+}
+.ad-variation-mauvais {
+  color: var(--danger);
+}
+.ad-variation-neutre {
+  color: var(--secondaire);
+}
+
+/* --- Graphiques --- */
+.ad-pilotage-graphes {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+@media (min-width: 1100px) {
+  .ad-pilotage-graphes {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+.ad-graphique {
+  margin: 0;
+}
+.ad-graphique-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ad-graphique-grille {
+  stroke: var(--bordure);
+  stroke-width: 1;
+}
+.ad-graphique-axe {
+  fill: var(--secondaire);
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ad-graphique-valeur {
+  fill: var(--rouge-fonce);
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+}
+.ad-graphique-segment {
+  stroke: var(--surface);
+  stroke-width: 1;
+}
+.ad-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+.ad-legende li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ad-legende-pastille {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.ad-anneau {
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  max-width: 220px;
+}
+.ad-anneau-svg {
+  width: 100%;
+  height: auto;
+}
+.ad-anneau-valeur {
+  fill: var(--encre);
+  font-family: var(--font-barlow), sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+}
+.ad-anneau-libelle {
+  fill: var(--secondaire);
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 3.2px;
+  font-weight: 700;
+}
+.ad-donnees-graphique {
+  margin-top: var(--space-3);
+  font-size: 0.82rem;
+}
+.ad-donnees-graphique summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--rouge-fonce);
+  font-weight: 700;
+  cursor: pointer;
+}
+.ad-donnees-graphique table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ad-donnees-graphique th,
+.ad-donnees-graphique td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--bordure);
+  text-align: right;
+  white-space: nowrap;
+}
+.ad-donnees-graphique th:first-child,
+.ad-donnees-graphique td:first-child {
+  text-align: left;
+}
+.ad-donnees-graphique .ad-defile {
+  max-height: 260px;
+  overflow: auto;
+}
+
+/* --- Barres horizontales --- */
+.ad-barres-h {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ad-barres-h a,
+.ad-barres-h div {
+  display: grid;
+  grid-template-columns: minmax(110px, 38%) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+.ad-barres-h a:hover .ad-barres-h-libelle {
+  color: var(--rouge-fonce);
+  text-decoration: underline;
+}
+.ad-barres-h-piste {
+  height: 12px;
+  background: var(--creme);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.ad-barres-h-barre {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: var(--radius-pill);
+}
+.ad-barres-h-valeur {
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* --- Volets repliables --- */
+.ad-volets {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+.ad-volet {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.ad-volet summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: 10px var(--space-4);
+  cursor: pointer;
+  list-style: none;
+}
+.ad-volet summary::-webkit-details-marker {
+  display: none;
+}
+.ad-volet-titre {
+  font-family: var(--font-barlow), sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.ad-volet-resume {
+  flex: 1;
+  min-width: 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+  text-align: right;
+}
+.ad-volet-chevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--secondaire);
+  transition: transform var(--duration-fast) var(--ease);
+}
+.ad-volet[open] > summary .ad-volet-chevron {
+  transform: rotate(90deg);
+}
+.ad-volet[open] > summary {
+  border-bottom: 1px solid var(--bordure);
+}
+.ad-volet-corps {
+  padding: var(--space-4);
+}
+.ad-volet-corps > .ad-liste {
+  margin: calc(var(--space-4) * -1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ad-volet-chevron {
+    transition: none;
+  }
+}
+
+/* --- File « à traiter » : ancienneté --- */
+.ad-pilotage-deux {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+@media (min-width: 1100px) {
+  .ad-pilotage-deux {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}

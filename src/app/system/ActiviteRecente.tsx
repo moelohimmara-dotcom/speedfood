@@ -17,6 +17,42 @@ export interface LigneActivite {
   horodatage: string;
 }
 
+export function ListeActivite({ evenements }: { evenements: LigneActivite[] }) {
+  return (
+    <>
+      {evenements.length === 0 ? (
+        <p className="ad-liste-meta" style={{ padding: "var(--space-4)" }}>
+          Aucun événement pour l&apos;instant.
+        </p>
+      ) : (
+        <ul className="ad-liste">
+          {evenements.map((evenement) => (
+            <li key={evenement.id}>
+              <Link href={`/system/audit?action=${encodeURIComponent(evenement.action)}`} className="ad-liste-lien">
+                <span className="ad-liste-texte">
+                  <span className="ad-liste-titre">{libelleActionAudit(evenement.action)}</span>
+                  <span className="ad-liste-meta">
+                    {evenement.cibleType} · {formaterDateCourte(evenement.horodatage)}
+                    {evenement.acteurEmail ? ` · ${evenement.acteurEmail}` : ""}
+                  </span>
+                </span>
+                <span className="ad-liste-fin">
+                  <IconeAdmin nom="chevron" taille={18} />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p style={{ margin: "var(--space-3) 0 0" }}>
+        <Link href="/system/audit" className="lien-texte">
+          Tout le journal
+        </Link>
+      </p>
+    </>
+  );
+}
+
 export function ActiviteRecente({ evenements }: { evenements: LigneActivite[] }) {
   return (
     <Panneau

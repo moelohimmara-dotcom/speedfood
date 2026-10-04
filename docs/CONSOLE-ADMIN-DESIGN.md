@@ -65,3 +65,7 @@ Vérifié en local avec un compte super admin de test (supprimé) : filtre, sél
 | Libellé du bouton sur deux lignes sur téléphone | « Enregistrer » |
 
 Accessibilité : un message `status` reste monté en permanence (annoncé par les lecteurs d'écran, même quand la barre est masquée). Vérifié en local : états à la saisie, à l'annulation et au retour à la valeur d'origine ; enregistrement réel d'un restaurant de test (valeur écrite en base, confirmation, barre retirée après 4 s) ; restaurant et comptes de test supprimés. Enregistrer les vrais paramètres n'a volontairement pas été essayé.
+
+## Tableau de bord de pilotage (4 octobre 2026)
+
+Réécriture de `/system` : raccourcis d'action, cartes de chiffres clés (commandes avec variation et courbe, taux d'acceptation, montant indicatif, restaurants), file « À traiter » (ancienneté, éléments de test écartés), graphiques purs SVG sans bibliothèque (barres empilées par jour, anneau des statuts, heures de pointe, barres des restaurants) chacun avec légende et tableau « Voir les chiffres », sélecteur de période `?periode=7|14|30`, et tiroirs `<details>` (éléments de test, activité, contenus, équipe, support commandes, droits du rôle). Données : migration `tableau_de_bord_series` (`fn_support_serie_commandes`, `fn_support_commandes_par_heure`, réservées support et super_admin). Calculs testés dans `pilotageCalculs.ts`. **Non encore vérifié visuellement dans un navigateur avec une session admin.**

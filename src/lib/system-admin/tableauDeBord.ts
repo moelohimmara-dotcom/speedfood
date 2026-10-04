@@ -5,6 +5,7 @@ import { STATUTS_ACTIFS } from "@/lib/contracts/statuts";
 import { verifierPermission } from "./contexte";
 import { LIBELLES_ROLES, ROLES_SYSTEME, type RoleSysteme } from "./permissions";
 import type { EntreeAudit } from "./journalAudit";
+import type { LigneSerie } from "./pilotageCalculs";
 
 /**
  * Lectures d'indicateurs du tableau de bord `/system` (post-bloc 8d).
@@ -300,4 +301,34 @@ export async function obtenirActiviteRecente(limite = 8): Promise<EntreeAudit[]>
     motif: e.motif,
     horodatage: e.horodatage,
   }));
+}
+
+/**
+ * Séries pour les graphiques de commandes : par jour et statut sur DEUX périodes (pour comparer avec la précédente),
+ * et par heure sur la période. Agrégats seulement : aucun nom, téléphone ni adresse. Réservé à `commande.consulter`.
+ */
+export interface PilotageCommandes {
+  lignes: LigneSerie[];
+  heures: { heure: number; nb: number }[];
+}
+
+export async function obtenirPilotageCommandes(jours: number): Promise<PilotageCommandes> {
+  await verifierPermission("commande.consulter");
+  const supabase = await creerClientServeur();
+  const duree = Math.min(90, Math.max(1, Math.trunc(jours)));
+
+  const [serie, heures] = await Promise.all([
+    supabase.rpc("fn_support_serie_commandes", { p_jours: duree * 2 }),
+    supabase.rpc("fn_support_commandes_par_heure", { p_jours: duree }),
+  ]);
+
+  return {
+    lignes: (serie.data ?? []).map((ligne) => ({
+      jour: String(ligne.jour).slice(0, 10),
+      statut: ligne.statut,
+      nb: Number(ligne.nb),
+      montant: Number(ligne.montant),
+    })),
+    heures: (heures.data ?? []).map((ligne) => ({ heure: Number(ligne.heure), nb: Number(ligne.nb) })),
+  };
 }

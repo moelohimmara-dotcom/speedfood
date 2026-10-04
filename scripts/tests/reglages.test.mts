@@ -6,6 +6,16 @@ import { AVATARS, emojiAvatar, estAvatarValide, genererPseudo, validerPseudo } f
 import { validerCoordonnees } from "../../src/lib/client/coordonnees";
 import { normaliserTelephone } from "../../src/lib/commande/telephone";
 import { estCompteDeTest } from "../../src/lib/system-admin/comptesTest";
+import {
+  comparerPeriodes,
+  construireJours,
+  estElementDeTest,
+  heuresPleines,
+  maximumAxe,
+  tauxAcceptation,
+  variation,
+  type LigneSerie,
+} from "../../src/lib/system-admin/pilotageCalculs";
 import { fusionnerPromesse, PROMESSE_PAR_DEFAUT } from "../../src/lib/parametres/promesse-defauts";
 
 let ko = 0;
@@ -113,6 +123,42 @@ verifier("pas test : compte réel", estCompteDeTest("moelohimmara@gmail.com"), f
 verifier("pas test : admin.speedfood.dev", estCompteDeTest("admin.speedfood.dev@gmail.com"), false);
 verifier("pas test : « contest » n'est pas « test »", estCompteDeTest("contestataire@gmail.com"), false);
 verifier("pas test : vide", estCompteDeTest(null), false);
+
+// Tableau de bord de pilotage
+const aujourdhui = new Date("2026-10-04T15:30:00Z");
+const lignes: LigneSerie[] = [
+  { jour: "2026-10-04", statut: "en_attente", nb: 2, montant: 20000 },
+  { jour: "2026-10-04", statut: "terminee", nb: 3, montant: 90000 },
+  { jour: "2026-10-03", statut: "acceptee", nb: 1, montant: 15000 },
+  { jour: "2026-10-03", statut: "refusee", nb: 1, montant: 7000 },
+  { jour: "2026-09-30", statut: "annulee", nb: 2, montant: 30000 },
+  { jour: "2026-09-29", statut: "terminee", nb: 4, montant: 100000 },
+];
+const sept = construireJours(lignes, 7, aujourdhui);
+verifier("série : 7 jours", sept.length, 7);
+verifier("série : du plus ancien au plus récent", [sept[0].jour, sept[6].jour], ["2026-09-28", "2026-10-04"]);
+verifier("série : jour vide rempli à zéro", sept.find((j) => j.jour === "2026-10-01")?.total, 0);
+verifier("série : aujourd'hui", { t: sept[6].total, a: sept[6].enAttente, f: sept[6].terminees, m: sept[6].montantRetenu }, { t: 5, a: 2, f: 3, m: 110000 });
+verifier("série : un refus ne compte pas dans le montant", sept[5].montantRetenu, 15000);
+const periodes = comparerPeriodes(lignes, 3, aujourdhui);
+verifier("périodes : courante (3 j : 2 + 3 + 1 + 1)", periodes.courant.total, 7);
+verifier("périodes : précédente (3 j : 2 + 4)", periodes.precedent.total, 6);
+verifier("taux d'acceptation (décidées : 3 + 1 + 1)", tauxAcceptation(periodes.courant), 4 / 5);
+verifier("taux d'acceptation sans décision", tauxAcceptation({ total: 2, enAttente: 2, enCours: 0, terminees: 0, ecartees: 0, montantRetenu: 0 }), null);
+verifier("variation +200 %", variation(6, 2), 2);
+verifier("variation depuis zéro", variation(5, 0), null);
+verifier("variation zéro sur zéro", variation(0, 0), 0);
+verifier("statut inconnu ignoré", comparerPeriodes([{ jour: "2026-10-04", statut: "bizarre", nb: 9, montant: 1 }], 3, aujourdhui).courant.total, 0);
+const heures = heuresPleines([{ heure: 12, nb: 3 }, { heure: 12, nb: 2 }, { heure: 19, nb: 4 }, { heure: 30, nb: 9 }]);
+verifier("heures : 24 valeurs, 12 h cumulée, heure invalide ignorée", [heures.length, heures[12], heures[19]], [24, 5, 4]);
+verifier("axe : minimum 4", maximumAxe(1), 4);
+verifier("axe : 7 → 8", maximumAxe(7), 8);
+verifier("axe : 23 → 25", maximumAxe(23), 25);
+verifier("axe : 100 → 100", maximumAxe(100), 100);
+verifier("test : [DEV] Restaurant", estElementDeTest("[DEV] Restaurant publié"), true);
+verifier("test : Chez Test Auth", estElementDeTest("Chez Test Auth"), true);
+verifier("pas test : « Contestation »", estElementDeTest("La Contestation"), false);
+verifier("pas test : restaurant réel", estElementDeTest("Chez Fatoumata"), false);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

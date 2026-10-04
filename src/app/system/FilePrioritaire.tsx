@@ -15,13 +15,13 @@ export interface LigneFilePriorite {
   ton: "succes" | "danger" | "neutre";
 }
 
-export function FilePrioritaire({ lignes }: { lignes: LigneFilePriorite[] }) {
+export function FilePrioritaire({ lignes, notesDeTest = 0 }: { lignes: LigneFilePriorite[]; notesDeTest?: number }) {
   return (
     <Panneau id="file-prioritaire" titre="À traiter" compteur={lignes.length > 0 ? lignes.length : undefined} sansMarge>
       {lignes.length === 0 ? (
         <EtatVide
           titre="Tout est à jour"
-          texte="Aucune validation de restaurant ni de proposition client n'attend dans les files ouvertes à votre rôle."
+          texte={`Aucune validation de restaurant ni de proposition client n'attend dans les files ouvertes à votre rôle.${notesDeTest > 0 ? ` ${notesDeTest} élément(s) de test sont rangés plus bas.` : ""}`}
         />
       ) : (
         <ul className="ad-liste">

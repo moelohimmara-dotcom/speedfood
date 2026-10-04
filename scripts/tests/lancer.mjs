@@ -39,6 +39,7 @@ copier("src/lib/restaurant/paiement.ts");
 copier("src/lib/parametres/assistance-format.ts");
 copier("src/lib/parametres/promesse-defauts.ts");
 copier("src/lib/client/profil.ts");
+copier("src/lib/system-admin/pilotageCalculs.ts");
 copier("src/lib/system-admin/comptesTest.ts");
 copier("src/lib/commande/telephone.ts");
 copier("src/lib/client/coordonnees.ts");
