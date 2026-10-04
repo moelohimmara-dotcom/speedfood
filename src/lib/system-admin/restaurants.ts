@@ -30,6 +30,22 @@ export interface RestaurantAdmin {
   cree_le: string;
 }
 
+/** Éléments que l'administrateur contrôle avant d'approuver (fiche complète d'un restaurant). */
+export interface DossierRestaurant {
+  photoUrl: string | null;
+  logoUrl: string | null;
+  horaires: string;
+  consignes: string;
+  moyensPaiement: string[];
+  aPosition: boolean;
+  estDeTest: boolean;
+  plats: number;
+  platsDisponibles: number;
+  platsAvecPhoto: number;
+  commandes: number;
+  apercuPlats: { nom: string; prix: number }[];
+}
+
 export type StatutFiltre = "tous" | "en_attente" | "publies" | "suspendus" | "correction";
 
 export async function listerRestaurantsAdmin(filtres: {
@@ -239,4 +255,39 @@ export async function reactiverRestaurantAction(restaurantId: string): Promise<v
 
   revalidatePath("/system/catalogue/restaurants");
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
+}
+
+/** Dossier de validation : colonnes de la fiche + agrégats du menu (le menu d'un restaurant non publié n'est lisible que par RPC). */
+export async function obtenirDossierRestaurant(id: string): Promise<DossierRestaurant | null> {
+  await verifierPermission("restaurant.consulter");
+  const supabase = await creerClientServeur();
+
+  const [{ data: fiche }, { data: agregats }] = await Promise.all([
+    supabase
+      .from("restaurants")
+      .select("photo_url, logo_url, horaires, consignes, moyens_paiement, latitude, longitude, donnees_demo")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase.rpc("fn_admin_dossier_restaurant", { p_restaurant: id }),
+  ]);
+  if (!fiche) {
+    return null;
+  }
+  const a = (agregats !== null && typeof agregats === "object" && !Array.isArray(agregats) ? agregats : {}) as Record<string, unknown>;
+  const nombre = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const apercu = Array.isArray(a.apercu_plats) ? (a.apercu_plats as Record<string, unknown>[]) : [];
+  return {
+    photoUrl: fiche.photo_url,
+    logoUrl: fiche.logo_url,
+    horaires: (fiche.horaires ?? "").trim(),
+    consignes: (fiche.consignes ?? "").trim(),
+    moyensPaiement: fiche.moyens_paiement ?? [],
+    aPosition: fiche.latitude !== null && fiche.longitude !== null,
+    estDeTest: fiche.donnees_demo === true,
+    plats: nombre(a.plats),
+    platsDisponibles: nombre(a.plats_disponibles),
+    platsAvecPhoto: nombre(a.plats_avec_photo),
+    commandes: nombre(a.commandes),
+    apercuPlats: apercu.map((l) => ({ nom: String(l.nom ?? ""), prix: nombre(l.prix) })),
+  };
 }

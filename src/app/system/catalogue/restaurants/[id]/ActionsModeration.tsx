@@ -17,11 +17,13 @@ interface Props {
   publie: boolean;
   suspendu: boolean;
   aUneCorrectionEnCours: boolean;
+  /** Points obligatoires manquants du dossier : l'approbation est alors bloquée. */
+  bloquants?: string[];
 }
 
 type Formulaire = "aucun" | "correction" | "suspension";
 
-export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrectionEnCours }: Props) {
+export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrectionEnCours, bloquants = [] }: Props) {
   const [formulaireOuvert, setFormulaireOuvert] = useState<Formulaire>("aucun");
   const [enTransition, demarrerTransition] = useTransition();
 
@@ -82,37 +84,55 @@ export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrecti
     );
   }
 
+  const peutApprouver = bloquants.length === 0;
+
   return (
-    <div>
+    <div className="ad-decision">
       {etatApprobation.erreur ? <Alert ton="danger">{etatApprobation.erreur}</Alert> : null}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {suspendu ? (
+      {suspendu ? (
+        <div className="ad-decision-groupe">
           <Button
             type="button"
+            pleineLargeur
             disabled={enTransition}
             onClick={() => demarrerTransition(() => reactiverRestaurantAction(restaurantId))}
           >
-            Réactiver
+            Réactiver ce restaurant
           </Button>
-        ) : (
-          <>
-            {!publie || aUneCorrectionEnCours ? (
+          <p className="ad-decision-aide">Le restaurant redevient visible des clients.</p>
+        </div>
+      ) : (
+        <>
+          {!publie || aUneCorrectionEnCours ? (
+            <div className="ad-decision-groupe">
               <form action={actionApprobation}>
                 <input type="hidden" name="restaurant_id" value={restaurantId} />
-                <Button type="submit" disabled={approbationEnCours}>
-                  {approbationEnCours ? "Approbation…" : "Approuver"}
+                <Button type="submit" pleineLargeur disabled={approbationEnCours || !peutApprouver} aria-describedby="aide-approbation">
+                  {approbationEnCours ? "Approbation…" : "Approuver et publier"}
                 </Button>
               </form>
-            ) : null}
-            <Button type="button" variante="secondary" onClick={() => setFormulaireOuvert("correction")}>
+              <p className="ad-decision-aide" id="aide-approbation">
+                {peutApprouver
+                  ? "Le restaurant devient visible et peut recevoir des commandes."
+                  : `Impossible pour l'instant : ${bloquants.join(", ")}.`}
+              </p>
+            </div>
+          ) : null}
+          <div className="ad-decision-groupe">
+            <Button type="button" variante="secondary" pleineLargeur onClick={() => setFormulaireOuvert("correction")}>
               Demander une correction
             </Button>
-            <Button type="button" variante="danger" onClick={() => setFormulaireOuvert("suspension")}>
+            <p className="ad-decision-aide">Le restaurateur voit votre message et corrige sa fiche.</p>
+          </div>
+          <div className="ad-decision-sensible">
+            <h3>Zone sensible</h3>
+            <Button type="button" variante="danger" pleineLargeur onClick={() => setFormulaireOuvert("suspension")}>
               Suspendre
             </Button>
-          </>
-        )}
-      </div>
+            <p className="ad-decision-aide">Retire le restaurant du catalogue. Un motif est obligatoire et reste dans le journal.</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

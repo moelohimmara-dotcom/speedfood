@@ -1417,3 +1417,162 @@ a.ad-carte-lien:hover {
 
 .ad-sous-titre { font-size: 0.85rem; font-weight: 600; margin: var(--space-4) 0 var(--space-2); }
 .ad-sous-titre:first-child { margin-top: 0; }
+
+/* --- Fiche restaurant : dossier à contrôler et panneau de décision --- */
+.ad-fiche {
+  display: grid;
+  gap: var(--space-5);
+}
+.ad-fiche-principal {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+}
+@media (min-width: 1000px) {
+  .ad-fiche {
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    align-items: start;
+  }
+  .ad-fiche-decision {
+    position: sticky;
+    top: var(--space-4);
+  }
+}
+.ad-fiche-synthese {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--succes);
+}
+.ad-fiche-synthese-manque {
+  color: var(--danger);
+}
+.ad-apercus {
+  display: flex;
+  gap: var(--space-3);
+  align-items: stretch;
+  margin-bottom: var(--space-4);
+}
+.ad-apercu-photo,
+.ad-apercu-logo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--fond-doux, var(--bordure));
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.ad-apercu-photo {
+  flex: 1 1 auto;
+  height: 150px;
+}
+.ad-apercu-logo {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  align-self: flex-end;
+}
+.ad-apercu-photo img,
+.ad-apercu-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ad-controle {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.ad-controle-ligne {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--bordure);
+}
+.ad-controle-ligne:first-child {
+  border-top: 0;
+}
+.ad-controle-marque {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: var(--bordure);
+}
+.ad-controle-ok .ad-controle-marque {
+  background: var(--succes-fond, #e3f3e6);
+  color: var(--succes);
+}
+.ad-controle-manque .ad-controle-marque {
+  background: var(--danger-fond);
+  color: var(--danger);
+}
+.ad-controle-conseille .ad-controle-marque {
+  background: var(--mangue, #f6c453);
+  color: var(--encre);
+}
+.ad-controle-tag {
+  font-size: 0.75rem;
+  color: var(--secondaire);
+  font-weight: 600;
+}
+.ad-controle-detail {
+  display: block;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.ad-apercu-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ad-apercu-menu li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--bordure);
+}
+.ad-fiche-liens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-4) 0 0;
+}
+.ad-decision-etat {
+  margin: 0 0 var(--space-3);
+  font-weight: 700;
+}
+.ad-decision {
+  display: grid;
+  gap: var(--space-4);
+}
+.ad-decision-groupe {
+  display: grid;
+  gap: var(--space-2);
+}
+.ad-decision-aide {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--secondaire);
+}
+.ad-decision-sensible {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--bordure);
+}
+.ad-decision-sensible h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--danger);
+}

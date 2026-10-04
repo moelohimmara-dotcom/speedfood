@@ -866,6 +866,10 @@ export type Database = {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
         Returns: undefined
       }
+      fn_admin_dossier_restaurant: {
+        Args: { p_restaurant: string }
+        Returns: Json
+      }
       fn_statistiques_application: {
         Args: { p_jours: number }
         Returns: Json
