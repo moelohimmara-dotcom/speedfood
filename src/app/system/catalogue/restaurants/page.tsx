@@ -4,6 +4,8 @@ import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerRestaurantsAdmin, type StatutFiltre } from "@/lib/system-admin/restaurants";
 import { EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
+import { GenererIllustrations } from "./GenererIllustrations";
+import { roleAPermission } from "@/lib/system-admin/permissions";
 import { formaterDateCourte } from "../../formatage";
 
 export const metadata = { title: "Restaurants (administration)" };
@@ -43,6 +45,7 @@ export default async function RestaurantsComptesSystemePage({
     <div>
       <PageHeader titre="Catalogue" description="Validez, suspendez ou demandez une correction aux restaurants avant leur publication." />
       <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
+      {roleAPermission(contexte.role, "restaurant.moderer") ? <GenererIllustrations /> : null}
 
       <div className="ad-outils">
         <form method="GET" role="search" className="ad-recherche">

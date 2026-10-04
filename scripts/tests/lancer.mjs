@@ -45,6 +45,7 @@ copier("src/lib/commande/telephone.ts");
 copier("src/lib/client/coordonnees.ts");
 copier("src/lib/illustrations/motifs.ts");
 copier("src/lib/illustrations/modele.ts");
+copier("src/lib/illustrations/automatique.ts");
 copier("src/lib/illustrations/icones.generated.ts");
 copier("scripts/tests/reglages.test.mts");
 

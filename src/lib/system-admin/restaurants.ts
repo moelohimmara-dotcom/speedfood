@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
+import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 
 /**
  * Modération des restaurants (bloc 8b). Toute mutation :
@@ -34,6 +35,8 @@ export interface RestaurantAdmin {
 export interface DossierRestaurant {
   photoUrl: string | null;
   logoUrl: string | null;
+  logoIllustration: Illustration | null;
+  couvertureIllustration: Illustration | null;
   horaires: string;
   consignes: string;
   moyensPaiement: string[];
@@ -265,7 +268,7 @@ export async function obtenirDossierRestaurant(id: string): Promise<DossierResta
   const [{ data: fiche }, { data: agregats }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("photo_url, logo_url, horaires, consignes, moyens_paiement, latitude, longitude, donnees_demo")
+      .select("photo_url, logo_url, logo_illustration, couverture_illustration, horaires, consignes, moyens_paiement, latitude, longitude, donnees_demo")
       .eq("id", id)
       .maybeSingle(),
     supabase.rpc("fn_admin_dossier_restaurant", { p_restaurant: id }),
@@ -279,6 +282,8 @@ export async function obtenirDossierRestaurant(id: string): Promise<DossierResta
   return {
     photoUrl: fiche.photo_url,
     logoUrl: fiche.logo_url,
+    logoIllustration: validerIllustration(fiche.logo_illustration),
+    couvertureIllustration: validerIllustration(fiche.couverture_illustration),
     horaires: (fiche.horaires ?? "").trim(),
     consignes: (fiche.consignes ?? "").trim(),
     moyensPaiement: fiche.moyens_paiement ?? [],

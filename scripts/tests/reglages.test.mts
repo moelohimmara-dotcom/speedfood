@@ -1,3 +1,4 @@
+import { familleDepuisCategorie, illustrationLogo, illustrationPlat, motifPourPlat } from "../../src/lib/illustrations/automatique";
 import { MOTIFS } from "../../src/lib/illustrations/motifs";
 import { ICONES } from "../../src/lib/illustrations/icones.generated";
 import { contraste, initiales, validerIllustration } from "../../src/lib/illustrations/modele";
@@ -190,6 +191,12 @@ verifier("illustration : contraste noir/blanc", Math.round(contraste("#000000", 
 verifier("initiales : articles et marqueur de test ignorés", [initiales("Chez Fatoumata"), initiales("[DEV] Le Braisier du Port"), initiales("Café des Ambassades")], ["F", "BP", "CA"]);
 verifier("motifs : la liste française et les dessins sont identiques", Object.keys(MOTIFS).sort(), Object.keys(ICONES).sort());
 verifier("dessins : aucun contenu actif", Object.values(ICONES).some((i) => /<script|foreignObject|\son[a-z]+\s*=|javascript:|<image|href=/i.test(i.c)), false);
+
+verifier("automatique : motifs des plats guinéens", ["Riz gras au poulet", "Poisson braisé", "Brochettes (5)", "Jus de bissap", "Café allongé", "Part de pizza", "Alloco", "Sauce feuille"].map(motifPourPlat), ["riz-sauce", "poisson-tropical", "brochettes", "jus", "cafe", "pizza", "banane", "sauce"]);
+verifier("automatique : inconnu = couverts", motifPourPlat("Plat du chef"), "couvert");
+verifier("automatique : familles", ["Riz & sauces", "Grillades", "Fast-food", "Café", "Autre"].map(familleDepuisCategorie), ["riz", "grill", "fast", "cafe", "defaut"]);
+verifier("automatique : les illustrations produites sont valides", [illustrationPlat("Burger maison", "fast"), illustrationLogo("Chez Fatoumata", "riz")].map((x) => validerIllustration(x) !== null), [true, true]);
+verifier("automatique : logo = initiales du restaurant", illustrationLogo("Le Braisier du Port", "grill").texte, "BP");
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

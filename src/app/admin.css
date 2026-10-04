@@ -1576,3 +1576,18 @@ a.ad-carte-lien:hover {
   text-transform: uppercase;
   color: var(--danger);
 }
+
+/* --- Éditeur d'illustrations --- */
+.ad-editeur-ill { display: grid; gap: var(--space-4); grid-template-columns: 140px minmax(0, 1fr); align-items: start; }
+.ad-editeur-ill > form:last-child { grid-column: 1 / -1; }
+.ad-editeur-ill-apercu { display: grid; gap: var(--space-2); justify-items: start; }
+.ad-editeur-ill-apercu svg { width: 140px; height: auto; border: 1px solid var(--bordure); border-radius: var(--radius-md); background: var(--surface); }
+.ad-editeur-ill-champs { display: grid; gap: var(--space-3); min-width: 0; }
+.ad-editeur-ill-couleurs { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.ad-editeur-ill-couleurs input[type="color"] { width: 56px; height: 44px; padding: 2px; }
+.ad-editeur-ill-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+@media (max-width: 560px) { .ad-editeur-ill { grid-template-columns: minmax(0, 1fr); } }
+.ad-plats-ill { display: grid; gap: var(--space-2); }
+.ad-plat-ill > summary { display: flex; align-items: center; gap: var(--space-3); min-height: 56px; cursor: pointer; list-style: none; }
+.ad-plat-ill > summary svg { width: 44px; height: 44px; flex: none; }
+.ad-plat-ill[open] { padding-bottom: var(--space-4); border-bottom: 1px solid var(--bordure); }

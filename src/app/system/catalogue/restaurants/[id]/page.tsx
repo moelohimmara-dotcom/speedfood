@@ -7,6 +7,10 @@ import { PageHeader, Panneau, Pastille, Volet } from "@/components/admin/blocs";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { roleAPermission } from "@/lib/system-admin/permissions";
 import { estElementDeTest } from "@/lib/system-admin/pilotageCalculs";
+import { listerPlatsAdmin } from "@/lib/system-admin/illustrations";
+import { Illustration } from "@/components/illustrations/Illustration";
+import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
+import { EditeurIllustration } from "./EditeurIllustration";
 import { ActionsModeration } from "./ActionsModeration";
 import { GestionEquipe } from "./GestionEquipe";
 
@@ -44,12 +48,14 @@ export default async function RestaurantDetailSystemePage({
   if (!restaurant) {
     notFound();
   }
-  const [membres, dossier, reglages, contexte] = await Promise.all([
+  const [membres, dossier, reglages, contexte, plats] = await Promise.all([
     listerMembresAdmin(id),
     obtenirDossierRestaurant(id),
     lireReglagesAssistance(),
     obtenirContexteSysteme(),
+    listerPlatsAdmin(id),
   ]);
+  const famille = familleDepuisCategorie(restaurant.categorie);
   const role = contexte.role;
   const enLigne = restaurant.publie && restaurant.suspendu_le === null;
   const peutOuvrirParametres = roleAPermission(role, "parametres.editer");
@@ -180,6 +186,8 @@ export default async function RestaurantDetailSystemePage({
                 {dossier?.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- aperçu d'un média déjà hébergé, dimensions libres.
                   <img src={dossier.photoUrl} alt={`Photo de couverture de ${restaurant.nom}`} />
+                ) : dossier?.couvertureIllustration ? (
+                  <Illustration valeur={dossier.couvertureIllustration} nom={`Illustration de couverture de ${restaurant.nom}`} />
                 ) : (
                   <span>Pas de photo</span>
                 )}
@@ -188,6 +196,8 @@ export default async function RestaurantDetailSystemePage({
                 {dossier?.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- idem.
                   <img src={dossier.logoUrl} alt={`Logo de ${restaurant.nom}`} />
+                ) : dossier?.logoIllustration ? (
+                  <Illustration valeur={dossier.logoIllustration} nom={`Logo illustré de ${restaurant.nom}`} />
                 ) : (
                   <span>Pas de logo</span>
                 )}
@@ -239,6 +249,39 @@ export default async function RestaurantDetailSystemePage({
               ) : null}
             </p>
           </Panneau>
+
+          {roleAPermission(role, "restaurant.moderer") ? (
+            <Volet
+              titre="Illustrations"
+              resume={`Logo, couverture et ${plats.length} plat${plats.length > 1 ? "s" : ""} : modifiables`}
+            >
+              <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+                Elles remplacent la photo tant qu&apos;il n&apos;y en a pas. Une vraie photo téléversée par le restaurateur prend toujours le dessus.
+              </p>
+              <h3 className="ad-sous-titre">Logo</h3>
+              <EditeurIllustration cible="logo" id={restaurant.id} restaurantId={restaurant.id} nom={restaurant.nom} famille={famille} valeur={dossier?.logoIllustration ?? null} styles={["monogramme", "pastille"]} />
+              <h3 className="ad-sous-titre">Couverture</h3>
+              <EditeurIllustration cible="couverture" id={restaurant.id} restaurantId={restaurant.id} nom={restaurant.nom} famille={famille} valeur={dossier?.couvertureIllustration ?? null} styles={["affiche", "assiette"]} />
+              <h3 className="ad-sous-titre">Plats</h3>
+              <div className="ad-plats-ill">
+                {plats.length === 0 ? <p className="ad-aide-champ">Aucun plat.</p> : null}
+                {plats.map((plat) => (
+                  <details key={plat.id} className="ad-plat-ill">
+                    <summary>
+                      {plat.illustration ? <Illustration valeur={plat.illustration} nom={plat.nom} decoratif /> : null}
+                      <span>
+                        {plat.nom}
+                        <small style={{ display: "block", color: "var(--secondaire)" }}>
+                          {plat.photoUrl ? "Photo téléversée" : plat.illustration ? (plat.illustration.genere ? "Illustration de démonstration" : "Illustration personnalisée") : "Aucune illustration"}
+                        </small>
+                      </span>
+                    </summary>
+                    <EditeurIllustration cible="plat" id={plat.id} restaurantId={restaurant.id} nom={plat.nom} famille={famille} valeur={plat.illustration} styles={["pastille", "assiette"]} />
+                  </details>
+                ))}
+              </div>
+            </Volet>
+          ) : null}
 
           <Volet
             titre="Équipe"

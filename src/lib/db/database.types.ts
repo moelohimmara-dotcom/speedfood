@@ -188,6 +188,7 @@ export type Database = {
           photo_url: string | null
           prix: number
           prix_promo: number | null
+          illustration: Json | null
           restaurant_id: string
           section_id: string | null
         }
@@ -203,6 +204,7 @@ export type Database = {
           photo_url?: string | null
           prix: number
           prix_promo?: number | null
+          illustration?: Json | null
           restaurant_id: string
           section_id?: string | null
         }
@@ -218,6 +220,7 @@ export type Database = {
           photo_url?: string | null
           prix?: number
           prix_promo?: number | null
+          illustration?: Json | null
           restaurant_id?: string
           section_id?: string | null
         }
@@ -745,6 +748,8 @@ export type Database = {
           id: string
           latitude: number | null
           logo_url: string | null
+          logo_illustration: Json | null
+          couverture_illustration: Json | null
           longitude: number | null
           moyens_paiement: string[]
           mis_a_jour_le: string
@@ -769,6 +774,8 @@ export type Database = {
           id?: string
           latitude?: number | null
           logo_url?: string | null
+          logo_illustration?: Json | null
+          couverture_illustration?: Json | null
           longitude?: number | null
           moyens_paiement?: string[]
           mis_a_jour_le?: string
@@ -793,6 +800,8 @@ export type Database = {
           id?: string
           latitude?: number | null
           logo_url?: string | null
+          logo_illustration?: Json | null
+          couverture_illustration?: Json | null
           longitude?: number | null
           moyens_paiement?: string[]
           mis_a_jour_le?: string
@@ -864,6 +873,14 @@ export type Database = {
       }
       fn_support_changer_statut: {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
+        Returns: undefined
+      }
+      fn_admin_lister_plats: {
+        Args: { p_restaurant: string }
+        Returns: { id: string; nom: string; prix: number; photo_url: string | null; illustration: Json | null }[]
+      }
+      fn_admin_definir_illustration: {
+        Args: { p_cible: string; p_id: string; p_valeur: Json | null }
         Returns: undefined
       }
       fn_admin_dossier_restaurant: {
