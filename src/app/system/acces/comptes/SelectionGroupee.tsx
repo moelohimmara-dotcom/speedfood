@@ -69,7 +69,7 @@ export function BarreSelectionGroupee() {
   }, []);
 
   return (
-    <div className="ad-barre-selection" role="region" aria-label="Suppression groupée">
+    <div className="ad-barre-selection" data-vide={nombre === 0} role="region" aria-label="Suppression groupée">
       <p style={{ margin: 0 }} role="status">
         <strong>{nombre}</strong> compte{nombre > 1 ? "s" : ""} sélectionné{nombre > 1 ? "s" : ""}
       </p>

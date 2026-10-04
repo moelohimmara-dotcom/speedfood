@@ -1014,6 +1014,11 @@ body:has(.console-cadre) {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
+/* Rien de coché : la barre reste en bas de liste, elle ne flotte pas par-dessus les lignes. */
+.ad-barre-selection[data-vide="true"] {
+  position: static;
+  box-shadow: none;
+}
 @media (max-width: 719px) {
   .ad-case-ligne {
     margin: 0;

@@ -366,7 +366,7 @@
   }
 }
 
-/* Menu : liste à gauche, formulaires collants à droite, seulement quand la place le permet */
+/* Menu : liste à gauche, formulaires à droite, seulement quand la place le permet */
 @media (min-width: 1180px) {
   .menu-colonnes {
     display: grid;
@@ -374,11 +374,9 @@
     gap: var(--space-6);
     align-items: start;
   }
+  /* Le panneau suit le défilement de la page (pas de défilement interne : les formulaires dépassent la hauteur d'un écran de portable). */
   .menu-panneau {
-    position: sticky;
-    top: var(--space-6);
-    max-height: calc(100vh - 2 * var(--space-6));
-    overflow-y: auto;
+    min-width: 0;
   }
 }
 
@@ -557,6 +555,18 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  padding: var(--space-3);
+  font-size: 0.85rem;
+  color: var(--secondaire);
+}
+/* Le nom du fichier (« Aucun fichier choisi ») ne se coupe pas : le bouton est plus compact et le profil empile ses deux dépôts sous 600 px de large. */
+.depot-photo input[type="file"]::file-selector-button {
+  margin-right: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+.profil-medias {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 
 /* Suppléments d'un plat : le formulaire d'ajout se replie au lieu de déborder (à 320 px), la croix de retrait fait 44 px */

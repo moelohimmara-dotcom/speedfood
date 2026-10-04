@@ -78,7 +78,7 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
       <span>
-        {element.nom} <span style={{ color: "var(--secondaire)", fontSize: "0.85rem" }}>(ordre {element.ordre})</span>
+        {element.nom} <span style={{ color: "var(--secondaire)", fontSize: "0.85rem", whiteSpace: "nowrap" }}>(ordre&nbsp;{element.ordre})</span>
       </span>
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         <Button type="button" variante="secondary" onClick={() => setEnEdition(true)}>
