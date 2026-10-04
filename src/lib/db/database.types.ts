@@ -604,24 +604,36 @@ export type Database = {
       }
       client_profils: {
         Row: {
+          adresse: string | null
           avatar: string
           cree_le: string
+          coordonnees_enregistrees_le: string | null
           mis_a_jour_le: string
+          nom_commande: string | null
           pseudo: string
+          telephone: string | null
           utilisateur_id: string
         }
         Insert: {
+          adresse?: string | null
           avatar: string
           cree_le?: string
+          coordonnees_enregistrees_le?: string | null
           mis_a_jour_le?: string
+          nom_commande?: string | null
           pseudo: string
+          telephone?: string | null
           utilisateur_id: string
         }
         Update: {
+          adresse?: string | null
           avatar?: string
           cree_le?: string
+          coordonnees_enregistrees_le?: string | null
           mis_a_jour_le?: string
+          nom_commande?: string | null
           pseudo?: string
+          telephone?: string | null
           utilisateur_id?: string
         }
         Relationships: []

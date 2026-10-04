@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Card } from "@/components/ui";
-import { deconnexionClientAction } from "@/lib/client/actions";
+import { deconnexionClientAction, oublierCoordonneesAction } from "@/lib/client/actions";
 import { emojiAvatar } from "@/lib/client/profil";
 import { creerClientServeur } from "@/lib/db/server";
 import { SuppressionCompte } from "./SuppressionCompte";
@@ -24,7 +24,7 @@ export default async function ComptePage() {
   }
 
   const [{ data: profil }, { data: membre }, { data: roleSysteme }] = await Promise.all([
-    supabase.from("client_profils").select("pseudo, avatar").eq("utilisateur_id", user.id).maybeSingle(),
+    supabase.from("client_profils").select("pseudo, avatar, nom_commande, telephone, adresse").eq("utilisateur_id", user.id).maybeSingle(),
     supabase.from("restaurant_memberships").select("restaurant_id").eq("utilisateur_id", user.id).maybeSingle(),
     supabase.from("system_admin_memberships").select("utilisateur_id").eq("utilisateur_id", user.id).maybeSingle(),
   ]);
@@ -50,6 +50,23 @@ export default async function ComptePage() {
           <Link href="/bienvenue?modifier=1" className="btn btn-secondary btn-compact">
             Modifier
           </Link>
+        </Card>
+      ) : null}
+
+      {profil?.nom_commande && profil.telephone ? (
+        <Card className="compte-coordonnees">
+          <h2>Vos informations de commande</h2>
+          <p className="aide-champ">Mémorisées pour préremplir vos commandes. Visibles de vous seul.</p>
+          <ul>
+            <li>{profil.nom_commande}</li>
+            <li>{profil.telephone}</li>
+            {profil.adresse ? <li>{profil.adresse}</li> : null}
+          </ul>
+          <form action={oublierCoordonneesAction}>
+            <button type="submit" className="btn btn-secondary btn-compact">
+              Effacer ces informations
+            </button>
+          </form>
         </Card>
       ) : null}
 

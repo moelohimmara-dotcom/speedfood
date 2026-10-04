@@ -3,6 +3,8 @@ import { libellesMoyensPaiement, moyensPaiementValides, normaliserMoyensPaiement
 import { formaterDelaiValidation, lienWhatsAppAssistance, liensCarte } from "../../src/lib/parametres/assistance-format";
 
 import { AVATARS, emojiAvatar, estAvatarValide, genererPseudo, validerPseudo } from "../../src/lib/client/profil";
+import { validerCoordonnees } from "../../src/lib/client/coordonnees";
+import { normaliserTelephone } from "../../src/lib/commande/telephone";
 import { fusionnerPromesse, PROMESSE_PAR_DEFAUT } from "../../src/lib/parametres/promesse-defauts";
 
 let ko = 0;
@@ -83,6 +85,23 @@ for (let i = 0; i <= 100; i++) {
 }
 verifier("pseudos générés toujours valides (24 caractères max)", toujoursValide, true);
 verifier("pseudos extrêmes valides", [genererPseudo(() => 0), genererPseudo(() => 0.999999)].every((x) => validerPseudo(x).ok), true);
+
+// Coordonnées mémorisées
+verifier("téléphone national normalisé", normaliserTelephone("622 12 34 56"), "+224622123456");
+verifier("téléphone avec indicatif normalisé", normaliserTelephone("+224 (622) 12-34-56"), "+224622123456");
+verifier("téléphone fixe refusé", normaliserTelephone("30 12 34 56"), null);
+verifier("coordonnées valides", validerCoordonnees({ nom: "  Mariama   Diallo ", telephone: "622123456", adresse: "  Kaloum, rue 12 " }), {
+  ok: true,
+  coordonnees: { nom: "Mariama Diallo", telephone: "+224622123456", adresse: "Kaloum, rue 12" },
+});
+verifier("adresse vide = null", validerCoordonnees({ nom: "Mariama", telephone: "622123456", adresse: "   " }), {
+  ok: true,
+  coordonnees: { nom: "Mariama", telephone: "+224622123456", adresse: null },
+});
+verifier("nom trop court refusé", validerCoordonnees({ nom: "A", telephone: "622123456", adresse: null }).ok, false);
+verifier("téléphone invalide refusé", validerCoordonnees({ nom: "Mariama", telephone: "12345", adresse: null }).ok, false);
+verifier("adresse trop courte refusée", validerCoordonnees({ nom: "Mariama", telephone: "622123456", adresse: "abc" }).ok, false);
+verifier("adresse trop longue refusée", validerCoordonnees({ nom: "Mariama", telephone: "622123456", adresse: "a".repeat(301) }).ok, false);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

@@ -65,6 +65,12 @@ export default async function ConfidentialitePage() {
         vous-même depuis la page « Mon compte » : le pseudo, l&apos;avatar et l&apos;accès sont alors effacés. Les commandes passées
         suivent les durées indiquées plus bas.
       </p>
+      <p>
+        À la commande, une case facultative « Mémoriser ces informations dans mon compte » vous permet de garder votre nom, votre
+        numéro de téléphone et votre adresse pour préremplir vos prochaines commandes. Elle n&apos;est jamais cochée d&apos;office. Ces
+        informations ne sont vues que par vous, et vous pouvez les effacer à tout moment depuis « Mon compte » ; elles sont aussi
+        effacées si vous supprimez votre compte. Votre adresse n&apos;est transmise à un restaurant que pour une livraison.
+      </p>
 
       <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Paiement</h2>
       <p>Speedfood ne reçoit aucun paiement. Vous réglez directement avec le restaurant.</p>

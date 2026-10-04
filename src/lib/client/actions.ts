@@ -8,6 +8,7 @@ import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "@/lib/auth/redirection";
 import { connexionClientActive } from "./reglage";
 import { estAvatarValide, validerPseudo } from "./profil";
+import { validerCoordonnees } from "./coordonnees";
 
 export interface EtatProfil {
   erreur?: string;
@@ -111,4 +112,59 @@ export async function deconnexionClientAction(): Promise<void> {
   const supabase = await creerClientServeur();
   await supabase.auth.signOut();
   redirect("/restaurants");
+}
+
+export interface ResultatMemorisation {
+  ok: boolean;
+}
+
+/**
+ * Mémorise (à la demande explicite du client, case cochée à la commande) ses coordonnées dans son compte, pour préremplir
+ * la prochaine commande. Réservé au compte connecté qui a un profil ; revalidé côté serveur comme une commande. N'échoue
+ * jamais bruyamment : la commande est déjà envoyée, l'enregistrement est un confort.
+ */
+export async function memoriserCoordonneesAction(brut: {
+  nom: string;
+  telephone: string;
+  adresse: string | null;
+}): Promise<ResultatMemorisation> {
+  const valide = validerCoordonnees(brut);
+  if (!valide.ok) {
+    return { ok: false };
+  }
+  const supabase = await creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false };
+  }
+  const { data, error } = await supabase
+    .from("client_profils")
+    .update({
+      nom_commande: valide.coordonnees.nom,
+      telephone: valide.coordonnees.telephone,
+      adresse: valide.coordonnees.adresse,
+      coordonnees_enregistrees_le: new Date().toISOString(),
+    })
+    .eq("utilisateur_id", user.id)
+    .select("utilisateur_id");
+  revalidatePath("/compte");
+  return { ok: !error && (data?.length ?? 0) === 1 };
+}
+
+/** Efface les coordonnées mémorisées (le pseudo et l'avatar restent). */
+export async function oublierCoordonneesAction(): Promise<void> {
+  const supabase = await creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/entrer");
+  }
+  await supabase
+    .from("client_profils")
+    .update({ nom_commande: null, telephone: null, adresse: null, coordonnees_enregistrees_le: null })
+    .eq("utilisateur_id", user.id);
+  revalidatePath("/compte");
 }

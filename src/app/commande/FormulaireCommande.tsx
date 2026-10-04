@@ -7,16 +7,20 @@ import {
   viderPanier,
   type Panier,
 } from "@/components/panier/panier";
+import Link from "next/link";
 import { creerCommandeAction } from "@/lib/commande/actions";
+import { memoriserCoordonneesAction } from "@/lib/client/actions";
 import type { CreationCommandePayload, ModeRetrait } from "@/lib/contracts/commande";
 import type { ErreurApi } from "@/lib/contracts/erreurs";
 import { Button, Input, Alert } from "@/components/ui";
 import { Turnstile } from "@/components/Turnstile";
+import type { CompteCommande } from "./CommandeClient";
 
 interface Props {
   panier: Panier;
   /** Clé de site Turnstile (publique) ; absente = vérification anti-robot désactivée. */
   cleSiteTurnstile?: string;
+  compte: CompteCommande;
 }
 
 /**
@@ -27,12 +31,14 @@ interface Props {
  * La validation serveur fait foi ; celle-ci n'est qu'un confort d'affichage.
  * Aucun montant n'est envoyé : le serveur recalcule tout (ADR-006).
  */
-export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
+export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) {
   const router = useRouter();
-  const [nom, setNom] = useState("");
-  const [telephone, setTelephone] = useState("");
+  const [nom, setNom] = useState(compte.prefill?.nom ?? "");
+  const [telephone, setTelephone] = useState(compte.prefill?.telephone ?? "");
   const [mode, setMode] = useState<ModeRetrait>("retrait");
-  const [adresse, setAdresse] = useState("");
+  const [adresse, setAdresse] = useState(compte.prefill?.adresse ?? "");
+  // Mémoriser les coordonnées dans le compte : jamais coché d'office, c'est un choix explicite du client.
+  const [memoriser, setMemoriser] = useState(false);
   const [consentement, setConsentement] = useState(false);
   const [champs, setChamps] = useState<Record<string, string>>({});
   const [erreurGenerale, setErreurGenerale] = useState<string | null>(null);
@@ -95,7 +101,8 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
       client: {
         nom: nom.trim(),
         telephone: telephone.trim(),
-        adresse: adresse.trim().length > 0 ? adresse.trim() : null,
+        // L'adresse n'est transmise au restaurant qu'en livraison (minimisation des données), même si elle est préremplie.
+        adresse: mode === "livraison" && adresse.trim().length > 0 ? adresse.trim() : null,
       },
       mode,
       lignes: panier.lignes.map((ligne) => ({
@@ -113,6 +120,14 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
       // Un jeton ne se valide qu'une fois : un jeton neuf est redemandé après chaque envoi.
       setRenouvelerVerification((n) => n + 1);
       if (resultat.ok) {
+        if (memoriser && compte.estClient) {
+          // Confort : un échec ici ne doit jamais retarder ni bloquer l'accès au suivi de la commande.
+          await memoriserCoordonneesAction({
+            nom: nom.trim(),
+            telephone: telephone.trim(),
+            adresse: adresse.trim().length > 0 ? adresse.trim() : null,
+          }).catch(() => undefined);
+        }
         viderPanier();
         router.push(`/suivi/${resultat.jeton}`);
         return;
@@ -138,6 +153,19 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
       }}
       noValidate
     >
+      {compte.prefill ? (
+        <p className="commande-prefill" role="status">
+          Vos informations enregistrées sont déjà remplies. Modifiez-les si besoin.
+        </p>
+      ) : compte.actif && !compte.estClient ? (
+        <p className="commande-prefill">
+          Déjà un compte ?{" "}
+          <Link href="/entrer?suite=/commande" className="lien-texte">
+            Connectez-vous pour remplir vos informations en un geste
+          </Link>
+          .
+        </p>
+      ) : null}
       <Input
         label="Votre nom"
         name="nom"
@@ -213,6 +241,16 @@ export function FormulaireCommande({ panier, cleSiteTurnstile }: Props) {
           restaurant l&apos;accepte. Prix et disponibilité sont revérifiés à l&apos;envoi.
         </p>
       </div>
+
+      {compte.estClient ? (
+        <label className="consentement">
+          <input type="checkbox" name="memoriser" checked={memoriser} onChange={(e) => setMemoriser(e.target.checked)} />
+          <span>
+            Mémoriser ces informations dans mon compte pour mes prochaines commandes. Je pourrai les effacer à tout moment
+            depuis « Mon compte ».
+          </span>
+        </label>
+      ) : null}
 
       <label className="consentement">
         <input

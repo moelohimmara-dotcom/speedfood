@@ -10,7 +10,17 @@ import { FormulaireCommande } from "./FormulaireCommande";
  * Checkout invité (TDR.md §6 « Parcours client », ADR-005) : sans compte,
  * adresse obligatoire seulement en livraison, règlement hors portail.
  */
-export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string }) {
+/** État du compte client vu par la page de commande (lu côté serveur). */
+export interface CompteCommande {
+  /** La connexion des clients est activée par l'administrateur. */
+  actif: boolean;
+  /** Une personne est connectée ET a un profil client (peut mémoriser ses coordonnées). */
+  estClient: boolean;
+  /** Coordonnées mémorisées, ou `null`. */
+  prefill: { nom: string; telephone: string; adresse: string } | null;
+}
+
+export function CommandeClient({ cleSiteTurnstile, compte }: { cleSiteTurnstile?: string; compte: CompteCommande }) {
   const panier = usePanier();
   const pret = usePanierPret();
 
@@ -101,7 +111,7 @@ export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string
         Vos coordonnées
       </h2>
 
-      <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} />
+      <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} />
 
       <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
         Une fois envoyée, votre commande reste « en attente » jusqu&apos;à la réponse du restaurant.
