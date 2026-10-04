@@ -1,0 +1,135 @@
+/*
+ * Espace restaurateur (refonte du 4 octobre 2026). Réutilise le squelette de l'administration (`ad-*`) ; ce fichier ne contient que ce
+ * qui est propre au restaurateur : la barre de navigation sous le pouce, la pastille de commandes à traiter, les blocs du service.
+ */
+.rc-pastille {
+  margin-left: auto;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--orange);
+  color: var(--encre);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 24px;
+  text-align: center;
+}
+.rc-pastille-coin {
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  margin: 0;
+  background: var(--rouge-fonce);
+  color: #fff;
+}
+.rc-outils {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Barre du bas : téléphone et tablette, sous le pouce */
+.rc-bas {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  background: var(--surface);
+  border-top: 2px solid var(--encre);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+}
+.rc-bas-item {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  color: var(--encre);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.rc-bas-item.actif::before {
+  content: "";
+  position: absolute;
+  inset: 2px 6px;
+  z-index: -1;
+  border-radius: 14px;
+  background: var(--mangue);
+}
+.rc-bas-icone {
+  position: relative;
+  display: inline-flex;
+}
+.console-resto .ad-contenu {
+  padding-bottom: calc(var(--space-8) + 72px);
+}
+@media (min-width: 1024px) {
+  .rc-bas {
+    display: none;
+  }
+  .console-resto .ad-contenu {
+    padding-bottom: var(--space-8);
+  }
+}
+/* Fenêtres basses (zoom, téléphone en paysage) : la barre redevient un bloc en fin de page. */
+@media (max-height: 520px) and (max-width: 1023px) {
+  .rc-bas {
+    position: static;
+  }
+  .console-resto .ad-contenu {
+    padding-bottom: var(--space-8);
+  }
+}
+
+/* Blocs du service (accueil) */
+.rc-service {
+  display: grid;
+  gap: var(--space-4);
+}
+.rc-aTraiter-liste {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rc-commande {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-3);
+  align-items: center;
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--bordure);
+  color: inherit;
+  text-decoration: none;
+}
+.rc-commande:first-child {
+  border-top: 0;
+}
+.rc-commande:hover {
+  background: var(--creme);
+}
+.rc-commande-titre {
+  font-weight: 800;
+}
+.rc-commande-meta {
+  color: var(--secondaire);
+  font-size: 0.88rem;
+}
+.rc-commande-montant {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rc-retard {
+  color: var(--danger);
+  font-weight: 800;
+}

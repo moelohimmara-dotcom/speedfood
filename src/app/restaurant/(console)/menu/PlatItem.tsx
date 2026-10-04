@@ -11,6 +11,11 @@ import {
 import type { LibelleDisponibilite } from "@/lib/disponibilite/etat";
 import { Card, Badge, Button, Input, Alert } from "@/components/ui";
 import { OptionsPlat } from "./OptionsPlat";
+import { Illustration } from "@/components/illustrations/Illustration";
+import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
+import { definirIllustrationRestoAction } from "@/lib/restaurant/illustrations";
+import { illustrationPlat } from "@/lib/illustrations/automatique";
+import type { PALETTES, Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 
 interface Section {
   id: string;
@@ -25,6 +30,7 @@ interface Plat {
   prix_promo: number | null;
   disponible: boolean;
   photo_url: string | null;
+  illustration?: ModeleIllustration | null;
   section_id: string | null;
   options: { id: string; nom: string; prix: number }[];
   /** État de disponibilité tel que les clients le voient (calculé côté serveur). */
@@ -33,7 +39,7 @@ interface Plat {
 
 const etatInitial: EtatFormulaireMenu = {};
 
-export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Section[] }) {
+export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut" }: { plat: Plat; sections?: Section[]; restaurantId: string; famille?: keyof typeof PALETTES }) {
   const [enEdition, setEnEdition] = useState(false);
   const [etat, action, enCours] = useActionState(modifierPlatAction, etatInitial);
   const [enTransition, demarrerTransition] = useTransition();
@@ -139,7 +145,7 @@ export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Secti
             // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
             <img src={plat.photo_url} alt="" />
           ) : (
-            <span className="plat-ligne-initiale">{plat.nom.trim().charAt(0).toLocaleUpperCase("fr") || "?"}</span>
+            <Illustration valeur={plat.illustration ?? illustrationPlat(plat.nom, famille)} nom="" decoratif />
           )}
         </div>
         <div className="plat-ligne-infos">
@@ -212,6 +218,21 @@ export function PlatItem({ plat, sections = [] }: { plat: Plat; sections?: Secti
         </Button>
       </div>
       <OptionsPlat menuItemId={plat.id} options={plat.options} />
+      {plat.photo_url ? null : (
+        <details className="ad-plat-ill rc-illustration">
+          <summary>Illustration du plat</summary>
+          <EditeurIllustration
+            cible="plat"
+            id={plat.id}
+            restaurantId={restaurantId}
+            nom={plat.nom}
+            famille={famille}
+            valeur={plat.illustration ?? null}
+            styles={["pastille", "assiette"]}
+            action={definirIllustrationRestoAction}
+          />
+        </details>
+      )}
     </Card>
   );
 }

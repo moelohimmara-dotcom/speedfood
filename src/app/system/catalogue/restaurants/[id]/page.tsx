@@ -7,10 +7,10 @@ import { PageHeader, Panneau, Pastille, Volet } from "@/components/admin/blocs";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { roleAPermission } from "@/lib/system-admin/permissions";
 import { estElementDeTest } from "@/lib/system-admin/pilotageCalculs";
-import { listerPlatsAdmin } from "@/lib/system-admin/illustrations";
+import { definirIllustrationAction, listerPlatsAdmin } from "@/lib/system-admin/illustrations";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
-import { EditeurIllustration } from "./EditeurIllustration";
+import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
 import { ActionsModeration } from "./ActionsModeration";
 import { GestionEquipe } from "./GestionEquipe";
 
@@ -259,9 +259,9 @@ export default async function RestaurantDetailSystemePage({
                 Elles remplacent la photo tant qu&apos;il n&apos;y en a pas. Une vraie photo téléversée par le restaurateur prend toujours le dessus.
               </p>
               <h3 className="ad-sous-titre">Logo</h3>
-              <EditeurIllustration cible="logo" id={restaurant.id} restaurantId={restaurant.id} nom={restaurant.nom} famille={famille} valeur={dossier?.logoIllustration ?? null} styles={["monogramme", "pastille"]} />
+              <EditeurIllustration cible="logo" id={restaurant.id} restaurantId={restaurant.id} nom={restaurant.nom} famille={famille} valeur={dossier?.logoIllustration ?? null} styles={["monogramme", "pastille"]} action={definirIllustrationAction} />
               <h3 className="ad-sous-titre">Couverture</h3>
-              <EditeurIllustration cible="couverture" id={restaurant.id} restaurantId={restaurant.id} nom={restaurant.nom} famille={famille} valeur={dossier?.couvertureIllustration ?? null} styles={["affiche", "assiette"]} />
+              <EditeurIllustration cible="couverture" id={restaurant.id} restaurantId={restaurant.id} nom={restaurant.nom} famille={famille} valeur={dossier?.couvertureIllustration ?? null} styles={["affiche", "assiette"]} action={definirIllustrationAction} />
               <h3 className="ad-sous-titre">Plats</h3>
               <div className="ad-plats-ill">
                 {plats.length === 0 ? <p className="ad-aide-champ">Aucun plat.</p> : null}
@@ -276,7 +276,7 @@ export default async function RestaurantDetailSystemePage({
                         </small>
                       </span>
                     </summary>
-                    <EditeurIllustration cible="plat" id={plat.id} restaurantId={restaurant.id} nom={plat.nom} famille={famille} valeur={plat.illustration} styles={["pastille", "assiette"]} />
+                    <EditeurIllustration cible="plat" id={plat.id} restaurantId={restaurant.id} nom={plat.nom} famille={famille} valeur={plat.illustration} styles={["pastille", "assiette"]} action={definirIllustrationAction} />
                   </details>
                 ))}
               </div>

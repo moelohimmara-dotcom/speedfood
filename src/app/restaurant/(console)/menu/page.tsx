@@ -6,6 +6,9 @@ import { SectionsMenu } from "./SectionsMenu";
 import { confirmerToutesDisponibilitesAction } from "@/lib/menu/actions";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
+import { validerIllustration } from "@/lib/illustrations/modele";
+import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
+import { PageHeader } from "@/components/admin/blocs";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Mon menu" };
@@ -13,7 +16,7 @@ export const metadata: Metadata = { title: "Mon menu" };
 export default async function MenuPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/menu");
 
-  const [{ data: sections }, { data: plats }, { disponibiliteFraicheurHeures }] = await Promise.all([
+  const [{ data: sections }, { data: plats }, { disponibiliteFraicheurHeures }, { data: restaurantFamille }] = await Promise.all([
     supabase
       .from("menu_sections")
       .select("id, nom")
@@ -22,13 +25,15 @@ export default async function MenuPage() {
     supabase
       .from("menu_items")
       .select(
-        "id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, menu_item_options(id, nom, prix)"
+        "id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, illustration, section_id, menu_item_options(id, nom, prix)"
       )
       .eq("restaurant_id", membership.restaurant_id)
       .is("archive_le", null)
       .order("nom"),
     obtenirParametresApplication(),
+    supabase.from("restaurants").select("menu_categories(nom)").eq("id", membership.restaurant_id).maybeSingle(),
   ]);
+  const famille = familleDepuisCategorie(restaurantFamille?.menu_categories?.nom ?? "");
 
   const sectionsListe = sections ?? [];
   const maintenant = new Date();
@@ -41,6 +46,7 @@ export default async function MenuPage() {
     return {
       ...plat,
       options: plat.menu_item_options ?? [],
+      illustration: validerIllustration(plat.illustration),
       disponibilite: libelleDisponibilite(etat, maintenant),
       aReconfirmer: etat.type === "a_confirmer",
     };
@@ -57,14 +63,11 @@ export default async function MenuPage() {
   const platsSansSection = platsParSection.get(null) ?? [];
 
   return (
-    <div className="tableau">
-      <header className="tableau-entete">
-        <h1>Mon menu</h1>
-        <p className="tableau-sous">
-          {platsListe.length} plat{platsListe.length > 1 ? "s" : ""}
-          {sectionsListe.length > 0 ? ` · ${sectionsListe.length} section${sectionsListe.length > 1 ? "s" : ""}` : ""}
-        </p>
-      </header>
+    <div>
+      <PageHeader
+        titre="Mon menu"
+        description={`${platsListe.length} plat${platsListe.length > 1 ? "s" : ""}${sectionsListe.length > 0 ? ` · ${sectionsListe.length} section${sectionsListe.length > 1 ? "s" : ""}` : ""}`}
+      />
 
       <div className="menu-colonnes">
         <div className="menu-liste">
@@ -96,7 +99,7 @@ export default async function MenuPage() {
       ) : sectionsListe.length === 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {platsListe.map((plat) => (
-            <PlatItem key={plat.id} plat={plat} />
+            <PlatItem key={plat.id} plat={plat} restaurantId={membership.restaurant_id} famille={famille} />
           ))}
         </div>
       ) : (
@@ -111,7 +114,7 @@ export default async function MenuPage() {
                 <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>{section.nom}</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {platsDeSection.map((plat) => (
-                    <PlatItem key={plat.id} plat={plat} sections={sectionsListe} />
+                    <PlatItem key={plat.id} plat={plat} sections={sectionsListe} restaurantId={membership.restaurant_id} famille={famille} />
                   ))}
                 </div>
               </div>
@@ -122,7 +125,7 @@ export default async function MenuPage() {
               <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>Sans section</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {platsSansSection.map((plat) => (
-                  <PlatItem key={plat.id} plat={plat} sections={sectionsListe} />
+                  <PlatItem key={plat.id} plat={plat} sections={sectionsListe} restaurantId={membership.restaurant_id} famille={famille} />
                 ))}
               </div>
             </div>

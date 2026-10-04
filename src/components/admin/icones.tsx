@@ -72,6 +72,12 @@ const CHEMINS: Record<string, React.ReactNode> = {
       <path d="M6.5 7l.9 12.2h9.2L17.5 7M10 11v5M14 11v5" />
     </>
   ),
+  carte: (
+    <>
+      <path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10" />
+      <path d="M17 3c-2 1.5-3 4-3 7h3v11" />
+    </>
+  ),
   boutique: (
     <>
       <path d="M4 10l1.5-5h13L20 10" />

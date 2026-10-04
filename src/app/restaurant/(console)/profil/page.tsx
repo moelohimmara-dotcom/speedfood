@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { Badge, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
+import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
+import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
+import { definirIllustrationRestoAction } from "@/lib/restaurant/illustrations";
+import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
+import { validerIllustration } from "@/lib/illustrations/modele";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { FormulaireProfil } from "./FormulaireProfil";
 import type { Metadata } from "next";
@@ -18,7 +23,7 @@ export default async function ProfilPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude")
+    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, logo_illustration, couverture_illustration, menu_categories(nom)")
     .eq("id", membership.restaurant_id)
     .maybeSingle();
 
@@ -26,18 +31,20 @@ export default async function ProfilPage() {
     return null;
   }
   const { carteActive } = await lireReglagesAssistance();
+  const famille = familleDepuisCategorie(restaurant.menu_categories?.nom ?? "");
 
   return (
-    <div className="tableau">
-      <header className="tableau-entete">
-        <h1>Mon restaurant</h1>
-        <div className="tableau-puces">
-          <Badge ton={restaurant.publie ? "succes" : "neutre"}>
-            {restaurant.publie ? "Publié" : "En attente de validation"}
-          </Badge>
-          <Badge ton={restaurant.ouvert ? "succes" : "danger"}>{restaurant.ouvert ? "Ouvert" : "Fermé"}</Badge>
-        </div>
-      </header>
+    <div>
+      <PageHeader
+        titre="Mon restaurant"
+        description="Ce que vos clients voient : photo, logo, horaires, consignes, paiement."
+        actions={
+          <>
+            <Pastille ton={restaurant.publie ? "succes" : "neutre"}>{restaurant.publie ? "Publié" : "En attente de validation"}</Pastille>
+            <Pastille ton={restaurant.ouvert ? "succes" : "danger"}>{restaurant.ouvert ? "Ouvert" : "Fermé"}</Pastille>
+          </>
+        }
+      />
 
       <div className="profil-colonnes">
         <FormulaireProfil
@@ -74,6 +81,36 @@ export default async function ProfilPage() {
             </p>
           </Card>
         </aside>
+      </div>
+
+      <div style={{ marginTop: "var(--space-5)" }}>
+        <Panneau titre="Illustrations de remplacement">
+          <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+            Elles s&apos;affichent tant que vous n&apos;avez pas ajouté de photo ou de logo. Dès que vous en téléversez un, il prend toujours leur place.
+          </p>
+          <h3 className="ad-sous-titre">Logo</h3>
+          <EditeurIllustration
+            cible="logo"
+            id={membership.restaurant_id}
+            restaurantId={membership.restaurant_id}
+            nom={restaurant.nom}
+            famille={famille}
+            valeur={validerIllustration(restaurant.logo_illustration)}
+            styles={["monogramme", "pastille"]}
+            action={definirIllustrationRestoAction}
+          />
+          <h3 className="ad-sous-titre">Couverture</h3>
+          <EditeurIllustration
+            cible="couverture"
+            id={membership.restaurant_id}
+            restaurantId={membership.restaurant_id}
+            nom={restaurant.nom}
+            famille={famille}
+            valeur={validerIllustration(restaurant.couverture_illustration)}
+            styles={["affiche", "assiette"]}
+            action={definirIllustrationRestoAction}
+          />
+        </Panneau>
       </div>
     </div>
   );

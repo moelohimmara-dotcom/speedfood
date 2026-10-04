@@ -4,7 +4,8 @@ import { ErreurMetier } from "@/lib/contracts/erreurs";
 import type { ApercuCommandeRestaurant } from "@/lib/contracts/commande";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { minutesDepuis, enRetard } from "@/lib/alertes/commandes";
-import { Card, Alert } from "@/components/ui";
+import { Alert } from "@/components/ui";
+import { EtatVide, PageHeader } from "@/components/admin/blocs";
 import { CommandeCarte } from "./CommandeCarte";
 import type { Metadata } from "next";
 
@@ -46,17 +47,16 @@ export default async function CommandesPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-4)" }}>Commandes</h1>
+      <PageHeader titre="Commandes" description="Les nouvelles commandes d'abord, puis celles en cours, puis l'historique." />
 
       {erreurChargement ? (
         <Alert ton="danger">{erreurChargement}</Alert>
       ) : commandes.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>
-            Aucune commande pour l&apos;instant. Vos commandes clients apparaîtront ici dès qu&apos;un
-            client en passera une.
-          </p>
-        </Card>
+        <EtatVide
+          icone="commandes"
+          titre="Aucune commande pour l'instant"
+          texte="Vos commandes clients apparaîtront ici dès qu'un client en passera une."
+        />
       ) : (
         <>
           <section aria-labelledby="titre-a-traiter" className="cmd-section">

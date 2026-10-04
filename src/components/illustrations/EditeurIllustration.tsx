@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { definirIllustrationAction, type EtatActionIllustration } from "@/lib/system-admin/illustrations";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { MOTIFS } from "@/lib/illustrations/motifs";
 import { STYLES, validerIllustration, type Illustration as ModeleIllustration, type StyleIllustration } from "@/lib/illustrations/modele";
@@ -9,7 +8,13 @@ import { illustrationCouverture, illustrationLogo, illustrationPlat } from "@/li
 import type { PALETTES } from "@/lib/illustrations/modele";
 import { Alert, Button } from "@/components/ui";
 
-const etatInitial: EtatActionIllustration = {};
+export interface EtatEditeurIllustration {
+  erreur?: string;
+  succes?: boolean;
+}
+export type ActionIllustration = (precedent: EtatEditeurIllustration, formData: FormData) => Promise<EtatEditeurIllustration>;
+
+const etatInitial: EtatEditeurIllustration = {};
 const GROUPES: { cle: "plat" | "boisson" | "dessert" | "trait"; titre: string }[] = [
   { cle: "plat", titre: "Plats" },
   { cle: "boisson", titre: "Boissons" },
@@ -25,14 +30,16 @@ interface Props {
   famille: keyof typeof PALETTES;
   valeur: ModeleIllustration | null;
   styles: StyleIllustration[];
+  /** Action serveur qui enregistre ou supprime (console admin ou espace restaurateur) : même formulaire, droits différents. */
+  action: ActionIllustration;
 }
 
 /** Éditeur d'une illustration : style, motif, trois couleurs, initiales, aperçu en direct. Aucune saisie libre de SVG. */
-export function EditeurIllustration({ cible, id, restaurantId, nom, famille, valeur, styles }: Props) {
+export function EditeurIllustration({ cible, id, restaurantId, nom, famille, valeur, styles, action: actionServeur }: Props) {
   const auto = () => (cible === "logo" ? illustrationLogo(nom, famille) : cible === "couverture" ? illustrationCouverture(famille) : illustrationPlat(nom, famille));
   const [v, setV] = useState<ModeleIllustration>(valeur ?? auto());
-  const [etat, action, enCours] = useActionState(definirIllustrationAction, etatInitial);
-  const [etatSuppr, actionSuppr, enCoursSuppr] = useActionState(definirIllustrationAction, etatInitial);
+  const [etat, action, enCours] = useActionState(actionServeur, etatInitial);
+  const [etatSuppr, actionSuppr, enCoursSuppr] = useActionState(actionServeur, etatInitial);
   const maj = (cle: keyof ModeleIllustration, x: string) => setV((p) => ({ ...p, [cle]: x, genere: false }));
   const valide = validerIllustration(v) !== null;
   const prefixe = `ill-${cible}-${id}`;

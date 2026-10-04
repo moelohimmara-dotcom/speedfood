@@ -12,6 +12,7 @@ import "./public-pages.css";
 import "./public-info.css";
 import "./public-mouvement.css";
 import "./admin.css";
+import "./console-resto.css";
 import "./console.css";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :
