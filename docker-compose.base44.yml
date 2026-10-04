@@ -1,0 +1,24 @@
+services:
+  web:
+    image: node:22
+    working_dir: /app
+    restart: on-failure
+    # Install deps from the bind-mounted source, then start the dev server.
+    # next dev binds 0.0.0.0:3000 by default in Next 16.
+    command: ["sh", "-ec", "npm install && exec npm run dev"]
+    environment:
+      - BASE44_PUBLIC_HOST_SUFFIX
+    env_file:
+      - ./.env.base44-defaults
+      - /run/base44/app.env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>{if(!r.ok)throw new Error('bad '+r.status)}).catch(e=>{throw e})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s

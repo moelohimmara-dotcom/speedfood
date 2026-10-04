@@ -1,0 +1,22 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/restaurants",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "SUPABASE_SERVICE_ROLE_KEY",
+      "description": "Supabase service-role key for the project at ggldjdizqrtpetdiohxy.supabase.co — server-only, bypasses RLS. Needed for order creation and admin routes. Get it from the Supabase dashboard → Settings → API → service_role key.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "COMMANDE_JETON_SECRET",
+      "description": "Optional HMAC-SHA256 secret for order tracking tokens. Falls back to SUPABASE_SERVICE_ROLE_KEY if absent.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "TURNSTILE_SECRET_KEY",
+      "description": "Optional Cloudflare Turnstile secret key for anti-bot. Disabled when absent. Get it from the Cloudflare dashboard → Turnstile.",
+      "requiredAtBoot": false
+    }
+  ]
+}
