@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { LienRetour } from "@/components/LienRetour";
 import { origineDuSite } from "@/lib/partage/origine";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { BoutonAssistance } from "@/components/BoutonAssistance";
@@ -23,7 +22,7 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   {
     question: "Faut-il un compte ou une application pour commander ?",
     reponse:
-      "Non. Vous choisissez un restaurant et vos plats, puis vous indiquez votre nom et votre numéro de téléphone (et votre adresse si vous demandez une livraison). Aucun compte, aucune application à installer.",
+      "Non. Vous choisissez un restaurant et vos plats, puis vous indiquez votre nom et votre numéro de téléphone (et votre adresse si vous demandez une livraison). Aucune application à installer. Quand la connexion est proposée sur le site, un compte facultatif retient vos coordonnées pour la fois suivante.",
   },
   {
     question: "Comment payer ?",
@@ -80,36 +79,41 @@ export default async function AidePage() {
   };
 
   return (
-    <main className="page-texte">
+    <main className="pub-conteneur pub-rubrique">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\u003c") }}
       />
-      <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
-      <h1>Aide et questions fréquentes</h1>
-      <p className="page-texte-intro">Commander, payer, suivre sa commande : l&apos;essentiel en quelques réponses.</p>
+      <div className="pub-entete-rubrique">
+        <p className="pub-kicker">Aide</p>
+        <h1 className="pub-titre pub-h1-page">
+          Une question ? <span className="pub-surligne">Voilà les réponses.</span>
+        </h1>
+        <p className="pub-accueil-lead">Commander, payer, suivre sa commande : l&apos;essentiel en quelques réponses.</p>
+      </div>
 
-      <div className="faq">
+      <div className="pub-faq">
         {QUESTIONS.map((q) => (
-          <details key={q.question} className="faq-item">
+          <details key={q.question} className="pub-faq-item">
             <summary>{q.question}</summary>
             <p>{q.reponse}</p>
           </details>
         ))}
       </div>
 
-      <p className="page-texte-contact">
-        Une question qui n&apos;est pas ici ? Écrivez à{" "}
-        <a href={`mailto:${CONTACT}`} className="lien-texte">
-          {CONTACT}
-        </a>
-        , en indiquant la référence de votre commande (de la forme SF-XXXXX) si vous en avez une.
-      </p>
-      {whatsapp ? (
-        <div className="page-texte-actions">
-          <BoutonAssistance numero={whatsapp} />
+      <div className="pub-bande-pro">
+        <div>
+          <p className="pub-kicker pub-kicker-encre">Une question qui n&apos;est pas ici ?</p>
+          <p className="pub-accueil-lead pub-lead-encre">
+            Écrivez à{" "}
+            <a href={`mailto:${CONTACT}`} className="lien-texte">
+              {CONTACT}
+            </a>
+            , en indiquant la référence de votre commande (de la forme SF-XXXXX) si vous en avez une.
+          </p>
         </div>
-      ) : null}
+        {whatsapp ? <BoutonAssistance numero={whatsapp} className="pub-btn pub-btn-clair" /> : null}
+      </div>
     </main>
   );
 }

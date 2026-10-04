@@ -1,0 +1,307 @@
+/*
+ * Pages d'information du site public (comment ça marche, quartiers, restaurateurs, aide, à propos), direction B.
+ * Mêmes règles que public.css : aplats, ombres décalées autorisées ici seulement, jamais de rouge sur mangue.
+ */
+.pub-h1-page {
+  margin: 0;
+  font-size: clamp(2.2rem, 6.4vw, 5rem);
+}
+.pub-h3-page {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+}
+.pub-fil {
+  font-size: 0.9rem;
+  color: var(--secondaire);
+}
+.pub-fil a {
+  color: var(--encre);
+  font-weight: 700;
+}
+.pub-vide {
+  margin: 0;
+  padding: var(--space-6);
+  border: var(--pub-trait) dashed var(--encre);
+  border-radius: var(--radius-lg);
+  color: var(--secondaire);
+}
+.pub-deux {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .pub-deux {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+.pub-carte-pad {
+  padding: var(--space-5);
+}
+.pub-carte-pad:hover {
+  transform: none;
+  box-shadow: var(--pub-ombre);
+}
+.pub-liste-simple {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Étapes interactives */
+.pub-etapes-inter {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .pub-etapes-inter {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.pub-etapes-onglets {
+  display: grid;
+  gap: var(--space-3);
+}
+.pub-etape-onglet {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-4);
+  text-align: left;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--encre);
+  font-family: inherit;
+  transition: transform 0.3s var(--ease), background 0.2s;
+}
+.pub-etape-onglet:hover {
+  transform: translateX(4px);
+}
+.pub-etape-onglet[aria-selected="true"] {
+  background: var(--mangue);
+  box-shadow: var(--pub-ombre);
+}
+.pub-etape-onglet strong {
+  display: block;
+  font-family: var(--font-titre);
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+}
+.pub-etape-onglet-texte {
+  display: block;
+  font-size: 0.95rem;
+}
+.pub-etape-onglet-num {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--encre);
+  color: var(--creme);
+  font-weight: 800;
+}
+.pub-etape-progres {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 5px;
+  background: var(--encre);
+  animation: pub-progres 6s linear forwards;
+}
+@keyframes pub-progres {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.pub-etape-panneau {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--pub-ombre-forte);
+  min-height: 320px;
+  align-content: center;
+}
+.pub-etape-panneau h3 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+.pub-etape-panneau p {
+  margin: 0;
+  max-width: 46ch;
+}
+.pub-etape-grand svg {
+  width: min(220px, 60vw);
+  height: auto;
+}
+.pub-liste-sans-js {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: 1.2rem;
+}
+
+/* Foire aux questions */
+.pub-faq {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 820px;
+}
+.pub-faq-item {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.pub-faq-item summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  list-style: none;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.pub-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.pub-faq-item summary::after {
+  content: "+";
+  flex: none;
+  font-family: var(--font-titre);
+  font-size: 1.8rem;
+  line-height: 1;
+  transition: transform 0.3s var(--ease);
+}
+.pub-faq-item[open] summary::after {
+  transform: rotate(45deg);
+}
+.pub-faq-item[open] {
+  background: var(--mangue);
+}
+.pub-faq-item p {
+  margin: 0;
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+/* Restaurateurs */
+.pub-etapes-pro {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pub-etapes-pro li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+.pub-etapes-pro h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-titre);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.pub-etapes-pro p {
+  margin: 0;
+  color: var(--secondaire);
+}
+.pub-check {
+  display: grid;
+  gap: var(--space-3);
+}
+.pub-check-anneau {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  justify-self: center;
+}
+.pub-check-anneau svg {
+  width: 100%;
+  height: 100%;
+}
+.pub-check-anneau strong {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-titre);
+  font-size: 1.9rem;
+}
+.pub-check-arc {
+  transition: stroke-dashoffset 0.7s var(--ease);
+}
+.pub-check-etat {
+  margin: 0;
+  text-align: center;
+  font-weight: 800;
+}
+.pub-check-liste {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pub-check-liste label {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  min-height: 52px;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--bordure);
+  cursor: pointer;
+}
+.pub-check-liste input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--rouge-fonce);
+}
+.pub-check-liste small {
+  display: block;
+  color: var(--secondaire);
+}
+.pub-check-tag {
+  font-size: 0.75rem;
+  color: var(--secondaire);
+  font-weight: 700;
+}
+
+/* À propos */
+.pub-note-pilote {
+  padding: var(--space-4) var(--space-5);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--mangue);
+  font-weight: 700;
+  max-width: 820px;
+}
+.pub-principes {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.pub-principes p {
+  margin: 0;
+}

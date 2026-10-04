@@ -1,267 +1,58 @@
 import Link from "next/link";
-import { SelecteurRole } from "../SelecteurRole";
 
 /**
- * Page d'information « À propos » (ex-accueil marketing ; depuis le 3 octobre 2026 l'accueil réel est la
- * découverte et `/` redirige vers /restaurants). Fusionnée depuis Jarvis/speedfood/landing (voir
- * docs/DEPLOIEMENT-CLOUDFLARE.md pour l'historique de cette fusion). Le vrai
- * catalogue connecté à Supabase (ex-page d'accueil, bloc 5) vit maintenant à
- * /restaurants. Contrairement à l'original, aucun contenu ici ne prétend
- * enregistrer une inscription qui ne serait pas réellement traitée : chaque
- * bouton mène à une action réelle (/inscription, /restaurants).
+ * Page « À propos » (allégée le 4 octobre 2026, direction B). L'ancien argumentaire long, avec ses restaurants d'exemple, est retiré : cette
+ * page ne dit que ce que le produit fait, et renvoie vers les rubriques utiles.
  */
+const PRINCIPES = [
+  { titre: "L'heure à l'appui", texte: "Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Sans confirmation récente, nous écrivons « à confirmer »." },
+  { titre: "Le restaurant garde la main", texte: "Ses prix, ses horaires, sa livraison. Si un montant doit changer, il vous le propose : rien ne part en préparation sans votre accord." },
+  { titre: "Aucun paiement chez nous", texte: "Speedfood n'encaisse rien. Vous réglez directement avec le restaurant." },
+  { titre: "Vos données restent limitées", texte: "Votre numéro n'est visible que du restaurant choisi, et il est effacé quelque temps après la commande. Rien n'est vendu." },
+];
+
 export default function AProposPage() {
   return (
-    <>
-      <div id="bandeau-prelancement" role="status">
-        Speedfood n&apos;est pas encore lancé publiquement à Conakry — projet en phase pilote
+    <main className="pub-conteneur pub-rubrique">
+      <div className="pub-entete-rubrique">
+        <p className="pub-kicker">À propos</p>
+        <h1 className="pub-titre pub-h1-page">
+          Les restaurants de Conakry, <span className="pub-surligne">à portée de téléphone</span>
+        </h1>
+        <p className="pub-accueil-lead">
+          Speedfood aide les habitants de Conakry à trouver un plat, vérifier qu&apos;il est vraiment disponible, et envoyer leur commande au restaurant de leur quartier.
+        </p>
       </div>
 
+      <div className="pub-note-pilote" role="note">
+        Speedfood est en phase pilote à Conakry : Kaloum, Dixinn, Ratoma et Matam d&apos;abord. Vos retours façonnent le produit.
+      </div>
 
-      <main id="haut">
-        <section className="hero">
-          <div className="hero-inner">
-            <span className="eyebrow">Bientôt à Conakry</span>
-            <h1>
-              Vos restaurants préférés,
-              <br />à portée de main.
-            </h1>
-            <p className="hero-sub">
-              Commandez directement auprès des restaurants de Conakry, sans compte ni
-              application à installer. Si le restaurant doit changer un prix ou des frais,
-              vous donnez votre accord avant que la commande parte en préparation.
-            </p>
-            <div className="hero-actions">
-              <Link href="#rejoindre" className="btn btn-primary btn-lg">
-                Je veux être prévenu·e du lancement
-              </Link>
-              <Link href="/restaurants" className="btn btn-secondary btn-lg">
-                Voir les restaurants déjà en ligne
-              </Link>
-            </div>
-            <ul className="check-list hero-check-list">
-              <li>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-                Aucun compte ni application à installer pour commander
-              </li>
-              <li>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-                Le restaurant garde la main sur ses prix, ses horaires et sa livraison
-              </li>
-              <li>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-                Tout changement de montant vous est soumis avant préparation, jamais imposé
-              </li>
-            </ul>
-            <div className="hero-trust">
-              <span aria-hidden="true">
-                <svg className="icon" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 11v5M12 8v.01" />
-                </svg>
-              </span>
-              <span>
-                Projet en phase de validation terrain à Conakry, vos retours façonnent le
-                produit final.
-              </span>
-            </div>
-          </div>
-          <div className="hero-visual-wrap">
-            <span className="badge badge-neutre hero-visual-tag">Aperçu — restaurants d&apos;exemple</span>
-            <div className="hero-visual" aria-hidden="true">
-              <div className="hero-card card-a">
-                <span className="hero-card-icon">
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M4 12h16c0 4.42-3.58 8-8 8s-8-3.58-8-8Z" />
-                    <path d="M12 12V5M9 7l1.5-2M15 7l-1.5-2" />
-                  </svg>
-                </span>
-                <strong>Chez Mama Kadiatou</strong>
-                <span className="meta-line">Riz &amp; sauces · Kaloum</span>
-              </div>
-              <div className="hero-card card-b">
-                <span className="hero-card-icon">
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M12 3c1.5 2 2 3.5 1 5-.7 1-1 1.8-1 2.5A2.5 2.5 0 0 0 14.5 13c1.4 0 2.2-.9 2.5-1.8.8 1.2 1 2.6.6 4A5.5 5.5 0 0 1 6.6 14c-.5-2 .2-3.4 1.2-4.6C9.2 7.7 9 5.3 12 3Z" />
-                  </svg>
-                </span>
-                <strong>Grill Dixinn</strong>
-                <span className="meta-line">Grillades · Dixinn</span>
-              </div>
-              <div className="hero-card card-c">
-                <span className="hero-card-icon">
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z" />
-                    <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" />
-                    <path d="M8 4c0 1-1 1-1 2M12 4c0 1-1 1-1 2" />
-                  </svg>
-                </span>
-                <strong>Café Matam</strong>
-                <span className="meta-line">Petit-déjeuner · Matam</span>
-              </div>
-            </div>
-          </div>
-        </section>
+      <ul className="pub-principes">
+        {PRINCIPES.map((p) => (
+          <li key={p.titre} className="pub-carte pub-carte-pad">
+            <h2 className="pub-titre pub-h3-page">{p.titre}</h2>
+            <p>{p.texte}</p>
+          </li>
+        ))}
+      </ul>
 
-        <section className="strip">
-          <p className="strip-label">
-            Restaurants pilotes envisagés à Conakry <span>(exemples, à confirmer)</span>
-          </p>
-          <ul className="strip-row">
-            <li>
-              <span className="strip-icon" style={{ background: "var(--couleur-riz)" }}>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M4 12h16c0 4.42-3.58 8-8 8s-8-3.58-8-8Z" />
-                  <path d="M12 12V5M9 7l1.5-2M15 7l-1.5-2" />
-                </svg>
-              </span>
-              Chez Mama Kadiatou
-            </li>
-            <li>
-              <span className="strip-icon" style={{ background: "var(--couleur-grill)" }}>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M12 3c1.5 2 2 3.5 1 5-.7 1-1 1.8-1 2.5A2.5 2.5 0 0 0 14.5 13c1.4 0 2.2-.9 2.5-1.8.8 1.2 1 2.6.6 4A5.5 5.5 0 0 1 6.6 14c-.5-2 .2-3.4 1.2-4.6C9.2 7.7 9 5.3 12 3Z" />
-                </svg>
-              </span>
-              Grill Dixinn
-            </li>
-            <li>
-              <span className="strip-icon" style={{ background: "var(--couleur-fast)" }}>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M4 10a8 8 0 0 1 16 0Z" />
-                  <path d="M3.5 10h17M4 14h16M5 18h14" />
-                </svg>
-              </span>
-              Speedy Snack
-            </li>
-            <li>
-              <span className="strip-icon" style={{ background: "var(--couleur-cafe)" }}>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z" />
-                  <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" />
-                  <path d="M8 4c0 1-1 1-1 2M12 4c0 1-1 1-1 2" />
-                </svg>
-              </span>
-              Café Matam
-            </li>
-          </ul>
-        </section>
-
-        <section id="comment-ca-marche" className="section">
-          <h2>Comment ça marche</h2>
-          <p className="section-sub">
-            Sans compte ni application à installer — juste un navigateur, sur téléphone ou
-            ordinateur.
-          </p>
-          <div className="steps">
-            <div className="step">
-              <div className="step-num">1</div>
-              <h3>Découvrez</h3>
-              <p>
-                Parcourez les restaurants ouverts près de chez vous, filtrez par quartier ou par
-                type de plat.
-              </p>
-            </div>
-            <div className="step">
-              <div className="step-num">2</div>
-              <h3>Commandez</h3>
-              <p>
-                Choisissez vos plats, indiquez retrait ou livraison, envoyez votre demande en
-                quelques secondes.
-              </p>
-            </div>
-            <div className="step">
-              <div className="step-num">3</div>
-              <h3>Vous validez</h3>
-              <p>
-                Le restaurant confirme votre commande. S&apos;il doit changer un prix, des frais
-                ou un délai, il vous propose la nouvelle version et rien n&apos;est préparé sans
-                votre accord.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section id="restaurateurs" className="section section-alt">
-          <div className="two-col">
-            <div>
-              <span className="eyebrow">Pour les restaurateurs</span>
-              <h2>Gérez vos commandes sans effort technique.</h2>
-              <ul className="check-list">
-                <li>
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Une console simple pensée pour un téléphone, pas un ordinateur
-                </li>
-                <li>
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Vous gardez la main sur vos prix, vos horaires et vos plats disponibles
-                </li>
-                <li>
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Gratuit pendant la phase pilote
-                </li>
-                <li>
-                  <svg className="icon" viewBox="0 0 24 24">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Vous acceptez ou refusez chaque commande, rien n&apos;est automatique
-                </li>
-              </ul>
-              <Link href="/inscription" className="btn btn-primary">
-                Inscrire mon restaurant
-              </Link>
-            </div>
-            <div className="mockup-card" aria-hidden="true">
-              <div className="mockup-header">Espace restaurant</div>
-              <div className="mockup-row">
-                <span>SF-4KVB9 · Client exemple</span>
-                <span className="badge badge-demo">En attente</span>
-              </div>
-              <div className="mockup-row">
-                <span>1 × Riz gras au poisson</span>
-              </div>
-              <div className="mockup-actions">
-                <span className="btn btn-primary btn-sm">Accepter</span>
-                <span className="btn btn-danger btn-sm">Refuser</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section">
-          <h2>Le lancement démarre à Conakry</h2>
-          <p className="section-sub">
-            Le pilote se concentre d&apos;abord sur un petit groupe de quartiers pour bien faire
-            les choses avant d&apos;aller plus loin.
-          </p>
-          <div className="chip-row centered">
-            <span className="chip static">Kaloum</span>
-            <span className="chip static">Dixinn</span>
-            <span className="chip static">Ratoma</span>
-            <span className="chip static">Matam</span>
-          </div>
-        </section>
-
-        <section id="rejoindre" className="section section-cta">
-          <div className="cta-box">
-            <h2>Rejoindre Speedfood</h2>
-            <p className="section-sub">Choisissez ce qui vous correspond.</p>
-            <SelecteurRole />
-          </div>
-        </section>
-      </main>
-    </>
+      <div className="pub-accueil-actions">
+        <Link href="/comment-ca-marche" className="pub-btn">
+          Comment ça marche
+          <span className="pub-btn-point" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </Link>
+        <Link href="/devenir-partenaire" className="pub-btn pub-btn-clair">
+          Je suis restaurateur
+        </Link>
+        <Link href="/confidentialite" className="pub-btn pub-btn-clair">
+          Confidentialité
+        </Link>
+      </div>
+    </main>
   );
 }

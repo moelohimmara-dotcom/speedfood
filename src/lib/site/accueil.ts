@@ -97,3 +97,21 @@ export async function lireAccueil(): Promise<DonneesAccueil> {
     suggestions: choisirSuggestions(c.restaurants, c.platsParRestaurant),
   };
 }
+
+export interface DonneesQuartier {
+  erreur: boolean;
+  quartier: QuartierResume | null;
+  restaurants: RestaurantCatalogue[];
+  platsParRestaurant: Map<string, PlatPublic[]>;
+}
+
+/** Restaurants publiés d'un quartier (par identifiant d'URL). `quartier` est `null` si aucun restaurant publié n'y est rattaché. */
+export async function lireQuartier(slug: string): Promise<DonneesQuartier> {
+  const c = await lireCatalogue();
+  if (c.erreur) {
+    return { erreur: true, quartier: null, restaurants: [], platsParRestaurant: new Map() };
+  }
+  const restaurants = c.restaurants.filter((r) => r.quartier && slugQuartier(r.quartier) === slug);
+  const quartier = resumerQuartiers(restaurants)[0] ?? null;
+  return { erreur: false, quartier, restaurants, platsParRestaurant: c.platsParRestaurant };
+}

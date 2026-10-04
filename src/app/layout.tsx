@@ -9,6 +9,7 @@ import "./marche.css";
 import "./cadre.css";
 import "./public.css";
 import "./public-pages.css";
+import "./public-info.css";
 import "./admin.css";
 import "./console.css";
 
