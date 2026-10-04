@@ -74,9 +74,6 @@
   padding: 8px 8px 8px 10px;
   border-radius: var(--radius-pill);
   background: var(--gradient-marque);
-  /* Agrandi et calé à droite : la zone du texte blanc reste dans le rouge (contraste AA), l'orange n'apparaît qu'en bord de barre. */
-  background-size: 220% 100%;
-  background-position: 100% 0;
   color: #fff;
   font-weight: 800;
   text-decoration: none;

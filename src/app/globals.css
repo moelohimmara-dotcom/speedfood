@@ -20,7 +20,9 @@
   --danger-fond: #fbeaea;
 
   /* Réservé à l'action principale (bouton, barre de panier) — voir DESIGN-SYSTEM.md */
-  --gradient-marque: linear-gradient(135deg, #ff7a1a 0%, #d9362b 60%);
+  /* Contraste du texte blanc sur TOUT le dégradé : de 4,56 : 1 (extrémité orange) à 6,19 : 1 (extrémité rouge), AA partout.
+     L'ancien départ #ff7a1a ne valait que 2,6 : 1 (audit du 4 octobre 2026, M1, option A choisie par Malika). */
+  --gradient-marque: linear-gradient(135deg, #d4430f 0%, #b82a20 70%);
 
   --couleur-riz: var(--rouge);
   --couleur-grill: var(--orange);
