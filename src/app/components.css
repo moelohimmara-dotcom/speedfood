@@ -195,10 +195,12 @@
 }
 
 /* Lien de texte reconnaissable (connexion, inscription) : couleur d'action, souligné, zone tactile de 44 px. */
+/* Lien dans une phrase : la zone tactile de 44 px vient du remplissage vertical, compensé par une marge négative,
+   pour ne pas agrandir l'interligne (un `min-height` sur un lien en ligne creusait la ligne qui le porte). */
 .lien-texte {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
+  display: inline;
+  padding: 12px 0;
+  margin: -12px 0;
   color: var(--rouge-fonce);
   font-weight: 700;
   text-decoration: underline;

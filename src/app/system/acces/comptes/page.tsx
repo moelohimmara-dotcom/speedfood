@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
-import { roleAPermission, sousSectionsAccessibles } from "@/lib/system-admin/permissions";
+import { LIBELLES_ROLES, roleAPermission, sousSectionsAccessibles, type RoleSysteme } from "@/lib/system-admin/permissions";
 import { SuppressionCompte } from "./SuppressionCompte";
+import { BarreSelectionGroupee, CaseCompte, CaseToutSelectionner } from "./SelectionGroupee";
+import { estCompteDeTest } from "@/lib/system-admin/comptesTest";
 import {
   listerComptesAnnuaire,
   type TypeCompteAnnuaire,
@@ -27,10 +29,15 @@ const ORDRE_FILTRES: TypeCompteAnnuaire[] = [
   "sans_affiliation",
 ];
 
+/** Filtre supplémentaire, propre à cet écran : les comptes qui ressemblent à des comptes de test (voir `comptesTest.ts`). */
+const FILTRE_TEST = "test";
+
 interface Recherche {
   q?: string;
   type?: string;
   supprime?: string;
+  n?: string;
+  refus?: string;
   rs?: string;
   rc?: string;
 }
@@ -50,14 +57,21 @@ export default async function ComptesSystemePage({
   const contexte = await exigerPermissionPage("compte.consulter");
   const peutSupprimer = roleAPermission(contexte.role, "compte.supprimer");
 
-  const { q, type: typeBrut, supprime, rs, rc } = await searchParams;
+  const { q, type: typeBrut, supprime, rs, rc, n, refus } = await searchParams;
+  const comptesSupprimes = Number.parseInt(n ?? "", 10);
+  const comptesRefuses = Number.parseInt(refus ?? "0", 10) || 0;
+  const filtreTest = typeBrut === FILTRE_TEST;
   const restaurantsSupprimes = Number.parseInt(rs ?? "0", 10) || 0;
   const restaurantsConserves = Number.parseInt(rc ?? "0", 10) || 0;
   const type: TypeCompteAnnuaire = ORDRE_FILTRES.includes(typeBrut as TypeCompteAnnuaire)
     ? (typeBrut as TypeCompteAnnuaire)
     : "tous";
 
-  const { comptes, tronque } = await listerComptesAnnuaire({ q, type });
+  const { comptes: tousLesComptes, tronque } = await listerComptesAnnuaire({ q, type });
+  const comptes = filtreTest ? tousLesComptes.filter((c) => estCompteDeTest(c.email)) : tousLesComptes;
+  const estSupprimable = (c: (typeof comptes)[number]) =>
+    peutSupprimer && c.utilisateurId !== contexte.utilisateurId && c.roleSysteme !== "super_admin";
+  const nombreSupprimables = comptes.filter(estSupprimable).length;
 
   return (
     <div>
@@ -77,7 +91,12 @@ export default async function ComptesSystemePage({
 
       {supprime === "1" ? (
         <Alert ton="succes" style={{ marginBottom: "var(--space-4)" }}>
-          Compte supprimé définitivement.
+          {Number.isFinite(comptesSupprimes) && comptesSupprimes !== 1
+            ? `${comptesSupprimes} comptes supprimés définitivement.`
+            : "Compte supprimé définitivement."}
+          {comptesRefuses > 0
+            ? ` ${comptesRefuses} compte(s) refusé(s) : votre propre compte, un super administrateur ou une erreur. Rien n'a été supprimé pour ceux-là.`
+            : ""}
           {restaurantsSupprimes > 0 ? ` ${restaurantsSupprimes} restaurant(s) supprimé(s).` : ""}
           {restaurantsConserves > 0
             ? ` ${restaurantsConserves} restaurant(s) conservé(s) sans membre (commandes existantes, ou suppression non demandée).`
@@ -102,17 +121,25 @@ export default async function ComptesSystemePage({
             if (q) params.set("q", q);
             if (valeur !== "tous") params.set("type", valeur);
             const chaine = params.toString();
+            const actif = !filtreTest && type === valeur;
             return (
               <Link
                 key={valeur}
                 href={chaine ? `/system/acces/comptes?${chaine}` : "/system/acces/comptes"}
-                className={`chip ${type === valeur ? "actif" : ""}`}
-                aria-current={type === valeur ? "true" : undefined}
+                className={`chip ${actif ? "actif" : ""}`}
+                aria-current={actif ? "true" : undefined}
               >
                 {LIBELLES_FILTRE[valeur]}
               </Link>
             );
           })}
+          <Link
+            href={`/system/acces/comptes?${new URLSearchParams({ ...(q ? { q } : {}), type: FILTRE_TEST }).toString()}`}
+            className={`chip ${filtreTest ? "actif" : ""}`}
+            aria-current={filtreTest ? "true" : undefined}
+          >
+            Comptes de test
+          </Link>
         </div>
       </div>
 
@@ -137,7 +164,12 @@ export default async function ComptesSystemePage({
               <caption className="sr-only">Comptes utilisateurs</caption>
               <thead>
                 <tr>
-                  <th scope="col">Compte</th>
+                  <th scope="col">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {nombreSupprimables > 0 ? <CaseToutSelectionner /> : null}
+                      Compte
+                    </span>
+                  </th>
                   <th scope="col">Accès</th>
                   <th scope="col">Créé le</th>
                   <th scope="col">Actions</th>
@@ -147,44 +179,43 @@ export default async function ComptesSystemePage({
                 {comptes.map((compte) => (
                   <tr key={compte.utilisateurId}>
                     <td className="ad-cellule-principale" data-label="Compte" style={{ overflowWrap: "anywhere" }}>
-                      <span style={{ fontWeight: 800 }}>{compte.email}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        {estSupprimable(compte) ? <CaseCompte utilisateurId={compte.utilisateurId} email={compte.email} /> : null}
+                        <span style={{ fontWeight: 800 }}>{compte.email}</span>
+                      </span>
                     </td>
                     <td data-label="Accès">
-                      <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
-                        <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {compte.roleSysteme ? <Pastille ton="succes">{compte.roleSysteme}</Pastille> : null}
-                          {compte.restaurants.length > 0 ? (
-                            <Pastille ton="neutre">
-                              {compte.restaurants.length} restaurant{compte.restaurants.length > 1 ? "s" : ""}
-                            </Pastille>
-                          ) : null}
-                          {compte.roleSysteme === null && compte.restaurants.length === 0 ? <Pastille ton="neutre">Sans affiliation</Pastille> : null}
-                        </span>
-                        {compte.restaurants.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.85rem", textAlign: "left" }}>
-                            {compte.restaurants.map((affiliation) => (
-                              <li key={affiliation.restaurantId}>
-                                <Link href={`/system/catalogue/restaurants/${affiliation.restaurantId}`} className="lien-texte">
-                                  {affiliation.nom}
-                                </Link>
-                                {" : "}
-                                {affiliation.role === "owner" ? "propriétaire" : "équipier"}
-                              </li>
-                            ))}
-                          </ul>
+                      <div style={{ display: "grid", gap: 4, justifyItems: "start", textAlign: "left" }}>
+                        {compte.roleSysteme ? (
+                          <Pastille ton="succes">{LIBELLES_ROLES[compte.roleSysteme as RoleSysteme] ?? compte.roleSysteme}</Pastille>
                         ) : null}
+                        {compte.restaurants.map((affiliation) => (
+                          <span key={affiliation.restaurantId} style={{ fontSize: "0.88rem" }}>
+                            {affiliation.role === "owner" ? "Propriétaire" : "Équipier"} de{" "}
+                            <Link href={`/system/catalogue/restaurants/${affiliation.restaurantId}`} className="lien-texte">
+                              {affiliation.nom}
+                            </Link>
+                          </span>
+                        ))}
+                        {compte.roleSysteme === null && compte.restaurants.length === 0 ? <Pastille ton="neutre">Sans affiliation</Pastille> : null}
                       </div>
                     </td>
                     <td className="ad-secondaire" data-label="Créé le" style={{ whiteSpace: "nowrap" }}>
                       {formaterDateCourte(compte.creeLe)}
                     </td>
                     <td data-label="Actions">
-                      {peutSupprimer && compte.utilisateurId !== contexte.utilisateurId && compte.roleSysteme !== "super_admin" ? (
+                      {estSupprimable(compte) ? (
                         <SuppressionCompte
                           utilisateurId={compte.utilisateurId}
                           email={compte.email}
                           nombreRestaurants={compte.restaurants.length}
                         />
+                      ) : compte.utilisateurId === contexte.utilisateurId ? (
+                        <Pastille ton="neutre">Vous</Pastille>
+                      ) : compte.roleSysteme === "super_admin" ? (
+                        <span className="ad-secondaire" style={{ fontSize: "0.82rem" }}>
+                          Retirez d&apos;abord son rôle
+                        </span>
                       ) : (
                         <span className="ad-secondaire">—</span>
                       )}
@@ -194,6 +225,7 @@ export default async function ComptesSystemePage({
               </tbody>
             </table>
           </div>
+          {nombreSupprimables > 0 ? <BarreSelectionGroupee /> : null}
         </>
       )}
     </div>

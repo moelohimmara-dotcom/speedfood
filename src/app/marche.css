@@ -743,9 +743,9 @@
   cursor: pointer;
 }
 .consentement a {
-  display: inline-block;
-  min-height: 44px;
-  line-height: 44px;
+  display: inline;
+  padding: 12px 0;
+  margin: -12px 0;
   font-weight: 700;
 }
 

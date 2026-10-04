@@ -42,6 +42,7 @@ export function GestionEquipe({
               <Button
                 type="button"
                 variante="danger"
+          className="ad-action-discrete"
                 disabled={enTransition}
                 onClick={() => {
                   if (confirm(`Retirer ${m.email} de l'équipe de ce restaurant ?`)) {

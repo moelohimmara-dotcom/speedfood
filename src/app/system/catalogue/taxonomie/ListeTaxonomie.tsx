@@ -87,6 +87,7 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
         <Button
           type="button"
           variante="danger"
+          className="ad-action-discrete"
           disabled={enTransition}
           onClick={() => {
             if (confirm(`Supprimer « ${element.nom} » ?`)) {

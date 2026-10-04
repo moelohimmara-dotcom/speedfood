@@ -66,6 +66,12 @@ const CHEMINS: Record<string, React.ReactNode> = {
       <path d="M14 8l4 4-4 4M18 12H9" />
     </>
   ),
+  corbeille: (
+    <>
+      <path d="M4.5 7h15M9.5 7V4.8h5V7" />
+      <path d="M6.5 7l.9 12.2h9.2L17.5 7M10 11v5M14 11v5" />
+    </>
+  ),
   boutique: (
     <>
       <path d="M4 10l1.5-5h13L20 10" />

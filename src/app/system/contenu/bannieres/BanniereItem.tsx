@@ -47,6 +47,7 @@ export function BanniereItem({ banniere }: { banniere: Banniere }) {
         <Button
           type="button"
           variante="danger"
+          className="ad-action-discrete"
           disabled={enTransition}
           onClick={() => {
             if (confirm(`Supprimer la bannière « ${banniere.titre} » ?`)) {

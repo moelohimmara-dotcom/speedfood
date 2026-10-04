@@ -33,3 +33,38 @@ export const ACTIONS_AUDIT_CONNUES = [
   "systeme.retrait_role",
   "parametres.modification",
 ] as const;
+
+/** Libellés lisibles des identifiants d'action (affichés à la place du code technique ; repli : le code lui-même). */
+export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
+  "restaurant.approbation": "Restaurant approuvé",
+  "restaurant.demande_correction": "Correction demandée à un restaurant",
+  "restaurant.suspension": "Restaurant suspendu",
+  "restaurant.reactivation": "Restaurant réactivé",
+  "compte.invitation": "Membre ajouté à une équipe",
+  "compte.revocation": "Membre retiré d'une équipe",
+  "compte.suppression": "Compte supprimé",
+  "taxonomie.creation": "Catégorie ou quartier créé",
+  "taxonomie.modification": "Catégorie ou quartier modifié",
+  "taxonomie.suppression": "Catégorie ou quartier supprimé",
+  "contenu.page_creation": "Page créée",
+  "contenu.page_modification": "Page modifiée",
+  "contenu.page_publication": "Page publiée",
+  "contenu.page_depublication": "Page dépubliée",
+  "contenu.banniere_creation": "Bannière créée",
+  "contenu.banniere_publication": "Bannière publiée",
+  "contenu.banniere_depublication": "Bannière dépubliée",
+  "contenu.banniere_suppression": "Bannière supprimée",
+  "mise_en_avant.creation": "Mise en avant ajoutée",
+  "mise_en_avant.activation": "Mise en avant activée",
+  "mise_en_avant.desactivation": "Mise en avant désactivée",
+  "mise_en_avant.suppression": "Mise en avant retirée",
+  "coordonnees.revelation": "Coordonnées d'un client révélées",
+  "commande.support_transition": "Statut d'une commande modifié par le support",
+  "systeme.attribution_role": "Rôle système attribué",
+  "systeme.retrait_role": "Rôle système retiré",
+  "parametres.modification": "Paramètres modifiés",
+};
+
+export function libelleActionAudit(action: string): string {
+  return LIBELLES_ACTIONS_AUDIT[action] ?? action;
+}

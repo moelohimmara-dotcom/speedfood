@@ -5,6 +5,7 @@ import { formaterDelaiValidation, lienWhatsAppAssistance, liensCarte } from "../
 import { AVATARS, emojiAvatar, estAvatarValide, genererPseudo, validerPseudo } from "../../src/lib/client/profil";
 import { validerCoordonnees } from "../../src/lib/client/coordonnees";
 import { normaliserTelephone } from "../../src/lib/commande/telephone";
+import { estCompteDeTest } from "../../src/lib/system-admin/comptesTest";
 import { fusionnerPromesse, PROMESSE_PAR_DEFAUT } from "../../src/lib/parametres/promesse-defauts";
 
 let ko = 0;
@@ -102,6 +103,16 @@ verifier("nom trop court refusé", validerCoordonnees({ nom: "A", telephone: "62
 verifier("téléphone invalide refusé", validerCoordonnees({ nom: "Mariama", telephone: "12345", adresse: null }).ok, false);
 verifier("adresse trop courte refusée", validerCoordonnees({ nom: "Mariama", telephone: "622123456", adresse: "abc" }).ok, false);
 verifier("adresse trop longue refusée", validerCoordonnees({ nom: "Mariama", telephone: "622123456", adresse: "a".repeat(301) }).ok, false);
+
+// Détection des comptes de test (aide au nettoyage)
+verifier("test : bloc8b-ops-test", estCompteDeTest("bloc8b-ops-test@gmail.com"), true);
+verifier("test : bloc8b-recheck-admin", estCompteDeTest("bloc8b-recheck-admin@gmail.com"), true);
+verifier("test : domaine example.com", estCompteDeTest("test-systeme-bloc8a-redacteur@example.com"), true);
+verifier("test : essai", estCompteDeTest("essai-push@gmail.com"), true);
+verifier("pas test : compte réel", estCompteDeTest("moelohimmara@gmail.com"), false);
+verifier("pas test : admin.speedfood.dev", estCompteDeTest("admin.speedfood.dev@gmail.com"), false);
+verifier("pas test : « contest » n'est pas « test »", estCompteDeTest("contestataire@gmail.com"), false);
+verifier("pas test : vide", estCompteDeTest(null), false);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

@@ -1,6 +1,6 @@
 "use client";
 
-import { ACTIONS_AUDIT_CONNUES } from "@/lib/system-admin/actionsAuditConnues";
+import { ACTIONS_AUDIT_CONNUES, libelleActionAudit } from "@/lib/system-admin/actionsAuditConnues";
 
 const PERIODES = [
   { valeur: undefined, libelle: "Tout l'historique" },
@@ -24,7 +24,7 @@ export function FiltresJournal({
           <option value="">Toutes les actions</option>
           {ACTIONS_AUDIT_CONNUES.map((a) => (
             <option key={a} value={a}>
-              {a}
+              {libelleActionAudit(a)}
             </option>
           ))}
         </select>

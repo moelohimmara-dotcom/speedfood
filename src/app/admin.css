@@ -515,6 +515,8 @@ a.ad-tuile-lien:hover {
   margin: 0 0 var(--space-5);
   padding: 0;
   overflow-x: auto;
+  /* Le trait de l'onglet actif dépasse d'un pixel : sans ceci, une barre de défilement verticale parasite apparaît. */
+  overflow-y: hidden;
   border-bottom: 1px solid var(--bordure);
   list-style: none;
   scrollbar-width: thin;
@@ -724,6 +726,7 @@ a.ad-tuile-lien:hover {
   }
   .ad-table td.ad-cellule-principale {
     justify-content: flex-start;
+    text-align: left;
     padding-bottom: 6px;
     font-size: 1.02rem;
   }
@@ -863,4 +866,110 @@ a.ad-tuile-lien:hover {
 html:has(.ad-app),
 body:has(.ad-app) {
   overflow-x: clip;
+}
+
+/* --- Barre latérale compacte quand l'écran est bas ou que le pointeur est précis (souris) --- */
+@media (min-width: 1024px) and (pointer: fine) {
+  .ad-nav-lien,
+  .ad-lien-bas {
+    min-height: 40px;
+  }
+}
+@media (min-width: 1024px) and (max-height: 860px) {
+  .ad-lateral-interieur {
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+  .ad-nav-lien,
+  .ad-lien-bas {
+    min-height: 38px;
+  }
+}
+
+/* --- Actions destructrices discrètes dans les tableaux : le style d'alerte fort est réservé à la confirmation --- */
+.ad-table .btn-danger,
+.ad-action-discrete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--danger);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ad-table .btn-danger:hover:not(:disabled),
+.ad-action-discrete:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-fond);
+}
+
+/* --- Fenêtre de confirmation (dialog natif) --- */
+.ad-dialogue {
+  width: min(92vw, 520px);
+  max-height: 90dvh;
+  padding: 0;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: var(--shadow-lg);
+}
+.ad-dialogue::backdrop {
+  background: rgba(43, 33, 29, 0.55);
+}
+.ad-dialogue-corps {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+.ad-dialogue-corps h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.ad-dialogue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* --- Sélection groupée de comptes --- */
+.ad-case-ligne {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px -12px -12px -16px;
+  cursor: pointer;
+}
+.ad-case-ligne input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--rouge-fonce);
+}
+.ad-barre-selection {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+@media (max-width: 719px) {
+  .ad-case-ligne {
+    margin: 0;
+    justify-self: start;
+  }
 }

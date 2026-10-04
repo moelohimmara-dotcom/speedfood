@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Panneau } from "@/components/admin/blocs";
 import { IconeAdmin } from "@/components/admin/icones";
+import { libelleActionAudit } from "@/lib/system-admin/actionsAuditConnues";
 import { formaterDateCourte } from "./formatage";
 
 /**
@@ -37,7 +38,7 @@ export function ActiviteRecente({ evenements }: { evenements: LigneActivite[] })
             <li key={evenement.id}>
               <Link href={`/system/audit?action=${encodeURIComponent(evenement.action)}`} className="ad-liste-lien">
                 <span className="ad-liste-texte">
-                  <span className="ad-liste-titre">{evenement.action}</span>
+                  <span className="ad-liste-titre">{libelleActionAudit(evenement.action)}</span>
                   <span className="ad-liste-meta">
                     {evenement.cibleType} · {formaterDateCourte(evenement.horodatage)}
                     {evenement.acteurEmail ? ` · ${evenement.acteurEmail}` : ""}

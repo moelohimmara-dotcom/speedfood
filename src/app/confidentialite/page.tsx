@@ -86,7 +86,7 @@ export default async function ConfidentialitePage() {
         Vous pouvez demander à voir, corriger ou effacer vos informations, à tout moment, en écrivant à{" "}
         {/* Lien en pleine phrase : la marge verticale n'agrandit pas la ligne, mais porte la
             zone tactile à 44 px (WCAG 2.5.5, exception « lien en ligne »). */}
-        <a href={`mailto:${CONTACT}`} style={{ fontWeight: 700, padding: "11px 0" }}>
+        <a href={`mailto:${CONTACT}`} className="lien-texte">
           {CONTACT}
         </a>
         . Nous répondons sous 30 jours. Pour aller plus vite, indiquez la référence de votre commande (de la forme SF-XXXXX).

@@ -1,6 +1,7 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { listerJournalAudit, obtenirIndicateurs } from "@/lib/system-admin/journalAudit";
 import { EtatVide, PageHeader, Tuile } from "@/components/admin/blocs";
+import { libelleActionAudit } from "@/lib/system-admin/actionsAuditConnues";
 import { FiltresJournal } from "./FiltresJournal";
 
 export const metadata = { title: "Journal d'audit (administration)" };
@@ -63,8 +64,8 @@ export default async function AuditSystemePage({
                     <td className="ad-secondaire" data-label="Date" style={{ whiteSpace: "nowrap" }}>
                       {new Date(entree.horodatage).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
                     </td>
-                    <td className="ad-nombre" data-label="Action">
-                      {entree.action}
+                    <td className="ad-nombre" data-label="Action" title={entree.action}>
+                      {libelleActionAudit(entree.action)}
                     </td>
                     <td className="ad-secondaire" data-label="Auteur">
                       {entree.acteurEmail ?? "acteur inconnu"}

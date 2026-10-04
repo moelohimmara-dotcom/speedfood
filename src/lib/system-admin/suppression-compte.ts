@@ -87,3 +87,74 @@ export async function supprimerCompteAction(
   });
   redirect(`/system/acces/comptes?${params.toString()}`);
 }
+
+const LIMITE_SUPPRESSION_GROUPEE = 50;
+
+/**
+ * Suppression groupée (nettoyage de comptes de test). Mêmes garde-fous que la suppression d'un compte, appliqués compte
+ * par compte : permission `compte.supprimer`, motif écrit, mot « SUPPRIMER » retapé, jamais son propre compte ni un
+ * super_admin (refus par la base), restaurants conservés s'ils ont des commandes ou d'autres membres, trace d'audit pour
+ * chaque compte. Au plus 50 comptes par envoi. Un compte refusé n'arrête pas les autres : le résultat donne les nombres.
+ */
+export async function supprimerComptesAction(
+  _etatPrecedent: EtatSuppressionCompte,
+  formData: FormData
+): Promise<EtatSuppressionCompte> {
+  const identifiants = Array.from(new Set(formData.getAll("utilisateur_id").map(String).filter(estUuid)));
+  const confirmation = String(formData.get("confirmation") ?? "").trim();
+  const motif = String(formData.get("motif") ?? "").trim();
+  const supprimerRestaurants = formData.get("supprimer_restaurants") === "on";
+
+  if (identifiants.length === 0) {
+    return { erreur: "Cochez au moins un compte." };
+  }
+  if (identifiants.length > LIMITE_SUPPRESSION_GROUPEE) {
+    return { erreur: `Au plus ${LIMITE_SUPPRESSION_GROUPEE} comptes à la fois : décochez-en quelques-uns.` };
+  }
+  if (!motif || motif.length > 500) {
+    return { erreur: "Indiquez un motif (500 caractères au plus), par exemple « comptes de test »." };
+  }
+  if (confirmation !== "SUPPRIMER") {
+    return { erreur: "Tapez le mot SUPPRIMER en majuscules pour confirmer : rien n'a été supprimé." };
+  }
+
+  await verifierPermission("compte.supprimer");
+
+  const admin = creerClientAdmin();
+  const supabase = await creerClientServeur();
+  let supprimes = 0;
+  let refuses = 0;
+  let restaurantsSupprimes = 0;
+  let restaurantsConserves = 0;
+
+  for (const utilisateurId of identifiants) {
+    const { data, error } = await supabase.rpc("fn_preparer_suppression_compte", {
+      p_utilisateur: utilisateurId,
+      p_supprimer_restaurants: supprimerRestaurants,
+      p_motif: motif,
+    });
+    if (error) {
+      refuses += 1;
+      continue;
+    }
+    const { error: erreurSuppression } = await admin.auth.admin.deleteUser(utilisateurId);
+    if (erreurSuppression) {
+      refuses += 1;
+      continue;
+    }
+    supprimes += 1;
+    const resume = data as { restaurants_supprimes?: number; restaurants_conserves?: number } | null;
+    restaurantsSupprimes += resume?.restaurants_supprimes ?? 0;
+    restaurantsConserves += resume?.restaurants_conserves ?? 0;
+  }
+
+  revalidatePath("/system/acces/comptes");
+  const params = new URLSearchParams({
+    supprime: "1",
+    n: String(supprimes),
+    refus: String(refuses),
+    rs: String(restaurantsSupprimes),
+    rc: String(restaurantsConserves),
+  });
+  redirect(`/system/acces/comptes?${params.toString()}`);
+}
