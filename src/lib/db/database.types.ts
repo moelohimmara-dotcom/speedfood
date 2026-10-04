@@ -875,6 +875,14 @@ export type Database = {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
         Returns: undefined
       }
+      fn_reinitialisation_simuler: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      fn_reinitialiser_application: {
+        Args: { p_jeton: string; p_motif: string }
+        Returns: Json
+      }
       fn_admin_lister_plats: {
         Args: { p_restaurant: string }
         Returns: { id: string; nom: string; prix: number; photo_url: string | null; illustration: Json | null }[]

@@ -1,3 +1,4 @@
+import { PHRASE_REINITIALISATION, validerDemande } from "../../src/lib/system-admin/reinitialisationRegles";
 import { familleDepuisCategorie, illustrationLogo, illustrationPlat, motifPourPlat } from "../../src/lib/illustrations/automatique";
 import { MOTIFS } from "../../src/lib/illustrations/motifs";
 import { ICONES } from "../../src/lib/illustrations/icones.generated";
@@ -197,6 +198,16 @@ verifier("automatique : inconnu = couverts", motifPourPlat("Plat du chef"), "cou
 verifier("automatique : familles", ["Riz & sauces", "Grillades", "Fast-food", "Café", "Autre"].map(familleDepuisCategorie), ["riz", "grill", "fast", "cafe", "defaut"]);
 verifier("automatique : les illustrations produites sont valides", [illustrationPlat("Burger maison", "fast"), illustrationLogo("Chez Fatoumata", "riz")].map((x) => validerIllustration(x) !== null), [true, true]);
 verifier("automatique : logo = initiales du restaurant", illustrationLogo("Le Braisier du Port", "grill").texte, "BP");
+
+const demandeOk = { phrase: PHRASE_REINITIALISATION, motif: "Passage en production", compris: true, jeton: "11111111-2222-3333-4444-555555555555" };
+verifier("reinitialisation : demande complete acceptee", validerDemande(demandeOk), null);
+verifier("reinitialisation : espaces autour de la phrase tolérés", validerDemande({ ...demandeOk, phrase: "  " + PHRASE_REINITIALISATION + " " }), null);
+verifier("reinitialisation : casse différente refusée", validerDemande({ ...demandeOk, phrase: PHRASE_REINITIALISATION.toLowerCase() }) !== null, true);
+verifier("reinitialisation : phrase partielle refusée", validerDemande({ ...demandeOk, phrase: "REINITIALISER" }) !== null, true);
+verifier("reinitialisation : motif court refusé", validerDemande({ ...demandeOk, motif: "court" }) !== null, true);
+verifier("reinitialisation : motif trop long refusé", validerDemande({ ...demandeOk, motif: "x".repeat(501) }) !== null, true);
+verifier("reinitialisation : case non cochée refusée", validerDemande({ ...demandeOk, compris: false }) !== null, true);
+verifier("reinitialisation : jeton invalide refusé", validerDemande({ ...demandeOk, jeton: "pas-un-uuid" }) !== null, true);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

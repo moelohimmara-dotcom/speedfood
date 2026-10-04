@@ -626,3 +626,8 @@ curl -s "https://ggldjdizqrtpetdiohxy.supabase.co/rest/v1/restaurants?select=nom
 curl -s "https://ggldjdizqrtpetdiohxy.supabase.co/rest/v1/orders?select=*" \
   -H "apikey: <NEXT_PUBLIC_SUPABASE_ANON_KEY>"
 ```
+
+## 4 octobre 2026, soir : illustrations et réinitialisation
+
+- **Illustrations** (déployé) : 53 motifs de restauration (Fluent Emoji Flat et Tabler, MIT, voir `docs/LICENCES-ICONES.md`), modèle validé sans SVG brut, éditeur dans la fiche restaurant de la console, génération des illustrations manquantes (bouton dans Catalogue). Affichage public : lot 3 (site public, direction B).
+- **Réinitialisation de l application** (code et migration `reinitialisation_application` en base, NON déployé) : page `/system/parametres/reinitialisation`, réservée au super administrateur avec double authentification obligatoire ; simulation chiffrée, phrase, motif, case à cocher, sauvegarde automatique dans le bucket privé `sauvegardes`, suppression en une transaction, audit conservé. Testée sur base en mémoire (`scripts/base/test-reinitialisation.mjs`, 24 contrôles dont l atomicité) ; seule la simulation a été exécutée sur la production, jamais l effacement réel. Fonction toujours disponible (pas de verrou de mise en production, décision du 4 octobre).

@@ -1591,3 +1591,8 @@ a.ad-carte-lien:hover {
 .ad-plat-ill > summary { display: flex; align-items: center; gap: var(--space-3); min-height: 56px; cursor: pointer; list-style: none; }
 .ad-plat-ill > summary svg { width: 44px; height: 44px; flex: none; }
 .ad-plat-ill[open] { padding-bottom: var(--space-4); border-bottom: 1px solid var(--bordure); }
+
+/* --- Réinitialisation --- */
+.ad-reinit-tableaux { display: grid; gap: var(--space-5); margin-top: var(--space-4); }
+@media (min-width: 860px) { .ad-reinit-tableaux { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.ad-reinit-form { display: grid; gap: var(--space-4); max-width: 640px; }
