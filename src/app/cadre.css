@@ -1008,3 +1008,34 @@
   gap: var(--space-3);
   margin-top: var(--space-5);
 }
+
+/* --- Commande : formulaire à gauche, récapitulatif collant à droite (audit du 4 octobre 2026, Y6) --- */
+.commande-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+@media (min-width: 900px) {
+  .commande-page {
+    max-width: 1040px;
+  }
+  .commande-grille {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--space-8);
+    align-items: start;
+  }
+  .commande-recap {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: 92px;
+  }
+  .commande-formulaire {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .commande-formulaire-titre {
+    margin-top: 0 !important;
+  }
+}

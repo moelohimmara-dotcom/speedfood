@@ -1,11 +1,17 @@
+import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { Card } from "@/components/ui";
+import { Badge, Card } from "@/components/ui";
 import { FormulaireProfil } from "./FormulaireProfil";
-import { ToggleOuvert } from "./ToggleOuvert";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Mon restaurant" };
 
+/**
+ * « Mon restaurant » : l'identité publique du restaurant (photo, logo, couleur, horaires, consignes).
+ * L'ouverture et la pause des commandes se règlent à UN seul endroit, l'accueil (tuile « état du
+ * restaurant ») : le bouton « Fermer temporairement » qui doublait cette page a été retiré (audit du
+ * 4 octobre 2026, Y5). À droite, un rappel de ce que les clients voient et le lien vers la page publique.
+ */
 export default async function ProfilPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/profil");
 
@@ -20,21 +26,18 @@ export default async function ProfilPage() {
   }
 
   return (
-    <div>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-4)" }}>Mon restaurant</h1>
+    <div className="tableau">
+      <header className="tableau-entete">
+        <h1>Mon restaurant</h1>
+        <div className="tableau-puces">
+          <Badge ton={restaurant.publie ? "succes" : "neutre"}>
+            {restaurant.publie ? "Publié" : "En attente de validation"}
+          </Badge>
+          <Badge ton={restaurant.ouvert ? "succes" : "danger"}>{restaurant.ouvert ? "Ouvert" : "Fermé"}</Badge>
+        </div>
+      </header>
 
-      <Card style={{ marginBottom: "var(--space-4)" }}>
-        <h3 style={{ marginBottom: "var(--space-2)" }}>{restaurant.nom}</h3>
-        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.85rem", color: "var(--secondaire)" }}>
-          {restaurant.publie
-            ? "Visible dans le catalogue public."
-            : "Pas encore visible : en attente de validation par l'équipe Speedfood."}
-        </p>
-        <ToggleOuvert ouvert={restaurant.ouvert} />
-      </Card>
-
-      <Card>
-        <h3 style={{ marginBottom: "var(--space-3)" }}>Horaires et consignes</h3>
+      <div className="profil-colonnes">
         <FormulaireProfil
           horaires={restaurant.horaires}
           consignes={restaurant.consignes ?? ""}
@@ -42,7 +45,30 @@ export default async function ProfilPage() {
           logoUrl={restaurant.logo_url}
           couleurAccent={restaurant.couleur_accent}
         />
-      </Card>
+
+        <aside className="profil-apercu" aria-label="Ce que voient vos clients">
+          <Card>
+            <h2 className="profil-apercu-titre">{restaurant.nom}</h2>
+            <p className="profil-apercu-texte">
+              {restaurant.publie
+                ? "Votre page est visible dans le catalogue public."
+                : "Pas encore visible : en attente de validation par l'équipe Speedfood."}
+            </p>
+            {restaurant.publie ? (
+              <Link href={`/restaurants/${membership.restaurant_id}`} className="btn btn-secondary btn-block" target="_blank" rel="noopener noreferrer">
+                Voir ma page publique ↗
+              </Link>
+            ) : null}
+            <p className="profil-apercu-note">
+              Pour ouvrir, fermer ou mettre les commandes en pause, utilisez la tuile « État du restaurant » de l&apos;
+              <Link href="/restaurant" className="lien-texte">
+                accueil
+              </Link>
+              .
+            </p>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -72,3 +72,14 @@
 ## 7. Reproductibilité
 
 Le script de mesure est un utilitaire jetable (injecté dans l'onglet, non commité). Pour refaire les mesures : charger chaque page à 375 et à 1280 px, injecter le script, comparer aux tableaux ci-dessus. Les valeurs de contraste de M1 et M2 se recalculent à la main avec la formule WCAG (luminance relative) à partir des jetons de `globals.css`.
+
+## 8. Suite donnée (4 octobre 2026, même jour)
+
+| Lot | Constats | État | Vérification |
+|---|---|---|---|
+| 1 | M2, M3, M4, M5 | **Corrigé (local, non déployé)** | Vrai test clavier : le premier Tab met en évidence « Aller au contenu » ; anneau plein de 3 px en `--rouge-fonce` (5,8 : 1) sur tous les contrôles, blanc sur le pied de page sombre ; `<main>` présent dans la console restaurateur et l'administration ; 11 écrans publics + 6 écrans de console avec un titre unique. |
+| 2 | M6, M7, M8, Y1 | **Corrigé (local, non déployé)** | 404 dans le cadre du site avec un message neutre ; panier et commande ne montrent plus « panier vide » avant la lecture du panier (HTML initial : indicateur de chargement, pas de texte « vide ») ; bascule « Je suis client » en rouge foncé ; boutons − / + et lien des alternatives à 44 px. |
+| 3 | M1 | **En attente de décision de Malika** | Jeton de design verrouillé (dégradé orange → rouge, blanc à 2,6 : 1 côté orange). Options : assombrir l'extrémité orange, ou garder le texte dans la zone rouge. |
+| 4 | Y2 à Y6 | **Corrigé (local, non déployé)** | Console : 0 cible sous 44 px (avant : 18 sur « Mon restaurant »), rappel de double authentification en une ligne et masquable pour la session, « Mon restaurant » en deux blocs avec barre d'enregistrement collée et aperçu à droite (≥ 1180 px), doublon « Fermer temporairement » supprimé (un seul endroit : l'accueil), commande en deux colonnes à partir de 900 px (récapitulatif collant). Administration vérifiée avec un rôle de test temporaire (supprimé). |
+
+**Reste** : m1 (sauts de niveaux de titres), vérifications manuelles (lecteur d'écran, zoom 200 %, téléphone réel).

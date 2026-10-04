@@ -40,13 +40,15 @@ export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string
   }
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+    <main className="commande-page">
       <LienRetour href="/panier">Retour au panier</LienRetour>
 
       <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 var(--space-4)" }}>
         Votre commande
       </h1>
 
+      <div className="commande-grille">
+      <div className="commande-recap">
       <Card>
         <p style={{ marginTop: 0, fontWeight: 700 }}>
           {panier.restaurantNom} · {nombreArticlesPanier(panier)} article
@@ -92,8 +94,10 @@ export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string
           l&apos;envoi, et le restaurant confirme la commande.
         </p>
       </Card>
+      </div>
 
-      <h2 style={{ fontSize: "1.25rem", margin: "var(--space-6) 0 var(--space-3)" }}>
+      <div className="commande-formulaire">
+      <h2 style={{ fontSize: "1.25rem", margin: "var(--space-6) 0 var(--space-3)" }} className="commande-formulaire-titre">
         Vos coordonnées
       </h2>
 
@@ -103,6 +107,8 @@ export function CommandeClient({ cleSiteTurnstile }: { cleSiteTurnstile?: string
         Une fois envoyée, votre commande reste « en attente » jusqu&apos;à la réponse du restaurant.
         Vous recevrez un lien de suivi à conserver.
       </Alert>
+      </div>
+      </div>
     </main>
   );
 }

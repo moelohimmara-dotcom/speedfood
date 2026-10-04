@@ -381,3 +381,162 @@
     overflow-y: auto;
   }
 }
+
+/* --- Rappel de sécurité compact et masquable (audit du 4 octobre 2026, Y4) --- */
+.rappel-securite-enveloppe {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+.rappel-securite {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 52px 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-left: 4px solid var(--mangue);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+}
+.rappel-securite-admin {
+  background: var(--danger-fond);
+  border-left-color: var(--danger);
+}
+.rappel-securite-icone {
+  flex: none;
+  color: var(--rouge-fonce);
+}
+.rappel-securite-texte {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.rappel-securite-detail {
+  display: none;
+  color: var(--secondaire);
+}
+.rappel-securite-action {
+  flex: none;
+  min-height: 44px;
+}
+.rappel-securite-fermer {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  color: var(--secondaire);
+  cursor: pointer;
+}
+
+/* --- Mon restaurant : deux blocs, aperçu à droite, barre d'enregistrement collée en bas --- */
+.profil-colonnes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.profil-formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.profil-bloc-titre {
+  margin: 0 0 var(--space-3);
+  font-size: 1.25rem;
+}
+.etiquette-champ {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.profil-media-couverture {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  display: block;
+}
+.profil-media-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  display: block;
+}
+.profil-medias {
+  align-items: start;
+}
+.profil-apercu-titre {
+  margin: 0 0 var(--space-2);
+  font-size: 1.3rem;
+}
+.profil-apercu-texte {
+  margin: 0 0 var(--space-3);
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.profil-apercu-note {
+  margin: var(--space-3) 0 0;
+  color: var(--secondaire);
+  font-size: 0.82rem;
+}
+.barre-enregistrement {
+  position: sticky;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+.barre-enregistrement-message {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.barre-enregistrement-message .alerte {
+  margin: 0;
+}
+
+@media (max-width: 599px) {
+  .profil-medias {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 900px) {
+  .barre-enregistrement {
+    bottom: var(--space-4);
+  }
+}
+@media (min-width: 1180px) {
+  .rappel-securite-detail {
+    display: inline;
+  }
+}
+@media (min-width: 1180px) {
+  .profil-colonnes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: var(--space-6);
+    align-items: start;
+  }
+  .profil-apercu {
+    position: sticky;
+    top: var(--space-6);
+  }
+}

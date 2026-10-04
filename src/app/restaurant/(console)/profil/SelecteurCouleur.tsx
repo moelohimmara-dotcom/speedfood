@@ -25,8 +25,8 @@ export function SelecteurCouleur({ valeurInitiale }: { valeurInitiale: string | 
           aria-pressed={selection === null}
           title="Aucune couleur d'accent"
           style={{
-            width: 32,
-            height: 32,
+            width: 44,
+            height: 44,
             borderRadius: "var(--radius-pill)",
             border: selection === null ? "2px solid var(--encre)" : "1px solid var(--bordure)",
             background: "var(--surface)",
@@ -49,8 +49,8 @@ export function SelecteurCouleur({ valeurInitiale }: { valeurInitiale: string | 
             aria-pressed={selection === couleur.valeur}
             title={couleur.nom}
             style={{
-              width: 32,
-              height: 32,
+              width: 44,
+              height: 44,
               borderRadius: "var(--radius-pill)",
               border:
                 selection === couleur.valeur ? "2px solid var(--encre)" : "1px solid var(--bordure)",

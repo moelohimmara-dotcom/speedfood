@@ -64,7 +64,7 @@ export function ActiviteRecente({ evenements }: { evenements: LigneActivite[] })
           <p style={{ margin: "var(--space-3) 0 var(--space-2)" }}>
             <Link
               href="/system/audit"
-              style={{ fontWeight: 700, fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 4 }}
+              style={{ fontWeight: 700, fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 4, minHeight: 44 }}
             >
               Voir tout le journal d&apos;audit <Chevron sens="droite" />
             </Link>
