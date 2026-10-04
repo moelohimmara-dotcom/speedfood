@@ -38,6 +38,9 @@ const enTetesSecurite = [
   // Aucune page du site n'a vocation à être affichée dans un cadre : protège les
   // consoles /restaurant et /system du détournement de clic (clickjacking).
   { key: "X-Frame-Options", value: "DENY" },
+  // Force HTTPS pendant un an (test de sécurité du 4 octobre 2026). Sans `preload` ni `includeSubDomains` : le domaine
+  // définitif n'est pas encore choisi.
+  { key: "Strict-Transport-Security", value: "max-age=31536000" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
@@ -49,6 +52,8 @@ const enTetesSecurite = [
 ];
 
 const nextConfig: NextConfig = {
+  // Ne pas annoncer « X-Powered-By: Next.js » à chaque réponse.
+  poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: enTetesSecurite }];
   },
