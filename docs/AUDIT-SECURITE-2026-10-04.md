@@ -20,6 +20,7 @@ Verdict des auditeurs : **proche du pilote, pas encore prêt** tant que les poin
 | Le rôle `operations` pouvait s'ajouter à un restaurant sans trace | Déclencheur d'audit sur `restaurant_memberships` |
 | Double authentification non vérifiée dans chaque action `/system` | Contrôle aal2 dans `chargerContexteSysteme` |
 | Textes sans limite de longueur (nom de 100 000 caractères accepté), prix non borné | Contraintes en base |
+| Plats archivés et mises en avant de restaurants non publiés lisibles publiquement | Politiques de lecture publique resserrées (migration `securite_lecture_publique_resserree`) |
 | Limite de corps des actions serveur à 1 Mo alors que le code accepte 5 Mo (les photos de plus de 1 Mo échouaient) | Relevée à 6 Mo |
 | HSTS absent, `X-Powered-By`, `/system` listé dans robots.txt, `in` sur objets, échappement JSON-LD de la page d'aide | Corrigés |
 
@@ -39,7 +40,7 @@ Verdict des auditeurs : **proche du pilote, pas encore prêt** tant que les poin
 
 ## Mineurs restants (non corrigés)
 
-Colonnes publiques trop larges sur certaines tables (`motif_correction`, `donnees_demo`, plats archivés, `auteur_id`),
+Colonnes publiques un peu larges (`motif_correction`, `donnees_demo`, `auteur_id` ; sans effet sur les restaurants publiés),
 propositions de prix insérables en direct sans bornes, rétention du journal d'audit réglable à 1 mois, abonnement push d'un
 ancien membre conservé, téléversement sans quota ni nettoyage des orphelins, limites de débit par IP à reconsidérer pour les réseaux
 mobiles partagés, suppression de compte client sans ré-authentification, audit non atomique avec la mutation,
@@ -47,3 +48,7 @@ mobiles partagés, suppression de compte client sans ré-authentification, audit
 
 Non vérifié : configuration réelle de Supabase Auth, secrets effectivement posés en production, comportement de Cloudflare
 vis-à-vis de `x-forwarded-host`, vraie commande avec Turnstile, concurrence réelle à deux connexions.
+
+## Mesure du temps de calcul (4 octobre 2026, soir)
+
+Sur la production : pages publiques 5 à 448 ms de calcul (la plus lourde, `/restaurants`, au premier appel), pages connectées 20 à 171 ms, toutes terminées avec succès (39 + 18 requêtes). L'erreur Cloudflare 1102 vue pendant les tests visuels n'a pas été reproduite. La route d'alertes (`/restaurant/alertes`, interrogée toutes les 15 s par console ouverte) coûte 23 à 171 ms : à surveiller si le nombre de restaurants simultanés grandit.
