@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { exigerPermissionPage, obtenirContexteSysteme } from "@/lib/system-admin/contexte";
+import { roleAPermission } from "@/lib/system-admin/permissions";
 import { rechercherCommandesAdmin } from "@/lib/system-admin/commandes";
 import { STATUTS_COMMANDE, type StatutCommande } from "@/lib/contracts/statuts";
 import { EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
@@ -29,6 +30,7 @@ interface Recherche {
   reference?: string;
   statut?: string;
   jour?: string;
+  restaurant?: string;
 }
 
 export default async function SupportCommandesSystemePage({
@@ -37,17 +39,21 @@ export default async function SupportCommandesSystemePage({
   searchParams: Promise<Recherche>;
 }) {
   await exigerPermissionPage("commande.consulter");
-  const { reference, statut: statutBrut, jour: jourBrut } = await searchParams;
+  const { reference, statut: statutBrut, jour: jourBrut, restaurant: restaurantBrut } = await searchParams;
+  const { role } = await obtenirContexteSysteme();
+  const peutOuvrirFiche = roleAPermission(role, "restaurant.moderer");
+  const restaurantId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurantBrut ?? "") ? restaurantBrut : undefined;
   const statut: StatutCommande | "tous" = (STATUTS_COMMANDE as readonly string[]).includes(statutBrut ?? "")
     ? (statutBrut as StatutCommande)
     : "tous";
   const jour = jourBrut === "1";
 
-  const commandes = await rechercherCommandesAdmin({ reference, statut, jour });
+  const commandes = await rechercherCommandesAdmin({ reference, statut, jour, restaurantId });
 
   const parametresSansJour = new URLSearchParams();
   if (reference) parametresSansJour.set("reference", reference);
   if (statut !== "tous") parametresSansJour.set("statut", statut);
+  if (restaurantId) parametresSansJour.set("restaurant", restaurantId);
   const lienSansJour = parametresSansJour.toString();
 
   return (
@@ -61,6 +67,7 @@ export default async function SupportCommandesSystemePage({
         <form method="GET" role="search" className="ad-recherche">
           {statut !== "tous" ? <input type="hidden" name="statut" value={statut} /> : null}
           {jour ? <input type="hidden" name="jour" value="1" /> : null}
+          {restaurantId ? <input type="hidden" name="restaurant" value={restaurantId} /> : null}
           <label htmlFor="reference" className="sr-only">
             Référence de la commande
           </label>
@@ -79,11 +86,21 @@ export default async function SupportCommandesSystemePage({
           </div>
         ) : null}
 
+        {restaurantId ? (
+          <div className="alerte alerte-info" role="note" style={{ fontSize: "0.85rem" }}>
+            Filtre : commandes d&apos;un seul restaurant{commandes[0]?.restaurantNom ? ` (${commandes[0].restaurantNom})` : ""}.{" "}
+            <Link href="/system/commandes" style={{ fontWeight: 700 }}>
+              Voir tous les restaurants
+            </Link>
+          </div>
+        ) : null}
+
         <div className="ad-filtres" role="group" aria-label="Filtrer par statut">
           {(["tous", ...STATUTS_COMMANDE] as const).map((valeur) => {
             const params = new URLSearchParams();
             if (reference) params.set("reference", reference);
             if (jour) params.set("jour", "1");
+            if (restaurantId) params.set("restaurant", restaurantId);
             if (valeur !== "tous") params.set("statut", valeur);
             const chaine = params.toString();
             return (
@@ -130,7 +147,13 @@ export default async function SupportCommandesSystemePage({
                     <td className="ad-cellule-principale" data-label="Référence">
                       <Link href={`/system/commandes/${c.id}`}>{c.reference}</Link>
                     </td>
-                    <td data-label="Restaurant">{c.restaurantNom}</td>
+                    <td data-label="Restaurant">
+                      {peutOuvrirFiche && c.restaurantId ? (
+                        <Link href={`/system/catalogue/restaurants/${c.restaurantId}`}>{c.restaurantNom}</Link>
+                      ) : (
+                        c.restaurantNom
+                      )}
+                    </td>
                     <td className="ad-secondaire" data-label="Client">
                       {c.clientNom} · {c.telephoneAffiche}
                     </td>

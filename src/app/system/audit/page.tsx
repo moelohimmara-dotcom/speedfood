@@ -1,10 +1,23 @@
-import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import Link from "next/link";
+import { exigerPermissionPage, obtenirContexteSysteme } from "@/lib/system-admin/contexte";
+import { roleAPermission, type Permission } from "@/lib/system-admin/permissions";
 import { listerJournalAudit, obtenirIndicateurs } from "@/lib/system-admin/journalAudit";
 import { EtatVide, PageHeader, Tuile } from "@/components/admin/blocs";
 import { libelleActionAudit } from "@/lib/system-admin/actionsAuditConnues";
 import { FiltresJournal } from "./FiltresJournal";
 
 export const metadata = { title: "Journal d'audit (administration)" };
+
+/** Vers quel écran mène chaque type de cible du journal, et quelle permission il faut pour l'ouvrir. */
+const CIBLES: Record<string, { libelle: string; permission: Permission; href: (id: string) => string }> = {
+  restaurant: { libelle: "Restaurant", permission: "restaurant.moderer", href: (id) => `/system/catalogue/restaurants/${id}` },
+  commande: { libelle: "Commande", permission: "commande.consulter", href: (id) => `/system/commandes/${id}` },
+  utilisateur: { libelle: "Compte", permission: "compte.consulter", href: () => "/system/acces/comptes" },
+  content_page: { libelle: "Page d'aide", permission: "contenu.editer", href: () => "/system/contenu/pages" },
+  content_banner: { libelle: "Bannière", permission: "contenu.editer", href: () => "/system/contenu/bannieres" },
+  parametres_application: { libelle: "Paramètres", permission: "parametres.editer", href: () => "/system/parametres" },
+  menu_categories: { libelle: "Catégories", permission: "taxonomie.editer", href: () => "/system/catalogue/taxonomie" },
+};
 
 interface Recherche {
   action?: string;
@@ -17,6 +30,7 @@ export default async function AuditSystemePage({
   searchParams: Promise<Recherche>;
 }) {
   await exigerPermissionPage("systeme.audit");
+  const { role } = await obtenirContexteSysteme();
   const { action, depuis } = await searchParams;
   const depuisJours = depuis ? Number.parseInt(depuis, 10) : undefined;
 
@@ -71,7 +85,15 @@ export default async function AuditSystemePage({
                       {entree.acteurEmail ?? "acteur inconnu"}
                     </td>
                     <td className="ad-secondaire" data-label="Cible">
-                      {entree.cibleType} {entree.cibleId.slice(0, 8)}
+                      {(() => {
+                        const cible = CIBLES[entree.cibleType];
+                        const texte = `${cible?.libelle ?? entree.cibleType} ${entree.cibleId.slice(0, 8)}`;
+                        return cible && roleAPermission(role, cible.permission) ? (
+                          <Link href={cible.href(entree.cibleId)}>{texte}</Link>
+                        ) : (
+                          texte
+                        );
+                      })()}
                     </td>
                     <td className="ad-secondaire" data-label="Motif">
                       {entree.motif || "—"}

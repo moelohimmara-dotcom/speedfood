@@ -97,11 +97,13 @@ export default async function RestaurantDetailSystemePage({
                 ) : null}
               </li>
             ) : null}
+            {roleAPermission(role, "commande.consulter") ? (
             <li>
-              <Link href="/system/commandes" className="lien-texte">
-                Chercher une commande de ce restaurant
+              <Link href={`/system/commandes?restaurant=${restaurant.id}`} className="lien-texte">
+                Voir les commandes de ce restaurant
               </Link>
             </li>
+            ) : null}
             {restaurant.suspendu_le || restaurant.motif_correction ? (
               <li>
                 <Link href="/system/audit?action=restaurant.suspension" className="lien-texte">

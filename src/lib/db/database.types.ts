@@ -883,7 +883,7 @@ export type Database = {
         Returns: number
       }
       fn_support_lister_commandes: {
-        Args: { p_id?: string; p_jour?: boolean; p_reference?: string; p_statut?: string }
+        Args: { p_id?: string; p_jour?: boolean; p_reference?: string; p_restaurant?: string; p_statut?: string }
         Returns: {
           adresse_masquee: string
           client_nom: string
@@ -892,6 +892,7 @@ export type Database = {
           id: string
           mode: string
           reference: string
+          restaurant_id: string
           restaurant_nom: string
           sous_total: number
           statut: string

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState, useRef } from "react";
 import {
   modifierParametresAction,
@@ -73,7 +75,11 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               required
               defaultValue={parametres.commandePropositionDelaiMinutes}
             />
-            <Aide>Passé ce délai sans réponse du client, la proposition expire et la commande est annulée (1 à 1440 minutes).</Aide>
+            <Aide>Passé ce délai sans réponse du client, la proposition expire et la commande est annulée (1 à 1440 minutes).{" "}
+              <Link href="/system/commandes?statut=en_attente" className="lien-texte">
+                Voir les commandes en attente
+              </Link>
+            </Aide>
           </div>
           <div className="field">
             <label htmlFor="prix_plat_max_gnf">Plafond de prix d&apos;un plat (GNF)</label>
@@ -138,7 +144,10 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
             />
             <Aide>
               Affiché aux restaurateurs sous la forme « réponse en général sous X ». Ne l&apos;indiquez que si vous pouvez le tenir.
-              Vide = aucune durée annoncée.
+              Vide = aucune durée annoncée.{" "}
+              <Link href="/system/catalogue/restaurants?statut=en_attente" className="lien-texte">
+                Voir les restaurants à valider
+              </Link>
             </Aide>
           </div>
           <div className="field">

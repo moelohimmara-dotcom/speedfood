@@ -27,6 +27,7 @@ export interface CommandeApercuAdmin {
   id: string;
   reference: string;
   restaurantNom: string;
+  restaurantId: string | null;
   statut: StatutCommande;
   mode: "retrait" | "livraison";
   clientNom: string;
@@ -78,6 +79,7 @@ type LigneSupport = {
   id: string;
   reference: string;
   restaurant_nom: string | null;
+  restaurant_id: string | null;
   statut: string;
   mode: string;
   client_nom: string;
@@ -94,6 +96,7 @@ function versApercu(c: LigneSupport): CommandeApercuAdmin {
     id: c.id,
     reference: c.reference,
     restaurantNom: c.restaurant_nom ?? "",
+    restaurantId: c.restaurant_id,
     statut: versStatutCommande(c.statut),
     mode: versMode(c.mode),
     clientNom: c.client_nom,
@@ -110,6 +113,8 @@ export async function rechercherCommandesAdmin(filtres: {
   statut?: StatutCommande | "tous";
   /** Restreint aux commandes créées depuis minuit (UTC) — filtre « du jour » du tableau de bord. */
   jour?: boolean;
+  /** Restreint aux commandes d'un restaurant (lien depuis sa fiche). */
+  restaurantId?: string;
 }): Promise<CommandeApercuAdmin[]> {
   await verifierPermission("commande.consulter");
   const supabase = await creerClientServeur();
@@ -118,6 +123,7 @@ export async function rechercherCommandesAdmin(filtres: {
     p_reference: filtres.reference || undefined,
     p_statut: filtres.statut && filtres.statut !== "tous" ? filtres.statut : undefined,
     p_jour: filtres.jour ?? false,
+    p_restaurant: filtres.restaurantId || undefined,
   });
   if (error || !data) {
     return [];
