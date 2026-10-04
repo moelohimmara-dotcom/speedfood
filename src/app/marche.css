@@ -321,6 +321,44 @@
   line-height: 1.3;
   color: var(--secondaire);
 }
+/* Commandes de la ligne : pleine largeur, pour que les boutons ne soient pas à l'étroit. Le pas
+   à pas forme une pilule à gauche, le retrait reste à part à droite — deux actions distinctes,
+   et un écart qui évite le faux geste entre « + » et « supprimer ». */
+.panier-article-controle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+.panier-article-pas {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+/* Les deux bornes se partagent la place restante : larges même sur un petit écran. */
+.panier-article-pas .btn {
+  flex: 1 1 0;
+  min-width: 44px;
+  padding: 8px 0;
+}
+.panier-article-quantite {
+  flex: none;
+  min-width: 2.25rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.panier-article-supprimer {
+  flex: none;
+  min-width: 44px;
+  padding: 8px 0;
+}
 
 .vignette {
   display: flex;
@@ -405,27 +443,13 @@
   font-size: 0.8rem;
   white-space: nowrap;
 }
-.vignette-action .btn {
+/* Le bouton d'ajout occupe la largeur de la vignette ; les commandes de quantité ont leur propre
+   disposition (voir `.panier-article-controle`), elles ne doivent pas hériter de cette largeur. */
+.vignette-action .vignette-ajouter {
   width: 100%;
 }
 .vignette-action > div {
   margin-top: 0 !important;
-}
-/* Contrôle de quantité : occupe toute la largeur de la vignette, jamais coupé. */
-.vignette-action > div[style*="inline-flex"] {
-  display: flex !important;
-  width: 100%;
-  gap: 4px !important;
-  padding: 4px !important;
-}
-.vignette-action > div[style*="inline-flex"] .btn {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 0 !important;
-}
-/* Dans la vignette, « − » à 1 retire déjà le plat : le bouton ✕ est redondant et ferait des cibles trop étroites. */
-.vignette-action > div[style*="inline-flex"] .btn-danger {
-  display: none;
 }
 .vignette-lien {
   display: inline-flex;

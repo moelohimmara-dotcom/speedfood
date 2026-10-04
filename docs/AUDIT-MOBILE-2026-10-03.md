@@ -195,6 +195,16 @@ un caractère de police dépend de l'appareil et n'a pas le poids optique du res
 **Vérifié par mesure** à 360 et 390 px : libellé sur **une ligne** (17 px de haut, pleine largeur),
 **trois boutons de 44 px**, trois icônes SVG, bloc de 99 px, **aucun débordement**.
 
+**Élargissement (même jour).** Le bloc se contentait de sa largeur naturelle : la pilule
+n'occupait que la moitié de la carte et les boutons restaient à l'étroit. Les commandes passent
+en **pleine largeur**, en deux groupes distincts — le pas à pas à gauche, le retrait détaché à
+droite, pour qu'ils ne se touchent pas. Mesuré à 360 px : bornes de **82 px** de large et 44 px
+de haut, retrait 44 × 44, aucun débordement ; à 390 px, bornes de **97 px**.
+
+**Dette CSS corrigée au passage.** Les règles de la vignette ciblaient `div[style*="inline-flex"]` :
+elles dépendaient donc des styles en ligne du composant, et masquaient le bouton de retrait dans
+un cas seulement. Remplacées par des classes explicites (`panier-article-*`, `vignette-ajouter`).
+
 ## 9. Suites possibles
 
 Rien n'a été corrigé dans cet audit. Les points 1, 3, 4, 5 et 6 sont des correctifs courts

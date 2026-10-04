@@ -72,7 +72,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
 
     if (!ligne) {
       return (
-        <Button type="button" variante="secondary" onClick={ajouter} style={{ marginTop: 6 }}>
+        <Button type="button" variante="secondary" onClick={ajouter} className="vignette-ajouter" style={{ marginTop: 6 }}>
           Ajouter
         </Button>
       );
@@ -103,7 +103,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
           </label>
         ))}
       </div>
-      <Button type="button" variante="secondary" onClick={ajouter}>
+      <Button type="button" variante="secondary" onClick={ajouter} className="vignette-ajouter">
         Ajouter
       </Button>
 
@@ -171,48 +171,39 @@ function ControleQuantiteLigne({
   onDecrementer: () => void;
   onSupprimer: () => void;
 }) {
+  /* Deux groupes distincts plutôt qu'une pilule unique : le pas à pas d'un côté, le retrait de
+     l'autre. Les boutons partagent la largeur disponible au lieu de se serrer, et l'écart entre
+     « + » et « supprimer » évite le faux geste. */
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        marginTop: 6,
-        border: "1px solid var(--bordure)",
-        borderRadius: "var(--radius-pill)",
-        padding: "4px 8px",
-        background: "var(--surface)",
-        alignSelf: "flex-start",
-      }}
-    >
-      <Button
-        type="button"
-        variante="secondary"
-        aria-label={`Retirer un « ${nomAffiche} »`}
-        onClick={onDecrementer}
-        style={{ padding: "6px 10px" }}
-      >
-        <IconeMoins />
-      </Button>
-      <span aria-live="polite" style={{ fontWeight: 700, minWidth: 20, textAlign: "center" }}>
-        {quantite}
-      </span>
-      <Button
-        type="button"
-        variante="secondary"
-        aria-label={`Ajouter un « ${nomAffiche} »`}
-        disabled={quantite >= QUANTITE_MAX_LIGNE}
-        onClick={onIncrementer}
-        style={{ padding: "6px 10px" }}
-      >
-        <IconePlus />
-      </Button>
+    <div className="panier-article-controle">
+      <div className="panier-article-pas">
+        <Button
+          type="button"
+          variante="secondary"
+          aria-label={`Retirer un « ${nomAffiche} »`}
+          onClick={onDecrementer}
+        >
+          <IconeMoins />
+        </Button>
+        <span className="panier-article-quantite" aria-live="polite">
+          {quantite}
+        </span>
+        <Button
+          type="button"
+          variante="secondary"
+          aria-label={`Ajouter un « ${nomAffiche} »`}
+          disabled={quantite >= QUANTITE_MAX_LIGNE}
+          onClick={onIncrementer}
+        >
+          <IconePlus />
+        </Button>
+      </div>
       <Button
         type="button"
         variante="danger"
+        className="panier-article-supprimer"
         aria-label={`Supprimer « ${nomAffiche} » du panier`}
         onClick={onSupprimer}
-        style={{ padding: "6px 10px" }}
       >
         <IconeCroix />
       </Button>
