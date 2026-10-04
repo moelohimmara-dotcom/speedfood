@@ -16,6 +16,7 @@ self.addEventListener("push", (evenement) => {
       tag: "speedfood-commande",
       renotify: true,
       requireInteraction: true,
+      // Android : vibration et son du canal de notification du téléphone ; `requireInteraction` y est ignoré, d'où `renotify`.
       vibrate: [200, 100, 200, 100, 200],
       data: { url: "/restaurant/commandes" },
     })

@@ -371,14 +371,20 @@ export function AlerteCommandes({ clePublique }: { clePublique: string | null })
         if (document.visibilityState !== "visible") {
           setNombreAlertes(donnees.aTraiter);
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-            try {
-              new Notification(nouvelles.length === 1 ? "Nouvelle commande" : `${nouvelles.length} nouvelles commandes`, {
-                body: "Ouvrez Speedfood pour répondre au client.",
-                tag: "speedfood-commande",
-              });
-            } catch {
-              // Certains navigateurs mobiles interdisent le constructeur : la notification push (étape suivante) prendra le relais.
-            }
+            const titre = nouvelles.length === 1 ? "Nouvelle commande" : `${nouvelles.length} nouvelles commandes`;
+            const options = { body: "Ouvrez Speedfood pour répondre au client.", tag: "speedfood-commande" };
+            // Chrome sur Android interdit `new Notification()` : il faut passer par le Service Worker (disponible aussi ailleurs).
+            const afficher = async () => {
+              const enregistrement = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration("/sw.js") : undefined;
+              if (enregistrement) {
+                await enregistrement.showNotification(titre, options);
+              } else {
+                new Notification(titre, options);
+              }
+            };
+            afficher().catch(() => {
+              // Navigateur sans notifications locales : le titre d'onglet et le son restent actifs.
+            });
           }
         }
         dernierRafraichissement.current = Date.now();
@@ -497,7 +503,7 @@ export function AlerteCommandes({ clePublique }: { clePublique: string | null })
               {etatPush === "actif"
                 ? "activée sur cet appareil."
                 : etatPush === "indisponible"
-                  ? "indisponible sur ce navigateur. Sur iPhone, ajoutez d'abord Speedfood à l'écran d'accueil."
+                  ? "indisponible sur ce navigateur. Sur Android, ouvrez Speedfood dans Chrome (pas dans WhatsApp ou Facebook). Sur iPhone, ajoutez d'abord Speedfood à l'écran d'accueil."
                   : etatPush === "refuse"
                     ? "notifications refusées : autorisez-les dans les réglages du navigateur pour le site."
                     : "désactivée. Recevez l'alerte même quand cette page est fermée."}
