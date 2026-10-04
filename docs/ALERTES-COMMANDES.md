@@ -56,3 +56,12 @@ Réglages (bloc « Alertes actives » de la barre latérale, sur téléphone en 
 - **Non vérifié** : réception réelle sur un téléphone, déclenchement par une vraie commande invitée (même code d'envoi que l'essai), iPhone.
 - **Android** : le push marche dans Chrome, Firefox et Samsung Internet sans installation (pas dans les navigateurs intégrés de WhatsApp ou Facebook). Chrome interdit `new Notification()` : les notifications locales passent maintenant par le Service Worker. `requireInteraction` est ignoré, son et vibration viennent du canal de notification du téléphone. Icône et badge de notification : à ajouter avec le lot B (aucune icône PNG dans le dépôt). Pas de test sur téléphone réel.
 - **iPhone** : le push n'existe qu'après « Ajouter à l'écran d'accueil » (iOS 16.4+), donc dépend du lot B (manifeste).
+
+## 6. Lot B : application installable
+
+- `src/app/manifest.ts` : nom, couleurs du design system, affichage `standalone`, raccourcis « Commandes à traiter » et « Restaurants », icônes `any` et `maskable`.
+- Icônes générées par `node scripts/generer-icones.mjs` (éclair blanc sur le dégradé de marque) dans `public/icons/` : 192, 512, maskable 512, `apple-touch-icon` 180, badge de notification 96 (blanc sur transparent). **Visuel provisoire** : à remplacer par un vrai logo, puis relancer le script.
+- `layout.tsx` : `theme-color`, icône iOS, mode application iOS.
+- Console : bloc « Installer l'application » (`InstallationApp.tsx`) : bouton natif sur Android quand Chrome le propose, mode d'emploi sur iPhone/iPad (condition du push iOS 16.4+), conseil batterie Android ; invisible une fois installée et sur ordinateur.
+- Notifications : `icon` et `badge` renseignés (push et notification locale).
+- **Vérifié en local** : manifeste, icônes et `sw.js` servis (200, bons types) ; bloc rendu à 375 px avec un agent Android, sans débordement. **Non vérifié** : installation réelle sur Android et iPhone, bouton natif (nécessite HTTPS en ligne), rendu de l'icône sur l'écran d'accueil.

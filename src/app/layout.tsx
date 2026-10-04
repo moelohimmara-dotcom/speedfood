@@ -25,6 +25,8 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: { default: "Speedfood", template: "%s · Speedfood" },
   description: "Découvrez et commandez chez vos restaurants préférés à Conakry.",
+  icons: { apple: "/icons/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Speedfood", statusBarStyle: "default" },
 };
 
 // Sans ceci, les navigateurs mobiles utilisent un viewport de mise en page ~980px
@@ -33,6 +35,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#b82a20",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

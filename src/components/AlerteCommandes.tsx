@@ -372,7 +372,12 @@ export function AlerteCommandes({ clePublique }: { clePublique: string | null })
           setNombreAlertes(donnees.aTraiter);
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
             const titre = nouvelles.length === 1 ? "Nouvelle commande" : `${nouvelles.length} nouvelles commandes`;
-            const options = { body: "Ouvrez Speedfood pour répondre au client.", tag: "speedfood-commande" };
+            const options = {
+              body: "Ouvrez Speedfood pour répondre au client.",
+              tag: "speedfood-commande",
+              icon: "/icons/icon-192.png",
+              badge: "/icons/badge-96.png",
+            };
             // Chrome sur Android interdit `new Notification()` : il faut passer par le Service Worker (disponible aussi ailleurs).
             const afficher = async () => {
               const enregistrement = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration("/sw.js") : undefined;

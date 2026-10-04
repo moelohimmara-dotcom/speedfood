@@ -13,6 +13,8 @@ self.addEventListener("push", (evenement) => {
   evenement.waitUntil(
     self.registration.showNotification("Nouvelle commande", {
       body: "Ouvrez Speedfood pour répondre au client.",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/badge-96.png",
       tag: "speedfood-commande",
       renotify: true,
       requireInteraction: true,
