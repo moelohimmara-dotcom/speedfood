@@ -106,6 +106,8 @@ export default async function AlternativesPage({
                     photoUrl={a.restaurant.photoUrl}
                     logoUrl={a.restaurant.logoUrl}
                     couleurAccent={a.restaurant.couleurAccent}
+                    couvertureIllustration={a.restaurant.couvertureIllustration}
+                    logoIllustration={a.restaurant.logoIllustration}
                     categorie={a.restaurant.categorie}
                     quartier={a.restaurant.quartier}
                     plats={[

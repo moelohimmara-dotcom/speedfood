@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui";
-import { classeTuile, initialePlat } from "@/lib/design/tuile";
+import { Illustration } from "@/components/illustrations/Illustration";
+import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from "@/lib/illustrations/automatique";
+import type { Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 import type { TonEtat } from "@/lib/disponibilite/etat";
 
 /**
@@ -26,7 +28,8 @@ export function BanniereRestaurant({
   statut,
   photoUrl,
   logoUrl,
-  couleurAccent,
+  couvertureIllustration,
+  logoIllustration,
 }: {
   nom: string;
   categorie: string;
@@ -35,34 +38,38 @@ export function BanniereRestaurant({
   statut: { texte: string; ton: TonEtat };
   photoUrl: string | null;
   logoUrl: string | null;
-  couleurAccent: string | null;
+  /** Conservé pour compatibilité des appels : la couleur d'accent ne teinte plus la bannière (l'illustration la remplace). */
+  couleurAccent?: string | null;
+  /** Illustrations modifiables (console admin) : tiennent lieu de photo et de logo tant qu'il n'y en a pas de téléversés. */
+  couvertureIllustration?: ModeleIllustration | null;
+  logoIllustration?: ModeleIllustration | null;
 }) {
+  const famille = familleDepuisCategorie(categorie);
+  const couverture = couvertureIllustration ?? illustrationCouverture(famille);
+  const logoIllustre = logoIllustration ?? illustrationLogo(nom, famille);
   return (
     <div className="banniere">
       <div
-        className={`banniere-media${photoUrl ? "" : " banniere-media--teinte"}`}
-        style={
-          !photoUrl && couleurAccent
-            ? { background: `color-mix(in srgb, ${couleurAccent} 16%, var(--surface))` }
-            : undefined
-        }
+        className="banniere-media"
       >
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
           <img src={photoUrl} alt="" />
-        ) : null}
+        ) : (
+          <Illustration valeur={couverture} nom="" decoratif />
+        )}
       </div>
 
       <div className="banniere-identite">
         <span
-          className={`banniere-pastille${logoUrl ? " banniere-pastille--image" : ` tuile ${classeTuile(categorie)}`}`}
+          className="banniere-pastille banniere-pastille--image"
           aria-hidden="true"
         >
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
             <img src={logoUrl} alt="" />
           ) : (
-            initialePlat(nom)
+            <Illustration valeur={logoIllustre} nom="" decoratif />
           )}
         </span>
 

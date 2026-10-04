@@ -387,3 +387,161 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
+
+/* ===== Page Restaurants (découverte) : même catalogue, habillage direction B ===== */
+.theme-public .decouverte-bandeau {
+  background: var(--mangue);
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.theme-public .decouverte-surtitre {
+  color: var(--encre);
+}
+.theme-public .decouverte-hero {
+  font-size: clamp(2.2rem, 6vw, 4.6rem);
+  line-height: 0.98;
+}
+.theme-public .decouverte-sous {
+  color: var(--encre);
+}
+.theme-public .decouverte-recherche input[type="search"] {
+  background: var(--surface);
+  border: var(--pub-trait) solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.theme-public .decouverte-recherche input[type="search"]:focus {
+  border-color: var(--encre);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.theme-public .chip {
+  border: var(--pub-trait) solid var(--encre);
+  color: var(--encre);
+  font-weight: 800;
+  transition: transform 0.25s var(--ease), background 0.2s;
+}
+.theme-public .chip:hover {
+  border-color: var(--encre);
+  background: var(--mangue);
+  transform: translateY(-2px);
+}
+.theme-public .chip.actif {
+  background: var(--encre);
+  color: var(--creme);
+}
+.theme-public .decouverte-bandeau .chip:not(.actif) {
+  background: var(--surface);
+}
+.theme-public .groupe-resultats-titre {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.6rem;
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.theme-public .accueil-preuve {
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.theme-public .carte-restaurant {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  background: var(--surface);
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+.theme-public .carte-restaurant:hover,
+.theme-public .carte-restaurant:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--pub-ombre-forte);
+}
+.theme-public .carte-restaurant-photo {
+  aspect-ratio: 16 / 10;
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.theme-public .carte-restaurant-photo-illustree {
+  object-fit: cover;
+  background: var(--mangue);
+}
+.theme-public .carte-restaurant-logo {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 14px;
+  box-shadow: 2px 2px 0 var(--encre);
+  overflow: hidden;
+}
+.theme-public .carte-restaurant-logo-illustre svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.theme-public .carte-restaurant h3 {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.theme-public .carte-vedette {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-public .carte-restaurant,
+  .theme-public .chip {
+    transition: none;
+  }
+}
+
+/* ===== Fiche restaurant : bannière et plats ===== */
+.theme-public .banniere-media {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  background: var(--mangue);
+}
+.theme-public .banniere-media svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.theme-public .banniere-pastille {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 18px;
+  box-shadow: 3px 3px 0 var(--encre);
+  background: var(--surface);
+}
+.theme-public .banniere-pastille svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.theme-public .fiche-titre {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+.theme-public .vignette {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.theme-public .vignette:target {
+  box-shadow: 3px 3px 0 var(--encre), var(--shadow-focus);
+}
+.theme-public .vignette-media {
+  border-bottom: var(--pub-trait) solid var(--encre);
+  background: var(--mangue);
+}
+.theme-public .vignette-illustration {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.theme-public .vignette-promo {
+  background: var(--mangue);
+  color: var(--encre);
+  border: 2px solid var(--encre);
+}
+.theme-public .vignette-nom {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}

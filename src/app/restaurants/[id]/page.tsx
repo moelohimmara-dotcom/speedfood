@@ -5,6 +5,7 @@ import { LienRetour } from "@/components/LienRetour";
 import { VignettePlat } from "@/components/VignettePlat";
 import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { BanniereRestaurant } from "@/components/BanniereRestaurant";
+import { validerIllustration } from "@/lib/illustrations/modele";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
@@ -61,7 +62,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -92,7 +93,7 @@ export default async function FicheRestaurantPage({
   const [{ data: menu }, { data: sections }] = await Promise.all([
     supabase
       .from("menu_items")
-      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id")
+      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, illustration, section_id")
       .eq("restaurant_id", id)
       .is("archive_le", null)
       .order("nom"),
@@ -158,6 +159,7 @@ export default async function FicheRestaurantPage({
           prix: item.prix,
           prixPromo: item.prix_promo,
           photoUrl: item.photo_url,
+          illustration: validerIllustration(item.illustration),
           disponible: item.disponible,
         }}
         disponibilite={disponibilite}
@@ -218,6 +220,8 @@ export default async function FicheRestaurantPage({
         photoUrl={restaurant.photo_url}
         logoUrl={restaurant.logo_url}
         couleurAccent={restaurant.couleur_accent}
+        couvertureIllustration={validerIllustration(restaurant.couverture_illustration)}
+        logoIllustration={validerIllustration(restaurant.logo_illustration)}
       />
 
       <div style={{ marginTop: "var(--space-3)" }}>

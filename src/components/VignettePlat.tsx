@@ -3,7 +3,9 @@ import { ControleQuantiteArticle } from "@/components/panier/ControleQuantiteArt
 import { StampFraicheur } from "@/components/StampFraicheur";
 import type { OptionPanier } from "@/components/panier/panier";
 import type { LibelleDisponibilite } from "@/lib/disponibilite/etat";
-import { classeTuile, initialePlat } from "@/lib/design/tuile";
+import { Illustration } from "@/components/illustrations/Illustration";
+import { familleDepuisCategorie, illustrationPlat } from "@/lib/illustrations/automatique";
+import type { Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 
 interface Props {
   restaurant: { id: string; nom: string; categorie: string };
@@ -14,6 +16,8 @@ interface Props {
     prix: number;
     prixPromo: number | null;
     photoUrl: string | null;
+    /** Illustration modifiable (console admin), affichée quand le plat n'a pas de photo. */
+    illustration?: ModeleIllustration | null;
     disponible: boolean;
   };
   disponibilite: LibelleDisponibilite;
@@ -46,9 +50,12 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
           <img src={plat.photoUrl} alt="" loading="lazy" />
         ) : (
-          <span className={`tuile ${classeTuile(restaurant.categorie)} def`} aria-hidden="true">
-            {initialePlat(plat.nom)}
-          </span>
+          <Illustration
+            valeur={plat.illustration ?? illustrationPlat(plat.nom, familleDepuisCategorie(restaurant.categorie))}
+            nom=""
+            decoratif
+            className="vignette-illustration"
+          />
         )}
         {plat.prixPromo !== null ? <span className="vignette-promo">Promo</span> : null}
       </div>

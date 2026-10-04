@@ -85,7 +85,7 @@ export default async function CataloguePage({
         <div className="decouverte-bandeau-interieur">
           <div className="decouverte-bandeau-texte">
           <p className="decouverte-surtitre">{promesse.signature}</p>
-          <h1 className="decouverte-hero">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
+          <h1 className="decouverte-hero pub-titre">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
           <p className="decouverte-sous">
             {promesse.sousTitre}
           </p>
@@ -113,19 +113,11 @@ export default async function CataloguePage({
             </Link>
           </div>
           </div>
-          {recherche.vedettes.length >= 3 ? (
-            <div className="decouverte-collage" aria-hidden="true">
-              {recherche.vedettes.slice(0, 3).map((vedette) => (
-                // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-                <img key={vedette.platId} src={vedette.photoUrl} alt="" />
-              ))}
-            </div>
-          ) : null}
         </div>
       </section>
 
       {accueilNu ? (
-        <section className="accueil-preuve" aria-label="Comment ça marche">
+        <section className="accueil-preuve" aria-label="En ce moment">
           {chiffres && (chiffres.platsConfirmes > 0 || chiffres.restaurantsOuverts > 0) ? (
             <p className="accueil-preuve-direct" role="status">
               <span className="accueil-preuve-point" aria-hidden="true" />
@@ -145,17 +137,6 @@ export default async function CataloguePage({
               ) : null}
             </p>
           ) : null}
-          <ol className="accueil-etapes">
-            <li>
-              <strong>Cherchez</strong> un plat ou un restaurant près de chez vous.
-            </li>
-            <li>
-              <strong>Vérifiez</strong> l&apos;heure à laquelle le restaurant a confirmé le plat.
-            </li>
-            <li>
-              <strong>Commandez</strong> sans compte et réglez directement au restaurant.
-            </li>
-          </ol>
         </section>
       ) : null}
 
@@ -276,6 +257,8 @@ function carte(resultat: ResultatClasse<RestaurantCatalogue>, maintenant: Date) 
       photoUrl={r.photoUrl}
       logoUrl={r.logoUrl}
       couleurAccent={r.couleurAccent}
+      couvertureIllustration={r.couvertureIllustration}
+      logoIllustration={r.logoIllustration}
       categorie={r.categorie}
       quartier={r.quartier}
       plats={plats}

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
+import { Illustration } from "@/components/illustrations/Illustration";
+import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from "@/lib/illustrations/automatique";
+import type { Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 import { libelleEtatRestaurant, type EtatRestaurant, type LibelleDisponibilite } from "@/lib/disponibilite/etat";
 
 export interface PlatCarte {
@@ -21,6 +24,9 @@ interface RestaurantCardProps {
   photoUrl?: string | null;
   logoUrl?: string | null;
   couleurAccent?: string | null;
+  /** Illustrations modifiables (console admin), utilisées quand il n'y a ni photo ni logo téléversés. */
+  couvertureIllustration?: ModeleIllustration | null;
+  logoIllustration?: ModeleIllustration | null;
 }
 
 /**
@@ -47,7 +53,12 @@ export function RestaurantCard({
   photoUrl,
   logoUrl,
   couleurAccent,
+  couvertureIllustration,
+  logoIllustration,
 }: RestaurantCardProps) {
+  const famille = familleDepuisCategorie(categorie);
+  const couverture = couvertureIllustration ?? illustrationCouverture(famille);
+  const logoIllustre = logoIllustration ?? illustrationLogo(nom, famille);
   const couleurCategorie = COULEUR_PAR_CATEGORIE[categorie] ?? "var(--secondaire)";
   const libelleEtat = libelleEtatRestaurant(etat);
 
@@ -61,24 +72,23 @@ export function RestaurantCard({
           borderTopWidth: couleurAccent ? 4 : undefined,
         }}
       >
-        {photoUrl ? (
-          <div className="carte-restaurant-photo-wrap">
-            {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
-            <img src={photoUrl} alt="" className="carte-restaurant-photo" />
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-              <img src={logoUrl} alt="" className="carte-restaurant-logo" />
-            ) : null}
-          </div>
-        ) : null}
-        <div
-          className="carte-restaurant-corps"
-          style={photoUrl && logoUrl ? { paddingTop: "calc(var(--space-4) + 18px)" } : undefined}
-        >
-          {!photoUrl && logoUrl ? (
+        <div className="carte-restaurant-photo-wrap">
+          {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-            <img src={logoUrl} alt="" className="carte-restaurant-logo-inline" />
-          ) : null}
+            <img src={photoUrl} alt="" className="carte-restaurant-photo" />
+          ) : (
+            <Illustration valeur={couverture} nom="" decoratif className="carte-restaurant-photo carte-restaurant-photo-illustree" />
+          )}
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+            <img src={logoUrl} alt="" className="carte-restaurant-logo" />
+          ) : (
+            <span className="carte-restaurant-logo carte-restaurant-logo-illustre">
+              <Illustration valeur={logoIllustre} nom="" decoratif />
+            </span>
+          )}
+        </div>
+        <div className="carte-restaurant-corps" style={{ paddingTop: "calc(var(--space-4) + 18px)" }}>
           <h3 style={{ fontSize: "1.2rem", marginBottom: 6 }}>{nom}</h3>
           <p className="carte-restaurant-meta">
             <span className="pastille-categorie" style={{ background: couleurCategorie }} aria-hidden="true" />
