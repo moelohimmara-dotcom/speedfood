@@ -16,6 +16,12 @@
   opacity: 0;
   transform: translateY(26px);
 }
+@media print {
+  .pub-pre {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 /* Ticket */
 .pub-ticket-bloc {

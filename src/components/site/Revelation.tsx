@@ -40,7 +40,7 @@ export function Revelation() {
       { threshold: 0.12 },
     );
     elements.forEach((e) => io.observe(e));
-    const securite = setTimeout(() => elements.forEach((e) => e.classList.remove("pub-pre")), 6000);
+    const securite = setTimeout(() => elements.forEach((e) => e.classList.remove("pub-pre")), 2500);
     return () => {
       clearTimeout(securite);
       io.disconnect();
