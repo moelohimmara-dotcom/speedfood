@@ -744,3 +744,168 @@
     text-align: center;
   }
 }
+
+/* ==========================================================================
+   Fiche restaurant : plats, suppléments, commandes de quantité, résumé du panier
+   ========================================================================== */
+
+/* Suppléments : une ligne cliquable en entier */
+.options-supplements {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 var(--space-2);
+}
+.option-supplement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.option-supplement input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--rouge-fonce);
+}
+.option-supplement-nom {
+  flex: 1;
+  min-width: 0;
+}
+.option-supplement-prix {
+  flex: none;
+  color: var(--secondaire);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Commandes de quantité : jamais plus larges que leur conteneur, elles passent à la ligne au besoin */
+.panier-article-controle {
+  flex-wrap: wrap;
+}
+.panier-article-pas {
+  min-width: 132px;
+}
+
+/* Tablette : des vignettes assez larges pour porter leurs commandes (au moins 240 px) */
+@media (min-width: 640px) {
+  .vignettes {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* Grand écran : carte horizontale (photo à gauche, texte et action à droite), comme dans les
+   applications de commande. Une photo carrée de 150 px, puis le corps de la carte. */
+@media (min-width: 900px) {
+  .fiche .vignettes {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: var(--space-4);
+  }
+  .fiche .vignette {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  /* Photo carrée arrondie à l'intérieur de la carte : jamais une bande étirée sur toute la hauteur */
+  .fiche .vignette-media {
+    flex: 0 0 160px;
+    width: 160px;
+    height: 160px;
+    aspect-ratio: auto;
+    align-self: flex-start;
+    margin: var(--space-3) 0 var(--space-3) var(--space-3);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .fiche .panier-article-pas {
+    max-width: 240px;
+  }
+  .fiche .vignette-corps {
+    min-width: 0;
+  }
+
+  /* Résumé du panier : lignes modifiables */
+  .fiche-panier-titre {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .fiche-panier-compte {
+    color: var(--secondaire);
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .fiche-panier-lignes li {
+    align-items: center;
+    gap: var(--space-2);
+    padding: 10px 0;
+  }
+  .fiche-panier-media {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--creme);
+    color: var(--rouge-fonce);
+    font-family: var(--font-barlow), system-ui, sans-serif;
+    font-weight: 800;
+  }
+  .fiche-panier-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fiche-panier-ligne-texte {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .fiche-panier-ligne-nom {
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .fiche-panier-ligne-options {
+    color: var(--secondaire);
+    font-size: 0.78rem;
+  }
+  .fiche-panier-ligne-prix {
+    font-size: 0.85rem;
+    font-weight: 800;
+  }
+  .fiche-panier-pas {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--bordure);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+  }
+  .fiche-panier-pas button {
+    width: 36px;
+    height: 44px;
+    background: none;
+    border: 0;
+    color: var(--encre);
+    font-size: 1.15rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .fiche-panier-pas button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .fiche-panier-pas > span {
+    min-width: 1.6rem;
+    text-align: center;
+    font-weight: 800;
+  }
+}

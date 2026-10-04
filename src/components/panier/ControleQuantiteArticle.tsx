@@ -92,15 +92,12 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
 
   return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+      <div className="options-supplements">
         {optionsDisponibles.map((option) => (
-          <label key={option.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.85rem" }}>
-            <input
-              type="checkbox"
-              checked={selection.has(option.id)}
-              onChange={() => basculerOption(option.id)}
-            />
-            {option.nom} (+{option.prix.toLocaleString("fr-FR")} GNF)
+          <label key={option.id} className="option-supplement">
+            <input type="checkbox" checked={selection.has(option.id)} onChange={() => basculerOption(option.id)} />
+            <span className="option-supplement-nom">{option.nom}</span>
+            <span className="option-supplement-prix">+{option.prix.toLocaleString("fr-FR")} GNF</span>
           </label>
         ))}
       </div>
