@@ -113,6 +113,14 @@ export default async function CataloguePage({
             </Link>
           </div>
           </div>
+          {recherche.vedettes.length >= 3 ? (
+            <div className="decouverte-collage" aria-hidden="true">
+              {recherche.vedettes.slice(0, 3).map((vedette) => (
+                // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+                <img key={vedette.platId} src={vedette.photoUrl} alt="" />
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 

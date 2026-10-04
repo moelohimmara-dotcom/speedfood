@@ -51,7 +51,7 @@ export default async function QuartierPage({ params }: Props) {
       ) : (
         <div className="pub-grille-cartes">
           {ordonnes.map((r, i) => (
-            <CartePub key={r.id} restaurant={r} plats={platsParRestaurant.get(r.id) ?? []} grande={i === 0 && ordonnes.length >= 3} />
+            <CartePub key={r.id} restaurant={r} plats={platsParRestaurant.get(r.id) ?? []} grande={i === 0 && ordonnes.length >= 3} niveauTitre={2} />
           ))}
         </div>
       )}

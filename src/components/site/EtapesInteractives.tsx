@@ -56,7 +56,7 @@ export function EtapesInteractives({ etapes }: { etapes: EtapeAffichee[] }) {
       </div>
       <div id="etape-panneau" role="tabpanel" aria-labelledby={`etape-onglet-${actuelle}`} className="pub-etape-panneau" aria-live="polite">
         <span className="pub-etape-grand">{e.visuel}</span>
-        <h3 className="pub-titre">{e.titre}</h3>
+        <h2 className="pub-titre">{e.titre}</h2>
         <p>{e.detail}</p>
       </div>
     </div>

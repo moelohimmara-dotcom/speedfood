@@ -57,7 +57,7 @@ export default async function AccueilPage() {
           <div className="pub-accueil-texte">
             <p className="pub-kicker">{promesse.signature}</p>
             <h1 id="accueil-titre" className="pub-titre pub-accueil-h1">
-              Ce plat est-il vraiment disponible ? <span className="pub-surligne">L&apos;heure le dit.</span>
+              Ce plat est-il vraiment disponible&nbsp;? <span className="pub-surligne">L&apos;heure le dit.</span>
             </h1>
             <p className="pub-accueil-lead">{promesse.sousTitre}</p>
             <div className="pub-accueil-actions">

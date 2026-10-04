@@ -545,3 +545,98 @@
   font-weight: 800;
   letter-spacing: -0.02em;
 }
+
+/* ===== Composants communs dans le site public : même grammaire (contour épais, ombre décalée) que les pages refondues ===== */
+:where(.theme-public) :is(h1, h2, h3) {
+  font-family: var(--font-titre);
+  letter-spacing: -0.03em;
+}
+.theme-public .btn {
+  border: var(--pub-trait) solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  font-weight: 800;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background-color 0.2s;
+}
+.theme-public .btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.theme-public .btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--encre);
+}
+.theme-public .btn:disabled {
+  box-shadow: none;
+  opacity: 0.55;
+}
+.theme-public .btn-primary {
+  background: var(--rouge-fonce);
+  color: #fff;
+}
+.theme-public .btn-secondary {
+  background: var(--surface);
+  color: var(--encre);
+}
+.theme-public .btn-danger {
+  background: var(--surface);
+  color: var(--rouge-fonce);
+}
+.theme-public .card {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  background: var(--surface);
+}
+.theme-public .field input,
+.theme-public .field select,
+.theme-public .field textarea {
+  border: 2px solid var(--encre);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.theme-public .field input:focus,
+.theme-public .field select:focus,
+.theme-public .field textarea:focus {
+  border-color: var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.theme-public .alerte {
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-md);
+}
+.theme-public .badge {
+  border: 2px solid var(--encre);
+}
+.theme-public a,
+.theme-public button,
+.theme-public summary,
+.theme-public label {
+  touch-action: manipulation;
+}
+
+/* Fiche : panier collant, bandeau de disponibilité, titres de section */
+.theme-public .fiche-panier {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  top: 92px;
+}
+.theme-public .fiche-panier-titre {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.theme-public .bandeau-dispo,
+.theme-public .fiche [class*="alerte-confirmation"] {
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--mangue);
+  color: var(--encre);
+}
+
+/* Découverte : collage de plats du moment dans le bandeau (bureau) */
+.theme-public .decouverte-collage img {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-md);
+  box-shadow: 4px 4px 0 var(--encre);
+}

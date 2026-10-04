@@ -9,7 +9,7 @@ import { roleAPermission } from "@/lib/system-admin/permissions";
 import { estElementDeTest } from "@/lib/system-admin/pilotageCalculs";
 import { definirIllustrationAction, listerPlatsAdmin } from "@/lib/system-admin/illustrations";
 import { Illustration } from "@/components/illustrations/Illustration";
-import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
+import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from "@/lib/illustrations/automatique";
 import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
 import { ActionsModeration } from "./ActionsModeration";
 import { GestionEquipe } from "./GestionEquipe";
@@ -186,20 +186,22 @@ export default async function RestaurantDetailSystemePage({
                 {dossier?.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- aperçu d'un média déjà hébergé, dimensions libres.
                   <img src={dossier.photoUrl} alt={`Photo de couverture de ${restaurant.nom}`} />
-                ) : dossier?.couvertureIllustration ? (
-                  <Illustration valeur={dossier.couvertureIllustration} nom={`Illustration de couverture de ${restaurant.nom}`} />
                 ) : (
-                  <span>Pas de photo</span>
+                  <Illustration
+                    valeur={dossier?.couvertureIllustration ?? illustrationCouverture(famille)}
+                    nom={`Illustration de couverture de ${restaurant.nom}${dossier?.couvertureIllustration ? "" : " (automatique)"}`}
+                  />
                 )}
               </div>
               <div className="ad-apercu-logo">
                 {dossier?.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- idem.
                   <img src={dossier.logoUrl} alt={`Logo de ${restaurant.nom}`} />
-                ) : dossier?.logoIllustration ? (
-                  <Illustration valeur={dossier.logoIllustration} nom={`Logo illustré de ${restaurant.nom}`} />
                 ) : (
-                  <span>Pas de logo</span>
+                  <Illustration
+                    valeur={dossier?.logoIllustration ?? illustrationLogo(restaurant.nom, famille)}
+                    nom={`Logo illustré de ${restaurant.nom}${dossier?.logoIllustration ? "" : " (automatique)"}`}
+                  />
                 )}
               </div>
             </div>

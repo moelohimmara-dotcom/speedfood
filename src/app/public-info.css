@@ -135,7 +135,7 @@
   min-height: 320px;
   align-content: center;
 }
-.pub-etape-panneau h3 {
+.pub-etape-panneau h2 {
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 2.6rem);
 }

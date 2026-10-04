@@ -1596,3 +1596,7 @@ a.ad-carte-lien:hover {
 .ad-reinit-tableaux { display: grid; gap: var(--space-5); margin-top: var(--space-4); }
 @media (min-width: 860px) { .ad-reinit-tableaux { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .ad-reinit-form { display: grid; gap: var(--space-4); max-width: 640px; }
+
+.ad-tiroir {
+  overscroll-behavior: contain;
+}

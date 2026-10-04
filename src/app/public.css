@@ -170,6 +170,9 @@
   color: var(--encre);
   overflow-y: auto;
 }
+.pub-tiroir {
+  overscroll-behavior: contain;
+}
 .pub-tiroir::backdrop {
   background: rgba(43, 33, 29, 0.5);
 }

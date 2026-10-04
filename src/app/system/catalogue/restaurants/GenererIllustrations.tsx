@@ -10,10 +10,11 @@ export function GenererIllustrations() {
   const [message, setMessage] = useState<string | null>(null);
 
   return (
-    <div className="ad-outils" style={{ alignItems: "center" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3)", margin: "0 0 var(--space-4)" }}>
       <Button
         type="button"
         variante="secondary"
+        className="btn-compact"
         disabled={enCours}
         onClick={() =>
           demarrer(async () => {

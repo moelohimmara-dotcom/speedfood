@@ -133,3 +133,24 @@
   color: var(--danger);
   font-weight: 800;
 }
+
+/* Alerte de commandes et installation : sur le fond sombre de la barre latérale ou du tiroir, le texte hérité était crème sur crème. */
+.ad-barre-laterale .alerte-commandes,
+.ad-tiroir .alerte-commandes {
+  color: var(--encre);
+}
+.ad-barre-laterale .alerte-commandes-note,
+.ad-tiroir .alerte-commandes-note {
+  color: var(--secondaire);
+}
+
+/* Bascules du service : côte à côte dès que la place le permet */
+.rc-bascules {
+  display: grid;
+  gap: var(--space-4);
+}
+@media (min-width: 720px) {
+  .rc-bascules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

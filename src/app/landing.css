@@ -500,7 +500,7 @@ svg.icon {
   font-weight: 700;
   font-size: 0.92rem;
   cursor: pointer;
-  transition: all 120ms var(--ease);
+  transition: background-color 120ms var(--ease), color 120ms var(--ease), border-color 120ms var(--ease);
   font-family: var(--font-manrope), sans-serif;
 }
 .role-toggle button svg.icon {
