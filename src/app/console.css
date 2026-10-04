@@ -782,3 +782,23 @@
   border-color: var(--succes);
   color: #fff;
 }
+
+.case-parametre {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.case-parametre input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--rouge-fonce);
+}
+
+.liste-demarrage-aide {
+  margin: var(--space-3) 0 0;
+  font-size: 0.9rem;
+}

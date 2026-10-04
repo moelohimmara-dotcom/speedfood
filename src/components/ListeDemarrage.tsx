@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
+import { BoutonAssistance } from "@/components/BoutonAssistance";
 
 export interface EtatDemarrage {
   photo: boolean;
@@ -15,7 +16,16 @@ export interface EtatDemarrage {
  * Tout est déduit de l'état réel du restaurant ; aucune durée de validation n'est promise.
  * Disparaît quand tout est fait et que la page est publiée.
  */
-export function ListeDemarrage({ etat }: { etat: EtatDemarrage }) {
+export function ListeDemarrage({
+  etat,
+  delaiValidation = null,
+  whatsapp = null,
+}: {
+  etat: EtatDemarrage;
+  /** Délai habituel annoncé par l'administrateur, déjà formaté (« 48 h »), ou `null`. */
+  delaiValidation?: string | null;
+  whatsapp?: string | null;
+}) {
   const etapes = [
     { cle: "photo", libelle: "Ajouter une photo de couverture", fait: etat.photo, href: "/restaurant/profil" },
     { cle: "logo", libelle: "Ajouter votre logo", fait: etat.logo, href: "/restaurant/profil" },
@@ -59,10 +69,15 @@ export function ListeDemarrage({ etat }: { etat: EtatDemarrage }) {
           <span>
             {etat.publie
               ? "Page validée et publiée par l'équipe"
-              : "Validation par l'équipe Speedfood : en attente (vous serez prévenu ici ; une correction éventuelle s'affiche en haut de cette page)"}
+              : `Validation par l'équipe Speedfood : en attente${delaiValidation ? ` (réponse en général sous ${delaiValidation})` : ""}. Une correction éventuelle s'affiche en haut de cette page.`}
           </span>
         </li>
       </ul>
+      {whatsapp && !etat.publie ? (
+        <p className="liste-demarrage-aide">
+          Une question ? <BoutonAssistance numero={whatsapp} className="btn btn-secondary btn-compact" />
+        </p>
+      ) : null}
     </Card>
   );
 }

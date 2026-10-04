@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { LienRetour } from "@/components/LienRetour";
 import { origineDuSite } from "@/lib/partage/origine";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
+import { BoutonAssistance } from "@/components/BoutonAssistance";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
@@ -42,7 +45,9 @@ const ETAPES = [
  * Page « Devenir partenaire » (lots D et E). Aucun chiffre ni délai inventé : la durée de validation et les
  * conditions du pilote sont formulées comme des réserves, jusqu'à décision de l'équipe.
  */
-export default function DevenirPartenairePage() {
+export default async function DevenirPartenairePage() {
+  const { whatsapp, delaiValidationHeures } = await lireReglagesAssistance();
+  const delai = delaiValidationHeures ? `Réponse en général sous ${formaterDelaiValidation(delaiValidationHeures)}. ` : "";
   return (
     <main className="page-texte">
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
@@ -56,7 +61,10 @@ export default function DevenirPartenairePage() {
         {ETAPES.map((etape) => (
           <li key={etape.titre}>
             <h2>{etape.titre}</h2>
-            <p>{etape.texte}</p>
+            <p>
+              {etape.titre === "Validation par l'équipe" ? delai : ""}
+              {etape.texte}
+            </p>
           </li>
         ))}
       </ol>
@@ -81,6 +89,7 @@ export default function DevenirPartenairePage() {
         <Link href="/aide" className="btn btn-secondary btn-lg">
           Questions fréquentes
         </Link>
+        <BoutonAssistance numero={whatsapp} className="btn btn-secondary btn-lg" />
       </div>
     </main>
   );

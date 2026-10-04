@@ -556,6 +556,9 @@ export type Database = {
           mis_a_jour_le: string
           mis_a_jour_par: string | null
           prix_plat_max_gnf: number
+          whatsapp_assistance: string | null
+          delai_validation_heures: number | null
+          position_carte_active: boolean
         }
         Insert: {
           conservation_audit_mois?: number
@@ -567,6 +570,9 @@ export type Database = {
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
           prix_plat_max_gnf?: number
+          whatsapp_assistance?: string | null
+          delai_validation_heures?: number | null
+          position_carte_active?: boolean
         }
         Update: {
           conservation_audit_mois?: number
@@ -578,6 +584,9 @@ export type Database = {
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
           prix_plat_max_gnf?: number
+          whatsapp_assistance?: string | null
+          delai_validation_heures?: number | null
+          position_carte_active?: boolean
         }
         Relationships: []
       }
@@ -686,7 +695,9 @@ export type Database = {
           donnees_demo: boolean
           horaires: string
           id: string
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           moyens_paiement: string[]
           mis_a_jour_le: string
           motif_correction: string | null
@@ -708,7 +719,9 @@ export type Database = {
           donnees_demo?: boolean
           horaires?: string
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           moyens_paiement?: string[]
           mis_a_jour_le?: string
           motif_correction?: string | null
@@ -730,7 +743,9 @@ export type Database = {
           donnees_demo?: boolean
           horaires?: string
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           moyens_paiement?: string[]
           mis_a_jour_le?: string
           motif_correction?: string | null

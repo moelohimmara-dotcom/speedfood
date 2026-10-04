@@ -7,6 +7,8 @@ import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { BanniereRestaurant } from "@/components/BanniereRestaurant";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { liensCarte } from "@/lib/parametres/assistance-format";
 import { libellesMoyensPaiement } from "@/lib/restaurant/paiement";
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
@@ -59,7 +61,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, couleur_accent, moyens_paiement, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -76,6 +78,12 @@ export default async function FicheRestaurantPage({
   const restaurantSur = restaurant;
   const maintenant = new Date();
   const origine = await origineDuSite();
+  // Position affichée seulement si l'administrateur a activé la fonction et si le restaurant l'a renseignée.
+  const { carteActive } = await lireReglagesAssistance();
+  const carte =
+    carteActive && restaurant.latitude !== null && restaurant.longitude !== null
+      ? liensCarte(restaurant.latitude, restaurant.longitude)
+      : null;
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(restaurant.id));
   const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
   const etatResto = etatRestaurant({ ouvert: restaurant.ouvert, accepteCommandes: restaurant.accepte_commandes });
@@ -187,6 +195,9 @@ export default async function FicheRestaurantPage({
       addressRegion: "Conakry",
       addressCountry: "GN",
     },
+    ...(carte && restaurant.latitude !== null && restaurant.longitude !== null
+      ? { geo: { "@type": "GeoCoordinates", latitude: restaurant.latitude, longitude: restaurant.longitude } }
+      : {}),
   };
 
   return (
@@ -229,6 +240,17 @@ export default async function FicheRestaurantPage({
           : "à convenir avec le restaurant"}
         . Aucun paiement en ligne sur Speedfood.
       </p>
+      {carte ? (
+        <p className="fiche-paiement">
+          <a href={carte.voir} className="lien-texte" target="_blank" rel="noopener noreferrer">
+            Voir sur la carte<span className="sr-only"> (nouvel onglet)</span>
+          </a>
+          {" · "}
+          <a href={carte.itineraire} className="lien-texte" target="_blank" rel="noopener noreferrer">
+            Itinéraire<span className="sr-only"> (nouvel onglet)</span>
+          </a>
+        </p>
+      ) : null}
 
       {etatResto === "ferme" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>

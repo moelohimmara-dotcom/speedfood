@@ -126,6 +126,63 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
           />
         </div>
       </fieldset>
+      <fieldset
+        style={{
+          border: "1px solid var(--bordure)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-4)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-4)",
+        }}
+      >
+        <legend style={{ fontWeight: 700, padding: "0 6px" }}>Assistance, validation et carte</legend>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="whatsapp_assistance">Numéro WhatsApp d&apos;assistance</label>
+          <input
+            id="whatsapp_assistance"
+            name="whatsapp_assistance"
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            maxLength={24}
+            defaultValue={parametres.whatsappAssistance}
+            placeholder="Ex. 224 6XX XX XX XX"
+          />
+          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            Avec l&apos;indicatif du pays. Une fois renseigné, un bouton « Écrire sur WhatsApp » apparaît sur l&apos;aide, la
+            page partenaire, l&apos;inscription et le tableau de bord des restaurateurs. Vide = aucun bouton.
+          </p>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="delai_validation_heures">Délai habituel de validation d&apos;une page restaurant (heures)</label>
+          <input
+            id="delai_validation_heures"
+            name="delai_validation_heures"
+            type="number"
+            min={1}
+            max={720}
+            step={1}
+            defaultValue={parametres.delaiValidationHeures ?? ""}
+            placeholder="Ex. 48"
+          />
+          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            Affiché aux restaurateurs sous la forme « réponse en général sous X ». Ne l&apos;indiquez que si vous pouvez le
+            tenir. Vide = aucune durée annoncée.
+          </p>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label className="case-parametre">
+            <input type="checkbox" name="position_carte_active" defaultChecked={parametres.positionCarteActive} />
+            Activer la position sur carte
+          </label>
+          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            Les restaurateurs peuvent alors indiquer la position de leur établissement (bouton « Utiliser ma position »), et
+            la fiche affiche des liens « Voir sur la carte » et « Itinéraire ». Aucune carte n&apos;est chargée dans la page :
+            ce sont de simples liens.
+          </p>
+        </div>
+      </fieldset>
       {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
       {etat.succes ? <Alert ton="succes">Paramètres enregistrés.</Alert> : null}
       <div>

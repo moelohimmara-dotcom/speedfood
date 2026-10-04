@@ -6,6 +6,8 @@ import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
 import { ListeDemarrage } from "@/components/ListeDemarrage";
 import { BasculesStatut } from "./BasculesStatut";
 import type { Metadata } from "next";
@@ -34,6 +36,7 @@ export default async function AccueilConsolePage() {
     ]);
 
   const origine = await origineDuSite();
+  const { whatsapp, delaiValidationHeures } = await lireReglagesAssistance();
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(id));
   const aTraiter = commandesATraiter ?? 0;
 
@@ -77,6 +80,8 @@ export default async function AccueilConsolePage() {
             paiement: restaurant.moyens_paiement.length > 0,
             publie: restaurant.publie,
           }}
+          delaiValidation={delaiValidationHeures ? formaterDelaiValidation(delaiValidationHeures) : null}
+          whatsapp={whatsapp}
         />
       ) : null}
 

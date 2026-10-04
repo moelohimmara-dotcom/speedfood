@@ -6,6 +6,8 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { televerserImage, supprimerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { estCouleurValide } from "@/lib/design/paletteMarque";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { analyserPosition } from "@/lib/restaurant/position";
 import { moyensPaiementValides, normaliserMoyensPaiement } from "@/lib/restaurant/paiement";
 import type { Database } from "@/lib/db/database.types";
 
@@ -39,6 +41,15 @@ export async function modifierProfilAction(
   }
   const moyensPaiement = normaliserMoyensPaiement(moyensBruts);
 
+  // Position sur carte : prise en compte seulement si l'administrateur a activé la fonction ET si le formulaire l'envoie.
+  let position: ReturnType<typeof analyserPosition> | null = null;
+  if (formData.has("latitude") && (await lireReglagesAssistance()).carteActive) {
+    position = analyserPosition(String(formData.get("latitude") ?? ""), String(formData.get("longitude") ?? ""));
+    if (!position.ok) {
+      return { erreur: position.erreur };
+    }
+  }
+
   // Chaîne vide = pas de couleur d'accent (repli neutre) ; toute autre valeur
   // doit venir de la palette fermée — jamais un hex saisi librement.
   const couleurAccentBrut = String(formData.get("couleur_accent") ?? "").trim();
@@ -58,6 +69,10 @@ export async function modifierProfilAction(
     couleur_accent: couleurAccent,
     moyens_paiement: moyensPaiement,
   };
+  if (position?.ok) {
+    payload.latitude = position.position?.latitude ?? null;
+    payload.longitude = position.position?.longitude ?? null;
+  }
   const anciennesImages: { colonne: "photo_url" | "logo_url" }[] = [];
 
   for (const [champ, colonne, dossier] of [

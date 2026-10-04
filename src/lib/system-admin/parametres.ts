@@ -33,6 +33,9 @@ export interface ParametresAffiches {
   conservationCoordonneesJours: number;
   conservationNonClotureeJours: number;
   conservationAuditMois: number;
+  whatsappAssistance: string;
+  delaiValidationHeures: number | null;
+  positionCarteActive: boolean;
 }
 
 export async function listerParametresApplication(): Promise<ParametresAffiches> {
@@ -41,7 +44,7 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
   const { data } = await supabase
     .from("parametres_application")
     .select(
-      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois"
+      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois, whatsapp_assistance, delai_validation_heures, position_carte_active"
     )
     .eq("id", true)
     .single();
@@ -53,6 +56,9 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
     conservationCoordonneesJours: data?.conservation_coordonnees_jours ?? 90,
     conservationNonClotureeJours: data?.conservation_non_cloturee_jours ?? 30,
     conservationAuditMois: data?.conservation_audit_mois ?? 12,
+    whatsappAssistance: data?.whatsapp_assistance ?? "",
+    delaiValidationHeures: data?.delai_validation_heures ?? null,
+    positionCarteActive: data?.position_carte_active ?? false,
   };
 }
 
@@ -70,6 +76,19 @@ export async function modifierParametresAction(
   const conservation = Number.parseInt(String(formData.get("conservation_coordonnees_jours") ?? ""), 10);
   const nonCloturee = Number.parseInt(String(formData.get("conservation_non_cloturee_jours") ?? ""), 10);
   const auditMois = Number.parseInt(String(formData.get("conservation_audit_mois") ?? ""), 10);
+
+  // Assistance : numéro WhatsApp en chiffres (espaces, « + » et tirets tolérés à la saisie), délai en heures, carte.
+  // Un champ vide désactive la fonction correspondante.
+  const whatsapp = String(formData.get("whatsapp_assistance") ?? "").replace(/[\s+().-]/g, "");
+  if (whatsapp !== "" && !/^[0-9]{8,15}$/.test(whatsapp)) {
+    return { erreur: "Le numéro WhatsApp doit contenir 8 à 15 chiffres, indicatif du pays compris (ex. 224 6XX XX XX XX)." };
+  }
+  const delaiValidationBrut = String(formData.get("delai_validation_heures") ?? "").trim();
+  const delaiValidation = delaiValidationBrut === "" ? null : Number.parseInt(delaiValidationBrut, 10);
+  if (delaiValidation !== null && (!Number.isFinite(delaiValidation) || delaiValidation < 1 || delaiValidation > 720)) {
+    return { erreur: "Le délai de validation annoncé doit être compris entre 1 et 720 heures, ou laissé vide." };
+  }
+  const positionCarteActive = formData.get("position_carte_active") === "on";
 
   if (!Number.isFinite(delai) || delai < 1 || delai > 1440) {
     return { erreur: "Le délai de proposition doit être compris entre 1 et 1440 minutes." };
@@ -106,6 +125,9 @@ export async function modifierParametresAction(
       conservation_coordonnees_jours: conservation,
       conservation_non_cloturee_jours: nonCloturee,
       conservation_audit_mois: auditMois,
+      whatsapp_assistance: whatsapp === "" ? null : whatsapp,
+      delai_validation_heures: delaiValidation,
+      position_carte_active: positionCarteActive,
       mis_a_jour_le: new Date().toISOString(),
       mis_a_jour_par: contexte.utilisateurId,
     })
@@ -119,7 +141,7 @@ export async function modifierParametresAction(
     action: "parametres.modification",
     cibleType: "parametres_application",
     cibleId: "singleton",
-    motif: `Délai proposition → ${delai} min, plafond prix plat → ${prix} GNF, fraîcheur disponibilité → ${fraicheur} h, conservation coordonnées → ${conservation} j, commande non clôturée → ${nonCloturee} j, audit → ${auditMois} mois`,
+    motif: `Délai proposition → ${delai} min, plafond prix plat → ${prix} GNF, fraîcheur disponibilité → ${fraicheur} h, conservation coordonnées → ${conservation} j, commande non clôturée → ${nonCloturee} j, audit → ${auditMois} mois, WhatsApp assistance → ${whatsapp === "" ? "désactivé" : "renseigné"}, délai de validation annoncé → ${delaiValidation === null ? "aucun" : delaiValidation + " h"}, position sur carte → ${positionCarteActive ? "active" : "inactive"}`,
   });
 
   revalidatePath("/system/parametres");

@@ -2,8 +2,12 @@ import Link from "next/link";
 import { InscriptionForm } from "./InscriptionForm";
 import { Card, Alert } from "@/components/ui";
 import { PageCompte } from "@/components/PageCompte";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
+import { BoutonAssistance } from "@/components/BoutonAssistance";
 
-export default function InscriptionPage() {
+export default async function InscriptionPage() {
+  const { whatsapp, delaiValidationHeures } = await lireReglagesAssistance();
   return (
     <PageCompte
       titre="Inscrire mon restaurant"
@@ -27,7 +31,13 @@ export default function InscriptionPage() {
       <Alert ton="info" style={{ marginBottom: "var(--space-5)" }}>
         Votre restaurant ne sera pas visible au catalogue tant qu&apos;une personne de l&apos;équipe Speedfood ne
         l&apos;aura pas validé.
+        {delaiValidationHeures ? ` Réponse en général sous ${formaterDelaiValidation(delaiValidationHeures)}.` : null}
       </Alert>
+      {whatsapp ? (
+        <p style={{ marginBottom: "var(--space-4)" }}>
+          Besoin d&apos;aide pour vous inscrire ? <BoutonAssistance numero={whatsapp} className="btn btn-secondary btn-compact" />
+        </p>
+      ) : null}
       <Card>
         <InscriptionForm />
       </Card>

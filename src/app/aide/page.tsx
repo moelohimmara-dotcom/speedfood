@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { LienRetour } from "@/components/LienRetour";
 import { origineDuSite } from "@/lib/partage/origine";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { BoutonAssistance } from "@/components/BoutonAssistance";
 
 const CONTACT = "moelohimmara@gmail.com";
 
@@ -65,7 +67,8 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   },
 ];
 
-export default function AidePage() {
+export default async function AidePage() {
+  const { whatsapp } = await lireReglagesAssistance();
   const donneesStructurees = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -102,6 +105,11 @@ export default function AidePage() {
         </a>
         , en indiquant la référence de votre commande (de la forme SF-XXXXX) si vous en avez une.
       </p>
+      {whatsapp ? (
+        <div className="page-texte-actions">
+          <BoutonAssistance numero={whatsapp} />
+        </div>
+      ) : null}
     </main>
   );
 }

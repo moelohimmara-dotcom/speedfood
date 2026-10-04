@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Badge, Card } from "@/components/ui";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { FormulaireProfil } from "./FormulaireProfil";
 import type { Metadata } from "next";
 
@@ -17,13 +18,14 @@ export default async function ProfilPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement")
+    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude")
     .eq("id", membership.restaurant_id)
     .maybeSingle();
 
   if (!restaurant) {
     return null;
   }
+  const { carteActive } = await lireReglagesAssistance();
 
   return (
     <div className="tableau">
@@ -45,6 +47,9 @@ export default async function ProfilPage() {
           logoUrl={restaurant.logo_url}
           couleurAccent={restaurant.couleur_accent}
           moyensPaiement={restaurant.moyens_paiement}
+          carteActive={carteActive}
+          latitude={restaurant.latitude}
+          longitude={restaurant.longitude}
         />
 
         <aside className="profil-apercu" aria-label="Ce que voient vos clients">

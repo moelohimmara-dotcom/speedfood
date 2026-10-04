@@ -41,7 +41,7 @@ const enTetesSecurite = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value: "camera=(), microphone=(), geolocation=(self), payment=()",
   },
   // Validée en mode rapport seul dans un vrai navigateur (13 pages, y compris le
   // widget Turnstile réellement chargé sur /commande) : aucune violation.
