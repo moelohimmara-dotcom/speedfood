@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { televerserImage, supprimerImage } from "@/lib/storage/images";
+import { televerserImage, supprimerImage, supprimerTeleversementOrphelin } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { estCouleurValide } from "@/lib/design/paletteMarque";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
@@ -82,7 +82,7 @@ export async function modifierProfilAction(
     const fichier = formData.get(champ);
     if (fichier instanceof File && fichier.size > 0) {
       try {
-        payload[colonne] = await televerserImage(fichier, dossier);
+        payload[colonne] = await televerserImage(fichier, dossier, membership.restaurant_id);
       } catch (erreur) {
         if (erreur instanceof ErreurMetier) {
           return { erreur: erreur.message };
@@ -107,6 +107,9 @@ export async function modifierProfilAction(
     .update(payload)
     .eq("id", membership.restaurant_id);
   if (error) {
+    for (const { colonne } of anciennesImages) {
+      await supprimerTeleversementOrphelin(payload[colonne] as string | undefined);
+    }
     return { erreur: "Impossible d'enregistrer les modifications. Réessayez dans un instant." };
   }
 

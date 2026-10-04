@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
-import { televerserImage, supprimerImage } from "@/lib/storage/images";
+import { televerserImage, supprimerImage, supprimerTeleversementOrphelin } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 
 export interface EtatFormulaireMenu {
@@ -99,7 +99,7 @@ export async function creerPlatAction(
   const fichierPhoto = formData.get("photo");
   if (fichierPhoto instanceof File && fichierPhoto.size > 0) {
     try {
-      photoUrl = await televerserImage(fichierPhoto, "plats");
+      photoUrl = await televerserImage(fichierPhoto, "plats", membership.restaurant_id);
     } catch (erreur) {
       return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Impossible d'enregistrer la photo." };
     }
@@ -116,6 +116,7 @@ export async function creerPlatAction(
   });
 
   if (error) {
+    await supprimerTeleversementOrphelin(photoUrl);
     return { erreur: "Impossible d'ajouter le plat. Réessayez dans un instant." };
   }
 
@@ -169,7 +170,7 @@ export async function modifierPlatAction(
 
   if (changerPhoto) {
     try {
-      photoUrl = await televerserImage(fichierPhoto as File, "plats");
+      photoUrl = await televerserImage(fichierPhoto as File, "plats", membership.restaurant_id);
     } catch (erreur) {
       return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Impossible d'enregistrer la photo." };
     }
@@ -195,6 +196,7 @@ export async function modifierPlatAction(
       .eq("id", id)
       .eq("restaurant_id", membership.restaurant_id);
     if (error) {
+      await supprimerTeleversementOrphelin(photoUrl);
       return { erreur: "Impossible de modifier le plat. Réessayez dans un instant." };
     }
     await supprimerImage(ancien?.photo_url ?? null);

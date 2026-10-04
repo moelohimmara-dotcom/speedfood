@@ -52,6 +52,9 @@ export const LIMITE_RECUPERATION_PAR_EMAIL: RegleLimite = { nom: "recup-mail", m
 // Essai de notification push depuis la console : une personne ne peut pas inonder ses propres appareils ni les services de push.
 export const LIMITE_ESSAI_PUSH: RegleLimite = { nom: "essai-push", max: 3, fenetreSecondes: 300 };
 
+// Envois de photos : un restaurant ne peut pas remplir le stockage (5 Mo par fichier) en boucle.
+export const LIMITE_TELEVERSEMENT_PAR_RESTAURANT: RegleLimite = { nom: "televersement-resto", max: 30, fenetreSecondes: 3600 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -117,6 +120,10 @@ export async function limiterRecuperationMotDePasse(email: string): Promise<void
     appliquerLimite(LIMITE_RECUPERATION_PAR_IP, await adresseClient()),
     appliquerLimite(LIMITE_RECUPERATION_PAR_EMAIL, email.trim().toLowerCase()),
   ]);
+}
+
+export async function limiterTeleversement(restaurantId: string): Promise<void> {
+  await appliquerLimite(LIMITE_TELEVERSEMENT_PAR_RESTAURANT, restaurantId);
 }
 
 export async function limiterEssaiPush(utilisateurId: string): Promise<void> {

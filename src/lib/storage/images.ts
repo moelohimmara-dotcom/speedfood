@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { cheminMediaDepuisUrl } from "./chemins";
+import { limiterTeleversement } from "@/lib/securite/limitation-debit";
 
 /**
  * Téléversement d'images (bucket Storage `medias`, voir migration
@@ -49,7 +50,8 @@ export type DossierMedia = "restaurants" | "plats" | "bannieres" | "logos";
  */
 export async function televerserImage(
   fichier: File | null,
-  dossier: DossierMedia
+  dossier: DossierMedia,
+  restaurantId?: string
 ): Promise<string> {
   if (!fichier || fichier.size === 0) {
     throw new ErreurMetier("VALIDATION", "Aucun fichier reçu.", { image: "Choisissez une image." });
@@ -74,6 +76,11 @@ export async function televerserImage(
     });
   }
 
+  // Quota d'envois par restaurant (audit du 4 octobre 2026), compté seulement pour un fichier valide.
+  if (restaurantId) {
+    await limiterTeleversement(restaurantId);
+  }
+
   const extension = EXTENSIONS_PAR_TYPE[fichier.type];
   const chemin = `${dossier}/${randomUUID()}.${extension}`;
 
@@ -89,6 +96,18 @@ export async function televerserImage(
 
   const { data } = admin.storage.from("medias").getPublicUrl(chemin);
   return data.publicUrl;
+}
+
+/**
+ * Supprime un fichier qui vient d'être téléversé mais que l'enregistrement en base n'a pas retenu (échec de l'écriture) :
+ * sans cela il resterait orphelin dans le stockage. Le fichier est tout neuf (nom aléatoire), aucune ligne ne le référence.
+ */
+export async function supprimerTeleversementOrphelin(url: string | null | undefined): Promise<void> {
+  const chemin = url ? cheminMediaDepuisUrl(url) : null;
+  if (!chemin) {
+    return;
+  }
+  await creerClientAdmin().storage.from("medias").remove([chemin]).catch(() => undefined);
 }
 
 /**
