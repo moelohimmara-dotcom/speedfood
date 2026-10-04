@@ -1,12 +1,13 @@
 import { PROMESSE_PAR_DEFAUT } from "@/lib/parametres/promesse-defauts";
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Manrope } from "next/font/google";
+import { Barlow_Condensed, Bricolage_Grotesque, Manrope } from "next/font/google";
 import "./globals.css";
 import "./components.css";
 import "./landing.css";
 import "./catalogue.css";
 import "./marche.css";
 import "./cadre.css";
+import "./public.css";
 import "./admin.css";
 import "./console.css";
 
@@ -16,6 +17,16 @@ const barlowCondensed = Barlow_Condensed({
   variable: "--font-barlow",
   weight: ["700", "800"],
   subsets: ["latin"],
+});
+
+// Titres du site public (direction B, décision du 4 octobre 2026). Pas de préchargement : le fichier n'est téléchargé que
+// par les pages dont le CSS l'utilise (site public), jamais par la console.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  weight: ["700", "800"],
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
 });
 
 const manrope = Manrope({
@@ -42,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${barlowCondensed.variable} ${manrope.variable}`}>
+    <html lang="fr" className={`${barlowCondensed.variable} ${manrope.variable} ${bricolage.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -19,7 +19,7 @@ export async function CadreSite({
 }) {
   const compteActif = await connexionClientActive();
   return (
-    <div className={`cadre-site${focus ? "" : " avec-navigation"}`}>
+    <div className={`cadre-site theme-public${focus ? "" : " avec-navigation"}`}>
       <a href="#contenu" className="lien-evitement">
         Aller au contenu
       </a>

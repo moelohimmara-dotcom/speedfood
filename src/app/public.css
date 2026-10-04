@@ -1,0 +1,440 @@
+/*
+ * Site public, direction B « Marché » (décision de Malika du 4 octobre 2026, voir docs/specs/2026-10-04-site-public-direction-b-design.md
+ * et l'addendum de DESIGN-SYSTEM.md). Tout est derrière `.theme-public` (posé par CadreSite) : la console admin et l'espace
+ * restaurateur ne sont pas touchés. Aplats uniquement ; ombres décalées et contours épais autorisés ici et nulle part ailleurs.
+ * Contraste : jamais de rouge sur mangue (2,9 pour 1) ; sur mangue, texte encre.
+ */
+.theme-public {
+  --pub-trait: 2.5px;
+  --pub-ombre: 4px 4px 0 var(--encre);
+  --pub-ombre-forte: 7px 7px 0 var(--encre);
+  --font-titre: var(--font-bricolage), var(--font-manrope), system-ui, sans-serif;
+}
+
+/* ===== En-tête ===== */
+.pub-entete {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--creme);
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.pub-entete-interieur {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px var(--space-4);
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.pub-marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-family: var(--font-titre);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--encre);
+  text-decoration: none;
+}
+.pub-marque-pastille {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 12px;
+  background: var(--rouge);
+  color: #fff;
+  box-shadow: 2px 2px 0 var(--encre);
+  transform: rotate(-6deg);
+  transition: transform 0.35s var(--ease);
+}
+.pub-marque:hover .pub-marque-pastille {
+  transform: rotate(4deg) scale(1.06);
+}
+.pub-pilule {
+  display: none;
+  margin: 0 auto;
+  padding: 4px;
+  gap: 2px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.pub-pilule a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  color: var(--encre);
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.pub-pilule a:hover {
+  background: var(--mangue);
+}
+.pub-pilule a.actif {
+  background: var(--encre);
+  color: var(--creme);
+}
+.pub-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pub-lien-simple {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  color: var(--encre);
+  font-weight: 700;
+  text-decoration: none;
+}
+.pub-lien-simple:hover {
+  text-decoration: underline;
+}
+.pub-seulement-large {
+  display: none;
+}
+.pub-panier {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  color: var(--encre);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 3px 3px 0 var(--encre);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.pub-panier:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.pub-panier.actif {
+  background: var(--surface);
+}
+.pub-panier-texte {
+  font-variant-numeric: tabular-nums;
+}
+.pub-panier-badge {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--encre);
+  color: var(--creme);
+  font-size: 0.78rem;
+  line-height: 24px;
+  text-align: center;
+}
+.pub-burger {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--encre);
+}
+
+/* Tiroir de rubriques (téléphone et tablette) */
+.pub-tiroir {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 84px var(--space-5) var(--space-6);
+  border: 0;
+  background: var(--mangue);
+  color: var(--encre);
+  overflow-y: auto;
+}
+.pub-tiroir::backdrop {
+  background: rgba(43, 33, 29, 0.5);
+}
+.pub-tiroir-fermer {
+  position: absolute;
+  top: 14px;
+  right: var(--space-4);
+}
+.pub-tiroir-fermer button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--encre);
+}
+.pub-tiroir nav {
+  display: grid;
+}
+.pub-tiroir a {
+  display: block;
+  padding: 12px 0;
+  border-bottom: var(--pub-trait) solid var(--encre);
+  font-family: var(--font-titre);
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--encre);
+  text-decoration: none;
+}
+.pub-tiroir a.actif {
+  text-decoration: underline;
+  text-decoration-thickness: 4px;
+  text-underline-offset: 6px;
+}
+.pub-tiroir a.pub-tiroir-secondaire {
+  margin-top: var(--space-4);
+  border-bottom: 0;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+@media (min-width: 900px) {
+  .pub-pilule {
+    display: flex;
+  }
+  .pub-burger {
+    display: none;
+  }
+  .pub-actions {
+    margin-left: 0;
+  }
+}
+@media (min-width: 1180px) {
+  .pub-seulement-large {
+    display: inline-flex;
+  }
+}
+/* Téléphone : l'en-tête reste court, la navigation basse prend le relais */
+@media (max-width: 899px) {
+  .pub-entete-interieur {
+    min-height: 60px;
+  }
+  .pub-panier-texte {
+    display: none;
+  }
+  .pub-panier {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .pub-entete-interieur {
+    gap: var(--space-2);
+  }
+  .pub-marque {
+    font-size: 1.25rem;
+    gap: 8px;
+  }
+  .pub-actions {
+    gap: 6px;
+  }
+}
+/* Très petits écrans : la pastille de marque suffit (le lien garde son nom accessible « Speedfood, accueil »). */
+@media (max-width: 349px) {
+  .pub-marque > span:last-child {
+    display: none;
+  }
+}
+
+/* ===== Navigation basse (téléphone) ===== */
+.theme-public .nav-basse {
+  background: var(--surface);
+  border-top: var(--pub-trait) solid var(--encre);
+}
+.theme-public .nav-basse-item {
+  position: relative;
+  isolation: isolate;
+  color: var(--encre);
+}
+.theme-public .nav-basse-item.actif {
+  color: var(--encre);
+}
+.theme-public .nav-basse-item.actif::before {
+  content: "";
+  position: absolute;
+  inset: 3px 6px;
+  z-index: -1;
+  border-radius: 14px;
+  background: var(--mangue);
+}
+.theme-public .nav-basse-badge {
+  background: var(--encre);
+  color: var(--creme);
+}
+
+/* ===== Pied de page ===== */
+/* Bandeau de losanges, clin d'œil aux tissus bazin : aplats rouge, mangue et encre, sans dégradé. */
+.pub-motif {
+  height: 18px;
+  margin: calc(var(--space-8) * -1) calc(var(--space-4) * -1) var(--space-6);
+  background-color: var(--mangue);
+  background-image:
+    linear-gradient(135deg, var(--rouge) 25%, transparent 25%), linear-gradient(225deg, var(--rouge) 25%, transparent 25%),
+    linear-gradient(315deg, var(--encre) 25%, transparent 25%), linear-gradient(45deg, var(--encre) 25%, transparent 25%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 0, 9px 0, 9px 0;
+}
+.theme-public .site-pied-colonne .site-pied-titre {
+  font-family: var(--font-titre);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ===== Briques réutilisables du site public ===== */
+.pub-titre {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+  text-wrap: balance;
+  color: var(--encre);
+}
+/* Surlignage d'un mot : mangue SOUS du texte encre (jamais de rouge sur mangue). */
+.pub-surligne {
+  background: linear-gradient(transparent 60%, var(--mangue) 60% 92%, transparent 92%);
+}
+.pub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 6px 6px 22px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--rouge-fonce);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 3px 3px 0 var(--encre);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.pub-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.pub-btn-point {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--encre);
+  transition: transform 0.3s var(--ease);
+}
+.pub-btn:hover .pub-btn-point {
+  transform: translateX(3px) rotate(-45deg);
+}
+.pub-btn-clair {
+  padding-inline: 22px;
+  background: var(--surface);
+  color: var(--encre);
+}
+.pub-autocollant {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: 2px 2px 0 var(--encre);
+}
+.pub-carte {
+  background: var(--surface);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+.pub-carte:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--pub-ombre-forte);
+}
+.pub-rubrique {
+  display: grid;
+  gap: var(--space-5);
+  padding-block: clamp(40px, 7vw, 96px);
+}
+.pub-conteneur {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-inline: var(--space-4);
+}
+.pub-bandeau {
+  overflow: hidden;
+  border-block: var(--pub-trait) solid var(--encre);
+  background: var(--encre);
+  color: var(--creme);
+}
+.pub-bandeau-piste {
+  display: flex;
+  gap: 40px;
+  width: max-content;
+  padding: 12px 0;
+  font-family: var(--font-titre);
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: pub-defile 34s linear infinite;
+}
+.pub-bandeau-piste span::after {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 40px;
+  background: var(--mangue);
+  transform: rotate(45deg);
+}
+@keyframes pub-defile {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-bandeau-piste {
+    animation: none;
+  }
+  .pub-carte,
+  .pub-btn,
+  .pub-panier,
+  .pub-marque-pastille {
+    transition: none;
+  }
+}

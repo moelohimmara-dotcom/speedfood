@@ -7,12 +7,19 @@ import { initialePlat } from "@/lib/design/tuile";
 
 /**
  * Navigation basse du parcours client (téléphone d'abord) et barre de panier flottante.
- * - Trois destinations : Découvrir, Panier (avec le nombre d'articles), Espace pro.
+ * - Quatre destinations : Accueil, Restaurants, Panier (avec le nombre d'articles), Espace pro. Les autres rubriques sont dans le
+ *   tiroir du menu de l'en-tête.
  * - La barre de panier se remplit au fil des ajouts : miniatures des plats, nombre et total ;
  *   le nombre « saute » à chaque changement (désactivé si l'utilisateur réduit les animations).
  */
 
 const ICONES = {
+  accueil: (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 11l8-6.5 8 6.5" />
+      <path d="M6 10v9h12v-9" />
+    </svg>
+  ),
   decouvrir: (
     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="11" cy="11" r="6.5" />
@@ -69,9 +76,13 @@ export function NavigationClient() {
       ) : null}
 
       <nav className="nav-basse" aria-label="Navigation principale">
+        <Link href="/" className={`nav-basse-item${chemin === "/" ? " actif" : ""}`} aria-current={chemin === "/" ? "page" : undefined}>
+          {ICONES.accueil}
+          <span>Accueil</span>
+        </Link>
         <Link href="/restaurants" className={`nav-basse-item${chemin.startsWith("/restaurants") ? " actif" : ""}`} aria-current={chemin.startsWith("/restaurants") ? "page" : undefined}>
           {ICONES.decouvrir}
-          <span>Découvrir</span>
+          <span>Restaurants</span>
         </Link>
         <Link href="/panier" className={`nav-basse-item${surPanier ? " actif" : ""}`} aria-current={surPanier ? "page" : undefined}>
           <span className="nav-basse-icone">

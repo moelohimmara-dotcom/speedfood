@@ -7,6 +7,7 @@ import Link from "next/link";
 export function PiedSite() {
   return (
     <footer className="site-pied">
+      <div className="pub-motif" aria-hidden="true" />
       <div className="site-pied-interieur">
         <div className="site-pied-colonne site-pied-marque">
           <p className="site-pied-titre">Speedfood</p>
@@ -17,10 +18,11 @@ export function PiedSite() {
         </div>
         <nav className="site-pied-colonne" aria-label="Clients">
           <p className="site-pied-titre">Clients</p>
-          <Link href="/restaurants">Découvrir les restaurants</Link>
+          <Link href="/restaurants">Restaurants</Link>
+          <Link href="/comment-ca-marche">Comment ça marche</Link>
+          <Link href="/quartiers">Quartiers</Link>
           <Link href="/panier">Mon panier</Link>
           <Link href="/aide">Aide et questions</Link>
-          <Link href="/a-propos">Comment ça marche</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Restaurateurs">
           <p className="site-pied-titre">Restaurateurs</p>
