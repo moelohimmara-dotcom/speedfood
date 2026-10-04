@@ -4,6 +4,8 @@ import { EtapesInteractives, type EtapeAffichee } from "@/components/site/Etapes
 import { Illustration } from "@/components/illustrations/Illustration";
 import { PALETTES, type Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 import { origineDuSite } from "@/lib/partage/origine";
+import { TicketVoyage } from "@/components/site/TicketVoyage";
+import { lireAccueil, ticketExemple } from "@/lib/site/accueil";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
@@ -50,7 +52,8 @@ const ETAPES = [
   },
 ];
 
-export default function CommentCaMarchePage() {
+export default async function CommentCaMarchePage() {
+  const ticket = ticketExemple(await lireAccueil());
   const etapes: EtapeAffichee[] = ETAPES.map((e) => ({
     titre: e.titre,
     texte: e.texte,
@@ -69,6 +72,18 @@ export default function CommentCaMarchePage() {
       </div>
 
       <EtapesInteractives etapes={etapes} />
+
+      {ticket ? (
+        <section className="pub-section-ticket" aria-labelledby="ticket-titre">
+          <div className="pub-entete-rubrique">
+            <h2 id="ticket-titre" className="pub-titre pub-h2">
+              Une commande, <span className="pub-surligne">de bout en bout</span>
+            </h2>
+            <p className="pub-accueil-lead">Le ticket se remplit, le restaurant l&apos;accepte, le prépare, puis la commande est terminée. Chaque état s&apos;affiche sur votre lien de suivi.</p>
+          </div>
+          <TicketVoyage restaurant={ticket.restaurant} lignes={ticket.lignes} />
+        </section>
+      ) : null}
 
       <noscript>
       <ol className="pub-liste-sans-js">

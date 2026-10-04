@@ -1,0 +1,158 @@
+/*
+ * Couche de mouvement du site public (direction B) : apparition au défilement et animation signature « une commande qui voyage ».
+ * Tout est coupé par `prefers-reduced-motion: reduce` (les composants ne démarrent même pas).
+ */
+.pub-rubrique > .pub-entete-rubrique,
+.pub-grille-cartes > *,
+.pub-quartiers > *,
+.pub-etapes > *,
+.pub-principes > *,
+.pub-faq-item,
+.pub-bande-pro,
+.pub-ticket-bloc {
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+.pub-pre {
+  opacity: 0;
+  transform: translateY(26px);
+}
+
+/* Ticket */
+.pub-ticket-bloc {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-width: 440px;
+  width: 100%;
+}
+.pub-ticket {
+  position: relative;
+  width: 100%;
+  padding: var(--space-5);
+  border: var(--pub-trait) solid var(--encre);
+  background: #fff;
+  box-shadow: var(--pub-ombre-forte);
+  font-family: var(--font-manrope), system-ui, sans-serif;
+}
+/* Bord dentelé du ticket (haut et bas) */
+.pub-ticket::before,
+.pub-ticket::after {
+  content: "";
+  position: absolute;
+  left: -2.5px;
+  right: -2.5px;
+  height: 11px;
+  background: radial-gradient(circle at 8px 0, transparent 6.5px, #fff 7px) 0 0 / 16px 11px repeat-x;
+}
+.pub-ticket::before {
+  top: -11px;
+  transform: rotate(180deg);
+}
+.pub-ticket::after {
+  bottom: -11px;
+}
+.pub-ticket-tete {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px dashed var(--encre);
+}
+.pub-ticket-tete span {
+  color: var(--secondaire);
+}
+.pub-ticket-lignes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 56px;
+}
+.pub-ticket-lignes li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--ease);
+}
+.pub-ticket-lignes li.on {
+  opacity: 1;
+  transform: none;
+}
+.pub-ticket-lignes li span:last-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.pub-ticket-total {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 2px dashed var(--encre);
+  font-size: 1.1rem;
+  opacity: 0.25;
+  transition: opacity 0.4s;
+}
+.pub-ticket-total.on {
+  opacity: 1;
+}
+.pub-ticket-etats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pub-ticket-etats li {
+  padding: 8px 2px;
+  border: 2px solid var(--encre);
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  background: #fff;
+  transition: background 0.4s, color 0.4s, transform 0.4s var(--ease);
+}
+.pub-ticket-etats li.on {
+  background: var(--encre);
+  color: var(--creme);
+}
+.pub-ticket-etats li[aria-current="step"] {
+  transform: translateY(-3px);
+}
+.pub-ticket-pause {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--encre);
+  font-family: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.pub-section-ticket {
+  display: grid;
+  gap: var(--space-6);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .pub-section-ticket {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-pre {
+    opacity: 1;
+    transform: none;
+  }
+  .pub-etape-progres {
+    animation: none;
+  }
+}

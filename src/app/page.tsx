@@ -5,7 +5,8 @@ import { CartePub } from "@/components/site/CartePub";
 import { SelecteurEnvie, type EnvieAffichee } from "@/components/site/SelecteurEnvie";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { lirePromesse } from "@/lib/parametres/promesse";
-import { FAMILLES_ENVIE, lireAccueil } from "@/lib/site/accueil";
+import { FAMILLES_ENVIE, lireAccueil, ticketExemple } from "@/lib/site/accueil";
+import { TicketVoyage } from "@/components/site/TicketVoyage";
 import { PALETTES, type Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default async function AccueilPage() {
     visuel: <Illustration valeur={s.illustration ?? pastille(s.motif)} nom={s.platNom} decoratif />,
   }));
 
+  const ticket = ticketExemple(donnees);
   const mises = (ouverts.length >= 3 ? ouverts : restaurants).slice(0, 3);
   const bandeau = [...quartiers.map((q) => q.nom), ...FAMILLES_ENVIE.map((f) => f.libelle)];
 
@@ -174,6 +176,23 @@ export default async function AccueilPage() {
             </Link>
           </div>
         </section>
+
+        {ticket ? (
+          <section className="pub-conteneur pub-rubrique" aria-labelledby="accueil-ticket">
+            <div className="pub-section-ticket">
+              <div className="pub-entete-rubrique">
+                <p className="pub-kicker">Votre commande, en direct</p>
+                <h2 id="accueil-ticket" className="pub-titre pub-h2">
+                  Vous savez toujours <span className="pub-surligne">où elle en est</span>
+                </h2>
+                <p className="pub-accueil-lead">
+                  Après l&apos;envoi, un lien de suivi vous dit si la commande est en attente, acceptée, prête ou terminée. Voici un exemple, avec les plats d&apos;un restaurant ouvert.
+                </p>
+              </div>
+              <TicketVoyage restaurant={ticket.restaurant} lignes={ticket.lignes} />
+            </div>
+          </section>
+        ) : null}
 
         <section className="pub-conteneur pub-rubrique" aria-labelledby="accueil-pro">
           <div className="pub-bande-pro">

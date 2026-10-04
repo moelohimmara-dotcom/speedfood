@@ -10,6 +10,7 @@ import "./cadre.css";
 import "./public.css";
 import "./public-pages.css";
 import "./public-info.css";
+import "./public-mouvement.css";
 import "./admin.css";
 import "./console.css";
 

@@ -115,3 +115,15 @@ export async function lireQuartier(slug: string): Promise<DonneesQuartier> {
   const quartier = resumerQuartiers(restaurants)[0] ?? null;
   return { erreur: false, quartier, restaurants, platsParRestaurant: c.platsParRestaurant };
 }
+
+/** Un vrai restaurant ouvert et deux de ses plats disponibles, pour le ticket d'exemple (animation « une commande qui voyage »). */
+export function ticketExemple(d: DonneesAccueil): { restaurant: string; lignes: { nom: string; prix: number }[] } | null {
+  for (const r of d.ouverts) {
+    const lignes = (d.platsParRestaurant.get(r.id) ?? [])
+      .filter((p) => p.disponible)
+      .slice(0, 2)
+      .map((p) => ({ nom: p.nom, prix: p.prixPromo ?? p.prix }));
+    if (lignes.length > 0) return { restaurant: r.nom, lignes };
+  }
+  return null;
+}

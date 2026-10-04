@@ -1,6 +1,7 @@
 import { EnteteSite } from "@/components/EnteteSite";
 import { NavigationClient } from "@/components/NavigationClient";
 import { PiedSite } from "@/components/PiedSite";
+import { Revelation } from "@/components/site/Revelation";
 import { connexionClientActive } from "@/lib/client/reglage";
 
 /**
@@ -29,6 +30,7 @@ export async function CadreSite({
       </div>
       <PiedSite />
       {focus ? null : <NavigationClient />}
+      <Revelation />
     </div>
   );
 }
