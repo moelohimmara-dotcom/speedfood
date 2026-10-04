@@ -305,3 +305,11 @@
 .pub-principes p {
   margin: 0;
 }
+
+/* Sur fond mangue, un lien d'action rouge ne contraste pas assez (3,85 pour 1) : texte encre souligné. */
+.pub-bande-pro .lien-texte,
+.pub-note-pilote .lien-texte,
+.pub-faq-item[open] .lien-texte {
+  color: var(--encre);
+  text-decoration: underline;
+}
