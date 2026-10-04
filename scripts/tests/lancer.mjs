@@ -37,6 +37,7 @@ copier("scripts/tests/push.test.mts");
 copier("src/lib/restaurant/position.ts");
 copier("src/lib/restaurant/paiement.ts");
 copier("src/lib/parametres/assistance-format.ts");
+copier("src/lib/parametres/promesse-defauts.ts");
 copier("scripts/tests/reglages.test.mts");
 
 let statut = 0;

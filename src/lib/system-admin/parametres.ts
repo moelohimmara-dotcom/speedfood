@@ -36,6 +36,9 @@ export interface ParametresAffiches {
   whatsappAssistance: string;
   delaiValidationHeures: number | null;
   positionCarteActive: boolean;
+  promesseSignature: string;
+  promesseSousTitre: string;
+  promessePartage: string;
 }
 
 export async function listerParametresApplication(): Promise<ParametresAffiches> {
@@ -44,7 +47,7 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
   const { data } = await supabase
     .from("parametres_application")
     .select(
-      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois, whatsapp_assistance, delai_validation_heures, position_carte_active"
+      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois, whatsapp_assistance, delai_validation_heures, position_carte_active, promesse_signature, promesse_sous_titre, promesse_partage"
     )
     .eq("id", true)
     .single();
@@ -59,6 +62,9 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
     whatsappAssistance: data?.whatsapp_assistance ?? "",
     delaiValidationHeures: data?.delai_validation_heures ?? null,
     positionCarteActive: data?.position_carte_active ?? false,
+    promesseSignature: data?.promesse_signature ?? "",
+    promesseSousTitre: data?.promesse_sous_titre ?? "",
+    promessePartage: data?.promesse_partage ?? "",
   };
 }
 
@@ -89,6 +95,15 @@ export async function modifierParametresAction(
     return { erreur: "Le délai de validation annoncé doit être compris entre 1 et 720 heures, ou laissé vide." };
   }
   const positionCarteActive = formData.get("position_carte_active") === "on";
+
+  // Textes de promesse : une ligne chacun, bornés comme la base ; vide = texte par défaut.
+  const texteLigne = (cle: string) => String(formData.get(cle) ?? "").replace(/\s+/g, " ").trim();
+  const promesseSignature = texteLigne("promesse_signature");
+  const promesseSousTitre = texteLigne("promesse_sous_titre");
+  const promessePartage = texteLigne("promesse_partage");
+  if (promesseSignature.length > 80 || promesseSousTitre.length > 220 || promessePartage.length > 200) {
+    return { erreur: "Textes d'accueil trop longs (signature 80, sous-titre 220, partage 200 caractères au maximum)." };
+  }
 
   if (!Number.isFinite(delai) || delai < 1 || delai > 1440) {
     return { erreur: "Le délai de proposition doit être compris entre 1 et 1440 minutes." };
@@ -128,6 +143,9 @@ export async function modifierParametresAction(
       whatsapp_assistance: whatsapp === "" ? null : whatsapp,
       delai_validation_heures: delaiValidation,
       position_carte_active: positionCarteActive,
+      promesse_signature: promesseSignature || null,
+      promesse_sous_titre: promesseSousTitre || null,
+      promesse_partage: promessePartage || null,
       mis_a_jour_le: new Date().toISOString(),
       mis_a_jour_par: contexte.utilisateurId,
     })
@@ -141,7 +159,7 @@ export async function modifierParametresAction(
     action: "parametres.modification",
     cibleType: "parametres_application",
     cibleId: "singleton",
-    motif: `Délai proposition → ${delai} min, plafond prix plat → ${prix} GNF, fraîcheur disponibilité → ${fraicheur} h, conservation coordonnées → ${conservation} j, commande non clôturée → ${nonCloturee} j, audit → ${auditMois} mois, WhatsApp assistance → ${whatsapp === "" ? "désactivé" : "renseigné"}, délai de validation annoncé → ${delaiValidation === null ? "aucun" : delaiValidation + " h"}, position sur carte → ${positionCarteActive ? "active" : "inactive"}`,
+    motif: `Délai proposition → ${delai} min, plafond prix plat → ${prix} GNF, fraîcheur disponibilité → ${fraicheur} h, conservation coordonnées → ${conservation} j, commande non clôturée → ${nonCloturee} j, audit → ${auditMois} mois, WhatsApp assistance → ${whatsapp === "" ? "désactivé" : "renseigné"}, délai de validation annoncé → ${delaiValidation === null ? "aucun" : delaiValidation + " h"}, position sur carte → ${positionCarteActive ? "active" : "inactive"}, textes d'accueil → ${promesseSignature || promesseSousTitre || promessePartage ? "personnalisés" : "par défaut"}`,
   });
 
   revalidatePath("/system/parametres");

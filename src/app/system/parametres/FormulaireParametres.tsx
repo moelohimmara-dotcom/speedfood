@@ -183,6 +183,34 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
           </p>
         </div>
       </fieldset>
+      <fieldset
+        style={{
+          border: "1px solid var(--bordure)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-4)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-4)",
+        }}
+      >
+        <legend style={{ fontWeight: 700, padding: "0 6px" }}>Textes d&apos;accueil</legend>
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
+          Laissez un champ vide pour garder le texte par défaut. Ne promettez que ce que l&apos;application tient : pas de délai de
+          livraison, pas de chiffre non calculé.
+        </p>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="promesse_signature">Signature, au-dessus de l&apos;accroche (80 caractères)</label>
+          <input id="promesse_signature" name="promesse_signature" type="text" maxLength={80} defaultValue={parametres.promesseSignature} placeholder="Confirmé, l'heure à l'appui" />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="promesse_sous_titre">Sous-titre de l&apos;accueil (220 caractères)</label>
+          <textarea id="promesse_sous_titre" name="promesse_sous_titre" rows={3} maxLength={220} defaultValue={parametres.promesseSousTitre} placeholder="Une commande se fait depuis le navigateur de votre téléphone : aucun compte à créer, aucune application à installer." />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="promesse_partage">Description de partage, WhatsApp et Google (200 caractères)</label>
+          <textarea id="promesse_partage" name="promesse_partage" rows={3} maxLength={200} defaultValue={parametres.promessePartage} placeholder="Speedfood, Conakry. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Commande sans compte, règlement au restaurant." />
+        </div>
+      </fieldset>
       {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
       {etat.succes ? <Alert ton="succes">Paramètres enregistrés.</Alert> : null}
       <div>

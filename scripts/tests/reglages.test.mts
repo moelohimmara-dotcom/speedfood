@@ -2,6 +2,8 @@ import { analyserPosition } from "../../src/lib/restaurant/position";
 import { libellesMoyensPaiement, moyensPaiementValides, normaliserMoyensPaiement } from "../../src/lib/restaurant/paiement";
 import { formaterDelaiValidation, lienWhatsAppAssistance, liensCarte } from "../../src/lib/parametres/assistance-format";
 
+import { fusionnerPromesse, PROMESSE_PAR_DEFAUT } from "../../src/lib/parametres/promesse-defauts";
+
 let ko = 0;
 let total = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -50,6 +52,13 @@ verifier("liens de carte", liensCarte(9.537, -13.6785), {
   voir: "https://www.openstreetmap.org/?mlat=9.537&mlon=-13.6785#map=17/9.537/-13.6785",
   itineraire: "https://www.google.com/maps/dir/?api=1&destination=9.537,-13.6785",
 });
+
+// Textes de promesse
+verifier("promesse : tout vide = défauts", fusionnerPromesse({}), PROMESSE_PAR_DEFAUT);
+verifier("promesse : espaces seuls = défaut", fusionnerPromesse({ signature: "   " }).signature, PROMESSE_PAR_DEFAUT.signature);
+verifier("promesse : texte saisi conservé et nettoyé", fusionnerPromesse({ sousTitre: "  Mon texte " }).sousTitre, "Mon texte");
+verifier("promesse : un champ n'écrase pas les autres", fusionnerPromesse({ signature: "A" }).partage, PROMESSE_PAR_DEFAUT.partage);
+verifier("promesse : signature de la recommandation", PROMESSE_PAR_DEFAUT.signature, "Confirmé, l'heure à l'appui");
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);

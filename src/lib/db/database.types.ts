@@ -556,6 +556,9 @@ export type Database = {
           mis_a_jour_le: string
           mis_a_jour_par: string | null
           prix_plat_max_gnf: number
+          promesse_signature: string | null
+          promesse_sous_titre: string | null
+          promesse_partage: string | null
           whatsapp_assistance: string | null
           delai_validation_heures: number | null
           position_carte_active: boolean
@@ -570,6 +573,9 @@ export type Database = {
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
           prix_plat_max_gnf?: number
+          promesse_signature?: string | null
+          promesse_sous_titre?: string | null
+          promesse_partage?: string | null
           whatsapp_assistance?: string | null
           delai_validation_heures?: number | null
           position_carte_active?: boolean
@@ -584,6 +590,9 @@ export type Database = {
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
           prix_plat_max_gnf?: number
+          promesse_signature?: string | null
+          promesse_sous_titre?: string | null
+          promesse_partage?: string | null
           whatsapp_assistance?: string | null
           delai_validation_heures?: number | null
           position_carte_active?: boolean

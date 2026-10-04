@@ -8,6 +8,7 @@ import { LIBELLES_GROUPES, ORDRE_GROUPES, type ResultatClasse } from "@/lib/deco
 import { etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import type { RestaurantCatalogue } from "@/lib/decouverte/recherche";
 import type { Metadata } from "next";
+import { lirePromesse } from "@/lib/parametres/promesse";
 import { lireChiffresEnDirect } from "@/lib/decouverte/chiffres";
 import { origineDuSite } from "@/lib/partage/origine";
 
@@ -25,7 +26,7 @@ const MAX_PLATS_PAR_CARTE = 3;
 // Aperçu de partage de l'accueil et du catalogue : logo officiel (adresse absolue, requise par WhatsApp et les réseaux).
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
-  const description = "Trouvez un plat, vérifiez qu'il est confirmé, commandez sans compte ni paiement en ligne. Restaurants de Conakry.";
+  const { partage: description } = await lirePromesse();
   return {
     title: "Découvrir les restaurants",
     description,
@@ -47,6 +48,7 @@ export default async function CataloguePage({
   searchParams: Promise<Recherche>;
 }) {
   const params = await searchParams;
+  const promesse = await lirePromesse();
   const q = (params.q ?? "").trim().slice(0, 100);
   const { categorie, quartier } = params;
   const filtres = {
@@ -76,11 +78,10 @@ export default async function CataloguePage({
       <section className="decouverte-bandeau">
         <div className="decouverte-bandeau-interieur">
           <div className="decouverte-bandeau-texte">
-          <p className="decouverte-surtitre">Conakry · phase pilote</p>
+          <p className="decouverte-surtitre">{promesse.signature}</p>
           <h1 className="decouverte-hero">Qu&apos;est-ce qui vous ferait plaisir aujourd&apos;hui ?</h1>
           <p className="decouverte-sous">
-            Commandez en 30 secondes, sans application, sans compte. Des plats que les restaurants ont confirmés
-            récemment, avec l&apos;heure de la confirmation : pas de promesse sans preuve.
+            {promesse.sousTitre}
           </p>
 
           <form action="/restaurants" method="GET" role="search" className="decouverte-recherche">

@@ -1,3 +1,4 @@
+import { PROMESSE_PAR_DEFAUT } from "@/lib/parametres/promesse-defauts";
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Manrope } from "next/font/google";
 import "./globals.css";
@@ -24,7 +25,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: { default: "Speedfood", template: "%s · Speedfood" },
-  description: "Découvrez et commandez chez vos restaurants préférés à Conakry.",
+  description: PROMESSE_PAR_DEFAUT.partage,
   icons: { apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "Speedfood", statusBarStyle: "default" },
 };
