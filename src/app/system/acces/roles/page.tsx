@@ -29,7 +29,7 @@ export default async function RolesSystemePage() {
 
       <Panneau titre="Attribuer un rôle">
         <p style={{ color: "var(--secondaire)", marginTop: 0 }}>
-          Le compte doit déjà exister (créé via /inscription) : cet écran attribue un rôle système, il n&apos;en crée pas.
+          La personne doit déjà s&apos;être inscrite : cet écran attribue un rôle, il ne crée pas de compte.
         </p>
         <FormulaireAttributionRole />
       </Panneau>

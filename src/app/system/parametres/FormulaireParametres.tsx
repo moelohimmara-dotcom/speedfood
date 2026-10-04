@@ -53,9 +53,8 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               Activer la connexion Facebook des clients
             </label>
             <Aide>
-              À cocher seulement après avoir créé l&apos;application Meta et activé « Facebook » dans Supabase (Authentication,
-              Providers). Tant que c&apos;est décoché, la page « Rejoindre Speedfood » indique que la création de compte arrive bientôt
-              et aucun bouton Facebook n&apos;est proposé.
+              À cocher seulement une fois la connexion Facebook configurée. Tant que c&apos;est décoché, la page « Rejoindre Speedfood »
+              indique que la création de compte arrive bientôt et aucun bouton Facebook n&apos;est proposé.
             </Aide>
           </div>
         </Panneau>
