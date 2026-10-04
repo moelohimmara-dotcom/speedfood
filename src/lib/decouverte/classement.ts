@@ -1,3 +1,4 @@
+import type { Illustration } from "@/lib/illustrations/modele";
 import {
   etatDisponibilite,
   etatRestaurant,
@@ -49,6 +50,8 @@ export interface PlatPublic {
   disponible: boolean;
   confirmeLe: string | null;
   photoUrl?: string | null;
+  /** Illustration modifiable (console admin), affichée quand il n'y a pas de photo. Déjà validée. */
+  illustration?: Illustration | null;
 }
 
 export interface RestaurantClassable {

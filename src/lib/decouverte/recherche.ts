@@ -1,5 +1,6 @@
 import "server-only";
 import { creerClientPublic } from "@/lib/db/public";
+import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { etatDisponibilite, scoreFraicheur, type EtatDisponibilite } from "@/lib/disponibilite/etat";
 import {
@@ -27,6 +28,8 @@ export const LIMITE_RESULTATS_AFFICHES = 60;
 export interface RestaurantCatalogue extends RestaurantClassable {
   categorieId: string | null;
   couleurAccent: string | null;
+  logoIllustration: Illustration | null;
+  couvertureIllustration: Illustration | null;
   categorie: string;
   quartier: string;
 }
@@ -77,7 +80,7 @@ export async function lireCatalogue(
   let requete = supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(nom)"
     )
     .order("nom")
     .limit(LIMITE_RESTAURANTS_LUS);
@@ -89,7 +92,7 @@ export async function lireCatalogue(
       requete,
       supabase
         .from("menu_items")
-        .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url")
+        .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, illustration")
         .is("archive_le", null)
         .limit(LIMITE_PLATS_LUS),
     ]);
@@ -114,6 +117,8 @@ export async function lireCatalogue(
     photoUrl: r.photo_url,
     logoUrl: r.logo_url,
     couleurAccent: r.couleur_accent,
+    logoIllustration: validerIllustration(r.logo_illustration),
+    couvertureIllustration: validerIllustration(r.couverture_illustration),
     categorie: r.menu_categories?.nom ?? "",
     quartier: r.neighborhoods?.nom ?? "",
   }));
@@ -129,6 +134,7 @@ export async function lireCatalogue(
       disponible: p.disponible,
       confirmeLe: p.disponibilite_confirmee_le,
       photoUrl: p.photo_url,
+      illustration: validerIllustration(p.illustration),
     });
     platsParRestaurant.set(p.restaurant_id, liste);
   }

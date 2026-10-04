@@ -8,6 +8,7 @@ import "./catalogue.css";
 import "./marche.css";
 import "./cadre.css";
 import "./public.css";
+import "./public-pages.css";
 import "./admin.css";
 import "./console.css";
 

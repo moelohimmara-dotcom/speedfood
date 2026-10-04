@@ -1,0 +1,389 @@
+/*
+ * Pages du site public, direction B : accueil, cartes restaurant, quartiers, étapes, bande restaurateurs.
+ * Mêmes règles que public.css : tout est dans `.theme-public` (via les classes `pub-*`), aplats uniquement.
+ */
+.pub-kicker {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondaire);
+}
+.pub-kicker-encre {
+  color: var(--encre);
+}
+.pub-h2 {
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  margin: 0;
+}
+.pub-entete-rubrique {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 760px;
+}
+.pub-accueil {
+  padding-bottom: var(--space-6);
+}
+.pub-accueil-hero {
+  display: grid;
+  gap: var(--space-8);
+  padding-block: clamp(28px, 6vw, 84px) clamp(40px, 7vw, 100px);
+  align-items: center;
+}
+.pub-accueil-texte {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.pub-accueil-h1 {
+  margin: 0;
+  font-size: clamp(2.3rem, 6.8vw, 6rem);
+}
+.pub-accueil-lead {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  color: var(--encre);
+}
+.pub-accueil-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+.pub-accueil-envie {
+  position: relative;
+  min-width: 0;
+  padding-block: var(--space-4);
+}
+.pub-accueil-sticker {
+  position: absolute;
+  top: -6px;
+  right: 4px;
+  max-width: 220px;
+  padding: 6px 12px;
+  line-height: 1.25;
+  transform: rotate(4deg);
+  background: var(--mangue);
+}
+.pub-envie {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--pub-ombre-forte);
+}
+@media (min-width: 960px) {
+  .pub-accueil-hero {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  }
+  /* Rupture de grille voulue : la carte d'envie est inclinée et déborde sur la section suivante. */
+  .pub-envie {
+    transform: rotate(1.6deg);
+    margin-bottom: -56px;
+  }
+}
+.pub-puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pub-puce {
+  font-family: inherit;
+  font-size: 0.95rem;
+  min-height: 44px;
+  padding: 0 16px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font-weight: 800;
+  transition: transform 0.25s var(--ease), background 0.2s;
+}
+.pub-puce:hover {
+  transform: translateY(-2px);
+}
+.pub-puce[aria-pressed="true"] {
+  background: var(--encre);
+  color: var(--creme);
+}
+.pub-envie .pub-btn {
+  justify-self: start;
+}
+.pub-envie-resultat {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+}
+.pub-envie-visuel svg {
+  width: 84px;
+  height: 84px;
+}
+.pub-envie-plat {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.pub-envie-resto {
+  margin: 4px 0 0;
+  color: var(--secondaire);
+  font-size: 0.92rem;
+}
+.pub-envie-prix {
+  margin: 6px 0 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.pub-surligne-blanc {
+  background: linear-gradient(transparent 60%, #fff 60% 92%, transparent 92%);
+}
+
+/* Cartes restaurant */
+.pub-grille-cartes {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+}
+@media (min-width: 900px) {
+  .pub-grille-cartes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pub-carte-grande {
+    grid-column: span 2;
+  }
+  .pub-carte-grande .pub-carte-lien {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    height: 100%;
+  }
+  .pub-carte-grande .pub-carte-visuel {
+    height: 100%;
+    aspect-ratio: auto;
+    min-height: 260px;
+    border-bottom: 0;
+    border-right: var(--pub-trait) solid var(--encre);
+  }
+}
+.pub-carte-resto {
+  overflow: hidden;
+}
+.pub-carte-lien {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.pub-carte-visuel {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-bottom: var(--pub-trait) solid var(--encre);
+  background: var(--mangue);
+}
+.pub-carte-visuel > img,
+.pub-carte-visuel > svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pub-carte-etat {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--mangue);
+}
+.pub-carte-etat.ferme {
+  background: var(--surface);
+}
+.pub-carte-etat::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2e7d32;
+}
+.pub-carte-etat.ferme::before {
+  background: var(--secondaire);
+}
+.pub-carte-logo {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--encre);
+}
+.pub-carte-logo img,
+.pub-carte-logo svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pub-carte-corps {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  align-content: start;
+}
+.pub-carte-nom {
+  margin: 0;
+  font-size: 1.5rem;
+}
+.pub-carte-plats {
+  display: grid;
+  gap: 4px;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pub-carte-plats li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 0;
+  border-top: 1px dashed var(--bordure);
+  font-size: 0.95rem;
+}
+.pub-carte-plats strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.pub-carte-vide {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.92rem;
+}
+
+/* Quartiers */
+.pub-quartiers {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.pub-quartier a {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-height: 190px;
+  align-content: end;
+  padding: var(--space-5);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  text-decoration: none;
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+.pub-quartier a:hover {
+  transform: translate(-2px, -2px) rotate(-0.6deg);
+  box-shadow: var(--pub-ombre-forte);
+}
+.pub-quartier-0 a {
+  background: var(--rouge-fonce);
+  color: #fff;
+}
+.pub-quartier-1 a {
+  background: var(--mangue);
+  color: var(--encre);
+}
+.pub-quartier-2 a {
+  background: var(--encre);
+  color: var(--creme);
+}
+.pub-quartier-nom {
+  font-family: var(--font-titre);
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+.pub-quartier-compte {
+  font-weight: 700;
+}
+.pub-quartier-fleche {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--encre);
+}
+
+/* Étapes */
+.pub-etapes {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}
+.pub-etape {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+.pub-etape p {
+  margin: 0;
+  color: var(--secondaire);
+}
+.pub-etape-visuel svg {
+  width: 72px;
+  height: 72px;
+}
+.pub-etape-titre {
+  margin: var(--space-2) 0 0;
+  font-size: 1.5rem;
+}
+.pub-etape-num {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--encre);
+  color: var(--creme);
+  font-size: 0.95rem;
+}
+
+/* Bande restaurateurs */
+.pub-bande-pro {
+  display: grid;
+  gap: var(--space-5);
+  align-items: center;
+  padding: clamp(24px, 4vw, 48px);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--mangue);
+  box-shadow: var(--pub-ombre-forte);
+}
+.pub-bande-pro > div {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 62ch;
+}
+.pub-lead-encre {
+  color: var(--encre);
+}
+@media (min-width: 900px) {
+  .pub-bande-pro {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
