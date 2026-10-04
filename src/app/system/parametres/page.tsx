@@ -1,6 +1,5 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { listerParametresApplication } from "@/lib/system-admin/parametres";
-import { Alert } from "@/components/ui";
 import { PageHeader } from "@/components/admin/blocs";
 import { FormulaireParametres } from "./FormulaireParametres";
 
@@ -20,11 +19,6 @@ export default async function ParametresSystemePage() {
   return (
     <div>
       <PageHeader titre="Paramètres" description="Règles métier, comptes clients, assistance et textes d'accueil. Réservé aux super administrateurs." />
-
-      <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
-        Le code secret des liens de suivi des commandes ne se modifie pas ici : le changer rendrait inutilisables tous les liens
-        déjà envoyés aux clients. Il est protégé au niveau de l&apos;hébergement.
-      </Alert>
 
       <FormulaireParametres parametres={parametres} />
     </div>
