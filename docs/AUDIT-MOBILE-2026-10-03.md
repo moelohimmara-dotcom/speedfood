@@ -205,6 +205,22 @@ de haut, retrait 44 × 44, aucun débordement ; à 390 px, bornes de **97 px**.
 elles dépendaient donc des styles en ligne du composant, et masquaient le bouton de retrait dans
 un cas seulement. Remplacées par des classes explicites (`panier-article-*`, `vignette-ajouter`).
 
+**Enrichissement (le même jour).** La ligne ne disait ni ce qu'elle contenait ni ce qu'elle
+coûtait : la vignette n'affiche que le prix **unitaire**, et rien n'expliquait pourquoi un compteur
+apparaissait sous le plat. Ajouté :
+
+- un **état explicite** — « Dans votre panier », précédé d'une griffe verte — pour que le bloc se
+  comprenne sans déduction ;
+- le **montant réel de la ligne**, suppléments et quantité compris (`prixLigne × quantité`),
+  aligné à droite : c'est l'information qui manquait le plus ;
+- un **filet de marque** de 3 px à gauche, qui rattache visuellement le bloc au panier ;
+- le libellé des suppléments **seulement quand il informe** : « Sans supplément » n'apparaît que
+  si le plat propose des suppléments, et disparaît pour un plat sans option.
+
+Vérifié à 360 px : 2 × 175 000 GNF → **350 000 GNF** ; 175 000 + 30 000 GNF → **205 000 GNF** ;
+bornes de **81 × 44 px**, retrait 44 × 44, filet `rgb(217, 54, 43)`, aucun débordement — et le
+montant de la barre de panier correspond au total de la ligne.
+
 ## 9. Suites possibles
 
 Rien n'a été corrigé dans cet audit. Les points 1, 3, 4, 5 et 6 sont des correctifs courts

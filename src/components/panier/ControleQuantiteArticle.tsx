@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   ajouterArticle,
   changerQuantite,
+  prixLigne,
   supprimerArticle,
   usePanier,
   QUANTITE_MAX_LIGNE,
@@ -111,23 +112,63 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
         /* Empilé et non côte à côte : dans une vignette étroite, le libellé et les commandes se
            comprimaient — « Sans supplément » passait sur deux lignes et les boutons se touchaient. */
         <div className="panier-article-lignes">
-          {lignesDuPlat.map((ligne) => (
-            <div key={ligne.cle} className="panier-article-ligne">
-              <span className="panier-article-options">
-                {ligne.options.length > 0 ? ligne.options.map((o) => o.nom).join(", ") : "Sans supplément"}
-              </span>
-              <ControleQuantiteLigne
-                nomAffiche={article.nom}
-                quantite={ligne.quantite}
-                onIncrementer={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
-                onDecrementer={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
-                onSupprimer={() => supprimerArticle(ligne.cle)}
-              />
-            </div>
-          ))}
+          {lignesDuPlat.map((ligne) => {
+            /* « Sans supplément » n'informe que si le plat propose des suppléments : sans options
+               configurées, la mention ne fait que répéter une évidence. */
+            const supplements =
+              ligne.options.length > 0
+                ? ligne.options.map((o) => o.nom).join(", ")
+                : optionsDisponibles.length > 0
+                  ? "Sans supplément"
+                  : null;
+
+            return (
+              <div key={ligne.cle} className="panier-article-ligne">
+                <div className="panier-article-entete">
+                  <span className="panier-article-etat">
+                    <IconeValide />
+                    Dans votre panier
+                  </span>
+                  {/* La vignette n'affiche que le prix unitaire : ici, ce que coûte réellement
+                      cette ligne, suppléments et quantité compris. */}
+                  <span className="panier-article-total">{formaterGNF(prixLigne(ligne) * ligne.quantite)}</span>
+                </div>
+                {supplements ? <span className="panier-article-options">{supplements}</span> : null}
+                <ControleQuantiteLigne
+                  nomAffiche={article.nom}
+                  quantite={ligne.quantite}
+                  onIncrementer={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
+                  onDecrementer={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
+                  onSupprimer={() => supprimerArticle(ligne.cle)}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function formaterGNF(montant: number) {
+  return `${montant.toLocaleString("fr-FR")} GNF`;
+}
+
+function IconeValide() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12.5l4.5 4.5L19 7" />
+    </svg>
   );
 }
 
