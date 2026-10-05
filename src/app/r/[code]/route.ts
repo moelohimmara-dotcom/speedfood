@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { cheminRestaurant } from "@/lib/partage/liens";
 import { estRobotApercu, lireSourceScan } from "@/lib/partage/scans";
+import { lireNumeroTable } from "@/lib/commande/mode";
 
 /**
  * Lien court d'un restaurant (`/r/ab12cd`) : c'est ce que contiennent le QR code et l'affiche. Il compte la visite par source
@@ -18,16 +19,18 @@ export async function GET(requete: Request, { params }: { params: Promise<{ code
     return retour("/restaurants");
   }
 
-  const source = lireSourceScan(url.searchParams.get("s"));
+  const table = lireNumeroTable(url.searchParams.get("t"));
+  const source = table ? "table" : lireSourceScan(url.searchParams.get("s"));
+  const vers = (id: string) => `${cheminRestaurant(id)}${table ? `?table=${encodeURIComponent(table)}` : ""}`;
   const compter = !estRobotApercu(requete.headers.get("user-agent"));
   try {
     const admin = creerClientAdmin();
     if (compter) {
       const { data } = await admin.rpc("fn_compter_scan", { p_code: code, p_source: source });
-      return data ? retour(cheminRestaurant(data)) : retour("/restaurants");
+      return data ? retour(vers(data)) : retour("/restaurants");
     }
     const { data } = await admin.from("restaurants").select("id").eq("code_court", code.toLowerCase()).eq("publie", true).is("suspendu_le", null).maybeSingle();
-    return data ? retour(cheminRestaurant(data.id)) : retour("/restaurants");
+    return data ? retour(vers(data.id)) : retour("/restaurants");
   } catch {
     return retour("/restaurants");
   }

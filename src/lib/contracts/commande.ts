@@ -2,7 +2,7 @@ import type { ModePaiement, OptionPaiement, StatutPaiement } from "@/lib/paiemen
 import type { StatutCommande } from "./statuts";
 import type { ErreurApi } from "./erreurs";
 
-export type ModeRetrait = "retrait" | "livraison";
+export type ModeRetrait = "retrait" | "livraison" | "sur_place";
 
 /**
  * Coordonnées client saisies à la commande. Aucun compte requis (ADR-005).
@@ -140,6 +140,8 @@ export interface CreationCommandePayload {
   restaurantId: string;
   client: ClientCommande;
   mode: ModeRetrait;
+  /** Numéro de table (QR de table), seulement pour le mode « sur_place ». */
+  table?: string | null;
   lignes: LigneCommandeClient[];
   /** Jeton Cloudflare Turnstile (usage unique), exigé seulement si la vérification anti-robot est active. */
   jetonVerification?: string;
@@ -201,6 +203,7 @@ export interface SuiviCommande {
   statut: StatutCommande;
   etatDerive: EtatDeriveCommande;
   mode: ModeRetrait;
+  tableNumero: string | null;
   creeLe: string;
   restaurant: RestaurantSuivi;
   lignes: LigneCommandeApercu[];
@@ -218,6 +221,7 @@ export interface ApercuCommandeRestaurant {
   statut: StatutCommande;
   etatDerive: EtatDeriveCommande;
   mode: ModeRetrait;
+  tableNumero: string | null;
   clientNom: string;
   clientTelephone: string;
   clientAdresse: string | null;

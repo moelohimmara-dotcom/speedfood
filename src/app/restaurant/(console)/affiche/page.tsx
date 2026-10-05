@@ -83,6 +83,15 @@ export default async function AffichePage() {
             </p>
           </Panneau>
 
+          <Panneau titre="QR de tables">
+            <p className="ad-aide-champ" style={{ margin: "0 0 var(--space-3)" }}>
+              Un QR par table : le client scanne et commande à sa table, le numéro apparaît sur la commande.
+            </p>
+            <a href="/restaurant/tables" className="btn btn-secondary">
+              Préparer mes QR de tables
+            </a>
+          </Panneau>
+
           <Panneau titre="Visites sur 30 jours">
             {lignes.length === 0 ? (
               <p className="ad-aide-champ" style={{ margin: 0 }}>

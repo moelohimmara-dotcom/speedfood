@@ -56,6 +56,10 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         <IconeAdmin nom="boutique" />
         Affiche et QR code
       </Link>
+      <Link href="/restaurant/tables" className="ad-lien-bas">
+        <IconeAdmin nom="carte" />
+        QR de tables
+      </Link>
       <Link href="/restaurant/documents" className="ad-lien-bas">
         <IconeAdmin nom="commandes" />
         Reçus et factures

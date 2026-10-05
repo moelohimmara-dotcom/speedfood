@@ -9,6 +9,7 @@ import {
   type ActionStatutCommande,
 } from "@/lib/commande/actions-restaurant";
 import { LIBELLES_MODE, libelleStatutPaiement, lienWhatsAppVers, texteRecuWhatsApp } from "@/lib/paiement/regles";
+import { libelleMode } from "@/lib/commande/mode";
 import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
@@ -152,7 +153,7 @@ export function CommandeCarte({
           </div>
           <p style={{ margin: "4px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
             {age ? `${age} · ` : ""}{formaterDate(commande.creeLe)} ·{" "}
-            {commande.mode === "livraison" ? "Livraison" : "Retrait sur place"}
+            {libelleMode(commande.mode, commande.tableNumero)}
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -381,7 +382,7 @@ export function CommandeCarte({
       {commande.etatDerive === "prete" ? (
         <div className="cmd-actions">
           <Button type="button" className="cmd-principale" disabled={enCours} onClick={() => traiter("terminee")}>
-            {commande.mode === "livraison" ? "Marquer livrée" : "Marquer remise au client"}
+            {commande.mode === "livraison" ? "Marquer livrée" : commande.mode === "sur_place" ? "Marquer servie" : "Marquer remise au client"}
           </Button>
         </div>
       ) : null}

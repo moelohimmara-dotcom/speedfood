@@ -1,3 +1,4 @@
+import { versModeCommande } from "./mode";
 import "server-only";
 import type {
   ApercuCommandeRestaurant,
@@ -69,7 +70,7 @@ function versModePaiement(valeur: string | null | undefined): ModePaiement | nul
 }
 
 function versMode(valeur: string): ModeRetrait {
-  return valeur === "livraison" ? "livraison" : "retrait";
+  return versModeCommande(valeur);
 }
 
 /**
@@ -85,7 +86,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
   const { data: commande, error } = await db
     .from("orders")
     .select(
-      "id, reference, mode, sous_total, frais_livraison_estime, statut, cree_le, restaurants(id, nom, horaires, consignes, ouvert, moyens_paiement)"
+      "id, reference, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, restaurants(id, nom, horaires, consignes, ouvert, moyens_paiement)"
     )
     .eq("jeton_suivi", jeton)
     .maybeSingle();
@@ -141,6 +142,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
     statut,
     etatDerive: calculerEtatDerive(statut, propositionActive),
     mode: versMode(commande.mode),
+    tableNumero: commande.table_numero ?? null,
     creeLe: commande.cree_le,
     restaurant: {
       id: restaurant?.id ?? "",
@@ -193,7 +195,7 @@ export async function chargerApercusCommandes(
   const { data: commandes, error } = await db
     .from("orders")
     .select(
-      `id, reference, client_nom, client_telephone, client_adresse, mode, sous_total, frais_livraison_estime, statut, cree_le, jeton_suivi, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
+      `id, reference, client_nom, client_telephone, client_adresse, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, jeton_suivi, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
     )
     .eq("restaurant_id", restaurantId)
     .order("cree_le", { ascending: false });
@@ -229,6 +231,7 @@ export async function chargerApercusCommandes(
       statut,
       etatDerive: calculerEtatDerive(statut, propositionActive),
       mode: versMode(commande.mode),
+      tableNumero: commande.table_numero ?? null,
       clientNom: commande.client_nom,
       clientTelephone: commande.client_telephone,
       clientAdresse: commande.client_adresse,

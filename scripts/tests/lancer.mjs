@@ -57,6 +57,7 @@ copier("src/lib/paiement/regles.ts");
 copier("scripts/tests/paiement.test.mts");
 copier("src/lib/paiement/documents-regles.ts");
 copier("src/lib/partage/scans.ts");
+copier("src/lib/commande/mode.ts");
 copier("scripts/tests/documents.test.mts");
 
 let statut = 0;

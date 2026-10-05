@@ -122,3 +122,15 @@
     margin: 12mm;
   }
 }
+
+/* QR de tables (lot 4) */
+.tables-haut { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
+@media (max-width: 900px) { .tables-haut { grid-template-columns: minmax(0, 1fr); } }
+.tables-formulaire { display: grid; gap: var(--space-3); justify-items: start; }
+.tables-planche { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-4); }
+.table-carte { background: #fff; color: #1a1410; border: 2px dashed var(--bordure); border-radius: 14px; padding: 16px; text-align: center; display: grid; gap: 6px; justify-items: center; break-inside: avoid; }
+.table-marque { margin: 0; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #b13b00; overflow-wrap: anywhere; }
+.table-numero { margin: 0; font-size: 1.8rem; font-weight: 800; line-height: 1.1; }
+.table-qr { width: 100%; max-width: 200px; height: auto; aspect-ratio: 1; }
+.table-texte { margin: 0; font-size: 0.8rem; color: #5c5148; }
+@media print { .tables-haut, .tables-page .alerte { display: none !important; } .tables-planche { grid-template-columns: repeat(2, 1fr); gap: 8mm; } }

@@ -68,6 +68,15 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
 
   // Recalcul serveur systématique : prix et totaux du navigateur ignorés.
   await verifierRestaurantCommandable(db, payload.restaurantId);
+  // Le service à table n'existe que si le restaurant l'a activé : un numéro de table venu d'un QR ou du navigateur n'autorise rien.
+  if (payload.mode === "sur_place") {
+    const { data: resto } = await db.from("restaurants").select("accepte_sur_place").eq("id", payload.restaurantId).maybeSingle();
+    if (!resto?.accepte_sur_place) {
+      throw new ErreurMetier("VALIDATION", "Ce restaurant ne prend pas les commandes à table. Choisissez le retrait ou la livraison.", {
+        mode: "Service à table indisponible.",
+      });
+    }
+  }
   const { lignes, sousTotal } = await recalculerLignes(
     db,
     payload.restaurantId,
@@ -98,6 +107,7 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
         client_telephone: payload.client.telephone,
         client_adresse: payload.client.adresse,
         mode: payload.mode,
+        table_numero: payload.mode === "sur_place" ? (payload.table ?? null) : null,
         sous_total: sousTotal,
         // Aucun calcul de livraison : les frais restent à convenir avec le
         // restaurant (TDR.md §5 exclut tout calcul automatique de livraison).

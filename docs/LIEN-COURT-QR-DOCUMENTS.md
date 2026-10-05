@@ -32,3 +32,12 @@ Lot 3 de l'option B (5 octobre 2026). Suite de `PAIEMENT-CODE-MARCHAND.md` : Spe
 - Le comptage des scans n'est pas limité en débit ; l'impact d'une inflation est limité aux statistiques d'un restaurant.
 
 Migration : `20261005173049_lien_court_scans_documents.sql`. Tests : `scripts/tests/documents.test.mts` (27) + test de bout en bout (sécurité en base, lien court, interface, parcours client).
+
+## Lot 4 : QR de table et commande « à table »
+
+- Le restaurateur active le **service à table** (`restaurants.accepte_sur_place`, désactivé par défaut) dans « QR de tables » et imprime un QR par table (1 à 60).
+- Le QR est `/r/<code>?t=<n>` : il compte un scan « table » et ouvre la fiche avec `?table=<n>`. Le numéro est mémorisé dans le navigateur 6 heures, pour ce restaurant seulement (« Ce n'est pas ma table » l'efface).
+- À la commande, « À table » est proposé et présélectionné après un scan ; le numéro reste modifiable. Pas d'adresse demandée.
+- Le numéro de table n'est **jamais une autorisation** : le serveur refuse la commande si le restaurant n'a pas activé le service (même avec des QR déjà imprimés), et la base impose `mode = 'sur_place'` ⇔ numéro de table valide (`orders_table_si_sur_place`).
+- Le restaurateur voit « À table, table 7 » et « Marquer servie » ; le client le voit sur son suivi et son reçu.
+- Migration : `20261005185054_commande_a_table.sql`. Les statistiques comptent « à table » avec le retrait (hors livraison).

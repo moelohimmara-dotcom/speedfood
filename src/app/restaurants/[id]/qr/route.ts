@@ -2,6 +2,7 @@ import qrcode from "qrcode-generator";
 import { creerClientPublic } from "@/lib/db/public";
 import { estUuid } from "@/lib/commande/commun";
 import { lienCourt, lireSourceScan } from "@/lib/partage/scans";
+import { lireNumeroTable } from "@/lib/commande/mode";
 
 /**
  * QR code (SVG) de la page publique d'un restaurant, à afficher ou imprimer dans l'établissement.
@@ -28,7 +29,7 @@ export async function GET(
   }
 
   const url = new URL(requete.url);
-  const cible = lienCourt(url.origin, restaurant.code_court, lireSourceScan(url.searchParams.get("s") ?? "qr"));
+  const cible = lienCourt(url.origin, restaurant.code_court, lireSourceScan(url.searchParams.get("s") ?? "qr"), lireNumeroTable(url.searchParams.get("t")));
   const qr = qrcode(0, "M");
   qr.addData(cible);
   qr.make();

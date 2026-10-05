@@ -20,6 +20,7 @@ import type {
 } from "@/lib/contracts/commande";
 import type { ErreurApi } from "@/lib/contracts/erreurs";
 import { estUuid } from "./commun";
+import { lireNumeroTable } from "./mode";
 
 export const QUANTITE_MAX_LIGNE = 30;
 export const LIGNES_MAX_COMMANDE = 50;
@@ -139,8 +140,16 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
   }
 
   const mode = payload.mode;
-  if (mode !== "retrait" && mode !== "livraison") {
-    champs.mode = "Choisissez le retrait ou la livraison.";
+  if (mode !== "retrait" && mode !== "livraison" && mode !== "sur_place") {
+    champs.mode = "Choisissez le retrait, la livraison ou le service à table.";
+  }
+
+  let table: string | null = null;
+  if (mode === "sur_place") {
+    table = lireNumeroTable(payload.table);
+    if (!table) {
+      champs.table = "Indiquez votre numéro de table (1 à 10 caractères).";
+    }
   }
 
   let adresse: string | null = null;
@@ -173,7 +182,7 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     champs.lignes = lignes.erreur.champs?.lignes ?? lignes.erreur.message;
   }
 
-  if (Object.keys(champs).length > 0 || !telephone || !lignes.ok || (mode !== "retrait" && mode !== "livraison")) {
+  if (Object.keys(champs).length > 0 || !telephone || !lignes.ok || (mode !== "retrait" && mode !== "livraison" && mode !== "sur_place")) {
     return erreurValidation("Certains champs sont à corriger.", champs);
   }
 
@@ -189,6 +198,7 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
       restaurantId: payload.restaurantId as string,
       client: { nom, telephone, adresse },
       mode: mode as ModeRetrait,
+      table,
       lignes: lignes.lignes,
       consentementReglement: true,
     },

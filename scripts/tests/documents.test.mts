@@ -1,4 +1,5 @@
 import { lireIdentiteDocuments, mentionRegime, texteDocumentWhatsApp, titreDocument, tvaIncluse } from "../../src/lib/paiement/documents-regles";
+import { libelleMode, lireNumeroTable, versModeCommande } from "../../src/lib/commande/mode";
 import { estRobotApercu, lienCourt, lireSourceScan } from "../../src/lib/partage/scans";
 
 let ko = 0;
@@ -54,6 +55,19 @@ verifier("aperçu WhatsApp non compté", estRobotApercu("WhatsApp/2.23 A"), true
 verifier("robot non compté", estRobotApercu("Googlebot/2.1"), true);
 verifier("absence d'agent non comptée", estRobotApercu(null), true);
 verifier("navigateur mobile compté", estRobotApercu("Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"), false);
+
+// Commande à table
+verifier("table 7", lireNumeroTable("7"), "7");
+verifier("table A12 avec espaces", lireNumeroTable("  A 12 "), "A 12");
+verifier("table vide", lireNumeroTable(""), null);
+verifier("table trop longue", lireNumeroTable("12345678901"), null);
+verifier("table avec balise", lireNumeroTable("<b>1"), null);
+verifier("table non texte", lireNumeroTable(7), null);
+verifier("libellé à table", libelleMode("sur_place", "7"), "À table, table 7");
+verifier("libellé retrait", libelleMode("retrait"), "Retrait sur place");
+verifier("mode inconnu retombe sur retrait", versModeCommande("x"), "retrait");
+verifier("mode sur_place conservé", versModeCommande("sur_place"), "sur_place");
+verifier("lien court avec table", lienCourt("https://s.test", "ab12cd", "table", "A 12"), "https://s.test/r/ab12cd?s=table&t=A%2012");
 
 console.log(`\n${total - ko}/${total} tests documents passés`);
 process.exit(ko > 0 ? 1 : 0);

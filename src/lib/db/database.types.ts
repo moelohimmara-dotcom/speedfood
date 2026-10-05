@@ -491,6 +491,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          table_numero: string | null
           anonymise_le: string | null
           client_adresse: string | null
           client_nom: string
@@ -512,6 +513,7 @@ export type Database = {
           statut: string
         }
         Insert: {
+          table_numero?: string | null
           anonymise_le?: string | null
           client_adresse?: string | null
           client_nom: string
@@ -533,6 +535,7 @@ export type Database = {
           statut?: string
         }
         Update: {
+          table_numero?: string | null
           anonymise_le?: string | null
           client_adresse?: string | null
           client_nom?: string
@@ -850,6 +853,7 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          accepte_sur_place: boolean
           accepte_commandes: boolean
           statut_mis_a_jour_le: string
           categorie_id: string
@@ -877,6 +881,7 @@ export type Database = {
           suspendu_motif: string | null
         }
         Insert: {
+          accepte_sur_place?: boolean
           accepte_commandes?: boolean
           statut_mis_a_jour_le?: string
           categorie_id: string
@@ -904,6 +909,7 @@ export type Database = {
           suspendu_motif?: string | null
         }
         Update: {
+          accepte_sur_place?: boolean
           accepte_commandes?: boolean
           statut_mis_a_jour_le?: string
           categorie_id?: string

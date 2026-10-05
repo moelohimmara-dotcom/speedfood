@@ -13,6 +13,8 @@ import { memoriserCoordonneesAction } from "@/lib/client/actions";
 import type { CreationCommandePayload, ModeRetrait } from "@/lib/contracts/commande";
 import type { ErreurApi } from "@/lib/contracts/erreurs";
 import { Button, Input, Alert } from "@/components/ui";
+import { useTableMemorisee } from "@/lib/commande/table-memoire";
+import { lireNumeroTable } from "@/lib/commande/mode";
 import { Turnstile } from "@/components/Turnstile";
 import type { CompteCommande } from "./CommandeClient";
 
@@ -35,8 +37,13 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
   const router = useRouter();
   const [nom, setNom] = useState(compte.prefill?.nom ?? "");
   const [telephone, setTelephone] = useState(compte.prefill?.telephone ?? "");
-  const [mode, setMode] = useState<ModeRetrait>("retrait");
   const [adresse, setAdresse] = useState(compte.prefill?.adresse ?? "");
+  // Numéro de table du QR scanné (mémoire du navigateur, 6 h) : propose le service à table, sans jamais l'imposer.
+  const tableScannee = useTableMemorisee(panier.restaurantId);
+  const [modeChoisi, setMode] = useState<ModeRetrait | null>(null);
+  const [tableSaisie, setTable] = useState<string | null>(null);
+  const mode: ModeRetrait = modeChoisi ?? (tableScannee ? "sur_place" : "retrait");
+  const table = tableSaisie ?? tableScannee ?? "";
   // Mémoriser les coordonnées dans le compte : jamais coché d'office, c'est un choix explicite du client.
   const [memoriser, setMemoriser] = useState(false);
   const [consentement, setConsentement] = useState(false);
@@ -79,6 +86,9 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
     if (mode === "livraison" && adresse.trim().length < 5) {
       erreurs.adresse = "L'adresse de livraison est obligatoire.";
     }
+    if (mode === "sur_place" && !lireNumeroTable(table)) {
+      erreurs.table = "Indiquez votre numéro de table (1 à 10 caractères).";
+    }
     if (!consentement) {
       erreurs.consentement =
         "Vous devez confirmer avoir pris connaissance des modalités de règlement.";
@@ -105,6 +115,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
         adresse: mode === "livraison" && adresse.trim().length > 0 ? adresse.trim() : null,
       },
       mode,
+      table: mode === "sur_place" ? lireNumeroTable(table) : null,
       lignes: panier.lignes.map((ligne) => ({
         menuItemId: ligne.menuItemId,
         quantite: ligne.quantite,
@@ -192,6 +203,15 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
 
       <fieldset className="choix-groupe">
         <legend>Mode de réception</legend>
+        {tableScannee ? (
+          <label className="choix-carte">
+            <input type="radio" name="mode" value="sur_place" checked={mode === "sur_place"} onChange={() => setMode("sur_place")} />
+            <span className="choix-texte">
+              <strong>À table</strong>
+              <small>On vous sert à votre table</small>
+            </span>
+          </label>
+        ) : null}
         <label className="choix-carte">
           <input
             type="radio"
@@ -219,6 +239,20 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
           </span>
         </label>
       </fieldset>
+
+      {mode === "sur_place" ? (
+        <Input
+          label="Numéro de table"
+          name="table"
+          type="text"
+          required
+          maxLength={10}
+          autoComplete="off"
+          value={table}
+          onChange={(e) => setTable(e.target.value)}
+          erreur={champs.table}
+        />
+      ) : null}
 
       {mode === "livraison" ? (
         <Input

@@ -29,7 +29,7 @@ export interface CommandeApercuAdmin {
   restaurantNom: string;
   restaurantId: string | null;
   statut: StatutCommande;
-  mode: "retrait" | "livraison";
+  mode: "retrait" | "livraison" | "sur_place";
   clientNom: string;
   telephoneAffiche: string;
   adresseAffichee: string;
@@ -71,8 +71,8 @@ export interface CommandeDetailAdmin extends CommandeApercuAdmin {
   propositions: PropositionRevisseeAdmin[];
 }
 
-function versMode(valeur: string): "retrait" | "livraison" {
-  return valeur === "livraison" ? "livraison" : "retrait";
+function versMode(valeur: string): "retrait" | "livraison" | "sur_place" {
+  return valeur === "livraison" || valeur === "sur_place" ? valeur : "retrait";
 }
 
 type LigneSupport = {

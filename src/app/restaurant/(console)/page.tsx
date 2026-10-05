@@ -151,7 +151,7 @@ export default async function AccueilConsolePage() {
                       </span>
                       <span className="rc-commande-montant">{gnf(c.sousTotal)}</span>
                       <span className="rc-commande-meta">
-                        {c.mode === "livraison" ? "Livraison" : "Retrait"} · {ancienneteLisible(new Date(c.creeLe), maintenant)}
+                        {c.mode === "livraison" ? "Livraison" : c.mode === "sur_place" ? `Table ${c.tableNumero ?? ""}` : "Retrait"} · {ancienneteLisible(new Date(c.creeLe), maintenant)}
                         {retard !== null ? <span className="rc-retard"> · attend depuis {retard} min</span> : null}
                       </span>
                     </Link>

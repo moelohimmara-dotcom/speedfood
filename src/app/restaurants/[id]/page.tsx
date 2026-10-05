@@ -7,6 +7,7 @@ import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { BanniereRestaurant } from "@/components/BanniereRestaurant";
 import { MenuFiltre, type GroupeDuMenu } from "@/components/MenuFiltre";
 import { validerIllustration } from "@/lib/illustrations/modele";
+import { MemoireTable } from "@/components/MemoireTable";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
@@ -64,7 +65,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, accepte_commandes, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, accepte_commandes, accepte_sur_place, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -233,6 +234,7 @@ export default async function FicheRestaurantPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c") }}
       />
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
+      <MemoireTable restaurantId={restaurant.id} accepteSurPlace={restaurant.accepte_sur_place} />
 
       <BanniereRestaurant
         nom={restaurant.nom}

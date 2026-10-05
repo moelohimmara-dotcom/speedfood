@@ -3,6 +3,7 @@ import type { EtatDeriveCommande, LigneCommandeApercu } from "@/lib/contracts/co
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
+import { libelleMode } from "@/lib/commande/mode";
 import { PropositionCarte } from "./PropositionCarte";
 import { PanneauPaiement } from "./PanneauPaiement";
 import { RafraichissementAuto } from "./RafraichissementAuto";
@@ -160,7 +161,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
             <span>{formaterGNF(totalIndicatif)}</span>
           </div>
           <p style={{ margin: "8px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
-            {suivi.mode === "livraison" ? "Livraison demandée" : "Retrait sur place"} · montants
+            {suivi.mode === "livraison" ? "Livraison demandée" : libelleMode(suivi.mode, suivi.tableNumero)} · montants
             indicatifs : aucun paiement n&apos;est encaissé par Speedfood et aucun frais de livraison
             n&apos;est calculé automatiquement.
           </p>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { libelleMode } from "@/lib/commande/mode";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { origineDuSite } from "@/lib/partage/origine";
 import { LIBELLES_MODE, formaterMontantGnf, texteRecuWhatsApp } from "@/lib/paiement/regles";
@@ -101,7 +102,7 @@ export default async function RecuPage({
         </div>
 
         <p style={{ margin: "0 0 var(--space-2)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
-          {suivi.mode === "livraison" ? "Livraison" : "Retrait sur place"}
+          {libelleMode(suivi.mode, suivi.tableNumero)}
         </p>
 
         {suivi.lignes.map((ligne, i) => (
