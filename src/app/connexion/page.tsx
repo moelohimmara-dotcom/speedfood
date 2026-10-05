@@ -40,7 +40,7 @@ export default async function ConnexionPage({
                 "Voyez arriver les commandes et répondez d'un geste.",
                 "Confirmez vos plats du jour : le client voit depuis quand.",
                 "Partagez votre page par WhatsApp ou avec un QR code.",
-                "Aucun paiement en ligne à gérer : vous réglez directement avec le client.",
+                "Speedfood n'encaisse rien : vos clients vous paient directement, en espèces ou avec votre code marchand.",
               ],
             }
       }

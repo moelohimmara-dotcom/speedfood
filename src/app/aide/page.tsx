@@ -29,7 +29,7 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   {
     question: "Comment payer ?",
     reponse:
-      "Speedfood ne reçoit aucun paiement. Vous réglez directement avec le restaurant. Sa fiche indique les moyens de paiement qu'il déclare accepter (espèces, Orange Money, MTN MoMo) ; s'il n'en indique aucun, convenez-en avec lui.",
+      "Speedfood ne reçoit aucun paiement. Vous réglez directement avec le restaurant. Sa fiche indique les moyens de paiement qu'il déclare accepter (espèces, Orange Money, MTN MoMo). Quand le restaurant a accepté votre commande, votre page de suivi affiche, s'il en a un, son code marchand Orange Money ou MTN MoMo avec le montant à payer ; vérifiez que le nom du commerçant affiché sur votre téléphone est bien le sien, puis appuyez sur « J'ai payé ». Le restaurant confirme ensuite la réception et vous obtenez votre reçu. Ne donnez jamais votre code secret : Speedfood ne le demande pas.",
   },
   {
     question: "Que veut dire « confirmé » à côté d'un plat ?",

@@ -473,6 +473,10 @@
   gap: var(--space-4);
   min-width: 0;
 }
+.profil-sous-titre {
+  margin: var(--space-5) 0 var(--space-1);
+  font-size: 1.05rem;
+}
 .profil-bloc-titre {
   margin: 0 0 var(--space-3);
   font-size: 1.25rem;

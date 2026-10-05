@@ -45,7 +45,7 @@ export function ResumePanierFiche({ restaurantId, paiement }: { restaurantId: st
           <p className="fiche-panier-videtitre">Votre panier est vide</p>
           <p className="fiche-panier-videtexte">Ajoutez vos envies pour commencer.</p>
         </div>
-        <p className="fiche-panier-note">{paiement ?? "Aucun paiement en ligne : vous réglez le restaurant directement."}</p>
+        <p className="fiche-panier-note">{paiement ?? "Speedfood n'encaisse rien : vous réglez le restaurant directement."}</p>
       </aside>
     );
   }
@@ -110,7 +110,7 @@ export function ResumePanierFiche({ restaurantId, paiement }: { restaurantId: st
       <Link href={ici ? "/commande" : "/panier"} className="btn btn-primary btn-block">
         {ici ? "Commander" : "Voir le panier"}
       </Link>
-      <p className="fiche-panier-note">{paiement ?? "Aucun paiement en ligne : vous réglez le restaurant directement."}</p>
+      <p className="fiche-panier-note">{paiement ?? "Speedfood n'encaisse rien : vous réglez le restaurant directement."}</p>
     </aside>
   );
 }

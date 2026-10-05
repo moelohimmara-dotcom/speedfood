@@ -1,3 +1,4 @@
+import type { ModePaiement, OptionPaiement, StatutPaiement } from "@/lib/paiement/regles";
 import type { StatutCommande } from "./statuts";
 import type { ErreurApi } from "./erreurs";
 
@@ -184,6 +185,17 @@ export interface RestaurantSuivi {
  * client (TDR.md §6 : « le suivi client ne révèle aucune donnée personnelle »).
  * Ces champs n'existent tout simplement pas dans ce type.
  */
+/** Paiement d'une commande vu par le client : déclaration, confirmation du restaurant, et modes proposés (avec code marchand) une fois la commande acceptée. */
+export interface PaiementSuivi {
+  statut: StatutPaiement;
+  mode: ModePaiement | null;
+  reference: string | null;
+  declareLe: string | null;
+  recuLe: string | null;
+  /** Modes proposés au client ; vide tant que le paiement n'est pas ouvert (commande non acceptée) ou déjà confirmé. */
+  options: OptionPaiement[];
+}
+
 export interface SuiviCommande {
   reference: string;
   statut: StatutCommande;
@@ -196,6 +208,7 @@ export interface SuiviCommande {
   fraisLivraisonEstime: number;
   propositionActive: PropositionRevisee | null;
   historiqueStatuts: EvenementStatutCommande[];
+  paiement: PaiementSuivi;
 }
 
 /** Vue d'une commande dans la console restaurant (données client nécessaires à la livraison). */
@@ -213,4 +226,10 @@ export interface ApercuCommandeRestaurant {
   creeLe: string;
   lignes: LigneCommandeApercu[];
   propositionActive: PropositionRevisee | null;
+  paiementStatut: StatutPaiement;
+  paiementMode: ModePaiement | null;
+  paiementReference: string | null;
+  paiementRecuLe: string | null;
+  /** Jeton privé du client : sert uniquement à composer le lien du reçu envoyé par le restaurateur. */
+  jetonSuivi: string;
 }

@@ -166,3 +166,37 @@ export async function creerPropositionAction(
     return { ok: false, erreur: erreurInattendue() };
   }
 }
+
+/**
+ * Le restaurateur CONFIRME avoir reçu le paiement (« recu ») ou CONTESTE une déclaration du client (« non_recu »). Speedfood ne
+ * vérifie rien : il compare, de son côté, le SMS de son opérateur. Les règles (seulement après acceptation, seul un paiement
+ * déclaré peut être contesté, un paiement confirmé est définitif, le mode et la référence appartiennent au client) sont
+ * imposées par le trigger `fn_valider_paiement_commande` : l'interface n'est pas la garde.
+ */
+export async function confirmerPaiementAction(
+  commandeId: string,
+  decision: "recu" | "non_recu"
+): Promise<ResultatActionCommande> {
+  const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/commandes");
+  if (!estUuid(commandeId) || (decision !== "recu" && decision !== "non_recu")) {
+    return { ok: false, erreur: erreurValidationCommande() };
+  }
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ paiement_statut: decision })
+    .eq("id", commandeId)
+    .eq("restaurant_id", membership.restaurant_id)
+    .select("id");
+  if (error) {
+    return {
+      ok: false,
+      erreur: { code: "CONFLIT_ETAT", message: "Ce paiement ne peut pas être modifié maintenant (commande non acceptée, paiement non déclaré ou déjà confirmé)." },
+    };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, erreur: { code: "INTROUVABLE", message: "Commande introuvable." } };
+  }
+  revalidatePath("/restaurant/commandes");
+  revalidatePath("/restaurant");
+  return { ok: true };
+}

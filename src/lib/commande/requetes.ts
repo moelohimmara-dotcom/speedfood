@@ -18,6 +18,7 @@ import {
   traiterPropositionEchue,
 } from "./propositions";
 import { calculerEtatDerive } from "./transitions";
+import { optionsPaiement, paiementOuvert, type ModePaiement, type OptionPaiement, type StatutPaiement } from "@/lib/paiement/regles";
 
 /**
  * Modèles de lecture du bloc 7.
@@ -59,6 +60,14 @@ function versProposition(ligne: LignePropositionDb): PropositionRevisee {
   };
 }
 
+function versStatutPaiement(valeur: string | null | undefined): StatutPaiement {
+  return valeur === "especes" || valeur === "declare" || valeur === "recu" || valeur === "non_recu" ? valeur : "non_demande";
+}
+
+function versModePaiement(valeur: string | null | undefined): ModePaiement | null {
+  return valeur === "especes" || valeur === "orange_money" || valeur === "mtn_momo" ? valeur : null;
+}
+
 function versMode(valeur: string): ModeRetrait {
   return valeur === "livraison" ? "livraison" : "retrait";
 }
@@ -76,7 +85,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
   const { data: commande, error } = await db
     .from("orders")
     .select(
-      "id, reference, mode, sous_total, frais_livraison_estime, statut, cree_le, restaurants(id, nom, horaires, consignes, ouvert)"
+      "id, reference, mode, sous_total, frais_livraison_estime, statut, cree_le, restaurants(id, nom, horaires, consignes, ouvert, moyens_paiement)"
     )
     .eq("jeton_suivi", jeton)
     .maybeSingle();
@@ -95,7 +104,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
     await Promise.all([
       db
         .from("orders")
-        .select("statut, sous_total, frais_livraison_estime")
+        .select("statut, sous_total, frais_livraison_estime, paiement_statut, paiement_mode, paiement_reference, paiement_declare_le, paiement_recu_le")
         .eq("id", commande.id)
         .maybeSingle(),
       db
@@ -116,6 +125,16 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
 
   const restaurantLie = commande.restaurants;
   const restaurant = Array.isArray(restaurantLie) ? restaurantLie[0] : restaurantLie;
+
+  // Les codes marchands ne sont lus (clé serveur) que lorsque le paiement est ouvert : commande acceptée, aucune proposition
+  // de prix en cours, paiement pas encore confirmé. Ils ne sortent jamais d'une page publique non liée à un jeton.
+  const statutPaiement = versStatutPaiement(fraiche?.paiement_statut);
+  const modePaiement = versModePaiement(fraiche?.paiement_mode);
+  let options: OptionPaiement[] = [];
+  if (restaurant && statutPaiement !== "recu" && paiementOuvert(statut, propositionActive !== null)) {
+    const { data: codes } = await db.from("restaurant_codes_marchand").select("orange, mtn").eq("restaurant_id", restaurant.id).maybeSingle();
+    options = optionsPaiement(restaurant.moyens_paiement ?? [], { orange: codes?.orange ?? null, mtn: codes?.mtn ?? null });
+  }
 
   return {
     reference: commande.reference,
@@ -141,6 +160,14 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
     sousTotal: fraiche?.sous_total ?? commande.sous_total,
     fraisLivraisonEstime: fraiche?.frais_livraison_estime ?? commande.frais_livraison_estime,
     propositionActive,
+    paiement: {
+      statut: statutPaiement,
+      mode: modePaiement,
+      reference: fraiche?.paiement_reference ?? null,
+      declareLe: fraiche?.paiement_declare_le ?? null,
+      recuLe: fraiche?.paiement_recu_le ?? null,
+      options,
+    },
     historiqueStatuts: (evenements ?? []).map(
       (e): EvenementStatutCommande => ({
         commandeId: commande.id,
@@ -166,7 +193,7 @@ export async function chargerApercusCommandes(
   const { data: commandes, error } = await db
     .from("orders")
     .select(
-      `id, reference, client_nom, client_telephone, client_adresse, mode, sous_total, frais_livraison_estime, statut, cree_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
+      `id, reference, client_nom, client_telephone, client_adresse, mode, sous_total, frais_livraison_estime, statut, cree_le, jeton_suivi, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
     )
     .eq("restaurant_id", restaurantId)
     .order("cree_le", { ascending: false });
@@ -217,6 +244,11 @@ export async function chargerApercusCommandes(
         })
       ),
       propositionActive,
+      paiementStatut: versStatutPaiement(commande.paiement_statut),
+      paiementMode: versModePaiement(commande.paiement_mode),
+      paiementReference: commande.paiement_reference,
+      paiementRecuLe: commande.paiement_recu_le,
+      jetonSuivi: commande.jeton_suivi,
     });
   }
   return apercus;

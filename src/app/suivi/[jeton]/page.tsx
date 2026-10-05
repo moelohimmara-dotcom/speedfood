@@ -4,6 +4,7 @@ import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
 import { PropositionCarte } from "./PropositionCarte";
+import { PanneauPaiement } from "./PanneauPaiement";
 import { RafraichissementAuto } from "./RafraichissementAuto";
 
 /**
@@ -29,7 +30,7 @@ const DESCRIPTIONS_ETAT: Record<EtatDeriveCommande, string> = {
     "Votre commande a bien été transmise. Elle n'est pas encore confirmée : le restaurant doit l'accepter.",
   attente_confirmation_client:
     "Le restaurant propose une modification (prix, frais ou conditions). Consultez-la ci-dessous : la commande ne sera préparée qu'après votre accord.",
-  acceptee: "Le restaurant a accepté votre commande et la prépare. Le règlement se fait avec lui.",
+  acceptee: "Le restaurant a accepté votre commande et la prépare. Vous pouvez la régler ci-dessous, directement auprès de lui.",
   prete: "Votre commande est prête. Retirez-la ou attendez la livraison selon le mode choisi.",
   terminee: "Cette commande est terminée. Merci !",
   refusee:
@@ -119,6 +120,8 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
         />
       ) : null}
 
+      <PanneauPaiement jeton={jeton} paiement={suivi.paiement} total={totalIndicatif} restaurant={suivi.restaurant.nom} />
+
       <Card style={{ marginTop: "var(--space-4)" }}>
         <p style={{ marginTop: 0, fontWeight: 700 }}>{suivi.restaurant.nom}</p>
         <p style={{ margin: "0 0 4px", color: "var(--secondaire)", fontSize: "0.85rem" }}>
@@ -164,15 +167,6 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
         </div>
       </Card>
 
-      <Card style={{ marginTop: "var(--space-4)" }}>
-        <p style={{ marginTop: 0, fontWeight: 700 }}>Règlement</p>
-        <p style={{ margin: 0, color: "var(--secondaire)" }}>
-          Vous réglez directement avec le restaurant (espèces ou mobile money), selon ses
-          modalités. Speedfood n&apos;intervient pas dans le paiement et la commande n&apos;est
-          définitive qu&apos;après confirmation du restaurant.
-        </p>
-      </Card>
-
       {suivi.historiqueStatuts.length > 0 ? (
         <Card style={{ marginTop: "var(--space-4)" }}>
           <p style={{ marginTop: 0, fontWeight: 700 }}>Historique</p>
@@ -185,6 +179,14 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
             ))}
           </ul>
         </Card>
+      ) : null}
+
+      {suivi.etatDerive !== "en_attente" && suivi.etatDerive !== "refusee" && suivi.etatDerive !== "annulee" && suivi.paiement.statut !== "recu" ? (
+        <p style={{ marginTop: "var(--space-3)" }}>
+          <a href={`/suivi/${jeton}/recu`} className="lien-texte">
+            Voir le récapitulatif imprimable de ma commande
+          </a>
+        </p>
       ) : null}
 
       <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>

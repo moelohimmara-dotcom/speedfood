@@ -9,6 +9,7 @@ import { estCouleurValide } from "@/lib/design/paletteMarque";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { analyserPosition } from "@/lib/restaurant/position";
 import { moyensPaiementValides, normaliserMoyensPaiement } from "@/lib/restaurant/paiement";
+import { lireCodeMarchand } from "@/lib/paiement/regles";
 import type { Database } from "@/lib/db/database.types";
 
 type MiseAJourRestaurant = Database["public"]["Tables"]["restaurants"]["Update"];
@@ -40,6 +41,19 @@ export async function modifierProfilAction(
     return { erreur: "Moyen de paiement inconnu." };
   }
   const moyensPaiement = normaliserMoyensPaiement(moyensBruts);
+
+  // Codes marchands (facultatifs) : un code n'a de sens que si le moyen de paiement correspondant est coché.
+  const codeOrange = lireCodeMarchand(String(formData.get("code_orange") ?? ""));
+  const codeMtn = lireCodeMarchand(String(formData.get("code_mtn") ?? ""));
+  if (codeOrange === "invalide" || codeMtn === "invalide") {
+    return { erreur: "Un code marchand contient 3 à 20 lettres ou chiffres, sans espace ni symbole." };
+  }
+  if (codeOrange && !moyensPaiement.includes("orange_money")) {
+    return { erreur: "Cochez « Orange Money » dans les moyens de paiement pour utiliser ce code marchand." };
+  }
+  if (codeMtn && !moyensPaiement.includes("mtn_momo")) {
+    return { erreur: "Cochez « MTN MoMo » dans les moyens de paiement pour utiliser ce code marchand." };
+  }
 
   // Position sur carte : prise en compte seulement si l'administrateur a activé la fonction ET si le formulaire l'envoie.
   let position: ReturnType<typeof analyserPosition> | null = null;
@@ -111,6 +125,21 @@ export async function modifierProfilAction(
       await supprimerTeleversementOrphelin(payload[colonne] as string | undefined);
     }
     return { erreur: "Impossible d'enregistrer les modifications. Réessayez dans un instant." };
+  }
+
+  // Codes marchands : ligne supprimée quand les deux sont vides, créée ou mise à jour sinon (RLS : membres seulement).
+  if (codeOrange === null && codeMtn === null) {
+    await supabase.from("restaurant_codes_marchand").delete().eq("restaurant_id", membership.restaurant_id);
+  } else {
+    const { error: erreurCodes } = await supabase.from("restaurant_codes_marchand").upsert({
+      restaurant_id: membership.restaurant_id,
+      orange: codeOrange,
+      mtn: codeMtn,
+      mis_a_jour_le: new Date().toISOString(),
+    });
+    if (erreurCodes) {
+      return { erreur: "Le profil est enregistré, mais pas les codes marchands. Réessayez dans un instant." };
+    }
   }
 
   for (const { colonne } of anciennesImages) {

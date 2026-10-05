@@ -203,7 +203,7 @@ export default async function FicheRestaurantPage({
   );
   const menuConfirme = plusRecente ? `Menu confirmé ${ancienneteLisible(plusRecente, maintenant)}` : null;
   const moyens = libellesMoyensPaiement(restaurant.moyens_paiement);
-  const textePaiement = `Paiement : ${moyens.length > 0 ? `${moyens.join(", ")} (déclaré par le restaurant)` : "à convenir avec le restaurant"}. Aucun paiement en ligne sur Speedfood.`;
+  const textePaiement = `Paiement : ${moyens.length > 0 ? `${moyens.join(", ")} (déclaré par le restaurant)` : "à convenir avec le restaurant"}. Speedfood n'encaisse rien.`;
 
   // Données structurées pour les moteurs de recherche : uniquement des faits connus (nom, catégorie, quartier, photo).
   // Pas de note, pas de fourchette de prix ni de délai : rien qui ne soit calculé ou déclaré par le restaurateur.

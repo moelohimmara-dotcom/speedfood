@@ -48,7 +48,7 @@ const ETAPES = [
     titre: "Commander",
     texte: "Un panier, vos coordonnées, c'est tout.",
     detail:
-      "Ajoutez vos plats, indiquez votre nom et votre téléphone (et une adresse pour une livraison). Aucun compte n'est obligatoire. Aucun paiement en ligne : rien n'est débité.",
+      "Ajoutez vos plats, indiquez votre nom et votre téléphone (et une adresse pour une livraison). Aucun compte n'est obligatoire. Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
     motif: "emporter",
   },
   {
@@ -62,7 +62,7 @@ const ETAPES = [
     titre: "Recevoir",
     texte: "Retrait ou livraison, réglés au restaurant.",
     detail:
-      "Le restaurant vous remet la commande, ou la livre selon ses propres conditions. Vous le réglez directement : Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
+      "Le restaurant vous remet la commande, ou la livre selon ses propres conditions. Vous le réglez directement, en espèces ou avec son code marchand Orange Money ou MTN MoMo : Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
     motif: "bol",
   },
 ];
@@ -85,7 +85,7 @@ export default async function CommentCaMarchePage() {
           détour
         </h1>
         <p className="pub-accueil-lead">
-          Pas d&apos;application à installer ni de paiement en ligne. Voici ce
+          Pas d&apos;application à installer, rien à payer à Speedfood. Voici ce
           qui se passe, dans l&apos;ordre.
         </p>
       </div>

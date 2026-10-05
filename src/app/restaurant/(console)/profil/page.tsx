@@ -30,6 +30,11 @@ export default async function ProfilPage() {
   if (!restaurant) {
     return null;
   }
+  const { data: codes } = await supabase
+    .from("restaurant_codes_marchand")
+    .select("orange, mtn")
+    .eq("restaurant_id", membership.restaurant_id)
+    .maybeSingle();
   const { carteActive } = await lireReglagesAssistance();
   const famille = familleDepuisCategorie(restaurant.menu_categories?.nom ?? "");
 
@@ -54,6 +59,8 @@ export default async function ProfilPage() {
           logoUrl={restaurant.logo_url}
           couleurAccent={restaurant.couleur_accent}
           moyensPaiement={restaurant.moyens_paiement}
+          codeOrange={codes?.orange ?? ""}
+          codeMtn={codes?.mtn ?? ""}
           carteActive={carteActive}
           latitude={restaurant.latitude}
           longitude={restaurant.longitude}

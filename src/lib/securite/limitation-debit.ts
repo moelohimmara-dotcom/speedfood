@@ -55,6 +55,9 @@ export const LIMITE_ESSAI_PUSH: RegleLimite = { nom: "essai-push", max: 3, fenet
 // Envois de photos : un restaurant ne peut pas remplir le stockage (5 Mo par fichier) en boucle.
 export const LIMITE_TELEVERSEMENT_PAR_RESTAURANT: RegleLimite = { nom: "televersement-resto", max: 30, fenetreSecondes: 3600 };
 
+// Déclarations de paiement par le client (lien de suivi) : on ne peut pas inonder le restaurateur de fausses déclarations.
+export const LIMITE_DECLARATION_PAIEMENT_PAR_IP: RegleLimite = { nom: "paiement-ip", max: 20, fenetreSecondes: 600 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -128,6 +131,10 @@ export async function limiterTeleversement(restaurantId: string): Promise<void> 
 
 export async function limiterEssaiPush(utilisateurId: string): Promise<void> {
   await appliquerLimite(LIMITE_ESSAI_PUSH, utilisateurId);
+}
+
+export async function limiterDeclarationPaiement(): Promise<void> {
+  await appliquerLimite(LIMITE_DECLARATION_PAIEMENT_PAR_IP, await adresseClient());
 }
 
 export async function limiterReponseProposition(): Promise<void> {

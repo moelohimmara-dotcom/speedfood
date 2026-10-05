@@ -501,6 +501,11 @@ export type Database = {
           jeton_suivi: string
           mis_a_jour_le: string
           mode: string
+          paiement_declare_le: string | null
+          paiement_mode: string | null
+          paiement_recu_le: string | null
+          paiement_reference: string | null
+          paiement_statut: string
           reference: string
           restaurant_id: string
           sous_total: number
@@ -517,6 +522,11 @@ export type Database = {
           jeton_suivi: string
           mis_a_jour_le?: string
           mode: string
+          paiement_declare_le?: string | null
+          paiement_mode?: string | null
+          paiement_recu_le?: string | null
+          paiement_reference?: string | null
+          paiement_statut?: string
           reference: string
           restaurant_id: string
           sous_total: number
@@ -533,6 +543,11 @@ export type Database = {
           jeton_suivi?: string
           mis_a_jour_le?: string
           mode?: string
+          paiement_declare_le?: string | null
+          paiement_mode?: string | null
+          paiement_recu_le?: string | null
+          paiement_reference?: string | null
+          paiement_statut?: string
           reference?: string
           restaurant_id?: string
           sous_total?: number
@@ -705,6 +720,35 @@ export type Database = {
           fenetre?: string
         }
         Relationships: []
+      }
+      restaurant_codes_marchand: {
+        Row: {
+          mis_a_jour_le: string
+          mtn: string | null
+          orange: string | null
+          restaurant_id: string
+        }
+        Insert: {
+          mis_a_jour_le?: string
+          mtn?: string | null
+          orange?: string | null
+          restaurant_id: string
+        }
+        Update: {
+          mis_a_jour_le?: string
+          mtn?: string | null
+          orange?: string | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_codes_marchand_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restaurant_memberships: {
         Row: {

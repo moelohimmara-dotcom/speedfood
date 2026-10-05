@@ -3,9 +3,11 @@
 import { useState, useTransition } from "react";
 import type { ApercuCommandeRestaurant, EtatDeriveCommande } from "@/lib/contracts/commande";
 import {
+  confirmerPaiementAction,
   traiterCommandeAction,
   type ActionStatutCommande,
 } from "@/lib/commande/actions-restaurant";
+import { LIBELLES_MODE, libelleStatutPaiement, lienWhatsAppVers, texteRecuWhatsApp } from "@/lib/paiement/regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
 
@@ -37,11 +39,13 @@ export function CommandeCarte({
   commande,
   age,
   retardMinutes = null,
+  restaurantNom = "Votre restaurant",
 }: {
   commande: ApercuCommandeRestaurant;
   age?: string;
   /** Minutes d'attente quand la commande « à traiter » dépasse le seuil de retard. */
   retardMinutes?: number | null;
+  restaurantNom?: string;
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
@@ -61,6 +65,32 @@ export function CommandeCarte({
   }
 
   const total = commande.sousTotal + commande.fraisLivraisonEstime;
+  const paiementVisible = commande.etatDerive === "acceptee" || commande.etatDerive === "prete" || commande.etatDerive === "terminee";
+
+  function confirmerPaiement(decision: "recu" | "non_recu", confirmation?: string) {
+    if (confirmation && !window.confirm(confirmation)) {
+      return;
+    }
+    setErreur(null);
+    demarrer(async () => {
+      const resultat = await confirmerPaiementAction(commande.id, decision);
+      if (!resultat.ok) {
+        setErreur(resultat.erreur.message);
+      }
+    });
+  }
+
+  /** Ouvre WhatsApp vers le client avec le lien de son reçu : le restaurateur appuie lui-même sur « Envoyer » (aucun envoi automatique). */
+  function envoyerRecuWhatsApp() {
+    const lien = `${window.location.origin}/suivi/${commande.jetonSuivi}/recu`;
+    const message = texteRecuWhatsApp({ restaurant: restaurantNom, reference: commande.reference, total, statut: commande.paiementStatut, lien });
+    const url = lienWhatsAppVers(commande.clientTelephone, message);
+    if (!url) {
+      setErreur("Le numéro du client n'est pas utilisable pour WhatsApp.");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <Card className={`cmd-carte cmd-carte-${commande.etatDerive}${retardMinutes !== null ? " cmd-carte-retard" : ""}`}>
@@ -175,6 +205,51 @@ export function CommandeCarte({
               : ""}
             . Aucune préparation avant son accord.
           </p>
+        </div>
+      ) : null}
+
+      {paiementVisible ? (
+        <div className="cmd-paiement">
+          <p className="cmd-paiement-titre">Paiement</p>
+          <p className="cmd-paiement-detail">
+            {libelleStatutPaiement(commande.paiementStatut, commande.paiementMode)}
+            {commande.paiementMode && commande.paiementMode !== "especes" ? ` · ${LIBELLES_MODE[commande.paiementMode]}` : ""}
+            {commande.paiementReference ? ` · réf. ${commande.paiementReference}` : ""}
+            {commande.paiementRecuLe ? ` · le ${formaterDate(commande.paiementRecuLe)}` : ""}
+          </p>
+          {commande.paiementStatut === "declare" ? (
+            <p className="cmd-paiement-detail">Comparez avec le SMS de confirmation de votre opérateur avant de valider.</p>
+          ) : null}
+          <div className="cmd-paiement-actions">
+            {commande.paiementStatut === "declare" ? (
+              <>
+                <Button type="button" disabled={enCours} onClick={() => confirmerPaiement("recu")}>
+                  Paiement reçu
+                </Button>
+                <Button
+                  type="button"
+                  variante="secondary"
+                  disabled={enCours}
+                  onClick={() => confirmerPaiement("non_recu", "Le client sera prévenu que vous n'avez pas retrouvé son paiement. Continuer ?")}
+                >
+                  Pas reçu
+                </Button>
+              </>
+            ) : null}
+            {commande.paiementStatut === "especes" ? (
+              <Button type="button" disabled={enCours} onClick={() => confirmerPaiement("recu")}>
+                Espèces encaissées
+              </Button>
+            ) : null}
+            {commande.paiementStatut === "non_demande" || commande.paiementStatut === "non_recu" ? (
+              <Button type="button" variante="secondary" disabled={enCours} onClick={() => confirmerPaiement("recu", "Marquer cette commande comme payée ?")}>
+                Marquer comme payée
+              </Button>
+            ) : null}
+            <Button type="button" variante="secondary" onClick={envoyerRecuWhatsApp}>
+              {commande.paiementStatut === "recu" ? "Envoyer le reçu sur WhatsApp" : "Envoyer le récapitulatif sur WhatsApp"}
+            </Button>
+          </div>
         </div>
       ) : null}
 

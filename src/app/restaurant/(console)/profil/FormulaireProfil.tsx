@@ -20,6 +20,8 @@ export function FormulaireProfil({
   logoUrl,
   couleurAccent,
   moyensPaiement,
+  codeOrange,
+  codeMtn,
   carteActive,
   latitude,
   longitude,
@@ -30,6 +32,8 @@ export function FormulaireProfil({
   logoUrl: string | null;
   couleurAccent: string | null;
   moyensPaiement: string[];
+  codeOrange: string;
+  codeMtn: string;
   carteActive: boolean;
   latitude: number | null;
   longitude: number | null;
@@ -140,6 +144,23 @@ export function FormulaireProfil({
             </label>
           ))}
         </fieldset>
+
+        <h3 className="profil-sous-titre">Payer avec votre code marchand</h3>
+        <p className="aide-champ">
+          Facultatif. Si vous avez un compte marchand Orange Money ou MTN MoMo, saisissez ici le code affiché à l&apos;entrée de votre commerce. Après que
+          vous avez accepté une commande, le client le voit avec le montant et paie directement chez vous : Speedfood ne reçoit jamais l&apos;argent. Cochez
+          ensuite le moyen de paiement correspondant ci-dessus. Le client vérifie le nom du commerçant sur son téléphone avant de valider.
+        </p>
+        <div className="champs-ligne">
+          <div className="field">
+            <label htmlFor="code_orange">Code marchand Orange Money</label>
+            <input id="code_orange" name="code_orange" type="text" inputMode="text" autoComplete="off" maxLength={20} defaultValue={codeOrange} placeholder="Ex. 123456" />
+          </div>
+          <div className="field">
+            <label htmlFor="code_mtn">Code marchand MTN MoMo</label>
+            <input id="code_mtn" name="code_mtn" type="text" inputMode="text" autoComplete="off" maxLength={20} defaultValue={codeMtn} placeholder="Ex. 654321" />
+          </div>
+        </div>
       </Card>
 
       {carteActive ? (

@@ -36,6 +36,9 @@ export default async function CommandesPage() {
         : "Impossible de charger les commandes. Réessayez dans un instant.";
   }
 
+  const { data: restaurantLigne } = await supabase.from("restaurants").select("nom").eq("id", membership.restaurant_id).maybeSingle();
+  const restaurantNom = restaurantLigne?.nom ?? "Votre restaurant";
+
   const maintenant = new Date();
   const age = (c: ApercuCommandeRestaurant) => ancienneteLisible(new Date(c.creeLe), maintenant);
   // Seules les commandes à traiter attendent une réponse : on affiche leur attente exacte quand elle devient longue.
@@ -68,7 +71,7 @@ export default async function CommandesPage() {
             ) : (
               <div className="cmd-liste">
                 {aTraiter.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} />
                 ))}
               </div>
             )}
@@ -81,7 +84,7 @@ export default async function CommandesPage() {
               </h2>
               <div className="cmd-liste">
                 {enCours.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} />
                 ))}
               </div>
             </section>
@@ -94,7 +97,7 @@ export default async function CommandesPage() {
               </summary>
               <div className="cmd-liste">
                 {historique.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} />
                 ))}
               </div>
             </details>
