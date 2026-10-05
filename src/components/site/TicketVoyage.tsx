@@ -90,7 +90,7 @@ export function TicketVoyage({ restaurant, lignes }: { restaurant: string; ligne
       </div>
       {reduit ? null : (
         <button type="button" className="pub-ticket-pause" onClick={() => setLecture((v) => !v)} aria-pressed={!lecture}>
-          {lecture ? "Mettre l'animation en pause" : "Relancer l'animation"}
+          {lecture ? "Mettre le ticket en pause" : "Relancer le ticket"}
         </button>
       )}
     </div>
