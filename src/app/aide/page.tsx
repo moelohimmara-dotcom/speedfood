@@ -1,3 +1,4 @@
+import { SeparateurBloc } from "@/components/site/SeparateurBloc";
 import type { Metadata } from "next";
 import { origineDuSite } from "@/lib/partage/origine";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
@@ -9,7 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
   return {
     title: "Aide et questions fréquentes",
-    description: "Comment commander sur Speedfood, payer, suivre sa commande et protéger vos données.",
+    description:
+      "Comment commander sur Speedfood, payer, suivre sa commande et protéger vos données.",
     alternates: { canonical: `${origine}/aide` },
   };
 }
@@ -40,7 +42,8 @@ const QUESTIONS: { question: string; reponse: string }[] = [
       "Après l'envoi, vous recevez un lien de suivi privé : la page se met à jour quand le restaurant accepte, prépare ou termine votre commande. Gardez ce lien pour vous, il donne accès à votre commande.",
   },
   {
-    question: "Le restaurant veut changer un prix ou des frais, que se passe-t-il ?",
+    question:
+      "Le restaurant veut changer un prix ou des frais, que se passe-t-il ?",
     reponse:
       "Il vous soumet une proposition sur votre page de suivi. Rien ne part en préparation sans votre accord. Si vous refusez, ou si le délai indiqué est dépassé, la commande est annulée et rien n'est dû.",
   },
@@ -82,14 +85,20 @@ export default async function AidePage() {
     <main className="pub-conteneur pub-rubrique">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c"),
+        }}
       />
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">Aide</p>
         <h1 className="pub-titre pub-h1-page">
-          Une question ? <span className="pub-surligne">Voilà les réponses.</span>
+          Une question ?{" "}
+          <span className="pub-surligne">Voilà les réponses.</span>
         </h1>
-        <p className="pub-accueil-lead">Commander, payer, suivre sa commande : l&apos;essentiel en quelques réponses.</p>
+        <p className="pub-accueil-lead">
+          Commander, payer, suivre sa commande : l&apos;essentiel en quelques
+          réponses.
+        </p>
       </div>
 
       <div className="pub-faq">
@@ -101,18 +110,28 @@ export default async function AidePage() {
         ))}
       </div>
 
+      <SeparateurBloc />
+
       <div className="pub-bande-pro">
         <div>
-          <p className="pub-kicker pub-kicker-encre">Une question qui n&apos;est pas ici ?</p>
+          <p className="pub-kicker pub-kicker-encre">
+            Une question qui n&apos;est pas ici ?
+          </p>
           <p className="pub-accueil-lead pub-lead-encre">
             Écrivez à{" "}
             <a href={`mailto:${CONTACT}`} className="lien-texte">
               {CONTACT}
             </a>
-            , en indiquant la référence de votre commande (de la forme SF-XXXXX) si vous en avez une.
+            , en indiquant la référence de votre commande (de la forme SF-XXXXX)
+            si vous en avez une.
           </p>
         </div>
-        {whatsapp ? <BoutonAssistance numero={whatsapp} className="pub-btn pub-btn-clair" /> : null}
+        {whatsapp ? (
+          <BoutonAssistance
+            numero={whatsapp}
+            className="pub-btn pub-btn-clair"
+          />
+        ) : null}
       </div>
     </main>
   );

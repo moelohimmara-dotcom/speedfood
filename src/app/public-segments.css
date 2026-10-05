@@ -1,0 +1,78 @@
+/*
+ * Segments et séparateurs du site public (5 octobre 2026). Constat : chaque section avait 96 px de marge en haut ET en bas
+ * (192 px entre deux sections) sur un fond crème identique et sans trait de séparation, d'où l'impression de grands vides
+ * sans limite visible. Ici : marges ramenées à 64 px au plus, blocs alternés (fond crème / fond blanc cerné d'encre) sur
+ * l'accueil, et séparateur à losanges entre les blocs des pages intérieures. Tout est derrière `.theme-public`.
+ */
+.theme-public .pub-rubrique {
+  gap: var(--space-6);
+  padding-block: clamp(32px, 4.5vw, 64px);
+}
+
+/* Bloc plein écran à fond blanc, cerné d'un trait d'encre en haut et en bas (même trait que le bandeau défilant). */
+.theme-public .pub-bloc {
+  border-block: var(--pub-trait) solid var(--encre);
+  background: var(--surface);
+}
+
+/* Séparateur : trait – losanges – trait */
+.theme-public .pub-sep {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-block: var(--space-3);
+}
+.theme-public .pub-sep::before,
+.theme-public .pub-sep::after {
+  content: "";
+  flex: 1;
+  border-top: var(--pub-trait) solid var(--encre);
+}
+.theme-public .pub-sep-motif {
+  flex: none;
+  width: 92px;
+  height: 20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 92 20'%3E%3Cg stroke='%232B211D' stroke-width='2' stroke-linejoin='round'%3E%3Cpolygon points='14,2 22,10 14,18 6,10' fill='%23D9362B'/%3E%3Cpolygon points='46,2 54,10 46,18 38,10' fill='%23FFC247'/%3E%3Cpolygon points='78,2 86,10 78,18 70,10' fill='%232B211D'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Une page intérieure qui se termine par un bloc d'appel : même respiration au-dessus du pied de page. */
+.theme-public .pub-rubrique > .pub-bande-pro {
+  margin-top: var(--space-3);
+}
+
+/* Phrase de conclusion sous les étapes (« Tout cela sans application ni frais cachés. ») */
+.theme-public .pub-etapes-pied {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: clamp(1.1rem, 2.2vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+/* Haut de l'accueil et pied de page : moins de vide avant le bandeau défilant et avant le pied de page. */
+.theme-public .pub-accueil-hero {
+  padding-block: clamp(24px, 4.5vw, 64px) clamp(32px, 5vw, 72px);
+}
+.theme-public .site-pied {
+  margin-top: 0;
+}
+
+/* Panneau d'étape : illustration à gauche, texte à droite (avant : illustration seule en haut à gauche, moitié du cadre vide). */
+@media (min-width: 640px) {
+  .theme-public .pub-etape-panneau {
+    display: grid;
+    grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+    column-gap: var(--space-5);
+    align-content: center;
+    align-items: start;
+  }
+  .theme-public .pub-etape-panneau > .pub-etape-grand {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: center;
+  }
+  .theme-public .pub-etape-panneau > :not(.pub-etape-grand) {
+    grid-column: 2;
+  }
+}
