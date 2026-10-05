@@ -394,3 +394,45 @@
 }
 
 .ad-app input[type="file"] + * { margin-top: 10px; }
+
+/* ===== Points mineurs de la revue indépendante ===== */
+
+/* Accueil mobile : le macaron ne chevauche plus le libellé « Votre envie du moment ? » ; il se pose au-dessus, légèrement penché. */
+@media (max-width: 959px) {
+  .theme-public .pub-accueil-sticker {
+    position: static;
+    display: inline-block;
+    max-width: none;
+    margin: var(--space-4) 0 0 4px;
+    transform: rotate(-2deg);
+  }
+}
+
+/* Barre de panier flottante : même gouttière (16 px) que le reste de la page, et du vide en bas de page pour que rien ne reste caché dessous. */
+@media (max-width: 899px) {
+  .theme-public .barre-panier {
+    left: 16px;
+    right: 16px;
+  }
+  .theme-public:has(.barre-panier) .cadre-site-contenu {
+    padding-bottom: 96px;
+  }
+}
+
+/* Une ancre vers un plat (#plat-…) ne se cache pas sous l'en-tête collant. */
+.theme-public [id^="plat-"] {
+  scroll-margin-top: 84px;
+}
+
+/* Profil restaurateur : les panneaux à bandeau (Illustrations de remplacement) prennent la même respiration et la même taille de titre que les cartes voisines. */
+.ad-contenu:has(.profil-colonnes) .ad-panneau-tete {
+  padding: var(--space-5) var(--space-5) 0;
+  border-bottom: 0;
+}
+.ad-contenu:has(.profil-colonnes) .ad-panneau-tete h2 {
+  font-size: 1.25rem;
+}
+.profil-sous-titre { margin-bottom: 10px; }
+.ad-contenu:has(.profil-colonnes) .ad-panneau-corps {
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}

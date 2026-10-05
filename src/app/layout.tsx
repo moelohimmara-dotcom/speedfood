@@ -26,10 +26,13 @@ import { FichiersAnimes } from "@/components/FichiersAnimes";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :
 // répond à la note performance de DESIGN-SYSTEM.md sur le coût des données mobiles à Conakry.
+// Pas de préchargement : les titres de la direction B utilisent Bricolage ; Barlow ne sert plus que sur quelques écrans (revue du 5 octobre).
 const barlowCondensed = Barlow_Condensed({
   variable: "--font-barlow",
   weight: ["700", "800"],
   subsets: ["latin"],
+  display: "swap",
+  preload: false,
 });
 
 // Titres du site public (direction B, décision du 4 octobre 2026). Pas de préchargement : le fichier n'est téléchargé que

@@ -156,7 +156,7 @@ export function CommandeCarte({
             {libelleMode(commande.mode, commande.tableNumero)}
           </p>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: "right", marginLeft: "auto" }}>
           <p style={{ margin: 0, fontWeight: 700 }}>{formaterGNF(total)}</p>
           {commande.mode === "livraison" ? (
             <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.8rem" }}>
