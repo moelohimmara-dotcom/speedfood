@@ -1,0 +1,302 @@
+/*
+ * Direction B (« Marché en photos ») étendue aux deux consoles (restaurateur et super administrateur), qui partagent le cadre `.ad-app`.
+ * Même grammaire que le site public : contour épais encre, ombre décalée, titres Bricolage Grotesque, boutons « pastille » qui s'enfoncent,
+ * crème en fond, mangue et rouge pour l'action, mouvement discret. Aucune couleur nouvelle (jetons de DESIGN-SYSTEM.md).
+ *
+ * Chargé APRÈS admin.css, console.css et console-resto.css : il ne fait que redéfinir l'apparence ; aucune structure ni règle métier ne change.
+ * Les écrans de travail gardent leur densité et leur lisibilité (tailles de texte et hauteurs de ligne inchangées).
+ */
+
+.ad-app {
+  --pub-trait: 2.5px;
+  --pub-ombre: 4px 4px 0 var(--encre);
+  --pub-ombre-forte: 7px 7px 0 var(--encre);
+  --font-titre: var(--font-bricolage), var(--font-manrope), system-ui, sans-serif;
+}
+
+/* ===== Titres ===== */
+.ad-app :is(h1, h2, h3),
+.ad-app .ad-entete-page h1,
+.ad-app .ad-panneau-tete h2,
+.ad-app .ad-tuile-valeur,
+.ad-app .ad-carte-valeur,
+.ad-app .ad-marque-nom,
+.ad-app .ad-anneau-valeur {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.ad-app .ad-entete-page h1 {
+  font-size: clamp(1.7rem, 1.2rem + 1.6vw, 2.25rem);
+  line-height: 1.08;
+}
+
+/* ===== Surfaces : contour épais et ombre décalée ===== */
+.ad-app :is(.ad-panneau, .ad-tuile, .ad-carte, .card, .ad-volet, .ad-fiche-synthese, .ad-table-cadre, .ad-decision, .ad-dialogue) {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pub-ombre);
+  background: var(--surface);
+}
+.ad-app .ad-panneau-tete {
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.ad-app .ad-volet > summary,
+.ad-app .ad-volet-titre {
+  font-family: var(--font-titre);
+  font-weight: 800;
+}
+.ad-app a.ad-tuile:hover,
+.ad-app a.ad-carte:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--pub-ombre-forte);
+}
+
+/* ===== Boutons ===== */
+.ad-app .btn {
+  border: var(--pub-trait) solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  font-weight: 800;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background-color 0.2s;
+}
+.ad-app .btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.ad-app .btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--encre);
+}
+.ad-app .btn:disabled {
+  box-shadow: none;
+  opacity: 0.55;
+}
+.ad-app .btn-primary {
+  background: var(--rouge-fonce);
+  color: #fff;
+}
+.ad-app .btn-secondary {
+  background: var(--surface);
+  color: var(--encre);
+}
+.ad-app .btn-danger {
+  background: var(--surface);
+  color: var(--rouge-fonce);
+}
+.ad-app .btn:focus-visible {
+  outline: 3px solid var(--mangue);
+  outline-offset: 3px;
+}
+
+/* ===== Champs ===== */
+.ad-app :is(.field, .ad-formulaire, .ad-filtres, .ad-recherche) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), select, textarea),
+.ad-app .field :is(input, select, textarea) {
+  border: 2px solid var(--encre);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.ad-app :is(.field, .ad-formulaire, .ad-filtres, .ad-recherche) :is(input, select, textarea):focus {
+  border-color: var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  outline: none;
+}
+
+/* ===== Pastilles, onglets, alertes ===== */
+.ad-app :is(.badge, .ad-pastille, .rc-pastille) {
+  border: 2px solid var(--encre);
+}
+.ad-app .alerte,
+.ad-app .ad-bandeau {
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-md);
+}
+.ad-app .ad-onglet {
+  border: 2px solid var(--encre);
+}
+.ad-app .ad-onglet[aria-current="page"],
+.ad-app .ad-onglet.actif {
+  background: var(--encre);
+  color: var(--creme);
+}
+
+/* ===== Tableaux ===== */
+.ad-app .ad-table thead th {
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+
+/* ===== Barre latérale (reste sombre) : le lien actif devient une pastille mangue ===== */
+.ad-app .ad-marque img {
+  border: 2.5px solid var(--creme);
+  border-radius: 12px;
+}
+.ad-app .ad-nav-lien {
+  border-radius: 14px;
+  font-weight: 700;
+  transition: transform 0.2s var(--ease), background-color 0.2s;
+}
+.ad-app .ad-nav-lien:hover {
+  transform: translateX(3px);
+}
+.ad-app .ad-nav-lien.actif {
+  background: var(--mangue);
+  color: var(--encre);
+  box-shadow: 3px 3px 0 rgba(255, 246, 237, 0.85);
+}
+.ad-app .ad-nav-lien.actif::before {
+  display: none;
+}
+.ad-app .ad-nav-lien.actif .rc-pastille {
+  border-color: var(--encre);
+}
+
+/* ===== En-tête mobile : crème avec filet encre, comme le site public ===== */
+.ad-app .ad-entete-mobile {
+  background: var(--creme);
+  color: var(--encre);
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.ad-app .ad-entete-mobile .ad-marque-nom {
+  color: var(--encre);
+}
+.ad-app .ad-entete-mobile .ad-marque img {
+  border-color: var(--encre);
+  box-shadow: 2px 2px 0 var(--encre);
+}
+.ad-app .ad-entete-mobile .ad-marque-role {
+  background: var(--mangue);
+  color: var(--encre);
+  border: 2px solid var(--encre);
+}
+.ad-app .ad-entete-mobile .ad-bouton-menu {
+  border: var(--pub-trait) solid var(--encre);
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.ad-app .ad-entete-mobile .ad-bouton-menu:focus-visible {
+  outline-color: var(--encre);
+}
+
+/* ===== Navigation basse du restaurateur ===== */
+.ad-app .rc-bas {
+  border-top: var(--pub-trait) solid var(--encre);
+}
+.ad-app .rc-bas-item.actif {
+  border: 2px solid var(--encre);
+  box-shadow: 2px 2px 0 var(--encre);
+}
+
+/* ===== Mouvement : entrée de page, cascade, retour au toucher ===== */
+@keyframes console-entree {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.ad-app .ad-contenu > * {
+  animation: console-entree 0.4s var(--ease) backwards;
+}
+.ad-app .ad-contenu > *:nth-child(2) { animation-delay: 60ms; }
+.ad-app .ad-contenu > *:nth-child(3) { animation-delay: 110ms; }
+.ad-app .ad-contenu > *:nth-child(n + 4) { animation-delay: 150ms; }
+
+.ad-app :is(.ad-tuiles, .ad-cartes, .cmd-liste, .ad-volets, .menu-liste) > * {
+  animation: console-entree 0.45s var(--ease) backwards;
+}
+.ad-app :is(.ad-tuiles, .ad-cartes, .cmd-liste, .ad-volets, .menu-liste) > *:nth-child(2) { animation-delay: 60ms; }
+.ad-app :is(.ad-tuiles, .ad-cartes, .cmd-liste, .ad-volets, .menu-liste) > *:nth-child(3) { animation-delay: 120ms; }
+.ad-app :is(.ad-tuiles, .ad-cartes, .cmd-liste, .ad-volets, .menu-liste) > *:nth-child(4) { animation-delay: 180ms; }
+.ad-app :is(.ad-tuiles, .ad-cartes, .cmd-liste, .ad-volets, .menu-liste) > *:nth-child(n + 5) { animation-delay: 220ms; }
+
+/* Une commande à traiter attire l'œil sans bruit : la pastille du menu pulse doucement. */
+@keyframes console-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(193, 39, 45, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(193, 39, 45, 0); }
+}
+.ad-app .rc-pastille {
+  animation: console-pulse 2.2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-app .ad-contenu > *,
+  .ad-app :is(.ad-tuiles, .ad-cartes, .cmd-liste, .ad-volets, .menu-liste) > *,
+  .ad-app .rc-pastille {
+    animation: none;
+  }
+  .ad-app .btn,
+  .ad-app .ad-nav-lien {
+    transition: none;
+  }
+  .ad-app .btn:hover:not(:disabled),
+  .ad-app .btn:active:not(:disabled),
+  .ad-app .ad-nav-lien:hover,
+  .ad-app a.ad-tuile:hover,
+  .ad-app a.ad-carte:hover {
+    transform: none;
+  }
+}
+
+/* ===== Pastilles de filtre, raccourcis, période ===== */
+.ad-app :is(.ad-filtres, .ad-raccourcis, .ad-periode) :is(a, button):not(.btn) {
+  border: 2px solid var(--encre);
+  font-weight: 700;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s;
+}
+.ad-app :is(.ad-filtres, .ad-raccourcis, .ad-periode) :is(a, button):not(.btn):hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.ad-app :is(.ad-filtres, .ad-raccourcis, .ad-periode) :is(a, button):not(.btn):active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+/* Les chiffres des tuiles restent sur une ligne (« 565 000 GNF » ne se coupe plus) et se réduisent plutôt que de déborder. */
+.ad-app .ad-tuile-valeur {
+  white-space: nowrap;
+  font-size: clamp(1.5rem, 1.1rem + 1vw, 2rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-app :is(.ad-filtres, .ad-raccourcis, .ad-periode) :is(a, button):not(.btn) {
+    transition: none;
+  }
+  .ad-app :is(.ad-filtres, .ad-raccourcis, .ad-periode) :is(a, button):not(.btn):is(:hover, :active) {
+    transform: none;
+  }
+}
+
+/* Chiffres des cartes de pilotage : une ligne, réduits plutôt que coupés. */
+.ad-app .ad-carte-valeur {
+  white-space: nowrap;
+  font-size: clamp(1.5rem, 1.1rem + 1vw, 2rem);
+  overflow-wrap: normal;
+}
+
+/* Ancres de sections (Paramètres) comme les autres pastilles de filtre. */
+.ad-app .ad-ancres a {
+  border: 2px solid var(--encre);
+  font-weight: 700;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.ad-app .ad-ancres a:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+
+/* Navigation basse : la pastille de l'onglet actif est son pseudo-élément ; c'est lui qui reçoit le contour et l'ombre. */
+.ad-app .rc-bas-item.actif {
+  border: 0;
+  box-shadow: none;
+}
+.ad-app .rc-bas-item.actif::before {
+  border: 2px solid var(--encre);
+  box-shadow: 2px 2px 0 var(--encre);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-app .ad-ancres a {
+    transition: none;
+  }
+  .ad-app .ad-ancres a:hover {
+    transform: none;
+  }
+}

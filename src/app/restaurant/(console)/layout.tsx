@@ -25,14 +25,15 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
       .select("id", { count: "exact", head: true })
       .eq("restaurant_id", membership.restaurant_id)
       .eq("statut", "en_attente"),
-    supabase.from("restaurants").select("nom, publie").eq("id", membership.restaurant_id).maybeSingle(),
+    supabase.from("restaurants").select("nom, publie, logo_url").eq("id", membership.restaurant_id).maybeSingle(),
   ]);
   const nombreATraiter = aTraiter ?? 0;
 
   const marque = (
     <div className="ad-marque">
-      {/* eslint-disable-next-line @next/next/no-img-element -- icône locale de l'application, déjà optimisée. */}
-      <img src="/icons/icon-192.png" alt="" width={40} height={40} />
+      {/* Le logo du restaurant prend la place de l'icône Speedfood quand il existe : le restaurateur retrouve SON identité (photo d'abord). */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- logo : URL Supabase Storage dynamique ; icône locale sinon. */}
+      <img src={restaurant?.logo_url ?? "/icons/icon-192.png"} alt="" width={40} height={40} style={{ objectFit: "cover" }} />
       <div>
         <span className="ad-marque-nom">Speedfood</span>
         <span className="ad-marque-role">{restaurant?.nom ?? "Espace restaurateur"}</span>

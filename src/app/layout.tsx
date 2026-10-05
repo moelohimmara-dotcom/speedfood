@@ -20,6 +20,7 @@ import "./public-segments.css";
 import "./admin.css";
 import "./console-resto.css";
 import "./console.css";
+import "./console-b.css";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :
 // répond à la note performance de DESIGN-SYSTEM.md sur le coût des données mobiles à Conakry.
