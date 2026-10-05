@@ -71,19 +71,6 @@ html[data-cache] .theme-public .decouverte-collage img { animation-play-state: p
   animation: point-ouvert 2.2s ease-out infinite;
 }
 
-/* ===== Panneau de filtres : même langage que les cartes ===== */
-.theme-public .decouverte-filtres {
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: var(--radius-lg);
-  box-shadow: 4px 4px 0 var(--encre);
-  background: var(--surface);
-}
-.theme-public .decouverte-filtre-titre {
-  font-family: var(--font-titre);
-  letter-spacing: 0.02em;
-  color: var(--encre);
-}
-
 /* ===== Rail de plats guidé ===== */
 .carrousel-b {
   position: relative;
@@ -211,65 +198,151 @@ html[data-cache] .theme-public .decouverte-collage img { animation-play-state: p
   max-width: 44ch;
 }
 
-/* ===== Filtres : panneau à gauche sur ordinateur, volet repliable sur téléphone ===== */
-.decouverte-filtres-large {
-  display: none;
+/* ===== Lot 4 : barre de filtres horizontale collante (remplace le panneau latéral) ===== */
+.decouverte-corps-large {
+  display: block;
+  max-width: 1160px;
+  padding-top: var(--space-4);
 }
 @media (min-width: 900px) {
-  .decouverte-filtres-large {
+  .decouverte-corps.decouverte-corps-large {
     display: block;
-  }
-  .decouverte-filtres-mobile {
-    display: none;
+    grid-template-columns: none;
   }
 }
-.decouverte-filtres-mobile {
-  margin-bottom: var(--space-4);
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: 4px 4px 0 var(--encre);
-}
-.decouverte-filtres-mobile > summary {
+.barre-filtres {
+  position: sticky;
+  top: 60px;
+  z-index: 40;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: 52px;
-  padding: 0 var(--space-4);
+  gap: var(--space-3);
+  /* Aligne le contenu de la barre sur la colonne de la page (1160 px), tout en gardant le fond pleine largeur. */
+  padding: 10px max(var(--space-4), calc((100vw - 1160px) / 2 + var(--space-4)));
+  background: var(--creme);
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+@media (min-width: 900px) {
+  .barre-filtres { top: 68px; }
+}
+.barre-filtres-rail {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 2px;
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+}
+.barre-filtres-rail::-webkit-scrollbar { display: none; }
+.barre-filtres-etiquette {
+  flex: none;
   font-family: var(--font-titre);
+  font-size: 0.78rem;
   font-weight: 800;
-  cursor: pointer;
-  list-style: none;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.decouverte-filtres-mobile > summary::-webkit-details-marker {
-  display: none;
+.barre-filtres-sep {
+  flex: none;
+  width: 2px;
+  height: 26px;
+  margin: 0 6px;
+  background: var(--encre);
+  border-radius: 2px;
 }
-.decouverte-filtres-mobile > summary::after {
-  content: "+";
-  font-size: 1.4rem;
+.barre-filtres .chip {
+  flex: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.chip-n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.74rem;
+  font-weight: 800;
   line-height: 1;
 }
-.decouverte-filtres-mobile[open] > summary::after {
-  content: "–";
+.chip.actif .chip-n { background: var(--creme); }
+.chip-vide { opacity: 0.45; }
+.chip-effacer {
+  background: var(--rouge-fonce);
+  color: #fff;
 }
-.decouverte-filtres-compte {
-  margin-left: auto;
-  margin-right: var(--space-2);
-  min-width: 24px;
-  padding: 0 8px;
-  border: 2px solid var(--encre);
-  border-radius: var(--radius-pill);
-  background: var(--mangue);
-  font-size: 0.8rem;
-  text-align: center;
+.theme-public .chip.chip-effacer:hover { background: var(--rouge-fonce); }
+.barre-filtres-total {
+  flex: none;
+  margin: 0;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
-.decouverte-filtres-contenu {
-  padding: 0 var(--space-4) var(--space-4);
+@media (max-width: 599px) {
+  .barre-filtres-total { display: none; }
 }
 
-@media (min-width: 900px) {
-  .carrousel-b .carrousel {
-    scroll-padding-inline: 0;
-  }
+/* Grille de restaurants : plus de colonnes maintenant que le panneau latéral a disparu. */
+.decouverte-corps-large .grille-restaurants {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }
+
+/* ===== Recherches récentes ===== */
+.recherches-recentes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--space-3);
+  font-size: 0.85rem;
+}
+.recherches-recentes-titre { font-weight: 800; }
+.theme-public .chip.chip-recent {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  background: var(--surface);
+}
+.recherches-recentes-effacer {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--encre);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ===== État vide : pistes ===== */
+.decouverte-vide-pistes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: var(--space-3) 0 0;
+}
+.decouverte-vide-pistes > span { font-weight: 700; }
+
+/* ===== Lot 7 : squelette de chargement qui ressemble à la page ===== */
+.squelette-decouverte .squelette-hero { height: 250px; border-radius: 0; }
+.squelette-decouverte .squelette-ligne { height: 52px; border-radius: 26px; }
+.squelette-decouverte .squelette-grille-cartes {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  margin-top: var(--space-4);
+}
+.squelette-decouverte .squelette-carte { height: 260px; border-radius: var(--radius-lg); }

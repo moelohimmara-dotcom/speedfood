@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
+import { BarreFiltres, type OptionFiltre } from "@/components/site/BarreFiltres";
+import { RecherchesRecentes } from "@/components/site/RecherchesRecentes";
 import { CarrouselVedettes } from "@/components/site/CarrouselVedettes";
 import { VecteurIntrouvable } from "@/components/site/vecteurs/VecteurIntrouvable";
 import { RestaurantCard, type PlatCarte } from "@/components/RestaurantCard";
@@ -61,11 +63,13 @@ export default async function CataloguePage({
   };
 
   const supabase = creerClientPublic();
-  const [{ data: categories, error: erreurCategories }, { data: quartiers, error: erreurQuartiers }, recherche] =
+  const [{ data: categories, error: erreurCategories }, { data: quartiers, error: erreurQuartiers }, recherche, base] =
     await Promise.all([
       supabase.from("menu_categories").select("id, nom").order("ordre"),
       supabase.from("neighborhoods").select("id, nom").order("ordre"),
       rechercherCatalogue({ q, categorie, quartier, filtres }),
+      // Même recherche sans filtre de cuisine ni de quartier : sert aux compteurs des puces (avec l'autre filtre actif).
+      rechercherCatalogue({ q, filtres }),
     ]);
 
   // Accueil « nu » (sans recherche ni filtre) : preuve en direct et trois étapes ; une recherche affiche d'abord ses résultats.
@@ -75,7 +79,23 @@ export default async function CataloguePage({
   const erreur = erreurCategories || erreurQuartiers || recherche.erreur;
   const etat = { q, categorie, quartier, ...filtres };
   const resultats = recherche.resultats;
-  const nbFiltresListe = (categorie ? 1 : 0) + (quartier ? 1 : 0);
+  const nomQuartierActif = (quartiers ?? []).find((x) => x.id === quartier)?.nom;
+  const compter = (liste: ResultatClasse<RestaurantCatalogue>[]) => liste.length;
+  const optionsCuisine: OptionFiltre[] = (categories ?? []).map((c) => ({
+    cle: c.id,
+    libelle: c.nom,
+    n: compter(base.resultats.filter((r) => r.restaurant.categorieId === c.id && (!nomQuartierActif || r.restaurant.quartier === nomQuartierActif))),
+    href: lien(etat, { categorie: categorie === c.id ? undefined : c.id }),
+    actif: categorie === c.id,
+  }));
+  const optionsQuartier: OptionFiltre[] = (quartiers ?? []).map((x) => ({
+    cle: x.id,
+    libelle: x.nom,
+    n: compter(base.resultats.filter((r) => r.restaurant.quartier === x.nom && (!categorie || r.restaurant.categorieId === categorie))),
+    href: lien(etat, { quartier: quartier === x.id ? undefined : x.id }),
+    actif: quartier === x.id,
+  }));
+  const effacerFiltres = categorie || quartier ? lien(etat, { categorie: undefined, quartier: undefined }) : null;
   const nbConfirmes = recherche.vedettes.filter((v) => v.etat.type === "disponible").length;
 
   return (
@@ -104,6 +124,8 @@ export default async function CataloguePage({
             <input id="q" name="q" type="search" defaultValue={q} maxLength={100} placeholder="Un plat, un restaurant…" />
             <button type="submit" className="btn btn-primary decouverte-recherche-bouton">Rechercher</button>
           </form>
+
+          <RecherchesRecentes courante={q} />
 
           <div className="chip-row decouverte-puces">
             <Link href={lien(etat, { ouvert: !filtres.ouvert })} className={`chip ${filtres.ouvert ? "actif" : ""}`}>
@@ -152,67 +174,9 @@ export default async function CataloguePage({
         </section>
       ) : null}
 
-      <div className="decouverte-corps">
-        {/* Ordinateur : panneau fixe à gauche. Téléphone : volet repliable, pour que les plats et les restaurants apparaissent tout de suite. */}
-        <aside className="decouverte-filtres decouverte-filtres-large" aria-label="Filtres">
-          <h2 className="decouverte-filtre-titre">Type de cuisine</h2>
-          <div className="chip-row">
-            {(categories ?? []).map((c) => (
-              <Link
-                key={c.id}
-                href={lien(etat, { categorie: categorie === c.id ? undefined : c.id })}
-                className={`chip ${categorie === c.id ? "actif" : ""}`}
-              >
-                {c.nom}
-              </Link>
-            ))}
-          </div>
-          <h2 className="decouverte-filtre-titre">Quartier</h2>
-          <div className="chip-row">
-            {(quartiers ?? []).map((quartierOption) => (
-              <Link
-                key={quartierOption.id}
-                href={lien(etat, { quartier: quartier === quartierOption.id ? undefined : quartierOption.id })}
-                className={`chip ${quartier === quartierOption.id ? "actif" : ""}`}
-              >
-                {quartierOption.nom}
-              </Link>
-            ))}
-          </div>
-        </aside>
-        <details className="decouverte-filtres-mobile">
-          <summary>
-            Filtrer par cuisine et quartier
-            {nbFiltresListe > 0 ? <span className="decouverte-filtres-compte">{nbFiltresListe}</span> : null}
-          </summary>
-          <div className="decouverte-filtres-contenu">
-          <h2 className="decouverte-filtre-titre">Type de cuisine</h2>
-          <div className="chip-row">
-            {(categories ?? []).map((c) => (
-              <Link
-                key={c.id}
-                href={lien(etat, { categorie: categorie === c.id ? undefined : c.id })}
-                className={`chip ${categorie === c.id ? "actif" : ""}`}
-              >
-                {c.nom}
-              </Link>
-            ))}
-          </div>
-          <h2 className="decouverte-filtre-titre">Quartier</h2>
-          <div className="chip-row">
-            {(quartiers ?? []).map((quartierOption) => (
-              <Link
-                key={quartierOption.id}
-                href={lien(etat, { quartier: quartier === quartierOption.id ? undefined : quartierOption.id })}
-                className={`chip ${quartier === quartierOption.id ? "actif" : ""}`}
-              >
-                {quartierOption.nom}
-              </Link>
-            ))}
-          </div>
-          </div>
-        </details>
+      {!erreur ? <BarreFiltres cuisines={optionsCuisine} quartiers={optionsQuartier} effacer={effacerFiltres} total={resultats.length} /> : null}
 
+      <div className="decouverte-corps decouverte-corps-large">
         <div className="decouverte-resultats">
       {!erreur && !q && recherche.vedettes.length > 0 ? (
         <section aria-labelledby="titre-vedettes" style={{ marginBottom: "var(--space-5)" }}>
@@ -225,7 +189,7 @@ export default async function CataloguePage({
               <strong>« À confirmer »</strong> : le restaurant n&apos;a pas reconfirmé ce plat depuis {recherche.fraicheurHeures} h. Il le confirme à la commande.
             </p>
           ) : null}
-          <CarrouselVedettes libelle="Plats à découvrir, défilement horizontal">
+          <CarrouselVedettes key={lien(etat, {})} libelle="Plats à découvrir, défilement horizontal">
             {recherche.vedettes.map((vedette) => (
               <Link key={vedette.platId} href={`/restaurants/${vedette.restaurantId}#plat-${vedette.platId}`} className="carte-vedette">
                 {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
@@ -272,6 +236,16 @@ export default async function CataloguePage({
           <Link href="/restaurants" className="btn btn-primary">
             Réinitialiser les filtres
           </Link>
+          {(categories ?? []).length > 0 ? (
+            <p className="decouverte-vide-pistes">
+              <span>Ou essayez :</span>
+              {(categories ?? []).slice(0, 4).map((c) => (
+                <Link key={c.id} href={`/restaurants?categorie=${c.id}`} className="chip">
+                  {c.nom}
+                </Link>
+              ))}
+            </p>
+          ) : null}
         </div>
       ) : q ? (
         ORDRE_GROUPES.map((groupe) => {

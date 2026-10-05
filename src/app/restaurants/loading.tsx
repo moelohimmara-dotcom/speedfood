@@ -1,13 +1,17 @@
 export default function Chargement() {
   return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <p style={{ color: "var(--secondaire)", margin: "0 0 var(--space-4)" }} role="status">
+    <main className="squelette-decouverte" aria-busy="true">
+      <p className="sr-only" role="status">
         Chargement des restaurants…
       </p>
-      <div className="squelette-grille" aria-hidden="true">
-        <div className="squelette" style={{ height: 44 }} />
-        <div className="squelette" style={{ height: 220 }} />
-        <div className="squelette" style={{ height: 220 }} />
+      <div className="squelette squelette-hero" aria-hidden="true" />
+      <div style={{ maxWidth: 1160, margin: "0 auto", padding: "var(--space-4)" }} aria-hidden="true">
+        <div className="squelette squelette-ligne" />
+        <div className="squelette-grille-cartes">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="squelette squelette-carte" />
+          ))}
+        </div>
       </div>
     </main>
   );
