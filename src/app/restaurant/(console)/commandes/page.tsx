@@ -39,6 +39,17 @@ export default async function CommandesPage() {
   const { data: restaurantLigne } = await supabase.from("restaurants").select("nom").eq("id", membership.restaurant_id).maybeSingle();
   const restaurantNom = restaurantLigne?.nom ?? "Votre restaurant";
 
+  const { data: docs } = commandes.length
+    ? await supabase.from("documents_commande").select("order_id, type, numero").in("order_id", commandes.map((c) => c.id))
+    : { data: [] as { order_id: string; type: string; numero: string }[] };
+  const documentsDe = (id: string) => {
+    const r: { recu?: string; facture?: string } = {};
+    for (const d of docs ?? []) {
+      if (d.order_id === id && (d.type === "recu" || d.type === "facture")) r[d.type] = d.numero;
+    }
+    return r;
+  };
+
   const maintenant = new Date();
   const age = (c: ApercuCommandeRestaurant) => ancienneteLisible(new Date(c.creeLe), maintenant);
   // Seules les commandes à traiter attendent une réponse : on affiche leur attente exacte quand elle devient longue.
@@ -71,7 +82,7 @@ export default async function CommandesPage() {
             ) : (
               <div className="cmd-liste">
                 {aTraiter.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} />
                 ))}
               </div>
             )}
@@ -84,7 +95,7 @@ export default async function CommandesPage() {
               </h2>
               <div className="cmd-liste">
                 {enCours.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} />
                 ))}
               </div>
             </section>
@@ -97,7 +108,7 @@ export default async function CommandesPage() {
               </summary>
               <div className="cmd-liste">
                 {historique.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} />
                 ))}
               </div>
             </details>

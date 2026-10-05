@@ -4,10 +4,12 @@ import { useState, useTransition } from "react";
 import type { ApercuCommandeRestaurant, EtatDeriveCommande } from "@/lib/contracts/commande";
 import {
   confirmerPaiementAction,
+  emettreDocumentAction,
   traiterCommandeAction,
   type ActionStatutCommande,
 } from "@/lib/commande/actions-restaurant";
 import { LIBELLES_MODE, libelleStatutPaiement, lienWhatsAppVers, texteRecuWhatsApp } from "@/lib/paiement/regles";
+import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
 
@@ -40,12 +42,15 @@ export function CommandeCarte({
   age,
   retardMinutes = null,
   restaurantNom = "Votre restaurant",
+  documents = {},
 }: {
   commande: ApercuCommandeRestaurant;
   age?: string;
   /** Minutes d'attente quand la commande « à traiter » dépasse le seuil de retard. */
   retardMinutes?: number | null;
   restaurantNom?: string;
+  /** Numéros des documents déjà établis pour cette commande. */
+  documents?: { recu?: string; facture?: string };
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
@@ -78,6 +83,27 @@ export function CommandeCarte({
         setErreur(resultat.erreur.message);
       }
     });
+  }
+
+  function emettre(type: "recu" | "facture") {
+    setErreur(null);
+    demarrer(async () => {
+      const resultat = await emettreDocumentAction(commande.id, type);
+      if (!resultat.ok) {
+        setErreur(resultat.erreur.message);
+      }
+    });
+  }
+
+  function envoyerFactureWhatsApp() {
+    const lien = `${window.location.origin}/suivi/${commande.jetonSuivi}/recu?doc=facture`;
+    const message = texteDocumentWhatsApp({ type: "facture", numero: documents.facture ?? "", restaurant: restaurantNom, total, lien });
+    const url = lienWhatsAppVers(commande.clientTelephone, message);
+    if (!url) {
+      setErreur("Le numéro du client n'est pas utilisable pour WhatsApp.");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   /** Ouvre WhatsApp vers le client avec le lien de son reçu : le restaurateur appuie lui-même sur « Envoyer » (aucun envoi automatique). */
@@ -216,6 +242,7 @@ export function CommandeCarte({
             {commande.paiementMode && commande.paiementMode !== "especes" ? ` · ${LIBELLES_MODE[commande.paiementMode]}` : ""}
             {commande.paiementReference ? ` · réf. ${commande.paiementReference}` : ""}
             {commande.paiementRecuLe ? ` · le ${formaterDate(commande.paiementRecuLe)}` : ""}
+            {documents.recu ? ` · reçu ${documents.recu}` : ""}
           </p>
           {commande.paiementStatut === "declare" ? (
             <p className="cmd-paiement-detail">Comparez avec le SMS de confirmation de votre opérateur avant de valider.</p>
@@ -249,6 +276,20 @@ export function CommandeCarte({
             <Button type="button" variante="secondary" onClick={envoyerRecuWhatsApp}>
               {commande.paiementStatut === "recu" ? "Envoyer le reçu sur WhatsApp" : "Envoyer le récapitulatif sur WhatsApp"}
             </Button>
+            {commande.paiementStatut === "recu" && !documents.recu ? (
+              <Button type="button" variante="secondary" disabled={enCours} onClick={() => emettre("recu")}>
+                Établir le reçu numéroté
+              </Button>
+            ) : null}
+            {documents.facture ? (
+              <Button type="button" variante="secondary" onClick={envoyerFactureWhatsApp}>
+                Envoyer la facture {documents.facture} sur WhatsApp
+              </Button>
+            ) : (
+              <Button type="button" variante="secondary" disabled={enCours} onClick={() => emettre("facture")}>
+                Établir une facture
+              </Button>
+            )}
           </div>
         </div>
       ) : null}

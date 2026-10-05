@@ -1,0 +1,124 @@
+/* Affiche et QR code du restaurant (console) : aperçu A4 et impression (lot 3). Couleurs et polices viennent des jetons existants. */
+.affiche-grille {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  gap: var(--space-5);
+  align-items: start;
+}
+.affiche-cote {
+  display: grid;
+  gap: var(--space-4);
+}
+.affiche-zone {
+  display: flex;
+  justify-content: center;
+}
+.affiche-a4 {
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 210 / 297;
+  background: #fff;
+  color: #1a1410;
+  border: 2px solid var(--bordure);
+  border-radius: 16px;
+  padding: 8% 7%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3%;
+}
+.affiche-marque {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  color: #b13b00;
+}
+.affiche-nom {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 2.4rem);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.affiche-accroche {
+  margin: 0;
+  font-size: clamp(1rem, 2.8vw, 1.35rem);
+  font-weight: 600;
+  text-wrap: balance;
+}
+.affiche-qr {
+  width: 62%;
+  height: auto;
+  aspect-ratio: 1;
+  margin: auto 0;
+}
+.affiche-lien {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(0.9rem, 2.4vw, 1.15rem);
+  overflow-wrap: anywhere;
+}
+.affiche-pied {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5c5148;
+  text-wrap: balance;
+}
+.affiche-lien-court {
+  overflow-wrap: anywhere;
+}
+.affiche-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.affiche-table th,
+.affiche-table td {
+  padding: 8px 4px;
+  text-align: right;
+  border-bottom: 1px solid var(--bordure);
+  font-variant-numeric: tabular-nums;
+}
+.affiche-table th[scope="row"],
+.affiche-table thead th:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .affiche-grille {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media print {
+  .ad-barre-laterale,
+  .ad-entete-mobile,
+  .rc-bas,
+  .lien-evitement,
+  .ad-entete-page,
+  .affiche-cote {
+    display: none !important;
+  }
+  .ad-app,
+  .ad-colonne,
+  .ad-contenu {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .affiche-grille {
+    display: block;
+  }
+  .affiche-a4 {
+    max-width: none;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    page-break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

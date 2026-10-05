@@ -14,6 +14,8 @@ import "./public-mouvement.css";
 import "./fiche-refonte.css";
 import "./controles.css";
 import "./paiement.css";
+import "./affiche.css";
+import "./documents.css";
 import "./public-segments.css";
 import "./admin.css";
 import "./console-resto.css";

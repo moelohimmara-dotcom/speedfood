@@ -55,9 +55,12 @@ copier("src/lib/menu/saisieRapide.ts");
 copier("scripts/tests/saisie.test.mts");
 copier("src/lib/paiement/regles.ts");
 copier("scripts/tests/paiement.test.mts");
+copier("src/lib/paiement/documents-regles.ts");
+copier("src/lib/partage/scans.ts");
+copier("scripts/tests/documents.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit" });
   statut = statut || (resultat.status ?? 1);
 }

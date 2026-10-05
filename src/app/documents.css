@@ -1,0 +1,87 @@
+/* Reçus et factures : page console et document émis (lot 3). */
+.doc-colonnes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .doc-colonnes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.doc-formulaire {
+  display: grid;
+  gap: var(--space-3);
+}
+.doc-regime {
+  border: 1px solid var(--bordure);
+  border-radius: 12px;
+  padding: var(--space-3);
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.doc-regime legend {
+  font-weight: 700;
+  padding: 0 6px;
+}
+.doc-radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.doc-radio input {
+  margin-top: 4px;
+  flex: none;
+}
+.doc-fiscal {
+  display: grid;
+  gap: var(--space-3);
+}
+.doc-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.doc-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+.doc-ligne-detail {
+  display: block;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.doc-ligne-droite {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.recu-emetteur {
+  margin: 4px 0 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+  display: grid;
+  gap: 2px;
+}
+.recu-fiscal-note {
+  margin: var(--space-3) 0 0;
+  font-size: 0.85rem;
+}
+.recu-onglets {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  flex-wrap: wrap;
+}
+@media print {
+  .recu-onglets {
+    display: none !important;
+  }
+}

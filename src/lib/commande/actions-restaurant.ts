@@ -196,7 +196,38 @@ export async function confirmerPaiementAction(
   if (!data || data.length === 0) {
     return { ok: false, erreur: { code: "INTROUVABLE", message: "Commande introuvable." } };
   }
+  // Un paiement confirmé donne droit à un reçu numéroté, établi tout de suite (échec silencieux : l'action principale est déjà faite).
+  if (decision === "recu") {
+    await supabase.rpc("fn_emettre_document", { p_order_id: commandeId, p_type: "recu" });
+  }
   revalidatePath("/restaurant/commandes");
   revalidatePath("/restaurant");
+  return { ok: true };
+}
+
+/**
+ * Le restaurateur établit un reçu (après paiement confirmé) ou une facture (dès l'acceptation) pour une commande. Numérotation continue
+ * et contrôles dans `fn_emettre_document` (réservée aux membres du restaurant). Demander deux fois le même document renvoie le premier.
+ */
+export async function emettreDocumentAction(commandeId: string, type: "recu" | "facture"): Promise<ResultatActionCommande> {
+  const { supabase } = await obtenirContexteRestaurant("/restaurant/commandes");
+  if (!estUuid(commandeId) || (type !== "recu" && type !== "facture")) {
+    return { ok: false, erreur: erreurValidationCommande() };
+  }
+  const { error } = await supabase.rpc("fn_emettre_document", { p_order_id: commandeId, p_type: type });
+  if (error) {
+    return {
+      ok: false,
+      erreur: {
+        code: "CONFLIT_ETAT",
+        message:
+          type === "recu"
+            ? "Le reçu s'établit une fois la commande acceptée et le paiement confirmé."
+            : "La facture s'établit une fois la commande acceptée.",
+      },
+    };
+  }
+  revalidatePath("/restaurant/commandes");
+  revalidatePath("/restaurant/documents");
   return { ok: true };
 }

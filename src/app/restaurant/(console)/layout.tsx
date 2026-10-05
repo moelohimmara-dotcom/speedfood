@@ -52,6 +52,14 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           Voir ma page publique
         </Link>
       ) : null}
+      <Link href="/restaurant/affiche" className="ad-lien-bas">
+        <IconeAdmin nom="boutique" />
+        Affiche et QR code
+      </Link>
+      <Link href="/restaurant/documents" className="ad-lien-bas">
+        <IconeAdmin nom="commandes" />
+        Reçus et factures
+      </Link>
       <Link href="/compte/securite" className="ad-lien-bas">
         <IconeAdmin nom="securite" />
         Sécurité du compte

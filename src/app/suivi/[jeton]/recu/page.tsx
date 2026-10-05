@@ -4,7 +4,11 @@ import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { origineDuSite } from "@/lib/partage/origine";
 import { LIBELLES_MODE, formaterMontantGnf, texteRecuWhatsApp } from "@/lib/paiement/regles";
 import { LienRetour } from "@/components/LienRetour";
+import { chargerDocumentsParJeton } from "@/lib/paiement/documents";
+import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { ActionsRecu } from "./ActionsRecu";
+import { DocumentEmisCarte } from "./DocumentEmisCarte";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Reçu de commande", robots: { index: false, follow: false } };
 
@@ -17,8 +21,15 @@ function formaterDate(iso: string) {
  * seulement quand le restaurateur a confirmé avoir reçu le paiement ; sinon c'est un « Récapitulatif de commande ». Ce n'est
  * pas une facture fiscale : le restaurant reste responsable de ses propres pièces comptables. Ni téléphone ni adresse du client.
  */
-export default async function RecuPage({ params }: { params: Promise<{ jeton: string }> }) {
+export default async function RecuPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ jeton: string }>;
+  searchParams: Promise<{ doc?: string }>;
+}) {
   const { jeton } = await params;
+  const { doc: docDemande } = await searchParams;
   const suivi = await chargerSuiviParJeton(jeton);
   if (!suivi) {
     notFound();
@@ -33,6 +44,37 @@ export default async function RecuPage({ params }: { params: Promise<{ jeton: st
           Pas encore de reçu
         </h1>
         <p>Le reçu est disponible une fois la commande acceptée par le restaurant.</p>
+      </main>
+    );
+  }
+
+  // Document numéroté établi par le restaurant : il prime sur le récapitulatif provisoire ci-dessous.
+  const documents = await chargerDocumentsParJeton(jeton);
+  const emis = (docDemande === "facture" ? documents.facture : documents.recu) ?? documents.recu ?? documents.facture;
+  if (emis) {
+    const origineDoc = await origineDuSite();
+    const lienDoc = `${origineDoc}/suivi/${jeton}/recu${emis.type === "facture" ? "?doc=facture" : ""}`;
+    const totalDoc = emis.total;
+    const texteDoc = texteDocumentWhatsApp({ type: emis.type, numero: emis.numero, restaurant: emis.emetteur.nom, total: totalDoc, lien: lienDoc });
+    const paiementLigne =
+      emis.type === "recu" || suivi.paiement.statut === "recu"
+        ? `${suivi.paiement.mode === "especes" ? "Espèces encaissées" : "Paiement reçu"}${suivi.paiement.mode && suivi.paiement.mode !== "especes" ? ` · ${LIBELLES_MODE[suivi.paiement.mode]}` : ""}${suivi.paiement.reference ? ` · réf. ${suivi.paiement.reference}` : ""}`
+        : null;
+    return (
+      <main className="recu">
+        <LienRetour href={`/suivi/${jeton}`}>Retour au suivi</LienRetour>
+        {documents.recu && documents.facture ? (
+          <div className="recu-onglets">
+            <Link href={`/suivi/${jeton}/recu`} className={`btn ${emis.type === "recu" ? "btn-primary" : "btn-secondary"}`}>
+              Reçu
+            </Link>
+            <Link href={`/suivi/${jeton}/recu?doc=facture`} className={`btn ${emis.type === "facture" ? "btn-primary" : "btn-secondary"}`}>
+              Facture
+            </Link>
+          </div>
+        ) : null}
+        <DocumentEmisCarte doc={emis} reference={suivi.reference} paiementLigne={paiementLigne} />
+        <ActionsRecu lienWhatsApp={`https://wa.me/?text=${encodeURIComponent(texteDoc)}`} lien={lienDoc} />
       </main>
     );
   }

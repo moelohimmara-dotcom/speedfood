@@ -779,11 +779,81 @@ export type Database = {
           },
         ]
       }
+      restaurant_scans: {
+        Row: { restaurant_id: string; jour: string; source: string; nb: number }
+        Insert: { restaurant_id: string; jour?: string; source: string; nb?: number }
+        Update: { restaurant_id?: string; jour?: string; source?: string; nb?: number }
+        Relationships: []
+      }
+      restaurant_identite_documents: {
+        Row: {
+          restaurant_id: string
+          raison_sociale: string | null
+          adresse: string | null
+          telephone: string | null
+          nif: string | null
+          rccm: string | null
+          regime: string
+          tva_taux: number | null
+          mention: string | null
+          mis_a_jour_le: string
+        }
+        Insert: {
+          restaurant_id: string
+          raison_sociale?: string | null
+          adresse?: string | null
+          telephone?: string | null
+          nif?: string | null
+          rccm?: string | null
+          regime?: string
+          tva_taux?: number | null
+          mention?: string | null
+          mis_a_jour_le?: string
+        }
+        Update: {
+          restaurant_id?: string
+          raison_sociale?: string | null
+          adresse?: string | null
+          telephone?: string | null
+          nif?: string | null
+          rccm?: string | null
+          regime?: string
+          tva_taux?: number | null
+          mention?: string | null
+          mis_a_jour_le?: string
+        }
+        Relationships: []
+      }
+      documents_commande: {
+        Row: {
+          id: string
+          order_id: string
+          restaurant_id: string
+          type: string
+          annee: number
+          numero_seq: number
+          numero: string
+          emis_le: string
+          regime: string
+          emetteur: Json
+          client_nom: string | null
+          lignes: Json
+          sous_total: number
+          frais_livraison: number
+          total: number
+          tva_taux: number | null
+          tva_montant: number | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       restaurants: {
         Row: {
           accepte_commandes: boolean
           statut_mis_a_jour_le: string
           categorie_id: string
+          code_court: string
           consignes: string | null
           couleur_accent: string | null
           cree_le: string
@@ -810,6 +880,7 @@ export type Database = {
           accepte_commandes?: boolean
           statut_mis_a_jour_le?: string
           categorie_id: string
+          code_court?: string
           consignes?: string | null
           couleur_accent?: string | null
           cree_le?: string
@@ -836,6 +907,7 @@ export type Database = {
           accepte_commandes?: boolean
           statut_mis_a_jour_le?: string
           categorie_id?: string
+          code_court?: string
           consignes?: string | null
           couleur_accent?: string | null
           cree_le?: string
@@ -910,6 +982,14 @@ export type Database = {
       fn_preparer_suppression_compte: {
         Args: { p_motif: string; p_supprimer_restaurants: boolean; p_utilisateur: string }
         Returns: Json
+      }
+      fn_emettre_document: {
+        Args: { p_order_id: string; p_type: string }
+        Returns: string
+      }
+      fn_compter_scan: {
+        Args: { p_code: string; p_source: string }
+        Returns: string | null
       }
       fn_repondre_proposition: {
         Args: { p_jeton: string; p_proposition_id: string; p_reponse: string }
