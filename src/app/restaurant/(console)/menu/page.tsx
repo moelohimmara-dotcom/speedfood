@@ -3,6 +3,7 @@ import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Button, Card } from "@/components/ui";
 import { PlatItem } from "./PlatItem";
 import { FormulairePlat } from "./FormulairePlat";
+import { AjoutEnLot } from "./AjoutEnLot";
 import { SectionsMenu } from "./SectionsMenu";
 import { confirmerToutesDisponibilitesAction } from "@/lib/menu/actions";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
@@ -24,7 +25,7 @@ export default async function MenuPage() {
   const [
     { data: sections },
     { data: plats },
-    { disponibiliteFraicheurHeures },
+    { disponibiliteFraicheurHeures, prixPlatMaxGnf },
     { data: restaurantFamille },
   ] = await Promise.all([
     supabase
@@ -237,6 +238,9 @@ export default async function MenuPage() {
               Ajouter un plat
             </h2>
             <FormulairePlat sections={sectionsListe} />
+          </Card>
+          <Card>
+            <AjoutEnLot sections={sectionsListe} prixMax={prixPlatMaxGnf} />
           </Card>
           <SectionsMenu sections={sectionsListe} />
         </aside>

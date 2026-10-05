@@ -406,3 +406,124 @@
   font-size: 0.9rem;
   text-align: center;
 }
+
+/* --- Saisie rapide du menu : photo, dictée, prix en boutons, liste collée --- */
+.saisie-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.saisie-actions .btn,
+.saisie-dictee .btn {
+  gap: 8px;
+}
+.saisie-apercu {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  margin-top: var(--space-2);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+.saisie-dictee {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.saisie-dictee .btn[aria-pressed="true"] {
+  border-color: var(--rouge-fonce);
+  background: var(--danger-fond);
+  color: var(--rouge-fonce);
+}
+.saisie-message {
+  min-height: 1.3em;
+  margin: 0 0 var(--space-3);
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.saisie-prix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: calc(var(--space-2) * -1) 0 var(--space-3);
+}
+.saisie-prix-bouton {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.saisie-prix-bouton:hover {
+  border-color: var(--encre);
+}
+.saisie-lot > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.saisie-lot-corps {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.saisie-lot-exemple {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+  font-family: inherit;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+.saisie-lot textarea {
+  min-height: 140px;
+  padding: 12px 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  resize: vertical;
+}
+.saisie-lot-apercu {
+  padding: var(--space-3);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.saisie-lot-titre {
+  margin: 0 0 var(--space-2);
+  font-weight: 800;
+}
+.saisie-lot-apercu ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.saisie-lot-apercu li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+.saisie-lot-apercu li span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.saisie-lot-ignorees {
+  margin-top: var(--space-2) !important;
+  color: var(--danger);
+}

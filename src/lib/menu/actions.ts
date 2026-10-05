@@ -8,6 +8,7 @@ import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { televerserImage, supprimerImage, supprimerTeleversementOrphelin } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { lireChoixOuverture } from "./ouverture";
+import { lirePlatsEnLot, PLATS_MAX_PAR_LISTE } from "./saisieRapide";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
@@ -59,6 +60,54 @@ async function lireEtValiderSection(
     return { ok: false, erreur: "Section introuvable." };
   }
   return { ok: true, sectionId: section.id };
+}
+
+export interface EtatAjoutEnLot {
+  erreur?: string;
+  ajoutes?: number;
+  ignorees?: number;
+}
+
+/**
+ * Ajoute plusieurs plats d'un coup à partir d'une liste collée (une ligne par plat, le prix à la fin). Le texte brut est
+ * relu ICI avec les mêmes règles que le formulaire d'un plat (nom de 120 caractères au plus, prix entier entre 0 et le
+ * plafond réglé par l'équipe) : le navigateur ne fournit que du texte, jamais des plats déjà « validés ». Au plus 30 plats
+ * par envoi, tous dans ce restaurant (celui de la session), dans la section choisie si elle lui appartient.
+ */
+export async function creerPlatsEnLotAction(_etat: EtatAjoutEnLot, formData: FormData): Promise<EtatAjoutEnLot> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+  const texte = String(formData.get("liste") ?? "");
+  if (texte.length > 6000) {
+    return { erreur: "La liste est trop longue. Collez 30 lignes au plus." };
+  }
+  const { prixPlatMaxGnf } = await obtenirParametresApplication();
+  const { plats, ignorees } = lirePlatsEnLot(texte, prixPlatMaxGnf);
+  if (plats.length === 0) {
+    return { erreur: "Aucun plat reconnu. Écrivez une ligne par plat avec le prix à la fin, par exemple « Riz sauce feuille 25000 »." };
+  }
+
+  const supabase = await creerClientServeur();
+  const sectionResultat = await lireEtValiderSection(formData, membership.restaurant_id, supabase);
+  if (!sectionResultat.ok) {
+    return { erreur: sectionResultat.erreur };
+  }
+
+  const { error } = await supabase.from("menu_items").insert(
+    plats.slice(0, PLATS_MAX_PAR_LISTE).map((plat) => ({
+      restaurant_id: membership.restaurant_id,
+      nom: plat.nom,
+      description: "",
+      prix: plat.prix,
+      section_id: sectionResultat.sectionId,
+    }))
+  );
+  if (error) {
+    return { erreur: "Impossible d'ajouter les plats. Réessayez dans un instant." };
+  }
+
+  revalidatePath("/restaurant/menu");
+  revalidatePath("/restaurant");
+  return { ajoutes: plats.length, ignorees: ignorees.length };
 }
 
 export async function creerPlatAction(
