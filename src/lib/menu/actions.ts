@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { televerserImage, supprimerImage, supprimerTeleversementOrphelin } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { lireChoixOuverture } from "./ouverture";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
@@ -266,6 +268,44 @@ export async function confirmerToutesDisponibilitesAction(): Promise<void> {
     .is("archive_le", null);
 
   revalidatePath("/restaurant/menu");
+}
+
+/**
+ * Rituel d'ouverture : applique d'un coup les choix du matin (« oui » ou « épuisé » pour chaque plat). Un « oui » remet
+ * l'heure de confirmation à maintenant (posée par la base) ; un « épuisé » retire le plat de la vente. Le restaurant vient
+ * de la session, jamais du formulaire, et seuls les plats non archivés de ce restaurant sont touchés.
+ */
+export async function ouvrirJourneeAction(formData: FormData): Promise<void> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/ouverture");
+  const supabase = await creerClientServeur();
+  const { oui, non } = lireChoixOuverture(formData.entries());
+
+  const resultats = await Promise.all([
+    oui.length > 0
+      ? supabase
+          .from("menu_items")
+          .update({ disponible: true, disponibilite_confirmee_le: new Date().toISOString() })
+          .in("id", oui)
+          .eq("restaurant_id", membership.restaurant_id)
+          .is("archive_le", null)
+      : null,
+    non.length > 0
+      ? supabase
+          .from("menu_items")
+          .update({ disponible: false })
+          .in("id", non)
+          .eq("restaurant_id", membership.restaurant_id)
+          .is("archive_le", null)
+      : null,
+  ]);
+
+  revalidatePath("/restaurant/menu");
+  revalidatePath("/restaurant");
+  revalidatePath("/restaurant/menu-du-jour");
+  if (resultats.some((r) => r?.error)) {
+    redirect("/restaurant/ouverture?erreur=1");
+  }
+  redirect("/restaurant/menu-du-jour?ouvert=1");
 }
 
 export async function archiverPlatAction(id: string): Promise<void> {

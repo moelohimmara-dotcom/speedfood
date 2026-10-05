@@ -115,6 +115,18 @@ export default async function AccueilConsolePage() {
           />
         ) : null}
 
+        <Panneau titre="Ma journée">
+          <p className="rc-journee-texte">Chaque matin, dites ce que vous avez : vos clients voient l&apos;heure de votre confirmation.</p>
+          <div className="rc-journee-actions">
+            <Link href="/restaurant/ouverture" className="btn btn-primary">
+              Ouvrir ma journée
+            </Link>
+            <Link href="/restaurant/menu-du-jour" className="btn btn-secondary">
+              Mon menu en statut WhatsApp
+            </Link>
+          </div>
+        </Panneau>
+
         <Panneau
           titre="À traiter"
           compteur={aTraiter.length > 0 ? aTraiter.length : undefined}

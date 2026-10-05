@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { Button, Card } from "@/components/ui";
 import { PlatItem } from "./PlatItem";
@@ -86,6 +87,16 @@ export default async function MenuPage() {
     <div>
       <PageHeader
         titre="Mon menu"
+        actions={
+          <>
+            <Link href="/restaurant/ouverture" className="btn btn-secondary">
+              Ouvrir ma journée
+            </Link>
+            <Link href="/restaurant/menu-du-jour" className="btn btn-secondary">
+              Menu du jour
+            </Link>
+          </>
+        }
         description={`${platsListe.length} plat${platsListe.length > 1 ? "s" : ""}${sectionsListe.length > 0 ? ` · ${sectionsListe.length} section${sectionsListe.length > 1 ? "s" : ""}` : ""}`}
       />
 
