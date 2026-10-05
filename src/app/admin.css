@@ -951,7 +951,7 @@ body:has(.console-cadre) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: var(--h-controle, 44px);
   padding: 0 12px;
   border-color: transparent;
   background: transparent;

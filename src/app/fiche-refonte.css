@@ -156,7 +156,11 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-3);
-  margin: var(--space-6) 0 var(--space-4);
+  margin: var(--space-5) 0 var(--space-4);
+}
+/* Premier élément de la colonne du menu : même ligne de départ que le panneau de commande (pas de marge au-dessus). */
+.theme-public .fm > .fm-entete:first-child {
+  margin-top: 0;
 }
 .theme-public .fm-surtitre {
   margin: 0 0 4px;
@@ -183,14 +187,16 @@
   font-weight: 700;
 }
 .theme-public .fm-tri select {
-  min-height: 44px;
-  padding: 0 14px;
+  min-height: 48px;
+  padding: 0 44px 0 20px;
   border: 2px solid var(--encre);
   border-radius: var(--radius-pill);
-  background: var(--surface);
+  background-color: var(--surface);
   color: var(--encre);
   font: inherit;
   font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
 }
 .theme-public .fm-chips {
   display: flex;
@@ -355,7 +361,7 @@
   }
   .theme-public .fiche-panier {
     width: auto;
-    margin-top: var(--space-6);
+    margin-top: 0;
     margin-left: 0;
     padding: var(--space-5);
     border: var(--pub-trait) solid var(--encre);
