@@ -185,7 +185,7 @@
 .theme-public .fm-tri select {
   min-height: 44px;
   padding: 0 14px;
-  border: 1.5px solid var(--bordure);
+  border: 2px solid var(--encre);
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--encre);
@@ -314,7 +314,9 @@
   color: var(--encre);
   font-size: 0.75rem;
 }
+.theme-public .fiche .vignette-action .vignette-ajouter,
 .theme-public .fiche .vignette-ajouter {
+  width: 100%;
   min-height: 46px;
   border: 2px solid var(--encre);
   border-radius: var(--radius-pill);
@@ -353,7 +355,7 @@
   }
   .theme-public .fiche-panier {
     width: auto;
-    margin-top: calc(var(--space-6) + 5.6rem);
+    margin-top: var(--space-6);
     margin-left: 0;
     padding: var(--space-5);
     border: var(--pub-trait) solid var(--encre);

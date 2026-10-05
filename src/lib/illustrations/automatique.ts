@@ -32,7 +32,7 @@ const REGLES_PLAT: [RegExp, string][] = [
   [/mais|epi/, "mais"],
   [/arachide|cacahuete/, "arachide"],
   [/piment/, "piment"],
-  [/croissant|viennoiserie/, "croissant"],
+  [/croissant|viennoiserie|chocolatine|pain au chocolat|brioche/, "croissant"],
   [/pain|baguette|tartine|toast/, "pain"],
   [/tarte/, "tarte"],
   [/gateau|cake|brownie|fondant/, "gateau"],

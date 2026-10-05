@@ -67,7 +67,7 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
         <div className="vignette-prix">
           {plat.prixPromo !== null ? <span className="vignette-prix-barre">{formaterGNF(plat.prix)}</span> : null}
           <span className="vignette-prix-valeur" style={plat.prixPromo !== null ? { color: "var(--rouge-fonce)" } : undefined}>
-            {prixEffectif.toLocaleString("fr-FR")}
+            {prixEffectif.toLocaleString("fr-FR").replace(/\u202f/g, "\u00a0")}
             <small className="vignette-prix-unite"> GNF</small>
           </span>
         </div>
