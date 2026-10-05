@@ -222,3 +222,175 @@
     font-size: 0.85rem;
   }
 }
+
+/* ===== Corrections de la revue indépendante ===== */
+
+/* Champ de fichier sur téléphone : plus d'icône, bouton resserré, texte plus petit : « Aucun fichier choisi » tient en entier. */
+@media (max-width: 480px) {
+  :is(.theme-public, .ad-app) input[type="file"] {
+    padding: 12px 10px;
+    background-image: repeating-linear-gradient(135deg, rgba(255, 194, 71, 0.18) 0 10px, transparent 10px 20px);
+    background-repeat: repeat;
+    background-position: 0 0;
+    font-size: 0.74rem;
+    color: var(--encre);
+  }
+  :is(.theme-public, .ad-app) input[type="file"]::file-selector-button {
+    margin-right: 8px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Cases à cocher et boutons radio : la zone tactile est le libellé entier (44 px au moins) ; la case elle-même est plus grande. */
+:is(.theme-public, .ad-app) input:is([type="checkbox"], [type="radio"]) {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--rouge-fonce);
+}
+:is(.theme-public, .ad-app) label:has(> input:is([type="checkbox"], [type="radio"])):not(.option-supplement, .choix-carte) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* Navigation basse du restaurateur : le libellé actif tient dans sa pastille. */
+@media (max-width: 420px) {
+  .ad-app .rc-bas-item {
+    font-size: 0.7rem;
+    letter-spacing: -0.01em;
+  }
+  .ad-app .rc-bas-item.actif::before {
+    inset: 2px 1px;
+  }
+}
+.ad-app .rc-bas-item > span:last-child {
+  white-space: nowrap;
+}
+
+/* Un peu d'air sous les textes d'aide des champs. */
+.ad-app .ad-aide-champ {
+  margin-top: 8px;
+}
+
+/* ===== Animations qui expliquent ce qui se passe ===== */
+
+/* Une case se coche avec un petit rebond. */
+@keyframes coche-pop {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+:is(.theme-public, .ad-app) input:is([type="checkbox"], [type="radio"]):checked {
+  animation: coche-pop 0.3s var(--ease);
+}
+
+/* Un fichier choisi : le champ passe en vert, plein, avec une coche, et fait un petit rebond. */
+@keyframes fichier-pop {
+  0% { transform: scale(0.97); }
+  50% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+:is(.theme-public, .ad-app) input[type="file"][data-choisi] {
+  border-style: solid;
+  border-color: var(--succes);
+  background-color: var(--succes-fond);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%232e7d32' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  animation: fichier-pop 0.45s var(--ease);
+}
+@media (max-width: 480px) {
+  :is(.theme-public, .ad-app) input[type="file"][data-choisi] {
+    background-position: right 8px center;
+    padding-right: 40px;
+  }
+}
+
+/* Un message d'erreur secoue la tête une fois ; un message de réussite apparaît en grossissant. */
+@keyframes alerte-secoue {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+@keyframes alerte-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+:is(.theme-public, .ad-app) .alerte-danger[role="alert"] {
+  animation: alerte-secoue 0.45s var(--ease);
+}
+:is(.theme-public, .ad-app) :is(.alerte-succes, .alerte-info) {
+  animation: alerte-pop 0.35s var(--ease);
+}
+
+/* Les volets (« details ») s'ouvrent en glissant, les fenêtres de confirmation apparaissent en grossissant. */
+:is(.theme-public, .ad-app) details[open] > :not(summary) {
+  animation: alerte-pop 0.3s var(--ease);
+}
+@keyframes dialogue-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.ad-app .ad-dialogue[open] {
+  animation: dialogue-pop 0.28s var(--ease);
+}
+@keyframes fond-fondu {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ad-app .ad-dialogue[open]::backdrop,
+.ad-app .ad-tiroir[open]::backdrop {
+  animation: fond-fondu 0.25s ease-out;
+}
+@keyframes tiroir-glisse {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+.ad-app .ad-tiroir[open] {
+  animation: tiroir-glisse 0.3s var(--ease);
+}
+
+/* La barre « modifications non enregistrées » monte quand une modification apparaît. */
+@keyframes barre-enreg {
+  from { transform: translateY(110%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.ad-app .ad-barre-enregistrement-conteneur:not(.ad-barre-repos) .ad-barre-enregistrement {
+  animation: barre-enreg 0.35s var(--ease);
+}
+
+/* L'onglet de navigation actif apparaît avec un rebond (changement de page). */
+@keyframes pastille-nav {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.ad-app .rc-bas-item.actif::before {
+  animation: pastille-nav 0.35s var(--ease);
+}
+.ad-app .ad-nav-lien.actif {
+  animation: alerte-pop 0.3s var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.theme-public, .ad-app) input:is([type="checkbox"], [type="radio"]):checked,
+  :is(.theme-public, .ad-app) input[type="file"][data-choisi],
+  :is(.theme-public, .ad-app) :is(.alerte-danger[role="alert"], .alerte-succes, .alerte-info),
+  :is(.theme-public, .ad-app) details[open] > :not(summary),
+  .ad-app .ad-dialogue[open],
+  .ad-app .ad-dialogue[open]::backdrop,
+  .ad-app .ad-tiroir[open],
+  .ad-app .ad-tiroir[open]::backdrop,
+  .ad-app .ad-barre-enregistrement-conteneur:not(.ad-barre-repos) .ad-barre-enregistrement,
+  .ad-app .rc-bas-item.actif::before,
+  .ad-app .ad-nav-lien.actif {
+    animation: none;
+  }
+}
+
+.ad-app input[type="file"] + * { margin-top: 10px; }
