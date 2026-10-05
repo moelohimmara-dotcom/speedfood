@@ -1,4 +1,5 @@
 import { SeparateurBloc } from "@/components/site/SeparateurBloc";
+import { VecteurAide } from "@/components/site/vecteurs/VecteurAide";
 import type { Metadata } from "next";
 import { origineDuSite } from "@/lib/partage/origine";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
@@ -89,16 +90,19 @@ export default async function AidePage() {
           __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c"),
         }}
       />
+      <div className="pub-entete-vecteur">
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">Aide</p>
         <h1 className="pub-titre pub-h1-page">
-          Une question ?{" "}
+          Une question&nbsp;?{" "}
           <span className="pub-surligne">Voilà les réponses.</span>
         </h1>
         <p className="pub-accueil-lead">
           Commander, payer, suivre sa commande : l&apos;essentiel en quelques
           réponses.
         </p>
+      </div>
+      <VecteurAide />
       </div>
 
       <div className="pub-faq">

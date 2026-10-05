@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VecteurAPropos } from "@/components/site/vecteurs/VecteurAPropos";
 
 /**
  * Page « À propos » (allégée le 4 octobre 2026, direction B). L'ancien argumentaire long, avec ses restaurants d'exemple, est retiré : cette
@@ -14,6 +15,7 @@ const PRINCIPES = [
 export default function AProposPage() {
   return (
     <main className="pub-conteneur pub-rubrique">
+      <div className="pub-entete-vecteur">
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">À propos</p>
         <h1 className="pub-titre pub-h1-page">
@@ -22,6 +24,8 @@ export default function AProposPage() {
         <p className="pub-accueil-lead">
           Speedfood aide les habitants de Conakry à trouver un plat, vérifier qu&apos;il est vraiment disponible, et envoyer leur commande au restaurant de leur quartier.
         </p>
+      </div>
+      <VecteurAPropos />
       </div>
 
       <div className="pub-note-pilote" role="note">

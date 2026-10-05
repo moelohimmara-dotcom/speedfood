@@ -143,3 +143,27 @@ html[data-eco] .vec * {
 @media (max-width: 959px) {
   .vec { max-width: 400px; }
 }
+
+/* ===== Animations des illustrations d'aide, d'à propos et d'états vides ===== */
+@keyframes v-flotte {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+.v-flotte { transform-box: fill-box; animation: v-flotte 4s ease-in-out infinite; }
+@keyframes v-leve {
+  0%, 40%, 100% { transform: translateY(0) rotate(0deg); }
+  60%, 80% { transform: translateY(-22px) rotate(-5deg); }
+}
+.v-leve { transform-box: fill-box; transform-origin: 20% 100%; animation: v-leve 4.6s ease-in-out infinite; }
+@keyframes v-bulle {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.03) translateY(-5px); }
+}
+.v-bulle { transform-box: fill-box; animation: v-bulle 4.4s ease-in-out infinite; }
+
+/* Illustrations d'états vides : plus petites et centrées au-dessus du message. */
+.vec-vide {
+  max-width: 280px;
+  margin: 0 auto var(--space-4);
+}
+.vec-vide .vec { max-width: 280px; }

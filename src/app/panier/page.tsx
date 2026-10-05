@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { VecteurPanierVide } from "@/components/site/vecteurs/VecteurPanierVide";
 import {
   changerQuantite,
   nombreArticlesPanier,
@@ -34,6 +35,7 @@ export default function PanierPage() {
         </div>
       ) : panier.lignes.length === 0 ? (
         <Card>
+          <VecteurPanierVide />
           <p style={{ marginTop: 0 }}>Votre panier est vide.</p>
           <p style={{ color: "var(--secondaire)" }}>
             Parcourez le catalogue et ajoutez les plats d&apos;un seul restaurant.

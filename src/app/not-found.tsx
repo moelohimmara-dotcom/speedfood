@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CadreSite } from "@/components/CadreSite";
+import { VecteurIntrouvable } from "@/components/site/vecteurs/VecteurIntrouvable";
 
 export const metadata: Metadata = { title: "Page introuvable" };
 
@@ -13,6 +14,7 @@ export default function NotFound() {
   return (
     <CadreSite focus>
       <main className="page-introuvable">
+        <VecteurIntrouvable />
         <p className="page-introuvable-code" aria-hidden="true">404</p>
         <h1>Page introuvable</h1>
         <p>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { VecteurPanierVide } from "@/components/site/vecteurs/VecteurPanierVide";
 import { usePanier, usePanierPret, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
 import { Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
@@ -40,6 +41,7 @@ export function CommandeClient({ cleSiteTurnstile, compte }: { cleSiteTurnstile?
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
         <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Votre commande</h1>
         <Card>
+          <VecteurPanierVide />
           <p style={{ marginTop: 0 }}>Votre panier est vide : rien à commander pour le moment.</p>
           <Link href="/restaurants" className="btn btn-primary">
             Voir les restaurants
