@@ -688,3 +688,42 @@
     transform: none;
   }
 }
+
+/* ===== Pictogrammes : étapes un peu plus grandes, pastille dans les bandes mangue ===== */
+.pub-etape-visuel svg {
+  width: 88px;
+  height: 88px;
+}
+@media (min-width: 1040px) {
+  .pub-etape:not(:last-child)::after {
+    top: 43px;
+    left: 104px;
+    width: calc(100% - 104px + var(--space-5) - 14px);
+  }
+}
+.pub-bande-pro > .pub-bande-contenu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  /* Largeur du texte (62 caractères) + pastille : l'icône ne rétrécit pas le titre. */
+  max-width: calc(62ch + 84px + var(--space-4));
+}
+.pub-bande-pro > .pub-bande-contenu > div {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.pub-bande-icone {
+  flex: none;
+  display: none;
+}
+.pub-bande-icone svg {
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(3px 3px 0 var(--encre));
+}
+@media (min-width: 640px) {
+  .pub-bande-icone {
+    display: block;
+  }
+}

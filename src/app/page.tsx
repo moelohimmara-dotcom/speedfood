@@ -330,20 +330,26 @@ export default async function AccueilPage() {
           aria-labelledby="accueil-pro"
         >
           <div className="pub-bande-pro">
-            <div>
-              <p className="pub-kicker pub-kicker-encre">
-                Vous tenez un restaurant ?
-              </p>
-              <h2 id="accueil-pro" className="pub-titre pub-h2">
-                Votre carte en ligne,{" "}
-                <span className="pub-surligne-blanc">
-                  sans intermédiaire de paiement
-                </span>
-              </h2>
-              <p className="pub-accueil-lead pub-lead-encre">
-                Créez votre fiche, nous la contrôlons, vos clients du quartier
-                la trouvent. Vous encaissez directement.
-              </p>
+            <div className="pub-bande-contenu">
+              {/* Toque : le pictogramme du restaurateur, en pastille comme les étapes. */}
+              <span className="pub-bande-icone">
+                <Illustration valeur={pastille("trait-toque")} nom="" decoratif />
+              </span>
+              <div>
+                <p className="pub-kicker pub-kicker-encre">
+                  Vous tenez un restaurant ?
+                </p>
+                <h2 id="accueil-pro" className="pub-titre pub-h2">
+                  Votre carte en ligne,{" "}
+                  <span className="pub-surligne-blanc">
+                    sans intermédiaire de paiement
+                  </span>
+                </h2>
+                <p className="pub-accueil-lead pub-lead-encre">
+                  Créez votre fiche, nous la contrôlons, vos clients du quartier
+                  la trouvent. Vous encaissez directement.
+                </p>
+              </div>
             </div>
             <Link href="/devenir-partenaire" className="pub-btn pub-btn-clair">
               Devenir partenaire

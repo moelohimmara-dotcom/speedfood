@@ -67,6 +67,11 @@ const ETAPES = [
   },
 ];
 
+/** Pastille ronde (même style que les étapes de l'accueil) pour la bande « Prêt ? ». */
+function pastille(motif: string): ModeleIllustration {
+  return { style: "pastille", motif, ...PALETTES.defaut, fond: "#ffe9c7", texte: "", genere: true };
+}
+
 export default async function CommentCaMarchePage() {
   const ticket = ticketExemple(await lireAccueil());
   const etapes: EtapeAffichee[] = ETAPES.map((e) => ({
@@ -138,11 +143,16 @@ export default async function CommentCaMarchePage() {
       <SeparateurBloc />
 
       <div className="pub-bande-pro">
-        <div>
-          <p className="pub-kicker pub-kicker-encre">Prêt ?</p>
-          <h2 className="pub-titre pub-h2">
-            Commencez par choisir un restaurant
-          </h2>
+        <div className="pub-bande-contenu">
+          <span className="pub-bande-icone">
+            <Illustration valeur={pastille("etape-choisir")} nom="" decoratif />
+          </span>
+          <div>
+            <p className="pub-kicker pub-kicker-encre">Prêt ?</p>
+            <h2 className="pub-titre pub-h2">
+              Commencez par choisir un restaurant
+            </h2>
+          </div>
         </div>
         <Link href="/restaurants" className="pub-btn pub-btn-clair">
           Voir les restaurants
