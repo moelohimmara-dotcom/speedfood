@@ -23,6 +23,7 @@ import "./console.css";
 import "./console-b.css";
 import "./fantaisie.css";
 import "./boucles.css";
+import "./vecteurs.css";
 import { FichiersAnimes } from "@/components/FichiersAnimes";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :

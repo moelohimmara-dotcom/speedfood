@@ -1,0 +1,145 @@
+/*
+ * Grandes illustrations vectorielles du site public (direction B) : dessinées à la main en SVG, aucune image, aucune licence tierce.
+ * Couleurs : uniquement les jetons du design system (encre, crème, surface, mangue, rouge foncé, orange, succès).
+ * Les animations (vapeur, store, repère, nuages…) sont des boucles discrètes : transform et opacity seulement, mises en pause hors écran,
+ * onglet masqué, économie de données ou interrupteur du pied de page (voir boucles.css), et coupées en mouvement réduit.
+ */
+.vec {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+.vec-cadre {
+  min-width: 0;
+}
+
+/* Formes */
+.v-e { stroke: var(--encre); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+.v-e3 { stroke: var(--encre); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.v-trait { fill: none; stroke: var(--encre); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+.v-trait3 { fill: none; stroke: var(--encre); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.v-ombre { fill: var(--encre); stroke: none; }
+.v-creme { fill: var(--creme); }
+.v-blanc { fill: var(--surface); }
+.v-mangue { fill: var(--mangue); }
+.v-rouge { fill: var(--rouge-fonce); }
+.v-orange { fill: var(--orange); }
+.v-encre { fill: var(--encre); }
+.v-vert { fill: var(--succes); }
+.v-texte {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  fill: var(--encre);
+  letter-spacing: 0.04em;
+}
+.v-texte-creme { fill: var(--creme); }
+
+/* Animations : l'origine de chaque transformation est le centre de sa propre boîte. */
+.v-vapeur, .v-store, .v-pendule, .v-nuage, .v-soleil, .v-notif, .v-scintille, .v-repere, .v-repere-ombre, .v-etape { transform-box: fill-box; }
+
+@keyframes v-vapeur {
+  0% { transform: translateY(6px); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-16px); opacity: 0; }
+}
+.v-vapeur { animation: v-vapeur 2.6s ease-out infinite; }
+
+@keyframes v-store {
+  0%, 100% { transform: rotate(-0.7deg); }
+  50% { transform: rotate(0.7deg); }
+}
+.v-store { transform-origin: 50% 0; animation: v-store 6s ease-in-out infinite; }
+
+@keyframes v-pendule {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+.v-pendule { transform-origin: 50% 0; animation: v-pendule 3.4s ease-in-out infinite; }
+
+@keyframes v-nuage {
+  0%, 100% { transform: translateX(-10px); }
+  50% { transform: translateX(14px); }
+}
+.v-nuage { animation: v-nuage 14s ease-in-out infinite; }
+.v-nuage-2 { animation-duration: 18s; animation-delay: -6s; }
+
+@keyframes v-soleil {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.v-soleil { animation: v-soleil 5s ease-in-out infinite; }
+
+@keyframes v-notif {
+  0%, 70%, 100% { transform: scale(1); }
+  78% { transform: scale(1.07); }
+  86% { transform: scale(0.98); }
+  93% { transform: scale(1.03); }
+}
+.v-notif { animation: v-notif 4.2s ease-in-out infinite; }
+
+@keyframes v-scintille {
+  0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.5; }
+  50% { transform: scale(1.1) rotate(20deg); opacity: 1; }
+}
+.v-scintille { animation: v-scintille 2.8s ease-in-out infinite; }
+.v-scintille-2 { animation-delay: 0.9s; }
+.v-scintille-3 { animation-delay: 1.7s; }
+
+@keyframes v-repere {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+.v-repere { animation: v-repere 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+@keyframes v-repere-ombre {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(0.7); opacity: 0.2; }
+}
+.v-repere-ombre { animation: v-repere-ombre 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+@keyframes v-route {
+  to { stroke-dashoffset: -28; }
+}
+.v-route { stroke-dasharray: 10 8; animation: v-route 1.4s linear infinite; }
+
+@keyframes v-etape {
+  0%, 60%, 100% { transform: scale(1); }
+  20% { transform: scale(1.18); }
+}
+.v-etape { animation: v-etape 3.6s ease-in-out infinite; }
+
+/* Mise en pause hors écran (le conteneur porte `.boucle` et reçoit `.hors-ecran`) et arrêt demandé par le visiteur. */
+.boucle.hors-ecran .vec *,
+html[data-cache] .vec * {
+  animation-play-state: paused;
+}
+html[data-calme] .vec *,
+html[data-eco] .vec * {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vec * {
+    animation: none !important;
+  }
+}
+
+/* Mise en page : texte d'abord, illustration à côté sur grand écran, en dessous sur téléphone. */
+.pub-entete-vecteur {
+  display: grid;
+  gap: var(--space-6);
+  align-items: center;
+}
+.pub-entete-vecteur > .pub-entete-rubrique {
+  max-width: 62ch;
+}
+@media (min-width: 960px) {
+  .pub-entete-vecteur {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: var(--space-8);
+  }
+}
+@media (max-width: 959px) {
+  .vec { max-width: 400px; }
+}

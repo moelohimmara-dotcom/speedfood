@@ -1,4 +1,5 @@
 import { SeparateurBloc } from "@/components/site/SeparateurBloc";
+import { VecteurRestaurateur } from "@/components/site/vecteurs/VecteurRestaurateur";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { origineDuSite } from "@/lib/partage/origine";
@@ -56,39 +57,42 @@ export default async function DevenirPartenairePage() {
     : "";
   return (
     <main className="pub-conteneur pub-rubrique">
-      <div className="pub-entete-rubrique">
-        <p className="pub-kicker">Pour les restaurateurs</p>
-        <h1 className="pub-titre pub-h1-page">
-          Votre carte <span className="pub-surligne">en ligne</span>
-        </h1>
-        <p className="pub-accueil-lead">
-          Speedfood met votre restaurant en vitrine à Conakry et vous envoie les
-          commandes. Vous gardez la main sur vos prix, vos horaires et votre
-          livraison.
-        </p>
-        <div className="pub-accueil-actions">
-          <Link href="/inscription" className="pub-btn">
-            Inscrire mon restaurant
-            <span className="pub-btn-point" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </span>
-          </Link>
-          <BoutonAssistance
-            numero={whatsapp}
-            className="pub-btn pub-btn-clair"
-          />
+      <div className="pub-entete-vecteur">
+        <div className="pub-entete-rubrique">
+          <p className="pub-kicker">Pour les restaurateurs</p>
+          <h1 className="pub-titre pub-h1-page">
+            Votre carte <span className="pub-surligne">en ligne</span>
+          </h1>
+          <p className="pub-accueil-lead">
+            Speedfood met votre restaurant en vitrine à Conakry et vous envoie
+            les commandes. Vous gardez la main sur vos prix, vos horaires et
+            votre livraison.
+          </p>
+          <div className="pub-accueil-actions">
+            <Link href="/inscription" className="pub-btn">
+              Inscrire mon restaurant
+              <span className="pub-btn-point" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </span>
+            </Link>
+            <BoutonAssistance
+              numero={whatsapp}
+              className="pub-btn pub-btn-clair"
+            />
+          </div>
         </div>
+        <VecteurRestaurateur />
       </div>
 
       <SeparateurBloc />

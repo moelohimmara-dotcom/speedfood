@@ -1,5 +1,6 @@
 import { SeparateurBloc } from "@/components/site/SeparateurBloc";
 import Link from "next/link";
+import { VecteurParcours } from "@/components/site/vecteurs/VecteurParcours";
 import type { Metadata } from "next";
 import {
   EtapesInteractives,
@@ -69,7 +70,14 @@ const ETAPES = [
 
 /** Pastille ronde (même style que les étapes de l'accueil) pour la bande « Prêt ? ». */
 function pastille(motif: string): ModeleIllustration {
-  return { style: "pastille", motif, ...PALETTES.defaut, fond: "#ffe9c7", texte: "", genere: true };
+  return {
+    style: "pastille",
+    motif,
+    ...PALETTES.defaut,
+    fond: "#ffe9c7",
+    texte: "",
+    genere: true,
+  };
 }
 
 export default async function CommentCaMarchePage() {
@@ -83,6 +91,7 @@ export default async function CommentCaMarchePage() {
 
   return (
     <main className="pub-conteneur pub-rubrique">
+      <div className="pub-entete-vecteur">
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">Quatre étapes</p>
         <h1 className="pub-titre pub-h1-page">
@@ -93,6 +102,8 @@ export default async function CommentCaMarchePage() {
           Pas d&apos;application à installer, rien à payer à Speedfood. Voici ce
           qui se passe, dans l&apos;ordre.
         </p>
+      </div>
+      <VecteurParcours />
       </div>
 
       <EtapesInteractives etapes={etapes} />

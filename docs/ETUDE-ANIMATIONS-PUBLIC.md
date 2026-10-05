@@ -42,3 +42,11 @@ Clients à Conakry sur téléphones d'entrée de gamme, connexions lentes et don
 - **Ailleurs** : point vert « ouvert » qui respire, macaron « Promo » qui se balance, frise de suivi dont l'étape en cours bat, chiffre de quantité qui roule, compteur qui apparaît en rebond, pastille de section en rebond.
 - **Commande envoyée** : coche, frise et confettis (`canvas-confetti`, chargé à la demande sur cette seule page, une fois par commande).
 - Mesure : accueil animé avec processeur 4 fois plus lent : 1 image sur 238 dépasse 50 ms, ≈ 58 images/s.
+
+## Grandes illustrations vectorielles (5 octobre 2026, suite)
+
+Trois illustrations originales en SVG pur (aucune image, aucune licence tierce, couleurs = jetons du design system, style de la direction B) :
+`VecteurRestaurateur` (Devenir partenaire : devanture, marmite qui fume, store, téléphone qui reçoit une commande), `VecteurQuartiers` (Quartiers : rue, façades aux couleurs des cartes, repère qui rebondit),
+`VecteurParcours` (Comment ça marche : du téléphone à l'assiette, route pointillée, trois étapes qui s'allument tour à tour).
+Décoratives (`aria-hidden`), boucles en `transform`/`opacity`, figées hors écran, onglet masqué, économie de données ou interrupteur, coupées en mouvement réduit. Mesure : 60 images/s avec un processeur 4 fois plus lent.
+Styles : `src/app/vecteurs.css` ; composants : `src/components/site/vecteurs/`.
