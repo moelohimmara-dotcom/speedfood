@@ -11,6 +11,7 @@ import "./public.css";
 import "./public-pages.css";
 import "./public-info.css";
 import "./public-mouvement.css";
+import "./fiche-refonte.css";
 import "./admin.css";
 import "./console-resto.css";
 import "./console.css";

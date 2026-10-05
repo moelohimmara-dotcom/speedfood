@@ -20,18 +20,34 @@ import { initialePlat } from "@/lib/design/tuile";
  * commande sans quitter le menu. Le montant affiché par ligne est le montant RÉEL de la ligne
  * (prix unitaire, suppléments et quantité compris), pas le prix unitaire.
  *
- * Panier vide : on ne rend RIEN. La colonne de droite est dimensionnée par son contenu
- * (voir `.fiche-grille`), donc le menu occupe toute la largeur tant qu'il n'y a rien à montrer —
- * une carte de 200 px pour deux lignes de texte n'apportait rien.
+ * Panier vide : un état vide invitant (icône, phrase, rappel du paiement), pour que la colonne de commande soit toujours là
+ * sur grand écran et que le menu ne « saute » pas quand le premier plat est ajouté.
  */
-export function ResumePanierFiche({ restaurantId }: { restaurantId: string }) {
+export function ResumePanierFiche({ restaurantId, paiement }: { restaurantId: string; paiement?: string }) {
   const panier = usePanier();
   const nombre = nombreArticlesPanier(panier);
   const ici = panier.restaurantId === restaurantId;
   const total = sousTotalPanier(panier);
 
   if (nombre === 0) {
-    return null;
+    return (
+      <aside className="fiche-panier" aria-label="Votre panier">
+        <h2 className="fiche-panier-titre">
+          Votre panier <span className="fiche-panier-compte">0</span>
+        </h2>
+        <div className="fiche-panier-videbloc">
+          <span className="fiche-panier-videicone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10" />
+              <path d="M17 3c-2 1.5-3 4-3 7h3v11" />
+            </svg>
+          </span>
+          <p className="fiche-panier-videtitre">Votre panier est vide</p>
+          <p className="fiche-panier-videtexte">Ajoutez vos envies pour commencer.</p>
+        </div>
+        <p className="fiche-panier-note">{paiement ?? "Aucun paiement en ligne : vous réglez le restaurant directement."}</p>
+      </aside>
+    );
   }
 
   return (
@@ -94,7 +110,7 @@ export function ResumePanierFiche({ restaurantId }: { restaurantId: string }) {
       <Link href={ici ? "/commande" : "/panier"} className="btn btn-primary btn-block">
         {ici ? "Commander" : "Voir le panier"}
       </Link>
-      <p className="fiche-panier-note">Aucun paiement en ligne : vous réglez le restaurant directement.</p>
+      <p className="fiche-panier-note">{paiement ?? "Aucun paiement en ligne : vous réglez le restaurant directement."}</p>
     </aside>
   );
 }

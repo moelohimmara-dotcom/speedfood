@@ -5,6 +5,7 @@ import { LienRetour } from "@/components/LienRetour";
 import { VignettePlat } from "@/components/VignettePlat";
 import { ResumePanierFiche } from "@/components/ResumePanierFiche";
 import { BanniereRestaurant } from "@/components/BanniereRestaurant";
+import { MenuFiltre, type GroupeDuMenu } from "@/components/MenuFiltre";
 import { validerIllustration } from "@/lib/illustrations/modele";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
@@ -14,6 +15,7 @@ import { libellesMoyensPaiement } from "@/lib/restaurant/paiement";
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import {
+  ancienneteLisible,
   estCommandable,
   etatDisponibilite,
   etatRestaurant,
@@ -181,6 +183,27 @@ export default async function FicheRestaurantPage({
             .filter((groupe) => groupe.plats.length > 0),
           ...(platsSansSection.length > 0 ? [{ id: "autres", nom: "Autres plats", plats: platsSansSection }] : []),
         ];
+  const groupesMenu = groupesAffiches.length > 0 ? groupesAffiches : [{ id: "tous", nom: "", plats: menuListe }];
+  const avecSections = groupesMenu.length > 1;
+  const groupesFiltre: GroupeDuMenu[] = groupesMenu.map((groupe) => ({
+    id: groupe.id,
+    nom: groupe.nom,
+    plats: groupe.plats.map((item) => ({
+      id: item.id,
+      nom: item.nom,
+      prix: item.prix_promo ?? item.prix,
+      noeud: vignette(item, avecSections ? 4 : 3),
+    })),
+  }));
+
+  // Fraîcheur du menu : heure de la confirmation la plus récente parmi les plats encore « disponibles ».
+  const plusRecente = etatsPlats.reduce<Date | null>(
+    (max, etat) => (etat.type === "disponible" && (max === null || etat.confirmeLe > max) ? etat.confirmeLe : max),
+    null
+  );
+  const menuConfirme = plusRecente ? `Menu confirmé ${ancienneteLisible(plusRecente, maintenant)}` : null;
+  const moyens = libellesMoyensPaiement(restaurant.moyens_paiement);
+  const textePaiement = `Paiement : ${moyens.length > 0 ? `${moyens.join(", ")} (déclaré par le restaurant)` : "à convenir avec le restaurant"}. Aucun paiement en ligne sur Speedfood.`;
 
   // Données structurées pour les moteurs de recherche : uniquement des faits connus (nom, catégorie, quartier, photo).
   // Pas de note, pas de fourchette de prix ni de délai : rien qui ne soit calculé ou déclaré par le restaurateur.
@@ -216,34 +239,20 @@ export default async function FicheRestaurantPage({
         categorie={categorie}
         quartier={restaurant.neighborhoods?.nom ?? ""}
         horaires={restaurant.horaires}
+        consignes={restaurant.consignes}
         statut={libelleResto}
         photoUrl={restaurant.photo_url}
         logoUrl={restaurant.logo_url}
         couleurAccent={restaurant.couleur_accent}
         couvertureIllustration={validerIllustration(restaurant.couverture_illustration)}
         logoIllustration={validerIllustration(restaurant.logo_illustration)}
-      />
+        menuConfirme={menuConfirme}
+      >
+        <BoutonsPartage texte={texteRestaurant(restaurant.nom, urlRestaurant)} url={urlRestaurant} variante="boutons" />
+      </BanniereRestaurant>
 
-      <div style={{ marginTop: "var(--space-3)" }}>
-        <BoutonsPartage
-          texte={texteRestaurant(restaurant.nom, urlRestaurant)}
-          url={urlRestaurant}
-          variante="liens"
-        />
-      </div>
-
-      {restaurant.consignes ? (
-        <p style={{ marginTop: "var(--space-3)", color: "var(--secondaire)" }}>{restaurant.consignes}</p>
-      ) : null}
-
-      {/* Information déclarée par le restaurateur : Speedfood n'encaisse rien, le règlement se fait avec le restaurant. */}
-      <p className="fiche-paiement">
-        <strong>Paiement :</strong>{" "}
-        {libellesMoyensPaiement(restaurant.moyens_paiement).length > 0
-          ? `${libellesMoyensPaiement(restaurant.moyens_paiement).join(", ")} (déclaré par le restaurant)`
-          : "à convenir avec le restaurant"}
-        . Aucun paiement en ligne sur Speedfood.
-      </p>
+      {/* Sur grand écran le paiement vit dans la colonne de commande ; sur téléphone il reste ici. */}
+      <p className="fiche-paiement fiche-paiement--mobile">{textePaiement}</p>
       {carte ? (
         <p className="fiche-paiement">
           <a href={carte.voir} className="lien-texte" target="_blank" rel="noopener noreferrer">
@@ -268,42 +277,21 @@ export default async function FicheRestaurantPage({
       ) : null}
 
       <div className="fiche-grille">
-      <div className="fiche-menu">
-      <h2 className="fiche-section-titre">Menu</h2>
-
-      {/* Le message « à confirmer » vit ici, au moment du choix, et une seule fois :
-          il était auparavant répété dans l'en-tête sous deux formes différentes. */}
-      {aucunConfirme ? (
-        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
-          Aucun plat n&apos;a été confirmé récemment. La disponibilité sera confirmée par le restaurant à la commande.
-        </Alert>
-      ) : null}
-
-      {menuListe.length === 0 ? (
-        <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>
-      ) : groupesAffiches.length === 0 ? (
-        <div className="vignettes">{menuListe.map((item) => vignette(item, 3))}</div>
-      ) : (
-        <>
-          {groupesAffiches.length > 1 ? (
-            <nav className="menu-nav" aria-label="Sections du menu">
-              {groupesAffiches.map((groupe) => (
-                <a key={groupe.id} href={`#section-${groupe.id}`} className="chip">
-                  {groupe.nom}
-                </a>
-              ))}
-            </nav>
+        <div className="fiche-menu">
+          {/* Le message « à confirmer » vit ici, au moment du choix, et une seule fois. */}
+          {aucunConfirme ? (
+            <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+              Aucun plat n&apos;a été confirmé récemment. La disponibilité sera confirmée par le restaurant à la commande.
+            </Alert>
           ) : null}
-          {groupesAffiches.map((groupe) => (
-            <section key={groupe.id} id={`section-${groupe.id}`} className="menu-section">
-              <h3 className="menu-section-titre">{groupe.nom}</h3>
-              <div className="vignettes">{groupe.plats.map((item) => vignette(item))}</div>
-            </section>
-          ))}
-        </>
-      )}
-      </div>
-      <ResumePanierFiche restaurantId={restaurantSur.id} />
+
+          {menuListe.length === 0 ? (
+            <Alert ton="info">Ce restaurant n&apos;a pas encore publié son menu.</Alert>
+          ) : (
+            <MenuFiltre groupes={groupesFiltre} niveauSection={avecSections} />
+          )}
+        </div>
+        <ResumePanierFiche restaurantId={restaurantSur.id} paiement={textePaiement} />
       </div>
     </main>
   );

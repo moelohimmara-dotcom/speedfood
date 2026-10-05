@@ -1,0 +1,411 @@
+/*
+ * Refonte de la fiche restaurant (5 octobre 2026), d'après la maquette « Boulangerie Soleil de Matam » : grand cadre photo,
+ * nom en grand avec ses derniers mots en couleur, pastilles de sections, cartes de plats verticales, colonne de commande.
+ * Chargé en dernier et limité à `.theme-public .fiche` (spécificité supérieure aux règles de `marche.css` et `cadre.css`).
+ * Les tokens sont ceux du site public (`--pub-trait`, `--pub-ombre`, `--font-titre`) : aucune couleur nouvelle.
+ */
+
+/* --- En-tête : cadre photo à gauche, texte à droite --- */
+.theme-public .fh {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-3);
+  align-items: center;
+}
+.theme-public .fh-cadre {
+  position: relative;
+  overflow: hidden;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.theme-public .fh-media {
+  aspect-ratio: 4 / 3;
+  background: var(--bordure);
+}
+.theme-public .fh-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.theme-public .fh-logo {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  overflow: hidden;
+  border: 3px solid var(--creme);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--encre);
+}
+.theme-public .fh-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.theme-public .fh-fraicheur {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 112px);
+  padding: 6px 12px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.theme-public .fh-fraicheur-point {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--succes);
+}
+.theme-public .fh-pastilles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+.theme-public .fh-lieu-tag {
+  color: var(--secondaire);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.theme-public .fh-titre {
+  margin: var(--space-3) 0 var(--space-2);
+  font-family: var(--font-titre);
+  font-size: clamp(2.3rem, 7vw, 4.3rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.theme-public .fh-titre-accent {
+  color: var(--rouge);
+}
+.theme-public .fh-accroche {
+  margin: 0 0 var(--space-2);
+  max-width: 42ch;
+  color: var(--secondaire);
+  font-size: 1.1rem;
+}
+.theme-public .fh-consignes {
+  margin: 0 0 var(--space-2);
+  max-width: 50ch;
+  color: var(--secondaire);
+  font-size: 0.95rem;
+}
+.theme-public .fh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.theme-public .fh-meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondaire);
+  font-weight: 700;
+}
+.theme-public .fh-meta svg {
+  flex: none;
+  color: var(--rouge-fonce);
+}
+.theme-public .fh-actions {
+  margin-top: var(--space-4);
+}
+@media (min-width: 900px) {
+  .theme-public .fh {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+  .theme-public .fh-cadre {
+    border-radius: 28px;
+    box-shadow: var(--pub-ombre-forte);
+  }
+  .theme-public .fh-media {
+    aspect-ratio: 5 / 4;
+  }
+}
+
+/* --- Menu : surtitre, titre, tri, pastilles de sections --- */
+.theme-public .fiche-grille {
+  margin-top: var(--space-6);
+}
+.theme-public .fm-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 var(--space-4);
+}
+.theme-public .fm-surtitre {
+  margin: 0 0 4px;
+  color: var(--rouge-fonce);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.theme-public .fm-titre {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.theme-public .fm-tri {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.theme-public .fm-tri select {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-weight: 800;
+}
+.theme-public .fm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 var(--space-5);
+}
+.theme-public .fm-chip {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--secondaire);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.theme-public .fm-chip:hover {
+  border-color: var(--encre);
+  color: var(--encre);
+}
+.theme-public .fm-chip[aria-pressed="true"] {
+  border-color: var(--encre);
+  background: var(--encre);
+  color: var(--creme);
+}
+.theme-public .fm-section {
+  margin-bottom: var(--space-6);
+}
+.theme-public .fm-section-titre {
+  margin: var(--space-6) 0 var(--space-3);
+  font-family: var(--font-titre);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.theme-public .fm-plat {
+  display: flex;
+  min-width: 0;
+}
+.theme-public .fm-plat > .vignette {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Cartes de plats : verticales, photo en haut, prix et ajout en bas --- */
+.theme-public .fiche .vignettes {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--space-4);
+}
+.theme-public .fiche .vignette {
+  display: flex;
+  flex-direction: column;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--pub-ombre);
+}
+.theme-public .fiche .vignette-media {
+  grid-column: auto;
+  grid-row: auto;
+  width: auto;
+  height: auto;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.theme-public .fiche .vignette-corps {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+}
+.theme-public .fiche .vignette-infos {
+  grid-column: auto;
+  grid-row: auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+}
+.theme-public .fiche .vignette-bas {
+  grid-column: auto;
+  grid-row: auto;
+  padding: 0;
+}
+.theme-public .fiche .vignette-nom {
+  font-family: var(--font-titre);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.theme-public .fiche .vignette-desc {
+  font-size: 0.9rem;
+}
+.theme-public .fiche .vignette-prix-valeur {
+  font-family: var(--font-titre);
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.theme-public .fiche .vignette-prix-unite {
+  color: var(--secondaire);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.theme-public .fiche .vignette-promo {
+  top: 12px;
+  left: 12px;
+  padding: 3px 12px;
+  border: 2px solid var(--encre);
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.75rem;
+}
+.theme-public .fiche .vignette-ajouter {
+  min-height: 46px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--encre);
+  color: var(--creme);
+  font-weight: 800;
+}
+.theme-public .fiche .vignette-ajouter::before {
+  content: "+" / "";
+  margin-right: 8px;
+  font-size: 1.15em;
+}
+.theme-public .fiche .vignette-ajouter:hover {
+  background: var(--rouge-fonce);
+  border-color: var(--rouge-fonce);
+}
+
+/* Téléphone : photos moins hautes (16/10) pour que le menu ne devienne pas interminable à faire défiler. */
+@media (max-width: 639px) {
+  .theme-public .fiche .vignette-media {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* --- Colonne de commande : toujours présente sur grand écran --- */
+.theme-public .fiche-paiement--mobile {
+  margin-top: var(--space-4);
+}
+@media (min-width: 900px) {
+  .theme-public .fiche-paiement--mobile {
+    display: none;
+  }
+  .theme-public .fiche-grille {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    column-gap: var(--space-6);
+  }
+  .theme-public .fiche-panier {
+    width: auto;
+    margin-top: calc(var(--space-6) + 5.6rem);
+    margin-left: 0;
+    padding: var(--space-5);
+    border: var(--pub-trait) solid var(--encre);
+    border-radius: 24px;
+    box-shadow: var(--pub-ombre);
+  }
+  .theme-public .fiche-panier-titre {
+    font-family: var(--font-titre);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .theme-public .fiche-panier-compte {
+    display: inline-grid;
+    place-items: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border: 2px solid var(--encre);
+    border-radius: var(--radius-pill);
+    background: var(--mangue);
+    color: var(--encre);
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 800;
+  }
+  .theme-public .fiche-panier-videbloc {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    margin-bottom: var(--space-4);
+    padding: var(--space-5) var(--space-4);
+    border: 2px dashed var(--bordure);
+    border-radius: 18px;
+    text-align: center;
+  }
+  .theme-public .fiche-panier-videicone {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 6px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--mangue) 40%, var(--surface));
+    color: var(--encre);
+  }
+  .theme-public .fiche-panier-videtitre {
+    margin: 0;
+    font-weight: 800;
+  }
+  .theme-public .fiche-panier-videtexte {
+    margin: 0;
+    color: var(--secondaire);
+    font-size: 0.9rem;
+  }
+}
