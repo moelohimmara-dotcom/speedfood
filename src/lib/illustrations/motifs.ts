@@ -3,7 +3,7 @@
  * sont dans `icones.generated.ts` (Fluent Emoji Flat et Tabler Icons, licence MIT). Un test vérifie que les deux listes
  * restent identiques.
  */
-export const MOTIFS: Record<string, { libelle: string; famille: "plat" | "boisson" | "dessert" | "trait" }> = {
+export const MOTIFS: Record<string, { libelle: string; famille: "plat" | "boisson" | "dessert" | "trait" | "etape" }> = {
   "riz-blanc": { libelle: "Riz blanc", famille: "plat" },
   "riz-sauce": { libelle: "Riz sauce", famille: "plat" },
   sauce: { libelle: "Marmite de sauce", famille: "plat" },
@@ -49,6 +49,10 @@ export const MOTIFS: Record<string, { libelle: string; famille: "plat" | "boisso
   coco: { libelle: "Noix de coco", famille: "dessert" },
   mangue: { libelle: "Mangue", famille: "dessert" },
   ananas: { libelle: "Ananas", famille: "dessert" },
+  // Étapes du parcours client : décor du site, jamais proposé dans l'éditeur (qui ne liste que plat, boisson, dessert, trait).
+  "etape-choisir": { libelle: "Choisir (loupe)", famille: "etape" },
+  "etape-commander": { libelle: "Commander (panier)", famille: "etape" },
+  "etape-suivre": { libelle: "Suivre (chronomètre)", famille: "etape" },
   "trait-grill": { libelle: "Grill (trait)", famille: "trait" },
   "trait-toque": { libelle: "Toque (trait)", famille: "trait" },
   "trait-livraison": { libelle: "Livraison (trait)", famille: "trait" },

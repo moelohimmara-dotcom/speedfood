@@ -651,3 +651,40 @@
   font-weight: 700;
   font-size: 0.95rem;
 }
+
+/* ===== Étapes : un fil entre les pictogrammes (grand écran) et un léger mouvement au survol ===== */
+.pub-etape {
+  position: relative;
+}
+.pub-etape-visuel {
+  display: inline-block;
+  width: fit-content;
+}
+.pub-etape-visuel svg {
+  transition: transform 0.35s var(--ease);
+}
+@media (hover: hover) {
+  .pub-etape:hover .pub-etape-visuel svg {
+    transform: rotate(-6deg) scale(1.06);
+  }
+}
+@media (min-width: 1040px) {
+  /* Fil pointillé qui relie un pictogramme au suivant : le parcours se lit d'un coup d'œil. */
+  .pub-etape:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 35px;
+    left: 88px;
+    width: calc(100% - 88px + var(--space-5) - 14px);
+    border-top: 3px dotted rgba(43, 33, 29, 0.35);
+    pointer-events: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-etape-visuel svg {
+    transition: none;
+  }
+  .pub-etape:hover .pub-etape-visuel svg {
+    transform: none;
+  }
+}

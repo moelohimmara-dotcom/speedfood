@@ -42,28 +42,28 @@ const ETAPES = [
     texte: "Un restaurant de votre quartier.",
     detail:
       "Parcourez les restaurants par quartier ou par envie. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé : si la confirmation est ancienne, il est marqué « à confirmer ».",
-    motif: "couvert",
+    motif: "etape-choisir",
   },
   {
     titre: "Commander",
     texte: "Un panier, vos coordonnées, c'est tout.",
     detail:
       "Ajoutez vos plats, indiquez votre nom et votre téléphone (et une adresse pour une livraison). Aucun compte n'est obligatoire. Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
-    motif: "emporter",
+    motif: "etape-commander",
   },
   {
     titre: "Suivre",
     texte: "Un lien privé, quatre états.",
     detail:
       "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord.",
-    motif: "trait-livraison",
+    motif: "etape-suivre",
   },
   {
     titre: "Recevoir",
     texte: "Retrait ou livraison, réglés au restaurant.",
     detail:
       "Le restaurant vous remet la commande, ou la livre selon ses propres conditions. Vous le réglez directement, en espèces ou avec son code marchand Orange Money ou MTN MoMo : Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
-    motif: "bol",
+    motif: "emporter",
   },
 ];
 

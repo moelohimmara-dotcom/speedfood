@@ -46,25 +46,25 @@ const ETAPES: { titre: string; texte: string; motif: string }[] = [
     titre: "Choisir",
     texte:
       "Un restaurant de votre quartier, un plat, et l'heure à laquelle le restaurant l'a confirmé.",
-    motif: "couvert",
+    motif: "etape-choisir",
   },
   {
     titre: "Commander",
     texte:
       "Vous remplissez le panier et vous envoyez. Nom, téléphone, adresse : c'est tout.",
-    motif: "emporter",
+    motif: "etape-commander",
   },
   {
     titre: "Suivre",
     texte:
       "Un lien de suivi vous dit si la commande est en attente, acceptée, prête ou terminée.",
-    motif: "trait-livraison",
+    motif: "etape-suivre",
   },
   {
     titre: "Recevoir",
     texte:
       "Retrait ou livraison selon le restaurant. Vous réglez directement avec lui.",
-    motif: "bol",
+    motif: "emporter",
   },
 ];
 

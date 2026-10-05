@@ -33,6 +33,8 @@ const MOTIFS = {
   patisserie: ["f", "cupcake"], tarte: ["f", "pie"], gateau: ["f", "shortcake"], glace: ["f", "ice-cream"],
   banane: ["f", "banana"], coco: ["f", "coconut"], mangue: ["f", "mango"], ananas: ["f", "pineapple"], piment: ["f", "hot-pepper"],
   "pomme-de-terre": ["f", "potato"], mais: ["f", "ear-of-corn"], arachide: ["f", "peanuts"], "patate-douce": ["f", "roasted-sweet-potato"],
+  // pictogrammes des quatre étapes du parcours client (accueil et « Comment ça marche »), hors liste de choix de l'éditeur
+  "etape-choisir": ["f", "magnifying-glass-tilted-left"], "etape-commander": ["f", "shopping-cart"], "etape-suivre": ["f", "stopwatch"],
   // traits monochromes (couleur = couleur du texte), pour les pastilles et les logos
   "trait-grill": ["t", "grill"], "trait-toque": ["t", "chef-hat"], "trait-livraison": ["t", "bike"], "trait-baguettes": ["t", "bowl-chopsticks"],
   "trait-pain": ["t", "bread"], "trait-cafe": ["t", "coffee"], "trait-poisson": ["t", "fish"], "trait-burger": ["t", "burger"],
