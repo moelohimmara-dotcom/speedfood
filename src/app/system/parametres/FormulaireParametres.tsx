@@ -178,7 +178,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               type="text"
               maxLength={80}
               defaultValue={parametres.promesseSignature}
-              placeholder="Confirmé, l'heure à l'appui"
+              placeholder="Commande de quartier à Conakry"
             />
           </div>
           <div className="field">
@@ -189,7 +189,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={220}
               defaultValue={parametres.promesseSousTitre}
-              placeholder="Une commande se fait depuis le navigateur de votre téléphone : aucun compte à créer, aucune application à installer."
+              placeholder="Trouvez le bon restaurant près de chez vous, remplissez votre panier et suivez la préparation en direct. Sans compte obligatoire."
             />
           </div>
           <div className="field">

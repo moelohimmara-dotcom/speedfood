@@ -11,10 +11,14 @@ import { Illustration } from "@/components/illustrations/Illustration";
 import { lirePromesse } from "@/lib/parametres/promesse";
 import { FAMILLES_ENVIE, lireAccueil, ticketExemple } from "@/lib/site/accueil";
 import { TicketVoyage } from "@/components/site/TicketVoyage";
+import { MotRoulant } from "@/components/site/MotRoulant";
 import {
   PALETTES,
   type Illustration as ModeleIllustration,
 } from "@/lib/illustrations/modele";
+
+/** Plats de l'accroche qui change : des plats qu'on trouve réellement sur la carte des restaurants de Conakry. */
+const MOTS_ENVIE = ["alloco", "poisson braisé", "riz gras", "sauce feuille", "poulet braisé"];
 
 export const metadata: Metadata = {
   title: "Les restaurants de Conakry",
@@ -115,16 +119,26 @@ export default async function AccueilPage() {
           className="pub-conteneur pub-accueil-hero"
           aria-labelledby="accueil-titre"
         >
+          {/* Deux grandes taches de couleur qui dérivent lentement (décor, en pause hors écran et si les animations sont coupées). */}
+          <span className="pub-blob pub-blob-mangue boucle" aria-hidden="true" />
+          <span className="pub-blob pub-blob-orange boucle" aria-hidden="true" />
           <div className="pub-accueil-texte">
-            <p className="pub-kicker">{promesse.signature}</p>
+            <p className="pub-kicker pub-kicker-encre">{promesse.signature}</p>
             <h1 id="accueil-titre" className="pub-titre pub-accueil-h1">
-              Ce plat est-il vraiment disponible&nbsp;?{" "}
-              <span className="pub-surligne">L&apos;heure le dit.</span>
+              {/* Phrase complète et stable pour les lecteurs d'écran ; le mot qui change est purement visuel. */}
+              <span className="sr-only">Une envie d&apos;un bon plat&nbsp;? Speedfood s&apos;en occupe.</span>
+              <span aria-hidden="true">
+                Une envie de{" "}
+                <span className="pub-nowrap">
+                  <MotRoulant mots={MOTS_ENVIE} />&nbsp;?
+                </span>{" "}
+                Speedfood s&apos;en occupe.
+              </span>
             </h1>
             <p className="pub-accueil-lead">{promesse.sousTitre}</p>
             <div className="pub-accueil-actions">
-              <Link href="/restaurants" className="pub-btn">
-                Voir les restaurants
+              <Link href="/restaurants" className="pub-btn boucle boucle-cta">
+                Je commande
                 <span className="pub-btn-point" aria-hidden="true">
                   {FLECHE}
                 </span>
@@ -133,6 +147,9 @@ export default async function AccueilPage() {
                 Comment ça marche
               </Link>
             </div>
+            <p className="pub-accueil-preuve-ligne">
+              Ce plat est-il vraiment disponible&nbsp;? <span className="pub-surligne">L&apos;heure le dit.</span>
+            </p>
           </div>
           <aside className="pub-accueil-envie" aria-label="Une idée de plat">
             {envies.length > 0 ? (
@@ -149,7 +166,7 @@ export default async function AccueilPage() {
                 </p>
               </div>
             )}
-            <span className="pub-autocollant pub-accueil-sticker">
+            <span className="pub-autocollant pub-accueil-sticker boucle">
               Chaque plat porte son heure de confirmation
             </span>
           </aside>

@@ -94,7 +94,9 @@ export function RestaurantCard({
             <span className="pastille-categorie" style={{ background: couleurCategorie }} aria-hidden="true" />
             {categorie} · {quartier}
           </p>
-          <Badge ton={libelleEtat.ton}>{libelleEtat.texte}</Badge>
+          <Badge ton={libelleEtat.ton} className={libelleEtat.ton === "succes" ? "boucle" : ""}>
+            {libelleEtat.texte}
+          </Badge>
           {plats.length > 0 ? (
             <ul className="carte-restaurant-plats">
               {plats.map((plat) => (

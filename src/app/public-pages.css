@@ -646,3 +646,8 @@
   border-radius: var(--radius-md);
   box-shadow: 4px 4px 0 var(--encre);
 }
+.pub-accueil-preuve-ligne {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}

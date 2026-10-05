@@ -79,7 +79,7 @@ verifier("promesse : tout vide = défauts", fusionnerPromesse({}), PROMESSE_PAR_
 verifier("promesse : espaces seuls = défaut", fusionnerPromesse({ signature: "   " }).signature, PROMESSE_PAR_DEFAUT.signature);
 verifier("promesse : texte saisi conservé et nettoyé", fusionnerPromesse({ sousTitre: "  Mon texte " }).sousTitre, "Mon texte");
 verifier("promesse : un champ n'écrase pas les autres", fusionnerPromesse({ signature: "A" }).partage, PROMESSE_PAR_DEFAUT.partage);
-verifier("promesse : signature de la recommandation", PROMESSE_PAR_DEFAUT.signature, "Confirmé, l'heure à l'appui");
+verifier("promesse : signature de la recommandation", PROMESSE_PAR_DEFAUT.signature, "Commande de quartier à Conakry");
 
 // Profil client
 verifier("avatar connu valide", estAvatarValide("pizza"), true);

@@ -1,0 +1,351 @@
+/*
+ * Boucles d'animation et micro-animations du site public (étude : docs/ETUDE-ANIMATIONS-PUBLIC.md).
+ * Règles : `transform` et `opacity` seulement (compositeur, fluide sur téléphone modeste) ; chaque boucle est marquée `.boucle` pour que
+ * PilotageAnimations la fige hors écran ; tout s'arrête avec `prefers-reduced-motion`, `data-calme` (interrupteur du pied de page),
+ * `data-eco` (économie de données) ; onglet masqué (`data-cache`) = tout est en pause. Aucune boucle sur les pages de saisie.
+ */
+
+/* ===== Interrupteur et arrêts généraux ===== */
+.bouton-animations {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.bouton-animations:hover {
+  background: rgba(255, 246, 237, 0.12);
+}
+.site-pied-animations {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-5);
+  text-align: center;
+}
+
+html[data-cache] .boucle,
+html[data-cache] .boucle::before,
+html[data-cache] .boucle::after,
+.boucle.hors-ecran,
+.boucle.hors-ecran::before,
+.boucle.hors-ecran::after {
+  animation-play-state: paused;
+}
+html[data-calme] .boucle,
+html[data-calme] .boucle::before,
+html[data-calme] .boucle::after,
+html[data-calme] .boucle *,
+html[data-eco] .boucle,
+html[data-eco] .boucle::before,
+html[data-eco] .boucle::after,
+html[data-eco] .boucle * {
+  animation: none !important;
+}
+
+/* ===== Accroche d'accueil : le mot qui change ===== */
+.mot-roulant {
+  position: relative;
+  display: inline-block;
+  vertical-align: bottom;
+  white-space: nowrap;
+  color: var(--rouge-fonce);
+  padding-bottom: 0.08em;
+}
+/* Le surligné mangue sous le mot (comme tracé au feutre). */
+.mot-roulant::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: 0.04em;
+  height: 0.26em;
+  background: var(--mangue);
+  opacity: 0.85;
+  z-index: -1;
+  transform-origin: left center;
+}
+.mot-roulant .mot {
+  display: inline-block;
+}
+/* Une fois le script prêt, les mots se superposent pour glisser l'un sur l'autre. */
+.mot-roulant-actif {
+  transition: width 0.45s var(--ease);
+  overflow: hidden;
+  vertical-align: top;
+  /* Les mots étant superposés (position absolue), le conteneur reçoit lui-même la hauteur d'une ligne. */
+  height: 1.14em;
+  line-height: 1.1;
+  padding-bottom: 0;
+}
+.mot-roulant-actif .mot {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+@keyframes mot-entre {
+  from { opacity: 0; transform: translateY(70%); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mot-sort {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-70%); }
+}
+.mot-entre {
+  animation: mot-entre 0.5s var(--ease) both;
+}
+.mot-sort {
+  animation: mot-sort 0.5s var(--ease) both;
+}
+/* Le surligné se retrace à chaque nouveau mot. */
+@keyframes surligne-trace {
+  from { transform: scaleX(0.2); }
+  to { transform: scaleX(1); }
+}
+.mot-roulant-actif::after {
+  animation: surligne-trace 0.6s var(--ease);
+}
+
+/* Le « h1 » garde une hauteur stable : pas de saut de page quand le mot passe sur une ligne ou deux. */
+.pub-accueil-h1 {
+  min-height: 4.1em;
+}
+@media (min-width: 960px) {
+  .pub-accueil-h1 {
+    min-height: 0;
+  }
+}
+
+/* ===== Taches de couleur qui dérivent derrière l'accroche ===== */
+.pub-accueil-hero {
+  position: relative;
+  isolation: isolate;
+}
+.pub-blob {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+.pub-blob-mangue {
+  width: min(62vw, 420px);
+  aspect-ratio: 1;
+  top: 8%;
+  right: -16%;
+  background: var(--mangue);
+  opacity: 0.4;
+  animation: blob-un 16s ease-in-out infinite alternate;
+}
+.pub-blob-orange {
+  width: min(44vw, 300px);
+  aspect-ratio: 1;
+  bottom: 4%;
+  right: 12%;
+  background: var(--orange);
+  opacity: 0.28;
+  animation: blob-deux 19s ease-in-out infinite alternate;
+}
+@keyframes blob-un {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-24px, 18px, 0) scale(1.06); }
+  100% { transform: translate3d(14px, -20px, 0) scale(0.97); }
+}
+@keyframes blob-deux {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(22px, -16px, 0) scale(1.08); }
+  100% { transform: translate3d(-18px, 12px, 0) scale(0.95); }
+}
+
+/* ===== Appel à l'action : un halo qui respire et une flèche qui invite ===== */
+@keyframes halo-respire {
+  0% { box-shadow: 4px 4px 0 var(--encre), 0 0 0 0 rgba(184, 42, 32, 0.38); }
+  70%, 100% { box-shadow: 4px 4px 0 var(--encre), 0 0 0 14px rgba(184, 42, 32, 0); }
+}
+@keyframes fleche-invite {
+  0%, 70%, 100% { transform: translateX(0); }
+  80% { transform: translateX(4px); }
+  90% { transform: translateX(0); }
+}
+.pub-btn.boucle-cta {
+  animation: halo-respire 2.8s ease-out infinite;
+}
+.pub-btn.boucle-cta .pub-btn-point {
+  animation: fleche-invite 2.8s ease-in-out infinite;
+}
+
+/* Le macaron « heure de confirmation » flotte doucement. */
+@keyframes macaron-flotte {
+  0%, 100% { transform: rotate(-2deg) translateY(0); }
+  50% { transform: rotate(1.5deg) translateY(-5px); }
+}
+.pub-accueil-sticker {
+  animation: macaron-flotte 5.5s ease-in-out infinite;
+}
+@media (min-width: 960px) {
+  .pub-accueil-sticker {
+    animation-name: macaron-flotte-large;
+  }
+}
+@keyframes macaron-flotte-large {
+  0%, 100% { transform: rotate(4deg) translateY(0); }
+  50% { transform: rotate(1deg) translateY(-6px); }
+}
+
+/* ===== Restaurant ouvert : un point vert qui respire ===== */
+@keyframes point-ouvert {
+  0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.5); }
+  70%, 100% { box-shadow: 0 0 0 7px rgba(46, 125, 50, 0); }
+}
+.badge-succes.boucle::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--succes);
+  vertical-align: 1px;
+  animation: point-ouvert 2.2s ease-out infinite;
+}
+
+/* ===== Promo : le macaron « Promo » se balance de temps en temps ===== */
+@keyframes promo-balance {
+  0%, 82%, 100% { transform: rotate(0deg); }
+  86% { transform: rotate(-7deg); }
+  90% { transform: rotate(6deg); }
+  94% { transform: rotate(-3deg); }
+}
+.vignette-promo {
+  display: inline-block;
+  animation: promo-balance 6s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+/* ===== Suivi : l'étape en cours bat doucement ===== */
+@keyframes etape-bat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.suivi-etape-courante {
+  animation: etape-bat 2s ease-in-out infinite;
+}
+
+/* ===== Mouvement réduit : tout s'arrête, le contenu reste complet ===== */
+@media (prefers-reduced-motion: reduce) {
+  .mot-entre,
+  .mot-sort,
+  .mot-roulant-actif::after,
+  .pub-blob,
+  .pub-btn.boucle-cta,
+  .pub-btn.boucle-cta .pub-btn-point,
+  .pub-accueil-sticker,
+  .badge-succes.boucle::before,
+  .vignette-promo,
+  .suivi-etape-courante {
+    animation: none;
+  }
+  .mot-roulant-actif {
+    transition: none;
+  }
+}
+/* Mêmes arrêts pour l'interrupteur et l'économie de données, sur les éléments qui ne portent pas `.boucle`. */
+html[data-calme] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-etape-courante, .mot-entre, .mot-sort, .mot-roulant-actif::after),
+html[data-eco] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-etape-courante, .mot-entre, .mot-sort, .mot-roulant-actif::after) {
+  animation: none !important;
+}
+html[data-cache] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-etape-courante) {
+  animation-play-state: paused;
+}
+.pub-nowrap { white-space: nowrap; }
+
+/* ===== Micro-animations d'action ===== */
+
+/* Quantité d'un plat : le chiffre roule vers le haut, le compteur entier apparaît en rebond. */
+@keyframes nombre-roule {
+  from { opacity: 0; transform: translateY(60%) scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+.nombre-roule {
+  display: inline-block;
+  animation: nombre-roule 0.28s var(--ease);
+}
+@keyframes controle-entre {
+  from { opacity: 0; transform: scale(0.9); }
+  60% { transform: scale(1.04); }
+  to { opacity: 1; transform: none; }
+}
+.panier-article-controle {
+  animation: controle-entre 0.32s var(--ease);
+}
+/* Pastille de section choisie dans le menu : petit rebond. */
+.fm-chip[aria-pressed="true"] {
+  animation: coche-pop 0.3s var(--ease);
+}
+
+/* ===== Frise de suivi ===== */
+.suivi-frise {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+.suivi-etape {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  border: 2px solid var(--encre);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.suivi-etape-point {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--encre);
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+.suivi-etape-faite {
+  background: var(--encre);
+  color: var(--creme);
+}
+.suivi-etape-faite .suivi-etape-point {
+  background: var(--mangue);
+  color: var(--encre);
+}
+.suivi-etape-courante {
+  background: var(--mangue);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.suivi-etape-a-venir {
+  color: var(--secondaire);
+  border-style: dashed;
+}
+
+/* Fonction « coche tracée » de la confirmation : le point de l'étape faite apparaît en rebond. */
+@media (prefers-reduced-motion: reduce) {
+  .nombre-roule,
+  .panier-article-controle,
+  .fm-chip[aria-pressed="true"] {
+    animation: none;
+  }
+}
+html[data-calme] :is(.nombre-roule, .panier-article-controle, .fm-chip[aria-pressed="true"]) {
+  animation: none !important;
+}

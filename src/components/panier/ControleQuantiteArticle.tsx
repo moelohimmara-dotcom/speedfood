@@ -233,7 +233,10 @@ function ControleQuantiteLigne({
           <IconeMoins />
         </Button>
         <span className="panier-article-quantite" aria-live="polite">
-          {quantite}
+          {/* `key` : à chaque changement le chiffre se remonte et « roule » (animation courte, voir boucles.css). */}
+          <span key={quantite} className="nombre-roule">
+            {quantite}
+          </span>
         </span>
         <Button
           type="button"

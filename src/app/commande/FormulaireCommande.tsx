@@ -140,7 +140,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
           }).catch(() => undefined);
         }
         viderPanier();
-        router.push(`/suivi/${resultat.jeton}`);
+        router.push(`/suivi/${resultat.jeton}?nouvelle=1`);
         return;
       }
       appliquerErreur(resultat.erreur);

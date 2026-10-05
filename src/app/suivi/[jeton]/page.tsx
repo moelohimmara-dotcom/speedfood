@@ -7,6 +7,8 @@ import { libelleMode } from "@/lib/commande/mode";
 import { PropositionCarte } from "./PropositionCarte";
 import { PanneauPaiement } from "./PanneauPaiement";
 import { RafraichissementAuto } from "./RafraichissementAuto";
+import { FriseSuivi } from "@/components/site/FriseSuivi";
+import { CelebrationCommande } from "@/components/site/CelebrationCommande";
 
 /**
  * Suivi public d'une commande par jeton opaque (TDR.md §5, ADR-005).
@@ -102,6 +104,9 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
       <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-3)" }}>
         Référence <strong>{suivi.reference}</strong> · passée le {formaterDate(suivi.creeLe)}
       </p>
+
+      <CelebrationCommande jeton={jeton} />
+      <FriseSuivi etat={suivi.etatDerive} />
 
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

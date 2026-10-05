@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BoutonAnimations } from "@/components/site/PilotageAnimations";
 
 /**
  * Pied de page du site client : trois blocs (Speedfood, Clients, Restaurateurs) puis une ligne de mentions.
@@ -39,6 +40,9 @@ export function PiedSite() {
         </nav>
       </div>
       <p className="site-pied-mentions">Speedfood, Conakry. Le règlement se fait directement avec le restaurant.</p>
+      <p className="site-pied-animations">
+        <BoutonAnimations />
+      </p>
     </footer>
   );
 }
