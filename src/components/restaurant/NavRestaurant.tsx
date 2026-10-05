@@ -8,14 +8,15 @@ import { IconeAdmin } from "@/components/admin/icones";
  * Navigation de l'espace restaurateur : quatre tâches. `NavRestaurantCote` (barre latérale sombre, grand écran et tiroir du téléphone)
  * et `NavRestaurantBas` (barre sous le pouce, téléphone et tablette) partagent la même liste. La pastille signale les commandes à traiter.
  */
-const ENTREES = [
+type Entree = { href: string; libelle: string; court?: string; icone: string; exact: boolean };
+const ENTREES: readonly Entree[] = [
   { href: "/restaurant", libelle: "Accueil", icone: "tableau", exact: true },
   { href: "/restaurant/commandes", libelle: "Commandes", icone: "commandes", exact: false },
   { href: "/restaurant/menu", libelle: "Menu", icone: "carte", exact: false },
-  { href: "/restaurant/profil", libelle: "Mon restaurant", icone: "boutique", exact: false },
-] as const;
+  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false },
+];
 
-function estActif(chemin: string, e: (typeof ENTREES)[number]) {
+function estActif(chemin: string, e: Entree) {
   return e.exact ? chemin === e.href : chemin === e.href || chemin.startsWith(`${e.href}/`);
 }
 
@@ -61,7 +62,7 @@ export function NavRestaurantBas({ aTraiter }: { aTraiter: number }) {
                 </span>
               ) : null}
             </span>
-            <span>{e.libelle}</span>
+            <span>{e.court ?? e.libelle}</span>
           </Link>
         );
       })}

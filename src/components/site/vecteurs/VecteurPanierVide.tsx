@@ -7,8 +7,8 @@ export function VecteurPanierVide() {
     <div className="vec-cadre vec-vide boucle">
       <svg className="vec" viewBox="0 0 400 320" aria-hidden="true" focusable="false">
         <g className="v-flotte">
-          <ellipse cx="200" cy="74" rx="62" ry="22" className="v-trait3" style={{ strokeDasharray: "8 8" }} />
-          <path d="M200 62v24M188 74h24" className="v-trait3" />
+          <ellipse cx="200" cy="34" rx="56" ry="17" className="v-trait3" style={{ strokeDasharray: "8 8" }} />
+          <path d="M200 25v18M191 34h18" className="v-trait3" />
         </g>
 
         {/* Anse en deux traits (encre puis mangue) */}

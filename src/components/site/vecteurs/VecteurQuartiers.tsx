@@ -6,7 +6,7 @@ type Maison = { x: number; h: number; couleur: "v-rouge" | "v-mangue" | "v-encre
 
 const MAISONS: Maison[] = [
   { x: 30, h: 150, couleur: "v-rouge", nom: "RATOMA", toit: "antenne" },
-  { x: 142, h: 196, couleur: "v-mangue", nom: "DIXINN", toit: "reservoir" },
+  { x: 142, h: 196, couleur: "v-mangue", nom: "DIXINN", toit: "plat" },
   { x: 254, h: 128, couleur: "v-encre", nom: "KALOUM", toit: "pignon" },
   { x: 366, h: 172, couleur: "v-rouge", nom: "MATAM", toit: "plat" },
 ];

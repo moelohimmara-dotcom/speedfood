@@ -18,7 +18,6 @@ export function CelebrationCommande({ jeton }: { jeton: string }) {
     const cle = `speedfood.fete.${jeton.slice(0, 12)}`;
     try {
       if (sessionStorage.getItem(cle)) return;
-      sessionStorage.setItem(cle, "1");
     } catch {
       // Navigation privée : au pire la fête se rejoue une fois.
     }
@@ -29,11 +28,19 @@ export function CelebrationCommande({ jeton }: { jeton: string }) {
     // Pas d'annulation au démontage : en développement React exécute l'effet deux fois, la seconde ne retrouve plus le paramètre.
     // Lancer la salve est sans danger même si la page change entre-temps (le canevas se retire seul).
     void import("canvas-confetti").then(({ default: confetti }) => {
+      // `useWorker: false` : la politique de sécurité du site (CSP) interdit les workers `blob:` ; sans worker, la salve se dessine sur le fil
+      // principal (36 particules, 1 à 2 s : sans conséquence). La fête n'est marquée « vue » qu'après le tir.
+      const lancer = confetti.create(undefined, { resize: true, useWorker: false });
       const couleurs = ["#b82a20", "#ffc247", "#ff7a1a", "#2b211d"];
       const tir = (angle: number, origineX: number) =>
-        confetti({ particleCount: 36, angle, spread: 62, startVelocity: 42, origin: { x: origineX, y: 0.72 }, colors: couleurs, ticks: 160, disableForReducedMotion: true, scalar: 0.9 });
+        lancer({ particleCount: 36, angle, spread: 62, startVelocity: 42, origin: { x: origineX, y: 0.72 }, colors: couleurs, ticks: 160, disableForReducedMotion: true, scalar: 0.9 });
       tir(60, 0.1);
       tir(120, 0.9);
+      try {
+        sessionStorage.setItem(cle, "1");
+      } catch {
+        // Rien à faire.
+      }
     });
   }, [jeton]);
   return null;

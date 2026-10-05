@@ -77,7 +77,10 @@ html[data-eco] .boucle * {
 /* Une fois le script prêt, les mots se superposent pour glisser l'un sur l'autre. */
 .mot-roulant-actif {
   transition: width 0.45s var(--ease);
-  overflow: hidden;
+  /* Écrêtage vertical seulement : le mot glisse sans déborder sur les lignes voisines, mais un mot plus large que le conteneur
+     (qui s'élargit en 0,45 s) n'est jamais rogné sur le côté. */
+  overflow-x: visible;
+  overflow-y: clip;
   vertical-align: top;
   /* Les mots étant superposés (position absolue), le conteneur reçoit lui-même la hauteur d'une ligne. */
   height: 1.14em;
@@ -347,5 +350,11 @@ html[data-cache] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-et
   }
 }
 html[data-calme] :is(.nombre-roule, .panier-article-controle, .fm-chip[aria-pressed="true"]) {
+  animation: none !important;
+}
+
+/* L'interrupteur « animations en pause » et l'économie de données arrêtent aussi le bandeau défilant de l'accueil et tout mouvement continu du site public. */
+html[data-calme] .theme-public :is(*, *::before, *::after),
+html[data-eco] .theme-public :is(*, *::before, *::after) {
   animation: none !important;
 }

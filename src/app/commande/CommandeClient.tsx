@@ -40,9 +40,9 @@ export function CommandeClient({ cleSiteTurnstile, compte }: { cleSiteTurnstile?
     return (
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
         <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Votre commande</h1>
-        <Card>
+        <Card style={{ textAlign: "center" }}>
           <VecteurPanierVide />
-          <p style={{ marginTop: 0 }}>Votre panier est vide : rien à commander pour le moment.</p>
+          <p style={{ marginTop: 0, marginBottom: "var(--space-5)" }}>Votre panier est vide : rien à commander pour le moment.</p>
           <Link href="/restaurants" className="btn btn-primary">
             Voir les restaurants
           </Link>

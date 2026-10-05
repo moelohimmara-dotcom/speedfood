@@ -34,10 +34,10 @@ export default function PanierPage() {
           <span className="sr-only">Chargement du panier…</span>
         </div>
       ) : panier.lignes.length === 0 ? (
-        <Card>
+        <Card style={{ textAlign: "center" }}>
           <VecteurPanierVide />
-          <p style={{ marginTop: 0 }}>Votre panier est vide.</p>
-          <p style={{ color: "var(--secondaire)" }}>
+          <p style={{ marginTop: 0, fontWeight: 700 }}>Votre panier est vide.</p>
+          <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
             Parcourez le catalogue et ajoutez les plats d&apos;un seul restaurant.
           </p>
           <Link href="/restaurants" className="btn btn-primary">

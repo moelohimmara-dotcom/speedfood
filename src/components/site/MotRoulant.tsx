@@ -25,6 +25,7 @@ export function MotRoulant({ mots }: { mots: string[] }) {
   const [i, setI] = useState(0);
   const [precedent, setPrecedent] = useState<number | null>(null);
   const [largeur, setLargeur] = useState<number | null>(null);
+  const [largeurPrecedente, setLargeurPrecedente] = useState(0);
   const racine = useRef<HTMLSpanElement>(null);
   const courant = useRef<HTMLSpanElement>(null);
 
@@ -41,6 +42,8 @@ export function MotRoulant({ mots }: { mots: string[] }) {
         setPrecedent(actuel);
         return (actuel + 1) % mots.length;
       });
+      // On garde la largeur de l'ancien mot le temps de sa sortie : le nouveau mot n'est jamais rogné par un conteneur qui se resserre.
+      setLargeurPrecedente(courant.current?.offsetWidth ?? 0);
     }, INTERVALLE_MS);
     return () => window.clearInterval(minuteur);
   }, [mots.length]);
@@ -56,7 +59,7 @@ export function MotRoulant({ mots }: { mots: string[] }) {
     <span
       ref={racine}
       className={`mot-roulant boucle${largeur !== null ? " mot-roulant-actif" : ""}`}
-      style={largeur !== null ? { width: largeur } : undefined}
+      style={largeur !== null ? { width: precedent !== null ? Math.max(largeur, largeurPrecedente) : largeur } : undefined}
       aria-hidden="true"
     >
       {precedent !== null ? (
