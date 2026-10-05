@@ -13,6 +13,7 @@ import {
   type RestaurantPanier,
 } from "./panier";
 import { Button } from "@/components/ui";
+import { volerVersPanier } from "@/lib/mouvement/vol";
 
 interface Props {
   restaurant: RestaurantPanier;
@@ -49,9 +50,10 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
     });
   }
 
-  function ajouter() {
+  function ajouter(depuis: HTMLElement | null = null) {
     const optionsChoisies = optionsDisponibles.filter((o) => selection.has(o.id));
     const resultat = ajouterArticle(restaurant, { ...article, options: optionsChoisies });
+    if (resultat === "ajoute") volerVersPanier(depuis);
     if (resultat === "conflit") {
       const confirme = window.confirm(
         `Votre panier contient des plats du restaurant « ${panier.restaurantNom ?? "précédent"} ». ` +
@@ -63,6 +65,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
           { ...article, options: optionsChoisies },
           { remplacerSiConflit: true }
         );
+        volerVersPanier(depuis);
       }
     }
   }
@@ -73,7 +76,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
 
     if (!ligne) {
       return (
-        <Button type="button" variante="secondary" onClick={ajouter} className="vignette-ajouter" style={{ marginTop: 6 }}>
+        <Button type="button" variante="secondary" onClick={(e) => ajouter(e.currentTarget)} className="vignette-ajouter" style={{ marginTop: 6 }}>
           Ajouter
         </Button>
       );
@@ -83,7 +86,10 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
       <ControleQuantiteLigne
         nomAffiche={article.nom}
         quantite={ligne.quantite}
-        onIncrementer={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
+        onIncrementer={(depuis) => {
+          changerQuantite(ligne.cle, ligne.quantite + 1);
+          volerVersPanier(depuis);
+        }}
         onDecrementer={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
         onSupprimer={() => supprimerArticle(ligne.cle)}
       />
@@ -101,7 +107,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
           </label>
         ))}
       </div>
-      <Button type="button" variante="secondary" onClick={ajouter} className="vignette-ajouter">
+      <Button type="button" variante="secondary" onClick={(e) => ajouter(e.currentTarget)} className="vignette-ajouter">
         Ajouter
       </Button>
 
@@ -134,7 +140,10 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
                 <ControleQuantiteLigne
                   nomAffiche={article.nom}
                   quantite={ligne.quantite}
-                  onIncrementer={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
+                  onIncrementer={(depuis) => {
+                    changerQuantite(ligne.cle, ligne.quantite + 1);
+                    volerVersPanier(depuis);
+                  }}
                   onDecrementer={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
                   onSupprimer={() => supprimerArticle(ligne.cle)}
                 />
@@ -205,7 +214,7 @@ function ControleQuantiteLigne({
 }: {
   nomAffiche: string;
   quantite: number;
-  onIncrementer: () => void;
+  onIncrementer: (depuis: HTMLElement) => void;
   onDecrementer: () => void;
   onSupprimer: () => void;
 }) {
@@ -231,7 +240,7 @@ function ControleQuantiteLigne({
           variante="secondary"
           aria-label={`Ajouter un « ${nomAffiche} »`}
           disabled={quantite >= QUANTITE_MAX_LIGNE}
-          onClick={onIncrementer}
+          onClick={(e) => onIncrementer(e.currentTarget)}
         >
           <IconePlus />
         </Button>

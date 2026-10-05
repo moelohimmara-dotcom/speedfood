@@ -153,6 +153,110 @@
   }
 }
 
+/* ---- Lot mouvement (direction B, « Marché en photos ») ---- */
+
+/* Apparition des cartes de restaurants et des titres de section du menu au défilement (échelonnée par Revelation). */
+.grille-restaurants > *,
+.fm-section > .fm-section-titre {
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+}
+
+/* Entrée de page : un fondu court avec une légère montée, à chaque changement de page. */
+@keyframes pub-entree {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.theme-public main {
+  animation: pub-entree 0.38s var(--ease) both;
+}
+
+/* Les plats arrivent en cascade (au chargement, au changement de section et de tri). */
+@keyframes plat-entree {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.fm-plat {
+  animation: plat-entree 0.42s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Retour au toucher : tout ce qui se presse s'enfonce légèrement ; au survol (souris), les cartes se soulèvent. */
+.theme-public .btn,
+.theme-public .vignette,
+.theme-public .carte-restaurant,
+.theme-public .carte-vedette,
+.theme-public .fm-chip,
+.theme-public .barre-panier {
+  transition: transform 0.18s var(--ease), box-shadow 0.25s var(--ease), background-color 0.2s;
+}
+.theme-public .btn:active,
+.theme-public .carte-restaurant:active,
+.theme-public .carte-vedette:active,
+.theme-public .fm-chip:active,
+.theme-public .barre-panier:active {
+  transform: scale(0.97);
+}
+@media (hover: hover) {
+  .theme-public .carte-vedette:hover {
+    transform: translateY(-3px);
+  }
+  .theme-public .vignette:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Carrousel des plats du moment : défilement par à-coups propres, les cartes apparaissent l'une après l'autre. */
+.carrousel {
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--space-4);
+}
+.carrousel > * {
+  scroll-snap-align: start;
+  animation: plat-entree 0.5s var(--ease) both;
+}
+.carrousel > *:nth-child(2) { animation-delay: 70ms; }
+.carrousel > *:nth-child(3) { animation-delay: 140ms; }
+.carrousel > *:nth-child(n + 4) { animation-delay: 200ms; }
+
+/* Barre de panier : elle monte depuis le bas au premier ajout, et le total se met en évidence à chaque changement. */
+@keyframes barre-monte {
+  0% { transform: translateY(140%); opacity: 0; }
+  60% { transform: translateY(-6px); opacity: 1; }
+  100% { transform: none; }
+}
+.barre-panier {
+  animation: barre-monte 0.5s var(--ease) both;
+}
+@keyframes total-eclat {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.barre-panier-droite {
+  animation: total-eclat 0.34s var(--ease);
+}
+
+/* Pastilles de la navigation basse (nombre d'articles) : petit rebond quand le nombre change. */
+.nav-basse-badge {
+  animation: panier-saut 0.32s var(--ease);
+}
+
+/* Chargement : des cartes squelettes qui respirent plutôt qu'une phrase seule. */
+@keyframes squelette {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+.squelette {
+  border-radius: 16px;
+  background: linear-gradient(100deg, var(--bordure) 30%, rgba(255, 255, 255, 0.7) 50%, var(--bordure) 70%);
+  background-size: 240% 100%;
+  animation: squelette 1.4s linear infinite;
+}
+.squelette-grille {
+  display: grid;
+  gap: var(--space-4);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pub-pre {
     opacity: 1;
@@ -160,5 +264,21 @@
   }
   .pub-etape-progres {
     animation: none;
+  }
+  .theme-public main,
+  .fm-plat,
+  .carrousel > *,
+  .barre-panier,
+  .barre-panier-droite,
+  .nav-basse-badge,
+  .squelette {
+    animation: none;
+  }
+  .theme-public .btn:active,
+  .theme-public .carte-restaurant:active,
+  .theme-public .carte-vedette:active,
+  .theme-public .fm-chip:active,
+  .theme-public .barre-panier:active {
+    transform: none;
   }
 }

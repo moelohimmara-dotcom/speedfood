@@ -71,7 +71,7 @@ export function NavigationClient() {
               {nombre} article{nombre > 1 ? "s" : ""}
             </span>
           </span>
-          <span className="barre-panier-droite">Voir le panier · {total.toLocaleString("fr-FR")} GNF</span>
+          <span key={total} className="barre-panier-droite">Voir le panier · {total.toLocaleString("fr-FR")} GNF</span>
         </Link>
       ) : null}
 
@@ -87,7 +87,7 @@ export function NavigationClient() {
         <Link href="/panier" className={`nav-basse-item${surPanier ? " actif" : ""}`} aria-current={surPanier ? "page" : undefined}>
           <span className="nav-basse-icone">
             {ICONES.panier}
-            {nombre > 0 ? <span className="nav-basse-badge" aria-hidden="true">{nombre}</span> : null}
+            {nombre > 0 ? <span key={nombre} className="nav-basse-badge" aria-hidden="true">{nombre}</span> : null}
           </span>
           <span>Panier</span>
         </Link>

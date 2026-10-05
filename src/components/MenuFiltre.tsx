@@ -71,8 +71,8 @@ export function MenuFiltre({ groupes, niveauSection }: { groupes: GroupeDuMenu[]
         <section key={g.id} id={`section-${g.id}`} className="fm-section">
           {niveauSection && g.nom ? <h3 className="fm-section-titre">{g.nom}</h3> : null}
           <div className="vignettes">
-            {ordonner(g.plats).map((p) => (
-              <div key={p.id} className="fm-plat">
+            {ordonner(g.plats).map((p, i) => (
+              <div key={`${tri}-${p.id}`} className="fm-plat" style={{ ["--i" as string]: Math.min(i, 8) }}>
                 {p.noeud}
               </div>
             ))}

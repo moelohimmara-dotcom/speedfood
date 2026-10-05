@@ -12,6 +12,8 @@ const CIBLES = [
   ".pub-faq-item",
   ".pub-bande-pro",
   ".pub-ticket-bloc",
+  ".grille-restaurants > *",
+  ".fm-section > .fm-section-titre",
 ].join(",");
 
 /**
