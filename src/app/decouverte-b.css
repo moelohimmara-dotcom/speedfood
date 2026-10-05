@@ -1,0 +1,275 @@
+/*
+ * Page Restaurants (découverte), retouche selon la direction B « Marché en photos » (plan du 5 octobre 2026) :
+ *  - accroche compacte : la recherche, les puces et les premiers restaurants se voient dès le premier écran ;
+ *  - collage de photos à contour épais et ombre décalée, qui flotte doucement (boucle, en pause hors écran) ;
+ *  - rail de plats guidé (flèches, dégradés de bord) ; panneau de filtres au même langage ; état vide illustré.
+ * Chargé après cadre.css, marche.css et public-pages.css. Tout mouvement est coupé par les arrêts de boucles.css.
+ */
+
+/* ===== Accroche compacte ===== */
+.theme-public .decouverte-bandeau-interieur {
+  padding: var(--space-5) var(--space-4) var(--space-4);
+}
+.theme-public .decouverte-hero {
+  font-size: clamp(1.95rem, 7.4vw, 2.5rem);
+  line-height: 1;
+  margin: 0 0 var(--space-2);
+}
+.theme-public .decouverte-sous {
+  margin: 0 0 var(--space-3);
+  font-size: 0.98rem;
+  max-width: 52ch;
+}
+.theme-public .decouverte-surtitre {
+  margin: 0 0 6px;
+}
+@media (min-width: 900px) {
+  .theme-public .decouverte-bandeau-interieur {
+    padding: 30px var(--space-4) 26px;
+  }
+  .theme-public .decouverte-hero {
+    font-size: clamp(2.1rem, 3.6vw, 3.1rem);
+    max-width: 22ch;
+  }
+  .theme-public .decouverte-collage {
+    height: 236px;
+  }
+}
+
+/* ===== Collage de photos : contour épais, ombre décalée, flottement discret ===== */
+.theme-public .decouverte-collage img {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+@keyframes collage-flotte-1 {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  50% { transform: rotate(-2deg) translateY(-6px); }
+}
+@keyframes collage-flotte-2 {
+  0%, 100% { transform: rotate(2.5deg) translateY(0); }
+  50% { transform: rotate(3.4deg) translateY(-8px); }
+}
+@keyframes collage-flotte-3 {
+  0%, 100% { transform: rotate(-1.5deg) translateY(0); }
+  50% { transform: rotate(-0.6deg) translateY(-5px); }
+}
+@media (min-width: 900px) {
+  .theme-public .decouverte-collage img:nth-child(1) { animation: collage-flotte-1 7s ease-in-out infinite; }
+  .theme-public .decouverte-collage img:nth-child(2) { animation: collage-flotte-2 8.5s ease-in-out infinite; animation-delay: -2s; }
+  .theme-public .decouverte-collage img:nth-child(3) { animation: collage-flotte-3 6.5s ease-in-out infinite; animation-delay: -4s; }
+}
+.theme-public .boucle.hors-ecran img,
+html[data-cache] .theme-public .decouverte-collage img { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-public .decouverte-collage img,
+  .accueil-preuve-point.boucle { animation: none !important; }
+}
+
+/* ===== « En ce moment » : le point vert respire ===== */
+.accueil-preuve-point.boucle {
+  animation: point-ouvert 2.2s ease-out infinite;
+}
+
+/* ===== Panneau de filtres : même langage que les cartes ===== */
+.theme-public .decouverte-filtres {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 4px 4px 0 var(--encre);
+  background: var(--surface);
+}
+.theme-public .decouverte-filtre-titre {
+  font-family: var(--font-titre);
+  letter-spacing: 0.02em;
+  color: var(--encre);
+}
+
+/* ===== Rail de plats guidé ===== */
+.carrousel-b {
+  position: relative;
+}
+.carrousel-b .carrousel {
+  /* Même marge que le remplissage du rail : la première carte s'aligne sans être rognée à gauche. */
+  scroll-padding-inline: var(--space-4);
+  outline-offset: 4px;
+}
+.carrousel-b .carrousel:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  border-radius: var(--radius-lg);
+}
+/* Dégradés de bord : le contenu continue, on le voit. */
+.carrousel-b::before,
+.carrousel-b::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: var(--space-3);
+  width: 38px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s var(--ease);
+}
+.carrousel-b::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--creme), rgba(255, 246, 237, 0));
+}
+.carrousel-b::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--creme), rgba(255, 246, 237, 0));
+}
+.carrousel-b[data-debut="false"]::before,
+.carrousel-b[data-fin="false"]::after {
+  opacity: 1;
+}
+/* Flèches : pastilles mangue à contour épais, sur grand écran seulement. */
+.carrousel-fleche {
+  display: none;
+  position: absolute;
+  top: 38%;
+  z-index: 3;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 50%;
+  background: var(--mangue);
+  color: var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), opacity 0.2s;
+}
+.carrousel-fleche-g { left: -14px; }
+.carrousel-fleche-d { right: -14px; }
+.carrousel-fleche:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.carrousel-fleche:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--encre);
+}
+.carrousel-fleche:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.carrousel-fleche:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+@media (min-width: 900px) {
+  .carrousel-fleche { display: grid; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carrousel-fleche,
+  .carrousel-b::before,
+  .carrousel-b::after { transition: none; }
+}
+
+/* Statut compact des plats à confirmer (la phrase d'explication est dite une fois, au-dessus du rail). */
+.carte-vedette-aconfirmer {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--creme);
+  color: var(--encre);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.decouverte-note-dispo {
+  margin: 0 0 var(--space-3);
+  padding: 10px 14px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.88rem;
+}
+
+/* ===== État vide illustré ===== */
+.decouverte-vide {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border: var(--pub-trait) dashed var(--encre);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.decouverte-vide-titre {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.decouverte-vide-texte {
+  margin: 0 0 var(--space-3);
+  color: var(--secondaire);
+  max-width: 44ch;
+}
+
+/* ===== Filtres : panneau à gauche sur ordinateur, volet repliable sur téléphone ===== */
+.decouverte-filtres-large {
+  display: none;
+}
+@media (min-width: 900px) {
+  .decouverte-filtres-large {
+    display: block;
+  }
+  .decouverte-filtres-mobile {
+    display: none;
+  }
+}
+.decouverte-filtres-mobile {
+  margin-bottom: var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 4px 4px 0 var(--encre);
+}
+.decouverte-filtres-mobile > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  font-family: var(--font-titre);
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.decouverte-filtres-mobile > summary::-webkit-details-marker {
+  display: none;
+}
+.decouverte-filtres-mobile > summary::after {
+  content: "+";
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.decouverte-filtres-mobile[open] > summary::after {
+  content: "–";
+}
+.decouverte-filtres-compte {
+  margin-left: auto;
+  margin-right: var(--space-2);
+  min-width: 24px;
+  padding: 0 8px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  font-size: 0.8rem;
+  text-align: center;
+}
+.decouverte-filtres-contenu {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+@media (min-width: 900px) {
+  .carrousel-b .carrousel {
+    scroll-padding-inline: 0;
+  }
+}

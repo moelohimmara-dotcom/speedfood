@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { creerClientPublic } from "@/lib/db/public";
+import { CarrouselVedettes } from "@/components/site/CarrouselVedettes";
+import { VecteurIntrouvable } from "@/components/site/vecteurs/VecteurIntrouvable";
 import { RestaurantCard, type PlatCarte } from "@/components/RestaurantCard";
 import { Alert } from "@/components/ui";
 import { StampFraicheur } from "@/components/StampFraicheur";
@@ -73,6 +75,8 @@ export default async function CataloguePage({
   const erreur = erreurCategories || erreurQuartiers || recherche.erreur;
   const etat = { q, categorie, quartier, ...filtres };
   const resultats = recherche.resultats;
+  const nbFiltresListe = (categorie ? 1 : 0) + (quartier ? 1 : 0);
+  const nbConfirmes = recherche.vedettes.filter((v) => v.etat.type === "disponible").length;
 
   return (
     <main className="decouverte">
@@ -114,7 +118,7 @@ export default async function CataloguePage({
           </div>
           </div>
           {recherche.vedettes.length >= 3 ? (
-            <div className="decouverte-collage" aria-hidden="true">
+            <div className="decouverte-collage boucle" aria-hidden="true">
               {recherche.vedettes.slice(0, 3).map((vedette) => (
                 // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
                 <img key={vedette.platId} src={vedette.photoUrl} alt="" />
@@ -128,7 +132,7 @@ export default async function CataloguePage({
         <section className="accueil-preuve" aria-label="En ce moment">
           {chiffres && (chiffres.platsConfirmes > 0 || chiffres.restaurantsOuverts > 0) ? (
             <p className="accueil-preuve-direct" role="status">
-              <span className="accueil-preuve-point" aria-hidden="true" />
+              <span className="accueil-preuve-point boucle" aria-hidden="true" />
               En ce moment :{" "}
               {chiffres.restaurantsOuverts > 0 ? (
                 <strong>
@@ -149,7 +153,8 @@ export default async function CataloguePage({
       ) : null}
 
       <div className="decouverte-corps">
-        <aside className="decouverte-filtres" aria-label="Filtres">
+        {/* Ordinateur : panneau fixe à gauche. Téléphone : volet repliable, pour que les plats et les restaurants apparaissent tout de suite. */}
+        <aside className="decouverte-filtres decouverte-filtres-large" aria-label="Filtres">
           <h2 className="decouverte-filtre-titre">Type de cuisine</h2>
           <div className="chip-row">
             {(categories ?? []).map((c) => (
@@ -175,14 +180,52 @@ export default async function CataloguePage({
             ))}
           </div>
         </aside>
+        <details className="decouverte-filtres-mobile">
+          <summary>
+            Filtrer par cuisine et quartier
+            {nbFiltresListe > 0 ? <span className="decouverte-filtres-compte">{nbFiltresListe}</span> : null}
+          </summary>
+          <div className="decouverte-filtres-contenu">
+          <h2 className="decouverte-filtre-titre">Type de cuisine</h2>
+          <div className="chip-row">
+            {(categories ?? []).map((c) => (
+              <Link
+                key={c.id}
+                href={lien(etat, { categorie: categorie === c.id ? undefined : c.id })}
+                className={`chip ${categorie === c.id ? "actif" : ""}`}
+              >
+                {c.nom}
+              </Link>
+            ))}
+          </div>
+          <h2 className="decouverte-filtre-titre">Quartier</h2>
+          <div className="chip-row">
+            {(quartiers ?? []).map((quartierOption) => (
+              <Link
+                key={quartierOption.id}
+                href={lien(etat, { quartier: quartier === quartierOption.id ? undefined : quartierOption.id })}
+                className={`chip ${quartier === quartierOption.id ? "actif" : ""}`}
+              >
+                {quartierOption.nom}
+              </Link>
+            ))}
+          </div>
+          </div>
+        </details>
 
         <div className="decouverte-resultats">
       {!erreur && !q && recherche.vedettes.length > 0 ? (
         <section aria-labelledby="titre-vedettes" style={{ marginBottom: "var(--space-5)" }}>
+          {/* Titre fidèle au contenu : « du moment » seulement s'il y a des plats confirmés récemment ; sinon « à découvrir ». */}
           <h2 id="titre-vedettes" className="groupe-resultats-titre">
-            Plats du moment
+            {nbConfirmes > 0 ? "Plats du moment" : "Plats à découvrir"}
           </h2>
-          <div className="carrousel">
+          {nbConfirmes < recherche.vedettes.length ? (
+            <p className="decouverte-note-dispo" role="note">
+              <strong>« À confirmer »</strong> : le restaurant n&apos;a pas reconfirmé ce plat depuis {recherche.fraicheurHeures} h. Il le confirme à la commande.
+            </p>
+          ) : null}
+          <CarrouselVedettes libelle="Plats à découvrir, défilement horizontal">
             {recherche.vedettes.map((vedette) => (
               <Link key={vedette.platId} href={`/restaurants/${vedette.restaurantId}#plat-${vedette.platId}`} className="carte-vedette">
                 {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
@@ -192,12 +235,16 @@ export default async function CataloguePage({
                   <span className="carte-vedette-resto">
                     {vedette.restaurantNom} · {vedette.quartier}
                   </span>
-                  <StampFraicheur disponibilite={libelleDisponibilite(vedette.etat, recherche.maintenant)} />
+                  {vedette.etat.type === "disponible" ? (
+                    <StampFraicheur disponibilite={libelleDisponibilite(vedette.etat, recherche.maintenant)} />
+                  ) : (
+                    <span className="carte-vedette-aconfirmer">À confirmer</span>
+                  )}
                   <span className="carte-vedette-prix">{vedette.prixAffiche.toLocaleString("fr-FR")} GNF</span>
                 </span>
               </Link>
             ))}
-          </div>
+          </CarrouselVedettes>
         </section>
       ) : null}
 
@@ -218,12 +265,14 @@ export default async function CataloguePage({
           Impossible de charger le catalogue pour le moment. Réessayez dans un instant.
         </Alert>
       ) : resultats.length === 0 ? (
-        <Alert ton="info">
-          Aucun restaurant ne correspond à cette recherche.{" "}
-          <Link href="/restaurants" style={{ fontWeight: 700 }}>
+        <div className="decouverte-vide" role="status">
+          <VecteurIntrouvable />
+          <p className="decouverte-vide-titre">Aucun restaurant ne correspond à cette recherche.</p>
+          <p className="decouverte-vide-texte">Essayez un autre plat, retirez un filtre ou parcourez tous les restaurants.</p>
+          <Link href="/restaurants" className="btn btn-primary">
             Réinitialiser les filtres
           </Link>
-        </Alert>
+        </div>
       ) : q ? (
         ORDRE_GROUPES.map((groupe) => {
           const duGroupe = resultats.filter((r) => r.groupe === groupe);
@@ -240,11 +289,19 @@ export default async function CataloguePage({
           );
         })
       ) : (
-        <div className="grille-restaurants">{resultats.map((r) => carte(r, recherche.maintenant))}</div>
+        <div className="grille-restaurants">{ouvertsDabord(resultats).map((r) => carte(r, recherche.maintenant))}</div>
       )}
         </div>
       </div>
     </main>
+  );
+}
+
+/** Restaurants ouverts aux commandes d'abord, puis en pause, puis fermés ; à égalité, ordre alphabétique (liste sans recherche seulement). */
+function ouvertsDabord(resultats: ResultatClasse<RestaurantCatalogue>[]): ResultatClasse<RestaurantCatalogue>[] {
+  const rang = { ouvert: 0, pause: 1, ferme: 2 } as const;
+  return [...resultats].sort(
+    (a, b) => rang[etatRestaurant(a.restaurant)] - rang[etatRestaurant(b.restaurant)] || a.restaurant.nom.localeCompare(b.restaurant.nom, "fr")
   );
 }
 
