@@ -7,6 +7,7 @@ import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
 import { televerserImage, supprimerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { invaliderCache } from "@/lib/cms/cache";
 
 /**
  * Pages éditoriales (aide/FAQ/accueil) et bannières — bloc 8c. Toute mutation
@@ -47,6 +48,20 @@ export interface Banniere {
 }
 
 const REGEX_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * Invalidation du cache public (cms/cache.ts) après une écriture réussie. Elle ne purge QUE le centre de données local :
+ * ailleurs, le TTL (60 s, 10 s pour une valeur vide) borne le délai. Le slug d'une page n'est pas modifiable ; pour une
+ * action par identifiant on le relit, faute de quoi seul le TTL s'applique (jamais d'erreur ici).
+ */
+async function invaliderPagePubliee(supabase: Awaited<ReturnType<typeof creerClientServeur>>, id: string) {
+  try {
+    const { data } = await supabase.from("content_pages").select("slug").eq("id", id).maybeSingle();
+    if (data?.slug) await invaliderCache([`page:${data.slug}`]);
+  } catch {
+    // Le TTL prend le relais.
+  }
+}
 
 export async function listerPages(): Promise<PageEditoriale[]> {
   await verifierPermission("contenu.editer");
@@ -117,6 +132,7 @@ export async function creerPageAction(
     motif: slug,
   });
 
+  await invaliderCache([`page:${slug}`]);
   revalidatePath("/system/contenu/pages");
   return { succes: true };
 }
@@ -157,6 +173,7 @@ export async function modifierPageAction(
     cibleId: id,
   });
 
+  await invaliderPagePubliee(supabase, id);
   revalidatePath("/system/contenu/pages");
   revalidatePath(`/system/contenu/pages/${id}`);
   return { succes: true };
@@ -180,6 +197,7 @@ export async function basculerPublicationPageAction(id: string, publier: boolean
     cibleId: id,
   });
 
+  await invaliderPagePubliee(supabase, id);
   revalidatePath("/system/contenu/pages");
   revalidatePath(`/system/contenu/pages/${id}`);
 }
@@ -261,6 +279,7 @@ export async function creerBanniereAction(
     motif: titre,
   });
 
+  await invaliderCache(["bannieres"]);
   revalidatePath("/system/contenu/bannieres");
   return { succes: true };
 }
@@ -286,6 +305,7 @@ export async function basculerPublicationBanniereAction(
     cibleId: id,
   });
 
+  await invaliderCache(["bannieres"]);
   revalidatePath("/system/contenu/bannieres");
 }
 
@@ -308,5 +328,6 @@ export async function supprimerBanniereAction(id: string): Promise<void> {
     cibleId: id,
   });
 
+  await invaliderCache(["bannieres"]);
   revalidatePath("/system/contenu/bannieres");
 }

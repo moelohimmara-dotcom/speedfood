@@ -1,5 +1,6 @@
 import "server-only";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { lireAvecCache } from "./cache";
 
 /**
  * Lecture publique des pages et bannières du CMS (Studio, palier 0). Point d'entrée UNIQUE du site public vers
@@ -31,8 +32,13 @@ export function slugValide(slug: string): boolean {
   return slug.length > 0 && slug.length <= 80 && SLUG_VALIDE.test(slug);
 }
 
+/** Mise en cache (60 s, 10 s si vide) : seule la lecture des contenus publiés passe par le cache, voir cache.ts. */
 export async function lirePagePubliee(slug: string): Promise<PagePubliee | null> {
   if (!slugValide(slug)) return null;
+  return lireAvecCache(`page:${slug}`, () => lirePageDepuisBase(slug));
+}
+
+async function lirePageDepuisBase(slug: string): Promise<PagePubliee | null> {
   try {
     const { data, error } = await creerClientAdmin()
       .from("content_pages")
@@ -48,6 +54,10 @@ export async function lirePagePubliee(slug: string): Promise<PagePubliee | null>
 }
 
 export async function lireBannieresPubliees(): Promise<BanniereAffichee[]> {
+  return lireAvecCache("bannieres", lireBannieresDepuisBase);
+}
+
+async function lireBannieresDepuisBase(): Promise<BanniereAffichee[]> {
   try {
     const { data, error } = await creerClientAdmin()
       .from("content_banners")

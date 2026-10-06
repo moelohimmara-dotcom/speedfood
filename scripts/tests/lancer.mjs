@@ -61,10 +61,12 @@ copier("src/lib/commande/mode.ts");
 copier("scripts/tests/documents.test.mts");
 copier("src/lib/cms/texte-riche.ts");
 copier("scripts/tests/texteriche.test.mts");
+copier("src/lib/cms/cache-regles.ts");
+copier("scripts/tests/cache.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche"]) {
-  const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit" });
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache"]) {
+  const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }
 rmSync(tmp, { recursive: true, force: true });
