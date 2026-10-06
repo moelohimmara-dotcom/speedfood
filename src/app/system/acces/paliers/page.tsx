@@ -1,7 +1,15 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { LIBELLES_ROLES, sousSectionsAccessibles, type RoleSysteme } from "@/lib/system-admin/permissions";
 import { listerAccesPaliers } from "@/lib/system-admin/acces-paliers";
-import { ACTIFS, PALIERS, libelleActif, libellePalier, paliersPreset, type Palier } from "@/lib/system-admin/paliers";
+import {
+  ACTIFS,
+  GARDE_PLAFONDS_EN_BASE_VALIDEE,
+  PALIERS,
+  libelleActif,
+  libellePalier,
+  paliersPreset,
+  type Palier,
+} from "@/lib/system-admin/paliers";
 import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { Alert } from "@/components/ui";
 import { SousNav } from "../../SousNav";
@@ -74,6 +82,21 @@ export default async function PaliersSystemePage() {
             la personne à ce niveau au plus, même si son rôle permet davantage (par exemple : un éditeur qui peut préparer des
             pages mais pas les mettre en ligne). Une habilitation sur « Contenu » vaut pour Pages, Bannières et Textes ; sur
             « Tout », pour tout. Avec une date d&apos;expiration, elle cesse de compter à la fin de ce jour.
+          </p>
+          <p className="ad-paliers-garantie">
+            {GARDE_PLAFONDS_EN_BASE_VALIDEE ? (
+              <>
+                <strong>Ce qui est garanti</strong> : l&apos;accès partiel est appliqué par l&apos;administration et par la base de
+                données sur les Pages, Bannières et Textes du site, même face à un appel technique direct.
+              </>
+            ) : (
+              <>
+                <strong>Ce qui est garanti aujourd&apos;hui</strong> : l&apos;accès partiel est appliqué par l&apos;administration
+                (écrans et actions du serveur). La protection équivalente dans la base de données est prête mais pas encore
+                installée ni vérifiée : d&apos;ici là, une personne plafonnée qui sait appeler la base directement pourrait le
+                contourner. Ne comptez pas encore sur l&apos;accès partiel contre une personne mal intentionnée.
+              </>
+            )}
           </p>
           <p className="ad-secondaire">
             Limites actuelles : ces réglages ne concernent que les personnes qui ont déjà un rôle système (sans rôle, la console

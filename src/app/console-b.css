@@ -339,3 +339,4 @@
 .ad-app .ad-paliers-habilitations li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
 .ad-app .ad-paliers-habilitation { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; overflow-wrap: anywhere; }
 .ad-app .ad-paliers-retrait { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ad-app .ad-paliers-garantie { padding: var(--space-3); border: 2px solid var(--encre); border-radius: var(--radius-md); background: var(--creme); }

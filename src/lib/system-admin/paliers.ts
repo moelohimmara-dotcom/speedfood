@@ -236,6 +236,13 @@ export function deciderAcces({
   return { autorise: true, palier };
 }
 
+/**
+ * Garde en base des plafonds (trigger `fn_garde_palier_contenu` sur content_pages, content_banners, contenu_emplacements) :
+ * passe à `true` seulement quand la migration est appliquée ET que le contournement par l'API directe a été testé refusé
+ * (temps B). Sert à l'écran des habilitations pour dire honnêtement ce qui est garanti.
+ */
+export const GARDE_PLAFONDS_EN_BASE_VALIDEE = false;
+
 export const MESSAGE_DROITS_ILLISIBLES = "Vos droits n'ont pas pu être vérifiés, réessayez dans un instant.";
 
 /** Message d'un refus de palier (serveur) ou d'un bouton indisponible (interface), en français clair. */
