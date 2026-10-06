@@ -241,7 +241,7 @@ export function deciderAcces({
  * passe à `true` seulement quand la migration est appliquée ET que le contournement par l'API directe a été testé refusé
  * (temps B). Sert à l'écran des habilitations pour dire honnêtement ce qui est garanti.
  */
-export const GARDE_PLAFONDS_EN_BASE_VALIDEE = false;
+export const GARDE_PLAFONDS_EN_BASE_VALIDEE = true;
 
 export const MESSAGE_DROITS_ILLISIBLES = "Vos droits n'ont pas pu être vérifiés, réessayez dans un instant.";
 
