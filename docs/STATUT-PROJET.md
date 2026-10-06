@@ -654,3 +654,8 @@ interrupteurs d'urgence (table `fonctionnalites`, migrations `20261006100000` et
 (service-role, état inconnu = active). Seule la colonne d'état est modifiable par une session (grant par colonne) ; chaque bascule est journalisée
 (`fonctionnalite.modification`). Le paiement par code marchand et l'habillage n'ont volontairement pas d'interrupteur (raison affichée sur la page).
 Vérifié en local (13 contrôles : RLS, bascule, effet public, audit, 404 hors connexion) ; non déployé tant que Malika n'a pas donné le feu vert.
+
+Constat au déploiement du 6 octobre : l'accueil, À propos, le panier et l'inscription étaient générés une seule fois à la construction, si bien que les interrupteurs
+(et les suggestions de l'accueil) ne bougeaient qu'au déploiement suivant. Ces pages sont maintenant rendues à chaque requête (`dynamic = "force-dynamic"`, le panier via
+son `layout.tsx`) ; accueil mesuré à ~0,5 s de première réponse en production. Plus aucune page du site n'est statique, hors fichiers techniques. Version en ligne : `acc7d596`.
+Mesure de fluidité : voir le compte rendu de la session (le test à processeur ralenti 4x en rendu logiciel est saturé même sur des pages inchangées).
