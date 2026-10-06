@@ -194,3 +194,28 @@ export function erreurSaisie(e: Emplacement, valeurRognee: string): string | nul
   if (valeurRognee.length > longueurMax(e)) return `${longueurMax(e)} caractères au maximum`;
   return null;
 }
+
+export type DecisionChamp = "rien" | "enregistrer" | "retablir" | "conflit";
+
+/** Normalise une saisie de console : sauts de ligne selon le type de champ, puis rognage. */
+export function normaliserSaisie(e: Emplacement, brut: string): string {
+  return (e.multiligne ? brut.replace(/\r\n/g, "\n") : brut.replace(/\s*[\r\n]+\s*/g, " ")).trim();
+}
+
+/**
+ * Décision pour UN champ d'un groupe enregistré. Valeurs « effectives » : la surcharge, sinon le défaut.
+ * - `saisie` : ce que l'éditeur envoie (déjà normalisée) ; vide = retour au défaut ;
+ * - `initiale` : valeur effective que l'éditeur voyait à l'ouverture (vient du navigateur : sert UNIQUEMENT à savoir si le
+ *   champ a été touché et à détecter un conflit, jamais à valider) ;
+ * - `enBase` : surcharge actuelle en base (`null` si aucune).
+ * Un champ non touché n'est jamais écrit (un autre éditeur a pu le modifier entre-temps) ; un champ touché dont la valeur en
+ * base a changé depuis l'ouverture, vers autre chose que la saisie, est un conflit : rien n'est écrasé.
+ */
+export function decider(saisie: string, initiale: string, enBase: string | null, defaut: string): DecisionChamp {
+  const effSaisie = saisie === "" ? defaut : saisie;
+  if (effSaisie === initiale) return "rien";
+  const effBase = enBase ?? defaut;
+  if (effBase === effSaisie) return "rien";
+  if (effBase !== initiale) return "conflit";
+  return effSaisie === defaut ? "retablir" : "enregistrer";
+}

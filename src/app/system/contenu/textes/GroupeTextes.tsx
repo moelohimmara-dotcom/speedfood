@@ -29,6 +29,8 @@ function Champ({ champ, erreur, onRetablir, occupe }: { champ: ChampTexte; erreu
 
   return (
     <div className={`field ad-texte-champ${erreur ? " has-error" : ""}`}>
+      {/* Valeur vue à l'ouverture : sert au serveur à ne traiter que les champs touchés et à détecter un conflit. */}
+      <input type="hidden" name={`i:${champ.cle}`} value={champ.valeur ?? champ.defaut} />
       <div className="ad-texte-entete">
         <label htmlFor={id}>{champ.libelle}</label>
         {modifie ? <Badge ton="neutre">Modifié</Badge> : null}

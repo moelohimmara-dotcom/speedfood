@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { EMPLACEMENTS, resoudre, defauts, erreurSaisie, longueurMax } from "../../src/lib/cms/emplacements";
+import { EMPLACEMENTS, resoudre, defauts, erreurSaisie, longueurMax, decider, normaliserSaisie } from "../../src/lib/cms/emplacements";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -44,6 +44,21 @@ verifier("balise fermante refusée", erreurSaisie(e, "a </b>"), "Les balises HTM
 verifier("chevron suivi d'un chiffre accepté", erreurSaisie(e, "2 < 3"), null);
 verifier("texte simple accepté", erreurSaisie(e, "Bonjour Conakry"), null);
 verifier("dépassement refusé", erreurSaisie(e, "x".repeat(max + 1)), `${max} caractères au maximum`);
+
+// decider : la décision par champ (défaut D, valeur effective = surcharge ou D)
+const D = "Défaut";
+verifier("decider : non touché, sans surcharge", decider("Défaut", "Défaut", null, D), "rien");
+verifier("decider : non touché, autre éditeur a surchargé (reste intact)", decider("Défaut", "Défaut", "Valeur de B", D), "rien");
+verifier("decider : non touché, autre éditeur a rétabli (reste intact)", decider("Ancienne", "Ancienne", null, D), "rien");
+verifier("decider : touché sans conflit", decider("Nouvelle", "Défaut", null, D), "enregistrer");
+verifier("decider : touché sur une surcharge existante", decider("Nouvelle", "Ancienne", "Ancienne", D), "enregistrer");
+verifier("decider : retour au défaut (saisie vide)", decider("", "Ancienne", "Ancienne", D), "retablir");
+verifier("decider : retour au défaut (saisie = défaut)", decider("Défaut", "Ancienne", "Ancienne", D), "retablir");
+verifier("decider : conflit (B a changé le même champ)", decider("Nouvelle A", "Défaut", "Valeur de B", D), "conflit");
+verifier("decider : conflit sur retour au défaut", decider("", "Ancienne", "Valeur de B", D), "conflit");
+verifier("decider : même modification des deux côtés, pas de conflit", decider("Pareil", "Défaut", "Pareil", D), "rien");
+verifier("decider : retour au défaut des deux côtés, pas de conflit", decider("", "Ancienne", null, D), "rien");
+verifier("normaliserSaisie : une ligne", normaliserSaisie(EMPLACEMENTS[0], "  a\n b "), "a b");
 
 // Garde-fous statiques : l'accueil lit bien tous les emplacements ; la lecture ne met jamais une panne en cache.
 const racine = process.env.SPEEDFOOD_RACINE;

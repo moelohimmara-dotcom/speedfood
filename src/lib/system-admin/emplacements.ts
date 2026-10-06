@@ -5,7 +5,7 @@ import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { invaliderCache } from "@/lib/cms/cache";
-import { EMPLACEMENTS, erreurSaisie, type Emplacement } from "@/lib/cms/emplacements";
+import { EMPLACEMENTS, decider, erreurSaisie, normaliserSaisie, type Emplacement } from "@/lib/cms/emplacements";
 
 /**
  * Emplacements de contenu (Studio, palier 1) : surcharge des textes du site public. Toute mutation vérifie `contenu.editer`
@@ -63,15 +63,20 @@ export async function enregistrerGroupeAction(
     return { erreur: "Groupe de textes introuvable." };
   }
 
-  // Normalisation : rognage ; un champ d'une ligne ne garde aucun saut de ligne.
+  // Normalisation. `i:<cle>` est la valeur que l'éditeur voyait à l'ouverture : elle sert seulement à savoir si le champ a été
+  // touché et à détecter un conflit, JAMAIS à valider (la validation reste celle du catalogue serveur, sur la saisie).
   const saisies = new Map<string, string>();
+  const initiales = new Map<string, string>();
   const erreurs: Record<string, string> = {};
   for (const e of emplacements) {
-    const brut = String(formData.get(`v:${e.cle}`) ?? "");
-    const valeur = (e.multiligne ? brut.replace(/\r\n/g, "\n") : brut.replace(/\s*[\r\n]+\s*/g, " ")).trim();
+    const valeur = normaliserSaisie(e, String(formData.get(`v:${e.cle}`) ?? ""));
+    const initiale = normaliserSaisie(e, String(formData.get(`i:${e.cle}`) ?? e.defaut));
+    saisies.set(e.cle, valeur);
+    initiales.set(e.cle, initiale);
+    // Un champ non touché n'est pas revalidé : il ne bloque pas l'enregistrement des autres.
+    if ((valeur === "" ? e.defaut : valeur) === initiale) continue;
     const message = erreurSaisie(e, valeur);
     if (message) erreurs[e.cle] = message;
-    saisies.set(e.cle, valeur);
   }
   if (Object.keys(erreurs).length > 0) {
     return { erreur: "Certains textes sont refusés : corrigez-les puis enregistrez à nouveau.", erreurs };
@@ -93,14 +98,15 @@ export async function enregistrerGroupeAction(
   const actuelles = new Map((lignes ?? []).map((l) => [l.cle, l.valeur]));
 
   let modifies = 0;
+  const conflits: Record<string, string> = {};
   try {
     for (const e of emplacements) {
       const valeur = saisies.get(e.cle) ?? "";
-      const existante = actuelles.get(e.cle);
-      const retourAuDefaut = valeur === "" || valeur === e.defaut;
+      const decision = decider(valeur, initiales.get(e.cle) ?? e.defaut, actuelles.get(e.cle) ?? null, e.defaut);
 
-      if (retourAuDefaut) {
-        if (existante === undefined) continue;
+      if (decision === "conflit") {
+        conflits[e.cle] = "Ce texte a changé depuis que vous avez ouvert la page, rechargez pour voir la nouvelle valeur";
+      } else if (decision === "retablir") {
         const { error } = await supabase.from("contenu_emplacements").delete().eq("cle", e.cle);
         if (error) return { erreur: "Impossible de rétablir un texte par défaut. Rien d'autre n'a été modifié après lui." };
         await journaliserActionSysteme(contexte, {
@@ -110,7 +116,7 @@ export async function enregistrerGroupeAction(
           motif: "Défaut rétabli",
         });
         modifies += 1;
-      } else if (valeur !== existante) {
+      } else if (decision === "enregistrer") {
         const { error } = await supabase.from("contenu_emplacements").upsert({
           cle: e.cle,
           valeur,
@@ -127,7 +133,6 @@ export async function enregistrerGroupeAction(
         modifies += 1;
       }
     }
-
   } catch (erreur) {
     // Trace d'audit impossible : l'action est refusée par prudence (voir journaliserActionSysteme).
     if (modifies > 0) await invaliderCache(["textes"]);
@@ -137,6 +142,12 @@ export async function enregistrerGroupeAction(
 
   if (modifies > 0) await invaliderCache(["textes"]);
   revalidatePath(CHEMIN_ECRAN);
+  if (Object.keys(conflits).length > 0) {
+    return {
+      erreur: `${modifies} texte(s) enregistré(s). Certains textes ont été modifiés par quelqu'un d'autre depuis l'ouverture de la page : ils n'ont pas été écrasés.`,
+      erreurs: conflits,
+    };
+  }
   return { succes: modifies === 0 ? "Aucun changement." : `${modifies} texte${modifies > 1 ? "s" : ""} enregistré${modifies > 1 ? "s" : ""}.` };
 }
 
