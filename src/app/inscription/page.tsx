@@ -6,6 +6,10 @@ import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
 import { BoutonAssistance } from "@/components/BoutonAssistance";
 
+// Rendue à chaque requête (et non figée à la construction) : l'accueil lit des données vivantes et le cadre du site lit les interrupteurs
+// de fonctionnalités du super administrateur (voir src/lib/fonctionnalites/lire.ts) ; sinon un changement n'apparaîtrait qu'au prochain déploiement.
+export const dynamic = "force-dynamic";
+
 export default async function InscriptionPage() {
   const { whatsapp, delaiValidationHeures } = await lireReglagesAssistance();
   return (

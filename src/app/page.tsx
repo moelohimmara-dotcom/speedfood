@@ -21,6 +21,10 @@ import {
 /** Plats de l'accroche qui change : des plats qu'on trouve réellement sur la carte des restaurants de Conakry. */
 const MOTS_ENVIE = ["alloco", "poisson braisé", "riz gras", "sauce feuille", "poulet braisé"];
 
+// Rendue à chaque requête (et non figée à la construction) : l'accueil lit des données vivantes et le cadre du site lit les interrupteurs
+// de fonctionnalités du super administrateur (voir src/lib/fonctionnalites/lire.ts) ; sinon un changement n'apparaîtrait qu'au prochain déploiement.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Les restaurants de Conakry",
   alternates: { canonical: "/" },

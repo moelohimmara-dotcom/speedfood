@@ -12,6 +12,10 @@ const PRINCIPES = [
   { titre: "Vos données restent limitées", texte: "Votre numéro n'est visible que du restaurant choisi, et il est effacé quelque temps après la commande. Rien n'est vendu." },
 ];
 
+// Rendue à chaque requête (et non figée à la construction) : l'accueil lit des données vivantes et le cadre du site lit les interrupteurs
+// de fonctionnalités du super administrateur (voir src/lib/fonctionnalites/lire.ts) ; sinon un changement n'apparaîtrait qu'au prochain déploiement.
+export const dynamic = "force-dynamic";
+
 export default function AProposPage() {
   return (
     <main className="pub-conteneur pub-rubrique">
