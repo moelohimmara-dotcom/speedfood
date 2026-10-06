@@ -13,7 +13,7 @@ export interface MessageErreur {
   details: string[];
 }
 
-export type ResultatAction = { ok: true } | { ok: false; erreur: MessageErreur };
+export type ResultatAction = { ok: true; avertissement?: string } | { ok: false; erreur: MessageErreur };
 
 export interface ContexteEditeurValeur {
   page: { id: string; slug: string; titre: string };

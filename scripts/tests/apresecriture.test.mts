@@ -69,7 +69,7 @@ verifier("création : message exact", AVERTISSEMENTS_TRACE.creation.startsWith("
   const pub = corps("publierBlocsAction");
   verifier("publierBlocsAction : invalide page:<slug> dans finaliserEcriture", /finaliserEcriture\(\s*\{\s*invalider: \(\) => invaliderCache\(\[`page:\$\{page\.slug\}`\]\)/.test(pub), true);
   verifier("publierBlocsAction : avertissement de publication", /AVERTISSEMENTS_TRACE\.publication\(version\)/.test(pub), true);
-  verifier("publierBlocsAction : renvoie ok: true avec l'avertissement", /return \{ ok: true, version, \.\.\.fin \};/.test(pub), true);
+  verifier("publierBlocsAction : renvoie ok: true avec l'avertissement", /return \{ ok: true, version, [^}]*\.\.\.fin \};/.test(pub), true);
   for (const [nom, cle] of [["creerPageBlocsAction", "creation"], ["enregistrerBrouillonBlocsAction", "brouillon"], ["restaurerVersionAction", "restauration"]] as const) {
     const c = corps(nom);
     verifier(`${nom} : finaliserEcriture + avertissement ${cle}`, c.includes("finaliserEcriture(") && c.includes(`AVERTISSEMENTS_TRACE.${cle}`) && /\.\.\.fin \};/.test(c), true);

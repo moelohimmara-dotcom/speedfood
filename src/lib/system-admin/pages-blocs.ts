@@ -8,6 +8,7 @@ import { invaliderCache } from "@/lib/cms/cache";
 import { slugValide } from "@/lib/cms/lecture";
 import { pageVide, validerPage } from "@/lib/studio/registre";
 import { AVERTISSEMENTS_TRACE, finaliserEcriture } from "@/lib/studio/apres-ecriture";
+import { MESSAGE_CONCURRENCE, jetonPerime } from "@/lib/studio/concurrence";
 import { verifierPermission, type ContexteSysteme } from "./contexte";
 import { verifierPalier } from "./paliers-serveur";
 import { MINIMUMS_STUDIO } from "./paliers";
@@ -37,6 +38,8 @@ export interface EtatBlocs {
   erreurs?: string[];
   version?: number;
   id?: string;
+  /** Nouveau jeton de concurrence du brouillon après une écriture réussie (à renvoyer à l'écriture suivante). */
+  jeton?: string;
   /** L'écriture a eu lieu, mais sa trace d'audit n'a pas pu être écrite (message exact à afficher). */
   avertissement?: string;
 }
@@ -54,6 +57,8 @@ export interface BrouillonBlocs {
   titre: string;
   statut: string;
   blocs_version: number;
+  /** Jeton de concurrence du brouillon (`mis_a_jour_le`) à renvoyer à l'enregistrement et à la publication. */
+  jeton: string;
   /** Document de travail tel qu'en base (à revalider avant tout rendu). */
   brouillon: unknown;
   /** Erreurs si le document de travail ne respecte plus le schéma courant (vide sinon). */
@@ -82,7 +87,7 @@ function messageBase(erreur: { code?: string; message?: string }, defaut: string
 async function lirePageSession(contexte: ContexteSysteme, pageId: string) {
   const { data, error } = await contexte.supabase
     .from("content_pages")
-    .select("id, slug, titre, statut, format, blocs_version")
+    .select("id, slug, titre, statut, format, blocs_version, mis_a_jour_le")
     .eq("id", pageId)
     .maybeSingle();
   if (error) throw new ErreurMetier("ERREUR_SERVEUR", "La page n'a pas pu être lue, réessayez dans un instant.");
@@ -136,8 +141,9 @@ export async function creerPageBlocsAction(titreSaisi: string, slugSaisi: string
   }
 }
 
-export async function enregistrerBrouillonBlocsAction(pageId: string, json: unknown): Promise<EtatBlocs> {
+export async function enregistrerBrouillonBlocsAction(pageId: string, json: unknown, jeton?: string): Promise<EtatBlocs> {
   if (typeof pageId !== "string" || !UUID.test(pageId)) return { ok: false, erreur: "Page introuvable." };
+  if (jeton !== undefined && (typeof jeton !== "string" || jeton.length === 0 || jeton.length > 64)) return { ok: false, erreur: MESSAGE_CONCURRENCE };
   const validation = validerPage(json);
   if (!validation.ok) return { ok: false, erreur: "Le brouillon n'est pas valide.", erreurs: validation.erreurs };
 
@@ -158,9 +164,14 @@ export async function enregistrerBrouillonBlocsAction(pageId: string, json: unkn
       .eq("id", pageId)
       .eq("format", "blocs");
     if (limite) requete = requete.eq("statut", "brouillon");
-    const { data: modifiees, error } = await requete.select("id");
+    // Jeton de concurrence DANS la même requête (atomique) : une page modifiée depuis l'ouverture n'est pas écrasée.
+    if (jeton !== undefined) requete = requete.eq("mis_a_jour_le", jeton);
+    const { data: modifiees, error } = await requete.select("id, mis_a_jour_le");
     if (error) return { ok: false, erreur: messageBase(error, "Impossible d'enregistrer le brouillon.") };
-    if (!modifiees || modifiees.length === 0) return { ok: false, erreur: limite ? MESSAGE_EN_LIGNE : "Page introuvable." };
+    if (!modifiees || modifiees.length === 0) {
+      if (jeton !== undefined) return { ok: false, erreur: MESSAGE_CONCURRENCE };
+      return { ok: false, erreur: limite ? MESSAGE_EN_LIGNE : "Page introuvable." };
+    }
 
     // Pas d'invalidation du cache public : un brouillon n'y entre jamais.
     const fin = await finaliserEcriture(
@@ -176,13 +187,13 @@ export async function enregistrerBrouillonBlocsAction(pageId: string, json: unkn
       AVERTISSEMENTS_TRACE.brouillon
     );
     revalidatePath(`/system/contenu/pages/${pageId}`);
-    return { ok: true, ...fin };
+    return { ok: true, jeton: modifiees[0].mis_a_jour_le, ...fin };
   } catch (erreur) {
     return echec(erreur);
   }
 }
 
-export async function publierBlocsAction(pageId: string, motif?: string): Promise<EtatBlocs> {
+export async function publierBlocsAction(pageId: string, motif?: string, jeton?: string): Promise<EtatBlocs> {
   if (typeof pageId !== "string" || !UUID.test(pageId)) return { ok: false, erreur: "Page introuvable." };
   const motifPropre = typeof motif === "string" ? motif.trim() : "";
   if (motifPropre.length > MAX_MOTIF) return { ok: false, erreur: `Le motif ne peut pas dépasser ${MAX_MOTIF} caractères.` };
@@ -201,6 +212,8 @@ export async function publierBlocsAction(pageId: string, motif?: string): Promis
       .eq("id", pageId)
       .maybeSingle();
     if (erreurLecture || !page) return { ok: false, erreur: "Le brouillon n'a pas pu être lu, réessayez dans un instant." };
+    // Jeton d'ouverture périmé : le brouillon a changé ailleurs, on ne publie pas un contenu que la personne n'a pas vu.
+    if (jetonPerime(jeton, page.mis_a_jour_le)) return { ok: false, erreur: MESSAGE_CONCURRENCE };
     const validation = validerPage(page.blocs_brouillon);
     if (!validation.ok) return { ok: false, erreur: "Le brouillon ne peut pas être publié.", erreurs: validation.erreurs };
 
@@ -233,7 +246,9 @@ export async function publierBlocsAction(pageId: string, motif?: string): Promis
     );
     revalidatePath("/system/contenu/pages");
     revalidatePath(`/system/contenu/pages/${pageId}`);
-    return { ok: true, version, ...fin };
+    // Nouveau jeton (la publication modifie la ligne) ; s'il ne peut pas être relu, l'éditeur relit le brouillon.
+    const { data: apres } = await creerClientAdmin().from("content_pages").select("mis_a_jour_le").eq("id", pageId).maybeSingle();
+    return { ok: true, version, jeton: apres?.mis_a_jour_le, ...fin };
   } catch (erreur) {
     return echec(erreur);
   }
@@ -330,6 +345,7 @@ export async function lireBrouillonBlocs(pageId: string): Promise<BrouillonBlocs
     titre: visible.titre,
     statut: visible.statut,
     blocs_version: visible.blocs_version,
+    jeton: visible.mis_a_jour_le,
     brouillon: data.blocs_brouillon,
     erreurs: validation.ok ? [] : validation.erreurs,
   };

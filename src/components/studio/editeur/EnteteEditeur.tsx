@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createUsePuck } from "@puckeditor/core";
 import { listerVersions, type VersionPage } from "@/lib/system-admin/pages-blocs";
 import { Pastille } from "@/components/admin/blocs";
@@ -28,10 +28,10 @@ export function bloquerSuppressionPuck(e: KeyboardEvent) {
   if ((e.key === "Delete" || e.key === "Backspace") && !["INPUT", "TEXTAREA", "SELECT"].includes(cible.tagName)) e.preventDefault();
 }
 
-function ZoneErreur({ erreur }: { erreur: MessageErreur | null }) {
+function ZoneErreur({ erreur, refZone }: { erreur: MessageErreur | null; refZone?: React.Ref<HTMLDivElement> }) {
   // Zone toujours présente (role="alert") : son contenu est annoncé dès qu'il change.
   return (
-    <div role="alert" className={erreur ? "se-erreur" : undefined}>
+    <div ref={refZone} tabIndex={refZone ? -1 : undefined} role="alert" className={erreur ? "se-erreur" : undefined}>
       {erreur ? (
         <>
           <p>{erreur.message}</p>
@@ -60,49 +60,82 @@ function DialoguePublier({ fermer, dialogue }: { fermer: () => void; dialogue: R
   const { publier, modifie, enCours } = useEditeur();
   const [motif, setMotif] = useState("");
   const [erreur, setErreur] = useState<MessageErreur | null>(null);
+  // Publication faite mais avec un avertissement (trace d'audit) : la boîte reste ouverte pour le montrer.
+  const [avertissement, setAvertissement] = useState<string | null>(null);
+  const zone = useRef<HTMLDivElement>(null);
+
+  // Erreur ou avertissement : affichés DANS la boîte (le reste de la page est inerte derrière une boîte modale, un lecteur
+  // d'écran n'y lirait rien) et le focus y va pour qu'ils soient lus.
+  useEffect(() => {
+    if (erreur || avertissement) zone.current?.focus();
+  }, [erreur, avertissement]);
+
+  const reinitialiser = () => {
+    setMotif("");
+    setErreur(null);
+    setAvertissement(null);
+  };
 
   const confirmer = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErreur(null);
     const resultat = await publier(motif.trim());
-    if (resultat.ok) {
-      setMotif("");
-      setErreur(null);
-      fermer();
-    } else {
+    if (!resultat.ok) {
       setErreur(resultat.erreur);
+    } else if (resultat.avertissement) {
+      setAvertissement(resultat.avertissement);
+    } else {
+      reinitialiser();
+      fermer();
     }
   };
 
+  const publiee = avertissement !== null;
   return (
-    <dialog ref={dialogue} className="ad-dialogue se-dialogue" aria-labelledby="se-publier-titre" onClose={() => setErreur(null)}>
+    <dialog ref={dialogue} className="ad-dialogue se-dialogue" aria-labelledby="se-publier-titre" onClose={reinitialiser}>
       <form className="ad-dialogue-corps" onSubmit={confirmer}>
-        <h2 id="se-publier-titre">Publier la page ?</h2>
-        <p>
-          Le brouillon remplace la version en ligne : les visiteurs le verront aussitôt.
-          {modifie ? " Vos modifications en cours seront d'abord enregistrées." : ""}
-        </p>
-        <div className="field">
-          <label htmlFor="se-motif">Motif (facultatif, {MAX_MOTIF} caractères au maximum)</label>
-          <textarea
-            id="se-motif"
-            rows={3}
-            maxLength={MAX_MOTIF}
-            value={motif}
-            onChange={(e) => setMotif(e.target.value)}
-            aria-describedby="se-motif-compteur"
-          />
-          <p className="se-compteur" id="se-motif-compteur">
-            {motif.length} / {MAX_MOTIF}
-          </p>
-        </div>
-        <ZoneErreur erreur={erreur} />
+        <h2 id="se-publier-titre">{publiee ? "Page publiée" : "Publier la page ?"}</h2>
+        {publiee ? null : (
+          <>
+            <p>
+              Le brouillon remplace la version en ligne : les visiteurs le verront aussitôt.
+              {modifie ? " Vos modifications en cours seront d'abord enregistrées." : ""}
+            </p>
+            <div className="field">
+              <label htmlFor="se-motif">Motif (facultatif, {MAX_MOTIF} caractères au maximum)</label>
+              <textarea
+                id="se-motif"
+                rows={3}
+                maxLength={MAX_MOTIF}
+                value={motif}
+                onChange={(e) => setMotif(e.target.value)}
+                aria-describedby="se-motif-compteur"
+              />
+              <p className="se-compteur" id="se-motif-compteur">
+                {motif.length} / {MAX_MOTIF}
+              </p>
+            </div>
+          </>
+        )}
+        <ZoneErreur
+          refZone={zone}
+          erreur={erreur ?? (avertissement ? { message: avertissement, details: [] } : null)}
+        />
         <div className="ad-dialogue-actions">
-          <button type="button" className="btn btn-secondary" onClick={fermer}>
-            Annuler
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={enCours !== null}>
-            {enCours === "publier" ? "Publication…" : enCours === "enregistrer" ? "Enregistrement…" : "Publier maintenant"}
-          </button>
+          {publiee ? (
+            <button type="button" className="btn btn-primary" onClick={fermer}>
+              Fermer
+            </button>
+          ) : (
+            <>
+              <button type="button" className="btn btn-secondary" onClick={fermer}>
+                Annuler
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={enCours !== null}>
+                {enCours === "publier" ? "Publication…" : enCours === "enregistrer" ? "Enregistrement…" : "Publier maintenant"}
+              </button>
+            </>
+          )}
         </div>
       </form>
     </dialog>
@@ -279,14 +312,10 @@ export function EnteteEditeur() {
     }
   };
 
-  const quitter = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (modifie && !window.confirm("Des modifications ne sont pas enregistrées. Quitter l'éditeur quand même ?")) e.preventDefault();
-  };
-
   return (
     <div className="se-entete" onKeyDown={bloquerSuppressionPuck}>
       <div className="se-entete-haut">
-        <Link href="/system/contenu/pages" className="ad-retour se-retour" onClick={quitter}>
+        <Link href="/system/contenu/pages" className="ad-retour se-retour">
           <span className="ad-retour-fleche" aria-hidden="true">
             <IconeAdmin nom="chevron" taille={16} />
           </span>

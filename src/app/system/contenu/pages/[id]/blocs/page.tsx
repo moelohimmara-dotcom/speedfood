@@ -28,7 +28,7 @@ export default async function EditeurBlocsPage({ params }: { params: Promise<{ i
 
   return (
     <EditeurPageBlocs
-      page={{ id: brouillon.id, slug: brouillon.slug, titre: brouillon.titre, statut: brouillon.statut, version: brouillon.blocs_version }}
+      page={{ id: brouillon.id, slug: brouillon.slug, titre: brouillon.titre, statut: brouillon.statut, version: brouillon.blocs_version, jeton: brouillon.jeton }}
       document={brouillon.brouillon}
       erreursInitiales={brouillon.erreurs}
       possibilites={calculerPossibilites(palier, brouillon.statut)}

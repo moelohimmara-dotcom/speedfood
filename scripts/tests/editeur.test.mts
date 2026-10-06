@@ -4,6 +4,7 @@ import { REGISTRE, MAX_BLOCS_PAGE, validerPage, pageVide } from "../../src/lib/s
 import { documentVersPuck, empreinte, estModifie, libelleBloc, puckVersDocument } from "../../src/lib/studio/editeur-donnees";
 import { calculerPossibilites, libelleStatut, permissionsEditeur, LIBELLE_NON_ENREGISTRE } from "../../src/lib/studio/possibilites";
 import { ZONE_RACINE, extraitBloc, nomsActions, planifierOperation, pluriel, type ActionPanneau } from "../../src/lib/studio/panneau-blocs";
+import { MESSAGE_CONCURRENCE, jetonPerime } from "../../src/lib/studio/concurrence";
 import {
   CHAINES_ANGLAISES,
   CONSIGNE_GLISSER,
@@ -62,12 +63,10 @@ const inconnu = puckVersDocument({ content: [{ type: "Carrousel", props: { a: 1 
 verifier("type inconnu gardé (signalé par la validation, jamais retiré en silence)", [inconnu.content[0].type, validerPage(inconnu).ok], ["Carrousel", false]);
 verifier("type inconnu : message numéroté", (validerPage(inconnu) as { erreurs: string[] }).erreurs[0], "Bloc 1 : type de bloc inconnu.");
 verifier("document -> puck : illisible -> page vide", [documentVersPuck(null), documentVersPuck("x"), documentVersPuck({ content: 3 })], [pageVide(), pageVide(), pageVide()]);
-verifier("document -> puck : blocs illisibles ignorés", documentVersPuck({ content: [null, { type: "Titre", props: { texte: "a" } }, { props: {} }], root: { props: { titre: "t" } } }), {
-  content: [{ type: "Titre", props: { texte: "a" } }],
-  root: { props: { titre: "t" } },
-});
+const illisibles = documentVersPuck({ content: [null, { type: "Titre", props: { texte: "a" } }, { props: {} }], root: { props: { titre: "t" } } });
+verifier("document -> puck : blocs illisibles ignorés", [illisibles.content.map((b) => [b.type, b.props.texte]), illisibles.root], [[["Titre", "a"]], { props: { titre: "t" } }]);
 const allerRetour = documentVersPuck(JSON.parse(JSON.stringify(doc)));
-verifier("aller-retour document -> puck -> document identique", puckVersDocument(allerRetour), doc);
+verifier("aller-retour document -> puck -> document identique (aux identifiants près)", empreinte(puckVersDocument(allerRetour)), empreinte(doc));
 verifier("__proto__ ne pollue rien", (() => {
   const d = puckVersDocument(JSON.parse('{"content":[{"type":"__proto__","props":{"x":1}}],"root":{}}'));
   return [validerPage(d).ok, ({} as Record<string, unknown>).x];
@@ -267,6 +266,28 @@ verifier("traduction idempotente (le texte français reste tel quel)", ["Bloc Ti
   verifier("éditeur importé en différé, sans rendu serveur", [/dynamic\(\(\) => import\("\.\/Editeur"\)/.test(differe), /ssr: false/.test(differe), /@puckeditor/.test(differe)], [true, true, false]);
   const route = sansCommentaires("src/app/system/contenu/pages/[id]/blocs/page.tsx");
   verifier("route : permission, palier, puis lecture du brouillon", [route.indexOf("exigerPermissionPage") < route.indexOf("exigerPalier"), route.indexOf("exigerPalier") < route.indexOf("lireBrouillonBlocs("), /notFound\(\)/.test(route), /"use client"/.test(route)], [true, true, true, false]);
+}
+
+{
+  const sansId = documentVersPuck({ content: [{ type: "Titre", props: { texte: "A", niveau: 2, alignement: "gauche" } }, { type: "Espace", props: { id: "Espace-fixe", hauteur: 16 } }], root: { props: {} } });
+  verifier("bloc sans identifiant : un identifiant lui est donné (Puck en a besoin)", [/^Titre-[0-9a-f-]{36}$/.test(String(sansId.content[0].props.id)), sansId.content[1].props.id], [true, "Espace-fixe"]);
+  verifier("identifiant ajouté : valide pour le schéma et sans effet sur « modifié »", [validerPage(puckVersDocument(sansId)).ok, estModifie(sansId, empreinte({ content: [{ type: "Titre", props: { texte: "A", niveau: 2, alignement: "gauche" } }, { type: "Espace", props: { hauteur: 16 } }], root: { props: {} } }))], [true, false]);
+}
+
+// --- Jeton de concurrence du brouillon (revue 7, I1) -------------------------------------------------------------------
+{
+  const T = "2026-10-06T19:31:00.123456+00:00";
+  verifier("jeton absent : appel sans contrôle accepté (rétro-compatibilité)", jetonPerime(undefined, T), false);
+  verifier("jeton égal : à jour", jetonPerime(T, T), false);
+  verifier("jeton différent : périmé", jetonPerime("2026-10-06T19:30:00.000000+00:00", T), true);
+  verifier("jeton vide, trop long ou de mauvais type : périmé", [jetonPerime("", T), jetonPerime("x".repeat(65), T), jetonPerime(42, T), jetonPerime(null, T)], [true, true, true, true]);
+  verifier("jeton reçu mais page sans jeton lisible : périmé", jetonPerime(T, null), true);
+  verifier("message de concurrence exact", MESSAGE_CONCURRENCE, "Le brouillon a été modifié ailleurs depuis que vous avez ouvert la page. Rechargez pour voir la dernière version avant d'enregistrer.");
+  const actions = readFileSync(join(racine, "src/lib/system-admin/pages-blocs.ts"), "utf8");
+  verifier("enregistrement : comparaison au jeton DANS la requête de mise à jour", /\.eq\("mis_a_jour_le", jeton\)/.test(actions), true);
+  verifier("publication : jeton d'ouverture comparé avant la RPC", /jetonPerime\(jeton, page\.mis_a_jour_le\)/.test(actions), true);
+  const edit = readFileSync(join(racine, "src/components/studio/editeur/Editeur.tsx"), "utf8");
+  verifier("l'éditeur envoie le jeton à l'enregistrement ET à la publication", [/enregistrerBrouillonBlocsAction\(page\.id, [^)]*jetonRef\.current\)/.test(edit), /publierBlocsAction\(page\.id, motif, jetonRef\.current\)/.test(edit)], [true, true]);
 }
 
 if (ko) {

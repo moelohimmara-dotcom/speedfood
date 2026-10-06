@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Puck, type Data, type Overrides, type Plugin, type UiState } from "@puckeditor/core";
 // Variante sans import externe : la feuille par défaut charge https://rsms.me/inter/inter.css, interdit par la CSP.
 import "@puckeditor/core/no-external.css";
@@ -17,6 +17,7 @@ import { permissionsEditeur } from "@/lib/studio/possibilites";
 import { configEditeur } from "./config";
 import { ContexteEditeur, type ContexteEditeurValeur, type MessageErreur, type ResultatAction } from "./contexte";
 import { EnteteEditeur } from "./EnteteEditeur";
+import { GardeNavigation } from "./GardeNavigation";
 import { PanneauGauche } from "./PanneauBlocs";
 import { CadreApercu, ChampsBloc, EtiquetteChamp, useFrancisationGlisser } from "./Habillage";
 import type { ProprietesEditeur } from "./types";
@@ -89,68 +90,83 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
     setModifie(estModifie(donnees as DonneesEditeur, reference.current));
   }, []);
 
-  // Avertissement du navigateur avant de quitter avec des modifications non enregistrées (pas d'enregistrement automatique).
-  useEffect(() => {
-    if (!modifie) return;
-    const avantDepart = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", avantDepart);
-    return () => window.removeEventListener("beforeunload", avantDepart);
-  }, [modifie]);
+  // Jeton de concurrence du brouillon : lu à l'ouverture, renvoyé à chaque écriture, remplacé par celui du serveur.
+  const jetonRef = useRef(page.jeton);
+  const rafraichirJeton = useCallback(async (nouveau?: string) => {
+    if (nouveau) {
+      jetonRef.current = nouveau;
+      return;
+    }
+    // Le serveur n'a pas pu le renvoyer : on relit le brouillon pour obtenir le jeton courant.
+    const lu = await lireBrouillonBlocs(page.id);
+    if (lu) jetonRef.current = lu.jeton;
+  }, [page.id]);
 
-  const enregistrer = useCallback(async (): Promise<boolean> => {
+  /** Enregistre le brouillon et renvoie le résultat (l'erreur est rendue à l'appelant, qui choisit où l'afficher). */
+  const sauvegarder = useCallback(async (): Promise<ResultatAction> => {
     const validation = validerPage(puckVersDocument(donneesRef.current));
     if (!validation.ok) {
-      setErreur({ message: "Le brouillon n'est pas enregistré : corrigez les points suivants.", details: validation.erreurs });
-      return false;
+      return { ok: false, erreur: { message: "Le brouillon n'est pas enregistré : corrigez les points suivants.", details: validation.erreurs } };
     }
     setEnCours("enregistrer");
     try {
-      const resultat = await enregistrerBrouillonBlocsAction(page.id, validation.page);
-      if (!resultat.ok) {
-        setErreur(erreurDe(resultat, "Impossible d'enregistrer le brouillon."));
-        return false;
-      }
+      const resultat = await enregistrerBrouillonBlocsAction(page.id, validation.page, jetonRef.current);
+      if (!resultat.ok) return { ok: false, erreur: erreurDe(resultat, "Impossible d'enregistrer le brouillon.") };
+      await rafraichirJeton(resultat.jeton);
       reference.current = empreinte(validation.page);
       setModifie(estModifie(donneesRef.current, reference.current));
-      setErreur(null);
-      if (resultat.avertissement) setAvertissement(resultat.avertissement);
       setAnnonce("Brouillon enregistré.");
-      return true;
+      return { ok: true, avertissement: resultat.avertissement };
     } catch {
-      setErreur({ message: MESSAGE_RESEAU, details: [] });
-      return false;
+      return { ok: false, erreur: { message: MESSAGE_RESEAU, details: [] } };
     } finally {
       setEnCours(null);
     }
-  }, [page.id]);
+  }, [page.id, rafraichirJeton]);
+
+  // Bouton « Enregistrer le brouillon » : l'erreur ou l'avertissement s'affichent dans l'en-tête.
+  const enregistrer = useCallback(async (): Promise<boolean> => {
+    const resultat = await sauvegarder();
+    if (!resultat.ok) {
+      setErreur(resultat.erreur);
+      return false;
+    }
+    setErreur(null);
+    if (resultat.avertissement) setAvertissement(resultat.avertissement);
+    return true;
+  }, [sauvegarder]);
 
   const publier = useCallback(
     async (motif: string): Promise<ResultatAction> => {
-      // Le serveur publie le brouillon ENREGISTRÉ : les modifications en cours sont d'abord enregistrées.
+      // Le serveur publie le brouillon ENREGISTRÉ : les modifications en cours sont d'abord enregistrées (avec le jeton :
+      // un onglet périmé est refusé ici, et rien n'est publié). Les messages sont rendus à la boîte de publication.
+      const avertissements: string[] = [];
       if (estModifie(donneesRef.current, reference.current)) {
-        const validation = validerPage(puckVersDocument(donneesRef.current));
-        if (!validation.ok) return { ok: false, erreur: { message: "La page n'est pas publiée : corrigez d'abord les points suivants.", details: validation.erreurs } };
-        if (!(await enregistrer())) return { ok: false, erreur: { message: "La page n'est pas publiée : le brouillon n'a pas pu être enregistré (voir le message en haut de l'éditeur).", details: [] } };
+        const sauvee = await sauvegarder();
+        if (!sauvee.ok) {
+          return { ok: false, erreur: { message: `La page n'est pas publiée. ${sauvee.erreur.message}`, details: sauvee.erreur.details } };
+        }
+        if (sauvee.avertissement) avertissements.push(sauvee.avertissement);
       }
       setEnCours("publier");
       try {
-        const resultat = await publierBlocsAction(page.id, motif);
+        const resultat = await publierBlocsAction(page.id, motif, jetonRef.current);
         if (!resultat.ok) return { ok: false, erreur: erreurDe(resultat, "Impossible de publier la page.") };
+        await rafraichirJeton(resultat.jeton);
         setPublication({ version: typeof resultat.version === "number" ? resultat.version : page.version });
         setErreur(null);
-        if (resultat.avertissement) setAvertissement(resultat.avertissement);
+        if (resultat.avertissement) avertissements.push(resultat.avertissement);
+        const avertissement = avertissements.join(" ");
+        if (avertissement) setAvertissement(avertissement);
         setAnnonce(`Page publiée${typeof resultat.version === "number" ? ` (version ${resultat.version})` : ""}.`);
-        return { ok: true };
+        return { ok: true, avertissement: avertissement || undefined };
       } catch {
         return { ok: false, erreur: { message: MESSAGE_RESEAU, details: [] } };
       } finally {
         setEnCours(null);
       }
     },
-    [page.id, page.version, enregistrer]
+    [page.id, page.version, sauvegarder, rafraichirJeton]
   );
 
   const restaurer = useCallback(
@@ -162,6 +178,7 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
         if (resultat.avertissement) setAvertissement(resultat.avertissement);
         const brouillon = await lireBrouillonBlocs(page.id);
         if (!brouillon) return { ok: false, erreur: { message: "La version est remise dans le brouillon, mais il n'a pas pu être relu : rechargez la page.", details: [] } };
+        jetonRef.current = brouillon.jeton;
         const donnees = documentVersPuck(brouillon.brouillon);
         // Nouvelle référence AVANT de charger les données : le changement qui suit n'est pas une modification.
         reference.current = empreinte(puckVersDocument(donnees));
@@ -200,6 +217,7 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
 
   return (
     <ContexteEditeur.Provider value={contexte}>
+      <GardeNavigation actif={modifie} />
       <div className="studio-editeur">
         <Puck
           config={configEditeur}

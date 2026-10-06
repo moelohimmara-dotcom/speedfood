@@ -51,7 +51,13 @@ export function documentVersPuck(document: unknown): DonneesEditeur {
   if (!estObjet(document) || !Array.isArray(document.content)) return pageVide() as DonneesEditeur;
   const content = document.content
     .filter((bloc): bloc is Record<string, unknown> => estObjet(bloc) && typeof bloc.type === "string")
-    .map((bloc) => ({ type: bloc.type as string, props: estObjet(bloc.props) ? { ...bloc.props } : {} }));
+    .map((bloc) => {
+      const props: Record<string, unknown> = estObjet(bloc.props) ? { ...bloc.props } : {};
+      // Puck retrouve un bloc par son identifiant : un document écrit sans (autre outil, ancienne version) en reçoit un ici
+      // (sans effet sur `estModifie` : l'empreinte ignore les identifiants).
+      if (typeof props.id !== "string" || props.id === "") props.id = `${bloc.type}-${globalThis.crypto.randomUUID()}`;
+      return { type: bloc.type as string, props };
+    });
   const racine = estObjet(document.root) && estObjet(document.root.props) ? { ...document.root.props } : {};
   return { content, root: { props: racine } };
 }

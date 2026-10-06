@@ -82,6 +82,7 @@ copier("src/lib/studio/editeur-donnees.ts");
 copier("src/lib/studio/possibilites.ts");
 copier("src/lib/studio/panneau-blocs.ts");
 copier("src/lib/studio/francisation.ts");
+copier("src/lib/studio/concurrence.ts");
 copier("scripts/tests/editeur.test.mts");
 
 let statut = 0;
