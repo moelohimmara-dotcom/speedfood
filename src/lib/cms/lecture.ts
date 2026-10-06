@@ -35,40 +35,42 @@ export function slugValide(slug: string): boolean {
 /** Mise en cache (60 s, 10 s si vide) : seule la lecture des contenus publiés passe par le cache, voir cache.ts. */
 export async function lirePagePubliee(slug: string): Promise<PagePubliee | null> {
   if (!slugValide(slug)) return null;
-  return lireAvecCache(`page:${slug}`, () => lirePageDepuisBase(slug));
-}
-
-async function lirePageDepuisBase(slug: string): Promise<PagePubliee | null> {
+  // Le producteur LÈVE en cas d'erreur de base (jamais mise en cache comme « absence ») ; le repli null / [] est ici,
+  // autour du cache, pour qu'aucune exception ne soit visible.
   try {
-    const { data, error } = await creerClientAdmin()
-      .from("content_pages")
-      .select("slug, titre, contenu, publie_le")
-      .eq("slug", slug)
-      .eq("statut", "publie")
-      .maybeSingle();
-    if (error || !data) return null;
-    return data;
+    return await lireAvecCache(`page:${slug}`, () => lirePageDepuisBase(slug));
   } catch {
     return null;
   }
 }
 
-export async function lireBannieresPubliees(): Promise<BanniereAffichee[]> {
-  return lireAvecCache("bannieres", lireBannieresDepuisBase);
+async function lirePageDepuisBase(slug: string): Promise<PagePubliee | null> {
+  const { data, error } = await creerClientAdmin()
+    .from("content_pages")
+    .select("slug, titre, contenu, publie_le")
+    .eq("slug", slug)
+    .eq("statut", "publie")
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
 }
 
-async function lireBannieresDepuisBase(): Promise<BanniereAffichee[]> {
+export async function lireBannieresPubliees(): Promise<BanniereAffichee[]> {
   try {
-    const { data, error } = await creerClientAdmin()
-      .from("content_banners")
-      .select("id, titre, texte, lien")
-      .eq("statut", "publie")
-      .order("ordre", { ascending: true })
-      .order("cree_le", { ascending: true })
-      .limit(MAX_BANNIERES);
-    if (error || !data) return [];
-    return data;
+    return await lireAvecCache("bannieres", lireBannieresDepuisBase);
   } catch {
     return [];
   }
+}
+
+async function lireBannieresDepuisBase(): Promise<BanniereAffichee[]> {
+  const { data, error } = await creerClientAdmin()
+    .from("content_banners")
+    .select("id, titre, texte, lien")
+    .eq("statut", "publie")
+    .order("ordre", { ascending: true })
+    .order("cree_le", { ascending: true })
+    .limit(MAX_BANNIERES);
+  if (error) throw error;
+  return data ?? [];
 }

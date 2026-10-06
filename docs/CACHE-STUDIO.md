@@ -26,3 +26,8 @@ Sans `caches.default` (Node, `next dev`) ou si le cache échoue à n'importe que
 
 ## Évolution possible (non faite)
 Un compteur de version dans un KV gratuit, inclus dans la clé (`v<n>:page:<slug>`) et incrémenté à chaque publication, rendrait l'invalidation globale et immédiate. Cela crée une ressource Cloudflare : à décider avec Malika.
+
+## Limite : efficace sur domaine personnalisé ; à vérifier sur workers.dev
+La documentation Cloudflare de la Cache API (https://developers.cloudflare.com/workers/runtime-apis/cache/, consultée le 6 octobre 2026) indique que les Workers déployés sur des **domaines personnalisés** disposent d'opérations `cache` fonctionnelles, sans citer les sous-domaines `workers.dev` parmi eux (et précise que les opérations du tableau de bord et du Playground n'ont aucun effet). Le déploiement actuel est sur `speedfood-app.moelohimmara.workers.dev` : le cache peut donc y être **sans effet** (no-op). Ce n'est pas dangereux (le repli lit directement en base) mais le gain peut être nul tant que le site n'a pas de domaine personnalisé. Le test local `cf:preview` (workerd) montre un HIT, mais il ne prouve rien pour `workers.dev`.
+
+**Contrôle au déploiement** : publier une page de test, la lire deux fois (`/p/<slug>`), modifier son titre directement en base (sans passer par la console, donc sans invalidation) entre les deux lectures. Si la seconde lecture montre encore l'ancien titre pendant au plus 60 s puis le nouveau, le cache fonctionne. Si elle montre immédiatement le nouveau titre, le cache est sans effet sur ce domaine. Supprimer la page de test ensuite.

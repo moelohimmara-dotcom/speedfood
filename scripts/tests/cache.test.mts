@@ -235,6 +235,32 @@ verifier("TTL invalide : repli sur 60", [ttlEffectif({}, 0), ttlEffectif({}, -3)
   verifier("p/[slug] n'enveloppe pas resoudre dans le cache", /lireAvecCache/.test(page), false);
 }
 
+// --- Erreur de base : jamais mise en cache comme « absence » (revue 2, I1) -------------------------------------------
+{
+  // Séparation producteur qui lève / enveloppe publique, comme dans lecture.ts (l'enveloppe réelle n'est pas pure :
+  // server-only + Supabase ; elle est vérifiée par l'analyse statique ci-dessous et par l'essai de bout en bout).
+  const f = fauxCache();
+  const deps = { cache: f.cache, maintenant: () => 0 };
+  const enveloppe = async (): Promise<string[]> => {
+    try {
+      return await lireAvecCacheInjecte(deps, "bannieres", async (): Promise<string[]> => {
+        throw new Error("panne transitoire");
+      });
+    } catch {
+      return [];
+    }
+  };
+  verifier("producteur qui lève : l'enveloppe renvoie [] sans exception", await enveloppe(), []);
+  verifier("producteur qui lève : rien écrit dans le cache", [f.magasin.size, f.appels.put], [0, 0]);
+  const rétabli = await lireAvecCacheInjecte(deps, "bannieres", async () => ["b"]);
+  verifier("base rétablie : valeur réelle servie aussitôt", rétabli, ["b"]);
+
+  const racine = process.env.SPEEDFOOD_RACINE ?? join(import.meta.dirname, "..", "..");
+  const lecture = readFileSync(join(racine, "src/lib/cms/lecture.ts"), "utf8");
+  verifier("lecture.ts : les deux producteurs lèvent sur erreur", (lecture.match(/if \(error\) throw error;/g) ?? []).length, 2);
+  verifier("lecture.ts : les deux enveloppes publiques rattrapent autour du cache", (lecture.match(/return await lireAvecCache\(/g) ?? []).length, 2);
+}
+
 if (ko) {
   console.log(`\n${ko} ECHEC(S)`);
   process.exit(1);
