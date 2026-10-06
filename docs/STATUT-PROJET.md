@@ -648,7 +648,7 @@ Code et commits faits, NON déployé. Pages : accueil `/` (remplace la redirecti
 ## Contrôle des mises à jour (6 octobre 2026)
 
 Page super admin `/system/mises-a-jour` (permission `parametres.editer`) : journal des nouveautés livrées (`src/lib/system-admin/misesAJourCatalogue.ts`) et
-interrupteurs d'urgence (table `fonctionnalites`, migrations `20261006100000` et `20261006101500`). Cinq interrupteurs, tous branchés côté serveur :
+interrupteurs d'urgence (table `fonctionnalites`, migrations `20261006004704` et `20261006005651`). Cinq interrupteurs, tous branchés côté serveur :
 `animations_public` (mode calme forcé), `scenes_envie_accueil` (bloc d'accueil simple), `commande_a_table` (refus serveur dans `creation.ts`),
 `documents_recus` (pas d'émission), `lien_court_scans` (la redirection marche, sans comptage). Lecture publique : `src/lib/fonctionnalites/lire.ts`
 (service-role, état inconnu = active). Seule la colonne d'état est modifiable par une session (grant par colonne) ; chaque bascule est journalisée
@@ -659,3 +659,14 @@ Constat au déploiement du 6 octobre : l'accueil, À propos, le panier et l'insc
 (et les suggestions de l'accueil) ne bougeaient qu'au déploiement suivant. Ces pages sont maintenant rendues à chaque requête (`dynamic = "force-dynamic"`, le panier via
 son `layout.tsx`) ; accueil mesuré à ~0,5 s de première réponse en production. Plus aucune page du site n'est statique, hors fichiers techniques. Version en ligne : `acc7d596`.
 Mesure de fluidité : voir le compte rendu de la session (le test à processeur ralenti 4x en rendu logiciel est saturé même sur des pages inchangées).
+
+## Studio Speedfood : paliers 0 à 2 (6 octobre 2026)
+
+Architecture et décisions : `docs/STUDIO-SUPERADMIN.md`. Livré et en production : pages et bannières publiées lues par le site (`/p/<nom>`, bandeau d'annonces, aperçu des brouillons
+pour l'équipe), cache gratuit Cloudflare (`docs/CACHE-STUDIO.md`, efficace sur `workers.dev` : vérifié), 40 textes de l'accueil éditables (`/system/contenu/textes`,
+table `contenu_emplacements`, conservés à la réinitialisation). Habilitations par paliers (migration `20261006085059`, table `acces_paliers`) : paliers 0 à 4 attribuables,
+accès partiel (plafond) ou relèvement, expiration, écran `/system/acces/paliers` réservé au super admin ; les rôles existants gardent exactement leur comportement
+(préréglages dérivés de la matrice). Les plafonds sont appliqués par l'administration ET par la base (déclencheurs `fn_garde_palier_contenu`, validés par 30 scénarios).
+`scripts/verifier-base.mjs` bloque `cf:build`/`cf:deploy` si une table attendue manque en base.
+Reste (tâches suivantes) : demandes d'accès, double authentification obligatoire dès le palier 3, éditeur de pages par blocs, studio de design, anglais, médiathèque/SEO.
+Limite connue : une habilitation s'applique aux comptes qui ont déjà un rôle système (accès « partiel » sans rôle : tâche différée).
