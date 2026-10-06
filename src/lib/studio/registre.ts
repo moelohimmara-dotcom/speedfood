@@ -19,7 +19,7 @@ import { analyserTexteRiche, type Bloc as BlocTexte } from "../cms/texte-riche";
 
 /**
  * Registre des blocs des pages du Studio (palier 3) et validation des documents de page. Module PUR (aucun import serveur,
- * aucun import de Puck) : partagé par le serveur (écriture ET lecture), le rendu public et, plus tard, l'éditeur.
+ * aucun import de Puck) : partagé par le serveur (écriture ET lecture), le rendu public et l'éditeur visuel (tâche 7).
  *
  * Une page à blocs est un document JSON au format de Puck (`{ content: [{ type, props }], root: { props } }`) écrit par
  * l'équipe : il n'est JAMAIS rendu sans être validé ici. Schémas stricts (aucune propriété en trop), longueurs bornées,
@@ -83,23 +83,141 @@ export type TypeBloc = keyof typeof SCHEMAS_PROPS;
 export type PropsDe<T extends TypeBloc> = output<(typeof SCHEMAS_PROPS)[T]>;
 export type BlocPage = { [T in TypeBloc]: { type: T; props: PropsDe<T> } }[TypeBloc];
 
+/** Familles de blocs, dans l'ordre de présentation dans l'éditeur. */
+export const CATEGORIES_BLOCS = [
+  { code: "texte", libelle: "Texte" },
+  { code: "action", libelle: "Actions" },
+  { code: "miseEnPage", libelle: "Mise en page" },
+] as const;
+export type CategorieBloc = (typeof CATEGORIES_BLOCS)[number]["code"];
+
+/**
+ * Champ de saisie d'une propriété, décrit pour l'éditeur (palier 3, tâche 7) sans dépendre de Puck : l'éditeur traduit
+ * ces descriptions en champs Puck. `choix` : valeurs fermées, identiques à l'énumération du schéma (vérifié par test).
+ */
+export type ChampBloc =
+  | { genre: "texte"; libelle: string; max: number }
+  | { genre: "texteLong"; libelle: string; max: number; aide?: string }
+  | { genre: "choix"; libelle: string; options: readonly { valeur: string | number; libelle: string }[] };
+
 export interface EntreeRegistre<T extends TypeBloc> {
   type: T;
   /** Nom affiché à l'équipe. */
   libelle: string;
+  categorie: CategorieBloc;
   schemaProps: (typeof SCHEMAS_PROPS)[T];
+  /** Champs de l'éditeur, un par propriété (sauf l'identifiant technique `id`), dans l'ordre d'affichage. */
+  champs: { [K in Exclude<keyof PropsDe<T>, "id">]-?: ChampBloc };
   /** Propriétés d'un bloc nouvellement ajouté (valides pour `schemaProps`). */
   defauts: PropsDe<T>;
 }
 
-/** Les blocs disponibles, dans l'ordre de présentation à l'équipe. */
+/** Les blocs disponibles, dans l'ordre de présentation à l'équipe. Source unique : rendu, validation ET éditeur. */
 export const REGISTRE: { [T in TypeBloc]: EntreeRegistre<T> }[TypeBloc][] = [
-  { type: "Titre", libelle: "Titre", schemaProps: propsTitre, defauts: { texte: "Un titre", niveau: 2, alignement: "gauche" } },
-  { type: "Paragraphe", libelle: "Paragraphe", schemaProps: propsParagraphe, defauts: { texte: "Un paragraphe de texte." } },
-  { type: "Bouton", libelle: "Bouton", schemaProps: propsBouton, defauts: { libelle: "Voir les restaurants", lien: "/restaurants", style: "principal" } },
-  { type: "Separateur", libelle: "Séparateur", schemaProps: propsSeparateur, defauts: { style: "trait" } },
-  { type: "Espace", libelle: "Espace", schemaProps: propsEspace, defauts: { hauteur: 32 } },
+  {
+    type: "Titre",
+    libelle: "Titre",
+    categorie: "texte",
+    schemaProps: propsTitre,
+    champs: {
+      texte: { genre: "texte", libelle: "Texte du titre", max: 200 },
+      niveau: {
+        genre: "choix",
+        libelle: "Importance",
+        options: [
+          { valeur: 2, libelle: "Titre de partie" },
+          { valeur: 3, libelle: "Sous-titre" },
+          { valeur: 4, libelle: "Petit titre" },
+        ],
+      },
+      alignement: {
+        genre: "choix",
+        libelle: "Alignement",
+        options: [
+          { valeur: "gauche", libelle: "À gauche" },
+          { valeur: "centre", libelle: "Centré" },
+        ],
+      },
+    },
+    defauts: { texte: "Un titre", niveau: 2, alignement: "gauche" },
+  },
+  {
+    type: "Paragraphe",
+    libelle: "Paragraphe",
+    categorie: "texte",
+    schemaProps: propsParagraphe,
+    champs: {
+      texte: {
+        genre: "texteLong",
+        libelle: "Texte",
+        max: MAX_CARACTERES_PARAGRAPHE,
+        aide: "Gras : **mot**. Lien : [texte](/adresse). Liste : une ligne qui commence par « - ».",
+      },
+    },
+    defauts: { texte: "Un paragraphe de texte." },
+  },
+  {
+    type: "Bouton",
+    libelle: "Bouton",
+    categorie: "action",
+    schemaProps: propsBouton,
+    champs: {
+      libelle: { genre: "texte", libelle: "Texte du bouton", max: 60 },
+      lien: { genre: "texte", libelle: "Lien (chemin du site comme /restaurants, ou adresse https://)", max: 500 },
+      style: {
+        genre: "choix",
+        libelle: "Style",
+        options: [
+          { valeur: "principal", libelle: "Principal (rouge)" },
+          { valeur: "secondaire", libelle: "Secondaire (contour)" },
+        ],
+      },
+    },
+    defauts: { libelle: "Voir les restaurants", lien: "/restaurants", style: "principal" },
+  },
+  {
+    type: "Separateur",
+    libelle: "Séparateur",
+    categorie: "miseEnPage",
+    schemaProps: propsSeparateur,
+    champs: {
+      style: {
+        genre: "choix",
+        libelle: "Apparence",
+        options: [
+          { valeur: "trait", libelle: "Trait" },
+          { valeur: "vide", libelle: "Espace vide" },
+        ],
+      },
+    },
+    defauts: { style: "trait" },
+  },
+  {
+    type: "Espace",
+    libelle: "Espace",
+    categorie: "miseEnPage",
+    schemaProps: propsEspace,
+    champs: {
+      hauteur: {
+        genre: "choix",
+        libelle: "Hauteur",
+        options: [
+          { valeur: 8, libelle: "Très petite (8 px)" },
+          { valeur: 16, libelle: "Petite (16 px)" },
+          { valeur: 32, libelle: "Moyenne (32 px)" },
+          { valeur: 64, libelle: "Grande (64 px)" },
+          { valeur: 96, libelle: "Très grande (96 px)" },
+        ],
+      },
+    },
+    defauts: { hauteur: 32 },
+  },
 ];
+
+/** Entrée du registre d'un type, ou `undefined` pour un type inconnu (jamais d'accès par prototype). */
+export function entreeRegistre(type: string): EntreeRegistre<TypeBloc> | undefined {
+  return Object.prototype.hasOwnProperty.call(SCHEMAS_PROPS, type) ? PAR_TYPE.get(type) : undefined;
+}
 
 const PAR_TYPE = new Map<string, EntreeRegistre<TypeBloc>>(REGISTRE.map((e) => [e.type, e as EntreeRegistre<TypeBloc>]));
 

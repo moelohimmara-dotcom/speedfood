@@ -7,6 +7,7 @@ import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
+import { FormulaireNouvellePageBlocs } from "./FormulaireNouvellePageBlocs";
 
 export const metadata = { title: "Pages (administration)" };
 
@@ -28,6 +29,9 @@ export default async function ContenusSystemePage({
   const { statut: statutBrut } = await searchParams;
   const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
   const pages = (await listerPages()).filter((p) => statut === "tous" || p.statut === statut);
+  // Format de chaque page (Studio, palier 3) : colonne lisible par la session (droits de colonne de la tâche 6).
+  const { data: formats } = await contexte.supabase.from("content_pages").select("id, format");
+  const pagesABlocs = new Set((formats ?? []).filter((f) => f.format === "blocs").map((f) => f.id));
 
   return (
     <div>
@@ -51,7 +55,12 @@ export default async function ContenusSystemePage({
 
       <Panneau titre="Nouvelle page">
         {palier >= MINIMUMS_STUDIO.brouillon ? (
-          <FormulaireNouvellePage />
+          <>
+            <FormulaireNouvellePage />
+            <div style={{ marginTop: "var(--space-5)" }}>
+              <FormulaireNouvellePageBlocs />
+            </div>
+          </>
         ) : (
           <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
         )}
@@ -70,6 +79,7 @@ export default async function ContenusSystemePage({
                 <tr>
                   <th scope="col">Titre</th>
                   <th scope="col">Adresse</th>
+                  <th scope="col">Format</th>
                   <th scope="col">Statut</th>
                 </tr>
               </thead>
@@ -81,6 +91,9 @@ export default async function ContenusSystemePage({
                     </td>
                     <td className="ad-secondaire" data-label="Adresse">
                       /{p.slug}
+                    </td>
+                    <td data-label="Format">
+                      <Pastille>{pagesABlocs.has(p.id) ? "À blocs" : "Texte"}</Pastille>
                     </td>
                     <td data-label="Statut">
                       <Pastille ton={p.statut === "publie" ? "succes" : "neutre"}>{p.statut === "publie" ? "Publié" : "Brouillon"}</Pastille>

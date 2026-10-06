@@ -78,9 +78,14 @@ copier("src/lib/studio/registre.ts");
 copier("scripts/tests/studio.test.mts");
 copier("src/lib/studio/apres-ecriture.ts");
 copier("scripts/tests/apresecriture.test.mts");
+copier("src/lib/studio/editeur-donnees.ts");
+copier("src/lib/studio/possibilites.ts");
+copier("src/lib/studio/panneau-blocs.ts");
+copier("src/lib/studio/francisation.ts");
+copier("scripts/tests/editeur.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "verifierbase", "studio", "apresecriture"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "verifierbase", "studio", "apresecriture", "editeur"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }
