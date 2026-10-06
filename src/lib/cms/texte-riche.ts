@@ -23,7 +23,8 @@ export type Bloc =
   | { type: "paragraphe"; segments: Segment[] }
   | { type: "liste"; elements: Segment[][] };
 
-const MOTIF_INLINE = /\*\*([^*\n]+?)\*\*|\[([^\]\n]+)\]\(((?:[^()\s]|\([^()\s]*\))*)\)/g;
+// Libellé borné à 100 caractères : sans cette borne, une ligne de crochets ouverts coûterait un temps quadratique.
+const MOTIF_INLINE = /\*\*([^*\n]+?)\*\*|\[([^\]\n]{1,100})\]\(((?:[^()\s]|\([^()\s]*\))*)\)/g;
 
 /** Découpe une ligne en segments : texte, gras, lien autorisé. Un lien refusé devient son libellé en texte simple. */
 export function segmenter(ligne: string): Segment[] {

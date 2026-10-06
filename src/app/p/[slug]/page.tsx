@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CadreSite } from "@/components/CadreSite";
 import { TexteRiche } from "@/components/site/TexteRiche";
-import { lirePageApercu, lirePagePubliee, slugValide, type PagePubliee } from "@/lib/cms/lecture";
-import { creerClientServeur } from "@/lib/db/server";
-import { estRoleSysteme, roleAPermission } from "@/lib/system-admin/permissions";
+import { lirePagePubliee, slugValide, type PagePubliee } from "@/lib/cms/lecture";
+import { lirePageApercu } from "@/lib/cms/apercu";
+import { chargerContexteSysteme } from "@/lib/system-admin/contexte";
+import { roleAPermission } from "@/lib/system-admin/permissions";
 
 // Rendue à chaque requête : le contenu publié change sans redéploiement.
 export const dynamic = "force-dynamic";
@@ -15,26 +16,13 @@ type Props = {
 };
 
 /**
- * L'utilisateur connecté a-t-il une session système avec `contenu.editer` ? Variante SANS 404 de `obtenirContexteSysteme`
- * (une page publique ne doit pas renvoyer 404 à un éditeur : elle retombe sur le comportement public). Mêmes garde-fous :
- * rôle lu par la RLS, refus par défaut, double authentification exigée si un facteur est confirmé.
+ * L'utilisateur connecté a-t-il une session système avec `contenu.editer` ? Passe par `chargerContexteSysteme` (même contrôle que la
+ * console : session, double authentification, rôle lu par la RLS), SANS 404 : une page publique retombe sur le comportement public.
  */
 async function peutVoirApercu(): Promise<boolean> {
   try {
-    const supabase = await creerClientServeur();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return false;
-    const { data: niveau } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (niveau && niveau.nextLevel === "aal2" && niveau.currentLevel !== "aal2") return false;
-    const { data: membership, error } = await supabase
-      .from("system_admin_memberships")
-      .select("role")
-      .eq("utilisateur_id", user.id)
-      .maybeSingle();
-    if (error || !membership || !estRoleSysteme(membership.role)) return false;
-    return roleAPermission(membership.role, "contenu.editer");
+    const contexte = await chargerContexteSysteme();
+    return !!contexte && roleAPermission(contexte.role, "contenu.editer");
   } catch {
     return false;
   }

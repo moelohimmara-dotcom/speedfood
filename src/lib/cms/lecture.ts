@@ -4,7 +4,8 @@ import { creerClientAdmin } from "@/lib/db/admin";
 /**
  * Lecture publique des pages et bannières du CMS (Studio, palier 0). Point d'entrée UNIQUE du site public vers
  * `content_pages` / `content_banners` : le filtre `statut = 'publie'` est dans la requête, jamais un brouillon n'en sort
- * (sauf `lirePageApercu`, réservée à l'aperçu de l'équipe après contrôle serveur de `contenu.editer`).
+
+ * Ce module ne contient AUCUN chemin vers un brouillon (l'aperçu est dans `apercu.ts`) : il peut être mis en cache.
  * Client service-role (la RLS publique limite déjà à `publie`, le filtre explicite double la garantie). En cas d'erreur de
  * base : `null` / `[]`, jamais d'exception visible.
  */
@@ -38,22 +39,6 @@ export async function lirePagePubliee(slug: string): Promise<PagePubliee | null>
       .select("slug, titre, contenu, publie_le")
       .eq("slug", slug)
       .eq("statut", "publie")
-      .maybeSingle();
-    if (error || !data) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-/** Page par slug sans filtre de statut : RÉSERVÉ à l'aperçu de l'équipe, après contrôle serveur de `contenu.editer`. */
-export async function lirePageApercu(slug: string): Promise<(PagePubliee & { statut: string }) | null> {
-  if (!slugValide(slug)) return null;
-  try {
-    const { data, error } = await creerClientAdmin()
-      .from("content_pages")
-      .select("slug, titre, contenu, publie_le, statut")
-      .eq("slug", slug)
       .maybeSingle();
     if (error || !data) return null;
     return data;

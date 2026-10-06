@@ -49,5 +49,13 @@ const bloc = analyserTexteRiche(long)[0];
 verifier("maximum de caractères lus", bloc.type === "paragraphe" && bloc.segments[0].type === "texte" && bloc.segments[0].valeur.length, MAX_CARACTERES);
 verifier("entrée non textuelle", analyserTexteRiche(undefined as unknown as string), []);
 
+// Entrées hostiles : coût borné (aucune explosion quadratique).
+for (const [nom, entree] of [["crochets", "[".repeat(20000)], ["lien ouvert", "[a](".repeat(5000)], ["gras ouvert", "**a*".repeat(5000)], ["parenthèses", "(".repeat(20000)], ["crochets+parenthèses", "[a](".repeat(4000) + "(".repeat(10000)]] as const) {
+  const debut = performance.now();
+  segmenter(entree);
+  analyserTexteRiche(entree);
+  const ms = performance.now() - debut;
+  verifier(`entrée hostile ${nom} sous 250 ms (${Math.round(ms)} ms)`, ms < 250, true);
+}
 console.log(ko === 0 ? "\nTous les tests texte riche passent." : `\n${ko} echec(s).`);
 process.exit(ko === 0 ? 0 : 1);

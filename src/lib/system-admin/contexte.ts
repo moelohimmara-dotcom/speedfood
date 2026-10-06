@@ -34,7 +34,7 @@ export interface ContexteSysteme {
 }
 
 /** Charge le contexte système, ou `null` si la session n'a aucun rôle système. */
-async function chargerContexteSysteme(): Promise<ContexteSysteme | null> {
+export async function chargerContexteSysteme(): Promise<ContexteSysteme | null> {
   const supabase = await creerClientServeur();
   const {
     data: { user },
