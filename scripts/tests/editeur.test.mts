@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { REGISTRE, MAX_BLOCS_PAGE, validerPage, pageVide } from "../../src/lib/studio/registre";
 import { documentVersPuck, empreinte, estModifie, libelleBloc, puckVersDocument } from "../../src/lib/studio/editeur-donnees";
 import { calculerPossibilites, libelleStatut, permissionsEditeur, LIBELLE_NON_ENREGISTRE } from "../../src/lib/studio/possibilites";
-import { ZONE_RACINE, extraitBloc, nomsActions, planifierOperation, pluriel, type ActionPanneau } from "../../src/lib/studio/panneau-blocs";
+import { ZONE_RACINE, construirePlan, extraitBloc, nomsActions, planifierOperation, pluriel, zoneColonne, type ActionPanneau, type BlocContenu } from "../../src/lib/studio/panneau-blocs";
 import { MESSAGE_CONCURRENCE, jetonPerime } from "../../src/lib/studio/concurrence";
 import {
   CHAINES_ANGLAISES,
@@ -29,19 +29,28 @@ function verifier(nom: string, obtenu: unknown, attendu: unknown) {
 const racine = process.env.SPEEDFOOD_RACINE ?? join(import.meta.dirname, "..", "..");
 
 // --- Registre : les champs de l'éditeur couvrent exactement chaque schéma ---------------------------------------------
+process.env.NEXT_PUBLIC_SUPABASE_URL = "https://projet-test.supabase.co";
+const IMAGE_VALIDE = "https://projet-test.supabase.co/storage/v1/object/public/medias/studio/0b1c2d3e-aaaa-4bbb-8ccc-111122223333.jpg";
+// Blocs ajoutés « à compléter » : de quoi les rendre valides pour tester leurs options.
+const COMPLEMENTS: Record<string, Record<string, unknown>> = {
+  Image: { src: IMAGE_VALIDE, alt: "Un plat" },
+  CarteRestaurant: { restaurantId: "0b1c2d3e-aaaa-4bbb-8ccc-111122223333" },
+};
 for (const e of REGISTRE) {
   const proprietes = Object.keys(e.schemaProps.shape).filter((c) => c !== "id");
   verifier(`champs = propriétés du schéma (${e.type})`, Object.keys(e.champs).sort(), proprietes.sort());
+  const base = { ...e.defauts, ...(COMPLEMENTS[e.type] ?? {}) };
+  verifier(`base de test valide (${e.type})`, e.schemaProps.safeParse(base).success, true);
   for (const [cle, champ] of Object.entries(e.champs) as [string, { genre: string; options?: { valeur: unknown }[] }][]) {
     if (champ.genre !== "choix") continue;
-    const valides = (champ.options ?? []).every((o) => e.schemaProps.safeParse({ ...e.defauts, [cle]: o.valeur }).success);
+    const valides = (champ.options ?? []).every((o) => e.schemaProps.safeParse({ ...base, [cle]: o.valeur }).success);
     verifier(`options valides (${e.type}.${cle})`, valides, true);
     // Toute valeur refusée par le schéma n'est pas proposée ; et une valeur hors liste est bien refusée.
-    verifier(`valeur hors liste refusée (${e.type}.${cle})`, e.schemaProps.safeParse({ ...e.defauts, [cle]: "__autre__" }).success, false);
+    verifier(`valeur hors liste refusée (${e.type}.${cle})`, e.schemaProps.safeParse({ ...base, [cle]: "__autre__" }).success, false);
   }
 }
 verifier("options de niveau : 2, 3, 4", (REGISTRE[0].champs as Record<string, { options?: { valeur: unknown }[] }>).niveau.options?.map((o) => o.valeur), [2, 3, 4]);
-verifier("options d'espace : 8 à 96", (REGISTRE[4].champs as Record<string, { options?: { valeur: unknown }[] }>).hauteur.options?.map((o) => o.valeur), [8, 16, 32, 64, 96]);
+verifier("options d'espace : 8 à 96", (REGISTRE.find((e) => e.type === "Espace")!.champs as Record<string, { options?: { valeur: unknown }[] }>).hauteur.options?.map((o) => o.valeur), [8, 16, 32, 64, 96]);
 
 // --- Conversion Puck <-> document -------------------------------------------------------------------------------------
 const donneesPuck = {
@@ -132,9 +141,12 @@ function appliquer(liste: Bloc[], action: ActionPanneau): Bloc[] {
 }
 const page3: Bloc[] = [{ type: "Titre", id: "a" }, { type: "Paragraphe", id: "b" }, { type: "Bouton", id: "c" }];
 const types = (l: Bloc[]) => l.map((b) => b.type);
+const contenuDe = (l: Bloc[]) => l.map((b) => ({ type: b.type, props: { id: b.id } }));
+/** Cible du focus : le rang pour un bloc de la page, l'objet {zone, index} pour une colonne, `null` si la page est vide. */
+const cibleDe = (p: ReturnType<typeof planifierOperation>) => (!p.ok ? false : p.cible === null ? null : p.cible.zone === ZONE_RACINE ? p.cible.index : p.cible);
 const ids = (l: Bloc[]) => l.map((b) => b.id);
 const executer = (l: Bloc[], op: Parameters<typeof planifierOperation>[0]) => {
-  const plan = planifierOperation(op, types(l));
+  const plan = planifierOperation(op, contenuDe(l));
   return { plan, liste: plan.ok ? appliquer(l, plan.action) : l };
 };
 
@@ -143,35 +155,35 @@ verifier("monter le premier : refusé", [r.plan.ok, r.plan.annonce], [false, "Ce
 r = executer(page3, { type: "descendre", index: 2 });
 verifier("descendre le dernier : refusé", [r.plan.ok, r.plan.annonce], [false, "Ce bloc est déjà en dernière position."]);
 r = executer(page3, { type: "monter", index: 2 });
-verifier("monter le 3e", [ids(r.liste), r.plan.annonce, r.plan.ok && r.plan.cible], [["a", "c", "b"], "Bloc déplacé en position 2 sur 3.", 1]);
+verifier("monter le 3e", [ids(r.liste), r.plan.annonce, cibleDe(r.plan)], [["a", "c", "b"], "Bloc déplacé en position 2 sur 3.", 1]);
 verifier("monter : action reorder dans la zone racine", r.plan.ok && r.plan.action, { type: "reorder", sourceIndex: 2, destinationIndex: 1, destinationZone: ZONE_RACINE });
 r = executer(page3, { type: "descendre", index: 0 });
-verifier("descendre le 1er", [ids(r.liste), r.plan.annonce, r.plan.ok && r.plan.cible], [["b", "a", "c"], "Bloc déplacé en position 2 sur 3.", 1]);
+verifier("descendre le 1er", [ids(r.liste), r.plan.annonce, cibleDe(r.plan)], [["b", "a", "c"], "Bloc déplacé en position 2 sur 3.", 1]);
 r = executer(page3, { type: "dupliquer", index: 1 });
-verifier("dupliquer le 2e : copie juste après, focus sur la copie", [types(r.liste), r.plan.ok && r.plan.cible, r.plan.annonce], [["Titre", "Paragraphe", "Paragraphe", "Bouton"], 2, "Bloc Paragraphe dupliqué : la copie est en position 3 sur 4."]);
+verifier("dupliquer le 2e : copie juste après, focus sur la copie", [types(r.liste), cibleDe(r.plan), r.plan.annonce], [["Titre", "Paragraphe", "Paragraphe", "Bouton"], 2, "Bloc Paragraphe dupliqué : la copie est en position 3 sur 4."]);
 r = executer(page3, { type: "supprimer", index: 2 });
-verifier("supprimer le dernier : focus sur le nouveau dernier", [ids(r.liste), r.plan.ok && r.plan.cible, r.plan.annonce], [["a", "b"], 1, "Bloc 3, Bouton, supprimé. La page compte maintenant 2 blocs."]);
+verifier("supprimer le dernier : focus sur le nouveau dernier", [ids(r.liste), cibleDe(r.plan), r.plan.annonce], [["a", "b"], 1, "Bloc 3, Bouton, supprimé. La page compte maintenant 2 blocs."]);
 r = executer(page3, { type: "supprimer", index: 0 });
-verifier("supprimer le premier : focus sur la même position", [ids(r.liste), r.plan.ok && r.plan.cible], [["b", "c"], 0]);
+verifier("supprimer le premier : focus sur la même position", [ids(r.liste), cibleDe(r.plan)], [["b", "c"], 0]);
 r = executer([{ type: "Titre", id: "x" }], { type: "supprimer", index: 0 });
-verifier("supprimer le seul bloc : focus sur « Ajouter un bloc »", [r.liste.length, r.plan.ok && r.plan.cible, r.plan.annonce], [0, null, "Bloc 1, Titre, supprimé. La page compte maintenant 0 bloc."]);
+verifier("supprimer le seul bloc : focus sur « Ajouter un bloc »", [r.liste.length, cibleDe(r.plan), r.plan.annonce], [0, null, "Bloc 1, Titre, supprimé. La page compte maintenant 0 bloc."]);
 r = executer(page3, { type: "ajouter", typeBloc: "Espace", apres: null });
-verifier("ajouter en fin", [types(r.liste), r.plan.ok && r.plan.cible, r.plan.annonce], [["Titre", "Paragraphe", "Bouton", "Espace"], 3, "Bloc Espace ajouté en position 4 sur 4."]);
+verifier("ajouter en fin", [types(r.liste), cibleDe(r.plan), r.plan.annonce], [["Titre", "Paragraphe", "Bouton", "Espace"], 3, "Bloc Espace ajouté en position 4 sur 4."]);
 r = executer(page3, { type: "ajouter", typeBloc: "Separateur", apres: 0 });
-verifier("ajouter après le bloc sélectionné", [types(r.liste), r.plan.ok && r.plan.cible, r.plan.annonce], [["Titre", "Separateur", "Paragraphe", "Bouton"], 1, "Bloc Séparateur ajouté en position 2 sur 4."]);
+verifier("ajouter après le bloc sélectionné", [types(r.liste), cibleDe(r.plan), r.plan.annonce], [["Titre", "Separateur", "Paragraphe", "Bouton"], 1, "Bloc Séparateur ajouté en position 2 sur 4."]);
 r = executer([], { type: "ajouter", typeBloc: "Titre", apres: null });
-verifier("ajouter dans une page vide", [types(r.liste), r.plan.ok && r.plan.cible], [["Titre"], 0]);
+verifier("ajouter dans une page vide", [types(r.liste), cibleDe(r.plan)], [["Titre"], 0]);
 r = executer(page3, { type: "ajouter", typeBloc: "Script", apres: null });
 verifier("ajouter un type inconnu : refusé", [r.plan.ok, r.plan.annonce], [false, "Ce type de bloc n'existe pas."]);
 r = executer(page3, { type: "ajouter", typeBloc: "__proto__", apres: null });
 verifier("ajouter __proto__ : refusé", r.plan.ok, false);
 r = executer(page3, { type: "ajouter", typeBloc: "Titre", apres: 99 });
-verifier("ajouter après un index disparu : en fin", r.plan.ok && r.plan.cible, 3);
+verifier("ajouter après un index disparu : en fin", cibleDe(r.plan), 3);
 const pleine = Array.from({ length: MAX_BLOCS_PAGE }, (_, i) => ({ type: "Espace", id: String(i) }));
 verifier("page pleine : ajout refusé", executer(pleine, { type: "ajouter", typeBloc: "Titre", apres: null }).plan.annonce, `La page compte déjà ${MAX_BLOCS_PAGE} blocs, le maximum.`);
 verifier("page pleine : duplication refusée", executer(pleine, { type: "dupliquer", index: 0 }).plan.ok, false);
-verifier("index hors bornes : refusé sans exception", ["monter", "descendre", "dupliquer", "supprimer"].map((t) => planifierOperation({ type: t as "monter", index: 7 }, types(page3)).ok), [false, false, false, false]);
-verifier("index non entier : refusé", planifierOperation({ type: "supprimer", index: 0.5 }, types(page3)).ok, false);
+verifier("index hors bornes : refusé sans exception", ["monter", "descendre", "dupliquer", "supprimer"].map((t) => planifierOperation({ type: t as "monter", index: 7 }, contenuDe(page3)).ok), [false, false, false, false]);
+verifier("index non entier : refusé", planifierOperation({ type: "supprimer", index: 0.5 }, contenuDe(page3)).ok, false);
 {
   // Suite d'opérations au clavier : l'ordre final est celui attendu, aucun bloc perdu ni inventé.
   let l = page3;
@@ -203,6 +215,121 @@ verifier("extraits", [
   extraitBloc("Titre", { texte: "" }),
   extraitBloc("Titre", { texte: "<script>alert(1)</script>" }),
 ], ["Bienvenue chez Speedfood", "a b", 60, "Commander → /restaurants", "Espace vide", "Grande (64 px)", "(vide)", "<script>alert(1)</script>"]);
+
+// --- Panneau : blocs DANS une colonne (tâche 8) ------------------------------------------------------------------------
+{
+  const bloc = (type: string, id: string, extra: Record<string, unknown> = {}): BlocContenu => ({ type, props: { id, ...extra } });
+  const cols = (id: string, nombre: number, c1: BlocContenu[], c2: BlocContenu[] = [], c3: BlocContenu[] = []): BlocContenu => bloc("Colonnes", id, { nombre, colonne1: c1, colonne2: c2, colonne3: c3 });
+  const z1 = zoneColonne("C", 1);
+  const z3 = zoneColonne("C", 3);
+  const page = [bloc("Titre", "t"), cols("C", 2, [bloc("Titre", "a"), bloc("Paragraphe", "b"), bloc("Image", "c")], [bloc("Bouton", "d")]), bloc("Espace", "e")];
+
+  verifier("zone d'une colonne : <id>:colonneN", z1, "C:colonne1");
+  let r = planifierOperation({ type: "monter", index: 2, zone: z1 }, page);
+  verifier("colonne : monter le 3e bloc", [r.ok && r.action, r.annonce, cibleDe(r)], [{ type: "reorder", sourceIndex: 2, destinationIndex: 1, destinationZone: z1 }, "Bloc déplacé en position 2 sur 3 dans la colonne 1.", { zone: z1, index: 1 }]);
+  r = planifierOperation({ type: "monter", index: 0, zone: z1 }, page);
+  verifier("colonne : monter le premier refusé", [r.ok, r.annonce], [false, "Ce bloc est déjà en première position."]);
+  r = planifierOperation({ type: "descendre", index: 2, zone: z1 }, page);
+  verifier("colonne : descendre le dernier refusé (bornes de la colonne, pas de la page)", [r.ok, r.annonce], [false, "Ce bloc est déjà en dernière position."]);
+  r = planifierOperation({ type: "descendre", index: 0, zone: zoneColonne("C", 2) }, page);
+  verifier("colonne : un seul bloc, rien à déplacer", r.ok, false);
+  r = planifierOperation({ type: "dupliquer", index: 1, zone: z1 }, page);
+  verifier("colonne : dupliquer", [r.ok && r.action, r.annonce, cibleDe(r)], [{ type: "duplicate", sourceIndex: 1, sourceZone: z1 }, "Bloc Paragraphe dupliqué : la copie est en position 3 sur 4 dans la colonne 1.", { zone: z1, index: 2 }]);
+  r = planifierOperation({ type: "supprimer", index: 0, zone: zoneColonne("C", 2) }, page);
+  verifier("colonne : supprimer le seul bloc -> le focus revient au bloc Colonnes", [r.ok && r.action, r.annonce, cibleDe(r)], [{ type: "remove", index: 0, zone: "C:colonne2" }, "Bloc 1, Bouton, supprimé de la colonne 2. Cette colonne compte maintenant 0 bloc.", 1]);
+  r = planifierOperation({ type: "supprimer", index: 2, zone: z1 }, page);
+  verifier("colonne : supprimer le dernier -> focus sur le nouveau dernier", [r.annonce, cibleDe(r)], ["Bloc 3, Image, supprimé de la colonne 1. Cette colonne compte maintenant 2 blocs.", { zone: z1, index: 1 }]);
+  r = planifierOperation({ type: "ajouter", typeBloc: "Citation", apres: 0, zone: z1 }, page);
+  verifier("colonne : ajouter après le 1er", [r.ok && r.action, r.annonce, cibleDe(r)], [{ type: "insert", componentType: "Citation", destinationIndex: 1, destinationZone: z1 }, "Bloc Citation ajouté en position 2 sur 4 dans la colonne 1.", { zone: z1, index: 1 }]);
+  r = planifierOperation({ type: "ajouter", typeBloc: "Titre", apres: null, zone: zoneColonne("C", 2) }, page);
+  verifier("colonne : ajouter en fin", cibleDe(r), { zone: "C:colonne2", index: 1 });
+  for (const interdit of ["Colonnes", "FAQ", "AppelAction", "CarteRestaurant", "ListeRestaurants"]) {
+    r = planifierOperation({ type: "ajouter", typeBloc: interdit, apres: null, zone: z1 }, page);
+    verifier(`colonne : ${interdit} refusé dans une colonne`, r.ok, false);
+  }
+  verifier("colonne : message pour un bloc interdit", planifierOperation({ type: "ajouter", typeBloc: "Colonnes", apres: null, zone: z1 }, page).annonce, "Le bloc Colonnes ne peut pas être placé dans une colonne.");
+  r = planifierOperation({ type: "ajouter", typeBloc: "Titre", apres: null, zone: z3 }, page);
+  verifier("colonne non affichée : ajout refusé", [r.ok, r.annonce], [false, "La colonne 3 n'est pas affichée : choisissez 3 colonnes pour l'utiliser."]);
+  verifier("zone inconnue ou bloc disparu : refusé sans exception", [
+    planifierOperation({ type: "monter", index: 0, zone: "X:colonne1" }, page).ok,
+    planifierOperation({ type: "monter", index: 0, zone: "C:colonne9" }, page).ok,
+    planifierOperation({ type: "monter", index: 0, zone: "__proto__:colonne1" }, page).ok,
+    planifierOperation({ type: "monter", index: 0, zone: "" }, page).ok,
+    planifierOperation({ type: "monter", index: 9, zone: z1 }, page).ok,
+  ], [false, false, false, false, false]);
+  // Limite globale de 200 blocs, colonnes comprises
+  const presque = [cols("C", 2, Array.from({ length: 150 }, (_, i) => bloc("Espace", `s${i}`))), ...Array.from({ length: 48 }, (_, i) => bloc("Espace", `r${i}`))];
+  verifier("limite : 199 blocs au total (colonnes comprises) -> un ajout reste possible", [planifierOperation({ type: "ajouter", typeBloc: "Titre", apres: null, zone: z1 }, presque).ok, planifierOperation({ type: "ajouter", typeBloc: "Titre", apres: null }, presque).ok], [true, true]);
+  const pleine200 = [...presque, bloc("Espace", "dernier")];
+  verifier("limite : page à 200 blocs -> ajout refusé dans une colonne comme à la racine", [planifierOperation({ type: "ajouter", typeBloc: "Titre", apres: null, zone: z1 }, pleine200).ok, planifierOperation({ type: "ajouter", typeBloc: "Titre", apres: null }, pleine200).ok], [false, false]);
+  verifier("limite : dupliquer un bloc Colonnes compte ses enfants", planifierOperation({ type: "dupliquer", index: 0 }, [cols("C", 2, Array.from({ length: 150 }, (_, i) => bloc("Espace", `s${i}`))), cols("D", 2, Array.from({ length: 40 }, (_, i) => bloc("Espace", `u${i}`)))]).ok, false);
+  r = planifierOperation({ type: "supprimer", index: 1 }, page);
+  verifier("supprimer un bloc Colonnes : annonce le nombre de blocs perdus", r.annonce, "Bloc 2, Colonnes, supprimé (avec les 4 blocs de ses colonnes). La page compte maintenant 2 blocs.");
+  // Plan du panneau
+  const plan = construirePlan(page);
+  verifier("plan : 3 blocs à la racine", plan.map((l) => [l.bloc.type, l.index, l.total]), [["Titre", 0, 3], ["Colonnes", 1, 3], ["Espace", 2, 3]]);
+  verifier("plan : colonnes du bloc Colonnes, zones et situation", plan[1].colonnes?.map((c) => [c.numero, c.zone, c.affichee, c.lignes.map((l) => [l.bloc.type, l.index, l.total, l.situation])]), [
+    [1, "C:colonne1", true, [["Titre", 0, 3, { parent: 1, colonne: 1 }], ["Paragraphe", 1, 3, { parent: 1, colonne: 1 }], ["Image", 2, 3, { parent: 1, colonne: 1 }]]],
+    [2, "C:colonne2", true, [["Bouton", 0, 1, { parent: 1, colonne: 2 }]]],
+  ]);
+  verifier("plan : 3e colonne remplie mais non affichée -> listée « à vider »", construirePlan([cols("C", 2, [], [], [bloc("Titre", "x")])])[0].colonnes?.map((c) => [c.numero, c.affichee]), [[1, true], [2, true], [3, false]]);
+  verifier("plan : bloc Colonnes sans identifiant -> pas de colonnes (jamais d'exception)", construirePlan([{ type: "Colonnes", props: { nombre: 2 } }])[0].colonnes, undefined);
+  verifier("noms accessibles dans une colonne", nomsActions(1, "Paragraphe", { parent: 1, colonne: 2 }).monter, "Monter le bloc 2, Paragraphe, de la colonne 2 du bloc 2");
+  verifier("extraits des nouveaux blocs", [
+    extraitBloc("Citation", { texte: "Délicieux" }),
+    extraitBloc("Image", { alt: "Un plat" }),
+    extraitBloc("Image", { decorative: true, alt: "" }),
+    extraitBloc("Image", { alt: "" }),
+    extraitBloc("Colonnes", { nombre: 3 }),
+    extraitBloc("AppelAction", { titre: "Prêt ?" }),
+    extraitBloc("FAQ", { questions: [1, 2] }),
+    extraitBloc("FAQ", { titre: "Aide", questions: [] }),
+    extraitBloc("CarteRestaurant", { restaurantId: "" }),
+    extraitBloc("CarteRestaurant", { restaurantId: "0b1c2d3e-aaaa-4bbb-8ccc-111122223333" }),
+    extraitBloc("ListeRestaurants", { nombre: 6 }),
+  ], ["Délicieux", "Un plat", "(image décorative)", "(à compléter)", "3 colonnes", "Prêt ?", "2 questions", "Aide", "(restaurant à choisir)", "Restaurant choisi", "6 restaurants"]);
+}
+
+// --- Conversion Puck <-> document : colonnes, réglages, champs facultatifs (tâche 8) ----------------------------------------
+{
+  const IMG = "https://projet-test.supabase.co/storage/v1/object/public/medias/studio/0b1c2d3e-aaaa-4bbb-8ccc-111122223333.png";
+  const donnees = {
+    content: [
+      { type: "Colonnes", props: { id: "Colonnes-1", nombre: 2, ecart: 16, reglages: { fond: "creme", espaceHaut: "", alignement: undefined }, colonne1: [{ type: "Image", props: { id: "Image-1", src: IMG, alt: "Plat", decorative: false, legende: "", ratio: "4-3", ajustement: "couvrir", reglages: { visibilite: "" } } }], colonne2: [{ type: "Citation", props: { id: "Citation-1", texte: "Bon", auteur: "" } }], colonne3: [] } },
+      { type: "ListeRestaurants", props: { id: "Liste-1", titre: "", filtre: "tous", nombre: 3, quartierId: "", categorieId: "" } },
+      { type: "FAQ", props: { id: "FAQ-1", titre: "", questions: [{ question: "Q ?", reponse: "R" }], reglages: {} } },
+      { type: "AppelAction", props: { id: "A-1", titre: "T", texte: "", bouton: { libelle: "Go", lien: "/restaurants", style: "principal" }, reglages: { fond: "mangue" } } },
+    ],
+    root: { props: {} },
+  };
+  const doc = puckVersDocument(donnees);
+  verifier("conversion : colonnes réduites récursivement, « Par défaut » et champs facultatifs vides retirés", doc.content, [
+    { type: "Colonnes", props: { id: "Colonnes-1", nombre: 2, ecart: 16, colonne1: [{ type: "Image", props: { id: "Image-1", src: IMG, alt: "Plat", decorative: false, ratio: "4-3", ajustement: "couvrir" } }], colonne2: [{ type: "Citation", props: { id: "Citation-1", texte: "Bon" } }], colonne3: [], reglages: { fond: "creme" } } },
+    { type: "ListeRestaurants", props: { id: "Liste-1", filtre: "tous", nombre: 3 } },
+    { type: "FAQ", props: { id: "FAQ-1", questions: [{ question: "Q ?", reponse: "R" }] } },
+    { type: "AppelAction", props: { id: "A-1", titre: "T", bouton: { libelle: "Go", lien: "/restaurants", style: "principal" }, reglages: { fond: "mangue" } } },
+  ]);
+  verifier("conversion : le résultat est valide pour le registre", validerPage(doc).ok, true);
+  const dansPuck = documentVersPuck(JSON.parse(JSON.stringify(doc)));
+  verifier("document -> puck : tous les blocs imbriqués ont un identifiant", [(dansPuck.content[0].props.colonne1 as BlocContenu[])[0].props.id, (dansPuck.content[0].props.colonne2 as BlocContenu[])[0].props.id], ["Image-1", "Citation-1"]);
+  const sansIds = documentVersPuck({ content: [{ type: "Colonnes", props: { nombre: 2, ecart: 16, colonne1: [{ type: "Titre", props: { texte: "a", niveau: 2, alignement: "gauche" } }] } }], root: { props: {} } });
+  const enfant = (sansIds.content[0].props.colonne1 as BlocContenu[])[0];
+  verifier("document -> puck : identifiants ajoutés aux blocs imbriqués, colonnes absentes créées vides", [/^Titre-[0-9a-f-]{36}$/.test(String(enfant.props.id)), sansIds.content[0].props.colonne2, sansIds.content[0].props.colonne3], [true, [], []]);
+  verifier("document -> puck : blocs de colonne illisibles ignorés", (documentVersPuck({ content: [{ type: "Colonnes", props: { colonne1: [null, 3, { props: {} }, { type: "Titre", props: {} }] } }], root: {} }).content[0].props.colonne1 as BlocContenu[]).length, 1);
+  const reference = empreinte(doc);
+  verifier("modifié : non, après aller-retour (identifiants ajoutés ignorés, colonnes comprises)", estModifie(documentVersPuck(JSON.parse(JSON.stringify(doc))) as never, reference), false);
+  const modif = JSON.parse(JSON.stringify(donnees));
+  modif.content[0].props.colonne1[0].props.alt = "Autre";
+  verifier("modifié : oui, si un bloc d'une colonne change", estModifie(modif, reference), true);
+  const deplace = JSON.parse(JSON.stringify(donnees));
+  deplace.content[0].props.colonne2.push(deplace.content[0].props.colonne1.pop());
+  verifier("modifié : oui, si un bloc passe d'une colonne à l'autre", estModifie(deplace, reference), true);
+  const reglageChange = JSON.parse(JSON.stringify(donnees));
+  reglageChange.content[0].props.reglages = { fond: "rouge" };
+  verifier("modifié : oui, si un réglage change ; non si « Par défaut » → absent", [estModifie(reglageChange, reference), estModifie({ ...donnees, content: donnees.content.map((b) => ({ ...b, props: { ...b.props, reglages: b.props.reglages ?? {} } })) }, reference)], [true, false]);
+  const imbriqueInconnu = puckVersDocument({ content: [{ type: "Colonnes", props: { id: "C", nombre: 2, ecart: 16, colonne1: [{ type: "Carrousel", props: { x: 1 } }] } }], root: {} });
+  verifier("type inconnu dans une colonne : gardé et signalé (jamais retiré en silence)", (validerPage(imbriqueInconnu) as { erreurs: string[] }).erreurs, ["Bloc 1, colonne 1, bloc 1 : type de bloc inconnu."]);
+}
 
 // --- Francisation -----------------------------------------------------------------------------------------------------
 {

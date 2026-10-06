@@ -1,15 +1,109 @@
 /*
- * Pages à blocs du Studio (palier 3), rendues par src/components/studio/RenduPage.tsx dans .cms-page (/p/[slug]).
- * Direction B : encre sur fond clair, trait encre, aucune animation, jetons uniquement. Chargé après cms-public.css.
- * Les boutons reprennent .btn / .btn-primary / .btn-secondary (components.css).
+ * Pages à blocs du Studio (palier 3), rendues par src/components/studio/RenduBlocs.tsx dans .cms-page (/p/[slug]).
+ * Direction B : encre sur fond clair, trait encre, aucune animation, jetons uniquement (aucune couleur en dur).
+ * Chargé après cms-public.css. Les boutons reprennent .btn / .btn-primary / .btn-secondary (components.css).
+ *
+ * Réglages communs (tâche 8) : le rendu ne pose que des NOMS DE CLASSES (sb-eh-*, sb-eb-*, sb-al-*, sb-l-*, sb-fond-*,
+ * sb-vis-*) choisis dans des tables fermées (src/lib/studio/reglages.ts) : aucun style en ligne, donc compatible avec la
+ * CSP. Les couples fond/texte sont vérifiés (contraste AA) par scripts/tests/blocs.test.mts, qui lit CE fichier.
  */
+
+/* --- Largeur de la page : la colonne de texte de .cms-page (760 px) cède la place au conteneur du site, chaque bloc garde
+   760 px par défaut ; « large » et « pleine » peuvent la dépasser. (Navigateur sans :has : tout reste à 760 px.) --- */
+.cms-page:has(> .sb-page) {
+  max-width: none;
+}
 .sb-page > * {
   margin-top: 0;
   margin-bottom: 0;
+  max-width: 760px;
 }
 .sb-page > * + * {
   margin-top: var(--space-3);
 }
+
+/* --- Réglages : espaces. « En dessous » remplace aussi l'espace au-dessus du bloc suivant (les marges se confondent). --- */
+.sb-eb-0 + * { margin-top: 0; }
+.sb-eb-8 + * { margin-top: 0; }
+.sb-eb-16 + * { margin-top: 0; }
+.sb-eb-32 + * { margin-top: 0; }
+.sb-eb-64 + * { margin-top: 0; }
+.sb-eb-96 + * { margin-top: 0; }
+.sb-eb-0 { margin-bottom: 0; }
+.sb-eb-8 { margin-bottom: var(--space-2); }
+.sb-eb-16 { margin-bottom: var(--space-4); }
+.sb-eb-32 { margin-bottom: var(--space-8); }
+.sb-eb-64 { margin-bottom: calc(var(--space-8) * 2); }
+.sb-eb-96 { margin-bottom: calc(var(--space-8) * 3); }
+.sb-page > .sb-eh-0, .sb-colonne > .sb-eh-0 { margin-top: 0; }
+.sb-page > .sb-eh-8, .sb-colonne > .sb-eh-8 { margin-top: var(--space-2); }
+.sb-page > .sb-eh-16, .sb-colonne > .sb-eh-16 { margin-top: var(--space-4); }
+.sb-page > .sb-eh-32, .sb-colonne > .sb-eh-32 { margin-top: var(--space-8); }
+.sb-page > .sb-eh-64, .sb-colonne > .sb-eh-64 { margin-top: calc(var(--space-8) * 2); }
+.sb-page > .sb-eh-96, .sb-colonne > .sb-eh-96 { margin-top: calc(var(--space-8) * 3); }
+
+/* --- Réglages : contenu d'un bloc (conteneur posé seulement quand un réglage existe) --- */
+.sb-bloc > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.sb-bloc > * + * {
+  margin-top: var(--space-3);
+}
+.sb-al-gauche { text-align: left; }
+.sb-al-centre { text-align: center; }
+.sb-al-droite { text-align: right; }
+.sb-l-etroite { max-width: 520px; }
+.sb-l-normale { max-width: 760px; }
+.sb-l-large { max-width: 960px; }
+.sb-l-pleine { max-width: none; }
+/* Un bloc plus étroit que sa colonne se place selon l'alignement. */
+.sb-l-etroite.sb-al-centre, .sb-l-normale.sb-al-centre, .sb-l-large.sb-al-centre { margin-inline: auto; }
+.sb-l-etroite.sb-al-droite, .sb-l-normale.sb-al-droite, .sb-l-large.sb-al-droite { margin-left: auto; }
+
+/* Fonds : jeton du fond ET jeton du texte (couples contrôlés par le test de contraste). */
+.sb-fond {
+  padding: var(--space-5);
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+}
+.sb-fond-creme { background: var(--creme); color: var(--encre); }
+.sb-fond-surface { background: var(--surface); color: var(--encre); }
+.sb-fond-mangue { background: var(--mangue); color: var(--encre); }
+.sb-fond-rouge { background: var(--rouge); color: var(--surface); }
+.sb-fond-encre { background: var(--encre); color: var(--surface); }
+/* Titres, liens et textes d'un bloc à fond : la couleur du fond impose celle du texte. */
+.sb-fond .sb-titre,
+.sb-fond a:not(.btn),
+.sb-fond figcaption,
+.sb-fond cite {
+  color: inherit;
+}
+/* Sur un fond rouge ou encre, le bouton principal (dégradé rouge) se confondrait avec le fond : il passe en mangue. */
+.sb-fond-rouge .btn-primary,
+.sb-fond-encre .btn-primary {
+  background: var(--mangue);
+  color: var(--encre);
+  box-shadow: none;
+}
+/* Les cartes de restaurants gardent leur propre fond clair : leur texte reste foncé. */
+.sb-fond .pub-carte-resto {
+  color: var(--encre);
+}
+
+/* Visibilité : display:none (le contenu masqué n'est pas lu par les lecteurs d'écran). Téléphone < 768 px. */
+@media (min-width: 768px) {
+  .sb-vis-mobile {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .sb-vis-bureau {
+    display: none;
+  }
+}
+
+/* --- Blocs de base --- */
 .sb-titre {
   color: var(--encre);
   overflow-wrap: anywhere;
@@ -57,4 +151,131 @@
 }
 .sb-espace-96 {
   height: calc(var(--space-8) * 3);
+}
+
+/* --- Citation --- */
+.sb-citation {
+  margin: 0;
+  padding: var(--space-2) 0 var(--space-2) var(--space-4);
+  border-left: 5px solid var(--encre);
+  font-size: 1.15rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sb-citation p {
+  margin: 0;
+}
+.sb-citation cite {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: 0.95rem;
+  font-style: normal;
+  font-weight: 700;
+}
+.sb-citation cite::before {
+  content: "— ";
+}
+
+/* --- Image : cadre aux proportions fixes (aucun décalage de mise en page), « auto » garde celles de l'image --- */
+.sb-image {
+  margin: 0;
+}
+.sb-image-cadre {
+  overflow: hidden;
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+}
+.sb-image-cadre img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sb-ratio-carre { aspect-ratio: 1 / 1; }
+.sb-ratio-16-9 { aspect-ratio: 16 / 9; }
+.sb-ratio-4-3 { aspect-ratio: 4 / 3; }
+.sb-ratio-carre img,
+.sb-ratio-16-9 img,
+.sb-ratio-4-3 img {
+  height: 100%;
+}
+.sb-ajust-couvrir img { object-fit: cover; }
+.sb-ajust-contenir img { object-fit: contain; }
+.sb-image figcaption {
+  margin-top: var(--space-2);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+/* --- Colonnes : empilées dans l'ordre de lecture sur téléphone, côte à côte à partir de 768 px --- */
+.sb-colonnes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.sb-ecart-8 { gap: var(--space-2); }
+.sb-ecart-16 { gap: var(--space-4); }
+.sb-ecart-32 { gap: var(--space-8); }
+.sb-colonne {
+  min-width: 0;
+}
+.sb-colonne > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.sb-colonne > * + * {
+  margin-top: var(--space-3);
+}
+@media (min-width: 768px) {
+  .sb-colonnes-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sb-colonnes-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* --- FAQ : <details>/<summary>, sans JavaScript, dépliable au clavier --- */
+.sb-faq > * + * {
+  margin-top: var(--space-3);
+}
+.sb-faq-item {
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--encre);
+}
+.sb-faq-item > summary {
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.sb-faq-item > summary:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: -3px;
+}
+.sb-faq-reponse {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+/* --- Appel à l'action : le fond vient des réglages communs --- */
+.sb-cta > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.sb-cta > * + * {
+  margin-top: var(--space-3);
+}
+.sb-cta-texte {
+  overflow-wrap: anywhere;
+}
+
+/* --- Cartes de restaurants (le composant CartePub du site) --- */
+.sb-carte-resto {
+  max-width: 420px;
+}
+.sb-liste-restos > * + * {
+  margin-top: var(--space-4);
+}
+.sb-grille-cartes {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }

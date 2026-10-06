@@ -18,6 +18,7 @@ export const AVERTISSEMENTS_TRACE = {
   creation: `La page est créée, ${SUITE_TRACE}`,
   brouillon: `Le brouillon est enregistré, ${SUITE_TRACE}`,
   publication: (version: number) => `La page est publiée (version ${version}), ${SUITE_TRACE}`,
+  image: `L'image est téléversée, ${SUITE_TRACE}`,
   restauration: (version: number) => `La version ${version} est remise dans le brouillon, ${SUITE_TRACE}`,
 };
 

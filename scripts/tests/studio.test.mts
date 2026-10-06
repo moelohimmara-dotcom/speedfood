@@ -30,11 +30,13 @@ const titre = (props: Record<string, unknown> = {}) => ({ type: "Titre", props: 
 const bouton = (props: Record<string, unknown> = {}) => ({ type: "Bouton", props: { libelle: "Commander", lien: "/restaurants", style: "principal", ...props } });
 
 // --- Registre ----------------------------------------------------------------------------------------------------
-verifier("registre : 5 blocs dans l'ordre", REGISTRE.map((e) => e.type), ["Titre", "Paragraphe", "Bouton", "Separateur", "Espace"]);
+verifier("registre : 12 blocs dans l'ordre des familles", REGISTRE.map((e) => e.type), ["Titre", "Paragraphe", "Citation", "Image", "Colonnes", "Separateur", "Espace", "Bouton", "AppelAction", "FAQ", "CarteRestaurant", "ListeRestaurants"]);
 for (const e of REGISTRE) {
-  verifier(`registre : défauts valides (${e.type})`, e.schemaProps.safeParse(e.defauts).success, true);
-  verifier(`registre : page avec le bloc par défaut (${e.type})`, valide(page([{ type: e.type, props: e.defauts }])), true);
+  // Image et Carte de restaurant s'ajoutent « à compléter » (image ou restaurant à choisir) : leurs défauts ne sont pas encore valides.
+  verifier(`registre : défauts valides sauf bloc à compléter (${e.type})`, e.schemaProps.safeParse(e.defauts).success, !e.incomplet);
+  verifier(`registre : page avec le bloc par défaut (${e.type})`, valide(page([{ type: e.type, props: e.defauts }])), !e.incomplet);
 }
+verifier("registre : seuls Image et CarteRestaurant sont à compléter", REGISTRE.filter((e) => e.incomplet).map((e) => e.type), ["Image", "CarteRestaurant"]);
 verifier("pageVide valide, 0 bloc", [valide(pageVide()), compterBlocs(pageVide())], [true, 0]);
 
 // --- Blocs valides -----------------------------------------------------------------------------------------------
@@ -60,7 +62,7 @@ verifier("schemaPage accepte aussi la page complète", schemaPage.safeParse(comp
 verifier("200 blocs acceptés", valide(page(Array.from({ length: MAX_BLOCS_PAGE }, () => titre()))), true);
 
 // --- Refus -------------------------------------------------------------------------------------------------------
-verifier("type inconnu refusé", erreurs(page([{ type: "Image", props: {} }])), ["Bloc 1 : type de bloc inconnu."]);
+verifier("type inconnu refusé", erreurs(page([{ type: "Carrousel", props: {} }])), ["Bloc 1 : type de bloc inconnu."]);
 verifier("type __proto__ refusé", valide(page([{ type: "__proto__", props: {} }])), false);
 verifier("type constructor refusé", valide(page([{ type: "constructor", props: {} }])), false);
 verifier("type en minuscules refusé", valide(page([{ type: "titre", props: titre().props }])), false);
@@ -172,11 +174,14 @@ verifier("paragraphe : pas de titre (# reste du texte)", analyserParagraphe("# G
   const racine = process.env.SPEEDFOOD_RACINE ?? join(import.meta.dirname, "..", "..");
   const source = readFileSync(join(racine, "src/lib/studio/registre.ts"), "utf8");
   const imports = [...source.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map((m) => m[1]);
-  verifier("registre.ts : imports autorisés seulement", imports.filter((i) => !["zod/mini", "zod/v4/core", "../auth/redirection", "../cms/texte-riche"].includes(i)), []);
-  const rendu = readFileSync(join(racine, "src/components/studio/RenduPage.tsx"), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
-  verifier("RenduPage : aucun import de Puck", /puckeditor/.test(rendu), false);
-  verifier("RenduPage : composant serveur (pas de \"use client\")", /["']use client["']/.test(rendu), false);
-  verifier("RenduPage : aucun dangerouslySetInnerHTML", /dangerouslySetInnerHTML/.test(rendu), false);
+  verifier("registre.ts : imports autorisés seulement", imports.filter((i) => !["zod/mini", "zod/v4/core", "../auth/redirection", "../cms/texte-riche", "./reglages"].includes(i)), []);
+  for (const f of ["RenduBlocs", "RenduPage"]) {
+    const rendu = readFileSync(join(racine, `src/components/studio/${f}.tsx`), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    verifier(`${f} : aucun import de Puck`, /puckeditor/.test(rendu), false);
+    verifier(`${f} : composant serveur (pas de "use client")`, /["']use client["']/.test(rendu), false);
+    verifier(`${f} : aucun dangerouslySetInnerHTML`, /dangerouslySetInnerHTML/.test(rendu), false);
+    verifier(`${f} : aucun style en ligne construit`, /\bstyle=/.test(rendu), false);
+  }
 }
 
 if (ko) {

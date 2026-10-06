@@ -24,6 +24,11 @@ function franciserGlisser(racine: ParentNode) {
       if (francais !== noeud.nodeValue) noeud.nodeValue = francais;
     }
   }
+  // Le bouton « + » d'une liste (questions de la FAQ) est une icône seule : on lui donne un nom.
+  for (const el of racine.querySelectorAll('button[class*="ArrayField-addButton"]:not([aria-label])')) {
+    el.setAttribute("aria-label", "Ajouter un élément à la liste");
+    el.setAttribute("title", "Ajouter un élément à la liste");
+  }
   // Un bloc sans texte (séparateur, espace) rendu déplaçable par dnd-kit n'aurait aucun nom : on lui donne son type.
   for (const el of racine.querySelectorAll('[data-puck-component][role="button"]:not([aria-label])')) {
     if (!(el as HTMLElement).innerText?.trim()) el.setAttribute("aria-label", libelleDepuisIdentifiant(el.getAttribute("data-puck-component") ?? ""));
@@ -124,13 +129,13 @@ export function ChampsBloc({ children, itemSelector }: { children: ReactNode; is
     );
   }
   const entree = entreeRegistre(selection.type);
-  const aides = entree ? (Object.values(entree.champs) as ChampBloc[]).filter((c) => c.genre === "texteLong" && c.aide) : [];
+  const aides = entree ? (Object.values(entree.champs) as ChampBloc[]).filter((c): c is ChampBloc & { aide: string } => "aide" in c && typeof c.aide === "string" && c.aide !== "") : [];
   return (
     <div className="se-champs">
       {children}
       {aides.map((c) => (
         <p key={c.libelle} className="se-aide">
-          {c.genre === "texteLong" ? c.aide : null}
+          {c.aide}
         </p>
       ))}
     </div>

@@ -41,7 +41,7 @@ function signatureCorrespond(o: Uint8Array, type: string): boolean {
   return false;
 }
 
-export type DossierMedia = "restaurants" | "plats" | "bannieres" | "logos";
+export type DossierMedia = "restaurants" | "plats" | "bannieres" | "logos" | "studio";
 
 /**
  * Valide et téléverse une image, renvoie son URL publique.

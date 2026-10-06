@@ -463,3 +463,214 @@
   padding-top: var(--space-4);
   border-top: 2px solid var(--encre);
 }
+
+/* ===== Palier 3, tâche 8 : champs sur mesure (réglages, image, restaurant), colonnes, notes d'aperçu ===== */
+.se-saisie {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.se-saisie:disabled {
+  border-color: var(--bordure);
+  color: var(--secondaire);
+}
+.studio-editeur .se-saisie:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 1px;
+}
+.se-champ-erreur {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--danger-fond);
+  color: var(--encre);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.se-champ-info {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--encre);
+}
+.se-champ-info:empty {
+  display: none;
+}
+.se-aide-erreur {
+  color: var(--rouge-fonce);
+}
+
+/* Réglages d'un bloc : section repliable */
+.se-reglages {
+  padding: var(--space-3);
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.se-reglages-titre {
+  min-height: 32px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.se-reglages-compte {
+  font-weight: 600;
+  color: var(--secondaire);
+}
+.se-reglages-corps {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.se-reglages-titre:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+}
+
+/* Image : aperçu, actions, liste des images déjà téléversées */
+.se-image-apercu {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+}
+.se-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.se-fichier-cache {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+.se-images-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.se-image-choix {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+  cursor: pointer;
+}
+.se-image-choix img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.se-image-choix[aria-pressed="true"] {
+  outline: 3px solid var(--rouge);
+  outline-offset: 1px;
+}
+.se-image-choix:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+}
+
+/* Restaurant : résultat de recherche */
+.se-restaurant-choisi {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.se-resultats {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+.se-resultats .se-choix {
+  width: 100%;
+}
+.se-resultats .se-choix[aria-pressed="true"] {
+  background: var(--mangue);
+}
+.se-resultat-detail {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--secondaire);
+}
+
+/* Panneau « Blocs de la page » : colonnes imbriquées et familles du menu d'ajout */
+.se-colonnes-plan {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: 4px;
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--encre);
+}
+.se-colonne-plan {
+  display: grid;
+  gap: var(--space-2);
+}
+.studio-editeur .se-colonne-titre {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.se-menu-famille {
+  display: grid;
+  gap: 6px;
+}
+.se-menu-famille-titre {
+  margin: var(--space-1) 0 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--secondaire);
+}
+
+/* Aperçu : colonnes, blocs dynamiques, note de visibilité */
+.se-colonne-etiquette {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--secondaire);
+}
+.se-bloc-dynamique {
+  margin: 0;
+  padding: var(--space-3);
+  border: 2px dashed var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+  color: var(--encre);
+  font-weight: 700;
+}
+.se-note-visibilite {
+  margin: var(--space-2) 0 0;
+  padding: 2px var(--space-2);
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--encre);
+  font-size: 0.78rem;
+  font-weight: 800;
+}

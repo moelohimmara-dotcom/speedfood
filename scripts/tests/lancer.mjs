@@ -74,8 +74,11 @@ copier("src/lib/system-admin/paliers.ts");
 copier("scripts/tests/paliers.test.mts");
 copier("scripts/verifier-base-sql.ts");
 copier("scripts/tests/verifierbase.test.mts");
+copier("src/lib/studio/reglages.ts");
 copier("src/lib/studio/registre.ts");
+copier("src/lib/studio/image-champ.ts");
 copier("scripts/tests/studio.test.mts");
+copier("scripts/tests/blocs.test.mts");
 copier("src/lib/studio/apres-ecriture.ts");
 copier("scripts/tests/apresecriture.test.mts");
 copier("src/lib/studio/editeur-donnees.ts");
@@ -86,7 +89,7 @@ copier("src/lib/studio/concurrence.ts");
 copier("scripts/tests/editeur.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "verifierbase", "studio", "apresecriture", "editeur"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "verifierbase", "studio", "blocs", "apresecriture", "editeur"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }
