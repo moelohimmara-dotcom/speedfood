@@ -312,3 +312,14 @@
 .ad-app .mj-pied { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .ad-app .mj-interrupteur { display: flex; align-items: center; gap: var(--space-3); }
 .ad-app .mj-retour { margin: 0; min-height: 1.2em; font-size: 0.88rem; font-weight: 700; }
+
+/* ===== Textes du site (emplacements de contenu, Studio palier 1) ===== */
+.ad-app .ad-textes { display: grid; gap: var(--space-4); }
+.ad-app .ad-textes-champs { display: grid; gap: var(--space-4); margin-bottom: var(--space-4); }
+.ad-app .ad-texte-champ { display: grid; gap: 6px; margin: 0; }
+.ad-app .ad-texte-entete { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ad-app .ad-texte-entete label { margin: 0; font-weight: 800; }
+.ad-app .ad-texte-pied { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); font-size: 0.85rem; color: var(--secondaire); }
+.ad-app .ad-texte-defaut { overflow-wrap: anywhere; }
+.ad-app .ad-texte-compteur { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.ad-app .ad-texte-compteur-depasse { color: var(--rouge-fonce); font-weight: 800; }

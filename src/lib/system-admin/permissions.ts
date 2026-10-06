@@ -184,6 +184,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
       { href: "/system/contenu/pages", libelle: "Pages", permission: "contenu.editer" },
       { href: "/system/contenu/bannieres", libelle: "Bannières", permission: "contenu.editer" },
       { href: "/system/contenu/medias", libelle: "Médias", permission: "contenu.editer" },
+      { href: "/system/contenu/textes", libelle: "Textes du site", permission: "contenu.editer" },
     ],
   },
   {

@@ -63,9 +63,11 @@ copier("src/lib/cms/texte-riche.ts");
 copier("scripts/tests/texteriche.test.mts");
 copier("src/lib/cms/cache-regles.ts");
 copier("scripts/tests/cache.test.mts");
+copier("src/lib/cms/emplacements.ts");
+copier("scripts/tests/emplacements.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

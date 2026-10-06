@@ -119,6 +119,27 @@ export type Database = {
         }
         Relationships: []
       }
+      contenu_emplacements: {
+        Row: {
+          cle: string
+          mis_a_jour_le: string
+          mis_a_jour_par: string | null
+          valeur: string
+        }
+        Insert: {
+          cle: string
+          mis_a_jour_le?: string
+          mis_a_jour_par?: string | null
+          valeur: string
+        }
+        Update: {
+          cle?: string
+          mis_a_jour_le?: string
+          mis_a_jour_par?: string | null
+          valeur?: string
+        }
+        Relationships: []
+      }
       featured_placements: {
         Row: {
           actif: boolean

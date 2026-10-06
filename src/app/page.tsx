@@ -10,6 +10,7 @@ import {
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { lirePromesse } from "@/lib/parametres/promesse";
+import { lireTextes } from "@/lib/cms/textes";
 import { FAMILLES_ENVIE, lireAccueil, ticketExemple } from "@/lib/site/accueil";
 import { TicketVoyage } from "@/components/site/TicketVoyage";
 import { MotRoulant } from "@/components/site/MotRoulant";
@@ -47,32 +48,8 @@ const FLECHE = (
   </svg>
 );
 
-const ETAPES: { titre: string; texte: string; motif: string }[] = [
-  {
-    titre: "Choisir",
-    texte:
-      "Un restaurant de votre quartier, un plat, et l'heure à laquelle le restaurant l'a confirmé.",
-    motif: "etape-choisir",
-  },
-  {
-    titre: "Commander",
-    texte:
-      "Vous remplissez le panier et vous envoyez. Nom, téléphone, adresse : c'est tout.",
-    motif: "etape-commander",
-  },
-  {
-    titre: "Suivre",
-    texte:
-      "Un lien de suivi vous dit si la commande est en attente, acceptée, prête ou terminée.",
-    motif: "etape-suivre",
-  },
-  {
-    titre: "Recevoir",
-    texte:
-      "Retrait ou livraison selon le restaurant. Vous réglez directement avec lui.",
-    motif: "emporter",
-  },
-];
+/** Illustrations des quatre étapes ; les titres et textes sont des emplacements (accueil.etapes.*). */
+const MOTIFS_ETAPES = ["etape-choisir", "etape-commander", "etape-suivre", "emporter"] as const;
 
 function pastille(motif: string): ModeleIllustration {
   return {
@@ -86,10 +63,11 @@ function pastille(motif: string): ModeleIllustration {
 }
 
 export default async function AccueilPage() {
-  const [promesse, donnees, scenesActives] = await Promise.all([
+  const [promesse, donnees, scenesActives, t] = await Promise.all([
     lirePromesse(),
     lireAccueil(),
     fonctionnaliteActive("scenes_envie_accueil"),
+    lireTextes(),
   ]);
   const { ouverts, quartiers, suggestions, restaurants, platsParRestaurant } =
     donnees;
@@ -111,6 +89,13 @@ export default async function AccueilPage() {
       />
     ),
   }));
+
+  const etapes = [
+    { titre: t["accueil.etapes.choisir_titre"], texte: t["accueil.etapes.choisir_texte"], motif: MOTIFS_ETAPES[0] },
+    { titre: t["accueil.etapes.commander_titre"], texte: t["accueil.etapes.commander_texte"], motif: MOTIFS_ETAPES[1] },
+    { titre: t["accueil.etapes.suivre_titre"], texte: t["accueil.etapes.suivre_texte"], motif: MOTIFS_ETAPES[2] },
+    { titre: t["accueil.etapes.recevoir_titre"], texte: t["accueil.etapes.recevoir_texte"], motif: MOTIFS_ETAPES[3] },
+  ];
 
   const ticket = ticketExemple(donnees);
   const mises = (ouverts.length >= 3 ? ouverts : restaurants).slice(0, 3);
@@ -134,48 +119,47 @@ export default async function AccueilPage() {
             <p className="pub-kicker pub-kicker-encre">{promesse.signature}</p>
             <h1 id="accueil-titre" className="pub-titre pub-accueil-h1">
               {/* Phrase complète et stable pour les lecteurs d'écran ; le mot qui change est purement visuel. */}
-              <span className="sr-only">Une envie d&apos;un bon plat&nbsp;? Speedfood s&apos;en occupe.</span>
+              <span className="sr-only">{t["accueil.hero.titre_lecteur"]}</span>
               <span aria-hidden="true">
-                Une envie de{" "}
+                {t["accueil.hero.titre_debut"]}{" "}
                 <span className="pub-nowrap">
                   <MotRoulant mots={MOTS_ENVIE} />&nbsp;?
                 </span>{" "}
-                Speedfood s&apos;en occupe.
+                {t["accueil.hero.titre_fin"]}
               </span>
             </h1>
             <p className="pub-accueil-lead">{promesse.sousTitre}</p>
             <div className="pub-accueil-actions">
               <Link href="/restaurants" className="pub-btn boucle boucle-cta">
-                Je commande
+                {t["accueil.hero.bouton_commander"]}
                 <span className="pub-btn-point" aria-hidden="true">
                   {FLECHE}
                 </span>
               </Link>
               <Link href="/comment-ca-marche" className="pub-btn pub-btn-clair">
-                Comment ça marche
+                {t["accueil.hero.bouton_fonctionnement"]}
               </Link>
             </div>
             <p className="pub-accueil-preuve-ligne">
-              Ce plat est-il vraiment disponible&nbsp;? <span className="pub-surligne">L&apos;heure le dit.</span>
+              {t["accueil.hero.preuve_question"] + " "}<span className="pub-surligne">{t["accueil.hero.preuve_reponse"]}</span>
             </p>
           </div>
-          <aside className="pub-accueil-envie" aria-label="Une idée de plat">
+          <aside className="pub-accueil-envie" aria-label={t["accueil.hero.encart_aria"]}>
             {envies.length > 0 ? (
               <SelecteurEnvie envies={envies} scenes={scenesActives} />
             ) : (
               <div className="pub-envie">
-                <p className="pub-kicker">En ce moment</p>
+                <p className="pub-kicker">{t["accueil.vide.kicker"]}</p>
                 <p className="pub-envie-plat">
-                  Aucun restaurant n&apos;est ouvert pour l&apos;instant.
+                  {t["accueil.vide.titre"]}
                 </p>
                 <p className="pub-envie-resto">
-                  Revenez un peu plus tard, ou découvrez les cartes en
-                  attendant.
+                  {t["accueil.vide.texte"]}
                 </p>
               </div>
             )}
             <span className="pub-autocollant pub-accueil-sticker boucle">
-              Chaque plat porte son heure de confirmation
+              {t["accueil.hero.macaron"]}
             </span>
           </aside>
         </section>
@@ -197,11 +181,11 @@ export default async function AccueilPage() {
           >
             <div className="pub-entete-rubrique">
               <p className="pub-kicker">
-                {ouverts.length >= 3 ? "Ouverts en ce moment" : "Au catalogue"}
+                {ouverts.length >= 3 ? t["accueil.carte.kicker_ouverts"] : t["accueil.carte.kicker_catalogue"]}
               </p>
               <h2 id="accueil-carte" className="pub-titre pub-h2">
-                Des tables de quartier,{" "}
-                <span className="pub-surligne">pas des enseignes</span>
+                {t["accueil.carte.titre_debut"]}{" "}
+                <span className="pub-surligne">{t["accueil.carte.titre_surligne"]}</span>
               </h2>
             </div>
             <div className="pub-grille-cartes">
@@ -216,7 +200,7 @@ export default async function AccueilPage() {
             </div>
             <div>
               <Link href="/restaurants" className="pub-btn pub-btn-clair">
-                Tous les restaurants
+                {t["accueil.carte.bouton_tous"]}
                 <span className="pub-btn-point" aria-hidden="true">
                   {FLECHE}
                 </span>
@@ -232,9 +216,9 @@ export default async function AccueilPage() {
               aria-labelledby="accueil-quartiers"
             >
               <div className="pub-entete-rubrique">
-                <p className="pub-kicker">Où nous trouver</p>
+                <p className="pub-kicker">{t["accueil.quartiers.kicker"]}</p>
                 <h2 id="accueil-quartiers" className="pub-titre pub-h2">
-                  Votre quartier d&apos;abord
+                  {t["accueil.quartiers.titre"]}
                 </h2>
               </div>
               <ul className="pub-quartiers">
@@ -267,13 +251,13 @@ export default async function AccueilPage() {
           aria-labelledby="accueil-etapes"
         >
           <div className="pub-entete-rubrique">
-            <p className="pub-kicker">Quatre étapes</p>
+            <p className="pub-kicker">{t["accueil.etapes.kicker"]}</p>
             <h2 id="accueil-etapes" className="pub-titre pub-h2">
-              Du choix à <span className="pub-surligne">l&apos;assiette</span>
+              {t["accueil.etapes.titre_debut"] + " "}<span className="pub-surligne">{t["accueil.etapes.titre_surligne"]}</span>
             </h2>
           </div>
           <ol className="pub-etapes">
-            {ETAPES.map((e, i) => (
+            {etapes.map((e, i) => (
               <li key={e.titre} className="pub-etape">
                 <span className="pub-etape-visuel">
                   <Illustration
@@ -291,7 +275,7 @@ export default async function AccueilPage() {
           </ol>
           <div>
             <Link href="/comment-ca-marche" className="pub-btn">
-              Voir le détail
+              {t["accueil.etapes.bouton_detail"]}
               <span className="pub-btn-point" aria-hidden="true">
                 {FLECHE}
               </span>
@@ -307,15 +291,13 @@ export default async function AccueilPage() {
             >
               <div className="pub-section-ticket">
                 <div className="pub-entete-rubrique">
-                  <p className="pub-kicker">Votre commande, en direct</p>
+                  <p className="pub-kicker">{t["accueil.suivi.kicker"]}</p>
                   <h2 id="accueil-ticket" className="pub-titre pub-h2">
-                    Vous savez toujours{" "}
-                    <span className="pub-surligne">où elle en est</span>
+                    {t["accueil.suivi.titre_debut"]}{" "}
+                    <span className="pub-surligne">{t["accueil.suivi.titre_surligne"]}</span>
                   </h2>
                   <p className="pub-accueil-lead">
-                    Après l&apos;envoi, un lien de suivi vous dit si la commande
-                    est en attente, acceptée, prête ou terminée. Voici un
-                    exemple, avec les plats d&apos;un restaurant ouvert.
+                    {t["accueil.suivi.texte"]}
                   </p>
                 </div>
                 <TicketVoyage
@@ -345,22 +327,21 @@ export default async function AccueilPage() {
               </span>
               <div>
                 <p className="pub-kicker pub-kicker-encre">
-                  Vous tenez un restaurant ?
+                  {t["accueil.pro.kicker"]}
                 </p>
                 <h2 id="accueil-pro" className="pub-titre pub-h2">
-                  Votre carte en ligne,{" "}
+                  {t["accueil.pro.titre_debut"]}{" "}
                   <span className="pub-surligne-blanc">
-                    sans intermédiaire de paiement
+                    {t["accueil.pro.titre_surligne"]}
                   </span>
                 </h2>
                 <p className="pub-accueil-lead pub-lead-encre">
-                  Créez votre fiche, nous la contrôlons, vos clients du quartier
-                  la trouvent. Vous encaissez directement.
+                  {t["accueil.pro.texte"]}
                 </p>
               </div>
             </div>
             <Link href="/devenir-partenaire" className="pub-btn pub-btn-clair">
-              Devenir partenaire
+              {t["accueil.pro.bouton"]}
               <span className="pub-btn-point" aria-hidden="true">
                 {FLECHE}
               </span>
