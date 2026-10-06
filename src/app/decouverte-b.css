@@ -31,39 +31,26 @@
     font-size: clamp(2.1rem, 3.6vw, 3.1rem);
     max-width: 22ch;
   }
-  .theme-public .decouverte-collage {
-    height: 236px;
-  }
 }
 
-/* ===== Collage de photos : contour épais, ombre décalée, flottement discret ===== */
-.theme-public .decouverte-collage img {
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: var(--radius-lg);
-  box-shadow: 5px 5px 0 var(--encre);
-}
-@keyframes collage-flotte-1 {
-  0%, 100% { transform: rotate(-3deg) translateY(0); }
-  50% { transform: rotate(-2deg) translateY(-6px); }
-}
-@keyframes collage-flotte-2 {
-  0%, 100% { transform: rotate(2.5deg) translateY(0); }
-  50% { transform: rotate(3.4deg) translateY(-8px); }
-}
-@keyframes collage-flotte-3 {
-  0%, 100% { transform: rotate(-1.5deg) translateY(0); }
-  50% { transform: rotate(-0.6deg) translateY(-5px); }
+/* ===== Illustration de l'accroche (ordinateur seulement) ===== */
+.decouverte-vecteur {
+  display: none;
 }
 @media (min-width: 900px) {
-  .theme-public .decouverte-collage img:nth-child(1) { animation: collage-flotte-1 7s ease-in-out infinite; }
-  .theme-public .decouverte-collage img:nth-child(2) { animation: collage-flotte-2 8.5s ease-in-out infinite; animation-delay: -2s; }
-  .theme-public .decouverte-collage img:nth-child(3) { animation: collage-flotte-3 6.5s ease-in-out infinite; animation-delay: -4s; }
-}
-.theme-public .boucle.hors-ecran img,
-html[data-cache] .theme-public .decouverte-collage img { animation-play-state: paused !important; }
-@media (prefers-reduced-motion: reduce) {
-  .theme-public .decouverte-collage img,
-  .accueil-preuve-point.boucle { animation: none !important; }
+  .decouverte-vecteur {
+    display: block;
+    align-self: center;
+  }
+  .theme-public .decouverte-bandeau-interieur {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: var(--space-8);
+    align-items: center;
+  }
+  .decouverte-vecteur .vec {
+    max-width: 480px;
+  }
 }
 
 /* ===== « En ce moment » : le point vert respire ===== */
@@ -346,3 +333,23 @@ html[data-cache] .theme-public .decouverte-collage img { animation-play-state: p
   margin-top: var(--space-4);
 }
 .squelette-decouverte .squelette-carte { height: 260px; border-radius: var(--radius-lg); }
+
+/* ===== Zone de sécurité entre le contenu et le pied de page ===== */
+/* Les dernières cartes (et leur ombre décalée) ne touchent plus le pied de page : un espace dégagé les en sépare, sur toutes les pages
+   du site public. Sur téléphone, la réserve de la navigation basse est portée par le pied lui-même (voir cadre.css). */
+.theme-public {
+  --zone-securite-pied: clamp(48px, 6vw, 88px);
+}
+.theme-public .cadre-site-contenu {
+  padding-bottom: var(--zone-securite-pied);
+}
+.theme-public .site-pied {
+  margin-top: 0;
+}
+
+/* Mouvement réduit : le point « en ce moment » reste fixe. */
+@media (prefers-reduced-motion: reduce) {
+  .accueil-preuve-point.boucle {
+    animation: none !important;
+  }
+}

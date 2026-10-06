@@ -3,6 +3,7 @@ import { creerClientPublic } from "@/lib/db/public";
 import { BarreFiltres, type OptionFiltre } from "@/components/site/BarreFiltres";
 import { RecherchesRecentes } from "@/components/site/RecherchesRecentes";
 import { CarrouselVedettes } from "@/components/site/CarrouselVedettes";
+import { VecteurDecouverte } from "@/components/site/vecteurs/VecteurDecouverte";
 import { VecteurIntrouvable } from "@/components/site/vecteurs/VecteurIntrouvable";
 import { RestaurantCard, type PlatCarte } from "@/components/RestaurantCard";
 import { Alert } from "@/components/ui";
@@ -139,14 +140,10 @@ export default async function CataloguePage({
             </Link>
           </div>
           </div>
-          {recherche.vedettes.length >= 3 ? (
-            <div className="decouverte-collage boucle" aria-hidden="true">
-              {recherche.vedettes.slice(0, 3).map((vedette) => (
-                // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
-                <img key={vedette.platId} src={vedette.photoUrl} alt="" />
-              ))}
-            </div>
-          ) : null}
+          {/* Illustration vectorielle animée (ordinateur) : une loupe qui passe de plat en plat, en rapport avec la rubrique. */}
+          <div className="decouverte-vecteur" aria-hidden="true">
+            <VecteurDecouverte />
+          </div>
         </div>
       </section>
 

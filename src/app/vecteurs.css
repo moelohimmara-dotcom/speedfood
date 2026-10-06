@@ -167,3 +167,16 @@ html[data-eco] .vec * {
   margin: 0 auto var(--space-4);
 }
 .vec-vide .vec { max-width: 280px; }
+
+/* Loupe de la page Restaurants : va et vient au-dessus des trois plats, avec un arrêt sur chacun. */
+@keyframes v-loupe {
+  0%, 6% { transform: translateX(-130px) scale(1); }
+  14% { transform: translateX(-130px) scale(1.1); }
+  22%, 34% { transform: translateX(-130px) scale(1); }
+  42% { transform: translateX(0) scale(1.1); }
+  50%, 60% { transform: translateX(0) scale(1); }
+  68% { transform: translateX(130px) scale(1.1); }
+  76%, 86% { transform: translateX(130px) scale(1); }
+  100% { transform: translateX(-130px) scale(1); }
+}
+.v-loupe { transform-box: fill-box; transform-origin: 50% 50%; animation: v-loupe 9s ease-in-out infinite; }
