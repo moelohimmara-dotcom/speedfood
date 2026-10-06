@@ -7,6 +7,7 @@ import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { invaliderCache } from "@/lib/cms/cache";
 import { slugValide } from "@/lib/cms/lecture";
 import { pageVide, validerPage } from "@/lib/studio/registre";
+import { AVERTISSEMENTS_TRACE, finaliserEcriture } from "@/lib/studio/apres-ecriture";
 import { verifierPermission, type ContexteSysteme } from "./contexte";
 import { verifierPalier } from "./paliers-serveur";
 import { MINIMUMS_STUDIO } from "./paliers";
@@ -24,6 +25,9 @@ import { journaliserActionSysteme } from "./audit";
  * SESSION de la personne (RLS et triggers s'appliquent). Le brouillon n'est lisible par aucun rôle de l'API (droits de
  * colonne) : il est lu avec la clé de service, seulement après les contrôles et après avoir vérifié avec la session que
  * la page est visible pour la personne. Un `pageId` reçu du navigateur n'est jamais une autorisation.
+ *
+ * Après une écriture réussie : invalidation du cache (contenu publié) PUIS trace d'audit, par `finaliserEcriture`. Une
+ * trace en échec n'annule rien et ne fait pas croire à un refus : `ok: true` avec un `avertissement` exact (revue 6, I1).
  */
 
 export interface EtatBlocs {
@@ -33,6 +37,8 @@ export interface EtatBlocs {
   erreurs?: string[];
   version?: number;
   id?: string;
+  /** L'écriture a eu lieu, mais sa trace d'audit n'a pas pu être écrite (message exact à afficher). */
+  avertissement?: string;
 }
 
 export interface VersionPage {
@@ -110,15 +116,21 @@ export async function creerPageBlocsAction(titreSaisi: string, slugSaisi: string
     if (error) {
       return { ok: false, erreur: error.code === "23505" ? "Ce slug existe déjà." : messageBase(error, "Impossible de créer la page.") };
     }
-    await journaliserActionSysteme(contexte, {
-      action: "contenu.page_creation",
-      cibleType: "content_page",
-      cibleId: data.id,
-      motif: `${slug} (blocs)`,
-    });
-    await invaliderCache([`page:${slug}`]);
+    const fin = await finaliserEcriture(
+      {
+        invalider: () => invaliderCache([`page:${slug}`]),
+        journaliser: () =>
+          journaliserActionSysteme(contexte, {
+            action: "contenu.page_creation",
+            cibleType: "content_page",
+            cibleId: data.id,
+            motif: `${slug} (blocs)`,
+          }),
+      },
+      AVERTISSEMENTS_TRACE.creation
+    );
     revalidatePath("/system/contenu/pages");
-    return { ok: true, id: data.id };
+    return { ok: true, id: data.id, ...fin };
   } catch (erreur) {
     return echec(erreur);
   }
@@ -150,15 +162,21 @@ export async function enregistrerBrouillonBlocsAction(pageId: string, json: unkn
     if (error) return { ok: false, erreur: messageBase(error, "Impossible d'enregistrer le brouillon.") };
     if (!modifiees || modifiees.length === 0) return { ok: false, erreur: limite ? MESSAGE_EN_LIGNE : "Page introuvable." };
 
-    await journaliserActionSysteme(contexte, {
-      action: "contenu.blocs_brouillon",
-      cibleType: "content_page",
-      cibleId: pageId,
-      motif: `${validation.page.content.length} bloc(s)`,
-    });
     // Pas d'invalidation du cache public : un brouillon n'y entre jamais.
+    const fin = await finaliserEcriture(
+      {
+        journaliser: () =>
+          journaliserActionSysteme(contexte, {
+            action: "contenu.blocs_brouillon",
+            cibleType: "content_page",
+            cibleId: pageId,
+            motif: `${validation.page.content.length} bloc(s)`,
+          }),
+      },
+      AVERTISSEMENTS_TRACE.brouillon
+    );
     revalidatePath(`/system/contenu/pages/${pageId}`);
-    return { ok: true };
+    return { ok: true, ...fin };
   } catch (erreur) {
     return echec(erreur);
   }
@@ -199,16 +217,23 @@ export async function publierBlocsAction(pageId: string, motif?: string): Promis
       return { ok: false, erreur: messageBase(error ?? {}, "Impossible de publier la page.") };
     }
 
-    await journaliserActionSysteme(contexte, {
-      action: "contenu.blocs_publication",
-      cibleType: "content_page",
-      cibleId: pageId,
-      motif: motifPropre ? `version ${version} : ${motifPropre}` : `version ${version}`,
-    });
-    await invaliderCache([`page:${page.slug}`]);
+    // La page est en ligne : le cache est invalidé AVANT la trace, quoi qu'il arrive à celle-ci (revue 6, I1).
+    const fin = await finaliserEcriture(
+      {
+        invalider: () => invaliderCache([`page:${page.slug}`]),
+        journaliser: () =>
+          journaliserActionSysteme(contexte, {
+            action: "contenu.blocs_publication",
+            cibleType: "content_page",
+            cibleId: pageId,
+            motif: motifPropre ? `version ${version} : ${motifPropre}` : `version ${version}`,
+          }),
+      },
+      AVERTISSEMENTS_TRACE.publication(version)
+    );
     revalidatePath("/system/contenu/pages");
     revalidatePath(`/system/contenu/pages/${pageId}`);
-    return { ok: true, version };
+    return { ok: true, version, ...fin };
   } catch (erreur) {
     return echec(erreur);
   }
@@ -249,14 +274,20 @@ export async function restaurerVersionAction(pageId: string, version: number): P
     if (error) return { ok: false, erreur: messageBase(error, "Impossible de restaurer cette version.") };
     if (!modifiees || modifiees.length === 0) return { ok: false, erreur: "Page introuvable." };
 
-    await journaliserActionSysteme(contexte, {
-      action: "contenu.blocs_restauration",
-      cibleType: "content_page",
-      cibleId: pageId,
-      motif: `version ${version} remise dans le brouillon`,
-    });
+    const fin = await finaliserEcriture(
+      {
+        journaliser: () =>
+          journaliserActionSysteme(contexte, {
+            action: "contenu.blocs_restauration",
+            cibleType: "content_page",
+            cibleId: pageId,
+            motif: `version ${version} remise dans le brouillon`,
+          }),
+      },
+      AVERTISSEMENTS_TRACE.restauration(version)
+    );
     revalidatePath(`/system/contenu/pages/${pageId}`);
-    return { ok: true, version };
+    return { ok: true, version, ...fin };
   } catch (erreur) {
     return echec(erreur);
   }
