@@ -13,6 +13,7 @@ import { lirePromesse } from "@/lib/parametres/promesse";
 import { FAMILLES_ENVIE, lireAccueil, ticketExemple } from "@/lib/site/accueil";
 import { TicketVoyage } from "@/components/site/TicketVoyage";
 import { MotRoulant } from "@/components/site/MotRoulant";
+import { BandeauAnnonces } from "@/components/site/BandeauAnnonces";
 import {
   PALETTES,
   type Illustration as ModeleIllustration,
@@ -121,6 +122,7 @@ export default async function AccueilPage() {
   return (
     <CadreSite>
       <main className="pub-accueil">
+        <BandeauAnnonces />
         <section
           className="pub-conteneur pub-accueil-hero"
           aria-labelledby="accueil-titre"

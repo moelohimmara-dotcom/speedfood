@@ -59,9 +59,11 @@ copier("src/lib/paiement/documents-regles.ts");
 copier("src/lib/partage/scans.ts");
 copier("src/lib/commande/mode.ts");
 copier("scripts/tests/documents.test.mts");
+copier("src/lib/cms/texte-riche.ts");
+copier("scripts/tests/texteriche.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit" });
   statut = statut || (resultat.status ?? 1);
 }

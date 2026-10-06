@@ -1,0 +1,52 @@
+/*
+ * Contenus du CMS visibles sur le site public (Studio, palier 0) : bandeau d'annonces de l'accueil et pages /p/[slug].
+ * Direction B : fond mangue, trait encre, aucune animation. Chargé après envie-b.css.
+ */
+.cms-annonces {
+  margin: 0;
+  padding: 0;
+}
+.cms-annonces-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cms-annonce {
+  background: var(--mangue);
+  color: var(--encre);
+  border-bottom: 2.5px solid var(--encre);
+  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+}
+.cms-annonce-texte {
+  margin: 0 auto;
+  max-width: 1100px;
+  overflow-wrap: anywhere;
+}
+.cms-annonce a {
+  color: var(--encre);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.cms-page {
+  max-width: 760px;
+  overflow-wrap: anywhere;
+}
+.cms-apercu {
+  background: var(--mangue);
+  color: var(--encre);
+  border: 2.5px solid var(--encre);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-4);
+  font-weight: 700;
+}
+.cms-texte > * + * {
+  margin-top: var(--space-3);
+}
+.cms-texte ul {
+  padding-left: 1.25em;
+}
+.cms-texte a {
+  text-decoration: underline;
+}

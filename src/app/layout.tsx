@@ -26,6 +26,7 @@ import "./boucles.css";
 import "./vecteurs.css";
 import "./decouverte-b.css";
 import "./envie-b.css";
+import "./cms-public.css";
 import { FichiersAnimes } from "@/components/FichiersAnimes";
 
 // next/font auto-héberge les polices au build (aucune requête vers Google Fonts au runtime) :
