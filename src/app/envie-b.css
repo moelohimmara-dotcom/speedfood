@@ -1,0 +1,175 @@
+/*
+ * « Votre envie du moment ? » (accueil), direction B : une scène vectorielle animée par famille de plats, qui change au rythme des puces.
+ * La puce active clignote à son tour puis une barre se remplit dessous (elle annonce le prochain changement) ; un clic arrête le défilement.
+ * Tout mouvement : transform et opacité seulement, en pause hors écran / onglet masqué / interrupteur du pied, coupé en mouvement réduit.
+ * Chargé après public-pages.css, boucles.css et vecteurs.css.
+ */
+
+/* ===== Macaron « heure de confirmation » : posé au-dessus de la carte, il ne rogne plus rien ===== */
+.pub-accueil-envie {
+  padding-top: 34px;
+}
+.theme-public .pub-accueil-envie .pub-accueil-sticker {
+  top: 0;
+  right: 18px;
+  z-index: 4;
+}
+
+/* ===== Carte ===== */
+.pub-envie {
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+@media (min-width: 960px) {
+  .pub-envie {
+    padding: var(--space-5);
+    margin-bottom: -40px;
+  }
+}
+.pub-envie-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.pub-envie-tete .pub-kicker {
+  margin: 0;
+}
+.pub-envie-pause {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--encre);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), background 0.2s;
+}
+.pub-envie-pause:hover {
+  transform: translateY(-2px);
+  background: var(--mangue);
+}
+.pub-envie-pause:focus-visible,
+.pub-puce:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+
+/* ===== Puces : barre de progression + clignotement à l'activation ===== */
+.pub-puce {
+  position: relative;
+  overflow: hidden;
+  min-height: 44px;
+  cursor: pointer;
+}
+.pub-puce::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--mangue);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+.pub-puce-defile::after {
+  animation: envie-progres var(--duree-envie, 4200ms) linear forwards;
+}
+@keyframes envie-progres {
+  to { transform: scaleX(1); }
+}
+.pub-puce[aria-pressed="true"] {
+  animation: envie-clignote 0.9s steps(1, end) 1;
+}
+@keyframes envie-clignote {
+  0%, 40%, 80% { box-shadow: 0 0 0 4px var(--mangue); }
+  20%, 60%, 100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ===== Scène ===== */
+.pub-envie-scene {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 360 / 190;
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 4px 4px 0 var(--encre);
+  background: var(--mangue);
+  transition: background 0.35s var(--ease);
+}
+.pub-envie-scene[data-famille="riz"] { background: var(--mangue); }
+.pub-envie-scene[data-famille="grill"] { background: var(--rouge-fonce); }
+.pub-envie-scene[data-famille="fast"] { background: var(--orange); }
+.pub-envie-scene[data-famille="cafe"] { background: var(--creme); }
+.pub-envie-scene-interieur {
+  position: absolute;
+  inset: 0;
+  animation: envie-entree 0.55s var(--ease) both;
+}
+.pub-envie-scene .vec {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+}
+@keyframes envie-entree {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ===== Résultat ===== */
+.pub-envie-resultat {
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.pub-envie-visuel svg {
+  width: 72px;
+  height: 72px;
+}
+.pub-envie-plat {
+  font-size: 1.3rem;
+}
+
+/* ===== Mouvements des scènes ===== */
+.v-saute, .v-flamme { transform-box: fill-box; }
+@keyframes v-saute {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-12px); }
+  55% { transform: translateY(0); }
+  65% { transform: translateY(-4px); }
+  75% { transform: translateY(0); }
+}
+.v-saute { animation: v-saute 2.4s ease-in-out infinite; }
+@keyframes v-flamme {
+  0%, 100% { transform: scale(1, 1); }
+  30% { transform: scale(0.88, 1.18); }
+  65% { transform: scale(1.08, 0.9); }
+}
+.v-flamme { transform-origin: 50% 100%; animation: v-flamme 0.9s ease-in-out infinite; }
+
+/* Pauses : hors écran, onglet masqué, interrupteur du pied ; arrêt total en mouvement réduit. */
+.boucle.hors-ecran .pub-puce-defile::after,
+.boucle.hors-ecran .pub-envie-scene-interieur,
+html[data-cache] .pub-puce-defile::after {
+  animation-play-state: paused;
+}
+html[data-calme] .pub-puce-defile::after,
+html[data-eco] .pub-puce-defile::after,
+html[data-calme] .pub-puce,
+html[data-eco] .pub-puce {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-puce,
+  .pub-puce-defile::after,
+  .pub-envie-scene-interieur {
+    animation: none !important;
+  }
+  .pub-envie-scene { transition: none; }
+}
