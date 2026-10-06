@@ -1,0 +1,60 @@
+/*
+ * Pages à blocs du Studio (palier 3), rendues par src/components/studio/RenduPage.tsx dans .cms-page (/p/[slug]).
+ * Direction B : encre sur fond clair, trait encre, aucune animation, jetons uniquement. Chargé après cms-public.css.
+ * Les boutons reprennent .btn / .btn-primary / .btn-secondary (components.css).
+ */
+.sb-page > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.sb-page > * + * {
+  margin-top: var(--space-3);
+}
+.sb-titre {
+  color: var(--encre);
+  overflow-wrap: anywhere;
+}
+.sb-centre {
+  text-align: center;
+}
+.sb-paragraphe > * {
+  margin: 0;
+}
+.sb-paragraphe > * + * {
+  margin-top: var(--space-3);
+}
+.sb-paragraphe ul {
+  padding-left: 1.25em;
+}
+.sb-paragraphe a {
+  text-decoration: underline;
+}
+.sb-bouton .btn {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.sb-separateur {
+  border: 0;
+  border-top: 2.5px solid var(--encre);
+  height: 0;
+}
+.sb-separateur-vide {
+  height: var(--space-4);
+}
+.sb-espace-8 {
+  height: var(--space-2);
+}
+.sb-espace-16 {
+  height: var(--space-4);
+}
+.sb-espace-32 {
+  height: var(--space-8);
+}
+.sb-espace-64 {
+  height: calc(var(--space-8) * 2);
+}
+.sb-espace-96 {
+  height: calc(var(--space-8) * 3);
+}

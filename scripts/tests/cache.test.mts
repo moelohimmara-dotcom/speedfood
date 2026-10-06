@@ -233,6 +233,13 @@ verifier("TTL invalide : repli sur 60", [ttlEffectif({}, 0), ttlEffectif({}, -3)
   verifier("lecture.ts n'a aucun accès à un statut brouillon", /brouillon/.test(lecture.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")), false);
   const page = readFileSync(join(racine, "src/app/p/[slug]/page.tsx"), "utf8");
   verifier("p/[slug] n'enveloppe pas resoudre dans le cache", /lireAvecCache/.test(page), false);
+  // Pages à blocs (palier 3) : le chemin mis en cache ne lit que la version publiée, en colonnes explicites.
+  verifier("lecture.ts ne mentionne pas blocs_brouillon (même en commentaire)", /blocs_brouillon/.test(lecture), false);
+  verifier("lecture.ts ne lit jamais toutes les colonnes", /select\(\s*["'`]\s*\*/.test(lecture), false);
+  verifier("lecture.ts : la page publiée lit format et blocs_publie", /\.select\("slug, titre, contenu, publie_le, format, blocs_publie"\)/.test(lecture), true);
+  for (const rel of ["src/lib/cms/cache.ts", "src/lib/cms/cache-regles.ts"]) {
+    verifier(`${rel} ne mentionne pas blocs_brouillon`, /blocs_brouillon/.test(readFileSync(join(racine, rel), "utf8")), false);
+  }
 }
 
 // --- Erreur de base : jamais mise en cache comme « absence » (revue 2, I1) -------------------------------------------

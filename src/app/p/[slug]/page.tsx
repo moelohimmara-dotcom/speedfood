@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CadreSite } from "@/components/CadreSite";
 import { TexteRiche } from "@/components/site/TexteRiche";
+import { RenduPage } from "@/components/studio/RenduPage";
 import { lirePagePubliee, slugValide, type PagePubliee } from "@/lib/cms/lecture";
 import { lirePageApercu } from "@/lib/cms/apercu";
+import { validerPage, type ResultatValidation } from "@/lib/studio/registre";
 import { chargerContexteSysteme } from "@/lib/system-admin/contexte";
 import { roleAPermission } from "@/lib/system-admin/permissions";
 
@@ -28,22 +30,45 @@ async function peutVoirApercu(): Promise<boolean> {
   }
 }
 
-/** Page à afficher et indicateur d'aperçu. Le brouillon n'est lu qu'avec `?apercu=1` ET la permission vérifiée côté serveur. */
-async function resoudre(
-  slug: string,
-  apercuDemande: boolean
-): Promise<{ page: PagePubliee; brouillon: boolean } | null> {
+/**
+ * Page à afficher. Pages de texte : comportement d'avant (publiée, sinon brouillon avec `?apercu=1` pour l'équipe).
+ * Pages à blocs (palier 3) : le public voit `blocs_publie` VALIDÉ, sinon 404 (jamais de rendu partiel) ; l'équipe, avec
+ * `?apercu=1`, voit le document de travail même si la page est en ligne, ou la liste des erreurs s'il est invalide.
+ */
+type Resolution =
+  | { format: "texte"; page: PagePubliee; brouillon: boolean }
+  | { format: "blocs"; titre: string; apercu: false; validation: Extract<ResultatValidation, { ok: true }> }
+  | { format: "blocs"; titre: string; apercu: true; enLigne: boolean; validation: ResultatValidation };
+
+async function resoudre(slug: string, apercuDemande: boolean): Promise<Resolution | null> {
   if (!slugValide(slug)) return null;
   const publiee = await lirePagePubliee(slug);
-  if (publiee) return { page: publiee, brouillon: false };
-  if (!apercuDemande || !(await peutVoirApercu())) return null;
-  const page = await lirePageApercu(slug);
-  if (!page) return null;
-  return { page, brouillon: page.statut !== "publie" };
+  if (apercuDemande && (!publiee || publiee.format === "blocs") && (await peutVoirApercu())) {
+    const page = await lirePageApercu(slug);
+    if (page?.format === "blocs") {
+      return { format: "blocs", titre: page.titre, apercu: true, enLigne: page.statut === "publie", validation: validerPage(page.blocs_brouillon) };
+    }
+    if (page && !publiee) return { format: "texte", page, brouillon: page.statut !== "publie" };
+  }
+  if (!publiee) return null;
+  if (publiee.format === "blocs") {
+    const validation = validerPage(publiee.blocs_publie);
+    if (!validation.ok) return null;
+    return { format: "blocs", titre: publiee.titre, apercu: false, validation };
+  }
+  return { format: "texte", page: publiee, brouillon: false };
 }
 
 function apercuDemande(valeur: string | string[] | undefined): boolean {
   return valeur === "1";
+}
+
+function titreDe(resolu: Resolution): string {
+  return resolu.format === "texte" ? resolu.page.titre : resolu.titre;
+}
+
+function estApercu(resolu: Resolution): boolean {
+  return resolu.format === "texte" ? resolu.brouillon : resolu.apercu;
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
@@ -51,8 +76,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const resolu = await resoudre(slug, apercuDemande((await searchParams).apercu));
   if (!resolu) return { title: "Page introuvable", robots: { index: false, follow: false } };
   return {
-    title: resolu.page.titre,
-    robots: resolu.brouillon ? { index: false, follow: false } : { index: true, follow: true },
+    title: titreDe(resolu),
+    robots: estApercu(resolu) ? { index: false, follow: false } : { index: true, follow: true },
   };
 }
 
@@ -61,17 +86,49 @@ export default async function PageEditorialePublique({ params, searchParams }: P
   const resolu = await resoudre(slug, apercuDemande((await searchParams).apercu));
   if (!resolu) notFound();
 
+  if (resolu.format === "texte") {
+    return (
+      <CadreSite>
+        <main className="pub-conteneur pub-rubrique">
+          <div className="cms-page">
+            {resolu.brouillon ? (
+              <p className="cms-apercu" role="note">
+                Aperçu : cette page n&apos;est pas publiée
+              </p>
+            ) : null}
+            <h1 className="pub-titre pub-h1-page">{resolu.page.titre}</h1>
+            <TexteRiche contenu={resolu.page.contenu} />
+          </div>
+        </main>
+      </CadreSite>
+    );
+  }
+
+  const { validation } = resolu;
   return (
     <CadreSite>
       <main className="pub-conteneur pub-rubrique">
         <div className="cms-page">
-          {resolu.brouillon ? (
+          {resolu.apercu ? (
             <p className="cms-apercu" role="note">
-              Aperçu : cette page n&apos;est pas publiée
+              {resolu.enLigne
+                ? "Aperçu : brouillon de cette page, la version en ligne peut être différente"
+                : "Aperçu : cette page n'est pas publiée"}
             </p>
           ) : null}
-          <h1 className="pub-titre pub-h1-page">{resolu.page.titre}</h1>
-          <TexteRiche contenu={resolu.page.contenu} />
+          <h1 className="pub-titre pub-h1-page">{resolu.titre}</h1>
+          {validation.ok ? (
+            <RenduPage page={validation.page} />
+          ) : (
+            <div className="cms-apercu" role="alert">
+              <p>Ce brouillon ne peut être ni affiché ni publié : il ne respecte pas le format des blocs.</p>
+              <ul>
+                {validation.erreurs.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </main>
     </CadreSite>

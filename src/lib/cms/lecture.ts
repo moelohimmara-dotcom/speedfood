@@ -11,11 +11,19 @@ import { lireAvecCache } from "./cache";
  * base : `null` / `[]`, jamais d'exception visible.
  */
 
+export type FormatPage = "texte" | "blocs";
+
+/**
+ * Page publiée. `blocs_publie` (pages à blocs, palier 3) est le document PUBLIÉ, encore NON validé : l'appelant le passe à
+ * `validerPage` (studio/registre.ts) avant tout rendu. Le document de travail de l'équipe n'est dans aucun type de ce module.
+ */
 export interface PagePubliee {
   slug: string;
   titre: string;
   contenu: string;
   publie_le: string | null;
+  format: FormatPage;
+  blocs_publie: unknown;
 }
 
 export interface BanniereAffichee {
@@ -30,6 +38,11 @@ const MAX_BANNIERES = 3;
 
 export function slugValide(slug: string): boolean {
   return slug.length > 0 && slug.length <= 80 && SLUG_VALIDE.test(slug);
+}
+
+/** Format lu en base : toute valeur autre que `blocs` est une page de texte (comportement d'avant le palier 3). */
+export function formatPage(valeur: string | null | undefined): FormatPage {
+  return valeur === "blocs" ? "blocs" : "texte";
 }
 
 /** Mise en cache (60 s, 10 s si vide) : seule la lecture des contenus publiés passe par le cache, voir cache.ts. */
@@ -47,12 +60,13 @@ export async function lirePagePubliee(slug: string): Promise<PagePubliee | null>
 async function lirePageDepuisBase(slug: string): Promise<PagePubliee | null> {
   const { data, error } = await creerClientAdmin()
     .from("content_pages")
-    .select("slug, titre, contenu, publie_le")
+    .select("slug, titre, contenu, publie_le, format, blocs_publie")
     .eq("slug", slug)
     .eq("statut", "publie")
     .maybeSingle();
   if (error) throw error;
-  return data ?? null;
+  if (!data) return null;
+  return { ...data, format: formatPage(data.format) };
 }
 
 export async function lireBannieresPubliees(): Promise<BanniereAffichee[]> {

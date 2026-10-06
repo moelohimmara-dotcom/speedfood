@@ -9,11 +9,15 @@ import { spawnSync } from "node:child_process";
 
 const racine = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const tmp = mkdtempSync(join(tmpdir(), "speedfood-tests-"));
+// Les copies vivent hors du dépôt : un paquet (zod/mini) y est importé par son URL résolue depuis le dépôt.
+const paquets = { "zod/mini": import.meta.resolve("zod/mini") };
 
 function copier(rel) {
   const dest = join(tmp, rel);
   mkdirSync(dirname(dest), { recursive: true });
-  const contenu = readFileSync(join(racine, rel), "utf8").replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"');
+  const contenu = readFileSync(join(racine, rel), "utf8")
+    .replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"')
+    .replace(/from\s+"(zod\/mini)"/g, (_, nom) => `from "${paquets[nom]}"`);
   writeFileSync(dest, contenu);
 }
 
@@ -70,9 +74,11 @@ copier("src/lib/system-admin/paliers.ts");
 copier("scripts/tests/paliers.test.mts");
 copier("scripts/verifier-base-sql.ts");
 copier("scripts/tests/verifierbase.test.mts");
+copier("src/lib/studio/registre.ts");
+copier("scripts/tests/studio.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "verifierbase"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "verifierbase", "studio"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

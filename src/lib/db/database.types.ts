@@ -119,8 +119,12 @@ export type Database = {
       content_pages: {
         Row: {
           auteur_id: string | null
+          blocs_brouillon: Json | null
+          blocs_publie: Json | null
+          blocs_version: number
           contenu: string
           cree_le: string
+          format: string
           id: string
           mis_a_jour_le: string
           publie_le: string | null
@@ -130,8 +134,12 @@ export type Database = {
         }
         Insert: {
           auteur_id?: string | null
+          blocs_brouillon?: Json | null
+          blocs_publie?: Json | null
+          blocs_version?: number
           contenu?: string
           cree_le?: string
+          format?: string
           id?: string
           mis_a_jour_le?: string
           publie_le?: string | null
@@ -141,8 +149,12 @@ export type Database = {
         }
         Update: {
           auteur_id?: string | null
+          blocs_brouillon?: Json | null
+          blocs_publie?: Json | null
+          blocs_version?: number
           contenu?: string
           cree_le?: string
+          format?: string
           id?: string
           mis_a_jour_le?: string
           publie_le?: string | null
@@ -151,6 +163,44 @@ export type Database = {
           titre?: string
         }
         Relationships: []
+      }
+      content_pages_versions: {
+        Row: {
+          auteur_id: string | null
+          blocs: Json
+          cree_le: string
+          id: string
+          motif: string | null
+          page_id: string
+          version: number
+        }
+        Insert: {
+          auteur_id?: string | null
+          blocs: Json
+          cree_le?: string
+          id?: string
+          motif?: string | null
+          page_id: string
+          version: number
+        }
+        Update: {
+          auteur_id?: string | null
+          blocs?: Json
+          cree_le?: string
+          id?: string
+          motif?: string | null
+          page_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_pages_versions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "content_pages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contenu_emplacements: {
         Row: {
@@ -1079,6 +1129,10 @@ export type Database = {
       fn_emettre_document: {
         Args: { p_order_id: string; p_type: string }
         Returns: string
+      }
+      fn_publier_blocs: {
+        Args: { p_blocs: Json; p_jeton: string; p_motif?: string | null; p_page_id: string }
+        Returns: number
       }
       fn_compter_scan: {
         Args: { p_code: string; p_source: string }

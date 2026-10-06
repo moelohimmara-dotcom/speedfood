@@ -93,6 +93,14 @@ Proposition **sans ressource à créer** :
 
 Ordre : le palier 2 vient **avant** les outils puissants, pour qu'aucun éditeur visuel ne soit livré sans ses garde-fous de droits.
 
+**Palier 3, état au 6 octobre 2026 (branche `feat/studio-blocs`, non déployé)** : essai Puck concluant (tâche 5) ; modèle de données et
+rendu public des pages à blocs livrés (tâche 6) : `content_pages.format = 'blocs'`, brouillon et version publiée séparés, historique des
+20 dernières publications (`content_pages_versions`), publication atomique (`fn_publier_blocs`), document validé par schéma à
+l'écriture et à la lecture (`src/lib/studio/registre.ts` : Titre, Paragraphe, Bouton, Séparateur, Espace), rendu serveur maison sans
+Puck (`src/components/studio/RenduPage.tsx`), brouillon illisible par l'API publique (droits de colonne). Enregistrer le brouillon d'une
+page hors ligne : palier 1 ; publier, restaurer une version, modifier le brouillon d'une page en ligne : palier 2 (garanti aussi en base).
+Reste : éditeur dans la console (tâche 7), bibliothèque de blocs et mode mixte (8), accueil en blocs (9).
+
 ## 9. Risques
 
 | Risque | Parade |
