@@ -15,6 +15,7 @@ import { liensCarte } from "@/lib/parametres/assistance-format";
 import { libellesMoyensPaiement } from "@/lib/restaurant/paiement";
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import {
   ancienneteLisible,
   estCommandable,
@@ -234,7 +235,7 @@ export default async function FicheRestaurantPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(donneesStructurees).replace(/</g, "\\u003c") }}
       />
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
-      <MemoireTable restaurantId={restaurant.id} accepteSurPlace={restaurant.accepte_sur_place} />
+      <MemoireTable restaurantId={restaurant.id} accepteSurPlace={restaurant.accepte_sur_place && (await fonctionnaliteActive("commande_a_table"))} />
 
       <BanniereRestaurant
         nom={restaurant.nom}

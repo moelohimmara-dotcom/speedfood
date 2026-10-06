@@ -157,6 +157,39 @@ export type Database = {
           },
         ]
       }
+      fonctionnalites: {
+        Row: {
+          active: boolean
+          cle: string
+          description: string
+          groupe: string
+          libelle: string
+          mis_a_jour_le: string
+          mis_a_jour_par: string | null
+          ordre: number
+        }
+        Insert: {
+          active?: boolean
+          cle: string
+          description: string
+          groupe: string
+          libelle: string
+          mis_a_jour_le?: string
+          mis_a_jour_par?: string | null
+          ordre?: number
+        }
+        Update: {
+          active?: boolean
+          cle?: string
+          description?: string
+          groupe?: string
+          libelle?: string
+          mis_a_jour_le?: string
+          mis_a_jour_par?: string | null
+          ordre?: number
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           id: string

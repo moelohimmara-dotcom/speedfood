@@ -2,6 +2,7 @@ import "server-only";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import type { CreationCommandePayload } from "@/lib/contracts/commande";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { recalculerLignes, verifierRestaurantCommandable } from "./calculs";
 import { genererJetonSuivi, genererReference } from "./jetons";
 import { enregistrerEvenementStatut } from "./transitions";
@@ -70,6 +71,9 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
   await verifierRestaurantCommandable(db, payload.restaurantId);
   // Le service à table n'existe que si le restaurant l'a activé : un numéro de table venu d'un QR ou du navigateur n'autorise rien.
   if (payload.mode === "sur_place") {
+    if (!(await fonctionnaliteActive("commande_a_table"))) {
+      throw new ErreurMetier("VALIDATION", "La commande à table est momentanément indisponible. Choisissez le retrait ou la livraison.");
+    }
     const { data: resto } = await db.from("restaurants").select("accepte_sur_place").eq("id", payload.restaurantId).maybeSingle();
     if (!resto?.accepte_sur_place) {
       throw new ErreurMetier("VALIDATION", "Ce restaurant ne prend pas les commandes à table. Choisissez le retrait ou la livraison.", {

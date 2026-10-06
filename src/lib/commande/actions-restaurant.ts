@@ -5,6 +5,7 @@ import { ErreurMetier, type ErreurApi } from "@/lib/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@/lib/contracts/commande";
 import type { StatutCommande } from "@/lib/contracts/statuts";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { estUuid } from "./commun";
 import {
   lirePropositions,
@@ -197,7 +198,7 @@ export async function confirmerPaiementAction(
     return { ok: false, erreur: { code: "INTROUVABLE", message: "Commande introuvable." } };
   }
   // Un paiement confirmé donne droit à un reçu numéroté, établi tout de suite (échec silencieux : l'action principale est déjà faite).
-  if (decision === "recu") {
+  if (decision === "recu" && (await fonctionnaliteActive("documents_recus"))) {
     await supabase.rpc("fn_emettre_document", { p_order_id: commandeId, p_type: "recu" });
   }
   revalidatePath("/restaurant/commandes");
@@ -213,6 +214,9 @@ export async function emettreDocumentAction(commandeId: string, type: "recu" | "
   const { supabase } = await obtenirContexteRestaurant("/restaurant/commandes");
   if (!estUuid(commandeId) || (type !== "recu" && type !== "facture")) {
     return { ok: false, erreur: erreurValidationCommande() };
+  }
+  if (!(await fonctionnaliteActive("documents_recus"))) {
+    return { ok: false, erreur: { code: "CONFLIT_ETAT", message: "L'émission de documents est momentanément suspendue. Réessayez plus tard." } };
   }
   const { error } = await supabase.rpc("fn_emettre_document", { p_order_id: commandeId, p_type: type });
   if (error) {

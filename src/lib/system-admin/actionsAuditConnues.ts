@@ -35,6 +35,7 @@ export const ACTIONS_AUDIT_CONNUES = [
   "systeme.attribution_role",
   "systeme.retrait_role",
   "parametres.modification",
+  "fonctionnalite.modification",
 ] as const;
 
 /** Libellés lisibles des identifiants d'action (affichés à la place du code technique ; repli : le code lui-même). */
@@ -69,6 +70,7 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "systeme.attribution_role": "Rôle système attribué",
   "systeme.retrait_role": "Rôle système retiré",
   "parametres.modification": "Paramètres modifiés",
+  "fonctionnalite.modification": "Fonctionnalité activée ou coupée",
 };
 
 export function libelleActionAudit(action: string): string {

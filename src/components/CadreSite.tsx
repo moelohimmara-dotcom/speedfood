@@ -2,6 +2,7 @@ import { EnteteSite } from "@/components/EnteteSite";
 import { NavigationClient } from "@/components/NavigationClient";
 import { PiedSite } from "@/components/PiedSite";
 import { Revelation } from "@/components/site/Revelation";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { PilotageAnimations } from "@/components/site/PilotageAnimations";
 import { connexionClientActive } from "@/lib/client/reglage";
 
@@ -20,6 +21,7 @@ export async function CadreSite({
   compact?: boolean;
 }) {
   const compteActif = await connexionClientActive();
+  const animationsActives = await fonctionnaliteActive("animations_public");
   return (
     <div className={`cadre-site theme-public${focus ? "" : " avec-navigation"}`}>
       <a href="#contenu" className="lien-evitement">
@@ -32,7 +34,7 @@ export async function CadreSite({
       <PiedSite />
       {focus ? null : <NavigationClient />}
       <Revelation />
-      <PilotageAnimations />
+      <PilotageAnimations forceCalme={!animationsActives} />
     </div>
   );
 }

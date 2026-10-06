@@ -644,3 +644,13 @@ Code et commits faits, NON déployé. Pages : accueil `/` (remplace la redirecti
 - **Mouvement du site public** : boucles et micro-animations (`boucles.css`, interrupteur « animations en pause », pause hors écran), accroche d'accueil au mot qui change, confettis à la commande (`canvas-confetti` chargé à la demande, sans worker : la CSP interdit `blob:`), frise de suivi, six grandes illustrations vectorielles originales (`vecteurs.css`) et quatre états vides : `docs/MOUVEMENT-PUBLIC.md`, `docs/ETUDE-ANIMATIONS-PUBLIC.md`.
 - **Deux revues visuelles indépendantes** (sous-agents, en production) : 7,5/10 chacune ; les défauts majeurs et la plupart des mineurs sont corrigés. Restent non vérifiés : vrai Android d'entrée de gamme, lecteur d'écran réel, pause à l'onglet masqué.
 - **À faire par une personne** : activer la double authentification du super admin, faire valider les mentions fiscales par un comptable, renseigner code marchand et identité sur les documents de chaque restaurant, tester sur de vrais téléphones. **Décisions en attente** : e-mail (compte externe et domaine à vous), API WhatsApp officielle (payante).
+
+## Contrôle des mises à jour (6 octobre 2026)
+
+Page super admin `/system/mises-a-jour` (permission `parametres.editer`) : journal des nouveautés livrées (`src/lib/system-admin/misesAJourCatalogue.ts`) et
+interrupteurs d'urgence (table `fonctionnalites`, migrations `20261006100000` et `20261006101500`). Cinq interrupteurs, tous branchés côté serveur :
+`animations_public` (mode calme forcé), `scenes_envie_accueil` (bloc d'accueil simple), `commande_a_table` (refus serveur dans `creation.ts`),
+`documents_recus` (pas d'émission), `lien_court_scans` (la redirection marche, sans comptage). Lecture publique : `src/lib/fonctionnalites/lire.ts`
+(service-role, état inconnu = active). Seule la colonne d'état est modifiable par une session (grant par colonne) ; chaque bascule est journalisée
+(`fonctionnalite.modification`). Le paiement par code marchand et l'habillage n'ont volontairement pas d'interrupteur (raison affichée sur la page).
+Vérifié en local (13 contrôles : RLS, bascule, effet public, audit, 404 hors connexion) ; non déployé tant que Malika n'a pas donné le feu vert.

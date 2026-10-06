@@ -7,6 +7,7 @@ import {
   SelecteurEnvie,
   type EnvieAffichee,
 } from "@/components/site/SelecteurEnvie";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { lirePromesse } from "@/lib/parametres/promesse";
 import { FAMILLES_ENVIE, lireAccueil, ticketExemple } from "@/lib/site/accueil";
@@ -80,9 +81,10 @@ function pastille(motif: string): ModeleIllustration {
 }
 
 export default async function AccueilPage() {
-  const [promesse, donnees] = await Promise.all([
+  const [promesse, donnees, scenesActives] = await Promise.all([
     lirePromesse(),
     lireAccueil(),
+    fonctionnaliteActive("scenes_envie_accueil"),
   ]);
   const { ouverts, quartiers, suggestions, restaurants, platsParRestaurant } =
     donnees;
@@ -153,7 +155,7 @@ export default async function AccueilPage() {
           </div>
           <aside className="pub-accueil-envie" aria-label="Une idée de plat">
             {envies.length > 0 ? (
-              <SelecteurEnvie envies={envies} />
+              <SelecteurEnvie envies={envies} scenes={scenesActives} />
             ) : (
               <div className="pub-envie">
                 <p className="pub-kicker">En ce moment</p>

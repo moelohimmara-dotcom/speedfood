@@ -27,10 +27,11 @@ function appliquerCalme(calme: boolean): void {
   else document.documentElement.removeAttribute("data-calme");
 }
 
-export function PilotageAnimations() {
+/** `forceCalme` : le super administrateur a coupé les animations pour tout le site (interrupteur `animations_public`). */
+export function PilotageAnimations({ forceCalme = false }: { forceCalme?: boolean }) {
   useEffect(() => {
     const racine = document.documentElement;
-    appliquerCalme(lireCalme());
+    appliquerCalme(forceCalme || lireCalme());
 
     // Économie de données ou appareil très limité : pas de boucles (le contenu reste complet et lisible).
     const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
@@ -63,7 +64,7 @@ export function PilotageAnimations() {
       suivi.observe(document.body, { childList: true, subtree: true });
     }
 
-    const surChangement = () => appliquerCalme(lireCalme());
+    const surChangement = () => appliquerCalme(forceCalme || lireCalme());
     window.addEventListener(EVENEMENT, surChangement);
     return () => {
       document.removeEventListener("visibilitychange", surVisibilite);
@@ -71,7 +72,7 @@ export function PilotageAnimations() {
       io?.disconnect();
       suivi?.disconnect();
     };
-  }, []);
+  }, [forceCalme]);
   return null;
 }
 

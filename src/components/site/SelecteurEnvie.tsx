@@ -39,12 +39,12 @@ function animationsPermises(racine: HTMLElement | null): boolean {
  * page est visible, le bloc à l'écran et les animations non coupées (voir PilotageAnimations) ; mouvement réduit : aucun défilement.
  * Sans JavaScript, la première suggestion reste lisible (rendu serveur).
  */
-export function SelecteurEnvie({ envies }: { envies: EnvieAffichee[] }) {
+export function SelecteurEnvie({ envies, scenes = true }: { envies: EnvieAffichee[]; scenes?: boolean }) {
   const [courante, setCourante] = useState(envies[0]?.famille ?? "");
   const [auto, setAuto] = useState(true);
   const racine = useRef<HTMLDivElement>(null);
   const reduit = useSyncExternalStore(suivreReduit, () => window.matchMedia(REQUETE_REDUIT).matches, () => false);
-  const defile = auto && !reduit && envies.length > 1;
+  const defile = scenes && auto && !reduit && envies.length > 1;
 
   useEffect(() => {
     if (!defile) return;
@@ -69,7 +69,7 @@ export function SelecteurEnvie({ envies }: { envies: EnvieAffichee[] }) {
     <div className="pub-envie boucle" ref={racine} data-famille={e.famille}>
       <div className="pub-envie-tete">
         <p className="pub-kicker">Votre envie du moment ?</p>
-        {envies.length > 1 && !reduit ? (
+        {scenes && envies.length > 1 && !reduit ? (
           <button type="button" className="pub-envie-pause" aria-pressed={!auto} onClick={() => setAuto((v) => !v)}>
             <span aria-hidden="true">{auto ? "⏸" : "▶"}</span>
             <span className="sr-only">{auto ? "Mettre le défilement des familles en pause" : "Relancer le défilement des familles"}</span>
@@ -99,13 +99,15 @@ export function SelecteurEnvie({ envies }: { envies: EnvieAffichee[] }) {
       </div>
 
       {/* La scène change avec la famille : `key` la remonte, ce qui rejoue son entrée en scène. */}
-      <div className="pub-envie-scene" aria-hidden="true" data-famille={e.famille}>
-        <div key={e.famille} className="pub-envie-scene-interieur">
-          <SceneEnvie famille={e.famille} />
+      {scenes ? (
+        <div className="pub-envie-scene" aria-hidden="true" data-famille={e.famille}>
+          <div key={e.famille} className="pub-envie-scene-interieur">
+            <SceneEnvie famille={e.famille} />
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <div className="pub-envie-resultat" aria-live={auto && !reduit ? "off" : "polite"}>
+      <div className="pub-envie-resultat" aria-live={defile ? "off" : "polite"}>
         <span className="pub-envie-visuel">{e.visuel}</span>
         <div>
           <p className="pub-envie-plat">{e.platNom}</p>

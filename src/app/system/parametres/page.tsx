@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
+import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
+import { SousNav } from "../SousNav";
 import { listerParametresApplication } from "@/lib/system-admin/parametres";
 import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { FormulaireParametres } from "./FormulaireParametres";
@@ -14,12 +16,14 @@ export const metadata = { title: "Paramètres (administration)" };
  * étaient jusqu'ici en dur dans le code ou en variable d'environnement.
  */
 export default async function ParametresSystemePage() {
-  await exigerPermissionPage("parametres.editer");
+  const contexte = await exigerPermissionPage("parametres.editer");
   const parametres = await listerParametresApplication();
 
   return (
     <div>
       <PageHeader titre="Paramètres" description="Règles métier, comptes clients, assistance et textes d'accueil. Réservé aux super administrateurs." />
+
+      <SousNav entrees={sousSectionsAccessibles("Paramètres", contexte.role)} />
 
       <FormulaireParametres parametres={parametres} />
 
