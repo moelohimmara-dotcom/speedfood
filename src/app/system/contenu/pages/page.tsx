@@ -2,6 +2,8 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerPages } from "@/lib/system-admin/contenus";
+import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
+import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
@@ -21,6 +23,8 @@ export default async function ContenusSystemePage({
   searchParams: Promise<Recherche>;
 }) {
   const contexte = await exigerPermissionPage("contenu.editer");
+  // Palier sur les pages (en plus de la permission) : il ne sert ici qu'à adapter l'interface, le serveur revérifie chaque action.
+  const { palier } = await exigerPalier("contenu:pages", MINIMUMS_STUDIO.lire, { contexte });
   const { statut: statutBrut } = await searchParams;
   const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
   const pages = (await listerPages()).filter((p) => statut === "tous" || p.statut === statut);
@@ -46,7 +50,11 @@ export default async function ContenusSystemePage({
       </div>
 
       <Panneau titre="Nouvelle page">
-        <FormulaireNouvellePage />
+        {palier >= MINIMUMS_STUDIO.brouillon ? (
+          <FormulaireNouvellePage />
+        ) : (
+          <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
+        )}
       </Panneau>
 
       <div style={{ marginTop: "var(--space-5)" }}>

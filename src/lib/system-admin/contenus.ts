@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { estLienBanniereSur } from "@/lib/auth/redirection";
 import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
+import { verifierPalier } from "./paliers-serveur";
+import { MINIMUMS_STUDIO } from "./paliers";
 import { journaliserActionSysteme } from "./audit";
 import { televerserImage, supprimerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
@@ -15,7 +17,17 @@ import { invaliderCache } from "@/lib/cms/cache";
  * déjà appliqué par la RLS (`editeurs_gestion_contenu`/`editeurs_gestion_bannieres`,
  * lecture publique restreinte à `statut = 'publie'`) : aucun contenu non
  * publié n'est jamais exposé publiquement, quoi que fasse ce code.
+ *
+ * Studio, palier 2 : en plus de `contenu.editer` (inchangée), chaque fonction exige un palier sur son actif
+ * (`contenu:pages`, `contenu:bannieres`) : voir ≥ 0, brouillon ≥ 1, publier/dépublier/supprimer ≥ 2. Modifier une page
+ * déjà en ligne change directement le site : cela demande aussi le palier 2. Sans habilitation, les rôles gardent leur
+ * comportement d'avant (préréglages) ; habilitations illisibles = refus (voir paliers-serveur.ts).
  */
+
+/** Message d'un refus de palier pour les formulaires (qui affichent une erreur au lieu de lever). */
+function messageRefus(erreur: unknown): string {
+  return erreur instanceof ErreurMetier ? erreur.message : "Action refusée.";
+}
 
 export interface EtatActionContenu {
   erreur?: string;
@@ -64,7 +76,8 @@ async function invaliderPagePubliee(supabase: Awaited<ReturnType<typeof creerCli
 }
 
 export async function listerPages(): Promise<PageEditoriale[]> {
-  await verifierPermission("contenu.editer");
+  const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:pages", MINIMUMS_STUDIO.lire, { contexte });
   const supabase = await creerClientServeur();
   const { data, error } = await supabase
     .from("content_pages")
@@ -77,7 +90,8 @@ export async function listerPages(): Promise<PageEditoriale[]> {
 }
 
 export async function obtenirPage(id: string): Promise<PageEditoriale | null> {
-  await verifierPermission("contenu.editer");
+  const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:pages", MINIMUMS_STUDIO.lire, { contexte });
   const supabase = await creerClientServeur();
   const { data, error } = await supabase
     .from("content_pages")
@@ -111,6 +125,11 @@ export async function creerPageAction(
   }
 
   const contexte = await verifierPermission("contenu.editer");
+  try {
+    await verifierPalier("contenu:pages", MINIMUMS_STUDIO.brouillon, { contexte });
+  } catch (erreur) {
+    return { erreur: messageRefus(erreur) };
+  }
   const supabase = await creerClientServeur();
 
   const { data, error } = await supabase
@@ -156,15 +175,41 @@ export async function modifierPageAction(
   }
 
   const contexte = await verifierPermission("contenu.editer");
+  let palier;
+  try {
+    ({ palier } = await verifierPalier("contenu:pages", MINIMUMS_STUDIO.brouillon, { contexte }));
+  } catch (erreur) {
+    return { erreur: messageRefus(erreur) };
+  }
   const supabase = await creerClientServeur();
 
-  const { error } = await supabase
-    .from("content_pages")
-    .update({ titre, contenu, mis_a_jour_le: new Date().toISOString() })
-    .eq("id", id);
+  if (palier < MINIMUMS_STUDIO.publier) {
+    // Palier Contributeur : brouillons seulement. La condition sur le statut est DANS la mise à jour (pas seulement lue
+    // avant), pour qu'une publication simultanée ne laisse pas passer une modification du site en ligne.
+    const { data: modifiees, error } = await supabase
+      .from("content_pages")
+      .update({ titre, contenu, mis_a_jour_le: new Date().toISOString() })
+      .eq("id", id)
+      .eq("statut", "brouillon")
+      .select("id");
+    if (error) {
+      return { erreur: "Impossible d'enregistrer les modifications." };
+    }
+    if (!modifiees || modifiees.length === 0) {
+      return {
+        erreur:
+          "Cette page est en ligne : la modifier change directement le site, ce qui demande le palier Éditeur. Votre accès est limité aux brouillons.",
+      };
+    }
+  } else {
+    const { error } = await supabase
+      .from("content_pages")
+      .update({ titre, contenu, mis_a_jour_le: new Date().toISOString() })
+      .eq("id", id);
 
-  if (error) {
-    return { erreur: "Impossible d'enregistrer les modifications." };
+    if (error) {
+      return { erreur: "Impossible d'enregistrer les modifications." };
+    }
   }
 
   await journaliserActionSysteme(contexte, {
@@ -181,6 +226,7 @@ export async function modifierPageAction(
 
 export async function basculerPublicationPageAction(id: string, publier: boolean): Promise<void> {
   const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:pages", MINIMUMS_STUDIO.publier, { contexte });
   const supabase = await creerClientServeur();
 
   await supabase
@@ -205,7 +251,8 @@ export async function basculerPublicationPageAction(id: string, publier: boolean
 // --- Bannières -------------------------------------------------------------
 
 export async function listerBannieres(): Promise<Banniere[]> {
-  await verifierPermission("contenu.editer");
+  const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.lire, { contexte });
   const supabase = await creerClientServeur();
   const { data, error } = await supabase
     .from("content_banners")
@@ -241,6 +288,11 @@ export async function creerBanniereAction(
   }
 
   const contexte = await verifierPermission("contenu.editer");
+  try {
+    await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.brouillon, { contexte });
+  } catch (erreur) {
+    return { erreur: messageRefus(erreur) };
+  }
 
   let imageUrl: string | null = null;
   const fichierImage = formData.get("image");
@@ -289,6 +341,7 @@ export async function basculerPublicationBanniereAction(
   publier: boolean
 ): Promise<void> {
   const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.publier, { contexte });
   const supabase = await creerClientServeur();
 
   await supabase
@@ -311,6 +364,7 @@ export async function basculerPublicationBanniereAction(
 
 export async function supprimerBanniereAction(id: string): Promise<void> {
   const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.publier, { contexte });
   const supabase = await creerClientServeur();
 
   const { data: banniere } = await supabase

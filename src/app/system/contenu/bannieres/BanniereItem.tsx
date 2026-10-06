@@ -8,7 +8,8 @@ import {
 } from "@/lib/system-admin/contenus";
 import { Card, Badge, Button } from "@/components/ui";
 
-export function BanniereItem({ banniere }: { banniere: Banniere }) {
+/** `indisponible` : explication d'un palier insuffisant pour publier/dépublier/supprimer (le serveur refuse de toute façon). */
+export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; indisponible?: string }) {
   const [enTransition, demarrerTransition] = useTransition();
   const publie = banniere.statut === "publie";
 
@@ -31,13 +32,19 @@ export function BanniereItem({ banniere }: { banniere: Banniere }) {
           {banniere.texte ? (
             <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>{banniere.texte}</p>
           ) : null}
+          {indisponible ? (
+            <p className="ad-palier-note" id={`banniere-${banniere.id}-limite`}>
+              {indisponible}
+            </p>
+          ) : null}
         </div>
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <Button
           type="button"
           variante="secondary"
-          disabled={enTransition}
+          disabled={enTransition || Boolean(indisponible)}
+          aria-describedby={indisponible ? `banniere-${banniere.id}-limite` : undefined}
           onClick={() =>
             demarrerTransition(() => basculerPublicationBanniereAction(banniere.id, !publie))
           }
@@ -48,7 +55,8 @@ export function BanniereItem({ banniere }: { banniere: Banniere }) {
           type="button"
           variante="danger"
           className="ad-action-discrete"
-          disabled={enTransition}
+          disabled={enTransition || Boolean(indisponible)}
+          aria-describedby={indisponible ? `banniere-${banniere.id}-limite` : undefined}
           onClick={() => {
             if (confirm(`Supprimer la bannière « ${banniere.titre} » ?`)) {
               demarrerTransition(() => supprimerBanniereAction(banniere.id));

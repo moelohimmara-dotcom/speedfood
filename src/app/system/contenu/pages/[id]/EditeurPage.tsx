@@ -12,8 +12,19 @@ const etatInitial: EtatActionContenu = {};
  * mobile »). L'aperçu reflète le texte en cours de frappe, pas seulement ce
  * qui est déjà enregistré — sinon ce ne serait pas un vrai aperçu avant
  * publication.
+ *
+ * `limites` (palier insuffisant, Studio palier 2) : explications des actions indisponibles. Confort d'interface seulement,
+ * le serveur revérifie le palier de chaque action. Absent = aucune limite (rendu inchangé).
  */
-export function EditeurPage({ page }: { page: PageEditoriale }) {
+export interface LimitesEdition {
+  /** Explication si la modification est indisponible, sinon `null`. */
+  modification: string | null;
+  /** Explication de la publication/dépublication indisponible. */
+  publication: string;
+}
+
+export function EditeurPage({ page, limites }: { page: PageEditoriale; limites?: LimitesEdition }) {
+  const lectureSeule = Boolean(limites?.modification);
   const [etat, action, enCours] = useActionState(modifierPageAction, etatInitial);
   const [titre, setTitre] = useState(page.titre);
   const [contenu, setContenu] = useState(page.contenu);
@@ -28,6 +39,7 @@ export function EditeurPage({ page }: { page: PageEditoriale }) {
           type="text"
           required
           maxLength={200}
+          readOnly={lectureSeule}
           value={titre}
           onChange={(e) => setTitre(e.target.value)}
         />
@@ -38,17 +50,19 @@ export function EditeurPage({ page }: { page: PageEditoriale }) {
             name="contenu"
             rows={8}
             maxLength={20000}
+            readOnly={lectureSeule}
             value={contenu}
             onChange={(e) => setContenu(e.target.value)}
           />
         </div>
         {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
         {etat.succes ? <Alert ton="succes">Modifications enregistrées.</Alert> : null}
-        <Button type="submit" disabled={enCours}>
+        {limites?.modification ? <p className="ad-palier-note">{limites.modification}</p> : null}
+        <Button type="submit" disabled={enCours || lectureSeule}>
           {enCours ? "Enregistrement…" : "Enregistrer"}
         </Button>
         <div style={{ marginTop: "var(--space-4)" }}>
-          <BasculerPublicationPage id={page.id} publie={page.statut === "publie"} />
+          <BasculerPublicationPage id={page.id} publie={page.statut === "publie"} indisponible={limites?.publication} />
         </div>
       </form>
 

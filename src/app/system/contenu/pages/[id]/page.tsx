@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirPage } from "@/lib/system-admin/contenus";
+import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
+import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { PageHeader, Pastille } from "@/components/admin/blocs";
 import { EditeurPage } from "./EditeurPage";
 
@@ -12,13 +14,19 @@ export default async function EditionPageSystemePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await exigerPermissionPage("contenu.editer");
+  const contexte = await exigerPermissionPage("contenu.editer");
+  // Palier sur les pages : il adapte seulement l'interface (boutons indisponibles expliqués) ; les actions revérifient tout.
+  const { palier } = await exigerPalier("contenu:pages", MINIMUMS_STUDIO.lire, { contexte });
   const { id } = await params;
 
   const page = await obtenirPage(id);
   if (!page) {
     notFound();
   }
+
+  // Modifier un brouillon : palier 1. Modifier une page déjà en ligne change le site : palier 2 (comme publier).
+  const minimumModification = page.statut === "publie" ? MINIMUMS_STUDIO.publier : MINIMUMS_STUDIO.brouillon;
+  const limiteModification = palier >= minimumModification ? null : explicationPalier(palier, minimumModification);
 
   return (
     <div>
@@ -41,7 +49,10 @@ export default async function EditionPageSystemePage({
         }
       />
 
-      <EditeurPage page={page} />
+      <EditeurPage
+        page={page}
+        limites={palier >= MINIMUMS_STUDIO.publier ? undefined : { modification: limiteModification, publication: explicationPalier(palier, MINIMUMS_STUDIO.publier) }}
+      />
     </div>
   );
 }

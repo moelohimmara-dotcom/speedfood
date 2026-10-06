@@ -1,6 +1,8 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerSurcharges } from "@/lib/system-admin/emplacements";
+import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
+import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { EMPLACEMENTS, longueurMax } from "@/lib/cms/emplacements";
 import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
@@ -14,6 +16,10 @@ export const metadata = { title: "Textes du site (administration)" };
  */
 export default async function TextesSystemePage() {
   const contexte = await exigerPermissionPage("contenu.editer");
+  // Un texte enregistré est en ligne aussitôt : modifier ou rétablir demande le palier de publication. Interface seulement,
+  // les actions revérifient le palier côté serveur.
+  const { palier } = await exigerPalier("contenu:textes", MINIMUMS_STUDIO.lire, { contexte });
+  const limite = palier >= MINIMUMS_STUDIO.publier ? undefined : explicationPalier(palier, MINIMUMS_STUDIO.publier);
   const surcharges = await listerSurcharges();
 
   const groupes: { nom: string; champs: ChampTexte[] }[] = [];
@@ -46,10 +52,15 @@ export default async function TextesSystemePage() {
       />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
+      {limite ? (
+        <p className="ad-palier-note">
+          Lecture seule : un texte enregistré apparaît aussitôt sur le site. {limite}
+        </p>
+      ) : null}
       <div className="ad-textes">
         {groupes.map((g, i) => (
           <Panneau key={g.nom} titre={g.nom} id={`textes-${i}`}>
-            <GroupeTextes groupe={g.nom} champs={g.champs} />
+            <GroupeTextes groupe={g.nom} champs={g.champs} lectureSeule={Boolean(limite)} />
           </Panneau>
         ))}
       </div>

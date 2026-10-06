@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { verifierPermission } from "./contexte";
+import { verifierPalier } from "./paliers-serveur";
+import { MINIMUMS_STUDIO } from "./paliers";
 import { journaliserActionSysteme } from "./audit";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { invaliderCache } from "@/lib/cms/cache";
@@ -11,6 +13,9 @@ import { EMPLACEMENTS, decider, erreurSaisie, normaliserSaisie, type Emplacement
  * Emplacements de contenu (Studio, palier 1) : surcharge des textes du site public. Toute mutation vérifie `contenu.editer`
  * (et la RLS `editeurs_gestion_emplacements` applique les mêmes rôles), revalide la saisie côté serveur, journalise
  * (`contenu.emplacement_modification`) et invalide le cache `textes`. Texte brut seulement : aucune balise n'est acceptée.
+ *
+ * Studio, palier 2 : en plus de `contenu.editer`, palier sur `contenu:textes`. Un texte enregistré est en ligne aussitôt
+ * (il n'y a pas de brouillon de texte) : enregistrer comme rétablir demandent donc le palier de publication (2) ; voir ≥ 0.
  */
 
 export interface EtatActionEmplacements {
@@ -31,6 +36,7 @@ const CHEMIN_ECRAN = "/system/contenu/textes";
 /** Surcharges actuelles (lues avec la session de l'éditeur : la RLS décide), indexées par clé du catalogue. */
 export async function listerSurcharges(): Promise<Record<string, SurchargeEmplacement>> {
   const contexte = await verifierPermission("contenu.editer");
+  await verifierPalier("contenu:textes", MINIMUMS_STUDIO.lire, { contexte });
   const { data, error } = await contexte.supabase
     .from("contenu_emplacements")
     .select("cle, valeur, mis_a_jour_le");
@@ -85,6 +91,7 @@ export async function enregistrerGroupeAction(
   let contexte;
   try {
     contexte = await verifierPermission("contenu.editer");
+    await verifierPalier("contenu:textes", MINIMUMS_STUDIO.publier, { contexte });
   } catch (erreur) {
     return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Action refusée." };
   }
@@ -157,6 +164,7 @@ export async function retablirEmplacementAction(cle: string): Promise<EtatAction
   let contexte;
   try {
     contexte = await verifierPermission("contenu.editer");
+    await verifierPalier("contenu:textes", MINIMUMS_STUDIO.publier, { contexte });
   } catch (erreur) {
     return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Action refusée." };
   }

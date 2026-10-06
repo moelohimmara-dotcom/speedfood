@@ -65,9 +65,12 @@ copier("src/lib/cms/cache-regles.ts");
 copier("scripts/tests/cache.test.mts");
 copier("src/lib/cms/emplacements.ts");
 copier("scripts/tests/emplacements.test.mts");
+copier("src/lib/system-admin/permissions.ts");
+copier("src/lib/system-admin/paliers.ts");
+copier("scripts/tests/paliers.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerBannieres } from "@/lib/system-admin/contenus";
+import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
+import { MINIMUMS_STUDIO } from "@/lib/system-admin/paliers";
 import { PageHeader } from "@/components/admin/blocs";
 import { Card, Badge } from "@/components/ui";
 import { SousNav } from "../../SousNav";
@@ -16,6 +18,8 @@ export const metadata = { title: "Médias (administration)" };
  */
 export default async function MediasSystemePage() {
   const contexte = await exigerPermissionPage("contenu.editer");
+  // Les images affichées sont celles des bannières : même lecture (palier ≥ 0 sur `contenu:bannieres`, 404 sinon).
+  await exigerPalier("contenu:bannieres", MINIMUMS_STUDIO.lire, { contexte });
   const bannieres = (await listerBannieres()).filter((b) => b.image_url);
 
   return (

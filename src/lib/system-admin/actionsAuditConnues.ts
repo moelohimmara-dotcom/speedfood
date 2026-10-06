@@ -35,6 +35,8 @@ export const ACTIONS_AUDIT_CONNUES = [
   "commande.support_transition",
   "systeme.attribution_role",
   "systeme.retrait_role",
+  "acces.palier_attribution",
+  "acces.palier_retrait",
   "parametres.modification",
   "fonctionnalite.modification",
 ] as const;
@@ -71,6 +73,8 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "commande.support_transition": "Statut d'une commande modifié par le support",
   "systeme.attribution_role": "Rôle système attribué",
   "systeme.retrait_role": "Rôle système retiré",
+  "acces.palier_attribution": "Habilitation par palier attribuée ou remplacée",
+  "acces.palier_retrait": "Habilitation par palier retirée",
   "parametres.modification": "Paramètres modifiés",
   "fonctionnalite.modification": "Fonctionnalité activée ou coupée",
 };

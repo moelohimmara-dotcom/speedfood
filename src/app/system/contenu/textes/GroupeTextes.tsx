@@ -21,7 +21,19 @@ export interface ChampTexte {
 const etatInitial: EtatActionEmplacements = {};
 
 /** Un champ : saisie, compteur, valeur par défaut visible, badge « Modifié » et bouton de retour au défaut. */
-function Champ({ champ, erreur, onRetablir, occupe }: { champ: ChampTexte; erreur?: string; onRetablir: () => void; occupe: boolean }) {
+function Champ({
+  champ,
+  erreur,
+  onRetablir,
+  occupe,
+  lectureSeule,
+}: {
+  champ: ChampTexte;
+  erreur?: string;
+  onRetablir: () => void;
+  occupe: boolean;
+  lectureSeule: boolean;
+}) {
   const [saisie, setSaisie] = useState(champ.valeur ?? champ.defaut);
   const id = `texte-${champ.cle.replace(/\./g, "-")}`;
   const modifie = champ.valeur !== null;
@@ -40,6 +52,7 @@ function Champ({ champ, erreur, onRetablir, occupe }: { champ: ChampTexte; erreu
           id={id}
           name={`v:${champ.cle}`}
           rows={3}
+          readOnly={lectureSeule}
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}
           aria-invalid={erreur ? true : undefined}
@@ -50,6 +63,7 @@ function Champ({ champ, erreur, onRetablir, occupe }: { champ: ChampTexte; erreu
           id={id}
           name={`v:${champ.cle}`}
           type="text"
+          readOnly={lectureSeule}
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}
           aria-invalid={erreur ? true : undefined}
@@ -65,7 +79,7 @@ function Champ({ champ, erreur, onRetablir, occupe }: { champ: ChampTexte; erreu
       {erreur ? <span className="field-error">{erreur}</span> : null}
       {modifie ? (
         <div>
-          <Button type="button" variante="secondary" disabled={occupe} onClick={onRetablir}>
+          <Button type="button" variante="secondary" disabled={occupe || lectureSeule} onClick={onRetablir}>
             Rétablir le défaut
           </Button>
         </div>
@@ -74,7 +88,8 @@ function Champ({ champ, erreur, onRetablir, occupe }: { champ: ChampTexte; erreu
   );
 }
 
-export function GroupeTextes({ groupe, champs }: { groupe: string; champs: ChampTexte[] }) {
+/** `lectureSeule` : palier insuffisant (Studio palier 2), expliqué en tête d'écran ; le serveur refuse de toute façon. */
+export function GroupeTextes({ groupe, champs, lectureSeule = false }: { groupe: string; champs: ChampTexte[]; lectureSeule?: boolean }) {
   const [etat, action, enCours] = useActionState(enregistrerGroupeAction, etatInitial);
   const [retour, setRetour] = useState<EtatActionEmplacements>({});
   const [enTransition, demarrer] = useTransition();
@@ -91,6 +106,7 @@ export function GroupeTextes({ groupe, champs }: { groupe: string; champs: Champ
             champ={c}
             erreur={etat.erreurs?.[c.cle]}
             occupe={enTransition || enCours}
+            lectureSeule={lectureSeule}
             onRetablir={() => demarrer(async () => setRetour(await retablirEmplacementAction(c.cle)))}
           />
         ))}
@@ -99,7 +115,7 @@ export function GroupeTextes({ groupe, champs }: { groupe: string; champs: Champ
         {message.erreur ? <Alert ton="danger">{message.erreur}</Alert> : null}
         {!message.erreur && message.succes ? <Alert ton="succes">{message.succes}</Alert> : null}
       </div>
-      <Button type="submit" disabled={enCours || enTransition}>
+      <Button type="submit" disabled={enCours || enTransition || lectureSeule}>
         {enCours ? "Enregistrement…" : "Enregistrer"}
       </Button>
     </form>

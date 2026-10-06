@@ -2,6 +2,8 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerBannieres } from "@/lib/system-admin/contenus";
+import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
+import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { Card } from "@/components/ui";
 import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
@@ -26,6 +28,9 @@ export default async function BannieresSystemePage({
   searchParams: Promise<Recherche>;
 }) {
   const contexte = await exigerPermissionPage("contenu.editer");
+  // Palier sur les bannières : il adapte seulement l'interface ; chaque action revérifie côté serveur.
+  const { palier } = await exigerPalier("contenu:bannieres", MINIMUMS_STUDIO.lire, { contexte });
+  const limitePublication = palier >= MINIMUMS_STUDIO.publier ? undefined : explicationPalier(palier, MINIMUMS_STUDIO.publier);
   const { statut: statutBrut } = await searchParams;
   const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
   const bannieres = (await listerBannieres()).filter((b) => statut === "tous" || b.statut === statut);
@@ -53,7 +58,11 @@ export default async function BannieresSystemePage({
 
       <div style={{ marginBottom: "var(--space-5)" }}>
         <Panneau titre="Nouvelle bannière">
-          <FormulaireNouvelleBanniere />
+          {palier >= MINIMUMS_STUDIO.brouillon ? (
+            <FormulaireNouvelleBanniere />
+          ) : (
+            <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
+          )}
         </Panneau>
       </div>
 
@@ -64,7 +73,7 @@ export default async function BannieresSystemePage({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {bannieres.map((b) => (
-            <BanniereItem key={b.id} banniere={b} />
+            <BanniereItem key={b.id} banniere={b} indisponible={limitePublication} />
           ))}
         </div>
       )}

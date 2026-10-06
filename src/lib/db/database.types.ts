@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      acces_paliers: {
+        Row: {
+          accorde_par: string | null
+          actif: string
+          cree_le: string
+          expire_le: string | null
+          id: string
+          palier: number
+          plafond: boolean
+          utilisateur_id: string
+        }
+        Insert: {
+          accorde_par?: string | null
+          actif: string
+          cree_le?: string
+          expire_le?: string | null
+          id?: string
+          palier: number
+          plafond?: boolean
+          utilisateur_id: string
+        }
+        Update: {
+          accorde_par?: string | null
+          actif?: string
+          cree_le?: string
+          expire_le?: string | null
+          id?: string
+          palier?: number
+          plafond?: boolean
+          utilisateur_id?: string
+        }
+        Relationships: []
+      }
       audit_events: {
         Row: {
           acteur_id: string | null
