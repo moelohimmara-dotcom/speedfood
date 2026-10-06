@@ -16,6 +16,7 @@
     "cf:deploy": "node scripts/verifier-base.mjs && opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@puckeditor/core": "^0.23.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "canvas-confetti": "^1.9.3",
