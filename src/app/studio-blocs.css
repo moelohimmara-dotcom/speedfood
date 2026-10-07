@@ -90,11 +90,12 @@
   color: var(--encre);
   box-shadow: none;
 }
-/* Anneau de focus : --rouge-fonce (globals.css) est invisible sur rouge et encre : anneau clair ; le résumé de la FAQ et les cartes
-   gardent leur propre fond clair, donc l'anneau foncé. Couples contrôlés (≥ 3:1, WCAG 1.4.11) par blocs.test.mts. */
+/* Anneau de focus : choisi d'après le fond RÉEL adjacent à l'élément. --rouge-fonce (globals.css) est invisible sur rouge et encre :
+   les éléments posés DIRECTEMENT sur ces fonds ont un anneau clair ; tout ce qui a un fond clair propre (réponse et résumé de la FAQ,
+   cartes de restaurants) garde l'anneau foncé. Couples (élément, fond réel) contrôlés (≥ 3:1, WCAG 1.4.11) par blocs.test.mts. */
 .sb-fond-rouge :focus-visible { outline-color: var(--surface); }
 .sb-fond-encre :focus-visible { outline-color: var(--surface); }
-.sb-fond .sb-faq-item > summary:focus-visible { outline-color: var(--rouge-fonce); }
+.sb-fond .sb-faq-item :focus-visible { outline-color: var(--rouge-fonce); }
 .sb-fond .pub-carte-resto :focus-visible { outline-color: var(--rouge-fonce); }
 /* Les cartes de restaurants gardent leur propre fond clair : leur texte reste foncé. */
 .sb-fond .pub-carte-resto {
