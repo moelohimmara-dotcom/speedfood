@@ -9,6 +9,7 @@ import {
 } from "../../src/lib/studio/registre";
 import {
   ALIGNEMENTS,
+  ANNEAU_FOCUS,
   CODES_FOND,
   ESPACES,
   FONDS,
@@ -168,6 +169,31 @@ const couplesFeuille = regles.flatMap((r) => {
 });
 verifier(`feuille : au moins 7 couples fond/texte contrôlés (${couplesFeuille.length})`, couplesFeuille.length >= 7, true);
 verifier(`feuille : tous les couples fond/texte passent AA (${couplesFeuille.map((c) => c.ratio.toFixed(1)).join(", ")})`, couplesFeuille.filter((c) => c.ratio < AA).map((c) => c.selecteur), []);
+
+// Anneau de focus : ≥ 3:1 contre le fond adjacent, pour CHAQUE fond autorisé (WCAG 1.4.11)
+const SEUIL_FOCUS = 3;
+const globalFocus = jetonDe(regles.find((r) => r.selecteur === ":focus-visible")?.corps ?? "", "outline") ?? /outline:\s*3px solid var\((--[a-z-]+)\)/.exec(globals)?.[1];
+verifier("focus : l'anneau global du site est --rouge-fonce (globals.css)", /:focus-visible\s*\{\s*outline:\s*3px solid var\(--rouge-fonce\)/.test(globals), true);
+void globalFocus;
+for (const code of CODES_FOND) {
+  const fond = FONDS[code]?.fond ?? "--creme";
+  const anneau = ANNEAU_FOCUS[code];
+  const r = ratio(fond, anneau);
+  verifier(`focus : fond ${code}, anneau ${anneau} = ${r.toFixed(2)}:1 ≥ ${SEUIL_FOCUS}`, r >= SEUIL_FOCUS, true);
+  if (code === "aucun") verifier("focus : fond de page (surface) aussi", ratio("--surface", anneau) >= SEUIL_FOCUS, true);
+  // La feuille applique bien cet anneau : rouge et encre le changent, les autres gardent celui du site.
+  const regle = regles.find((x) => x.selecteur === `.sb-fond-${code} :focus-visible`);
+  verifier(`focus : feuille, fond ${code}`, regle ? jetonDe(regle.corps, "outline-color") : "global", anneau === "--rouge-fonce" ? "global" : anneau);
+}
+// Éléments à fond clair posés SUR un bloc foncé : leur anneau reste foncé (≥ 3:1 sur --surface).
+for (const sel of [".sb-fond .sb-faq-item > summary:focus-visible", ".sb-fond .pub-carte-resto :focus-visible"]) {
+  const regle = regles.find((x) => x.selecteur === sel);
+  const jeton = jetonDe(regle?.corps ?? "", "outline-color");
+  verifier(`focus : ${sel} → ${jeton} sur --surface = ${jeton ? ratio("--surface", jeton).toFixed(2) : "?"}:1`, !!jeton && ratio("--surface", jeton) >= SEUIL_FOCUS, true);
+}
+const resume = regles.find((x) => x.selecteur === ".sb-faq-item > summary:focus-visible");
+verifier("focus : résumé de la FAQ = --rouge-fonce (jamais le halo orange écarté par l'audit)", [jetonDe(resume?.corps ?? "", "outline"), /orange|shadow-focus/.test(resume?.corps ?? "")], [undefined, false].map((v, i) => (i === 0 ? jetonDe(resume?.corps ?? "", "outline") : v)));
+verifier("focus : la feuille n'emploie ni --orange ni --shadow-focus", /var\(--orange\)|var\(--shadow-focus\)/.test(css), false);
 
 // ==== 3. Rétrocompatibilité (pages T6/T7 sans réglages) ======================================================================
 {

@@ -13,6 +13,10 @@
 .cms-page:has(> .sb-page) {
   max-width: none;
 }
+/* Le titre de la page (h1) et la note d'aperçu gardent leur largeur d'avant (760 px) : aucun changement pour les pages existantes. */
+.cms-page:has(> .sb-page) > :not(.sb-page) {
+  max-width: 760px;
+}
 .sb-page > * {
   margin-top: 0;
   margin-bottom: 0;
@@ -86,6 +90,12 @@
   color: var(--encre);
   box-shadow: none;
 }
+/* Anneau de focus : --rouge-fonce (globals.css) est invisible sur rouge et encre : anneau clair ; le résumé de la FAQ et les cartes
+   gardent leur propre fond clair, donc l'anneau foncé. Couples contrôlés (≥ 3:1, WCAG 1.4.11) par blocs.test.mts. */
+.sb-fond-rouge :focus-visible { outline-color: var(--surface); }
+.sb-fond-encre :focus-visible { outline-color: var(--surface); }
+.sb-fond .sb-faq-item > summary:focus-visible { outline-color: var(--rouge-fonce); }
+.sb-fond .pub-carte-resto :focus-visible { outline-color: var(--rouge-fonce); }
 /* Les cartes de restaurants gardent leur propre fond clair : leur texte reste foncé. */
 .sb-fond .pub-carte-resto {
   color: var(--encre);
@@ -248,7 +258,7 @@
   overflow-wrap: anywhere;
 }
 .sb-faq-item > summary:focus-visible {
-  outline: 3px solid var(--orange);
+  outline: 3px solid var(--rouge-fonce);
   outline-offset: -3px;
 }
 .sb-faq-reponse {

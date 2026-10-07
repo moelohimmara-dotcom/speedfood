@@ -169,3 +169,17 @@ export const LIBELLE_ANCRE = {
   libelle: "Ancre (lien interne)",
   aide: "Lettres minuscules, chiffres et tirets, en commençant par une lettre (ex. « questions »). Permet un lien vers ce bloc : /p/ma-page#questions. Une ancre ne peut servir qu'une fois dans la page.",
 } as const;
+
+/**
+ * Anneau de focus (`:focus-visible`) des éléments focalisables d'un bloc, selon son fond : jeton de couleur de l'anneau.
+ * Critère WCAG 1.4.11 : au moins 3:1 contre le fond adjacent (test unitaire sur les valeurs réelles des jetons). Le site pose
+ * `--rouge-fonce` partout (globals.css) ; il serait invisible sur un fond rouge ou encre, où l'anneau passe en `--surface`.
+ */
+export const ANNEAU_FOCUS: Record<(typeof CODES_FOND)[number], string> = {
+  aucun: "--rouge-fonce",
+  creme: "--rouge-fonce",
+  surface: "--rouge-fonce",
+  mangue: "--rouge-fonce",
+  rouge: "--surface",
+  encre: "--surface",
+};
