@@ -265,6 +265,110 @@
   border-color: var(--encre);
 }
 
+/* --- Historique --- */
+
+.dj-historique {
+  margin-top: var(--space-5);
+}
+
+.dj-historique-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--bordure);
+  padding: var(--space-2) 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--encre);
+  cursor: pointer;
+}
+
+.dj-historique-compte {
+  display: inline-block;
+  background: var(--encre);
+  color: var(--surface);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  font-size: 0.75rem;
+  margin-left: var(--space-1);
+}
+
+.dj-historique-indice {
+  color: var(--secondaire);
+  font-size: 0.75rem;
+}
+
+.dj-historique-vide {
+  font-size: 0.85rem;
+  color: var(--secondaire);
+  margin: var(--space-3) 0 0;
+}
+
+.dj-historique-liste {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.dj-historique-entree {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  background: var(--creme);
+}
+
+.dj-historique-contenu {
+  min-width: 0;
+}
+
+.dj-historique-titre {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.dj-historique-date {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--secondaire);
+}
+
+.dj-historique-valeurs {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--secondaire);
+}
+
+.dj-historique-valeurs code {
+  font-size: 0.78rem;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.dj-historique-note {
+  font-size: 0.78rem;
+  color: var(--secondaire);
+  margin: var(--space-3) 0 0;
+}
+
 .dj-cadre {
   border: 1px solid var(--bordure);
   border-radius: var(--radius-md);

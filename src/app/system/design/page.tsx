@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { lireJetons } from "@/lib/studio/jetons-lecture";
+import { listerHistoriqueJeton } from "@/lib/studio/jetons-actions";
 import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { Alert } from "@/components/ui";
 import { SousNav } from "../SousNav";
 import { EditeurJetons } from "./EditeurJetons";
+import { PanneauHistorique } from "./PanneauHistorique";
 import "./design.css";
 
 export const metadata: Metadata = { title: "Design (administration)" };
@@ -18,7 +20,7 @@ export const metadata: Metadata = { title: "Design (administration)" };
  */
 export default async function DesignPage() {
   const contexte = await exigerPermissionPage("parametres.editer");
-  const jetons = await lireJetons("site");
+  const [jetons, entrees] = await Promise.all([lireJetons("site"), listerHistoriqueJeton(30)]);
 
   const personnalises = jetons.filter((j) => j.personnalise);
   const restants = jetons.length - personnalises.length;
@@ -53,6 +55,10 @@ export default async function DesignPage() {
             personnalise: j.personnalise,
           }))}
         />
+      </Panneau>
+
+      <Panneau titre="Historique" id="design-historique">
+        <PanneauHistorique entrees={entrees} aPersonnalise={personnalises.length > 0} />
       </Panneau>
 
       <Panneau titre="Ce que ces réglages ne font pas" id="design-limites">

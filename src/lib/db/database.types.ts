@@ -804,6 +804,57 @@ export type Database = {
           },
         ]
       }
+      design_tokens_historique: {
+        Row: {
+          action: string
+          auteur_id: string | null
+          cle: string
+          cree_le: string
+          id: string
+          portee: string
+          restaurant_id: string | null
+          valeur_apres: string
+          valeur_avant: string | null
+        }
+        Insert: {
+          action: string
+          auteur_id?: string | null
+          cle: string
+          cree_le?: string
+          id?: string
+          portee?: string
+          restaurant_id?: string | null
+          valeur_apres: string
+          valeur_avant?: string | null
+        }
+        Update: {
+          action?: string
+          auteur_id?: string | null
+          cle?: string
+          cree_le?: string
+          id?: string
+          portee?: string
+          restaurant_id?: string | null
+          valeur_apres?: string
+          valeur_avant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_tokens_historique_auteur_id_fkey"
+            columns: ["auteur_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_tokens_historique_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_profils: {
         Row: {
           adresse: string | null
