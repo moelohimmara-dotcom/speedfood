@@ -1,0 +1,273 @@
+/* /system/design — éditeur de jetons avec aperçu vivant (palier 4, phase 1).
+ *
+ * Deux colonnes sur grand écran : les réglages à gauche, l'aperçu à droite. Sur téléphone, les
+ * réglages passent au-dessus et l'aperçu en dessous — on juge toujours le résultat.
+ *
+ * Les classes sont préfixées `dj-` (design jetons) et n'utilisent que les variables existantes, donc
+ * cet écran suit automatiquement un changement de palette : pas de couleur en dur ici.
+ */
+
+.dj {
+  display: grid;
+  grid-template-columns: minmax(340px, 460px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dj {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Barre de groupes et actions --- */
+
+.dj-barre-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.dj-groupes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.dj-groupe {
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--secondaire);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-4);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dj-groupe.actif {
+  background: var(--encre);
+  border-color: var(--encre);
+  color: var(--surface);
+}
+
+.dj-modifie {
+  font-size: 0.85rem;
+  color: var(--mangue);
+  background: var(--creme);
+  border-left: 3px solid var(--mangue);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  margin: 0 0 var(--space-3);
+}
+
+/* --- Liste des jetons --- */
+
+.dj-liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+.dj-ligne {
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-4);
+}
+
+.dj-ligne-tete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.dj-libelle {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.dj-modifie-marque {
+  color: var(--orange);
+  font-weight: 700;
+  margin-left: var(--space-1);
+}
+
+.dj-cle {
+  font-size: 0.75rem;
+  color: var(--secondaire);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.dj-champ {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.dj-pinceau {
+  width: 44px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+  cursor: pointer;
+  flex: none;
+}
+
+.dj-valeur {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+  color: var(--encre);
+}
+
+.dj-valeur:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dj-contraste {
+  font-size: 0.8rem;
+  margin: var(--space-2) 0 0;
+}
+
+.dj-contraste.ok {
+  color: var(--succes);
+}
+
+.dj-contraste.bas {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.dj-erreur {
+  font-size: 0.8rem;
+  color: var(--danger);
+  background: var(--danger-fond);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  margin: var(--space-2) 0 0;
+}
+
+.dj-succes {
+  font-size: 0.8rem;
+  color: var(--succes);
+  margin: var(--space-2) 0 0;
+}
+
+.dj-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  align-items: center;
+}
+
+.dj-fantome {
+  background: none;
+  border: 1px dashed var(--bordure);
+  color: var(--secondaire);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.dj-fantome:hover:not(:disabled) {
+  color: var(--encre);
+  border-color: var(--encre);
+}
+
+.dj-fantome:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Aperçu --- */
+
+.dj-apercu {
+  position: sticky;
+  top: var(--space-4);
+}
+
+.dj-apercu-barre {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.dj-groupe-boutons {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.dj-taille {
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--secondaire);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-4);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dj-taille.actif {
+  background: var(--encre);
+  border-color: var(--encre);
+  color: var(--surface);
+}
+
+.dj-apercu-note {
+  font-size: 0.78rem;
+  color: var(--secondaire);
+  margin: 0;
+}
+
+.dj-cadre {
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  transition: padding var(--duration-base) var(--ease);
+}
+
+.dj-cadre iframe {
+  border: 0;
+  display: block;
+  background: var(--surface);
+  width: 100%;
+  height: 74vh;
+}
+
+.dj-telephone {
+  padding: var(--space-4) 0;
+}
+
+.dj-telephone iframe {
+  width: 390px;
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--bordure);
+  height: 74vh;
+}
