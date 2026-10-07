@@ -22,15 +22,23 @@ import { creerClientAdmin } from "@/lib/db/admin";
  * - `restaurant_codes_marchand`, `restaurant_compteurs_documents`, `restaurant_identite_documents`,
  *   `restaurant_scans`.restaurant_id` -> `restaurants` (`20261005171122` et `20261005173049`).
  *
+ * Troisième catégorie, à connaître avant d'ajouter une table : `rate_limits` est elle aussi supprimée
+ * explicitement (`delete from rate_limits`, migration `20261004162230` ligne 109) et figure ici depuis le
+ * 7 octobre 2026. Elle ne contient que des compteurs de limitation de débit, donc la perdre n'a aucune
+ * conséquence métier — mais l'invariant « tout ce que la réinitialisation détruit est sauvegardé » doit
+ * rester vrai, sinon plus personne ne peut s'y fier.
+ *
  * Ne sont pas listées parce qu'elles survivent à la réinitialisation : `fonctionnalites`, `contenu_emplacements`,
- * `acces_paliers`, `menu_categories`, `neighborhoods`, `parametres_application`, `audit_events`.
+ * `acces_paliers`. Y sont aussi `menu_categories`, `neighborhoods` et `parametres_application`, qui sont des
+ * données de configuration réinjectées par les migrations. `audit_events` est en revanche listée : elle survit
+ * elle aussi, mais on la conserve pour garder la trace de ce que la réinitialisation a détruit.
  */
 export const TABLES_SAUVEGARDE = [
   "audit_events", "client_profils", "content_banners", "content_pages", "content_pages_versions", "documents_commande",
   "featured_placements", "menu_categories", "menu_item_options", "menu_items", "menu_sections", "neighborhoods",
   "order_item_options", "order_items", "order_proposals", "order_status_events", "orders", "parametres_application",
-  "push_subscriptions", "restaurant_codes_marchand", "restaurant_compteurs_documents", "restaurant_identite_documents",
-  "restaurant_memberships", "restaurant_scans", "restaurants", "system_admin_memberships",
+  "push_subscriptions", "rate_limits", "restaurant_codes_marchand", "restaurant_compteurs_documents",
+  "restaurant_identite_documents", "restaurant_memberships", "restaurant_scans", "restaurants", "system_admin_memberships",
 ] as const;
 
 const TAILLE_PAGE = 1000;
