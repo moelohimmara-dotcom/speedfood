@@ -15,6 +15,9 @@ import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { decider, type DecisionAccueil, type EntreeDecisionAccueil } from "@/lib/studio/accueil";
 import { peutVoirApercu } from "@/lib/studio/droit-apercu";
 import { SLUG_ACCUEIL } from "@/lib/studio/registre";
+import { lireTextes } from "@/lib/cms/textes";
+import { promesseDeLaRequete } from "@/components/accueil/lectures";
+import { lireAccueil } from "@/lib/site/accueil";
 
 // Rendue à chaque requête (et non figée à la construction) : l'accueil lit des données vivantes et le cadre du site lit les interrupteurs
 // de fonctionnalités du super administrateur (voir src/lib/fonctionnalites/lire.ts) ; sinon un changement n'apparaîtrait qu'au prochain déploiement.
@@ -83,7 +86,18 @@ function AccueilRepli() {
   );
 }
 
+/**
+ * Précharge (sans attendre) les lectures dont les sections ont besoin : elles démarrent tout de suite, EN MÊME TEMPS que la
+ * lecture de l'interrupteur et de la page « accueil », comme les quatre lectures de la page d'origine (un seul `Promise.all`).
+ * Ce sont les mêmes fonctions mémoïsées par requête (`cache` de React) que celles des sections : aucune lecture en double, et
+ * les sections reprennent les promesses déjà lancées. Un échec n'est pas perdu : la section qui attend la même promesse le voit.
+ */
+function precharger() {
+  for (const lecture of [lireAccueil(), lireTextes(), promesseDeLaRequete()]) lecture.catch(() => undefined);
+}
+
 export default async function AccueilPage({ searchParams }: Props) {
+  precharger();
   const decision = await choisirAffichage(apercuDemande((await searchParams).apercu));
 
   if (decision.mode === "repli") return <AccueilRepli />;

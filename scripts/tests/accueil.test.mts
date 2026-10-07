@@ -142,12 +142,24 @@ verifier("page « / » : décision par `decider`, interrupteur et page publiée 
   /canonical: "\/"/.test(pageRacine),
   /Les restaurants de Conakry/.test(pageRacine),
 ], [true, true, true, true, true, true]);
+verifier("page « / » : lectures des sections préchargées avant l'attente de l'interrupteur et de la page (pas de cascade)", [
+  /precharger\(\);\s+const decision = await choisirAffichage/.test(pageRacine),
+  /lireAccueil\(\), lireTextes\(\), promesseDeLaRequete\(\)/.test(pageRacine),
+], [true, true]);
 verifier("page « / » : l'aperçu exige la permission d'équipe (peutVoirApercu) et reste hors index", [/peutVoirApercu\(\)/.test(pageRacine), /robots: \{ index: false/.test(pageRacine)], [true, true]);
 verifier("page « / » : la page publiée n'est lue que si l'interrupteur est actif", /interrupteurActif && !entreeApercu\?\.page/.test(pageRacine), true);
 const pagesBlocs = lire("src/lib/system-admin/pages-blocs.ts");
 verifier("actions : toute validation de page reçoit l'adresse de la page", [...pagesBlocs.matchAll(/validerPage\(([^)]*)\)/g)].every((m) => /slug/.test(m[1])), true);
 verifier("action de création : l'adresse « accueil » est réservée", /slug === SLUG_ACCUEIL/.test(pagesBlocs), true);
 verifier("publication de l'accueil : mention « Accueil publié » dans l'audit", /Accueil publié/.test(pagesBlocs), true);
+const contenus = lire("src/lib/system-admin/contenus.ts");
+const debutCreation = contenus.indexOf("export async function creerPageAction");
+const corpsCreation = contenus.slice(debutCreation, contenus.indexOf("export async function modifierPageAction"));
+verifier("pages de texte : l'adresse « accueil » est réservée (message exact), avant toute écriture", [
+  /if \(slug === "accueil"\) \{\s+return \{ erreur: "Ce nom est réservé à la page d'accueil du site\. Utilisez le bouton « Créer l'accueil en blocs »\." \};/.test(corpsCreation),
+  corpsCreation.indexOf('slug === "accueil"') < corpsCreation.indexOf(".insert("),
+  corpsCreation.indexOf('slug === "accueil"') < corpsCreation.indexOf("verifierPermission"),
+], [true, true, true]);
 const creerAccueil = lire("src/lib/system-admin/accueil-blocs.ts");
 verifier("création de l'accueil : permission, palier 1 (brouillon), brouillon seulement, refus si la page existe", [
   /verifierPermission\("contenu\.editer"\)/.test(creerAccueil),

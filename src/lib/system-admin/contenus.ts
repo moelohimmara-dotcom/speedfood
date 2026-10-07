@@ -117,6 +117,11 @@ export async function creerPageAction(
       erreur: "Le slug doit être en minuscules, sans espaces (ex. \"comment-commander\").",
     };
   }
+  // L'adresse « accueil » est réservée à la page d'accueil du site (accueil en blocs, bouton dédié) : une page de texte qui
+  // la prendrait ne pourrait ni être supprimée ni renommée et bloquerait ce bouton.
+  if (slug === "accueil") {
+    return { erreur: "Ce nom est réservé à la page d'accueil du site. Utilisez le bouton « Créer l'accueil en blocs »." };
+  }
   if (!titre || titre.length > 200) {
     return { erreur: "Le titre est obligatoire (200 caractères maximum)." };
   }

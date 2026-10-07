@@ -62,7 +62,7 @@ export default async function ContenusSystemePage({
           <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
         ) : pageAccueil ? (
           <p>
-            La page d&apos;accueil en blocs existe ({pageAccueil.statut === "publie" ? "publiée" : "brouillon"}).{" "}
+            {pagesABlocs.has(pageAccueil.id) ? "La page d'accueil en blocs existe" : "Une page d'accueil de texte existe"} ({pageAccueil.statut === "publie" ? "publiée" : "brouillon"}).{" "}
             <Link href={pagesABlocs.has(pageAccueil.id) ? `/system/contenu/pages/${pageAccueil.id}/blocs` : `/system/contenu/pages/${pageAccueil.id}`} className="lien-texte">
               Ouvrir la page d&apos;accueil
             </Link>
