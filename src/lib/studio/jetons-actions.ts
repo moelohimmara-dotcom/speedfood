@@ -89,20 +89,45 @@ export async function enregistrerJetonAction(_etat: ResultatJeton, formData: For
       }
     }
 
+    // ÉCRITURE EN DEUX TEMPS, volontairement (correction du 7 octobre 2026).
+    //
+    // `upsert` avec `onConflict: "portee,restaurant_id,cle"` ne fonctionne PAS ici, et l'a fait
+    // échouer silencieusement à chaque clic : l'unicité est portée par un index sur une expression
+    // (`portee, coalesce(restaurant_id, …), cle`, nécessaire parce qu'en PostgreSQL NULL <> NULL),
+    // et `ON CONFLICT` exige un index sur exactement les colonnes citées. PostgreSQL répondait
+    // « 42P10 : there is no unique or exclusion constraint matching the ON CONFLICT specification »,
+    // que l'action transformait en « le jeton n'a pas pu être enregistré ».
+    //
+    // UPDATE d'abord, INSERT seulement si rien n'a été modifié : deux requêtes explicites, pas de
+    // dépendance à une inférence d'index, et surtout aucune modification du schéma en production.
     const admin = creerClientAdmin();
-    const { error } = await admin.from("design_tokens").upsert(
-      {
+    const commun = {
+      valeur: v,
+      libelle: connu.libelle.slice(0, MAX_LONGUEUR_LIBELLE),
+      groupe: connu.groupe,
+      mis_a_jour_le: new Date().toISOString(),
+    };
+    const cible = admin.from("design_tokens").update(commun).eq("cle", cle).eq("portee", portee);
+    // `.select()` est indispensable : sans lui, PostgREST renvoie `data: null` et on ne peut pas
+    // savoir si l'UPDATE a touché une ligne — donc pas décider s'il faut INSERT.
+    const requete = restaurantId ? cible.eq("restaurant_id", restaurantId) : cible.is("restaurant_id", null);
+    const { data: modifiees, error: erreurUpdate } = await requete.select("cle");
+
+    if (erreurUpdate) {
+      return { ok: false, cleEnErreur: cle, message: "Le jeton n'a pas pu être enregistré, réessayez dans un instant." };
+    }
+
+    if (!modifiees || modifiees.length === 0) {
+      const { error: erreurInsert } = await admin.from("design_tokens").insert({
         portee,
         restaurant_id: restaurantId,
         cle,
-        valeur: v,
-        libelle: connu.libelle.slice(0, MAX_LONGUEUR_LIBELLE),
-        groupe: connu.groupe,
-        mis_a_jour_le: new Date().toISOString(),
-      },
-      { onConflict: "portee,restaurant_id,cle" }
-    );
-    if (error) return { ok: false, cleEnErreur: cle, message: "Le jeton n'a pas pu être enregistré, réessayez dans un instant." };
+        ...commun,
+      });
+      if (erreurInsert) {
+        return { ok: false, cleEnErreur: cle, message: "Le jeton n'a pas pu être enregistré, réessayez dans un instant." };
+      }
+    }
 
     await journaliserActionSysteme(contexte, {
       action: "design.jeton_modification",
