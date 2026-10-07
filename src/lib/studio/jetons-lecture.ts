@@ -100,14 +100,24 @@ export async function lireJetons(portee: "site" | "restaurant", restaurantId: st
   for (const d of data) personnalises.set(d.cle, d);
 
   return DEFAUTS.map((d) => {
-    const personnalise = personnalises.get(d.cle);
+    const enBase = personnalises.get(d.cle);
     // Un groupe illisible en base ne doit pas faire tomber le rendu : on retombe sur le groupe du
     // code, qui est la référence, et la valeur reste affichable (elle est validée à l'écriture).
-    if (personnalise) {
-      const groupe = (GROUPES_VALIDES as readonly string[]).includes(personnalise.groupe) ? (personnalise.groupe as Groupe) : d.groupe;
-      return { ...personnalise, groupe, portee, restaurantId, personnalise: true };
-    }
-    return { ...d, portee, restaurantId, personnalise: false };
+    const groupe = enBase && (GROUPES_VALIDES as readonly string[]).includes(enBase.groupe) ? (enBase.groupe as Groupe) : d.groupe;
+    return {
+      ...(enBase ?? d),
+      groupe,
+      portee,
+      restaurantId,
+      // « Personnalisé » = la valeur STOCKÉE DIFFÈRE de la valeur du code.
+      //
+      // Ce n'est pas « une ligne existe ». La migration a sémé les 35 jetons dans la base avec les
+      // valeurs de globals.css : dire « personnalisé » sur la seule présence d'une ligne faisait
+      // annoncer « 35 réglages personnalisés » alors que rien n'avait été changé, et affichait un
+      // bouton « Rétablir » sur chaque ligne. La question utile est « est-ce différent de
+      // l'original », pas « y a-t-il une ligne ».
+      personnalise: enBase !== undefined && enBase.valeur !== d.valeur,
+    };
   });
 }
 

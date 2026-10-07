@@ -40,12 +40,34 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
   const [personnalises, setPersonnalises] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(jetons.map((j) => [j.cle, j.personnalise]))
   );
+  /**
+   * Dernière valeur ENREGISTRÉE par jeton. C'est la référence du bandeau « modification non
+   * enregistrée », et non la valeur reçue au rendu du serveur : sans cette copie locale, un
+   * enregistrement réussi continuerait d'afficher « non enregistré » tant que la page n'aurait pas
+   * été rechargée.
+   */
+  const [enregistrees, setEnregistrees] = useState<Record<string, string>>(() =>
+    Object.fromEntries(jetons.map((j) => [j.cle, j.valeur]))
+  );
   const [etat, actionEnregistrer, enCoursEnregistrement] = useActionState(enregistrerJetonAction, etatInitial);
   const [etatReinit, actionReinit, enCoursReinit] = useActionState(reinitialiserJetonAction, etatInitial);
   const [largeur, setLargeur] = useState<"bureau" | "telephone">("bureau");
   const [groupeActif, setGroupeActif] = useState<Groupe>("couleurs");
   const iframe = useRef<HTMLIFrameElement>(null);
   const styleApercu = useRef<HTMLStyleElement | null>(null);
+
+  /**
+   * La pastule « personnalisé » n'apparaît qu'après une réponse RÉUSSIE du serveur.
+   * Avant ce correctif, elle était posée sur `onSubmit` — donc même quand l'enregistrement était
+   * refusé (par exemple pour un contraste trop bas) : l'écran affichait « personnalisé » alors
+   * que rien n'avait changé sur le site.
+   */
+  useEffect(() => {
+    if (!etat.ok || !etat.cleEnregistree) return;
+    const cle = etat.cleEnregistree;
+    setPersonnalises((p) => ({ ...p, [cle]: true }));
+    setEnregistrees((e) => ({ ...e, [cle]: valeurs[cle] ?? e[cle] }));
+  }, [etat, valeurs]);
 
   /** Le CSS de l'aperçu, recalculé à chaque frappe. */
   const cssApercu = useMemo(() => cssDepuisJetons(new Map(Object.entries(valeurs))), [valeurs]);
@@ -81,7 +103,7 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
 
   const groupes = Object.keys(LIBELLES_GROUPES) as Groupe[];
   const visibles = jetons.filter((j) => j.groupe === groupeActif);
-  const modifiees = jetons.filter((j) => valeurs[j.cle] !== j.valeur);
+  const modifiees = jetons.filter((j) => valeurs[j.cle] !== enregistrees[j.cle]);
 
   const changer = (cle: string, valeur: string) => setValeurs((v) => ({ ...v, [cle]: valeur }));
 
@@ -89,6 +111,7 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
   const revenirAuxActuelles = () => {
     setValeurs(Object.fromEntries(jetons.map((j) => [j.cle, j.valeur])));
     setPersonnalises(Object.fromEntries(jetons.map((j) => [j.cle, j.personnalise])));
+    setEnregistrees(Object.fromEntries(jetons.map((j) => [j.cle, j.valeur])));
   };
 
   return (
@@ -127,10 +150,10 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
               key={j.cle}
               jeton={j}
               valeur={valeurs[j.cle]}
+              enregistree={enregistrees[j.cle]}
               personnalise={Boolean(personnalises[j.cle])}
               autres={valeurs}
               onChange={(v) => changer(j.cle, v)}
-              onPersonnalise={() => setPersonnalises((p) => ({ ...p, [j.cle]: true }))}
               etat={etat}
               actionEnregistrer={actionEnregistrer}
               etatReinit={etatReinit}
@@ -180,10 +203,10 @@ function widthIs(largeur: string, attendu: string): boolean {
 function LigneJeton({
   jeton,
   valeur,
+  enregistree,
   personnalise,
   autres,
   onChange,
-  onPersonnalise,
   etat,
   actionEnregistrer,
   etatReinit,
@@ -193,10 +216,11 @@ function LigneJeton({
 }: {
   jeton: JetonVue;
   valeur: string;
+  /** Dernière valeur enregistrée : c'est elle qui décide si « Enregistrer » est utile. */
+  enregistree: string;
   personnalise: boolean;
   autres: Record<string, string>;
   onChange: (v: string) => void;
-  onPersonnalise: () => void;
   etat: ResultatJeton;
   actionEnregistrer: (formData: FormData) => void;
   etatReinit: ResultatJeton;
@@ -272,11 +296,11 @@ function LigneJeton({
       {succes ? <p className="dj-succes">{succes}</p> : null}
 
       <div className="dj-actions">
-        <form action={actionEnregistrer} onSubmit={onPersonnalise}>
+        <form action={actionEnregistrer}>
           <input type="hidden" name="cle" value={jeton.cle} />
           <input type="hidden" name="portee" value="site" />
           <input type="hidden" name="valeur" value={valeur} />
-          <button type="submit" className="btn btn-secondaire" disabled={enCours || valeur === jeton.valeur}>
+          <button type="submit" className="btn btn-secondaire" disabled={enCours || valeur === enregistree}>
             {enCours ? "Enregistrement…" : "Enregistrer"}
           </button>
         </form>

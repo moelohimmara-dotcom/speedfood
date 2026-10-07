@@ -32,6 +32,12 @@ export interface ResultatJeton {
   message?: string;
   /** Message d'erreur attaché à un jeton précis, pour l'afficher sous le bon champ. */
   cleEnErreur?: string;
+  /**
+   * Clé du jeton réellement écrit. L'interface ne marque « personnalisé » que sur cette réponse,
+   * jamais sur le simple fait d'avoir cliqué : un enregistrement REFUSÉ ne change rien, et l'afficher
+   * comme personnalisé mentirait sur l'état du site.
+   */
+  cleEnregistree?: string;
 }
 
 const MAX_LONGUEUR_LIBELLE = 80;
@@ -109,7 +115,7 @@ export async function enregistrerJetonAction(_etat: ResultatJeton, formData: For
     // Le CSS des jetons est dans le layout racine : revalider le layout pour que la prochaine
     // réponse serve la nouvelle valeur. Le TTL de la Cache API borne le délai si cela ne suffit pas.
     revalidatePath("/", "layout");
-    return { ok: true, message: "Enregistré. Le site est à jour." };
+    return { ok: true, cleEnregistree: cle, message: "Enregistré. Le site est à jour." };
   } catch (erreur) {
     if (erreur instanceof ErreurMetier) return { ok: false, message: erreur.message };
     return { ok: false, message: "Action refusée." };
@@ -151,7 +157,7 @@ export async function reinitialiserJetonAction(_etat: ResultatJeton, formData: F
 
     revalidatePath("/system/design");
     revalidatePath("/", "layout");
-    return { ok: true, message: "Revenu à la valeur actuelle." };
+    return { ok: true, cleEnregistree: cle, message: "Revenu à la valeur actuelle." };
   } catch (erreur) {
     if (erreur instanceof ErreurMetier) return { ok: false, message: erreur.message };
     return { ok: false, message: "Action refusée." };
