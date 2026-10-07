@@ -739,3 +739,19 @@ cache sur `workers.dev`, dont l'efficacité reste contradictoire entre deux docu
 
 **Observabilité inchangée** : journaux conservés, risque accepté par écrit (entrée du 7 octobre plus haut). Levée possible au prochain déploiement, en
 filtrant les routes `/suivi/*` ou en désactivant `logs.invocation_logs`.
+
+**Sauvegarde et restauration : premier export de la production, et restauration enfin prouvée sur le schéma actuel (7 octobre 2026, 10:21).** La porte 13 de
+`docs/cadrage/PROCEDURE-SECURITE.md` §9 était partielle depuis le 3 octobre : le test de restauration portait alors sur 19 tables et 25 migrations, et ne
+disait donc plus rien de l'état actuel. `npm run export:donnees` a produit le **premier export de la production** — 31 tables, 3 comptes sans mots de passe,
+1 fichier de stockage, empreintes SHA-256, dans `C:\Users\moelo\speedfood-exports\2026-10-07-10-21` (hors dépôt ; l'ancien export du 3 octobre a été purgé
+par la rotation). `npm run export:verifier` a ensuite rejoué les **60 migrations** dans une base jetable et rechargé l'export : **nombre de lignes identique
+au manifeste pour les 31 tables** (de `acces_paliers` 0/0 à `audit_events` 42/42, `menu_items` 68/68, `restaurants` 20/20, `orders` 3/3), toutes les
+empreintes de fichiers concordantes, intégrité intacte (0 ligne de commande sans commande, 0 commande sans restaurant, 0 plat sans restaurant, 0 proposition
+sans commande). **Verdict de l'outil : « RESTAURATION VÉRIFIÉE ».** Durée : quelques minutes. Exécuté par un agent, sur ordre de la propriétaire.
+
+**Ce que ce test ne prouve pas** — à lire avant de s'en servir comme d'un filet de sécurité : la cible est **PostgreSQL 18 en mémoire, pas un vrai projet
+Supabase** ; les éléments Supabase sont des bouchons ; `GRANT` et `REVOKE` ne sont pas comparés, donc « schéma identique » ne veut pas dire « droits
+équivalents » ; les mots de passe ne sont pas dans l'export ; **la recréation du bucket `medias` n'est pas testée**. Le chemin `TABLES_SAUVEGARDE`
+(26 tables), utilisé avant une réinitialisation, reste non exécuté — le prouver demanderait une réinitialisation réelle, à ne jamais tenter en production.
+Reste aussi à faire : disque chiffré confirmé, une copie hors de cette machine, et l'export à répéter (le dernier export ne dit rien des données du
+lendemain).
