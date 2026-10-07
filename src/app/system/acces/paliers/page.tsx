@@ -8,6 +8,8 @@ import {
   libelleActif,
   libellePalier,
   paliersPreset,
+  actifEstGarde,
+  ACTIFS_COUVERTS_EN_APPLICATION,
   type Palier,
 } from "@/lib/system-admin/paliers";
 import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
@@ -100,9 +102,15 @@ export default async function PaliersSystemePage() {
           </p>
           <p className="ad-secondaire">
             Limites actuelles : ces réglages ne concernent que les personnes qui ont déjà un rôle système (sans rôle, la console
-            reste fermée) et un super administrateur garde toujours le contrôle total. Pour l&apos;instant, seuls les écrans
-            Pages, Bannières et Textes du site en tiennent compte, et un relèvement n&apos;ouvre pas un écran que le rôle ne
-            permet pas.
+            reste fermée) et un super administrateur garde toujours le contrôle total. Un relèvement n&apos;ouvre pas un écran
+            que le rôle ne permet pas.
+          </p>
+          <p className="ad-secondaire">
+            <strong>Quels espaces tiennent réellement compte d&apos;un palier ?</strong> À ce jour,{" "}
+            <strong>{ACTIFS_COUVERTS_EN_APPLICATION.length} espaces sur {ACTIFS.length}</strong> :{" "}
+            {ACTIFS_COUVERTS_EN_APPLICATION.map(libelleActif).join(", ")}. Sur les autres, une habilitation peut être enregistrée mais
+            n&apos;a <strong>aucun effet</strong> tant qu&apos;aucun contrôle de palier ne s&apos;y applique — seule la permission
+            limite l&apos;accès. Les autres espaces sont les candidats naturels pour les paliers suivants.
           </p>
         </div>
       </Panneau>
@@ -110,7 +118,7 @@ export default async function PaliersSystemePage() {
       <div style={{ marginTop: "var(--space-5)" }}>
         <Panneau titre="Attribuer une habilitation">
           <FormulaireAttributionPalier
-            actifs={ACTIFS.map((a) => ({ code: a.code, libelle: a.libelle }))}
+            actifs={ACTIFS.map((a) => ({ code: a.code, libelle: a.libelle, garde: actifEstGarde(a.code) }))}
             paliers={PALIERS.filter((p) => p.attribuable).map((p) => ({ valeur: p.valeur, libelle: p.libelle }))}
             suggestions={cibles}
           />

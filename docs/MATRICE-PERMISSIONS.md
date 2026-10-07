@@ -135,22 +135,61 @@ sa propre permission est accordée (`sousSectionsAccessibles`, généralisation 
 l'ancien `SousNavContenus` en `SousNav`). Purement une réorganisation visuelle
 — aucun changement de permission réelle.
 
-| Route | Contenu | Permission vérifiée dans la page |
-|---|---|---|
-| `/system` | Centre de commandement (indicateurs, file prioritaire) | tout rôle système |
-| `/system/catalogue/restaurants` | Restaurants & comptes | `restaurant.moderer` |
-| `/system/catalogue/taxonomie` | Taxonomie (catégories, quartiers) | `taxonomie.editer` |
-| `/system/catalogue/mises-en-avant` | Mises en avant | `contenu.mettre_en_avant` |
-| `/system/contenu/pages` | Pages | `contenu.editer` |
-| `/system/contenu/bannieres` | Bannières | `contenu.editer` |
-| `/system/commandes` | Support commandes | `commande.consulter` |
-| `/system/acces/comptes` | Annuaire des comptes (lecture seule) | `compte.consulter` |
-| `/system/acces/roles` | Rôles système | `systeme.roles` |
-| `/system/audit` | Journal d'audit | `systeme.audit` |
+| Route | Contenu | Permission vérifiée dans la page | Palier |
+|---|---|---|---|
+| `/system` | Centre de commandement (indicateurs, file prioritaire) | tout rôle système | — |
+| `/system/catalogue` | Sommaire du catalogue | tout rôle système | — |
+| `/system/catalogue/restaurants` | Restaurants & comptes | `restaurant.moderer` | — |
+| `/system/catalogue/restaurants/[id]` | Fiche d'un restaurant | `restaurant.consulter` | — |
+| `/system/catalogue/taxonomie` | Taxonomie (catégories, quartiers) | `taxonomie.editer` | — |
+| `/system/catalogue/mises-en-avant` | Mises en avant | `contenu.mettre_en_avant` | — |
+| `/system/contenu` | Sommaire du contenu | `contenu.editer` | — |
+| `/system/contenu/pages` | Pages | `contenu.editer` | `contenu:pages` |
+| `/system/contenu/pages/[id]` | Éditeur d'une page | `contenu.editer` | `contenu:pages` |
+| `/system/contenu/pages/[id]/blocs` | Éditeur de blocs (Studio) | `contenu.editer` | `contenu:pages` |
+| `/system/contenu/bannieres` | Bannières | `contenu.editer` | `contenu:bannieres` |
+| `/system/contenu/medias` | Médiathèque | `contenu.editer` | `contenu:pages` |
+| `/system/contenu/textes` | Textes du site | `contenu.editer` | `contenu:textes` |
+| `/system/commandes` | Support commandes | `commande.consulter` | — |
+| `/system/commandes/[id]` | Détail d'une commande | `commande.consulter` | — |
+| `/system/acces` | Sommaire des accès | tout rôle système | — |
+| `/system/acces/comptes` | Annuaire des comptes (lecture seule) | `compte.consulter` | — |
+| `/system/acces/roles` | Rôles système | `systeme.roles` | — |
+| `/system/acces/paliers` | Habilitations par palier | `systeme.roles` | — |
+| `/system/audit` | Journal d'audit | `systeme.audit` | — |
+| `/system/parametres` | Paramètres de l'application | `parametres.editer` | — |
+| `/system/parametres/reinitialisation` | Réinitialisation (avec sauvegarde) | `parametres.editer` | — |
+| `/system/mises-a-jour` | Interrupteurs (mises à jour) | `parametres.editer` | — |
 
 `/system/acces/roles` et `/system/audit` restent deux routes distinctes,
 chacune portant sa propre permission — un `support` consulte le journal sans
 accéder à la gestion des rôles.
+
+### La colonne « Palier », et pourquoi elle est presque vide
+
+Correction du 7 octobre 2026 : cette matrice ne listait que 10 routes sur 22, et ne
+mentionnait pas les paliers du tout.
+
+**Sur 16 actifs du catalogue `ACTIFS`, l'application n'en vérifie que 3** — `contenu:pages`,
+`contenu:bannieres`, `contenu:textes`. Ce sont les seuls qui appellent `verifierPalier`. Ce
+n'est pas un oubli : c'est le périmètre du lot Studio livré à ce jour. Les autres domaines
+(restaurants, commandes, comptes, audit, paramètres, thème, médias, navigation, traductions)
+restent gouvernés par la seule matrice de permissions — ce qui est **correct et suffisant**, un
+rôle borne déjà l'accès.
+
+Mais une habilitation de palier peut être enregistrée sur n'importe lequel des 16 actifs, y
+compris un actif sans garde : elle s'affiche dans l'écran des habilitations, se stocke, et ne
+change rien. Sans signal, une super administratrice peut croire poser un plafond efficace.
+
+**Ce qui a été fait :** `src/lib/system-admin/paliers.ts` expose désormais
+`ACTIFS_COUVERTS_EN_APPLICATION`, `actifEstGarde(code)` et `actifsSansCouverture()` ;
+l'écran `/system/acces/paliers` affiche le compte réel (« 3 espaces sur 16 ») et marque chaque
+actif non couvert dans le formulaire d'attribution. `scripts/tests/paliers.test.mts` relit le
+code source, extrait les actifs réellement passés à `verifierPalier`/`exigerPalier`, et **échoue
+si la liste déclarée diverge** — l'écart ne peut plus vieillir en silence.
+
+**Ce que cela ne fait pas :** étendre la couverture. Les 13 autres actifs attendent toujours
+leurs contrôles ; c'est le chantier du palier 4.
 
 ## Écarts connus
 

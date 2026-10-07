@@ -243,6 +243,52 @@ export function deciderAcces({
  */
 export const GARDE_PLAFONDS_EN_BASE_VALIDEE = true;
 
+// --- Couverture des paliers : quels actifs sont réellement gardés ? ------------
+//
+// Le catalogue `ACTIFS` et les déclencheurs SQL couvrent l'ensemble de l'administration, mais
+// l'application **ne vérifie un palier que sur trois actifs** : `contenu:pages`,
+// `contenu:bannieres` et `contenu:textes` (voir les appels `verifierPalier`). Le reste du
+// catalogue est déclaratif : une habilitation `restaurants`, `commandes`, `comptes`, `audit`
+// ou `parametres` s'affiche et se stocke, mais ne modifie rien tant qu'aucun `verifierPalier`
+// ne la consomme.
+//
+// Ce n'est pas un oubli isolé : c'est le lot Studio (tâches 1 à 3) qui a été livré, donc seul
+// le contenu est couvert. Les autres domaines gardent la matrice de permissions seule, ce qui
+// est correct et suffisant — mais il faut que ce soit **visible**, sinon un super administrateur
+// croit poser un plafond qui n'existe pas.
+//
+// Ce module est PUR (aucun import serveur), il ne peut pas compter les appels à la source :
+// `couvrirEnApplication` est la liste à tenir à jour à la main, et `actifsSansCouverture`
+// est vérifié par `scripts/tests/paliers.test.mts`, qui échoue si les deux listes divergent.
+
+/** Actifs sur lesquels l'application appelle réellement `verifierPalier` (mise à jour à la main). */
+export const ACTIFS_COUVERTS_EN_APPLICATION: readonly string[] = ["contenu:bannieres", "contenu:pages", "contenu:textes"];
+
+/**
+ * Actifs du catalogue qui n'ont pas encore de garde en application : poser un palier dessus
+ * n'a donc aucun effet. Ce sont les candidats naturels au palier 2 et suivants.
+ */
+export function actifsSansCouverture(): readonly string[] {
+  return ACTIFS.filter((a) => !ACTIFS_COUVERTS_EN_APPLICATION.includes(a.code)).map((a) => a.code);
+}
+
+/** Un actif du catalogue est couvert si l'application ou un déclencheur SQL le garde. */
+export function actifEstGarde(code: string): boolean {
+  // `contenu` est couvert par ses trois enfants, qui appellent tous `verifierPalier`.
+  if (code === "contenu") return true;
+  // Ces trois tables portent le trigger `fn_garde_palier_contenu` en base.
+  if (ACTIFS_COUVERTS_EN_APPLICATION.includes(code)) return true;
+  // Aucune garde connue : ne pas mentir dans l'interface des habilitations.
+  return false;
+}
+
+/** Phrase honnête pour l'écran des habilitations : dit à la propriétaire ce qui est garanti. */
+export function descriptionCouverture(code: string): string {
+  return actifEstGarde(code)
+    ? "Garde active : une API directe sans contrôle de rôle ne peut pas contourner le plafond."
+    : "Sans effet pour l'instant : aucun contrôle de palier ne s'applique encore à cet actif. Seule la permission limite l'accès.";
+}
+
 export const MESSAGE_DROITS_ILLISIBLES = "Vos droits n'ont pas pu être vérifiés, réessayez dans un instant.";
 
 /** Message d'un refus de palier (serveur) ou d'un bouton indisponible (interface), en français clair. */

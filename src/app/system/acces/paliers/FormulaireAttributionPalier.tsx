@@ -16,7 +16,7 @@ export function FormulaireAttributionPalier({
   paliers,
   suggestions,
 }: {
-  actifs: { code: string; libelle: string }[];
+  actifs: { code: string; libelle: string; garde: boolean }[];
   paliers: { valeur: number; libelle: string }[];
   suggestions: string[];
 }) {
@@ -46,10 +46,16 @@ export function FormulaireAttributionPalier({
           </option>
           {actifs.map((a) => (
             <option key={a.code} value={a.code}>
+              {/* Le suffixe dit ce que l'interface oserait taire : poser un palier ici ne change rien tant qu'aucun contrôle ne s'y applique. */}
               {a.libelle}
+              {a.garde ? "" : " (pas encore appliqué)"}
             </option>
           ))}
         </select>
+        <p className="aide-champ">
+          Les espaces marqués « pas encore appliqué » acceptent l&apos;habilitation mais n&apos;ont aucun effet pour l&apos;instant :
+          seule la permission limite l&apos;accès.
+        </p>
       </div>
       <div className="field">
         <label htmlFor="palier-niveau">Palier</label>

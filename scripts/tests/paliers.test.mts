@@ -1,12 +1,18 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
   ACTIFS,
+  ACTIFS_COUVERTS_EN_APPLICATION,
   ACTIFS_STUDIO,
   CORRESPONDANCE_PERMISSIONS,
   MINIMUMS_STUDIO,
   PALIERS,
   REGEX_ACTIF,
   actifCouvre,
+  actifEstGarde,
+  actifsSansCouverture,
   deciderAcces,
+  descriptionCouverture,
   expirationDepuisSaisie,
   explicationPalier,
   lectureNecessaire,
@@ -175,6 +181,43 @@ verifier("cible rôle inconnu refusée", validerCible("pirate") !== null, true);
 verifier("cibles content_editor/operations/support acceptées", ["content_editor", "operations", "support"].map(validerCible), [null, null, null]);
 verifier("explication d'un bouton indisponible", explicationPalier(1, 2).includes("Contributeur") && explicationPalier(1, 2).includes("Éditeur"), true);
 verifier("matrice inchangée (garde-fou de ce test)", Object.keys(PERMISSIONS_PAR_ROLE), ["super_admin", "operations", "content_editor", "support"]);
+
+// --- Couverture des paliers ------------------------------------------------------
+//
+// Le test le plus important de ce fichier. `ACTIFS_COUVERTS_EN_APPLICATION` est une liste
+// tenue à la main ; sans confrontation automatique au code, elle vieillit en silence et
+// l'écran des habilitations promet une garantie qui n'existe plus. On relit donc le code
+// source et on exige que la liste corresponde exactement aux actifs réellement gardés.
+
+const racineSrc = path.join(process.cwd(), "src");
+const codesVerifies = new Set<string>();
+for (const fichier of fs.readdirSync(path.join(racineSrc, "lib", "system-admin"), { withFileTypes: true })) {
+  if (!fichier.isFile() || !fichier.name.endsWith(".ts")) continue;
+  const source = fs.readFileSync(path.join(racineSrc, "lib", "system-admin", fichier.name), "utf8");
+  // `verifierPalier("actif", ...)` et `exigerPalier("actif", ...)`
+  for (const m of source.matchAll(/(?:verifierPalier|exigerPalier)\(\s*"([^"]+)"/g)) {
+    codesVerifies.add(m[1]);
+  }
+}
+
+const declares = ACTIFS_COUVERTS_EN_APPLICATION.slice().sort();
+const reels = [...codesVerifies].sort();
+
+verifier("la liste des actifs couverts correspond au code réel", declares, reels);
+verifier("aucun actif couvert n'est absent du catalogue", declares.filter((c) => !ACTIFS.some((a) => a.code === c)), []);
+verifier("tous les actifs Studio sont couverts", ACTIFS_STUDIO.every((a) => declares.includes(a)), true);
+verifier("le parent 'contenu' est considéré comme couvert", actifEstGarde("contenu"), true);
+verifier("un actif non couvert est signalé comme tel", actifEstGarde("restaurants"), false);
+verifier("la couverture et le sans-couverture se complètent", [...actifsSansCouverture(), ...ACTIFS_COUVERTS_EN_APPLICATION].sort(), ACTIFS.map((a) => a.code).sort());
+verifier("la description d'un actif couvert annonce la garantie", descriptionCouverture("contenu:pages").includes("Garde active"), true);
+verifier(
+  "la description d'un actif non couvert annonce l'absence d'effet",
+  descriptionCouverture("restaurants").includes("Seule la permission limite"),
+  true
+);
+
+// Garde-fou explicite : la surface de couverture ne doit pas rétrécir sans qu'on le voie.
+verifier("les 3 espaces Studio restent couverts", ACTIFS_COUVERTS_EN_APPLICATION.length >= ACTIFS_STUDIO.length, true);
 
 if (ko > 0) {
   console.log(`\n${ko} test(s) des paliers en échec.`);
