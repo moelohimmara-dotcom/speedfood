@@ -216,3 +216,21 @@ export const LIBELLES_GROUPES: Readonly<Record<Groupe, string>> = {
   espacements: "Espacements",
   formes: "Formes",
 };
+
+/**
+ * Un changement de jeton, tel qu'affiché dans le panneau « Historique ».
+ *
+ * Déclaré ici, dans le module PUR, et pas dans `jetons-actions` : ce dernier commence par
+ * `import "server-only"`, qu'un composant client ne peut pas importer. Le type devant être lu
+ * des deux côtés, il vit à côté de `Groupe`, lui aussi partagé.
+ */
+export interface EntreeHistorique {
+  id: string;
+  cle: string;
+  libelle: string;
+  groupe: Groupe;
+  valeurAvant: string | null;
+  valeurApres: string;
+  action: "creation" | "modification" | "suppression";
+  creeLe: string;
+}

@@ -1,4 +1,4 @@
-import "server-only";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { creerClientAdmin } from "@/lib/db/admin";
@@ -6,7 +6,7 @@ import { verifierPermission } from "@/lib/system-admin/contexte";
 import { verifierPalier } from "@/lib/system-admin/paliers-serveur";
 import { MINIMUMS_STUDIO } from "@/lib/system-admin/paliers";
 import { journaliserActionSysteme } from "@/lib/system-admin/audit";
-import { validerValeurJeton, verifierContraste, CONTRASTE_AA_TEXTE, type Groupe } from "@/lib/studio/jetons";
+import { validerValeurJeton, verifierContraste, CONTRASTE_AA_TEXTE, type Groupe, type EntreeHistorique } from "@/lib/studio/jetons";
 import { lireJetons } from "@/lib/studio/jetons-lecture";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 
@@ -315,16 +315,12 @@ export async function reinitialiserTousJetonsAction(_etat: ResultatJeton, _formD
   }
 }
 
-export interface EntreeHistorique {
-  id: string;
-  cle: string;
-  libelle: string;
-  groupe: Groupe;
-  valeurAvant: string | null;
-  valeurApres: string;
-  action: "creation" | "modification" | "suppression";
-  creeLe: string;
-}
+/**
+ * Ré-export du type d'entrée d'historique. Il est DÉFINI dans le module pur `jetons` (les
+ * composants client lisent l'historique et ne peuvent pas importer ce fichier, `server-only`),
+ * et redonné ici pour que l'appelant serveur n'ait qu'un import à faire.
+ */
+export type { EntreeHistorique } from "./jetons";
 
 /** Les changements récents, du plus récent au plus ancien. Alimente le panneau « Historique ». */
 export async function listerHistoriqueJeton(limite = 30): Promise<EntreeHistorique[]> {

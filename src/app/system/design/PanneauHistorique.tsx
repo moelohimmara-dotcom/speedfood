@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { restaurerDepuisHistoriqueAction, type EntreeHistorique, type ResultatJeton } from "@/lib/studio/jetons-actions";
+import { restaurerDepuisHistoriqueAction, type ResultatJeton } from "@/lib/studio/jetons-actions";
+import type { EntreeHistorique } from "@/lib/studio/jetons";
 
 /**
  * Panneau « Historique » des réglages du site.
