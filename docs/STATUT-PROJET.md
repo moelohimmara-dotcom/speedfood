@@ -670,3 +670,46 @@ accès partiel (plafond) ou relèvement, expiration, écran `/system/acces/palie
 `scripts/verifier-base.mjs` bloque `cf:build`/`cf:deploy` si une table attendue manque en base.
 Reste (tâches suivantes) : demandes d'accès, double authentification obligatoire dès le palier 3, éditeur de pages par blocs, studio de design, anglais, médiathèque/SEO.
 Limite connue : une habilitation s'applique aux comptes qui ont déjà un rôle système (accès « partiel » sans rôle : tâche différée).
+
+## 7 octobre 2026 : jeton de suivi dans les journaux du Worker, risque accepté par écrit
+
+**Constat.** Les journaux d'exécution du Worker sont **actifs** — `wrangler.jsonc` déclare `observability.enabled = true`, `logs.invocation_logs = true`,
+`logs.persist = true`, échantillonnage 100 %, rétention 7 jours ; settings confirmés en production le 7 octobre 2026 par l'API Cloudflare (compte
+`Moelohimmara@gmail.com's Account`). Or `redact_query_string: true` ne couvre **que la chaîne de requête, pas le chemin**. Le jeton de suivi de commande est
+**dans le chemin** (`/suivi/<jeton>`, poussé par `FormulaireCommande.tsx:143`) et constitue la **seule clé d'accès à la commande** (statut, proposition, paiement,
+reçu numérique). Les journaux conservés contiennent donc des jetons d'accès clients pendant 7 jours : **un accès au compte Cloudflare équivaut à un accès aux
+commandes en cours.** Ce risque avait été identifié le 4 octobre dans `docs/AUDIT-SECURITE-2026-10-04.md:37-38` et laissé « à décider » ; l'activation des
+journaux (commit `15a3c93`) l'a rendu réel. Deux documents de contrôle affirmaient encore que les journaux n'étaient pas activés.
+
+**Décision de la propriétaire (7 octobre 2026) : conserver les journaux, accepter le risque par écrit** plutôt que perdre toute visibilité sur les erreurs en
+production. Pas de changement de configuration, donc aucun déploiement.
+
+**Documents corrigés le même jour** (constat remonté en audit de code) :
+- `docs/cadrage/PROCEDURE-SECURITE.md` §9, ligne « Journaux et audit » : « non activés » remplacé par l'état réel, le mécanisme (`redact_query_string` ne couvre
+  pas le chemin), la conséquence, la décision et ses quatre contraintes. Idem ligne « Plan d'incident », qui portait la même affirmation fausse.
+- `docs/PLAN-INCIDENT.md` §2 : « Où regarder » réécrit — où lire les journaux (`npx wrangler tail speedfood-app`), la rétention, et un avertissement encadré
+  traite ces journaux comme des données sensibles (ne pas les extraire, les transmettre ni les coller dans un ticket).
+- Deux corrections collatérales dans la même table de `PROCEDURE-SECURITE.md` §9, également fausses : la version en production y était figée à `aeb3fc76`
+  (3 octobre) alors que la production est `e8804fec-0735-4601-bfeb-b99ffdd9ddc7` (6 octobre 09:03 UTC) ; et la ligne « Cache PWA » affirmait « la PWA n'existe pas
+  encore, ni manifest ni service worker », alors que `src/app/manifest.ts` et `public/sw.js` existent depuis le 5 octobre (l'application est installable).
+  Cette ligne passe de « Sans objet » à « À examiner » : le cache lui-même n'a jamais été regardé sur un appareil réel.
+
+**À faire pour lever le risque** (demande un déploiement) : filtrer côté Worker les routes `/suivi/*`, ou désactiver `logs.invocation_logs`.
+
+**Trou de sauvegarde avant réinitialisation, corrigé le 7 octobre 2026.** La revue finale du palier 3 signalait qu'une seule table manquait dans
+`TABLES_SAUVEGARDE` (`src/lib/system-admin/sauvegarde.ts`) : `content_pages_versions`. C'était sous-estimé. `fn_reinitialiser_application` supprime
+`content_pages`, `orders` et `restaurants`, et **cinq autres tables meurent en cascade** sans jamais être nommées par la fonction : `documents_commande`
+(reçus et factures émis), `restaurant_codes_marchand` (codes Orange Money / MTN MoMo), `restaurant_identite_documents` (raison sociale, NIF, RCCM, régime,
+TVA), `restaurant_scans` et `restaurant_compteurs_documents`. Trois de ces tables portent des données métier ou légales : la liste passe de **20 à 26 tables**.
+Un commentaire au-dessus de la liste explique les deux catégories (tables supprimées explicitement, tables emportées en cascade) et nomme celles qui
+survivent et ne sont donc pas sauvegardées (`fonctionnalites`, `contenu_emplacements`, `acces_paliers`, `menu_categories`, `neighborhoods`,
+`parametres_application`, `audit_events`) — à maintenir si la fonction évolue.
+
+**Identifiants d'accès transmis en conversation le 7 octobre 2026, à révoquer.** Trois jetons ont été communiqués en clair dans une conversation — Supabase
+(pat), Cloudflare (token API) et GitHub (jeton d'accès). C'est exactement le signal d'incident décrit en `docs/PLAN-INCIDENT.md` §2 (« un secret ou une clé collé
+quelque part où il ne devait pas »). État vérifié le jour même : **le jeton Cloudflare fonctionne** et sa portée est **le compte entier**, pas le projet — il
+rejoint `speedfood-app` mais aussi `batipilot`, `garage-auto-hr` et `lucepress-gestion`, sans date d'expiration ; **les jetons GitHub et Supabase sont refusés
+(401)**. À faire sans délai : révoquer les trois et les régénérer, le jeton Cloudflare en premier et borné à `Workers:Scripts` sur ce seul Worker. Rappel déjà
+ouvert depuis le 27 septembre : `docs/AUDIT-SUPABASE.md:135` demandait de révoquer un PAT Supabase passé par une conversation ; ce n'a pas été fait.
+Aucun de ces jetons n'a été écrit dans le dépôt. Conséquence de l'absence de jeton GitHub valide : **111 commits ne sont pas poussés** (branche
+`feat/studio-blocs` en tête de `origin/master`), et le dépôt public reste en retard de trois jours sur la production.

@@ -27,7 +27,14 @@ Signaux à traiter comme un incident potentiel :
 - un compte du personnel utilisé alors que la personne dit ne pas l'avoir fait ;
 - un secret ou une clé collé quelque part où il ne devait pas (conversation, capture d'écran, dépôt).
 
-**Où regarder.** Journal d'audit : `/system/audit`. Journaux Supabase : tableau de bord → Logs. Journaux du Worker : **aucune observabilité n'est activée dans `wrangler.jsonc` ; les journaux d'exécution du Worker ne sont donc pas conservés.** Pendant un incident, on ne pourrait pas reconstituer ce qu'a vu le Worker. Mesure recommandée (gratuite à faible volume, demande un déploiement donc ton accord) : ajouter `"observability": { "enabled": true }` à `wrangler.jsonc`, sans jamais journaliser de téléphone, d'adresse ni de jeton (le code actuel n'en écrit aucun).
+**Où regarder.** Journal d'audit : `/system/audit`. Journaux Supabase : tableau de bord → Logs. **Journaux du Worker : ils sont ACTIFS** (voir la correction du 7 octobre 2026 plus bas). Regarder dans Cloudflare → Workers & Pages → `speedfood-app` → Observability → Logs, ou en direct avec `npx wrangler tail speedfood-app`. Rétention 7 jours, échantillonnage 100 %, ingestion arrêtée au plafond de l'offre gratuite sans facturation possible.
+
+> **⚠️ Ces journaux contiennent des jetons d'accès clients. À traiter comme des données sensibles.**
+> `wrangler.jsonc` active `redact_query_string`, qui ne couvre **que la chaîne de requête, pas le chemin**. Or le jeton de suivi de commande est **dans le chemin** (`/suivi/<jeton>`) et c'est la **seule clé d'accès à la commande** : statut, paiement et reçu numérique. Conséquence directe : **toute personne ayant accès au compte Cloudflare peut lire les commandes en cours des clients pendant 7 jours.** Ne pas copier ni extraire ces journaux dans un ticket, un message ou un export ; ne pas les transmettre. Le code applicatif n'écrit lui-même ni téléphone ni adresse.
+>
+> Risque **accepté par écrit par la propriétaire le 7 octobre 2026**, en échange de la visibilité sur les erreurs en production. Corriger : `docs/cadrage/PROCEDURE-SECURITE.md` §9.
+
+**Correction du 7 octobre 2026.** Ce paragraphe affirmait « aucune observabilité n'est activée dans `wrangler.jsonc` ; les journaux d'exécution du Worker ne sont donc pas conservés », et recommandait d'ajouter `"observability": { "enabled": true }`. C'était faux : l'observabilité est active depuis le **6 octobre 2026** (`wrangler.jsonc`, `observability.enabled = true`, `logs.persist = true`). L'affirmation a été retirée parce qu'un document de contrôle qui nie l'existence d'un risque est plus dangereuse qu'un document muet — elle empêchait de poser la bonne question.
 
 ## 3. Les premières 15 minutes
 
