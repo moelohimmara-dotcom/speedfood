@@ -668,7 +668,10 @@ table `contenu_emplacements`, conservés à la réinitialisation). Habilitations
 accès partiel (plafond) ou relèvement, expiration, écran `/system/acces/paliers` réservé au super admin ; les rôles existants gardent exactement leur comportement
 (préréglages dérivés de la matrice). Les plafonds sont appliqués par l'administration ET par la base (déclencheurs `fn_garde_palier_contenu`, validés par 30 scénarios).
 `scripts/verifier-base.mjs` bloque `cf:build`/`cf:deploy` si une table attendue manque en base.
-Reste (tâches suivantes) : demandes d'accès, double authentification obligatoire dès le palier 3, éditeur de pages par blocs, studio de design, anglais, médiathèque/SEO.
+Reste (tâches suivantes, **mise à jour le 7 octobre 2026**) : demandes d'accès, double authentification obligatoire dès le palier 3, **studio de design (palier
+4)**, anglais, médiathèque/SEO. **Retiré de cette liste le 7 octobre 2026** : « éditeur de pages par blocs », livré et déployé (tâches 5 à 9 du palier 3, version
+`97537dba`). Le Studio n'a jamais été ouvert par un humain : `content_pages` et `content_pages_versions` sont vides, aucune page à blocs n'a été créée.
+Détail : `docs/STUDIO-SUPERADMIN.md`, section « Correction du 7 octobre 2026 ».
 Limite connue : une habilitation s'applique aux comptes qui ont déjà un rôle système (accès « partiel » sans rôle : tâche différée).
 
 ## 7 octobre 2026 : jeton de suivi dans les journaux du Worker, risque accepté par écrit

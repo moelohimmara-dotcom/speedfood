@@ -93,13 +93,31 @@ Proposition **sans ressource à créer** :
 
 Ordre : le palier 2 vient **avant** les outils puissants, pour qu'aucun éditeur visuel ne soit livré sans ses garde-fous de droits.
 
-**Palier 3, état au 6 octobre 2026 (branche `feat/studio-blocs`, non déployé)** : essai Puck concluant (tâche 5) ; modèle de données et
+**Palier 3, état au 6 octobre 2026 (branche `feat/studio-blocs`, non déployé) ⟵ PÉRIMÉ, voir la correction ci-dessous** : essai Puck concluant (tâche 5) ; modèle de données et
 rendu public des pages à blocs livrés (tâche 6) : `content_pages.format = 'blocs'`, brouillon et version publiée séparés, historique des
 20 dernières publications (`content_pages_versions`), publication atomique (`fn_publier_blocs`), document validé par schéma à
 l'écriture et à la lecture (`src/lib/studio/registre.ts` : Titre, Paragraphe, Bouton, Séparateur, Espace), rendu serveur maison sans
 Puck (`src/components/studio/RenduPage.tsx`), brouillon illisible par l'API publique (droits de colonne). Enregistrer le brouillon d'une
 page hors ligne : palier 1 ; publier, restaurer une version, modifier le brouillon d'une page en ligne : palier 2 (garanti aussi en base).
-Reste : éditeur dans la console (tâche 7), bibliothèque de blocs et mode mixte (8), accueil en blocs (9).
+Reste : éditeur dans la console (tâche 7), bibliothèque de blocs et mode mixte (8), accueil en blocs (9). **⟵ PÉRIMÉ, voir la correction ci-dessous.**
+
+### Correction du 7 octobre 2026 — palier 3 livré et déployé
+
+Le paragraphe ci-dessus était exact le 6 octobre au soir. Il ne l'est plus. **Les tâches 5 à 9 sont livrées et le palier 3 est en production** depuis le
+déploiement du 7 octobre 2026, version `97537dba` (détail dans `docs/STATUT-PROJET.md`). Fusion `--ff-only` de `feat/studio-blocs` dans `master`, 113 commits
+poussés sur GitHub.
+
+Le registre vaut **20 types de blocs** : Titre, Paragraphe, Citation, Image, Colonnes, Séparateur, Espace, Bouton, AppelAction, FAQ, CarteRestaurant,
+ListeRestaurants, plus 7 sections d'accueil réservées au slug `accueil`. Bornes : 200 blocs, 200 Ko, imbrication limitée aux colonnes. Vérifié dans le bundle
+déployé : les types de blocs, `fn_publier_blocs`, la colonne `blocs_publie` et la table `content_pages_versions` y sont bien présents.
+
+**Mais le Studio n'a encore jamais été ouvert par un être humain.** État de la base au 7 octobre : `content_pages` vide, `content_pages_versions` vide,
+aucune page à blocs jamais créée ni publiée. Le code est validé par 1059 assertions unitaires et le repli de l'accueil classique fonctionne (le site répond 200),
+mais **le premier usage réel sera aussi le premier test**. À éprouver avant d'aller plus loin : création d'une page, sauvegarde brouillon, réouverture, jeton
+de concurrence, publication, rendu public, absence du bouton de modification pour un visiteur.
+
+**Reste réellement pour le palier 4 (studio de design) — non commencé** : compositions libres, couleurs de fond hors énumération fermée (`CODES_FOND` est aujourd'hui une liste fermée, écart assumé pour préserver la CSP), gestion des images comme ressource réutilisable.
+**Reste hors palier** : double authentification obligatoire dès le palier 3 (livrée mais facultative), workflow de demandes d'accès, anglais, médiathèque et SEO.
 
 ## 9. Risques
 
