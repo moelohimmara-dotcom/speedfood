@@ -88,14 +88,34 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
     styleApercu.current.textContent = css;
   }, []);
 
+  /**
+   * Remet l'aperçu en haut de la page.
+   *
+   * Une iframe dont le `src` ne change jamais NE revient pas en haut d'elle-même : mesurer le
+   * confirmait (défilement à 1300 px, puis plus aucun retour automatique). Un jour où l'on regarde
+   * les cartes de restaurants, l'aperçu y restait ensuite — et on croyait que le haut de la page
+   * était cassé. Le cadre se recharge au changement de largeur et à chaque navigation : c'est le
+   * moment de le ramener.
+   */
+  const remonterApercu = useCallback(() => {
+    try {
+      iframe.current?.contentWindow?.scrollTo(0, 0);
+    } catch {
+      // Document non accessible : rien à faire, l'aperçu est déjà vide.
+    }
+  }, []);
+
   // Le style doit survivre au chargement de l'iframe : on le réapplique à chaque `load`.
   useEffect(() => {
     const node = iframe.current;
     if (!node) return;
-    const surChargement = () => appliquerApercu(cssApercu);
+    const surChargement = () => {
+      appliquerApercu(cssApercu);
+      remonterApercu();
+    };
     node.addEventListener("load", surChargement);
     return () => node.removeEventListener("load", surChargement);
-  }, [appliquerApercu, cssApercu]);
+  }, [appliquerApercu, remonterApercu, cssApercu]);
 
   useEffect(() => {
     appliquerApercu(cssApercu);
@@ -183,6 +203,11 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
               onClick={() => setLargeur("telephone")}
             >
               Téléphone
+            </button>
+          </div>
+          <div className="dj-apercu-actions">
+            <button type="button" className="dj-haut" onClick={remonterApercu}>
+              Haut de page
             </button>
           </div>
           <p className="dj-apercu-note">Aperçu de l&apos;accueil, tel qu&apos;un visiteur le voit.</p>

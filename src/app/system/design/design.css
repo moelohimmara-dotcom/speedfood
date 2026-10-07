@@ -242,6 +242,29 @@
   margin: 0;
 }
 
+.dj-apercu-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* « Haut de page » : l'aperçu est une iframe au src constant, donc elle ne revient jamais en haut
+   d'elle-même. Sans ce bouton, rester sur une zone pour comparer oblige à remonter à la souris. */
+.dj-haut {
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--secondaire);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-4);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dj-haut:hover {
+  color: var(--encre);
+  border-color: var(--encre);
+}
+
 .dj-cadre {
   border: 1px solid var(--bordure);
   border-radius: var(--radius-md);
