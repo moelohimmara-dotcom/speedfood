@@ -8,11 +8,29 @@ import { creerClientAdmin } from "@/lib/db/admin";
  * réinitialisation n'a pas lieu. Ces fichiers contiennent des données personnelles : à télécharger puis supprimer.
  */
 
+/**
+ * Tables copiées avant la réinitialisation.
+ *
+ * À maintenir avec `fn_reinitialiser_application` (`20261004162230`). Deux catégories à ne pas confondre :
+ * - les tables que la fonction `delete` explicitement : il faut toutes les lister ici ;
+ * - les tables qu'elle ne nomme pas mais qui disparaissent **en cascade** parce qu'elles référencent une table
+ *   supprimée. Elles disparaissent tout autant, donc elles doivent être listées aussi.
+ *
+ * Colonnes de la seconde catégorie, vérifiées dans les migrations (toutes en `on delete cascade`) :
+ * - `content_pages_versions.page_id` -> `content_pages` (migration `20261006094626`) ;
+ * - `documents_commande.order_id` -> `orders`, et `.restaurant_id` -> `restaurants` (`20261005173049`) ;
+ * - `restaurant_codes_marchand`, `restaurant_compteurs_documents`, `restaurant_identite_documents`,
+ *   `restaurant_scans`.restaurant_id` -> `restaurants` (`20261005171122` et `20261005173049`).
+ *
+ * Ne sont pas listées parce qu'elles survivent à la réinitialisation : `fonctionnalites`, `contenu_emplacements`,
+ * `acces_paliers`, `menu_categories`, `neighborhoods`, `parametres_application`, `audit_events`.
+ */
 export const TABLES_SAUVEGARDE = [
-  "audit_events", "client_profils", "content_banners", "content_pages", "featured_placements", "menu_categories",
-  "menu_item_options", "menu_items", "menu_sections", "neighborhoods", "order_item_options", "order_items",
-  "order_proposals", "order_status_events", "orders", "parametres_application", "push_subscriptions",
-  "restaurant_memberships", "restaurants", "system_admin_memberships",
+  "audit_events", "client_profils", "content_banners", "content_pages", "content_pages_versions", "documents_commande",
+  "featured_placements", "menu_categories", "menu_item_options", "menu_items", "menu_sections", "neighborhoods",
+  "order_item_options", "order_items", "order_proposals", "order_status_events", "orders", "parametres_application",
+  "push_subscriptions", "restaurant_codes_marchand", "restaurant_compteurs_documents", "restaurant_identite_documents",
+  "restaurant_memberships", "restaurant_scans", "restaurants", "system_admin_memberships",
 ] as const;
 
 const TAILLE_PAGE = 1000;
