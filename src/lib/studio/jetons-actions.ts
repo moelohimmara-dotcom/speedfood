@@ -38,6 +38,12 @@ export interface ResultatJeton {
    * comme personnalisé mentirait sur l'état du site.
    */
   cleEnregistree?: string;
+  /**
+   * Jetons remis à leur valeur d'origine par « Revenir aux valeurs actuelles ». L'interface s'en
+   * sert pour remettre l'écran lui-même à jour : sans cela, le bouton afficherait « enregistré »
+   * pour un jeton que le serveur vient de supprimer.
+   */
+  clesRétablies?: string[];
 }
 
 const MAX_LONGUEUR_LIBELLE = 80;
@@ -182,7 +188,60 @@ export async function reinitialiserJetonAction(_etat: ResultatJeton, formData: F
 
     revalidatePath("/system/design");
     revalidatePath("/", "layout");
-    return { ok: true, cleEnregistree: cle, message: "Revenu à la valeur actuelle." };
+    // `clesRétablies` et non seulement `cleEnregistree` : l'effet d'interface ne réinitialise que
+    // les clés qu'il sait avoir été supprimées, et il ne les déduit pas du simple succès.
+    return { ok: true, cleEnregistree: cle, clesRétablies: [cle], message: "Revenu à la valeur actuelle." };
+  } catch (erreur) {
+    if (erreur instanceof ErreurMetier) return { ok: false, message: erreur.message };
+    return { ok: false, message: "Action refusée." };
+  }
+}
+
+/**
+ * « Revenir aux valeurs actuelles » : remet **le site public** à ses couleurs d'origine.
+ *
+ * Correction du 7 octobre 2026 : ce bouton ne faisait qu'annuler l'écran. Le site, lui, gardait
+ * la couleur enregistrée — l'intitule promettait un retour que rien n'exécutait. Pour être
+ * honnête, le bouton ne devait exister qu'en version locale, ou il devait écrire. Il écrit.
+ *
+ * Supprime les lignes de jetons dont la valeur DIFFÈRE de celle du code : les jetons restés à
+ * leur valeur d'origine sont laissés en place, sans raison de les retirer. `reinitialiserJetonAction`
+ * le fait déjà pour un jeton ; celui-ci le fait pour tous d'un coup.
+ *
+ * Renvoie la liste des clés rétablies, pour que l écran sache quoi rafraîchir localement.
+ */
+export async function reinitialiserTousJetonsAction(_etat: ResultatJeton, _formData: FormData): Promise<ResultatJeton> {
+  try {
+    const contexte = await verifierPermission("parametres.editer");
+    await verifierPalier("parametres", MINIMUMS_STUDIO.publier, { contexte });
+
+    const connus = await lireJetons("site");
+    const aRétablir = connus.filter((j) => j.personnalise).map((j) => j.cle);
+
+    if (aRétablir.length === 0) {
+      return { ok: true, clesRétablies: [], message: "Le site est déjà à ses valeurs d'origine." };
+    }
+
+    const { error } = await creerClientAdmin().from("design_tokens").delete().eq("portee", "site").is("restaurant_id", null).in("cle", aRétablir);
+    if (error) return { ok: false, message: "Le retour aux valeurs d'origine a échoué, réessayez dans un instant." };
+
+    await journaliserActionSysteme(contexte, {
+      action: "design.jetons_retour_origine",
+      cibleType: "design_token",
+      cibleId: aRétablir.join(", "),
+      motif: `${aRétablir.length} jeton(s) remis à la valeur d'origine`,
+    });
+
+    revalidatePath("/system/design");
+    revalidatePath("/", "layout");
+    return {
+      ok: true,
+      clesRétablies: aRétablir,
+      message:
+        aRétablir.length === 1
+          ? "1 réglage remis à sa valeur d'origine. Le site est à jour."
+          : `${aRétablir.length} réglages remis à leurs valeurs d'origine. Le site est à jour.`,
+    };
   } catch (erreur) {
     if (erreur instanceof ErreurMetier) return { ok: false, message: erreur.message };
     return { ok: false, message: "Action refusée." };
