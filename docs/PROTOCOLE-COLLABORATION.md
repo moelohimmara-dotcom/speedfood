@@ -52,7 +52,25 @@ Correspondance des surfaces déployées :
   uniquement. Les clés visibles dans `wrangler.jsonc` sont publiques par
   conception (clé anon sous RLS).
 
-## 4. Comptes et tests
+## 4. Encadrement des pages : `frame-ancestors 'self'` et non `'none'`
+
+Depuis le 7 octobre 2026, `X-Frame-Options: SAMEORIGIN` et `frame-ancestors 'self'`
+remplacent `DENY` / `'none'`, pour que l'aperçu vivant de `/system/design`
+(palier 4) puisse afficher l'accueil dans un iframe de même origine.
+
+**Ce qui reste protégé :** le clickjacking. Un site extérieur ne peut pas
+encadrer aucune page de Speedfood — `/system`, `/restaurant` ni le site public.
+La règle n'a donc pas été affaiblie contre ce risque.
+
+**Ce qui a changé :** une page du site peut désormais être encadrée par une
+autre page du même site. Cela suppose déjà une injection de script sur
+l'origine (un XSS), plus grave que du clickjacking et que ces en-têtes
+n'empêchaient pas davantage auparavant.
+
+**Si cet aperçu devait être abandonné**, revenir à `'none'` / `DENY` suffit : ce
+sont deux valeurs dans `next.config.ts`, sans autre effet de bord.
+
+## 5. Comptes et tests
 
 - Les comptes de test se créent, se signalent dans `docs/STATUT-PROJET.md`, puis
   se nettoient en base après vérification. Jamais de rôle `super_admin` sur un
@@ -61,7 +79,7 @@ Correspondance des surfaces déployées :
   lint, build, test navigateur/réel) et documentée avec ses résultats réels — pas
   un « à faire ».
 
-## 5. Déploiement
+## 6. Déploiement
 
 - Application : `npm.cmd run cf:deploy` (build OpenNext + `wrangler deploy` sur
   `speedfood-app`) — voir `docs/DEPLOIEMENT-CLOUDFLARE.md`.

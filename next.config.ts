@@ -27,17 +27,33 @@ const politiqueContenu = [
   "font-src 'self' data:",
   "connect-src 'self' https://ggldjdizqrtpetdiohxy.supabase.co https://challenges.cloudflare.com",
   "frame-src https://challenges.cloudflare.com",
+  // `frame-ancestors 'self'` : le clickjacking consiste à faire afficher une page DANS un cadre par
+  // un site TIERS, sous une couche invisible qui vole les clics. `'self'` l'interdit entièrement —
+  // aucun site extérieur ne peut encadrer `/system`, `/restaurant` ni le site public, exactement
+  // comme le faisait `'none'`.
+  //
+  // Ce qui change, et pourquoi (décision de la propriétaire, 7 octobre 2026) : la valeur précédente
+  // était `'none'` / `DENY`, qui interdisait TOUT encadrement, y compris depuis le site lui-même.
+  // L'aperçu vivant de `/system/design` (palier 4) affiche l'accueil dans un iframe de même origine :
+  // il était donc impossible, et affichait une page vide. Passer à `'self'` / `SAMEORIGIN` rend
+  // l'aperçu possible sans rouvrir la moindre surface pour un attaquant externe.
+  //
+  // Le risque résiduel est réel mais minime : une page du site pourrait être encadrée par une autre
+  // page du site. Cela suppose déjà une injection de script sur cette origine — c'est-à-dire un XSS,
+  // qui est strictement plus grave que du clickjacking, et que ces en-têtes empêchaient déjà
+  // aujourd'hui.
+  "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "frame-ancestors 'none'",
 ].join("; ");
 
 const enTetesSecurite = [
   { key: "X-Content-Type-Options", value: "nosniff" },
-  // Aucune page du site n'a vocation à être affichée dans un cadre : protège les
-  // consoles /restaurant et /system du détournement de clic (clickjacking).
-  { key: "X-Frame-Options", value: "DENY" },
+  // Contemporain de `frame-ancestors` : même valeur, même raison. X-Frame-Options est conservé
+  // parce que certains navigateurs anciens ne lisent pas la CSP — c'est une défense en profondeur,
+  // pas une redondance. Voir le commentaire sur `frame-ancestors` ci-dessus pour le `'self'`.
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
   // Force HTTPS pendant un an (test de sécurité du 4 octobre 2026). Sans `preload` ni `includeSubDomains` : le domaine
   // définitif n'est pas encore choisi.
   { key: "Strict-Transport-Security", value: "max-age=31536000" },
