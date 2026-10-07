@@ -334,9 +334,15 @@ Les écrans et critères d’acceptation correspondants sont dans le brief front
 
 Le parcours complet de bout en bout et les mesures d’ergonomie sont définis dans `PARCOURS-CIBLE-CLIENT-MVP.md`. Les écrans existants de la démo sont la base de travail : documenter la transition vers le pilote connecté écran par écran, au lieu de repartir d’un produit abstrait.
 
-### État d'avancement des lots de l'addendum (3 octobre 2026, fin de journée)
+### État d'avancement des lots de l'addendum (état au 3 octobre 2026, revu le 7 octobre 2026)
 
 À lire avec `docs/STATUT-PROJET.md` (détail et preuves). **Fait** = livré et déployé ; **Partiel** = livré avec des limites écrites ; **Pas commencé**.
+
+> **Avertissement du 7 octobre 2026.** Cette table n'avait pas été tenue depuis le 3 octobre et contenait trois affirmations devenues fausses, toutes signalées en
+> « Correction du 7 octobre 2026 » dans les lignes concernées : la PWA était notée « pas commencée » alors qu'elle est installable depuis le 5 octobre, les
+> notifications « pas commencées » alors que l'infrastructure push existe, et les journaux d'exécution du Worker et la page de confidentialité listés comme
+> manquants alors que les deux existent. **Une table d'état périmée est plus dangereuse qu'une absence de table** : elle fait décider sur une base fausse. Les
+> lots 4a et 11a n'ont pas été vérifiés aujourd'hui et restent à confirmer.
 
 | Lot | État | Ce qui existe, ce qui manque |
 |---|---|---|
@@ -346,9 +352,9 @@ Le parcours complet de bout en bout et les mesures d’ergonomie sont définis d
 | Alternatives en cas de rupture (SPEC 3.3) | **Partiel** | Page « Trouver ailleurs » : même plat confirmé, même plat à confirmer, suggestions de la même cuisine ; jamais de substitution au panier. **Manque** : équivalent déclaré par le restaurateur, distance, lien pour un restaurant fermé ou en pause. |
 | 6b — Page restaurant, publication et diffusion | **Partiel** | Page publique mobile, validation manuelle par l'équipe, photo, logo, couleur de marque, sections de menu, **partage WhatsApp prérempli, lien à copier, QR code et aperçu de lien** (3 octobre 2026). **Manque** : « Contacter sur WhatsApp » (pas de numéro de restaurant en base), visuels de menu du jour partageables, aperçu avant publication. |
 | 11a — Télémétrie pilote responsable | Pas commencé | Aucun événement mesuré ; à définir avec la propriétaire avant toute collecte. |
-| 9 — PWA installable | Pas commencé | Ni manifest ni service worker. |
-| 10 — Notifications du pilote | Pas commencé, **bloquant pour le pilote** | Canal à choisir avec la propriétaire (WhatsApp, notification de l'application installée, SMS) ; voir bloc 11b. |
-| 11 — Préproduction, exploitation | **Partiel** | Fait : limitation de débit, anti-robot, exports planifiés et restauration vérifiée, anonymisation automatique, plan d'incident écrit. **Manque** : préproduction, journaux d'exécution du Worker, contacts du plan d'incident, page de confidentialité, relecture indépendante des corrections. |
+| 9 — PWA installable | **Fait**, non examiné | **Correction du 7 octobre 2026** : cette ligne disait « Pas commencé — ni manifest ni service worker ». C'est faux : `src/app/manifest.ts` et `public/sw.js` existent et l'application est installable (Android et iPhone) depuis le 5 octobre 2026. `manifest.webmanifest` répond 200 en production. **Manque** : le cache n'a jamais été examiné sur un appareil réel — ce qui s'installe, ce qui est mis en cache et le comportement hors ligne restent à vérifier sur un téléphone physique. |
+| 10 — Notifications du pilote | **Partiel, bloquant pour le pilote** | **Correction du 7 octobre 2026** : cette ligne disait « Pas commencé ». L'infrastructure existe : table `push_subscriptions` (avec plafond de 10 appareils), clés VAPID dans le Worker, secret `VAPID_PRIVATE_KEY`, routes `/restaurant/alertes`, `/restaurant/alertes/abonnement` et `/restaurant/alertes/test` (avec origine vérifiée, endpoint anti-SSRF et limitation de débit), plus les toasts et confirmations in-app du bloc 3a. **Manque** : le canal n'est pas choisi (WhatsApp, notification de l'application installée, SMS), et **aucune notification n'a jamais été reçue par un restaurateur** — la chaîne complète n'a jamais été éprouvée bout en bout. C'est ce qui bloque le pilote. |
+| 11 — Préproduction, exploitation | **Partiel** | Fait : limitation de débit, anti-robot, exports planifiés et restauration vérifiée, anonymisation automatique, plan d'incident écrit. **Corrections du 7 octobre 2026** : « journaux d'exécution du Worker » et « page de confidentialité » ne sont plus des manques — les journaux sont **actifs et persistés** depuis le 6 octobre (`wrangler.jsonc`), et `/confidentialite` répond 200. Le risque inverse est documenté : les journaux conservent le jeton de suivi, qui est dans le chemin de l'URL, risque accepté par écrit ce jour. **Manque toujours** : préproduction, contacts du plan d'incident (tableau vide), contenu juridique de la page de confidentialité (identité du responsable, contact, date), relecture indépendante des corrections de sécurité, et restauration jamais jouée sur un vrai projet Supabase. |
 
 ### Bloc 3a — Système d’icônes Speedfood et notifications de démonstration
 
