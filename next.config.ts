@@ -26,22 +26,27 @@ const politiqueContenu = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://ggldjdizqrtpetdiohxy.supabase.co https://challenges.cloudflare.com",
-  "frame-src https://challenges.cloudflare.com",
-  // `frame-ancestors 'self'` : le clickjacking consiste à faire afficher une page DANS un cadre par
-  // un site TIERS, sous une couche invisible qui vole les clics. `'self'` l'interdit entièrement —
-  // aucun site extérieur ne peut encadrer `/system`, `/restaurant` ni le site public, exactement
-  // comme le faisait `'none'`.
+  // `frame-src 'self'` : ce que cette page a le droit d'EMBARQUER dans un cadre. C'est ici, et
+  // NON dans `frame-ancestors`, que se jouait l'aperçu du design : `frame-ancestors` règle qui peut
+  // encadrer CETTE page, `frame-src` règle ce qu'elle peut encadrer. Les deux sont nécessaires pour
+  // qu'un iframe de même origine se charge, et il faut comprendre que les vérifier, sinon on peut
+  // corriger le mauvais verrou et croire que c'est réglé (voir le message de commit du 7 octobre).
   //
-  // Ce qui change, et pourquoi (décision de la propriétaire, 7 octobre 2026) : la valeur précédente
-  // était `'none'` / `DENY`, qui interdisait TOUT encadrement, y compris depuis le site lui-même.
-  // L'aperçu vivant de `/system/design` (palier 4) affiche l'accueil dans un iframe de même origine :
-  // il était donc impossible, et affichait une page vide. Passer à `'self'` / `SAMEORIGIN` rend
-  // l'aperçu possible sans rouvrir la moindre surface pour un attaquant externe.
+  // `'self'` autorise une page Speedfood à afficher une autre page Speedfood dans un cadre. Sans
+  // effet pour un attaquant externe : il lui faudrait déjà une injection de script sur cette origine.
+  // `challenges.cloudflare.com` reste, c'est le widget Turnstile sur la commande.
+  "frame-src 'self' https://challenges.cloudflare.com",
+  // `frame-ancestors 'self'` : qui a le droit d'encadrer CETTE page. Le clickjacking consiste à la
+  // faire afficher dans un cadre par un site TIERS, sous une couche invisible qui vole les clics.
+  // `'self'` l'interdit entièrement — aucun site extérieur ne peut encadrer `/system`, `/restaurant`
+  // ni le site public, exactement comme le faisait `'none'`.
   //
-  // Le risque résiduel est réel mais minime : une page du site pourrait être encadrée par une autre
-  // page du site. Cela suppose déjà une injection de script sur cette origine — c'est-à-dire un XSS,
-  // qui est strictement plus grave que du clickjacking, et que ces en-têtes empêchaient déjà
-  // aujourd'hui.
+  // Ce qui change (décision de la propriétaire, 7 octobre 2026) : une page du site peut être encadrée
+  // par une autre page du même site. Cela suppose déjà une injection de script sur cette origine, donc
+  // un XSS — strictement plus grave que du clickjacking, et que ces en-têtes n'empêchaient pas
+  // davantage auparavant.
+  //
+  // À ne pas confondre avec `frame-src` ci-dessus : les deux sont nécessaires à l'aperçu du design.
   "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",

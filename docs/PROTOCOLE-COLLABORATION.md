@@ -52,23 +52,34 @@ Correspondance des surfaces déployées :
   uniquement. Les clés visibles dans `wrangler.jsonc` sont publiques par
   conception (clé anon sous RLS).
 
-## 4. Encadrement des pages : `frame-ancestors 'self'` et non `'none'`
+## 4. Encadrement des pages : trois directives à changer ensemble
 
-Depuis le 7 octobre 2026, `X-Frame-Options: SAMEORIGIN` et `frame-ancestors 'self'`
-remplacent `DENY` / `'none'`, pour que l'aperçu vivant de `/system/design`
-(palier 4) puisse afficher l'accueil dans un iframe de même origine.
+Depuis le 7 octobre 2026, pour que l'aperçu vivant de `/system/design`
+(palier 4) puisse afficher l'accueil dans un iframe de même origine :
+
+```
+X-Frame-Options: SAMEORIGIN      (était DENY)
+frame-ancestors 'self'           (était 'none')
+frame-src 'self' https://challenges.cloudflare.com   ('self' ajouté)
+```
+
+**Les deux directives CSP ne font pas le même travail.** `frame-ancestors`
+dit qui peut encadrer cette page ; `frame-src` dit ce que cette page peut
+embarquer. Un aperçu de même origine exige **les deux**. Corriger l'une en
+laissant l'autre n'a aucun effet — c'est l'erreur commise le 7 octobre, où
+`frame-ancestors` a été mise à jour et que l'aperçu est resté vide, le vrai
+verrou étant `frame-src`.
 
 **Ce qui reste protégé :** le clickjacking. Un site extérieur ne peut pas
 encadrer aucune page de Speedfood — `/system`, `/restaurant` ni le site public.
-La règle n'a donc pas été affaiblie contre ce risque.
 
-**Ce qui a changé :** une page du site peut désormais être encadrée par une
-autre page du même site. Cela suppose déjà une injection de script sur
-l'origine (un XSS), plus grave que du clickjacking et que ces en-têtes
-n'empêchaient pas davantage auparavant.
+**Ce qui a changé :** une page du site peut encadrer une autre page du même
+site, et le site peut embarquer ses propres pages. Cela suppose déjà une
+injection de script sur l'origine (un XSS), plus grave que du clickjacking et
+que ces en-têtes n'empêchaient pas davantage auparavant.
 
-**Si cet aperçu devait être abandonné**, revenir à `'none'` / `DENY` suffit : ce
-sont deux valeurs dans `next.config.ts`, sans autre effet de bord.
+**Si l'aperçu devait être abandonné**, remettre `'none'`, `DENY` et retirer
+`'self'` de `frame-src` : tout est dans `next.config.ts`, sans autre effet.
 
 ## 5. Comptes et tests
 
