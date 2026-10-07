@@ -90,13 +90,21 @@
   color: var(--encre);
   box-shadow: none;
 }
-/* Anneau de focus : choisi d'après le fond RÉEL adjacent à l'élément. --rouge-fonce (globals.css) est invisible sur rouge et encre :
-   les éléments posés DIRECTEMENT sur ces fonds ont un anneau clair ; tout ce qui a un fond clair propre (réponse et résumé de la FAQ,
-   cartes de restaurants) garde l'anneau foncé. Couples (élément, fond réel) contrôlés (≥ 3:1, WCAG 1.4.11) par blocs.test.mts. */
-.sb-fond-rouge :focus-visible { outline-color: var(--surface); }
-.sb-fond-encre :focus-visible { outline-color: var(--surface); }
-.sb-fond .sb-faq-item :focus-visible { outline-color: var(--rouge-fonce); }
-.sb-fond .pub-carte-resto :focus-visible { outline-color: var(--rouge-fonce); }
+/* Anneau de focus UNIVERSEL à deux tons, indépendant du fond (WCAG 1.4.11) : un filet clair (--surface) contre l'élément, puis un
+   trait foncé (--encre). Sur n'importe quel fond (clair, rouge, encre, ou un bloc imbriqué à fond différent), au moins un des deux
+   tons contraste ≥ 3:1 avec lui, et les deux tons contrastent entre eux. Une seule règle, héritée par tout élément focalisable des
+   blocs (liens, boutons, résumés de FAQ, cartes), présent ou futur, y compris dans les colonnes : aucune règle par fond ou par bloc.
+   Contrôlé par blocs.test.mts (6 fonds, et 6 × 6 fonds parent × enfant des colonnes). */
+.sb-page :focus-visible {
+  outline: 3px solid var(--encre);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+/* Un lien qui remplit une carte (overflow: hidden) serait rogné : son anneau passe à l'intérieur, mêmes deux tons. */
+.sb-page .pub-carte-lien:focus-visible {
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
 /* Les cartes de restaurants gardent leur propre fond clair : leur texte reste foncé. */
 .sb-fond .pub-carte-resto {
   color: var(--encre);
@@ -252,15 +260,12 @@
   color: var(--encre);
 }
 .sb-faq-item > summary {
+  border-radius: calc(var(--radius-md) - 2.5px);
   min-height: 44px;
   padding: var(--space-3) var(--space-4);
   font-weight: 700;
   cursor: pointer;
   overflow-wrap: anywhere;
-}
-.sb-faq-item > summary:focus-visible {
-  outline: 3px solid var(--rouge-fonce);
-  outline-offset: -3px;
 }
 .sb-faq-reponse {
   padding: 0 var(--space-4) var(--space-4);

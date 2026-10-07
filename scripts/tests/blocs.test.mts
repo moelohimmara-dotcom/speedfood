@@ -170,82 +170,39 @@ const couplesFeuille = regles.flatMap((r) => {
 verifier(`feuille : au moins 7 couples fond/texte contrôlés (${couplesFeuille.length})`, couplesFeuille.length >= 7, true);
 verifier(`feuille : tous les couples fond/texte passent AA (${couplesFeuille.map((c) => c.ratio.toFixed(1)).join(", ")})`, couplesFeuille.filter((c) => c.ratio < AA).map((c) => c.selecteur), []);
 
-// Anneau de focus : ≥ 3:1 contre le fond adjacent, pour CHAQUE fond autorisé (WCAG 1.4.11)
+// Anneau de focus UNIVERSEL à deux tons (WCAG 1.4.11), vérifié par prescription.
 const SEUIL_FOCUS = 3;
-const globalFocus = jetonDe(regles.find((r) => r.selecteur === ":focus-visible")?.corps ?? "", "outline") ?? /outline:\s*3px solid var\((--[a-z-]+)\)/.exec(globals)?.[1];
-verifier("focus : l'anneau global du site est --rouge-fonce (globals.css)", /:focus-visible\s*\{\s*outline:\s*3px solid var\(--rouge-fonce\)/.test(globals), true);
-void globalFocus;
+const universelle = regles.find((r) => r.selecteur === ".sb-page :focus-visible");
+const toutesFocus = regles.filter((r) => /:focus-visible/.test(r.selecteur));
+verifier("focus : la règle universelle existe (.sb-page :focus-visible)", !!universelle, true);
+verifier("focus : trait externe = ANNEAU_FOCUS.externe (outline 3 px)", new RegExp(`outline:\\s*3px solid var\\(${ANNEAU_FOCUS.externe}\\)`).test(universelle?.corps ?? ""), true);
+verifier("focus : filet interne = ANNEAU_FOCUS.interne (box-shadow)", new RegExp(`box-shadow:\\s*0 0 0 2px var\\(${ANNEAU_FOCUS.interne}\\)`).test(universelle?.corps ?? ""), true);
+const jetonExterne = /outline:\s*3px solid var\((--[a-z-]+)\)/.exec(universelle?.corps ?? "")?.[1] ?? "";
+const jetonInterne = /box-shadow:\s*0 0 0 2px var\((--[a-z-]+)\)/.exec(universelle?.corps ?? "")?.[1] ?? "";
+verifier(`focus : les deux tons contrastent entre eux (${jetonExterne} / ${jetonInterne} = ${jetons[jetonExterne] && jetons[jetonInterne] ? ratio(jetonExterne, jetonInterne).toFixed(2) : "?"}:1 ≥ ${SEUIL_FOCUS})`, !!jetons[jetonExterne] && !!jetons[jetonInterne] && ratio(jetonExterne, jetonInterne) >= SEUIL_FOCUS, true);
+const meilleur = (fond: string) => Math.max(ratio(fond, jetonExterne), ratio(fond, jetonInterne));
+const fondsReels = [...CODES_FOND.map((c) => FONDS[c]?.fond ?? "--creme"), "--surface"];
 for (const code of CODES_FOND) {
   const fond = FONDS[code]?.fond ?? "--creme";
-  const anneau = ANNEAU_FOCUS[code];
-  const r = ratio(fond, anneau);
-  verifier(`focus : fond ${code}, anneau ${anneau} = ${r.toFixed(2)}:1 ≥ ${SEUIL_FOCUS}`, r >= SEUIL_FOCUS, true);
-  if (code === "aucun") verifier("focus : fond de page (surface) aussi", ratio("--surface", anneau) >= SEUIL_FOCUS, true);
-  // La feuille applique bien cet anneau : rouge et encre le changent, les autres gardent celui du site.
-  const regle = regles.find((x) => x.selecteur === `.sb-fond-${code} :focus-visible`);
-  verifier(`focus : feuille, fond ${code}`, regle ? jetonDe(regle.corps, "outline-color") : "global", anneau === "--rouge-fonce" ? "global" : anneau);
+  verifier(`focus : fond ${code} : meilleur des deux tons = ${meilleur(fond).toFixed(2)}:1 ≥ ${SEUIL_FOCUS}`, meilleur(fond) >= SEUIL_FOCUS, true);
 }
-// Anneau choisi d'après le fond RÉEL adjacent à l'élément : pour chaque COUPLE (élément focalisable, contexte) sur chaque fond de bloc,
-// on résout l'anneau par la cascade de la feuille (spécificité puis ordre) et on mesure le contraste contre le fond réel du contexte.
-type Maillon = { classes: string[]; tag: string };
-const ANNEAU_SITE = "--rouge-fonce";
-function anneauResolu(chaine: Maillon[], feuille: { selecteur: string; corps: string }[]): string {
-  let meilleur = { poids: -1, ordre: -1, jeton: ANNEAU_SITE };
-  feuille.forEach((r, ordre) => {
-    if (!/:focus-visible$/.test(r.selecteur)) return;
-    const jeton = jetonDe(r.corps, "outline-color") ?? /outline:\s*[^;]*var\((--[a-z-]+)\)/.exec(r.corps)?.[1];
-    if (!jeton) return;
-    const parties = r.selecteur.replace(/:focus-visible$/, "").split(/\s*>\s*|\s+/).filter(Boolean);
-    // Chaque partie doit trouver un maillon, dans l'ordre (ancêtres puis élément) ; le dernier maillon est l'élément focalisé.
-    let i = 0;
-    for (const partie of parties) {
-      const classes = [...partie.matchAll(/\.([a-z0-9-]+)/g)].map((m) => m[1]);
-      const tag = /^[a-z]+/.exec(partie)?.[0];
-      while (i < chaine.length && !(classes.every((c) => chaine[i].classes.includes(c)) && (!tag || chaine[i].tag === tag))) i++;
-      if (i >= chaine.length) return;
-      i++;
-    }
-    const poids = parties.length;
-    if (poids > meilleur.poids || (poids === meilleur.poids && ordre > meilleur.ordre)) meilleur = { poids, ordre, jeton };
-  });
-  return meilleur.jeton;
+// Colonnes : chaque fond de bloc parent × chaque fond de bloc enfant (et le fond propre des FAQ et des cartes)
+const mauvais: string[] = [];
+for (const parent of CODES_FOND) for (const enfant of CODES_FOND) {
+  const fondEnfant = FONDS[enfant]?.fond ?? FONDS[parent]?.fond ?? "--creme";
+  if (meilleur(fondEnfant) < SEUIL_FOCUS) mauvais.push(`${parent} > ${enfant}`);
 }
-/** Contextes d'éléments focalisables d'un bloc et fond RÉEL (jeton) qui les entoure ; `fondBloc` : jeton du fond du bloc. */
-function contextes(code: string, fondBloc: string) {
-  const bloc: Maillon[] = code === "aucun" ? [] : [{ classes: ["sb-bloc", "sb-fond", `sb-fond-${code}`], tag: "div" }];
-  const el = (classes: string[], tag: string): Maillon => ({ classes, tag });
-  return [
-    { nom: "lien dans un paragraphe", chaine: [...bloc, el(["sb-paragraphe"], "div"), el([], "a")], fond: fondBloc },
-    { nom: "bouton", chaine: [...bloc, el(["sb-bouton"], "p"), el(["btn", "btn-primary"], "a")], fond: fondBloc },
-    { nom: "résumé de la FAQ", chaine: [...bloc, el(["sb-faq"], "div"), el(["sb-faq-item"], "details"), el([], "summary")], fond: "--surface" },
-    { nom: "lien dans la RÉPONSE de la FAQ", chaine: [...bloc, el(["sb-faq"], "div"), el(["sb-faq-item"], "details"), el(["sb-faq-reponse"], "div"), el(["sb-paragraphe"], "div"), el([], "a")], fond: "--surface" },
-    { nom: "carte de restaurant (lien)", chaine: [...bloc, el(["sb-carte-resto"], "div"), el(["pub-carte", "pub-carte-resto"], "article"), el(["pub-carte-lien"], "a")], fond: "--surface" },
-    { nom: "lien dans la liste de restaurants", chaine: [...bloc, el(["sb-liste-restos"], "div"), el(["sb-grille-cartes"], "div"), el(["pub-carte", "pub-carte-resto"], "article"), el(["pub-carte-lien"], "a")], fond: "--surface" },
-  ];
-}
-const echecsFocus: string[] = [];
-let nbCouples = 0;
-for (const code of CODES_FOND) {
-  const fondBloc = FONDS[code]?.fond ?? "--creme";
-  for (const c of contextes(code, fondBloc)) {
-    const jeton = anneauResolu(c.chaine, regles);
-    const r = ratio(c.fond, jeton);
-    nbCouples++;
-    if (r < SEUIL_FOCUS) echecsFocus.push(`${code} / ${c.nom} : anneau ${jeton} sur ${c.fond} = ${r.toFixed(2)}:1`);
-  }
-}
-verifier(`focus : ${nbCouples} couples (élément focalisable, fond réel) sur les 6 fonds, tous ≥ ${SEUIL_FOCUS}:1`, echecsFocus, []);
-verifier("focus : lien dans la réponse de la FAQ sur fond rouge et encre = anneau foncé sur --surface", [anneauResolu(contextes("rouge", "--rouge")[3].chaine, regles), anneauResolu(contextes("encre", "--encre")[3].chaine, regles)], ["--rouge-fonce", "--rouge-fonce"]);
-verifier("focus : lien posé directement sur fond rouge ou encre = anneau clair", [anneauResolu(contextes("rouge", "--rouge")[0].chaine, regles), anneauResolu(contextes("encre", "--encre")[0].chaine, regles)], ["--surface", "--surface"]);
-// Le test sait échouer : sans la règle de la FAQ (la régression de la revue 8b), le lien de la réponse a un anneau invisible.
+verifier("focus : colonne à fond P contenant un enfant à fond E (6 × 6 = 36 combinaisons) : toujours ≥ 3:1", mauvais, []);
+verifier("focus : fonds propres des FAQ et cartes (--surface) aussi", [meilleur("--surface") >= SEUIL_FOCUS, fondsReels.every((f) => meilleur(f) >= SEUIL_FOCUS)], [true, true]);
+// Aucune règle de focus par fond ou par bloc : une règle universelle, plus une règle de GÉOMÉTRIE (carte rognée) sans couleur propre.
+verifier("focus : seules deux règles de focus (universelle, carte) dans la feuille", toutesFocus.map((r) => r.selecteur), [".sb-page :focus-visible", ".sb-page .pub-carte-lien:focus-visible"]);
+verifier("focus : aucune règle de focus par fond (sb-fond-*), aucun outline-color, ni orange ni rouge-fonce", [toutesFocus.some((r) => /sb-fond/.test(r.selecteur) || /outline-color|--orange|--rouge-fonce|--shadow-focus/.test(r.corps)), /--shadow-focus|var\(--orange\)/.test(css)], [false, false]);
+// Le test sait échouer : tons identiques, ou ton cassé, ou trait absent.
 {
-  const sans = regles.filter((x) => x.selecteur !== ".sb-fond .sb-faq-item :focus-visible");
-  const jeton = anneauResolu(contextes("rouge", "--rouge")[3].chaine, sans);
-  verifier("focus : mutation (règle de la FAQ retirée) -> anneau clair sur fond clair détecté", [jeton, ratio("--surface", jeton) < SEUIL_FOCUS], ["--surface", true]);
+  const contraste2 = (externe: string, interne: string, fond: string) => Math.max(ratio(fond, externe), ratio(fond, interne));
+  verifier("focus : mutation (deux tons identiques --surface) détectée", [ratio("--surface", "--surface") >= SEUIL_FOCUS, contraste2("--surface", "--surface", "--creme") >= SEUIL_FOCUS], [false, false]);
+  verifier("focus : mutation (deux tons --encre) détectée sur fond encre", contraste2("--encre", "--encre", "--encre") >= SEUIL_FOCUS, false);
 }
-const resume = regles.find((x) => x.selecteur === ".sb-faq-item > summary:focus-visible");
-verifier("focus : résumé de la FAQ = --rouge-fonce (jamais le halo orange écarté par l'audit)", [jetonDe(resume?.corps ?? "", "outline"), /orange|shadow-focus/.test(resume?.corps ?? "")], [undefined, false].map((v, i) => (i === 0 ? jetonDe(resume?.corps ?? "", "outline") : v)));
-verifier("focus : la feuille n'emploie ni --orange ni --shadow-focus", /var\(--orange\)|var\(--shadow-focus\)/.test(css), false);
 
 // ==== 3. Rétrocompatibilité (pages T6/T7 sans réglages) ======================================================================
 {
