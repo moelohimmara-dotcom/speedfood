@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   sousTotalPanier,
@@ -17,6 +17,9 @@ import { useTableMemorisee } from "@/lib/commande/table-memoire";
 import { lireNumeroTable } from "@/lib/commande/mode";
 import { Turnstile } from "@/components/Turnstile";
 import type { CompteCommande } from "./CommandeClient";
+
+/** Délai au-delà duquel on considère que le défi anti-robot ne sechargera pas (voir la sonde plus bas). */
+const DELAI_ANTI_ROBOT_MS = 12000;
 
 interface Props {
   panier: Panier;
@@ -57,6 +60,19 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
   // dont le réseau coupe le défi se voit annoncer qu'il est un robot : c'est à la fois faux
   // et inutilisable, et le message ne lui donne aucun moyen d'agir.
   const [problemeVerification, setProblemeVerification] = useState<"erreur" | "expire" | null>(null);
+
+  useEffect(() => {
+    // Sonde de temps : sur un réseau qui ne résout pas un hôte Cloudflare, le widget se charge
+    // et appelle `render()`, puis le défi expire EN SILENCE — ni `callback`, ni `error-callback`,
+    // ni `expired-callback`. Sans cette sonde, le visiteur reste devant « terminez la
+    // vérification » alors qu'elle est impossible à terminer, sans aucun moyen d'agir.
+    // Nul effet sur la sécurité : le jeton reste obligatoire, seule la qualité du message change.
+    if (!cleSiteTurnstile || jetonVerification || problemeVerification) {
+      return;
+    }
+    const minuteur = setTimeout(() => setProblemeVerification("erreur"), DELAI_ANTI_ROBOT_MS);
+    return () => clearTimeout(minuteur);
+  }, [cleSiteTurnstile, jetonVerification, problemeVerification]);
 
   // Une seule clé d'idempotence par passage au formulaire : un double clic ou un
   // retry réseau ne créera jamais deux commandes (voir lib/commande/creation.ts).

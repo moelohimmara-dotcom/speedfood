@@ -9,13 +9,19 @@ import { ErreurMetier } from "@/lib/contracts/erreurs";
  *
  * Actif UNIQUEMENT si `TURNSTILE_SECRET_KEY` est défini (secret du Worker) ; la clé de
  * site publique correspondante est `TURNSTILE_SITE_KEY` (variable publique). Les deux
- * doivent être définies ensemble. Sans secret, la vérification est désactivée : c'est
- * le cas tant que Malika n'a pas créé le widget dans son tableau de bord Cloudflare.
+ * doivent être définies ensemble ; sans secret, la vérification est désactivée et seule la
+ * limitation de débit protège.
+ *
+ * **État au 7 octobre 2026 : les deux clés sont présentes sur le Worker** (vérifié par l'API
+ * Cloudflare — nom seul, la valeur d'un secret n'est jamais relisible). Les lignes suivantes
+ * indiquaient que la vérification restait inactive « tant que Malika n'a pas créé le widget » :
+ * c'était faux, le widget existe depuis le 5 octobre et la vérification est active.
  *
  * Documentation officielle : le jeton est valable cinq minutes et ne se valide qu'une
  * seule fois (`timeout-or-duplicate`) ; le formulaire redemande donc un jeton neuf après
- * chaque tentative. Échec fermé : si Cloudflare ne répond pas, la commande n'est pas
- * créée (message clair, le client réessaie).
+ * chaque tentative. **Échec fermé, sans exception** : si Cloudflare ne répond pas, si le jeton
+ * est absent, expiré ou refusé, la commande n'est pas créée. Arbitrage de la propriétaire le
+ * 7 octobre 2026 : la sécurité passe avant la disponibilité — voir le bloc `catch` plus bas.
  */
 
 const URL_VERIFICATION = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -52,17 +58,19 @@ export async function verifierAntiRobot(jeton: string | undefined): Promise<void
     const donnees = (await reponse.json()) as { success?: boolean };
     reussite = reponse.ok && donnees.success === true;
   } catch {
-    // Cloudflare est injoignable DEPUIS LE SERVEUR (panne de leur côté, réseau de sortie).
-    // À cet instant le client a pourtant produit un jeton : il a réellement résolu le défi,
-    // ce qu'un robot ne ferait pas en omettant simplement le jeton — ce cas-là est refusé
-    // plus haut. On peut donc laisser passer, en confiant la protection au seul garde-fou
-    // restant : la limitation de débit en base, appelée juste avant dans `actions.ts`.
+    // Échec fermé (décision de la propriétaire, 7 octobre 2026 : la sécurité passe avant la
+    // disponibilité). Cloudflare est injoignable DEPUIS LE SERVEUR, donc rien ne prouve que le
+    // jeton présenté est authentique : un appel direct au serveur peut présenter n'importe quelle
+    // chaîne. Lettingtreur serait ouvrir une porte à un robot pendant toute la panne.
     //
-    // Refuser ici (comme avant le 7 octobre 2026) transformerait une panne tierce en
-    // indisponibilité totale du tunnel de commande. La trace `anti_robot_indisponible`
-    // permet de voir si ce chemin devient fréquent ; il ne doit pas le devenir.
-    console.error("anti_robot_indisponible");
-    return;
+    // Un repli a été écrit ici le 7 octobre 2026 (acceptation sous la seule limitation de débit)
+    // puis retiré : c'était bien une concession de sécurité, faite en bonne foi mais contraire
+    // à l'arbitrage. Si ce tunnel doit survivre à une panne de Cloudflare, il faudra une autre
+    // preuve — un jeton signé vérifiable localement, pas une confiance dans le client.
+    throw new ErreurMetier(
+      "ERREUR_SERVEUR",
+      "La vérification anti-robot est indisponible. Réessayez dans un instant."
+    );
   }
 
   if (!reussite) {
