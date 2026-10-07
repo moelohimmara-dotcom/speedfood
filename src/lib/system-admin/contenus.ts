@@ -229,18 +229,50 @@ export async function modifierPageAction(
   return { succes: true };
 }
 
+/**
+ * Publie ou dépublie une page de TEXTE.
+ *
+ * Refuse explicitement une page à blocs (7 octobre 2026) : sa publication passe par
+ * `fn_publier_blocs`, qui copie le brouillon validé vers `blocs_publie`, incrémente la
+ * version et élague en UNE transaction. Poser seulement `statut` laisserait `blocs_publie`
+ * périmé — la page en ligne afficherait un contenu vide ou ancien. Le trigger
+ * `fn_garde_palier_blocs` refusait déjà cette mise à jour, mais cette fonction ignorait le
+ * résultat de l'écriture : l'action renvoyait une réussite, journalisait « publication », et
+ * ne se passait rien. Un refus explicite vaut mieux qu'un échec silencieux.
+ *
+ * Le résultat de l'écriture est maintenant vérifié : rien n'est journalisé si la base n'a
+ * rien modifié.
+ */
 export async function basculerPublicationPageAction(id: string, publier: boolean): Promise<void> {
   const contexte = await verifierPermission("contenu.editer");
   await verifierPalier("contenu:pages", MINIMUMS_STUDIO.publier, { contexte });
   const supabase = await creerClientServeur();
 
-  await supabase
+  const { data: page, error: erreurLecture } = await supabase
+    .from("content_pages")
+    .select("format")
+    .eq("id", id)
+    .maybeSingle();
+  if (erreurLecture || !page) throw new ErreurMetier("INTROUVABLE", "Page introuvable.");
+  if (page.format === "blocs") {
+    throw new ErreurMetier(
+      "VALIDATION",
+      "Une page à blocs se publie depuis son éditeur : la publication y valide les blocs, met à jour la version en ligne et garde l'historique."
+    );
+  }
+
+  const { data: modifiees, error: erreurEcriture } = await supabase
     .from("content_pages")
     .update({
       statut: publier ? "publie" : "brouillon",
       publie_le: publier ? new Date().toISOString() : null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
+  if (erreurEcriture) throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de modifier le statut de cette page, réessayez dans un instant.");
+  if (!modifiees || modifiees.length === 0) {
+    throw new ErreurMetier("CONFLIT_ETAT", "Cette page a changé entre-temps. Rechargez-la avant de réessayer.");
+  }
 
   await journaliserActionSysteme(contexte, {
     action: publier ? "contenu.page_publication" : "contenu.page_depublication",

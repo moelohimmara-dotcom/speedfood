@@ -260,9 +260,24 @@ export async function publierBlocsAction(pageId: string, motif?: string, jeton?:
   }
 }
 
-export async function restaurerVersionAction(pageId: string, version: number): Promise<EtatBlocs> {
+/**
+ * Remet une version publiée dans le brouillon.
+ *
+ * `jeton` est la valeur de `mis_a_jour_le` lue à l'ouverture de l'éditeur, comme pour
+ * `enregistrerBrouillonBlocsAction` et `publierBlocsAction`. Il est **optionnel** : la page
+ * d'appel le transmet, et un appel sans jeton reste accepté pour ne pas casser un ancien
+ * client. Quand il est fourni, la condition est DANS la mise à jour (atomique) : une page
+ * modifiée depuis l'ouverture n'est pas écrasée par la restauration, et l'appelant reçoit
+ * alors `MESSAGE_CONCURRENCE` au lieu de perdre son travail.
+ *
+ * Correction du 7 octobre 2026 : la restauration écrasait `blocs_brouillon` sans condition de
+ * concurrence, alors que les deux autres écritures de l'éditeur en avaient une. Deux onglets
+ * ouverts pouvaient donc se perdre mutuellement le brouillon.
+ */
+export async function restaurerVersionAction(pageId: string, version: number, jeton?: string): Promise<EtatBlocs> {
   if (typeof pageId !== "string" || !UUID.test(pageId)) return { ok: false, erreur: "Page introuvable." };
   if (!Number.isInteger(version) || version < 1) return { ok: false, erreur: "Version introuvable." };
+  if (jeton !== undefined && (typeof jeton !== "string" || jeton.length === 0 || jeton.length > 64)) return { ok: false, erreur: MESSAGE_CONCURRENCE };
 
   try {
     const contexte = await verifierPermission("contenu.editer");
@@ -288,14 +303,19 @@ export async function restaurerVersionAction(pageId: string, version: number): P
     }
 
     // Brouillon seulement : la version en ligne ne change qu'à la prochaine publication.
-    const { data: modifiees, error } = await contexte.supabase
+    let requete = contexte.supabase
       .from("content_pages")
       .update({ blocs_brouillon: validation.page as unknown as Json })
       .eq("id", pageId)
-      .eq("format", "blocs")
-      .select("id");
+      .eq("format", "blocs");
+    // Même règle que les deux autres écritures de l'éditeur : le jeton entre dans la requête.
+    if (jeton !== undefined) requete = requete.eq("mis_a_jour_le", jeton);
+    const { data: modifiees, error } = await requete.select("id, mis_a_jour_le");
     if (error) return { ok: false, erreur: messageBase(error, "Impossible de restaurer cette version.") };
-    if (!modifiees || modifiees.length === 0) return { ok: false, erreur: "Page introuvable." };
+    if (!modifiees || modifiees.length === 0) {
+      if (jeton !== undefined) return { ok: false, erreur: MESSAGE_CONCURRENCE };
+      return { ok: false, erreur: "Page introuvable." };
+    }
 
     const fin = await finaliserEcriture(
       {

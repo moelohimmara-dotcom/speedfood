@@ -173,7 +173,9 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
     async (numero: number): Promise<ResultatAction & { donnees?: Data }> => {
       setEnCours("restaurer");
       try {
-        const resultat = await restaurerVersionAction(page.id, numero);
+        // Le jeton de concurrence est transmis comme pour l'enregistrement et la publication :
+      // une page modifiée depuis l'ouverture n'est pas écrasée par la restauration.
+      const resultat = await restaurerVersionAction(page.id, numero, jetonRef.current);
         if (!resultat.ok) return { ok: false, erreur: erreurDe(resultat, "Impossible de remettre cette version dans le brouillon.") };
         if (resultat.avertissement) setAvertissement(resultat.avertissement);
         const brouillon = await lireBrouillonBlocs(page.id);
