@@ -711,5 +711,31 @@ quelque part où il ne devait pas »). État vérifié le jour même : **le jeto
 rejoint `speedfood-app` mais aussi `batipilot`, `garage-auto-hr` et `lucepress-gestion`, sans date d'expiration ; **les jetons GitHub et Supabase sont refusés
 (401)**. À faire sans délai : révoquer les trois et les régénérer, le jeton Cloudflare en premier et borné à `Workers:Scripts` sur ce seul Worker. Rappel déjà
 ouvert depuis le 27 septembre : `docs/AUDIT-SUPABASE.md:135` demandait de révoquer un PAT Supabase passé par une conversation ; ce n'a pas été fait.
-Aucun de ces jetons n'a été écrit dans le dépôt. Conséquence de l'absence de jeton GitHub valide : **111 commits ne sont pas poussés** (branche
-`feat/studio-blocs` en tête de `origin/master`), et le dépôt public reste en retard de trois jours sur la production.
+Aucun de ces jetons n'a été écrit dans le dépôt. **Levée partielle le 7 octobre 2026** : un jeton GitHub valide a été fourni plus tard dans la journée et les
+commits ont été poussés (voir l'entrée de déploiement ci-dessous). Restent à révoquer : le jeton Cloudflare, qui est le seul encore vivant et le plus large,
+et le PAT Supabase, toujours refusé et donc inutile en l'état.
+
+## 7 octobre 2026, 09:44 : déploiement du palier 3 du Studio et des correctifs de sécurité
+
+**Feu vert explicite de la propriétaire dans la conversation**, exigé par `docs/cadrage/PROCEDURE-SECURITE.md` §9 et par `.sdd/studio/contraintes.md`.
+Version en ligne **`97537dba-62c9-42c4-b124-a143e3a4cc4f`** ; version précédente conservée pour le retour arrière : **`e8804fec-0735-4601-bfeb-b99ffdd9ddc7`**
+(6 octobre 09:03 UTC). Worker : démarrage 26 ms, 14,7 Mo transférés / 3,3 Mo gzip. Fenêtre : environ 3 minutes.
+
+**Contenu déployé** : palier 3 du Studio (tâches 1 à 9, `feat/studio-blocs` fusionné en `--ff-only` dans `master`), plus les deux correctifs de cette journée
+(trou de sauvegarde avant réinitialisation, corrections documentaires des journaux).
+
+**Déroulé** : `verifier-base.mjs` a confirmé **les 31 tables présentes** en production avant construction (échec fermé si une table manque) ; `typecheck` et
+`test:unit` passés avant la fusion ; fusion `--ff-only` de `feat/studio-blocs` (`5cec5c8`) dans `master` (`b81a368`) sans conflit ; **113 commits poussés sur
+GitHub**, vérifiés par l'API (`5ad9240` en tête de `master`) — le dépôt public n'était plus en retard depuis le 4 octobre.
+
+**Vérification en production** : 13 routes publiques en 200 ; `/system` et `/system/audit` en **404** comme voulu, sans révéler l'existence de la console ;
+`/restaurant` et `/restaurant/commandes` en 307 vers la connexion. En-têtes présents : CSP, HSTS `max-age=31536000`, `X-Frame-Options: DENY`,
+`X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`. **Aucune clé de service ni secret dans les fichiers servis au navigateur** : les
+portes 6 et 12 de la procédure, jamais refaites depuis le 3 octobre, sont validées à nouveau après les migrations du 4 au 7 octobre.
+
+**Non vérifié, à faire avant le pilote** : aucun accueil n'a été publié en blocs pendant la vérification, conformément à la revue finale — la bascule reste à
+éprouver en production par un super administrateur ; le téléversement d'une image de 5 Mo sous `workerd` (étape 6 de la revue, non testable localement) ; le
+cache sur `workers.dev`, dont l'efficacité reste contradictoire entre deux documents du même jour ; le parcours PWA sur un téléphone réel.
+
+**Observabilité inchangée** : journaux conservés, risque accepté par écrit (entrée du 7 octobre plus haut). Levée possible au prochain déploiement, en
+filtrant les routes `/suivi/*` ou en désactivant `logs.invocation_logs`.
