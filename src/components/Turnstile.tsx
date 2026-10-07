@@ -22,16 +22,24 @@ interface Props {
   onToken: (jeton: string | null) => void;
   /** À incrémenter pour obtenir un jeton neuf (un jeton ne se valide qu'une fois). */
   renouveler: number;
+  /**
+   * Signale que le widget n'a pas pu produire de jeton : « erreur » (réseau injoignable,
+   * script bloqué) ou « expire » (défi résolu puis périmé). Sert à ne pas confondre une panne
+   * avec un visiteur qui n'a rien fait — ni dans le message, ni dans le ton.
+   */
+  onProbleme: (raison: "erreur" | "expire") => void;
 }
 
 /** Widget Cloudflare Turnstile en rendu explicite (documentation officielle). */
-export function Turnstile({ siteKey, onToken, renouveler }: Props) {
+export function Turnstile({ siteKey, onToken, onProbleme, renouveler }: Props) {
   const conteneur = useRef<HTMLDivElement>(null);
   const identifiant = useRef<string | null>(null);
   const rappel = useRef(onToken);
+  const rappelProbleme = useRef(onProbleme);
   useEffect(() => {
     rappel.current = onToken;
-  }, [onToken]);
+    rappelProbleme.current = onProbleme;
+  }, [onToken, onProbleme]);
 
   useEffect(() => {
     let annule = false;
@@ -44,8 +52,14 @@ export function Turnstile({ siteKey, onToken, renouveler }: Props) {
         sitekey: siteKey,
         language: "fr",
         callback: (jeton: string) => rappel.current(jeton),
-        "expired-callback": () => rappel.current(null),
-        "error-callback": () => rappel.current(null),
+        "expired-callback": () => {
+          rappel.current(null);
+          rappelProbleme.current("expire");
+        },
+        "error-callback": () => {
+          rappel.current(null);
+          rappelProbleme.current("erreur");
+        },
       });
     }
 

@@ -52,6 +52,11 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
   const [enCours, demarrer] = useTransition();
   const [jetonVerification, setJetonVerification] = useState<string | null>(null);
   const [renouvelerVerification, setRenouvelerVerification] = useState(0);
+  // Distingue « le widget n'a pas encore répondu » de « le widget a échoué » (réseau qui
+  // ne résout pas un hôte Cloudflare, extension qui bloque). Sans cela, un visiteur honnête
+  // dont le réseau coupe le défi se voit annoncer qu'il est un robot : c'est à la fois faux
+  // et inutilisable, et le message ne lui donne aucun moyen d'agir.
+  const [problemeVerification, setProblemeVerification] = useState<"erreur" | "expire" | null>(null);
 
   // Une seule clé d'idempotence par passage au formulaire : un double clic ou un
   // retry réseau ne créera jamais deux commandes (voir lib/commande/creation.ts).
@@ -97,7 +102,9 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
       erreurs.lignes = "Votre panier est vide.";
     }
     if (cleSiteTurnstile && !jetonVerification) {
-      erreurs.verification = "Confirmez que vous n'êtes pas un robot.";
+      erreurs.verification = problemeVerification
+        ? "La vérification anti-robot n'a pas pu démarrer sur ce réseau. Vérifiez votre connexion, puis réessayez."
+        : "Terminez la vérification anti-robot avant de valider votre commande.";
     }
     setChamps(erreurs);
     if (Object.keys(erreurs).length > 0) {
@@ -313,7 +320,14 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
         <>
           <Turnstile
             siteKey={cleSiteTurnstile}
-            onToken={setJetonVerification}
+            onToken={(jeton) => {
+              setJetonVerification(jeton);
+              if (jeton) setProblemeVerification(null);
+            }}
+            onProbleme={(raison) => {
+              setJetonVerification(null);
+              setProblemeVerification(raison);
+            }}
             renouveler={renouvelerVerification}
           />
           {champs.verification ? (

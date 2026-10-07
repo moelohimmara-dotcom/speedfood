@@ -52,10 +52,17 @@ export async function verifierAntiRobot(jeton: string | undefined): Promise<void
     const donnees = (await reponse.json()) as { success?: boolean };
     reussite = reponse.ok && donnees.success === true;
   } catch {
-    throw new ErreurMetier(
-      "ERREUR_SERVEUR",
-      "La vérification anti-robot est indisponible. Réessayez dans un instant."
-    );
+    // Cloudflare est injoignable DEPUIS LE SERVEUR (panne de leur côté, réseau de sortie).
+    // À cet instant le client a pourtant produit un jeton : il a réellement résolu le défi,
+    // ce qu'un robot ne ferait pas en omettant simplement le jeton — ce cas-là est refusé
+    // plus haut. On peut donc laisser passer, en confiant la protection au seul garde-fou
+    // restant : la limitation de débit en base, appelée juste avant dans `actions.ts`.
+    //
+    // Refuser ici (comme avant le 7 octobre 2026) transformerait une panne tierce en
+    // indisponibilité totale du tunnel de commande. La trace `anti_robot_indisponible`
+    // permet de voir si ce chemin devient fréquent ; il ne doit pas le devenir.
+    console.error("anti_robot_indisponible");
+    return;
   }
 
   if (!reussite) {
