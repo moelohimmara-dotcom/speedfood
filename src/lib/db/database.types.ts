@@ -760,6 +760,50 @@ export type Database = {
         }
         Relationships: []
       }
+      design_tokens: {
+        Row: {
+          cle: string
+          cree_le: string
+          groupe: string
+          id: string
+          libelle: string
+          mis_a_jour_le: string
+          portee: string
+          restaurant_id: string | null
+          valeur: string
+        }
+        Insert: {
+          cle: string
+          cree_le?: string
+          groupe: string
+          id?: string
+          libelle: string
+          mis_a_jour_le?: string
+          portee: string
+          restaurant_id?: string | null
+          valeur: string
+        }
+        Update: {
+          cle?: string
+          cree_le?: string
+          groupe?: string
+          id?: string
+          libelle?: string
+          mis_a_jour_le?: string
+          portee?: string
+          restaurant_id?: string | null
+          valeur?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_tokens_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_profils: {
         Row: {
           adresse: string | null
