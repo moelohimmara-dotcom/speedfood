@@ -39,7 +39,10 @@ create table if not exists public.design_tokens (
     (portee = 'site' and restaurant_id is null) or
     (portee = 'restaurant' and restaurant_id is not null)
   ),
-  constraint design_tokens_cle check (cle ~ '^[a-z][a-z0-9]*(\.[a-z0-9]+)+$'),
+  -- Clé en groupes séparés par des points : `couleur.rouge`, `couleur.rouge-fonce`, `espace.1`,
+  -- `forme.rayon-sm`. Le trait d'union est AUTORISÉ (il existe dans les jetons du site) ; les
+  -- segments commencent par une lettre ou un chiffre. Refuse espaces, accents et URL.
+  constraint design_tokens_cle check (cle ~ '^[a-z][a-z0-9-]*(\.[a-z0-9-]+)+$'),
   constraint design_tokens_libelle check (length(libelle) between 1 and 80),
   constraint design_tokens_valeur check (length(valeur) between 1 and 200),
   constraint design_tokens_groupe check (groupe in ('couleurs', 'typographie', 'espacements', 'formes'))
@@ -75,9 +78,10 @@ $$;
 
 revoke execute on function public.fn_garde_jetons_design() from public, anon, authenticated;
 
-create trigger trg_garde_jetons_design
-  before insert or update or delete on public.design_tokens
-  for each row execute function public.fn_garde_jetons_design();
+comment on function public.fn_garde_jetons_design() is
+  'Refuse toute écriture de jeton qui ne vient pas du rôle de service. Ne s''applique qu''aux '
+  'ACTUATIONS : la semence initiale doit être chargée avant la création des déclencheurs, sinon '
+  'elle se refuse elle-même (erreur 42501). C''est un contrôle de conception, pas un oubli.';
 
 comment on table public.design_tokens is
   'Jetons de design du site et des restaurants (palier 4). Un bloc ne stocke qu''une clé, jamais une valeur. '
@@ -138,7 +142,20 @@ insert into public.design_tokens (portee, cle, valeur, libelle, groupe) values
   ('site', 'forme.ombre-md',    '0 6px 16px rgba(43, 33, 29, 0.1), 0 2px 4px rgba(43, 33, 29, 0.06)',   'Ombre moyenne', 'formes'),
   ('site', 'forme.ombre-lg',    '0 16px 32px rgba(43, 33, 29, 0.14), 0 4px 8px rgba(43, 33, 29, 0.08)',  'Ombre grande', 'formes'),
   ('site', 'forme.ombre-focus', '0 0 0 3px rgba(255, 122, 26, 0.35)', 'Focus clavier', 'formes'),
-  ('site', 'forme.ease',        'cubic-bezier(0.2, 0.7, 0.3, 1)', 'Courbe d\'animation', 'formes'),
+  ('site', 'forme.ease',        'cubic-bezier(0.2, 0.7, 0.3, 1)', 'Courbe d''animation', 'formes'),
   ('site', 'forme.duree-fast',  '120ms', 'Animation rapide', 'formes'),
   ('site', 'forme.duree-base',  '200ms', 'Animation normale', 'formes')
 on conflict do nothing;
+
+-- ------------------------------------------------------------------------------
+-- Déclencheur de garde, créé APRÈS la semence, volontairement.
+--
+-- `fn_garde_jetons_design` refuse toute écriture qui ne vient pas du rôle de service. La
+-- semence ci-dessus est exécutée par le rôle de la migration, pas par `service_role` : si le
+-- déclencheur existait déjà, elle se refuserait elle-même (42501) et la migration échouerait.
+-- L'ordre est donc partie du contrat — d'où ce commentaire, pour que personne ne le « corrige ».
+-- ------------------------------------------------------------------------------
+
+create trigger trg_garde_jetons_design
+  before insert or update or delete on public.design_tokens
+  for each row execute function public.fn_garde_jetons_design();
