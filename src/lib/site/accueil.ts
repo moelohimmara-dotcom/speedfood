@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { lireCatalogue, type RestaurantCatalogue } from "@/lib/decouverte/recherche";
 import type { PlatPublic } from "@/lib/decouverte/classement";
 import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
@@ -83,8 +84,14 @@ export function choisirSuggestions(restaurants: RestaurantCatalogue[], plats: Ma
   return suggestions;
 }
 
-export async function lireAccueil(): Promise<DonneesAccueil> {
-  const c = await lireCatalogue();
+/**
+ * Catalogue complet lu UNE fois par requête (`cache` de React) : l'accueil d'origine, ses sections en blocs et les blocs de
+ * restaurants d'une page à blocs le partagent, sans aucune requête de plus.
+ */
+export const catalogueDeLaRequete = cache(async () => lireCatalogue());
+
+export const lireAccueil = cache(async (): Promise<DonneesAccueil> => {
+  const c = await catalogueDeLaRequete();
   if (c.erreur) {
     return { erreur: true, restaurants: [], platsParRestaurant: new Map(), ouverts: [], quartiers: [], suggestions: [] };
   }
@@ -96,7 +103,7 @@ export async function lireAccueil(): Promise<DonneesAccueil> {
     quartiers: resumerQuartiers(c.restaurants),
     suggestions: choisirSuggestions(c.restaurants, c.platsParRestaurant),
   };
-}
+});
 
 export interface DonneesQuartier {
   erreur: boolean;

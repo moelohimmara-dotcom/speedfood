@@ -1,4 +1,4 @@
-import { MAX_BLOCS_PAGE, NOMS_COLONNES, compterBlocsContenu, entreeRegistre, estTypeSimple } from "./registre";
+import { MAX_BLOCS_PAGE, NOMS_COLONNES, compterBlocsContenu, entreeRegistre, estTypeAccueil, estTypeSimple } from "./registre";
 import { libelleBloc } from "./editeur-donnees";
 
 /**
@@ -118,6 +118,7 @@ export function planifierOperation(operation: OperationPanneau, contenu: readonl
     case "dupliquer": {
       const { index } = operation;
       if (horsBornes(index, total)) return { ok: false, annonce: "Ce bloc n'existe plus." };
+      if (estTypeAccueil(blocs[index].type)) return { ok: false, annonce: `${libelleBloc(blocs[index].type)} ne peut figurer qu'une seule fois dans la page : elle n'est pas dupliquée.` };
       const copie = compterBlocsContenu([blocs[index]]);
       if (totalPage + copie > MAX_BLOCS_PAGE) return { ok: false, annonce: `La page compte déjà ${MAX_BLOCS_PAGE} blocs, le maximum.` };
       return {
@@ -150,6 +151,9 @@ export function planifierOperation(operation: OperationPanneau, contenu: readonl
       const entree = entreeRegistre(operation.typeBloc);
       if (!entree) return { ok: false, annonce: "Ce type de bloc n'existe pas." };
       if (totalPage + 1 > MAX_BLOCS_PAGE) return { ok: false, annonce: `La page compte déjà ${MAX_BLOCS_PAGE} blocs, le maximum.` };
+      if (estTypeAccueil(entree.type) && contenu.some((b) => b.type === entree.type)) {
+        return { ok: false, annonce: `${entree.libelle} figure déjà dans la page (une seule fois par page).` };
+      }
       if (liste.colonne !== null) {
         if (!estTypeSimple(entree.type)) return { ok: false, annonce: `Le bloc ${entree.libelle} ne peut pas être placé dans une colonne.` };
         if (liste.colonne > liste.nombre) return { ok: false, annonce: `La colonne ${liste.colonne} n'est pas affichée : choisissez 3 colonnes pour l'utiliser.` };
@@ -251,6 +255,14 @@ export function extraitBloc(type: string, props: Record<string, unknown>): strin
       return texte(props.restaurantId) ? "Restaurant choisi" : "(restaurant à choisir)";
     case "ListeRestaurants":
       return couper(texte(props.titre)) || `${typeof props.nombre === "number" ? props.nombre : 3} restaurants`;
+    case "AccueilAccroche":
+    case "AccueilBandeau":
+    case "AccueilRestaurants":
+    case "AccueilQuartiers":
+    case "AccueilEtapes":
+    case "AccueilSuivi":
+    case "AccueilPro":
+      return "textes du site";
     case "Separateur":
     case "Espace": {
       const entree = entreeRegistre(type);

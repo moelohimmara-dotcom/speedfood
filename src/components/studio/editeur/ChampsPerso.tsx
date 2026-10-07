@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
-import { MOTIF_ANCRE, ANCRES_RESERVEES, CLES_REGLAGES, LIBELLE_ANCRE, OPTIONS_REGLAGES } from "@/lib/studio/reglages";
+import { MOTIF_ANCRE, ANCRES_RESERVEES, CLES_REGLAGES, CLES_REGLAGES_ACCUEIL, LIBELLE_ANCRE, OPTIONS_REGLAGES } from "@/lib/studio/reglages";
 import { estUrlImageStudio } from "@/lib/studio/registre";
 import {
   TAILLE_MAX_IMAGE,
@@ -38,13 +38,18 @@ interface ProprietesChamp<V> {
 
 type ValeurReglages = Record<string, unknown> | undefined;
 
-function compterReglages(valeur: ValeurReglages): number {
-  return CLES_REGLAGES.filter((cle) => valeur && valeur[cle] !== undefined && valeur[cle] !== "").length;
+function compterReglages(valeur: ValeurReglages, cles: readonly string[] = CLES_REGLAGES): number {
+  return cles.filter((cle) => valeur && valeur[cle] !== undefined && valeur[cle] !== "").length;
 }
 
-export function ChampReglages({ libelle, value, onChange, readOnly }: ProprietesChamp<ValeurReglages>) {
+/**
+ * `accueil` : section d'accueil. Seuls les réglages qui ne cassent pas sa mise en page sont offerts (espaces, visibilité, ancre),
+ * et un message renvoie vers « Textes du site » (console, nouvel onglet) : les mots d'une section ne se saisissent pas ici.
+ */
+export function ChampReglages({ libelle, value, onChange, readOnly, accueil = false }: ProprietesChamp<ValeurReglages> & { accueil?: boolean }) {
   const base = useId();
-  const nombre = compterReglages(value);
+  const cles: readonly string[] = accueil ? CLES_REGLAGES_ACCUEIL : CLES_REGLAGES;
+  const nombre = compterReglages(value, cles);
   const courant = (cle: string) => (value && value[cle] !== undefined && value[cle] !== null ? String(value[cle]) : "");
   const modifier = (cle: string, brut: string) => {
     const suivant: Record<string, unknown> = { ...(value ?? {}) };
@@ -57,13 +62,27 @@ export function ChampReglages({ libelle, value, onChange, readOnly }: Proprietes
   const ancreInvalide = ancre !== "" && (!MOTIF_ANCRE.test(ancre) || (ANCRES_RESERVEES as readonly string[]).includes(ancre));
 
   return (
+    <>
+    {accueil ? (
+      <div className="se-info-accueil">
+        <p className="se-aide">
+          Cette section reprend les textes du site : ses mots ne se modifient pas ici, mais dans « Textes du site ». Ici, on choisit sa place
+          dans la page, son espacement et les écrans où elle s&apos;affiche.
+        </p>
+        <p className="se-aide">
+          <a href="/system/contenu/textes" target="_blank" rel="noopener">
+            Modifier les textes de cette section<span className="sr-only"> (s&apos;ouvre dans un nouvel onglet)</span>
+          </a>
+        </p>
+      </div>
+    ) : null}
     <details className="se-reglages">
       <summary className="se-reglages-titre">
         {libelle}
         <span className="se-reglages-compte">{nombre === 0 ? " (aucun réglage)" : ` (${nombre} modifié${nombre > 1 ? "s" : ""})`}</span>
       </summary>
       <div className="se-reglages-corps">
-        {(Object.keys(OPTIONS_REGLAGES) as (keyof typeof OPTIONS_REGLAGES)[]).map((cle) => {
+        {(Object.keys(OPTIONS_REGLAGES) as (keyof typeof OPTIONS_REGLAGES)[]).filter((cle) => cles.includes(cle)).map((cle) => {
           const def = OPTIONS_REGLAGES[cle];
           const id = `${base}-${cle}`;
           return (
@@ -108,6 +127,7 @@ export function ChampReglages({ libelle, value, onChange, readOnly }: Proprietes
         </div>
       </div>
     </details>
+    </>
   );
 }
 

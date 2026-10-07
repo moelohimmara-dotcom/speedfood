@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { EMPLACEMENTS, resoudre, defauts, erreurSaisie, longueurMax, decider, normaliserSaisie } from "../../src/lib/cms/emplacements";
 
@@ -63,7 +63,9 @@ verifier("normaliserSaisie : une ligne", normaliserSaisie(EMPLACEMENTS[0], "  a\
 // Garde-fous statiques : l'accueil lit bien tous les emplacements ; la lecture ne met jamais une panne en cache.
 const racine = process.env.SPEEDFOOD_RACINE;
 if (racine) {
-  const page = readFileSync(join(racine, "src/app/page.tsx"), "utf8");
+  // Les sections de l'accueil vivent dans src/components/accueil (la page n'est plus que leur composition).
+  const dossier = join(racine, "src/components/accueil");
+  const page = [join(racine, "src/app/page.tsx"), ...readdirSync(dossier).map((f) => join(dossier, f))].map((f) => readFileSync(f, "utf8")).join("\n");
   verifier("chaque emplacement est utilisé par l'accueil", EMPLACEMENTS.filter((x) => !page.includes(`"${x.cle}"`)).map((x) => x.cle), []);
   verifier("l'accueil n'interprète aucun HTML libre", /dangerouslySetInnerHTML/.test(page), false);
   const textes = readFileSync(join(racine, "src/lib/cms/textes.ts"), "utf8");

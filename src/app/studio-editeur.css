@@ -674,3 +674,24 @@
   font-size: 0.78rem;
   font-weight: 800;
 }
+
+/* Accueil en blocs : encart permanent (la page remplace l'accueil) et aide des sections d'accueil */
+.se-encart-accueil {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--mangue);
+  color: var(--encre);
+  font-weight: 700;
+}
+.se-info-accueil {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.se-info-accueil a {
+  color: var(--encre);
+  font-weight: 800;
+  text-decoration: underline;
+}

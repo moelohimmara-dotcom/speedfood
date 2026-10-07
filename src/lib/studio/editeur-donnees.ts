@@ -31,6 +31,7 @@ function reduireValeur(champ: ChampBloc, valeur: unknown, avecId: boolean): unkn
     case "colonne":
       return Array.isArray(valeur) ? valeur.map((bloc) => reduireBloc(bloc, avecId)) : valeur;
     case "reglages":
+    case "reglagesAccueil":
       return normaliserReglages(valeur);
     case "groupe":
       return estObjet(valeur) ? reduireChamps(champ.champs, valeur, false, avecId) : valeur;

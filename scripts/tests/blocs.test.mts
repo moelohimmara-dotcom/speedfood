@@ -45,7 +45,7 @@ const IMAGE = `${BASE_IMAGES}0b1c2d3e-aaaa-4bbb-8ccc-111122223333.jpg`;
 const UUID = "0b1c2d3e-aaaa-4bbb-8ccc-111122223333";
 
 const page = (content: unknown[], root: unknown = { props: {} }) => ({ content, root });
-const valide = (json: unknown) => validerPage(json).ok;
+const valide = (json: unknown) => validerPage(json, { slug: "page-de-test" }).ok;
 const pageValide = (json: unknown) => {
   const r = validerPage(json);
   if (!r.ok) throw new Error(`page invalide : ${r.erreurs.join(" ")}`);
@@ -95,7 +95,7 @@ verifier("ancres en doublon refusées (dans les colonnes)", valide(page([titre({
 verifier("ancres en doublon : colonne et colonne", erreurs(page([colonnes({ colonne1: [paragraphe({ reglages: { ancre: "y" } })], colonne2: [titre({ reglages: { ancre: "y" } })] })])), ["Bloc 1, colonne 2, bloc 1 : cette ancre est déjà utilisée par bloc 1, colonne 1, bloc 1 (une ancre est unique dans la page)."]);
 verifier("ancre du bloc Colonnes elle-même comptée", valide(page([colonnes({ reglages: { ancre: "z" } }), titre({ reglages: { ancre: "z" } })])), false);
 // Chaque bloc accepte des réglages
-for (const e of REGISTRE) {
+for (const e of REGISTRE.filter((x) => !x.type.startsWith("Accueil"))) {
   const exemple = { Image: image().props, CarteRestaurant: carte().props }[e.type as "Image"] ?? e.defauts;
   const bloc = (extra: unknown) => ({ type: e.type, props: { ...exemple, reglages: extra } });
   verifier(`réglages acceptés sur ${e.type}`, [valide(page([bloc({ fond: "creme", espaceBas: 8 })])), valide(page([bloc({ fond: "orange" })]))], [true, false]);
@@ -437,7 +437,7 @@ verifier("rendu : tous les textes passent par React (jamais d'HTML ni de style e
   verifier(`francisation : ${textes.length} libellés du registre et des réglages sans mot anglais connu`, trouverChainesAnglaises(textes), []);
   verifier("francisation : tous les libellés de blocs sont renseignés", REGISTRE.every((e) => e.libelle.trim().length > 0), true);
   verifier("francisation : libellés de champs non vides et sans nom technique", textes.filter((t) => t.trim() === "" || /^[a-z]+[A-Z]/.test(t)), []);
-  verifier("noms accessibles : « Réglages » partout", REGISTRE.every((e) => (e.champs as Record<string, { libelle: string }>).reglages.libelle === "Réglages"), true);
+  verifier("noms accessibles : « Réglages » partout", REGISTRE.every((e) => (e.champs as Record<string, { libelle: string }>).reglages.libelle.startsWith("Réglages")), true);
   verifier("valeur par défaut du réglage « Par défaut » = rien (aucun changement visuel)", Object.values(OPTIONS_REGLAGES).every((o) => o.options[0].valeur === ""), true);
   verifier("options de réglages = énumérations du schéma", [
     OPTIONS_REGLAGES.espaceHaut.options.slice(1).map((o) => Number(o.valeur)),

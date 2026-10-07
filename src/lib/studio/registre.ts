@@ -17,7 +17,7 @@ import {
 import type { $ZodIssue, $ZodType } from "zod/v4/core";
 import { estLienBanniereSur } from "../auth/redirection";
 import { analyserTexteRiche, type Bloc as BlocTexte } from "../cms/texte-riche";
-import { schemaReglages } from "./reglages";
+import { schemaReglages, schemaReglagesAccueil } from "./reglages";
 
 /**
  * Registre des blocs des pages du Studio (palier 3) et validation des documents de page. Module PUR (aucun import serveur,
@@ -179,6 +179,15 @@ const propsListeRestaurants = strictObject({
   reglages,
 });
 
+// --- Sections de l'accueil (palier 3, tâche 9) ---------------------------------------------------------------------------
+// Aucune propriété de contenu : les mots viennent des emplacements de texte (« Textes du site ») et les données de la base,
+// comme sur la page d'accueil d'origine. Seuls les réglages d'espace, de visibilité et d'ancre sont offerts.
+
+const propsAccueil = strictObject({
+  id: identifiant,
+  reglages: optional(schemaReglagesAccueil),
+});
+
 /** Blocs qui peuvent se trouver DANS une colonne. */
 const SCHEMAS_SIMPLES = {
   Titre: propsTitre,
@@ -235,6 +244,13 @@ const SCHEMAS_PROPS = {
   FAQ: propsFaq,
   CarteRestaurant: propsCarteRestaurant,
   ListeRestaurants: propsListeRestaurants,
+  AccueilAccroche: propsAccueil,
+  AccueilBandeau: propsAccueil,
+  AccueilRestaurants: propsAccueil,
+  AccueilQuartiers: propsAccueil,
+  AccueilEtapes: propsAccueil,
+  AccueilSuivi: propsAccueil,
+  AccueilPro: propsAccueil,
 } as const;
 
 export type TypeBloc = keyof typeof SCHEMAS_PROPS;
@@ -249,8 +265,19 @@ export const TYPES_SIMPLES = Object.keys(SCHEMAS_SIMPLES) as TypeBlocSimple[];
 /** Blocs dont les données sont lues à l'affichage (restaurants) : jamais dans une colonne. */
 export const TYPES_DYNAMIQUES = ["CarteRestaurant", "ListeRestaurants"] as const;
 
+/** Adresse de la page d'accueil : seule page où les sections d'accueil sont autorisées (ordre = ordre de la page d'origine). */
+export const SLUG_ACCUEIL = "accueil";
+export const TYPES_ACCUEIL = ["AccueilAccroche", "AccueilBandeau", "AccueilRestaurants", "AccueilQuartiers", "AccueilEtapes", "AccueilSuivi", "AccueilPro"] as const;
+export type TypeAccueil = (typeof TYPES_ACCUEIL)[number];
+
+/** Vrai si `type` est une section d'accueil. */
+export function estTypeAccueil(type: string): type is TypeAccueil {
+  return (TYPES_ACCUEIL as readonly string[]).includes(type);
+}
+
 /** Familles de blocs, dans l'ordre de présentation dans l'éditeur. */
 export const CATEGORIES_BLOCS = [
+  { code: "accueil", libelle: "Sections d'accueil" },
   { code: "texte", libelle: "Texte" },
   { code: "medias", libelle: "Médias" },
   { code: "miseEnPage", libelle: "Mise en page" },
@@ -271,6 +298,8 @@ export type ChampBloc =
   | { genre: "choix"; libelle: string; options: readonly OptionChamp[]; aide?: string; optionnel?: boolean }
   | { genre: "case"; libelle: string; aide?: string }
   | { genre: "reglages"; libelle: string }
+  /** Réglages restreints des sections d'accueil (espaces, visibilité, ancre) + lien vers « Textes du site ». */
+  | { genre: "reglagesAccueil"; libelle: string }
   | { genre: "image"; libelle: string }
   | { genre: "restaurant"; libelle: string }
   | { genre: "taxonomie"; libelle: string; source: "quartiers" | "categories"; aide?: string }
@@ -293,6 +322,7 @@ export interface EntreeRegistre<T extends TypeBloc> {
 }
 
 const CHAMP_REGLAGES: ChampBloc = { genre: "reglages", libelle: "Réglages" };
+const CHAMP_REGLAGES_ACCUEIL: ChampBloc = { genre: "reglagesAccueil", libelle: "Réglages de la section" };
 
 const OPTIONS_STYLE_BOUTON: readonly OptionChamp[] = [
   { valeur: "principal", libelle: "Principal (rouge)" },
@@ -581,6 +611,62 @@ export const REGISTRE: { [T in TypeBloc]: EntreeRegistre<T> }[TypeBloc][] = [
     },
     defauts: { titre: "Les restaurants du moment", filtre: "tous", nombre: 3 },
   },
+  {
+    type: "AccueilAccroche",
+    libelle: "Section d'accueil : Accroche",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilBandeau",
+    libelle: "Section d'accueil : Bandeau défilant",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilRestaurants",
+    libelle: "Section d'accueil : Restaurants à la une",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilQuartiers",
+    libelle: "Section d'accueil : Quartiers",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilEtapes",
+    libelle: "Section d'accueil : Étapes « Comment ça marche »",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilSuivi",
+    libelle: "Section d'accueil : Suivi de commande",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilPro",
+    libelle: "Section d'accueil : Espace restaurateurs",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
 ];
 
 /** Entrée du registre d'un type, ou `undefined` pour un type inconnu (jamais d'accès par prototype). */
@@ -608,6 +694,13 @@ const schemaBloc = discriminatedUnion("type", [
   schemaBlocDe("FAQ", propsFaq),
   schemaBlocDe("CarteRestaurant", propsCarteRestaurant),
   schemaBlocDe("ListeRestaurants", propsListeRestaurants),
+  schemaBlocDe("AccueilAccroche", propsAccueil),
+  schemaBlocDe("AccueilBandeau", propsAccueil),
+  schemaBlocDe("AccueilRestaurants", propsAccueil),
+  schemaBlocDe("AccueilQuartiers", propsAccueil),
+  schemaBlocDe("AccueilEtapes", propsAccueil),
+  schemaBlocDe("AccueilSuivi", propsAccueil),
+  schemaBlocDe("AccueilPro", propsAccueil),
 ]);
 
 const schemaRacine = strictObject({
@@ -682,6 +775,10 @@ interface Contexte {
   total: number;
   /** Ancres vues -> libellé du bloc qui les porte. */
   ancres: Map<string, string>;
+  /** Adresse de la page validée (les sections d'accueil ne sont permises que sur `accueil`) ; inconnue = refusées. */
+  slug: string | undefined;
+  /** Sections d'accueil déjà vues (une seule fois par page). */
+  accueil: Set<string>;
   stop: boolean;
 }
 
@@ -748,6 +845,18 @@ function validerBloc(element: unknown, chemin: string, profondeur: number, ctx: 
     return;
   }
 
+  if (estTypeAccueil(entree.type)) {
+    if (ctx.slug !== SLUG_ACCUEIL) {
+      signaler(ctx, `${chemin} (${entree.libelle}) : cette section n'est autorisée que dans la page d'accueil (adresse « ${SLUG_ACCUEIL} »).`);
+      return;
+    }
+    if (ctx.accueil.has(entree.type)) {
+      signaler(ctx, `${chemin} (${entree.libelle}) : cette section d'accueil figure déjà dans la page (une seule fois par page).`);
+      return;
+    }
+    ctx.accueil.add(entree.type);
+  }
+
   const props = element.props;
   if (entree.type === "Colonnes") {
     if (!estObjetSimple(props)) {
@@ -797,15 +906,16 @@ function validerBloc(element: unknown, chemin: string, profondeur: number, ctx: 
 /**
  * Valide un document de page. Contrôles dans l'ordre (du moins coûteux au plus coûteux) : objet simple, taille sérialisée,
  * nombre de blocs, puis chaque bloc contre le schéma de son type (récursivement pour les colonnes), unicité des ancres.
- * Messages en français, numérotés par bloc (à partir de 1).
+ * Messages en français, numérotés par bloc (à partir de 1). `options.slug` : adresse de la page ; les sections d'accueil ne sont
+ * acceptées que si elle vaut `accueil` (adresse inconnue : refusées, par prudence).
  */
-export function validerPage(json: unknown): ResultatValidation {
+export function validerPage(json: unknown, options: { slug?: string } = {}): ResultatValidation {
   if (!estObjetSimple(json)) return { ok: false, erreurs: ["Le document de la page n'est pas un objet."] };
   const taille = tailleOctets(json);
   if (taille === null) return { ok: false, erreurs: ["Le document de la page est illisible."] };
   if (taille > MAX_OCTETS_PAGE) return { ok: false, erreurs: ["La page est trop volumineuse (200 Ko au maximum)."] };
 
-  const ctx: Contexte = { erreurs: [], total: 0, ancres: new Map(), stop: false };
+  const ctx: Contexte = { erreurs: [], total: 0, ancres: new Map(), slug: options.slug, accueil: new Set(), stop: false };
   const cles = Object.keys(json);
   if (cles.some((c) => c !== "content" && c !== "root")) signaler(ctx, "Le document de la page contient une propriété non autorisée.");
 

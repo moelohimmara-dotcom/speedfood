@@ -295,3 +295,12 @@
   gap: var(--space-5);
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }
+
+/* --- Sections d'accueil (accueil en blocs) : conteneur posé seulement quand un réglage existe, au premier niveau du <main>.
+   Mêmes noms de réglages que les autres blocs ; `.sb-eb-*` (espace en dessous) et `.sb-vis-*` sont déjà définis plus haut. --- */
+.sb-accueil-bloc.sb-eh-0 { margin-top: 0; }
+.sb-accueil-bloc.sb-eh-8 { margin-top: var(--space-2); }
+.sb-accueil-bloc.sb-eh-16 { margin-top: var(--space-4); }
+.sb-accueil-bloc.sb-eh-32 { margin-top: var(--space-8); }
+.sb-accueil-bloc.sb-eh-64 { margin-top: calc(var(--space-8) * 2); }
+.sb-accueil-bloc.sb-eh-96 { margin-top: calc(var(--space-8) * 3); }

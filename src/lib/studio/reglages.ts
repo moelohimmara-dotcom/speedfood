@@ -18,7 +18,19 @@ export const VISIBILITES = ["tous", "mobile", "bureau"] as const;
 /** Une ancre : lettre minuscule, puis lettres minuscules, chiffres ou tirets (40 caractères au plus). */
 export const MOTIF_ANCRE = /^[a-z][a-z0-9-]{0,39}$/;
 /** Identifiants déjà posés par le cadre du site (lien d'évitement, etc.) : refusés comme ancres. */
-export const ANCRES_RESERVEES = ["contenu", "main", "root", "etape-panneau"] as const;
+export const ANCRES_RESERVEES = [
+  "contenu",
+  "main",
+  "root",
+  "etape-panneau",
+  // Identifiants des sections de l'accueil d'origine (voir src/components/accueil) : deux éléments ne partagent jamais un identifiant.
+  "accueil-titre",
+  "accueil-carte",
+  "accueil-quartiers",
+  "accueil-etapes",
+  "accueil-ticket",
+  "accueil-pro",
+] as const;
 
 /**
  * Fonds autorisés : jeton de couleur du fond et jeton du texte (correspondance FIXE vers `globals.css`). Le texte est
@@ -52,6 +64,21 @@ export const schemaReglages = strictObject({
 });
 
 export type Reglages = output<typeof schemaReglages>;
+
+/**
+ * Réglages des SECTIONS D'ACCUEIL (accroche, restaurants, quartiers…) : seulement ceux qui ne cassent pas leur mise en page,
+ * l'espace autour, la visibilité par type d'écran et l'ancre. Alignement, largeur et fond sont refusés : les sections ont leur
+ * propre grille, leurs propres couleurs de texte et leur propre largeur (un fond rouge rendrait leurs titres illisibles).
+ */
+export const schemaReglagesAccueil = strictObject({
+  espaceHaut: schemaReglages.shape.espaceHaut,
+  espaceBas: schemaReglages.shape.espaceBas,
+  visibilite: schemaReglages.shape.visibilite,
+  ancre: schemaReglages.shape.ancre,
+});
+
+/** Clés des réglages offerts aux sections d'accueil. */
+export const CLES_REGLAGES_ACCUEIL = ["espaceHaut", "espaceBas", "visibilite", "ancre"] as const;
 
 /** Clés des réglages, dans l'ordre d'affichage de l'éditeur. */
 export const CLES_REGLAGES = ["espaceHaut", "espaceBas", "alignement", "largeur", "fond", "visibilite", "ancre"] as const;

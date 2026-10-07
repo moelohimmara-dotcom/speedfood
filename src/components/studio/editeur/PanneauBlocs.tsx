@@ -15,7 +15,7 @@ import {
   type LignePanneau,
   type OperationPanneau,
 } from "@/lib/studio/panneau-blocs";
-import { CATEGORIES_BLOCS, REGISTRE, compterBlocsContenu, estTypeSimple } from "@/lib/studio/registre";
+import { CATEGORIES_BLOCS, REGISTRE, SLUG_ACCUEIL, compterBlocsContenu, estTypeAccueil, estTypeSimple } from "@/lib/studio/registre";
 import { IconeAdmin } from "@/components/admin/icones";
 import { useEditeur } from "./contexte";
 import { bloquerSuppressionPuck } from "./EnteteEditeur";
@@ -42,6 +42,7 @@ function MenuAjout({
   refBouton,
   onChoisir,
   desactive,
+  indisponibles,
 }: {
   texteBouton: string;
   aide: string;
@@ -50,6 +51,8 @@ function MenuAjout({
   refBouton?: (el: HTMLButtonElement | null) => void;
   onChoisir: (typeBloc: string, zone: string) => void;
   desactive?: boolean;
+  /** Types à ne pas proposer (sections d'accueil hors de l'accueil, ou déjà présentes dans la page). */
+  indisponibles?: ReadonlySet<string>;
 }) {
   const id = useId();
   const [ouvert, setOuvert] = useState(false);
@@ -58,7 +61,8 @@ function MenuAjout({
   useEffect(() => {
     if (ouvert) premierChoix.current?.focus();
   }, [ouvert]);
-  const premierType = REGISTRE.find((e) => !seulementSimples || estTypeSimple(e.type))?.type;
+  const proposable = (type: string) => (!seulementSimples || estTypeSimple(type)) && !indisponibles?.has(type);
+  const premierType = REGISTRE.find((e) => proposable(e.type))?.type;
   return (
     <div className="se-ajout">
       <button
@@ -93,7 +97,7 @@ function MenuAjout({
         >
           <p className="se-aide">{aide}</p>
           {CATEGORIES_BLOCS.map((categorie) => {
-            const types = REGISTRE.filter((e) => e.categorie === categorie.code && (!seulementSimples || estTypeSimple(e.type)));
+            const types = REGISTRE.filter((e) => e.categorie === categorie.code && proposable(e.type));
             if (types.length === 0) return null;
             return (
               <div key={categorie.code} role="group" aria-label={categorie.libelle} className="se-menu-famille">
@@ -124,7 +128,7 @@ function MenuAjout({
 }
 
 function PanneauBlocs() {
-  const { possibilites, annoncer } = useEditeur();
+  const { possibilites, annoncer, page } = useEditeur();
   const contenu = usePuck((s) => s.appState.data.content) as BlocContenu[];
   const selection = usePuck((s) => s.appState.ui.itemSelector);
   const dispatch = usePuck((s) => s.dispatch);
@@ -135,6 +139,8 @@ function PanneauBlocs() {
   const [, setJeton] = useState(0);
   const modifiable = possibilites.peutEnregistrer;
   const plan = construirePlan(contenu);
+  // Sections d'accueil : proposées seulement dans la page « accueil », une fois chacune.
+  const indisponibles = new Set(REGISTRE.filter((e) => estTypeAccueil(e.type) && (page.slug !== SLUG_ACCUEIL || contenu.some((b) => b.type === e.type))).map((e) => e.type));
   const selectionZone = selection ? (selection.zone ?? ZONE_RACINE) : null;
   const selectionRacine = selection && selectionZone === ZONE_RACINE ? selection.index : null;
 
@@ -204,7 +210,7 @@ function PanneauBlocs() {
                 <IconeAdmin nom="chevron" taille={16} />
               </span>
             </button>
-            <button type="button" className="se-icone" aria-label={noms.dupliquer} title={noms.dupliquer} onClick={() => executer({ type: "dupliquer", index, zone })}>
+            <button type="button" className="se-icone" aria-label={noms.dupliquer} title={noms.dupliquer} aria-disabled={estTypeAccueil(bloc.type) || undefined} onClick={() => executer({ type: "dupliquer", index, zone })}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                 <rect x="8.5" y="8.5" width="12" height="12" rx="2" />
                 <path d="M15.5 8.5V5.5a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2h3" />
@@ -258,6 +264,7 @@ function PanneauBlocs() {
           aide={selectionRacine === null ? "Le bloc sera ajouté à la fin de la page." : `Le bloc sera ajouté après le bloc ${selectionRacine + 1}.`}
           zone={ZONE_RACINE}
           seulementSimples={false}
+          indisponibles={indisponibles}
           refBouton={(el) => {
             boutonAjout.current = el;
           }}

@@ -8,7 +8,7 @@ import { creerClientAdmin } from "@/lib/db/admin";
  * requête (`cache`). En cas d'échec de lecture, une fonctionnalité reste ACTIVE : une panne de lecture ne doit pas couper le service
  * (l'interrupteur d'urgence agit quand la lecture fonctionne ; un état inconnu ne durcit rien).
  */
-export type CleFonctionnalite = "animations_public" | "scenes_envie_accueil" | "commande_a_table" | "documents_recus" | "lien_court_scans";
+export type CleFonctionnalite = "animations_public" | "scenes_envie_accueil" | "commande_a_table" | "documents_recus" | "lien_court_scans" | "accueil_en_blocs";
 
 const lireToutes = cache(async (): Promise<Record<string, boolean>> => {
   try {

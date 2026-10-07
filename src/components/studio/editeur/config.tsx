@@ -1,7 +1,7 @@
 import type { ComponentConfig, Config, Field, SlotComponent } from "@puckeditor/core";
 import { EnveloppeBloc, RenduBloc as ApercuBloc } from "@/components/studio/RenduBlocs";
 import { proprietesPourRendu } from "@/lib/studio/editeur-donnees";
-import { CATEGORIES_BLOCS, REGISTRE, entreeRegistre, type BlocPage, type ChampBloc } from "@/lib/studio/registre";
+import { CATEGORIES_BLOCS, REGISTRE, SLUG_ACCUEIL, entreeRegistre, estTypeAccueil, type BlocPage, type ChampBloc } from "@/lib/studio/registre";
 import { ChampImage, ChampReglages, ChampRestaurant, ChampTaxonomie } from "./ChampsPerso";
 
 /**
@@ -41,6 +41,14 @@ function champPuck(champ: ChampBloc): Field {
         type: "custom",
         label: champ.libelle,
         render: ({ value, onChange, readOnly }) => <ChampReglages libelle={champ.libelle} value={value as Record<string, unknown> | undefined} onChange={(v) => onChange(v as never)} readOnly={readOnly} />,
+      };
+    case "reglagesAccueil":
+      return {
+        type: "custom",
+        label: champ.libelle,
+        render: ({ value, onChange, readOnly }) => (
+          <ChampReglages accueil libelle={champ.libelle} value={value as Record<string, unknown> | undefined} onChange={(v) => onChange(v as never)} readOnly={readOnly} />
+        ),
       };
     case "image":
       return {
@@ -136,17 +144,27 @@ for (const entree of REGISTRE) {
   };
 }
 
-export const configEditeur: Config = {
-  components: composants,
-  categories: Object.fromEntries(
-    CATEGORIES_BLOCS.map((c) => [
-      c.code,
-      { title: c.libelle, components: REGISTRE.filter((e) => e.categorie === c.code).map((e) => e.type), defaultExpanded: true },
-    ])
-  ),
-  root: {
+/**
+ * Configuration de l'éditeur pour la page d'adresse `slug` : les sections d'accueil n'existent que dans la page `accueil`
+ * (la validation les refuse ailleurs) ; elles ne sont donc proposées ni dans la réserve ni dans les types d'une autre page.
+ */
+export function configPour(slug: string): Config {
+  const accueil = slug === SLUG_ACCUEIL;
+  const types = REGISTRE.filter((e) => accueil || !estTypeAccueil(e.type));
+  return {
+    components: Object.fromEntries(types.map((e) => [e.type, composants[e.type]])),
+    categories: Object.fromEntries(
+      CATEGORIES_BLOCS.map((c) => [
+        c.code,
+        { title: c.libelle, components: types.filter((e) => e.categorie === c.code).map((e) => e.type), defaultExpanded: true },
+      ]).filter(([, categorie]) => (categorie as { components: string[] }).components.length > 0)
+    ),
+    root: racine,
+  };
+}
+
+const racine: Config["root"] = {
     // Aucun réglage de page dans l'éditeur (le titre de la page vient de la liste des pages) : pas de champ « title » anglais.
     fields: {},
     render: ({ children }: { children: React.ReactNode }) => <div className="sb-page se-apercu-page">{children}</div>,
-  },
 };

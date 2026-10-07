@@ -18,6 +18,15 @@ export interface MiseAJour {
 
 export const MISES_A_JOUR: readonly MiseAJour[] = [
   {
+    id: "accueil-en-blocs",
+    date: "2026-10-07",
+    titre: "Accueil du site composé en blocs (Studio)",
+    resume:
+      "La page d'accueil peut être recomposée dans l'éditeur visuel : sections déplacées, masquées ou espacées, sans développeur. Tant qu'aucune version en blocs n'est publiée, ou si l'interrupteur est coupé, le site affiche l'accueil d'origine.",
+    cle: "accueil_en_blocs",
+    verification: "Accueil du site public (\"/\") ; l'éditeur s'ouvre depuis Contenu, Pages, « Créer l'accueil en blocs ».",
+  },
+  {
     id: "envie-scenes",
     date: "2026-10-06",
     titre: "Bloc « Votre envie du moment ? » : scènes vectorielles animées",

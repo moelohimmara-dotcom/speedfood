@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { CadreSite } from "@/components/CadreSite";
 import { TexteRiche } from "@/components/site/TexteRiche";
 import { RenduPage } from "@/components/studio/RenduPage";
 import { lirePagePubliee, slugValide, type PagePubliee } from "@/lib/cms/lecture";
 import { lirePageApercu } from "@/lib/cms/apercu";
-import { validerPage, type ResultatValidation } from "@/lib/studio/registre";
-import { chargerContexteSysteme } from "@/lib/system-admin/contexte";
-import { roleAPermission } from "@/lib/system-admin/permissions";
+import { peutVoirApercu } from "@/lib/studio/droit-apercu";
+import { SLUG_ACCUEIL, validerPage, type ResultatValidation } from "@/lib/studio/registre";
 
 // Rendue à chaque requête : le contenu publié change sans redéploiement.
 export const dynamic = "force-dynamic";
@@ -16,19 +15,6 @@ type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ [cle: string]: string | string[] | undefined }>;
 };
-
-/**
- * L'utilisateur connecté a-t-il une session système avec `contenu.editer` ? Passe par `chargerContexteSysteme` (même contrôle que la
- * console : session, double authentification, rôle lu par la RLS), SANS 404 : une page publique retombe sur le comportement public.
- */
-async function peutVoirApercu(): Promise<boolean> {
-  try {
-    const contexte = await chargerContexteSysteme();
-    return !!contexte && roleAPermission(contexte.role, "contenu.editer");
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Page à afficher. Pages de texte : comportement d'avant (publiée, sinon brouillon avec `?apercu=1` pour l'équipe).
@@ -42,17 +28,19 @@ type Resolution =
 
 async function resoudre(slug: string, apercuDemande: boolean): Promise<Resolution | null> {
   if (!slugValide(slug)) return null;
+  // L'accueil n'a qu'une adresse : « / » (voir PageEditorialePublique, redirection permanente).
+  if (slug === SLUG_ACCUEIL) return null;
   const publiee = await lirePagePubliee(slug);
   if (apercuDemande && (!publiee || publiee.format === "blocs") && (await peutVoirApercu())) {
     const page = await lirePageApercu(slug);
     if (page?.format === "blocs") {
-      return { format: "blocs", titre: page.titre, apercu: true, enLigne: page.statut === "publie", validation: validerPage(page.blocs_brouillon) };
+      return { format: "blocs", titre: page.titre, apercu: true, enLigne: page.statut === "publie", validation: validerPage(page.blocs_brouillon, { slug }) };
     }
     if (page && !publiee) return { format: "texte", page, brouillon: page.statut !== "publie" };
   }
   if (!publiee) return null;
   if (publiee.format === "blocs") {
-    const validation = validerPage(publiee.blocs_publie);
+    const validation = validerPage(publiee.blocs_publie, { slug });
     if (!validation.ok) return null;
     return { format: "blocs", titre: publiee.titre, apercu: false, validation };
   }
@@ -83,6 +71,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
 export default async function PageEditorialePublique({ params, searchParams }: Props) {
   const { slug } = await params;
+  // /p/accueil ne duplique jamais l'accueil : redirection permanente (308) vers « / » ; l'aperçu de l'équipe suit.
+  if (slug === SLUG_ACCUEIL) permanentRedirect(apercuDemande((await searchParams).apercu) ? "/?apercu=1" : "/");
   const resolu = await resoudre(slug, apercuDemande((await searchParams).apercu));
   if (!resolu) notFound();
 

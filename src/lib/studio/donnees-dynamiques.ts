@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { catalogueDeLaRequete } from "@/lib/site/accueil";
 import { lireCatalogue, type CatalogueLu, type RestaurantCatalogue } from "@/lib/decouverte/recherche";
 import type { PlatPublic } from "@/lib/decouverte/classement";
 import { etatRestaurant } from "@/lib/disponibilite/etat";
@@ -25,7 +26,8 @@ export interface RestaurantAvecPlats {
 export type DonneesDynamiques = Map<number, RestaurantAvecPlats[]>;
 
 // `cache` mémoïse par arguments PRIMITIFS, pour la durée d'une requête (jamais entre deux requêtes).
-const catalogueDuQuartier = cache(async (quartierId: string): Promise<CatalogueLu> => lireCatalogue(quartierId ? { quartier: quartierId } : {}));
+// Sans quartier : le catalogue complet, partagé avec les sections d'accueil de la même requête (aucune lecture de plus).
+const catalogueDuQuartier = cache(async (quartierId: string): Promise<CatalogueLu> => (quartierId ? lireCatalogue({ quartier: quartierId }) : catalogueDeLaRequete()));
 
 async function lireSansEchec(quartierId: string): Promise<CatalogueLu | null> {
   try {

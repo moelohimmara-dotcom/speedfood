@@ -8,6 +8,7 @@ import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/bloc
 import { SousNav } from "../../SousNav";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
 import { FormulaireNouvellePageBlocs } from "./FormulaireNouvellePageBlocs";
+import { CreerAccueilBlocs } from "./CreerAccueilBlocs";
 
 export const metadata = { title: "Pages (administration)" };
 
@@ -28,9 +29,12 @@ export default async function ContenusSystemePage({
   const { palier } = await exigerPalier("contenu:pages", MINIMUMS_STUDIO.lire, { contexte });
   const { statut: statutBrut } = await searchParams;
   const statut = statutBrut === "publie" || statutBrut === "brouillon" ? statutBrut : "tous";
-  const pages = (await listerPages()).filter((p) => statut === "tous" || p.statut === statut);
+  const toutes = await listerPages();
+  const pages = toutes.filter((p) => statut === "tous" || p.statut === statut);
   // Format de chaque page (Studio, palier 3) : colonne lisible par la session (droits de colonne de la tâche 6).
   const { data: formats } = await contexte.supabase.from("content_pages").select("id, format");
+  // La page d'accueil (adresse réservée « accueil ») cherchée dans TOUTES les pages, filtre de statut non appliqué.
+  const pageAccueil = toutes.find((p) => p.slug === "accueil") ?? null;
   const pagesABlocs = new Set((formats ?? []).filter((f) => f.format === "blocs").map((f) => f.id));
 
   return (
@@ -52,6 +56,21 @@ export default async function ContenusSystemePage({
           ))}
         </div>
       </div>
+
+      <Panneau titre="Accueil du site en blocs">
+        {palier < MINIMUMS_STUDIO.brouillon ? (
+          <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
+        ) : pageAccueil ? (
+          <p>
+            La page d&apos;accueil en blocs existe ({pageAccueil.statut === "publie" ? "publiée" : "brouillon"}).{" "}
+            <Link href={pagesABlocs.has(pageAccueil.id) ? `/system/contenu/pages/${pageAccueil.id}/blocs` : `/system/contenu/pages/${pageAccueil.id}`} className="lien-texte">
+              Ouvrir la page d&apos;accueil
+            </Link>
+          </p>
+        ) : (
+          <CreerAccueilBlocs />
+        )}
+      </Panneau>
 
       <Panneau titre="Nouvelle page">
         {palier >= MINIMUMS_STUDIO.brouillon ? (

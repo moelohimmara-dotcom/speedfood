@@ -9,6 +9,7 @@ import { IconeAdmin } from "@/components/admin/icones";
 import { formaterDateCourte } from "@/app/system/formatage";
 import { LIBELLE_NON_ENREGISTRE, libelleStatut } from "@/lib/studio/possibilites";
 import { TAILLES_APERCU } from "@/lib/studio/francisation";
+import { SLUG_ACCUEIL } from "@/lib/studio/registre";
 import { useEditeur, type MessageErreur } from "./contexte";
 
 /**
@@ -350,7 +351,7 @@ export function EnteteEditeur() {
         </div>
 
         <div className="se-groupe se-actions">
-          <a className="btn btn-secondary se-bouton-petit" href={`/p/${page.slug}?apercu=1`} target="_blank" rel="noopener">
+          <a className="btn btn-secondary se-bouton-petit" href={page.slug === SLUG_ACCUEIL ? "/?apercu=1" : `/p/${page.slug}?apercu=1`} target="_blank" rel="noopener">
             Voir l&apos;aperçu<span className="sr-only"> du brouillon enregistré (s&apos;ouvre dans un nouvel onglet)</span>
             <span aria-hidden="true"> ↗</span>
           </a>
@@ -379,6 +380,13 @@ export function EnteteEditeur() {
           </button>
         </div>
       </div>
+
+      {page.slug === SLUG_ACCUEIL ? (
+        <p className="se-encart-accueil" role="note">
+          Cette page remplace votre accueil dès qu&apos;elle est publiée. En cas de problème, coupez-la dans Mises à jour (interrupteur
+          &quot;Accueil en blocs&quot;) : l&apos;ancien accueil revient aussitôt.
+        </p>
+      ) : null}
 
       <Explication id="se-limite-enregistrer" texte={possibilites.explications.enregistrer} />
       {possibilites.peutEnregistrer ? <Explication id="se-limite-publier" texte={possibilites.explications.publier} /> : null}

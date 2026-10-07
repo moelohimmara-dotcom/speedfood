@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { estLienBanniereSur } from "@/lib/auth/redirection";
 import type { Segment } from "@/lib/cms/texte-riche";
-import { analyserParagraphe, estUrlImageStudio, type BlocPage, type BlocSimple, type PageBlocs } from "@/lib/studio/registre";
+import { analyserParagraphe, entreeRegistre, estTypeAccueil, estUrlImageStudio, type BlocPage, type BlocSimple, type PageBlocs, type TypeAccueil } from "@/lib/studio/registre";
 import { classesReglages } from "@/lib/studio/reglages";
 
 /**
@@ -77,6 +77,14 @@ function LienBouton({ libelle, lien, variante }: { libelle: string; lien: string
 type BlocDynamique = Extract<BlocPage, { type: "CarteRestaurant" | "ListeRestaurants" }>;
 
 export interface OptionsRendu {
+  /**
+   * Accueil en blocs (page publique de `/`) : rendu d'une section d'accueil, fourni par la page. Les sections se posent
+   * directement dans le `<main>` de l'accueil (sans conteneur `sb-page`), comme dans la page d'origine ; seuls les blocs
+   * ordinaires voisins sont regroupés dans le conteneur de texte des pages à blocs. Absent : une note à la place (éditeur).
+   */
+  rendreAccueil?: (type: TypeAccueil) => ReactNode;
+  /** Vrai pour l'accueil : la disposition ci-dessus (sections au premier niveau du `<main>`). */
+  accueil?: boolean;
   /**
    * Rendu des blocs qui lisent des données à l'affichage (cartes et listes de restaurants), fourni par la page publique.
    * Renvoyer `null` : le bloc ne rend rien. Absent (aperçu de l'éditeur) : une note à la place.
@@ -164,6 +172,20 @@ function corps(bloc: BlocPage | BlocSimple, index: number, niveauTitre: 2 | 3, o
       return bloc.props.style === "trait" ? <hr className="sb-separateur" aria-hidden="true" /> : <div className="sb-separateur-vide" aria-hidden="true" />;
     case "Espace":
       return <div className={`sb-espace sb-espace-${bloc.props.hauteur}`} aria-hidden="true" />;
+    case "AccueilAccroche":
+    case "AccueilBandeau":
+    case "AccueilRestaurants":
+    case "AccueilQuartiers":
+    case "AccueilEtapes":
+    case "AccueilSuivi":
+    case "AccueilPro":
+      if (options.rendreAccueil) return options.rendreAccueil(bloc.type);
+      return (
+        <p className="se-bloc-dynamique">
+          {entreeRegistre(bloc.type)?.libelle} : cette section s&apos;affiche sur la page d&apos;accueil publiée, avec les textes du site et les
+          données du moment. Ses mots se modifient dans « Textes du site ».
+        </p>
+      );
     case "CarteRestaurant":
     case "ListeRestaurants":
       if (options.rendreDynamique) return options.rendreDynamique(bloc, index, niveauTitre);
@@ -201,9 +223,26 @@ export function EnveloppeBloc({ reglages, edition = false, children }: { reglage
   );
 }
 
+/**
+ * Conteneur d'une section d'accueil sur la page publique : posé seulement si un réglage existe (espaces, visibilité, ancre) ;
+ * sans réglage, la section est rendue telle quelle, comme dans la page d'origine. Classe propre (`sb-accueil-bloc`) : les
+ * règles de `.sb-bloc` et de `.sb-page` ne s'appliquent pas aux sections, qui ont leur propre mise en page.
+ */
+function EnveloppeAccueil({ reglages, children }: { reglages: BlocPage["props"]["reglages"]; children: ReactNode }) {
+  const classes = classesReglages(reglages);
+  const ancre = reglages?.ancre;
+  if (classes.length === 0 && !ancre) return <>{children}</>;
+  return (
+    <div id={ancre} className={["sb-accueil-bloc", ...classes].join(" ")}>
+      {children}
+    </div>
+  );
+}
+
 function Bloc({ bloc, index, niveauTitre, options }: { bloc: BlocPage | BlocSimple; index: number; niveauTitre: 2 | 3; options: OptionsRendu }) {
   const contenu = corps(bloc, index, niveauTitre, options);
   if (contenu === null) return null;
+  if (options.rendreAccueil && estTypeAccueil(bloc.type)) return <EnveloppeAccueil reglages={bloc.props.reglages}>{contenu}</EnveloppeAccueil>;
   return (
     <EnveloppeBloc reglages={bloc.props.reglages} edition={options.edition === true}>
       {contenu}
@@ -220,6 +259,12 @@ function ouvreUneSection(bloc: BlocPage): boolean {
     case "FAQ":
     case "ListeRestaurants":
       return !!bloc.props.titre;
+    case "AccueilRestaurants":
+    case "AccueilQuartiers":
+    case "AccueilEtapes":
+    case "AccueilSuivi":
+    case "AccueilPro":
+      return true;
     default:
       return false;
   }
@@ -233,13 +278,33 @@ export function RenduBlocs({ page, ...options }: { page: PageBlocs } & OptionsRe
     niveaux.push(sectionOuverte ? 3 : 2);
     if (ouvreUneSection(bloc)) sectionOuverte = true;
   }
-  return (
-    <div className="sb-page">
-      {page.content.map((bloc, i) => (
-        <Bloc key={i} bloc={bloc} index={i} niveauTitre={niveaux[i]} options={options} />
-      ))}
-    </div>
-  );
+  const elements = page.content.map((bloc, i) => <Bloc key={i} bloc={bloc} index={i} niveauTitre={niveaux[i]} options={options} />);
+  if (!options.accueil) return <div className="sb-page">{elements}</div>;
+
+  // Accueil : les sections au premier niveau du <main> ; les blocs ordinaires consécutifs dans le conteneur de texte des pages à blocs.
+  const sorties: ReactNode[] = [];
+  let groupe: ReactNode[] = [];
+  const viderGroupe = () => {
+    if (groupe.length === 0) return;
+    sorties.push(
+      <div key={`texte-${sorties.length}`} className="pub-conteneur pub-rubrique">
+        <div className="cms-page">
+          <div className="sb-page">{groupe}</div>
+        </div>
+      </div>
+    );
+    groupe = [];
+  };
+  page.content.forEach((bloc, i) => {
+    if (estTypeAccueil(bloc.type)) {
+      viderGroupe();
+      sorties.push(elements[i]);
+    } else {
+      groupe.push(elements[i]);
+    }
+  });
+  viderGroupe();
+  return <>{sorties}</>;
 }
 
 /** Un seul bloc (aperçu de l'éditeur : chaque bloc est rendu par Puck dans son propre cadre). */

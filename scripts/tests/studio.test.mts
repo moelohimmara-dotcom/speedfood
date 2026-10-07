@@ -21,7 +21,7 @@ function verifier(nom: string, obtenu: unknown, attendu: unknown) {
 }
 
 const page = (content: unknown[], root: unknown = { props: {} }) => ({ content, root });
-const valide = (json: unknown) => validerPage(json).ok;
+const valide = (json: unknown) => validerPage(json, { slug: "page-de-test" }).ok;
 const erreurs = (json: unknown) => {
   const r = validerPage(json);
   return r.ok ? [] : r.erreurs;
@@ -30,8 +30,9 @@ const titre = (props: Record<string, unknown> = {}) => ({ type: "Titre", props: 
 const bouton = (props: Record<string, unknown> = {}) => ({ type: "Bouton", props: { libelle: "Commander", lien: "/restaurants", style: "principal", ...props } });
 
 // --- Registre ----------------------------------------------------------------------------------------------------
-verifier("registre : 12 blocs dans l'ordre des familles", REGISTRE.map((e) => e.type), ["Titre", "Paragraphe", "Citation", "Image", "Colonnes", "Separateur", "Espace", "Bouton", "AppelAction", "FAQ", "CarteRestaurant", "ListeRestaurants"]);
-for (const e of REGISTRE) {
+// Les sections d'accueil (tâche 9) sont testées par accueil.test.mts : elles ne sont permises que sur la page « accueil ».
+verifier("registre : 12 blocs ordinaires dans l'ordre des familles", REGISTRE.filter((e) => !e.type.startsWith("Accueil")).map((e) => e.type), ["Titre", "Paragraphe", "Citation", "Image", "Colonnes", "Separateur", "Espace", "Bouton", "AppelAction", "FAQ", "CarteRestaurant", "ListeRestaurants"]);
+for (const e of REGISTRE.filter((x) => !x.type.startsWith("Accueil"))) {
   // Image et Carte de restaurant s'ajoutent « à compléter » (image ou restaurant à choisir) : leurs défauts ne sont pas encore valides.
   verifier(`registre : défauts valides sauf bloc à compléter (${e.type})`, e.schemaProps.safeParse(e.defauts).success, !e.incomplet);
   verifier(`registre : page avec le bloc par défaut (${e.type})`, valide(page([{ type: e.type, props: e.defauts }])), !e.incomplet);

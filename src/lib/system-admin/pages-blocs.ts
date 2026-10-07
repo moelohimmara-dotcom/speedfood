@@ -6,7 +6,7 @@ import type { Json } from "@/lib/db/database.types";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { invaliderCache } from "@/lib/cms/cache";
 import { slugValide } from "@/lib/cms/lecture";
-import { pageVide, validerPage } from "@/lib/studio/registre";
+import { SLUG_ACCUEIL, pageVide, validerPage } from "@/lib/studio/registre";
 import { AVERTISSEMENTS_TRACE, finaliserEcriture } from "@/lib/studio/apres-ecriture";
 import { MESSAGE_CONCURRENCE, jetonPerime } from "@/lib/studio/concurrence";
 import { verifierPermission, type ContexteSysteme } from "./contexte";
@@ -101,6 +101,10 @@ export async function creerPageBlocsAction(titreSaisi: string, slugSaisi: string
     return { ok: false, erreur: "Le slug doit être en minuscules, sans espaces (ex. \"comment-commander\")." };
   }
   if (!titre || titre.length > 200) return { ok: false, erreur: "Le titre est obligatoire (200 caractères maximum)." };
+  // L'adresse « accueil » est réservée à la page d'accueil, créée par son bouton dédié (« Créer l'accueil en blocs »).
+  if (slug === SLUG_ACCUEIL) {
+    return { ok: false, erreur: "L'adresse « accueil » est réservée à la page d'accueil du site : utilisez le bouton « Créer l'accueil en blocs »." };
+  }
 
   try {
     const contexte = await verifierPermission("contenu.editer");
@@ -144,8 +148,6 @@ export async function creerPageBlocsAction(titreSaisi: string, slugSaisi: string
 export async function enregistrerBrouillonBlocsAction(pageId: string, json: unknown, jeton?: string): Promise<EtatBlocs> {
   if (typeof pageId !== "string" || !UUID.test(pageId)) return { ok: false, erreur: "Page introuvable." };
   if (jeton !== undefined && (typeof jeton !== "string" || jeton.length === 0 || jeton.length > 64)) return { ok: false, erreur: MESSAGE_CONCURRENCE };
-  const validation = validerPage(json);
-  if (!validation.ok) return { ok: false, erreur: "Le brouillon n'est pas valide.", erreurs: validation.erreurs };
 
   try {
     const contexte = await verifierPermission("contenu.editer");
@@ -153,6 +155,9 @@ export async function enregistrerBrouillonBlocsAction(pageId: string, json: unkn
     const page = await lirePageSession(contexte, pageId);
     if (!page) return { ok: false, erreur: "Page introuvable." };
     if (page.format !== "blocs") return { ok: false, erreur: "Cette page n'est pas une page à blocs." };
+    // Validée avec l'adresse de la page : les sections d'accueil ne sont permises que sur « accueil ».
+    const validation = validerPage(json, { slug: page.slug });
+    if (!validation.ok) return { ok: false, erreur: "Le brouillon n'est pas valide.", erreurs: validation.erreurs };
     const limite = palier < MINIMUMS_STUDIO.publier;
     if (limite && page.statut === "publie") return { ok: false, erreur: MESSAGE_EN_LIGNE };
 
@@ -214,7 +219,7 @@ export async function publierBlocsAction(pageId: string, motif?: string, jeton?:
     if (erreurLecture || !page) return { ok: false, erreur: "Le brouillon n'a pas pu être lu, réessayez dans un instant." };
     // Jeton d'ouverture périmé : le brouillon a changé ailleurs, on ne publie pas un contenu que la personne n'a pas vu.
     if (jetonPerime(jeton, page.mis_a_jour_le)) return { ok: false, erreur: MESSAGE_CONCURRENCE };
-    const validation = validerPage(page.blocs_brouillon);
+    const validation = validerPage(page.blocs_brouillon, { slug: page.slug });
     if (!validation.ok) return { ok: false, erreur: "Le brouillon ne peut pas être publié.", erreurs: validation.erreurs };
 
     // Une seule transaction en base : copie du brouillon lu (et validé) vers la version en ligne, numéro de version,
@@ -239,7 +244,8 @@ export async function publierBlocsAction(pageId: string, motif?: string, jeton?:
             action: "contenu.blocs_publication",
             cibleType: "content_page",
             cibleId: pageId,
-            motif: motifPropre ? `version ${version} : ${motifPropre}` : `version ${version}`,
+            // Mention explicite pour l'accueil du site (la page la plus vue) : « Accueil publié ».
+            motif: [page.slug === SLUG_ACCUEIL ? "Accueil publié" : null, `version ${version}`, motifPropre || null].filter(Boolean).join(" : "),
           }),
       },
       AVERTISSEMENTS_TRACE.publication(version)
@@ -261,6 +267,8 @@ export async function restaurerVersionAction(pageId: string, version: number): P
   try {
     const contexte = await verifierPermission("contenu.editer");
     await verifierPalier("contenu:pages", MINIMUMS_STUDIO.publier, { contexte });
+    const cible = await lirePageSession(contexte, pageId);
+    if (!cible) return { ok: false, erreur: "Page introuvable." };
     const { data: ancienne, error: erreurLecture } = await contexte.supabase
       .from("content_pages_versions")
       .select("blocs")
@@ -270,7 +278,7 @@ export async function restaurerVersionAction(pageId: string, version: number): P
     if (erreurLecture) return { ok: false, erreur: "La version n'a pas pu être lue, réessayez dans un instant." };
     if (!ancienne) return { ok: false, erreur: "Version introuvable." };
     // Revalidée contre le schéma COURANT : une version trop ancienne n'entre pas dans le brouillon.
-    const validation = validerPage(ancienne.blocs);
+    const validation = validerPage(ancienne.blocs, { slug: cible.slug });
     if (!validation.ok) {
       return {
         ok: false,
@@ -338,7 +346,7 @@ export async function lireBrouillonBlocs(pageId: string): Promise<BrouillonBlocs
     .eq("id", pageId)
     .maybeSingle();
   if (error || !data) return null;
-  const validation = validerPage(data.blocs_brouillon);
+  const validation = validerPage(data.blocs_brouillon, { slug: visible.slug });
   return {
     id: visible.id,
     slug: visible.slug,

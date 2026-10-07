@@ -14,7 +14,7 @@ import { validerPage } from "@/lib/studio/registre";
 import { documentVersPuck, empreinte, estModifie, puckVersDocument, type DonneesEditeur } from "@/lib/studio/editeur-donnees";
 import { DICTIONNAIRE_PUCK, TAILLES_APERCU } from "@/lib/studio/francisation";
 import { permissionsEditeur } from "@/lib/studio/possibilites";
-import { configEditeur } from "./config";
+import { configPour } from "./config";
 import { ContexteEditeur, type ContexteEditeurValeur, type MessageErreur, type ResultatAction } from "./contexte";
 import { EnteteEditeur } from "./EnteteEditeur";
 import { GardeNavigation } from "./GardeNavigation";
@@ -104,7 +104,7 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
 
   /** Enregistre le brouillon et renvoie le résultat (l'erreur est rendue à l'appelant, qui choisit où l'afficher). */
   const sauvegarder = useCallback(async (): Promise<ResultatAction> => {
-    const validation = validerPage(puckVersDocument(donneesRef.current));
+    const validation = validerPage(puckVersDocument(donneesRef.current), { slug: page.slug });
     if (!validation.ok) {
       return { ok: false, erreur: { message: "Le brouillon n'est pas enregistré : corrigez les points suivants.", details: validation.erreurs } };
     }
@@ -122,7 +122,7 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
     } finally {
       setEnCours(null);
     }
-  }, [page.id, rafraichirJeton]);
+  }, [page.id, page.slug, rafraichirJeton]);
 
   // Bouton « Enregistrer le brouillon » : l'erreur ou l'avertissement s'affichent dans l'en-tête.
   const enregistrer = useCallback(async (): Promise<boolean> => {
@@ -211,6 +211,7 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
     restaurer,
   };
 
+  const config = useMemo(() => configPour(page.slug), [page.slug]);
   const permissions = useMemo(() => permissionsEditeur(possibilites), [possibilites]);
   // Les annonces et consignes de glisser-déposer sont ajoutées à la page elle-même (corps du document).
   useFrancisationGlisser(typeof window === "undefined" ? undefined : window.document);
@@ -220,7 +221,7 @@ export default function Editeur({ page, document, erreursInitiales, possibilites
       <GardeNavigation actif={modifie} />
       <div className="studio-editeur">
         <Puck
-          config={configEditeur}
+          config={config}
           data={donneesInitiales as Data}
           onChange={surChangement}
           permissions={permissions}
