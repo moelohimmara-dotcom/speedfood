@@ -42,6 +42,10 @@ export function FormulaireNouvellePage() {
       >
         Nouvelle page (texte)
       </Button>
+      {/* Une ligne de guidance AVANT le clic : les deux boutons se ressemblent, le choix est
+          définitif (le format d'une page ne se convertit pas après création). Une fois le
+          formulaire ouvert, sa propre description prend le relais. */}
+      {!ouvert ? <p className="ad-palier-note">Un seul champ de texte : pages simples (CGV, mentions légales…).</p> : null}
       {ouvert ? (
         <form id="nouvelle-page-texte" action={action} ref={formRef} style={{ marginTop: "var(--space-4)" }}>
           <p className="ad-palier-note">Une page remplie dans un champ de texte unique, publiée telle quelle.</p>
