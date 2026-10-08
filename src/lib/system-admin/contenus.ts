@@ -299,7 +299,15 @@ export async function basculerPublicationPageAction(id: string, publier: boolean
  * état qu'avant sa création.
  */
 export async function supprimerPageAction(id: string): Promise<EtatActionContenu> {
-  const contexte = await verifierPermission("contenu.editer");
+  // `verifierPermission` peut appeler `notFound()` (signal Next.js, à propager tel quel) ou
+  // jeter `ErreurMetier("NON_AUTORISE")` — converti en objet pour que le client l'affiche.
+  let contexte;
+  try {
+    contexte = await verifierPermission("contenu.editer");
+  } catch (erreur) {
+    if (erreur instanceof ErreurMetier) return { erreur: messageRefus(erreur) };
+    throw erreur;
+  }
   try {
     await verifierPalier("contenu:pages", MINIMUMS_STUDIO.publier, { contexte });
   } catch (erreur) {
@@ -321,17 +329,31 @@ export async function supprimerPageAction(id: string): Promise<EtatActionContenu
     return { erreur: "Impossible de supprimer la page." };
   }
 
-  await journaliserActionSysteme(contexte, {
-    action: "contenu.page_suppression",
-    cibleType: "content_page",
-    cibleId: id,
-    motif: page.slug,
-  });
+  // La page est supprimée ; l'audit et l'invalidation du cache sont best-effort : un échec ici
+  // ne doit pas faire croire que la suppression a échoué (la page n'existe déjà plus).
+  try {
+    await journaliserActionSysteme(contexte, {
+      action: "contenu.page_suppression",
+      cibleType: "content_page",
+      cibleId: id,
+      motif: page.slug,
+    });
+  } catch {
+    // trace d'audit manquante — la suppression a tout de même eu lieu.
+  }
 
-  await invaliderCache([`page:${page.slug}`]);
-  revalidatePath(`/p/${page.slug}`);
-  if (page.slug === "accueil") revalidatePath("/");
-  revalidatePath("/system/contenu/pages");
+  try {
+    await invaliderCache([`page:${page.slug}`]);
+  } catch {
+    // Le TTL (60 s) prend le relais.
+  }
+  try {
+    revalidatePath(`/p/${page.slug}`);
+    if (page.slug === "accueil") revalidatePath("/");
+    revalidatePath("/system/contenu/pages");
+  } catch {
+    // revalidatePath est best-effort après une suppression réussie.
+  }
   return { succes: true };
 }
 

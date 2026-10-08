@@ -37,8 +37,12 @@ export function SupprimerPage({
           if (!confirm(`Supprimer la page « ${titre} » ?${enLigne} Cette action est définitive.`)) return;
           setErreur(null);
           demarrerTransition(async () => {
-            const resultat = await supprimerPageAction(id);
-            if (resultat.erreur) setErreur(resultat.erreur);
+            try {
+              const resultat = await supprimerPageAction(id);
+              if (resultat.erreur) setErreur(resultat.erreur);
+            } catch (e) {
+              setErreur(e instanceof Error ? e.message : "Une erreur inattendue s'est produite. Rafraîchissez la page.");
+            }
           });
         }}
       >
