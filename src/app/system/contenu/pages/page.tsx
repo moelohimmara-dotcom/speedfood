@@ -116,16 +116,6 @@ export default async function ContenusSystemePage({
                   <tr key={p.id}>
                     <td className="ad-cellule-principale" data-label="Titre">
                       <Link href={`/system/contenu/pages/${p.id}`}>{p.titre}</Link>
-                      {/* Page à blocs : son contenu ne se modifie que dans l'éditeur visuel — le lien direct évite
-                          de devoir ouvrir la page de détail pour trouver le bouton. */}
-                      {pagesABlocs.has(p.id) ? (
-                        <>
-                          <br />
-                          <Link href={`/system/contenu/pages/${p.id}/blocs`} className="lien-texte" style={{ fontSize: "0.86rem" }}>
-                            Ouvrir l&apos;éditeur de blocs →
-                          </Link>
-                        </>
-                      ) : null}
                     </td>
                     <td className="ad-secondaire" data-label="Adresse">
                       /{p.slug}
@@ -137,12 +127,20 @@ export default async function ContenusSystemePage({
                       <Pastille ton={p.statut === "publie" ? "succes" : "neutre"}>{p.statut === "publie" ? "Publié" : "Brouillon"}</Pastille>
                     </td>
                     <td data-label="Actions">
-                      <SupprimerPage
-                        id={p.id}
-                        titre={p.titre}
-                        statut={p.statut}
-                        indisponible={palier >= MINIMUMS_STUDIO.publier ? undefined : explicationPalier(palier, MINIMUMS_STUDIO.publier)}
-                      />
+                      <div style={{ display: "grid", gap: "var(--space-2)", justifyItems: "start" }}>
+                        {/* Page à blocs : lien direct vers l'éditeur visuel. */}
+                        {pagesABlocs.has(p.id) ? (
+                          <Link href={`/system/contenu/pages/${p.id}/blocs`} className="lien-texte" style={{ fontSize: "0.86rem" }}>
+                            Ouvrir l&apos;éditeur
+                          </Link>
+                        ) : null}
+                        <SupprimerPage
+                          id={p.id}
+                          titre={p.titre}
+                          statut={p.statut}
+                          indisponible={palier >= MINIMUMS_STUDIO.publier ? undefined : explicationPalier(palier, MINIMUMS_STUDIO.publier)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
