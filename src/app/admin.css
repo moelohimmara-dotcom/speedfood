@@ -781,6 +781,17 @@ a.ad-tuile-lien:hover {
   position: absolute;
   inset: 0;
 }
+/* Les commandes d'une AUTRE cellule (bouton Supprimer, lien d'action) doivent rester cliquables :
+   sans position relative, le lien étendu ci-dessus (inset 0, ancré à la ligne) les recouvre et
+   capte leurs clics — le bouton « Supprimer » naviguait vers le détail au lieu de supprimer
+   (bug constaté par la propriétaire le 8 octobre 2026, invisible en test JS qui court-circuite
+   le hit-testing). `position: relative` les empile AU-DESSUS de l'overlay (elles viennent après
+   le lien dans le DOM) ; la cellule principale est exclue : son lien ne doit pas s'ancrer
+   lui-même, sous peine de rétrécir l'overlay à son texte. */
+.ad-table td:not(.ad-cellule-principale) :is(a, button) {
+  position: relative;
+  z-index: 1;
+}
 .ad-table .ad-cellule-principale a:focus-visible {
   outline: none;
 }
