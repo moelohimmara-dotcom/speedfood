@@ -132,8 +132,10 @@ function corps(bloc: BlocPage | BlocSimple, index: number, niveauTitre: 2 | 3, o
     case "Colonnes": {
       const p = bloc.props;
       const colonnes = [p.colonne1 ?? [], p.colonne2 ?? [], p.colonne3 ?? []].slice(0, p.nombre);
+      // Comportement sur téléphone : absent des documents antérieurs, vaut « empiler » (le CSS d'origine).
+      const telephone = p.telephone && p.telephone !== "empiler" ? ` sb-tel-${p.telephone}` : "";
       return (
-        <div className={`sb-colonnes sb-colonnes-${p.nombre} sb-ecart-${p.ecart}`}>
+        <div className={`sb-colonnes sb-colonnes-${p.nombre} sb-ecart-${p.ecart}${telephone}`}>
           {colonnes.map((blocs, k) => (
             <div key={k} className="sb-colonne">
               {blocs.map((enfant, j) => (

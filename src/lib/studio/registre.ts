@@ -220,6 +220,11 @@ const champsCadreColonnes = {
   id: identifiant,
   nombre: union([literal(2), literal(3)]),
   ecart: union([literal(8), literal(16), literal(32)]),
+  /**
+   * Comportement sur téléphone (facultatif : les documents antérieurs au 8 octobre 2026 n'ont pas
+   * cette clé et restent valides — l'absence vaut « empiler », comportement d'origine).
+   */
+  telephone: optional(union([literal("empiler"), literal("inverser"), literal("cote")])),
   reglages,
 };
 /** Colonnes sans leur contenu : validé à part, bloc par bloc (messages précis). */
@@ -451,12 +456,21 @@ export const REGISTRE: { [T in TypeBloc]: EntreeRegistre<T> }[TypeBloc][] = [
           { valeur: 32, libelle: "Grand (32 px)" },
         ],
       },
+      telephone: {
+        genre: "choix",
+        libelle: "Sur téléphone",
+        options: [
+          { valeur: "empiler", libelle: "S'empiler (ordre de lecture)" },
+          { valeur: "inverser", libelle: "S'empiler, dernier d'abord" },
+          { valeur: "cote", libelle: "Rester côte à côte" },
+        ],
+      },
       colonne1: { genre: "colonne", libelle: "Colonne 1", autorise: AUTORISES_COLONNE },
       colonne2: { genre: "colonne", libelle: "Colonne 2", autorise: AUTORISES_COLONNE },
       colonne3: { genre: "colonne", libelle: "Colonne 3", autorise: AUTORISES_COLONNE },
       reglages: CHAMP_REGLAGES,
     },
-    defauts: { nombre: 2, ecart: 16, colonne1: [], colonne2: [], colonne3: [] },
+    defauts: { nombre: 2, ecart: 16, telephone: "empiler", colonne1: [], colonne2: [], colonne3: [] },
   },
   {
     type: "Separateur",

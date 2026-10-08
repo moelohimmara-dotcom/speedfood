@@ -245,8 +245,12 @@ export function extraitBloc(type: string, props: Record<string, unknown>): strin
       return couper(`${texte(props.libelle) || "(sans texte)"} → ${texte(props.lien) || "(sans lien)"}`);
     case "Image":
       return props.decorative === true ? "(image décorative)" : couper(texte(props.alt)) || "(à compléter)";
-    case "Colonnes":
-      return `${typeof props.nombre === "number" ? props.nombre : 3} colonnes`;
+    case "Colonnes": {
+      const nombre = typeof props.nombre === "number" ? props.nombre : 3;
+      const telephone =
+        props.telephone === "cote" ? " · côte à côte sur téléphone" : props.telephone === "inverser" ? " · ordre inversé sur téléphone" : "";
+      return `${nombre} colonnes${telephone}`;
+    }
     case "AppelAction":
       return couper(texte(props.titre)) || "(vide)";
     case "FAQ":

@@ -249,6 +249,23 @@
   .sb-colonnes-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+/* --- Colonnes, comportement choisi « Sur téléphone » (8 octobre 2026) ------------------------------------------
+   Trois valeurs, la première sans classe (les documents antérieurs n'en ont pas) :
+   - « empiler » : une colonne sous l'autre dans l'ordre de lecture — le comportement ci-dessus, inchangé ;
+   - « inverser » : la même, mais la dernière colonne passe en premier (texte à gauche / image à droite sur
+     bureau, image d'abord sur téléphone) ;
+   - « cote » : les colonnes restent côte à côte même sous 768 px.
+   « inverser » inverse l'ordre VISUEL avec `order` : l'ordre du DOM — donc celui du clavier et du lecteur
+   d'écran — reste l'ordre de lecture. Choix assumé (même fonctionnement que les éditeurs de page
+   classiques) : l'aperçu de l'éditeur, en 390 px, montre exactement ce que verra le visiteur. */
+@media (max-width: 767px) {
+  .sb-tel-cote.sb-colonnes-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sb-tel-cote.sb-colonnes-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sb-tel-inverser .sb-colonne:nth-child(1) { order: 2; }
+  .sb-tel-inverser .sb-colonne:nth-child(2) { order: 1; }
+  .sb-tel-inverser .sb-colonne:nth-child(3) { order: 0; }
+}
+
 /* --- FAQ : <details>/<summary>, sans JavaScript, dépliable au clavier --- */
 .sb-faq > * + * {
   margin-top: var(--space-3);

@@ -21,6 +21,7 @@ import {
 } from "../../src/lib/studio/reglages";
 import { TAILLE_MAX_IMAGE, decrireTaille, libelleImageListe, messageTailleImage } from "../../src/lib/studio/image-champ";
 import { trouverChainesAnglaises } from "../../src/lib/studio/francisation";
+import { extraitBloc } from "../../src/lib/studio/panneau-blocs";
 
 /**
  * Tests des blocs de la tâche 8 : réglages communs (mode mixte), image, colonnes, FAQ, appel à l'action, citation, carte et
@@ -281,6 +282,12 @@ verifier("colonnes : 2 colonnes vides acceptées", valide(page([colonnes()])), t
 verifier("colonnes : 3 colonnes avec blocs simples", valide(page([colonnes({ nombre: 3, colonne1: [titre(), paragraphe()], colonne2: [image(), bouton()], colonne3: [citation(), { type: "Espace", props: { hauteur: 16 } }, { type: "Separateur", props: { style: "trait" } }] })])), true);
 verifier("colonnes : nombre 1, 4, \"2\" refusés", [1, 4, "2", 0].map((n) => valide(page([colonnes({ nombre: n })]))), [false, false, false, false]);
 verifier("colonnes : écart 8/16/32 acceptés, autre refusé", [8, 16, 32, 12, 0].map((n) => valide(page([colonnes({ ecart: n })]))), [true, true, true, false, false]);
+// Comportement sur téléphone (8 octobre 2026) : facultatif — les documents antérieurs n'ont pas la clé.
+verifier("colonnes : téléphone empiler/inverser/cote acceptés", ["empiler", "inverser", "cote"].map((v) => valide(page([colonnes({ telephone: v })]))), [true, true, true]);
+verifier("colonnes : téléphone absent accepté (document antérieur)", valide(page([colonnes()])), true);
+verifier("colonnes : téléphone refusé", ["diagonale", "côte à côte", 42, true].map((v) => valide(page([colonnes({ telephone: v })]))), [false, false, false, false]);
+verifier("colonnes : message pour un téléphone inconnu", erreurs(page([colonnes({ telephone: "piano" })])), ["Bloc 1 (Colonnes) : la propriété « telephone » a une valeur non autorisée."]);
+verifier("colonnes : extrait du panneau avec le comportement", [extraitBloc("Colonnes", { nombre: 3 }), extraitBloc("Colonnes", { nombre: 2, telephone: "cote" }), extraitBloc("Colonnes", { nombre: 2, telephone: "inverser" })], ["3 colonnes", "2 colonnes · côte à côte sur téléphone", "2 colonnes · ordre inversé sur téléphone"]);
 verifier("colonnes : colonnes absentes acceptées (traitées comme vides)", valide(page([{ type: "Colonnes", props: { nombre: 2, ecart: 16 } }])), true);
 verifier("colonnes : propriété en trop refusée", [valide(page([colonnes({ colonne4: [] })])), valide(page([colonnes({ onclick: "x" })]))], [false, false]);
 verifier("colonnes : une colonne n'est pas une liste", erreurs(page([colonnes({ colonne1: {} })])), ["Bloc 1 (Colonnes) : la colonne 1 n'est pas une liste de blocs."]);

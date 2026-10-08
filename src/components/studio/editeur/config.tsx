@@ -107,6 +107,7 @@ function ApercuValide({ type, props }: { type: string; props: Record<string, unk
 interface ProprietesColonnes {
   nombre?: number;
   ecart?: number;
+  telephone?: "empiler" | "inverser" | "cote";
   reglages?: Record<string, unknown>;
   colonne1: SlotComponent;
   colonne2: SlotComponent;
@@ -118,9 +119,10 @@ function ApercuColonnes(p: ProprietesColonnes) {
   const nombre = p.nombre === 3 ? 3 : 2;
   const colonnes = [p.colonne1, p.colonne2, p.colonne3].slice(0, nombre);
   const ecart = p.ecart === 8 || p.ecart === 32 ? p.ecart : 16;
+  const telephone = p.telephone === "inverser" || p.telephone === "cote" ? ` sb-tel-${p.telephone}` : "";
   return (
     <EnveloppeBloc reglages={p.reglages as BlocPage["props"]["reglages"]} edition>
-      <div className={`sb-colonnes sb-colonnes-${nombre} sb-ecart-${ecart}`}>
+      <div className={`sb-colonnes sb-colonnes-${nombre} sb-ecart-${ecart}${telephone}`}>
         {colonnes.map((Colonne, k) => (
           <div key={k} className="sb-colonne">
             <p className="se-colonne-etiquette">Colonne {k + 1}</p>
