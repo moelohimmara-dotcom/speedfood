@@ -2,7 +2,7 @@ import Link from "next/link";
 import { deconnexionAction } from "@/lib/auth/actions";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import { aUnMembershipRestaurant } from "@/lib/auth/doubleAcces";
-import { entreesNavPourRole, LIBELLES_ROLES, VERSION_MATRICE } from "@/lib/system-admin/permissions";
+import { groupesNavPourRole, LIBELLES_ROLES, VERSION_MATRICE } from "@/lib/system-admin/permissions";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminMenuMobile } from "@/components/admin/AdminMenuMobile";
@@ -15,13 +15,13 @@ import type { Metadata } from "next";
  *
  * Défense en profondeur : `obtenirContexteSysteme()` refait le contrôle de rôle dans chaque rendu (404 sans rôle
  * système), jamais sur le proxy seul (src/proxy.ts). Les entrées de navigation sont filtrées par permission
- * (`entreesNavPourRole`) ; chaque page affiche ensuite sa propre sous-navigation (`SousNav`).
+ * (`groupesNavPourRole`, familles et sous-familles) ; chaque page affiche ensuite sa propre sous-navigation (`SousNav`).
  */
 export const metadata: Metadata = { title: "Administration" };
 
 export default async function SystemLayout({ children }: { children: React.ReactNode }) {
   const contexte = await obtenirContexteSysteme();
-  const entrees = entreesNavPourRole(contexte.role);
+  const groupes = groupesNavPourRole(contexte.role);
   const aAussiUnRestaurant = await aUnMembershipRestaurant(contexte.supabase, contexte.utilisateurId);
 
   const marque = (
@@ -59,7 +59,7 @@ export default async function SystemLayout({ children }: { children: React.React
   const contenuLateral = (
     <div className="ad-lateral-interieur">
       {marque}
-      <AdminNav entrees={entrees} />
+      <AdminNav groupes={groupes} />
       {liensBas}
     </div>
   );

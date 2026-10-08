@@ -39,7 +39,10 @@ export default async function ContenusSystemePage({
 
   return (
     <div>
-      <PageHeader titre="Contenu" description="Pages d'aide et d'information du site." />
+      <PageHeader
+        titre="Contenu"
+        description="Pages du site. Une page « à blocs » se compose dans l'éditeur visuel (titres, images, colonnes) ; une page « texte » se remplit dans un champ unique."
+      />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
       <div className="ad-outils">
@@ -88,7 +91,11 @@ export default async function ContenusSystemePage({
       <div style={{ marginTop: "var(--space-5)" }}>
         {pages.length === 0 ? (
           <div className="ad-panneau">
-            <EtatVide icone="contenu" titre="Aucune page" texte="Aucune page pour l'instant." />
+            <EtatVide
+              icone="contenu"
+              titre="Aucune page"
+              texte="Aucune page pour l'instant. Utilisez « Nouvelle page à blocs » ci-dessus : l'éditeur visuel (titres, images, colonnes) s'ouvre dès la création. « Créer l'accueil en blocs » fait de même pour la page d'accueil."
+            />
           </div>
         ) : (
           <div className="ad-table-cadre">
@@ -107,6 +114,16 @@ export default async function ContenusSystemePage({
                   <tr key={p.id}>
                     <td className="ad-cellule-principale" data-label="Titre">
                       <Link href={`/system/contenu/pages/${p.id}`}>{p.titre}</Link>
+                      {/* Page à blocs : son contenu ne se modifie que dans l'éditeur visuel — le lien direct évite
+                          de devoir ouvrir la page de détail pour trouver le bouton. */}
+                      {pagesABlocs.has(p.id) ? (
+                        <>
+                          <br />
+                          <Link href={`/system/contenu/pages/${p.id}/blocs`} className="lien-texte" style={{ fontSize: "0.86rem" }}>
+                            Ouvrir l&apos;éditeur de blocs →
+                          </Link>
+                        </>
+                      ) : null}
                     </td>
                     <td className="ad-secondaire" data-label="Adresse">
                       /{p.slug}

@@ -215,16 +215,39 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
   },
 ];
 
-/** Entrées de premier niveau (une par groupe accessible), pour `SystemNav`. */
-export function entreesNavPourRole(role: RoleSysteme): { href: string; libelle: string }[] {
-  const entrees: { href: string; libelle: string }[] = [];
+/** Une entrée de navigation (sous-section déjà filtrée par permission). */
+export interface EntreeNav {
+  readonly href: string;
+  readonly libelle: string;
+}
+
+/** Un compartiment de navigation : une famille (`libelle`) et ses sous-familles accessibles. */
+export interface GroupeNav {
+  readonly libelle: string;
+  readonly entrees: readonly EntreeNav[];
+}
+
+/**
+ * Navigation hiérarchisée du shell `/system` : chaque **famille** (groupe métier) devient un
+ * compartiment qui affiche TOUTES ses sous-sections accessibles, au lieu de la seule première
+ * (l'ancienne `entreesNavPourRole` ne rendait qu'une ligne par groupe — barre plate, sans
+ * hiérarchie). Un groupe dont aucune sous-section n'est accessible disparaît entièrement.
+ *
+ * Aucun changement de permission : chaque entrée reste filtrée par `roleAPermission`, de la même
+ * façon que la sous-navigation locale (`sousSectionsAccessibles`) — les deux doivent toujours
+ * afficher la même liste.
+ */
+export function groupesNavPourRole(role: RoleSysteme): GroupeNav[] {
+  const groupes: GroupeNav[] = [];
   for (const groupe of GROUPES_SYSTEME) {
-    const premiereAccessible = groupe.sousSections.find((s) => roleAPermission(role, s.permission));
-    if (premiereAccessible) {
-      entrees.push({ href: premiereAccessible.href, libelle: groupe.libelle });
+    const entrees = groupe.sousSections
+      .filter((s) => roleAPermission(role, s.permission))
+      .map((s) => ({ href: s.href, libelle: s.libelle }));
+    if (entrees.length > 0) {
+      groupes.push({ libelle: groupe.libelle, entrees });
     }
   }
-  return entrees;
+  return groupes;
 }
 
 /** Sous-sections accessibles d'un groupe donné, pour la sous-nav locale d'une page. */

@@ -23,7 +23,7 @@ import {
   type Habilitation,
   type Palier,
 } from "../../src/lib/system-admin/paliers";
-import { ROLES_SYSTEME, PERMISSIONS_PAR_ROLE, roleAPermission, type Permission } from "../../src/lib/system-admin/permissions";
+import { ROLES_SYSTEME, PERMISSIONS_PAR_ROLE, roleAPermission, groupesNavPourRole, sousSectionsAccessibles, type Permission } from "../../src/lib/system-admin/permissions";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -181,6 +181,58 @@ verifier("cible rôle inconnu refusée", validerCible("pirate") !== null, true);
 verifier("cibles content_editor/operations/support acceptées", ["content_editor", "operations", "support"].map(validerCible), [null, null, null]);
 verifier("explication d'un bouton indisponible", explicationPalier(1, 2).includes("Contributeur") && explicationPalier(1, 2).includes("Éditeur"), true);
 verifier("matrice inchangée (garde-fou de ce test)", Object.keys(PERMISSIONS_PAR_ROLE), ["super_admin", "operations", "content_editor", "support"]);
+
+// --- Navigation hiérarchisée (refonte du 8 octobre 2026) ---------------------------------------
+//
+// La barre latérale affiche désormais chaque famille et TOUTES ses sous-sections accessibles
+// (l'ancienne `entreesNavPourRole` n'en gardait qu'une). Le filtrage par permission doit rester
+// identique : la barre ne doit montrer AUCUNE entrée que le rôle ne peut pas ouvrir.
+
+verifier("nav : super_admin voit les 6 familles", groupesNavPourRole("super_admin").map((g) => g.libelle), [
+  "Catalogue",
+  "Contenu",
+  "Commandes",
+  "Accès",
+  "Paramètres",
+  "Audit",
+]);
+verifier("nav : super_admin voit les 15 sous-sections", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 15);
+verifier("nav : operations ne voit ni Commandes ni Paramètres", groupesNavPourRole("operations").map((g) => g.libelle), [
+  "Catalogue",
+  "Accès",
+  "Audit",
+]);
+verifier("nav : operations voit Comptes mais pas Rôles ni Habilitations", groupesNavPourRole("operations").flatMap((g) => g.entrees.map((e) => e.libelle)), [
+  "Restaurants",
+  "Mises en avant",
+  "Comptes utilisateurs",
+  "Journal d'audit",
+]);
+verifier("nav : support ne voit que Commandes et Audit", groupesNavPourRole("support").map((g) => g.libelle), ["Commandes", "Audit"]);
+verifier("nav : content_editor ne voit ni Commandes ni Accès ni Paramètres", groupesNavPourRole("content_editor").map((g) => g.libelle), [
+  "Catalogue",
+  "Contenu",
+  "Audit",
+]);
+
+// Garde-fou : chaque entrée affichée est bien une sous-section dont le rôle a la permission.
+// Une entrée « de trop » serait une fuite d'information dans la navigation (l'accès resterait
+// refusé par la page, mais le lien existerait).
+const entreesNonAutorisees: string[] = [];
+for (const role of ROLES_SYSTEME) {
+  for (const groupe of groupesNavPourRole(role)) {
+    const attendues = sousSectionsAccessibles(groupe.libelle, role).map((s) => s.href);
+    for (const entree of groupe.entrees) {
+      if (!attendues.includes(entree.href)) entreesNonAutorisees.push(`${role} → ${entree.href}`);
+    }
+    // Et l'inverse : aucune sous-section accessible ne doit manquer (complétude).
+    for (const href of attendues) {
+      if (!groupe.entrees.some((e) => e.href === href)) entreesNonAutorisees.push(`${role} manquant → ${href}`);
+    }
+  }
+}
+verifier("nav : barre et sous-nav affichent exactement les mêmes entrées", entreesNonAutorisees, []);
+verifier("nav : aucune famille vide", ROLES_SYSTEME.every((r) => groupesNavPourRole(r).every((g) => g.entrees.length > 0)), true);
 
 // --- Couverture des paliers ------------------------------------------------------
 //

@@ -78,6 +78,35 @@
   padding: 0;
   list-style: none;
 }
+/* --- Navigation hiérarchisée : la famille est un titre de compartiment, ses sous-familles sont
+   indentées dessous (refonte du 8 octobre 2026). Le titre n'est pas un lien : il nomme le
+   compartiment, seules les entrées conduisent quelque part. --- */
+.ad-nav-famille {
+  display: grid;
+  gap: 1px;
+  margin-top: var(--space-4);
+}
+.ad-nav-titre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 12px 4px;
+  color: rgba(255, 246, 237, 0.5);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  transition: color var(--duration-fast) var(--ease);
+}
+.ad-nav-titre.actif {
+  color: rgba(255, 246, 237, 0.9);
+}
+.ad-nav-sous {
+  padding-left: 36px;
+  font-size: 0.94rem;
+  font-weight: 600;
+}
 .ad-nav-lien {
   position: relative;
   display: flex;
