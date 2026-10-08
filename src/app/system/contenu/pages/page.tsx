@@ -61,35 +61,35 @@ export default async function ContenusSystemePage({
         </div>
       </div>
 
-      <Panneau titre="Accueil du site en blocs">
-        {palier < MINIMUMS_STUDIO.brouillon ? (
-          <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
-        ) : pageAccueil ? (
-          <p>
-            {pagesABlocs.has(pageAccueil.id) ? "La page d'accueil en blocs existe" : "Une page d'accueil de texte existe"} ({pageAccueil.statut === "publie" ? "publiée" : "brouillon"}).{" "}
-            <Link href={pagesABlocs.has(pageAccueil.id) ? `/system/contenu/pages/${pageAccueil.id}/blocs` : `/system/contenu/pages/${pageAccueil.id}`} className="lien-texte">
-              Ouvrir la page d&apos;accueil
-            </Link>
-          </p>
-        ) : (
-          <CreerAccueilBlocs />
-        )}
-      </Panneau>
+      {/* Pile de blocs : sans `ad-pile`, les panneaux se collent (bord contre bord, même bug
+          qu'avant le 8 octobre sur /system/design). */}
+      <div className="ad-pile">
+        <Panneau titre="Accueil du site en blocs">
+          {palier < MINIMUMS_STUDIO.brouillon ? (
+            <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
+          ) : pageAccueil ? (
+            <p>
+              {pagesABlocs.has(pageAccueil.id) ? "La page d'accueil en blocs existe" : "Une page d'accueil de texte existe"} ({pageAccueil.statut === "publie" ? "publiée" : "brouillon"}).{" "}
+              <Link href={pagesABlocs.has(pageAccueil.id) ? `/system/contenu/pages/${pageAccueil.id}/blocs` : `/system/contenu/pages/${pageAccueil.id}`} className="lien-texte">
+                Ouvrir la page d&apos;accueil
+              </Link>
+            </p>
+          ) : (
+            <CreerAccueilBlocs />
+          )}
+        </Panneau>
 
-      <Panneau titre="Nouvelle page">
-        {palier >= MINIMUMS_STUDIO.brouillon ? (
-          <>
-            <FormulaireNouvellePage />
-            <div style={{ marginTop: "var(--space-5)" }}>
+        <Panneau titre="Créer une page">
+          {palier >= MINIMUMS_STUDIO.brouillon ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3) var(--space-4)", alignItems: "flex-start" }}>
+              <FormulaireNouvellePage />
               <FormulaireNouvellePageBlocs />
             </div>
-          </>
-        ) : (
-          <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
-        )}
-      </Panneau>
+          ) : (
+            <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>
+          )}
+        </Panneau>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
         {pages.length === 0 ? (
           <div className="ad-panneau">
             <EtatVide
