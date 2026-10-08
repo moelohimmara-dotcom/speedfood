@@ -86,16 +86,17 @@
   min-height: 44px;
   padding: 0 12px;
   border-radius: var(--radius-sm);
-  color: rgba(255, 246, 237, 0.82);
+  color: rgba(255, 246, 237, 0.7);
   font-weight: 600;
   text-decoration: none;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
 }
 .ad-nav-lien:hover {
-  background: rgba(255, 246, 237, 0.08);
-  color: var(--creme);
+  background: rgba(255, 246, 237, 0.1);
+  color: rgba(255, 246, 237, 0.95);
 }
 .ad-nav-lien.actif {
-  background: rgba(255, 246, 237, 0.14);
+  background: rgba(255, 246, 237, 0.16);
   color: #fff;
 }
 .ad-nav-lien.actif::before {
@@ -107,6 +108,7 @@
   width: 4px;
   border-radius: 0 4px 4px 0;
   background: var(--orange);
+  transition: transform var(--duration-fast) var(--ease);
 }
 .ad-icone {
   flex: none;
@@ -131,16 +133,17 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: rgba(255, 246, 237, 0.82);
+  color: rgba(255, 246, 237, 0.7);
   font: inherit;
   font-weight: 600;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
 }
 .ad-lien-bas:hover {
-  background: rgba(255, 246, 237, 0.08);
-  color: var(--creme);
+  background: rgba(255, 246, 237, 0.1);
+  color: rgba(255, 246, 237, 0.95);
 }
 .ad-barre-laterale :focus-visible,
 .ad-tiroir :focus-visible {
@@ -250,6 +253,8 @@
 /* --- En-tête de page --- */
 .ad-entete-page {
   margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--bordure);
 }
 .ad-entete-page-ligne {
   display: flex;
@@ -260,8 +265,10 @@
 }
 .ad-entete-page h1 {
   margin: 0;
-  font-size: 1.9rem;
-  line-height: 1.1;
+  font-size: 2rem;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.01em;
 }
 .ad-entete-page-desc {
   max-width: 68ch;
@@ -282,6 +289,7 @@
   color: var(--secondaire);
   font-weight: 600;
   text-decoration: none;
+  transition: color var(--duration-fast) var(--ease);
 }
 .ad-retour:hover {
   color: var(--rouge-fonce);
@@ -306,6 +314,8 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--bordure);
+  background: var(--creme);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 .ad-panneau-tete h2 {
   display: flex;
@@ -313,6 +323,7 @@
   gap: 8px;
   margin: 0;
   font-size: 1.05rem;
+  font-weight: 800;
 }
 .ad-panneau-compteur {
   min-width: 24px;
@@ -531,6 +542,7 @@ a.ad-tuile-lien:hover {
   font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
+  transition: color var(--duration-fast) var(--ease);
 }
 .ad-onglet:hover {
   color: var(--encre);
@@ -586,9 +598,12 @@ a.ad-tuile-lien:hover {
 
 @media (prefers-reduced-motion: no-preference) {
   .ad-nav-lien,
+  .ad-lien-bas,
   .ad-tuile,
-  .ad-liste-lien {
-    transition: background var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+  .ad-liste-lien,
+  .ad-onglet,
+  .ad-retour {
+    transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
   }
 }
 
@@ -612,6 +627,12 @@ a.ad-tuile-lien:hover {
   border-radius: var(--radius-pill);
   background: var(--surface);
   font: inherit;
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+}
+.ad-recherche input[type="search"]:focus-visible {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(93, 142, 187, 0.18);
 }
 .ad-filtres {
   display: flex;
@@ -655,6 +676,7 @@ a.ad-tuile-lien:hover {
 }
 .ad-table tbody tr {
   position: relative;
+  transition: background var(--duration-fast) var(--ease);
 }
 .ad-table tbody tr:first-child td {
   border-top: 0;
