@@ -41,7 +41,7 @@ export default async function ContenusSystemePage({
     <div>
       <PageHeader
         titre="Contenu"
-        description="Pages du site. Une page « à blocs » se compose dans l'éditeur visuel (titres, images, colonnes) ; une page « texte » se remplit dans un champ unique."
+        description="Pages du site. Chaque page se compose dans l'éditeur visuel : titres, images, colonnes, boutons. Une page publiée apparaît dans le pied de page du site."
       />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
