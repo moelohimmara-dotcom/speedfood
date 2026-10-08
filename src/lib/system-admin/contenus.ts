@@ -69,7 +69,9 @@ const REGEX_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 async function invaliderPagePubliee(supabase: Awaited<ReturnType<typeof creerClientServeur>>, id: string) {
   try {
     const { data } = await supabase.from("content_pages").select("slug").eq("id", id).maybeSingle();
-    if (data?.slug) await invaliderCache([`page:${data.slug}`]);
+    // `navigation` : le pied de page liste les pages publiées — publication, dépublication ou
+    // renommage d'un titre change cette liste.
+    if (data?.slug) await invaliderCache([`page:${data.slug}`, "navigation"]);
   } catch {
     // Le TTL prend le relais.
   }
@@ -343,7 +345,7 @@ export async function supprimerPageAction(id: string): Promise<EtatActionContenu
   }
 
   try {
-    await invaliderCache([`page:${page.slug}`]);
+    await invaliderCache([`page:${page.slug}`, "navigation"]);
   } catch {
     // Le TTL (60 s) prend le relais.
   }

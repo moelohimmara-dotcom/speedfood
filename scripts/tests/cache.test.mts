@@ -264,8 +264,8 @@ verifier("TTL invalide : repli sur 60", [ttlEffectif({}, 0), ttlEffectif({}, -3)
 
   const racine = process.env.SPEEDFOOD_RACINE ?? join(import.meta.dirname, "..", "..");
   const lecture = readFileSync(join(racine, "src/lib/cms/lecture.ts"), "utf8");
-  verifier("lecture.ts : les deux producteurs lèvent sur erreur", (lecture.match(/if \(error\) throw error;/g) ?? []).length, 2);
-  verifier("lecture.ts : les deux enveloppes publiques rattrapent autour du cache", (lecture.match(/return await lireAvecCache\(/g) ?? []).length, 2);
+  verifier("lecture.ts : les producteurs lèvent sur erreur", (lecture.match(/if \(error\) throw error;/g) ?? []).length, 3);
+  verifier("lecture.ts : les enveloppes publiques rattrapent autour du cache", (lecture.match(/return await lireAvecCache\(/g) ?? []).length, 3);
 }
 
 if (ko) {

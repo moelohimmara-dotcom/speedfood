@@ -236,9 +236,10 @@ export async function publierBlocsAction(pageId: string, motif?: string, jeton?:
     }
 
     // La page est en ligne : le cache est invalidé AVANT la trace, quoi qu'il arrive à celle-ci (revue 6, I1).
+    // `navigation` : la page publiée entre (ou change de titre) dans le pied de page du site.
     const fin = await finaliserEcriture(
       {
-        invalider: () => invaliderCache([`page:${page.slug}`]),
+        invalider: () => invaliderCache([`page:${page.slug}`, "navigation"]),
         journaliser: () =>
           journaliserActionSysteme(contexte, {
             action: "contenu.blocs_publication",

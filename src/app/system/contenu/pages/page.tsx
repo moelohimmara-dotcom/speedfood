@@ -6,7 +6,6 @@ import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
 import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
-import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
 import { FormulaireNouvellePageBlocs } from "./FormulaireNouvellePageBlocs";
 import { CreerAccueilBlocs } from "./CreerAccueilBlocs";
 import { SupprimerPage } from "./SupprimerPage";
@@ -81,9 +80,12 @@ export default async function ContenusSystemePage({
 
         <Panneau titre="Créer une page">
           {palier >= MINIMUMS_STUDIO.brouillon ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3) var(--space-4)", alignItems: "flex-start" }}>
-              <FormulaireNouvellePage />
+            <div>
               <FormulaireNouvellePageBlocs />
+              <p className="ad-palier-note" style={{ marginTop: "var(--space-3)" }}>
+                Toutes les pages se composent désormais dans l&apos;éditeur visuel. Une page publiée apparaît
+                automatiquement dans le pied de page du site, colonne « Informations ».
+              </p>
             </div>
           ) : (
             <p className="ad-palier-note">{explicationPalier(palier, MINIMUMS_STUDIO.brouillon)}</p>

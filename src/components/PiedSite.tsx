@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { BoutonAnimations } from "@/components/site/PilotageAnimations";
+import { lirePagesPublieesPourNavigation } from "@/lib/cms/lecture";
 
 /**
  * Pied de page du site client : trois blocs (Speedfood, Clients, Restaurateurs) puis une ligne de mentions.
  * Aucune promesse commerciale : seulement des liens vers des pages qui existent.
+ *
+ * La colonne « Informations » liste aussi les pages publiées du CMS (Studio) : c'est ce qui leur donne
+ * une entrée publique — sans ce lien, une page créée depuis l'administration restait invisible,
+ * aucune navigation du site ne pointant vers `/p/…`. Lecture cachée 60 s (cms/lecture.ts), jamais
+ * bloquante : en cas d'erreur de base, la colonne se réduit aux deux liens codés en dur.
  */
-export function PiedSite() {
+export async function PiedSite() {
+  const pagesPubliees = await lirePagesPublieesPourNavigation();
   return (
     <footer className="site-pied">
       <div className="pub-motif" aria-hidden="true" />
@@ -37,6 +44,11 @@ export function PiedSite() {
           <p className="site-pied-titre">Informations</p>
           <Link href="/confidentialite">Confidentialité</Link>
           <Link href="/a-propos">À propos</Link>
+          {pagesPubliees.map((p) => (
+            <Link key={p.slug} href={`/p/${p.slug}`}>
+              {p.titre}
+            </Link>
+          ))}
         </nav>
       </div>
       <p className="site-pied-mentions">Speedfood, Conakry. Le règlement se fait directement avec le restaurant.</p>

@@ -35,6 +35,7 @@ export interface BanniereAffichee {
 
 const SLUG_VALIDE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_BANNIERES = 3;
+const MAX_PAGES_NAVIGATION = 8;
 
 export function slugValide(slug: string): boolean {
   return slug.length > 0 && slug.length <= 80 && SLUG_VALIDE.test(slug);
@@ -76,7 +77,6 @@ export async function lireBannieresPubliees(): Promise<BanniereAffichee[]> {
     return [];
   }
 }
-
 async function lireBannieresDepuisBase(): Promise<BanniereAffichee[]> {
   const { data, error } = await creerClientAdmin()
     .from("content_banners")
@@ -85,6 +85,43 @@ async function lireBannieresDepuisBase(): Promise<BanniereAffichee[]> {
     .order("ordre", { ascending: true })
     .order("cree_le", { ascending: true })
     .limit(MAX_BANNIERES);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export interface PagePourNavigation {
+  slug: string;
+  titre: string;
+}
+
+/**
+ * Pages publiées pour le pied de page du site (colonne « Informations ») : c'est ce qui rend la
+ * création d'une page UTILE — sans cela, une page publiée à `/p/slug` n'était liée depuis aucun
+ * menu du site et restait invisible aux visiteurs.
+ *
+ * - La page d'accueil (slug réservé « accueil ») est exclue : c'est l'accueil lui-même, elle a
+ *   déjà sa place (le logo).
+ * - Plafonnée : un pied de page n'est pas un annuaire. Au-delà, les pages se atteignent par le
+ *   contenu (boutons dans les pages à blocs).
+ * - Invalidée (`navigation`) à chaque changement d'état publié : publication, dépublication,
+ *   renommage, suppression.
+ */
+export async function lirePagesPublieesPourNavigation(): Promise<PagePourNavigation[]> {
+  try {
+    return await lireAvecCache("navigation", lireNavigationDepuisBase);
+  } catch {
+    return [];
+  }
+}
+
+async function lireNavigationDepuisBase(): Promise<PagePourNavigation[]> {
+  const { data, error } = await creerClientAdmin()
+    .from("content_pages")
+    .select("slug, titre")
+    .eq("statut", "publie")
+    .neq("slug", "accueil")
+    .order("titre", { ascending: true })
+    .limit(MAX_PAGES_NAVIGATION);
   if (error) throw error;
   return data ?? [];
 }
