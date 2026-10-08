@@ -45,33 +45,36 @@ export default async function DesignPage() {
         </p>
       )}
 
-      <Panneau titre="Réglages du site" id="design-reglages">
-        <EditeurJetons
-          jetons={jetons.map((j) => ({
-            cle: j.cle,
-            valeur: j.valeur,
-            libelle: j.libelle,
-            groupe: j.groupe,
-            personnalise: j.personnalise,
-          }))}
-        />
-      </Panneau>
+      {/* Pile de panneaux : sans `ad-pile`, les trois cadres se collent (aucun espace entre eux). */}
+      <div className="ad-pile">
+        <Panneau titre="Réglages du site" id="design-reglages">
+          <EditeurJetons
+            jetons={jetons.map((j) => ({
+              cle: j.cle,
+              valeur: j.valeur,
+              libelle: j.libelle,
+              groupe: j.groupe,
+              personnalise: j.personnalise,
+            }))}
+          />
+        </Panneau>
 
-      <Panneau titre="Historique" id="design-historique">
-        <PanneauHistorique entrees={entrees} aPersonnalise={personnalises.length > 0} />
-      </Panneau>
+        <Panneau titre="Historique" id="design-historique">
+          <PanneauHistorique entrees={entrees} aPersonnalise={personnalises.length > 0} />
+        </Panneau>
 
-      <Panneau titre="Ce que ces réglages ne font pas" id="design-limites">
-        <ul className="ad-liste-simple">
-          <li>Les textes du site ne se changent pas ici : ils sont dans « Contenu → Textes du site », eux aussi modifiables sans code.</li>
-          <li>Les logos et photos des restaurants restent gérés restaurant par restaurant, depuis leur console.</li>
-          <li>Une couleur illisible sur son texte est refusée, jamais corrigée automatiquement : le choix reste le vôtre.</li>
-          <li>
-            Les polices disponibles sont celles du site (Manrope, Bricolage, Barlow) et celles du téléphone. Aucune police distante : le
-            navigateur du visiteur ne doit pas dépendre d&apos;un autre serveur.
-          </li>
-        </ul>
-      </Panneau>
+        <Panneau titre="Ce que ces réglages ne font pas" id="design-limites">
+          <ul className="ad-liste-simple">
+            <li>Les textes du site ne se changent pas ici : ils sont dans « Contenu → Textes du site », eux aussi modifiables sans code.</li>
+            <li>Les logos et photos des restaurants restent gérés restaurant par restaurant, depuis leur console.</li>
+            <li>Une couleur illisible sur son texte est refusée, jamais corrigée automatiquement : le choix reste le vôtre.</li>
+            <li>
+              Les polices disponibles sont celles du site (Manrope, Bricolage, Barlow) et celles du téléphone. Aucune police distante : le
+              navigateur du visiteur ne doit pas dépendre d&apos;un autre serveur.
+            </li>
+          </ul>
+        </Panneau>
+      </div>
     </div>
   );
 }

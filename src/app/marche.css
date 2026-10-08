@@ -59,12 +59,15 @@
   text-align: center;
 }
 
-/* --- Barre de panier flottante : le moment mémorable de la direction B --- */
+/* --- Barre de panier flottante : le moment mémorable de la direction B ---
+   `bottom` = hauteur de la navigation basse (63 px) + un vrai espace de sécurité de 13 px.
+   Avant le 8 octobre 2026, la valeur était 68 px : l'intervalle n'était que de 5-6 px, un
+   interstice sans nom où le contenu défilant transparaissait en fente entre les deux barres. */
 .barre-panier {
   position: fixed;
   left: 12px;
   right: 12px;
-  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   z-index: 41;
   display: flex;
   align-items: center;
