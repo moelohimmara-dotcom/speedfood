@@ -15,6 +15,9 @@ export const ACTIONS_AUDIT_CONNUES = [
   "application.reinitialisation",
   "compte.invitation",
   "compte.revocation",
+  // Écrit en base par `fn_preparer_suppression_compte` (pas par `journaliserActionSysteme`) :
+  // sans cette ligne, la suppression d'un compte est journalisée mais jamais filtrable.
+  "compte.suppression",
   "taxonomie.creation",
   "taxonomie.modification",
   "taxonomie.suppression",
@@ -22,6 +25,7 @@ export const ACTIONS_AUDIT_CONNUES = [
   "contenu.page_modification",
   "contenu.page_publication",
   "contenu.page_depublication",
+  "contenu.page_suppression",
   "contenu.blocs_brouillon",
   "contenu.blocs_publication",
   "contenu.blocs_restauration",
@@ -43,6 +47,10 @@ export const ACTIONS_AUDIT_CONNUES = [
   "acces.palier_retrait",
   "parametres.modification",
   "fonctionnalite.modification",
+  "design.jeton_modification",
+  "design.jeton_reinitialisation",
+  "design.jetons_retour_origine",
+  "design.jeton_restauration",
 ] as const;
 
 /** Libellés lisibles des identifiants d'action (affichés à la place du code technique ; repli : le code lui-même). */
@@ -64,6 +72,7 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "contenu.page_modification": "Page modifiée",
   "contenu.page_publication": "Page publiée",
   "contenu.page_depublication": "Page dépubliée",
+  "contenu.page_suppression": "Page supprimée",
   "contenu.blocs_brouillon": "Brouillon d'une page à blocs enregistré",
   "contenu.blocs_publication": "Page à blocs publiée (nouvelle version)",
   "contenu.blocs_restauration": "Ancienne version remise dans le brouillon",
@@ -85,6 +94,10 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "acces.palier_retrait": "Habilitation par palier retirée",
   "parametres.modification": "Paramètres modifiés",
   "fonctionnalite.modification": "Fonctionnalité activée ou coupée",
+  "design.jeton_modification": "Jeton de design modifié",
+  "design.jeton_reinitialisation": "Jeton de design réinitialisé",
+  "design.jetons_retour_origine": "Jetons de design remis à leur valeur d'origine",
+  "design.jeton_restauration": "Jeton de design restauré depuis l'historique",
 };
 
 export function libelleActionAudit(action: string): string {

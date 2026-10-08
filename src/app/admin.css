@@ -81,6 +81,11 @@
 /* --- Navigation hiérarchisée : la famille est un titre de compartiment, ses sous-familles sont
    indentées dessous (refonte du 8 octobre 2026). Le titre n'est pas un lien : il nomme le
    compartiment, seules les entrées conduisent quelque part. --- */
+/* --- Navigation à tiroirs : la famille est un bouton-titre toujours visible, ses sous-familles
+   sont rangées dans un tiroir qui se déploie au clic, au survol (pointeur fin seulement : sur
+   tactile, le survol n'existe pas et le clic suffit) et quand la famille contient la page
+   courante. Le tiroir replié est en `visibility: hidden` : ses liens sortent de l'ordre de
+   tabulation et de l'arbre d'accessibilité, ils ne sont pas seulement masqués. --- */
 .ad-nav-famille {
   display: grid;
   gap: 1px;
@@ -90,17 +95,69 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   margin: 0;
-  padding: 0 12px 4px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: rgba(255, 246, 237, 0.5);
+  font-family: inherit;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.09em;
+  text-align: left;
   text-transform: uppercase;
-  transition: color var(--duration-fast) var(--ease);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease), background var(--duration-fast) var(--ease);
 }
-.ad-nav-titre.actif {
+.ad-nav-titre:hover {
+  background: rgba(255, 246, 237, 0.08);
+  color: rgba(255, 246, 237, 0.85);
+}
+.ad-nav-titre.actif,
+.ad-nav-famille.courante .ad-nav-titre {
   color: rgba(255, 246, 237, 0.9);
+}
+.ad-nav-chevron {
+  display: flex;
+  margin-left: auto;
+  transition: transform var(--duration-fast) var(--ease);
+}
+.ad-nav-famille.ouverte .ad-nav-chevron {
+  transform: rotate(90deg);
+}
+.ad-nav-enfants {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows var(--duration-fast) var(--ease), visibility 0s linear var(--duration-fast);
+}
+.ad-nav-famille.ouverte .ad-nav-enfants {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows var(--duration-fast) var(--ease), visibility 0s;
+}
+.ad-nav-enfants > ul {
+  overflow: hidden;
+  min-height: 0;
+}
+/* Le survol déploie aussi le tiroir — uniquement là où il existe réellement. */
+@media (hover: hover) and (pointer: fine) {
+  .ad-nav-famille:hover .ad-nav-enfants {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows var(--duration-fast) var(--ease), visibility 0s;
+  }
+  .ad-nav-famille:hover .ad-nav-chevron {
+    transform: rotate(90deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ad-nav-enfants,
+  .ad-nav-chevron {
+    transition: none;
+  }
 }
 .ad-nav-sous {
   padding-left: 36px;

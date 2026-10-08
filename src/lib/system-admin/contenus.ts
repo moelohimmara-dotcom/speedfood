@@ -285,6 +285,56 @@ export async function basculerPublicationPageAction(id: string, publier: boolean
   revalidatePath(`/system/contenu/pages/${id}`);
 }
 
+/**
+ * Supprime une page (texte ou à blocs) — et, par cascade, son historique de versions
+ * (`content_pages_versions.page_id ... on delete cascade`, avec le trigger de palier qui exige
+ * ≥ 2 sur les deux tables).
+ *
+ * Le slug est lu AVANT l'écriture : `invaliderPagePubliee` relit l'identifiant après coup, ce qui
+ * ne trouverait plus rien une fois la ligne supprimée — seule la purge par slug évite que l'ancien
+ * contenu reste servi 60 s.
+ *
+ * Supprimer la page `accueil` est accepté : le site bascule alors sur son accueil d'origine par le
+ * repli prévu (`decider` → « aucune page publiée »), silencieusement et sans erreur — c'est le même
+ * état qu'avant sa création.
+ */
+export async function supprimerPageAction(id: string): Promise<EtatActionContenu> {
+  const contexte = await verifierPermission("contenu.editer");
+  try {
+    await verifierPalier("contenu:pages", MINIMUMS_STUDIO.publier, { contexte });
+  } catch (erreur) {
+    return { erreur: messageRefus(erreur) };
+  }
+  const supabase = await creerClientServeur();
+
+  const { data: page, error: erreurLecture } = await supabase
+    .from("content_pages")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+  if (erreurLecture || !page) {
+    return { erreur: "Page introuvable." };
+  }
+
+  const { error } = await supabase.from("content_pages").delete().eq("id", id);
+  if (error) {
+    return { erreur: "Impossible de supprimer la page." };
+  }
+
+  await journaliserActionSysteme(contexte, {
+    action: "contenu.page_suppression",
+    cibleType: "content_page",
+    cibleId: id,
+    motif: page.slug,
+  });
+
+  await invaliderCache([`page:${page.slug}`]);
+  revalidatePath(`/p/${page.slug}`);
+  if (page.slug === "accueil") revalidatePath("/");
+  revalidatePath("/system/contenu/pages");
+  return { succes: true };
+}
+
 // --- Bannières -------------------------------------------------------------
 
 export async function listerBannieres(): Promise<Banniere[]> {

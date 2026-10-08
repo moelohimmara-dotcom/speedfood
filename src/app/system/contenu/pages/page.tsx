@@ -9,6 +9,7 @@ import { SousNav } from "../../SousNav";
 import { FormulaireNouvellePage } from "./FormulaireNouvellePage";
 import { FormulaireNouvellePageBlocs } from "./FormulaireNouvellePageBlocs";
 import { CreerAccueilBlocs } from "./CreerAccueilBlocs";
+import { SupprimerPage } from "./SupprimerPage";
 
 export const metadata = { title: "Pages (administration)" };
 
@@ -107,6 +108,7 @@ export default async function ContenusSystemePage({
                   <th scope="col">Adresse</th>
                   <th scope="col">Format</th>
                   <th scope="col">Statut</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,6 +135,14 @@ export default async function ContenusSystemePage({
                     </td>
                     <td data-label="Statut">
                       <Pastille ton={p.statut === "publie" ? "succes" : "neutre"}>{p.statut === "publie" ? "Publié" : "Brouillon"}</Pastille>
+                    </td>
+                    <td data-label="Actions">
+                      <SupprimerPage
+                        id={p.id}
+                        titre={p.titre}
+                        statut={p.statut}
+                        indisponible={palier >= MINIMUMS_STUDIO.publier ? undefined : explicationPalier(palier, MINIMUMS_STUDIO.publier)}
+                      />
                     </td>
                   </tr>
                 ))}
