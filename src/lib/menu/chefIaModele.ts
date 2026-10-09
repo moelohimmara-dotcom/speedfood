@@ -133,6 +133,14 @@ export async function lireMenuAvecIA(imageEnDataUrl: string): Promise<string> {
       if (texte && texte.trim()) {
         return texte;
       }
+      // Un modèle qui répond sans champ texte exploitable est un cas qu'on ne
+      // peut pas deviner à l'avance : on journalise la forme réelle de sa
+      // réponse (jamais son contenu, déjà présent dans les logs de l'action).
+      console.error(
+        "chef_ia_reponse_inattendue",
+        modele.id,
+        JSON.stringify(brut).slice(0, 400)
+      );
       echecs.push(`${modele.id}: reponse vide`);
     } catch (erreur) {
       // Le message reste dans les journaux du Worker (accessibles à la seule
