@@ -31,9 +31,9 @@ teste sans mocker quoi que ce soit.
 
 ## Décisions
 
-- **Modèle** : `llama-3.2-11b-vision-instruct`, le plus gros multimodal compatible avec
-  le quota gratuit du projet (10 000 neurons/jour, soit environ 178 analyses de carte
-  de 30 plats par jour pour une base de 8 restaurants).
+- **Modèle** : `llama-4-scout-17b-16e-instruct`, multimodal sans porte de
+  licence, dans le quota gratuit du projet (10 000 neurons/jour). La liste des
+  modèles essayés, avec le statut de chacun, est en fin de document.
 - **La photo n'est pas conservée.** Elle est analysée puis jetée : ni stockage, ni base.
   Seule la liste de plats circule, le temps de la relecture. C'est ce qui rend la promesse « la photo n'est pas conservée » exacte,
   sans réserve.
@@ -53,51 +53,73 @@ teste sans mocker quoi que ce soit.
 
 ## Vérifié
 
-- 27 tests purs (`scripts/tests/chefia.test.mts`, runner : `npm run test:unit`) : les
+- 30 tests purs (`scripts/tests/chefia.test.mts`, runner : `npm run test:unit`) : les
   dix écritures de prix (`25 000`, `25 000 GNF`, `40000F`, `25.000`, `25.5`, `0`,
-  `null`…), l'extraction du JSON noyé dans du texte, le rapprochement des sections
-  (accents, ligature « œ »), le refus motivé, les doublons, le plafond de 30 plats.
+  `null`…), l'extraction du JSON noyé dans du texte **et sous forme de tableau**,
+  le rapprochement des sections (accents, ligature « œ »), le refus motivé, les
+  doublons, le plafond de 30 plats.
 - Trois de ces tests ont d'abord **échoué** et révélé trois vrais bugs : `parseInt`
   tronquant « 25.000 » à 25, le décimal non arrondi, et la ligature « œ » que NFD ne
   décompose pas (« Bœuf » et « Boeuf » ne se reconnaissaient pas comme le même plat).
-- `tsc --noEmit` et ESLint propres.
-- Parcours réel en production jusqu'à l'appel du modèle : envoi de la photo, réduction,
-  contrôle de format et de signature, limiteur de débit, **puis échec du modèle** —
-  voir « Bloqué » ci-dessous.
-- **Non vérifié** : l'extraction elle-même (aucun plat n'a encore été proposé par le
-  modèle), donc tout le parcours depuis la table de relecture jusqu'à l'import en base.
-  Le comportement sur une vraie photo d'ardoise (éclairage faible, écriture manuscrite,
-  prix à la craie) n'est pas non plus mesuré.
+## Vérifié en production (9 octobre 2026)
 
-## Bloqué : licence Meta Llama
+Parcours complet sur le site déployé, restaurant de test, carte de 10 lignes
+photographiée (prix écrits en `12 000 GNF`, `40000`, `30.000`, `5000`, une ligne
+sans prix, et un doublon planté exprès) :
 
-Le premier appel réel a renvoyé, depuis le Worker :
+- 8 plats proposés sur 10, **tous les prix justes** (`30.000` bien lu `30000`),
+  la description au dos d'une ligne recopiée pour « Riz sauce feuille », le
+  doublon présent une seule fois.
+- La ligne sans prix **refusée**, pas devinée, et listée sous « 1 ligne non
+  reprise » avec sa raison.
+- `PLATS` rapproché de la section existante « Plats » ; `ENTREES` et `BOISSONS`
+  signalés comme sections inconnues, plats laissés sans section.
+- Relecture : prix corrigé à la main (5000 → 6000), ligne décochée ; seule la
+  correction est partie dans l'import (7 plats).
+- Après import : 7 lignes en base, prix corrigé respecté, 3 plats dans la
+  section, 4 sans section. Données de test supprimées ensuite (0 plat,
+  0 section).
 
-```
-AiError: 5016: Prior to using this model, you must submit the prompt 'agree'.
-By submitting 'agree', you hereby agree to the llama-3.2-11b-vision-instruct
-Community License [...] and you represent that you are not an individual
-domiciled in, or a company with a principal place of business in, the European Union.
-```
+### Ce que la vérification a corrigé
 
-Cloudflare exige une **acceptation unique de la licence communautaire Meta Llama 3.2**,
-par compte, depuis le tableau de bord (Workers AI → Playground → choisir le modèle →
-accepter). Ce n'est pas un réglage technique : c'est un acte juridique que le titulaire
-du compte doit faire lui-même, et il comporte une condition de résidence (hors UE).
+Trois défauts réels, tous invisibles aux tests ou à la compilation :
 
-Deux suites possibles, à décider par la propriétaire :
+1. **Le modèle renvoie un tableau JSON**, `[{"nom":…}]`, et non l'objet
+   `{"plats":[…]}` demandé. L'extracteur ne cherchait qu'une accolade ouvrante :
+   aucune dans la réponse, extraction vide, et l'écran affichait « aucun plat
+   lisible » — un message qui **affirmait que le modèle n'avait rien lu**. Les
+   tests existants ne couvraient que la forme objet ; c'est la vérification
+   dans le navigateur, pas un coup de chance, qui l'a sorti.
+2. **Un remplacement de texte par PowerShell** a cassé les accents de deux
+   fichiers déjà commités, sans que `tsc`, ESLint ou les tests ne le voient.
+3. **Le catalogue Workers AI est plus instable qu'il n'y paraît** : au sondage,
+   `moondream3.1-9B-A2B` répondait sans erreur mais renvoyait un objet vide, et
+   `llava`, `qwen*-vl` et `gemma-3` n'existaient plus.
 
-1. **Accepter la licence** dans le tableau de bord Cloudflare. Le modèle fonctionne
-   alors sans changement de code.
-2. **Changer de modèle** pour un modèle multimodal sans cette porte d'entrée. À faire
-   seulement après avoir vérifié dans le catalogue Workers AI qu'un tel modèle existe
-   sur l'offre gratuite et qu'il lit aussi bien les prix — c'est le point critique,
-   pas la taille du modèle.
+### Modèles retenus
 
-En attendant, l'interface affiche « L'assistant n'a pas pu lire la photo. Réessayez dans
-un instant, ou ajoutez vos plats à la main. » : le restaurateur n'est jamais bloqué, et
-aucun détail technique ne fuite à l'écran (le message complet, lui, est journalisé dans
-les logs du Worker sous `chef_ia_appel_modele_echoue`).
+| Modèle | Statut constaté |
+|---|---|
+| `llama-4-scout-17b-16e-instruct` | **Retenu.** Multimodal, sans licence, bon sur une vraie carte |
+| `mistralai/mistral-small-3.1-24b-instruct` | Répond, mais refuse `input_text` : non retenu |
+| `meta/llama-3.2-11b-vision-instruct` | Erreur 5016 (licence Meta), gardé en repli |
+| `moondream/moondream3.1-9B-A2B` | Objet vide, même sans image |
+
+Ces deux API sont de type OpenAI : les parties d'un message sont `input_text`
+et `input_image`, cette dernière exigeant un champ `detail` explicite — sans
+quoi l'appel est refusé sur une erreur de validation. Le banc d'essai utilisé
+pour ces measurements (`.sdd/essai-ai`, supprimé) permit d'itérer en secondes
+au lieu de redéployer l'application à chaque essai.
+
+### Non vérifié
+
+- Le comportement sur une **vraie photo d'ardoise** : éclairage faible, écriture
+  à la craie, prix manuscript, carte à plat de travers. C'est le cas d'usage
+  principal, et il reste à éprouver sur des photos réelles.
+- Le délai de réponse sur les photos les plus lourdes (≈ 9,5 s sur cette carte
+  de 187 Ko, contre 4,2 s sur une image plus légère).
+- Le quota effectif en neurones consommés : à mesurer sur plusieurs analyses
+  réelles avant d'ajuster la limite de 20/h par restaurant.
 
 ## Suite
 
