@@ -1035,6 +1035,9 @@ a.ad-tuile-lien:hover {
 /* Les ancres des sections ne se cachent pas derrière la barre collante. */
 html:has(.ad-app) {
   scroll-padding-bottom: 96px;
+  /* L'en-tête mobile fait 65 px : sans cette réserve, un titre atteint par une ancre
+     (ou le titre de page quand on remonte la liste) passe dessous et devient illisible. */
+  scroll-padding-top: 65px;
 }
 
 /* L'en-tête mobile et les barres d'enregistrement sont collants : `overflow-x: hidden` sur html et body (règle globale du site)
