@@ -80,9 +80,40 @@ sans prix, et un doublon planté exprès) :
   section, 4 sans section. Données de test supprimées ensuite (0 plat,
   0 section).
 
-### Ce que la vérification a corrigé
+### Trois photos de papier testées le 9 octobre 2026
 
-Trois défauts réels, tous invisibles aux tests ou à la compilation :
+Au-delà de la carte imprimée nette, trois menus « de terrain » ont été fabriqués
+et passés dans le pipeline réel :
+
+| Photo | Difficulté | Résultat |
+|---|---|---|
+| Papier 1 | Feuille penchée 4°, éclairage dégradé, police cursive | — (essai après correctifs) |
+| Papier 2 | Penchée 3°, **image assombrie** (luminosité 0,62, contraste 0,72), ombre portée sur la moitié gauche, prix en `15 000 F` | **5 plats sur 6, tous les prix justes** ; « Poisson grille — sur place » écarté |
+| Papier 3 | Penchée 7°, estompée | **5 plats sur 5, tous les prix justes** (10 000, 20 000, 25 000, 25 000, 30 000) |
+
+Sur la photo la plus difficile — assombrie, penchée, à l'ombre — le modèle a
+lu correctement cinq plats sur six, dont les prix écrits `15 000 F`. C'est
+l'ordre de grandeur attendu du cas d'usage réel.
+
+### Les défauts que ces photos ont sortis
+
+1. **Le modèle ne répond pas toujours dans la langue de la consigne.** Sur la
+   photo 3, il a parfaitement lu la carte mais répondu en `name` / `price`. Le
+   prix n'étant lu que sous la clé `prix`, chaque ligne partait au compteur
+   « refusées » et l'écran affichait « aucun plat lisible sur cette photo » —
+   **un message qui accusait la photo alors que la faute était chez nous**.
+   Corrigé : les deux écritures sont lues pour le nom, le prix, la description et
+   la section, avec un test sur la réponse réellement observée.
+2. **Le message d'échec mentait sur la cause.** « Aucun plat lisible » ne
+   distingue pas « le modèle n'a rien trouvé » de « nous n'avons pas compris sa
+   réponse ». Un restaurateur faced à un message qui accuse sa photo recommence,
+   puis abandonne. L'analyse renvoie désormais un état (`plats` / `vide` /
+   `indetermine`) et l'écran dit la vérité : « L'assistant a répondu sans que
+   nous puissions le lire. Recommencez… ».
+
+### Ce que la vérification a corrigé par ailleurs
+
+Trois autres défauts réels, tous invisibles aux tests ou à la compilation :
 
 1. **Le modèle renvoie un tableau JSON**, `[{"nom":…}]`, et non l'objet
    `{"plats":[…]}` demandé. L'extracteur ne cherchait qu'une accolade ouvrante :
@@ -113,13 +144,13 @@ au lieu de redéployer l'application à chaque essai.
 
 ### Non vérifié
 
-- Le comportement sur une **vraie photo d'ardoise** : éclairage faible, écriture
-  à la craie, prix manuscript, carte à plat de travers. C'est le cas d'usage
-  principal, et il reste à éprouver sur des photos réelles.
-- Le délai de réponse sur les photos les plus lourdes (≈ 9,5 s sur cette carte
-  de 187 Ko, contre 4,2 s sur une image plus légère).
+- Le délai de réponse sur les photos les plus lourdes (≈ 9,5 s sur une carte de
+  187 Ko, ≈ 4,2 s sur une image plus légère).
 - Le quota effectif en neurones consommés : à mesurer sur plusieurs analyses
   réelles avant d'ajuster la limite de 20/h par restaurant.
+- L'écriture à la **craie** (mainlevée) : les photos testées simulaient une
+  écriture cursive imprimée, pas une vraie ardoise. C'est le dernier écart connu
+  avec le cas d'usage réel.
 
 ## Suite
 
