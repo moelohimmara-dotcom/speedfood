@@ -63,15 +63,31 @@ export function construireConsigne(): string {
 }
 
 /**
- * Extrait le premier objet JSON d'une réponse de modèle. Le modèle peut
- * entourer sa réponse de texte, d'un bloc ```json, ou la renvoyer entière
- * préfixée par un raisonnement : on cherche la première accolade ouvrante et
- * la dernière fermante, ce qui tolère tout le bruit possible autour.
+ * Extrait le premier objet **ou tableau** JSON d'une réponse de modèle. Le
+ * modèle peut entourer sa réponse de texte, la renvoyer entière préfixée par un
+ * raisonnement, ou — c'est ce qu'il fait en pratique — produire directement une
+ * liste `[{"nom":…}]` au lieu de l'objet enveloppant demandé. Chercher `{` en
+ * ouverture ne suffit donc pas : on part du premier `{` ou `[`, et on s'arrête
+ * au dernier `}` ou `]`, ce qui tolère tout le bruit possible autour.
  */
 export function extraireJson(texte: string): string | null {
-  const debut = texte.indexOf("{");
-  const fin = texte.lastIndexOf("}");
-  if (debut === -1 || fin <= debut) return null;
+  let debut = -1;
+  for (const caractere of texte) {
+    if (caractere === "{" || caractere === "[") {
+      debut = texte.indexOf(caractere);
+      break;
+    }
+  }
+  if (debut === -1) return null;
+  let fin = -1;
+  for (let index = texte.length - 1; index > debut; index--) {
+    const caractere = texte[index];
+    if (caractere === "}" || caractere === "]") {
+      fin = index;
+      break;
+    }
+  }
+  if (fin <= debut) return null;
   return texte.slice(debut, fin + 1);
 }
 

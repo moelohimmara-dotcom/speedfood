@@ -51,13 +51,38 @@ verifier("prix chaîne vide", lirePrix(""), null);
 verifier("zéro est un prix valide", lirePrix(0), 0);
 
 // --- Extraction du JSON sous le bruit du modèle -------------------------
+// Le cas du tableau nu est celui réellement observé sur une vraie carte : le
+// modèle renvoie `[{"nom":…}]` malgré la consigne qui demande un objet. Chercher
+// une accolade ouvrante suffisait à faire échouer toute la lecture.
 verifier(
   "JSON entouré d'un raisonnement",
   extraireJson('Voici ma lecture :\n{"plats":[{"nom":"Riz","prix":25000}]}\nFin.'),
   '{"plats":[{"nom":"Riz","prix":25000}]}'
 );
+verifier(
+  "tableau nu, sans objet enveloppant",
+  extraireJson('[{"nom":"Riz","prix":25000}]'),
+  '[{"nom":"Riz","prix":25000}]'
+);
+verifier(
+  "tableau encadré d'un raisonnement",
+  extraireJson('Voici :\n[\n  {"nom": "Riz", "prix": 25000}\n]\nFin.'),
+  '[\n  {"nom": "Riz", "prix": 25000}\n]'
+);
 verifier("JSON dans un bloc de code", extraireJson('```json\n{"plats":[]}\n```'), '{"plats":[]}');
 verifier("pas de JSON du tout", extraireJson("je ne vois rien"), null);
+
+verifier(
+  "un tableau de plats est analysé comme un objet enveloppant",
+  analyserReponseModele('[{"nom":"Riz sauce feuille","prix":25000,"section":"Plats"}]', OPTIONS),
+  {
+    plats: [
+      { nom: "Riz sauce feuille", description: "", prix: 25000, section: "Plats", section_id: "s2" },
+    ],
+    refuses: [],
+    sectionsInconnues: [],
+  }
+);
 
 // --- Rapprochement des sections ----------------------------------------
 verifier("section exacte", rapprocherSection("Plats", SECTIONS), "s2");
