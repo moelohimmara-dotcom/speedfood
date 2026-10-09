@@ -11,6 +11,18 @@ import {
 import { enregistrerJetonAction, reinitialiserJetonAction, reinitialiserTousJetonsAction, type ResultatJeton } from "@/lib/studio/jetons-actions";
 
 /**
+   * Ce que les réponses du serveur ont déjà appris, et que l'écran doit refléter.
+ *
+   * `enregistree` porte la clé écrite ET sa valeur (celle que l'utilisateur venait de saisir) :
+   * sans elle, la référence du bandeau « non enregistrée » resterait sur l'ancienne valeur.
+ */
+interface Absorptions {
+  enregistree: { cle: string; valeur: string } | null;
+  /** Clés dont la ligne a été supprimée côté serveur : leur référence redevient la valeur du code. */
+  restaurees: string[];
+}
+
+/**
  * Éditeur de jetons de design avec aperçu VIVANT (palier 4, phase 1).
  *
  * L'aperçu fonctionne par injection de CSS dans un iframe de la page d'accueil réelle, sans
@@ -36,19 +48,24 @@ const etatInitial: ResultatJeton = { ok: false };
 const FONDS_SOMBRES = new Set(["couleur.rouge", "couleur.rouge-fonce", "couleur.encre", "couleur.danger"]);
 
 export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
-  const [valeurs, setValeurs] = useState<Record<string, string>>(() => Object.fromEntries(jetons.map((j) => [j.cle, j.valeur])));
-  const [personnalises, setPersonnalises] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(jetons.map((j) => [j.cle, j.personnalise]))
-  );
   /**
-   * Dernière valeur ENREGISTRÉE par jeton. C'est la référence du bandeau « modification non
-   * enregistrée », et non la valeur reçue au rendu du serveur : sans cette copie locale, un
-   * enregistrement réussi continuerait d'afficher « non enregistré » tant que la page n'aurait pas
-   * été rechargée.
+   * Les trois états ci-dessous ne sont PAS mutés par un effet : ils se DÉRIVENT pendant le rendu,
+   * à partir de la dernière réponse du serveur et des modifications en cours. Écrire dans un état
+   * depuis un effet provoke un second rendu en cascade, et React le signale comme une erreur.
+   *
+   * `jetons` porte l'état initial (le serveur recharge la page après une action) ; la réponse de
+   * l'action, elle, doit pouvoir arrivedans le même rendu, sans attendre un rechargement.
    */
-  const [enregistrees, setEnregistrees] = useState<Record<string, string>>(() =>
-    Object.fromEntries(jetons.map((j) => [j.cle, j.valeur]))
-  );
+  const [modifications, setModifications] = useState<Record<string, string> | null>(null);
+
+  const valeursInitiales = jetons.reduce<Record<string, string>>((acc, j) => {
+    acc[j.cle] = j.valeur;
+    return acc;
+  }, {});
+  const personnalisesInitiaux = jetons.reduce<Record<string, boolean>>((acc, j) => {
+    acc[j.cle] = j.personnalise;
+    return acc;
+  }, {});
   /**
    * Les trois résultats d'action sont normalisés dans UN état, parce que l'effet de la section
    * suivante les traite de la même façon : chacun annonce soit un jeton enregistré, soit une liste
@@ -58,7 +75,9 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
   const [etatReinit, actionReinit, enCoursReinit] = useActionState(reinitialiserJetonAction, etatInitial);
   const [etatGlobal, actionToutRetablir, enCoursGlobal] = useActionState(reinitialiserTousJetonsAction, etatInitial);
 
-  /** Dernière réponse reçue, quel que soit le bouton : un seul effet à écrire. */
+  /**
+   * Dernière réponse reçue, quel que soit le bouton : une seule valeur à traiter.
+   */
   const derniereReponse = etat.ok ? etat : etatReinit.ok ? etatReinit : etatGlobal.ok ? etatGlobal : null;
   const [largeur, setLargeur] = useState<"bureau" | "telephone">("bureau");
   const [groupeActif, setGroupeActif] = useState<Groupe>("couleurs");
@@ -66,16 +85,31 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
   const styleApercu = useRef<HTMLStyleElement | null>(null);
 
   /**
-   * Valeurs courantes vues par les effets.
+   * Réponses du serveur déjà absorbées, et modifications locales en cours.
    *
-   * Indispensable : l'effet ci-dessous ne doit dépendre QUE de la réponse du serveur. S'il
-   * dépendait aussi de `valeurs`, choisir une nouvelle couleur le relancerait avec le SUCCÈS
-   * précédent en mémoire, et la nouvelle valeur — non enregistrée — serait marquée comme
-   * enregistrée. C'était exactement le défaut signalé : « Enregistrer » devenait.disable
-   * dès qu'on choisissait une seconde couleur.
+   * On ne peut pas se contenter de la dernière réponse : trois boutons distincts répondent, et
+   * « enregistrer une couleur » puis « rétablir une autre » ne doit pas faire perdre le premier
+   * résultat. `absorbees` conserve donc, par réponse, ce qui a été appris.
    */
-  const valeursCourantes = useRef(valeurs);
-  valeursCourantes.current = valeurs;
+  const [absorbees, setAbsorbees] = useState<Absorptions>({ enregistree: null, restaurees: [] });
+
+  /**
+   * Ce que le serveur a réellement enregistré, en partant des valeurs du code puis des
+   * confirmations reçues. C'est la référence du bandeau « modification non enregistrée ».
+   */
+  const enregistrees = useMemo(() => {
+    const base = { ...valeursInitiales };
+    for (const cle of absorbees.restaurees) {
+      const original = jetons.find((j) => j.cle === cle);
+      if (original) base[cle] = original.valeur;
+    }
+    if (absorbees.enregistree) {
+      const cle = absorbees.enregistree.cle;
+      const valeur = absorbees.enregistree.valeur;
+      if (valeur !== undefined) base[cle] = valeur;
+    }
+    return base;
+  }, [absorbees, jetons, valeursInitiales]);
 
   /**
    * La pastule « personnalisé » n'apparaît qu'après une réponse RÉUSSIE du serveur.
@@ -83,27 +117,57 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
    * refusé (par exemple pour un contraste trop bas) : l'écran affichait « personnalisé » alors
    * que rien n'avait changé sur le site.
    */
-  useEffect(() => {
-    if (!derniereReponse) return;
-    if (derniereReponse.cleEnregistree) {
-      const cle = derniereReponse.cleEnregistree;
-      setPersonnalises((p) => ({ ...p, [cle]: true }));
-      setEnregistrees((e) => ({ ...e, [cle]: valeursCourantes.current[cle] ?? e[cle] }));
+  const personnalises = useMemo(() => {
+    const base = { ...personnalisesInitiaux };
+    for (const cle of absorbees.restaurees) {
+      const original = jetons.find((j) => j.cle === cle);
+      base[cle] = Boolean(original?.personnalise);
     }
-    // « Rétablir » et « Revenir aux valeurs actuelles » : le serveur a supprimé les lignes, donc la
-    // référence doit devenir la valeur DU CODE, sinon « Enregistrer » resterait désactivé sur une
-    // valeur que le serveur ne connaît plus.
-    if (derniereReponse.clesRétablies?.length) {
-      for (const cle of derniereReponse.clesRétablies) {
-        const original = jetons.find((j) => j.cle === cle);
-        setPersonnalises((p) => ({ ...p, [cle]: Boolean(original?.personnalise) }));
-        if (original) {
-          setEnregistrees((e) => ({ ...e, [cle]: original.valeur }));
-          setValeurs((v) => ({ ...v, [cle]: original.valeur }));
-        }
-      }
+    if (absorbees.enregistree) {
+      base[absorbees.enregistree.cle] = true;
     }
-  }, [derniereReponse, jetons]);
+    return base;
+  }, [absorbees, jetons, personnalisesInitiaux]);
+
+  /** Valeurs affichées : celles de l'écran, ou celles modifiées localement. */
+  const valeurs = modifications ?? enregistrees;
+
+  /**
+   * Identifie une réponse pour ne l'absorber qu'une fois. Deux réponses identiques (même clé
+   * rejouée) sont donc ignorées, ce qui est le comportement voulu.
+   */
+  const cleReponse = derniereReponse
+    ? [
+        derniereReponse.ok ? "ok" : "ko",
+        derniereReponse.cleEnregistree ?? "",
+        (derniereReponse.clesRétablies ?? []).join(","),
+        derniereReponse.cleRestaurée ?? "",
+        derniereReponse.cleEnErreur ?? "",
+      ].join("|")
+    : "";
+  const [derniereAbsorbee, setDerniereAbsorbee] = useState("");
+  // TypeScript ne conserve pas le narrowing dans les callbacks : on capture la réponse non nulle.
+  const reponse = derniereReponse;
+  if (reponse && cleReponse && cleReponse !== derniereAbsorbee && reponse.ok) {
+    setDerniereAbsorbee(cleReponse);
+    // Une réponse du serveur annule les modifications locales : l'écran doit montrer ce qui est
+    // réellement en ligne, pas une frappe que le serveur vient de refuser ou de remplacer.
+    setModifications(null);
+    setAbsorbees((precedente) => ({
+      enregistree:
+        reponse.cleEnregistree != null
+          ? { cle: reponse.cleEnregistree, valeur: valeursInitiales[reponse.cleEnregistree] }
+          : precedente.enregistree,
+      restaurees: [
+        ...precedente.restaurees,
+        ...(reponse.clesRétablies ?? []).filter((c) => !precedente.restaurees.includes(c)),
+      ],
+    }));
+  }
+
+  /** Les modifications locales reprennent la main dès qu'un champ change. */
+  const changer = (cle: string, valeur: string) =>
+    setModifications((actuelles) => ({ ...(actuelles ?? enregistrees), [cle]: valeur }));
 
   /** Le CSS de l'aperçu, recalculé à chaque frappe. */
   const cssApercu = useMemo(() => cssDepuisJetons(new Map(Object.entries(valeurs))), [valeurs]);
@@ -161,8 +225,6 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
   const visibles = jetons.filter((j) => j.groupe === groupeActif);
   const modifiees = jetons.filter((j) => valeurs[j.cle] !== enregistrees[j.cle]);
 
-  const changer = (cle: string, valeur: string) => setValeurs((v) => ({ ...v, [cle]: valeur }));
-
   /**
    * « Revenir aux valeurs actuelles » : remet **le SITE** à ses couleurs d'origine, pas seulement
    * l'écran. Correction du 7 octobre 2026 : la version précédente ne faisait qu'annuler les
@@ -172,7 +234,7 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
   const revenirAuxActuelles = () => {
     if (modifiees.length > 0) {
       // Il y a des modifications non enregistrées : on ne touche pas au site, on les annule.
-      setValeurs(Object.fromEntries(jetons.map((j) => [j.cle, enregistrees[j.cle] ?? j.valeur])));
+      setModifications(null);
       return;
     }
     if (!Object.values(personnalises).some(Boolean)) return;
