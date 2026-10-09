@@ -318,6 +318,8 @@ export interface EtatChefIa {
   refuses?: PlatRefuse[];
   sectionsInconnues?: string[];
   importes?: number;
+  /** Voir `AnalyseMenu.etat` : distingue « rien trouvé » de « pas compris ». */
+  lecture?: "plats" | "indetermine" | "vide";
 }
 
 // Pas de constante d'état initiale ici : ce fichier est en « use server », qui
@@ -377,6 +379,7 @@ export async function analyserMenuPhotoAction(
     plats: analyse.plats.map((plat, index) => ({ ...plat, cle: `c${index}` })),
     refuses: analyse.refuses,
     sectionsInconnues: analyse.sectionsInconnues,
+    lecture: analyse.etat,
   };
 }
 

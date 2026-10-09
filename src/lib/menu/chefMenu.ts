@@ -44,6 +44,13 @@ export interface AnalyseMenu {
   refuses: PlatRefuse[];
   /** Sections citées par le modèle qu'aucune section du restaurant ne porte. */
   sectionsInconnues: string[];
+  /**
+   * `indetermine` quand on n'a pas su interpréter la réponse du modèle, `vide`
+   * quand il a clairement répondu qu'il n'y avait rien. La nuance n'est pas
+   * académique : « aucun plat lisible » accuse la photo d'être mauvaise, alors
+   * qu'une réponse qu'on n'a pas comprise est un problème de notre côté.
+   */
+  etat: "plats" | "indetermine" | "vide";
 }
 
 const CONSIGNE = `Tu es le "Chef IA" d'un restaurant guinéen. Tu lis UNE photo de menu et tu en extrais les plats.
@@ -187,6 +194,7 @@ export function analyserReponseModele(
       plats: [],
       refuses: [{ brut: texteReponse.slice(0, 120), raison: "réponse illisible" }],
       sectionsInconnues: [],
+      etat: "indetermine",
     };
   }
 
@@ -198,6 +206,7 @@ export function analyserReponseModele(
       plats: [],
       refuses: [{ brut: brut.slice(0, 120), raison: "réponse illisible" }],
       sectionsInconnues: [],
+      etat: "indetermine",
     };
   }
 
@@ -205,7 +214,19 @@ export function analyserReponseModele(
     ? lus
     : typeof lus === "object" && lus !== null && Array.isArray((lus as { plats?: unknown }).plats)
       ? (lus as { plats: unknown[] }).plats
-      : [];
+      : null;
+
+  if (liste === null) {
+    // Du JSON, mais pas la forme attendue (un objet unique, une chaîne, un
+    // objet à clés inattendues) : encore une fois, ce n'est pas la photo le
+    // problème, c'est nous.
+    return {
+      plats: [],
+      refuses: [{ brut: brut.slice(0, 120), raison: "réponse inattendue" }],
+      sectionsInconnues: [],
+      etat: "indetermine",
+    };
+  }
 
   const plats: PlatValide[] = [];
   const refuses: PlatRefuse[] = [];
@@ -231,7 +252,11 @@ export function analyserReponseModele(
     if (vus.has(cle)) continue;
     vus.add(cle);
 
-    const prix = lirePrix(champ.prix);
+    // Le modèle ne répond pas toujours dans la langue de la consigne : selon la
+    // photo, il rend `nom`/`prix` ou `name`/`price`. Ne lire qu'une seule
+    // écriture fait perdre toute la lecture — silencieusement, puisque chaque
+    // ligne part ensuite au compteur « refusées ».
+    const prix = lirePrix(champ.prix ?? champ.price ?? champ.prix_gnf ?? champ.montant);
     if (prix === null) {
       refuses.push({ brut: nom, raison: "prix illisible — à saisir à la main" });
       continue;
@@ -244,7 +269,7 @@ export function analyserReponseModele(
       continue;
     }
 
-    const sectionModele = nettoyer(champ.section, 60) || null;
+    const sectionModele = nettoyer(champ.section ?? champ.categorie ?? champ.category, 60) || null;
     const sectionId = rapprocherSection(sectionModele, options.sections);
     if (sectionModele && !sectionId) sectionsInconnues.add(sectionModele);
 
@@ -258,5 +283,10 @@ export function analyserReponseModele(
     if (plats.length >= PLATS_MAX_PAR_ANALYSE) break;
   }
 
-  return { plats, refuses, sectionsInconnues: [...sectionsInconnues] };
+  return {
+    plats,
+    refuses,
+    sectionsInconnues: [...sectionsInconnues],
+    etat: plats.length > 0 ? "plats" : liste.length === 0 ? "vide" : "indetermine",
+  };
 }

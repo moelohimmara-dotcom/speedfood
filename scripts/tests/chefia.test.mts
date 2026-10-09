@@ -81,6 +81,7 @@ verifier(
     ],
     refuses: [],
     sectionsInconnues: [],
+    etat: "plats",
   }
 );
 
@@ -112,6 +113,7 @@ verifier(
     ],
     refuses: [],
     sectionsInconnues: [],
+    etat: "plats",
   }
 );
 
@@ -125,6 +127,7 @@ verifier(
     plats: [{ nom: "Riz", description: "", prix: 25000, section: null, section_id: null }],
     refuses: [{ brut: "Pastels", raison: "prix illisible — à saisir à la main" }],
     sectionsInconnues: [],
+    etat: "plats",
   }
 );
 
@@ -159,6 +162,7 @@ verifier(
     plats: [{ nom: "Tarte", description: "", prix: 10000, section: "Desserts", section_id: null }],
     refuses: [],
     sectionsInconnues: ["Desserts"],
+    etat: "plats",
   }
 );
 
@@ -169,6 +173,7 @@ verifier(
     plats: [],
     refuses: [{ brut: "La photo est trop floue.", raison: "réponse illisible" }],
     sectionsInconnues: [],
+    etat: "indetermine",
   }
 );
 
@@ -188,6 +193,40 @@ verifier(
   construireConsigne().includes("ne devine JAMAIS un prix"),
   true
 );
+
+// --- Le modèle ne répond pas toujours dans la langue de la consigne -------
+// Constaté le 9 octobre sur une photo penchée : selon l'image, la réponse est
+// en `nom`/`prix` ou en `name`/`price`. Ne lire qu'une écriture faisait perdre
+// toute la lecture, silencieusement, chaque ligne partant au compteur
+// « refusées » et l'écran annonçant « aucun plat lisible ».
+verifier(
+  "réponse en anglais (name/price)",
+  analyserReponseModele(
+    JSON.stringify([
+      { name: "Riz gras", price: 25000, section: "PLATS" },
+      { name: "Gateau", price: null, section: "DESSERTS" },
+    ]),
+    OPTIONS
+  ),
+  {
+    plats: [{ nom: "Riz gras", description: "", prix: 25000, section: "PLATS", section_id: "s2" }],
+    refuses: [{ brut: "Gateau", raison: "prix illisible — à saisir à la main" }],
+    // « DESSERTS » n'apparaît pas : une ligne écartée pour son prix n'est jamais
+    // rapprochée d'une section, sinon on demanderait au restaurateur de créer
+    // une section pour un plat qu'il n'aura pas.
+    sectionsInconnues: [],
+    etat: "plats",
+  }
+);
+
+// --- Distinguer « rien trouvé » de « pas compris » -------------------------
+verifier("un modèle qui répond vide", analyserReponseModele("[]", OPTIONS).etat, "vide");
+verifier("une réponse hors forme", analyserReponseModele('{"titre":"Menu"}', OPTIONS).etat, "indetermine");
+verifier("du texte sans JSON", analyserReponseModele("je ne vois pas de menu", OPTIONS).etat, "indetermine");
+verifier("des plats refusés ne sont pas un modèle vide", analyserReponseModele(
+  JSON.stringify([{ nom: "Riz", prix: null }]),
+  OPTIONS
+).etat, "indetermine");
 
 if (ko > 0) {
   console.log(`\n${ko} test(s) en échec sur ${total}`);

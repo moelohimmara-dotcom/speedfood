@@ -105,10 +105,19 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
         ) : null}
 
         {etat.plats && etat.plats.length === 0 ? (
-          <Alert ton="info">
-            Aucun plat lisible sur cette photo. Photographiez-la de plus près, à plat, avec une
-            lumière franche.
-          </Alert>
+          etat.lecture === "indetermine" ? (
+            // Le message ne doit pas accuser la photo : ici, c'est nous qui
+            // n'avons pas su comprendre la réponse du modèle.
+            <Alert ton="danger">
+              L&apos;assistant a répondu sans que nous puissions le lire. Recommencez, ou
+              ajoutez vos plats un par un.
+            </Alert>
+          ) : (
+            <Alert ton="info">
+              Aucun plat lisible sur cette photo. Photographiez-la de plus près, à plat, avec une
+              lumière franche.
+            </Alert>
+          )
         ) : null}
       </div>
     </details>
