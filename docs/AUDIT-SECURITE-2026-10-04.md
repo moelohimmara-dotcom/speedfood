@@ -41,6 +41,28 @@ Verdict des auditeurs : **proche du pilote, pas encore prêt** tant que les poin
 5. Secrets de production à confirmer : `TURNSTILE_SECRET_KEY` (sans lui, la vérification anti-robot est silencieusement
    désactivée), `COMMANDE_JETON_SECRET` dédié (sinon dérivé de la clé de service).
 
+## Suivi du 9 octobre 2026
+
+Trois points d'hygiène de compte étaient ouverts à cette date. État constaté :
+
+| Point | État |
+|---|---|
+| Jeton personnel Supabase exposé | **Traité par la propriétaire** (hors application, non vérifiable d'ici) |
+| Jeton Cloudflare sur-scopé, à restreindre puis tourner | **Traité par la propriétaire** (hors application, non vérifiable d'ici) |
+| Double authentification du super-admin | **Écarté par la propriétaire** — arbitrage explicite, pas un oubli |
+
+Pour le troisième : revérifié le 9 octobre sur `/compte/securite`, le compte
+`moelohimmara@gmail.com` affiche toujours « La double authentification n'est pas
+activée ». Le risque est donc **réellement ouvert**, et il est connu : tant que
+ce n'est pas activé, le seul mot de passe du super-admin donne accès aux
+coordonnées de tous les clients. À reprendre avant le pilote avec de vraies
+données, et d'autant plus que la fonctionnalité « Chef IA » vient d'ouvrir une
+voie d'action pour les restaurateurs.
+
+À noter si l'activation est prise plus tard : **il n'y a pas de code de secours**,
+et la clé affichée à l'activation est le seul moyen de retrouver l'accès en cas
+de téléphone perdu.
+
 ## Mineurs restants (non corrigés)
 
 Colonnes publiques un peu larges (`motif_correction`, `donnees_demo`, `auteur_id` ; sans effet sur les restaurants publiés),
