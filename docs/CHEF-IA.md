@@ -61,11 +61,43 @@ teste sans mocker quoi que ce soit.
   tronquant « 25.000 » à 25, le décimal non arrondi, et la ligature « œ » que NFD ne
   décompose pas (« Bœuf » et « Boeuf » ne se reconnaissaient pas comme le même plat).
 - `tsc --noEmit` et ESLint propres.
-- Parcours réel en production avec la photo d'une carte de restaurant (ardoise
-  simulée) : envoi, analyse Workers AI, relecture affichée, sections inconnues signalées.
-- **Non vérifié** : le comportement du modèle sur une vraie photo d'ardoise en
-  conditions réelles (éclairage faible, écriture manuscrite, prix à la craie), et le
-  délai de réponse sur les photos les plus lourdes.
+- Parcours réel en production jusqu'à l'appel du modèle : envoi de la photo, réduction,
+  contrôle de format et de signature, limiteur de débit, **puis échec du modèle** —
+  voir « Bloqué » ci-dessous.
+- **Non vérifié** : l'extraction elle-même (aucun plat n'a encore été proposé par le
+  modèle), donc tout le parcours depuis la table de relecture jusqu'à l'import en base.
+  Le comportement sur une vraie photo d'ardoise (éclairage faible, écriture manuscrite,
+  prix à la craie) n'est pas non plus mesuré.
+
+## Bloqué : licence Meta Llama
+
+Le premier appel réel a renvoyé, depuis le Worker :
+
+```
+AiError: 5016: Prior to using this model, you must submit the prompt 'agree'.
+By submitting 'agree', you hereby agree to the llama-3.2-11b-vision-instruct
+Community License [...] and you represent that you are not an individual
+domiciled in, or a company with a principal place of business in, the European Union.
+```
+
+Cloudflare exige une **acceptation unique de la licence communautaire Meta Llama 3.2**,
+par compte, depuis le tableau de bord (Workers AI → Playground → choisir le modèle →
+accepter). Ce n'est pas un réglage technique : c'est un acte juridique que le titulaire
+du compte doit faire lui-même, et il comporte une condition de résidence (hors UE).
+
+Deux suites possibles, à décider par la propriétaire :
+
+1. **Accepter la licence** dans le tableau de bord Cloudflare. Le modèle fonctionne
+   alors sans changement de code.
+2. **Changer de modèle** pour un modèle multimodal sans cette porte d'entrée. À faire
+   seulement après avoir vérifié dans le catalogue Workers AI qu'un tel modèle existe
+   sur l'offre gratuite et qu'il lit aussi bien les prix — c'est le point critique,
+   pas la taille du modèle.
+
+En attendant, l'interface affiche « L'assistant n'a pas pu lire la photo. Réessayez dans
+un instant, ou ajoutez vos plats à la main. » : le restaurateur n'est jamais bloqué, et
+aucun détail technique ne fuite à l'écran (le message complet, lui, est journalisé dans
+les logs du Worker sous `chef_ia_appel_modele_echoue`).
 
 ## Suite
 
