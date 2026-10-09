@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { creerPropositionAction } from "@/lib/commande/actions-restaurant";
+import { valeursDeReprise } from "@/lib/commande/reprise";
 import type { ValeursProposition } from "@/lib/contracts/commande";
 import { Button, Input, Alert } from "@/components/ui";
 
@@ -10,6 +11,12 @@ interface Props {
   commandeId: string;
   sousTotalActuel: number;
   fraisActuels: number;
+  /** Dernière proposition envoyée (la plus récente). Ses valeurs servent de point de départ. */
+  derniereProposition?: {
+    nouveauSousTotal: number;
+    nouveauxFraisLivraison: number;
+    conditionsModifiees: string | null;
+  };
   onFermer: () => void;
 }
 
@@ -17,17 +24,25 @@ interface Props {
  * Formulaire de proposition révisée (prix, frais de livraison, conditions).
  * Une proposition crée une nouvelle version immuable : la commande reste en
  * attente et n'est préparée qu'après l'accord du client.
+ *
+ * Si la commande a déjà reçu une proposition, ses valeurs sont proposées comme
+ * point de départ : ressaisir les mêmes chiffres après un refus du client est
+ * le cas le plus fréquent, et les retaper à chaque fois est une source d'erreur.
  */
 export function FormulaireProposition({
   commandeId,
   sousTotalActuel,
   fraisActuels,
+  derniereProposition,
   onFermer,
 }: Props) {
   const router = useRouter();
-  const [sousTotal, setSousTotal] = useState(String(sousTotalActuel));
-  const [frais, setFrais] = useState(String(fraisActuels));
-  const [conditions, setConditions] = useState("");
+  // Une commande déjà proposée repart de ses derniers montants : ressaisir les mêmes
+  // chiffres après un refus du client est le cas le plus fréquent.
+  const initiales = valeursDeReprise({ sousTotalActuel, fraisActuels }, derniereProposition);
+  const [sousTotal, setSousTotal] = useState(initiales.sousTotal);
+  const [frais, setFrais] = useState(initiales.frais);
+  const [conditions, setConditions] = useState(initiales.conditions);
   const [erreur, setErreur] = useState<string | null>(null);
   const [champs, setChamps] = useState<Record<string, string>>({});
   const [enCours, demarrer] = useTransition();
@@ -100,6 +115,11 @@ export function FormulaireProposition({
         Le client devra accepter cette nouvelle version avant toute préparation. En cas de refus ou
         d&apos;absence de réponse à l&apos;échéance, la commande sera annulée sans frais.
       </p>
+      {initiales.reprise ? (
+        <p className="aide-champ" style={{ margin: "0 0 var(--space-3)" }}>
+          Repris de votre proposition précédente : modifiez ce qu&apos;il faut avant d&apos;envoyer.
+        </p>
+      ) : null}
 
       <Input
         label="Nouveau sous-total (GNF)"

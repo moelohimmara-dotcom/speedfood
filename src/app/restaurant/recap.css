@@ -1,0 +1,107 @@
+/* Récapitulatif imprimable de la journée (espace restaurateur).
+   L'écran montre des boutons, la feuille imprimée du texte noir sur blanc :
+   les deux usages ne doivent pas se mélanger. */
+
+.recap-imprimable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.recap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.recap-actions .aide-champ {
+  margin: 0;
+}
+
+.recap-feuille {
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--surface);
+}
+
+.recap-entete {
+  margin-bottom: var(--space-4);
+}
+.recap-entete h2 {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+}
+.recap-entete p {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+
+.recap-vide {
+  margin: 0;
+  color: var(--secondaire);
+}
+
+.recap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.recap-table th,
+.recap-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--bordure);
+  text-align: left;
+}
+.recap-table thead th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--secondaire);
+}
+.recap-num {
+  text-align: right;
+  white-space: nowrap;
+}
+.recap-table tfoot th,
+.recap-table tfoot td {
+  border-bottom: none;
+  border-top: 2px solid var(--encre);
+  font-weight: 800;
+}
+.recap-total {
+  font-size: 1rem;
+}
+
+/* --- Impression : une feuille, sans interface --- */
+@media print {
+  /* Tout sauf le récapitulatif disparaît : ni barre latérale, ni barre de navigation. */
+  body * {
+    visibility: hidden;
+  }
+  .recap-feuille,
+  .recap-feuille * {
+    visibility: visible;
+  }
+  .recap-feuille {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: none;
+    padding: 0;
+  }
+  /* Le bouton d'impression n'a rien à faire sur la feuille. */
+  .recap-actions {
+    display: none;
+  }
+  .recap-table {
+    font-size: 11pt;
+  }
+  .recap-table thead {
+    display: table-header-group;
+  }
+  .recap-table tr {
+    break-inside: avoid;
+  }
+}

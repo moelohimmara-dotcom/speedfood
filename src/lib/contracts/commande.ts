@@ -230,6 +230,8 @@ export interface ApercuCommandeRestaurant {
   creeLe: string;
   lignes: LigneCommandeApercu[];
   propositionActive: PropositionRevisee | null;
+  /** Toutes les propositions de cette commande, de la plus récente à la plus ancienne. */
+  propositions: PropositionRevisee[];
   paiementStatut: StatutPaiement;
   paiementMode: ModePaiement | null;
   paiementReference: string | null;

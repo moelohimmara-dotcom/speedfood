@@ -672,6 +672,29 @@
   min-height: 44px;
   font-weight: 700;
 }
+/* Appel explicite du client : visible aussi sur ordinateur, où un lien `tel:` seul ne fait rien. */
+.cmd-contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.cmd-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font-weight: 700;
+  text-decoration: none;
+}
+.cmd-contact:hover {
+  background: var(--creme);
+}
 
 /* --- Commande : choix du mode, bloc de règlement, consentement lisible (lot R5) --- */
 .choix-groupe {

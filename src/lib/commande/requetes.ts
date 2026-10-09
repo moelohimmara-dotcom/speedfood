@@ -247,6 +247,7 @@ export async function chargerApercusCommandes(
         })
       ),
       propositionActive,
+      propositions,
       paiementStatut: versStatutPaiement(commande.paiement_statut),
       paiementMode: versModePaiement(commande.paiement_mode),
       paiementReference: commande.paiement_reference,

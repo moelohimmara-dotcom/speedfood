@@ -11,6 +11,7 @@ import { origineDuSite } from "@/lib/partage/origine";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
 import { ListeDemarrage } from "@/components/ListeDemarrage";
+import { RecapitulatifJour } from "@/components/restaurant/RecapitulatifJour";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille, Volet } from "@/components/admin/blocs";
 import { GraphiqueBarresJours, Legende, COULEURS_CATEGORIE, LIBELLES_CATEGORIE, Tendance, Variation } from "@/components/admin/graphiques";
 import { comparerPeriodes, construireJours, tauxAcceptation, variation, type LigneSerie } from "@/lib/system-admin/pilotageCalculs";
@@ -249,6 +250,10 @@ export default async function AccueilConsolePage() {
           </p>
         </Volet>
       </div>
+
+      <Panneau titre="Ma journée sur papier">
+        <RecapitulatifJour restaurantNom={restaurant?.nom ?? "Votre restaurant"} commandes={commandes} jours={PERIODE} />
+      </Panneau>
     </div>
   );
 }

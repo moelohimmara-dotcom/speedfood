@@ -9,6 +9,7 @@ import { AdminMenuMobile } from "@/components/admin/AdminMenuMobile";
 import { IconeAdmin } from "@/components/admin/icones";
 import { NavRestaurantBas, NavRestaurantCote } from "@/components/restaurant/NavRestaurant";
 import { lireClesVapid } from "@/lib/push/envoi";
+import "../recap.css";
 
 /**
  * Espace restaurateur (refonte du 4 octobre 2026) : même squelette que l'administration (barre latérale sombre sur grand écran,
