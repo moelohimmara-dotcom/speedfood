@@ -54,6 +54,7 @@ Règles :
 - Si le prix est illisible ou absent, mets null pour ce plat : ne devine JAMAIS un prix.
 - La description est courte (15 mots maximum), à partir du texte visible sur la photo. Si rien n'est écrit, laisse-la vide.
 - La section est le nom d'un regroupement visible sur la photo (Entrées, Poissons, Boissons...). Sinon null.
+- Relis la photo DE BOUT EN BOUT avant de répondre : liste toutes les lignes, y compris les boissons, les desserts et les suppléments. Une carte a rarement moins de dix lignes.
 - Ne déduis rien, n'invente rien : uniquement ce qui est écrit ou clairement lisible sur la photo.
 - Ne réponds qu'avec du JSON, sans texte avant ni après, sans bloc de code.`;
 

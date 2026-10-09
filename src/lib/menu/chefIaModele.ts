@@ -14,21 +14,22 @@ import { construireConsigne } from "./chefMenu";
  * qui varie d'un compte à l'autre. Un appel qui ne dépend que d'un nom de
  * modèle nous mettrait à l'arrêt dès qu'un de eux devient indisponible.
  *
- * On essaie donc les modèles dans l'ordre, et on ne bascule au suivant que si
- * le précédent échoue. Chaque tentative échouée est journalisée avec sa cause
- * dans les logs du Worker (réservés à l'équipe) : sans cela, une régression
- * silencieuse pourrait faire tomber toute la fonction sans qu'on sache
- * pourquoi.
+ * Les noms eux-mêmes sont encore moins stables : au sondage du 9 octobre 2026,
+ * `@cf/moondream/moondream3.1-9B-A2B` répondait sans erreur mais renvoyait un
+ * objet vide (même sans image), et `@cf/llava-hf/...`, `@cf/qwen/qwen*-vl-*`
+ * comme `@cf/google/gemma-3-27b-it` n'existaient plus. D'où le principe : on
+ * essaie dans l'ordre, on ne bascule au suivant que sur échec, et **chaque
+ * échec est journalisé avec sa cause**. Sans cela, une régression silencieuse
+ * pourrait faire tomber toute la fonction sans qu'on sache pourquoi.
  *
  * ## Choix des modèles
  *
- * 1. **moondream3.1-9B-A2B** — modèle d'UC Berkeley construit pour l'OCR et la
- *    sortie structurée, 2B paramètres actifs seulement (donc bon marché en
- *    neurones), et sans porte de licence. C'est le modèle le mieux aligné avec
- *    le besoin : lire des prix sur une image.
- * 2. **llama-3.2-11b-vision-instruct** — plus fort sur le raisonnement visuel
- *    général, mais conditionné à l'acceptation de licence. On le garde en
- *    repli pour les cartes dont le texte est vraiment difficile.
+ * 1. **llama-4-scout-17b-16e-instruct** — multimodal, sans porte de licence,
+ *    et vérifié bon sur une vraie carte : il a lu les prix, respecté la ligne
+ *    sans prix (`prix: null`) et restitué les sections.
+ * 2. **llama-3.2-11b-vision-instruct** — repli, à condition que la licence
+ *    Meta ait été acceptée sur le compte. On garde sa forme d'appel d'origine
+ *    (parties `text`/`image`), différente de celle du premier.
  *
  * Le secret d'API éventuel ne vit pas ici : le binding `AI` déclaré dans
  * wrangler.jsonc suffit et ne peut pas être exfiltré depuis le code
@@ -46,19 +47,42 @@ interface ModeleVision {
   texte(reponse: Record<string, unknown>): string | null;
 }
 
+/**
+ * Ces modèles sont servis derrière une API de type OpenAI, dont le texte vit
+ * dans `choices[0].message.content`. Les autres emplacements sont lus aussi :
+ * la forme du retour change plus vite que les déploiements, et on a déjà été
+ * surpris (`response` pour l'un, `answer` pour un autre).
+ */
+function texteOpenAi(reponse: Record<string, unknown>): string | null {
+  const choix = reponse.choices as { message?: { content?: unknown } }[] | undefined;
+  const contenu = choix?.[0]?.message?.content;
+  if (typeof contenu === "string" && contenu.trim()) return contenu;
+  for (const clef of ["response", "answer"] as const) {
+    const valeur = reponse[clef];
+    if (typeof valeur === "string" && valeur.trim()) return valeur;
+  }
+  return null;
+}
+
 const MODELES: ModeleVision[] = [
   {
-    id: "@cf/moondream/moondream3.1-9B-A2B",
+    id: "@cf/meta/llama-4-scout-17b-16e-instruct",
     construire: (image) => ({
-      task: "query",
-      image,
-      question: construireConsigne(),
-      // Le raisonnement trace coûte des tokens pour rien ici : on veut la
-      // réponse, pas le chemin qu'elle a emprunté.
-      reasoning: false,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: construireConsigne() },
+            // `detail` est exigé par l'API : sans lui, l'appel est refusé sur une
+            // erreur de validation (« Field required: detail »). C'est le
+            // réglage « haute précision » du modèle.
+            { type: "input_image", detail: "high", image_url: image },
+          ],
+        },
+      ],
       max_tokens: MAX_TOKENS,
     }),
-    texte: (reponse) => (typeof reponse.answer === "string" ? reponse.answer : null),
+    texte: texteOpenAi,
   },
   {
     id: "@cf/meta/llama-3.2-11b-vision-instruct",
@@ -74,7 +98,7 @@ const MODELES: ModeleVision[] = [
       ],
       max_tokens: MAX_TOKENS,
     }),
-    texte: (reponse) => (typeof reponse.response === "string" ? reponse.response : null),
+    texte: texteOpenAi,
   },
 ];
 
