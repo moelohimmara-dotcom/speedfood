@@ -3,13 +3,16 @@
 import { useActionState, useState } from "react";
 import {
   analyserMenuPhotoAction,
-  etatChefIaInitial,
   importerPlatsChefIaAction,
   type EtatChefIa,
   type PlatPropose,
 } from "@/lib/menu/actions";
 import { Alert, Button } from "@/components/ui";
 import { reduireImage } from "@/lib/menu/reduireImage";
+
+// Le fichier des actions est en « use server » : il n'exporte que des
+// fonctions asynchrones, l'état initial est donc déclaré ici.
+const etatChefIaInitial: EtatChefIa = {};
 
 /**
  * Â« Chef IA Â» : le restaurateur photographie son menu (ardoise, feuille

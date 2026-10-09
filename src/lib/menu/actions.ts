@@ -320,7 +320,9 @@ export interface EtatChefIa {
   importes?: number;
 }
 
-export const etatChefIaInitial: EtatChefIa = {};
+// Pas de constante d'état initiale ici : ce fichier est en « use server », qui
+// n'accepte que des fonctions asynchrones comme export. `ChefIA.tsx` définit
+// donc son propre état initial, typé avec l'interface ci-dessus.
 
 /**
  * Étape 1 — la photo. Elle est analysée puis JETÉE : elle ne va ni dans le

@@ -23,7 +23,11 @@
   // jour, pour une base de 8 restaurants). Le quota est par PROJET, pas par
   // restaurant : c'est la raison du limiteur par restaurant côté serveur.
   "ai": {
-    "binding": "AI"
+    "binding": "AI",
+    // L'inférence est toujours distante, même en développement local : le dire
+    // évite l'avertissement de wrangler et surtout rappelle que `next dev`
+    // consomme le même quota que la production.
+    "remote": true
   },
   // Valeurs publiques uniquement (clé anon soumise aux policies RLS, sans
   // risque à exposer — voir .env.example). Les secrets réels (clé service-role,
