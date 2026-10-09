@@ -15,14 +15,14 @@ import { reduireImage } from "@/lib/menu/reduireImage";
 const etatChefIaInitial: EtatChefIa = {};
 
 /**
- * Â« Chef IA Â» : le restaurateur photographie son menu (ardoise, feuille
- * imprimÃ©e, carte de la vitrine) et l'assistant en tire une liste de plats.
+ * « Chef IA » : le restaurateur photographie son menu (ardoise, feuille
+ * imprimée, carte de la vitrine) et l'assistant en tire une liste de plats.
  *
- * Le principe de la feature tient en une phrase : RIEN n'est Ã©crit sans que le
- * restaurateur l'ait vu. Un modÃ¨le vision se trompe de prix, de virgule et
- * parfois de plat entier ; Ã©crire sa sortie directement en base reviendrait Ã 
- * publier un menu faux au nom du restaurateur. D'oÃ¹ les trois Ã©tapes :
- * photo â†’ relecture modifiable â†’ ajout.
+ * Le principe de la feature tient en une phrase : RIEN n'est écrit sans que le
+ * restaurateur l'ait vu. Un modèle vision se trompe de prix, de virgule et
+ * parfois de plat entier ; écrire sa sortie directement en base reviendrait à
+ * publier un menu faux au nom du restaurateur. D'où les trois étapes :
+ * photo → relecture modifiable → ajout.
  */
 
 interface LigneRelecture {
@@ -31,7 +31,7 @@ interface LigneRelecture {
   description: string;
   prix: string;
   section_id: string;
-  /** LibellÃ© Ã©crit par le modÃ¨le quand il n'a su rattacher la ligne Ã  aucune section. */
+  /** Libellé écrit par le modèle quand il n'a su rattacher la ligne à aucune section. */
   section: string | null;
   garde: boolean;
 }
@@ -41,10 +41,10 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
   const [nomFichier, setNomFichier] = useState("");
 
   /**
-   * La photo est rÃ©duite ICI, dans le navigateur, avant l'envoi, et pas par
-   * l'action : un modÃ¨le vision est facturÃ© au nombre de pixels, et une photo
-   * de smartphone brute (12 Mpx) coÃ»terait plusieurs fois plus pour le mÃªme
-   * rÃ©sultat. 1 500 px suffisent largement Ã  lire une carte.
+   * La photo est réduite ICI, dans le navigateur, avant l'envoi, et pas par
+   * l'action : un modèle vision est facturé au nombre de pixels, et une photo
+   * de smartphone brute (12 Mpx) coûterait plusieurs fois plus pour le même
+   * résultat. 1 600 px suffisent largement à lire une carte.
    */
   async function envoyer(saisie: FormData) {
     const fichier = saisie.get("photo");
@@ -59,15 +59,15 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
       <summary>Lire mon menu avec l&apos;assistant</summary>
       <div className="saisie-lot-corps">
         <p className="aide-champ" style={{ margin: 0 }}>
-          Photographiez votre menu : ardoise, feuille imprimÃ©e ou carte de vitrine.
+          Photographiez votre menu : ardoise, feuille imprimée ou carte de vitrine.
           L&apos;assistant propose les plats et leurs prix, vous relisez tout avant
-          l&apos;enregistrement. La photo n&apos;est pas conservÃ©e.
+          l&apos;enregistrement. La photo n&apos;est pas conservée.
         </p>
         <form
           onSubmit={(e) => {
-            // Pas d'action de formulaire : la photo doit Ãªtre rÃ©duite avant
-            // d'Ãªtre envoyÃ©e (voir `envoyer`), sinon c'est l'original de
-            // plusieurs mÃ©gaoctets qui part au modÃ¨le.
+            // Pas d'action de formulaire : la photo doit être réduite avant
+            // d'être envoyée (voir `envoyer`), sinon c'est l'original de
+            // plusieurs mégaoctets qui part au modèle.
             e.preventDefault();
             void envoyer(new FormData(e.currentTarget));
           }}
@@ -81,18 +81,20 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
               accept="image/jpeg,image/png,image/webp"
               onChange={(e) => setNomFichier(e.target.files?.[0]?.name ?? "")}
             />
-            <p className="aide-champ">JPEG, PNG ou WebP. La photo est rÃ©duite avant l&apos;envoi.</p>
+            <p className="aide-champ">
+              JPEG, PNG ou WebP. La photo est réduite avant l&apos;envoi.
+            </p>
           </div>
           {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
           <Button type="submit" pleineLargeur disabled={enCours || !nomFichier}>
-            {enCours ? "Lecture en cours, quelques secondesâ€¦" : "Lire le menu"}
+            {enCours ? "Lecture en cours, quelques secondes…" : "Lire le menu"}
           </Button>
         </form>
 
         {etat.plats && etat.plats.length > 0 ? (
           <Relecture
-            // La clÃ© force le remontage Ã  chaque nouvelle analyse : la table de
-            // relecture repart de zÃ©ro sans avoir Ã  recopier l'Ã©tat Ã  la main
+            // La clé force le remontage à chaque nouvelle analyse : la table de
+            // relecture repart de zéro sans avoir à recopier l'état à la main
             // dans un effet (cf. les cascades de setState, ADR des hooks).
             key={etat.plats.map((p) => `${p.cle}:${p.nom}`).join("|")}
             plats={etat.plats}
@@ -104,8 +106,8 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
 
         {etat.plats && etat.plats.length === 0 ? (
           <Alert ton="info">
-            Aucun plat lisible sur cette photo. Photographiez-la de plus prÃ¨s, Ã  plat, avec une
-            lumiÃ¨re franche.
+            Aucun plat lisible sur cette photo. Photographiez-la de plus près, à plat, avec une
+            lumière franche.
           </Alert>
         ) : null}
       </div>
@@ -113,7 +115,7 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
   );
 }
 
-/** Ã‰tape 2 : la relecture. Tout est modifiable, et rien n'est cochÃ© par dÃ©faut pour un prix illisible. */
+/** Étape 2 : la relecture. Tout est modifiable, plat par plat. */
 function Relecture({
   plats,
   refuses,
@@ -150,8 +152,9 @@ function Relecture({
     return (
       <div className="chef-ia-apercu">
         <Alert ton="succes" role="status">
-          {etat.importes} plat{etat.importes > 1 ? "s" : ""} ajoutÃ©{etat.importes > 1 ? "s" : ""} Ã 
-          votre menu. Ajoutez une photo Ã  chacun pour qu&apos;ils donnent envie.
+          {etat.importes} plat{etat.importes > 1 ? "s" : ""} ajouté
+          {etat.importes > 1 ? "s" : ""} à votre menu. Ajoutez une photo à chacun pour
+          qu&apos;ils donnent envie.
         </Alert>
       </div>
     );
@@ -173,10 +176,12 @@ function Relecture({
       />
 
       <p className="saisie-lot-titre">
-        {retenues.length} plat{retenues.length > 1 ? "s" : ""} Ã  ajouter â€” corrigez ce qui est faux
+        {retenues.length} plat{retenues.length > 1 ? "s" : ""} à ajouter — corrigez ce qui est
+        faux
       </p>
       <p className="aide-champ">
-        VÃ©rifiez surtout les prix : l&apos;assistant les lit sur l&apos;image, il ne les connaÃ®t pas.
+        Vérifiez surtout les prix : l&apos;assistant les lit sur l&apos;image, il ne les
+        connaît pas.
       </p>
 
       <ul className="chef-ia-lignes">
@@ -188,7 +193,7 @@ function Relecture({
                 checked={ligne.garde}
                 onChange={(e) => changer(ligne.cle, { garde: e.target.checked })}
               />
-              <span className="sr-only">Ajouter ce plat</span>
+              <span className="sr-only">Ajouter {ligne.nom}</span>
             </label>
             <div className="chef-ia-champs">
               <input
@@ -199,10 +204,12 @@ function Relecture({
               />
               <div className="chef-ia-ligne-bas">
                 <label>
-                  <span className="sr-only">Prix du plat</span>
+                  <span className="sr-only">Prix de {ligne.nom}</span>
                   <input
                     value={ligne.prix}
-                    onChange={(e) => changer(ligne.cle, { prix: e.target.value.replace(/\D/g, "") })}
+                    onChange={(e) =>
+                      changer(ligne.cle, { prix: e.target.value.replace(/\D/g, "") })
+                    }
                     inputMode="numeric"
                     aria-label={`Prix de ${ligne.nom}`}
                   />
@@ -222,7 +229,7 @@ function Relecture({
               </div>
               {ligne.section && !ligne.section_id ? (
                 <p className="chef-ia-note">
-                  Â« {ligne.section} Â» sur la photo ne correspond Ã  aucune de vos sections : rangÃ©
+                  « {ligne.section} » sur la photo ne correspond à aucune de vos sections : rangé
                   sans section.
                 </p>
               ) : null}
@@ -233,19 +240,21 @@ function Relecture({
 
       {sectionsInconnues.length > 0 ? (
         <p className="chef-ia-note">
-          Sections vues sur la photo, Ã  crÃ©er si vous le souhaitez : {sectionsInconnues.join(", ")}.
+          Sections vues sur la photo, à créer si vous le souhaitez :{" "}
+          {sectionsInconnues.join(", ")}.
         </p>
       ) : null}
 
       {refuses && refuses.length > 0 ? (
         <details className="chef-ia-refuses">
           <summary>
-            {refuses.length} ligne{refuses.length > 1 ? "s" : ""} non reprise{refuses.length > 1 ? "s" : ""}
+            {refuses.length} ligne{refuses.length > 1 ? "s" : ""} non reprise
+            {refuses.length > 1 ? "s" : ""}
           </summary>
           <ul>
             {refuses.map((refus, index) => (
               <li key={`${refus.brut}-${index}`}>
-                {refus.brut} â€” {refus.raison}
+                {refus.brut} — {refus.raison}
               </li>
             ))}
           </ul>
@@ -254,7 +263,7 @@ function Relecture({
 
       {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
       <Button type="submit" pleineLargeur disabled={enCours || retenues.length === 0}>
-        {enCours ? "Ajoutâ€¦" : `Ajouter ${retenues.length} plat${retenues.length > 1 ? "s" : ""}`}
+        {enCours ? "Ajout…" : `Ajouter ${retenues.length} plat${retenues.length > 1 ? "s" : ""}`}
       </Button>
     </form>
   );
