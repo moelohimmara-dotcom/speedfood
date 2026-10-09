@@ -85,10 +85,13 @@ export async function lireMenuAvecIA(imageEnDataUrl: string): Promise<string> {
       { gateway: { error_summarization: true } }
     );
   } catch (erreur) {
-    // Quota épuisé, modèle indisponible ou timeout : le message technique ne
-    // doit jamais arriver tel quel sur l'écran du restaurateur (il peut contenir
-    // des identifiants de déploiement).
-    console.error("chef_ia_appel_modele_echoue", erreur instanceof Error ? erreur.name : "inconnu");
+    // Le message reste dans les journaux du Worker (accessibles à la seule
+    // équipe Speedfood) ; le restaurateur, lui, ne voit que la phrase
+    // ci-dessous, qui ne peut rien divulguer du déploiement.
+    console.error(
+      "chef_ia_appel_modele_echoue",
+      erreur instanceof Error ? `${erreur.name}: ${erreur.message}` : String(erreur)
+    );
     throw new ErreurMetier(
       "ERREUR_SERVEUR",
       "L'assistant n'a pas pu lire la photo. Réessayez dans un instant, ou ajoutez vos plats à la main."
