@@ -4,6 +4,7 @@ import { Button, Card } from "@/components/ui";
 import { PlatItem } from "./PlatItem";
 import { FormulairePlat } from "./FormulairePlat";
 import { AjoutEnLot } from "./AjoutEnLot";
+import { ChefIA } from "./ChefIA";
 import { SectionsMenu } from "./SectionsMenu";
 import { confirmerToutesDisponibilitesAction } from "@/lib/menu/actions";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
@@ -241,6 +242,9 @@ export default async function MenuPage() {
           </Card>
           <Card>
             <AjoutEnLot sections={sectionsListe} prixMax={prixPlatMaxGnf} />
+          </Card>
+          <Card>
+            <ChefIA sections={sectionsListe} />
           </Card>
           <SectionsMenu sections={sectionsListe} />
         </aside>

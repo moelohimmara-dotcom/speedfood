@@ -17,6 +17,14 @@
       "service": "speedfood-app"
     }
   ],
+  // Workers AI — « Chef IA » (photo de menu → plats), voir src/lib/menu/chefIaModele.ts.
+  // Binding sans clé d'API : l'inférence est incluse dans l'offre gratuite
+  // (10 000 neurons/jour, ce qui couvre ~178 analyses de menu de 30 plats par
+  // jour, pour une base de 8 restaurants). Le quota est par PROJET, pas par
+  // restaurant : c'est la raison du limiteur par restaurant côté serveur.
+  "ai": {
+    "binding": "AI"
+  },
   // Valeurs publiques uniquement (clé anon soumise aux policies RLS, sans
   // risque à exposer — voir .env.example). Les secrets réels (clé service-role,
   // clé de dérivation des jetons) sont configurés via `wrangler secret put`,

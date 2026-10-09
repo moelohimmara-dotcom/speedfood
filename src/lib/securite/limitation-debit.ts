@@ -58,6 +58,13 @@ export const LIMITE_TELEVERSEMENT_PAR_RESTAURANT: RegleLimite = { nom: "televers
 // Déclarations de paiement par le client (lien de suivi) : on ne peut pas inonder le restaurateur de fausses déclarations.
 export const LIMITE_DECLARATION_PAIEMENT_PAR_IP: RegleLimite = { nom: "paiement-ip", max: 20, fenetreSecondes: 600 };
 
+// « Chef IA » : chaque analyse consomme le quota Workers AI du PROJET (10 000
+// neurons/jour sur l'offre gratuite), pas celui du restaurant. Sans ce
+// limiteur, un seul restaurateur très bavard épuiserait la jauge de tous les
+// autres — un budget partagé doit être protégé du même geste que les autres
+// ressources rares (téléversements, tentatives de connexion).
+export const LIMITE_CHEF_IA_PAR_RESTAURANT: RegleLimite = { nom: "chef-ia-resto", max: 20, fenetreSecondes: 3600 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -127,6 +134,10 @@ export async function limiterRecuperationMotDePasse(email: string): Promise<void
 
 export async function limiterTeleversement(restaurantId: string): Promise<void> {
   await appliquerLimite(LIMITE_TELEVERSEMENT_PAR_RESTAURANT, restaurantId);
+}
+
+export async function limiterChefIa(restaurantId: string): Promise<void> {
+  await appliquerLimite(LIMITE_CHEF_IA_PAR_RESTAURANT, restaurantId);
 }
 
 export async function limiterEssaiPush(utilisateurId: string): Promise<void> {

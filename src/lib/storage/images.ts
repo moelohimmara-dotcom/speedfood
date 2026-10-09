@@ -44,15 +44,16 @@ function signatureCorrespond(o: Uint8Array, type: string): boolean {
 export type DossierMedia = "restaurants" | "plats" | "bannieres" | "logos" | "studio";
 
 /**
- * Valide et téléverse une image, renvoie son URL publique.
- * Lève `ErreurMetier("VALIDATION", ...)` si le fichier est absent, d'un type
- * non autorisé, ou trop volumineux.
+ * Contrôles appliqués à toute image AVANT d'en écrire quoi que ce soit : type
+ * MIME, taille, et surtout la SIGNATURE RÉELLE des premiers octets (un type
+ * MIME déclaré par le navigateur ne prouve rien — revue de sécurité, point 14).
+ *
+ * Séparé du téléversement pour être réutilisable là où l'image n'est pas
+ * conservée : le « Chef IA » analyse une photo de menu puis la jette, et il
+ * doit passer exactement les mêmes contrôles que celle qui finit dans le
+ * bucket.
  */
-export async function televerserImage(
-  fichier: File | null,
-  dossier: DossierMedia,
-  restaurantId?: string
-): Promise<string> {
+export async function validerImage(fichier: File | null): Promise<{ extension: string }> {
   if (!fichier || fichier.size === 0) {
     throw new ErreurMetier("VALIDATION", "Aucun fichier reçu.", { image: "Choisissez une image." });
   }
@@ -66,27 +67,38 @@ export async function televerserImage(
       image: "Fichier trop volumineux.",
     });
   }
-
-  // Le type MIME déclaré par le navigateur ne prouve rien : on vérifie la signature
-  // réelle du fichier (revue de sécurité, point 14).
   const entete = new Uint8Array(await fichier.slice(0, 12).arrayBuffer());
   if (!signatureCorrespond(entete, fichier.type)) {
     throw new ErreurMetier("VALIDATION", "Le fichier n'est pas une image valide.", {
       image: "Fichier invalide.",
     });
   }
+  return { extension: EXTENSIONS_PAR_TYPE[fichier.type] };
+}
+
+/**
+ * Valide et téléverse une image, renvoie son URL publique.
+ * Lève `ErreurMetier("VALIDATION", ...)` si le fichier est absent, d'un type
+ * non autorisé, ou trop volumineux.
+ */
+export async function televerserImage(
+  fichier: File | null,
+  dossier: DossierMedia,
+  restaurantId?: string
+): Promise<string> {
+  const { extension } = await validerImage(fichier);
+  const fichierValide = fichier as File;
 
   // Quota d'envois par restaurant (audit du 4 octobre 2026), compté seulement pour un fichier valide.
   if (restaurantId) {
     await limiterTeleversement(restaurantId);
   }
 
-  const extension = EXTENSIONS_PAR_TYPE[fichier.type];
   const chemin = `${dossier}/${randomUUID()}.${extension}`;
 
   const admin = creerClientAdmin();
-  const { error } = await admin.storage.from("medias").upload(chemin, fichier, {
-    contentType: fichier.type,
+  const { error } = await admin.storage.from("medias").upload(chemin, fichierValide, {
+    contentType: fichierValide.type,
     upsert: false,
   });
 

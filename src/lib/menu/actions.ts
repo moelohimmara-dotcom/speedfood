@@ -5,10 +5,17 @@ import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
-import { televerserImage, supprimerImage, supprimerTeleversementOrphelin } from "@/lib/storage/images";
+import { televerserImage, supprimerImage, supprimerTeleversementOrphelin, validerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { lireChoixOuverture } from "./ouverture";
 import { lirePlatsEnLot, PLATS_MAX_PAR_LISTE } from "./saisieRapide";
+import { lireMenuAvecIA } from "./chefIaModele";
+import {
+  analyserReponseModele,
+  PLATS_MAX_PAR_ANALYSE,
+  type PlatRefuse,
+} from "./chefMenu";
+import { limiterChefIa } from "@/lib/securite/limitation-debit";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
@@ -283,7 +290,168 @@ export async function basculerDisponibiliteAction(id: string, disponible: boolea
     .eq("restaurant_id", membership.restaurant_id);
 
   revalidatePath("/restaurant/menu");
+}
+
+/* ------------------------------------------------------------------ *
+ * « Chef IA » : photo de menu → plats, avec relecture humaine
+ * ------------------------------------------------------------------ */
+
+/**
+ * Un plat proposé au restaurateur, prêt à être corrigé puis validé. `cle` sert
+ * d'identifiant de ligne dans le tableau de relecture (le navigateur, pas le
+ * modèle, ne connaît que ça) ; `section` conserve le libellé écrit par le
+ * modèle pour l'affichage quand rien de ce qu'il a écrit ne correspond à une
+ * section existante.
+ */
+export interface PlatPropose {
+  cle: string;
+  nom: string;
+  description: string;
+  prix: number;
+  section: string | null;
+  section_id: string | null;
+}
+
+export interface EtatChefIa {
+  erreur?: string;
+  plats?: PlatPropose[];
+  refuses?: PlatRefuse[];
+  sectionsInconnues?: string[];
+  importes?: number;
+}
+
+export const etatChefIaInitial: EtatChefIa = {};
+
+/**
+ * Étape 1 — la photo. Elle est analysée puis JETÉE : elle ne va ni dans le
+ * stockage ni en base. Seule la liste de plats est conservée, et encore
+ * uniquement dans la réponse de l'action, le temps que le restaurateur la
+ * relise. C'est ce qui permet de promettre « votre photo n'est pas conservée »
+ * sans avoir à le prouver plus tard.
+ */
+export async function analyserMenuPhotoAction(
+  _etatPrecedent: EtatChefIa,
+  formData: FormData
+): Promise<EtatChefIa> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+
+  const fichier = formData.get("photo");
+  try {
+    await validerImage(fichier instanceof File ? fichier : null);
+  } catch (erreur) {
+    return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Cette photo n'a pas pu être lue." };
+  }
+  const image = fichier as File;
+
+  // Le quota Workers AI est partagé par TOUS les restaurants du projet : c'est
+  // le rare cas où la dépense doit être bornée ici, avant même d'appeler le modèle.
+  try {
+    await limiterChefIa(membership.restaurant_id);
+  } catch (erreur) {
+    return { erreur: erreur instanceof ErreurMetier ? erreur.message : "Trop d'analyses en peu de temps." };
+  }
+
+  const enDataUrl = `data:${image.type};base64,${Buffer.from(await image.arrayBuffer()).toString("base64")}`;
+
+  let reponse: string;
+  try {
+    reponse = await lireMenuAvecIA(enDataUrl);
+  } catch (erreur) {
+    return { erreur: erreur instanceof ErreurMetier ? erreur.message : "La photo n'a pas pu être analysée." };
+  }
+
+  const supabase = await creerClientServeur();
+  const [{ data: sections }, { prixPlatMaxGnf }] = await Promise.all([
+    supabase.from("menu_sections").select("id, nom").eq("restaurant_id", membership.restaurant_id),
+    obtenirParametresApplication(),
+  ]);
+
+  const analyse = analyserReponseModele(reponse, {
+    prixMax: prixPlatMaxGnf,
+    sections: sections ?? [],
+  });
+
+  return {
+    plats: analyse.plats.map((plat, index) => ({ ...plat, cle: `c${index}` })),
+    refuses: analyse.refuses,
+    sectionsInconnues: analyse.sectionsInconnues,
+  };
+}
+
+/**
+ * Étape 2 — l'import. Les plats reviennent du NAVIGATEUR : ce sont des
+ * données non fiables, exactement comme un formulaire. Chaque champ est donc
+ * relu avec les mêmes règles que `creerPlatAction`, et la section est
+ * revérifiée comme appartenant à ce restaurant (défense en profondeur, même
+ * geste que `lireEtValiderSection`).
+ */
+export async function importerPlatsChefIaAction(
+  _etatPrecedent: EtatChefIa,
+  formData: FormData
+): Promise<EtatChefIa> {
+  const { membership } = await obtenirContexteRestaurant("/restaurant/menu");
+
+  let recus: unknown;
+  try {
+    recus = JSON.parse(String(formData.get("plats") ?? "[]"));
+  } catch {
+    return { erreur: "La liste de plats est introuvable. Relancez l'analyse." };
+  }
+  if (!Array.isArray(recus) || recus.length === 0) {
+    return { erreur: "Aucun plat à ajouter." };
+  }
+  if (recus.length > PLATS_MAX_PAR_ANALYSE) {
+    return { erreur: `Vous ne pouvez pas ajouter plus de ${PLATS_MAX_PAR_ANALYSE} plats d'un coup.` };
+  }
+
+  const supabase = await creerClientServeur();
+  const [{ prixPlatMaxGnf }, { data: sections }] = await Promise.all([
+    obtenirParametresApplication(),
+    supabase.from("menu_sections").select("id").eq("restaurant_id", membership.restaurant_id),
+  ]);
+  const idsSections = new Set((sections ?? []).map((s) => s.id));
+
+  const aInserer: {
+    restaurant_id: string;
+    nom: string;
+    description: string;
+    prix: number;
+    section_id: string | null;
+  }[] = [];
+
+  for (const entree of recus) {
+    if (typeof entree !== "object" || entree === null) continue;
+    const champ = entree as Record<string, unknown>;
+    const nom = String(champ.nom ?? "").replace(/\s+/g, " ").trim();
+    if (!nom || nom.length > 120) continue;
+    const description = String(champ.description ?? "").replace(/\s+/g, " ").trim().slice(0, 500);
+    const prix = Number.parseInt(String(champ.prix ?? ""), 10);
+    if (!Number.isFinite(prix) || prix < 0 || prix > prixPlatMaxGnf) continue;
+    const sectionBrute = String(champ.section_id ?? "").trim();
+    // Section inconnue du restaurant = plat non classé, jamais une section
+    // appartenant à quelqu'un d'autre.
+    const sectionId = sectionBrute && idsSections.has(sectionBrute) ? sectionBrute : null;
+    aInserer.push({
+      restaurant_id: membership.restaurant_id,
+      nom,
+      description,
+      prix,
+      section_id: sectionId,
+    });
+  }
+
+  if (aInserer.length === 0) {
+    return { erreur: "Aucun plat valide dans la liste. Vérifiez les prix." };
+  }
+
+  const { error } = await supabase.from("menu_items").insert(aInserer);
+  if (error) {
+    return { erreur: "Impossible d'ajouter les plats. Réessayez dans un instant." };
+  }
+
+  revalidatePath("/restaurant/menu");
   revalidatePath("/restaurant");
+  return { importes: aInserer.length };
 }
 
 /**
