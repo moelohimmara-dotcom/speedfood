@@ -68,20 +68,24 @@ export default async function EntrerPage({
         </Alert>
       ) : null}
 
-      {/* Choix du mode d'inscription */}
-      <div className="choix-inscription" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-        <Card className="choix-carte" style={{ border: "2px solid var(--bordure)" }}>
-          <h3 style={{ marginTop: 0, fontSize: "1.1rem" }}>📝 Formulaire complet</h3>
-          <p className="aide-champ" style={{ marginBottom: "var(--space-3)" }}>
+      {/* Deux chemins, un même compte : l'utilisateur choisit librement. */}
+      <div className="inscription-choix">
+        <Card className="inscription-carte">
+          <h3 className="inscription-carte-titre">
+            <span aria-hidden="true">📝</span> Formulaire complet
+          </h3>
+          <p className="aide-champ inscription-carte-resume">
             Nom, téléphone, email, double mot de passe, adresse (résidence, ville, quartier, Guinée par défaut).
           </p>
           <InscriptionCompleteForm suite={suiteSure} />
         </Card>
 
         {actif ? (
-          <Card className="choix-carte" style={{ border: "2px solid var(--bordure)" }}>
-            <h3 style={{ marginTop: 0, fontSize: "1.1rem" }}>📘 Continuer avec Facebook</h3>
-            <p className="aide-champ" style={{ marginBottom: "var(--space-3)" }}>
+          <Card className="inscription-carte">
+            <h3 className="inscription-carte-titre">
+              <span aria-hidden="true">📘</span> Continuer avec Facebook
+            </h3>
+            <p className="aide-champ inscription-carte-resume">
               Un clic, pas de mot de passe &agrave; retenir. Speedfood garde votre pseudo, votre avatar et l&apos;identifiant
               de votre compte Facebook &mdash; jamais vos amis ni vos publications.
             </p>
@@ -90,7 +94,7 @@ export default async function EntrerPage({
               <button type="submit" className="btn btn-facebook btn-block">
                 Continuer avec Facebook
               </button>
-              <p className="aide-champ">
+              <p className="aide-champ inscription-mention">
                 En continuant, vous acceptez que Speedfood garde votre pseudo, votre avatar et l&apos;identifiant de votre
                 compte Facebook. Détails sur la page{" "}
                 <Link href="/confidentialite" className="lien-texte">
@@ -101,17 +105,15 @@ export default async function EntrerPage({
             </form>
           </Card>
         ) : (
-          <Card className="choix-carte" style={{ border: "2px solid var(--muted, var(--bordure))", opacity: 0.7 }}>
-            <h3 style={{ marginTop: 0, fontSize: "1.1rem" }}>📘 Continuer avec Facebook</h3>
-            <p className="aide-champ" style={{ marginBottom: "var(--space-3)" }}>
+          <Card className="inscription-carte inscription-carte--inactive">
+            <h3 className="inscription-carte-titre">
+              <span aria-hidden="true">📘</span> Continuer avec Facebook
+            </h3>
+            <p className="aide-champ inscription-carte-resume">
               Cette option n&apos;est pas encore disponible. Choisissez le formulaire complet ci-dessus.
             </p>
           </Card>
         )}
-
-        <p style={{ textAlign: "center", fontSize: "0.9rem", color: "var(--secondaire)", marginTop: "var(--space-4)" }}>
-          Pas envie de compte ? <Link href="/restaurants" className="lien-texte">Parcourir les restaurants</Link>
-        </p>
       </div>
     </PageCompte>
   );

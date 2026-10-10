@@ -95,7 +95,7 @@ export function InscriptionCompleteForm({ suite }: { suite: string }) {
           <Input label="Quartier" name="quartier" placeholder="Ex: Lambanyi" />
           <Input label="Pays" name="pays" defaultValue="Guinée" readOnly />
         </div>
-        <p className="aide-champ" style={{ marginTop: "var(--space-2)" }}>
+        <p className="aide-champ inscription-mention">
           <strong>Guinée</strong> est sélectionnée par défaut. Ne modifiez le pays que si vous résidez à l&apos;étranger.
         </p>
       </fieldset>
@@ -110,7 +110,7 @@ export function InscriptionCompleteForm({ suite }: { suite: string }) {
         {enCours ? "Création du compte…" : "Créer mon compte"}
       </Button>
 
-      <p className="aide-champ" style={{ textAlign: "center", marginTop: "var(--space-3)" }}>
+      <p className="aide-champ inscription-mention-legal">
         En créant votre compte, vous acceptez nos <Link href="/confidentialite" className="lien-texte">conditions</Link>.
       </p>
     </form>

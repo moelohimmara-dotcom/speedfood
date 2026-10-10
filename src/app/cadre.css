@@ -745,6 +745,73 @@
   }
 }
 
+/* --- Inscription client : deux chemins proposés côte à côte (formulaire ou Facebook) ---
+   Ces classes ne doivent PAS reprendre `.choix-carte` : ce nom appartient déjà aux cartes radio
+   de la commande (`src/app/marche.css`), en `display:flex` horizontal, qui écrasait le formulaire. */
+.inscription-choix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.inscription-carte {
+  display: block;
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.inscription-carte + .inscription-carte {
+  margin-top: var(--space-4);
+}
+.inscription-carte-titre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+}
+.inscription-carte-resume {
+  margin: 0 0 var(--space-4);
+}
+.inscription-carte--inactive {
+  opacity: 0.7;
+  border-style: dashed;
+}
+.inscription-formulaire > .adresse-fieldset {
+  margin-bottom: var(--space-4);
+}
+/* Adresse : deux colonnes tant qu'il y a de la place, une seule sur téléphone. */
+.adresse-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+.adresse-fieldset legend {
+  padding: 0;
+  font-weight: 700;
+}
+.adresse-grille {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--space-4);
+}
+.adresse-grille .field {
+  min-width: 0;
+}
+.inscription-mention {
+  margin: var(--space-2) 0 0;
+}
+.inscription-mention-legal {
+  margin: var(--space-3) 0 0;
+  text-align: center;
+}
+@media (max-width: 560px) {
+  .adresse-grille {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ==========================================================================
    Fiche restaurant : plats, suppléments, commandes de quantité, résumé du panier
    ========================================================================== */
