@@ -1,80 +1,183 @@
-# Reprise de session : passer le relais à une autre session ou à une autre personne
+# Reprise de projet : continuer Speedfood sans l'auteur
 
-Document rédigé le 4 octobre 2026, à l'issue du lot G. Il permet de continuer le travail sans l'historique de la conversation.
-**Il ne contient aucune valeur secrète** : seulement les noms. Les sources de vérité restent `CLAUDE.md`, `docs/cadrage/` et `docs/STATUT-PROJET.md`.
+Document de référence pour reprendre le projet à froid. Rédigé et mis à jour le **10 octobre 2026**.
+**Il ne contient aucune valeur secrète**, seulement des noms. Sources de vérité complémentaires :
+`CLAUDE.md` (règles), `docs/cadrage/` (mandat, architecture, sécurité), `docs/STATUT-PROJET.md` (journal chronologique).
 
-## 1. Où en est le projet
+> Ce document remplace celui du 4 octobre. En cas de divergence, c'est lui qui fait foi pour l'état actuel ;
+> le journal `docs/STATUT-PROJET.md` reste la mémoire détaillée de ce qui a été fait, lot par lot.
 
-- Production : https://speedfood-app.moelohimmara.workers.dev (Cloudflare Worker `speedfood-app`).
-- Base : projet Supabase `ggldjdizqrtpetdiohxy`. Dernière migration : `20261004094847_textes_accueil`.
-- Dernier commit déployé : `85d9ae9` (lot G), version Worker `d37e9e84-eb4c-4eb4-9f0f-90ec5bc91592`.
-- Tout ce qui est commité est déployé au moment de la rédaction. Vérifier avec `git status` et `git log --oneline`.
-- Détail lot par lot : `docs/STATUT-PROJET.md` (une ligne par lot, avec ce qui est **vérifié** et ce qui est **juste supposé**).
+---
 
-## 2. Commandes utiles (depuis la racine du dépôt)
+## 1. Où en est le projet en 10 minutes
+
+| | |
+|---|---|
+| Dépôt | `C:\Users\moelo\dev\speedfood` — branche `master`, distant `moelohimmara-dotcom/speedfood` |
+| Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
+| Version en ligne | `2379561d-326b-499d-97e3-c4e5064a17ed` (10 octobre 2026, déploiement `99ac44f`) |
+| Base | Supabase `ggldjdizqrtpetdiohxy` — **62 migrations**, dernière `20261007221500_jetons_historique` |
+| État Git | `master` à jour avec `origin/master`, arbre propre |
+
+**Ordre de lecture recommandé**
+
+1. Ce document (état, commandes, pièges).
+2. `CLAUDE.md` § « Règles non négociables » — court, à respecter strictement.
+3. `docs/cadrage/TDR.md` puis `docs/cadrage/ADR.md` (mandat, décisions d'architecture).
+4. La note du chantier en cours (par exemple `docs/INSCRIPTION-CLIENT.md`, `docs/CHEF-IA.md`,
+   `docs/PANIER-INTELLIGENT.md`) — chacun suit le même plan : ce que ça fait, ce qui a été vérifié,
+   ce qui ne l'a pas été.
+
+---
+
+## 2. Commandes
+
+Depuis la racine du dépôt. Sous PowerShell, passer par `cmd /c` pour `npm`/`npx`
+(l'exécution de scripts `.ps1` est bloquée) ; `&&` n'est pas un séparateur valide, enchaîner les commandes.
 
 | Besoin | Commande |
 |---|---|
-| Types | `npx tsc --noEmit` (si erreurs dans `.next/dev/types`, supprimer ce dossier et relancer) |
+| Serveur local | `npm run dev` |
+| Types | `cmd /c "npx tsc --noEmit"` |
 | Lint | `npm run lint` |
-| Tests purs | `npm run test:unit` (tous doivent passer ; les sources sont copiées avec suffixe `.ts`, voir `scripts/tests/lancer.mjs`) |
-| Serveur local | `npm run dev` (ou l'outil de prévisualisation, configuration `dev`) |
-| Construire pour Cloudflare | `npm run cf:build` |
-| Déployer | `npx wrangler deploy` (après `cf:build`). **Seulement avec le feu vert explicite de Malika.** |
-| Rejouer les migrations | `cd supabase/rejeu && npm run rejeu`, puis comparer les 7 signatures avec la production (requête `supabase/rejeu/signature.sql` exécutée sur la base de production) |
-| Icônes de l'application | `node scripts/generer-icones.mjs` (source : `public/logo-speedfood.webp`) |
+| Tests purs | `cmd /c "npm run test:unit"` |
+| Construction + déploiement | `cmd /c "npm run cf:deploy"` (~4 à 5 min ; à lancer en tâche de fond) |
+| Construction seule | `npm run cf:build` |
+| Export de sauvegarde | `npm run export:donnees` / `npm run export:verifier` (voir `docs/RUNBOOK-EXPORT.md`) |
+| Icônes de l'application | `node scripts/generer-icones.mjs` |
 
-Si `wrangler` répond « Not logged in » : `npx wrangler login`, puis cliquer sur « Allow » dans le navigateur (Malika le fait elle-même).
+`cf:deploy` exécute d'abord `scripts/verifier-base.mjs`, qui **échoue si une table manque en production** :
+c'est une protection, pas un bug.
 
-## 3. Secrets et variables (noms uniquement)
+Un nouveau fichier de test pur doit être déclaré dans `scripts/tests/lancer.mjs` (liste `copier(...)`
+puis liste des fichiers à exécuter), sinon il n'est jamais lancé.
 
-- `wrangler.jsonc`, section `vars` (publics) : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `COMMANDE_PROPOSITION_DELAI_MINUTES`, `TURNSTILE_SITE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
-- Secrets Cloudflare (jamais dans le dépôt, posés avec `npx wrangler secret put NOM`) : `SUPABASE_SERVICE_ROLE_KEY`, `COMMANDE_JETON_SECRET`, `TURNSTILE_SECRET_KEY`, `VAPID_PRIVATE_KEY`.
-- `.env.local` (ignoré par Git) contient les mêmes valeurs pour le développement. Ne jamais afficher, copier dans un message ni commiter ces valeurs.
-- Changer `COMMANDE_JETON_SECRET` invaliderait tous les liens de suivi déjà envoyés aux clients : ne pas le modifier.
-- Changer `VAPID_PRIVATE_KEY` oblige chaque restaurateur à réactiver l'alerte « page fermée ».
+---
 
-## 4. Règles à respecter (résumé de `CLAUDE.md`)
+## 3. Ce qui a été livré recently (7 → 10 octobre)
 
-- Pas de déploiement en production sans feu vert explicite de Malika dans la conversation.
-- Pas de service externe, de compte ni de coût sans consigne explicite.
-- Toute migration appliquée en base a son fichier dans `supabase/migrations/` **dans le même commit**, avec le **même numéro de version** que celui enregistré en base (le vérifier avec la liste des migrations Supabase). Après une migration touchant RLS ou une fonction `SECURITY DEFINER` : `get_advisors(type: "security")`.
+| Lot | Contenu | Note |
+|---|---|---|
+| Chef IA | Extraction d'un menu depuis une photo (Workers AI, `llama-4-scout-17b-16e-instruct`), analyse pure testable, relecture humaine, quotas par restaurant | `docs/CHEF-IA.md` — 35 tests |
+| Panier intelligent | Suggestions d'accompagnement **explicables** (« Pour accompagner votre plat », « À partager avant le plat »), règles déterministes, jamais de hasard | `docs/PANIER-INTELLIGENT.md` — 19 tests |
+| Inscription client | `/entrer` : formulaire complet (nom, téléphone, email, double mot de passe, adresse, Guinée par défaut) **ou** connexion Facebook, au choix | `docs/INSCRIPTION-CLIENT.md` — 17 tests |
+| Correctifs du 10 octobre | Mise en page de `/entrer` (collision de classe), profil et coordonnées réellement enregistrés, redirections client | `docs/AUDIT-VISUEL-2026-10-10.md` |
+
+Le journal complet, avec ce qui est **vérifié** et ce qui est **supposé**, est dans `docs/STATUT-PROJET.md`.
+
+---
+
+## 4. Règles non négociables (résumé — voir `CLAUDE.md` pour les originales)
+
+- **Aucun déploiement en production sans feu vert explicite de la propriétaire dans la conversation.**
+- Aucun service externe, compte, projet cloud ni coût sans consigne explicite.
+- Secrets : jamais dans le code, les commits, les journaux, les captures. `.env.local` est ignoré par Git.
+- Toute migration appliquée en base a son fichier dans `supabase/migrations/` **dans le même commit**,
+  avec le même numéro de version qu'en base. Après une migration touchant RLS ou `SECURITY DEFINER` :
+  `get_advisors(type: "security")`.
 - Policies réservées aux membres : `to authenticated`, jamais sans restriction de rôle.
-- Montants en GNF entiers. Tokens de design verrouillés (`docs/cadrage/DESIGN-SYSTEM.md`). Next.js 16 : `proxy.ts`, pas `middleware.ts`.
-- Aucune donnée client dans les notifications push, les journaux ou les commits.
-- Malika ne manipule pas de terminal : lui donner des instructions pas à pas, ou exécuter soi-même ce qui est autorisé.
+- Montants en GNF entiers. Tokens de design verrouillés (`docs/cadrage/DESIGN-SYSTEM.md`).
+- Next.js 16 : le garde de requêtes s'appelle `proxy.ts`, pas `middleware.ts`.
+- Le propriétaire ne manipule pas de terminal : lui donner des instructions pas à pas, ou faire soi-même.
 
-## 5. Pièges déjà rencontrés
+---
 
-- **Shell** : de longs scripts avec apostrophes, accents et gabarits `${...}` collés dans une commande Bash échouent (« unexpected EOF »). Écrire le fichier avec l'outil d'écriture, puis l'exécuter.
-- **Barre oblique inverse** : dans un script Python écrit via Bash, `"\\u003c"` perd une barre. Vérifier le résultat avec `od -c`.
-- **Cache d'en-têtes** : juste après un déploiement, une page peut encore servir l'ancien `Permissions-Policy` (copie en cache). Retester avec une URL différente avant de conclure à un échec.
-- **CAPTCHA** : Google bloque le navigateur intégré. Ne pas tenter de le passer ; utiliser GitHub ou DuckDuckGo pour la recherche.
-- **Formulaires React dans le navigateur intégré** : le premier clic est souvent ignoré ; utiliser `requestSubmit()` ou taper dans les champs avec les vraies actions.
-- **Comptes de test** : l'inscription exige une confirmation par e-mail. En test, confirmer via SQL (`email_confirmed_at`), puis **supprimer** le compte et le restaurant de test à la fin. Publier un restaurant de test en production est refusé par le garde-fou : ne pas contourner.
-- **Restaurants `[DEV]`** : dépubliés le 4 octobre. Les 13 restaurants `donnees_demo` restent publiés (ils sont exclus des chiffres « en direct »).
-- **Colonnes protégées** : `publie`, `suspendu_le`, `suspendu_motif`, `motif_correction` ne sont modifiables que par un administrateur système (déclencheur `fn_proteger_colonnes_restaurant`).
+## 5. Pièges techniques déjà payés (à connaître avant de coder)
 
-## 6. Reste à faire (par ordre d'utilité)
+Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
-1. **Essai sur téléphone réel** (jamais fait) : installer l'application (Android Chrome, ou iPhone depuis l'écran d'accueil, iOS 16.4 ou plus), activer l'alerte page fermée, « Envoyer un essai », puis passer une commande invitée. Aucune réception réelle n'a été vérifiée.
-2. **Renseigner `/system/parametres`** (Malika) : numéro WhatsApp d'assistance, délai de validation (seulement s'il est tenable), activation de la position sur carte, textes d'accueil. L'enregistrement depuis l'écran admin n'a pas été testé faute de compte admin de test.
-3. **Identité visuelle** (lot G, partie graphique) : mascotte ou motif propre, traitement uniforme des photos de plats. Demande un travail graphique.
-4. **Actions de Malika** listées dans `docs/AUDIT-VISUEL-2026-10-04.md` §9 : traduire l'e-mail de récupération Supabase en français, activer la double authentification sur ses comptes, supprimer ses comptes de test, vérifier visuellement la console admin, test de 5 minutes sur téléphone réel.
-5. **Portes avant pilote** : `docs/cadrage/PROCEDURE-SECURITE.md` §9 (certaines sont bloquantes).
-6. Décision en suspens : publier ou non les 13 restaurants de démonstration sur Google (plan du site) avant le pilote ; dépublier ou non « barbie » (restaurant de test avec une commande).
+1. **Le CSS est global, pas de CSS Modules.** Un nom de classe déjà défini ailleurs s'applique aussi et casse
+   la mise en page *sans erreur ni avertissement*. Cas vécu : `.choix-carte` (cartes radio de la commande,
+   `src/app/marche.css`, en `display:flex` horizontal) réutilisé sur `/entrer` → formulaire écrasé en pilules.
+   **Avant d'écrire `className="…"`, chercher le nom dans `src/app/*.css`.** Un nom nouveau est préfixé par
+   le contexte de la page (`inscription-…`). La mise en page va dans la feuille CSS, pas dans `style={{ … }}`.
+2. **Les contraintes `CHECK` de PostgreSQL sont strictes et silencieuses.** `client_profils` exige
+   `pseudo` (3 à 24 caractères, caractères autorisés) et `avatar` (liste fermée de 10 valeurs). Une valeur
+   fausse fait échouer **toute** l'insertion, dans un `console.error` que personne ne voit.
+   **Vérifier le schéma avant d'écrire dans une table** (`supabase/migrations/`).
+3. **Une inscription n'a pas de session tant que l'e-mail n'est pas confirmé** → la RLS interdit toute
+   écriture. Les coordonnées sont donc déposées dans les métadonnées du compte, et le profil est créé à la
+   première visite authentifiée (`assurerProfilClient`, `src/lib/client/profil-serveur.ts`).
+4. **Ne jamais éditer un fichier texte avec un pipeline PowerShell.** `Get-Content -Raw | … | Set-Content`
+   sur un fichier UTF-8 sans BOM réencode les accents en `Ã©` et ajoute un BOM. Utiliser les outils
+   d'édition dedicated. En revanche, un affichage mojibake dans la console **ne signifie pas** que le
+   fichier est corrompu : relire avec `Get-Content -Encoding UTF8` avant de conclure.
+5. **Contrôler une fonctionnalité de bout en bout avant de la dire livrée** : création → e-mail → connexion →
+   page cible → lecture en base. L'inscription client « fonctionnait » (types, lint, tests, revue visuelle)
+   et le test réel a trouvé quatre défauts.
+6. **Ne pas commiter un script de vérification temporaire** ; le retirer avec une suppression récupérable
+   (`rm -- <chemin>`) avant de commiter.
+7. Après un déploiement, une page peut encore servir l'ancien contenu (cache) : recharger en ignorant le cache.
 
-## 7. Carte du dépôt (ce qui a été ajouté depuis le 3 octobre)
+---
 
-- Alertes de commande et push : `src/components/AlerteCommandes.tsx`, `src/lib/alertes/`, `src/lib/push/`, `src/app/restaurant/alertes/`, `public/sw.js`, `docs/ALERTES-COMMANDES.md`.
-- Application installable : `src/app/manifest.ts`, `public/icons/`, `src/components/InstallationApp.tsx`.
-- Référencement : `src/app/robots.ts`, `src/app/sitemap.ts`, données structurées sur la fiche restaurant.
-- Pages publiques : `src/app/aide/`, `src/app/devenir-partenaire/`, preuve en direct (`src/lib/decouverte/chiffres.ts`).
-- Réglages pilotes : `src/lib/parametres/` (assistance, promesse), `src/lib/system-admin/parametres.ts`, `src/app/system/parametres/`.
-- Moyens de paiement et position : `src/lib/restaurant/paiement.ts`, `src/lib/restaurant/position.ts`.
-- Démarrage guidé : `src/components/ListeDemarrage.tsx`.
-- Analyse du concurrent et lots A à G : `docs/ANALYSE-CONCURRENT-MADIFOOD-2026-10-04.md`.
+## 6. Carte du dépôt (les zones utiles)
 
-## 8. Outils tiers : décision prise
+| Domaine | Fichiers | Note |
+|---|---|---|
+| Inscription / compte client | `src/app/entrer/`, `src/app/compte/`, `src/lib/client/`, `src/lib/auth/actions.ts` | `docs/INSCRIPTION-CLIENT.md`, `docs/CONNEXION-FACEBOOK.md` |
+| Chef IA (photo → menu) | `src/lib/menu/chefMenu.ts`, `src/app/restaurant/menu/chef/` | `docs/CHEF-IA.md` |
+| Panier intelligent | `src/lib/panier/complements.ts`, `src/components/panier/`, `src/app/api/panier/complements/` | `docs/PANIER-INTELLIGENT.md` |
+| Commandes (invitées) | `src/app/commande/`, `src/lib/commande/` | `docs/cadrage/ADR.md` |
+| Console restaurateur | `src/app/restaurant/` | |
+| Console système (super admin) | `src/app/system/`, `src/lib/system-admin/` | `docs/STUDIO-SUPERADMIN.md`, `docs/MATRICE-PERMISSIONS.md` |
+| Studio (blocs) | `src/lib/studio/`, `src/components/studio/` | `docs/STUDIO-SUPERADMIN.md` |
+| Alertes et push | `src/lib/alertes/`, `src/lib/push/`, `public/sw.js` | `docs/ALERTES-COMMANDES.md` |
+| Styles du site public | `src/app/public.css`, `cadre.css`, `fantaisie.css`, `public/` | `docs/cadrage/DESIGN-SYSTEM.md` |
 
-OmniRoute (passerelle IA multi-fournisseurs) a été examiné le 4 octobre 2026 et **n'a pas été installé** : il enverrait du code et des schémas à des fournisseurs gratuits non audités, et l'assistant ne peut pas rediriger son propre modèle. Si une panne de quota survient, reprendre avec ce document dans une nouvelle session plutôt que de brancher une passerelle sur le projet.
+---
+
+## 7. Secrets et variables (noms uniquement)
+
+- `wrangler.jsonc` → `vars` (publics) : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `COMMANDE_PROPOSITION_DELAI_MINUTES`, `TURNSTILE_SITE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
+- Secrets Cloudflare (hors dépôt, posés par `npx wrangler secret put NOM`) : `SUPABASE_SERVICE_ROLE_KEY`,
+  `COMMANDE_JETON_SECRET`, `TURNSTILE_SECRET_KEY`, `VAPID_PRIVATE_KEY`.
+- `.env.local` (ignoré par Git) reprend ces valeurs pour le développement. **Ne jamais afficher, copier dans
+  un message ni commiter ces valeurs.**
+- Le dossier `C:\Users\moelo\Desktop\mes-secrets` est hors OneDrive : voir son `LISEZ-MOI.md` pour les règles.
+- Changer `COMMANDE_JETON_SECRET` invalide tous les liens de suivi déjà envoyés ; changer `VAPID_PRIVATE_KEY`
+  oblige chaque restaurateur à réactiver l'alerte « page fermée ».
+
+---
+
+## 8. Reste à faire
+
+### Actions manuelles du propriétaire (aucun agent ne peut les faire)
+
+1. **Révoquer les jetons Supabase** : deux jetons d'accès personnel ont été exposés en clair.
+   Supabase → Account → Access Tokens → révoquer. C'est la porte la plus importante.
+2. **Restreindre puis tourner le token Cloudflare** : il est sur-scopé. Cloudflare → My Profile → API Tokens.
+3. Double authentification sur les comptes d'administration : **écartée par décision explicite** le
+   9 octobre 2026 (risque connu et assumé : un mot de passe seul donne accès aux coordonnées des clients).
+4. Test de 5 minutes sur un téléphone réel (jamais fait).
+
+### Chantiers produit
+
+5. Choisir la suite des propositions IA : « Conquistadorio » reste à définir ; le panier intelligent est livré.
+6. Renseigner `/system/parametres` (numéro WhatsApp d'assistance, textes d'accueil, activation de la
+   position sur carte).
+7. Portes avant pilote : `docs/cadrage/PROCEDURE-SECURITE.md` §9 (certaines sont bloquantes).
+8. Décider du sort des 13 restaurants de démonstration (publier ou dépublier avant le pilote).
+
+### En suspens
+
+9. Déplacer le dépôt de `C:\Users\moelo\dev\speedfood` vers le Bureau : à faire **session fermée**
+   (déplacement déjà échoué une fois sur un verrou de session).
+
+---
+
+## 9. En cas de problème
+
+| Symptôme | Piste |
+|---|---|
+| Page qui s'affiche mal sans erreur console | Collision de nom de classe (§5.1) : inspecter les styles calculés dans le navigateur |
+| Une donnée ne s'écrit pas en base | Contraintes `CHECK` (§5.2), puis RLS : y a-t-il bien une session ? |
+| Un client atterrit du mauvais côté | `connexionAction` route par type de compte : admin / restaurateur / client |
+| Échec de déploiement | `scripts/verifier-base.mjs` : une table manque en production |
+| Accents affichés en `Ã©` | Affichage console uniquement ; relire en UTF-8 (§5.4) |
+| Incident en production | `docs/PLAN-INCIDENT.md` |
+
+Rappels utiles : le premier clic dans un formulaire du navigateur intégré est souvent ignoré ;
+l'inscription exige une confirmation par e-mail (pour tester, confirmer le compte puis **le supprimer**) ;
+publier un restaurant de test en production est refusé par un garde-fou — ne pas le contourner.

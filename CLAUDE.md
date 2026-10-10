@@ -9,7 +9,10 @@ dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 
-Avant toute tâche, lire dans cet ordre :
+Pour reprendre le projet sans historique de conversation : **`docs/REPRISE-SESSION.md`** (état actuel,
+commandes, pièges déjà payés, reste à faire) — à lire avant `docs/cadrage/`.
+
+Avant toute tâche, lire ensuite dans cet ordre :
 
 1. `docs/cadrage/TDR.md` : mandat, périmètre, règles métier, critères d'acceptation
 2. `docs/cadrage/ADR.md` : décisions d'architecture (Next.js App Router + TypeScript,
@@ -66,6 +69,16 @@ pour ce dépôt, pas une copie secondaire à ignorer.
   formulaire écrasé en pilules. Règle : un nom de classe nouveau est préfixé par le
   contexte de la page (`inscription-…`, `commande-…`), et le style va dans la feuille
   CSS — pas de `style={{ … }}` pour la mise en page.
+- Avant d'écrire dans une table, lire ses contraintes (`supabase/migrations/`) : une
+  valeur qui les enfreint fait échouer **toute** l'insertion, silencieusement. Cas vécu
+  le 10/10/2026 sur `client_profils` (`pseudo` 3–24 caractères autorisés, `avatar` dans
+  une liste fermée) : le profil client n'était jamais créé, sans message visible.
+- Tester une fonctionnalité de bout en bout avant de la dire livrée : création →
+  e-mail → connexion → page cible → lecture en base. « La page s'affiche » ne prouve
+  rien. À l'inscription, la confirmation d'e-mail est requise : aucune session n'existe
+  à cet instant, donc la RLS interdit d'écrire le profil — les coordonnées vont dans
+  les métadonnées du compte et `assurerProfilClient` les reprend à la première visite
+  authentifiée.
 - Toute migration appliquée en base (`apply_migration`) a son fichier dans
   `supabase/migrations/`, **dans le même commit** (le dépôt doit pouvoir reconstruire
   la base ; chaque migration en base a son fichier, même nombre des deux côtés). Les policies réservées aux membres
