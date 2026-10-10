@@ -60,8 +60,9 @@ const MOTS_BOISSON = [
 ];
 
 const MOTS_ENTREE = [
-  "entree", "soupe", "salade", "beurre", "hutte", "attieke", "samoussa",
-  "sandwich", "brochette", "amuse", "pastel", "beurre de cacahuete",
+  "entree", "soupe", "salade", "beignet", "bouillie", "tartine", "crepe",
+  "pancake", "beurre", "hutte", "attieke", "samoussa", "sandwich", "brochette",
+  "amuse", "pastel", "beurre de cacahuete", "nappee", "bruschetta",
 ];
 
 /** Minuscules sans accents, pour comparer des noms de plats. */

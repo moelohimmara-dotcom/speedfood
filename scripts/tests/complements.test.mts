@@ -46,6 +46,9 @@ verifier("un platriz n'est pas une boisson", famillePlat("Riz gras sauce arachid
 verifier("bissap est une boisson", famillePlat("Bissap frais"), "boisson");
 verifier("eau minerale est une boisson", famillePlat("Eau minérale 50cl"), "boisson");
 verifier("la soupe est une entree", famillePlat("Soupe de gombo"), "entree");
+verifier("les beignets sont une entree", famillePlat("Beignets (x4)"), "entree");
+verifier("la bouillie est une entree", famillePlat("Bouillie de mil"), "entree");
+verifier("le cafe touba compte comme boisson", famillePlat("Café touba et pain beurre"), "boisson");
 verifier("les accents ne trompent pas", famillePlat("Jus d'orange pressé"), "boisson");
 
 // --- Une boisson manquante est proposée ----------------------------------
