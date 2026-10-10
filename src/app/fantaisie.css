@@ -34,11 +34,13 @@
     background: var(--mangue);
     box-shadow: 4px 4px 0 var(--encre);
   }
+  /* En bas à gauche : à droite, la colonne du formulaire descend jusqu'en bas et la tache aurait chevauché le lien de pied de page. */
   .theme-public .page-compte::after {
     width: 52px;
     height: 52px;
     bottom: 28px;
-    right: 22px;
+    left: 22px;
+    right: auto;
     background: var(--rouge-fonce);
     box-shadow: 4px 4px 0 var(--encre);
   }

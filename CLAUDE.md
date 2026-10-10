@@ -58,6 +58,14 @@ pour ce dépôt, pas une copie secondaire à ignorer.
 - Respecter les tokens de `DESIGN-SYSTEM.md` tels quels : ne pas réintroduire de
   dégradé décoratif hors bouton d'action principal, ne pas revenir à la couleur
   secondaire non conforme au contraste AA (`#75695F`, pas `#80736C`).
+- Avant d'écrire `className="…"` dans une page ou un composant, vérifier qu'aucune
+  feuille CSS existante ne définit déjà ce nom : le CSS est global (pas de modules),
+  donc un nom réemployé ailleurs s'applique aussi et casse la mise en page sans
+  erreur. Cas vécu le 10/10/2026 : `.choix-carte` (cartes radio de la commande,
+  `src/app/marche.css`, en `display:flex` horizontal) réutilisé sur `/entrer` →
+  formulaire écrasé en pilules. Règle : un nom de classe nouveau est préfixé par le
+  contexte de la page (`inscription-…`, `commande-…`), et le style va dans la feuille
+  CSS — pas de `style={{ … }}` pour la mise en page.
 - Toute migration appliquée en base (`apply_migration`) a son fichier dans
   `supabase/migrations/`, **dans le même commit** (le dépôt doit pouvoir reconstruire
   la base ; chaque migration en base a son fichier, même nombre des deux côtés). Les policies réservées aux membres
