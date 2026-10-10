@@ -5,6 +5,7 @@ import { estUuid } from "@/lib/commande/commun";
 import { creerClientServeur } from "@/lib/db/server";
 import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "./redirection";
+import { validerCoordonnees } from "@/lib/client/coordonnees";
 
 export interface EtatFormulaire {
   erreur?: string;
@@ -17,18 +18,44 @@ export interface EtatInscription extends EtatFormulaire {
   email?: string;
 }
 
-export async function inscriptionAction(
+/**
+ * Inscription complète via formulaire (nom, téléphone, email, double mot de passe, adresse).
+ * Crée le compte Supabase, puis mémorise les coordonnées dans `client_profils`.
+ */
+export async function inscriptionCompleteAction(
   _etatPrecedent: EtatInscription,
   formData: FormData
 ): Promise<EtatInscription> {
+  const nom = String(formData.get("nom") ?? "").trim();
+  const telephone = String(formData.get("telephone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const motDePasse = String(formData.get("mot_de_passe") ?? "");
+  const motDePasseConfirmation = String(formData.get("mot_de_passe_confirmation") ?? "");
+  const residence = String(formData.get("residence") ?? "").trim();
+  const ville = String(formData.get("ville") ?? "").trim();
+  const quartier = String(formData.get("quartier") ?? "").trim();
+  const pays = String(formData.get("pays") ?? "").trim();
 
-  if (!email || !motDePasse) {
-    return { erreur: "Email et mot de passe sont obligatoires." };
+  if (!nom || !telephone || !email || !motDePasse || !motDePasseConfirmation || !ville) {
+    return { erreur: "Tous les champs obligatoires doivent être remplis." };
+  }
+  if (nom.length < 2 || nom.length > 120) {
+    return { erreur: "Le nom doit contenir entre 2 et 120 caractères." };
   }
   if (motDePasse.length < 8) {
     return { erreur: "Le mot de passe doit contenir au moins 8 caractères." };
+  }
+  if (motDePasse !== motDePasseConfirmation) {
+    return { erreur: "Les deux mots de passe ne correspondent pas." };
+  }
+
+  const coord = validerCoordonnees({
+    nom,
+    telephone,
+    adresse: `${residence}, ${quartier}, ${ville}, ${pays || "Guinée"}`.trim(),
+  });
+  if (!coord.ok) {
+    return { erreur: coord.erreur };
   }
 
   const supabase = await creerClientServeur();
@@ -37,24 +64,43 @@ export async function inscriptionAction(
     email,
     password: motDePasse,
     options: {
-      // Le lien du courriel revient sur notre route d'échange, qui ouvre la session
-      // puis renvoie vers l'onboarding — même motif que la réinitialisation du mot de passe.
       emailRedirectTo: `${origine}/auth/confirmation?suite=/restaurant/nouveau`,
+      data: {
+        nom_commande: coord.coordonnees.nom,
+        telephone: coord.coordonnees.telephone,
+        adresse: coord.coordonnees.adresse,
+      },
     },
   });
   if (error) {
     return { erreur: traduireErreurAuth(error.message) };
   }
 
-  // Confirmation d'e-mail activée : Supabase n'ouvre AUCUNE session tant que le lien
-  // n'a pas été suivi. Sans ce test, l'inscrit repartait vers une page protégée et
-  // atterrissait sur la connexion, sans jamais comprendre qu'il doit ouvrir sa boîte.
-  if (!data.session) {
+  if (!data.session || !data.user) {
     return { confirmationRequise: true, email };
+  }
+
+  // Mémoriser les coordonnées dans le profil client
+  const { error: errProfil } = await supabase
+    .from("client_profils")
+    .upsert({
+      utilisateur_id: data.user.id,
+      nom_commande: coord.coordonnees.nom,
+      telephone: coord.coordonnees.telephone,
+      adresse: coord.coordonnees.adresse,
+      pseudo: coord.coordonnees.nom.slice(0, 50), // pseudo provisoire
+      avatar: "default",
+    })
+    .eq("utilisateur_id", data.user.id);
+  if (errProfil) {
+    console.error("Erreur memorisation profil:", errProfil);
   }
 
   redirect("/restaurant/nouveau");
 }
+
+/** Alias pour l'ancien composant InscriptionForm (email + mot de passe seul). */
+export const inscriptionAction = inscriptionCompleteAction;
 
 export async function connexionAction(
   _etatPrecedent: EtatFormulaire,
