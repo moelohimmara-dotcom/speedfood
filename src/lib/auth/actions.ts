@@ -6,6 +6,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "./redirection";
 import { validerCoordonnees } from "@/lib/client/coordonnees";
+import { assurerProfilClient } from "@/lib/client/profil-serveur";
 
 export interface EtatFormulaire {
   erreur?: string;
@@ -20,12 +21,21 @@ export interface EtatInscription extends EtatFormulaire {
 
 /**
  * Inscription complète via formulaire (nom, téléphone, email, double mot de passe, adresse).
- * Crée le compte Supabase, puis mémorise les coordonnées dans `client_profils`.
+ * Crée le compte Supabase et mémorise les coordonnées dans `client_profils`.
+ *
+ * Deux cas, volontairement distincts :
+ * - session immédiate (confirmation d'e-mail désactivée) : le profil est créé tout de suite ;
+ * - confirmation d'e-mail requise (le réglage retenu en production) : AUCUNE session n'existe encore, donc
+ *   aucune écriture possible (RLS : un client ne peut écrire que son propre profil). Les coordonnées sont alors
+ *   conservées dans les métadonnées du compte, et `assurerProfilClient` les reprend à la première visite
+ *   authentifiée de `/compte`. Les données ne sont donc jamais perdues, mais le profil n'apparaît pas avant.
  */
 export async function inscriptionCompleteAction(
   _etatPrecedent: EtatInscription,
   formData: FormData
 ): Promise<EtatInscription> {
+  const suiteDemandee = String(formData.get("suite") ?? "").trim();
+  const suite = estCheminInterneSur(suiteDemandee) ? suiteDemandee : "/compte";
   const nom = String(formData.get("nom") ?? "").trim();
   const telephone = String(formData.get("telephone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -64,7 +74,8 @@ export async function inscriptionCompleteAction(
     email,
     password: motDePasse,
     options: {
-      emailRedirectTo: `${origine}/auth/confirmation?suite=/restaurant/nouveau`,
+      // Un client qui confirme son adresse arrive sur SON compte, pas sur l'inscription d'un restaurant.
+      emailRedirectTo: `${origine}/auth/confirmation?suite=${encodeURIComponent(suite)}`,
       data: {
         nom_commande: coord.coordonnees.nom,
         telephone: coord.coordonnees.telephone,
@@ -77,26 +88,14 @@ export async function inscriptionCompleteAction(
   }
 
   if (!data.session || !data.user) {
+    // Confirmation d'e-mail requise : la session n'existe pas encore. Le profil sera créé à la première
+    // visite authentifiée (`assurerProfilClient`), à partir des métadonnées ci-dessus.
     return { confirmationRequise: true, email };
   }
 
-  // Mémoriser les coordonnées dans le profil client
-  const { error: errProfil } = await supabase
-    .from("client_profils")
-    .upsert({
-      utilisateur_id: data.user.id,
-      nom_commande: coord.coordonnees.nom,
-      telephone: coord.coordonnees.telephone,
-      adresse: coord.coordonnees.adresse,
-      pseudo: coord.coordonnees.nom.slice(0, 50), // pseudo provisoire
-      avatar: "default",
-    })
-    .eq("utilisateur_id", data.user.id);
-  if (errProfil) {
-    console.error("Erreur memorisation profil:", errProfil);
-  }
+  await assurerProfilClient(supabase, data.user);
 
-  redirect("/restaurant/nouveau");
+  redirect(suite);
 }
 
 /** Alias pour l'ancien composant InscriptionForm (email + mot de passe seul). */

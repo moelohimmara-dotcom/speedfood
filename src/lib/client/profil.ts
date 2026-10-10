@@ -52,3 +52,24 @@ export function validerPseudo(brut: string): ResultatPseudo {
   }
   return { ok: true, pseudo };
 }
+
+/**
+ * Pseudo d'un compte inscrit par le formulaire : le nom saisi quand il respecte la contrainte (3 à 24 caractères,
+ * caractères autorisés), sinon un pseudo amusant. `alea` est injectable pour les tests.
+ */
+export function pseudoPourCompte(nom: string, alea: () => number = Math.random): string {
+  const depuisNom = validerPseudo(nom);
+  return depuisNom.ok ? depuisNom.pseudo : genererPseudo(alea);
+}
+
+/**
+ * Avatar de la liste fermée, choisi de façon STABLE à partir d'une graine (l'identifiant du compte) : le même compte
+ * retrouve toujours le même avatar, et la valeur reste dans la contrainte de la table `client_profils`.
+ */
+export function avatarPourGraine(graine: string): CleAvatar {
+  let total = 0;
+  for (let i = 0; i < graine.length; i++) {
+    total = (total * 31 + graine.charCodeAt(i)) % 100000;
+  }
+  return AVATARS[total % AVATARS.length].cle;
+}

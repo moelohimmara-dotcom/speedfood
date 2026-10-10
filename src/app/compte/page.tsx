@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui";
 import { deconnexionClientAction, oublierCoordonneesAction } from "@/lib/client/actions";
 import { emojiAvatar } from "@/lib/client/profil";
+import { assurerProfilClient } from "@/lib/client/profil-serveur";
 import { creerClientServeur } from "@/lib/db/server";
 import { SuppressionCompte } from "./SuppressionCompte";
 
@@ -22,6 +23,10 @@ export default async function ComptePage() {
   if (!user) {
     redirect("/entrer");
   }
+
+  // Inscription par formulaire : les coordonnées attendent dans les métadonnées du compte (l'inscription elle-même
+  // n'avait pas de session, la confirmation d'e-mail étant requise). On les reprend ici, une seule fois.
+  await assurerProfilClient(supabase, user);
 
   const [{ data: profil }, { data: membre }, { data: roleSysteme }] = await Promise.all([
     supabase.from("client_profils").select("pseudo, avatar, nom_commande, telephone, adresse").eq("utilisateur_id", user.id).maybeSingle(),
