@@ -102,6 +102,7 @@ export function ComplementsPanier({
                 <strong style={{ display: "block" }}>{plat.nom}</strong>
                 <span style={{ fontSize: "0.85rem", color: "var(--secondaire)" }}>
                   {raison} · {plat.prix.toLocaleString("fr-FR")} GNF
+                  {plat.aConfirmer ? " · disponibilité à confirmer" : ""}
                 </span>
               </div>
               <Button

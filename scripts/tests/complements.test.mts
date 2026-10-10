@@ -25,7 +25,12 @@ function verifier(nom: string, obtenu: unknown, attendu: unknown) {
   }
 }
 
-const plat = (id: string, nom: string, prix = 20000): PlatSuggestion => ({ id, nom, prix });
+const plat = (id: string, nom: string, prix = 20000, aConfirmer = false): PlatSuggestion => ({
+  id,
+  nom,
+  prix,
+  aConfirmer,
+});
 
 const MENU = [
   plat("riz", "Riz sauce feuille", 25000),
@@ -150,4 +155,16 @@ verifier(
     [plat("riz2", "Riz gras", 25000), plat("poulet2", "Poulet Yassa", 35000)]
   ),
   []
+);
+
+// --- Un plat « à confirmer » reste proposé, mais annoncé --------------------
+// Le filtrage se fait dans la route (comme sur la fiche restaurant) ; ici on
+// vérifie que la proposition porte l'information jusqu'au client.
+verifier(
+  "la suggestion conserve l'etat a confirmer",
+  proposerComplements(
+    [{ menuItemId: "riz", nom: "Riz sauce feuille" }],
+    [plat("eau", "Eau minérale 50cl", 5000, true)]
+  ).map((s) => s.plat.aConfirmer),
+  [true]
 );

@@ -26,6 +26,13 @@ export interface PlatSuggestion {
   nom: string;
   prix: number;
   photoUrl?: string | null;
+  /**
+   * Vrai quand le restaurant n'a pas confirmé récemment : le plat est proposé
+   * quand même — c'est la fiche restaurant qui autorise l'ajout — mais le
+   * client doit le savoir. Un bloc qui cache l'information est un bloc qui
+   * ment par omission.
+   */
+  aConfirmer?: boolean;
 }
 
 /** Ce que le panier contient déjà, suffisant pour raisonner. */

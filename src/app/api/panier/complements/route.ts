@@ -63,22 +63,27 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ suggestions: [] });
     }
 
-    // On ne propose que ce que le restaurant confirme comme disponible : voir le
-    // composant pour la règle de fraîcheur, identique à celle du catalogue.
+    // Même condition que la fiche restaurant (`VignettePlat`) : un plat que le
+    // restaurant a marqué disponible. Une première version filtrait en plus sur
+    // la fraîcheur de confirmation — c'était **plus strict que le site** et
+    // aurait rendu le bloc invisible partout (aucun plat n'a jamais été
+    // confirmé à ce jour). La fraîcheur ne change que l'étiquette affichée ;
+    // on la restitue donc au client au lieu de cacher le plat.
     const limite = new Date(Date.now() - disponibiliteFraicheurHeures * 3600_000);
     const plats: PlatSuggestion[] = [];
     for (const p of data) {
+      if (!p.disponible) continue;
       const confirmeLe = p.disponibilite_confirmee_le
         ? new Date(p.disponibilite_confirmee_le)
         : null;
-      const disponible =
-        Boolean(p.disponible) && confirmeLe !== null && confirmeLe > limite;
-      if (!disponible) continue;
+      const aConfirmer =
+        confirmeLe === null || Number.isNaN(confirmeLe.getTime()) || confirmeLe <= limite;
       plats.push({
         id: p.id,
         nom: p.nom,
         prix: typeof p.prix_promo === "number" && p.prix_promo > 0 ? p.prix_promo : p.prix,
         photoUrl: p.photo_url ?? null,
+        aConfirmer,
       });
     }
 
