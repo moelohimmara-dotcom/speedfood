@@ -9,9 +9,10 @@ import type { Metadata } from "next";
  * distinctes, une seule porte d'entrée identifiée) :
  * - `suite=/system...` → intitulé « Administration Speedfood », sans lien
  *   d'inscription restaurateur (les comptes système sont créés par un admin) ;
- * - sinon → intitulé « Connexion restaurateur ».
+ * - sinon → intitulé neutre « Connexion » : un client inscrit par le formulaire
+ *   arrive aussi par ici, et se serait lu « Vous n'êtes pas un restaurateur ».
  * Après connexion, `connexionAction` route selon le type de compte réel :
- * admin système pur → `/system`, restaurateur → `/restaurant`.
+ * admin système pur → `/system`, restaurateur → `/restaurant`, client → `/compte`.
  */
 export const metadata: Metadata = { title: "Connexion" };
 
@@ -25,11 +26,11 @@ export default async function ConnexionPage({
 
   return (
     <PageCompte
-      titre={pourSysteme ? "Administration Speedfood" : "Connexion restaurateur"}
+      titre={pourSysteme ? "Administration Speedfood" : "Connexion"}
       sousTitre={
         pourSysteme
           ? "Accès réservé aux comptes de l'équipe Speedfood (rôles système)."
-          : "Gérez votre établissement : commandes, menu et informations."
+          : "Client, restaurateur ou équipe Speedfood : vous arrivez directement à votre espace."
       }
       panneau={
         pourSysteme
@@ -51,7 +52,8 @@ export default async function ConnexionPage({
           </p>
         ) : (
           <p>
-            Pas encore de compte ? <Link href="/inscription" className="lien-texte">Inscrivez votre restaurant</Link>
+            Pas encore de compte ? <Link href="/entrer" className="lien-texte">Créez votre compte</Link> pour commander, ou{" "}
+            <Link href="/inscription" className="lien-texte">inscrivez votre restaurant</Link>
             <br />
             Équipe Speedfood ? <Link href="/connexion?suite=/system" className="lien-texte">Administration</Link>
           </p>

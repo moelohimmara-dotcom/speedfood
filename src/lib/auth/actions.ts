@@ -148,6 +148,12 @@ export async function connexionAction(
   if (roleSysteme && !membership) {
     redirect("/system");
   }
+  // Compte client (ni restaurateur ni administration) : on le mène à SON compte. Sans cette branche, un client
+  // était envoyé dans l'espace restaurateur et Edguyé par « Configurons votre établissement ».
+  if (!membership && user) {
+    await assurerProfilClient(supabase, user);
+    redirect("/compte");
+  }
   redirect("/restaurant");
 }
 
