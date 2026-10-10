@@ -1,6 +1,7 @@
 import { PROMESSE_PAR_DEFAUT } from "@/lib/parametres/promesse-defauts";
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Bricolage_Grotesque, Manrope } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 import "./components.css";
 import "./landing.css";
@@ -96,7 +97,7 @@ function StyleJetons({ css }: { css: string }) {
  * une base lente ou absente ne fait jamais échouer le rendu — elle ne fait que retarder l'arrivée
  * des jetons personnalisés, le site restant intégralement lisible.
  */
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const css = await cssJetonsSite();
   return (
     <html lang="fr" className={`${barlowCondensed.variable} ${manrope.variable} ${bricolage.variable}`}>
