@@ -13,6 +13,7 @@ import {
   QUANTITE_MAX_LIGNE,
 } from "@/components/panier/panier";
 import { Button, Card, Alert } from "@/components/ui";
+import { ComplementsPanier } from "@/components/panier/ComplementsPanier";
 import { initialePlat } from "@/lib/design/tuile";
 
 /**
@@ -127,6 +128,14 @@ export default function PanierPage() {
               </Card>
             ))}
           </div>
+
+          {panier.restaurantId ? (
+            <ComplementsPanier
+              restaurantId={panier.restaurantId}
+              restaurantNom={panier.restaurantNom}
+              lignes={panier.lignes}
+            />
+          ) : null}
 
           <Card style={{ marginTop: "var(--space-4)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
