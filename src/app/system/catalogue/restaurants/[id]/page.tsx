@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { exigerPermissionPage, obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import { obtenirDossierRestaurant, obtenirRestaurantAdmin } from "@/lib/system-admin/restaurants";
@@ -12,6 +13,7 @@ import { Illustration } from "@/components/illustrations/Illustration";
 import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from "@/lib/illustrations/automatique";
 import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
 import { ActionsModeration } from "./ActionsModeration";
+import { EditeurHoraires } from "./EditeurHoraires";
 import { GestionEquipe } from "./GestionEquipe";
 
 export const metadata = { title: "Fiche restaurant (administration)" };
@@ -210,19 +212,26 @@ export default async function RestaurantDetailSystemePage({
 
             <ul className="ad-controle">
               {points.map((point) => (
-                <li key={point.cle} className={`ad-controle-ligne ad-controle-${point.niveau}`}>
-                  <span className="ad-controle-marque" aria-hidden="true">
-                    {point.niveau === "ok" ? "✓" : point.niveau === "manque" ? "✕" : "!"}
-                  </span>
-                  <span>
-                    <strong>{point.libelle}</strong>
-                    {point.obligatoire ? <span className="ad-controle-tag"> obligatoire</span> : null}
-                    <span className="ad-controle-detail">{point.detail}</span>
-                  </span>
-                  <span className="sr-only">
-                    {point.niveau === "ok" ? "Conforme" : point.niveau === "manque" ? "Manquant" : "À améliorer"}
-                  </span>
-                </li>
+                <Fragment key={point.cle}>
+                  <li className={`ad-controle-ligne ad-controle-${point.niveau}`}>
+                    <span className="ad-controle-marque" aria-hidden="true">
+                      {point.niveau === "ok" ? "✓" : point.niveau === "manque" ? "✕" : "!"}
+                    </span>
+                    <span>
+                      <strong>{point.libelle}</strong>
+                      {point.obligatoire ? <span className="ad-controle-tag"> obligatoire</span> : null}
+                      <span className="ad-controle-detail">{point.detail}</span>
+                    </span>
+                    <span className="sr-only">
+                      {point.niveau === "ok" ? "Conforme" : point.niveau === "manque" ? "Manquant" : "À améliorer"}
+                    </span>
+                  </li>
+                  {point.cle === "horaires" && dossier && !dossier.horaires ? (
+                    <li className="ad-controle-editeur">
+                      <EditeurHoraires restaurantId={restaurant.id} horaires={dossier.horaires} />
+                    </li>
+                  ) : null}
+                </Fragment>
               ))}
             </ul>
 

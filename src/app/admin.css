@@ -1662,6 +1662,27 @@ a.ad-carte-lien:hover {
   color: var(--secondaire);
   font-weight: 600;
 }
+.ad-controle-editeur {
+  list-style: none;
+  padding: var(--space-4) 0 var(--space-4) 28px;
+  border-top: 1px dashed var(--bordure);
+}
+.ad-horaires-editeur {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 38rem;
+  padding: var(--space-3);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-sm);
+  background: var(--surface-alt, #fffaf3);
+}
+.ad-horaires-editeur textarea {
+  width: 100%;
+  min-height: 5rem;
+}
+.ad-horaires-editeur .alert {
+  margin: 0;
+}
 .ad-controle-detail {
   display: block;
   color: var(--secondaire);

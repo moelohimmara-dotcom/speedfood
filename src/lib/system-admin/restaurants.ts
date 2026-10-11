@@ -127,6 +127,36 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
   };
 }
 
+export async function enregistrerHorairesRestaurantAction(
+  _etatPrecedent: EtatActionRestaurant,
+  formData: FormData
+): Promise<EtatActionRestaurant> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const horaires = String(formData.get("horaires") ?? "").trim();
+
+  if (!restaurantId) return { erreur: "Restaurant introuvable." };
+  if (!horaires) return { erreur: "Renseignez les horaires avant d'enregistrer." };
+  if (horaires.length > 500) return { erreur: "Les horaires ne peuvent pas dépasser 500 caractères." };
+
+  const contexte = await verifierPermission("restaurant.moderer");
+  const supabase = await creerClientServeur();
+  const { error } = await supabase.from("restaurants").update({ horaires }).eq("id", restaurantId);
+
+  if (error) return { erreur: "Impossible d'enregistrer les horaires. Réessayez dans un instant." };
+
+  await journaliserActionSysteme(contexte, {
+    action: "restaurant.horaires_modifies",
+    cibleType: "restaurant",
+    cibleId: restaurantId,
+    motif: horaires,
+  });
+
+  revalidatePath("/system/catalogue/restaurants");
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
+  revalidatePath(`/restaurant/profil`);
+  return { succes: true };
+}
+
 export async function approuverRestaurantAction(
   _etatPrecedent: EtatActionRestaurant,
   formData: FormData
