@@ -758,3 +758,18 @@ Supabase** ; les éléments Supabase sont des bouchons ; `GRANT` et `REVOKE` ne 
 (26 tables), utilisé avant une réinitialisation, reste non exécuté — le prouver demanderait une réinitialisation réelle, à ne jamais tenter en production.
 Reste aussi à faire : disque chiffré confirmé, une copie hors de cette machine, et l'export à répéter (le dernier export ne dit rien des données du
 lendemain).
+
+## 11 octobre 2026, 03:35 : déploiement des améliorations UI/UX et de fraîcheur (version `6234a218-b191-48c1-a260-7a8ad915d506`)
+
+**Feu vert explicite du propriétaire dans la conversation.**
+Version en ligne **`6234a218-b191-48c1-a260-7a8ad915d506`** ; version précédente conservée pour retour arrière : **`2379561d-326b-499d-97e3-c4e5064a17ed`**.
+Worker : démarrage 30 ms, bundle gzip ~3,3 Mo. 33 tables Supabase vérifiées en amont.
+
+**Contenu déployé :**
+- Cibles tactiles d'en-tête portées à 44 px au lieu de 40 px (`src/app/public.css`) conformément à WCAG 2.1 et au DESIGN-SYSTEM.md.
+- Horodatage explicite de fraîcheur (`StampFraicheur`) sur l'ensemble des plats mis en avant sur `/restaurants` (`src/app/restaurants/page.tsx`), éliminant l'opacité du libellé brut « À confirmer ».
+- Maintien strict de Next.js 16.3.6 et OpenNext 1.20.6 après diagnostic d'incompatibilité avec Next.js 16.4.0 sur workerd.
+
+**Vérification en production :**
+- Routes publiques `/` et `/restaurants` en **HTTP 200 OK**.
+- Présence confirmée de la classe `stamp-fraicheur` dans le HTML servi au navigateur.

@@ -15,7 +15,7 @@ Document de référence pour reprendre le projet à froid. Rédigé et mis à jo
 |---|---|
 | Dépôt | `C:\Users\moelo\dev\speedfood` — branche `master`, distant `moelohimmara-dotcom/speedfood` |
 | Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
-| Version en ligne | `2379561d-326b-499d-97e3-c4e5064a17ed` (10 octobre 2026, déploiement `99ac44f`) |
+| Version en ligne | `6234a218-b191-48c1-a260-7a8ad915d506` (10 octobre 2026, déploiement `99ac44f`) |
 | Base | Supabase `ggldjdizqrtpetdiohxy` — **62 migrations**, dernière `20261007221500_jetons_historique` |
 | État Git | `master` à jour avec `origin/master`, arbre propre |
 
