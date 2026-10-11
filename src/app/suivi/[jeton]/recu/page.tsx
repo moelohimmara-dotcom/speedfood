@@ -22,15 +22,7 @@ function formaterDate(iso: string) {
  * seulement quand le restaurateur a confirmé avoir reçu le paiement ; sinon c'est un « Récapitulatif de commande ». Ce n'est
  * pas une facture fiscale : le restaurant reste responsable de ses propres pièces comptables. Ni téléphone ni adresse du client.
  */
-export default async function RecuPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ jeton: string }>;
-  searchParams: Promise<{ doc?: string }>;
-}) {
-  const { jeton } = await params;
-  const { doc: docDemande } = await searchParams;
+export async function renderRecuPage(jeton: string, docDemande?: string) {
   const suivi = await chargerSuiviParJeton(jeton);
   if (!suivi) {
     notFound();
@@ -157,4 +149,16 @@ export default async function RecuPage({
       <ActionsRecu lienWhatsApp={`https://wa.me/?text=${encodeURIComponent(texte)}`} lien={lien} />
     </main>
   );
+}
+
+export default async function RecuPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ jeton: string }>;
+  searchParams: Promise<{ doc?: string }>;
+}) {
+  const { jeton } = await params;
+  const { doc: docDemande } = await searchParams;
+  return renderRecuPage(jeton, docDemande);
 }

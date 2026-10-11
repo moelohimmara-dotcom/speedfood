@@ -5,11 +5,17 @@ import { useRouter } from "next/navigation";
 
 export function InitialiserSessionSuivi() {
   const router = useRouter();
+  const [fragment, setFragment] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
-    const jeton = window.location.hash.slice(1);
-    if (!jeton) return;
+    const id = window.requestAnimationFrame(() => setFragment(window.location.hash.slice(1)));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    const jeton = fragment;
+    if (fragment === null || !jeton) return;
     let annule = false;
     fetch("/api/suivi/session", {
       method: "POST",
@@ -27,12 +33,21 @@ export function InitialiserSessionSuivi() {
     return () => {
       annule = true;
     };
-  }, [router]);
+  }, [fragment, router]);
 
   return (
     <main className="suivi-page">
-      <h1>Ouverture du suivi…</h1>
-      {erreur ? <p role="alert">{erreur}</p> : <p>Votre commande va s&apos;afficher dans un instant.</p>}
+      {fragment === "" ? (
+        <>
+          <h1>Lien de suivi introuvable</h1>
+          <p role="alert">Ouvrez le lien reçu après votre commande pour afficher son suivi.</p>
+        </>
+      ) : (
+        <>
+          <h1>Ouverture du suivi…</h1>
+          {erreur ? <p role="alert">{erreur}</p> : <p>Votre commande va s&apos;afficher dans un instant.</p>}
+        </>
+      )}
     </main>
   );
 }
