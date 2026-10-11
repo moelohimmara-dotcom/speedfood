@@ -102,22 +102,32 @@ export async function inviterEquipierAction(
   return { succes: true };
 }
 
+/**
+ * Retrait d'un équipier. Renvoie un état plutôt que rien : une fin de permission ou un échec d'écriture doit
+ * pouvoir être affiché à l'écran, sinon l'administrateur croit avoir retiré quelqu'un pour rien.
+ */
 export async function revoquerEquipierAction(
   restaurantId: string,
   utilisateurId: string
-): Promise<void> {
+): Promise<EtatActionCompte> {
+  if (!restaurantId || !utilisateurId) {
+    return { erreur: "Équipier introuvable." };
+  }
   const contexte = await verifierPermission("compte.inviter");
   const supabase = await creerClientServeur();
 
   // Le propriétaire (role "owner") ne se révoque pas depuis cet écran : seuls
   // les équipiers ("manager") le peuvent, pour ne jamais retirer accidentellement
   // le seul compte propriétaire d'un restaurant.
-  await supabase
+  const { error } = await supabase
     .from("restaurant_memberships")
     .delete()
     .eq("restaurant_id", restaurantId)
     .eq("utilisateur_id", utilisateurId)
     .eq("role", "manager");
+  if (error) {
+    return { erreur: "Impossible de retirer cet équipier. Réessayez dans un instant." };
+  }
 
   await journaliserActionSysteme(contexte, {
     action: "compte.revocation",
@@ -127,4 +137,5 @@ export async function revoquerEquipierAction(
   });
 
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
+  return { succes: true };
 }

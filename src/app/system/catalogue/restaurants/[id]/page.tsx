@@ -61,7 +61,9 @@ export default async function RestaurantDetailSystemePage({
   const peutOuvrirParametres = roleAPermission(role, "parametres.editer");
   const peutVoirCommandes = roleAPermission(role, "commande.consulter");
   const peutOuvrirComptes = roleAPermission(role, "compte.consulter");
-  const estDeTest = estElementDeTest(restaurant.nom) || dossier?.estDeTest === true;
+  // Le drapeau de la base fait foi ; la convention de nom ne sert que de filet si le dossier n'a pas pu être lu
+  // (sinon un restaurant dont le nom contient « test » serait signalé à tort).
+  const estDeTest = dossier ? dossier.estDeTest : estElementDeTest(restaurant.nom);
   const aUnProprietaire = membres.some((m) => m.role === "owner");
 
   const points: PointControle[] = dossier
@@ -154,14 +156,14 @@ export default async function RestaurantDetailSystemePage({
 
       {restaurant.suspendu_motif ? (
         <div className="ad-bandeau ad-bandeau-danger" role="note">
-          <p style={{ margin: 0 }}>
+          <p>
             <strong>Motif de suspension :</strong> {restaurant.suspendu_motif}
           </p>
         </div>
       ) : null}
       {restaurant.motif_correction && !restaurant.suspendu_le ? (
         <div className="ad-bandeau ad-bandeau-attention" role="note">
-          <p style={{ margin: 0 }}>
+          <p>
             <strong>Correction demandée :</strong> {restaurant.motif_correction}
           </p>
         </div>
@@ -226,7 +228,14 @@ export default async function RestaurantDetailSystemePage({
 
             {dossier && dossier.apercuPlats.length > 0 ? (
               <>
-                <h3 className="ad-sous-titre">Début du menu</h3>
+                <h3 className="ad-sous-titre">
+                  Début du menu
+                  <span className="ad-sous-titre-note">
+                    {dossier.apercuPlats.length < dossier.plats
+                      ? `${dossier.apercuPlats.length} premiers plats sur ${dossier.plats}`
+                      : `${dossier.plats} plat${dossier.plats > 1 ? "s" : ""}`}
+                  </span>
+                </h3>
                 <ul className="ad-apercu-menu">
                   {dossier.apercuPlats.map((plat, i) => (
                     <li key={`${plat.nom}-${i}`}>
@@ -257,7 +266,7 @@ export default async function RestaurantDetailSystemePage({
               titre="Illustrations"
               resume={`Logo, couverture et ${plats.length} plat${plats.length > 1 ? "s" : ""} : modifiables`}
             >
-              <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+              <p className="ad-aide-champ ad-aide-champ-premier">
                 Elles remplacent la photo tant qu&apos;il n&apos;y en a pas. Une vraie photo téléversée par le restaurateur prend toujours le dessus.
               </p>
               <h3 className="ad-sous-titre">Logo</h3>
@@ -273,7 +282,7 @@ export default async function RestaurantDetailSystemePage({
                       {plat.illustration ? <Illustration valeur={plat.illustration} nom={plat.nom} decoratif /> : null}
                       <span>
                         {plat.nom}
-                        <small style={{ display: "block", color: "var(--secondaire)" }}>
+                        <small className="ad-plat-ill-etat">
                           {plat.photoUrl ? "Photo téléversée" : plat.illustration ? (plat.illustration.genere ? "Illustration de démonstration" : "Illustration personnalisée") : "Aucune illustration"}
                         </small>
                       </span>
@@ -307,7 +316,7 @@ export default async function RestaurantDetailSystemePage({
           <Panneau titre="Décision">
             <p className="ad-decision-etat">{phrasEtat}</p>
             {!enLigne && reglages.delaiValidationHeures !== null ? (
-              <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+              <p className="ad-aide-champ ad-aide-champ-premier">
                 Délai annoncé aux restaurateurs : {reglages.delaiValidationHeures} h
                 {peutOuvrirParametres ? (
                   <>
