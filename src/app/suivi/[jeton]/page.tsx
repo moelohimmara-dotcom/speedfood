@@ -86,8 +86,7 @@ function LigneRecap({ ligne }: { ligne: LigneCommandeApercu }) {
   );
 }
 
-export default async function SuiviPage({ params }: { params: Promise<{ jeton: string }> }) {
-  const { jeton } = await params;
+export async function renderSuiviPage(jeton: string, session = false) {
   const suivi = await chargerSuiviParJeton(jeton);
 
   if (!suivi) {
@@ -105,7 +104,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
         Référence <strong>{suivi.reference}</strong> · passée le {formaterDate(suivi.creeLe)}
       </p>
 
-      <CelebrationCommande jeton={jeton} />
+      {session ? null : <CelebrationCommande jeton={jeton} />}
       <FriseSuivi etat={suivi.etatDerive} />
 
       <Card>
@@ -119,14 +118,15 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
 
       {suivi.propositionActive ? (
         <PropositionCarte
-          jeton={jeton}
+          jeton={session ? undefined : jeton}
+          session={session}
           proposition={suivi.propositionActive}
           sousTotalInitial={suivi.sousTotal}
           fraisInitial={suivi.fraisLivraisonEstime}
         />
       ) : null}
 
-      <PanneauPaiement jeton={jeton} paiement={suivi.paiement} total={totalIndicatif} restaurant={suivi.restaurant.nom} />
+      <PanneauPaiement jeton={session ? undefined : jeton} session={session} paiement={suivi.paiement} total={totalIndicatif} restaurant={suivi.restaurant.nom} />
 
       <Card style={{ marginTop: "var(--space-4)" }}>
         <p style={{ marginTop: 0, fontWeight: 700 }}>{suivi.restaurant.nom}</p>
@@ -189,7 +189,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
 
       {suivi.etatDerive !== "en_attente" && suivi.etatDerive !== "refusee" && suivi.etatDerive !== "annulee" && suivi.paiement.statut !== "recu" ? (
         <p style={{ marginTop: "var(--space-3)" }}>
-          <a href={`/suivi/${jeton}/recu`} className="lien-texte">
+          <a href={session ? "/suivi/recu" : `/suivi/${jeton}/recu`} className="lien-texte">
             Voir le récapitulatif imprimable de ma commande
           </a>
         </p>
@@ -202,4 +202,9 @@ export default async function SuiviPage({ params }: { params: Promise<{ jeton: s
       <RafraichissementAuto />
     </main>
   );
+}
+
+export default async function SuiviPage({ params }: { params: Promise<{ jeton: string }> }) {
+  const { jeton } = await params;
+  return renderSuiviPage(jeton);
 }

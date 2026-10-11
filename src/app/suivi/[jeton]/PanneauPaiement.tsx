@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { PaiementSuivi } from "@/lib/contracts/commande";
 import { declarerPaiementAction } from "@/lib/commande/actions";
+import { declarerPaiementSessionAction } from "@/lib/commande/actions-session";
 import { LIBELLES_MODE, formaterMontantGnf, libelleStatutPaiement, type ModePaiement, type OptionPaiement } from "@/lib/paiement/regles";
 import { Alert, Button, Card } from "@/components/ui";
 
@@ -18,12 +19,14 @@ function OptionMobileMoney({
   total,
   restaurant,
   jeton,
+  session = false,
   choisi,
 }: {
   option: OptionPaiement;
   total: number;
   restaurant: string;
-  jeton: string;
+  jeton?: string;
+  session?: boolean;
   choisi: boolean;
 }) {
   const router = useRouter();
@@ -43,7 +46,11 @@ function OptionMobileMoney({
   function declarer() {
     setMessage(null);
     demarrer(async () => {
-      const r = await declarerPaiementAction(jeton, option.mode, reference);
+      const r = session
+        ? await declarerPaiementSessionAction(option.mode, reference)
+        : jeton
+          ? await declarerPaiementAction(jeton, option.mode, reference)
+          : { ok: false as const, erreur: { code: "INTROUVABLE" as const, message: "Lien de suivi introuvable." } };
       if (!r.ok) {
         setMessage({ ton: "danger", texte: r.erreur.message });
         return;
@@ -89,7 +96,7 @@ function OptionMobileMoney({
   );
 }
 
-function OptionEspeces({ jeton, choisi }: { jeton: string; choisi: boolean }) {
+function OptionEspeces({ jeton, session = false, choisi }: { jeton?: string; session?: boolean; choisi: boolean }) {
   const router = useRouter();
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
@@ -106,7 +113,11 @@ function OptionEspeces({ jeton, choisi }: { jeton: string; choisi: boolean }) {
         onClick={() => {
           setErreur(null);
           demarrer(async () => {
-            const r = await declarerPaiementAction(jeton, "especes", "");
+            const r = session
+              ? await declarerPaiementSessionAction("especes", "")
+              : jeton
+                ? await declarerPaiementAction(jeton, "especes", "")
+                : { ok: false as const, erreur: { code: "INTROUVABLE" as const, message: "Lien de suivi introuvable." } };
             if (!r.ok) {
               setErreur(r.erreur.message);
               return;
@@ -126,7 +137,7 @@ function OptionEspeces({ jeton, choisi }: { jeton: string; choisi: boolean }) {
  * refusée ou son prix modifié). Après acceptation : le code marchand du restaurant, le montant et les étapes ; le client DÉCLARE
  * son paiement, le restaurateur le CONFIRME. Speedfood ne reçoit, ne détient ni ne vérifie aucun argent.
  */
-export function PanneauPaiement({ jeton, paiement, total, restaurant }: { jeton: string; paiement: PaiementSuivi; total: number; restaurant: string }) {
+export function PanneauPaiement({ jeton, session = false, paiement, total, restaurant }: { jeton?: string; session?: boolean; paiement: PaiementSuivi; total: number; restaurant: string }) {
   const { statut, mode, options } = paiement;
 
   if (statut === "recu") {
@@ -182,9 +193,9 @@ export function PanneauPaiement({ jeton, paiement, total, restaurant }: { jeton:
       <div className="pay-options">
         {options.map((o) =>
           o.mode === "especes" ? (
-            <OptionEspeces key={o.mode} jeton={jeton} choisi={mode === "especes"} />
+            <OptionEspeces key={o.mode} jeton={jeton} session={session} choisi={mode === "especes"} />
           ) : (
-            <OptionMobileMoney key={o.mode} option={o} total={total} restaurant={restaurant} jeton={jeton} choisi={mode === (o.mode as ModePaiement)} />
+            <OptionMobileMoney key={o.mode} option={o} total={total} restaurant={restaurant} jeton={jeton} session={session} choisi={mode === (o.mode as ModePaiement)} />
           )
         )}
       </div>

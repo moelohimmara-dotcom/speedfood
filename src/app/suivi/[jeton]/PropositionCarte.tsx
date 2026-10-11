@@ -4,10 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PropositionRevisee } from "@/lib/contracts/commande";
 import { repondrePropositionAction } from "@/lib/commande/actions";
+import { repondrePropositionSessionAction } from "@/lib/commande/actions-session";
 import { Button, Card, Alert } from "@/components/ui";
 
 interface Props {
-  jeton: string;
+  jeton?: string;
+  session?: boolean;
   proposition: PropositionRevisee;
   sousTotalInitial: number;
   fraisInitial: number;
@@ -26,7 +28,7 @@ function formaterDate(iso: string) {
  * Réponse idempotente : rejouer la même réponse ne change rien ; seule la
  * version courante est acceptée (côté serveur, lib/commande/propositions.ts).
  */
-export function PropositionCarte({ jeton, proposition, sousTotalInitial, fraisInitial }: Props) {
+export function PropositionCarte({ jeton, session = false, proposition, sousTotalInitial, fraisInitial }: Props) {
   const router = useRouter();
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
@@ -45,7 +47,11 @@ export function PropositionCarte({ jeton, proposition, sousTotalInitial, fraisIn
     }
     setErreur(null);
     demarrer(async () => {
-      const resultat = await repondrePropositionAction(jeton, proposition.id, reponse);
+      const resultat = session
+        ? await repondrePropositionSessionAction(proposition.id, reponse)
+        : jeton
+          ? await repondrePropositionAction(jeton, proposition.id, reponse)
+          : { ok: false as const, erreur: { code: "INTROUVABLE" as const, message: "Lien de suivi introuvable." } };
       if (!resultat.ok) {
         setErreur(resultat.erreur.message);
         return;
