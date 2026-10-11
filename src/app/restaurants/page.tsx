@@ -196,11 +196,7 @@ export default async function CataloguePage({
                   <span className="carte-vedette-resto">
                     {vedette.restaurantNom} · {vedette.quartier}
                   </span>
-                  {vedette.etat.type === "disponible" ? (
-                    <StampFraicheur disponibilite={libelleDisponibilite(vedette.etat, recherche.maintenant)} />
-                  ) : (
-                    <span className="carte-vedette-aconfirmer">À confirmer</span>
-                  )}
+                  <StampFraicheur disponibilite={libelleDisponibilite(vedette.etat, recherche.maintenant)} />
                   <span className="carte-vedette-prix">{vedette.prixAffiche.toLocaleString("fr-FR")} GNF</span>
                 </span>
               </Link>
