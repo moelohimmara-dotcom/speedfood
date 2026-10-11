@@ -57,6 +57,7 @@ export const LIMITE_TELEVERSEMENT_PAR_RESTAURANT: RegleLimite = { nom: "televers
 
 // Déclarations de paiement par le client (lien de suivi) : on ne peut pas inonder le restaurateur de fausses déclarations.
 export const LIMITE_DECLARATION_PAIEMENT_PAR_IP: RegleLimite = { nom: "paiement-ip", max: 20, fenetreSecondes: 600 };
+export const LIMITE_ECHANGE_SUIVI_PAR_IP: RegleLimite = { nom: "suivi-session-ip", max: 20, fenetreSecondes: 600 };
 
 // « Chef IA » : chaque analyse consomme le quota Workers AI du PROJET (10 000
 // neurons/jour sur l'offre gratuite), pas celui du restaurant. Sans ce
@@ -146,6 +147,10 @@ export async function limiterEssaiPush(utilisateurId: string): Promise<void> {
 
 export async function limiterDeclarationPaiement(): Promise<void> {
   await appliquerLimite(LIMITE_DECLARATION_PAIEMENT_PAR_IP, await adresseClient());
+}
+
+export async function limiterEchangeSuivi(): Promise<void> {
+  await appliquerLimite(LIMITE_ECHANGE_SUIVI_PAR_IP, await adresseClient());
 }
 
 export async function limiterReponseProposition(): Promise<void> {

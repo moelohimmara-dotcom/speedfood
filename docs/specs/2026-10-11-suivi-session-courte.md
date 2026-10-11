@@ -27,7 +27,8 @@ Le jeton est ensuite échangé une fois contre un cookie de session HttpOnly, pu
 - Validation : chaîne de 40 caractères correspondant à `[A-Za-z0-9_-]{40}`.
 - Succès : `204 No Content`, cookie `speedfood_suivi` posé.
 - Cookie : `HttpOnly`, `Secure` en production, `SameSite=Lax`, `Path=/suivi`, durée maximale 24 heures.
-- Erreurs : `400` si le corps ou le jeton est malformé ; `404` si le jeton ne correspond à aucune commande ; `429` si la limite d'échange est dépassée.
+- Erreurs : `400` si le corps ou le jeton est malformé ; `404` si le jeton ne correspond à aucune commande ; `429` si la limite d'échange est dépassée ; `503` si le limiteur ou sa dépendance est indisponible.
+- Limitation : 20 échanges par adresse IP sur une fenêtre de 10 minutes, avec la même empreinte HMAC et le même limiteur distribué que les autres actions publiques.
 - Effets : aucune mutation métier ; aucune création de commande ; aucune écriture dans l'historique.
 - Idempotence : répéter l'échange avec le même jeton remplace le cookie et reste sans effet métier.
 
