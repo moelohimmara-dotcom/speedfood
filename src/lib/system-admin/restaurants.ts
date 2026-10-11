@@ -127,6 +127,39 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
   };
 }
 
+export async function modifierProfilRestaurantAdminAction(
+  _etatPrecedent: EtatActionRestaurant,
+  formData: FormData
+): Promise<EtatActionRestaurant> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const horaires = String(formData.get("horaires") ?? "").trim();
+  const consignes = String(formData.get("consignes") ?? "").trim();
+  const moyens = formData.getAll("moyens_paiement").map(String);
+
+  if (!restaurantId) return { erreur: "Restaurant introuvable." };
+  if (!horaires) return { erreur: "Renseignez les horaires avant d'enregistrer." };
+  if (horaires.length > 500) return { erreur: "Les horaires ne peuvent pas dépasser 500 caractères." };
+  if (consignes.length > 1000) return { erreur: "Les consignes ne peuvent pas dépasser 1000 caractères." };
+
+  const contexte = await verifierPermission("restaurant.moderer");
+  const supabase = await creerClientServeur();
+  const { error } = await supabase.from("restaurants").update({ horaires, consignes, moyens_paiement: moyens }).eq("id", restaurantId);
+  if (error) return { erreur: "Impossible d'enregistrer les informations. Réessayez dans un instant." };
+
+  await journaliserActionSysteme(contexte, {
+    action: "restaurant.profil_modifie",
+    cibleType: "restaurant",
+    cibleId: restaurantId,
+    motif: "Horaires, consignes ou moyens de paiement modifiés par l'administration.",
+  });
+
+  revalidatePath("/system/catalogue/restaurants");
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
+  revalidatePath(`/restaurant/profil`);
+  revalidatePath(`/restaurants/${restaurantId}`);
+  return { succes: true };
+}
+
 export async function enregistrerHorairesRestaurantAction(
   _etatPrecedent: EtatActionRestaurant,
   formData: FormData

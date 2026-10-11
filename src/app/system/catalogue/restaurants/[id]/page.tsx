@@ -14,6 +14,7 @@ import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from
 import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
 import { ActionsModeration } from "./ActionsModeration";
 import { EditeurHoraires } from "./EditeurHoraires";
+import { EditeurProfilRestaurant } from "./EditeurProfilRestaurant";
 import { GestionEquipe } from "./GestionEquipe";
 
 export const metadata = { title: "Fiche restaurant (administration)" };
@@ -170,6 +171,18 @@ export default async function RestaurantDetailSystemePage({
           </p>
         </div>
       ) : null}
+
+      <Panneau titre="Administration du restaurant" id="administration-restaurant" actions={<a href="#administration-restaurant" className="lien-texte">Accéder aux modifications</a>}>
+        <p className="ad-aide-champ">Modifiez les informations opérationnelles sans retirer le restaurant du catalogue. Chaque modification est journalisée.</p>
+        {dossier ? (
+          <EditeurProfilRestaurant
+            restaurantId={restaurant.id}
+            horaires={dossier.horaires}
+            consignes={dossier.consignes}
+            moyensPaiement={dossier.moyensPaiement}
+          />
+        ) : null}
+      </Panneau>
 
       <div className="ad-fiche">
         <div className="ad-fiche-principal">
