@@ -21,11 +21,12 @@ Ce document consigne les travaux effectués, les chantiers en cours, et les déc
 - **Contexte :** Quatre fiches de test polluent les données de la console super-administrateur.
 - **Action requise :** Valider la liste exacte des restaurants à supprimer/archiver avant exécution d'un script ou d'une migration de purge.
 
-### Décision 2 : Masquage des jetons de suivi de commande dans les journaux Cloudflare
-- **Contexte :** Risque de fuite des URL `/suivi/[jeton]` dans les logs Cloudflare (conservés 7 jours).
+### Décision 2 : Exposition des jetons de suivi dans les journaux Cloudflare
+- **Contexte :** Les URL `/suivi/[jeton]` peuvent apparaître dans les logs Cloudflare conservés 7 jours. Le `proxy.ts` ne contrôle pas cette collecte et ne peut donc pas masquer seul le paramètre de chemin.
 - **Options :**
-  - Option A : Conserver l'acceptation du risque pour le pilote restreint.
-  - Option B : Implémenter un filtre de masquage dans le Worker / proxy Next.js avant le lancement public élargi.
+  - Option A : Accepter provisoirement le risque pour un pilote restreint, avec accès aux logs limité et rotation de tout jeton Cloudflare sur-scopé.
+  - Option B : Vérifier une capacité native Cloudflare de redaction des chemins avant persistance.
+  - Option C : Concevoir un nouveau mécanisme de suivi avec échange serveur contre une session courte ; cette option invalidera ou migrera les liens existants et doit faire l'objet d'un chantier dédié.
 
 ### Décision 3 : Attribution des rôles pour l'équipe (Opérations, Contenu, Support)
 - **Contexte :** Votre compte est le seul administrateur actif (`super_admin`).

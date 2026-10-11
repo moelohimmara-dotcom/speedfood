@@ -13,7 +13,8 @@
   - Cloudflare Worker a `logs.invocation_logs` activé avec conservation sur 7 jours. Le masquage natif Cloudflare ne masque que les query strings (`?token=...`), pas les fragments de chemin (`/suivi/...`).
   - Toute personne ayant accès aux logs du compte Cloudflare (ou via token API partagé) peut lire les jetons et accéder aux adresses, numéros de téléphone et contenus de commandes en cours.
 - **État actuel :** Risque consigné comme « accepté provisoirement » dans `STATUT-PROJET.md` le 7 octobre 2026.
-- **Correction recommandée :** Modifier la configuration du Worker ou ajouter un filtre d'obscurcissement d'URL dans `proxy.ts` / handler OpenNext avant émission du journal.
+- **Limite technique constatée :** `proxy.ts` et les handlers OpenNext ne contrôlent pas la collecte des URLs par les journaux d'invocation Cloudflare ; ils peuvent éviter les logs applicatifs, mais pas réécrire l'URL déjà observée par la plateforme. La configuration actuelle masque les query strings, pas les paramètres de chemin.
+- **Décision requise avant lancement élargi :** vérifier dans l'offre et la configuration Cloudflare disponibles s'il existe une redaction des chemins avant persistance. À défaut, le vrai correctif est un redesign du lien de suivi (par exemple identifiant public non suffisant seul + échange serveur contre une session courte), avec migration des liens existants. Ne pas présenter une modification de `proxy.ts` comme solution à ce risque.
 
 ### S-02 (Majeur) — Portée excessive et rotation attendue des jetons d'API Cloudflare
 - **Constat vérifié :**
