@@ -13,11 +13,11 @@ Document de référence pour reprendre le projet à froid. Rédigé et mis à jo
 
 | | |
 |---|---|
-| Dépôt | `C:\Users\moelo\dev\speedfood` — branche `master`, distant `moelohimmara-dotcom/speedfood` |
+| Dépôt | `C:\Users\moelo\OneDrive\Desktop\speedfood` — branche `master`, distant `moelohimmara-dotcom/speedfood` ; déplacement vers `C:\Users\moelo\dev\speedfood` encore à faire par le propriétaire, session fermée |
 | Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
-| Version en ligne | `6234a218-b191-48c1-a260-7a8ad915d506` (10 octobre 2026, déploiement `99ac44f`) |
-| Base | Supabase `ggldjdizqrtpetdiohxy` — **62 migrations**, dernière `20261007221500_jetons_historique` |
-| État Git | `master` à jour avec `origin/master`, arbre propre |
+| Version en ligne | `137079a9-2fb2-4da0-a76b-6ad700925df0` (11 octobre 2026, commit `c0648d0`) |
+| Base | Supabase `ggldjdizqrtpetdiohxy` — schéma vérifié au déploiement |
+| État Git | `master` à jour avec `origin/master`, arbre propre hors dossier documentaire en cours d'intégration |
 
 **Ordre de lecture recommandé**
 
@@ -167,7 +167,11 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 ---
 
-## 9. En cas de problème
+## 9. Documentation canonique des audits récents
+
+L'audit du 11 octobre 2026 est regroupé dans `docs/audit-2026-10-11/README.md`, qui sert d'index unique pour les constats visuels, sécurité/performance, feuille de route, journal de déploiement et captures. Les rapports ne doivent pas être recréés à la racine du dépôt.
+
+## 10. En cas de problème
 
 | Symptôme | Piste |
 |---|---|

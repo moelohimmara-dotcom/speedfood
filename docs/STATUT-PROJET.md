@@ -1,6 +1,6 @@
 # Statut du projet — pour reprise par un autre développeur
 
-**Dernière mise à jour : 3 octobre 2026 (réconciliation de la documentation du pilote).** Ce document existe pour qu'une
+**Dernière mise à jour : 11 octobre 2026 (réconciliation de la documentation du pilote et audit de la fiche restaurant super-admin).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.
 
