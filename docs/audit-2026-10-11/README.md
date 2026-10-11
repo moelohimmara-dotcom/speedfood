@@ -12,7 +12,7 @@ Ce dossier est la source documentaire unique pour l'audit du 11 octobre 2026.
 
 ## État réconcilié
 
-- Dépôt : branche `master`, commit `c0648d0`, synchronisé avec `origin/master`.
+- Dépôt : branche `master`, commit `ae226bd`, synchronisé avec `origin/master`.
 - Production : version Cloudflare `137079a9-2fb2-4da0-a76b-6ad700925df0`.
 - Test connecté : la fiche restaurant super-admin a été ouverte en production avec le compte fourni par le propriétaire. Le formulaire « Demander une correction » a été soumis avec un motif vide ; l'erreur serveur est restée visible dans la fenêtre, le motif a été conservé et aucun restaurant n'a été modifié.
 - Aucun commit local non poussé n'est à trier. Les anciens rapports non suivis ont été classés ici au lieu de rester à la racine.
