@@ -10,6 +10,7 @@ import {
   type ResultatClasse,
   type RestaurantClassable,
 } from "./classement";
+import { couperPlats } from "./plafond-plats";
 
 /**
  * Recherche publique : restaurants publiés (la RLS de lecture publique ne
@@ -94,7 +95,9 @@ export async function lireCatalogue(
         .from("menu_items")
         .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, illustration")
         .is("archive_le", null)
-        .limit(LIMITE_PLATS_LUS),
+        .order("id", { ascending: true })
+        // Une ligne de plus que la limite : elle dit si la liste est tronquée. La coupure elle-même est faite de façon stable.
+        .limit(LIMITE_PLATS_LUS + 1),
     ]);
 
   if (erreurRestaurants || erreurPlats) {
@@ -124,7 +127,13 @@ export async function lireCatalogue(
   }));
 
   const platsParRestaurant = new Map<string, PlatPublic[]>();
-  for (const p of platsBruts ?? []) {
+  // Coupure stable : la même entrée donne toujours les mêmes plats, et `tronque` dit si le catalogue dépasse la limite.
+  const { plats: platsRetenus, tronque } = couperPlats(platsBruts ?? [], LIMITE_PLATS_LUS);
+  if (tronque) {
+    // Signal serveur seulement : la page reste affichée (avec les plats retenus), mais l'écart ne passe plus inaperçu.
+    console.warn(`[catalogue] plus de ${LIMITE_PLATS_LUS} plats publiés : la liste est tronquée, la limite doit être revue.`);
+  }
+  for (const p of platsRetenus) {
     const liste = platsParRestaurant.get(p.restaurant_id) ?? [];
     liste.push({
       id: p.id,

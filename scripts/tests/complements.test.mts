@@ -171,3 +171,11 @@ verifier(
   ).map((s) => s.plat.aConfirmer),
   [true]
 );
+
+console.log(`
+${total - ko}/${total} OK`);
+if (ko > 0) {
+  console.log(`${ko} ECHEC(S)`);
+  process.exit(1);
+}
+console.log("Tous les tests des compléments passent.");

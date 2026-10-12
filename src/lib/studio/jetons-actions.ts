@@ -7,7 +7,8 @@ import { verifierPalier } from "@/lib/system-admin/paliers-serveur";
 import { MINIMUMS_STUDIO } from "@/lib/system-admin/paliers";
 import { journaliserActionSysteme } from "@/lib/system-admin/audit";
 import { validerValeurJeton, verifierContraste, CONTRASTE_AA_TEXTE, type Groupe, type EntreeHistorique } from "@/lib/studio/jetons";
-import { lireJetons } from "@/lib/studio/jetons-lecture";
+import { CLE_CACHE_JETONS_SITE, lireJetons } from "@/lib/studio/jetons-lecture";
+import { invaliderCache } from "@/lib/cms/cache";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 
 /**
@@ -190,6 +191,8 @@ export async function enregistrerJetonAction(_etat: ResultatJeton, formData: For
 
     revalidatePath("/system/design");
     // Le CSS des jetons est dans le layout racine.
+    // Le CSS des jetons du site est mis en cache : on l'invalide avant de rafraîchir la page (sur ce centre de données).
+    await invaliderCache([CLE_CACHE_JETONS_SITE]);
     revalidatePath("/", "layout");
     return { ok: true, cleEnregistree: cle, message: "Enregistré. Le site est à jour." };
   } catch (erreur) {
@@ -244,6 +247,8 @@ export async function reinitialiserJetonAction(_etat: ResultatJeton, formData: F
     });
 
     revalidatePath("/system/design");
+    // Le CSS des jetons du site est mis en cache : on l'invalide avant de rafraîchir la page (sur ce centre de données).
+    await invaliderCache([CLE_CACHE_JETONS_SITE]);
     revalidatePath("/", "layout");
     return { ok: true, cleEnregistree: cle, clesRétablies: [cle], message: "Revenu à la valeur actuelle." };
   } catch (erreur) {
@@ -300,6 +305,8 @@ export async function reinitialiserTousJetonsAction(_etat: ResultatJeton, _formD
     });
 
     revalidatePath("/system/design");
+    // Le CSS des jetons du site est mis en cache : on l'invalide avant de rafraîchir la page (sur ce centre de données).
+    await invaliderCache([CLE_CACHE_JETONS_SITE]);
     revalidatePath("/", "layout");
     return {
       ok: true,
@@ -432,6 +439,8 @@ export async function restaurerDepuisHistoriqueAction(_etat: ResultatJeton, form
     });
 
     revalidatePath("/system/design");
+    // Le CSS des jetons du site est mis en cache : on l'invalide avant de rafraîchir la page (sur ce centre de données).
+    await invaliderCache([CLE_CACHE_JETONS_SITE]);
     revalidatePath("/", "layout");
     return {
       ok: true,

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { creerClientAdmin } from "@/lib/db/admin";
+import { lireAvecCache } from "@/lib/cms/cache";
 import { cssDepuisJetons, resoudreJetons, LIBELLES_GROUPES, type Groupe, type LigneJeton } from "./jetons";
 
 /**
@@ -121,9 +122,19 @@ export async function lireJetons(portee: "site" | "restaurant", restaurantId: st
   });
 }
 
-/** Le CSS `:root` du site, jetons résolus. Toujours non vide : au pire les valeurs du code. */
+/**
+ * Clé de cache des jetons du site. Invalidée par `jetons-actions.ts` à chaque écriture de la portée « site » :
+ * sur le centre de données local tout de suite, ailleurs au plus tard après `TTL_SECONDES`.
+ */
+export const CLE_CACHE_JETONS_SITE = "jetons:site";
+
+/** Le CSS `:root` du site, jetons résolus. Toujours non vide : au pire les valeurs du code. Mis en cache `TTL_SECONDES`. */
 export async function cssJetonsSite(): Promise<string> {
-  return cssDepuisJetons(new Map((await lireJetons("site")).map((j) => [j.cle, j.valeur])));
+  return lireAvecCache(
+    CLE_CACHE_JETONS_SITE,
+    async () => cssDepuisJetons(new Map((await lireJetons("site")).map((j) => [j.cle, j.valeur]))),
+    { ttlSecondes: TTL_SECONDES }
+  );
 }
 
 /** Le CSS `:root` pour la fiche d'un restaurant : ses jetons ownent sur ceux du site. */
