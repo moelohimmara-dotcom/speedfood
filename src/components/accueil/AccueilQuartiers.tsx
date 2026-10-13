@@ -34,7 +34,7 @@ export async function AccueilQuartiers() {
           <h2 id="accueil-quartiers" className="pub-titre pub-h2">
             {t["accueil.quartiers.titre"]}
           </h2>
-          <p className="apercu-quartiers-lead">Les quartiers qui comptent le plus de restaurants en ce moment.</p>
+          <p className="apercu-quartiers-lead">Trouvez à manger à deux pas de chez vous : voici les quartiers les mieux fournis en ce moment.</p>
         </div>
 
         <ul className="apercu-quartiers">

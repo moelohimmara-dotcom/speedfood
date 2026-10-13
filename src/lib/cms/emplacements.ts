@@ -38,12 +38,12 @@ const PRO = "Accueil : bande restaurateurs";
 export const EMPLACEMENTS = [
   // --- Haut de page ---
   { cle: "accueil.hero.titre_debut", groupe: HAUT, libelle: "Titre, début (avant le mot qui change)", defaut: "Une envie", max: 80 },
-  { cle: "accueil.hero.titre_fin", groupe: HAUT, libelle: "Titre, fin (après le mot qui change)", defaut: "Trouvez-en près de chez vous.", max: 120 },
+  { cle: "accueil.hero.titre_fin", groupe: HAUT, libelle: "Titre, fin (après le mot qui change)", defaut: "Voyez qui en sert, ouvert maintenant.", max: 120 },
   {
     cle: "accueil.hero.titre_lecteur",
     groupe: HAUT,
     libelle: "Titre complet lu par les lecteurs d'écran (phrase stable, sans le mot qui change)",
-    defaut: "Une envie d'un bon plat ? Trouvez-en près de chez vous.",
+    defaut: "Une envie d'un bon plat ? Voyez qui en sert, ouvert maintenant.",
     max: 200,
   },
   { cle: "accueil.hero.bouton_commander", groupe: HAUT, libelle: "Bouton principal", defaut: "Je commande", max: 40 },
@@ -88,7 +88,7 @@ export const EMPLACEMENTS = [
   { cle: "accueil.carte.titre_surligne", groupe: CARTE, libelle: "Titre, partie surlignée", defaut: "pas des enseignes", max: 80 },
   { cle: "accueil.carte.bouton_tous", groupe: CARTE, libelle: "Bouton vers la liste des restaurants", defaut: "Tous les restaurants", max: 40 },
   // --- Quartiers ---
-  { cle: "accueil.quartiers.kicker", groupe: QUARTIERS, libelle: "Petit titre", defaut: "Où nous trouver", max: 60 },
+  { cle: "accueil.quartiers.kicker", groupe: QUARTIERS, libelle: "Petit titre", defaut: "À deux pas de chez vous", max: 60 },
   { cle: "accueil.quartiers.titre", groupe: QUARTIERS, libelle: "Titre", defaut: "Votre quartier d'abord", max: 100 },
   // --- Quatre étapes ---
   { cle: "accueil.etapes.kicker", groupe: ETAPES, libelle: "Petit titre", defaut: "Quatre étapes", max: 60 },
@@ -99,7 +99,7 @@ export const EMPLACEMENTS = [
     cle: "accueil.etapes.choisir_texte",
     groupe: ETAPES,
     libelle: "Étape 1, texte",
-    defaut: "Un restaurant près de chez vous, un plat, et l'heure exacte à laquelle le restaurant l'a confirmé.",
+    defaut: "Voyez ce qui est vraiment disponible : chaque plat affiche l'heure exacte à laquelle son restaurant l'a confirmé.",
     max: 240,
     multiligne: true,
   },
@@ -108,7 +108,7 @@ export const EMPLACEMENTS = [
     cle: "accueil.etapes.commander_texte",
     groupe: ETAPES,
     libelle: "Étape 2, texte",
-    defaut: "Remplissez le panier, connectez-vous en quelques secondes, envoyez. Le restaurant sait qui commande.",
+    defaut: "Quelques gestes suffisent : panier, connexion rapide, envoi. Le restaurant sait qui commande, votre demande est prise au sérieux.",
     max: 240,
     multiligne: true,
   },
@@ -117,7 +117,7 @@ export const EMPLACEMENTS = [
     cle: "accueil.etapes.suivre_texte",
     groupe: ETAPES,
     libelle: "Étape 3, texte",
-    defaut: "Un lien privé vous dit où en est votre commande : en attente, acceptée, prête ou terminée. Inutile d'appeler.",
+    defaut: "Sachez où en est votre commande, en attente, acceptée, prête ou terminée, sans appeler le restaurant.",
     max: 240,
     multiligne: true,
   },
@@ -140,7 +140,7 @@ export const EMPLACEMENTS = [
     groupe: SUIVI,
     libelle: "Texte d'explication",
     defaut:
-      "Après l'envoi, un lien privé affiche l'état de votre commande, de « en attente » à « terminée ». Voici un exemple avec un restaurant réellement ouvert.",
+      "Plus besoin d'appeler pour savoir si c'est accepté ou prêt : votre lien privé affiche l'état de la commande en direct, de « en attente » à « terminée ». Voici un exemple avec un restaurant réellement ouvert.",
     max: 400,
     multiligne: true,
   },
@@ -152,11 +152,11 @@ export const EMPLACEMENTS = [
     cle: "accueil.pro.texte",
     groupe: PRO,
     libelle: "Texte d'explication",
-    defaut: "Créez votre fiche, nous la vérifions avant publication, et vos clients du quartier vous trouvent. Vous gardez la main sur votre menu et vos horaires.",
+    defaut: "Recevez des commandes claires, de clients identifiés, sans quitter votre cuisine. Créez votre fiche, nous la vérifions, et vos voisins vous trouvent. Vous gardez la main sur votre menu et vos horaires.",
     max: 300,
     multiligne: true,
   },
-  { cle: "accueil.pro.bouton", groupe: PRO, libelle: "Bouton", defaut: "Devenir partenaire", max: 40 },
+  { cle: "accueil.pro.bouton", groupe: PRO, libelle: "Bouton", defaut: "Ouvrir ma fiche restaurant", max: 40 },
 ] as const satisfies readonly Emplacement[];
 
 export type CleEmplacement = (typeof EMPLACEMENTS)[number]["cle"];

@@ -178,7 +178,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               type="text"
               maxLength={80}
               defaultValue={parametres.promesseSignature}
-              placeholder="Commande de quartier à Conakry"
+              placeholder="Mangez près de chez vous, à Conakry"
             />
           </div>
           <div className="field">
@@ -189,7 +189,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={220}
               defaultValue={parametres.promesseSousTitre}
-              placeholder="Choisissez un plat chez un restaurant de votre quartier, commandez en quelques gestes et suivez votre commande en direct. Connexion rapide, règlement au restaurant."
+              placeholder="Fini d'appeler cinq restaurants pour savoir s'il reste du plat. Voyez ce qui est disponible, commandez en quelques gestes, suivez votre commande en direct et réglez directement au restaurant."
             />
           </div>
           <div className="field">
@@ -200,7 +200,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={200}
               defaultValue={parametres.promessePartage}
-              placeholder="Speedfood, Conakry. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Commande après connexion, règlement au restaurant."
+              placeholder="Trouvez à manger près de chez vous, à Conakry : chaque plat affiche l'heure de confirmation du restaurant. Commande suivie en direct, règlement au restaurant."
             />
           </div>
         </Panneau>
