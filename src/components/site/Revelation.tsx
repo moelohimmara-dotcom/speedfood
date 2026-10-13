@@ -7,6 +7,7 @@ const CIBLES = [
   ".pub-rubrique > .pub-entete-rubrique",
   ".pub-grille-cartes > *",
   ".pub-quartiers > *",
+  ".apercu-quartiers > *",
   ".pub-etapes > *",
   ".pub-principes > *",
   ".pub-faq-item",

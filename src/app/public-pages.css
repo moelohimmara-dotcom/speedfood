@@ -788,3 +788,217 @@
     margin-inline: auto;
   }
 }
+
+/* Accueil : aperçu des quartiers (4 tuiles « ticket » + accès au répertoire complet). Aplats et ombres dures, sans dégradé. */
+.apercu-quartiers-lead {
+  margin: var(--space-2) 0 0;
+  font-weight: 600;
+  color: var(--secondaire);
+}
+.apercu-quartiers {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 640px) {
+  .apercu-quartiers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1000px) {
+  .apercu-quartiers {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.apercu-quartiers-tout {
+  grid-column: 1 / -1;
+}
+.apercu-ton-0 { --bande: var(--rouge-fonce); }
+.apercu-ton-1 { --bande: var(--mangue); }
+.apercu-ton-2 { --bande: var(--encre); }
+
+.apercu-tuile {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+  min-height: 220px;
+  height: 100%;
+  padding: calc(var(--space-5) + 10px) var(--space-5) var(--space-5);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--encre);
+  text-decoration: none;
+  box-shadow: var(--pub-ombre);
+  overflow: hidden;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+/* Liseré de couleur en tête de tuile : la signature « ticket ». */
+.apercu-tuile::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 10px;
+  background: var(--bande, var(--rouge-fonce));
+}
+.apercu-tuile:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+@media (hover: hover) {
+  .apercu-tuile:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--pub-ombre-forte);
+  }
+  .apercu-tuile:hover .apercu-epingle {
+    animation: apercu-rebond 0.6s var(--ease);
+  }
+  .apercu-tuile:hover .apercu-fleche {
+    transform: translateX(4px);
+    background: var(--mangue);
+  }
+}
+.apercu-rang {
+  font-family: var(--font-titre);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--secondaire);
+}
+.apercu-epingle {
+  position: absolute;
+  top: calc(var(--space-5) + 6px);
+  right: var(--space-5);
+  display: grid;
+  color: var(--rouge-fonce);
+  transform-origin: 50% 100%;
+}
+.apercu-nom {
+  margin-top: var(--space-3);
+  font-family: var(--font-titre);
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+.apercu-commune {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--secondaire);
+}
+.apercu-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-4);
+  padding-right: 52px;
+  font-weight: 600;
+}
+.apercu-ouvert {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: var(--succes);
+  font-weight: 700;
+}
+.apercu-point {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--succes);
+  animation: apercu-pulse 2s ease-out infinite;
+}
+.apercu-fleche {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--encre);
+  border-radius: 50%;
+  background: var(--creme);
+  color: var(--encre);
+  transition: transform 0.3s var(--ease), background 0.3s var(--ease);
+}
+
+/* Tuile finale : accès au répertoire complet. */
+.apercu-tuile-tout {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  align-content: center;
+  min-height: 0;
+  height: auto;
+  padding: var(--space-5);
+  background: var(--encre);
+  color: var(--creme);
+}
+.apercu-tuile-tout::before {
+  display: none;
+}
+.apercu-tout-texte {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.apercu-tout-titre {
+  font-family: var(--font-titre);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.apercu-tout-detail {
+  font-weight: 600;
+  color: var(--creme);
+  opacity: 0.85;
+}
+.apercu-fleche-tout {
+  position: static;
+  background: var(--mangue);
+  border-color: var(--mangue);
+  animation: apercu-avance 1.8s var(--ease) infinite;
+}
+
+@keyframes apercu-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.45); }
+  70%, 100% { box-shadow: 0 0 0 8px rgba(46, 125, 50, 0); }
+}
+@keyframes apercu-rebond {
+  0%, 100% { transform: translateY(0); }
+  35% { transform: translateY(-9px) scale(1.08); }
+  65% { transform: translateY(0) scale(0.96); }
+}
+@keyframes apercu-avance {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apercu-point,
+  .apercu-fleche-tout,
+  .apercu-tuile:hover .apercu-epingle {
+    animation: none;
+  }
+  .apercu-tuile,
+  .apercu-fleche {
+    transition: none;
+  }
+}
+@media (max-width: 639px) {
+  .apercu-tuile {
+    min-height: 180px;
+  }
+}
