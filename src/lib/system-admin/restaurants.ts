@@ -5,6 +5,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
 import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
+import { estUuid } from "@/lib/commande/commun";
 
 /**
  * Modération des restaurants (bloc 8b). Toute mutation :
@@ -358,4 +359,53 @@ export async function obtenirDossierRestaurant(id: string): Promise<DossierResta
     commandes: nombre(a.commandes),
     apercuPlats: apercu.map((l) => ({ nom: String(l.nom ?? ""), prix: nombre(l.prix) })),
   };
+}
+
+/** Identifiant du quartier actuel d'un restaurant (pour le sélecteur de la fiche administration). */
+export async function obtenirQuartierIdRestaurant(id: string): Promise<string | null> {
+  await verifierPermission("restaurant.consulter");
+  const supabase = await creerClientServeur();
+  const { data } = await supabase.from("restaurants").select("quartier_id").eq("id", id).maybeSingle();
+  return data?.quartier_id ?? null;
+}
+
+/**
+ * Quartier d'un restaurant changé par l'administration. Seuls les quartiers actifs (commune active) sont acceptés,
+ * vérifiés ici comme dans le formulaire. Journalisé (restaurant.quartier_modifie).
+ */
+export async function modifierQuartierRestaurantAdminAction(
+  _etatPrecedent: EtatActionRestaurant,
+  formData: FormData
+): Promise<EtatActionRestaurant> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const quartierId = String(formData.get("quartier_id") ?? "");
+  if (!estUuid(restaurantId)) return { erreur: "Restaurant introuvable." };
+  if (!estUuid(quartierId)) return { erreur: "Choisissez un quartier dans la liste." };
+
+  const contexte = await verifierPermission("restaurant.moderer");
+  const supabase = await creerClientServeur();
+
+  const { data: quartier } = await supabase
+    .from("neighborhoods")
+    .select("id, communes!inner(actif)")
+    .eq("id", quartierId)
+    .eq("actif", true)
+    .eq("communes.actif", true)
+    .maybeSingle();
+  if (!quartier) return { erreur: "Ce quartier n'est plus proposé. Choisissez-en un autre." };
+
+  const { error } = await supabase.from("restaurants").update({ quartier_id: quartierId }).eq("id", restaurantId);
+  if (error) return { erreur: "Impossible d'enregistrer le quartier. Réessayez dans un instant." };
+
+  await journaliserActionSysteme(contexte, {
+    action: "restaurant.quartier_modifie",
+    cibleType: "restaurant",
+    cibleId: restaurantId,
+    motif: quartierId,
+  });
+
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
+  revalidatePath("/restaurants");
+  revalidatePath("/quartiers");
+  return { succes: true };
 }

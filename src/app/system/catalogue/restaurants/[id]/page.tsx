@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { exigerPermissionPage, obtenirContexteSysteme } from "@/lib/system-admin/contexte";
-import { obtenirDossierRestaurant, obtenirRestaurantAdmin } from "@/lib/system-admin/restaurants";
+import { obtenirDossierRestaurant, obtenirQuartierIdRestaurant, obtenirRestaurantAdmin } from "@/lib/system-admin/restaurants";
+import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
+import { creerClientServeur } from "@/lib/db/server";
 import { listerMembresAdmin } from "@/lib/system-admin/comptes";
 import { PageHeader, Panneau, Pastille, Volet } from "@/components/admin/blocs";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
@@ -15,6 +17,7 @@ import { EditeurIllustration } from "@/components/illustrations/EditeurIllustrat
 import { ActionsModeration } from "./ActionsModeration";
 import { EditeurHoraires } from "./EditeurHoraires";
 import { EditeurProfilRestaurant } from "./EditeurProfilRestaurant";
+import { EditeurQuartierRestaurant } from "./EditeurQuartierRestaurant";
 import { GestionEquipe } from "./GestionEquipe";
 
 export const metadata = { title: "Fiche restaurant (administration)" };
@@ -51,13 +54,17 @@ export default async function RestaurantDetailSystemePage({
   if (!restaurant) {
     notFound();
   }
-  const [membres, dossier, reglages, contexte, plats] = await Promise.all([
+  const [membres, dossier, reglages, contexte, plats, quartierId, quartiers] = await Promise.all([
     listerMembresAdmin(id),
     obtenirDossierRestaurant(id),
     lireReglagesAssistance(),
     obtenirContexteSysteme(),
     listerPlatsAdmin(id),
+    obtenirQuartierIdRestaurant(id),
+    creerClientServeur().then((supabase) => lireQuartiersActifs(supabase)),
   ]);
+  const groupesQuartiers = grouperParCommune(quartiers);
+  const quartierValide = quartiers.some((q) => q.id === quartierId);
   const famille = familleDepuisCategorie(restaurant.categorie);
   const role = contexte.role;
   const enLigne = restaurant.publie && restaurant.suspendu_le === null;
@@ -174,6 +181,12 @@ export default async function RestaurantDetailSystemePage({
 
       <Panneau titre="Administration du restaurant" id="administration-restaurant" actions={<a href="#administration-restaurant" className="lien-texte">Accéder aux modifications</a>}>
         <p className="ad-aide-champ">Modifiez les informations opérationnelles sans retirer le restaurant du catalogue. Chaque modification est journalisée.</p>
+        <EditeurQuartierRestaurant
+          restaurantId={restaurant.id}
+          groupes={groupesQuartiers}
+          quartierActuelId={quartierId}
+          quartierActuelValide={quartierValide}
+        />
         {dossier ? (
           <EditeurProfilRestaurant
             restaurantId={restaurant.id}

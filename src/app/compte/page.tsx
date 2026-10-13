@@ -7,6 +7,8 @@ import { emojiAvatar } from "@/lib/client/profil";
 import { assurerProfilClient } from "@/lib/client/profil-serveur";
 import { creerClientServeur } from "@/lib/db/server";
 import { SuppressionCompte } from "./SuppressionCompte";
+import { FormulaireQuartierClient } from "./FormulaireQuartierClient";
+import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 
 export const metadata: Metadata = { title: "Mon compte" };
 
@@ -29,7 +31,7 @@ export default async function ComptePage() {
   await assurerProfilClient(supabase, user);
 
   const [{ data: profil }, { data: membre }, { data: roleSysteme }] = await Promise.all([
-    supabase.from("client_profils").select("pseudo, avatar, nom_commande, telephone, adresse").eq("utilisateur_id", user.id).maybeSingle(),
+    supabase.from("client_profils").select("pseudo, avatar, nom_commande, telephone, adresse, quartier_id").eq("utilisateur_id", user.id).maybeSingle(),
     supabase.from("restaurant_memberships").select("restaurant_id").eq("utilisateur_id", user.id).maybeSingle(),
     supabase.from("system_admin_memberships").select("utilisateur_id").eq("utilisateur_id", user.id).maybeSingle(),
   ]);
@@ -38,6 +40,7 @@ export default async function ComptePage() {
   if (!profil && !estPro) {
     redirect("/bienvenue");
   }
+  const quartiers = profil ? await lireQuartiersActifs(supabase) : [];
 
   return (
     <main className="page-texte">
@@ -56,6 +59,10 @@ export default async function ComptePage() {
             Modifier
           </Link>
         </Card>
+      ) : null}
+
+      {profil ? (
+        <FormulaireQuartierClient groupes={grouperParCommune(quartiers)} quartierActuelId={profil.quartier_id} />
       ) : null}
 
       {profil?.nom_commande && profil.telephone ? (
