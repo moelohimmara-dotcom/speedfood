@@ -727,3 +727,64 @@
     display: block;
   }
 }
+
+/* Page Quartiers : sections par commune autour des cartes de quartier (cartes inchangées). */
+.pub-communes-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-8);
+}
+.pub-communes-puce {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--encre);
+  font-weight: 800;
+  text-decoration: none;
+}
+.pub-communes-puce:hover {
+  background: var(--mangue);
+}
+.pub-commune-bloc {
+  display: grid;
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+  scroll-margin-top: var(--space-8);
+}
+.pub-commune-bloc-entete {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--pub-trait) solid var(--encre);
+}
+.pub-commune-bloc-entete .pub-h3-page {
+  margin: 0;
+}
+.pub-commune-bloc-bilan {
+  margin: 0;
+  font-weight: 600;
+  color: var(--secondaire);
+}
+.pub-quartier-nom {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+/* Sur écran tactile, le survol ne doit pas rester « collé » après un toucher. */
+@media (hover: none) {
+  .pub-quartier a:hover {
+    transform: none;
+    box-shadow: var(--pub-ombre);
+  }
+}
+/* Téléphone et tablette : le bandeau illustré est réduit pour que les quartiers apparaissent plus haut. */
+@media (max-width: 959px) {
+  .pub-entete-vecteur-quartiers .vec-cadre {
+    max-width: 240px;
+    margin-inline: auto;
+  }
+}
