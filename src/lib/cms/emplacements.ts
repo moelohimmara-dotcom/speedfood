@@ -37,13 +37,13 @@ const PRO = "Accueil : bande restaurateurs";
 
 export const EMPLACEMENTS = [
   // --- Haut de page ---
-  { cle: "accueil.hero.titre_debut", groupe: HAUT, libelle: "Titre, début (avant le mot qui change)", defaut: "Une envie de", max: 80 },
-  { cle: "accueil.hero.titre_fin", groupe: HAUT, libelle: "Titre, fin (après le mot qui change)", defaut: "Speedfood s'en occupe.", max: 120 },
+  { cle: "accueil.hero.titre_debut", groupe: HAUT, libelle: "Titre, début (avant le mot qui change)", defaut: "Une envie", max: 80 },
+  { cle: "accueil.hero.titre_fin", groupe: HAUT, libelle: "Titre, fin (après le mot qui change)", defaut: "Trouvez-en près de chez vous.", max: 120 },
   {
     cle: "accueil.hero.titre_lecteur",
     groupe: HAUT,
     libelle: "Titre complet lu par les lecteurs d'écran (phrase stable, sans le mot qui change)",
-    defaut: "Une envie d'un bon plat ? Speedfood s'en occupe.",
+    defaut: "Une envie d'un bon plat ? Trouvez-en près de chez vous.",
     max: 200,
   },
   { cle: "accueil.hero.bouton_commander", groupe: HAUT, libelle: "Bouton principal", defaut: "Je commande", max: 40 },
@@ -140,19 +140,19 @@ export const EMPLACEMENTS = [
     groupe: SUIVI,
     libelle: "Texte d'explication",
     defaut:
-      "Après l'envoi, un lien de suivi vous dit si la commande est en attente, acceptée, prête ou terminée. Voici un exemple, avec les plats d'un restaurant ouvert.",
+      "Après l'envoi, un lien privé affiche l'état de votre commande, de « en attente » à « terminée ». Voici un exemple avec un restaurant réellement ouvert.",
     max: 400,
     multiligne: true,
   },
   // --- Bande restaurateurs ---
   { cle: "accueil.pro.kicker", groupe: PRO, libelle: "Petit titre", defaut: "Vous tenez un restaurant ?", max: 80 },
   { cle: "accueil.pro.titre_debut", groupe: PRO, libelle: "Titre, début", defaut: "Votre carte en ligne,", max: 100 },
-  { cle: "accueil.pro.titre_surligne", groupe: PRO, libelle: "Titre, partie surlignée", defaut: "sans intermédiaire de paiement", max: 80 },
+  { cle: "accueil.pro.titre_surligne", groupe: PRO, libelle: "Titre, partie surlignée", defaut: "visible de tout le quartier", max: 80 },
   {
     cle: "accueil.pro.texte",
     groupe: PRO,
     libelle: "Texte d'explication",
-    defaut: "Créez votre fiche, nous la contrôlons, vos clients du quartier la trouvent. Vous encaissez directement.",
+    defaut: "Créez votre fiche, nous la vérifions avant publication, et vos clients du quartier vous trouvent. Vous gardez la main sur votre menu et vos horaires.",
     max: 300,
     multiligne: true,
   },

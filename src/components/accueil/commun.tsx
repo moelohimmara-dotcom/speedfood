@@ -1,7 +1,10 @@
 import { PALETTES, type Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 
-/** Plats de l'accroche qui change : des plats qu'on trouve réellement sur la carte des restaurants de Conakry. */
-export const MOTS_ENVIE = ["alloco", "poisson braisé", "riz gras", "sauce feuille", "poulet braisé"];
+/**
+ * Plats de l'accroche qui change : des plats qu'on trouve réellement sur la carte des restaurants de Conakry.
+ * Chaque mot porte sa préposition (« d'alloco », « de riz gras ») : l'élision serait fausse avec un « de » fixe.
+ */
+export const MOTS_ENVIE = ["d'alloco", "de poisson braisé", "de riz gras", "de sauce feuille", "de poulet braisé"];
 
 export const FLECHE = (
   <svg

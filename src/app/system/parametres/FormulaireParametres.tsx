@@ -189,7 +189,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={220}
               defaultValue={parametres.promesseSousTitre}
-              placeholder="Trouvez le bon restaurant près de chez vous, remplissez votre panier et suivez la préparation en direct. Connectez-vous en quelques secondes pour commander."
+              placeholder="Choisissez un plat chez un restaurant de votre quartier, commandez en quelques gestes et suivez votre commande en direct. Connexion rapide, règlement au restaurant."
             />
           </div>
           <div className="field">
