@@ -894,6 +894,7 @@ export type Database = {
           client_adresse: string | null
           client_nom: string
           client_telephone: string
+          client_user_id: string | null
           cree_le: string
           frais_livraison_estime: number
           id: string
@@ -916,6 +917,7 @@ export type Database = {
           client_adresse?: string | null
           client_nom: string
           client_telephone: string
+          client_user_id?: string | null
           cree_le?: string
           frais_livraison_estime?: number
           id?: string
@@ -938,6 +940,7 @@ export type Database = {
           client_adresse?: string | null
           client_nom?: string
           client_telephone?: string
+          client_user_id?: string | null
           cree_le?: string
           frais_livraison_estime?: number
           id?: string

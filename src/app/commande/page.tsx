@@ -14,15 +14,13 @@ export const dynamic = "force-dynamic";
 
 async function lireCompte(): Promise<CompteCommande> {
   const actif = await connexionClientActive();
-  if (!actif) {
-    return { actif: false, estClient: false, prefill: null };
-  }
   const supabase = await creerClientServeur();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Identification obligatoire pour commander (TDR v0.2 §5.1) : la page ne montre le formulaire qu'à un compte connecté.
   if (!user) {
-    return { actif: true, estClient: false, prefill: null };
+    return { actif, connecte: false, estClient: false, prefill: null };
   }
   const { data: profil } = await supabase
     .from("client_profils")
@@ -30,13 +28,13 @@ async function lireCompte(): Promise<CompteCommande> {
     .eq("utilisateur_id", user.id)
     .maybeSingle();
   if (!profil) {
-    return { actif: true, estClient: false, prefill: null };
+    return { actif, connecte: true, estClient: false, prefill: null };
   }
   const prefill =
     profil.nom_commande && profil.telephone
       ? { nom: profil.nom_commande, telephone: profil.telephone, adresse: profil.adresse ?? "" }
       : null;
-  return { actif: true, estClient: true, prefill };
+  return { actif, connecte: true, estClient: true, prefill };
 }
 
 export default async function CommandePage() {

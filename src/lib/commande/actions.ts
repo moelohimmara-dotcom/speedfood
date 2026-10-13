@@ -13,6 +13,7 @@ import { repondreProposition } from "./propositions";
 import { estJetonValide } from "./jetons";
 import { limiterCreationCommande, limiterDeclarationPaiement, limiterReponseProposition } from "@/lib/securite/limitation-debit";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { creerClientServeur } from "@/lib/db/server";
 import { chargerSuiviParJeton } from "./requetes";
 import { lireReferencePaiement, paiementOuvert, peutDeclarer, type ModePaiement } from "@/lib/paiement/regles";
 import { verifierAntiRobot } from "@/lib/securite/turnstile";
@@ -36,12 +37,24 @@ function erreurInattendue(): ErreurApi {
 }
 
 /**
- * Crée une commande invitée. Tous les montants sont recalculés côté serveur ;
- * l'idempotence repose sur `cleIdempotence` (voir lib/commande/creation.ts).
+ * Crée une commande pour le compte identifié qui l'envoie (TDR v0.2 §5.1 : plus de commande invitée).
+ * Tous les montants sont recalculés côté serveur ; l'idempotence repose sur `cleIdempotence`
+ * (voir lib/commande/creation.ts). Sans session, rien n'est créé.
  */
 export async function creerCommandeAction(
   payload: CreationCommandePayload
 ): Promise<ResultatCreationCommande> {
+  // L'identité vient de la session côté serveur, jamais d'un champ envoyé par le navigateur.
+  const {
+    data: { user },
+  } = await (await creerClientServeur()).auth.getUser();
+  if (!user) {
+    return {
+      ok: false,
+      erreur: { code: "NON_AUTHENTIFIE", message: "Connectez-vous pour envoyer votre commande." },
+    };
+  }
+
   const validation = validerCreationCommande(payload);
   if (!validation.ok) {
     return validation;
@@ -51,7 +64,7 @@ export async function creerCommandeAction(
     // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
     await verifierAntiRobot(validation.valeurs.jetonVerification);
     await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone);
-    const cree = await creerCommande(validation.valeurs);
+    const cree = await creerCommande(validation.valeurs, user.id);
     if (!cree.idempotent) {
       // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.
       const restaurantId = validation.valeurs.restaurantId;

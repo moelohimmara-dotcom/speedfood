@@ -103,7 +103,7 @@ export default async function CataloguePage({
     <main className="decouverte">
       {params.compte === "supprime" ? (
         <p className="accueil-confirmation" role="status">
-          Votre compte a été supprimé. Vous pouvez toujours commander sans compte.
+          Votre compte a été supprimé. Vous pouvez toujours parcourir les restaurants ; pour commander, il faudra vous connecter ou créer un compte.
         </p>
       ) : null}
       <section className="decouverte-bandeau">

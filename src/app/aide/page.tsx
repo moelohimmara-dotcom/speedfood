@@ -25,7 +25,7 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   {
     question: "Faut-il un compte ou une application pour commander ?",
     reponse:
-      "Non. Vous choisissez un restaurant et vos plats, puis vous indiquez votre nom et votre numéro de téléphone (et votre adresse si vous demandez une livraison). Aucune application à installer. Quand la connexion est proposée sur le site, un compte facultatif retient vos coordonnées pour la fois suivante.",
+      "Il faut un compte pour envoyer une commande, mais aucune application à installer. Vous parcourez les restaurants librement, vous choisissez vos plats, puis vous vous connectez ou créez votre compte. Votre compte retient vos coordonnées pour la fois suivante et vous permet de retrouver votre suivi.",
   },
   {
     question: "Comment payer ?",

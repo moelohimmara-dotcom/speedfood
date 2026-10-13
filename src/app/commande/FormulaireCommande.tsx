@@ -7,7 +7,6 @@ import {
   viderPanier,
   type Panier,
 } from "@/components/panier/panier";
-import Link from "next/link";
 import { creerCommandeAction } from "@/lib/commande/actions";
 import { memoriserCoordonneesAction } from "@/lib/client/actions";
 import type { CreationCommandePayload, ModeRetrait } from "@/lib/contracts/commande";
@@ -190,14 +189,6 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
       {compte.prefill ? (
         <p className="commande-prefill" role="status">
           Vos informations enregistrées sont déjà remplies. Modifiez-les si besoin.
-        </p>
-      ) : compte.actif && !compte.estClient ? (
-        <p className="commande-prefill">
-          Déjà un compte ?{" "}
-          <Link href="/entrer?suite=/commande" className="lien-texte">
-            Connectez-vous pour remplir vos informations en un geste
-          </Link>
-          .
         </p>
       ) : null}
       <Input

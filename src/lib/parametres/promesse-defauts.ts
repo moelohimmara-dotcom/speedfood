@@ -14,9 +14,9 @@ export interface Promesse {
 
 export const PROMESSE_PAR_DEFAUT: Promesse = {
   signature: "Commande de quartier à Conakry",
-  sousTitre: "Trouvez le bon restaurant près de chez vous, remplissez votre panier et suivez la préparation en direct. Sans compte obligatoire.",
+  sousTitre: "Trouvez le bon restaurant près de chez vous, remplissez votre panier et suivez la préparation en direct. Connectez-vous en quelques secondes pour commander.",
   partage:
-    "Speedfood, Conakry. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Commande sans compte, règlement au restaurant.",
+    "Speedfood, Conakry. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Commande après connexion, règlement au restaurant.",
 };
 
 /** Remplace chaque texte absent ou vide par sa valeur par défaut. */

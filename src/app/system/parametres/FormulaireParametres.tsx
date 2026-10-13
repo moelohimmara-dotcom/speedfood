@@ -189,7 +189,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={220}
               defaultValue={parametres.promesseSousTitre}
-              placeholder="Trouvez le bon restaurant près de chez vous, remplissez votre panier et suivez la préparation en direct. Sans compte obligatoire."
+              placeholder="Trouvez le bon restaurant près de chez vous, remplissez votre panier et suivez la préparation en direct. Connectez-vous en quelques secondes pour commander."
             />
           </div>
           <div className="field">
@@ -200,7 +200,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={200}
               defaultValue={parametres.promessePartage}
-              placeholder="Speedfood, Conakry. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Commande sans compte, règlement au restaurant."
+              placeholder="Speedfood, Conakry. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé. Commande après connexion, règlement au restaurant."
             />
           </div>
         </Panneau>

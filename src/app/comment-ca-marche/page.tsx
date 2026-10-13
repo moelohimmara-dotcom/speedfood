@@ -49,7 +49,7 @@ const ETAPES = [
     titre: "Commander",
     texte: "Un panier, vos coordonnées, c'est tout.",
     detail:
-      "Ajoutez vos plats, indiquez votre nom et votre téléphone (et une adresse pour une livraison). Aucun compte n'est obligatoire. Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
+      "Ajoutez vos plats, connectez-vous ou créez votre compte, puis indiquez votre nom et votre téléphone (et une adresse pour une livraison). Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
     motif: "etape-commander",
   },
   {

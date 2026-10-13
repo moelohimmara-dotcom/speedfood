@@ -15,6 +15,8 @@ import { FormulaireCommande } from "./FormulaireCommande";
 export interface CompteCommande {
   /** La connexion des clients est activée par l'administrateur. */
   actif: boolean;
+  /** Une personne est connectée (condition pour envoyer une commande, TDR v0.2 §5.1). */
+  connecte: boolean;
   /** Une personne est connectée ET a un profil client (peut mémoriser ses coordonnées). */
   estClient: boolean;
   /** Coordonnées mémorisées, ou `null`. */
@@ -110,10 +112,23 @@ export function CommandeClient({ cleSiteTurnstile, compte }: { cleSiteTurnstile?
 
       <div className="commande-formulaire">
       <h2 style={{ fontSize: "1.25rem", margin: "var(--space-6) 0 var(--space-3)" }} className="commande-formulaire-titre">
-        Vos coordonnées
+        {compte.connecte ? "Vos coordonnées" : "Connexion"}
       </h2>
 
-      <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} />
+      {compte.connecte ? (
+        <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} />
+      ) : (
+        <Card className="commande-connexion">
+          <p className="commande-connexion-titre">Connectez-vous pour envoyer votre commande</p>
+          <p className="commande-connexion-texte">
+            Chaque commande est rattachée à un compte : le restaurant sait qui commande et vous retrouvez votre suivi. Votre
+            panier est conservé pendant la connexion.
+          </p>
+          <Link href="/entrer?suite=/commande" className="btn btn-primary btn-block">
+            Me connecter ou créer un compte
+          </Link>
+        </Card>
+      )}
 
       <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
         Une fois envoyée, votre commande reste « en attente » jusqu&apos;à la réponse du restaurant.

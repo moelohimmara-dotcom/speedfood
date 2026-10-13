@@ -45,8 +45,8 @@ export function SelecteurRole() {
       {role === "client" ? (
         <div className="cta-resultat">
           <p>
-            Aucun compte n&apos;est nécessaire pour commander : parcourez les restaurants déjà
-            disponibles et commandez directement.
+            Parcourez les restaurants déjà disponibles librement. Pour commander, connectez-vous
+            ou créez votre compte en quelques secondes.
           </p>
           {/* Lien présenté comme un bouton : un <button> imbriqué dans un <a> est invalide et
               ramenait la zone tactile à 22 px. */}

@@ -47,18 +47,25 @@ function verifierMemeRestaurant(restaurantExistant: string, restaurantDemande: s
   }
 }
 
-export async function creerCommande(payload: CreationCommandePayload): Promise<CommandeCreee> {
+/**
+ * `utilisateurId` : compte identifié qui envoie la commande (obligatoire, TDR v0.2 §5.1). Un rejeu idempotent
+ * ne rend jamais la commande d'un autre compte.
+ */
+export async function creerCommande(payload: CreationCommandePayload, utilisateurId: string): Promise<CommandeCreee> {
   const db = creerClientAdmin();
   const jeton = genererJetonSuivi(payload.cleIdempotence);
 
   // Rejeu idempotent : la commande existe déjà pour cette clé d'idempotence.
   const { data: existante } = await db
     .from("orders")
-    .select("id, reference, jeton_suivi, restaurant_id")
+    .select("id, reference, jeton_suivi, restaurant_id, client_user_id")
     .eq("jeton_suivi", jeton)
     .maybeSingle();
   if (existante) {
     verifierMemeRestaurant(existante.restaurant_id, payload.restaurantId);
+    if (existante.client_user_id !== null && existante.client_user_id !== utilisateurId) {
+      throw new ErreurMetier("VALIDATION", "Cette commande ne peut pas être rejouée. Rechargez la page.");
+    }
     return {
       id: existante.id,
       reference: existante.reference,
@@ -107,6 +114,7 @@ export async function creerCommande(payload: CreationCommandePayload): Promise<C
         reference,
         jeton_suivi: jeton,
         restaurant_id: payload.restaurantId,
+        client_user_id: utilisateurId,
         client_nom: payload.client.nom,
         client_telephone: payload.client.telephone,
         client_adresse: payload.client.adresse,

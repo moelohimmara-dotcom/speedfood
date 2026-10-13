@@ -1518,3 +1518,18 @@
   padding-left: 1.1em;
   overflow-wrap: anywhere;
 }
+
+/* Commande : invitation à se connecter (identification obligatoire pour commander). */
+.commande-connexion {
+  display: grid;
+  gap: var(--space-3);
+}
+.commande-connexion-titre {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.commande-connexion-texte {
+  margin: 0;
+  color: var(--secondaire);
+}
