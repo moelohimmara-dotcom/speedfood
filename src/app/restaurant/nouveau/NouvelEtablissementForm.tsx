@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { creerEtablissementAction, type EtatFormulaire } from "@/lib/auth/actions";
 import { Button, Alert } from "@/components/ui";
+import type { GroupeCommune } from "@/lib/geographie/quartiers";
 
 const etatInitial: EtatFormulaire = {};
 
@@ -13,10 +14,10 @@ interface Option {
 
 export function NouvelEtablissementForm({
   categories,
-  quartiers,
+  groupes,
 }: {
   categories: Option[];
-  quartiers: Option[];
+  groupes: GroupeCommune[];
 }) {
   const [etat, action, enCours] = useActionState(creerEtablissementAction, etatInitial);
 
@@ -45,10 +46,14 @@ export function NouvelEtablissementForm({
           <option value="" disabled>
             Choisir…
           </option>
-          {quartiers.map((q) => (
-            <option key={q.id} value={q.id}>
-              {q.nom}
-            </option>
+          {groupes.map((groupe) => (
+            <optgroup key={groupe.communeId} label={groupe.communeNom}>
+              {groupe.quartiers.map((quartier) => (
+                <option key={quartier.id} value={quartier.id}>
+                  {quartier.nom}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -76,6 +76,91 @@ export type Database = {
           motif?: string | null
         }
         Relationships: []
+      }
+      client_profils: {
+        Row: {
+          adresse: string | null
+          avatar: string
+          coordonnees_enregistrees_le: string | null
+          cree_le: string
+          mis_a_jour_le: string
+          nom_commande: string | null
+          pseudo: string
+          quartier_id: string | null
+          telephone: string | null
+          utilisateur_id: string
+        }
+        Insert: {
+          adresse?: string | null
+          avatar: string
+          coordonnees_enregistrees_le?: string | null
+          cree_le?: string
+          mis_a_jour_le?: string
+          nom_commande?: string | null
+          pseudo: string
+          quartier_id?: string | null
+          telephone?: string | null
+          utilisateur_id: string
+        }
+        Update: {
+          adresse?: string | null
+          avatar?: string
+          coordonnees_enregistrees_le?: string | null
+          cree_le?: string
+          mis_a_jour_le?: string
+          nom_commande?: string | null
+          pseudo?: string
+          quartier_id?: string | null
+          telephone?: string | null
+          utilisateur_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_profils_quartier_id_fkey"
+            columns: ["quartier_id"]
+            isOneToOne: false
+            referencedRelation: "neighborhoods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communes: {
+        Row: {
+          actif: boolean
+          code_officiel: string | null
+          cree_le: string
+          id: string
+          nom: string
+          slug: string
+          ville_id: string
+        }
+        Insert: {
+          actif?: boolean
+          code_officiel?: string | null
+          cree_le?: string
+          id?: string
+          nom: string
+          slug: string
+          ville_id: string
+        }
+        Update: {
+          actif?: boolean
+          code_officiel?: string | null
+          cree_le?: string
+          id?: string
+          nom?: string
+          slug?: string
+          ville_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communes_ville_id_fkey"
+            columns: ["ville_id"]
+            isOneToOne: false
+            referencedRelation: "villes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_banners: {
         Row: {
@@ -223,6 +308,169 @@ export type Database = {
         }
         Relationships: []
       }
+      design_tokens: {
+        Row: {
+          cle: string
+          cree_le: string
+          groupe: string
+          id: string
+          libelle: string
+          mis_a_jour_le: string
+          portee: string
+          restaurant_id: string | null
+          valeur: string
+        }
+        Insert: {
+          cle: string
+          cree_le?: string
+          groupe: string
+          id?: string
+          libelle: string
+          mis_a_jour_le?: string
+          portee: string
+          restaurant_id?: string | null
+          valeur: string
+        }
+        Update: {
+          cle?: string
+          cree_le?: string
+          groupe?: string
+          id?: string
+          libelle?: string
+          mis_a_jour_le?: string
+          portee?: string
+          restaurant_id?: string | null
+          valeur?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_tokens_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design_tokens_historique: {
+        Row: {
+          action: string
+          auteur_id: string | null
+          cle: string
+          cree_le: string
+          id: string
+          portee: string
+          restaurant_id: string | null
+          valeur_apres: string
+          valeur_avant: string | null
+        }
+        Insert: {
+          action: string
+          auteur_id?: string | null
+          cle: string
+          cree_le?: string
+          id?: string
+          portee?: string
+          restaurant_id?: string | null
+          valeur_apres: string
+          valeur_avant?: string | null
+        }
+        Update: {
+          action?: string
+          auteur_id?: string | null
+          cle?: string
+          cree_le?: string
+          id?: string
+          portee?: string
+          restaurant_id?: string | null
+          valeur_apres?: string
+          valeur_avant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_tokens_historique_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents_commande: {
+        Row: {
+          annee: number
+          client_nom: string | null
+          emetteur: Json
+          emis_le: string
+          frais_livraison: number
+          id: string
+          lignes: Json
+          numero: string
+          numero_seq: number
+          order_id: string
+          regime: string
+          restaurant_id: string
+          sous_total: number
+          total: number
+          tva_montant: number | null
+          tva_taux: number | null
+          type: string
+        }
+        Insert: {
+          annee: number
+          client_nom?: string | null
+          emetteur: Json
+          emis_le?: string
+          frais_livraison: number
+          id?: string
+          lignes: Json
+          numero: string
+          numero_seq: number
+          order_id: string
+          regime: string
+          restaurant_id: string
+          sous_total: number
+          total: number
+          tva_montant?: number | null
+          tva_taux?: number | null
+          type: string
+        }
+        Update: {
+          annee?: number
+          client_nom?: string | null
+          emetteur?: Json
+          emis_le?: string
+          frais_livraison?: number
+          id?: string
+          lignes?: Json
+          numero?: string
+          numero_seq?: number
+          order_id?: string
+          regime?: string
+          restaurant_id?: string
+          sous_total?: number
+          total?: number
+          tva_montant?: number | null
+          tva_taux?: number | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_commande_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_commande_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_placements: {
         Row: {
           actif: boolean
@@ -312,52 +560,87 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_item_options: {
+        Row: {
+          cree_le: string
+          disponible: boolean
+          id: string
+          menu_item_id: string
+          nom: string
+          prix: number
+        }
+        Insert: {
+          cree_le?: string
+          disponible?: boolean
+          id?: string
+          menu_item_id: string
+          nom: string
+          prix?: number
+        }
+        Update: {
+          cree_le?: string
+          disponible?: boolean
+          id?: string
+          menu_item_id?: string
+          nom?: string
+          prix?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_options_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
-          disponibilite_confirmee_le: string | null
           archive_le: string | null
           cree_le: string
           description: string
+          disponibilite_confirmee_le: string | null
           disponible: boolean
           id: string
+          illustration: Json | null
           mis_a_jour_le: string
           nom: string
           photo_url: string | null
           prix: number
           prix_promo: number | null
-          illustration: Json | null
           restaurant_id: string
           section_id: string | null
         }
         Insert: {
-          disponibilite_confirmee_le?: string | null
           archive_le?: string | null
           cree_le?: string
           description?: string
+          disponibilite_confirmee_le?: string | null
           disponible?: boolean
           id?: string
+          illustration?: Json | null
           mis_a_jour_le?: string
           nom: string
           photo_url?: string | null
           prix: number
           prix_promo?: number | null
-          illustration?: Json | null
           restaurant_id: string
           section_id?: string | null
         }
         Update: {
-          disponibilite_confirmee_le?: string | null
           archive_le?: string | null
           cree_le?: string
           description?: string
+          disponibilite_confirmee_le?: string | null
           disponible?: boolean
           id?: string
+          illustration?: Json | null
           mis_a_jour_le?: string
           nom?: string
           photo_url?: string | null
           prix?: number
           prix_promo?: number | null
-          illustration?: Json | null
           restaurant_id?: string
           section_id?: string | null
         }
@@ -410,97 +693,34 @@ export type Database = {
           },
         ]
       }
-      menu_item_options: {
-        Row: {
-          cree_le: string
-          disponible: boolean
-          id: string
-          menu_item_id: string
-          nom: string
-          prix: number
-        }
-        Insert: {
-          cree_le?: string
-          disponible?: boolean
-          id?: string
-          menu_item_id: string
-          nom: string
-          prix?: number
-        }
-        Update: {
-          cree_le?: string
-          disponible?: boolean
-          id?: string
-          menu_item_id?: string
-          nom?: string
-          prix?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "menu_item_options_menu_item_id_fkey"
-            columns: ["menu_item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       neighborhoods: {
         Row: {
+          actif: boolean
+          commune_id: string | null
           id: string
           nom: string
           ordre: number
         }
         Insert: {
+          actif?: boolean
+          commune_id?: string | null
           id?: string
           nom: string
           ordre?: number
         }
         Update: {
+          actif?: boolean
+          commune_id?: string | null
           id?: string
           nom?: string
           ordre?: number
-        }
-        Relationships: []
-      }
-      order_items: {
-        Row: {
-          id: string
-          menu_item_id: string | null
-          nom: string
-          order_id: string
-          prix: number
-          quantite: number
-        }
-        Insert: {
-          id?: string
-          menu_item_id?: string | null
-          nom: string
-          order_id: string
-          prix: number
-          quantite: number
-        }
-        Update: {
-          id?: string
-          menu_item_id?: string | null
-          nom?: string
-          order_id?: string
-          prix?: number
-          quantite?: number
         }
         Relationships: [
           {
-            foreignKeyName: "order_items_menu_item_id_fkey"
-            columns: ["menu_item_id"]
+            foreignKeyName: "neighborhoods_commune_id_fkey"
+            columns: ["commune_id"]
             isOneToOne: false
-            referencedRelation: "menu_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
+            referencedRelation: "communes"
             referencedColumns: ["id"]
           },
         ]
@@ -540,6 +760,48 @@ export type Database = {
             columns: ["order_item_id"]
             isOneToOne: false
             referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          id: string
+          menu_item_id: string | null
+          nom: string
+          order_id: string
+          prix: number
+          quantite: number
+        }
+        Insert: {
+          id?: string
+          menu_item_id?: string | null
+          nom: string
+          order_id: string
+          prix: number
+          quantite: number
+        }
+        Update: {
+          id?: string
+          menu_item_id?: string | null
+          nom?: string
+          order_id?: string
+          prix?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -628,7 +890,6 @@ export type Database = {
       }
       orders: {
         Row: {
-          table_numero: string | null
           anonymise_le: string | null
           client_adresse: string | null
           client_nom: string
@@ -648,9 +909,9 @@ export type Database = {
           restaurant_id: string
           sous_total: number
           statut: string
+          table_numero: string | null
         }
         Insert: {
-          table_numero?: string | null
           anonymise_le?: string | null
           client_adresse?: string | null
           client_nom: string
@@ -670,9 +931,9 @@ export type Database = {
           restaurant_id: string
           sous_total: number
           statut?: string
+          table_numero?: string | null
         }
         Update: {
-          table_numero?: string | null
           anonymise_le?: string | null
           client_adresse?: string | null
           client_nom?: string
@@ -692,6 +953,7 @@ export type Database = {
           restaurant_id?: string
           sous_total?: number
           statut?: string
+          table_numero?: string | null
         }
         Relationships: [
           {
@@ -705,189 +967,58 @@ export type Database = {
       }
       parametres_application: {
         Row: {
+          commande_proposition_delai_minutes: number
+          connexion_facebook_active: boolean
           conservation_audit_mois: number
           conservation_coordonnees_jours: number
           conservation_non_cloturee_jours: number
+          delai_validation_heures: number | null
           disponibilite_fraicheur_heures: number
-          commande_proposition_delai_minutes: number
-          connexion_facebook_active: boolean
           id: boolean
           mis_a_jour_le: string
           mis_a_jour_par: string | null
+          position_carte_active: boolean
           prix_plat_max_gnf: number
+          promesse_partage: string | null
           promesse_signature: string | null
           promesse_sous_titre: string | null
-          promesse_partage: string | null
           whatsapp_assistance: string | null
-          delai_validation_heures: number | null
-          position_carte_active: boolean
         }
         Insert: {
+          commande_proposition_delai_minutes?: number
+          connexion_facebook_active?: boolean
           conservation_audit_mois?: number
           conservation_coordonnees_jours?: number
           conservation_non_cloturee_jours?: number
+          delai_validation_heures?: number | null
           disponibilite_fraicheur_heures?: number
-          commande_proposition_delai_minutes?: number
-          connexion_facebook_active?: boolean
           id?: boolean
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
+          position_carte_active?: boolean
           prix_plat_max_gnf?: number
+          promesse_partage?: string | null
           promesse_signature?: string | null
           promesse_sous_titre?: string | null
-          promesse_partage?: string | null
           whatsapp_assistance?: string | null
-          delai_validation_heures?: number | null
-          position_carte_active?: boolean
         }
         Update: {
+          commande_proposition_delai_minutes?: number
+          connexion_facebook_active?: boolean
           conservation_audit_mois?: number
           conservation_coordonnees_jours?: number
           conservation_non_cloturee_jours?: number
+          delai_validation_heures?: number | null
           disponibilite_fraicheur_heures?: number
-          commande_proposition_delai_minutes?: number
-          connexion_facebook_active?: boolean
           id?: boolean
           mis_a_jour_le?: string
           mis_a_jour_par?: string | null
+          position_carte_active?: boolean
           prix_plat_max_gnf?: number
+          promesse_partage?: string | null
           promesse_signature?: string | null
           promesse_sous_titre?: string | null
-          promesse_partage?: string | null
           whatsapp_assistance?: string | null
-          delai_validation_heures?: number | null
-          position_carte_active?: boolean
-        }
-        Relationships: []
-      }
-      design_tokens: {
-        Row: {
-          cle: string
-          cree_le: string
-          groupe: string
-          id: string
-          libelle: string
-          mis_a_jour_le: string
-          portee: string
-          restaurant_id: string | null
-          valeur: string
-        }
-        Insert: {
-          cle: string
-          cree_le?: string
-          groupe: string
-          id?: string
-          libelle: string
-          mis_a_jour_le?: string
-          portee: string
-          restaurant_id?: string | null
-          valeur: string
-        }
-        Update: {
-          cle?: string
-          cree_le?: string
-          groupe?: string
-          id?: string
-          libelle?: string
-          mis_a_jour_le?: string
-          portee?: string
-          restaurant_id?: string | null
-          valeur?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "design_tokens_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      design_tokens_historique: {
-        Row: {
-          action: string
-          auteur_id: string | null
-          cle: string
-          cree_le: string
-          id: string
-          portee: string
-          restaurant_id: string | null
-          valeur_apres: string
-          valeur_avant: string | null
-        }
-        Insert: {
-          action: string
-          auteur_id?: string | null
-          cle: string
-          cree_le?: string
-          id?: string
-          portee?: string
-          restaurant_id?: string | null
-          valeur_apres: string
-          valeur_avant?: string | null
-        }
-        Update: {
-          action?: string
-          auteur_id?: string | null
-          cle?: string
-          cree_le?: string
-          id?: string
-          portee?: string
-          restaurant_id?: string | null
-          valeur_apres?: string
-          valeur_avant?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "design_tokens_historique_auteur_id_fkey"
-            columns: ["auteur_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "design_tokens_historique_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_profils: {
-        Row: {
-          adresse: string | null
-          avatar: string
-          cree_le: string
-          coordonnees_enregistrees_le: string | null
-          mis_a_jour_le: string
-          nom_commande: string | null
-          pseudo: string
-          telephone: string | null
-          utilisateur_id: string
-        }
-        Insert: {
-          adresse?: string | null
-          avatar: string
-          cree_le?: string
-          coordonnees_enregistrees_le?: string | null
-          mis_a_jour_le?: string
-          nom_commande?: string | null
-          pseudo: string
-          telephone?: string | null
-          utilisateur_id: string
-        }
-        Update: {
-          adresse?: string | null
-          avatar?: string
-          cree_le?: string
-          coordonnees_enregistrees_le?: string | null
-          mis_a_jour_le?: string
-          nom_commande?: string | null
-          pseudo?: string
-          telephone?: string | null
-          utilisateur_id?: string
         }
         Relationships: []
       }
@@ -956,6 +1087,30 @@ export type Database = {
         }
         Relationships: []
       }
+      reinitialisation_jetons: {
+        Row: {
+          cree_le: string
+          expire_le: string
+          id: string
+          utilisateur_id: string
+          utilise_le: string | null
+        }
+        Insert: {
+          cree_le?: string
+          expire_le: string
+          id?: string
+          utilisateur_id: string
+          utilise_le?: string | null
+        }
+        Update: {
+          cree_le?: string
+          expire_le?: string
+          id?: string
+          utilisateur_id?: string
+          utilise_le?: string | null
+        }
+        Relationships: []
+      }
       restaurant_codes_marchand: {
         Row: {
           mis_a_jour_le: string
@@ -978,6 +1133,82 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "restaurant_codes_marchand_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_compteurs_documents: {
+        Row: {
+          annee: number
+          dernier: number
+          restaurant_id: string
+          type: string
+        }
+        Insert: {
+          annee: number
+          dernier?: number
+          restaurant_id: string
+          type: string
+        }
+        Update: {
+          annee?: number
+          dernier?: number
+          restaurant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_compteurs_documents_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_identite_documents: {
+        Row: {
+          adresse: string | null
+          mention: string | null
+          mis_a_jour_le: string
+          nif: string | null
+          raison_sociale: string | null
+          rccm: string | null
+          regime: string
+          restaurant_id: string
+          telephone: string | null
+          tva_taux: number | null
+        }
+        Insert: {
+          adresse?: string | null
+          mention?: string | null
+          mis_a_jour_le?: string
+          nif?: string | null
+          raison_sociale?: string | null
+          rccm?: string | null
+          regime?: string
+          restaurant_id: string
+          telephone?: string | null
+          tva_taux?: number | null
+        }
+        Update: {
+          adresse?: string | null
+          mention?: string | null
+          mis_a_jour_le?: string
+          nif?: string | null
+          raison_sociale?: string | null
+          rccm?: string | null
+          regime?: string
+          restaurant_id?: string
+          telephone?: string | null
+          tva_taux?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_identite_documents_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: true
             referencedRelation: "restaurants"
@@ -1015,156 +1246,116 @@ export type Database = {
         ]
       }
       restaurant_scans: {
-        Row: { restaurant_id: string; jour: string; source: string; nb: number }
-        Insert: { restaurant_id: string; jour?: string; source: string; nb?: number }
-        Update: { restaurant_id?: string; jour?: string; source?: string; nb?: number }
-        Relationships: []
-      }
-      restaurant_identite_documents: {
         Row: {
+          jour: string
+          nb: number
           restaurant_id: string
-          raison_sociale: string | null
-          adresse: string | null
-          telephone: string | null
-          nif: string | null
-          rccm: string | null
-          regime: string
-          tva_taux: number | null
-          mention: string | null
-          mis_a_jour_le: string
+          source: string
         }
         Insert: {
+          jour?: string
+          nb?: number
           restaurant_id: string
-          raison_sociale?: string | null
-          adresse?: string | null
-          telephone?: string | null
-          nif?: string | null
-          rccm?: string | null
-          regime?: string
-          tva_taux?: number | null
-          mention?: string | null
-          mis_a_jour_le?: string
+          source: string
         }
         Update: {
+          jour?: string
+          nb?: number
           restaurant_id?: string
-          raison_sociale?: string | null
-          adresse?: string | null
-          telephone?: string | null
-          nif?: string | null
-          rccm?: string | null
-          regime?: string
-          tva_taux?: number | null
-          mention?: string | null
-          mis_a_jour_le?: string
+          source?: string
         }
-        Relationships: []
-      }
-      documents_commande: {
-        Row: {
-          id: string
-          order_id: string
-          restaurant_id: string
-          type: string
-          annee: number
-          numero_seq: number
-          numero: string
-          emis_le: string
-          regime: string
-          emetteur: Json
-          client_nom: string | null
-          lignes: Json
-          sous_total: number
-          frais_livraison: number
-          total: number
-          tva_taux: number | null
-          tva_montant: number | null
-        }
-        Insert: never
-        Update: never
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_scans_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restaurants: {
         Row: {
-          accepte_sur_place: boolean
           accepte_commandes: boolean
-          statut_mis_a_jour_le: string
+          accepte_sur_place: boolean
           categorie_id: string
           code_court: string
           consignes: string | null
           couleur_accent: string | null
+          couverture_illustration: Json | null
           cree_le: string
           donnees_demo: boolean
           horaires: string
           id: string
           latitude: number | null
-          logo_url: string | null
           logo_illustration: Json | null
-          couverture_illustration: Json | null
+          logo_url: string | null
           longitude: number | null
-          moyens_paiement: string[]
           mis_a_jour_le: string
           motif_correction: string | null
+          moyens_paiement: string[]
           nom: string
           ouvert: boolean
           photo_url: string | null
           publie: boolean
           quartier_id: string
+          statut_mis_a_jour_le: string
           suspendu_le: string | null
           suspendu_motif: string | null
         }
         Insert: {
-          accepte_sur_place?: boolean
           accepte_commandes?: boolean
-          statut_mis_a_jour_le?: string
+          accepte_sur_place?: boolean
           categorie_id: string
           code_court?: string
           consignes?: string | null
           couleur_accent?: string | null
+          couverture_illustration?: Json | null
           cree_le?: string
           donnees_demo?: boolean
           horaires?: string
           id?: string
           latitude?: number | null
-          logo_url?: string | null
           logo_illustration?: Json | null
-          couverture_illustration?: Json | null
+          logo_url?: string | null
           longitude?: number | null
-          moyens_paiement?: string[]
           mis_a_jour_le?: string
           motif_correction?: string | null
+          moyens_paiement?: string[]
           nom: string
           ouvert?: boolean
           photo_url?: string | null
           publie?: boolean
           quartier_id: string
+          statut_mis_a_jour_le?: string
           suspendu_le?: string | null
           suspendu_motif?: string | null
         }
         Update: {
-          accepte_sur_place?: boolean
           accepte_commandes?: boolean
-          statut_mis_a_jour_le?: string
+          accepte_sur_place?: boolean
           categorie_id?: string
           code_court?: string
           consignes?: string | null
           couleur_accent?: string | null
+          couverture_illustration?: Json | null
           cree_le?: string
           donnees_demo?: boolean
           horaires?: string
           id?: string
           latitude?: number | null
-          logo_url?: string | null
           logo_illustration?: Json | null
-          couverture_illustration?: Json | null
+          logo_url?: string | null
           longitude?: number | null
-          moyens_paiement?: string[]
           mis_a_jour_le?: string
           motif_correction?: string | null
+          moyens_paiement?: string[]
           nom?: string
           ouvert?: boolean
           photo_url?: string | null
           publie?: boolean
           quartier_id?: string
+          statut_mis_a_jour_le?: string
           suspendu_le?: string | null
           suspendu_motif?: string | null
         }
@@ -1203,13 +1394,64 @@ export type Database = {
         }
         Relationships: []
       }
+      villes: {
+        Row: {
+          actif: boolean
+          cree_le: string
+          id: string
+          nom: string
+          slug: string
+        }
+        Insert: {
+          actif?: boolean
+          cree_le?: string
+          id?: string
+          nom: string
+          slug: string
+        }
+        Update: {
+          actif?: boolean
+          cree_le?: string
+          id?: string
+          nom?: string
+          slug?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      fn_admin_definir_illustration: {
+        Args: { p_cible: string; p_id: string; p_valeur: Json }
+        Returns: undefined
+      }
+      fn_admin_dossier_restaurant: {
+        Args: { p_restaurant: string }
+        Returns: Json
+      }
+      fn_admin_lister_plats: {
+        Args: { p_restaurant: string }
+        Returns: {
+          id: string
+          illustration: Json
+          nom: string
+          photo_url: string
+          prix: number
+        }[]
+      }
+      fn_anonymiser_donnees: { Args: never; Returns: Json }
+      fn_compter_scan: {
+        Args: { p_code: string; p_source: string }
+        Returns: string
+      }
       fn_creer_restaurant_et_owner: {
         Args: { p_categorie_id: string; p_nom: string; p_quartier_id: string }
+        Returns: string
+      }
+      fn_emettre_document: {
+        Args: { p_order_id: string; p_type: string }
         Returns: string
       }
       fn_est_admin_systeme: { Args: { p_roles?: string[] }; Returns: boolean }
@@ -1217,87 +1459,7 @@ export type Database = {
         Args: { p_restaurant_id: string }
         Returns: boolean
       }
-      fn_preparer_suppression_compte: {
-        Args: { p_motif: string; p_supprimer_restaurants: boolean; p_utilisateur: string }
-        Returns: Json
-      }
-      fn_emettre_document: {
-        Args: { p_order_id: string; p_type: string }
-        Returns: string
-      }
-      fn_publier_blocs: {
-        Args: { p_blocs: Json; p_jeton: string; p_motif?: string | null; p_page_id: string }
-        Returns: number
-      }
-      fn_compter_scan: {
-        Args: { p_code: string; p_source: string }
-        Returns: string | null
-      }
-      fn_repondre_proposition: {
-        Args: { p_jeton: string; p_proposition_id: string; p_reponse: string }
-        Returns: string
-      }
-      fn_support_changer_statut: {
-        Args: { p_motif: string; p_order_id: string; p_vers: string }
-        Returns: undefined
-      }
-      fn_reinitialisation_simuler: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      fn_reinitialiser_application: {
-        Args: { p_jeton: string; p_motif: string }
-        Returns: Json
-      }
-      fn_admin_lister_plats: {
-        Args: { p_restaurant: string }
-        Returns: { id: string; nom: string; prix: number; photo_url: string | null; illustration: Json | null }[]
-      }
-      fn_admin_definir_illustration: {
-        Args: { p_cible: string; p_id: string; p_valeur: Json | null }
-        Returns: undefined
-      }
-      fn_admin_dossier_restaurant: {
-        Args: { p_restaurant: string }
-        Returns: Json
-      }
-      fn_statistiques_application: {
-        Args: { p_jours: number }
-        Returns: Json
-      }
-      fn_support_serie_commandes: {
-        Args: { p_jours: number }
-        Returns: { jour: string; statut: string; nb: number; montant: number }[]
-      }
-      fn_support_commandes_par_heure: {
-        Args: { p_jours: number }
-        Returns: { heure: number; nb: number }[]
-      }
-      fn_support_compter_commandes: {
-        Args: { p_depuis?: string; p_statuts?: string[] }
-        Returns: number
-      }
-      fn_support_lister_commandes: {
-        Args: { p_id?: string; p_jour?: boolean; p_reference?: string; p_restaurant?: string; p_statut?: string }
-        Returns: {
-          adresse_masquee: string
-          client_nom: string
-          cree_le: string
-          frais_livraison_estime: number
-          id: string
-          mode: string
-          reference: string
-          restaurant_id: string
-          restaurant_nom: string
-          sous_total: number
-          statut: string
-          telephone_masque: string
-        }[]
-      }
-      fn_support_reveler_coordonnees: {
-        Args: { p_motif: string; p_order_id: string }
-        Returns: { client_adresse: string; client_telephone: string }[]
-      }
+      fn_generer_code_court: { Args: never; Returns: string }
       fn_limiter_debit: {
         Args: { p_cle: string; p_fenetre_secondes: number; p_max: number }
         Returns: boolean
@@ -1321,6 +1483,90 @@ export type Database = {
           email: string
           role: string
           utilisateur_id: string
+        }[]
+      }
+      fn_masquer_adresse: { Args: { p_adresse: string }; Returns: string }
+      fn_masquer_telephone: { Args: { p_tel: string }; Returns: string }
+      fn_preparer_suppression_compte: {
+        Args: {
+          p_motif: string
+          p_supprimer_restaurants: boolean
+          p_utilisateur: string
+        }
+        Returns: Json
+      }
+      fn_publier_blocs: {
+        Args: {
+          p_blocs: Json
+          p_jeton: string
+          p_motif?: string
+          p_page_id: string
+        }
+        Returns: number
+      }
+      fn_reinitialisation_simuler: { Args: never; Returns: Json }
+      fn_reinitialiser_application: {
+        Args: { p_jeton: string; p_motif: string }
+        Returns: Json
+      }
+      fn_repondre_proposition: {
+        Args: { p_jeton: string; p_proposition_id: string; p_reponse: string }
+        Returns: string
+      }
+      fn_session_mfa_suffisante: { Args: never; Returns: boolean }
+      fn_statistiques_application: { Args: { p_jours: number }; Returns: Json }
+      fn_support_changer_statut: {
+        Args: { p_motif: string; p_order_id: string; p_vers: string }
+        Returns: undefined
+      }
+      fn_support_commandes_par_heure: {
+        Args: { p_jours: number }
+        Returns: {
+          heure: number
+          nb: number
+        }[]
+      }
+      fn_support_compter_commandes: {
+        Args: { p_depuis?: string; p_statuts?: string[] }
+        Returns: number
+      }
+      fn_support_lister_commandes: {
+        Args: {
+          p_id?: string
+          p_jour?: boolean
+          p_reference?: string
+          p_restaurant?: string
+          p_statut?: string
+        }
+        Returns: {
+          adresse_masquee: string
+          client_nom: string
+          cree_le: string
+          frais_livraison_estime: number
+          id: string
+          mode: string
+          reference: string
+          restaurant_id: string
+          restaurant_nom: string
+          sous_total: number
+          statut: string
+          telephone_masque: string
+        }[]
+      }
+      fn_support_reveler_coordonnees: {
+        Args: { p_motif: string; p_order_id: string }
+        Returns: {
+          client_adresse: string
+          client_telephone: string
+        }[]
+      }
+      fn_support_serie_commandes: {
+        Args: { p_jours: number }
+        Returns: {
+          jour: string
+          montant: number
+          nb: number
+          statut: string
         }[]
       }
       fn_trouver_utilisateur_par_email: {

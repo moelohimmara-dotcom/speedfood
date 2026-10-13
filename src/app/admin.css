@@ -1914,3 +1914,36 @@ a.ad-carte-lien:hover {
 .ad-tiroir {
   overscroll-behavior: contain;
 }
+
+/* Géographie (console système) : une ligne par commune ou quartier. */
+.geo-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--bordure);
+}
+.geo-ligne > input[type="text"],
+.geo-ligne > input:not([type]) {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.geo-ligne > select {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.geo-case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.geo-code {
+  font-family: var(--police-mono, monospace);
+  font-size: 0.85rem;
+  color: var(--secondaire);
+}
+.geo-erreur {
+  flex: 1 1 100%;
+  color: var(--danger, #b00020);
+}

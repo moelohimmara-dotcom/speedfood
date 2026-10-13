@@ -229,7 +229,7 @@ export async function publierBlocsAction(pageId: string, motif?: string, jeton?:
       p_page_id: pageId,
       p_blocs: page.blocs_brouillon as Json,
       p_jeton: page.mis_a_jour_le,
-      p_motif: motifPropre || null,
+      p_motif: motifPropre || undefined,
     });
     if (error || typeof version !== "number") {
       return { ok: false, erreur: messageBase(error ?? {}, "Impossible de publier la page.") };

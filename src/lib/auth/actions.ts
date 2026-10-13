@@ -182,6 +182,19 @@ export async function creerEtablissementAction(
   }
 
   const supabase = await creerClientServeur();
+
+  // Un quartier désactivé (ou dont la commune l'est) n'est plus proposé : vérifié ici, pas seulement dans le formulaire.
+  const { data: quartierActif } = await supabase
+    .from("neighborhoods")
+    .select("id, communes!inner(actif)")
+    .eq("id", quartierId)
+    .eq("actif", true)
+    .eq("communes.actif", true)
+    .maybeSingle();
+  if (!quartierActif) {
+    return { erreur: "Ce quartier n'est plus proposé. Choisissez-en un autre." };
+  }
+
   const { error } = await supabase.rpc("fn_creer_restaurant_et_owner", {
     p_nom: nom,
     p_categorie_id: categorieId,

@@ -171,6 +171,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
     sousSections: [
       { href: "/system/catalogue/restaurants", libelle: "Restaurants", permission: "restaurant.moderer" },
       { href: "/system/catalogue/taxonomie", libelle: "Taxonomie", permission: "taxonomie.editer" },
+      { href: "/system/catalogue/geographie", libelle: "Géographie", permission: "taxonomie.editer" },
       {
         href: "/system/catalogue/mises-en-avant",
         libelle: "Mises en avant",

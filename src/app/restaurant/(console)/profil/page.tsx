@@ -7,7 +7,9 @@ import { definirIllustrationRestoAction } from "@/lib/restaurant/illustrations";
 import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
 import { validerIllustration } from "@/lib/illustrations/modele";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 import { FormulaireProfil } from "./FormulaireProfil";
+import { FormulaireQuartier } from "./FormulaireQuartier";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Mon restaurant" };
@@ -23,13 +25,15 @@ export default async function ProfilPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, logo_illustration, couverture_illustration, menu_categories(nom)")
+    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, logo_illustration, couverture_illustration, quartier_id, menu_categories(nom)")
     .eq("id", membership.restaurant_id)
     .maybeSingle();
 
   if (!restaurant) {
     return null;
   }
+  const quartiers = await lireQuartiersActifs(supabase);
+  const quartierActuelValide = quartiers.some((q) => q.id === restaurant.quartier_id);
   const { data: codes } = await supabase
     .from("restaurant_codes_marchand")
     .select("orange, mtn")
@@ -88,6 +92,14 @@ export default async function ProfilPage() {
             </p>
           </Card>
         </aside>
+      </div>
+
+      <div style={{ marginTop: "var(--space-5)" }}>
+        <FormulaireQuartier
+          groupes={grouperParCommune(quartiers)}
+          quartierActuelId={restaurant.quartier_id}
+          quartierActuelValide={quartierActuelValide}
+        />
       </div>
 
       <div style={{ marginTop: "var(--space-5)" }}>

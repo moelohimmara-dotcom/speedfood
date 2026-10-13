@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
 import { creerClientPublic } from "@/lib/db/public";
+import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 import { NouvelEtablissementForm } from "./NouvelEtablissementForm";
 import { Card } from "@/components/ui";
 
@@ -36,9 +37,9 @@ export default async function NouvelEtablissementPage() {
   }
 
   const publicClient = creerClientPublic();
-  const [{ data: categories }, { data: quartiers }] = await Promise.all([
+  const [{ data: categories }, quartiers] = await Promise.all([
     publicClient.from("menu_categories").select("id, nom").order("ordre"),
-    publicClient.from("neighborhoods").select("id, nom").order("ordre"),
+    lireQuartiersActifs(publicClient),
   ]);
 
   return (
@@ -50,7 +51,7 @@ export default async function NouvelEtablissementPage() {
         Ces informations pourront être modifiées plus tard depuis votre espace restaurant.
       </p>
       <Card>
-        <NouvelEtablissementForm categories={categories ?? []} quartiers={quartiers ?? []} />
+        <NouvelEtablissementForm categories={categories ?? []} groupes={grouperParCommune(quartiers)} />
       </Card>
     </main>
   );
