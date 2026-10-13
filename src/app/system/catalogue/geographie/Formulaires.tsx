@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { ListeChoix } from "@/components/ui/ListeChoix";
 import {
   enregistrerCommuneAction,
   enregistrerQuartierAction,
@@ -47,6 +48,7 @@ export function FormulaireQuartierSysteme({
   communes: CommuneSysteme[];
 }) {
   const [etat, action, enCours] = useActionState(enregistrerQuartierAction, etatInitial);
+  const [communeId, setCommuneId] = useState(quartier?.communeId ?? "");
   const libelleNom = quartier ? `Nom du quartier ${quartier.nom}` : "Nom du nouveau quartier";
 
   return (
@@ -61,17 +63,16 @@ export function FormulaireQuartierSysteme({
         placeholder="Nom du quartier"
         aria-label={libelleNom}
       />
-      <select name="commune_id" defaultValue={quartier?.communeId ?? ""} required aria-label="Commune du quartier">
-        <option value="" disabled>
-          Commune…
-        </option>
-        {communes.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.nom}
-            {c.actif ? "" : " (inactive)"}
-          </option>
-        ))}
-      </select>
+      <div className="geo-commune">
+        <ListeChoix
+          nom="commune_id"
+          options={communes.map((c) => ({ valeur: c.id, libelle: c.actif ? c.nom : `${c.nom} (inactive)` }))}
+          valeur={communeId}
+          onChange={setCommuneId}
+          placeholder="Commune…"
+          libelleAccessible="Commune du quartier"
+        />
+      </div>
       <label className="geo-case">
         <input type="checkbox" name="actif" defaultChecked={quartier ? quartier.actif : true} /> Actif
       </label>

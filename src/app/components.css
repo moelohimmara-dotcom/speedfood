@@ -270,3 +270,87 @@ input[type="file"]::file-selector-button {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* Liste de choix (design système) : remplace le menu natif, qui ne peut pas être mis en forme. */
+.liste-choix {
+  position: relative;
+  width: 100%;
+}
+.liste-choix-declencheur {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 12px 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+.liste-choix-declencheur:focus-visible,
+.liste-choix-declencheur[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--rouge-fonce);
+}
+.liste-choix-declencheur:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.liste-choix-vide {
+  color: var(--secondaire);
+}
+.liste-choix-fleche {
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.liste-choix-panneau {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(340px, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 24px rgba(55, 40, 30, 0.14);
+}
+.liste-choix-option {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--encre);
+  cursor: pointer;
+}
+.liste-choix-option.est-survol {
+  background: var(--bordure);
+}
+.liste-choix-option.est-choisi {
+  font-weight: 700;
+}
+.selecteur-quartier {
+  display: grid;
+  gap: var(--space-4);
+}
+.selecteur-quartier-alerte {
+  margin: var(--space-3) 0;
+}
+.selecteur-quartier-action {
+  margin-top: var(--space-4);
+}
+.geo-commune {
+  flex: 1 1 12rem;
+  min-width: 0;
+}

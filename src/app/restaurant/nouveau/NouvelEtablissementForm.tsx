@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { creerEtablissementAction, type EtatFormulaire } from "@/lib/auth/actions";
 import { Button, Alert } from "@/components/ui";
 import type { GroupeCommune } from "@/lib/geographie/quartiers";
+import { SelecteurQuartier } from "@/components/geographie/SelecteurQuartier";
 
 const etatInitial: EtatFormulaire = {};
 
@@ -40,23 +41,8 @@ export function NouvelEtablissementForm({
           ))}
         </select>
       </div>
-      <div className="field">
-        <label htmlFor="quartier_id">Quartier</label>
-        <select id="quartier_id" name="quartier_id" required defaultValue="">
-          <option value="" disabled>
-            Choisir…
-          </option>
-          {groupes.map((groupe) => (
-            <optgroup key={groupe.communeId} label={groupe.communeNom}>
-              {groupe.quartiers.map((quartier) => (
-                <option key={quartier.id} value={quartier.id}>
-                  {quartier.nom}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </div>
+      <SelecteurQuartier nom="quartier_id" groupes={groupes} quartierInitial={null} />
+
       {etat.erreur ? (
         <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
           {etat.erreur}
