@@ -33,11 +33,18 @@ export default async function QuartierPage({ params }: Props) {
     <main className="pub-conteneur pub-rubrique">
       <nav aria-label="Fil d'Ariane" className="pub-fil">
         <Link href="/quartiers">Quartiers</Link>
+        {quartier?.communeNom ? (
+          <>
+            <span aria-hidden="true"> / </span>
+            <span>{quartier.communeNom}</span>
+          </>
+        ) : null}
         <span aria-hidden="true"> / </span>
         <span>{quartier?.nom ?? "Quartier"}</span>
       </nav>
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">
+          {quartier?.communeNom ? `${quartier.communeNom} · ` : ""}
           {quartier ? `${quartier.restaurants} restaurant${quartier.restaurants > 1 ? "s" : ""}` : "Quartier"}
           {quartier && quartier.ouverts > 0 ? ` · ${quartier.ouverts} ouvert${quartier.ouverts > 1 ? "s" : ""} en ce moment` : ""}
         </p>

@@ -3,6 +3,7 @@ import { creerClientPublic } from "@/lib/db/public";
 import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { etatDisponibilite, scoreFraicheur, type EtatDisponibilite } from "@/lib/disponibilite/etat";
+import { communeDuQuartier } from "@/lib/geographie/quartiers";
 import {
   classerResultats,
   type FiltresDecouverte,
@@ -32,6 +33,7 @@ export interface RestaurantCatalogue extends RestaurantClassable {
   couvertureIllustration: Illustration | null;
   categorie: string;
   quartier: string;
+  communeNom: string;
 }
 
 export interface RechercheCatalogue {
@@ -80,7 +82,7 @@ export async function lireCatalogue(
   let requete = supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(nom, communes(nom))"
     )
     .order("nom")
     .limit(LIMITE_RESTAURANTS_LUS);
@@ -121,6 +123,7 @@ export async function lireCatalogue(
     couvertureIllustration: validerIllustration(r.couverture_illustration),
     categorie: r.menu_categories?.nom ?? "",
     quartier: r.neighborhoods?.nom ?? "",
+    communeNom: communeDuQuartier(r.neighborhoods),
   }));
 
   const platsParRestaurant = new Map<string, PlatPublic[]>();

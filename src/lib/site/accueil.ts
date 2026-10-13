@@ -33,6 +33,7 @@ export interface SuggestionEnvie {
 export interface QuartierResume {
   nom: string;
   slug: string;
+  communeNom: string;
   restaurants: number;
   ouverts: number;
 }
@@ -48,16 +49,46 @@ export interface DonneesAccueil {
 
 const estOuvert = (r: RestaurantCatalogue) => r.ouvert && r.accepteCommandes;
 
+/**
+ * Quartiers publiés, avec leur commune (réforme de 2024). Une même dénomination de quartier dans deux communes
+ * donne deux entrées distinctes. Tri par nombre de restaurants (mise en avant de l'accueil) ; la page Quartiers
+ * regroupe ensuite par commune avec `grouperQuartiersParCommune`.
+ */
 export function resumerQuartiers(restaurants: RestaurantCatalogue[]): QuartierResume[] {
-  const parNom = new Map<string, QuartierResume>();
+  const parCle = new Map<string, QuartierResume>();
   for (const r of restaurants) {
     if (!r.quartier) continue;
-    const q = parNom.get(r.quartier) ?? { nom: r.quartier, slug: slugQuartier(r.quartier), restaurants: 0, ouverts: 0 };
+    const cle = `${r.communeNom}|${r.quartier}`;
+    const q = parCle.get(cle) ?? { nom: r.quartier, slug: slugQuartier(r.quartier), communeNom: r.communeNom, restaurants: 0, ouverts: 0 };
     q.restaurants += 1;
     if (estOuvert(r)) q.ouverts += 1;
-    parNom.set(r.quartier, q);
+    parCle.set(cle, q);
   }
-  return [...parNom.values()].sort((a, b) => b.restaurants - a.restaurants || a.nom.localeCompare(b.nom, "fr"));
+  return [...parCle.values()].sort((a, b) => b.restaurants - a.restaurants || a.nom.localeCompare(b.nom, "fr"));
+}
+
+export interface GroupeQuartiersCommune {
+  communeNom: string;
+  quartiers: QuartierResume[];
+  restaurants: number;
+  ouverts: number;
+}
+
+/** Regroupe les quartiers par commune pour la page Quartiers : communes triées par nom, quartiers par nom. */
+export function grouperQuartiersParCommune(quartiers: QuartierResume[]): GroupeQuartiersCommune[] {
+  const parCommune = new Map<string, GroupeQuartiersCommune>();
+  for (const q of quartiers) {
+    const nom = q.communeNom || "Autres quartiers";
+    const groupe = parCommune.get(nom) ?? { communeNom: nom, quartiers: [], restaurants: 0, ouverts: 0 };
+    groupe.quartiers.push(q);
+    groupe.restaurants += q.restaurants;
+    groupe.ouverts += q.ouverts;
+    parCommune.set(nom, groupe);
+  }
+  for (const g of parCommune.values()) {
+    g.quartiers.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  }
+  return [...parCommune.values()].sort((a, b) => a.communeNom.localeCompare(b.communeNom, "fr"));
 }
 
 /** Un vrai plat disponible d'un restaurant ouvert, par famille : le premier restaurant (ordre alphabétique) qui en a un. */

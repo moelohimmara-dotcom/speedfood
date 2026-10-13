@@ -60,9 +60,6 @@ export function VecteurQuartiers() {
               {/* Rez-de-chaussée : store et enseigne */}
               <path d={`M${m.x + 6} ${SOL - 50}h88v14a11 11 0 0 1-22 0 11 11 0 0 1-22 0 11 11 0 0 1-22 0 11 11 0 0 1-22 0z`} className={`${clair ? "v-mangue" : "v-blanc"} v-e3`} />
               <rect x={m.x + 30} y={SOL - 36} width="40" height="36" rx="4" className={`${clair ? "v-creme" : "v-encre"} v-e3`} />
-              <text x={m.x + 50} y={SOL - 56} textAnchor="middle" className={`v-texte ${clair || m.couleur === "v-rouge" ? "v-texte-creme" : ""}`} fontSize="11">
-                {m.nom}
-              </text>
             </g>
           );
         })}

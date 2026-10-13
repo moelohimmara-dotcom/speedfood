@@ -59,3 +59,12 @@ export async function lireQuartiersActifs(
   }
   return choix;
 }
+
+/** Nom de la commune d'un quartier lu avec sa commune (jointure Supabase : objet ou tableau selon le schéma). */
+export function communeDuQuartier(
+  quartier: { communes?: { nom: string } | { nom: string }[] | null } | null | undefined
+): string {
+  const commune = quartier?.communes;
+  if (!commune) return "";
+  return Array.isArray(commune) ? (commune[0]?.nom ?? "") : commune.nom;
+}
