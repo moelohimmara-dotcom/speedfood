@@ -40,14 +40,14 @@ function grand(motif: string): ModeleIllustration {
 const ETAPES = [
   {
     titre: "Choisir",
-    texte: "Un restaurant de votre quartier.",
+    texte: "Un restaurant près de chez vous, l'heure de confirmation en preuve.",
     detail:
       "Parcourez les restaurants par quartier ou par envie. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé : si la confirmation est ancienne, il est marqué « à confirmer ».",
     motif: "etape-choisir",
   },
   {
     titre: "Commander",
-    texte: "Un panier, vos coordonnées, c'est tout.",
+    texte: "Un panier, un compte, un envoi.",
     detail:
       "Ajoutez vos plats, connectez-vous ou créez votre compte, puis indiquez votre nom et votre téléphone (et une adresse pour une livraison). Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
     motif: "etape-commander",
