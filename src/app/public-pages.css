@@ -40,6 +40,12 @@
   margin: 0;
   font-size: clamp(2.3rem, 6.8vw, 6rem);
 }
+@media (min-width: 960px) {
+  /* Deux colonnes : le titre tient dans la sienne (le mot qui roule, insécable, ne passe plus sous la carte) et le bouton reste dans le premier écran. */
+  .pub-accueil-h1 {
+    font-size: clamp(2.6rem, 4.4vw, 4.25rem);
+  }
+}
 .pub-accueil-lead {
   margin: 0;
   max-width: 46ch;
