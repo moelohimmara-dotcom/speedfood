@@ -1173,18 +1173,3 @@
     justify-self: end;
   }
 }
-@media (max-width: 639px) {
-  /* Téléphone : une seule rangée de familles qui se fait défiler, au lieu de trois lignes de puces. */
-  .accueil-envies-rangee .pub-puces {
-    flex-wrap: nowrap;
-    min-width: 0;
-    overflow-x: auto;
-    padding-block: 4px;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-  }
-  .accueil-envies-rangee .pub-puce {
-    flex: none;
-    scroll-snap-align: start;
-  }
-}

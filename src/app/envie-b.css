@@ -1,156 +1,32 @@
 /*
- * « Votre envie du moment ? » (accueil), direction B : une scène vectorielle animée par famille de plats, qui change au rythme des puces.
- * Une barre se remplit dessous (elle annonce le prochain changement) ; un clic arrête le défilement.
- * Tout mouvement : transform et opacité seulement, en pause hors écran / onglet masqué / interrupteur du pied, coupé en mouvement réduit.
- * Chargé après public-pages.css, boucles.css et vecteurs.css.
+ * « Votre envie du moment ? » (accueil) : carte simple d'origine (puces, un plat, un bouton), sans scène animée ni défilement automatique.
+ * Chargé après public-pages.css.
  */
-
-/* ===== Carte : compacte, droite, sans marge négative ===== */
 .pub-envie {
   gap: var(--space-3);
   padding: var(--space-4);
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
 }
-.accueil-envies-rangee {
-  min-width: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.pub-envie-pause {
-  flex: none;
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--encre);
-  cursor: pointer;
-  transition: transform 0.2s var(--ease), background 0.2s;
-}
-.pub-envie-pause:hover {
-  transform: translateY(-2px);
-  background: var(--mangue);
-}
-.pub-envie-pause:focus-visible,
 .pub-puce:focus-visible {
   outline: 3px solid var(--rouge-fonce);
   outline-offset: 3px;
 }
-
-/* ===== Puces : barre de progression + fondu du résultat ===== */
-.pub-puce {
-  position: relative;
-  overflow: hidden;
-  min-height: 44px;
-  cursor: pointer;
-}
-.pub-puce::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 4px;
-  background: var(--mangue);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  pointer-events: none;
-}
-.pub-puce-defile::after {
-  animation: envie-progres var(--duree-envie, 4200ms) linear forwards;
-}
-@keyframes envie-progres {
-  to { transform: scaleX(1); }
-}
-
-/* ===== Scène ===== */
-.pub-envie-scene {
-  position: relative;
-  overflow: hidden;
-  height: 104px;
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: var(--radius-md);
-  background: var(--mangue);
-  transition: background 0.35s var(--ease);
-}
-.pub-envie-scene[data-famille="riz"] { background: var(--mangue); }
-.pub-envie-scene[data-famille="grill"] { background: var(--rouge-fonce); }
-.pub-envie-scene[data-famille="fast"] { background: var(--orange); }
-.pub-envie-scene[data-famille="cafe"] { background: var(--creme); }
-.pub-envie-scene-interieur {
-  position: absolute;
-  inset: 0;
-  animation: envie-entree 0.55s var(--ease) both;
-}
-.pub-envie-scene .vec {
-  max-width: none;
-  width: 100%;
-  height: 100%;
-}
-@keyframes envie-entree {
-  from { opacity: 0; transform: translateY(14px) scale(0.96); }
-  to { opacity: 1; transform: none; }
-}
-
-/* ===== Résultat ===== */
 .pub-envie-resultat {
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   gap: var(--space-3);
 }
-.pub-envie-visuel svg {
-  width: 72px;
-  height: 72px;
-}
 .pub-envie-plat {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
 }
-.accueil-envies-resultat {
-  animation: envie-fondu 0.2s var(--ease) both;
-}
-@keyframes envie-fondu {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* ===== Mouvements des scènes ===== */
-.v-saute, .v-flamme { transform-box: fill-box; }
-@keyframes v-saute {
-  0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-12px); }
-  55% { transform: translateY(0); }
-  65% { transform: translateY(-4px); }
-  75% { transform: translateY(0); }
-}
-.v-saute { animation: v-saute 2.4s ease-in-out infinite; }
-@keyframes v-flamme {
-  0%, 100% { transform: scale(1, 1); }
-  30% { transform: scale(0.88, 1.18); }
-  65% { transform: scale(1.08, 0.9); }
-}
-.v-flamme { transform-origin: 50% 100%; animation: v-flamme 0.9s ease-in-out infinite; }
-
-/* Pauses : hors écran, onglet masqué, interrupteur du pied ; arrêt total en mouvement réduit. */
-.boucle.hors-ecran .pub-puce-defile::after,
-.boucle.hors-ecran .pub-envie-scene-interieur,
-html[data-cache] .pub-puce-defile::after {
-  animation-play-state: paused;
-}
-html[data-calme] .pub-puce-defile::after,
-html[data-eco] .pub-puce-defile::after,
-html[data-calme] .accueil-envies-resultat,
-html[data-eco] .accueil-envies-resultat {
-  animation: none !important;
+@media (min-width: 960px) {
+  /* Légère inclinaison d'origine, sans déborder sur la suite : la carte reste dans sa section. */
+  .accueil-envies .pub-envie {
+    transform: rotate(1.2deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .accueil-envies-resultat,
-  .pub-puce-defile::after,
-  .pub-envie-scene-interieur {
-    animation: none !important;
+  .accueil-envies .pub-envie {
+    transform: none;
   }
-  .pub-envie-scene { transition: none; }
 }

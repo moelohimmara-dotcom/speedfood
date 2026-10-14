@@ -2,7 +2,6 @@ import { Illustration } from "@/components/illustrations/Illustration";
 import { SelecteurEnvie, type EnvieAffichee } from "@/components/site/SelecteurEnvie";
 import { lireTextes } from "@/lib/cms/textes";
 import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
-import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { FAMILLES_ENVIE, catalogueDeLaRequete, choisirSuggestions, lireAccueil } from "@/lib/site/accueil";
 import { restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
 import { pastille } from "./commun";
@@ -13,12 +12,7 @@ import { pastille } from "./commun";
  * autre zone. Chaque plat garde son restaurant, sa localité, son prix et la fraîcheur réelle de sa confirmation.
  */
 export async function AccueilEnvies({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [donnees, catalogue, scenesActives, t] = await Promise.all([
-    lireAccueil(),
-    catalogueDeLaRequete(),
-    fonctionnaliteActive("scenes_envie_accueil"),
-    lireTextes(),
-  ]);
+  const [donnees, catalogue, t] = await Promise.all([lireAccueil(), catalogueDeLaRequete(), lireTextes()]);
 
   const restaurants = restaurantsDeLaZone(donnees.restaurants, zone);
   const suggestions = choisirSuggestions(restaurants, donnees.platsParRestaurant);
@@ -53,7 +47,7 @@ export async function AccueilEnvies({ zone = null }: { zone?: ZoneChoisie | null
         </h2>
         <p className="pub-accueil-lead">{t["accueil.envies.texte"]}</p>
       </div>
-      <SelecteurEnvie envies={envies} scenes={scenesActives} note={t["accueil.envies.note"]} />
+      <SelecteurEnvie envies={envies} note={t["accueil.envies.note"]} />
     </section>
   );
 }
