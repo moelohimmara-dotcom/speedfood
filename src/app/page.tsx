@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { CadreSite } from "@/components/CadreSite";
 import { AccueilAccroche } from "@/components/accueil/AccueilAccroche";
-import { AccueilEnvies } from "@/components/accueil/AccueilEnvies";
+import { AccueilBandeau } from "@/components/accueil/AccueilBandeau";
 import { AccueilEtapes } from "@/components/accueil/AccueilEtapes";
-import { AccueilFaq } from "@/components/accueil/AccueilFaq";
 import { AccueilPro } from "@/components/accueil/AccueilPro";
 import { AccueilQuartiers } from "@/components/accueil/AccueilQuartiers";
 import { AccueilRestaurants } from "@/components/accueil/AccueilRestaurants";
@@ -19,7 +18,6 @@ import { SLUG_ACCUEIL } from "@/lib/studio/registre";
 import { lireTextes } from "@/lib/cms/textes";
 import { promesseDeLaRequete } from "@/components/accueil/lectures";
 import { lireAccueil } from "@/lib/site/accueil";
-import { lireZones, resoudreZone, type ZoneChoisie } from "@/lib/site/zones";
 
 // Rendue à chaque requête (et non figée à la construction) : l'accueil lit des données vivantes et le cadre du site lit les interrupteurs
 // de fonctionnalités du super administrateur (voir src/lib/fonctionnalites/lire.ts) ; sinon un changement n'apparaîtrait qu'au prochain déploiement.
@@ -29,7 +27,7 @@ type Props = { searchParams: Promise<{ [cle: string]: string | string[] | undefi
 
 const apercuDemande = (valeur: string | string[] | undefined) => valeur === "1";
 
-const TITRE = "Les restaurants de votre localité · Speedfood";
+const TITRE = "Les restaurants de Conakry";
 
 /** Métadonnées d'aujourd'hui (titre, adresse canonique) ; l'aperçu de l'équipe n'est jamais indexé. */
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
@@ -70,24 +68,19 @@ async function choisirAffichage(apercu: boolean): Promise<DecisionAccueil> {
   }
 }
 
-/**
- * La page d'accueil d'origine (le repli de la version en blocs), dans le parcours du visiteur : qu'est-ce que Speedfood, où
- * chercher, quels plats et restaurants dans cette zone, explorer d'autres localités, comment commander, suivi et paiement,
- * restaurateurs, questions fréquentes. La zone choisie (adresse `?commune=` ou `?quartier=`) contextualise les plats et les restaurants.
- */
-function AccueilRepli({ zone }: { zone: ZoneChoisie | null }) {
+/** La page d'accueil d'origine : les sections dans l'ordre d'aujourd'hui. Elle reste le repli de la version en blocs. */
+function AccueilRepli() {
   return (
     <CadreSite>
       <main className="pub-accueil">
         <BandeauAnnonces />
-        <AccueilAccroche zone={zone} />
-        <AccueilEnvies zone={zone} />
-        <AccueilRestaurants zone={zone} />
-        <AccueilQuartiers zone={zone} />
+        <AccueilAccroche />
+        <AccueilBandeau />
+        <AccueilRestaurants />
+        <AccueilQuartiers />
         <AccueilEtapes />
         <AccueilSuivi />
         <AccueilPro />
-        <AccueilFaq />
       </main>
     </CadreSite>
   );
@@ -100,19 +93,14 @@ function AccueilRepli({ zone }: { zone: ZoneChoisie | null }) {
  * les sections reprennent les promesses déjà lancées. Un échec n'est pas perdu : la section qui attend la même promesse le voit.
  */
 function precharger() {
-  for (const lecture of [lireAccueil(), lireTextes(), promesseDeLaRequete(), lireZones()]) lecture.catch(() => undefined);
+  for (const lecture of [lireAccueil(), lireTextes(), promesseDeLaRequete()]) lecture.catch(() => undefined);
 }
 
 export default async function AccueilPage({ searchParams }: Props) {
   precharger();
   const decision = await choisirAffichage(apercuDemande((await searchParams).apercu));
 
-  if (decision.mode === "repli") {
-    // Zone demandée par l'adresse, validée contre les zones enregistrées : une valeur inconnue n'a aucun effet.
-    const params = await searchParams;
-    const zone = resoudreZone({ commune: params.commune, quartier: params.quartier }, await lireZones());
-    return <AccueilRepli zone={zone} />;
-  }
+  if (decision.mode === "repli") return <AccueilRepli />;
 
   if (decision.mode === "apercu-invalide") {
     return (

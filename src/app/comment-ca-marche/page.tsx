@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Comment ça marche",
     description:
-      "Choisir sa zone, consulter les menus, envoyer sa commande et la suivre : les quatre étapes de Speedfood, en phase pilote à Conakry.",
+      "Choisir un restaurant, commander, suivre sa commande et la recevoir : les quatre étapes de Speedfood à Conakry.",
     alternates: { canonical: `${origine}/comment-ca-marche` },
   };
 }
@@ -39,31 +39,31 @@ function grand(motif: string): ModeleIllustration {
 /** Chaque phrase décrit ce que l'application fait réellement (aide, propositions de prix, suivi, règlement hors Speedfood). */
 const ETAPES = [
   {
-    titre: "Choisissez votre zone",
-    texte: "Une commune ou un quartier, pour voir les restaurants qui s'y trouvent.",
+    titre: "Choisir",
+    texte: "Un restaurant près de chez vous, l'heure de confirmation en preuve.",
     detail:
-      "Indiquez votre localité depuis la page d'accueil ou parcourez « Explorer les localités ». Speedfood vous montre les restaurants référencés dans cette zone. Le service est en phase pilote dans certaines zones de Conakry : d'autres localités seront ajoutées progressivement.",
+      "Parcourez les restaurants par quartier ou par envie. Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé : si la confirmation est ancienne, il est marqué « à confirmer ».",
     motif: "etape-choisir",
   },
   {
-    titre: "Consultez les menus",
-    texte: "Les plats, leurs prix et l'heure de confirmation du restaurant.",
+    titre: "Commander",
+    texte: "Un panier, un compte, un envoi.",
     detail:
-      "Chaque plat affiche l'heure à laquelle son restaurant l'a confirmé : si la confirmation est ancienne, il est marqué « à confirmer ». Vous voyez aussi les informations du restaurant avant de décider.",
+      "Ajoutez vos plats, connectez-vous ou créez votre compte, puis indiquez votre nom et votre téléphone (et une adresse pour une livraison). Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
     motif: "etape-commander",
   },
   {
-    titre: "Envoyez votre commande",
-    texte: "Un panier, un compte, un envoi au restaurant.",
+    titre: "Suivre",
+    texte: "Un lien privé, quatre états.",
     detail:
-      "Ajoutez vos plats, connectez-vous ou créez votre compte, puis indiquez votre nom et votre téléphone (et une adresse pour une livraison). Rien n'est débité à la commande : vous payez le restaurant après son acceptation.",
+      "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord.",
     motif: "etape-suivre",
   },
   {
-    titre: "Suivez et recevez votre commande",
-    texte: "Les mises à jour du restaurant, puis retrait ou livraison.",
+    titre: "Recevoir",
+    texte: "Retrait ou livraison, réglés au restaurant.",
     detail:
-      "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord. Le restaurant précise les options de retrait ou de livraison ; vous le réglez directement, en espèces ou avec son code marchand Orange Money ou MTN MoMo. Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
+      "Le restaurant vous remet la commande, ou la livre selon ses propres conditions. Vous le réglez directement, en espèces ou avec son code marchand Orange Money ou MTN MoMo : Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
     motif: "emporter",
   },
 ];
@@ -95,7 +95,8 @@ export default async function CommentCaMarchePage() {
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">Quatre étapes</p>
         <h1 className="pub-titre pub-h1-page">
-          De la recherche à <span className="pub-surligne">la commande</span>
+          Du choix à <span className="pub-surligne">l&apos;assiette</span> sans
+          détour
         </h1>
         <p className="pub-accueil-lead">
           Pas d&apos;application à installer, rien à payer à Speedfood. Voici ce
@@ -160,7 +161,7 @@ export default async function CommentCaMarchePage() {
           <div>
             <p className="pub-kicker pub-kicker-encre">Prêt ?</p>
             <h2 className="pub-titre pub-h2">
-              Commencez par choisir votre zone
+              Commencez par choisir un restaurant
             </h2>
           </div>
         </div>

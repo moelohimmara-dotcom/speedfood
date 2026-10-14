@@ -79,7 +79,7 @@ verifier("promesse : tout vide = défauts", fusionnerPromesse({}), PROMESSE_PAR_
 verifier("promesse : espaces seuls = défaut", fusionnerPromesse({ signature: "   " }).signature, PROMESSE_PAR_DEFAUT.signature);
 verifier("promesse : texte saisi conservé et nettoyé", fusionnerPromesse({ sousTitre: "  Mon texte " }).sousTitre, "Mon texte");
 verifier("promesse : un champ n'écrase pas les autres", fusionnerPromesse({ signature: "A" }).partage, PROMESSE_PAR_DEFAUT.partage);
-verifier("promesse : signature centrée sur le besoin (révision du 13 octobre 2026)", PROMESSE_PAR_DEFAUT.signature, "Mangez près de chez vous, en Guinée");
+verifier("promesse : signature centrée sur le besoin (révision du 13 octobre 2026)", PROMESSE_PAR_DEFAUT.signature, "Mangez près de chez vous, à Conakry");
 
 // Profil client
 verifier("avatar connu valide", estAvatarValide("pizza"), true);

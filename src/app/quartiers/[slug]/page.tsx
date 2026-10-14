@@ -32,7 +32,7 @@ export default async function QuartierPage({ params }: Props) {
   return (
     <main className="pub-conteneur pub-rubrique">
       <nav aria-label="Fil d'Ariane" className="pub-fil">
-        <Link href="/quartiers">Explorer les localités</Link>
+        <Link href="/quartiers">Quartiers</Link>
         {quartier?.communeNom ? (
           <>
             <span aria-hidden="true"> / </span>

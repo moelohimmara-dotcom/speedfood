@@ -175,13 +175,12 @@ function corps(bloc: BlocPage | BlocSimple, index: number, niveauTitre: 2 | 3, o
     case "Espace":
       return <div className={`sb-espace sb-espace-${bloc.props.hauteur}`} aria-hidden="true" />;
     case "AccueilAccroche":
-    case "AccueilEnvies":
+    case "AccueilBandeau":
     case "AccueilRestaurants":
     case "AccueilQuartiers":
     case "AccueilEtapes":
     case "AccueilSuivi":
     case "AccueilPro":
-    case "AccueilFaq":
       if (options.rendreAccueil) return options.rendreAccueil(bloc.type);
       return (
         <p className="se-bloc-dynamique">
@@ -262,13 +261,11 @@ function ouvreUneSection(bloc: BlocPage): boolean {
     case "FAQ":
     case "ListeRestaurants":
       return !!bloc.props.titre;
-    case "AccueilEnvies":
     case "AccueilRestaurants":
     case "AccueilQuartiers":
     case "AccueilEtapes":
     case "AccueilSuivi":
     case "AccueilPro":
-    case "AccueilFaq":
       return true;
     default:
       return false;

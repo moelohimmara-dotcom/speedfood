@@ -32,15 +32,14 @@ const erreurs = (json: unknown, slug?: string) => {
 };
 
 // --- Schémas des sections d'accueil ---------------------------------------------------------------------------------------
-verifier("huit sections d'accueil, dans l'ordre de la page (parcours : accroche, plats, restaurants, localités, étapes, suivi, pro, FAQ)", [...TYPES_ACCUEIL], [
+verifier("sept sections d'accueil, dans l'ordre de la page d'origine", [...TYPES_ACCUEIL], [
   "AccueilAccroche",
-  "AccueilEnvies",
+  "AccueilBandeau",
   "AccueilRestaurants",
   "AccueilQuartiers",
   "AccueilEtapes",
   "AccueilSuivi",
   "AccueilPro",
-  "AccueilFaq",
 ]);
 for (const type of TYPES_ACCUEIL) {
   verifier(`${type} : valide sur la page « accueil »`, ok(page(bloc(type)), "accueil"), true);
@@ -77,7 +76,7 @@ verifier("disposition par défaut : chaque section une fois, sans réglage", def
 verifier("disposition par défaut : refusée ailleurs que sur « accueil »", ok(defaut, "autre"), false);
 const sourcePage = lire("src/app/page.tsx");
 const reperePage = sourcePage.slice(sourcePage.indexOf("function AccueilRepli"));
-const ordrePage = [...reperePage.slice(0, reperePage.indexOf("</main>")).matchAll(/<(Accueil[A-Za-z]+)(?: [^>]*)? \/>/g)].map((m) => m[1]);
+const ordrePage = [...reperePage.slice(0, reperePage.indexOf("</main>")).matchAll(/<(Accueil[A-Za-z]+) \/>/g)].map((m) => m[1]);
 verifier("disposition par défaut : même ordre que la page de repli (page.tsx)", defaut.content.map((b) => b.type), ordrePage);
 verifier("deux appels donnent des documents indépendants", pageAccueilParDefaut() !== pageAccueilParDefaut(), true);
 
@@ -141,7 +140,7 @@ verifier("page « / » : décision par `decider`, interrupteur et page publiée 
   /lirePagePubliee\(SLUG_ACCUEIL\)/.test(pageRacine),
   /catch \{[\s\S]*mode: "repli"/.test(pageRacine),
   /canonical: "\/"/.test(pageRacine),
-  /Les restaurants de votre localité/.test(pageRacine),
+  /Les restaurants de Conakry/.test(pageRacine),
 ], [true, true, true, true, true, true]);
 verifier("page « / » : lectures des sections préchargées avant l'attente de l'interrupteur et de la page (pas de cascade)", [
   /precharger\(\);\s+const decision = await choisirAffichage/.test(pageRacine),

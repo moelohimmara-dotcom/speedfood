@@ -8,9 +8,9 @@ import { origineDuSite } from "@/lib/partage/origine";
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
   return {
-    title: "Localités : restaurants par commune et quartier",
+    title: "Restaurants par quartier à Conakry",
     description:
-      "Explorez les localités où des restaurants Speedfood sont référencés, classées par commune et par quartier. Phase pilote à Conakry : Kaloum, Dixinn, Ratoma, Matam et leurs quartiers.",
+      "Trouvez les restaurants Speedfood de votre quartier de Conakry, classés par commune : Kaloum, Dixinn, Ratoma, Matam et leurs quartiers.",
     alternates: { canonical: `${origine}/quartiers` },
   };
 }
@@ -28,13 +28,13 @@ export default async function QuartiersPage() {
     <main className="pub-conteneur pub-rubrique">
       <div className="pub-entete-vecteur pub-entete-vecteur-quartiers">
         <div className="pub-entete-rubrique">
-          <p className="pub-kicker">Explorer les localités</p>
+          <p className="pub-kicker">Où nous trouver</p>
           <h1 className="pub-titre pub-h1-page">
-            Choisissez votre <span className="pub-surligne">localité</span>
+            Votre <span className="pub-surligne">quartier</span> d&apos;abord
           </h1>
           <p className="pub-accueil-lead">
-            Les restaurants référencés, classés par commune puis par quartier. Phase pilote : les restaurants sont aujourd&apos;hui
-            à Conakry, d&apos;autres localités s&apos;ajoutent avec les restaurants qui s&apos;inscrivent.
+            Les restaurants publiés, classés par commune puis par quartier de Conakry. D&apos;autres quartiers
+            s&apos;ajoutent avec les restaurants qui s&apos;inscrivent.
           </p>
         </div>
         <VecteurQuartiers />
