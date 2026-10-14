@@ -104,6 +104,12 @@
   background: var(--mangue);
   transition: background 0.35s var(--ease);
 }
+@media (max-width: 639px) {
+  /* Téléphone : scène plus plate, pour que la carte et la suite de la page restent à portée de pouce. */
+  .pub-envie-scene {
+    aspect-ratio: 360 / 130;
+  }
+}
 .pub-envie-scene[data-famille="riz"] { background: var(--mangue); }
 .pub-envie-scene[data-famille="grill"] { background: var(--rouge-fonce); }
 .pub-envie-scene[data-famille="fast"] { background: var(--orange); }
