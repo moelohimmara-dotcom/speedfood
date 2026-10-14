@@ -80,11 +80,6 @@
   .pub-accueil-hero {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   }
-  /* Rupture de grille voulue : la carte d'envie est inclinée et déborde sur la section suivante. */
-  .pub-envie {
-    transform: rotate(1.6deg);
-    margin-bottom: -56px;
-  }
 }
 .pub-puces {
   display: flex;
@@ -1106,9 +1101,6 @@
   font-weight: 600;
   color: var(--encre);
 }
-.pub-envies-zone {
-  max-width: 980px;
-}
 .pub-communes-nb {
   display: inline-grid;
   place-items: center;
@@ -1136,14 +1128,78 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-/* La carte d'envie, inclinée en haut de page, reste droite dans sa propre section. */
-.pub-envies-zone .pub-envie {
-  transform: none;
-  margin-bottom: 0;
-}
 .pub-envie-confirmation {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--secondaire);
+}
+
+/* ===== Section « envies » : en-tête discret + carte compacte, côte à côte en grand écran ===== */
+.accueil-envies {
+  display: grid;
+  gap: var(--space-5);
+  align-items: center;
+}
+.accueil-envies-entete {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+.accueil-envies-entete .pub-kicker,
+.accueil-envies-entete .pub-accueil-lead {
+  margin: 0;
+}
+.accueil-envies-titre {
+  margin: 0;
+  font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.accueil-envies-carte-bloc {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  width: 100%;
+  max-width: 560px;
+}
+.accueil-envies-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 5px solid var(--mangue);
+  color: var(--encre);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.accueil-envies-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+@media (min-width: 960px) {
+  .accueil-envies {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 560px);
+    gap: var(--space-6, 48px);
+  }
+  .accueil-envies-carte-bloc {
+    justify-self: end;
+  }
+}
+@media (max-width: 639px) {
+  /* Téléphone : une seule rangée de familles qui se fait défiler, au lieu de trois lignes de puces. */
+  .accueil-envies-rangee .pub-puces {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    padding-block: 4px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .accueil-envies-rangee .pub-puce {
+    flex: none;
+    scroll-snap-align: start;
+  }
 }

@@ -65,17 +65,17 @@ export const EMPLACEMENTS = [
     max: 120,
   },
   { cle: "accueil.hero.preuve_reponse", groupe: HAUT, libelle: "Phrase sous les boutons, partie surlignée", defaut: "vérifiez quand le restaurant a confirmé le plat.", max: 80 },
-  {
-    cle: "accueil.hero.macaron",
-    groupe: HAUT,
-    libelle: "Macaron (autocollant) sous l'idée de plat",
-    defaut: "Consultez l'heure à laquelle le restaurant a confirmé chaque plat.",
-    max: 120,
-  },
   // --- Plats de la zone ---
   { cle: "accueil.envies.kicker", groupe: ENVIES, libelle: "Petit titre", defaut: "Votre envie du moment ?", max: 60 },
   { cle: "accueil.envies.titre", groupe: ENVIES, libelle: "Titre", defaut: "Qu'avez-vous envie de manger ?", max: 100 },
   { cle: "accueil.envies.texte", groupe: ENVIES, libelle: "Texte", defaut: "Parcourez les plats proposés dans la zone sélectionnée.", max: 200 },
+  {
+    cle: "accueil.envies.note",
+    groupe: ENVIES,
+    libelle: "Note sous la carte",
+    defaut: "Consultez l'heure à laquelle le restaurant a confirmé chaque plat.",
+    max: 120,
+  },
   // --- Restaurants à la une ---
   { cle: "accueil.carte.kicker_ouverts", groupe: CARTE, libelle: "Petit titre quand au moins trois restaurants sont ouverts", defaut: "Ouverts en ce moment", max: 60 },
   { cle: "accueil.carte.kicker_catalogue", groupe: CARTE, libelle: "Petit titre sinon", defaut: "Au catalogue", max: 60 },

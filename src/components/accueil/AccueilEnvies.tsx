@@ -45,18 +45,15 @@ export async function AccueilEnvies({ zone = null }: { zone?: ZoneChoisie | null
   }));
 
   return (
-    <section className="pub-conteneur pub-rubrique" aria-labelledby="accueil-envies">
-      <div className="pub-entete-rubrique">
+    <section className="pub-conteneur pub-rubrique accueil-envies" aria-labelledby="accueil-envies">
+      <div className="accueil-envies-entete">
         <p className="pub-kicker">{t["accueil.envies.kicker"]}</p>
-        <h2 id="accueil-envies" className="pub-titre pub-h2">
+        <h2 id="accueil-envies" className="pub-titre accueil-envies-titre">
           {t["accueil.envies.titre"]}
         </h2>
         <p className="pub-accueil-lead">{t["accueil.envies.texte"]}</p>
       </div>
-      <div className="pub-accueil-envie pub-envies-zone">
-        <SelecteurEnvie envies={envies} scenes={scenesActives} />
-        <span className="pub-autocollant pub-accueil-sticker boucle">{t["accueil.hero.macaron"]}</span>
-      </div>
+      <SelecteurEnvie envies={envies} scenes={scenesActives} note={t["accueil.envies.note"]} />
     </section>
   );
 }

@@ -41,7 +41,7 @@ function animationsPermises(racine: HTMLElement | null): boolean {
  * page est visible, le bloc à l'écran et les animations non coupées (voir PilotageAnimations) ; mouvement réduit : aucun défilement.
  * Sans JavaScript, la première suggestion reste lisible (rendu serveur).
  */
-export function SelecteurEnvie({ envies, scenes = true }: { envies: EnvieAffichee[]; scenes?: boolean }) {
+export function SelecteurEnvie({ envies, scenes = true, note }: { envies: EnvieAffichee[]; scenes?: boolean; note?: string }) {
   const [courante, setCourante] = useState(envies[0]?.famille ?? "");
   const [auto, setAuto] = useState(true);
   const racine = useRef<HTMLDivElement>(null);
@@ -67,68 +67,81 @@ export function SelecteurEnvie({ envies, scenes = true }: { envies: EnvieAffiche
   const e = envies.find((x) => x.famille === courante) ?? envies[0];
   if (!e) return null;
 
+  const pause = scenes && envies.length > 1 && !reduit;
+
   return (
-    <div className="pub-envie boucle" ref={racine} data-famille={e.famille}>
-      <div className="pub-envie-tete">
-        <p className="pub-kicker">Votre envie du moment ?</p>
-        {scenes && envies.length > 1 && !reduit ? (
-          <button type="button" className="pub-envie-pause" aria-pressed={!auto} onClick={() => setAuto((v) => !v)}>
-            <span aria-hidden="true">{auto ? "⏸" : "▶"}</span>
-            <span className="sr-only">{auto ? "Mettre le défilement des familles en pause" : "Relancer le défilement des familles"}</span>
-          </button>
-        ) : null}
-      </div>
-
-      <div className="pub-puces" role="group" aria-label="Familles de plats">
-        {envies.map((x) => {
-          const active = x.famille === e.famille;
-          return (
-            <button
-              key={x.famille}
-              type="button"
-              className={`pub-puce${active && defile ? " pub-puce-defile" : ""}`}
-              aria-pressed={active}
-              onClick={() => {
-                setCourante(x.famille);
-                setAuto(false);
-              }}
-              style={active && defile ? ({ ["--duree-envie" as string]: `${DUREE_MS}ms` } as React.CSSProperties) : undefined}
-            >
-              {x.libelle}
+    <div className="accueil-envies-carte-bloc">
+      <div className="pub-envie boucle" ref={racine} data-famille={e.famille}>
+        <div className="accueil-envies-rangee">
+          <div className="pub-puces" role="group" aria-label="Familles de plats">
+            {envies.map((x) => {
+              const active = x.famille === e.famille;
+              return (
+                <button
+                  key={x.famille}
+                  type="button"
+                  className={`pub-puce${active && defile ? " pub-puce-defile" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    setCourante(x.famille);
+                    setAuto(false);
+                  }}
+                  style={active && defile ? ({ ["--duree-envie" as string]: `${DUREE_MS}ms` } as React.CSSProperties) : undefined}
+                >
+                  {x.libelle}
+                </button>
+              );
+            })}
+          </div>
+          {pause ? (
+            <button type="button" className="pub-envie-pause" aria-pressed={!auto} onClick={() => setAuto((v) => !v)}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {auto ? <path d="M9 6v12M15 6v12" /> : <path d="M8 5.5v13l10-6.5z" />}
+              </svg>
+              <span className="sr-only">{auto ? "Mettre le défilement des familles en pause" : "Relancer le défilement des familles"}</span>
             </button>
-          );
-        })}
-      </div>
+          ) : null}
+        </div>
 
-      {/* La scène change avec la famille : `key` la remonte, ce qui rejoue son entrée en scène. */}
-      {scenes ? (
-        <div className="pub-envie-scene" aria-hidden="true" data-famille={e.famille}>
-          <div key={e.famille} className="pub-envie-scene-interieur">
-            <SceneEnvie famille={e.famille} />
+        {/* La scène change avec la famille : `key` la remonte, ce qui rejoue son entrée en scène. */}
+        {scenes ? (
+          <div className="pub-envie-scene" aria-hidden="true" data-famille={e.famille}>
+            <div key={e.famille} className="pub-envie-scene-interieur">
+              <SceneEnvie famille={e.famille} />
+            </div>
+          </div>
+        ) : null}
+
+        <div key={e.famille} className="pub-envie-resultat accueil-envies-resultat" aria-live={defile ? "off" : "polite"}>
+          <span className="pub-envie-visuel">{e.visuel}</span>
+          <div>
+            <p className="pub-envie-plat">{e.platNom}</p>
+            <p className="pub-envie-resto">
+              {e.restaurantNom}
+              {e.quartier ? ` · ${e.quartier}` : ""}
+            </p>
+            {e.confirmation ? <p className="pub-envie-confirmation">{e.confirmation}</p> : null}
+            <p className="pub-envie-prix">{e.prix.toLocaleString("fr-FR")}&nbsp;GNF</p>
           </div>
         </div>
-      ) : null}
-
-      <div className="pub-envie-resultat" aria-live={defile ? "off" : "polite"}>
-        <span className="pub-envie-visuel">{e.visuel}</span>
-        <div>
-          <p className="pub-envie-plat">{e.platNom}</p>
-          <p className="pub-envie-resto">
-            {e.restaurantNom}
-            {e.quartier ? ` · ${e.quartier}` : ""}
-          </p>
-          {e.confirmation ? <p className="pub-envie-confirmation">{e.confirmation}</p> : null}
-          <p className="pub-envie-prix">{e.prix.toLocaleString("fr-FR")}&nbsp;GNF</p>
-        </div>
+        <Link href={`/restaurants/${e.restaurantId}`} className="pub-btn">
+          Voir {e.restaurantNom}
+          <span className="pub-btn-point" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </Link>
       </div>
-      <Link href={`/restaurants/${e.restaurantId}`} className="pub-btn">
-        Voir {e.restaurantNom}
-        <span className="pub-btn-point" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M13 6l6 6-6 6" />
+      {note ? (
+        <p className="accueil-envies-note">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
           </svg>
-        </span>
-      </Link>
+          {note}
+        </p>
+      ) : null}
     </div>
   );
 }
