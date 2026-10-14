@@ -4,15 +4,19 @@ import { useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export interface OptionLocalite {
-  niveau: "commune" | "quartier";
+  niveau: "region" | "prefecture" | "commune" | "quartier";
   nom: string;
   slug: string;
-  /** Commune d'un quartier ; vide pour une commune. */
-  communeNom: string;
+  /** Où se trouve la zone (« région de Kindia », « Conakry », « Matam, Conakry ») ; vide pour une région. */
+  contexte: string;
+  /** Autres façons d'écrire le nom, reconnues par la recherche. */
+  alias?: string[];
   restaurants: number;
 }
 
-const MAX_SUGGESTIONS = 8;
+const MAX_SUGGESTIONS = 10;
+const LIBELLE_NIVEAU: Record<OptionLocalite["niveau"], string> = { region: "Région", prefecture: "Préfecture", commune: "Commune", quartier: "Quartier" };
+const ORDRE_NIVEAU: Record<OptionLocalite["niveau"], number> = { region: 0, prefecture: 1, commune: 2, quartier: 3 };
 
 type EtatPosition = "repos" | "recherche" | "refusee" | "indisponible" | "introuvable" | "hors-guinee" | "erreur";
 
@@ -34,9 +38,8 @@ function normaliser(texte: string): string {
     .trim();
 }
 
-function lien(o: OptionLocalite): string {
-  const cle = o.niveau === "commune" ? "commune" : "quartier";
-  return `/?${cle}=${encodeURIComponent(o.slug)}#zone`;
+function lien(o: Pick<OptionLocalite, "niveau" | "slug">): string {
+  return `/?${o.niveau}=${encodeURIComponent(o.slug)}#zone`;
 }
 
 /**
@@ -81,7 +84,7 @@ export function RechercheLocalite({
             body: JSON.stringify({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
           });
           if (!reponse.ok) throw new Error("service");
-          const donnees: { zone: { niveau: "commune" | "quartier"; slug: string } | null; horsGuinee?: boolean } = await reponse.json();
+          const donnees: { zone: { niveau: OptionLocalite["niveau"]; slug: string } | null; horsGuinee?: boolean } = await reponse.json();
           if (donnees.zone) {
             setPosition("repos");
             routeur.push(lien({ niveau: donnees.zone.niveau, slug: donnees.zone.slug } as OptionLocalite));
@@ -99,17 +102,18 @@ export function RechercheLocalite({
 
   const suggestions = useMemo(() => {
     const cherche = normaliser(saisie);
-    if (!cherche) return options.filter((o) => o.niveau === "commune").slice(0, MAX_SUGGESTIONS);
-    const correspond = options.filter((o) => normaliser(o.nom).includes(cherche) || normaliser(o.communeNom).includes(cherche));
-    // Les communes d'abord, puis les quartiers qui commencent par la saisie, puis le reste.
-    return correspond
-      .sort((a, b) => {
-        if (a.niveau !== b.niveau) return a.niveau === "commune" ? -1 : 1;
-        const debutA = normaliser(a.nom).startsWith(cherche) ? 0 : 1;
-        const debutB = normaliser(b.nom).startsWith(cherche) ? 0 : 1;
-        return debutA - debutB || a.nom.localeCompare(b.nom, "fr");
-      })
-      .slice(0, MAX_SUGGESTIONS);
+    // Sans saisie : les régions, pour parcourir le pays du plus large au plus précis.
+    if (!cherche) return options.filter((o) => o.niveau === "region").slice(0, MAX_SUGGESTIONS);
+    const noms = (o: OptionLocalite) => [o.nom, ...(o.alias ?? [])].map(normaliser);
+    const parNom = options.filter((o) => noms(o).some((n) => n.includes(cherche)));
+    const dejaVus = new Set(parNom);
+    // Les zones qui se trouvent dans le lieu cherché (« kindia » trouve aussi les communes de la préfecture de Kindia) viennent après.
+    const parLieu = options.filter((o) => !dejaVus.has(o) && normaliser(o.contexte).includes(cherche));
+    const rang = (o: OptionLocalite) => (noms(o).some((n) => n.startsWith(cherche)) ? 0 : 1);
+    return [
+      ...parNom.sort((a, b) => rang(a) - rang(b) || ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau] || a.nom.localeCompare(b.nom, "fr")),
+      ...parLieu.sort((a, b) => ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau] || a.nom.localeCompare(b.nom, "fr")),
+    ].slice(0, MAX_SUGGESTIONS);
   }, [saisie, options]);
 
   function aller(option: OptionLocalite | undefined) {
@@ -176,7 +180,7 @@ export function RechercheLocalite({
             <ul id={idListe} role="listbox" className="recherche-localite-liste" aria-label={libelle}>
               {suggestions.map((o, i) => (
                 <li
-                  key={`${o.niveau}-${o.communeNom}-${o.slug}`}
+                  key={`${o.niveau}-${o.slug}`}
                   id={`${identifiant}-opt-${i}`}
                   role="option"
                   aria-selected={i === actif}
@@ -189,7 +193,8 @@ export function RechercheLocalite({
                 >
                   <span className="recherche-localite-nom">{o.nom}</span>
                   <span className="recherche-localite-sous">
-                    {o.niveau === "commune" ? "Commune" : `Quartier · ${o.communeNom}`}
+                    {LIBELLE_NIVEAU[o.niveau]}
+                    {o.contexte ? ` · ${o.contexte}` : ""}
                     {o.restaurants > 0 ? ` · ${o.restaurants} restaurant${o.restaurants > 1 ? "s" : ""}` : " · pas encore de restaurant"}
                   </span>
                 </li>
@@ -214,7 +219,7 @@ export function RechercheLocalite({
       </p>
       {aucune || (saisie.trim() !== "" && suggestions.length === 0) ? (
         <p className="recherche-localite-vide" role="status">
-          Aucune localité ne correspond à « {saisie.trim()} ». Essayez le nom d&apos;une commune ou d&apos;un quartier de la liste.
+          Aucune localité ne correspond à « {saisie.trim()} ». Essayez le nom d&apos;une région, d&apos;une préfecture, d&apos;une commune ou d&apos;un quartier.
         </p>
       ) : null}
     </form>

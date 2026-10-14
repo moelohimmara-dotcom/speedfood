@@ -1266,3 +1266,99 @@
   padding-left: var(--space-4);
   font-size: 0.95rem;
 }
+
+/* ===== Explorer les localités : régions, préfectures, communes ===== */
+.localites {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.localites-liste {
+  display: grid;
+  gap: var(--space-3);
+}
+.localites-region,
+.localites-prefecture {
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.localites-prefecture {
+  margin: var(--space-2) var(--space-3);
+  border-width: 1.5px;
+  border-radius: var(--radius-md);
+}
+.localites-region > summary,
+.localites-prefecture > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+}
+.localites-region > summary::-webkit-details-marker,
+.localites-prefecture > summary::-webkit-details-marker {
+  display: none;
+}
+.localites-region > summary:focus-visible,
+.localites-prefecture > summary:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.localites-nom {
+  font-family: var(--font-titre);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.localites-prefecture .localites-nom {
+  font-size: 1rem;
+}
+.localites-bilan {
+  color: var(--secondaire);
+  font-size: 0.88rem;
+}
+.localites-acces {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+.localites-communes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  list-style: none;
+}
+.localites-commune {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-pill);
+  color: var(--encre);
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+.localites-commune.est-vide {
+  border-color: var(--bordure);
+  font-weight: 600;
+  opacity: 0.85;
+}
+.localites-commune:hover {
+  background: var(--mangue);
+}
+.localites-commune-bilan {
+  color: var(--secondaire);
+  font-size: 0.8rem;
+  font-weight: 600;
+}

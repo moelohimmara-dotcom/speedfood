@@ -62,9 +62,9 @@ export function FormulaireZonesDesservies({ groupes, zones }: { groupes: GroupeC
               Choisir une commune ou un quartier
             </option>
             {groupes.map((g) => (
-              <optgroup key={g.communeId} label={g.communeNom}>
+              <optgroup key={g.communeId} label={g.prefectureNom && g.prefectureNom !== "Conakry" ? `${g.communeNom} (${g.prefectureNom})` : g.communeNom}>
                 <option value={`c:${g.communeId}`}>Toute la commune de {g.communeNom}</option>
-                {g.quartiers.map((q) => (
+                {g.quartiers.filter((q) => !q.generique).map((q) => (
                   <option key={q.id} value={`q:${q.id}`}>
                     {q.nom}
                   </option>

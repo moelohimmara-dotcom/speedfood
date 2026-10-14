@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerGeographieSysteme } from "@/lib/system-admin/geographie";
@@ -11,9 +12,10 @@ export const metadata = { title: "Géographie (administration)" };
  * Communes et quartiers de Conakry (réforme territoriale de 2024). Une commune ou un quartier désactivé
  * n'est plus proposé aux restaurants ni aux clients ; rien n'est supprimé, les rattachements existants sont conservés.
  */
-export default async function GeographieSystemePage() {
+export default async function GeographieSystemePage({ searchParams }: { searchParams: Promise<{ region?: string }> }) {
   const contexte = await exigerPermissionPage("taxonomie.editer");
-  const { communes, quartiers } = await listerGeographieSysteme();
+  const { region } = await searchParams;
+  const { regions, regionChoisie, communes, quartiers } = await listerGeographieSysteme(typeof region === "string" ? region.slice(0, 60) : undefined);
 
   return (
     <div>
@@ -23,7 +25,20 @@ export default async function GeographieSystemePage() {
       />
       <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
 
-      <Panneau titre="Communes">
+      <nav aria-label="Régions" className="ad-onglets">
+        {regions.map((r) => (
+          <Link
+            key={r.slug}
+            href={`/system/catalogue/geographie?region=${r.slug}`}
+            className={`ad-onglet${regionChoisie?.slug === r.slug ? " actif" : ""}`}
+            aria-current={regionChoisie?.slug === r.slug ? "page" : undefined}
+          >
+            {r.nom}
+          </Link>
+        ))}
+      </nav>
+
+      <Panneau titre={`Communes${regionChoisie ? ` de la région de ${regionChoisie.nom}` : ""} (${communes.length})`}>
         {communes.map((commune) => (
           <FormulaireCommuneSysteme key={commune.id} commune={commune} />
         ))}

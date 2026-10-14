@@ -3,7 +3,7 @@ import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { limiterZoneAlerte } from "@/lib/securite/limitation-debit";
 import { validerContactAlerte } from "@/lib/site/zone-alerte";
-import { lireZones, resoudreZone } from "@/lib/site/zones";
+import { lireHierarchieZones, resoudreZone, type NiveauZone } from "@/lib/site/zones";
 
 /**
  * Liste d'attente par zone : « Prévenez-moi quand un restaurant ouvre ici ».
@@ -40,18 +40,15 @@ export async function POST(request: Request) {
   }
 
   const zoneBrute = typeof brut.zone === "object" && brut.zone !== null ? (brut.zone as Record<string, unknown>) : {};
-  const niveau = zoneBrute.niveau === "quartier" ? "quartier" : "commune";
+  const niveaux: NiveauZone[] = ["region", "prefecture", "commune", "quartier"];
+  const niveau = niveaux.find((n) => n === zoneBrute.niveau) ?? "commune";
   const slug = typeof zoneBrute.slug === "string" ? zoneBrute.slug : "";
-  const zones = await lireZones();
-  const zone = resoudreZone(niveau === "quartier" ? { quartier: slug } : { commune: slug }, zones);
-  if (!zone) {
+  const zone = resoudreZone({ [niveau]: slug }, await lireHierarchieZones());
+  if (!zone || zone.niveau !== niveau) {
     return NextResponse.json({ erreur: "Cette zone n'existe pas." }, { status: 400, headers: SANS_CACHE });
   }
-  const communeId = zone.niveau === "commune" ? zones.find((c) => c.slug === zone.slug)?.id : undefined;
-  const ligne = zone.niveau === "quartier" ? { neighborhood_id: zone.id, commune_id: null } : { commune_id: communeId ?? null, neighborhood_id: null };
-  if (zone.niveau === "commune" && !communeId) {
-    return NextResponse.json({ erreur: "Cette zone n'existe pas." }, { status: 400, headers: SANS_CACHE });
-  }
+  const colonne = { region: "region_id", prefecture: "prefecture_id", commune: "commune_id", quartier: "neighborhood_id" }[zone.niveau];
+  const ligne = { [colonne]: zone.id };
 
   const { error } = await creerClientAdmin().from("zone_alertes").insert({ ...ligne, contact_type: contact.type, contact: contact.contact });
   // 23505 : déjà inscrit pour cette zone, même réponse qu'une nouvelle inscription.

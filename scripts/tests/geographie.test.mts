@@ -13,11 +13,11 @@ function verifier(nom: string, obtenu: unknown, attendu: unknown) {
 }
 
 const quartiers: QuartierChoix[] = [
-  { id: "q3", nom: "Taouyah", communeId: "c-ratoma", communeNom: "Ratoma" },
-  { id: "q1", nom: "Dixinn Centre I", communeId: "c-dixinn", communeNom: "Dixinn" },
-  { id: "q2", nom: "Almamya I", communeId: "c-kaloum", communeNom: "Kaloum" },
-  { id: "q4", nom: "Belle Vue École", communeId: "c-dixinn", communeNom: "Dixinn" },
-  { id: "q5", nom: "Ratoma Centre", communeId: "c-ratoma", communeNom: "Ratoma" },
+  { id: "q3", nom: "Taouyah", communeId: "c-ratoma", communeNom: "Ratoma", generique: false, prefectureId: "p-conakry", prefectureNom: "Conakry", regionId: "r-conakry", regionNom: "Conakry" },
+  { id: "q1", nom: "Dixinn Centre I", communeId: "c-dixinn", communeNom: "Dixinn", generique: false, prefectureId: "p-conakry", prefectureNom: "Conakry", regionId: "r-conakry", regionNom: "Conakry" },
+  { id: "q2", nom: "Almamya I", communeId: "c-kaloum", communeNom: "Kaloum", generique: false, prefectureId: "p-conakry", prefectureNom: "Conakry", regionId: "r-conakry", regionNom: "Conakry" },
+  { id: "q4", nom: "Belle Vue École", communeId: "c-dixinn", communeNom: "Dixinn", generique: false, prefectureId: "p-conakry", prefectureNom: "Conakry", regionId: "r-conakry", regionNom: "Conakry" },
+  { id: "q5", nom: "Ratoma Centre", communeId: "c-ratoma", communeNom: "Ratoma", generique: false, prefectureId: "p-conakry", prefectureNom: "Conakry", regionId: "r-conakry", regionNom: "Conakry" },
 ];
 
 const groupes = grouperParCommune(quartiers);

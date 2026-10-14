@@ -18,7 +18,7 @@ import { SLUG_ACCUEIL } from "@/lib/studio/registre";
 import { lireTextes } from "@/lib/cms/textes";
 import { promesseDeLaRequete } from "@/components/accueil/lectures";
 import { lireAccueil } from "@/lib/site/accueil";
-import { lireZones, resoudreZone, type ZoneChoisie } from "@/lib/site/zones";
+import { lireHierarchieZones, resoudreZone, type ZoneChoisie } from "@/lib/site/zones";
 
 // Rendue à chaque requête (et non figée à la construction) : l'accueil lit des données vivantes et le cadre du site lit les interrupteurs
 // de fonctionnalités du super administrateur (voir src/lib/fonctionnalites/lire.ts) ; sinon un changement n'apparaîtrait qu'au prochain déploiement.
@@ -94,7 +94,7 @@ function AccueilRepli({ zone }: { zone: ZoneChoisie | null }) {
  * les sections reprennent les promesses déjà lancées. Un échec n'est pas perdu : la section qui attend la même promesse le voit.
  */
 function precharger() {
-  for (const lecture of [lireAccueil(), lireTextes(), promesseDeLaRequete(), lireZones()]) lecture.catch(() => undefined);
+  for (const lecture of [lireAccueil(), lireTextes(), promesseDeLaRequete(), lireHierarchieZones()]) lecture.catch(() => undefined);
 }
 
 export default async function AccueilPage({ searchParams }: Props) {
@@ -104,7 +104,10 @@ export default async function AccueilPage({ searchParams }: Props) {
   if (decision.mode === "repli") {
     // Zone demandée par l'adresse, validée contre les zones enregistrées : une valeur inconnue n'a aucun effet.
     const params = await searchParams;
-    const zone = resoudreZone({ commune: params.commune, quartier: params.quartier }, await lireZones());
+    const zone = resoudreZone(
+      { region: params.region, prefecture: params.prefecture, commune: params.commune, quartier: params.quartier },
+      await lireHierarchieZones()
+    );
     return <AccueilRepli zone={zone} />;
   }
 

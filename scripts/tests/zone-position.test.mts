@@ -1,4 +1,4 @@
-import { arrondirCoordonnee, correspondreZone, distanceKm, normaliserNom, positionDansLaGuinee, zoneLaPlusProche, type CommuneMin } from "../../src/lib/site/zone-position";
+import { arrondirCoordonnee, correspondreZone, distanceKm, normaliserNom, positionDansLaGuinee, zoneDeLaPosition, zoneLaPlusProche, type CommuneMin } from "../../src/lib/site/zone-position";
 
 let echecs = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -68,5 +68,25 @@ verifier("loin des quartiers mais dans une commune : la commune", zoneLaPlusProc
 verifier("trop loin de tout : null", zoneLaPlusProche(9.9, -13.9, avecPoints), null);
 verifier("sans aucun point : null", zoneLaPlusProche(9.6, -13.6, communes), null);
 verifier("nom alternatif reconnu", correspondreZone({ suburb: "Kipe Centre" }, avecPoints)?.slug, "kipe");
+
+// Pays entier : préfectures, régions et communes hors Conakry
+const interieur: CommuneMin[] = [
+  { id: "c-boffa", prefectureId: "p-boffa", villeNom: "", nom: "Boffa Centre", slug: "boffa-centre", latitude: 10.19411, longitude: -14.12869, quartiers: [] },
+  { id: "c-douprou", prefectureId: "p-boffa", villeNom: "", nom: "Douprou", slug: "douprou", latitude: 10.23642, longitude: -14.36617, quartiers: [] },
+  { id: "c-boke", prefectureId: "p-boke", villeNom: "", nom: "Boké Centre", slug: "boke-centre", latitude: 10.89993, longitude: -14.27191, quartiers: [] },
+];
+const prefs = [
+  { id: "p-boffa", nom: "Boffa", slug: "boffa" },
+  { id: "p-boke", nom: "Boké", slug: "boke" },
+];
+const regs = [{ id: "r-boke", nom: "Boké", slug: "boke" }];
+verifier("la préfecture reconnue par son nom donne la commune la plus proche DANS cette préfecture", zoneDeLaPosition(10.25, -14.3, { county: "Boffa" }, interieur, prefs, regs)?.slug, "douprou");
+verifier("trop loin de toute commune de la préfecture reconnue : la préfecture", zoneDeLaPosition(10.9, -14.3, { county: "Boffa" }, interieur, prefs, regs)?.niveau, "prefecture");
+verifier("« Préfecture de Boffa » reconnue", zoneDeLaPosition(10.2, -14.1, { county: "Préfecture de Boffa" }, interieur, prefs, regs)?.slug, "boffa-centre");
+verifier("préfecture sans commune proche : la préfecture", zoneDeLaPosition(12.5, -13.5, { county: "Boké" }, [], prefs, regs)?.niveau, "prefecture");
+verifier("sans adresse : la commune la plus proche d'un village de l'intérieur", zoneDeLaPosition(10.21, -14.35, null, interieur, prefs, regs)?.slug, "douprou");
+verifier("région reconnue en dernier recours", zoneDeLaPosition(12.9, -12.0, { state: "Boké Region" }, interieur, prefs, regs)?.niveau, "region");
+verifier("rien de reconnaissable : null", zoneDeLaPosition(12.9, -12.0, { state: "Ailleurs" }, interieur, prefs, regs), null);
+verifier("commune reconnue par son nom prime sur la proximité", zoneDeLaPosition(10.2, -14.1, { village: "Douprou" }, interieur, prefs, regs)?.slug, "douprou");
 
 if (echecs > 0) process.exit(1);

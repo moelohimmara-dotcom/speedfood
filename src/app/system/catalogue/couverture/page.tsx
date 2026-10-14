@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function CouverturePage() {
   const contexte = await exigerPermissionPage("taxonomie.editer");
-  const { communes, aRecruter, totaux } = await lireCouverture();
+  const { regions, communes, aRecruter, totaux } = await lireCouverture();
 
   return (
     <div>
@@ -40,17 +40,17 @@ export default async function CouverturePage() {
               <thead>
                 <tr>
                   <th scope="col">Zone</th>
-                  <th scope="col">Commune</th>
+                  <th scope="col">Dans</th>
                   <th scope="col">Personnes en attente</th>
                 </tr>
               </thead>
               <tbody>
                 {aRecruter.map((z) => (
-                  <tr key={`${z.niveau}-${z.communeNom}-${z.nom}`}>
+                  <tr key={`${z.niveau}-${z.contexte}-${z.nom}`}>
                     <td>
-                      {z.nom} <Pastille ton="neutre">{z.niveau === "commune" ? "Commune" : "Quartier"}</Pastille>
+                      {z.nom} <Pastille ton="neutre">{{ region: "Région", prefecture: "Préfecture", commune: "Commune", quartier: "Quartier" }[z.niveau]}</Pastille>
                     </td>
-                    <td>{z.communeNom}</td>
+                    <td>{z.contexte || "—"}</td>
                     <td>{z.attente}</td>
                   </tr>
                 ))}
@@ -60,33 +60,70 @@ export default async function CouverturePage() {
         )}
       </Panneau>
 
-      <Panneau titre="Couverture par commune">
+      <Panneau titre="Couverture par région">
         <div className="ad-table-cadre">
           <table className="ad-table">
             <thead>
               <tr>
-                <th scope="col">Commune</th>
+                <th scope="col">Région</th>
                 <th scope="col">Restaurants</th>
                 <th scope="col">Ouverts</th>
-                <th scope="col">Quartiers couverts</th>
+                <th scope="col">Préfectures couvertes</th>
+                <th scope="col">Communes couvertes</th>
                 <th scope="col">En attente</th>
               </tr>
             </thead>
             <tbody>
-              {communes.map((c) => (
-                <tr key={c.nom}>
-                  <td>{c.nom}</td>
-                  <td>{c.restaurants}</td>
-                  <td>{c.ouverts}</td>
+              {regions.map((r) => (
+                <tr key={r.nom}>
+                  <td>{r.nom}</td>
+                  <td>{r.restaurants}</td>
+                  <td>{r.ouverts}</td>
                   <td>
-                    {c.quartiersCouverts} / {c.quartiersActifs}
+                    {r.prefecturesCouvertes} / {r.prefectures}
                   </td>
-                  <td>{c.attente}</td>
+                  <td>
+                    {r.communesCouvertes} / {r.communes}
+                  </td>
+                  <td>{r.attente}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </Panneau>
+
+      <Panneau titre="Communes avec des restaurants ou des personnes en attente">
+        {communes.length === 0 ? (
+          <EtatVide titre="Aucune commune pour l'instant" />
+        ) : (
+          <div className="ad-table-cadre">
+            <table className="ad-table">
+              <thead>
+                <tr>
+                  <th scope="col">Commune</th>
+                  <th scope="col">Préfecture</th>
+                  <th scope="col">Restaurants</th>
+                  <th scope="col">Ouverts</th>
+                  <th scope="col">Quartiers couverts</th>
+                  <th scope="col">En attente</th>
+                </tr>
+              </thead>
+              <tbody>
+                {communes.map((c) => (
+                  <tr key={`${c.prefecture}-${c.nom}`}>
+                    <td>{c.nom}</td>
+                    <td>{c.prefecture}</td>
+                    <td>{c.restaurants}</td>
+                    <td>{c.ouverts}</td>
+                    <td>{c.quartiersActifs > 0 ? `${c.quartiersCouverts} / ${c.quartiersActifs}` : "—"}</td>
+                    <td>{c.attente}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panneau>
     </div>
   );

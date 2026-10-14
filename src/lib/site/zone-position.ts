@@ -18,6 +18,9 @@ export interface QuartierMin {
 }
 
 export interface CommuneMin {
+  id?: string;
+  /** Préfecture de la commune (pour choisir la commune la plus proche à l'intérieur d'une préfecture reconnue par son nom). */
+  prefectureId?: string;
   villeNom: string;
   nom: string;
   slug: string;
@@ -27,8 +30,17 @@ export interface CommuneMin {
   quartiers: QuartierMin[];
 }
 
+/** Préfecture ou région : on ne connaît d'elles que leur nom, leur adresse et leur point central. */
+export interface ZoneLargeMin {
+  id: string;
+  nom: string;
+  slug: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 export interface ZoneTrouvee {
-  niveau: "commune" | "quartier";
+  niveau: "region" | "prefecture" | "commune" | "quartier";
   id: string;
   nom: string;
   slug: string;
@@ -61,7 +73,7 @@ export function normaliserNom(texte: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
-    .replace(/\b(commune urbaine de|commune de|quartier de|quartier|district de|prefecture de|ville de)\b/g, " ")
+    .replace(/\b(commune urbaine de|commune de|quartier de|quartier|district de|prefecture de|ville de|region de|region|prefecture)\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
@@ -73,7 +85,7 @@ function nomsDe(zone: { nom: string; nomsAlternatifs?: string[] }): string[] {
 
 /** Champs d'adresse Nominatim, du plus précis au plus large. */
 const CHAMPS_PRECIS = ["neighbourhood", "quarter", "suburb", "city_district", "village", "hamlet"];
-const CHAMPS_LARGES = ["city_district", "suburb", "municipality", "county", "city", "town", "state_district"];
+const CHAMPS_LARGES = ["city_district", "suburb", "municipality", "county", "city", "town", "village", "hamlet", "state_district"];
 
 function valeurs(adresse: Record<string, unknown>, champs: string[]): string[] {
   return champs
@@ -116,8 +128,8 @@ export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 /** Un quartier dont le point central est plus loin que cela n'est pas retenu : mieux vaut la commune que le mauvais quartier. */
 export const RAYON_QUARTIER_KM = 1.2;
-/** Au-delà, la position n'est rattachée à aucune commune connue. */
-export const RAYON_COMMUNE_KM = 6;
+/** Au-delà, la position n'est rattachée à aucune commune connue (les sous-préfectures de l'intérieur du pays sont grandes). */
+export const RAYON_COMMUNE_KM = 40;
 
 /**
  * Zone enregistrée la plus proche d'une position, d'après les points centraux : le quartier le plus proche s'il est à moins de
@@ -148,4 +160,50 @@ export function zoneLaPlusProche(latitude: number, longitude: number, communes: 
     return { niveau: "commune", id: "", nom: c.nom, slug: c.slug, communeNom: "", villeNom: c.villeNom };
   }
   return null;
+}
+
+/** Champs d'adresse Nominatim qui peuvent désigner une préfecture ou une région. */
+const CHAMPS_PREFECTURE = ["county", "state_district", "city", "town", "municipality"];
+const CHAMPS_REGION = ["state", "region"];
+
+function correspondreLarge(adresse: Record<string, unknown>, champs: string[], zones: ZoneLargeMin[]): ZoneLargeMin | null {
+  for (const nom of valeurs(adresse, champs)) {
+    const z = zones.find((x) => normaliserNom(x.nom) === nom);
+    if (z) return z;
+  }
+  return null;
+}
+
+/**
+ * Zone d'une position, à l'échelle du pays, de la plus précise à la plus large :
+ * 1. le quartier ou la commune reconnus par leur nom dans l'adresse OpenStreetMap ;
+ * 2. la préfecture reconnue par son nom : la commune la plus proche à l'intérieur de cette préfecture, sinon la préfecture ;
+ * 3. à défaut d'adresse exploitable, le quartier (à moins de 1,2 km) ou la commune (à moins de 40 km) dont le point est le plus proche ;
+ * 4. la région reconnue par son nom ; sinon `null`.
+ * Aucune zone n'est inventée.
+ */
+export function zoneDeLaPosition(
+  latitude: number,
+  longitude: number,
+  adresse: Record<string, unknown> | null,
+  communes: CommuneMin[],
+  prefectures: ZoneLargeMin[],
+  regions: ZoneLargeMin[]
+): ZoneTrouvee | null {
+  const parNom = adresse ? correspondreZone(adresse, communes) : null;
+  if (parNom) return parNom;
+
+  const prefecture = adresse ? correspondreLarge(adresse, CHAMPS_PREFECTURE, prefectures) : null;
+  if (prefecture) {
+    const dedans = communes.filter((c) => c.prefectureId === prefecture.id);
+    const proche = zoneLaPlusProche(latitude, longitude, dedans);
+    if (proche) return proche;
+    return { niveau: "prefecture", id: prefecture.id, nom: prefecture.nom, slug: prefecture.slug, communeNom: "", villeNom: "" };
+  }
+
+  const parProximite = zoneLaPlusProche(latitude, longitude, communes);
+  if (parProximite) return parProximite;
+
+  const region = adresse ? correspondreLarge(adresse, CHAMPS_REGION, regions) : null;
+  return region ? { niveau: "region", id: region.id, nom: region.nom, slug: region.slug, communeNom: "", villeNom: "" } : null;
 }

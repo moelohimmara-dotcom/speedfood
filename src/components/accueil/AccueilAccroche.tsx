@@ -5,7 +5,7 @@ import { lireTextes } from "@/lib/cms/textes";
 import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { FAMILLES_ENVIE, catalogueDeLaRequete, choisirSuggestions, lireAccueil } from "@/lib/site/accueil";
-import { lireZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
+import { descriptionZone, lireHierarchieZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
 import { pastille } from "./commun";
 import { promesseDeLaRequete } from "./lectures";
 import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
@@ -16,10 +16,10 @@ import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
  * `lirePromesse()` ; plats suggérés : `lireAccueil()`.
  */
 export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [promesse, donnees, zones, catalogue, scenesActives, t] = await Promise.all([
+  const [promesse, donnees, hierarchie, catalogue, scenesActives, t] = await Promise.all([
     promesseDeLaRequete(),
     lireAccueil(),
-    lireZones(),
+    lireHierarchieZones(),
     catalogueDeLaRequete(),
     fonctionnaliteActive("scenes_envie_accueil"),
     lireTextes(),
@@ -36,12 +36,30 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
   // Avec une zone choisie, les plats suggérés viennent des restaurants de cette zone seulement.
   const suggestions = zone ? choisirSuggestions(restaurantsDeLaZone(donnees.restaurants, zone), donnees.platsParRestaurant) : donnees.suggestions;
 
-  const options: OptionLocalite[] = [
-    ...zones.map((c) => ({ niveau: "commune" as const, nom: c.nom, slug: c.slug, communeNom: "", restaurants: c.restaurants })),
-    ...zones.flatMap((c) =>
-      c.quartiers.map((q) => ({ niveau: "quartier" as const, nom: q.nom, slug: q.slug, communeNom: c.nom, restaurants: q.restaurants }))
-    ),
-  ];
+  const options: OptionLocalite[] = hierarchie.flatMap((r) => [
+    { niveau: "region" as const, nom: r.nom, slug: r.slug, contexte: "", restaurants: r.restaurants },
+    ...r.prefectures.flatMap((p) => [
+      { niveau: "prefecture" as const, nom: p.nom, slug: p.slug, contexte: `région de ${r.nom}`, restaurants: p.restaurants },
+      ...p.communes.flatMap((c) => [
+        {
+          niveau: "commune" as const,
+          nom: c.nom,
+          slug: c.slug,
+          contexte: c.villeNom || `préfecture de ${p.nom}`,
+          ...(c.nomsAlternatifs.length > 0 ? { alias: c.nomsAlternatifs } : {}),
+          restaurants: c.restaurants,
+        },
+        ...c.quartiers.map((q) => ({
+          niveau: "quartier" as const,
+          nom: q.nom,
+          slug: q.slug,
+          contexte: `${c.nom}${c.villeNom ? `, ${c.villeNom}` : ""}`,
+          ...(q.nomsAlternatifs.length > 0 ? { alias: q.nomsAlternatifs } : {}),
+          restaurants: q.restaurants,
+        })),
+      ]),
+    ]),
+  ]);
 
   const envies: EnvieAffichee[] = suggestions.map((s) => ({
     famille: s.famille,
@@ -77,12 +95,7 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
 
         {zone ? (
           <p className="pub-zone-active" role="status">
-            Zone sélectionnée :{" "}
-            <strong>
-              {zone.niveau === "quartier"
-                ? `${zone.nom} · ${zone.communeNom}${zone.villeNom ? `, ${zone.villeNom}` : ""}`
-                : `${zone.nom}${zone.villeNom ? ` · ${zone.villeNom}` : ""}`}
-            </strong>
+            Zone sélectionnée : <strong>{descriptionZone(zone)}</strong>
             {" — "}
             <Link href="/" className="lien-texte">
               Modifier

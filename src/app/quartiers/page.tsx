@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { VecteurQuartiers } from "@/components/site/vecteurs/VecteurQuartiers";
 import type { Metadata } from "next";
+import { ParcourirLocalites } from "@/components/site/ParcourirLocalites";
 import { lireAccueil, grouperQuartiersParCommune } from "@/lib/site/accueil";
+import { lireHierarchieZones } from "@/lib/site/zones";
 import { slugQuartier } from "@/lib/site/quartiers";
 import { origineDuSite } from "@/lib/partage/origine";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
   return {
-    title: "Localités : restaurants par commune et quartier",
+    title: "Localités : restaurants par région, préfecture, commune et quartier",
     description:
-      "Explorez les localités où des restaurants Speedfood sont référencés, classées par commune et par quartier. Phase pilote à Conakry : Kaloum, Dixinn, Ratoma, Matam et leurs quartiers.",
+      "Explorez toute la Guinée : régions, préfectures, communes et quartiers où des restaurants Speedfood sont référencés. Phase pilote à Conakry.",
     alternates: { canonical: `${origine}/quartiers` },
   };
 }
@@ -21,7 +23,7 @@ function pluriel(nombre: number, singulier: string, plusieurs: string): string {
 }
 
 export default async function QuartiersPage() {
-  const { quartiers, erreur } = await lireAccueil();
+  const [{ quartiers, erreur }, hierarchie] = await Promise.all([lireAccueil(), lireHierarchieZones()]);
   const groupes = grouperQuartiersParCommune(quartiers);
 
   return (
@@ -33,12 +35,14 @@ export default async function QuartiersPage() {
             Choisissez votre <span className="pub-surligne">localité</span>
           </h1>
           <p className="pub-accueil-lead">
-            Les restaurants référencés, classés par commune puis par quartier. Phase pilote : les restaurants sont aujourd&apos;hui
+            Toutes les régions, préfectures et communes de Guinée sont consultables. Phase pilote : les restaurants sont aujourd&apos;hui
             à Conakry, d&apos;autres localités s&apos;ajoutent avec les restaurants qui s&apos;inscrivent.
           </p>
         </div>
         <VecteurQuartiers />
       </div>
+
+      {hierarchie.length > 0 ? <ParcourirLocalites hierarchie={hierarchie} /> : null}
 
       {erreur ? (
         <p className="pub-vide">Impossible de charger les quartiers pour le moment. Réessayez dans un instant.</p>

@@ -9,7 +9,7 @@ type Etat = "repos" | "envoi" | "fait" | "erreur";
  * « Prévenez-moi quand un restaurant ouvre ici » : liste d'attente d'une zone sans restaurant. Le contact (e-mail ou téléphone)
  * n'est envoyé qu'avec la case de consentement cochée ; le serveur revérifie tout. Sert aussi à savoir où recruter des restaurants.
  */
-export function AlerteZone({ zone, zoneNom }: { zone: { niveau: "commune" | "quartier"; slug: string }; zoneNom: string }) {
+export function AlerteZone({ zone, zoneNom }: { zone: { niveau: "region" | "prefecture" | "commune" | "quartier"; slug: string }; zoneNom: string }) {
   const identifiant = useId();
   const [contact, setContact] = useState("");
   const [accord, setAccord] = useState(false);

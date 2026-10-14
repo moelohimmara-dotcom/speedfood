@@ -4,7 +4,7 @@ import { lireTextes } from "@/lib/cms/textes";
 import { lireAccueil } from "@/lib/site/accueil";
 import { libelleLivraison, statutLivraison } from "@/lib/site/livraison";
 import { cibleDeZone, communesDesQuartiers, lireLivraisonDesRestaurants } from "@/lib/site/livraison-lecture";
-import { lienRestaurantsZone, lienZone, lireZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
+import { lienRestaurantsZone, lienZone, lireHierarchieZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
 import { AlerteZone } from "./AlerteZone";
 import { FLECHE } from "./commun";
 
@@ -17,7 +17,8 @@ const MAX_ZONE = 6;
  * l'explique et propose des localités voisines où des restaurants existent. Ancre `#zone` : cible de la recherche de localité.
  */
 export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [{ restaurants, platsParRestaurant }, zones, t] = await Promise.all([lireAccueil(), lireZones(), lireTextes()]);
+  const [{ restaurants, platsParRestaurant }, hierarchie, t] = await Promise.all([lireAccueil(), lireHierarchieZones(), lireTextes()]);
+  const zones = hierarchie.flatMap((r) => r.prefectures.flatMap((p) => p.communes));
 
   const dansLaZone = restaurantsDeLaZone(restaurants, zone);
   const ouverts = dansLaZone.filter((r) => r.ouvert && r.accepteCommandes);
@@ -35,13 +36,25 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
   if (mises.length === 0 && !zone) return null;
 
   if (mises.length === 0 && zone) {
-    // Localités voisines : les autres communes (ou, pour un quartier, les autres quartiers de sa commune) qui ont des restaurants.
-    const voisines =
-      zone.niveau === "commune"
-        ? zones.filter((c) => c.slug !== zone.slug && c.restaurants > 0).map((c) => ({ niveau: "commune" as const, id: "", nom: c.nom, slug: c.slug }))
-        : (zones.find((c) => c.nom === zone.communeNom)?.quartiers ?? [])
-            .filter((q) => q.slug !== zone.slug && q.restaurants > 0)
-            .map((q) => ({ niveau: "quartier" as const, id: q.id, nom: q.nom, slug: q.slug }));
+    // Localités voisines où des restaurants existent : de la plus proche (même commune, préfecture, région) à l'ensemble du pays.
+    type Voisine = { niveau: ZoneChoisie["niveau"]; nom: string; slug: string };
+    const communesAvec: Voisine[] = zones.filter((c) => c.restaurants > 0 && c.id !== zone.id).map((c) => ({ niveau: "commune", nom: c.nom, slug: c.slug }));
+    const prefectures = hierarchie.flatMap((r) => r.prefectures);
+    let voisines: Voisine[] = [];
+    if (zone.niveau === "quartier") {
+      voisines = (zones.find((c) => c.quartiers.some((q) => q.id === zone.id))?.quartiers ?? [])
+        .filter((q) => q.id !== zone.id && q.restaurants > 0)
+        .map((q) => ({ niveau: "quartier", nom: q.nom, slug: q.slug }));
+    } else if (zone.niveau === "commune") {
+      const pref = zones.find((c) => c.id === zone.id)?.prefectureId;
+      voisines = zones.filter((c) => c.prefectureId === pref && c.id !== zone.id && c.restaurants > 0).map((c) => ({ niveau: "commune", nom: c.nom, slug: c.slug }));
+    } else if (zone.niveau === "prefecture") {
+      const region = prefectures.find((p) => p.id === zone.id)?.regionId;
+      voisines = prefectures.filter((p) => p.regionId === region && p.id !== zone.id && p.restaurants > 0).map((p) => ({ niveau: "prefecture", nom: p.nom, slug: p.slug }));
+    } else {
+      voisines = hierarchie.filter((r) => r.id !== zone.id && r.restaurants > 0).map((r) => ({ niveau: "region", nom: r.nom, slug: r.slug }));
+    }
+    if (voisines.length === 0) voisines = communesAvec.slice(0, 8);
     return (
       <section id="zone" className="pub-conteneur pub-rubrique" aria-labelledby="accueil-carte">
         <div className="pub-entete-rubrique">

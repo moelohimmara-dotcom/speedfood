@@ -55,7 +55,7 @@ export function CartePub({
         <div className="pub-carte-corps">
           <p className="pub-kicker">
             {restaurant.categorie || "Restaurant"}
-            {restaurant.quartier ? ` · ${restaurant.quartier}${restaurant.communeNom ? `, ${restaurant.communeNom}` : ""}` : ""}
+            {restaurant.quartier ? ` · ${restaurant.quartier}${restaurant.communeNom ? `, ${restaurant.communeNom}` : ""}` : restaurant.communeNom ? ` · ${restaurant.communeNom}` : ""}
           </p>
           <Titre className="pub-titre pub-carte-nom">{restaurant.nom}</Titre>
           {livraison ? <p className="pub-carte-livraison">{livraison}</p> : null}

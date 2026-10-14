@@ -126,6 +126,8 @@ export type Database = {
       }
       zone_alertes: {
         Row: {
+          prefecture_id: string | null
+          region_id: string | null
           commune_id: string | null
           consentement_le: string
           contact: string
@@ -136,6 +138,8 @@ export type Database = {
           notifie_le: string | null
         }
         Insert: {
+          prefecture_id?: string | null
+          region_id?: string | null
           commune_id?: string | null
           consentement_le?: string
           contact: string
@@ -146,6 +150,8 @@ export type Database = {
           notifie_le?: string | null
         }
         Update: {
+          prefecture_id?: string | null
+          region_id?: string | null
           commune_id?: string | null
           consentement_le?: string
           contact?: string
@@ -224,6 +230,83 @@ export type Database = {
           },
         ]
       }
+      regions: {
+        Row: {
+          actif: boolean
+          code_officiel: string | null
+          cree_le: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nom: string
+          slug: string
+        }
+        Insert: {
+          actif?: boolean
+          code_officiel?: string | null
+          cree_le?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nom: string
+          slug: string
+        }
+        Update: {
+          actif?: boolean
+          code_officiel?: string | null
+          cree_le?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nom?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      prefectures: {
+        Row: {
+          actif: boolean
+          code_officiel: string | null
+          cree_le: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nom: string
+          region_id: string
+          slug: string
+        }
+        Insert: {
+          actif?: boolean
+          code_officiel?: string | null
+          cree_le?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nom: string
+          region_id: string
+          slug: string
+        }
+        Update: {
+          actif?: boolean
+          code_officiel?: string | null
+          cree_le?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nom?: string
+          region_id?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prefectures_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communes: {
         Row: {
           coordonnees_source: string | null
@@ -236,7 +319,8 @@ export type Database = {
           id: string
           nom: string
           slug: string
-          ville_id: string
+          ville_id: string | null
+          prefecture_id: string | null
         }
         Insert: {
           coordonnees_source?: string | null
@@ -249,7 +333,8 @@ export type Database = {
           id?: string
           nom: string
           slug: string
-          ville_id: string
+          ville_id?: string | null
+          prefecture_id?: string | null
         }
         Update: {
           coordonnees_source?: string | null
@@ -262,9 +347,17 @@ export type Database = {
           id?: string
           nom?: string
           slug?: string
-          ville_id?: string
+          ville_id?: string | null
+          prefecture_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "communes_prefecture_id_fkey"
+            columns: ["prefecture_id"]
+            isOneToOne: false
+            referencedRelation: "prefectures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "communes_ville_id_fkey"
             columns: ["ville_id"]
@@ -807,6 +900,7 @@ export type Database = {
       }
       neighborhoods: {
         Row: {
+          generique: boolean
           coordonnees_source: string | null
           latitude: number | null
           longitude: number | null
@@ -818,6 +912,7 @@ export type Database = {
           ordre: number
         }
         Insert: {
+          generique?: boolean
           coordonnees_source?: string | null
           latitude?: number | null
           longitude?: number | null
@@ -829,6 +924,7 @@ export type Database = {
           ordre?: number
         }
         Update: {
+          generique?: boolean
           coordonnees_source?: string | null
           latitude?: number | null
           longitude?: number | null

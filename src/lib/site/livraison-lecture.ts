@@ -27,12 +27,17 @@ export function communesDesQuartiers(zones: ZoneCommune[]): Map<string, string> 
   return new Map(zones.flatMap((c) => c.quartiers.map((q) => [q.id, c.id] as const)));
 }
 
-/** La zone choisie par le visiteur, exprimée en identifiants (commune ou quartier + sa commune). `null` si introuvable. */
+/**
+ * La zone choisie par le visiteur, exprimée en identifiants (commune ou quartier + sa commune). `null` pour une préfecture ou une
+ * région : la livraison se déclare par commune ou quartier, on ne dit rien à l'échelle d'une préfecture entière.
+ */
 export function cibleDeZone(zone: ZoneChoisie, zones: ZoneCommune[]): CibleLivraison | null {
   if (zone.niveau === "commune") {
-    const c = zones.find((x) => x.slug === zone.slug);
-    return c ? { niveau: "commune", id: c.id, communeId: c.id } : null;
+    return zones.some((c) => c.id === zone.id) ? { niveau: "commune", id: zone.id, communeId: zone.id } : null;
   }
-  const c = zones.find((x) => x.nom === zone.communeNom);
-  return c ? { niveau: "quartier", id: zone.id, communeId: c.id } : null;
+  if (zone.niveau === "quartier") {
+    const c = zones.find((x) => x.quartiers.some((q) => q.id === zone.id));
+    return c ? { niveau: "quartier", id: zone.id, communeId: c.id } : null;
+  }
+  return null;
 }

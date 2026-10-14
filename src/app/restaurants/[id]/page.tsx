@@ -35,13 +35,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const { data } = await creerClientPublic()
     .from("restaurants")
-    .select("nom, photo_url, menu_categories(nom), neighborhoods(nom)")
+    .select("nom, photo_url, menu_categories(nom), neighborhoods(nom, generique, communes(nom))")
     .eq("id", id)
     .maybeSingle();
   if (!data) {
     return { title: "Restaurant" };
   }
-  const description = `${data.menu_categories?.nom ?? "Restaurant"} · ${data.neighborhoods?.nom ?? "Conakry"} — menu et commande sur Speedfood`;
+  const description = `${data.menu_categories?.nom ?? "Restaurant"} · ${(data.neighborhoods?.generique ? data.neighborhoods.communes?.nom : data.neighborhoods?.nom) ?? "Guinée"} — menu et commande sur Speedfood`;
   return {
     title: data.nom,
     description,
@@ -67,7 +67,7 @@ export default async function FicheRestaurantPage({
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, accepte_commandes, accepte_sur_place, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, horaires, consignes, ouvert, accepte_commandes, accepte_sur_place, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom, generique, communes(nom))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -90,6 +90,8 @@ export default async function FicheRestaurantPage({
     carteActive && restaurant.latitude !== null && restaurant.longitude !== null
       ? liensCarte(restaurant.latitude, restaurant.longitude)
       : null;
+  // Un quartier générique « Centre de … » désigne la commune elle-même : on affiche la commune.
+  const lieuRestaurant = (restaurant.neighborhoods?.generique ? restaurant.neighborhoods.communes?.nom : restaurant.neighborhoods?.nom) ?? "";
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(restaurant.id));
   // Zones où le restaurant déclare livrer (rien n'est affirmé s'il n'en a déclaré aucune).
   const { data: zonesLivraison } = await supabase
@@ -230,7 +232,7 @@ export default async function FicheRestaurantPage({
     ...(restaurant.photo_url ? { image: restaurant.photo_url } : {}),
     address: {
       "@type": "PostalAddress",
-      ...(restaurant.neighborhoods?.nom ? { addressLocality: restaurant.neighborhoods.nom } : {}),
+      ...(lieuRestaurant ? { addressLocality: lieuRestaurant } : {}),
       addressRegion: "Conakry",
       addressCountry: "GN",
     },
@@ -252,7 +254,7 @@ export default async function FicheRestaurantPage({
       <BanniereRestaurant
         nom={restaurant.nom}
         categorie={categorie}
-        quartier={restaurant.neighborhoods?.nom ?? ""}
+        quartier={lieuRestaurant}
         horaires={restaurant.horaires}
         consignes={restaurant.consignes}
         statut={libelleResto}

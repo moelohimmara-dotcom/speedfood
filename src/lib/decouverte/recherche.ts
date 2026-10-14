@@ -34,6 +34,18 @@ export interface RestaurantCatalogue extends RestaurantClassable {
   categorie: string;
   quartier: string;
   communeNom: string;
+  /** Identifiants de la zone du restaurant (vides si inconnus) : les zones se comparent par identifiant, jamais par nom. */
+  quartierId: string;
+  communeId: string;
+  communeSlug: string;
+  prefectureId: string;
+  prefectureNom: string;
+  prefectureSlug: string;
+  regionId: string;
+  regionNom: string;
+  regionSlug: string;
+  /** Quartier « Centre de … » d'une commune hors Conakry : il désigne la commune elle-même, on ne l'affiche pas comme quartier. */
+  quartierGenerique: boolean;
 }
 
 export interface RechercheCatalogue {
@@ -82,7 +94,7 @@ export async function lireCatalogue(
   let requete = supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(nom, communes(nom))"
+      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(id, nom, generique, communes(id, nom, slug, prefectures(id, nom, slug, regions(id, nom, slug))))"
     )
     .order("nom")
     .limit(LIMITE_RESTAURANTS_LUS);
@@ -122,8 +134,18 @@ export async function lireCatalogue(
     logoIllustration: validerIllustration(r.logo_illustration),
     couvertureIllustration: validerIllustration(r.couverture_illustration),
     categorie: r.menu_categories?.nom ?? "",
-    quartier: r.neighborhoods?.nom ?? "",
+    quartier: r.neighborhoods?.generique ? "" : (r.neighborhoods?.nom ?? ""),
     communeNom: communeDuQuartier(r.neighborhoods),
+    quartierId: r.neighborhoods?.id ?? "",
+    communeId: r.neighborhoods?.communes?.id ?? "",
+    communeSlug: r.neighborhoods?.communes?.slug ?? "",
+    prefectureId: r.neighborhoods?.communes?.prefectures?.id ?? "",
+    prefectureNom: r.neighborhoods?.communes?.prefectures?.nom ?? "",
+    prefectureSlug: r.neighborhoods?.communes?.prefectures?.slug ?? "",
+    regionId: r.neighborhoods?.communes?.prefectures?.regions?.id ?? "",
+    regionNom: r.neighborhoods?.communes?.prefectures?.regions?.nom ?? "",
+    regionSlug: r.neighborhoods?.communes?.prefectures?.regions?.slug ?? "",
+    quartierGenerique: r.neighborhoods?.generique ?? false,
   }));
 
   const platsParRestaurant = new Map<string, PlatPublic[]>();

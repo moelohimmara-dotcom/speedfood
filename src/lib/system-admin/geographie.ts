@@ -32,25 +32,51 @@ export interface QuartierSysteme {
   communeNom: string | null;
 }
 
+export interface RegionSysteme {
+  nom: string;
+  slug: string;
+}
+
 export interface GeographieSysteme {
+  /** Les huit régions, pour choisir celle que l'on gère (la liste d'un pays entier serait ingérable d'un seul bloc). */
+  regions: RegionSysteme[];
+  regionChoisie: RegionSysteme | null;
   communes: CommuneSysteme[];
   quartiers: QuartierSysteme[];
 }
 
 const MESSAGE_ECHEC = "Impossible d'enregistrer. Réessayez dans un instant.";
 
-export async function listerGeographieSysteme(): Promise<GeographieSysteme> {
+/**
+ * Géographie d'UNE région à la fois (Conakry par défaut) : ses communes et leurs quartiers réels. Les quartiers génériques
+ * « Centre de … » des communes hors Conakry ne sont pas listés : ils représentent la commune elle-même.
+ */
+export async function listerGeographieSysteme(regionSlug = "conakry"): Promise<GeographieSysteme> {
   const { supabase } = await verifierPermission("taxonomie.editer");
 
-  const [{ data: communes }, { data: quartiers }] = await Promise.all([
-    supabase.from("communes").select("id, nom, actif, code_officiel").order("nom"),
-    supabase
-      .from("neighborhoods")
-      .select("id, nom, actif, commune_id, communes(nom)")
-      .order("nom"),
-  ]);
+  const { data: regionsBrutes } = await supabase.from("regions").select("nom, slug").order("nom");
+  const regions = (regionsBrutes ?? []).map((r) => ({ nom: r.nom, slug: r.slug }));
+  const regionChoisie = regions.find((r) => r.slug === regionSlug) ?? regions.find((r) => r.slug === "conakry") ?? null;
+  if (!regionChoisie) return { regions, regionChoisie: null, communes: [], quartiers: [] };
+
+  const { data: communes } = await supabase
+    .from("communes")
+    .select("id, nom, actif, code_officiel, prefectures!inner(slug, regions!inner(slug))")
+    .eq("prefectures.regions.slug", regionChoisie.slug)
+    .order("nom");
+  const idsCommunes = (communes ?? []).map((c) => c.id);
+  const { data: quartiers } = idsCommunes.length
+    ? await supabase
+        .from("neighborhoods")
+        .select("id, nom, actif, commune_id, communes(nom)")
+        .in("commune_id", idsCommunes)
+        .eq("generique", false)
+        .order("nom")
+    : { data: [] };
 
   return {
+    regions,
+    regionChoisie,
     communes: (communes ?? []).map((c) => ({
       id: c.id,
       nom: c.nom,

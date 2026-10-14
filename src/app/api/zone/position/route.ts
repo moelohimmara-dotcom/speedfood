@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { limiterZonePosition } from "@/lib/securite/limitation-debit";
-import { arrondirCoordonnee, correspondreZone, positionDansLaGuinee, zoneLaPlusProche } from "@/lib/site/zone-position";
-import { lireZones } from "@/lib/site/zones";
+import { arrondirCoordonnee, positionDansLaGuinee, zoneDeLaPosition } from "@/lib/site/zone-position";
+import { lireHierarchieZones } from "@/lib/site/zones";
 
 /**
  * « Utiliser ma position » : rattache une position à une zone Speedfood.
@@ -53,7 +53,9 @@ export async function POST(request: Request) {
   adresseUrl.searchParams.set("addressdetails", "1");
   adresseUrl.searchParams.set("accept-language", "fr");
 
-  const zones = await lireZones();
+  const hierarchie = await lireHierarchieZones();
+  const communes = hierarchie.flatMap((r) => r.prefectures.flatMap((p) => p.communes));
+  const prefectures = hierarchie.flatMap((r) => r.prefectures);
   // Le rapprochement par nom (OpenStreetMap) passe en premier ; s'il échoue ou ne trouve rien, la zone la plus proche d'après les
   // points centraux prend le relais. Si le service ne répond pas, la proximité suffit : la personne n'est pas bloquée.
   let adresse: Record<string, unknown> | null = null;
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
     adresse = null;
   }
 
-  const zone = (adresse ? correspondreZone(adresse, zones) : null) ?? zoneLaPlusProche(latitude, longitude, zones);
+  const zone = zoneDeLaPosition(latitude, longitude, adresse, communes, prefectures, hierarchie);
   if (!zone && adresse === null) {
     return NextResponse.json({ erreur: "Le service de localisation ne répond pas pour le moment." }, { status: 502, headers: SANS_CACHE });
   }
