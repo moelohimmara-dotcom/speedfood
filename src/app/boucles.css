@@ -183,24 +183,6 @@ html[data-eco] .boucle * {
   animation: fleche-invite 2.8s ease-in-out infinite;
 }
 
-/* Le macaron « heure de confirmation » flotte doucement. */
-@keyframes macaron-flotte {
-  0%, 100% { transform: rotate(-2deg) translateY(0); }
-  50% { transform: rotate(1.5deg) translateY(-5px); }
-}
-.pub-accueil-sticker {
-  animation: macaron-flotte 5.5s ease-in-out infinite;
-}
-@media (min-width: 960px) {
-  .pub-accueil-sticker {
-    animation-name: macaron-flotte-large;
-  }
-}
-@keyframes macaron-flotte-large {
-  0%, 100% { transform: rotate(4deg) translateY(0); }
-  50% { transform: rotate(1deg) translateY(-6px); }
-}
-
 /* ===== Restaurant ouvert : un point vert qui respire ===== */
 @keyframes point-ouvert {
   0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.5); }
@@ -248,7 +230,6 @@ html[data-eco] .boucle * {
   .pub-blob,
   .pub-btn.boucle-cta,
   .pub-btn.boucle-cta .pub-btn-point,
-  .pub-accueil-sticker,
   .badge-succes.boucle::before,
   .vignette-promo,
   .suivi-etape-courante {
@@ -259,11 +240,11 @@ html[data-eco] .boucle * {
   }
 }
 /* Mêmes arrêts pour l'interrupteur et l'économie de données, sur les éléments qui ne portent pas `.boucle`. */
-html[data-calme] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-etape-courante, .mot-entre, .mot-sort, .mot-roulant-actif::after),
-html[data-eco] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-etape-courante, .mot-entre, .mot-sort, .mot-roulant-actif::after) {
+html[data-calme] :is(.pub-blob, .vignette-promo, .suivi-etape-courante, .mot-entre, .mot-sort, .mot-roulant-actif::after),
+html[data-eco] :is(.pub-blob, .vignette-promo, .suivi-etape-courante, .mot-entre, .mot-sort, .mot-roulant-actif::after) {
   animation: none !important;
 }
-html[data-cache] :is(.pub-blob, .pub-accueil-sticker, .vignette-promo, .suivi-etape-courante) {
+html[data-cache] :is(.pub-blob, .vignette-promo, .suivi-etape-courante) {
   animation-play-state: paused;
 }
 .pub-nowrap { white-space: nowrap; }

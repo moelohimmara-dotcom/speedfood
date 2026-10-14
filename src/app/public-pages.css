@@ -52,21 +52,6 @@
   gap: var(--space-3);
   align-items: center;
 }
-.pub-accueil-envie {
-  position: relative;
-  min-width: 0;
-  padding-block: var(--space-4);
-}
-.pub-accueil-sticker {
-  position: absolute;
-  top: -6px;
-  right: 4px;
-  max-width: 220px;
-  padding: 6px 12px;
-  line-height: 1.25;
-  transform: rotate(4deg);
-  background: var(--mangue);
-}
 .pub-envie {
   display: grid;
   gap: var(--space-4);

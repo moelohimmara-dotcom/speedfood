@@ -399,17 +399,6 @@
 
 /* ===== Points mineurs de la revue indépendante ===== */
 
-/* Accueil mobile : le macaron ne chevauche plus le libellé « Votre envie du moment ? » ; il se pose au-dessus, légèrement penché. */
-@media (max-width: 959px) {
-  .theme-public .pub-accueil-sticker {
-    position: static;
-    display: inline-block;
-    max-width: none;
-    margin: var(--space-4) 0 0 4px;
-    transform: rotate(-2deg);
-  }
-}
-
 /* Barre de panier flottante : même gouttière (16 px) que le reste de la page, et du vide en bas de page pour que rien ne reste caché dessous. */
 @media (max-width: 899px) {
   .theme-public .barre-panier {
