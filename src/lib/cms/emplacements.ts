@@ -28,25 +28,34 @@ export interface Emplacement {
 export const LONGUEUR_MAX_DEFAUT = 200;
 
 const HAUT = "Accueil : haut de page";
-const VIDE = "Accueil : si aucun restaurant n'est ouvert";
 const CARTE = "Accueil : restaurants à la une";
-const QUARTIERS = "Accueil : quartiers";
+const ENVIES = "Accueil : plats de la zone";
+const QUARTIERS = "Accueil : explorer les localités";
+const FAQ = "Accueil : questions fréquentes";
 const ETAPES = "Accueil : les quatre étapes";
 const SUIVI = "Accueil : suivi de commande";
 const PRO = "Accueil : bande restaurateurs";
 
 export const EMPLACEMENTS = [
   // --- Haut de page ---
-  { cle: "accueil.hero.titre_debut", groupe: HAUT, libelle: "Titre, début (avant le mot qui change)", defaut: "Une envie", max: 80 },
-  { cle: "accueil.hero.titre_fin", groupe: HAUT, libelle: "Titre, fin (après le mot qui change)", defaut: "Voyez qui en sert, ouvert maintenant.", max: 120 },
+  { cle: "accueil.hero.titre", groupe: HAUT, libelle: "Titre principal", defaut: "Les restaurants de votre localité, sur Speedfood.", max: 140 },
+  { cle: "accueil.hero.recherche_libelle", groupe: HAUT, libelle: "Recherche de localité : intitulé du champ", defaut: "Votre localité", max: 60 },
   {
-    cle: "accueil.hero.titre_lecteur",
+    cle: "accueil.hero.recherche_placeholder",
     groupe: HAUT,
-    libelle: "Titre complet lu par les lecteurs d'écran (phrase stable, sans le mot qui change)",
-    defaut: "Une envie d'un bon plat ? Voyez qui en sert, ouvert maintenant.",
-    max: 200,
+    libelle: "Recherche de localité : exemple dans le champ",
+    defaut: "Commune ou quartier : Kaloum, Ratoma, Hafia…",
+    max: 100,
   },
-  { cle: "accueil.hero.bouton_commander", groupe: HAUT, libelle: "Bouton principal", defaut: "Je commande", max: 40 },
+  { cle: "accueil.hero.recherche_bouton", groupe: HAUT, libelle: "Recherche de localité : bouton", defaut: "Voir les restaurants", max: 40 },
+  {
+    cle: "accueil.hero.pilote",
+    groupe: HAUT,
+    libelle: "Mention de la phase pilote (couverture réelle)",
+    defaut: "Phase pilote : les restaurants sont aujourd'hui référencés à Conakry. D'autres localités s'ajoutent avec les restaurants qui s'inscrivent.",
+    max: 240,
+    multiligne: true,
+  },
   { cle: "accueil.hero.bouton_fonctionnement", groupe: HAUT, libelle: "Bouton secondaire", defaut: "Comment ça marche", max: 40 },
   {
     cle: "accueil.hero.preuve_question",
@@ -57,58 +66,68 @@ export const EMPLACEMENTS = [
   },
   { cle: "accueil.hero.preuve_reponse", groupe: HAUT, libelle: "Phrase sous les boutons, partie surlignée", defaut: "L'heure le dit.", max: 80 },
   {
-    cle: "accueil.hero.encart_aria",
-    groupe: HAUT,
-    libelle: "Encart « idée de plat », intitulé pour les lecteurs d'écran",
-    defaut: "Une idée de plat",
-    max: 80,
-  },
-  {
     cle: "accueil.hero.macaron",
     groupe: HAUT,
     libelle: "Macaron (autocollant) sous l'idée de plat",
     defaut: "Chaque plat porte son heure de confirmation",
     max: 120,
   },
-  // --- Aucun restaurant ouvert ---
-  { cle: "accueil.vide.kicker", groupe: VIDE, libelle: "Petit titre", defaut: "En ce moment", max: 60 },
-  { cle: "accueil.vide.titre", groupe: VIDE, libelle: "Message principal", defaut: "Aucun restaurant n'est ouvert pour l'instant.", max: 160 },
-  {
-    cle: "accueil.vide.texte",
-    groupe: VIDE,
-    libelle: "Message secondaire",
-    defaut: "Revenez un peu plus tard, ou découvrez les cartes en attendant.",
-    max: 240,
-    multiligne: true,
-  },
+  // --- Plats de la zone ---
+  { cle: "accueil.envies.kicker", groupe: ENVIES, libelle: "Petit titre", defaut: "Plats disponibles", max: 60 },
+  { cle: "accueil.envies.titre", groupe: ENVIES, libelle: "Titre", defaut: "Qu'avez-vous envie de manger ?", max: 100 },
   // --- Restaurants à la une ---
   { cle: "accueil.carte.kicker_ouverts", groupe: CARTE, libelle: "Petit titre quand au moins trois restaurants sont ouverts", defaut: "Ouverts en ce moment", max: 60 },
   { cle: "accueil.carte.kicker_catalogue", groupe: CARTE, libelle: "Petit titre sinon", defaut: "Au catalogue", max: 60 },
-  { cle: "accueil.carte.titre_debut", groupe: CARTE, libelle: "Titre, début", defaut: "Des tables de quartier,", max: 100 },
-  { cle: "accueil.carte.titre_surligne", groupe: CARTE, libelle: "Titre, partie surlignée", defaut: "pas des enseignes", max: 80 },
+  { cle: "accueil.carte.titre_debut", groupe: CARTE, libelle: "Titre sans zone choisie, début", defaut: "Restaurants disponibles", max: 100 },
+  { cle: "accueil.carte.titre_surligne", groupe: CARTE, libelle: "Titre sans zone choisie, partie surlignée", defaut: "en ce moment", max: 80 },
+  { cle: "accueil.carte.titre_zone", groupe: CARTE, libelle: "Titre avec zone choisie (le nom de la zone suit)", defaut: "Restaurants disponibles à", max: 100 },
   { cle: "accueil.carte.bouton_tous", groupe: CARTE, libelle: "Bouton vers la liste des restaurants", defaut: "Tous les restaurants", max: 40 },
+  { cle: "accueil.carte.bouton_zone", groupe: CARTE, libelle: "Bouton vers les restaurants de la zone", defaut: "Voir tous les restaurants de cette zone", max: 60 },
+  {
+    cle: "accueil.carte.vide_titre",
+    groupe: CARTE,
+    libelle: "Zone sans restaurant : message principal",
+    defaut: "Aucun restaurant n'est encore référencé ici.",
+    max: 160,
+  },
+  {
+    cle: "accueil.carte.vide_texte",
+    groupe: CARTE,
+    libelle: "Zone sans restaurant : message secondaire",
+    defaut: "Choisissez une localité voisine ci-dessous, ou parcourez tous les restaurants.",
+    max: 240,
+    multiligne: true,
+  },
   // --- Quartiers ---
-  { cle: "accueil.quartiers.kicker", groupe: QUARTIERS, libelle: "Petit titre", defaut: "À deux pas de chez vous", max: 60 },
-  { cle: "accueil.quartiers.titre", groupe: QUARTIERS, libelle: "Titre", defaut: "Votre quartier d'abord", max: 100 },
+  { cle: "accueil.quartiers.kicker", groupe: QUARTIERS, libelle: "Petit titre", defaut: "Explorer les localités", max: 60 },
+  { cle: "accueil.quartiers.titre", groupe: QUARTIERS, libelle: "Titre", defaut: "Choisissez une localité", max: 100 },
+  {
+    cle: "accueil.quartiers.texte",
+    groupe: QUARTIERS,
+    libelle: "Texte d'explication",
+    defaut: "Cherchez ici, ou ailleurs que là où vous êtes. Communes et quartiers où des restaurants sont référencés ; les autres arrivent avec les inscriptions.",
+    max: 300,
+    multiligne: true,
+  },
   // --- Quatre étapes ---
-  { cle: "accueil.etapes.kicker", groupe: ETAPES, libelle: "Petit titre", defaut: "Quatre étapes", max: 60 },
-  { cle: "accueil.etapes.titre_debut", groupe: ETAPES, libelle: "Titre, début", defaut: "Du choix à", max: 80 },
-  { cle: "accueil.etapes.titre_surligne", groupe: ETAPES, libelle: "Titre, partie surlignée", defaut: "l'assiette", max: 60 },
-  { cle: "accueil.etapes.choisir_titre", groupe: ETAPES, libelle: "Étape 1, titre", defaut: "Choisir", max: 40 },
+  { cle: "accueil.etapes.kicker", groupe: ETAPES, libelle: "Petit titre", defaut: "Comment ça marche", max: 60 },
+  { cle: "accueil.etapes.titre_debut", groupe: ETAPES, libelle: "Titre, début", defaut: "De la recherche à", max: 80 },
+  { cle: "accueil.etapes.titre_surligne", groupe: ETAPES, libelle: "Titre, partie surlignée", defaut: "la commande", max: 60 },
+  { cle: "accueil.etapes.choisir_titre", groupe: ETAPES, libelle: "Étape 1, titre", defaut: "Choisir une zone", max: 40 },
   {
     cle: "accueil.etapes.choisir_texte",
     groupe: ETAPES,
     libelle: "Étape 1, texte",
-    defaut: "Voyez ce qui est vraiment disponible : chaque plat affiche l'heure exacte à laquelle son restaurant l'a confirmé.",
+    defaut: "Indiquez votre localité : vous ne voyez que les restaurants et les plats qui s'y trouvent, avec l'heure de confirmation de chaque plat.",
     max: 240,
     multiligne: true,
   },
-  { cle: "accueil.etapes.commander_titre", groupe: ETAPES, libelle: "Étape 2, titre", defaut: "Commander", max: 40 },
+  { cle: "accueil.etapes.commander_titre", groupe: ETAPES, libelle: "Étape 2, titre", defaut: "Consulter et commander", max: 40 },
   {
     cle: "accueil.etapes.commander_texte",
     groupe: ETAPES,
     libelle: "Étape 2, texte",
-    defaut: "Quelques gestes suffisent : panier, connexion rapide, envoi. Le restaurant sait qui commande, votre demande est prise au sérieux.",
+    defaut: "Parcourez les menus, remplissez le panier, connectez-vous en quelques secondes, envoyez. Le restaurant sait qui commande.",
     max: 240,
     multiligne: true,
   },
@@ -117,46 +136,50 @@ export const EMPLACEMENTS = [
     cle: "accueil.etapes.suivre_texte",
     groupe: ETAPES,
     libelle: "Étape 3, texte",
-    defaut: "Sachez où en est votre commande, en attente, acceptée, prête ou terminée, sans appeler le restaurant.",
+    defaut: "Votre lien privé affiche les mises à jour du restaurant : en attente, acceptée, prête ou terminée.",
     max: 240,
     multiligne: true,
   },
-  { cle: "accueil.etapes.recevoir_titre", groupe: ETAPES, libelle: "Étape 4, titre", defaut: "Recevoir", max: 40 },
+  { cle: "accueil.etapes.recevoir_titre", groupe: ETAPES, libelle: "Étape 4, titre", defaut: "Retirer ou se faire livrer", max: 40 },
   {
     cle: "accueil.etapes.recevoir_texte",
     groupe: ETAPES,
     libelle: "Étape 4, texte",
-    defaut: "Retrait ou livraison, selon le restaurant. Vous réglez directement avec lui, en espèces ou par son code marchand.",
+    defaut: "Retrait ou livraison : le restaurant précise ses conditions. Vous le réglez directement, en espèces ou par son code marchand.",
     max: 240,
     multiligne: true,
   },
   { cle: "accueil.etapes.bouton_detail", groupe: ETAPES, libelle: "Bouton vers le détail", defaut: "Voir le détail", max: 40 },
   // --- Suivi de commande ---
-  { cle: "accueil.suivi.kicker", groupe: SUIVI, libelle: "Petit titre", defaut: "Votre commande, en direct", max: 60 },
-  { cle: "accueil.suivi.titre_debut", groupe: SUIVI, libelle: "Titre, début", defaut: "Vous savez toujours", max: 80 },
-  { cle: "accueil.suivi.titre_surligne", groupe: SUIVI, libelle: "Titre, partie surlignée", defaut: "où elle en est", max: 60 },
+  { cle: "accueil.suivi.kicker", groupe: SUIVI, libelle: "Petit titre", defaut: "Suivi et paiement", max: 60 },
+  { cle: "accueil.suivi.titre_debut", groupe: SUIVI, libelle: "Titre, début", defaut: "Suivez les mises à jour", max: 80 },
+  { cle: "accueil.suivi.titre_surligne", groupe: SUIVI, libelle: "Titre, partie surlignée", defaut: "du restaurant", max: 60 },
   {
     cle: "accueil.suivi.texte",
     groupe: SUIVI,
     libelle: "Texte d'explication",
     defaut:
-      "Plus besoin d'appeler pour savoir si c'est accepté ou prêt : votre lien privé affiche l'état de la commande en direct, de « en attente » à « terminée ». Voici un exemple avec un restaurant réellement ouvert.",
+      "Votre lien privé affiche l'état de la commande tel que le restaurant le met à jour, de « en attente » à « terminée ». Vous réglez directement avec le restaurant. Voici un exemple avec un restaurant réellement ouvert.",
     max: 400,
     multiligne: true,
   },
   // --- Bande restaurateurs ---
   { cle: "accueil.pro.kicker", groupe: PRO, libelle: "Petit titre", defaut: "Vous tenez un restaurant ?", max: 80 },
-  { cle: "accueil.pro.titre_debut", groupe: PRO, libelle: "Titre, début", defaut: "Votre carte en ligne,", max: 100 },
-  { cle: "accueil.pro.titre_surligne", groupe: PRO, libelle: "Titre, partie surlignée", defaut: "visible de tout le quartier", max: 80 },
+  { cle: "accueil.pro.titre_debut", groupe: PRO, libelle: "Titre, début", defaut: "Présentez votre restaurant", max: 100 },
+  { cle: "accueil.pro.titre_surligne", groupe: PRO, libelle: "Titre, partie surlignée", defaut: "sur Speedfood", max: 80 },
   {
     cle: "accueil.pro.texte",
     groupe: PRO,
     libelle: "Texte d'explication",
-    defaut: "Recevez des commandes claires, de clients identifiés, sans quitter votre cuisine. Créez votre fiche, nous la vérifions, et vos voisins vous trouvent. Vous gardez la main sur votre menu et vos horaires.",
+    defaut: "Créez votre fiche, nous la vérifions, indiquez votre localité, publiez votre menu et recevez les commandes de clients identifiés. Vous gardez la main sur votre menu et vos horaires.",
     max: 300,
     multiligne: true,
   },
-  { cle: "accueil.pro.bouton", groupe: PRO, libelle: "Bouton", defaut: "Ouvrir ma fiche restaurant", max: 40 },
+  { cle: "accueil.pro.bouton", groupe: PRO, libelle: "Bouton", defaut: "Devenir partenaire", max: 40 },
+  // --- Questions fréquentes ---
+  { cle: "accueil.faq.kicker", groupe: FAQ, libelle: "Petit titre", defaut: "Avant de commander", max: 60 },
+  { cle: "accueil.faq.titre", groupe: FAQ, libelle: "Titre", defaut: "Les questions qui comptent", max: 100 },
+  { cle: "accueil.faq.bouton", groupe: FAQ, libelle: "Bouton vers l'aide", defaut: "Toutes les réponses", max: 40 },
 ] as const satisfies readonly Emplacement[];
 
 export type CleEmplacement = (typeof EMPLACEMENTS)[number]["cle"];

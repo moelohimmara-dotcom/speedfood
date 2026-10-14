@@ -178,7 +178,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               type="text"
               maxLength={80}
               defaultValue={parametres.promesseSignature}
-              placeholder="Mangez près de chez vous, à Conakry"
+              placeholder="Mangez près de chez vous, en Guinée"
             />
           </div>
           <div className="field">
@@ -189,7 +189,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={220}
               defaultValue={parametres.promesseSousTitre}
-              placeholder="Fini d'appeler cinq restaurants pour savoir s'il reste du plat. Voyez ce qui est disponible, commandez en quelques gestes, suivez votre commande en direct et réglez directement au restaurant."
+              placeholder="Trouvez les restaurants et les plats disponibles dans votre zone, sans appeler cinq restaurants. Choisissez votre localité pour voir ce qui s'y trouve."
             />
           </div>
           <div className="field">
@@ -200,7 +200,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={200}
               defaultValue={parametres.promessePartage}
-              placeholder="Trouvez à manger près de chez vous, à Conakry : chaque plat affiche l'heure de confirmation du restaurant. Commande suivie en direct, règlement au restaurant."
+              placeholder="Trouvez les restaurants et les plats disponibles dans votre localité : chaque plat affiche l'heure de confirmation du restaurant. Phase pilote à Conakry, règlement au restaurant."
             />
           </div>
         </Panneau>

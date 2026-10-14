@@ -260,12 +260,13 @@ export function extraitBloc(type: string, props: Record<string, unknown>): strin
     case "ListeRestaurants":
       return couper(texte(props.titre)) || `${typeof props.nombre === "number" ? props.nombre : 3} restaurants`;
     case "AccueilAccroche":
-    case "AccueilBandeau":
+    case "AccueilEnvies":
     case "AccueilRestaurants":
     case "AccueilQuartiers":
     case "AccueilEtapes":
     case "AccueilSuivi":
     case "AccueilPro":
+    case "AccueilFaq":
       return "textes du site";
     case "Separateur":
     case "Espace": {

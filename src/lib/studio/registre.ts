@@ -250,12 +250,13 @@ const SCHEMAS_PROPS = {
   CarteRestaurant: propsCarteRestaurant,
   ListeRestaurants: propsListeRestaurants,
   AccueilAccroche: propsAccueil,
-  AccueilBandeau: propsAccueil,
+  AccueilEnvies: propsAccueil,
   AccueilRestaurants: propsAccueil,
   AccueilQuartiers: propsAccueil,
   AccueilEtapes: propsAccueil,
   AccueilSuivi: propsAccueil,
   AccueilPro: propsAccueil,
+  AccueilFaq: propsAccueil,
 } as const;
 
 export type TypeBloc = keyof typeof SCHEMAS_PROPS;
@@ -272,7 +273,7 @@ export const TYPES_DYNAMIQUES = ["CarteRestaurant", "ListeRestaurants"] as const
 
 /** Adresse de la page d'accueil : seule page où les sections d'accueil sont autorisées (ordre = ordre de la page d'origine). */
 export const SLUG_ACCUEIL = "accueil";
-export const TYPES_ACCUEIL = ["AccueilAccroche", "AccueilBandeau", "AccueilRestaurants", "AccueilQuartiers", "AccueilEtapes", "AccueilSuivi", "AccueilPro"] as const;
+export const TYPES_ACCUEIL = ["AccueilAccroche", "AccueilEnvies", "AccueilRestaurants", "AccueilQuartiers", "AccueilEtapes", "AccueilSuivi", "AccueilPro", "AccueilFaq"] as const;
 export type TypeAccueil = (typeof TYPES_ACCUEIL)[number];
 
 /** Vrai si `type` est une section d'accueil. */
@@ -634,8 +635,8 @@ export const REGISTRE: { [T in TypeBloc]: EntreeRegistre<T> }[TypeBloc][] = [
     defauts: {},
   },
   {
-    type: "AccueilBandeau",
-    libelle: "Section d'accueil : Bandeau défilant",
+    type: "AccueilEnvies",
+    libelle: "Section d'accueil : Plats de la zone",
     categorie: "accueil",
     schemaProps: propsAccueil,
     champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
@@ -651,7 +652,7 @@ export const REGISTRE: { [T in TypeBloc]: EntreeRegistre<T> }[TypeBloc][] = [
   },
   {
     type: "AccueilQuartiers",
-    libelle: "Section d'accueil : Quartiers",
+    libelle: "Section d'accueil : Explorer les localités",
     categorie: "accueil",
     schemaProps: propsAccueil,
     champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
@@ -676,6 +677,14 @@ export const REGISTRE: { [T in TypeBloc]: EntreeRegistre<T> }[TypeBloc][] = [
   {
     type: "AccueilPro",
     libelle: "Section d'accueil : Espace restaurateurs",
+    categorie: "accueil",
+    schemaProps: propsAccueil,
+    champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
+    defauts: {},
+  },
+  {
+    type: "AccueilFaq",
+    libelle: "Section d'accueil : Questions fréquentes",
     categorie: "accueil",
     schemaProps: propsAccueil,
     champs: { reglages: CHAMP_REGLAGES_ACCUEIL },
@@ -709,12 +718,13 @@ const schemaBloc = discriminatedUnion("type", [
   schemaBlocDe("CarteRestaurant", propsCarteRestaurant),
   schemaBlocDe("ListeRestaurants", propsListeRestaurants),
   schemaBlocDe("AccueilAccroche", propsAccueil),
-  schemaBlocDe("AccueilBandeau", propsAccueil),
+  schemaBlocDe("AccueilEnvies", propsAccueil),
   schemaBlocDe("AccueilRestaurants", propsAccueil),
   schemaBlocDe("AccueilQuartiers", propsAccueil),
   schemaBlocDe("AccueilEtapes", propsAccueil),
   schemaBlocDe("AccueilSuivi", propsAccueil),
   schemaBlocDe("AccueilPro", propsAccueil),
+  schemaBlocDe("AccueilFaq", propsAccueil),
 ]);
 
 const schemaRacine = strictObject({

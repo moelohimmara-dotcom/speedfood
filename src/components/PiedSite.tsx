@@ -30,7 +30,7 @@ export async function PiedSite() {
           <p className="site-pied-titre">Clients</p>
           <Link href="/restaurants">Restaurants</Link>
           <Link href="/comment-ca-marche">Comment ça marche</Link>
-          <Link href="/quartiers">Quartiers</Link>
+          <Link href="/quartiers">Localités</Link>
           <Link href="/panier">Mon panier</Link>
           <Link href="/aide">Aide et questions</Link>
         </nav>

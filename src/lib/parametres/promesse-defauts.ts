@@ -13,10 +13,10 @@ export interface Promesse {
 }
 
 export const PROMESSE_PAR_DEFAUT: Promesse = {
-  signature: "Mangez près de chez vous, à Conakry",
-  sousTitre: "Fini d'appeler cinq restaurants pour savoir s'il reste du plat. Voyez ce qui est disponible, commandez en quelques gestes, suivez votre commande en direct et réglez directement au restaurant.",
+  signature: "Mangez près de chez vous, en Guinée",
+  sousTitre: "Trouvez les restaurants et les plats disponibles dans votre zone, sans appeler cinq restaurants. Choisissez votre localité pour voir ce qui s'y trouve.",
   partage:
-    "Trouvez à manger près de chez vous, à Conakry : chaque plat affiche l'heure de confirmation du restaurant. Commande suivie en direct, règlement au restaurant.",
+    "Trouvez les restaurants et les plats disponibles dans votre localité : chaque plat affiche l'heure de confirmation du restaurant. Phase pilote à Conakry, règlement au restaurant.",
 };
 
 /** Remplace chaque texte absent ou vide par sa valeur par défaut. */

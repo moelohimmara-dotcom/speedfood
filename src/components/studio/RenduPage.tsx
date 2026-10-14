@@ -1,6 +1,7 @@
 import { AccueilAccroche } from "@/components/accueil/AccueilAccroche";
-import { AccueilBandeau } from "@/components/accueil/AccueilBandeau";
+import { AccueilEnvies } from "@/components/accueil/AccueilEnvies";
 import { AccueilEtapes } from "@/components/accueil/AccueilEtapes";
+import { AccueilFaq } from "@/components/accueil/AccueilFaq";
 import { AccueilPro } from "@/components/accueil/AccueilPro";
 import { AccueilQuartiers } from "@/components/accueil/AccueilQuartiers";
 import { AccueilRestaurants } from "@/components/accueil/AccueilRestaurants";
@@ -22,12 +23,13 @@ import { RenduBlocs } from "./RenduBlocs";
  */
 const SECTIONS_ACCUEIL: Record<TypeAccueil, () => React.ReactNode> = {
   AccueilAccroche: () => <AccueilAccroche />,
-  AccueilBandeau: () => <AccueilBandeau />,
+  AccueilEnvies: () => <AccueilEnvies />,
   AccueilRestaurants: () => <AccueilRestaurants />,
   AccueilQuartiers: () => <AccueilQuartiers />,
   AccueilEtapes: () => <AccueilEtapes />,
   AccueilSuivi: () => <AccueilSuivi />,
   AccueilPro: () => <AccueilPro />,
+  AccueilFaq: () => <AccueilFaq />,
 };
 
 /**

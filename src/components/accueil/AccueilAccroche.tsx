@@ -1,63 +1,55 @@
 import Link from "next/link";
-import { Illustration } from "@/components/illustrations/Illustration";
-import { SelecteurEnvie, type EnvieAffichee } from "@/components/site/SelecteurEnvie";
-import { MotRoulant } from "@/components/site/MotRoulant";
 import { lireTextes } from "@/lib/cms/textes";
-import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
-import { FAMILLES_ENVIE, lireAccueil } from "@/lib/site/accueil";
-import { FLECHE, MOTS_ENVIE, pastille } from "./commun";
+import { lireZones, type ZoneChoisie } from "@/lib/site/zones";
 import { promesseDeLaRequete } from "./lectures";
+import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
 
 /**
- * Accroche de l'accueil : titre (le h1 de la page), boutons, phrase de preuve et encart « Votre envie du moment ? » (une seule
- * section en grille à deux colonnes). Mots : emplacements `accueil.hero.*` et `accueil.vide.*` ; signature et sous-titre :
- * `lirePromesse()` ; plats suggérés : `lireAccueil()`.
+ * Accroche de l'accueil : titre (le h1 de la page), recherche de localité, mention de la couverture réelle (phase pilote),
+ * puis la zone choisie. La zone se choisit à la main (communes et quartiers enregistrés) : aucune géolocalisation n'est
+ * demandée ni nécessaire. Mots : emplacements `accueil.hero.*` ; signature et sous-titre : `lirePromesse()`.
  */
-export async function AccueilAccroche() {
-  const [promesse, donnees, scenesActives, t] = await Promise.all([
-    promesseDeLaRequete(),
-    lireAccueil(),
-    fonctionnaliteActive("scenes_envie_accueil"),
-    lireTextes(),
-  ]);
+export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | null }) {
+  const [promesse, zones, t] = await Promise.all([promesseDeLaRequete(), lireZones(), lireTextes()]);
 
-  const envies: EnvieAffichee[] = donnees.suggestions.map((s) => ({
-    famille: s.famille,
-    libelle: FAMILLES_ENVIE.find((f) => f.cle === s.famille)?.libelle ?? s.famille,
-    platNom: s.platNom,
-    prix: s.prix,
-    restaurantId: s.restaurantId,
-    restaurantNom: s.restaurantNom,
-    quartier: s.quartier,
-    visuel: <Illustration valeur={s.illustration ?? pastille(s.motif)} nom={s.platNom} decoratif />,
-  }));
+  const options: OptionLocalite[] = [
+    ...zones.map((c) => ({ niveau: "commune" as const, nom: c.nom, slug: c.slug, communeNom: "", restaurants: c.restaurants })),
+    ...zones.flatMap((c) =>
+      c.quartiers.map((q) => ({ niveau: "quartier" as const, nom: q.nom, slug: q.slug, communeNom: c.nom, restaurants: q.restaurants }))
+    ),
+  ];
 
   return (
-    <section className="pub-conteneur pub-accueil-hero" aria-labelledby="accueil-titre">
+    <section className="pub-conteneur pub-accueil-hero pub-accueil-hero-recherche" aria-labelledby="accueil-titre">
       {/* Deux grandes taches de couleur qui dérivent lentement (décor, en pause hors écran et si les animations sont coupées). */}
       <span className="pub-blob pub-blob-mangue boucle" aria-hidden="true" />
       <span className="pub-blob pub-blob-orange boucle" aria-hidden="true" />
       <div className="pub-accueil-texte">
         <p className="pub-kicker pub-kicker-encre">{promesse.signature}</p>
         <h1 id="accueil-titre" className="pub-titre pub-accueil-h1">
-          {/* Phrase complète et stable pour les lecteurs d'écran ; le mot qui change est purement visuel. */}
-          <span className="sr-only">{t["accueil.hero.titre_lecteur"]}</span>
-          <span aria-hidden="true">
-            {t["accueil.hero.titre_debut"]}{" "}
-            <span className="pub-nowrap">
-              <MotRoulant mots={MOTS_ENVIE} />&nbsp;?
-            </span>{" "}
-            {t["accueil.hero.titre_fin"]}
-          </span>
+          {t["accueil.hero.titre"]}
         </h1>
         <p className="pub-accueil-lead">{promesse.sousTitre}</p>
+
+        <RechercheLocalite
+          options={options}
+          libelle={t["accueil.hero.recherche_libelle"]}
+          placeholder={t["accueil.hero.recherche_placeholder"]}
+          boutonLibelle={t["accueil.hero.recherche_bouton"]}
+        />
+
+        {zone ? (
+          <p className="pub-zone-active" role="status">
+            Zone choisie : <strong>{zone.niveau === "quartier" ? `${zone.nom}, ${zone.communeNom}` : zone.nom}</strong>
+            {" · "}
+            <Link href="/" className="lien-texte">
+              Changer de zone
+            </Link>
+          </p>
+        ) : null}
+        <p className="pub-accueil-pilote">{t["accueil.hero.pilote"]}</p>
+
         <div className="pub-accueil-actions">
-          <Link href="/restaurants" className="pub-btn boucle boucle-cta">
-            {t["accueil.hero.bouton_commander"]}
-            <span className="pub-btn-point" aria-hidden="true">
-              {FLECHE}
-            </span>
-          </Link>
           <Link href="/comment-ca-marche" className="pub-btn pub-btn-clair">
             {t["accueil.hero.bouton_fonctionnement"]}
           </Link>
@@ -67,18 +59,6 @@ export async function AccueilAccroche() {
           <span className="pub-surligne">{t["accueil.hero.preuve_reponse"]}</span>
         </p>
       </div>
-      <aside className="pub-accueil-envie" aria-label={t["accueil.hero.encart_aria"]}>
-        {envies.length > 0 ? (
-          <SelecteurEnvie envies={envies} scenes={scenesActives} />
-        ) : (
-          <div className="pub-envie">
-            <p className="pub-kicker">{t["accueil.vide.kicker"]}</p>
-            <p className="pub-envie-plat">{t["accueil.vide.titre"]}</p>
-            <p className="pub-envie-resto">{t["accueil.vide.texte"]}</p>
-          </div>
-        )}
-        <span className="pub-autocollant pub-accueil-sticker boucle">{t["accueil.hero.macaron"]}</span>
-      </aside>
     </section>
   );
 }
