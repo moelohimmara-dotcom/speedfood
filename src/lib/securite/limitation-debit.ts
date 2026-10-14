@@ -59,6 +59,9 @@ export const LIMITE_TELEVERSEMENT_PAR_RESTAURANT: RegleLimite = { nom: "televers
 export const LIMITE_DECLARATION_PAIEMENT_PAR_IP: RegleLimite = { nom: "paiement-ip", max: 20, fenetreSecondes: 600 };
 export const LIMITE_ECHANGE_SUIVI_PAR_IP: RegleLimite = { nom: "suivi-session-ip", max: 20, fenetreSecondes: 600 };
 
+// « Utiliser ma position » : chaque appel sollicite le service OpenStreetMap, dont la politique d'usage interdit les rafales.
+export const LIMITE_ZONE_POSITION_PAR_IP: RegleLimite = { nom: "zone-position-ip", max: 20, fenetreSecondes: 600 };
+
 // « Chef IA » : chaque analyse consomme le quota Workers AI du PROJET (10 000
 // neurons/jour sur l'offre gratuite), pas celui du restaurant. Sans ce
 // limiteur, un seul restaurateur très bavard épuiserait la jauge de tous les
@@ -155,4 +158,8 @@ export async function limiterEchangeSuivi(): Promise<void> {
 
 export async function limiterReponseProposition(): Promise<void> {
   await appliquerLimite(LIMITE_REPONSE_PROPOSITION_PAR_IP, await adresseClient());
+}
+
+export async function limiterZonePosition(): Promise<void> {
+  await appliquerLimite(LIMITE_ZONE_POSITION_PAR_IP, await adresseClient());
 }

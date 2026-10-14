@@ -1127,3 +1127,41 @@
   margin: 0 0 var(--space-4);
   font-weight: 600;
 }
+
+/* ===== « Utiliser ma position » : action secondaire, discrète, jamais obligatoire ===== */
+.recherche-localite-position {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--encre);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.recherche-localite-position:hover:not(:disabled) {
+  color: var(--rouge-fonce);
+}
+.recherche-localite-position:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.recherche-localite-position:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.recherche-localite-statut {
+  margin: 0;
+  min-height: 0;
+  font-size: 0.9rem;
+  color: var(--secondaire);
+}
+.recherche-localite-statut:empty {
+  display: none;
+}

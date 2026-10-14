@@ -34,6 +34,8 @@ copier("src/lib/partage/liens.ts");
 copier("scripts/tests/partage.test.mts");
 copier("src/lib/design/tuile.ts");
 copier("scripts/tests/tuile.test.mts");
+copier("src/lib/site/zone-position.ts");
+copier("scripts/tests/zone-position.test.mts");
 copier("src/lib/alertes/commandes.ts");
 copier("scripts/tests/alertes.test.mts");
 copier("src/lib/push/vapid.ts");
@@ -105,7 +107,7 @@ copier("src/lib/geographie/quartiers.ts");
 copier("scripts/tests/geographie.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

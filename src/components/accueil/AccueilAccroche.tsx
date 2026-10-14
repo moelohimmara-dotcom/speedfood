@@ -72,6 +72,7 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
           libelle={t["accueil.hero.recherche_libelle"]}
           placeholder={t["accueil.hero.recherche_placeholder"]}
           boutonLibelle={t["accueil.hero.recherche_bouton"]}
+          positionLibelle={t["accueil.hero.position_bouton"]}
         />
 
         {zone ? (

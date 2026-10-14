@@ -47,6 +47,7 @@ export const EMPLACEMENTS = [
     max: 100,
   },
   { cle: "accueil.hero.recherche_bouton", groupe: HAUT, libelle: "Recherche de localité : bouton", defaut: "Voir les restaurants", max: 40 },
+  { cle: "accueil.hero.position_bouton", groupe: HAUT, libelle: "Recherche de localité : bouton « position »", defaut: "Utiliser ma position", max: 40 },
   { cle: "accueil.hero.lien_localites", groupe: HAUT, libelle: "Bouton secondaire (vers les localités)", defaut: "Explorer les localités", max: 40 },
   {
     cle: "accueil.hero.preuve_question",

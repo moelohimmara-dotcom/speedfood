@@ -43,6 +43,14 @@ export default async function ConfidentialitePage() {
         vous demandez une livraison. Rien d&apos;autre. Vous n&apos;avez pas besoin de créer de compte.
       </p>
 
+      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Votre position (facultatif)</h2>
+      <p>
+        Le bouton « Utiliser ma position » de l&apos;accueil ne s&apos;active que si vous cliquez dessus et acceptez que votre appareil
+        la partage. Elle sert uniquement à retrouver votre commune ou votre quartier : elle est arrondie (environ 100 mètres),
+        envoyée au service de cartographie libre OpenStreetMap (Nominatim) qui renvoie le nom du lieu, puis oubliée. Speedfood ne
+        l&apos;enregistre pas. Vous pouvez toujours choisir votre zone à la main.
+      </p>
+
       <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Pourquoi</h2>
       <p>
         Uniquement pour que le restaurant puisse traiter votre commande et vous joindre. Nous ne vous envoyons pas de
