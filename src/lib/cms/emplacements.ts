@@ -38,7 +38,15 @@ const PRO = "Accueil : bande restaurateurs";
 export const EMPLACEMENTS = [
   // --- Haut de page ---
   { cle: "accueil.hero.titre", groupe: HAUT, libelle: "Titre de la page (h1)", defaut: "Les restaurants de votre localité, sur Speedfood.", max: 120 },
-  { cle: "accueil.hero.bouton_commander", groupe: HAUT, libelle: "Bouton principal", defaut: "Voir les restaurants", max: 40 },
+  { cle: "accueil.hero.recherche_libelle", groupe: HAUT, libelle: "Recherche de localité : intitulé du champ", defaut: "Où souhaitez-vous commander ?", max: 60 },
+  {
+    cle: "accueil.hero.recherche_placeholder",
+    groupe: HAUT,
+    libelle: "Recherche de localité : exemple dans le champ",
+    defaut: "Commune ou quartier…",
+    max: 100,
+  },
+  { cle: "accueil.hero.recherche_bouton", groupe: HAUT, libelle: "Recherche de localité : bouton", defaut: "Voir les restaurants", max: 40 },
   { cle: "accueil.hero.lien_localites", groupe: HAUT, libelle: "Bouton secondaire (vers les localités)", defaut: "Explorer les localités", max: 40 },
   {
     cle: "accueil.hero.preuve_question",
@@ -87,6 +95,33 @@ export const EMPLACEMENTS = [
   { cle: "accueil.carte.titre_debut", groupe: CARTE, libelle: "Titre, début", defaut: "Découvrez les restaurants", max: 100 },
   { cle: "accueil.carte.titre_surligne", groupe: CARTE, libelle: "Titre, partie surlignée", defaut: "disponibles dans votre zone", max: 80 },
   { cle: "accueil.carte.bouton_tous", groupe: CARTE, libelle: "Bouton vers la liste des restaurants", defaut: "Tous les restaurants", max: 40 },
+  { cle: "accueil.carte.kicker_zone", groupe: CARTE, libelle: "Petit titre quand une zone est choisie", defaut: "Restaurants dans votre zone", max: 60 },
+  { cle: "accueil.carte.titre_zone", groupe: CARTE, libelle: "Titre avec zone choisie (le nom de la zone suit)", defaut: "Des restaurants disponibles à", max: 100 },
+  {
+    cle: "accueil.carte.texte_zone",
+    groupe: CARTE,
+    libelle: "Texte sous le titre quand une zone est choisie",
+    defaut: "Consultez les menus et les options de retrait ou de livraison proposées par chaque restaurant.",
+    max: 240,
+    multiligne: true,
+  },
+  { cle: "accueil.carte.bouton_zone", groupe: CARTE, libelle: "Bouton vers les restaurants de la zone", defaut: "Voir tous les restaurants de cette zone", max: 60 },
+  {
+    cle: "accueil.carte.vide_titre",
+    groupe: CARTE,
+    libelle: "Zone sans restaurant : message principal",
+    defaut: "Aucun restaurant référencé dans cette zone pour le moment.",
+    max: 160,
+  },
+  {
+    cle: "accueil.carte.vide_texte",
+    groupe: CARTE,
+    libelle: "Zone sans restaurant : message secondaire",
+    defaut: "Essayez une localité voisine ou consultez les autres zones.",
+    max: 240,
+    multiligne: true,
+  },
+  { cle: "accueil.carte.bouton_autre_zone", groupe: CARTE, libelle: "Zone sans restaurant : bouton", defaut: "Choisir une autre zone", max: 40 },
   // --- Quartiers ---
   { cle: "accueil.quartiers.kicker", groupe: QUARTIERS, libelle: "Petit titre", defaut: "Explorez la Guinée", max: 60 },
   { cle: "accueil.quartiers.titre", groupe: QUARTIERS, libelle: "Titre", defaut: "Choisissez une localité", max: 100 },

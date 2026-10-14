@@ -76,7 +76,7 @@ verifier("disposition par défaut : chaque section une fois, sans réglage", def
 verifier("disposition par défaut : refusée ailleurs que sur « accueil »", ok(defaut, "autre"), false);
 const sourcePage = lire("src/app/page.tsx");
 const reperePage = sourcePage.slice(sourcePage.indexOf("function AccueilRepli"));
-const ordrePage = [...reperePage.slice(0, reperePage.indexOf("</main>")).matchAll(/<(Accueil[A-Za-z]+) \/>/g)].map((m) => m[1]);
+const ordrePage = [...reperePage.slice(0, reperePage.indexOf("</main>")).matchAll(/<(Accueil[A-Za-z]+)(?: [^>]*)? \/>/g)].map((m) => m[1]);
 verifier("disposition par défaut : même ordre que la page de repli (page.tsx)", defaut.content.map((b) => b.type), ordrePage);
 verifier("deux appels donnent des documents indépendants", pageAccueilParDefaut() !== pageAccueilParDefaut(), true);
 

@@ -4,19 +4,22 @@ import { SelecteurEnvie, type EnvieAffichee } from "@/components/site/SelecteurE
 import { lireTextes } from "@/lib/cms/textes";
 import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
-import { FAMILLES_ENVIE, catalogueDeLaRequete, lireAccueil } from "@/lib/site/accueil";
-import { FLECHE, pastille } from "./commun";
+import { FAMILLES_ENVIE, catalogueDeLaRequete, choisirSuggestions, lireAccueil } from "@/lib/site/accueil";
+import { lireZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
+import { pastille } from "./commun";
 import { promesseDeLaRequete } from "./lectures";
+import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
 
 /**
  * Accroche de l'accueil : titre (le h1 de la page), boutons, phrase de preuve et encart « Votre envie du moment ? » (une seule
  * section en grille à deux colonnes). Mots : emplacements `accueil.hero.*` et `accueil.vide.*` ; signature et sous-titre :
  * `lirePromesse()` ; plats suggérés : `lireAccueil()`.
  */
-export async function AccueilAccroche() {
-  const [promesse, donnees, catalogue, scenesActives, t] = await Promise.all([
+export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | null }) {
+  const [promesse, donnees, zones, catalogue, scenesActives, t] = await Promise.all([
     promesseDeLaRequete(),
     lireAccueil(),
+    lireZones(),
     catalogueDeLaRequete(),
     fonctionnaliteActive("scenes_envie_accueil"),
     lireTextes(),
@@ -30,7 +33,17 @@ export async function AccueilAccroche() {
     return detail ? detail.charAt(0).toUpperCase() + detail.slice(1) : "Disponibilité à confirmer";
   };
 
-  const envies: EnvieAffichee[] = donnees.suggestions.map((s) => ({
+  // Avec une zone choisie, les plats suggérés viennent des restaurants de cette zone seulement.
+  const suggestions = zone ? choisirSuggestions(restaurantsDeLaZone(donnees.restaurants, zone), donnees.platsParRestaurant) : donnees.suggestions;
+
+  const options: OptionLocalite[] = [
+    ...zones.map((c) => ({ niveau: "commune" as const, nom: c.nom, slug: c.slug, communeNom: "", restaurants: c.restaurants })),
+    ...zones.flatMap((c) =>
+      c.quartiers.map((q) => ({ niveau: "quartier" as const, nom: q.nom, slug: q.slug, communeNom: c.nom, restaurants: q.restaurants }))
+    ),
+  ];
+
+  const envies: EnvieAffichee[] = suggestions.map((s) => ({
     famille: s.famille,
     libelle: FAMILLES_ENVIE.find((f) => f.cle === s.famille)?.libelle ?? s.famille,
     platNom: s.platNom,
@@ -53,13 +66,29 @@ export async function AccueilAccroche() {
           {t["accueil.hero.titre"]}
         </h1>
         <p className="pub-accueil-lead">{promesse.sousTitre}</p>
+
+        <RechercheLocalite
+          options={options}
+          libelle={t["accueil.hero.recherche_libelle"]}
+          placeholder={t["accueil.hero.recherche_placeholder"]}
+          boutonLibelle={t["accueil.hero.recherche_bouton"]}
+        />
+
+        {zone ? (
+          <p className="pub-zone-active" role="status">
+            Zone sélectionnée :{" "}
+            <strong>
+              {zone.niveau === "quartier"
+                ? `${zone.nom} · ${zone.communeNom}${zone.villeNom ? `, ${zone.villeNom}` : ""}`
+                : `${zone.nom}${zone.villeNom ? ` · ${zone.villeNom}` : ""}`}
+            </strong>
+            {" — "}
+            <Link href="/" className="lien-texte">
+              Modifier
+            </Link>
+          </p>
+        ) : null}
         <div className="pub-accueil-actions">
-          <Link href="/restaurants" className="pub-btn boucle boucle-cta">
-            {t["accueil.hero.bouton_commander"]}
-            <span className="pub-btn-point" aria-hidden="true">
-              {FLECHE}
-            </span>
-          </Link>
           <Link href="/quartiers" className="pub-btn pub-btn-clair">
             {t["accueil.hero.lien_localites"]}
           </Link>

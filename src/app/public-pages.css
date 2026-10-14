@@ -1015,3 +1015,115 @@
   font-weight: 700;
   color: var(--secondaire);
 }
+
+/* ===== Choix de la zone (recherche de localité, zone sélectionnée, état sans résultat) ===== */
+.pub-communes-puce {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--encre);
+  font-weight: 800;
+  text-decoration: none;
+}
+.pub-communes-puce:hover {
+  background: var(--mangue);
+}
+.recherche-localite {
+  display: grid;
+  gap: var(--space-2);
+}
+.recherche-localite-etiquette {
+  font-weight: 800;
+  color: var(--encre);
+}
+.recherche-localite-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+.recherche-localite-champ {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.recherche-localite-champ input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 1.05rem;
+  box-shadow: var(--pub-ombre);
+}
+.recherche-localite-champ input:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+.recherche-localite-bouton {
+  min-height: 56px;
+  flex: 0 0 auto;
+}
+.recherche-localite-liste {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--surface);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-md);
+  box-shadow: var(--pub-ombre);
+}
+.recherche-localite-option {
+  display: grid;
+  gap: 2px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.recherche-localite-option.est-actif {
+  background: var(--mangue);
+}
+.recherche-localite-nom {
+  font-weight: 800;
+}
+.recherche-localite-sous {
+  font-size: 0.85rem;
+  color: var(--secondaire);
+}
+.recherche-localite-option.est-actif .recherche-localite-sous {
+  color: var(--encre);
+}
+.recherche-localite-vide {
+  margin: 0;
+  font-weight: 600;
+  color: var(--secondaire);
+}
+.pub-zone-active {
+  margin: 0;
+  font-weight: 600;
+}
+.pub-communes-puce.est-vide {
+  opacity: 0.6;
+}
+.pub-communes-puce[aria-current="true"] {
+  background: var(--mangue);
+}
+.decouverte-zone-active {
+  margin: 0 0 var(--space-4);
+  font-weight: 600;
+}

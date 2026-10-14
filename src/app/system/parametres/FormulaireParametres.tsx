@@ -189,7 +189,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               rows={3}
               maxLength={220}
               defaultValue={parametres.promesseSousTitre}
-              placeholder="Trouvez des restaurants et des plats disponibles en Guinée. Explorez les localités pour découvrir les options qui s'y trouvent."
+              placeholder="Trouvez des restaurants et des plats disponibles en Guinée. Choisissez votre zone pour découvrir les options qui s'y trouvent."
             />
           </div>
           <div className="field">

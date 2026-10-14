@@ -16,11 +16,14 @@ import type { Metadata } from "next";
 import { lirePromesse } from "@/lib/parametres/promesse";
 import { lireChiffresEnDirect } from "@/lib/decouverte/chiffres";
 import { origineDuSite } from "@/lib/partage/origine";
+import { slugQuartier } from "@/lib/site/quartiers";
 
 interface Recherche {
   q?: string;
   categorie?: string;
   quartier?: string;
+  /** Commune choisie depuis l'accueil (nom d'adresse de la commune). */
+  commune?: string;
   ouvert?: string;
   commandes?: string;
   dispo?: string;
@@ -74,12 +77,19 @@ export default async function CataloguePage({
     ]);
 
   // Accueil « nu » (sans recherche ni filtre) : preuve en direct et trois étapes ; une recherche affiche d'abord ses résultats.
-  const accueilNu = !q && !categorie && !quartier && !filtres.ouvert && !filtres.commandes && !filtres.dispo;
+  const communeFiltre = (params.commune ?? "").slice(0, 80);
+  const accueilNu = !q && !categorie && !quartier && !communeFiltre && !filtres.ouvert && !filtres.commandes && !filtres.dispo;
   const chiffres = accueilNu ? await lireChiffresEnDirect() : null;
 
   const erreur = erreurCategories || erreurQuartiers || recherche.erreur;
   const etat = { q, categorie, quartier, ...filtres };
-  const resultats = recherche.resultats;
+  // Commune choisie depuis l'accueil : on garde les restaurants de cette commune, et les plats mis en avant qui en viennent.
+  const resultats = communeFiltre
+    ? recherche.resultats.filter((r) => slugQuartier(r.restaurant.communeNom) === communeFiltre)
+    : recherche.resultats;
+  const idsFiltres = new Set(resultats.map((r) => r.restaurant.id));
+  const vedettes = communeFiltre ? recherche.vedettes.filter((v) => idsFiltres.has(v.restaurantId)) : recherche.vedettes;
+  const nomCommuneFiltre = communeFiltre ? (recherche.resultats.find((r) => slugQuartier(r.restaurant.communeNom) === communeFiltre)?.restaurant.communeNom ?? "") : "";
   const nomQuartierActif = (quartiers ?? []).find((x) => x.id === quartier)?.nom;
   const compter = (liste: ResultatClasse<RestaurantCatalogue>[]) => liste.length;
   const optionsCuisine: OptionFiltre[] = (categories ?? []).map((c) => ({
@@ -97,7 +107,7 @@ export default async function CataloguePage({
     actif: quartier === x.id,
   }));
   const effacerFiltres = categorie || quartier ? lien(etat, { categorie: undefined, quartier: undefined }) : null;
-  const nbConfirmes = recherche.vedettes.filter((v) => v.etat.type === "disponible").length;
+  const nbConfirmes = vedettes.filter((v) => v.etat.type === "disponible").length;
 
   return (
     <main className="decouverte">
@@ -171,23 +181,31 @@ export default async function CataloguePage({
         </section>
       ) : null}
 
+      {communeFiltre ? (
+        <p className="decouverte-zone-active" role="status">
+          Commune : <strong>{nomCommuneFiltre || communeFiltre}</strong> ·{" "}
+          <Link href="/restaurants" className="lien-texte">
+            Voir toutes les communes
+          </Link>
+        </p>
+      ) : null}
       {!erreur ? <BarreFiltres cuisines={optionsCuisine} quartiers={optionsQuartier} effacer={effacerFiltres} total={resultats.length} /> : null}
 
       <div className="decouverte-corps decouverte-corps-large">
         <div className="decouverte-resultats">
-      {!erreur && !q && recherche.vedettes.length > 0 ? (
+      {!erreur && !q && vedettes.length > 0 ? (
         <section aria-labelledby="titre-vedettes" style={{ marginBottom: "var(--space-5)" }}>
           {/* Titre fidèle au contenu : « du moment » seulement s'il y a des plats confirmés récemment ; sinon « à découvrir ». */}
           <h2 id="titre-vedettes" className="groupe-resultats-titre">
             {nbConfirmes > 0 ? "Plats du moment" : "Plats à découvrir"}
           </h2>
-          {nbConfirmes < recherche.vedettes.length ? (
+          {nbConfirmes < vedettes.length ? (
             <p className="decouverte-note-dispo" role="note">
               <strong>« À confirmer »</strong> : le restaurant n&apos;a pas reconfirmé ce plat depuis {recherche.fraicheurHeures} h. Il le confirme à la commande.
             </p>
           ) : null}
           <CarrouselVedettes key={lien(etat, {})} libelle="Plats à découvrir, défilement horizontal">
-            {recherche.vedettes.map((vedette) => (
+            {vedettes.map((vedette) => (
               <Link key={vedette.platId} href={`/restaurants/${vedette.restaurantId}#plat-${vedette.platId}`} className="carte-vedette">
                 {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
                 <img src={vedette.photoUrl} alt="" loading="lazy" />
