@@ -1233,3 +1233,36 @@
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-weight: 600;
 }
+
+/* Livraison vers la zone regardée, sur la carte d'un restaurant */
+.pub-carte-livraison {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--encre);
+}
+
+/* Fiche restaurant : zones desservies */
+.fiche-livraison {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.fiche-livraison-titre {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.fiche-livraison-texte {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.95rem;
+}
+.fiche-livraison-liste {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: 0.95rem;
+}

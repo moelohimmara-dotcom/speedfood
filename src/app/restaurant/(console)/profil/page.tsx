@@ -10,6 +10,7 @@ import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 import { FormulaireProfil } from "./FormulaireProfil";
 import { FormulaireQuartier } from "./FormulaireQuartier";
+import { FormulaireZonesDesservies } from "./FormulaireZonesDesservies";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Mon restaurant" };
@@ -34,6 +35,22 @@ export default async function ProfilPage() {
   }
   const quartiers = await lireQuartiersActifs(supabase);
   const quartierActuelValide = quartiers.some((q) => q.id === restaurant.quartier_id);
+  const { data: zonesDesservies } = await supabase
+    .from("restaurant_zones_desservies")
+    .select("id, frais_gnf, delai_minutes, communes(nom), neighborhoods(nom, communes(nom))")
+    .eq("restaurant_id", membership.restaurant_id);
+  const zonesPourFormulaire = (zonesDesservies ?? [])
+    .map((z) => {
+      const quartierNom = z.neighborhoods?.nom;
+      const communeNom = z.neighborhoods?.communes?.nom;
+      return {
+        id: z.id,
+        libelle: quartierNom ? `${quartierNom}${communeNom ? ` (${communeNom})` : ""}` : `Toute la commune de ${z.communes?.nom ?? ""}`,
+        fraisGnf: z.frais_gnf,
+        delaiMinutes: z.delai_minutes,
+      };
+    })
+    .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
   const { data: codes } = await supabase
     .from("restaurant_codes_marchand")
     .select("orange, mtn")
@@ -100,6 +117,10 @@ export default async function ProfilPage() {
           quartierActuelId={restaurant.quartier_id}
           quartierActuelValide={quartierActuelValide}
         />
+      </div>
+
+      <div style={{ marginTop: "var(--space-5)" }}>
+        <FormulaireZonesDesservies groupes={grouperParCommune(quartiers)} zones={zonesPourFormulaire} />
       </div>
 
       <div style={{ marginTop: "var(--space-5)" }}>

@@ -51,6 +51,14 @@ export default async function ConfidentialitePage() {
         l&apos;enregistre pas. Vous pouvez toujours choisir votre zone à la main.
       </p>
 
+      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Liste d&apos;attente d&apos;une zone (facultatif)</h2>
+      <p>
+        Si aucun restaurant n&apos;est encore référencé dans votre zone, vous pouvez laisser votre e-mail ou votre numéro pour être
+        prévenu(e) une seule fois à l&apos;ouverture d&apos;un restaurant. Vous cochez une case de consentement avant l&apos;envoi. Votre
+        contact n&apos;est lu que par le serveur, jamais affiché dans l&apos;administration (seul le nombre de personnes en attente par
+        zone l&apos;est), jamais partagé ni vendu. Pour le retirer, écrivez à {CONTACT}.
+      </p>
+
       <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Pourquoi</h2>
       <p>
         Uniquement pour que le restaurant puisse traiter votre commande et vous joindre. Nous ne vous envoyons pas de

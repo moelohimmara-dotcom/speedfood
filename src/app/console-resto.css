@@ -596,3 +596,39 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Zones de livraison (Mon restaurant) ===== */
+.zones-desservies-liste {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+.zones-desservies-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.zones-desservies-detail {
+  color: var(--secondaire);
+}
+.zones-desservies-formulaire {
+  display: grid;
+  gap: var(--space-3);
+}
+.zones-desservies-deux {
+  display: grid;
+  gap: var(--space-3);
+}
+@media (min-width: 640px) {
+  .zones-desservies-deux {
+    grid-template-columns: 1fr 1fr;
+  }
+}

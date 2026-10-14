@@ -14,6 +14,7 @@ export function CartePub({
   plats,
   grande = false,
   niveauTitre = 3,
+  livraison = null,
 }: {
   restaurant: RestaurantCatalogue;
   plats: PlatPublic[];
@@ -21,6 +22,8 @@ export function CartePub({
   grande?: boolean;
   /** Niveau du titre du restaurant : 3 sous un h2 de section, 2 directement sous le h1 de la page. */
   niveauTitre?: 2 | 3;
+  /** Phrase sur la livraison vers la zone regardée (« Livre à Ratoma · 10 000 GNF »), déjà vérifiée ; `null` = rien à affirmer. */
+  livraison?: string | null;
 }) {
   const Titre = niveauTitre === 2 ? "h2" : "h3";
   const famille = familleDepuisCategorie(restaurant.categorie);
@@ -55,6 +58,7 @@ export function CartePub({
             {restaurant.quartier ? ` · ${restaurant.quartier}${restaurant.communeNom ? `, ${restaurant.communeNom}` : ""}` : ""}
           </p>
           <Titre className="pub-titre pub-carte-nom">{restaurant.nom}</Titre>
+          {livraison ? <p className="pub-carte-livraison">{livraison}</p> : null}
           {disponibles.length > 0 ? (
             <ul className="pub-carte-plats">
               {disponibles.map((p) => (

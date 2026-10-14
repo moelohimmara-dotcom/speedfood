@@ -2,6 +2,8 @@ import Link from "next/link";
 import { CartePub } from "@/components/site/CartePub";
 import { lireTextes } from "@/lib/cms/textes";
 import { lireAccueil } from "@/lib/site/accueil";
+import { libelleLivraison, statutLivraison } from "@/lib/site/livraison";
+import { cibleDeZone, communesDesQuartiers, lireLivraisonDesRestaurants } from "@/lib/site/livraison-lecture";
 import { lienRestaurantsZone, lienZone, lireZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
 import { AlerteZone } from "./AlerteZone";
 import { FLECHE } from "./commun";
@@ -22,6 +24,13 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
   // Les ouverts d'abord ; sans zone, on ne montre les ouverts seuls que s'il y en a assez pour faire une rangée.
   const ordonnes = zone ? [...ouverts, ...dansLaZone.filter((r) => !ouverts.includes(r))] : ouverts.length >= MAX_APERCU ? ouverts : dansLaZone;
   const mises = ordonnes.slice(0, zone ? MAX_ZONE : MAX_APERCU);
+
+  // Livraison vers la zone choisie : seulement ce que chaque restaurant a déclaré (rien n'est affirmé sinon).
+  const cible = zone ? cibleDeZone(zone, zones) : null;
+  const lignesParRestaurant = cible ? await lireLivraisonDesRestaurants(mises.map((r) => r.id)) : new Map();
+  const quartierVersCommune = communesDesQuartiers(zones);
+  const livraisonDe = (restaurantId: string): string | null =>
+    zone && cible ? libelleLivraison(statutLivraison(lignesParRestaurant.get(restaurantId) ?? [], cible, quartierVersCommune), zone.nom) : null;
 
   if (mises.length === 0 && !zone) return null;
 
@@ -92,7 +101,7 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
       </div>
       <div className="pub-grille-cartes">
         {mises.map((r, i) => (
-          <CartePub key={r.id} restaurant={r} plats={platsParRestaurant.get(r.id) ?? []} grande={i === 0 && mises.length >= 3} />
+          <CartePub key={r.id} restaurant={r} plats={platsParRestaurant.get(r.id) ?? []} grande={i === 0 && mises.length >= 3} livraison={livraisonDe(r.id)} />
         ))}
       </div>
       <div>

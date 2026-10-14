@@ -1,3 +1,4 @@
+import { detailLivraison } from "@/lib/site/livraison";
 import { notFound } from "next/navigation";
 import { creerClientPublic } from "@/lib/db/public";
 import { Alert } from "@/components/ui";
@@ -90,6 +91,17 @@ export default async function FicheRestaurantPage({
       ? liensCarte(restaurant.latitude, restaurant.longitude)
       : null;
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(restaurant.id));
+  // Zones où le restaurant déclare livrer (rien n'est affirmé s'il n'en a déclaré aucune).
+  const { data: zonesLivraison } = await supabase
+    .from("restaurant_zones_desservies")
+    .select("frais_gnf, delai_minutes, communes(nom), neighborhoods(nom, communes(nom))")
+    .eq("restaurant_id", restaurant.id);
+  const lignesLivraison = (zonesLivraison ?? [])
+    .map((z) => ({
+      libelle: z.neighborhoods?.nom ? `${z.neighborhoods.nom}${z.neighborhoods.communes?.nom ? ` (${z.neighborhoods.communes.nom})` : ""}` : `Toute la commune de ${z.communes?.nom ?? ""}`,
+      detail: detailLivraison(z.frais_gnf, z.delai_minutes),
+    }))
+    .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
   const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
   const etatResto = etatRestaurant({ ouvert: restaurant.ouvert, accepteCommandes: restaurant.accepte_commandes });
   const libelleResto = libelleEtatRestaurant(etatResto);
@@ -267,6 +279,27 @@ export default async function FicheRestaurantPage({
           </a>
         </p>
       ) : null}
+
+      <section className="fiche-livraison" aria-labelledby="fiche-livraison-titre">
+        <h2 id="fiche-livraison-titre" className="fiche-livraison-titre">
+          Livraison et retrait
+        </h2>
+        {lignesLivraison.length > 0 ? (
+          <>
+            <p className="fiche-livraison-texte">Ce restaurant déclare livrer dans les zones suivantes. Le retrait et les conditions se confirment avec lui.</p>
+            <ul className="fiche-livraison-liste">
+              {lignesLivraison.map((l) => (
+                <li key={l.libelle}>
+                  <strong>{l.libelle}</strong>
+                  {l.detail ? <span> · {l.detail}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="fiche-livraison-texte">Ce restaurant n&apos;a pas déclaré de zones de livraison. Retrait ou livraison : à confirmer avec lui au moment de la commande.</p>
+        )}
+      </section>
 
       {etatResto === "ferme" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
