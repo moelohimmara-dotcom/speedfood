@@ -3,6 +3,7 @@ import { CartePub } from "@/components/site/CartePub";
 import { lireTextes } from "@/lib/cms/textes";
 import { lireAccueil } from "@/lib/site/accueil";
 import { lienRestaurantsZone, lienZone, lireZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
+import { AlerteZone } from "./AlerteZone";
 import { FLECHE } from "./commun";
 
 /** Nombre de restaurants montrés : un aperçu général sur l'accueil, davantage quand une zone est choisie. */
@@ -50,6 +51,7 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
             ))}
           </nav>
         ) : null}
+        <AlerteZone zone={{ niveau: zone.niveau, slug: zone.slug }} zoneNom={zone.nom} />
         <div className="pub-accueil-actions">
           <Link href="/quartiers" className="pub-btn">
             {t["accueil.carte.bouton_autre_zone"]}

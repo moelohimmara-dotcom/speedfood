@@ -1,4 +1,4 @@
-import { arrondirCoordonnee, correspondreZone, normaliserNom, positionDansLaGuinee, type CommuneMin } from "../../src/lib/site/zone-position";
+import { arrondirCoordonnee, correspondreZone, distanceKm, normaliserNom, positionDansLaGuinee, zoneLaPlusProche, type CommuneMin } from "../../src/lib/site/zone-position";
 
 let echecs = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -45,5 +45,28 @@ verifier("commune seule quand aucun quartier ne correspond", correspondreZone({ 
 verifier("aucune correspondance : null", correspondreZone({ city: "Kankan", state: "Kankan" }, communes), null);
 verifier("adresse vide : null", correspondreZone({}, communes), null);
 verifier("valeurs non textuelles ignorées", correspondreZone({ suburb: 12, city_district: null }, communes), null);
+
+// Repli par proximité
+const avecPoints: CommuneMin[] = [
+  {
+    villeNom: "Conakry",
+    nom: "Ratoma",
+    slug: "ratoma",
+    latitude: 9.63063,
+    longitude: -13.60784,
+    quartiers: [
+      { id: "q1", nom: "Kipé", slug: "kipe", nomsAlternatifs: ["Kipe Centre"], latitude: 9.60196, longitude: -13.65427 },
+      { id: "q9", nom: "Sans point", slug: "sans-point" },
+    ],
+  },
+  { villeNom: "Conakry", nom: "Kaloum", slug: "kaloum", latitude: 9.51496, longitude: -13.70844, quartiers: [] },
+];
+verifier("distance : un point à lui-même", distanceKm(9.6, -13.6, 9.6, -13.6), 0);
+verifier("distance : environ 111 km par degré de latitude", Math.round(distanceKm(9, -13, 10, -13)), 111);
+verifier("proche d'un quartier : le quartier", zoneLaPlusProche(9.6025, -13.6538, avecPoints)?.slug, "kipe");
+verifier("loin des quartiers mais dans une commune : la commune", zoneLaPlusProche(9.63, -13.61, avecPoints)?.slug, "ratoma");
+verifier("trop loin de tout : null", zoneLaPlusProche(9.9, -13.9, avecPoints), null);
+verifier("sans aucun point : null", zoneLaPlusProche(9.6, -13.6, communes), null);
+verifier("nom alternatif reconnu", correspondreZone({ suburb: "Kipe Centre" }, avecPoints)?.slug, "kipe");
 
 if (echecs > 0) process.exit(1);

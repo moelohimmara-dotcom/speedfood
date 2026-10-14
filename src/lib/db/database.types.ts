@@ -124,8 +124,112 @@ export type Database = {
           },
         ]
       }
+      zone_alertes: {
+        Row: {
+          commune_id: string | null
+          consentement_le: string
+          contact: string
+          contact_type: string
+          cree_le: string
+          id: string
+          neighborhood_id: string | null
+          notifie_le: string | null
+        }
+        Insert: {
+          commune_id?: string | null
+          consentement_le?: string
+          contact: string
+          contact_type: string
+          cree_le?: string
+          id?: string
+          neighborhood_id?: string | null
+          notifie_le?: string | null
+        }
+        Update: {
+          commune_id?: string | null
+          consentement_le?: string
+          contact?: string
+          contact_type?: string
+          cree_le?: string
+          id?: string
+          neighborhood_id?: string | null
+          notifie_le?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_alertes_commune_id_fkey"
+            columns: ["commune_id"]
+            isOneToOne: false
+            referencedRelation: "communes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zone_alertes_neighborhood_id_fkey"
+            columns: ["neighborhood_id"]
+            isOneToOne: false
+            referencedRelation: "neighborhoods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_zones_desservies: {
+        Row: {
+          commune_id: string | null
+          cree_le: string
+          delai_minutes: number | null
+          frais_gnf: number | null
+          id: string
+          neighborhood_id: string | null
+          restaurant_id: string
+        }
+        Insert: {
+          commune_id?: string | null
+          cree_le?: string
+          delai_minutes?: number | null
+          frais_gnf?: number | null
+          id?: string
+          neighborhood_id?: string | null
+          restaurant_id: string
+        }
+        Update: {
+          commune_id?: string | null
+          cree_le?: string
+          delai_minutes?: number | null
+          frais_gnf?: number | null
+          id?: string
+          neighborhood_id?: string | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_zones_desservies_commune_id_fkey"
+            columns: ["commune_id"]
+            isOneToOne: false
+            referencedRelation: "communes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_zones_desservies_neighborhood_id_fkey"
+            columns: ["neighborhood_id"]
+            isOneToOne: false
+            referencedRelation: "neighborhoods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_zones_desservies_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communes: {
         Row: {
+          coordonnees_source: string | null
+          latitude: number | null
+          longitude: number | null
+          noms_alternatifs: string[]
           actif: boolean
           code_officiel: string | null
           cree_le: string
@@ -135,6 +239,10 @@ export type Database = {
           ville_id: string
         }
         Insert: {
+          coordonnees_source?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          noms_alternatifs?: string[]
           actif?: boolean
           code_officiel?: string | null
           cree_le?: string
@@ -144,6 +252,10 @@ export type Database = {
           ville_id: string
         }
         Update: {
+          coordonnees_source?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          noms_alternatifs?: string[]
           actif?: boolean
           code_officiel?: string | null
           cree_le?: string
@@ -695,6 +807,10 @@ export type Database = {
       }
       neighborhoods: {
         Row: {
+          coordonnees_source: string | null
+          latitude: number | null
+          longitude: number | null
+          noms_alternatifs: string[]
           actif: boolean
           commune_id: string | null
           id: string
@@ -702,6 +818,10 @@ export type Database = {
           ordre: number
         }
         Insert: {
+          coordonnees_source?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          noms_alternatifs?: string[]
           actif?: boolean
           commune_id?: string | null
           id?: string
@@ -709,6 +829,10 @@ export type Database = {
           ordre?: number
         }
         Update: {
+          coordonnees_source?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          noms_alternatifs?: string[]
           actif?: boolean
           commune_id?: string | null
           id?: string

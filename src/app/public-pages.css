@@ -1165,3 +1165,71 @@
 .recherche-localite-statut:empty {
   display: none;
 }
+
+/* ===== Liste d'attente d'une zone sans restaurant ===== */
+.alerte-zone {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 560px;
+  padding: var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.alerte-zone-titre {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.alerte-zone-etiquette {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.alerte-zone-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.alerte-zone-ligne input {
+  flex: 1 1 220px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+.alerte-zone-accord {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--secondaire);
+  cursor: pointer;
+}
+.alerte-zone-accord input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--rouge-fonce);
+}
+.alerte-zone-erreur {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--rouge-fonce);
+}
+.alerte-zone-merci {
+  margin: 0;
+  max-width: 560px;
+  padding: var(--space-3) var(--space-4);
+  border-left: 5px solid var(--mangue);
+  background: var(--surface);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-weight: 600;
+}

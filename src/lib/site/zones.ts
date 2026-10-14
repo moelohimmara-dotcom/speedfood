@@ -14,15 +14,22 @@ export interface ZoneQuartier {
   id: string;
   nom: string;
   slug: string;
+  nomsAlternatifs: string[];
+  latitude: number | null;
+  longitude: number | null;
   restaurants: number;
   ouverts: number;
 }
 
 export interface ZoneCommune {
+  id: string;
   /** Ville de la commune (Conakry). */
   villeNom: string;
   nom: string;
   slug: string;
+  nomsAlternatifs: string[];
+  latitude: number | null;
+  longitude: number | null;
   restaurants: number;
   ouverts: number;
   quartiers: ZoneQuartier[];
@@ -54,8 +61,8 @@ const premier = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] :
 export const lireZones = cache(async (): Promise<ZoneCommune[]> => {
   const supabase = creerClientPublic();
   const [{ data: communes, error: erreurCommunes }, { data: quartiers, error: erreurQuartiers }, accueil] = await Promise.all([
-    supabase.from("communes").select("id, nom, villes(nom)").eq("actif", true).order("nom"),
-    supabase.from("neighborhoods").select("id, nom, commune_id").eq("actif", true).order("nom"),
+    supabase.from("communes").select("id, nom, noms_alternatifs, latitude, longitude, villes(nom)").eq("actif", true).order("nom"),
+    supabase.from("neighborhoods").select("id, nom, commune_id, noms_alternatifs, latitude, longitude").eq("actif", true).order("nom"),
     lireAccueil(),
   ]);
   if (erreurCommunes || erreurQuartiers || !communes || !quartiers) return [];
@@ -67,13 +74,17 @@ export const lireZones = cache(async (): Promise<ZoneCommune[]> => {
 
   return communes
     .map((c) => ({
+      id: c.id,
       villeNom: (Array.isArray(c.villes) ? c.villes[0]?.nom : c.villes?.nom) ?? "",
       nom: c.nom,
       slug: slugQuartier(c.nom),
+      nomsAlternatifs: c.noms_alternatifs ?? [],
+      latitude: c.latitude,
+      longitude: c.longitude,
       ...compter((r) => r.communeNom === c.nom),
       quartiers: quartiers
         .filter((q) => q.commune_id === c.id)
-        .map((q) => ({ id: q.id, nom: q.nom, slug: slugQuartier(q.nom), ...compter((r) => r.communeNom === c.nom && r.quartier === q.nom) }))
+        .map((q) => ({ id: q.id, nom: q.nom, slug: slugQuartier(q.nom), nomsAlternatifs: q.noms_alternatifs ?? [], latitude: q.latitude, longitude: q.longitude, ...compter((r) => r.communeNom === c.nom && r.quartier === q.nom) }))
         .sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
     }))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));

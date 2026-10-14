@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { limiterZonePosition } from "@/lib/securite/limitation-debit";
-import { arrondirCoordonnee, correspondreZone, positionDansLaGuinee } from "@/lib/site/zone-position";
+import { arrondirCoordonnee, correspondreZone, positionDansLaGuinee, zoneLaPlusProche } from "@/lib/site/zone-position";
 import { lireZones } from "@/lib/site/zones";
 
 /**
@@ -53,23 +53,29 @@ export async function POST(request: Request) {
   adresseUrl.searchParams.set("addressdetails", "1");
   adresseUrl.searchParams.set("accept-language", "fr");
 
-  let adresse: Record<string, unknown> = {};
+  const zones = await lireZones();
+  // Le rapprochement par nom (OpenStreetMap) passe en premier ; s'il échoue ou ne trouve rien, la zone la plus proche d'après les
+  // points centraux prend le relais. Si le service ne répond pas, la proximité suffit : la personne n'est pas bloquée.
+  let adresse: Record<string, unknown> | null = null;
   try {
     const reponse = await fetch(adresseUrl, {
       headers: { "User-Agent": IDENTIFICATION, Accept: "application/json" },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(4000),
       cache: "no-store",
     });
-    if (!reponse.ok) throw new Error("geocodage");
-    const donnees: unknown = await reponse.json();
-    const candidate = typeof donnees === "object" && donnees !== null ? (donnees as { address?: unknown }).address : null;
-    if (typeof candidate === "object" && candidate !== null) adresse = candidate as Record<string, unknown>;
+    if (reponse.ok) {
+      const donnees: unknown = await reponse.json();
+      const candidate = typeof donnees === "object" && donnees !== null ? (donnees as { address?: unknown }).address : null;
+      if (typeof candidate === "object" && candidate !== null) adresse = candidate as Record<string, unknown>;
+    }
   } catch {
-    return NextResponse.json({ erreur: "Le service de localisation ne répond pas pour le moment." }, { status: 502, headers: SANS_CACHE });
+    adresse = null;
   }
 
-  const zones = await lireZones();
-  const zone = correspondreZone(adresse, zones);
+  const zone = (adresse ? correspondreZone(adresse, zones) : null) ?? zoneLaPlusProche(latitude, longitude, zones);
+  if (!zone && adresse === null) {
+    return NextResponse.json({ erreur: "Le service de localisation ne répond pas pour le moment." }, { status: 502, headers: SANS_CACHE });
+  }
   return NextResponse.json(
     { zone: zone ? { niveau: zone.niveau, slug: zone.slug, nom: zone.nom } : null, horsGuinee: false },
     { headers: SANS_CACHE }
