@@ -27,7 +27,7 @@ type Props = { searchParams: Promise<{ [cle: string]: string | string[] | undefi
 
 const apercuDemande = (valeur: string | string[] | undefined) => valeur === "1";
 
-const TITRE = "Les restaurants de Conakry";
+const TITRE = "Les restaurants de votre localité · Speedfood";
 
 /** Métadonnées d'aujourd'hui (titre, adresse canonique) ; l'aperçu de l'équipe n'est jamais indexé. */
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {

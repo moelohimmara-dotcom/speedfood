@@ -34,7 +34,7 @@ export async function AccueilQuartiers() {
           <h2 id="accueil-quartiers" className="pub-titre pub-h2">
             {t["accueil.quartiers.titre"]}
           </h2>
-          <p className="apercu-quartiers-lead">Trouvez à manger à deux pas de chez vous : voici les quartiers les mieux fournis en ce moment.</p>
+          <p className="apercu-quartiers-lead">Parcourez les zones où des restaurants Speedfood sont référencés. La livraison dépend des zones desservies par chaque restaurant.</p>
         </div>
 
         <ul className="apercu-quartiers">
@@ -69,7 +69,7 @@ export async function AccueilQuartiers() {
           <li className="apercu-quartiers-item apercu-quartiers-tout">
             <Link href="/quartiers" className="apercu-tuile apercu-tuile-tout">
               <span className="apercu-tout-texte">
-                <span className="apercu-tout-titre">Tous les quartiers</span>
+                <span className="apercu-tout-titre">Toutes les localités</span>
                 <span className="apercu-tout-detail">
                   {quartiers.length} quartier{quartiers.length > 1 ? "s" : ""}
                   {communes > 0 ? ` · ${communes} commune${communes > 1 ? "s" : ""}` : ""}

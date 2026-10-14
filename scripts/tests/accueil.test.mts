@@ -140,7 +140,7 @@ verifier("page « / » : décision par `decider`, interrupteur et page publiée 
   /lirePagePubliee\(SLUG_ACCUEIL\)/.test(pageRacine),
   /catch \{[\s\S]*mode: "repli"/.test(pageRacine),
   /canonical: "\/"/.test(pageRacine),
-  /Les restaurants de Conakry/.test(pageRacine),
+  /Les restaurants de votre localité/.test(pageRacine),
 ], [true, true, true, true, true, true]);
 verifier("page « / » : lectures des sections préchargées avant l'attente de l'interrupteur et de la page (pas de cascade)", [
   /precharger\(\);\s+const decision = await choisirAffichage/.test(pageRacine),

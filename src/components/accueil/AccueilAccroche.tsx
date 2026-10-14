@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { SelecteurEnvie, type EnvieAffichee } from "@/components/site/SelecteurEnvie";
-import { MotRoulant } from "@/components/site/MotRoulant";
 import { lireTextes } from "@/lib/cms/textes";
+import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
-import { FAMILLES_ENVIE, lireAccueil } from "@/lib/site/accueil";
-import { FLECHE, MOTS_ENVIE, pastille } from "./commun";
+import { FAMILLES_ENVIE, catalogueDeLaRequete, lireAccueil } from "@/lib/site/accueil";
+import { FLECHE, pastille } from "./commun";
 import { promesseDeLaRequete } from "./lectures";
 
 /**
@@ -14,12 +14,21 @@ import { promesseDeLaRequete } from "./lectures";
  * `lirePromesse()` ; plats suggérés : `lireAccueil()`.
  */
 export async function AccueilAccroche() {
-  const [promesse, donnees, scenesActives, t] = await Promise.all([
+  const [promesse, donnees, catalogue, scenesActives, t] = await Promise.all([
     promesseDeLaRequete(),
     lireAccueil(),
+    catalogueDeLaRequete(),
     fonctionnaliteActive("scenes_envie_accueil"),
     lireTextes(),
   ]);
+
+  /** « Confirmé il y a 12 min » si le restaurant a confirmé le plat récemment, sinon « Disponibilité à confirmer ». */
+  const confirmationDe = (confirmeLe: string | null): string => {
+    const etat = etatDisponibilite({ disponible: true, confirmeLe }, catalogue.fraicheurHeures, catalogue.maintenant);
+    if (etat.type !== "disponible") return "Disponibilité à confirmer";
+    const detail = libelleDisponibilite(etat, catalogue.maintenant).detail ?? "";
+    return detail ? detail.charAt(0).toUpperCase() + detail.slice(1) : "Disponibilité à confirmer";
+  };
 
   const envies: EnvieAffichee[] = donnees.suggestions.map((s) => ({
     famille: s.famille,
@@ -29,6 +38,7 @@ export async function AccueilAccroche() {
     restaurantId: s.restaurantId,
     restaurantNom: s.restaurantNom,
     quartier: s.quartier,
+    confirmation: confirmationDe(s.confirmeLe),
     visuel: <Illustration valeur={s.illustration ?? pastille(s.motif)} nom={s.platNom} decoratif />,
   }));
 
@@ -40,15 +50,7 @@ export async function AccueilAccroche() {
       <div className="pub-accueil-texte">
         <p className="pub-kicker pub-kicker-encre">{promesse.signature}</p>
         <h1 id="accueil-titre" className="pub-titre pub-accueil-h1">
-          {/* Phrase complète et stable pour les lecteurs d'écran ; le mot qui change est purement visuel. */}
-          <span className="sr-only">{t["accueil.hero.titre_lecteur"]}</span>
-          <span aria-hidden="true">
-            {t["accueil.hero.titre_debut"]}{" "}
-            <span className="pub-nowrap">
-              <MotRoulant mots={MOTS_ENVIE} />&nbsp;?
-            </span>{" "}
-            {t["accueil.hero.titre_fin"]}
-          </span>
+          {t["accueil.hero.titre"]}
         </h1>
         <p className="pub-accueil-lead">{promesse.sousTitre}</p>
         <div className="pub-accueil-actions">
@@ -58,14 +60,15 @@ export async function AccueilAccroche() {
               {FLECHE}
             </span>
           </Link>
-          <Link href="/comment-ca-marche" className="pub-btn pub-btn-clair">
-            {t["accueil.hero.bouton_fonctionnement"]}
+          <Link href="/quartiers" className="pub-btn pub-btn-clair">
+            {t["accueil.hero.lien_localites"]}
           </Link>
         </div>
         <p className="pub-accueil-preuve-ligne">
           {t["accueil.hero.preuve_question"] + " "}
           <span className="pub-surligne">{t["accueil.hero.preuve_reponse"]}</span>
         </p>
+        <p className="pub-accueil-preuve-ligne">{t["accueil.hero.pilote"]}</p>
       </div>
       <aside className="pub-accueil-envie" aria-label={t["accueil.hero.encart_aria"]}>
         {envies.length > 0 ? (

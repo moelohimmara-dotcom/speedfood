@@ -26,6 +26,8 @@ export interface SuggestionEnvie {
   quartier: string;
   platNom: string;
   prix: number;
+  /** Dernière confirmation du plat par le restaurant (horodatage), ou `null` si jamais confirmé. */
+  confirmeLe: string | null;
   motif: string;
   illustration: Illustration | null;
 }
@@ -106,6 +108,7 @@ export function choisirSuggestions(restaurants: RestaurantCatalogue[], plats: Ma
         quartier: r.quartier,
         platNom: plat.nom,
         prix: plat.prixPromo ?? plat.prix,
+        confirmeLe: plat.confirmeLe,
         motif: motifPourPlat(plat.nom),
         illustration: plat.illustration ?? null,
       });

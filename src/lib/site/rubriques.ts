@@ -13,8 +13,8 @@ export interface Rubrique {
 export const RUBRIQUES: readonly Rubrique[] = [
   { cle: "accueil", href: "/", libelle: "Accueil", prefixe: null },
   { cle: "restaurants", href: "/restaurants", libelle: "Restaurants", prefixe: "/restaurants" },
+  { cle: "quartiers", href: "/quartiers", libelle: "Explorer les localités", prefixe: "/quartiers" },
   { cle: "comment", href: "/comment-ca-marche", libelle: "Comment ça marche", prefixe: "/comment-ca-marche" },
-  { cle: "quartiers", href: "/quartiers", libelle: "Quartiers", prefixe: "/quartiers" },
   { cle: "restaurateurs", href: "/devenir-partenaire", libelle: "Restaurateurs", prefixe: "/devenir-partenaire" },
   { cle: "aide", href: "/aide", libelle: "Aide", prefixe: "/aide" },
 ];
