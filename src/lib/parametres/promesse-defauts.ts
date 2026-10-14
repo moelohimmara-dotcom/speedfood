@@ -14,7 +14,7 @@ export interface Promesse {
 
 export const PROMESSE_PAR_DEFAUT: Promesse = {
   signature: "Mangez près de chez vous, en Guinée",
-  sousTitre: "Trouvez les restaurants et les plats disponibles dans votre zone, sans appeler cinq restaurants. Choisissez votre localité pour voir ce qui s'y trouve.",
+  sousTitre: "Trouvez des restaurants et des plats disponibles en Guinée. Choisissez votre zone pour découvrir les options qui s'y trouvent.",
   partage:
     "Trouvez les restaurants et les plats disponibles dans votre localité : chaque plat affiche l'heure de confirmation du restaurant. Phase pilote à Conakry, règlement au restaurant.",
 };

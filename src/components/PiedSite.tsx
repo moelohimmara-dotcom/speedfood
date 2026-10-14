@@ -22,15 +22,16 @@ export async function PiedSite() {
           <img src="/icons/icon-192.png" alt="" width={56} height={56} className="site-pied-logo" />
           <p className="site-pied-titre">Speedfood</p>
           <p>
-            Trouvez un plat, voyez depuis quand le restaurant l&apos;a confirmé et envoyez votre commande après connexion,
-            en réglant directement le restaurant. Phase pilote à Conakry.
+            Speedfood aide les clients à découvrir les restaurants référencés dans leur localité, à consulter leurs menus et à
+            leur transmettre une commande. La livraison, le retrait et le paiement sont organisés directement avec chaque
+            restaurant.
           </p>
         </div>
         <nav className="site-pied-colonne" aria-label="Clients">
           <p className="site-pied-titre">Clients</p>
           <Link href="/restaurants">Restaurants</Link>
+          <Link href="/quartiers">Explorer les localités</Link>
           <Link href="/comment-ca-marche">Comment ça marche</Link>
-          <Link href="/quartiers">Localités</Link>
           <Link href="/panier">Mon panier</Link>
           <Link href="/aide">Aide et questions</Link>
         </nav>
@@ -51,7 +52,7 @@ export async function PiedSite() {
           ))}
         </nav>
       </div>
-      <p className="site-pied-mentions">Speedfood, Conakry. Le règlement se fait directement avec le restaurant.</p>
+      <p className="site-pied-mentions">Service en phase pilote dans certaines zones de Conakry.</p>
       <p className="site-pied-animations">
         <BoutonAnimations />
       </p>

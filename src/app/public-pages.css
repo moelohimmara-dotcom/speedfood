@@ -1141,3 +1141,9 @@
   transform: none;
   margin-bottom: 0;
 }
+.pub-envie-confirmation {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--secondaire);
+}

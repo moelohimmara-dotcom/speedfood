@@ -50,12 +50,15 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
             ))}
           </nav>
         ) : null}
-        <div>
-          <Link href="/restaurants" className="pub-btn pub-btn-clair">
-            {t["accueil.carte.bouton_tous"]}
+        <div className="pub-accueil-actions">
+          <Link href="/#localites" className="pub-btn">
+            {t["accueil.carte.bouton_autre_zone"]}
             <span className="pub-btn-point" aria-hidden="true">
               {FLECHE}
             </span>
+          </Link>
+          <Link href="/restaurants" className="pub-btn pub-btn-clair">
+            {t["accueil.carte.bouton_tous"]}
           </Link>
         </div>
       </section>
@@ -67,9 +70,7 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">
           {zone
-            ? zone.niveau === "quartier"
-              ? zone.communeNom
-              : "Commune"
+            ? t["accueil.carte.kicker_zone"]
             : ouverts.length >= MAX_APERCU
               ? t["accueil.carte.kicker_ouverts"]
               : t["accueil.carte.kicker_catalogue"]}
@@ -85,6 +86,7 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
             </>
           )}
         </h2>
+        {zone ? <p className="pub-accueil-lead">{t["accueil.carte.texte_zone"]}</p> : null}
       </div>
       <div className="pub-grille-cartes">
         {mises.map((r, i) => (

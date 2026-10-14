@@ -40,18 +40,23 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
 
         {zone ? (
           <p className="pub-zone-active" role="status">
-            Zone choisie : <strong>{zone.niveau === "quartier" ? `${zone.nom}, ${zone.communeNom}` : zone.nom}</strong>
-            {" · "}
+            Zone sélectionnée :{" "}
+            <strong>
+              {zone.niveau === "quartier"
+                ? `${zone.nom} · ${zone.communeNom}${zone.villeNom ? `, ${zone.villeNom}` : ""}`
+                : `${zone.nom}${zone.villeNom ? ` · ${zone.villeNom}` : ""}`}
+            </strong>
+            {" — "}
             <Link href="/" className="lien-texte">
-              Changer de zone
+              Modifier
             </Link>
           </p>
         ) : null}
         <p className="pub-accueil-pilote">{t["accueil.hero.pilote"]}</p>
 
         <div className="pub-accueil-actions">
-          <Link href="/comment-ca-marche" className="pub-btn pub-btn-clair">
-            {t["accueil.hero.bouton_fonctionnement"]}
+          <Link href="/quartiers" className="pub-btn pub-btn-clair">
+            {t["accueil.hero.lien_localites"]}
           </Link>
         </div>
         <p className="pub-accueil-preuve-ligne">

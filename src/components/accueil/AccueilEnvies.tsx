@@ -1,22 +1,36 @@
 import { Illustration } from "@/components/illustrations/Illustration";
 import { SelecteurEnvie, type EnvieAffichee } from "@/components/site/SelecteurEnvie";
 import { lireTextes } from "@/lib/cms/textes";
+import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/etat";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
-import { FAMILLES_ENVIE, choisirSuggestions, lireAccueil } from "@/lib/site/accueil";
+import { FAMILLES_ENVIE, catalogueDeLaRequete, choisirSuggestions, lireAccueil } from "@/lib/site/accueil";
 import { restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
 import { pastille } from "./commun";
 
 /**
  * « Qu'avez-vous envie de manger ? » : un vrai plat disponible par famille, tiré des restaurants OUVERTS de la zone choisie
  * (ou de tous, sans zone). Rien ne s'affiche s'il n'y a aucun plat à montrer : on ne remplit pas la place avec un plat d'une
- * autre zone. Chaque plat garde son restaurant, sa localité et son prix.
+ * autre zone. Chaque plat garde son restaurant, sa localité, son prix et la fraîcheur réelle de sa confirmation.
  */
 export async function AccueilEnvies({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [donnees, scenesActives, t] = await Promise.all([lireAccueil(), fonctionnaliteActive("scenes_envie_accueil"), lireTextes()]);
+  const [donnees, catalogue, scenesActives, t] = await Promise.all([
+    lireAccueil(),
+    catalogueDeLaRequete(),
+    fonctionnaliteActive("scenes_envie_accueil"),
+    lireTextes(),
+  ]);
 
   const restaurants = restaurantsDeLaZone(donnees.restaurants, zone);
   const suggestions = choisirSuggestions(restaurants, donnees.platsParRestaurant);
   if (suggestions.length === 0) return null;
+
+  /** « Confirmé il y a 12 min » si le restaurant a confirmé le plat récemment, sinon « Disponibilité à confirmer ». */
+  const confirmationDe = (confirmeLe: string | null): string => {
+    const etat = etatDisponibilite({ disponible: true, confirmeLe }, catalogue.fraicheurHeures, catalogue.maintenant);
+    if (etat.type !== "disponible") return "Disponibilité à confirmer";
+    const detail = libelleDisponibilite(etat, catalogue.maintenant).detail ?? "";
+    return detail ? detail.charAt(0).toUpperCase() + detail.slice(1) : "Disponibilité à confirmer";
+  };
 
   const envies: EnvieAffichee[] = suggestions.map((s) => ({
     famille: s.famille,
@@ -26,6 +40,7 @@ export async function AccueilEnvies({ zone = null }: { zone?: ZoneChoisie | null
     restaurantId: s.restaurantId,
     restaurantNom: s.restaurantNom,
     quartier: s.quartier,
+    confirmation: confirmationDe(s.confirmeLe),
     visuel: <Illustration valeur={s.illustration ?? pastille(s.motif)} nom={s.platNom} decoratif />,
   }));
 
@@ -36,9 +51,7 @@ export async function AccueilEnvies({ zone = null }: { zone?: ZoneChoisie | null
         <h2 id="accueil-envies" className="pub-titre pub-h2">
           {t["accueil.envies.titre"]}
         </h2>
-        <p className="pub-accueil-lead">
-          {zone ? `Plats d'un restaurant ouvert à ${zone.nom}.` : "Plats d'un restaurant ouvert en ce moment."}
-        </p>
+        <p className="pub-accueil-lead">{t["accueil.envies.texte"]}</p>
       </div>
       <div className="pub-accueil-envie pub-envies-zone">
         <SelecteurEnvie envies={envies} scenes={scenesActives} />

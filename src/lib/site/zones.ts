@@ -19,6 +19,8 @@ export interface ZoneQuartier {
 }
 
 export interface ZoneCommune {
+  /** Ville de la commune (Conakry). */
+  villeNom: string;
   nom: string;
   slug: string;
   restaurants: number;
@@ -34,6 +36,8 @@ export interface ZoneChoisie {
   slug: string;
   /** Commune d'un quartier choisi (vide pour une commune). */
   communeNom: string;
+  /** Ville de la zone choisie. */
+  villeNom: string;
 }
 
 /** Paramètres d'adresse de l'accueil qui désignent la zone choisie : `?commune=slug` ou `?quartier=slug`. */
@@ -50,7 +54,7 @@ const premier = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] :
 export const lireZones = cache(async (): Promise<ZoneCommune[]> => {
   const supabase = creerClientPublic();
   const [{ data: communes, error: erreurCommunes }, { data: quartiers, error: erreurQuartiers }, accueil] = await Promise.all([
-    supabase.from("communes").select("id, nom").eq("actif", true).order("nom"),
+    supabase.from("communes").select("id, nom, villes(nom)").eq("actif", true).order("nom"),
     supabase.from("neighborhoods").select("id, nom, commune_id").eq("actif", true).order("nom"),
     lireAccueil(),
   ]);
@@ -63,6 +67,7 @@ export const lireZones = cache(async (): Promise<ZoneCommune[]> => {
 
   return communes
     .map((c) => ({
+      villeNom: (Array.isArray(c.villes) ? c.villes[0]?.nom : c.villes?.nom) ?? "",
       nom: c.nom,
       slug: slugQuartier(c.nom),
       ...compter((r) => r.communeNom === c.nom),
@@ -83,13 +88,13 @@ export function resoudreZone(params: ParametresZone, zones: ZoneCommune[]): Zone
   if (quartierSlug) {
     for (const commune of zones) {
       const q = commune.quartiers.find((x) => x.slug === quartierSlug);
-      if (q) return { niveau: "quartier", id: q.id, nom: q.nom, slug: q.slug, communeNom: commune.nom };
+      if (q) return { niveau: "quartier", id: q.id, nom: q.nom, slug: q.slug, communeNom: commune.nom, villeNom: commune.villeNom };
     }
   }
   const communeSlug = premier(params.commune)?.slice(0, 80);
   if (communeSlug) {
     const c = zones.find((x) => x.slug === communeSlug);
-    if (c) return { niveau: "commune", id: "", nom: c.nom, slug: c.slug, communeNom: "" };
+    if (c) return { niveau: "commune", id: "", nom: c.nom, slug: c.slug, communeNom: "", villeNom: c.villeNom };
   }
   return null;
 }

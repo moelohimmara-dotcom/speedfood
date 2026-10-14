@@ -12,6 +12,8 @@ export interface EnvieAffichee {
   restaurantId: string;
   restaurantNom: string;
   quartier: string;
+  /** Fraîcheur de la confirmation du plat par son restaurant (« Confirmé il y a 12 min » ou « Disponibilité à confirmer »). */
+  confirmation?: string;
   /** Illustration du plat, déjà dessinée côté serveur (garde l'énorme catalogue de motifs hors du JavaScript du navigateur). */
   visuel: ReactNode;
 }
@@ -115,6 +117,7 @@ export function SelecteurEnvie({ envies, scenes = true }: { envies: EnvieAffiche
             {e.restaurantNom}
             {e.quartier ? ` · ${e.quartier}` : ""}
           </p>
+          {e.confirmation ? <p className="pub-envie-confirmation">{e.confirmation}</p> : null}
           <p className="pub-envie-prix">{e.prix.toLocaleString("fr-FR")}&nbsp;GNF</p>
         </div>
       </div>
