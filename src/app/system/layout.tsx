@@ -3,6 +3,7 @@ import { deconnexionAction } from "@/lib/auth/actions";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import { aUnMembershipRestaurant } from "@/lib/auth/doubleAcces";
 import { groupesNavPourRole, LIBELLES_ROLES, VERSION_MATRICE } from "@/lib/system-admin/permissions";
+import { ConsoleProviders } from "@/components/console/ConsoleProviders";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminMenuMobile } from "@/components/admin/AdminMenuMobile";
@@ -65,6 +66,7 @@ export default async function SystemLayout({ children }: { children: React.React
   );
 
   return (
+    <ConsoleProviders>
     <div className="ad-app">
       <a href="#contenu" className="lien-evitement">
         Aller au contenu
@@ -99,5 +101,6 @@ export default async function SystemLayout({ children }: { children: React.React
         </main>
       </div>
     </div>
+    </ConsoleProviders>
   );
 }

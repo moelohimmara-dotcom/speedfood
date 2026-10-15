@@ -1,7 +1,7 @@
 import type { ComponentConfig, Config, Field, SlotComponent } from "@puckeditor/core";
 import { EnveloppeBloc, RenduBloc as ApercuBloc } from "@/components/studio/RenduBlocs";
 import { proprietesPourRendu } from "@/lib/studio/editeur-donnees";
-import { CATEGORIES_BLOCS, REGISTRE, SLUG_ACCUEIL, entreeRegistre, estTypeAccueil, type BlocPage, type ChampBloc } from "@/lib/studio/registre";
+import { CATEGORIES_BLOCS, REGISTRE, SLUG_ACCUEIL, entreeRegistre, estTypeAccueil, problemesDuBloc, type BlocPage, type ChampBloc } from "@/lib/studio/registre";
 import { ChampImage, ChampReglages, ChampRestaurant, ChampTaxonomie } from "./ChampsPerso";
 
 /**
@@ -95,10 +95,21 @@ function ApercuValide({ type, props }: { type: string; props: Record<string, unk
   if (!entree) return null;
   const resultat = entree.schemaProps.safeParse(proprietesPourRendu(type, props));
   if (!resultat.success) {
+    // Les champs à corriger sont NOMMÉS (audit du 15 octobre, ED-5) : un message générique laissait deviner quel réglage poser.
+    const problemes = problemesDuBloc(type, proprietesPourRendu(type, props));
     return (
-      <p className="se-bloc-incomplet">
-        {entree.libelle} incomplet ou invalide : corrigez ses réglages (l&apos;enregistrement sera refusé tant qu&apos;il n&apos;est pas corrigé).
-      </p>
+      <div className="se-bloc-incomplet" role="note">
+        <p>
+          {entree.libelle} incomplet ou invalide : corrigez ses réglages (l&apos;enregistrement sera refusé tant qu&apos;il n&apos;est pas corrigé).
+        </p>
+        {problemes.length > 0 ? (
+          <ul>
+            {problemes.slice(0, 4).map((pb) => (
+              <li key={`${pb.libelle}|${pb.message}`}>{pb.message}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     );
   }
   return <ApercuBloc bloc={{ type, props: resultat.data } as BlocPage} edition />;

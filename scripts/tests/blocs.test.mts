@@ -5,6 +5,7 @@ import {
   TYPES_SIMPLES,
   compterBlocs,
   estUrlImageStudio,
+  problemesDuBloc,
   validerPage,
 } from "../../src/lib/studio/registre";
 import {
@@ -486,6 +487,21 @@ verifier("image : nom accessible d'une image de la liste", [libelleImageListe(0,
   verifier("blocs dynamiques : lecture publique existante, aucun cache, aucun accès à lecture.ts", [/lireCatalogue/.test(dyn), /unstable_cache|lireAvecCache/.test(dyn), /cms\/lecture/.test(dyn)], [true, false, false]);
   const lecture = lire("src/lib/cms/lecture.ts");
   verifier("lecture.ts (cache) : aucune donnée de restaurant", /restaurants|lireCatalogue|menu_items/.test(lecture), false);
+}
+
+// Problèmes d'un bloc, rattachés au champ (audit du 15 octobre 2026, ED-5)
+{
+  const champsTitre = (REGISTRE.find((e) => e.type === "Titre")?.champs ?? {}) as Record<string, { libelle: string }>;
+  verifier("problemesDuBloc : un bloc valide n'a aucun problème", problemesDuBloc("Titre", { texte: "Bienvenue", niveau: 2, alignement: "gauche" }), []);
+  verifier("problemesDuBloc : type inconnu = liste vide", problemesDuBloc("Inconnu", {}), []);
+  const titreVide = problemesDuBloc("Titre", { texte: "", niveau: 2, alignement: "gauche" });
+  verifier("problemesDuBloc : un titre vide désigne le champ par son nom affiché", [titreVide.length > 0, titreVide[0]?.libelle === champsTitre.texte.libelle], [true, true]);
+  verifier("problemesDuBloc : le message commence par une majuscule et parle de la valeur du champ", /^La valeur de « .+ »/.test(titreVide[0]?.message ?? ""), true);
+  const secret = "SECRET-SAISI-PAR-L-UTILISATEUR";
+  const avecValeur = problemesDuBloc("Titre", { texte: secret, niveau: 99, alignement: "gauche" });
+  verifier("problemesDuBloc : ne reprend jamais la valeur saisie", JSON.stringify(avecValeur).includes(secret), false);
+  verifier("problemesDuBloc : un niveau hors liste est signalé", avecValeur.some((pb) => pb.libelle === champsTitre.niveau.libelle), true);
+  verifier("problemesDuBloc : pas de problème en double", new Set(titreVide.map((pb) => pb.libelle + "|" + pb.message)).size, titreVide.length);
 }
 
 if (ko) {

@@ -748,9 +748,15 @@ function tailleOctets(valeur: unknown): number | null {
 }
 
 /** Message lisible d'un problème de validation, SANS jamais reprendre une valeur saisie (ni une clé inconnue). */
-function decrireProbleme(issue: $ZodIssue, nomsConnus: readonly string[], props: Record<string, unknown>): string {
+function decrireProbleme(issue: $ZodIssue, nomsConnus: readonly string[], props: Record<string, unknown>, libelles?: Record<string, string>): string {
   const cle = issue.path[0];
-  let champ = typeof cle === "string" && nomsConnus.includes(cle) ? `la propriété « ${cle} »` : "une propriété";
+  // Dans l'éditeur, on parle du champ tel que la personne le voit (« Importance »), pas de sa clé technique.
+  let champ =
+    typeof cle === "string" && nomsConnus.includes(cle)
+      ? libelles?.[cle]
+        ? `la valeur de « ${libelles[cle]} »`
+        : `la propriété « ${cle} »`
+      : "une propriété";
   if (typeof cle === "string" && nomsConnus.includes(cle) && typeof issue.path[1] === "number") champ += ` (élément ${issue.path[1] + 1})`;
   switch (issue.code) {
     case "unrecognized_keys":
@@ -777,6 +783,41 @@ function decrireProbleme(issue: $ZodIssue, nomsConnus: readonly string[], props:
     default:
       return `${champ} est invalide`;
   }
+}
+
+/** Un problème d'un bloc, rattaché au champ concerné (`libelle` : nom affiché dans l'éditeur, absent si le problème ne vise aucun champ). */
+export interface ProblemeBloc {
+  libelle: string | null;
+  message: string;
+}
+
+/**
+ * Problèmes d'un bloc en cours de saisie, pour l'éditeur (audit du 15 octobre 2026, ED-5) : avant, l'éditeur disait seulement « bloc incomplet ou
+ * invalide » sans désigner le champ à corriger. Même contrôle que `validerPage` (le schéma du registre) et mêmes messages, avec le NOM
+ * AFFICHÉ du champ. Ne reprend jamais une valeur saisie. Liste vide : le bloc est valide (ou son type est inconnu).
+ */
+export function problemesDuBloc(type: string, props: Record<string, unknown>): ProblemeBloc[] {
+  const entree = entreeRegistre(type);
+  if (!entree) return [];
+  const schema = entree.schemaProps as unknown as SchemaGenerique;
+  const resultat = schema.safeParse(props);
+  if (resultat.success) return [];
+  const champs = entree.champs as Record<string, ChampBloc>;
+  const libelles: Record<string, string> = {};
+  for (const [cle, champ] of Object.entries(champs)) libelles[cle] = champ.libelle;
+  const noms = Object.keys(schema.shape);
+  const vus = new Set<string>();
+  const liste: ProblemeBloc[] = [];
+  for (const issue of resultat.error.issues) {
+    const cle = typeof issue.path[0] === "string" ? issue.path[0] : null;
+    const message = `${decrireProbleme(issue, noms, props, libelles)}`;
+    const libelle = cle !== null ? (libelles[cle] ?? null) : null;
+    const identifiant = `${libelle ?? ""}|${message}`;
+    if (vus.has(identifiant)) continue;
+    vus.add(identifiant);
+    liste.push({ libelle, message: message.charAt(0).toUpperCase() + message.slice(1) });
+  }
+  return liste;
 }
 
 interface SchemaGenerique {

@@ -695,3 +695,60 @@
   font-weight: 800;
   text-decoration: underline;
 }
+
+/* ===== Corrections de l'audit du 15 octobre 2026 ===== */
+/* ED-2 : l'éditeur prend toute la largeur (la barre latérale de l'administration lui retirait 264 px et réduisait l'aperçu à une vignette). */
+html:has(.studio-editeur) .ad-barre-laterale {
+  display: none;
+}
+/* ED-4 : cibles de 44 px (boutons d'en-tête et icônes d'action de chaque bloc). */
+.studio-editeur .se-outil,
+.studio-editeur .se-taille {
+  min-height: 44px;
+}
+.studio-editeur .se-ligne-actions button,
+.studio-editeur .se-ligne button[aria-label] {
+  min-width: 44px;
+  min-height: 44px;
+}
+/* ED-5 : problèmes d'un bloc nommés, dans l'aperçu et en tête des réglages. */
+.se-bloc-incomplet ul,
+.se-problemes ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+}
+.se-bloc-incomplet p {
+  margin: 0;
+}
+.se-problemes {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--danger);
+  border-left-width: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-fond);
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+.se-problemes-titre {
+  margin: 0;
+  font-weight: 800;
+}
+.se-champ-erreur .se-champ-libelle {
+  color: var(--danger);
+}
+.se-champ-erreur-marque {
+  font-weight: 800;
+}
+/* Fil d'Ariane du panneau de droite : les éléments ne se collent plus (« Réglages de la pageParagraphe »). */
+.studio-editeur [class*="Breadcrumbs"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* En-têtes de catégories de la réserve de blocs : cible de 44 px. */
+.studio-editeur [class*="ComponentList-title"] {
+  min-height: 44px;
+}

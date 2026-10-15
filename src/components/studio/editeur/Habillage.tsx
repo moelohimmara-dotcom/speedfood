@@ -2,7 +2,7 @@
 
 import { useEffect, useId, type ReactNode } from "react";
 import { createUsePuck } from "@puckeditor/core";
-import { entreeRegistre, type ChampBloc } from "@/lib/studio/registre";
+import { entreeRegistre, problemesDuBloc, type ChampBloc } from "@/lib/studio/registre";
 import { CONSIGNE_GLISSER, ROLE_GLISSER, TITRE_APERCU, libelleDepuisIdentifiant, traduireAnnonceGlisser } from "@/lib/studio/francisation";
 
 /**
@@ -96,22 +96,26 @@ export function EtiquetteChamp({
   className?: string;
 }) {
   const id = useId();
+  // Un champ à corriger se voit dans la liste des réglages : libellé marqué (texte, pas seulement la couleur).
+  const selection = usePuck((s) => s.selectedItem);
+  const aCorriger = selection ? problemesDuBloc(selection.type, selection.props as Record<string, unknown>).some((pb) => pb.libelle === label) : false;
   const libelle = (
     <span className="se-champ-libelle" id={id}>
       {label}
+      {aCorriger ? <span className="se-champ-erreur-marque"> : à corriger</span> : null}
       {readOnly ? <span className="se-champ-lecture"> (lecture seule)</span> : null}
     </span>
   );
   if (el === "label") {
     return (
-      <label className={`se-champ ${className ?? ""}`}>
+      <label className={`se-champ${aCorriger ? " se-champ-erreur" : ""} ${className ?? ""}`}>
         {libelle}
         {children}
       </label>
     );
   }
   return (
-    <div className={`se-champ ${className ?? ""}`} role="group" aria-labelledby={id}>
+    <div className={`se-champ${aCorriger ? " se-champ-erreur" : ""} ${className ?? ""}`} role="group" aria-labelledby={id}>
       {libelle}
       {children}
     </div>
@@ -130,8 +134,19 @@ export function ChampsBloc({ children, itemSelector }: { children: ReactNode; is
   }
   const entree = entreeRegistre(selection.type);
   const aides = entree ? (Object.values(entree.champs) as ChampBloc[]).filter((c): c is ChampBloc & { aide: string } => "aide" in c && typeof c.aide === "string" && c.aide !== "") : [];
+  const problemes = problemesDuBloc(selection.type, selection.props as Record<string, unknown>);
   return (
     <div className="se-champs">
+      {problemes.length > 0 ? (
+        <div className="se-problemes" role="status" aria-live="polite">
+          <p className="se-problemes-titre">À corriger dans ce bloc ({problemes.length})</p>
+          <ul>
+            {problemes.map((pb) => (
+              <li key={`${pb.libelle}|${pb.message}`}>{pb.message}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {children}
       {aides.map((c) => (
         <p key={c.libelle} className="se-aide">

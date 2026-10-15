@@ -23,6 +23,7 @@ import "./console-resto.css";
 import "./console.css";
 import "./console-b.css";
 import "./fantaisie.css";
+import "./console-sx.css";
 import "./boucles.css";
 import "./vecteurs.css";
 import "./decouverte-b.css";

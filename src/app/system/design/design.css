@@ -118,7 +118,7 @@
 
 .dj-pinceau {
   width: 44px;
-  height: 38px;
+  height: 44px;
   padding: 2px;
   border: 1px solid var(--bordure);
   border-radius: var(--radius-sm);
@@ -130,6 +130,7 @@
 .dj-valeur {
   flex: 1;
   min-width: 0;
+  min-height: 44px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.9rem;
   padding: var(--space-2) var(--space-3);
@@ -399,4 +400,34 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--bordure);
   height: 74vh;
+}
+
+/* Saisie invalide : le champ le dit tout de suite (bordure + message), jamais par la couleur seule. */
+.dj-valeur[aria-invalid="true"] {
+  border-color: var(--danger);
+  outline: 2px solid var(--danger);
+  outline-offset: 1px;
+}
+.dj-erreur-saisie::before {
+  content: "⚠ ";
+}
+
+/* Téléphone et tablette : l'aperçu passe AU-DESSUS des réglages et reste visible pendant qu'on défile (audit du 15 octobre, ED-7) :
+   modifier une couleur sans voir le résultat enlevait tout l'intérêt de l'aperçu vivant. */
+@media (max-width: 1024px) {
+  .dj-apercu {
+    order: -1;
+    position: sticky;
+    top: 65px;
+    z-index: 3;
+    padding: var(--space-2) 0;
+    background: var(--creme);
+  }
+  .dj-cadre iframe,
+  .dj-telephone iframe {
+    height: 30vh;
+  }
+  .dj-apercu-note {
+    display: none;
+  }
 }

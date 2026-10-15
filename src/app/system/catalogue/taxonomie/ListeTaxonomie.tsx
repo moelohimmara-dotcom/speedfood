@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useId, useMemo, useState, useTransition } from "react";
 import {
   creerElementTaxonomieAction,
   modifierElementTaxonomieAction,
@@ -9,21 +9,68 @@ import {
   type EtatActionTaxonomie,
 } from "@/lib/system-admin/taxonomie";
 import { Input, Button, Alert } from "@/components/ui";
+import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 
 const etatInitial: EtatActionTaxonomie = {};
 
 type Table = "menu_categories" | "neighborhoods";
 
+/** Au-delà de ce nombre d'éléments, la liste propose une recherche ; elle s'affiche par lots (audit du 15 octobre : 136 quartiers d'un seul bloc). */
+const SEUIL_RECHERCHE = 12;
+const TAILLE_LOT = 30;
+
+function normaliser(texte: string): string {
+  return texte.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+}
+
 export function ListeTaxonomie({ table, elements }: { table: Table; elements: ElementTaxonomie[] }) {
   const actionCreer = creerElementTaxonomieAction.bind(null, table);
   const [etatCreation, creer] = useActionState(actionCreer, etatInitial);
+  const idRecherche = useId();
+  const [recherche, setRecherche] = useState("");
+  const [limite, setLimite] = useState(TAILLE_LOT);
+
+  const requete = normaliser(recherche);
+  const trouves = useMemo(() => (requete ? elements.filter((e) => normaliser(e.nom).includes(requete)) : elements), [elements, requete]);
+  const affiches = trouves.slice(0, limite);
+  const avecRecherche = elements.length > SEUIL_RECHERCHE;
+  const nomPluriel = table === "neighborhoods" ? "quartiers" : "catégories";
 
   return (
     <div>
+      {avecRecherche ? (
+        <div className="tx-recherche" role="search">
+          <label htmlFor={idRecherche} className="tx-recherche-etiquette">
+            Rechercher parmi les {elements.length} {nomPluriel}
+          </label>
+          <input
+            id={idRecherche}
+            type="search"
+            className="tx-recherche-champ"
+            value={recherche}
+            onChange={(e) => {
+              setRecherche(e.target.value);
+              setLimite(TAILLE_LOT);
+            }}
+            autoComplete="off"
+            placeholder="Nom"
+          />
+          <p role="status" aria-live="polite" className="tx-recherche-etat">
+            {requete ? `${trouves.length} résultat${trouves.length > 1 ? "s" : ""}` : `${elements.length} ${nomPluriel}`}
+            {trouves.length > affiches.length ? ` · ${affiches.length} affichés` : ""}
+          </p>
+        </div>
+      ) : null}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: "var(--space-4)" }}>
-        {elements.map((e) => (
+        {affiches.map((e) => (
           <LigneElement key={e.id} table={table} element={e} />
         ))}
+        {avecRecherche && trouves.length === 0 ? <p className="ad-aide-champ">Aucun élément ne correspond à cette recherche.</p> : null}
+        {trouves.length > affiches.length ? (
+          <Button type="button" variante="secondary" onClick={() => setLimite((l) => l + TAILLE_LOT)}>
+            Afficher {Math.min(TAILLE_LOT, trouves.length - affiches.length)} de plus ({trouves.length - affiches.length} restants)
+          </Button>
+        ) : null}
       </div>
 
       <form action={creer} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -50,6 +97,8 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
   const [ouvert, setOuvert] = useState(false);
   const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
   const [enTransition, demarrerTransition] = useTransition();
+  const confirmer = useConfirmation();
+  const notifier = useNotification();
 
   const actionModifier = modifierElementTaxonomieAction.bind(null, table);
   const [etat, modifier] = useActionState(actionModifier, etatInitial);
@@ -93,13 +142,20 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
           variante="danger"
           className="ad-action-discrete"
           disabled={enTransition}
-          onClick={() => {
-            if (confirm(`Supprimer « ${element.nom} » ?`)) {
-              demarrerTransition(async () => {
-                const resultat = await supprimerElementTaxonomieAction(table, element.id);
-                setErreurSuppression(resultat.erreur ?? null);
-              });
-            }
+          onClick={async () => {
+            // Confirmation commune (fondations de la refonte) : nommée, annulable au clavier, focus sur « Annuler ».
+            const reponse = await confirmer({
+              titre: `Supprimer « ${element.nom} » ?`,
+              message: <p>La suppression est définitive. Pour retirer seulement ce choix des listes, désactivez-le plutôt dans Géographie.</p>,
+              libelleAction: "Supprimer",
+              danger: true,
+            });
+            if (!reponse.confirme) return;
+            demarrerTransition(async () => {
+              const resultat = await supprimerElementTaxonomieAction(table, element.id);
+              setErreurSuppression(resultat.erreur ?? null);
+              notifier(resultat.erreur ? "erreur" : "succes", resultat.erreur ?? `« ${element.nom} » a été supprimé.`);
+            });
           }}
         >
           Supprimer

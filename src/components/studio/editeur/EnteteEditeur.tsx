@@ -286,6 +286,29 @@ function BoutonTaille({ largeur, libelle, actif }: { largeur: number; libelle: s
   );
 }
 
+/**
+ * Masque les deux panneaux (blocs à gauche, réglages à droite) pour donner toute la largeur à l'aperçu : en « Bureau » (1280 px), l'aperçu
+ * n'était qu'une vignette dans la colonne du milieu, illisible (audit du 15 octobre, ED-3). Les panneaux reviennent d'un clic.
+ */
+function BoutonPanneaux() {
+  const dispatch = usePuck((s) => s.dispatch);
+  const visibles = usePuck((s) => s.appState.ui.leftSideBarVisible || s.appState.ui.rightSideBarVisible);
+  const { annoncer } = useEditeur();
+  return (
+    <button
+      type="button"
+      className="se-taille"
+      aria-pressed={!visibles}
+      onClick={() => {
+        dispatch({ type: "setUi", ui: { leftSideBarVisible: !visibles, rightSideBarVisible: !visibles }, recordHistory: false });
+        annoncer(visibles ? "Panneaux masqués : l'aperçu occupe toute la largeur." : "Panneaux affichés.");
+      }}
+    >
+      {visibles ? "Agrandir l'aperçu" : "Afficher les panneaux"}
+    </button>
+  );
+}
+
 export function EnteteEditeur() {
   const ctx = useEditeur();
   const { page, possibilites, modifie, enCours, statut, version } = ctx;
@@ -348,6 +371,7 @@ export function EnteteEditeur() {
           {TAILLES_APERCU.map((t) => (
             <BoutonTaille key={t.code} largeur={t.largeur} libelle={t.libelle} actif={largeur === t.largeur} />
           ))}
+          <BoutonPanneaux />
         </div>
 
         <div className="se-groupe se-actions">

@@ -1,0 +1,278 @@
+/*
+ * Fondations des consoles (refonte, phase 1, 15 octobre 2026) : composants de `src/components/console/`.
+ *
+ * RÈGLES DE CE FICHIER
+ *  - Tous les sélecteurs commencent par `.sx-` : aucun nom générique (`.btn`, `.card`, `.field`) ni sélecteur d'élément nu. Les feuilles
+ *    de la console (`console-b.css`, `fantaisie.css`) restylent ces noms génériques sous `.ad-app` et imposent 22 px à toutes les cases à
+ *    cocher ; un composant `sx-` ne les rencontre jamais.
+ *  - Uniquement des jetons de `globals.css` (couleurs, espaces, rayons) : aucune valeur en dur, donc le futur éditeur de design les atteint.
+ *  - Cibles de 44 px, anneau de focus visible à 3:1 au moins (rouge foncé), jamais d'information portée par la couleur seule.
+ *  - Un <dialog> modal perd son centrage natif avec la remise à zéro globale (`* { margin: 0 }`) : `margin: auto` est posé explicitement.
+ */
+
+/* ===== Boutons ===== */
+.sx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sx-btn:hover {
+  background: var(--creme);
+}
+.sx-btn:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+.sx-btn:disabled {
+  border-color: var(--bordure);
+  background: var(--creme);
+  color: var(--secondaire);
+  cursor: not-allowed;
+}
+.sx-btn-primaire {
+  background: var(--rouge-fonce);
+  border-color: var(--rouge-fonce);
+  color: var(--surface);
+}
+.sx-btn-primaire:hover {
+  background: var(--encre);
+  border-color: var(--encre);
+}
+.sx-btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.sx-btn-danger:hover {
+  background: var(--danger-fond);
+}
+
+/* ===== Champs ===== */
+.sx-champ {
+  display: grid;
+  gap: var(--space-2);
+}
+.sx-champ label {
+  font-weight: 700;
+}
+.sx-champ input,
+.sx-champ textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+.sx-champ input:focus-visible,
+.sx-champ textarea:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 1px;
+}
+.sx-champ [aria-invalid="true"] {
+  border-color: var(--danger);
+  outline: 2px solid var(--danger);
+  outline-offset: 1px;
+}
+.sx-champ-erreur {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 700;
+}
+.sx-champ-erreur::before {
+  content: "⚠ ";
+}
+
+/* ===== Boîte de confirmation ===== */
+.sx-dialogue {
+  margin: auto;
+  width: min(92vw, 520px);
+  max-height: 90dvh;
+  padding: 0;
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: 4px 4px 0 var(--encre);
+}
+.sx-dialogue::backdrop {
+  background: rgba(43, 33, 29, 0.55);
+}
+.sx-dialogue-corps {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.sx-dialogue-titre {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.sx-dialogue-message {
+  color: var(--secondaire);
+}
+.sx-dialogue-message p {
+  margin: 0;
+}
+.sx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* ===== Notifications ===== */
+.sx-notifications {
+  position: fixed;
+  right: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  left: var(--space-4);
+  z-index: 100;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+  pointer-events: none;
+}
+/* La barre de navigation basse du restaurateur (téléphone) ne doit pas être recouverte. */
+body:has(.rc-bas) .sx-notifications {
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  body:has(.rc-bas) .sx-notifications {
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+}
+.sx-notification {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(100%, 420px);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--encre);
+  border-left-width: 8px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  font-weight: 700;
+  pointer-events: auto;
+}
+.sx-notification-succes {
+  border-left-color: var(--succes);
+}
+.sx-notification-erreur {
+  border-left-color: var(--danger);
+  background: var(--danger-fond);
+}
+.sx-notification-info {
+  border-left-color: var(--mangue);
+}
+.sx-notification-texte {
+  flex: 1 1 auto;
+}
+.sx-notification-fermer {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+.sx-notification-fermer:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: -3px;
+}
+
+/* ===== Tiroir latéral ===== */
+.sx-tiroir {
+  /* Ancré à droite, pleine hauteur ; plein écran sur téléphone. */
+  margin: 0 0 0 auto;
+  inset-block: 0;
+  width: min(100vw, 520px);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 0;
+  border: 0;
+  border-left: 2.5px solid var(--encre);
+  background: var(--surface);
+  color: var(--encre);
+}
+.sx-tiroir::backdrop {
+  background: rgba(43, 33, 29, 0.45);
+}
+.sx-tiroir[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.sx-tiroir-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--encre);
+  background: var(--creme);
+}
+.sx-tiroir-titre {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.sx-tiroir-corps {
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+/* ===== Fil d'Ariane ===== */
+.sx-fil ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.sx-fil li:not(:last-child)::after {
+  content: "›";
+  margin-left: var(--space-2);
+  color: var(--secondaire);
+}
+.sx-fil a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--rouge-fonce);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sx-fil a:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.sx-fil [aria-current="page"] {
+  color: var(--encre);
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sx-btn {
+    transition: background 0.15s var(--ease);
+  }
+}

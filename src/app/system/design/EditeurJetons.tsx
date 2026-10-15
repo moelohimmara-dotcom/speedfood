@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CONTRASTE_AA_TEXTE,
   LIBELLES_GROUPES,
   cssDepuisJetons,
+  validerValeurJeton,
   verifierContraste,
   type Groupe,
 } from "@/lib/studio/jetons";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 import { enregistrerJetonAction, reinitialiserJetonAction, reinitialiserTousJetonsAction, type ResultatJeton } from "@/lib/studio/jetons-actions";
 
 /**
@@ -231,16 +233,27 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
    * modifications locales — le site gardait la couleur enregistrée, alors que l'intitule promettait
    * un retour. Si rien n'est personnalisé, le bouton n'envoie rien.
    */
-  const revenirAuxActuelles = () => {
+  const confirmer = useConfirmation();
+  const revenirAuxActuelles = async () => {
     if (modifiees.length > 0) {
       // Il y a des modifications non enregistrées : on ne touche pas au site, on les annule.
       setModifications(null);
       return;
     }
     if (!Object.values(personnalises).some(Boolean)) return;
-    // Rétablir tout le design change le SITE PUBLIC aussitôt : jamais sans confirmation (audit du 15 octobre 2026, P-01).
-    if (!window.confirm("Rétablir TOUS les réglages de design aux valeurs d'origine ? Les pages publiques changeront aussitôt.")) return;
-    actionToutRetablir(new FormData());
+    // Rétablir tout le design change le SITE PUBLIC aussitôt : jamais sans confirmation (audit du 15 octobre 2026, P-01). Niveau « saisie » :
+    // il faut recopier la phrase, l'effet touche toutes les pages publiques.
+    const reponse = await confirmer({
+      titre: "Rétablir tout le design ?",
+      message: <p>Tous les réglages personnalisés reviennent aux valeurs d&apos;origine. Les pages publiques changeront aussitôt.</p>,
+      libelleAction: "Tout rétablir",
+      danger: true,
+      niveau: "saisie",
+      phrase: "RÉTABLIR",
+    });
+    if (!reponse.confirme) return;
+    // Après un `await`, l'action doit être lancée dans une transition (sinon React avertit et l'état d'attente n'est pas suivi).
+    startTransition(() => actionToutRetablir(new FormData()));
   };
 
   return (
@@ -386,6 +399,15 @@ function LigneJeton({
   const erreur = etat.cleEnErreur === jeton.cle ? etat.message : null;
   const succes = etat.ok && !etat.cleEnErreur ? etat.message : null;
 
+  /**
+   * Validation IMMÉDIATE de la saisie (audit du 15 octobre, ED-6) : avant, « rouge » dans un champ couleur ne produisait aucun message et
+   * l'erreur n'arrivait qu'à l'enregistrement. Le serveur revalide toujours (le client n'est qu'un confort) ; le dégradé de marque n'est
+   * pas éditable ici. Aucune erreur tant que la valeur est celle qui est enregistrée.
+   */
+  const modifiable = jeton.cle !== "couleur.gradient-marque";
+  const erreurSaisie = modifiable && valeur !== enregistree ? validerValeurJeton(jeton.groupe, valeur) : null;
+  const idErreurSaisie = `${id}-erreur-saisie`;
+
   return (
     <div className="dj-ligne">
       <div className="dj-ligne-tete">
@@ -417,9 +439,16 @@ function LigneJeton({
           onChange={(e) => onChange(e.target.value)}
           className="dj-valeur"
           spellCheck={false}
-          disabled={jeton.cle === "couleur.gradient-marque"}
+          disabled={!modifiable}
+          aria-invalid={erreurSaisie ? true : undefined}
+          aria-describedby={erreurSaisie ? idErreurSaisie : undefined}
         />
       </div>
+      {erreurSaisie ? (
+        <p id={idErreurSaisie} className="dj-erreur dj-erreur-saisie" role="status" aria-live="polite">
+          {erreurSaisie}
+        </p>
+      ) : null}
 
       {contraste ? (
         <p className={`dj-contraste ${contraste.conforme ? "ok" : "bas"}`}>
@@ -440,7 +469,7 @@ function LigneJeton({
           <input type="hidden" name="cle" value={jeton.cle} />
           <input type="hidden" name="portee" value="site" />
           <input type="hidden" name="valeur" value={valeur} />
-          <button type="submit" className="btn btn-secondary" disabled={enCours || valeur === enregistree}>
+          <button type="submit" className="btn btn-secondary" disabled={enCours || valeur === enregistree || Boolean(erreurSaisie)}>
             {enCours ? "Enregistrement…" : "Enregistrer"}
           </button>
         </form>
