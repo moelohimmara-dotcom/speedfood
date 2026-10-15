@@ -2,6 +2,7 @@ import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { deconnexionAction } from "@/lib/auth/actions";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
+import { ModeService } from "@/components/restaurant/ModeService";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AlerteCommandes } from "@/components/AlerteCommandes";
 import { InstallationApp } from "@/components/InstallationApp";
@@ -110,6 +111,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
               carillons) et son état, invisible sur téléphone (aside masqué, tiroir fermé). Ici l'état reste lisible sur toute la largeur. */}
           <div className="rc-alerte-barre">
             <AlerteCommandes clePublique={lireClesVapid()?.clePublique ?? null} />
+            <ModeService />
           </div>
           <RappelDoubleAuthentification supabase={supabase} administrateur={aAussiUnRoleSysteme} />
           {children}

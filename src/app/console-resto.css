@@ -660,3 +660,37 @@
   padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--bordure);
 }
+
+/* Mode service : garde l'écran allumé, dit l'état réel (jamais « actif » si l'écran n'est pas gardé). */
+.rc-service-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.rc-service-mode-actif {
+  border-color: var(--succes);
+}
+.rc-service-mode-pause {
+  border-color: var(--danger);
+  background: var(--danger-fond);
+}
+.rc-service-bouton {
+  min-height: 44px;
+}
+.rc-service-texte {
+  flex: 1 1 14rem;
+  margin: 0;
+  font-weight: 700;
+}
+.rc-service-mode-pause .rc-service-texte::before {
+  content: "⚠ ";
+}
+.rc-service-mode-actif .rc-service-texte::before {
+  content: "✓ ";
+}
