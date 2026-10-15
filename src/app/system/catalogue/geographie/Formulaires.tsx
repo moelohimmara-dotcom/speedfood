@@ -288,7 +288,9 @@ export function FormulaireCommuneSysteme({ commune, contexte = "" }: { commune: 
   return (
     <form action={envoyer} onChange={suivi.surChangement} id={`el-${commune.id}`} className="geo-ligne geo-ligne-colonne">
       <div className="geo-ligne-haut">
-        <input type="checkbox" name="ids" value={commune.id} form="lot-communes" className="geo-selection" aria-label={`Sélectionner ${commune.nom}`} />
+        <label className="geo-selection-zone">
+          <input type="checkbox" name="ids" value={commune.id} form="lot-communes" className="geo-selection" aria-label={`Sélectionner ${commune.nom}`} />
+        </label>
         <input type="hidden" name="id" value={commune.id} />
         <input name="nom" defaultValue={commune.nom} required minLength={2} maxLength={80} aria-label={`Nom de la commune ${commune.nom}`} />
         <Interrupteur defaut={commune.actif} libelle="dans les choix" />
@@ -338,7 +340,11 @@ export function FormulaireQuartierSysteme({
   return (
     <form action={envoyer} onChange={suivi.surChangement} id={quartier ? `el-${quartier.id}` : undefined} className="geo-ligne geo-ligne-colonne">
       <div className="geo-ligne-haut">
-        {quartier ? <input type="checkbox" name="ids" value={quartier.id} form="lot-quartiers" className="geo-selection" aria-label={`Sélectionner ${quartier.nom}`} /> : null}
+        {quartier ? (
+          <label className="geo-selection-zone">
+            <input type="checkbox" name="ids" value={quartier.id} form="lot-quartiers" className="geo-selection" aria-label={`Sélectionner ${quartier.nom}`} />
+          </label>
+        ) : null}
         {quartier ? <input type="hidden" name="id" value={quartier.id} /> : null}
         <input name="nom" defaultValue={quartier?.nom ?? ""} required minLength={2} maxLength={80} placeholder="Nom du quartier" aria-label={libelleNom} />
         <div className="geo-commune">

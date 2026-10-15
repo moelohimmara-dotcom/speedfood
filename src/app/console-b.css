@@ -84,7 +84,8 @@
   color: var(--rouge-fonce);
 }
 .ad-app .btn:focus-visible {
-  outline: 3px solid var(--mangue);
+  /* La mangue sur crème ou blanc ne fait que 1,6:1 : un anneau de focus doit atteindre 3:1 (WCAG 1.4.11). */
+  outline: 3px solid var(--rouge-fonce);
   outline-offset: 3px;
 }
 

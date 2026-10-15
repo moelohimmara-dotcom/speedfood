@@ -430,18 +430,23 @@
   min-height: 44px;
 }
 @media (max-width: 559px) {
+  /* Compact sur téléphone (audit visuel du 15 octobre, VIS-2) : icône, texte et bouton sur UNE rangée au lieu d'un bloc de 125 px (le quart de
+     l'écran, répété sur chaque page). Le texte tient sur trois lignes au plus, le bouton garde ses 44 px. */
   .rappel-securite {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    padding: 6px 44px 6px 10px;
+    font-size: 0.8rem;
+    line-height: 1.3;
   }
-  /* Le bouton passe sous le texte, aligné sur lui et à sa taille naturelle (pas une barre pleine largeur de 56 px). */
-  .rappel-securite {
-    gap: 6px var(--space-3);
-    padding-block: 8px;
+  .rappel-securite-texte {
+    flex: 1 1 0;
   }
   .rappel-securite-action {
     flex: 0 0 auto;
     min-height: 44px;
-    margin-left: calc(20px + var(--space-3));
+    padding-inline: 12px;
+    margin: 0;
   }
 }
 .rappel-securite-fermer {

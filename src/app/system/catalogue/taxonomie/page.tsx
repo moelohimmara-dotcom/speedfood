@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerTaxonomie } from "@/lib/system-admin/taxonomie";
@@ -25,6 +26,9 @@ export default async function TaxonomieSystemePage() {
           <ListeTaxonomie table="menu_categories" elements={categories} />
         </Panneau>
         <Panneau titre="Quartiers">
+          <p className="ad-aide-champ">
+            Quartiers de Conakry. Les communes et leurs quartiers « Centre de … » se gèrent dans <Link href="/system/catalogue/geographie">Géographie</Link>.
+          </p>
           <ListeTaxonomie table="neighborhoods" elements={quartiers} />
         </Panneau>
       </div>

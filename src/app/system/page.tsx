@@ -72,6 +72,10 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
   const periode = (PERIODES as readonly number[]).includes(periodeDemandee) ? periodeDemandee : PERIODE_PAR_DEFAUT;
 
   const peutVoirRestaurants = roleAPermission(role, "restaurant.consulter");
+  // Un chiffre ne mène qu'à une page que ce rôle peut ouvrir : `support` et `content_editor` voient ces compteurs (restaurant.consulter) mais
+  // la liste exige restaurant.moderer ; sans cette garde, un clic sur le chiffre menait à une page introuvable (audit du 15 octobre).
+  const lienRestaurants = (statut: string) => (roleAPermission(role, "restaurant.moderer") ? `/system/catalogue/restaurants?statut=${statut}` : undefined);
+  const lienMisesEnAvant = roleAPermission(role, "contenu.mettre_en_avant") ? "/system/catalogue/mises-en-avant" : undefined;
   const peutVoirCouverture = roleAPermission(role, "taxonomie.editer") || roleAPermission(role, "attente.gerer");
   const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture] = await Promise.all([
     obtenirStatistiquesApplication(periode),
@@ -231,7 +235,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             <CarteChiffre
               libelle="Restaurants publiés"
               valeur={compteursRestaurants.publies}
-              href="/system/catalogue/restaurants?statut=publies"
+              href={lienRestaurants("publies")}
               sous={
                 compteursRestaurants.enAttente > 0
                   ? `${compteursRestaurants.enAttente} en attente de validation`
@@ -245,7 +249,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
           <CarteChiffre
             libelle="Restaurants publiés"
             valeur={compteursRestaurants.publies}
-            href="/system/catalogue/restaurants?statut=publies"
+            href={lienRestaurants("publies")}
             sous={`${compteursRestaurants.enAttente} en attente de validation`}
           />
         </section>
@@ -314,10 +318,10 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             <Panneau titre="Restaurants">
               <BarresHorizontales
                 lignes={[
-                  { cle: "publies", libelle: "Publiés", valeur: compteursRestaurants.publies, couleur: "var(--succes)", href: "/system/catalogue/restaurants?statut=publies" },
-                  { cle: "attente", libelle: "En attente de validation", valeur: compteursRestaurants.enAttente, couleur: "var(--orange)", href: "/system/catalogue/restaurants?statut=en_attente" },
-                  { cle: "correction", libelle: "Correction demandée", valeur: compteursRestaurants.correction, couleur: "var(--secondaire)", href: "/system/catalogue/restaurants?statut=correction" },
-                  { cle: "suspendus", libelle: "Suspendus", valeur: compteursRestaurants.suspendus, couleur: "var(--danger)", href: "/system/catalogue/restaurants?statut=suspendus" },
+                  { cle: "publies", libelle: "Publiés", valeur: compteursRestaurants.publies, couleur: "var(--succes)", href: lienRestaurants("publies") },
+                  { cle: "attente", libelle: "En attente de validation", valeur: compteursRestaurants.enAttente, couleur: "var(--orange)", href: lienRestaurants("en_attente") },
+                  { cle: "correction", libelle: "Correction demandée", valeur: compteursRestaurants.correction, couleur: "var(--secondaire)", href: lienRestaurants("correction") },
+                  { cle: "suspendus", libelle: "Suspendus", valeur: compteursRestaurants.suspendus, couleur: "var(--danger)", href: lienRestaurants("suspendus") },
                 ]}
               />
             </Panneau>
@@ -525,7 +529,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
               <Tuile valeur={stats.contenus.pagesBrouillon} libelle="Pages en brouillon" definition="Créées mais pas encore publiées." href="/system/contenu/pages?statut=brouillon" ton={stats.contenus.pagesBrouillon > 0 ? "danger" : "neutre"} />
               <Tuile valeur={stats.contenus.bannieresPubliees} libelle="Bannières publiées" definition="Diffusées sur les écrans publics." href="/system/contenu/bannieres?statut=publie" />
               <Tuile valeur={stats.contenus.bannieresBrouillon} libelle="Bannières en brouillon" definition="Créées mais pas encore publiées." href="/system/contenu/bannieres?statut=brouillon" ton={stats.contenus.bannieresBrouillon > 0 ? "danger" : "neutre"} />
-              <Tuile valeur={stats.contenus.misesEnAvantActives} libelle="Mises en avant actives" definition="Restaurants épinglés en tête du catalogue." href="/system/catalogue/mises-en-avant" />
+              <Tuile valeur={stats.contenus.misesEnAvantActives} libelle="Mises en avant actives" definition="Restaurants épinglés en tête du catalogue." href={lienMisesEnAvant} />
             </div>
           </Volet>
         ) : null}

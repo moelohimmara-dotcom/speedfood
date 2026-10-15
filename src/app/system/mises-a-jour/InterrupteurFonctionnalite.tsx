@@ -12,7 +12,7 @@ export function InterrupteurFonctionnalite({ cle, active, libelle }: { cle: stri
     <form action={action} className="mj-interrupteur">
       <input type="hidden" name="cle" value={cle} />
       <input type="hidden" name="active" value={active ? "0" : "1"} />
-      <button type="submit" className={active ? "btn btn-secondaire" : "btn btn-primaire"} disabled={enCours} aria-label={`${active ? "Couper" : "Réactiver"} : ${libelle}`}>
+      <button type="submit" className={active ? "btn btn-secondary" : "btn btn-primary"} disabled={enCours} aria-label={`${active ? "Couper" : "Réactiver"} : ${libelle}`}>
         {enCours ? "…" : active ? "Couper" : "Réactiver"}
       </button>
       <p className="mj-retour" role="status" aria-live="polite">

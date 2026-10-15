@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   basculerMiseEnAvantAction,
   retirerMiseEnAvantAction,
@@ -12,6 +12,7 @@ import { Pastille } from "@/components/admin/blocs";
 /** Une ligne du tableau des mises en avant (rendu dans un `<tbody>`). */
 export function MiseEnAvantItem({ miseEnAvant }: { miseEnAvant: MiseEnAvant }) {
   const [enTransition, demarrerTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
 
   return (
     <tr>
@@ -30,7 +31,12 @@ export function MiseEnAvantItem({ miseEnAvant }: { miseEnAvant: MiseEnAvant }) {
             type="button"
             variante="secondary"
             disabled={enTransition}
-            onClick={() => demarrerTransition(() => basculerMiseEnAvantAction(miseEnAvant.id, !miseEnAvant.actif))}
+            onClick={() =>
+              demarrerTransition(async () => {
+                const retour = await basculerMiseEnAvantAction(miseEnAvant.id, !miseEnAvant.actif);
+                setErreur(retour.erreur ?? null);
+              })
+            }
           >
             {miseEnAvant.actif ? "Désactiver" : "Activer"}
           </Button>
@@ -40,13 +46,21 @@ export function MiseEnAvantItem({ miseEnAvant }: { miseEnAvant: MiseEnAvant }) {
             disabled={enTransition}
             onClick={() => {
               if (confirm(`Retirer ${miseEnAvant.restaurant_nom} des mises en avant ?`)) {
-                demarrerTransition(() => retirerMiseEnAvantAction(miseEnAvant.id));
+                demarrerTransition(async () => {
+                  const retour = await retirerMiseEnAvantAction(miseEnAvant.id);
+                  setErreur(retour.erreur ?? null);
+                });
               }
             }}
           >
             Retirer
           </Button>
         </span>
+        {erreur ? (
+          <p role="alert" className="ad-action-erreur">
+            {erreur}
+          </p>
+        ) : null}
       </td>
     </tr>
   );

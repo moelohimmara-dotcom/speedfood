@@ -650,3 +650,8 @@
   outline: 3px solid var(--rouge-fonce);
   outline-offset: 4px;
 }
+
+/* Alerte de commandes : une seule instance, en tête du contenu (visible sur téléphone comme sur ordinateur). */
+.rc-alerte-barre {
+  margin-bottom: var(--space-3);
+}

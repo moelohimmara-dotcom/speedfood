@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { creerClientServeur } from "@/lib/db/server";
+import { lireCommandesATraiter } from "@/lib/commande/a-traiter-lecture";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +30,8 @@ export async function GET(): Promise<Response> {
     return NextResponse.json({ code: "NON_AUTORISE" }, { status: 403, headers: ENTETES });
   }
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, cree_le")
-    .eq("restaurant_id", membership.restaurant_id)
-    .eq("statut", "en_attente")
-    .order("cree_le", { ascending: false })
-    .limit(50);
+  // Même règle que la pastille et la page Commandes : une commande qui attend la réponse du CLIENT n'est pas à traiter.
+  const { erreur: error, commandes: data } = await lireCommandesATraiter(supabase, membership.restaurant_id);
   if (error) {
     console.error("alertes_commandes_indisponible");
     return NextResponse.json({ code: "ERREUR_SERVEUR" }, { status: 500, headers: ENTETES });

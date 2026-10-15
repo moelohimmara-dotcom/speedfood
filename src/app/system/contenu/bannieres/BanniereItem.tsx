@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   basculerPublicationBanniereAction,
   supprimerBanniereAction,
@@ -11,6 +11,7 @@ import { Card, Badge, Button } from "@/components/ui";
 /** `indisponible` : explication d'un palier insuffisant pour publier/dépublier/supprimer (le serveur refuse de toute façon). */
 export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; indisponible?: string }) {
   const [enTransition, demarrerTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
   const publie = banniere.statut === "publie";
 
   return (
@@ -46,7 +47,10 @@ export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; i
           disabled={enTransition || Boolean(indisponible)}
           aria-describedby={indisponible ? `banniere-${banniere.id}-limite` : undefined}
           onClick={() =>
-            demarrerTransition(() => basculerPublicationBanniereAction(banniere.id, !publie))
+            demarrerTransition(async () => {
+              const retour = await basculerPublicationBanniereAction(banniere.id, !publie);
+              setErreur(retour.erreur ?? null);
+            })
           }
         >
           {publie ? "Dépublier" : "Publier"}
@@ -59,13 +63,21 @@ export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; i
           aria-describedby={indisponible ? `banniere-${banniere.id}-limite` : undefined}
           onClick={() => {
             if (confirm(`Supprimer la bannière « ${banniere.titre} » ?`)) {
-              demarrerTransition(() => supprimerBanniereAction(banniere.id));
+              demarrerTransition(async () => {
+                const retour = await supprimerBanniereAction(banniere.id);
+                setErreur(retour.erreur ?? null);
+              });
             }
           }}
         >
           Supprimer
         </Button>
       </div>
+      {erreur ? (
+        <p role="alert" className="ad-action-erreur">
+          {erreur}
+        </p>
+      ) : null}
     </Card>
   );
 }

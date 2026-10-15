@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
+import { erreurAction, type RetourAction } from "./retour-action";
 
 /**
  * Mises en avant (bloc 8c) : permission `contenu.mettre_en_avant`, réservée à
@@ -101,42 +102,54 @@ export async function ajouterMiseEnAvantAction(
   return { succes: true };
 }
 
-export async function basculerMiseEnAvantAction(id: string, actif: boolean): Promise<void> {
-  const contexte = await verifierPermission("contenu.mettre_en_avant");
-  const supabase = await creerClientServeur();
+export async function basculerMiseEnAvantAction(id: string, actif: boolean): Promise<RetourAction> {
+  try {
+    const contexte = await verifierPermission("contenu.mettre_en_avant");
+    const supabase = await creerClientServeur();
 
-  const { data } = await supabase
-    .from("featured_placements")
-    .update({ actif })
-    .eq("id", id)
-    .select("restaurant_id")
-    .single();
+    const { data, error } = await supabase
+      .from("featured_placements")
+      .update({ actif })
+      .eq("id", id)
+      .select("restaurant_id")
+      .single();
+    if (error) return { erreur: "La mise en avant n'a pas pu être modifiée. Réessayez dans un instant." };
 
-  await journaliserActionSysteme(contexte, {
-    action: actif ? "mise_en_avant.activation" : "mise_en_avant.desactivation",
-    cibleType: "restaurant",
-    cibleId: data?.restaurant_id ?? id,
-  });
+    await journaliserActionSysteme(contexte, {
+      action: actif ? "mise_en_avant.activation" : "mise_en_avant.desactivation",
+      cibleType: "restaurant",
+      cibleId: data?.restaurant_id ?? id,
+    });
 
-  revalidatePath("/system/catalogue/mises-en-avant");
+    revalidatePath("/system/catalogue/mises-en-avant");
+    return {};
+  } catch (erreur) {
+    return erreurAction(erreur, "La mise en avant n'a pas pu être modifiée. Réessayez dans un instant.");
+  }
 }
 
-export async function retirerMiseEnAvantAction(id: string): Promise<void> {
-  const contexte = await verifierPermission("contenu.mettre_en_avant");
-  const supabase = await creerClientServeur();
+export async function retirerMiseEnAvantAction(id: string): Promise<RetourAction> {
+  try {
+    const contexte = await verifierPermission("contenu.mettre_en_avant");
+    const supabase = await creerClientServeur();
 
-  const { data } = await supabase
-    .from("featured_placements")
-    .delete()
-    .eq("id", id)
-    .select("restaurant_id")
-    .single();
+    const { data, error } = await supabase
+      .from("featured_placements")
+      .delete()
+      .eq("id", id)
+      .select("restaurant_id")
+      .single();
+    if (error) return { erreur: "La mise en avant n'a pas pu être retirée. Réessayez dans un instant." };
 
-  await journaliserActionSysteme(contexte, {
-    action: "mise_en_avant.suppression",
-    cibleType: "restaurant",
-    cibleId: data?.restaurant_id ?? id,
-  });
+    await journaliserActionSysteme(contexte, {
+      action: "mise_en_avant.suppression",
+      cibleType: "restaurant",
+      cibleId: data?.restaurant_id ?? id,
+    });
 
-  revalidatePath("/system/catalogue/mises-en-avant");
+    revalidatePath("/system/catalogue/mises-en-avant");
+    return {};
+  } catch (erreur) {
+    return erreurAction(erreur, "La mise en avant n'a pas pu être retirée. Réessayez dans un instant.");
+  }
 }

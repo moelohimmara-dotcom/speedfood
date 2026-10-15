@@ -10,6 +10,7 @@ import { journaliserActionSysteme } from "./audit";
 import { televerserImage, supprimerImage } from "@/lib/storage/images";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { invaliderCache } from "@/lib/cms/cache";
+import { erreurAction, type RetourAction } from "./retour-action";
 
 /**
  * Pages éditoriales (aide/FAQ/accueil) et bannières — bloc 8c. Toute mutation
@@ -450,49 +451,62 @@ export async function creerBanniereAction(
 export async function basculerPublicationBanniereAction(
   id: string,
   publier: boolean
-): Promise<void> {
-  const contexte = await verifierPermission("contenu.editer");
-  await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.publier, { contexte });
-  const supabase = await creerClientServeur();
+): Promise<RetourAction> {
+  try {
+    const contexte = await verifierPermission("contenu.editer");
+    await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.publier, { contexte });
+    const supabase = await creerClientServeur();
 
-  await supabase
-    .from("content_banners")
-    .update({
-      statut: publier ? "publie" : "brouillon",
-      mis_a_jour_le: new Date().toISOString(),
-    })
-    .eq("id", id);
+    const { error } = await supabase
+      .from("content_banners")
+      .update({
+        statut: publier ? "publie" : "brouillon",
+        mis_a_jour_le: new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) return { erreur: "La bannière n'a pas pu être modifiée. Réessayez dans un instant." };
 
-  await journaliserActionSysteme(contexte, {
-    action: publier ? "contenu.banniere_publication" : "contenu.banniere_depublication",
-    cibleType: "content_banner",
-    cibleId: id,
-  });
+    await journaliserActionSysteme(contexte, {
+      action: publier ? "contenu.banniere_publication" : "contenu.banniere_depublication",
+      cibleType: "content_banner",
+      cibleId: id,
+    });
 
-  await invaliderCache(["bannieres"]);
-  revalidatePath("/system/contenu/bannieres");
+    await invaliderCache(["bannieres"]);
+    revalidatePath("/system/contenu/bannieres");
+    return {};
+  } catch (erreur) {
+    return erreurAction(erreur, "La bannière n'a pas pu être modifiée. Réessayez dans un instant.");
+  }
 }
 
-export async function supprimerBanniereAction(id: string): Promise<void> {
-  const contexte = await verifierPermission("contenu.editer");
-  await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.publier, { contexte });
-  const supabase = await creerClientServeur();
+export async function supprimerBanniereAction(id: string): Promise<RetourAction> {
+  try {
+    const contexte = await verifierPermission("contenu.editer");
+    await verifierPalier("contenu:bannieres", MINIMUMS_STUDIO.publier, { contexte });
+    const supabase = await creerClientServeur();
 
-  const { data: banniere } = await supabase
-    .from("content_banners")
-    .select("image_url")
-    .eq("id", id)
-    .maybeSingle();
+    const { data: banniere } = await supabase
+      .from("content_banners")
+      .select("image_url")
+      .eq("id", id)
+      .maybeSingle();
 
-  await supabase.from("content_banners").delete().eq("id", id);
-  await supprimerImage(banniere?.image_url ?? null);
+    // L'image n'est supprimée qu'APRÈS la suppression de la ligne : si celle-ci échoue, la bannière garde son image.
+    const { error } = await supabase.from("content_banners").delete().eq("id", id);
+    if (error) return { erreur: "La bannière n'a pas pu être supprimée. Réessayez dans un instant." };
+    await supprimerImage(banniere?.image_url ?? null);
 
-  await journaliserActionSysteme(contexte, {
-    action: "contenu.banniere_suppression",
-    cibleType: "content_banner",
-    cibleId: id,
-  });
+    await journaliserActionSysteme(contexte, {
+      action: "contenu.banniere_suppression",
+      cibleType: "content_banner",
+      cibleId: id,
+    });
 
-  await invaliderCache(["bannieres"]);
-  revalidatePath("/system/contenu/bannieres");
+    await invaliderCache(["bannieres"]);
+    revalidatePath("/system/contenu/bannieres");
+    return {};
+  } catch (erreur) {
+    return erreurAction(erreur, "La bannière n'a pas pu être supprimée. Réessayez dans un instant.");
+  }
 }

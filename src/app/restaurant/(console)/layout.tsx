@@ -9,6 +9,7 @@ import { AdminMenuMobile } from "@/components/admin/AdminMenuMobile";
 import { IconeAdmin } from "@/components/admin/icones";
 import { NavRestaurantBas, NavRestaurantCote } from "@/components/restaurant/NavRestaurant";
 import { lireClesVapid } from "@/lib/push/envoi";
+import { lireCommandesATraiter } from "@/lib/commande/a-traiter-lecture";
 import "../recap.css";
 
 /**
@@ -19,16 +20,13 @@ import "../recap.css";
  */
 export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const { supabase, user, membership } = await obtenirContexteRestaurant("/restaurant");
-  const [aAussiUnRoleSysteme, { count: aTraiter }, { data: restaurant }] = await Promise.all([
+  const [aAussiUnRoleSysteme, aTraiter, { data: restaurant }] = await Promise.all([
     aUnRoleSysteme(supabase, user.id),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("restaurant_id", membership.restaurant_id)
-      .eq("statut", "en_attente"),
+    // Les commandes qui attendent la réponse du CLIENT (proposition de prix en cours) ne sont pas « à traiter » : même règle que la page Commandes.
+    lireCommandesATraiter(supabase, membership.restaurant_id),
     supabase.from("restaurants").select("nom, publie, logo_url").eq("id", membership.restaurant_id).maybeSingle(),
   ]);
-  const nombreATraiter = aTraiter ?? 0;
+  const nombreATraiter = aTraiter.commandes.length;
 
   const marque = (
     <div className="ad-marque">
@@ -45,7 +43,6 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   const liensBas = (
     <div className="ad-liens-bas">
       <div className="rc-outils">
-        <AlerteCommandes clePublique={lireClesVapid()?.clePublique ?? null} />
         <InstallationApp />
       </div>
       <Link href={`/restaurants/${membership.restaurant_id}`} className="ad-lien-bas" target="_blank" rel="noopener noreferrer">
@@ -109,6 +106,11 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         </header>
 
         <main id="contenu" tabIndex={-1} className="ad-contenu">
+          {/* Montée UNE SEULE fois : le menu latéral et le tiroir mobile reproduisaient tout leur contenu, donc l'alerte (deux sondages, deux
+              carillons) et son état, invisible sur téléphone (aside masqué, tiroir fermé). Ici l'état reste lisible sur toute la largeur. */}
+          <div className="rc-alerte-barre">
+            <AlerteCommandes clePublique={lireClesVapid()?.clePublique ?? null} />
+          </div>
           <RappelDoubleAuthentification supabase={supabase} administrateur={aAussiUnRoleSysteme} />
           {children}
         </main>

@@ -40,18 +40,23 @@ interface Plat {
 const etatInitial: EtatFormulaireMenu = {};
 
 export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut" }: { plat: Plat; sections?: Section[]; restaurantId: string; famille?: keyof typeof PALETTES }) {
-  const [enEdition, setEnEdition] = useState(false);
+  const [ouvert, setOuvert] = useState(false);
   const [etat, action, enCours] = useActionState(modifierPlatAction, etatInitial);
+  // L'éditeur ne se ferme qu'APRÈS un enregistrement réussi (nouvelle réponse sans erreur depuis l'ouverture) : avant, il se fermait dès
+  // l'envoi et une erreur (prix invalide, photo trop lourde) n'était jamais affichée, le restaurateur croyait avoir modifié le plat.
+  const [etatALOuverture, setEtatALOuverture] = useState(etat);
+  const enEdition = ouvert && !(etat !== etatALOuverture && !etat.erreur);
+  const setEnEdition = (valeur: boolean) => {
+    if (valeur) setEtatALOuverture(etat);
+    setOuvert(valeur);
+  };
   const [enTransition, demarrerTransition] = useTransition();
 
   if (enEdition) {
     return (
       <Card>
         <form
-          action={(formData) => {
-            action(formData);
-            setEnEdition(false);
-          }}
+          action={action}
         >
           <input type="hidden" name="id" value={plat.id} />
           <div className="field">

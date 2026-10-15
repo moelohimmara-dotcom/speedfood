@@ -38,6 +38,7 @@
 }
 
 .dj-groupe {
+  min-height: 44px;
   border: 1px solid var(--bordure);
   background: var(--surface);
   color: var(--secondaire);
@@ -56,7 +57,8 @@
 
 .dj-modifie {
   font-size: 0.85rem;
-  color: var(--mangue);
+  /* Le texte mangue sur crème ne faisait que 1,5:1 : le texte est en encre, la mangue reste dans le liseré. */
+  color: var(--encre);
   background: var(--creme);
   border-left: 3px solid var(--mangue);
   padding: var(--space-2) var(--space-3);

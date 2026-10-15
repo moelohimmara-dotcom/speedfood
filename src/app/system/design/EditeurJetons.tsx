@@ -238,6 +238,8 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
       return;
     }
     if (!Object.values(personnalises).some(Boolean)) return;
+    // Rétablir tout le design change le SITE PUBLIC aussitôt : jamais sans confirmation (audit du 15 octobre 2026, P-01).
+    if (!window.confirm("Rétablir TOUS les réglages de design aux valeurs d'origine ? Les pages publiques changeront aussitôt.")) return;
     actionToutRetablir(new FormData());
   };
 
@@ -261,16 +263,12 @@ export function EditeurJetons({ jetons }: { jetons: JetonVue[] }) {
           </div>
           <button
             type="button"
-            className="btn btn-secondaire dj-retour"
+            className="btn btn-secondary dj-retour"
             onClick={revenirAuxActuelles}
             disabled={enCoursGlobal}
-            title={
-              modifiees.length > 0
-                ? "Annule les modifications non enregistrées"
-                : "Remet le site à ses couleurs d'origine"
-            }
           >
-            {enCoursGlobal ? "Retour en cours…" : "Revenir aux valeurs actuelles"}
+            {/* Deux effets, deux libellés : annuler ce qui n'est pas enregistré (aperçu), ou rétablir tout le site. Le libellé dit lequel. */}
+            {enCoursGlobal ? "Retour en cours…" : modifiees.length > 0 ? "Annuler mes modifications" : "Tout rétablir aux valeurs d'origine"}
           </button>
         </div>
 
@@ -442,7 +440,7 @@ function LigneJeton({
           <input type="hidden" name="cle" value={jeton.cle} />
           <input type="hidden" name="portee" value="site" />
           <input type="hidden" name="valeur" value={valeur} />
-          <button type="submit" className="btn btn-secondaire" disabled={enCours || valeur === enregistree}>
+          <button type="submit" className="btn btn-secondary" disabled={enCours || valeur === enregistree}>
             {enCours ? "Enregistrement…" : "Enregistrer"}
           </button>
         </form>

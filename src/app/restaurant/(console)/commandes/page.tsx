@@ -55,13 +55,14 @@ export default async function CommandesPage() {
   // Seules les commandes à traiter attendent une réponse : on affiche leur attente exacte quand elle devient longue.
   const attente = (c: ApercuCommandeRestaurant) =>
     c.etatDerive === "en_attente" && enRetard(c.creeLe, maintenant) ? minutesDepuis(c.creeLe, maintenant) : null;
-  const aTraiter = commandes.filter((c) => c.etatDerive === "en_attente");
+  // La commande la plus en retard doit être la première : on traite d'abord celle qui attend depuis le plus longtemps.
+  const aTraiter = commandes.filter((c) => c.etatDerive === "en_attente").sort((a, b) => a.creeLe.localeCompare(b.creeLe));
   const enCours = commandes.filter((c) => ["attente_confirmation_client", "acceptee", "prete"].includes(c.etatDerive));
   const historique = commandes.filter((c) => ["terminee", "refusee", "annulee"].includes(c.etatDerive));
 
   return (
     <div>
-      <PageHeader titre="Commandes" description="Les nouvelles commandes d'abord, puis celles en cours, puis l'historique." />
+      <PageHeader titre="Commandes" description="Les commandes à traiter d'abord (la plus ancienne en premier), puis celles en cours, puis l'historique." />
 
       {erreurChargement ? (
         <Alert ton="danger">{erreurChargement}</Alert>

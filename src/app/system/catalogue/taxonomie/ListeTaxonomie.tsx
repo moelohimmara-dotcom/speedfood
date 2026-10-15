@@ -47,20 +47,24 @@ export function ListeTaxonomie({ table, elements }: { table: Table; elements: El
 }
 
 function LigneElement({ table, element }: { table: Table; element: ElementTaxonomie }) {
-  const [enEdition, setEnEdition] = useState(false);
+  const [ouvert, setOuvert] = useState(false);
   const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
   const [enTransition, demarrerTransition] = useTransition();
 
   const actionModifier = modifierElementTaxonomieAction.bind(null, table);
   const [etat, modifier] = useActionState(actionModifier, etatInitial);
+  // L'édition ne se ferme qu'APRÈS un enregistrement réussi : avant, elle se fermait dès l'envoi et une erreur du serveur était perdue.
+  const [etatALOuverture, setEtatALOuverture] = useState(etat);
+  const enEdition = ouvert && !(etat !== etatALOuverture && !etat.erreur);
+  const setEnEdition = (valeur: boolean) => {
+    if (valeur) setEtatALOuverture(etat);
+    setOuvert(valeur);
+  };
 
   if (enEdition) {
     return (
       <form
-        action={(formData) => {
-          modifier(formData);
-          setEnEdition(false);
-        }}
+        action={modifier}
         style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}
       >
         <input type="hidden" name="id" value={element.id} />
@@ -76,7 +80,7 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
   }
 
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <span>
         {element.nom} <span style={{ color: "var(--secondaire)", fontSize: "0.85rem", whiteSpace: "nowrap" }}>(ordre&nbsp;{element.ordre})</span>
       </span>

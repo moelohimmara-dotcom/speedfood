@@ -87,6 +87,34 @@ La synthèse et les vérifications ci-dessous sont de la session principale (Son
 
 Ces durées sont des ordres de grandeur, pas des engagements : elles dépendent des décisions ci-dessous.
 
+## 6 bis. Phase 0 : état d'avancement (15 octobre 2026, en local, non déployée)
+
+| Constat | État |
+|---|---|
+| V1 alerte montée deux fois, état invisible sur téléphone | **Corrigé** : une seule instance, en tête du contenu (`layout.tsx`) |
+| V3 compteur faux (commandes qui attendent le client) | **Corrigé** : règle unique `lireCommandesATraiter` (pastille et alerte), testée |
+| V4 tri inversé de « À traiter » | **Corrigé** : la plus ancienne en premier |
+| V5 bouton de design trompeur | **Corrigé** : libellé selon l'effet, confirmation avant de rétablir le site public |
+| V6 contraste du texte mangue sur crème | **Corrigé** (texte en encre) |
+| V7 classes `btn-secondaire` / `btn-primaire` | **Corrigé** |
+| Erreur perdue à l'édition d'un plat (restaurateur) et d'un élément de taxonomie | **Corrigé** : l'éditeur ne se ferme qu'après un succès |
+| Bannières et mises en avant sans retour d'information, exceptions non rattrapées | **Corrigé** : retour `{ erreur }` affiché |
+| Liens du tableau de bord qui menaient à une 404 selon le rôle | **Corrigé** |
+| `error.tsx` (système et restaurateur), `loading.tsx` (restaurateur) | **Ajoutés** |
+| VIS-1 Taxonomie : quartiers techniques supprimables | **Corrigé** : masqués, modification et suppression refusées côté serveur, suppression refusée tant que la liste d'attente ou des zones en dépendent |
+| VIS-2 rappel 2FA de 125 px sur téléphone | **Corrigé** : 63 px (mesuré en local) |
+| VIS-3 boutons coupés (Taxonomie) | **Corrigé** (retour à la ligne) |
+| ED-1 boîtes de dialogue décentrées | **Corrigé** (`margin: auto`, centrage mesuré en local) |
+| Cibles tactiles (liens de cartes, case de sélection, onglets du design, bouton de famille du menu) | **Corrigé** en grande partie ; menu latéral de bureau volontairement compact (souris) |
+| Anneau de focus mangue | **Corrigé** (rouge foncé) |
+| Pagination des commandes (historique entier chargé à chaque rafraîchissement) | **Non fait** : refonte de la requête et des chiffres de l'accueil |
+| VIS-4 région et préfecture de Conakry en double (Géographie) | **Non fait** |
+| ED-2 à ED-5 (éditeur de pages) | **Non fait** : phase de refonte |
+| Mode service, maintien de l'écran allumé, hors ligne | **Non fait** : phase restaurateur |
+
+**Vérifié** : types, lint, 1628 contrôles (dont 8 sur la règle « à traiter »), build et `cf:build` ; centrage des boîtes et hauteur du rappel 2FA mesurés en local.
+**Non vérifié à l'écran** : les écrans connectés (restaurateur, Taxonomie) n'ont pas été vus après correction, faute de session locale ; à contrôler après déploiement.
+
 ## 7. Décisions à prendre avant de coder
 
 1. **Identité de la console** : sobre (outil de travail, recommandé) ou colorée comme le site public.
