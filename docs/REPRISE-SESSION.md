@@ -13,7 +13,7 @@ Document de référence pour reprendre le projet à froid. Rédigé et mis à jo
 
 | | |
 |---|---|
-| Dépôt | `C:\Users\moelo\OneDrive\Desktop\speedfood` — branche `master`, distant `moelohimmara-dotcom/speedfood` ; déplacement vers `C:\Users\moelo\dev\speedfood` encore à faire par le propriétaire, session fermée |
+| Dépôt | **`C:\Users\moelo\dev\speedfood`** — branche `master`, distant `moelohimmara-dotcom/speedfood`. C'est le dépôt actif (vérifié le 15 octobre 2026). Une **ancienne copie** existe encore dans `C:\Users\moelo\OneDrive\Desktop\speedfood` : voir § 8, point 9 |
 | Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
 | Version en ligne | `dde477fa-cb84-4a30-99a3-5c38d6162ca3` (15 octobre 2026, commit `481a74a` ; HEAD `a10a2e6` = documentation seulement) |
 | Base | Supabase `ggldjdizqrtpetdiohxy` — schéma vérifié au déploiement |
@@ -173,8 +173,12 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 ### En suspens
 
-9. Déplacer le dépôt de `C:\Users\moelo\dev\speedfood` vers le Bureau : à faire **session fermée**
-   (déplacement déjà échoué une fois sur un verrou de session).
+9. **Deux copies du dépôt coexistent.** Le dépôt actif est `C:\Users\moelo\dev\speedfood` (tout le travail récent, à jour avec GitHub).
+   `C:\Users\moelo\OneDrive\Desktop\speedfood` est une ancienne copie, en retard de 40 commits (dernier commit `5afc8af`, 11 octobre), sur la branche
+   `chore/next-16-4` avec des **modifications non commitées** de `package.json` et `package-lock.json` (essai de montée vers Next `^16.4.0`, React `^19.3.0`,
+   `@opennextjs/cloudflare` `^1.20.10`, `wrangler` `^4.149.0`, datées du 12 octobre). Ces modifications ne sont nulle part ailleurs. À trancher par le propriétaire :
+   les reprendre dans le dépôt actif (branche `essai-next-16-4-0` existe déjà dans le dépôt actif) ou les abandonner, puis supprimer la copie OneDrive pour ne
+   plus risquer de travailler dans la mauvaise. **Ne pas travailler dans la copie OneDrive.** Le CLAUDE.md de ce dépôt cible Next.js 16.3.6.
 
 ---
 
