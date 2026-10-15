@@ -6,6 +6,7 @@ import { lireAccueil, grouperQuartiersParCommune } from "@/lib/site/accueil";
 import { lireHierarchieZones } from "@/lib/site/zones";
 import { slugQuartier } from "@/lib/site/quartiers";
 import { origineDuSite } from "@/lib/partage/origine";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
@@ -23,7 +24,7 @@ function pluriel(nombre: number, singulier: string, plusieurs: string): string {
 }
 
 export default async function QuartiersPage() {
-  const [{ quartiers, erreur }, hierarchie] = await Promise.all([lireAccueil(), lireHierarchieZones()]);
+  const [{ quartiers, erreur }, hierarchie, attenteActive] = await Promise.all([lireAccueil(), lireHierarchieZones(), fonctionnaliteActive("zone_liste_attente")]);
   const groupes = grouperQuartiersParCommune(quartiers);
 
   return (
@@ -42,7 +43,7 @@ export default async function QuartiersPage() {
         <VecteurQuartiers />
       </div>
 
-      {hierarchie.length > 0 ? <ParcourirLocalites hierarchie={hierarchie} /> : null}
+      {hierarchie.length > 0 ? <ParcourirLocalites hierarchie={hierarchie} attenteActive={attenteActive} /> : null}
 
       {erreur ? (
         <p className="pub-vide">Impossible de charger les quartiers pour le moment. Réessayez dans un instant.</p>

@@ -1470,3 +1470,94 @@
 .fiche-panier-apercu {
   align-content: start;
 }
+
+/* ===== Explorer les localités : titre mesuré, chiffres, recherche, pastilles, régions sans restaurant estompées ===== */
+.localites-titre {
+  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
+}
+.localites-chiffres {
+  margin: 0;
+  color: var(--secondaire);
+  font-weight: 700;
+}
+.localites-outils {
+  display: grid;
+  gap: var(--space-2);
+}
+.localites-recherche-etiquette {
+  font-weight: 700;
+}
+.localites-recherche-champ {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+.localites-recherche-champ:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.localites-filtre {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.localites-filtre input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--rouge-fonce);
+}
+.localites-etat {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.92rem;
+}
+.localites-bilan {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.localites-pastille {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.localites-pastille.est-vide {
+  border-color: var(--bordure);
+  background: transparent;
+  color: var(--secondaire);
+  font-weight: 700;
+}
+.localites-region.est-vide,
+.localites-prefecture.est-vide {
+  border-style: dashed;
+  border-color: var(--secondaire);
+  border-width: 1.5px;
+}
+.localites-prefecture {
+  border-color: var(--bordure);
+  border-width: 2px;
+}
+.localites-prefecture.est-vide {
+  border-color: var(--bordure);
+}
+.localites-acces {
+  padding-top: 0;
+}
+.localites-acces-bouton {
+  min-height: 44px;
+}
