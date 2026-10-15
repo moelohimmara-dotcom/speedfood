@@ -773,3 +773,38 @@ Worker : démarrage 30 ms, bundle gzip ~3,3 Mo. 33 tables Supabase vérifiées e
 **Vérification en production :**
 - Routes publiques `/` et `/restaurants` en **HTTP 200 OK**.
 - Présence confirmée de la classe `stamp-fraicheur` dans le HTML servi au navigateur.
+
+
+## 15 octobre 2026 : zones de toute la Guinée, aperçu de fiche, commandes de test, console Géographie (versions `b09dfd10` puis `63b5e350`, `ed4cc9f4`, `dde477fa`)
+
+Tout est déployé en production. Les commits jusqu'à `dec267d` sont sur GitHub ; `18c982b` et `481a74a` (console Géographie et correctifs) sont **locaux, non poussés**.
+
+**Ce qui existe maintenant**
+
+- **Zones** : sélecteur commune / quartier avec « Utiliser ma position » (OpenStreetMap, côté serveur), recherche, liste d'attente « Prévenez-moi » (`zone_alertes`, service-role seulement), zones de livraison par restaurant (`restaurant_zones_desservies`, « Livre à … »), géographie nationale (8 régions, 34 préfectures, 335 communes hors Conakry, quartiers génériques « Centre de … »). Page publique `/quartiers` : chiffres clés, recherche sans accents, filtre, niveaux simplifiés, annonce « Bientôt » / « Pilote ».
+- **Aperçu de la fiche publique** (`?vue=visiteur`, `?vue=test`) : l'équipe et les administrateurs voient la fiche même non publiée avec un bandeau, trois niveaux (aperçu sans commande, vue visiteur figée par `inert`, mode test). Le rôle vient de la session (`src/lib/restaurant/vue-fiche.ts`), jamais d'un paramètre d'adresse.
+- **Commandes de test** : une commande passée par un membre de l'équipe du restaurant commandé, ou par un administrateur système, est marquée `orders.est_test` par le serveur (`creerCommande`). Marquage immuable (trigger `fn_proteger_colonnes_commande`), exclu de toutes les statistiques d'administration (`fn_statistiques_application`, `fn_support_*`), pastille « Test » en console et sur le suivi. Migration `20261015120000_commandes_test.sql`.
+- **Console Géographie** (`/system/catalogue/geographie`) : région à gérer, panneau Qualité des données (regroupé), lignes avec interrupteur « Visible », bouton Enregistrer actif seulement après modification, point central contrôlé + suggestion OpenStreetMap, recherche et filtres, actions par lot, fusion de quartiers en double (`fn_fusionner_quartiers`), export / import CSV avec aperçu et confirmation (le serveur recompare à la base à l'application), demande par zone, historique, statut de lancement des communes (`communes.statut_lancement`). Carte de couverture sur `/system/catalogue/couverture`. Migration `20261015140000_geographie_lancement_fusion.sql`.
+- Migrations : **80 fichiers = 80 en base**. `get_advisors(security)` : un avis WARN de plus (« fonction SECURITY DEFINER exécutable par authenticated » pour `fn_fusionner_quartiers`, qui vérifie le rôle elle-même, comme les 20 autres).
+
+**Vérifié**
+
+- Tests purs : 1620 contrôles (dont l'import / export CSV, le diagnostic de qualité, l'aller-retour d'un fichier). Build et lint sans erreur.
+- Page `/quartiers` et pages publiques en production locale puis réelle (recherche, filtre, 26 liens internes sans erreur, lecture de la nouvelle colonne par le client anonyme).
+- `fn_fusionner_quartiers` essayée sur des quartiers fictifs dans une transaction annulée (nom ajouté en nom alternatif, doublon désactivé, rien laissé en base).
+- Interface de la console Géographie essayée sur une page temporaire (supprimée) **dans la coque réelle `.ad-app`**, avec le volume réel (46 quartiers sans point) : espacements mesurés, interrupteur 46 × 28 px, groupes de qualité.
+
+**Non vérifié (à faire avec une session réelle)**
+
+- Les actions serveur de la console Géographie : enregistrer une ligne, lot, import / application, suggestion de point, historique (`fn_lister_audit`).
+- Le parcours complet d'une commande de test : création par un restaurateur connecté, pastille « Test », absence dans les chiffres de l'administration.
+- Les trois niveaux de l'aperçu de fiche en étant connecté (propriétaire, administrateur).
+- L'annonce « Bientôt / Pilote » sur des données réelles (aucune commune n'a ce statut pour l'instant).
+
+**Pièges payés ce jour**
+
+- Les règles globales de la console (`fantaisie.css`) imposent 22 × 22 px et un rebond à toutes les cases à cocher sous `.ad-app` : tout contrôle personnalisé doit porter `.ad-app` pour passer devant. Tester un composant d'administration hors de la coque `.ad-app` et avec peu de données masque ce genre de défaut.
+- Les pages d'administration empilent leurs blocs dans la pile `.ad-pile` (écart de 20 px) ; un `<div>` nu les colle.
+- Un fichier « use server » ne peut exporter que des fonctions asynchrones : les fonctions pures et constantes vivent à côté (`geographie-outils.ts`).
+- `neighborhoods` n'a pas de colonne `slug` : le slug d'un quartier se calcule avec `slugQuartier(nom)`.
+- La neutralisation de formule du CSV ne doit pas toucher les nombres (longitudes négatives).
