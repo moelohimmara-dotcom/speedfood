@@ -33,11 +33,14 @@ confiance à un identifiant fourni par le client** : la fonction vérifie toujou
 | Table | Rôle | Visibilité publique |
 |---|---|---|
 | `menu_categories`, `neighborhoods` | Taxonomie partagée (filtres du catalogue) | Lecture publique totale |
+| `regions`, `prefectures`, `communes` | Géographie de la Guinée (8 / 34 / 345 communes) ; `communes.statut_lancement` (null = automatique, sinon `fermee`, `bientot`, `pilote`, `ouverte`) ; points centraux et noms alternatifs | Lecture publique (zones actives) |
+| `zone_alertes` | Liste d'attente « Prévenez-moi » (une ligne par contact et par zone) | Aucune — service-role seulement (policy de refus) |
+| `restaurant_zones_desservies` | Zones de livraison d'un restaurant (commune ou quartier) | Lecture publique si le restaurant est publié |
 | `restaurants` | Fiche établissement | Lecture publique si `publie = true` et `suspendu_le is null` |
 | `restaurant_memberships` | Lien compte ↔ restaurant, rôle `owner`/`manager` | Aucune (soi-même ou admin) |
 | `system_admin_memberships` | RBAC système (ADR-010), rôles `super_admin`/`operations`/`content_editor`/`support` | Aucune (soi-même ou super_admin) |
 | `menu_items` | Plats d'un restaurant, prix GNF entier | Lecture publique si le restaurant est publié |
-| `orders` | Commande invité (ADR-005) | Aucune — toute écriture passe par une route serveur (clé service-role) |
+| `orders` | Commande invité (ADR-005) ; `est_test` : commande de test, posée par le serveur à la création, **immuable** (trigger) et **exclue de toutes les statistiques** | Aucune — toute écriture passe par une route serveur (clé service-role) |
 | `order_items` | Instantané figé des lignes (ADR-006) | Aucune |
 | `order_status_events` | Historique des transitions, acteur + horodatage | Aucune |
 | `order_proposals` | Proposition de prix/conditions révisée (bloc 7, pas encore utilisée) | Aucune |
@@ -68,6 +71,12 @@ La validité des transitions est vérifiée à **deux niveaux indépendants** :
 2. Base de données : trigger `trg_orders_valider_transition` /
    `fn_valider_transition_commande`, qui rejette toute transition hors de la liste
    autorisée même si elle provient d'un accès direct à la table.
+
+## Fonctions ajoutées le 15 octobre 2026
+
+- `fn_fusionner_quartiers(p_source, p_cible)` : fusion atomique de deux quartiers d'une même commune (rôles `super_admin`, `content_editor`) ; le doublon est désactivé, jamais supprimé.
+- `fn_statistiques_application` et `fn_support_*` (heure, compteur, série) : excluent `est_test`. Toute nouvelle fonction qui compte ou additionne des commandes doit faire de même.
+- `fn_proteger_colonnes_commande` : refuse aussi toute modification de `est_test`.
 
 ## Fonctions utilitaires
 

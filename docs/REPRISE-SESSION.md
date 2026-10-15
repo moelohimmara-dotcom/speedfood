@@ -15,16 +15,16 @@ Document de référence pour reprendre le projet à froid. Rédigé et mis à jo
 |---|---|
 | Dépôt | `C:\Users\moelo\OneDrive\Desktop\speedfood` — branche `master`, distant `moelohimmara-dotcom/speedfood` ; déplacement vers `C:\Users\moelo\dev\speedfood` encore à faire par le propriétaire, session fermée |
 | Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
-| Version en ligne | `137079a9-2fb2-4da0-a76b-6ad700925df0` (11 octobre 2026, commit `c0648d0`) |
+| Version en ligne | `dde477fa-cb84-4a30-99a3-5c38d6162ca3` (15 octobre 2026, commit `481a74a` ; HEAD `a10a2e6` = documentation seulement) |
 | Base | Supabase `ggldjdizqrtpetdiohxy` — schéma vérifié au déploiement |
-| État Git | `master` à jour avec `origin/master`, arbre propre hors dossier documentaire en cours d'intégration |
+| État Git | `master` à jour avec `origin/master` (poussé le 15 octobre 2026), arbre propre. Dépôt de travail actuel : `C:\Users\moelo\dev\speedfood` |
 
 **Ordre de lecture recommandé**
 
 1. Ce document (état, commandes, pièges).
 2. `CLAUDE.md` § « Règles non négociables » — court, à respecter strictement.
 3. `docs/cadrage/TDR.md` puis `docs/cadrage/ADR.md` (mandat, décisions d'architecture).
-4. La note du chantier en cours (par exemple `docs/INSCRIPTION-CLIENT.md`, `docs/CHEF-IA.md`,
+4. La note du chantier en cours (par exemple `docs/ZONES-ET-COMMANDES-DE-TEST.md`, `docs/INSCRIPTION-CLIENT.md`, `docs/CHEF-IA.md`,
    `docs/PANIER-INTELLIGENT.md`) — chacun suit le même plan : ce que ça fait, ce qui a été vérifié,
    ce qui ne l'a pas été.
 
@@ -54,13 +54,16 @@ puis liste des fichiers à exécuter), sinon il n'est jamais lancé.
 
 ---
 
-## 3. Ce qui a été livré recently (7 → 10 octobre)
+## 3. Ce qui a été livré recently (7 → 15 octobre)
 
 | Lot | Contenu | Note |
 |---|---|---|
 | Chef IA | Extraction d'un menu depuis une photo (Workers AI, `llama-4-scout-17b-16e-instruct`), analyse pure testable, relecture humaine, quotas par restaurant | `docs/CHEF-IA.md` — 35 tests |
 | Panier intelligent | Suggestions d'accompagnement **explicables** (« Pour accompagner votre plat », « À partager avant le plat »), règles déterministes, jamais de hasard | `docs/PANIER-INTELLIGENT.md` — 19 tests |
 | Inscription client | `/entrer` : formulaire complet (nom, téléphone, email, double mot de passe, adresse, Guinée par défaut) **ou** connexion Facebook, au choix | `docs/INSCRIPTION-CLIENT.md` — 17 tests |
+| Zones de toute la Guinée | Régions, préfectures, communes, quartiers ; « Utiliser ma position » (OpenStreetMap, côté serveur) ; liste d'attente ; zones de livraison par restaurant ; page `/quartiers` avec recherche | `docs/ZONES-ET-COMMANDES-DE-TEST.md` §1 |
+| Aperçu de fiche et commandes de test | Aperçu propriétaire / administrateur (`?vue=visiteur`, `?vue=test`) ; commandes marquées `est_test` par le serveur, exclues de tous les chiffres | `docs/ZONES-ET-COMMANDES-DE-TEST.md` §2 et §3 |
+| Console Géographie | Qualité des données, lot, fusion de quartiers, export / import CSV, statut de lancement, carte de couverture, historique | `docs/ZONES-ET-COMMANDES-DE-TEST.md` §4 |
 | Correctifs du 10 octobre | Mise en page de `/entrer` (collision de classe), profil et coordonnées réellement enregistrés, redirections client | `docs/AUDIT-VISUEL-2026-10-10.md` |
 
 Le journal complet, avec ce qui est **vérifié** et ce qui est **supposé**, est dans `docs/STATUT-PROJET.md`.
@@ -159,6 +162,14 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
    position sur carte).
 7. Portes avant pilote : `docs/cadrage/PROCEDURE-SECURITE.md` §9 (certaines sont bloquantes).
 8. Décider du sort des 13 restaurants de démonstration (publier ou dépublier avant le pilote).
+
+### À vérifier avec une session réelle (jamais éprouvé)
+
+- Actions serveur de la console Géographie : enregistrer, lot, import appliqué, suggestion de point, historique.
+- Une commande de test créée par un restaurateur connecté (pastille « Test », absente des chiffres de l'administration).
+- Aperçu de fiche en session propriétaire et administrateur.
+- Annonce « Bientôt / Pilote » sur une commune réelle (aucune n'a ce statut).
+- Compléter les points centraux des quartiers de Conakry (46 sans point) : par export / import CSV.
 
 ### En suspens
 
