@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export interface OptionLocalite {
@@ -110,9 +110,11 @@ export function RechercheLocalite({
     // Les zones qui se trouvent dans le lieu cherché (« kindia » trouve aussi les communes de la préfecture de Kindia) viennent après.
     const parLieu = options.filter((o) => !dejaVus.has(o) && normaliser(o.contexte).includes(cherche));
     const rang = (o: OptionLocalite) => (noms(o).some((n) => n.startsWith(cherche)) ? 0 : 1);
+    // À rang égal, les zones qui ont déjà des restaurants passent d'abord : ce sont celles où l'on peut commander.
+    const avecRestaurants = (o: OptionLocalite) => (o.restaurants > 0 ? 0 : 1);
     return [
-      ...parNom.sort((a, b) => rang(a) - rang(b) || ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau] || a.nom.localeCompare(b.nom, "fr")),
-      ...parLieu.sort((a, b) => ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau] || a.nom.localeCompare(b.nom, "fr")),
+      ...parNom.sort((a, b) => rang(a) - rang(b) || avecRestaurants(a) - avecRestaurants(b) || ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau] || a.nom.localeCompare(b.nom, "fr")),
+      ...parLieu.sort((a, b) => avecRestaurants(a) - avecRestaurants(b) || ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau] || a.nom.localeCompare(b.nom, "fr")),
     ].slice(0, MAX_SUGGESTIONS);
   }, [saisie, options]);
 
@@ -136,10 +138,19 @@ export function RechercheLocalite({
       setActif((i) => Math.max(i - 1, 0));
     } else if (e.key === "Escape") {
       setOuvert(false);
+      setActif(0);
     }
   }
 
   const idListe = `${identifiant}-liste`;
+  const listeVisible = ouvert && suggestions.length > 0;
+  const aucuneZone = aucune || (saisie.trim() !== "" && suggestions.length === 0);
+
+  // L'option active reste dans la zone visible de la liste (dix suggestions : sans cela, les dernières sont inaccessibles au clavier).
+  useEffect(() => {
+    if (!listeVisible) return;
+    document.getElementById(`${identifiant}-opt-${actif}`)?.scrollIntoView({ block: "nearest" });
+  }, [actif, listeVisible, identifiant]);
 
   return (
     <form
@@ -159,8 +170,9 @@ export function RechercheLocalite({
             id={`${identifiant}-champ`}
             type="text"
             role="combobox"
-            aria-expanded={ouvert}
-            aria-controls={idListe}
+            aria-expanded={listeVisible}
+            aria-controls={listeVisible ? idListe : undefined}
+            aria-describedby={aucuneZone ? `${identifiant}-vide` : undefined}
             aria-activedescendant={ouvert && suggestions[actif] ? `${identifiant}-opt-${actif}` : undefined}
             aria-autocomplete="list"
             autoComplete="off"
@@ -177,7 +189,7 @@ export function RechercheLocalite({
             onKeyDown={surClavier}
           />
           {ouvert && suggestions.length > 0 ? (
-            <ul id={idListe} role="listbox" className="recherche-localite-liste" aria-label={libelle}>
+            <ul id={idListe} role="listbox" className="recherche-localite-liste" aria-label="Localités proposées">
               {suggestions.map((o, i) => (
                 <li
                   key={`${o.niveau}-${o.slug}`}
@@ -207,7 +219,15 @@ export function RechercheLocalite({
         </button>
       </div>
       {positionLibelle ? (
-      <button type="button" className="recherche-localite-position" onClick={utiliserMaPosition} disabled={position === "recherche"}>
+      <button
+        type="button"
+        className="recherche-localite-position"
+        onClick={() => {
+          if (position !== "recherche") utiliserMaPosition();
+        }}
+        aria-disabled={position === "recherche" || undefined}
+        aria-busy={position === "recherche" || undefined}
+      >
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3.5" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
@@ -219,8 +239,11 @@ export function RechercheLocalite({
       <p className="recherche-localite-statut" role="status" aria-live="polite">
         {position !== "repos" ? MESSAGES_POSITION[position] : ""}
       </p>
-      {aucune || (saisie.trim() !== "" && suggestions.length === 0) ? (
-        <p className="recherche-localite-vide" role="status">
+      <p className="sr-only" role="status" aria-live="polite">
+        {ouvert && saisie.trim() !== "" ? (suggestions.length === 0 ? "Aucune localité trouvée" : `${suggestions.length} localité${suggestions.length > 1 ? "s" : ""} proposée${suggestions.length > 1 ? "s" : ""}`) : ""}
+      </p>
+      {aucuneZone ? (
+        <p className="recherche-localite-vide" id={`${identifiant}-vide`}>
           Aucune localité ne correspond à « {saisie.trim()} ». Essayez le nom d&apos;une région, d&apos;une préfecture, d&apos;une commune ou d&apos;un quartier.
         </p>
       ) : null}

@@ -96,17 +96,17 @@ export async function listerZonesEnAttente(): Promise<ZoneEnAttente[]> {
 }
 
 /** Marque toutes les personnes d'une zone comme prévenues (un restaurant vient d'ouvrir). */
-export async function marquerZonePrevenueAction(formData: FormData): Promise<void> {
+export async function marquerZonePrevenueAction(_etat: EtatAttente, formData: FormData): Promise<EtatAttente> {
   const contexte = await verifierPermission("attente.gerer");
   const zone = lireZone(formData);
-  if (!zone) return;
+  if (!zone) return { erreur: "Zone introuvable." };
   const { data, error } = await creerClientAdmin()
     .from("zone_alertes")
     .update({ notifie_le: new Date().toISOString() })
     .eq(COLONNE[zone.niveau], zone.id)
     .is("notifie_le", null)
     .select("id");
-  if (error) return;
+  if (error) return { erreur: MESSAGE_ECHEC };
   await journaliserActionSysteme(contexte, {
     action: "attente.prevenue",
     cibleType: COLONNE[zone.niveau],
@@ -114,15 +114,16 @@ export async function marquerZonePrevenueAction(formData: FormData): Promise<voi
     motif: `${data?.length ?? 0} personne(s) marquée(s) comme prévenue(s)`,
   });
   revalidatePath("/system/catalogue/liste-attente");
+  return { succes: `${data?.length ?? 0} personne(s) marquée(s) comme prévenue(s).` };
 }
 
-/** Supprime tous les contacts d'une zone (zone ouverte et personnes prévenues, ou demande de retrait). */
-export async function supprimerContactsZoneAction(formData: FormData): Promise<void> {
+/** Supprime tous les contacts d'une zone (zone ouverte et personnes prévenues, ou demande de retrait). Irréversible. */
+export async function supprimerContactsZoneAction(_etat: EtatAttente, formData: FormData): Promise<EtatAttente> {
   const contexte = await verifierPermission("attente.gerer");
   const zone = lireZone(formData);
-  if (!zone) return;
+  if (!zone) return { erreur: "Zone introuvable." };
   const { data, error } = await creerClientAdmin().from("zone_alertes").delete().eq(COLONNE[zone.niveau], zone.id).select("id");
-  if (error) return;
+  if (error) return { erreur: MESSAGE_ECHEC };
   await journaliserActionSysteme(contexte, {
     action: "attente.suppression",
     cibleType: COLONNE[zone.niveau],
@@ -130,6 +131,7 @@ export async function supprimerContactsZoneAction(formData: FormData): Promise<v
     motif: `${data?.length ?? 0} contact(s) supprimé(s) de la zone`,
   });
   revalidatePath("/system/catalogue/liste-attente");
+  return { succes: `${data?.length ?? 0} contact(s) supprimé(s).` };
 }
 
 /** Supprime UN contact de toutes les zones (droit de retrait demandé par la personne). Le contact n'est pas écrit dans le journal. */

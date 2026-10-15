@@ -1,9 +1,9 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
-import { listerZonesEnAttente, marquerZonePrevenueAction, supprimerContactsZoneAction } from "@/lib/system-admin/liste-attente";
+import { listerZonesEnAttente } from "@/lib/system-admin/liste-attente";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
-import { Button } from "@/components/ui";
 import { SousNav } from "../../SousNav";
+import { ActionsZoneAttente } from "./ActionsZoneAttente";
 import { FormulaireSuppressionContact } from "./FormulaireSuppressionContact";
 
 export const metadata = { title: "Liste d'attente (administration)" };
@@ -54,33 +54,15 @@ export default async function ListeAttentePage() {
               <tbody>
                 {zones.map((z) => (
                   <tr key={`${z.niveau}-${z.id}`}>
-                    <td>
+                    <td className="ad-cellule-principale" data-label="Zone">
                       {z.nom} <Pastille ton="neutre">{LIBELLE_NIVEAU[z.niveau]}</Pastille>
                       {z.contexte ? <span className="ad-aide-champ"> · {z.contexte}</span> : null}
                     </td>
-                    <td>{z.personnes}</td>
-                    <td>{z.prevenues}</td>
-                    <td>{jour(z.derniere)}</td>
-                    <td>
-                      <div className="ad-actions-ligne">
-                        <a className="btn btn-secondary" href={`/system/catalogue/liste-attente/export?niveau=${z.niveau}&id=${z.id}`}>
-                          Exporter (CSV)<span className="sr-only"> {z.nom}</span>
-                        </a>
-                        <form action={marquerZonePrevenueAction}>
-                          <input type="hidden" name="niveau" value={z.niveau} />
-                          <input type="hidden" name="id" value={z.id} />
-                          <Button type="submit" variante="secondary" disabled={z.prevenues === z.personnes}>
-                            Marquer prévenues<span className="sr-only"> {z.nom}</span>
-                          </Button>
-                        </form>
-                        <form action={supprimerContactsZoneAction}>
-                          <input type="hidden" name="niveau" value={z.niveau} />
-                          <input type="hidden" name="id" value={z.id} />
-                          <Button type="submit" variante="danger">
-                            Supprimer les contacts<span className="sr-only"> {z.nom}</span>
-                          </Button>
-                        </form>
-                      </div>
+                    <td className="ad-nombre" data-label="Personnes">{z.personnes}</td>
+                    <td className="ad-nombre" data-label="Prévenues">{z.prevenues}</td>
+                    <td data-label="Dernière inscription">{jour(z.derniere)}</td>
+                    <td data-label="Actions">
+                      <ActionsZoneAttente niveau={z.niveau} id={z.id} nom={z.nom} personnes={z.personnes} prevenues={z.prevenues} />
                     </td>
                   </tr>
                 ))}
@@ -90,7 +72,7 @@ export default async function ListeAttentePage() {
         )}
       </Panneau>
 
-      <Panneau titre="Retirer un contact (demande d'une personne)">
+      <Panneau titre="Retirer un contact">
         <FormulaireSuppressionContact />
       </Panneau>
     </div>

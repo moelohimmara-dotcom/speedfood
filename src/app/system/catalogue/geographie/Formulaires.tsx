@@ -57,14 +57,14 @@ export function FormulaireZoneLargeSysteme({ zone, type }: { zone: ZoneLargeSyst
         <input type="hidden" name="id" value={zone.id} />
         <input name="nom" defaultValue={zone.nom} required minLength={2} maxLength={80} aria-label={`Nom de ${type === "region" ? "la région" : "la préfecture"} ${zone.nom}`} />
         <label className="geo-case">
-          <input type="checkbox" name="actif" defaultChecked={zone.actif} /> {type === "region" ? "Active" : "Active"}
+          <input type="checkbox" name="actif" defaultChecked={zone.actif} /> Active
         </label>
         {zone.codeOfficiel ? <span className="geo-code">{zone.codeOfficiel}</span> : null}
         <button type="submit" className="btn btn-secondary" disabled={enCours}>
           {enCours ? "Enregistrement…" : "Enregistrer"}
         </button>
         {etat.erreur ? <span role="alert" className="geo-erreur">{etat.erreur}</span> : null}
-        {etat.succes ? <span role="status" className="geo-ok">Enregistré.</span> : null}
+        <span role="status" aria-live="polite" className="geo-ok">{etat.succes ? "Enregistré." : ""}</span>
       </div>
       <ChampsPoint latitude={zone.latitude} longitude={zone.longitude} avecAliases={false} />
     </form>
@@ -95,7 +95,7 @@ export function FormulaireCommuneSysteme({ commune }: { commune: CommuneSysteme 
           {enCours ? "Enregistrement…" : "Enregistrer"}
         </button>
         {etat.erreur ? <span role="alert" className="geo-erreur">{etat.erreur}</span> : null}
-        {etat.succes ? <span role="status" className="geo-ok">Enregistré.</span> : null}
+        <span role="status" aria-live="polite" className="geo-ok">{etat.succes ? "Enregistré." : ""}</span>
       </div>
       <ChampsPoint latitude={commune.latitude} longitude={commune.longitude} nomsAlternatifs={commune.nomsAlternatifs} />
     </form>
@@ -144,7 +144,7 @@ export function FormulaireQuartierSysteme({
           {enCours ? "Enregistrement…" : quartier ? "Enregistrer" : "Ajouter"}
         </button>
         {etat.erreur ? <span role="alert" className="geo-erreur">{etat.erreur}</span> : null}
-        {etat.succes ? <span role="status" className="geo-ok">Enregistré.</span> : null}
+        <span role="status" aria-live="polite" className="geo-ok">{etat.succes ? "Enregistré." : ""}</span>
       </div>
       <ChampsPoint latitude={quartier?.latitude ?? null} longitude={quartier?.longitude ?? null} nomsAlternatifs={quartier?.nomsAlternatifs} />
     </form>

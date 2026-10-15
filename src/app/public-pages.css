@@ -1017,21 +1017,6 @@
 }
 
 /* ===== Choix de la zone (recherche de localité, zone sélectionnée, état sans résultat) ===== */
-.pub-communes-puce {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--space-4);
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--encre);
-  font-weight: 800;
-  text-decoration: none;
-}
-.pub-communes-puce:hover {
-  background: var(--mangue);
-}
 .recherche-localite {
   display: grid;
   gap: var(--space-2);
@@ -1077,7 +1062,7 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  max-height: min(360px, 60vh);
+  max-height: min(360px, 40dvh);
   overflow-y: auto;
   margin: 0;
   padding: var(--space-1);
@@ -1116,9 +1101,6 @@
 .pub-zone-active {
   margin: 0;
   font-weight: 600;
-}
-.pub-communes-puce.est-vide {
-  opacity: 0.6;
 }
 .pub-communes-puce[aria-current="true"] {
   background: var(--mangue);
@@ -1187,22 +1169,6 @@
   font-size: 0.9rem;
   font-weight: 700;
 }
-.alerte-zone-ligne {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.alerte-zone-ligne input {
-  flex: 1 1 220px;
-  min-width: 0;
-  min-height: 48px;
-  padding: 0 var(--space-3);
-  border: var(--pub-trait) solid var(--encre);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--encre);
-  font: inherit;
-}
 .alerte-zone-accord {
   display: flex;
   align-items: flex-start;
@@ -1251,7 +1217,7 @@
 .fiche-livraison-titre {
   margin: 0;
   font-family: var(--font-titre);
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   font-weight: 800;
 }
 .fiche-livraison-texte {
@@ -1350,6 +1316,8 @@
   text-decoration: none;
 }
 .localites-commune.est-vide {
+  border-style: dashed;
+  border-color: var(--secondaire);
   border-color: var(--bordure);
   font-weight: 600;
   opacity: 0.85;
@@ -1361,4 +1329,76 @@
   color: var(--secondaire);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+/* ===== Corrections de la revue UI/UX du 15 octobre ===== */
+/* L'arrivée sur une zone (#zone) ne passe plus sous l'en-tête collant. */
+#zone {
+  scroll-margin-top: 84px;
+}
+/* Boutons sans flèche : texte centré (le gabarit .pub-btn réserve la place de la flèche à droite). */
+.recherche-localite-bouton,
+.alerte-zone-bouton {
+  justify-content: center;
+  padding-inline: 22px;
+}
+.recherche-localite-position[aria-disabled="true"] {
+  cursor: progress;
+  color: var(--secondaire);
+}
+/* Liste d'attente : champ pleine largeur, erreurs avec icône et bordure (jamais la couleur seule). */
+.alerte-zone-champ {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: var(--pub-trait) solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+.alerte-zone-champ[aria-invalid="true"],
+.alerte-zone-accord input[aria-invalid="true"] {
+  border-color: var(--rouge-fonce);
+  outline: 2px solid var(--rouge-fonce);
+  outline-offset: 1px;
+}
+.alerte-zone-erreur {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.alerte-zone-merci:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.alerte-zone-champ:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+/* Explorer les localités : chevron d'ouverture sur chaque région et préfecture. */
+.localites-region > summary::after,
+.localites-prefecture > summary::after {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-left: auto;
+  border-right: 2.4px solid var(--encre);
+  border-bottom: 2.4px solid var(--encre);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.2s var(--ease);
+}
+.localites-region[open] > summary::after,
+.localites-prefecture[open] > summary::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .localites-region > summary::after,
+  .localites-prefecture > summary::after {
+    transition: none;
+  }
+}
+.localites-commune {
+  border-radius: var(--radius-md);
 }

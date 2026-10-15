@@ -46,7 +46,7 @@ export async function GET(request: Request) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="liste-attente-${niveau}.csv"`,
+      "Content-Disposition": `attachment; filename="liste-attente-${niveau}-${id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.csv"`,
       "Cache-Control": "no-store",
     },
   });

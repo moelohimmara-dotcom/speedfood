@@ -80,9 +80,14 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
             ))}
           </nav>
         ) : null}
-        {attenteActive ? <AlerteZone zone={{ niveau: zone.niveau, slug: zone.slug }} zoneNom={zone.nom} /> : null}
+        {attenteActive ? (
+          <AlerteZone
+            zone={{ niveau: zone.niveau, slug: zone.slug }}
+            lieu={zone.niveau === "region" ? `dans la région de ${zone.nom}` : zone.niveau === "prefecture" ? `dans la préfecture de ${zone.nom}` : `à ${zone.nom}`}
+          />
+        ) : null}
         <div className="pub-accueil-actions">
-          <Link href="/quartiers" className="pub-btn">
+          <Link href="/quartiers" className="pub-btn pub-btn-clair">
             {t["accueil.carte.bouton_autre_zone"]}
             <span className="pub-btn-point" aria-hidden="true">
               {FLECHE}

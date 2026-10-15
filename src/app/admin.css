@@ -648,7 +648,7 @@ a.ad-tuile-lien:hover {
 }
 
 /* Mobile : les onglets se partagent la largeur et passent à la ligne si besoin (le dernier était coupé sous une barre de défilement). */
-@media (max-width: 559px) {
+@media (max-width: 899px) {
   .ad-onglets {
     flex-wrap: wrap;
     overflow: visible;
@@ -1939,7 +1939,7 @@ a.ad-carte-lien:hover {
   gap: var(--space-1);
 }
 .geo-code {
-  font-family: var(--police-mono, monospace);
+  font-family: ui-monospace, monospace;
   font-size: 0.85rem;
   color: var(--secondaire);
 }
@@ -1979,7 +1979,7 @@ a.ad-carte-lien:hover {
 .geo-details-resume {
   color: var(--secondaire);
   font-weight: 400;
-  font-family: var(--police-mono, monospace);
+  font-family: ui-monospace, monospace;
 }
 .geo-details-corps {
   display: grid;
@@ -2009,7 +2009,7 @@ a.ad-carte-lien:hover {
 }
 .geo-erreur {
   flex: 1 1 100%;
-  color: var(--danger, #b00020);
+  color: var(--danger);
 }
 
 /* Dossier restaurant : zones de livraison déclarées (lecture seule) */
@@ -2023,4 +2023,46 @@ a.ad-carte-lien:hover {
   gap: 4px;
   margin: 0;
   padding-left: var(--space-4);
+}
+
+/* Liste d'attente (administration) */
+.attente-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+.attente-retrait-action {
+  margin-top: var(--space-4);
+}
+
+/* Géographie : champs au gabarit de la console (bordure, 44 px, focus) */
+.geo-ligne-haut input:not([type="checkbox"]),
+.geo-details-corps :is(input, textarea) {
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+.geo-details-corps textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.geo-ligne-haut input:not([type="checkbox"]):focus-visible,
+.geo-details-corps :is(input, textarea):focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 1px;
+  border-color: var(--rouge-fonce);
+}
+.geo-case {
+  min-height: 44px;
+}
+.geo-case input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--rouge-fonce);
+}
+.geo-ligne-haut .btn {
+  margin-left: auto;
 }

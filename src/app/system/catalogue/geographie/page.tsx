@@ -2,7 +2,7 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerGeographieSysteme } from "@/lib/system-admin/geographie";
-import { PageHeader, Panneau } from "@/components/admin/blocs";
+import { PageHeader, Panneau, Volet } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
 import { FormulaireCommuneSysteme, FormulaireQuartierSysteme, FormulaireZoneLargeSysteme } from "./Formulaires";
 
@@ -52,21 +52,30 @@ export default async function GeographieSystemePage({ searchParams }: { searchPa
         </Panneau>
       ) : null}
 
-      <Panneau titre={`Communes${regionChoisie ? ` de la région de ${regionChoisie.nom}` : ""} (${communes.length})`}>
-        {communes.map((commune) => (
-          <FormulaireCommuneSysteme key={commune.id} commune={commune} />
-        ))}
-      </Panneau>
-
       <Panneau titre="Ajouter un quartier">
         <FormulaireQuartierSysteme communes={communes} />
       </Panneau>
 
-      <Panneau titre={`Quartiers (${quartiers.length})`}>
+      <Volet
+        titre={`Communes${regionChoisie ? ` de la région de ${regionChoisie.nom}` : ""}`}
+        resume={`${communes.filter((c) => c.actif).length} active${communes.filter((c) => c.actif).length > 1 ? "s" : ""} sur ${communes.length}`}
+        ouvert={communes.length <= 15}
+      >
+        {communes.map((commune) => (
+          <FormulaireCommuneSysteme key={commune.id} commune={commune} />
+        ))}
+      </Volet>
+
+      <Volet
+        titre="Quartiers"
+        resume={`${quartiers.filter((q) => q.actif).length} actif${quartiers.filter((q) => q.actif).length > 1 ? "s" : ""} sur ${quartiers.length}`}
+        ouvert={quartiers.length > 0 && quartiers.length <= 15}
+      >
+        {quartiers.length === 0 ? <p className="ad-aide-champ">Aucun quartier réel dans cette région : chaque commune se représente par son centre. Ajoutez-en ci-dessus.</p> : null}
         {quartiers.map((quartier) => (
           <FormulaireQuartierSysteme key={quartier.id} quartier={quartier} communes={communes} />
         ))}
-      </Panneau>
+      </Volet>
     </div>
   );
 }

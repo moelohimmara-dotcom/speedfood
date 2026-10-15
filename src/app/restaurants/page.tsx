@@ -194,7 +194,7 @@ export default async function CataloguePage({
       ) : null}
 
       {zoneFiltre ? (
-        <p className="decouverte-zone-active" role="status">
+        <p className="decouverte-zone-active">
           {typeZoneFiltre} : <strong>{nomZoneFiltre || zoneFiltre}</strong> ·{" "}
           <Link href="/restaurants" className="lien-texte">
             Voir tous les restaurants

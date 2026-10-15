@@ -95,7 +95,7 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
         />
 
         {zone ? (
-          <p className="pub-zone-active" role="status">
+          <p className="pub-zone-active">
             Zone sélectionnée : <strong>{descriptionZone(zone)}</strong>
             {" — "}
             <Link href="/" className="lien-texte">

@@ -632,3 +632,21 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+.zones-desservies-sous-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.zones-desservies-deux .field,
+.zones-desservies-formulaire .field {
+  margin-bottom: 0;
+}
+.zones-desservies-action {
+  margin-top: var(--space-2);
+}
+.profil-section {
+  margin-top: var(--space-5);
+}
+.profil-bloc-titre:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 4px;
+}

@@ -60,7 +60,16 @@ export function ParcourirLocalites({ hierarchie }: { hierarchie: ZoneRegion[] })
                     <li key={c.id}>
                       <Link href={lienZone({ niveau: "commune", slug: c.slug })} className={`localites-commune${c.restaurants === 0 ? " est-vide" : ""}`}>
                         <span>{c.nom}</span>
-                        <span className="localites-commune-bilan">{c.restaurants > 0 ? pluriel(c.restaurants, "restaurant", "restaurants") : "—"}</span>
+                        <span className="localites-commune-bilan">
+                          {c.restaurants > 0 ? (
+                            pluriel(c.restaurants, "restaurant", "restaurants")
+                          ) : (
+                            <>
+                              <span className="sr-only">pas encore de restaurant</span>
+                              <span aria-hidden="true">—</span>
+                            </>
+                          )}
+                        </span>
                       </Link>
                     </li>
                   ))}

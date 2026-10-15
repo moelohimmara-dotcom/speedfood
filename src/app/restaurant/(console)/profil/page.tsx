@@ -111,7 +111,7 @@ export default async function ProfilPage() {
         </aside>
       </div>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="profil-section">
         <FormulaireQuartier
           groupes={grouperParCommune(quartiers)}
           quartierActuelId={restaurant.quartier_id}
@@ -119,11 +119,11 @@ export default async function ProfilPage() {
         />
       </div>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="profil-section">
         <FormulaireZonesDesservies groupes={grouperParCommune(quartiers)} zones={zonesPourFormulaire} />
       </div>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="profil-section">
         <Panneau titre="Illustrations de remplacement">
           <p className="ad-aide-champ" style={{ marginTop: 0 }}>
             Elles s&apos;affichent tant que vous n&apos;avez pas ajouté de photo ou de logo. Dès que vous en téléversez un, il prend toujours leur place.

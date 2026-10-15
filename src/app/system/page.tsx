@@ -285,7 +285,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             libelle="Communes couvertes"
             valeur={`${couverture.totaux.communesCouvertes} / ${couverture.totaux.communesActives}`}
             href="/system/catalogue/couverture"
-            sous={`${couverture.totaux.restaurants} restaurant${couverture.totaux.restaurants > 1 ? "s" : ""} référencé${couverture.totaux.restaurants > 1 ? "s" : ""} dans ${couverture.regions.filter((r) => r.restaurants > 0).length} région${couverture.regions.filter((r) => r.restaurants > 0).length > 1 ? "s" : ""} sur ${couverture.regions.length}`}
+            sous="Communes actives avec au moins un restaurant"
           />
         ) : null}
         {couverture && roleAPermission(role, "attente.gerer") ? (

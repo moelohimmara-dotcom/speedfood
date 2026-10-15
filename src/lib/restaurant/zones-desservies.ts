@@ -7,6 +7,10 @@ import { estUuid } from "@/lib/commande/commun";
 export interface EtatZoneDesservie {
   erreur?: string;
   succes?: boolean;
+  /** Message de succès lisible (« Zone retirée. ») annoncé aux lecteurs d'écran. */
+  message?: string;
+  /** Change à chaque succès : le formulaire se réinitialise (clé du composant). */
+  rev?: number;
 }
 
 /** Entier facultatif dans une plage ; chaîne vide = non renseigné (rien n'est inventé à la place). */
@@ -63,15 +67,17 @@ export async function declarerZoneDesserviePAction(_etat: EtatZoneDesservie, for
 
   revalidatePath("/restaurant/profil");
   revalidatePath(`/restaurants/${membership.restaurant_id}`);
-  return { succes: true };
+  return { succes: true, message: "Zone enregistrée.", rev: Date.now() };
 }
 
-/** Retire une zone desservie de CE restaurant (le filtre sur le restaurant s'ajoute à la RLS). */
-export async function retirerZoneDesserviePAction(formData: FormData): Promise<void> {
+/** Retire une zone desservie de CE restaurant (le filtre sur le restaurant s'ajoute à la RLS). Renvoie un état : succès ou erreur visible. */
+export async function retirerZoneDesserviePAction(_etat: EtatZoneDesservie, formData: FormData): Promise<EtatZoneDesservie> {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/profil");
   const id = String(formData.get("id") ?? "");
-  if (!estUuid(id)) return;
-  await supabase.from("restaurant_zones_desservies").delete().eq("id", id).eq("restaurant_id", membership.restaurant_id);
+  if (!estUuid(id)) return { erreur: "Zone introuvable." };
+  const { data, error } = await supabase.from("restaurant_zones_desservies").delete().eq("id", id).eq("restaurant_id", membership.restaurant_id).select("id");
+  if (error) return { erreur: "Impossible de retirer cette zone. Réessayez dans un instant." };
   revalidatePath("/restaurant/profil");
   revalidatePath(`/restaurants/${membership.restaurant_id}`);
+  return data && data.length > 0 ? { succes: true, message: "Zone retirée.", rev: Date.now() } : { erreur: "Cette zone était déjà retirée." };
 }

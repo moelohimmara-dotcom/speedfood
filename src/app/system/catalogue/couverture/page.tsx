@@ -27,7 +27,7 @@ export default async function CouverturePage() {
           libelle="Personnes en attente"
           valeur={totaux.attente}
           sous="Inscrites sur la liste « prévenez-moi »"
-          ton={totaux.attente > 0 ? "succes" : "neutre"}
+          ton="neutre"
         />
       </section>
 
@@ -47,11 +47,11 @@ export default async function CouverturePage() {
               <tbody>
                 {aRecruter.map((z) => (
                   <tr key={`${z.niveau}-${z.contexte}-${z.nom}`}>
-                    <td>
+                    <td className="ad-cellule-principale" data-label="Zone">
                       {z.nom} <Pastille ton="neutre">{{ region: "Région", prefecture: "Préfecture", commune: "Commune", quartier: "Quartier" }[z.niveau]}</Pastille>
                     </td>
-                    <td>{z.contexte || "—"}</td>
-                    <td>{z.attente}</td>
+                    <td data-label="Dans">{z.contexte || "—"}</td>
+                    <td className="ad-nombre" data-label="Personnes en attente">{z.attente}</td>
                   </tr>
                 ))}
               </tbody>
@@ -76,16 +76,16 @@ export default async function CouverturePage() {
             <tbody>
               {regions.map((r) => (
                 <tr key={r.nom}>
-                  <td>{r.nom}</td>
-                  <td>{r.restaurants}</td>
-                  <td>{r.ouverts}</td>
-                  <td>
+                  <td className="ad-cellule-principale" data-label="Région">{r.nom}</td>
+                  <td className="ad-nombre" data-label="Restaurants">{r.restaurants}</td>
+                  <td className="ad-nombre" data-label="Ouverts">{r.ouverts}</td>
+                  <td className="ad-nombre" data-label="Préfectures couvertes">
                     {r.prefecturesCouvertes} / {r.prefectures}
                   </td>
-                  <td>
+                  <td className="ad-nombre" data-label="Communes couvertes">
                     {r.communesCouvertes} / {r.communes}
                   </td>
-                  <td>{r.attente}</td>
+                  <td className="ad-nombre" data-label="En attente">{r.attente}</td>
                 </tr>
               ))}
             </tbody>
@@ -112,12 +112,12 @@ export default async function CouverturePage() {
               <tbody>
                 {communes.map((c) => (
                   <tr key={`${c.prefecture}-${c.nom}`}>
-                    <td>{c.nom}</td>
-                    <td>{c.prefecture}</td>
-                    <td>{c.restaurants}</td>
-                    <td>{c.ouverts}</td>
-                    <td>{c.quartiersActifs > 0 ? `${c.quartiersCouverts} / ${c.quartiersActifs}` : "—"}</td>
-                    <td>{c.attente}</td>
+                    <td className="ad-cellule-principale" data-label="Commune">{c.nom}</td>
+                    <td data-label="Préfecture">{c.prefecture}</td>
+                    <td className="ad-nombre" data-label="Restaurants">{c.restaurants}</td>
+                    <td className="ad-nombre" data-label="Ouverts">{c.ouverts}</td>
+                    <td className="ad-nombre" data-label="Quartiers couverts">{c.quartiersActifs > 0 ? `${c.quartiersCouverts} / ${c.quartiersActifs}` : "—"}</td>
+                    <td className="ad-nombre" data-label="En attente">{c.attente}</td>
                   </tr>
                 ))}
               </tbody>
