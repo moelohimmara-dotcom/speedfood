@@ -13,6 +13,7 @@ import { libelleMode } from "@/lib/commande/mode";
 import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 
 const LIBELLES_ETAT: Record<EtatDeriveCommande, string> = {
   en_attente: "À traiter",
@@ -65,10 +66,12 @@ export function CommandeCarte({
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
   const [enCours, demarrer] = useTransition();
+  const confirmer = useConfirmation();
 
-  function traiter(action: ActionStatutCommande, confirmation?: string) {
-    if (confirmation && !window.confirm(confirmation)) {
-      return;
+  async function traiter(action: ActionStatutCommande, confirmation?: string) {
+    if (confirmation) {
+      const reponse = await confirmer({ titre: "Confirmer cette action ?", message: <p>{confirmation}</p>, libelleAction: "Confirmer" });
+      if (!reponse.confirme) return;
     }
     setErreur(null);
     demarrer(async () => {
@@ -82,9 +85,10 @@ export function CommandeCarte({
   const total = commande.sousTotal + commande.fraisLivraisonEstime;
   const paiementVisible = commande.etatDerive === "acceptee" || commande.etatDerive === "prete" || commande.etatDerive === "terminee";
 
-  function confirmerPaiement(decision: "recu" | "non_recu", confirmation?: string) {
-    if (confirmation && !window.confirm(confirmation)) {
-      return;
+  async function confirmerPaiement(decision: "recu" | "non_recu", confirmation?: string) {
+    if (confirmation) {
+      const reponse = await confirmer({ titre: "Confirmer ce paiement ?", message: <p>{confirmation}</p>, libelleAction: "Confirmer" });
+      if (!reponse.confirme) return;
     }
     setErreur(null);
     demarrer(async () => {

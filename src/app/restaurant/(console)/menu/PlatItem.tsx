@@ -11,6 +11,7 @@ import {
 import type { LibelleDisponibilite } from "@/lib/disponibilite/etat";
 import { Card, Badge, Button, Input, Alert } from "@/components/ui";
 import { OptionsPlat } from "./OptionsPlat";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
 import { definirIllustrationRestoAction } from "@/lib/restaurant/illustrations";
@@ -51,6 +52,7 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
     setOuvert(valeur);
   };
   const [enTransition, demarrerTransition] = useTransition();
+  const confirmer = useConfirmation();
 
   if (enEdition) {
     return (
@@ -211,12 +213,17 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
           variante="danger"
           className="btn-compact"
           disabled={enTransition}
-          onClick={() => {
-            if (confirm(`Archiver « ${plat.nom} » ? Ce plat ne sera plus visible dans votre menu.`)) {
-              demarrerTransition(() => {
-                archiverPlatAction(plat.id);
-              });
-            }
+          onClick={async () => {
+            const reponse = await confirmer({
+              titre: `Archiver « ${plat.nom} » ?`,
+              message: <p>Ce plat ne sera plus visible dans votre menu.</p>,
+              libelleAction: "Archiver",
+              danger: true,
+            });
+            if (!reponse.confirme) return;
+            demarrerTransition(() => {
+              archiverPlatAction(plat.id);
+            });
           }}
         >
           Archiver

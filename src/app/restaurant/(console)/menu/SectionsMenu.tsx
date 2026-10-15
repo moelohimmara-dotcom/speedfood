@@ -9,6 +9,7 @@ import {
   type EtatFormulaireSection,
 } from "@/lib/menu/actions";
 import { Card, Button, Alert } from "@/components/ui";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 
 interface Section {
   id: string;
@@ -20,6 +21,7 @@ const etatInitial: EtatFormulaireSection = {};
 function LigneSection({ section, index, total }: { section: Section; index: number; total: number }) {
   const [etat, action, enCours] = useActionState(renommerSectionAction, etatInitial);
   const [enTransition, demarrerTransition] = useTransition();
+  const confirmer = useConfirmation();
 
   return (
     <div className="section-ligne">
@@ -65,14 +67,15 @@ function LigneSection({ section, index, total }: { section: Section; index: numb
         className="section-bouton-icone section-supprimer"
         aria-label={`Supprimer la section « ${section.nom} »`}
         disabled={enTransition}
-        onClick={() => {
-          if (
-            confirm(
-              `Supprimer la section « ${section.nom} » ? Les plats qu'elle contient redeviendront non classés.`
-            )
-          ) {
-            demarrerTransition(() => supprimerSectionAction(section.id));
-          }
+        onClick={async () => {
+          const reponse = await confirmer({
+            titre: `Supprimer la section « ${section.nom} » ?`,
+            message: <p>Les plats qu&apos;elle contient redeviendront non classés.</p>,
+            libelleAction: "Supprimer",
+            danger: true,
+          });
+          if (!reponse.confirme) return;
+          demarrerTransition(() => supprimerSectionAction(section.id));
         }}
       >
         ✕

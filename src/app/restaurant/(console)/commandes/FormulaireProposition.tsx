@@ -6,6 +6,7 @@ import { creerPropositionAction } from "@/lib/commande/actions-restaurant";
 import { valeursDeReprise } from "@/lib/commande/reprise";
 import type { ValeursProposition } from "@/lib/contracts/commande";
 import { Button, Input, Alert } from "@/components/ui";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 
 interface Props {
   commandeId: string;
@@ -46,8 +47,9 @@ export function FormulaireProposition({
   const [erreur, setErreur] = useState<string | null>(null);
   const [champs, setChamps] = useState<Record<string, string>>({});
   const [enCours, demarrer] = useTransition();
+  const confirmer = useConfirmation();
 
-  function soumettre() {
+  async function soumettre() {
     const erreurs: Record<string, string> = {};
     const nouveauSousTotal = Number.parseInt(sousTotal, 10);
     const nouveauxFrais = Number.parseInt(frais, 10);
@@ -72,10 +74,12 @@ export function FormulaireProposition({
       return;
     }
 
-    const confirme = window.confirm(
-      "Envoyer cette proposition au client ? La préparation reprendra seulement après son accord."
-    );
-    if (!confirme) {
+    const reponse = await confirmer({
+      titre: "Envoyer cette proposition au client ?",
+      message: <p>La préparation reprendra seulement après son accord.</p>,
+      libelleAction: "Envoyer",
+    });
+    if (!reponse.confirme) {
       return;
     }
 
