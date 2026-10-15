@@ -87,7 +87,7 @@ La synthèse et les vérifications ci-dessous sont de la session principale (Son
 
 Ces durées sont des ordres de grandeur, pas des engagements : elles dépendent des décisions ci-dessous.
 
-## 6 bis. Phase 0 : état d'avancement (15 octobre 2026, en local, non déployée)
+## 6 bis. Phase 0 : état d'avancement (15 octobre 2026, déployée : version `81b93a5b`)
 
 | Constat | État |
 |---|---|
@@ -112,8 +112,27 @@ Ces durées sont des ordres de grandeur, pas des engagements : elles dépendent 
 | ED-2 à ED-5 (éditeur de pages) | **Non fait** : phase de refonte |
 | Mode service, maintien de l'écran allumé, hors ligne | **Non fait** : phase restaurateur |
 
-**Vérifié** : types, lint, 1628 contrôles (dont 8 sur la règle « à traiter »), build et `cf:build` ; centrage des boîtes et hauteur du rappel 2FA mesurés en local.
-**Non vérifié à l'écran** : les écrans connectés (restaurateur, Taxonomie) n'ont pas été vus après correction, faute de session locale ; à contrôler après déploiement.
+**Vérifié avant déploiement** : types, lint, 1628 contrôles (dont 8 sur la règle « à traiter »), build et `cf:build`.
+
+**Vérifié en production après déploiement** (session connectée, téléphone 375 × 812) :
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Alertes de commandes montées (restaurateur) | 2 | **1**, visible en tête de page |
+| Rappel de double authentification | 125 px | **80 px** (bouton 44 px) |
+| Boîte de dialogue (centre de l'écran) | collée en (0, 0) | **centrée** (188, 406 sur 375 × 812) |
+| Taxonomie : boutons, dont « Supprimer » | 943, dont 471 | **273, dont 136** ; **0** quartier technique affiché |
+| Taxonomie : boutons coupés par la carte | oui | **aucun** (marge mini 102 px) |
+| Taxonomie : hauteur de page | 37 600 px | **12 700 px** (136 quartiers restent à lister) |
+| Géographie : cibles de moins de 40 px | 434 | **2** (résumés « Point central », 36 px) |
+| Journal d'audit : cibles de moins de 40 px | 61 | **0** (page un peu plus haute : 16 500 px) |
+| Support commandes : cibles de moins de 40 px | 7 | **0** |
+| Design : cibles de moins de 40 px | 35 | **31** (onglets corrigés ; champs de couleur et de valeur à 34 à 38 px restent) |
+| Éditeur de design : bouton de retour | « Revenir aux valeurs actuelles » | « **Tout rétablir aux valeurs d'origine** » (libellé selon l'effet) |
+
+**Restent** : champs de l'éditeur de design (44 px), résumés « Point central » (36 px), liste de 136 quartiers de la Taxonomie (pagination ou recherche), la barre d'alerte de commandes ajoute environ 70 px en haut des pages du restaurateur (le contenu commence un peu plus bas qu'avant, en échange d'une alerte réellement visible).
+
+**Piège de test** : dans le navigateur intégré, un onglet en arrière-plan ne rend pas les pages en flux (elles restent sur « Chargement… » sans erreur). Ne mesurer que l'onglet au premier plan.
 
 ## 7. Décisions à prendre avant de coder
 
