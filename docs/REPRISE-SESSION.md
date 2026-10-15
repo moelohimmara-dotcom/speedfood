@@ -188,6 +188,8 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 L'audit du 11 octobre 2026 est regroupé dans `docs/audit-2026-10-11/README.md`, qui sert d'index unique pour les constats visuels, sécurité/performance, feuille de route, journal de déploiement et captures. Les rapports ne doivent pas être recréés à la racine du dépôt.
 
+L'audit des deux consoles (super admin et restaurateur) du 15 octobre 2026, préalable à une refonte « type Wix », est dans `docs/audit-2026-10-15-consoles/README.md` (synthèse, défauts vérifiés V1 à V7, architecture proposée, plan en phases, décisions à prendre) avec les quatre rapports détaillés. **Phase 0 recommandée avant toute refonte** : l'alerte de commandes du restaurateur est montée deux fois et son état est invisible sur téléphone.
+
 ## 10. En cas de problème
 
 | Symptôme | Piste |
