@@ -10,6 +10,7 @@ Ce document est la synthèse ; le détail (tableaux, fichier:ligne) est dans les
 | `analyse-system.md` | Ergonomie, sécurité de l'interface, accessibilité, mobile de `/system` | Sonnet 5.5 |
 | `analyse-restaurant.md` | Tâche centrale, ergonomie, onboarding, mobile de `/restaurant` | Sonnet 5.5 |
 | `audit-visuel.md` | Relevés sur la production réelle (28 pages, 3 largeurs) et captures (`captures/`) | Session principale, navigateur intégré |
+| `audit-editeur.md` | Éditeur de pages à blocs, monté en local avec un document fictif (aucune écriture en production) | Session principale |
 
 La synthèse et les vérifications ci-dessous sont de la session principale (Sonnet 5.5). Aucun modèle Opus n'a été utilisé.
 
@@ -26,6 +27,8 @@ La synthèse et les vérifications ci-dessous sont de la session principale (Son
 | V7 | **Classes `btn-secondaire` / `btn-primaire` sans aucune règle CSS** (3 usages) : boutons au style brut. | `EditeurJetons.tsx:264,445`, `InterrupteurFonctionnalite.tsx:15` ; aucune règle dans `src/**/*.css` |
 
 **Audit visuel (même jour, production réelle)** : voir `audit-visuel.md`. Trois défauts graves s'y ajoutent à V1 à V7 : la **Taxonomie** expose 304 quartiers techniques « Centre de … » avec un bouton Supprimer définitif (effaçant en cascade liste d'attente et zones de livraison, page de 31 000 px), le **rappel de double authentification** occupe 125 px sur téléphone (un quart de l'écran, sur chaque page), et des **boutons coupés** dans la Taxonomie sur téléphone.
+
+**Éditeur de pages (même jour, essai en local)** : voir `audit-editeur.md`. Défaut grave commun à toute la console : **les boîtes de dialogue s'ouvrent en haut à gauche** de l'écran (`* { margin: 0 }` supprime leur centrage ; `margin: auto` manque dans `.ad-dialogue`). Côté éditeur : inutilisable à 768 px (aperçu coupé), aperçu « Bureau » en vignette illisible, icônes d'action des blocs à 32 px, erreurs de validation sans champ désigné ; points forts : retour d'information immédiat, annulation, garde de navigation avec « Rester » par défaut.
 
 ## 2. Ce que les analyses ajoutent (lu dans le code par les agents, non revérifié ligne à ligne)
 
