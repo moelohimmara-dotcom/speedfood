@@ -180,7 +180,7 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
    Il n'existe donc plus qu'un seul dépôt. Piège : un dossier verrouillé « utilisé par un autre processus » peut l'être par un programme dont la ligne de commande ne cite pas
    le chemin, seul son répertoire de travail y pointe.
    **Next 16.4 : abandonné.** Next 16.4.0 avec OpenNext 1.20.10 déclenche en production une erreur `loadManifest(preview-props.json)`. Ne pas retenter sans nouvelle version
-   d'OpenNext qui la corrige. Le projet reste sur Next.js 16.3.6 (la série 16.3 a un correctif 16.3.8 « sans faille d'audit », non appliqué : à décider séparément).
+   d'OpenNext qui la corrige. Le projet passe à Next.js 16.3.8 (correctif de la série 16.3 sans faille d'audit : `npm audit --omit=dev` = 0). Validé avant déploiement : 1620 tests, build, `cf:build` (OpenNext) et Worker local qui sert les pages sans erreur `loadManifest`. Les failles restantes de `npm audit` sont dans les outils de développement (`braces` via ESLint) : leur « correctif » rétrograderait eslint-config-next en 14, à ne pas appliquer. Ne pas lancer `npm audit fix` à l'aveugle : il modifie plus de 1000 lignes du lockfile (chaîne wrangler/workerd).
 
 ---
 

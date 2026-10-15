@@ -808,3 +808,5 @@ Tout est déployé en production. Les commits jusqu'à `dec267d` sont sur GitHub
 - Un fichier « use server » ne peut exporter que des fonctions asynchrones : les fonctions pures et constantes vivent à côté (`geographie-outils.ts`).
 - `neighborhoods` n'a pas de colonne `slug` : le slug d'un quartier se calcule avec `slugQuartier(nom)`.
 - La neutralisation de formule du CSV ne doit pas toucher les nombres (longitudes négatives).
+
+**Montée de Next.js 16.3.6 → 16.3.8 (15 octobre 2026)** : correctif de la série 16.3, `npm audit --omit=dev` passe de 2 failles à 0 ; OpenNext 1.20.6 inchangé. Vérifié : 1620 tests, build, `cf:build`, Worker local (`opennextjs-cloudflare preview`) qui sert accueil, `/quartiers`, `/restaurants`, fiche et connexion sans l'erreur `loadManifest` de Next 16.4.0. L'essai Next 16.4 est abandonné (voir `REPRISE-SESSION.md`). Les failles d'`npm audit` restantes sont dans les outils de développement. **Déploiement : voir la ligne suivante ou le journal de déploiement.**
