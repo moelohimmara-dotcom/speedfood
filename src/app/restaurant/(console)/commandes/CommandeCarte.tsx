@@ -159,6 +159,7 @@ export function CommandeCarte({
             >
               {LIBELLES_ETAT[commande.etatDerive]}
             </Badge>
+            {commande.estTest ? <span className="commande-test-pastille" title="Commande de test : exclue des chiffres">Test</span> : null}
           </div>
           <p style={{ margin: "4px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
             {age ? `${age} · ` : ""}{formaterDate(commande.creeLe)} ·{" "}

@@ -77,7 +77,11 @@ export default async function FicheRestaurantPage({
   // d'aperçu, et peuvent basculer en « vue visiteur » (?vue=visiteur) pour voir exactement ce que voit un client.
   const role = await lireVueFiche(id);
   const apercu = role !== "visiteur";
-  const visiteurSimule = apercu && (await searchParams).vue === "visiteur";
+  const vue = (await searchParams).vue;
+  // Trois niveaux pour l'équipe et les administrateurs : aperçu (défaut, lecture seule), vue visiteur (identique à un client, mais rien ne s'active),
+  // mode test (parcours complet ; la commande est marquée « Test » par le serveur et exclue des chiffres).
+  const visiteurSimule = apercu && vue === "visiteur";
+  const modeTest = apercu && vue === "test";
   const supabase: SupabaseClient<Database> = apercu ? await creerClientServeur() : creerClientPublic();
 
   const { data: restaurant } = await supabase
@@ -163,8 +167,8 @@ export default async function FicheRestaurantPage({
   }
   const platsSansSection = platsParSection.get(null) ?? [];
 
-  // Dans la vue propriétaire/administrateur, on ne commande pas (aperçu) ; la « vue visiteur » rétablit le parcours complet pour le tester.
-  const apercuSansCommande = apercu && !visiteurSimule;
+  // Aperçu : on ne commande pas. Vue visiteur : même rendu qu'un client, mais figé (`inert`) — on regarde, on ne commande pas. Mode test : parcours réel.
+  const apercuSansCommande = apercu && !visiteurSimule && !modeTest;
   const commandable = !apercuSansCommande && estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes });
   const categorie = restaurantSur.menu_categories?.nom ?? "";
 
@@ -263,7 +267,7 @@ export default async function FicheRestaurantPage({
   return (
     <main className="fiche">
       {apercu ? (
-        <BandeauApercuFiche role={role} restaurantId={restaurant.id} visiteurSimule={visiteurSimule} publie={restaurant.publie} suspendu={restaurant.suspendu_le !== null} />
+        <BandeauApercuFiche role={role} restaurantId={restaurant.id} mode={modeTest ? "test" : visiteurSimule ? "visiteur" : "apercu"} publie={restaurant.publie} suspendu={restaurant.suspendu_le !== null} />
       ) : null}
       <script
         type="application/ld+json"
@@ -338,7 +342,8 @@ export default async function FicheRestaurantPage({
         </Alert>
       ) : null}
 
-      <div className="fiche-grille">
+      {/* Vue visiteur : `inert` retire tout focus, clic et lecture d'écran — rien ne peut être commandé, la mise en page reste celle d'un client. */}
+      <div className="fiche-grille" inert={visiteurSimule || undefined}>
         <div className="fiche-menu">
           {/* Le message « à confirmer » vit ici, au moment du choix, et une seule fois. */}
           {aucunConfirme ? (
@@ -356,7 +361,7 @@ export default async function FicheRestaurantPage({
         {apercuSansCommande ? (
           <aside className="fiche-panier fiche-panier-apercu" aria-label="Aperçu de la commande">
             <h2 className="fiche-panier-titre">Commande</h2>
-            <p className="fiche-panier-videtexte">Les commandes sont désactivées dans cette vue. Pour tester le parcours d&apos;un client, utilisez « Voir comme un visiteur ».</p>
+            <p className="fiche-panier-videtexte">Les commandes sont désactivées dans cette vue. Pour essayer le parcours d&apos;un client, utilisez « Tester une commande ».</p>
             <p className="fiche-panier-note">{textePaiement}</p>
           </aside>
         ) : (

@@ -104,6 +104,11 @@ export async function renderSuiviPage(jeton: string, session = false) {
         Référence <strong>{suivi.reference}</strong> · passée le {formaterDate(suivi.creeLe)}
       </p>
 
+      {suivi.estTest ? (
+        <p className="commande-test-bandeau" role="note">
+          <span className="commande-test-pastille">Test</span> Commande de test : elle suit le parcours complet mais n&apos;est comptée dans aucun chiffre et ne concerne aucun vrai client.
+        </p>
+      ) : null}
       {session ? null : <CelebrationCommande jeton={jeton} />}
       <FriseSuivi etat={suivi.etatDerive} />
 

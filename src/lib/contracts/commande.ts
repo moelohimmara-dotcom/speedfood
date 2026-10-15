@@ -205,6 +205,8 @@ export interface SuiviCommande {
   mode: ModeRetrait;
   tableNumero: string | null;
   creeLe: string;
+  /** Commande de test (passée par l'équipe du restaurant ou un administrateur) : exclue de tous les chiffres. */
+  estTest: boolean;
   restaurant: RestaurantSuivi;
   lignes: LigneCommandeApercu[];
   sousTotal: number;
@@ -228,6 +230,7 @@ export interface ApercuCommandeRestaurant {
   sousTotal: number;
   fraisLivraisonEstime: number;
   creeLe: string;
+  estTest: boolean;
   lignes: LigneCommandeApercu[];
   propositionActive: PropositionRevisee | null;
   /** Toutes les propositions de cette commande, de la plus récente à la plus ancienne. */

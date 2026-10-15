@@ -1116,6 +1116,7 @@ export type Database = {
           client_telephone: string
           client_user_id: string | null
           cree_le: string
+          est_test: boolean
           frais_livraison_estime: number
           id: string
           jeton_suivi: string
@@ -1139,6 +1140,7 @@ export type Database = {
           client_telephone: string
           client_user_id?: string | null
           cree_le?: string
+          est_test?: boolean
           frais_livraison_estime?: number
           id?: string
           jeton_suivi: string
@@ -1162,6 +1164,7 @@ export type Database = {
           client_telephone?: string
           client_user_id?: string | null
           cree_le?: string
+          est_test?: boolean
           frais_livraison_estime?: number
           id?: string
           jeton_suivi?: string

@@ -397,3 +397,25 @@ input[type="file"]::file-selector-button {
   flex: 1 1 12rem;
   min-width: 0;
 }
+
+/* Commande de test (équipe du restaurant ou administrateur) : repérable partout, jamais confondue avec une vraie commande. */
+.commande-test-pastille {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.commande-test-bandeau {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px dashed var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+  font-weight: 700;
+}

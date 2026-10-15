@@ -27,6 +27,25 @@ export interface CommandeCreee {
   reference: string;
   jeton: string;
   idempotent: boolean;
+  /** Commande passée par l'équipe du restaurant ou un administrateur : suit le parcours complet mais n'entre dans aucun chiffre. */
+  estTest: boolean;
+}
+
+/**
+ * Une commande est « de test » quand son auteur fait partie de l'équipe du restaurant commandé, ou est administrateur système.
+ * Décidé ICI, côté serveur, d'après le compte de la session : jamais d'un paramètre du navigateur. Le marquage est ensuite
+ * immuable (déclencheur `fn_proteger_colonnes_commande`) et exclu des statistiques d'administration.
+ */
+async function auteurEstDeLEquipe(
+  db: ReturnType<typeof creerClientAdmin>,
+  restaurantId: string,
+  utilisateurId: string
+): Promise<boolean> {
+  const [{ data: membre }, { data: admin }] = await Promise.all([
+    db.from("restaurant_memberships").select("utilisateur_id").eq("restaurant_id", restaurantId).eq("utilisateur_id", utilisateurId).maybeSingle(),
+    db.from("system_admin_memberships").select("utilisateur_id").eq("utilisateur_id", utilisateurId).maybeSingle(),
+  ]);
+  return membre !== null || admin !== null;
 }
 
 function estViolationUniqueJeton(error: { code?: string; message: string }): boolean {
@@ -58,7 +77,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   // Rejeu idempotent : la commande existe déjà pour cette clé d'idempotence.
   const { data: existante } = await db
     .from("orders")
-    .select("id, reference, jeton_suivi, restaurant_id, client_user_id")
+    .select("id, reference, jeton_suivi, restaurant_id, client_user_id, est_test")
     .eq("jeton_suivi", jeton)
     .maybeSingle();
   if (existante) {
@@ -71,6 +90,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
       reference: existante.reference,
       jeton: existante.jeton_suivi,
       idempotent: true,
+      estTest: existante.est_test,
     };
   }
 
@@ -105,6 +125,8 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     );
   }
 
+  const estTest = await auteurEstDeLEquipe(db, payload.restaurantId, utilisateurId);
+
   // Trois tentatives au cas (rare) où la référence aléatoire serait déjà prise.
   for (let tentative = 0; tentative < 3; tentative += 1) {
     const reference = genererReference();
@@ -125,6 +147,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
         // restaurant (TDR.md §5 exclut tout calcul automatique de livraison).
         frais_livraison_estime: 0,
         statut: "en_attente",
+        est_test: estTest,
       })
       .select("id, reference, jeton_suivi")
       .single();
@@ -187,6 +210,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
         reference: inseree.reference,
         jeton: inseree.jeton_suivi,
         idempotent: false,
+        estTest,
       };
     }
 
@@ -194,7 +218,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
       // Course gagnée par une soumission jumelle de la même commande.
       const { data: concurrente } = await db
         .from("orders")
-        .select("id, reference, jeton_suivi, restaurant_id")
+        .select("id, reference, jeton_suivi, restaurant_id, est_test")
         .eq("jeton_suivi", jeton)
         .maybeSingle();
       if (concurrente) {
@@ -204,6 +228,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
           reference: concurrente.reference,
           jeton: concurrente.jeton_suivi,
           idempotent: true,
+          estTest: concurrente.est_test,
         };
       }
     }
