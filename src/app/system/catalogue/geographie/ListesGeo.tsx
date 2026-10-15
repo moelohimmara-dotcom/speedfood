@@ -21,6 +21,9 @@ function normaliser(texte: string): string {
 
 const etatInitial: EtatGeographie = {};
 
+/** Lignes réellement rendues à la fois. Chaque ligne est un formulaire complet : toutes les rendre (136 quartiers) faisait dépasser les limites de calcul du serveur. */
+const PAS_AFFICHAGE = 20;
+
 interface Element {
   id: string;
   nom: string;
@@ -54,20 +57,21 @@ function ListeGeo({
   const [filtre, setFiltre] = useState<Filtre>("tous");
   const [selection, setSelection] = useState(0);
   const [operation, setOperation] = useState("");
+  const [limite, setLimite] = useState(PAS_AFFICHAGE);
   const [etat, action, enCours] = useActionState(enregistrerLotAction, etatInitial);
 
   const requete = normaliser(recherche);
-  const visibles = new Set(
-    elements
-      .filter((e) => {
-        if (requete && !normaliser([e.nom, ...e.nomsAlternatifs].join(" ")).includes(requete)) return false;
-        if (filtre === "inactifs") return !e.actif;
-        if (filtre === "sans_point") return e.latitude === null || e.longitude === null;
-        if (filtre === "attente") return e.attente > 0;
-        return true;
-      })
-      .map((e) => e.id)
-  );
+  const correspondants = elements.filter((e) => {
+    if (requete && !normaliser([e.nom, ...e.nomsAlternatifs].join(" ")).includes(requete)) return false;
+    if (filtre === "inactifs") return !e.actif;
+    if (filtre === "sans_point") return e.latitude === null || e.longitude === null;
+    if (filtre === "attente") return e.attente > 0;
+    return true;
+  });
+  // Seules les lignes affichées existent dans la page : un lot ne peut donc jamais toucher une ligne que la personne n'a pas vue.
+  const affiches = correspondants.slice(0, limite);
+  const visibles = new Set(affiches.map((e) => e.id));
+  const restantes = correspondants.length - affiches.length;
 
   function cases(): HTMLInputElement[] {
     return Array.from(conteneur.current?.querySelectorAll<HTMLInputElement>("input.geo-selection") ?? []);
@@ -85,6 +89,7 @@ function ListeGeo({
   }
   function changerFiltre(nouveau: Filtre) {
     setFiltre(nouveau);
+    setLimite(PAS_AFFICHAGE);
     toutDeselectionner();
   }
   function envoyer(donnees: FormData) {
@@ -107,6 +112,7 @@ function ListeGeo({
           value={recherche}
           onChange={(e) => {
             setRecherche(e.target.value);
+            setLimite(PAS_AFFICHAGE);
             toutDeselectionner();
           }}
           autoComplete="off"
@@ -120,15 +126,16 @@ function ListeGeo({
           ))}
         </div>
         <p role="status" aria-live="polite" className="geo-outils-etat">
-          {visibles.size} {libelleElement}
-          {visibles.size > 1 ? "s" : ""} affiché{niveau === "commune" ? "e" : ""}{visibles.size > 1 ? "s" : ""} sur {elements.length}
+          {affiches.length} {libelleElement}
+          {affiches.length > 1 ? "s" : ""} affiché{niveau === "commune" ? "e" : ""}{affiches.length > 1 ? "s" : ""} sur {correspondants.length}
+          {correspondants.length !== elements.length ? ` (${elements.length} au total)` : ""}
         </p>
       </div>
 
       <form id={idLot} action={envoyer} className="geo-lot" aria-label={`Actions sur les ${libelleElement}s cochés`}>
         <input type="hidden" name="niveau" value={niveau} />
         <button type="button" className="btn btn-secondary" onClick={toutSelectionner}>
-          Cocher les {visibles.size} affichés
+          Cocher les {affiches.length} affichés
         </button>
         <button type="button" className="btn btn-secondary" onClick={toutDeselectionner} disabled={selection === 0}>
           Tout décocher
@@ -153,12 +160,17 @@ function ListeGeo({
       </form>
 
       <div ref={conteneur} onChange={compter}>
-        {elements.map((e) => (
-          <div key={e.id} hidden={!visibles.has(e.id)}>
-            {rendre(e.id)}
-          </div>
+        {affiches.map((e) => (
+          <div key={e.id}>{rendre(e.id)}</div>
         ))}
-        {visibles.size === 0 ? <p className="ad-aide-champ">Aucun élément ne correspond à cette recherche.</p> : null}
+        {correspondants.length === 0 ? <p className="ad-aide-champ">Aucun élément ne correspond à cette recherche.</p> : null}
+        {restantes > 0 ? (
+          <p className="geo-suite">
+            <button type="button" className="btn btn-secondary" onClick={() => setLimite(limite + PAS_AFFICHAGE)}>
+              Afficher {Math.min(PAS_AFFICHAGE, restantes)} de plus ({restantes} restant{restantes > 1 ? "s" : ""})
+            </button>
+          </p>
+        ) : null}
       </div>
     </div>
   );
