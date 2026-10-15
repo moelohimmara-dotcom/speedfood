@@ -2071,7 +2071,6 @@ a.ad-carte-lien:hover {
 .geo-regions {
   display: grid;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
 }
 .geo-regions-etiquette {
   margin: 0;
@@ -2231,8 +2230,10 @@ a.ad-carte-lien:hover {
   accent-color: var(--rouge-fonce);
 }
 
-/* Interrupteur « visible dans les choix » */
-.geo-interrupteur {
+/* Interrupteur « visible dans les choix ».
+   La console impose 22 × 22 px à toutes les cases à cocher (fantaisie.css, `.ad-app input[type="checkbox"]`) et une animation de rebond :
+   les sélecteurs ci-dessous portent `.ad-app` et `[type="checkbox"]` pour passer devant ces règles. */
+.ad-app .geo-interrupteur {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -2240,43 +2241,115 @@ a.ad-carte-lien:hover {
   font-weight: 600;
   cursor: pointer;
 }
-.geo-interrupteur input {
+.ad-app .geo-interrupteur input[type="checkbox"] {
   appearance: none;
   position: relative;
   flex: none;
-  width: 44px;
-  height: 26px;
+  width: 46px;
+  height: 28px;
   margin: 0;
   border: 2px solid var(--encre);
   border-radius: 999px;
   background: var(--surface);
   cursor: pointer;
+  animation: none;
 }
-.geo-interrupteur input::after {
+.ad-app .geo-interrupteur input[type="checkbox"]::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 3px;
+  left: 3px;
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: var(--encre);
   transition: transform 0.15s var(--ease);
 }
-.geo-interrupteur input:checked {
+.ad-app .geo-interrupteur input[type="checkbox"]:checked {
   background: var(--mangue);
+  animation: none;
 }
-.geo-interrupteur input:checked::after {
+.ad-app .geo-interrupteur input[type="checkbox"]:checked::after {
   transform: translateX(18px);
 }
-.geo-interrupteur input:focus-visible {
+.ad-app .geo-interrupteur input[type="checkbox"]:focus-visible {
   outline: 3px solid var(--rouge-fonce);
   outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .geo-interrupteur input::after {
+  .ad-app .geo-interrupteur input[type="checkbox"]::after {
     transition: none;
   }
+}
+
+/* Qualité des données : groupes repliables, éléments en pastilles de lien */
+.geo-qualite {
+  display: grid;
+  gap: var(--space-2);
+}
+.geo-qualite-groupe {
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.geo-qualite-groupe > summary,
+.geo-qualite-suite > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  cursor: pointer;
+  font-weight: 700;
+}
+.geo-qualite-suite > summary {
+  min-height: 44px;
+  padding: 0;
+  color: var(--rouge-fonce);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.geo-qualite-groupe > summary:focus-visible,
+.geo-qualite-suite > summary:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.geo-qualite-titre {
+  flex: 1 1 auto;
+}
+.geo-qualite-corps {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+}
+.geo-qualite-corps p {
+  margin: 0;
+}
+.geo-qualite-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.geo-qualite-liste > li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-pill);
+  background: var(--creme);
+}
+.geo-qualite-suite {
+  display: grid;
+  gap: var(--space-2);
+}
+.geo-qualite-liste > li.est-ligne {
+  flex: 1 1 100%;
+  border-radius: var(--radius-md);
 }
 
 /* Point central : contrôle, carte, suggestion */
@@ -2515,4 +2588,11 @@ a.ad-carte-lien:hover {
 .carte-couverture-pastille.carte-couverture-aucun {
   background: var(--secondaire);
   opacity: 0.55;
+}
+
+/* Les blocs d'une page de la console ne se touchent jamais : la pile leur donne un écart régulier (`.ad-pile`, 20 px) ;
+   à l'intérieur d'un panneau, les lignes de formulaire gardent leur propre rythme. */
+.ad-pile > .ad-panneau,
+.ad-pile > .ad-volet {
+  margin: 0;
 }

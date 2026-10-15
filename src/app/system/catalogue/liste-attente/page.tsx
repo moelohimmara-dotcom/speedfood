@@ -30,51 +30,53 @@ export default async function ListeAttentePage() {
     <div>
       <PageHeader titre="Catalogue" description="Personnes qui attendent un restaurant dans leur zone. Les contacts sont des données personnelles : chaque export est tracé." />
       <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
+      <div className="ad-pile">
 
-      <section className="ad-cartes" aria-label="Chiffres clés de la liste d'attente">
-        <CarteChiffre libelle="Personnes en attente" valeur={total} sous={`${prevenues} déjà prévenue${prevenues > 1 ? "s" : ""}`} />
-        <CarteChiffre libelle="Zones concernées" valeur={zones.length} sous="Zones où au moins une personne attend" />
-      </section>
+        <section className="ad-cartes" aria-label="Chiffres clés de la liste d'attente">
+          <CarteChiffre libelle="Personnes en attente" valeur={total} sous={`${prevenues} déjà prévenue${prevenues > 1 ? "s" : ""}`} />
+          <CarteChiffre libelle="Zones concernées" valeur={zones.length} sous="Zones où au moins une personne attend" />
+        </section>
 
-      <Panneau titre="Zones en attente">
-        {zones.length === 0 ? (
-          <EtatVide titre="Personne n'attend pour l'instant" texte="Quand quelqu'un s'inscrit dans une zone sans restaurant, la zone apparaît ici avec le nombre de personnes." />
-        ) : (
-          <div className="ad-table-cadre">
-            <table className="ad-table">
-              <thead>
-                <tr>
-                  <th scope="col">Zone</th>
-                  <th scope="col">Personnes</th>
-                  <th scope="col">Prévenues</th>
-                  <th scope="col">Dernière inscription</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {zones.map((z) => (
-                  <tr key={`${z.niveau}-${z.id}`}>
-                    <td className="ad-cellule-principale" data-label="Zone">
-                      {z.nom} <Pastille ton="neutre">{LIBELLE_NIVEAU[z.niveau]}</Pastille>
-                      {z.contexte ? <span className="ad-aide-champ"> · {z.contexte}</span> : null}
-                    </td>
-                    <td className="ad-nombre" data-label="Personnes">{z.personnes}</td>
-                    <td className="ad-nombre" data-label="Prévenues">{z.prevenues}</td>
-                    <td data-label="Dernière inscription">{jour(z.derniere)}</td>
-                    <td data-label="Actions">
-                      <ActionsZoneAttente niveau={z.niveau} id={z.id} nom={z.nom} personnes={z.personnes} prevenues={z.prevenues} />
-                    </td>
+        <Panneau titre="Zones en attente">
+          {zones.length === 0 ? (
+            <EtatVide titre="Personne n'attend pour l'instant" texte="Quand quelqu'un s'inscrit dans une zone sans restaurant, la zone apparaît ici avec le nombre de personnes." />
+          ) : (
+            <div className="ad-table-cadre">
+              <table className="ad-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Personnes</th>
+                    <th scope="col">Prévenues</th>
+                    <th scope="col">Dernière inscription</th>
+                    <th scope="col">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panneau>
+                </thead>
+                <tbody>
+                  {zones.map((z) => (
+                    <tr key={`${z.niveau}-${z.id}`}>
+                      <td className="ad-cellule-principale" data-label="Zone">
+                        {z.nom} <Pastille ton="neutre">{LIBELLE_NIVEAU[z.niveau]}</Pastille>
+                        {z.contexte ? <span className="ad-aide-champ"> · {z.contexte}</span> : null}
+                      </td>
+                      <td className="ad-nombre" data-label="Personnes">{z.personnes}</td>
+                      <td className="ad-nombre" data-label="Prévenues">{z.prevenues}</td>
+                      <td data-label="Dernière inscription">{jour(z.derniere)}</td>
+                      <td data-label="Actions">
+                        <ActionsZoneAttente niveau={z.niveau} id={z.id} nom={z.nom} personnes={z.personnes} prevenues={z.prevenues} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panneau>
 
-      <Panneau titre="Retirer un contact">
-        <FormulaireSuppressionContact />
-      </Panneau>
+        <Panneau titre="Retirer un contact">
+          <FormulaireSuppressionContact />
+        </Panneau>
+      </div>
     </div>
   );
 }
