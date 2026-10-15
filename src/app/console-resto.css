@@ -655,3 +655,8 @@
 .rc-alerte-barre {
   margin-bottom: var(--space-3);
 }
+.rc-aTraiter-suite {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--bordure);
+}

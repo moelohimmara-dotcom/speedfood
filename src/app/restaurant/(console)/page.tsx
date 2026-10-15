@@ -69,7 +69,8 @@ export default async function AccueilConsolePage() {
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(id));
   const maintenant = new Date();
 
-  const aTraiter = commandes.filter((c) => c.etatDerive === "en_attente");
+  // La plus ancienne d'abord, comme la page Commandes : la personne qui attend depuis le plus longtemps est servie en premier.
+  const aTraiter = commandes.filter((c) => c.etatDerive === "en_attente").sort((a, b) => a.creeLe.localeCompare(b.creeLe));
   const enCours = commandes.filter((c) => ["attente_confirmation_client", "acceptee", "prete"].includes(c.etatDerive));
   const serie = enSerie(commandes);
   const jours = construireJours(serie, PERIODE, maintenant);
@@ -78,6 +79,50 @@ export default async function AccueilConsolePage() {
   const demarrageIncomplet = restaurant
     ? !restaurant.photo_url || !restaurant.logo_url || (nombrePlats ?? 0) === 0 || restaurant.horaires.trim() === "" || restaurant.moyens_paiement.length === 0 || !restaurant.publie
     : false;
+
+  const panneauATraiter = (
+    <Panneau
+      titre="À traiter"
+      compteur={aTraiter.length > 0 ? aTraiter.length : undefined}
+      sansMarge
+      actions={
+        <Link href="/restaurant/commandes" className="lien-texte">
+          Toutes les commandes
+        </Link>
+      }
+    >
+      {aTraiter.length === 0 ? (
+        <EtatVide titre="Rien à traiter" texte="Les nouvelles commandes apparaissent ici, avec une alerte sonore si vous l'avez activée." />
+      ) : (
+        <ul className="rc-aTraiter-liste">
+          {aTraiter.slice(0, 6).map((c) => {
+            const retard = enRetard(c.creeLe, maintenant) ? minutesDepuis(c.creeLe, maintenant) : null;
+            return (
+              <li key={c.id}>
+                <Link href="/restaurant/commandes" className="rc-commande">
+                  <span className="rc-commande-titre">
+                    {c.reference} · {c.clientNom}
+                  </span>
+                  <span className="rc-commande-montant">{gnf(c.sousTotal)}</span>
+                  <span className="rc-commande-meta">
+                    {c.mode === "livraison" ? "Livraison" : c.mode === "sur_place" ? `Table ${c.tableNumero ?? ""}` : "Retrait"} · {ancienneteLisible(new Date(c.creeLe), maintenant)}
+                    {retard !== null ? <span className="rc-retard"> · attend depuis {retard} min</span> : null}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {aTraiter.length > 6 ? (
+        <p className="rc-aTraiter-suite">
+          <Link href="/restaurant/commandes" className="lien-texte">
+            + {aTraiter.length - 6} autre{aTraiter.length - 6 > 1 ? "s" : ""} à traiter
+          </Link>
+        </p>
+      ) : null}
+    </Panneau>
+  );
 
   return (
     <div>
@@ -108,6 +153,8 @@ export default async function AccueilConsolePage() {
       ) : null}
 
       <div className="rc-service">
+        {/* Des commandes attendent : elles passent avant le reste (ordre du DOM = ordre visuel = ordre du clavier). */}
+        {aTraiter.length > 0 ? panneauATraiter : null}
         {restaurant ? (
           <BasculesStatut
             ouvert={restaurant.ouvert}
@@ -128,40 +175,7 @@ export default async function AccueilConsolePage() {
           </div>
         </Panneau>
 
-        <Panneau
-          titre="À traiter"
-          compteur={aTraiter.length > 0 ? aTraiter.length : undefined}
-          sansMarge
-          actions={
-            <Link href="/restaurant/commandes" className="lien-texte">
-              Toutes les commandes
-            </Link>
-          }
-        >
-          {aTraiter.length === 0 ? (
-            <EtatVide titre="Rien à traiter" texte="Les nouvelles commandes apparaissent ici, avec une alerte sonore si vous l'avez activée." />
-          ) : (
-            <ul className="rc-aTraiter-liste">
-              {aTraiter.slice(0, 6).map((c) => {
-                const retard = enRetard(c.creeLe, maintenant) ? minutesDepuis(c.creeLe, maintenant) : null;
-                return (
-                  <li key={c.id}>
-                    <Link href="/restaurant/commandes" className="rc-commande">
-                      <span className="rc-commande-titre">
-                        {c.reference} · {c.clientNom}
-                      </span>
-                      <span className="rc-commande-montant">{gnf(c.sousTotal)}</span>
-                      <span className="rc-commande-meta">
-                        {c.mode === "livraison" ? "Livraison" : c.mode === "sur_place" ? `Table ${c.tableNumero ?? ""}` : "Retrait"} · {ancienneteLisible(new Date(c.creeLe), maintenant)}
-                        {retard !== null ? <span className="rc-retard"> · attend depuis {retard} min</span> : null}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panneau>
+        {aTraiter.length === 0 ? panneauATraiter : null}
       </div>
 
       <section className="ad-cartes" aria-label={`Chiffres des ${PERIODE} derniers jours`} style={{ marginTop: "var(--space-5)" }}>
