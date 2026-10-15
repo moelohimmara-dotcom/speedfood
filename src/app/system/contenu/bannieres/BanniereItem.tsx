@@ -7,11 +7,14 @@ import {
   type Banniere,
 } from "@/lib/system-admin/contenus";
 import { Card, Badge, Button } from "@/components/ui";
+import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 
 /** `indisponible` : explication d'un palier insuffisant pour publier/dépublier/supprimer (le serveur refuse de toute façon). */
 export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; indisponible?: string }) {
   const [enTransition, demarrerTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const confirmer = useConfirmation();
+  const notifier = useNotification();
   const publie = banniere.statut === "publie";
 
   return (
@@ -61,13 +64,14 @@ export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; i
           className="ad-action-discrete"
           disabled={enTransition || Boolean(indisponible)}
           aria-describedby={indisponible ? `banniere-${banniere.id}-limite` : undefined}
-          onClick={() => {
-            if (confirm(`Supprimer la bannière « ${banniere.titre} » ?`)) {
-              demarrerTransition(async () => {
-                const retour = await supprimerBanniereAction(banniere.id);
-                setErreur(retour.erreur ?? null);
-              });
-            }
+          onClick={async () => {
+            const reponse = await confirmer({ titre: `Supprimer la bannière « ${banniere.titre} » ?`, libelleAction: "Supprimer", danger: true });
+            if (!reponse.confirme) return;
+            demarrerTransition(async () => {
+              const retour = await supprimerBanniereAction(banniere.id);
+              setErreur(retour.erreur ?? null);
+              if (!retour.erreur) notifier("succes", `La bannière « ${banniere.titre} » a été supprimée.`);
+            });
           }}
         >
           Supprimer

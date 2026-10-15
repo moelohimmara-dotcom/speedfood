@@ -5,11 +5,14 @@ import { retirerRoleAction, type MembreRoleSysteme } from "@/lib/system-admin/ro
 import { DESCRIPTIONS_ROLES, LIBELLES_ROLES } from "@/lib/system-admin/permissions";
 import { Button, Alert } from "@/components/ui";
 import { Pastille } from "@/components/admin/blocs";
+import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 
 /** Une ligne du tableau des rôles système (rendu dans un `<tbody>`). */
 export function RoleItem({ membre }: { membre: MembreRoleSysteme }) {
   const [enTransition, demarrerTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const confirmer = useConfirmation();
+  const notifier = useNotification();
 
   return (
     <tr>
@@ -30,15 +33,21 @@ export function RoleItem({ membre }: { membre: MembreRoleSysteme }) {
           type="button"
           variante="danger"
           disabled={enTransition}
-          onClick={() => {
-            if (!confirm(`Retirer le rôle ${LIBELLES_ROLES[membre.role]} de ${membre.email} ?`)) {
-              return;
-            }
+          onClick={async () => {
+            const reponse = await confirmer({
+              titre: `Retirer le rôle ${LIBELLES_ROLES[membre.role]} de ${membre.email} ?`,
+              message: <p>Ce compte perd aussitôt les accès liés à ce rôle.</p>,
+              libelleAction: "Retirer le rôle",
+              danger: true,
+            });
+            if (!reponse.confirme) return;
             setErreur(null);
             demarrerTransition(async () => {
               const resultat = await retirerRoleAction(membre.utilisateurId, membre.email);
               if (resultat.erreur) {
                 setErreur(resultat.erreur);
+              } else {
+                notifier("succes", `Le rôle de ${membre.email} a été retiré.`);
               }
             });
           }}

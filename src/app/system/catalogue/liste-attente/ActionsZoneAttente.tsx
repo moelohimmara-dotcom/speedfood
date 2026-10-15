@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Alert, Button } from "@/components/ui";
+import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 import { marquerZonePrevenueAction, supprimerContactsZoneAction, type EtatAttente } from "@/lib/system-admin/liste-attente";
 
 const etatInitial: EtatAttente = {};
@@ -14,13 +15,28 @@ export function ActionsZoneAttente({ niveau, id, nom, personnes, prevenues }: { 
   const [etatPrevenue, actionPrevenue, prevenueEnCours] = useActionState(marquerZonePrevenueAction, etatInitial);
   const [etatSuppression, actionSuppression, suppressionEnCours] = useActionState(supprimerContactsZoneAction, etatInitial);
   const nonPrevenues = personnes - prevenues;
+  const confirmer = useConfirmation();
+  const dejaConfirme = useRef(false);
 
-  function confirmerSuppression(e: React.FormEvent<HTMLFormElement>) {
+  async function confirmerSuppression(e: React.FormEvent<HTMLFormElement>) {
+    // Confirmé une fois : l'envoi est rejoué par requestSubmit et passe sans nouvelle question.
+    if (dejaConfirme.current) {
+      dejaConfirme.current = false;
+      return;
+    }
+    e.preventDefault();
+    const formulaire = e.currentTarget;
     const avertissement =
       nonPrevenues > 0 ? ` ${nonPrevenues} personne${nonPrevenues > 1 ? "s n'ont" : " n'a"} pas encore été prévenue${nonPrevenues > 1 ? "s" : ""} : exportez leurs contacts d'abord.` : "";
-    if (!window.confirm(`Supprimer définitivement les ${personnes} contact${personnes > 1 ? "s" : ""} de ${nom} ? Cette action est irréversible.${avertissement}`)) {
-      e.preventDefault();
-    }
+    const reponse = await confirmer({
+      titre: `Supprimer définitivement les ${personnes} contact${personnes > 1 ? "s" : ""} de ${nom} ?`,
+      message: <p>Cette action est irréversible.{avertissement}</p>,
+      libelleAction: "Supprimer les contacts",
+      danger: true,
+    });
+    if (!reponse.confirme) return;
+    dejaConfirme.current = true;
+    formulaire.requestSubmit();
   }
 
   return (

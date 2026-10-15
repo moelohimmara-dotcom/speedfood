@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { supprimerPageAction } from "@/lib/system-admin/contenus";
 import { Alert, Button } from "@/components/ui";
+import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 
 /**
  * Suppression d'une page depuis sa liste : confirmation nommée (une page publiée perd son
@@ -22,6 +23,8 @@ export function SupprimerPage({
 }) {
   const [enTransition, demarrerTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const confirmer = useConfirmation();
+  const notifier = useNotification();
 
   return (
     <span style={{ display: "grid", gap: 6, justifyItems: "start" }}>
@@ -32,14 +35,20 @@ export function SupprimerPage({
         className="ad-action-discrete"
         disabled={enTransition || Boolean(indisponible)}
         aria-describedby={indisponible ? `page-${id}-limite` : undefined}
-        onClick={() => {
-          const enLigne = statut === "publie" ? " Elle est en ligne : son adresse ne fonctionnera plus." : "";
-          if (!confirm(`Supprimer la page « ${titre} » ?${enLigne} Cette action est définitive.`)) return;
+        onClick={async () => {
+          const reponse = await confirmer({
+            titre: `Supprimer la page « ${titre} » ?`,
+            message: <p>{statut === "publie" ? "Elle est en ligne : son adresse ne fonctionnera plus. " : ""}Cette action est définitive.</p>,
+            libelleAction: "Supprimer",
+            danger: true,
+          });
+          if (!reponse.confirme) return;
           setErreur(null);
           demarrerTransition(async () => {
             try {
               const resultat = await supprimerPageAction(id);
               if (resultat.erreur) setErreur(resultat.erreur);
+              else notifier("succes", `La page « ${titre} » a été supprimée.`);
             } catch (e) {
               setErreur(e instanceof Error ? e.message : "Une erreur inattendue s'est produite. Rafraîchissez la page.");
             }
