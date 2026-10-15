@@ -175,8 +175,10 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 9. **Ancienne copie OneDrive supprimée (15 octobre 2026), essai Next 16.4 abandonné.** La copie du Bureau OneDrive (en retard de 40 commits) a été supprimée après
    sauvegarde de ses deux documents de cadrage (`docs/cadrage/CONTENU-LANDING-NATIONALE.md`, `docs/cadrage/RESTRUCTURATION-LANDING-NATIONALE.md`, ajoutés ici) et de ses
-   variables locales `VAPID_*` (copiées dans le `.env.local` de ce dépôt, ignoré par git). **Reste** : le dossier vide `C:\Users\moelo\OneDrive\Desktop\speedfood`, verrouillé
-   par des sessions Codex et un Notepad ouverts dessus ; à supprimer à la main après les avoir fermés.
+   variables locales `VAPID_*` (copiées dans le `.env.local` de ce dépôt, ignoré par git). Le dossier lui-même a été
+   supprimé à la main le 15 octobre 2026 (il était tenu par des processus Codex dont le répertoire de travail était ce dossier : `Stop-Process` puis `Remove-Item`).
+   Il n'existe donc plus qu'un seul dépôt. Piège : un dossier verrouillé « utilisé par un autre processus » peut l'être par un programme dont la ligne de commande ne cite pas
+   le chemin, seul son répertoire de travail y pointe.
    **Next 16.4 : abandonné.** Next 16.4.0 avec OpenNext 1.20.10 déclenche en production une erreur `loadManifest(preview-props.json)`. Ne pas retenter sans nouvelle version
    d'OpenNext qui la corrige. Le projet reste sur Next.js 16.3.6 (la série 16.3 a un correctif 16.3.8 « sans faille d'audit », non appliqué : à décider séparément).
 
