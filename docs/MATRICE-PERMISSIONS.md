@@ -1,4 +1,4 @@
-# Matrice de permissions du CMS système — v1.2.0
+# Matrice de permissions du CMS système — v1.3.0
 
 **Statut :** livrée (blocs 8a-8d) et étendue lors de la refonte de la console
 d'administration (navigation groupée par domaine + `parametres.editer`).
@@ -54,6 +54,7 @@ Cadrage : `docs/cadrage/PLAN-EXECUTION.md` (bloc 8a), `docs/cadrage/ADR.md`
 | `contenu.editer` | Créer, modifier et ordonner pages, FAQ et bannières | ✓ | — | ✓ | — |
 | `contenu.mettre_en_avant` | Gérer les sélections et mises en avant | ✓ | ✓ | — | — |
 | `taxonomie.editer` | Gérer catégories, cuisines, quartiers et tags | ✓ | — | ✓ | — |
+| `attente.gerer` | Consulter, exporter et supprimer les contacts de la liste d'attente par zone (audit) | ✓ | ✓ | — | — |
 | `commande.consulter` | Rechercher et consulter les commandes (coordonnées masquées) | ✓ | — | — | ✓ |
 | `commande.support` | Agir sur une commande dans le cadre d'une procédure de support explicite | ✓ | — | — | ✓ |
 | `coordonees.voir` | Révéler les coordonnées clients (motif + audit) | ✓ | — | — | ✓ |
@@ -142,6 +143,9 @@ l'ancien `SousNavContenus` en `SousNav`). Purement une réorganisation visuelle
 | `/system/catalogue/restaurants` | Restaurants & comptes | `restaurant.moderer` | — |
 | `/system/catalogue/restaurants/[id]` | Fiche d'un restaurant | `restaurant.consulter` | — |
 | `/system/catalogue/taxonomie` | Taxonomie (catégories, quartiers) | `taxonomie.editer` | — |
+| `/system/catalogue/geographie` | Géographie nationale : régions, préfectures, communes, quartiers, points et noms alternatifs | `taxonomie.editer` | — |
+| `/system/catalogue/couverture` | Couverture par région, préfecture et commune | `taxonomie.editer` | — |
+| `/system/catalogue/liste-attente` | Liste d'attente par zone (nombres ; export CSV tracé) | `attente.gerer` | — |
 | `/system/catalogue/mises-en-avant` | Mises en avant | `contenu.mettre_en_avant` | — |
 | `/system/contenu` | Sommaire du contenu | `contenu.editer` | — |
 | `/system/contenu/pages` | Pages | `contenu.editer` | `contenu:pages` |

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { limiterZonePosition } from "@/lib/securite/limitation-debit";
 import { arrondirCoordonnee, positionDansLaGuinee, zoneDeLaPosition } from "@/lib/site/zone-position";
 import { lireHierarchieZones } from "@/lib/site/zones";
@@ -18,6 +19,9 @@ const IDENTIFICATION = "Speedfood/1.0 (+https://speedfood-app.moelohimmara.worke
 const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
+  if (!(await fonctionnaliteActive("zone_position"))) {
+    return NextResponse.json({ erreur: "Cette fonction est désactivée pour le moment." }, { status: 404, headers: SANS_CACHE });
+  }
   let corps: unknown;
   try {
     corps = await request.json();

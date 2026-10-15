@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CartePub } from "@/components/site/CartePub";
 import { lireTextes } from "@/lib/cms/textes";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { lireAccueil } from "@/lib/site/accueil";
 import { libelleLivraison, statutLivraison } from "@/lib/site/livraison";
 import { cibleDeZone, communesDesQuartiers, lireLivraisonDesRestaurants } from "@/lib/site/livraison-lecture";
@@ -17,7 +18,13 @@ const MAX_ZONE = 6;
  * l'explique et propose des localités voisines où des restaurants existent. Ancre `#zone` : cible de la recherche de localité.
  */
 export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [{ restaurants, platsParRestaurant }, hierarchie, t] = await Promise.all([lireAccueil(), lireHierarchieZones(), lireTextes()]);
+  const [{ restaurants, platsParRestaurant }, hierarchie, t, attenteActive, livraisonActive] = await Promise.all([
+    lireAccueil(),
+    lireHierarchieZones(),
+    lireTextes(),
+    fonctionnaliteActive("zone_liste_attente"),
+    fonctionnaliteActive("zones_livraison"),
+  ]);
   const zones = hierarchie.flatMap((r) => r.prefectures.flatMap((p) => p.communes));
 
   const dansLaZone = restaurantsDeLaZone(restaurants, zone);
@@ -27,7 +34,7 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
   const mises = ordonnes.slice(0, zone ? MAX_ZONE : MAX_APERCU);
 
   // Livraison vers la zone choisie : seulement ce que chaque restaurant a déclaré (rien n'est affirmé sinon).
-  const cible = zone ? cibleDeZone(zone, zones) : null;
+  const cible = zone && livraisonActive ? cibleDeZone(zone, zones) : null;
   const lignesParRestaurant = cible ? await lireLivraisonDesRestaurants(mises.map((r) => r.id)) : new Map();
   const quartierVersCommune = communesDesQuartiers(zones);
   const livraisonDe = (restaurantId: string): string | null =>
@@ -73,7 +80,7 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
             ))}
           </nav>
         ) : null}
-        <AlerteZone zone={{ niveau: zone.niveau, slug: zone.slug }} zoneNom={zone.nom} />
+        {attenteActive ? <AlerteZone zone={{ niveau: zone.niveau, slug: zone.slug }} zoneNom={zone.nom} /> : null}
         <div className="pub-accueil-actions">
           <Link href="/quartiers" className="pub-btn">
             {t["accueil.carte.bouton_autre_zone"]}

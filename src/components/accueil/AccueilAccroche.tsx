@@ -16,12 +16,13 @@ import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
  * `lirePromesse()` ; plats suggérés : `lireAccueil()`.
  */
 export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [promesse, donnees, hierarchie, catalogue, scenesActives, t] = await Promise.all([
+  const [promesse, donnees, hierarchie, catalogue, scenesActives, positionActive, t] = await Promise.all([
     promesseDeLaRequete(),
     lireAccueil(),
     lireHierarchieZones(),
     catalogueDeLaRequete(),
     fonctionnaliteActive("scenes_envie_accueil"),
+    fonctionnaliteActive("zone_position"),
     lireTextes(),
   ]);
 
@@ -90,7 +91,7 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
           libelle={t["accueil.hero.recherche_libelle"]}
           placeholder={t["accueil.hero.recherche_placeholder"]}
           boutonLibelle={t["accueil.hero.recherche_bouton"]}
-          positionLibelle={t["accueil.hero.position_bouton"]}
+          positionLibelle={positionActive ? t["accueil.hero.position_bouton"] : ""}
         />
 
         {zone ? (

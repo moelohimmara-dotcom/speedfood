@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { limiterZoneAlerte } from "@/lib/securite/limitation-debit";
 import { validerContactAlerte } from "@/lib/site/zone-alerte";
@@ -14,6 +15,9 @@ import { lireHierarchieZones, resoudreZone, type NiveauZone } from "@/lib/site/z
 const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
+  if (!(await fonctionnaliteActive("zone_liste_attente"))) {
+    return NextResponse.json({ erreur: "Cette fonction est désactivée pour le moment." }, { status: 404, headers: SANS_CACHE });
+  }
   let corps: unknown;
   try {
     corps = await request.json();

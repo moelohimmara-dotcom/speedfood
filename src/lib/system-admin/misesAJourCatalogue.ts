@@ -18,6 +18,47 @@ export interface MiseAJour {
 
 export const MISES_A_JOUR: readonly MiseAJour[] = [
   {
+    id: "couverture-admin",
+    date: "2026-10-15",
+    titre: "Couverture et liste d'attente dans l'administration",
+    resume:
+      "Tableau de couverture par région, préfecture et commune ; liste d'attente consultable par zone (export et suppression des contacts, avec trace d'audit) ; points centraux et noms alternatifs des zones modifiables.",
+    sansInterrupteur: "Écrans d'administration en lecture et gestion : rien de visible pour le public, donc rien à couper à chaud.",
+    verification: "Administration, Catalogue : Couverture, Liste d'attente et Géographie.",
+  },
+  {
+    id: "livraison-zones",
+    date: "2026-10-14",
+    titre: "Zones desservies par restaurant",
+    resume: "Le restaurateur déclare où il livre (frais et délai facultatifs) ; les cartes disent « Livre à … » selon la zone choisie et la fiche liste les zones déclarées.",
+    cle: "zones_livraison",
+    verification: "Accueil avec une zone choisie (cartes de restaurants) et fiche d'un restaurant qui a déclaré des zones.",
+  },
+  {
+    id: "liste-attente",
+    date: "2026-10-14",
+    titre: "Liste d'attente par zone",
+    resume: "« Prévenez-moi quand un restaurant ouvre ici » dans les zones sans restaurant, avec consentement obligatoire ; le nombre de personnes en attente guide le recrutement.",
+    cle: "zone_liste_attente",
+    verification: "Accueil, choisir une zone sans restaurant (par exemple une commune hors Conakry) : le formulaire apparaît.",
+  },
+  {
+    id: "zone-position",
+    date: "2026-10-14",
+    titre: "Bouton « Utiliser ma position »",
+    resume: "Retrouve la zone du visiteur (nom OpenStreetMap, puis point le plus proche) ; la position est arrondie, envoyée puis oubliée.",
+    cle: "zone_position",
+    verification: "Accueil, sous la recherche de zone : le bouton ouvre la zone de votre position (accord de l'appareil requis).",
+  },
+  {
+    id: "geographie-nationale",
+    date: "2026-10-15",
+    titre: "Toute la Guinée : régions, préfectures, communes",
+    resume: "8 régions, 34 préfectures et 335 communes hors Conakry (base OCHA/HDX) ; recherche à quatre niveaux, annuaire « Explorer les localités », sélecteur en cascade.",
+    sansInterrupteur: "Données de référence : on les désactive zone par zone dans Catalogue › Géographie, sans rien supprimer.",
+    verification: "Accueil : taper « Kankan » ou « Labé » dans la recherche ; page « Explorer les localités ».",
+  },
+  {
     id: "accueil-en-blocs",
     date: "2026-10-07",
     titre: "Accueil du site composé en blocs (Studio)",

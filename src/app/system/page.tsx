@@ -14,6 +14,7 @@ import {
 } from "@/components/admin/graphiques";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
+import { lireCouverture } from "@/lib/system-admin/couverture";
 import {
   comparerPeriodes,
   construireJours,
@@ -71,13 +72,15 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
   const periode = (PERIODES as readonly number[]).includes(periodeDemandee) ? periodeDemandee : PERIODE_PAR_DEFAUT;
 
   const peutVoirRestaurants = roleAPermission(role, "restaurant.consulter");
-  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage] = await Promise.all([
+  const peutVoirCouverture = roleAPermission(role, "taxonomie.editer") || roleAPermission(role, "attente.gerer");
+  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture] = await Promise.all([
     obtenirStatistiquesApplication(periode),
     roleAPermission(role, "systeme.roles") ? obtenirComptesSystemeParRole() : null,
     roleAPermission(role, "restaurant.moderer") ? listerRestaurantsEnAttenteValidation() : null,
     roleAPermission(role, "commande.consulter") ? listerPropositionsEnAttente() : null,
     roleAPermission(role, "systeme.audit") ? obtenirActiviteRecente() : null,
     roleAPermission(role, "commande.consulter") ? obtenirPilotageCommandes(periode) : null,
+    peutVoirCouverture ? lireCouverture() : null,
   ]);
   const compteursRestaurants = peutVoirRestaurants ? stats.restaurants : null;
 
@@ -275,6 +278,22 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
                 : "Tous les restaurants publiés reçoivent les alertes"
             }
             ton={stats.restaurants.publies > stats.alertes.restaurantsEquipes ? "danger" : "neutre"}
+          />
+        ) : null}
+        {couverture && roleAPermission(role, "taxonomie.editer") ? (
+          <CarteChiffre
+            libelle="Communes couvertes"
+            valeur={`${couverture.totaux.communesCouvertes} / ${couverture.totaux.communesActives}`}
+            href="/system/catalogue/couverture"
+            sous={`${couverture.totaux.restaurants} restaurant${couverture.totaux.restaurants > 1 ? "s" : ""} référencé${couverture.totaux.restaurants > 1 ? "s" : ""} dans ${couverture.regions.filter((r) => r.restaurants > 0).length} région${couverture.regions.filter((r) => r.restaurants > 0).length > 1 ? "s" : ""} sur ${couverture.regions.length}`}
+          />
+        ) : null}
+        {couverture && roleAPermission(role, "attente.gerer") ? (
+          <CarteChiffre
+            libelle="Personnes en attente d'un restaurant"
+            valeur={couverture.totaux.attente}
+            href="/system/catalogue/liste-attente"
+            sous={couverture.aRecruter.length > 0 ? `Zone la plus demandée : ${couverture.aRecruter[0].nom} (${couverture.aRecruter[0].attente})` : "Aucune zone sans restaurant n'est encore demandée"}
           />
         ) : null}
         {roleAPermission(role, "systeme.audit") ? (

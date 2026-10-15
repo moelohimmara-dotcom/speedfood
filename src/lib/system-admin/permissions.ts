@@ -19,7 +19,7 @@
  */
 
 /** Version de la matrice de permissions. À incrémenter à chaque changement. */
-export const VERSION_MATRICE = "1.2.0";
+export const VERSION_MATRICE = "1.3.0";
 
 /** Rôles système MVP (TDR.md §4) — miroir du CHECK de `system_admin_memberships`. */
 export type RoleSysteme = "super_admin" | "operations" | "content_editor" | "support";
@@ -49,6 +49,7 @@ export type Permission =
   | "contenu.editer"
   | "contenu.mettre_en_avant"
   | "taxonomie.editer"
+  | "attente.gerer"
   | "commande.consulter"
   | "commande.support"
   | "coordonees.voir"
@@ -79,6 +80,7 @@ export const LIBELLES_PERMISSIONS: Record<Permission, string> = {
   "contenu.editer": "Créer, modifier et ordonner pages, FAQ, bannières et médias",
   "contenu.mettre_en_avant": "Gérer les sélections et mises en avant",
   "taxonomie.editer": "Gérer catégories, cuisines, quartiers et tags",
+  "attente.gerer": "Consulter, exporter et supprimer les contacts de la liste d'attente par zone (trace d'audit)",
   "commande.consulter": "Rechercher et consulter les commandes (coordonnées masquées)",
   "commande.support": "Agir sur une commande dans le cadre d'une procédure de support explicite",
   "coordonees.voir": "Révéler les coordonnées clients (motif obligatoire et trace d'audit)",
@@ -107,6 +109,7 @@ export const PERMISSIONS_PAR_ROLE: Record<RoleSysteme, readonly Permission[]> = 
     "contenu.editer",
     "contenu.mettre_en_avant",
     "taxonomie.editer",
+    "attente.gerer",
     "commande.consulter",
     "commande.support",
     "coordonees.voir",
@@ -120,6 +123,7 @@ export const PERMISSIONS_PAR_ROLE: Record<RoleSysteme, readonly Permission[]> = 
     "compte.consulter",
     "compte.inviter",
     "contenu.mettre_en_avant",
+    "attente.gerer",
     "systeme.audit",
   ],
   content_editor: ["restaurant.consulter", "contenu.editer", "taxonomie.editer", "systeme.audit"],
@@ -173,6 +177,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
       { href: "/system/catalogue/taxonomie", libelle: "Taxonomie", permission: "taxonomie.editer" },
       { href: "/system/catalogue/geographie", libelle: "Géographie", permission: "taxonomie.editer" },
       { href: "/system/catalogue/couverture", libelle: "Couverture", permission: "taxonomie.editer" },
+      { href: "/system/catalogue/liste-attente", libelle: "Liste d'attente", permission: "attente.gerer" },
       {
         href: "/system/catalogue/mises-en-avant",
         libelle: "Mises en avant",

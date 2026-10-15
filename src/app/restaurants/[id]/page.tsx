@@ -94,11 +94,12 @@ export default async function FicheRestaurantPage({
   const lieuRestaurant = (restaurant.neighborhoods?.generique ? restaurant.neighborhoods.communes?.nom : restaurant.neighborhoods?.nom) ?? "";
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(restaurant.id));
   // Zones où le restaurant déclare livrer (rien n'est affirmé s'il n'en a déclaré aucune).
+  const livraisonActive = await fonctionnaliteActive("zones_livraison");
   const { data: zonesLivraison } = await supabase
     .from("restaurant_zones_desservies")
     .select("frais_gnf, delai_minutes, communes(nom), neighborhoods(nom, communes(nom))")
     .eq("restaurant_id", restaurant.id);
-  const lignesLivraison = (zonesLivraison ?? [])
+  const lignesLivraison = (livraisonActive ? (zonesLivraison ?? []) : [])
     .map((z) => ({
       libelle: z.neighborhoods?.nom ? `${z.neighborhoods.nom}${z.neighborhoods.communes?.nom ? ` (${z.neighborhoods.communes.nom})` : ""}` : `Toute la commune de ${z.communes?.nom ?? ""}`,
       detail: detailLivraison(z.frais_gnf, z.delai_minutes),
@@ -282,6 +283,7 @@ export default async function FicheRestaurantPage({
         </p>
       ) : null}
 
+      {livraisonActive ? (
       <section className="fiche-livraison" aria-labelledby="fiche-livraison-titre">
         <h2 id="fiche-livraison-titre" className="fiche-livraison-titre">
           Livraison et retrait
@@ -302,6 +304,7 @@ export default async function FicheRestaurantPage({
           <p className="fiche-livraison-texte">Ce restaurant n&apos;a pas déclaré de zones de livraison. Retrait ou livraison : à confirmer avec lui au moment de la commande.</p>
         )}
       </section>
+      ) : null}
 
       {etatResto === "ferme" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
