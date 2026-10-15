@@ -13,7 +13,7 @@ Document de référence pour reprendre le projet à froid. Rédigé et mis à jo
 
 | | |
 |---|---|
-| Dépôt | **`C:\Users\moelo\dev\speedfood`** — branche `master`, distant `moelohimmara-dotcom/speedfood`. C'est le dépôt actif (vérifié le 15 octobre 2026). Une **ancienne copie** existe encore dans `C:\Users\moelo\OneDrive\Desktop\speedfood` : voir § 8, point 9 |
+| Dépôt | **`C:\Users\moelo\dev\speedfood`** — branche `master`, distant `moelohimmara-dotcom/speedfood`. C'est le seul dépôt (l'ancienne copie du Bureau OneDrive a été supprimée le 15 octobre 2026 : voir § 8, point 9) |
 | Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
 | Version en ligne | `dde477fa-cb84-4a30-99a3-5c38d6162ca3` (15 octobre 2026, commit `481a74a` ; HEAD `a10a2e6` = documentation seulement) |
 | Base | Supabase `ggldjdizqrtpetdiohxy` — schéma vérifié au déploiement |
@@ -173,12 +173,13 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 ### En suspens
 
-9. **Deux copies du dépôt coexistent.** Le dépôt actif est `C:\Users\moelo\dev\speedfood` (tout le travail récent, à jour avec GitHub).
-   `C:\Users\moelo\OneDrive\Desktop\speedfood` est une ancienne copie, en retard de 40 commits (dernier commit `5afc8af`, 11 octobre), sur la branche
-   `chore/next-16-4` avec des **modifications non commitées** de `package.json` et `package-lock.json` (essai de montée vers Next `^16.4.0`, React `^19.3.0`,
-   `@opennextjs/cloudflare` `^1.20.10`, `wrangler` `^4.149.0`, datées du 12 octobre). Ces modifications ne sont nulle part ailleurs. À trancher par le propriétaire :
-   les reprendre dans le dépôt actif (branche `essai-next-16-4-0` existe déjà dans le dépôt actif) ou les abandonner, puis supprimer la copie OneDrive pour ne
-   plus risquer de travailler dans la mauvaise. **Ne pas travailler dans la copie OneDrive.** Le CLAUDE.md de ce dépôt cible Next.js 16.3.6.
+9. **Ancienne copie OneDrive supprimée (15 octobre 2026).** Elle était en retard de 40 commits (dernier commit `5afc8af`) sur la branche `chore/next-16-4`.
+   Avant suppression, ce qu'elle avait d'unique a été conservé : (a) l'essai de montée de versions non commité (Next `^16.4.0`, React `^19.3.0`,
+   `@opennextjs/cloudflare` `^1.20.10`, `wrangler` `^4.149.0`) dans `docs/archives/essai-next-16-4-package.patch` (le lockfile se régénère avec `npm install` ;
+   le diff complet est aussi hors dépôt dans `C:\Users\moelo\dev\sauvegarde-copie-onedrive\`) ; (b) les deux documents `docs/cadrage/CONTENU-LANDING-NATIONALE.md` et
+   `docs/cadrage/RESTRUCTURATION-LANDING-NATIONALE.md`, ajoutés à ce dépôt ; (c) les trois variables locales `VAPID_*` de son `.env.local`, copiées dans celui de ce dépôt
+   (fichier ignoré par git). **Reste** : le dossier vide `C:\Users\moelo\OneDrive\Desktop\speedfood`, verrouillé par des sessions Codex et un Notepad ouverts dessus ;
+   à supprimer à la main après les avoir fermés. Le projet cible toujours Next.js 16.3.6 ; l'essai 16.4 reste à décider (une branche `essai-next-16-4-0` existe dans ce dépôt).
 
 ---
 
