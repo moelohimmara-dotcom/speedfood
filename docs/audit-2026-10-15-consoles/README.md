@@ -9,6 +9,7 @@ Ce document est la synthèse ; le détail (tableaux, fichier:ligne) est dans les
 | `inventaire-restaurant.md` | Routes, navigation, couplages, CSS de `/restaurant` | Haiku 5.5 |
 | `analyse-system.md` | Ergonomie, sécurité de l'interface, accessibilité, mobile de `/system` | Sonnet 5.5 |
 | `analyse-restaurant.md` | Tâche centrale, ergonomie, onboarding, mobile de `/restaurant` | Sonnet 5.5 |
+| `audit-visuel.md` | Relevés sur la production réelle (28 pages, 3 largeurs) et captures (`captures/`) | Session principale, navigateur intégré |
 
 La synthèse et les vérifications ci-dessous sont de la session principale (Sonnet 5.5). Aucun modèle Opus n'a été utilisé.
 
@@ -23,6 +24,8 @@ La synthèse et les vérifications ci-dessous sont de la session principale (Son
 | V5 | **« Revenir aux valeurs actuelles » rétablit tout le design public sans confirmation** s'il n'y a pas de modification locale. | `src/app/system/design/EditeurJetons.tsx:234-242` |
 | V6 | **Texte mangue sur crème, environ 1,5:1** (illisible). | `src/app/system/design/design.css:57-60` |
 | V7 | **Classes `btn-secondaire` / `btn-primaire` sans aucune règle CSS** (3 usages) : boutons au style brut. | `EditeurJetons.tsx:264,445`, `InterrupteurFonctionnalite.tsx:15` ; aucune règle dans `src/**/*.css` |
+
+**Audit visuel (même jour, production réelle)** : voir `audit-visuel.md`. Trois défauts graves s'y ajoutent à V1 à V7 : la **Taxonomie** expose 304 quartiers techniques « Centre de … » avec un bouton Supprimer définitif (effaçant en cascade liste d'attente et zones de livraison, page de 31 000 px), le **rappel de double authentification** occupe 125 px sur téléphone (un quart de l'écran, sur chaque page), et des **boutons coupés** dans la Taxonomie sur téléphone.
 
 ## 2. Ce que les analyses ajoutent (lu dans le code par les agents, non revérifié ligne à ligne)
 
