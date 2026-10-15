@@ -2,7 +2,6 @@ import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { deconnexionAction } from "@/lib/auth/actions";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
-import { ConsoleProviders } from "@/components/console/ConsoleProviders";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AlerteCommandes } from "@/components/AlerteCommandes";
 import { InstallationApp } from "@/components/InstallationApp";
@@ -91,7 +90,6 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   );
 
   return (
-    <ConsoleProviders>
     <div className="ad-app console-resto">
       <a href="#contenu" className="lien-evitement">
         Aller au contenu
@@ -120,6 +118,5 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
 
       <NavRestaurantBas aTraiter={nombreATraiter} />
     </div>
-    </ConsoleProviders>
   );
 }

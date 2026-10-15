@@ -6,6 +6,7 @@ import type { PropositionRevisee } from "@/lib/contracts/commande";
 import { repondrePropositionAction } from "@/lib/commande/actions";
 import { repondrePropositionSessionAction } from "@/lib/commande/actions-session";
 import { Button, Card, Alert } from "@/components/ui";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 
 interface Props {
   jeton?: string;
@@ -32,16 +33,20 @@ export function PropositionCarte({ jeton, session = false, proposition, sousTota
   const router = useRouter();
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
+  const confirmer = useConfirmation();
 
   const totalInitial = sousTotalInitial + fraisInitial;
   const totalPropose = proposition.nouveauSousTotal + proposition.nouveauxFraisLivraison;
 
-  function repondre(reponse: "acceptee" | "refusee") {
+  async function repondre(reponse: "acceptee" | "refusee") {
     if (reponse === "refusee") {
-      const confirme = window.confirm(
-        "Refuser cette modification annule votre commande. Voulez-vous continuer ?"
-      );
-      if (!confirme) {
+      const choix = await confirmer({
+        titre: "Refuser cette modification ?",
+        message: <p>Refuser annule votre commande. Voulez-vous continuer ?</p>,
+        libelleAction: "Refuser et annuler",
+        danger: true,
+      });
+      if (!choix.confirme) {
         return;
       }
     }

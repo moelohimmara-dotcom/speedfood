@@ -2,6 +2,7 @@ import { PROMESSE_PAR_DEFAUT } from "@/lib/parametres/promesse-defauts";
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Bricolage_Grotesque, Manrope } from "next/font/google";
 import type { ReactNode } from "react";
+import { ConsoleProviders } from "@/components/console/ConsoleProviders";
 import "./globals.css";
 import "./components.css";
 import "./landing.css";
@@ -104,7 +105,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="fr" className={`${barlowCondensed.variable} ${manrope.variable} ${bricolage.variable}`}>
       <body>
         <StyleJetons css={css} />
-        {children}
+        {/* Confirmation et notifications communes : consoles ET site public (panier, suivi), un seul fournisseur. */}
+        <ConsoleProviders>{children}</ConsoleProviders>
         <FichiersAnimes />
       </body>
     </html>

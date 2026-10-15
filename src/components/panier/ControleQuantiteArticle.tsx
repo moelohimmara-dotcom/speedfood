@@ -14,6 +14,7 @@ import {
 } from "./panier";
 import { Button } from "@/components/ui";
 import { volerVersPanier } from "@/lib/mouvement/vol";
+import { useConfirmation } from "@/components/console/ConsoleProviders";
 
 interface Props {
   restaurant: RestaurantPanier;
@@ -34,6 +35,7 @@ interface Props {
  */
 export function ControleQuantiteArticle({ restaurant, article, optionsDisponibles = [] }: Props) {
   const panier = usePanier();
+  const confirmer = useConfirmation();
   const [selection, setSelection] = useState<Set<string>>(new Set());
 
   const lignesDuPlat = panier.lignes.filter((l) => l.menuItemId === article.id);
@@ -50,16 +52,22 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
     });
   }
 
-  function ajouter(depuis: HTMLElement | null = null) {
+  async function ajouter(depuis: HTMLElement | null = null) {
     const optionsChoisies = optionsDisponibles.filter((o) => selection.has(o.id));
     const resultat = ajouterArticle(restaurant, { ...article, options: optionsChoisies });
     if (resultat === "ajoute") volerVersPanier(depuis);
     if (resultat === "conflit") {
-      const confirme = window.confirm(
-        `Votre panier contient des plats du restaurant « ${panier.restaurantNom ?? "précédent"} ». ` +
-          `Un panier ne peut contenir qu'un seul restaurant : vider le panier et ajouter « ${article.nom} » ?`
-      );
-      if (confirme) {
+      const choix = await confirmer({
+        titre: "Changer de restaurant ?",
+        message: (
+          <p>
+            Votre panier contient des plats du restaurant « {panier.restaurantNom ?? "précédent"} ». Un panier ne peut contenir qu&apos;un seul restaurant : vider le panier et ajouter « {article.nom} » ?
+          </p>
+        ),
+        libelleAction: "Vider et ajouter",
+        danger: true,
+      });
+      if (choix.confirme) {
         ajouterArticle(
           restaurant,
           { ...article, options: optionsChoisies },
