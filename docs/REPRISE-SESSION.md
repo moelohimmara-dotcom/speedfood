@@ -173,13 +173,12 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 ### En suspens
 
-9. **Ancienne copie OneDrive supprimée (15 octobre 2026).** Elle était en retard de 40 commits (dernier commit `5afc8af`) sur la branche `chore/next-16-4`.
-   Avant suppression, ce qu'elle avait d'unique a été conservé : (a) l'essai de montée de versions non commité (Next `^16.4.0`, React `^19.3.0`,
-   `@opennextjs/cloudflare` `^1.20.10`, `wrangler` `^4.149.0`) dans `docs/archives/essai-next-16-4-package.patch` (le lockfile se régénère avec `npm install` ;
-   le diff complet est aussi hors dépôt dans `C:\Users\moelo\dev\sauvegarde-copie-onedrive\`) ; (b) les deux documents `docs/cadrage/CONTENU-LANDING-NATIONALE.md` et
-   `docs/cadrage/RESTRUCTURATION-LANDING-NATIONALE.md`, ajoutés à ce dépôt ; (c) les trois variables locales `VAPID_*` de son `.env.local`, copiées dans celui de ce dépôt
-   (fichier ignoré par git). **Reste** : le dossier vide `C:\Users\moelo\OneDrive\Desktop\speedfood`, verrouillé par des sessions Codex et un Notepad ouverts dessus ;
-   à supprimer à la main après les avoir fermés. Le projet cible toujours Next.js 16.3.6 ; l'essai 16.4 reste à décider (une branche `essai-next-16-4-0` existe dans ce dépôt).
+9. **Ancienne copie OneDrive supprimée (15 octobre 2026), essai Next 16.4 abandonné.** La copie du Bureau OneDrive (en retard de 40 commits) a été supprimée après
+   sauvegarde de ses deux documents de cadrage (`docs/cadrage/CONTENU-LANDING-NATIONALE.md`, `docs/cadrage/RESTRUCTURATION-LANDING-NATIONALE.md`, ajoutés ici) et de ses
+   variables locales `VAPID_*` (copiées dans le `.env.local` de ce dépôt, ignoré par git). **Reste** : le dossier vide `C:\Users\moelo\OneDrive\Desktop\speedfood`, verrouillé
+   par des sessions Codex et un Notepad ouverts dessus ; à supprimer à la main après les avoir fermés.
+   **Next 16.4 : abandonné.** Next 16.4.0 avec OpenNext 1.20.10 déclenche en production une erreur `loadManifest(preview-props.json)`. Ne pas retenter sans nouvelle version
+   d'OpenNext qui la corrige. Le projet reste sur Next.js 16.3.6 (la série 16.3 a un correctif 16.3.8 « sans faille d'audit », non appliqué : à décider séparément).
 
 ---
 
