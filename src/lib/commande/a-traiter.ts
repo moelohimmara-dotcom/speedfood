@@ -24,3 +24,17 @@ export interface CommandeATraiterMin {
 export function commandesATraiter<T extends CommandeATraiterMin>(commandesEnAttente: T[], maintenant: Date = new Date()): T[] {
   return commandesEnAttente.filter((c) => !propositionActiveMin(c.order_proposals, maintenant));
 }
+
+export const HISTORIQUE_PAS = 20;
+export const HISTORIQUE_MAX = 500;
+
+/**
+ * Nombre de commandes de l'historique à afficher : `?historique=` de l'adresse, ramené à un multiple du pas, entre un pas et le maximum.
+ * Une valeur absente, illisible ou négative donne un pas. Jamais d'exception : l'adresse vient du navigateur.
+ */
+export function limiteHistorique(brute: string | string[] | undefined): number {
+  const texte = Array.isArray(brute) ? brute[0] : brute;
+  const n = Number.parseInt(texte ?? "", 10);
+  if (!Number.isFinite(n) || n < HISTORIQUE_PAS) return HISTORIQUE_PAS;
+  return Math.min(Math.ceil(n / HISTORIQUE_PAS) * HISTORIQUE_PAS, HISTORIQUE_MAX);
+}

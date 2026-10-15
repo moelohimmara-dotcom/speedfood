@@ -1,4 +1,4 @@
-import { commandesATraiter, propositionActiveMin } from "../../src/lib/commande/a-traiter";
+import { commandesATraiter, limiteHistorique, propositionActiveMin } from "../../src/lib/commande/a-traiter";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -34,5 +34,13 @@ verifier(
   commandesATraiter(commandes, maintenant).map((c) => c.id),
   ["a", "c", "d", "e"]
 );
+
+verifier("historique : absent = un pas", limiteHistorique(undefined), 20);
+verifier("historique : illisible = un pas", limiteHistorique("abc"), 20);
+verifier("historique : négatif = un pas", limiteHistorique("-5"), 20);
+verifier("historique : 40 conservé", limiteHistorique("40"), 40);
+verifier("historique : arrondi au pas supérieur", limiteHistorique("41"), 60);
+verifier("historique : plafonné", limiteHistorique("99999"), 500);
+verifier("historique : tableau = premier élément", limiteHistorique(["60", "80"]), 60);
 
 if (ko > 0) process.exit(1);
