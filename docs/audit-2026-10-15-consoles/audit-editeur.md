@@ -48,6 +48,15 @@
 - **Phase 2/3 (refonte)** : ED-2 à ED-5 sont de vrais chantiers d'ergonomie (disposition tablette, zoom d'aperçu, cibles de 44 px, erreurs liées aux champs).
 - À garder tels quels : le suivi de modification, la garde de navigation, la boîte de publication, le repli téléphone.
 
-## Autre éditeur
+## Éditeur de design (`/system/design`), essai en local
 
-L'éditeur de design (`/system/design`, jetons de couleurs, typographie, espacements) a été **mesuré** dans `audit-visuel.md` (35 cibles de moins de 40 px, onglets de groupe à 25 px) mais **pas manipulé** : ses boutons agissent directement sur le design du site public. Je peux le tester de la même façon en local si tu le souhaites.
+Monté de la même façon (jetons fictifs, aucune session, aucune écriture sur le site public). Ce qui est vérifié : mise en page, libellés, états, cibles tactiles, un cas de saisie invalide. Non vérifié : enregistrement réel, historique, vérification de contraste sur d'autres couples de couleurs, polices.
+
+**Ce qui fonctionne** : deux colonnes (réglages à gauche, **aperçu vivant de l'accueil** à droite) ; groupes Couleurs / Typographie / Espacements / Formes ; chaque jeton a un nom accessible ; indicateur de contraste affiché à la saisie (« Texte dessus : 9.76 : 1, lisible ») ; compteur « 1 modification non enregistrée : visible uniquement dans l'aperçu » ; le bouton de retour a désormais **deux libellés selon l'effet** (« Annuler mes modifications » ou « Tout rétablir aux valeurs d'origine », avec confirmation), corrigé en phase 0.
+
+**Constats**
+- **ED-6. Saisie invalide sans retour** : taper « rouge » dans un champ couleur ne produit **aucun message** et ne marque pas le champ (`aria-invalid` absent) ; l'erreur n'apparaît qu'à l'enregistrement, côté serveur. Même défaut que ED-5 : l'utilisateur ne sait pas ce qui ne va pas avant de cliquer.
+- **ED-7. Sur téléphone, on ne voit pas ce qu'on modifie** : les réglages (liste de 568 px à défilement interne) passent **avant** l'aperçu, qui n'apparaît qu'à 836 px de haut, donc hors de l'écran. Modifier une couleur sans voir le résultat enlève l'intérêt de l'aperçu vivant.
+- **ED-8. Onglets de groupe incomplets pour les lecteurs d'écran** : `role="tab"` sans `aria-controls` ni panneau `role="tabpanel"` (0 panneau trouvé). Voir P-23 de l'audit de code.
+- **ED-9. Cibles tactiles** : 13 contrôles sous 40 px (pastille de couleur 44 × 38, champs de valeur 34 px de haut). Les onglets de groupe ont été portés à 44 px en phase 0.
+- Aucun débordement horizontal à 375 px ; aperçu 306 × 601 px, utilisable.
