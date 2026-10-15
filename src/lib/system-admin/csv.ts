@@ -6,8 +6,9 @@
  */
 export function cellule(valeur: string | number | null | undefined): string {
   let texte = valeur === null || valeur === undefined ? "" : String(valeur);
-  // Un numéro de téléphone normalisé (+224…) n'est pas une formule : on le garde lisible.
-  if (/^[=+\-@\t\r]/.test(texte) && !/^\+\d{6,15}$/.test(texte)) texte = `'${texte}`;
+  // Un numéro de téléphone normalisé (+224…) n'est pas une formule : on le garde lisible. Un nombre (une longitude négative, par exemple)
+  // non plus : il reste lisible et modifiable dans le tableur.
+  if (typeof valeur !== "number" && /^[=+\-@\t\r]/.test(texte) && !/^\+\d{6,15}$/.test(texte)) texte = `'${texte}`;
   return `"${texte.replace(/"/g, '""')}"`;
 }
 

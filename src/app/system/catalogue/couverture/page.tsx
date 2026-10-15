@@ -2,6 +2,7 @@ import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { lireCouverture } from "@/lib/system-admin/couverture";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
+import { CarteCouverture } from "@/components/admin/CarteCouverture";
 import { SousNav } from "../../SousNav";
 
 export const metadata = { title: "Couverture (administration)" };
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function CouverturePage() {
   const contexte = await exigerPermissionPage("taxonomie.editer");
-  const { regions, communes, aRecruter, totaux } = await lireCouverture();
+  const { regions, communes, points, aRecruter, totaux } = await lireCouverture();
 
   return (
     <div>
@@ -30,6 +31,10 @@ export default async function CouverturePage() {
           ton="neutre"
         />
       </section>
+
+      <Panneau titre="Carte de la couverture">
+        <CarteCouverture points={points} />
+      </Panneau>
 
       <Panneau titre="Où recruter en premier">
         {aRecruter.length === 0 ? (

@@ -31,6 +31,7 @@ export function ParcourirLocalites({ hierarchie, attenteActive }: { hierarchie: 
         nom: c.nom,
         lien: lienZone({ niveau: "commune", slug: c.slug }),
         restaurants: c.restaurants,
+        annonce: c.annonce,
         cle: cle(c.nom, c.nomsAlternatifs),
       })),
     })),

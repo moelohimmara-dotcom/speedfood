@@ -321,6 +321,7 @@ export type Database = {
           slug: string
           ville_id: string | null
           prefecture_id: string | null
+          statut_lancement: string | null
         }
         Insert: {
           coordonnees_source?: string | null
@@ -335,6 +336,7 @@ export type Database = {
           slug: string
           ville_id?: string | null
           prefecture_id?: string | null
+          statut_lancement?: string | null
         }
         Update: {
           coordonnees_source?: string | null
@@ -349,6 +351,7 @@ export type Database = {
           slug?: string
           ville_id?: string | null
           prefecture_id?: string | null
+          statut_lancement?: string | null
         }
         Relationships: [
           {
@@ -1679,6 +1682,10 @@ export type Database = {
       fn_emettre_document: {
         Args: { p_order_id: string; p_type: string }
         Returns: string
+      }
+      fn_fusionner_quartiers: {
+        Args: { p_source: string; p_cible: string }
+        Returns: Json
       }
       fn_est_admin_systeme: { Args: { p_roles?: string[] }; Returns: boolean }
       fn_est_membre_restaurant: {

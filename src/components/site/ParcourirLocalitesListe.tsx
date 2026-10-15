@@ -9,6 +9,8 @@ export interface LocaliteCommune {
   nom: string;
   lien: string;
   restaurants: number;
+  /** Annonce publique d'une zone sans restaurant : « Bientôt » ou « Pilote ». */
+  annonce: "bientot" | "pilote" | null;
   cle: string;
 }
 export interface LocalitePrefecture {
@@ -72,6 +74,11 @@ function Communes({ communes, attenteActive }: { communes: LocaliteCommune[]; at
             <span className="localites-commune-bilan">
               {c.restaurants > 0 ? (
                 pluriel(c.restaurants, "restaurant", "restaurants")
+              ) : c.annonce ? (
+                <>
+                  <span className="sr-only">pas encore de restaurant, </span>
+                  <span className="localites-annonce">{c.annonce === "bientot" ? "Bientôt" : "Pilote"}</span>
+                </>
               ) : attenteActive ? (
                 <>
                   <span className="sr-only">pas encore de restaurant, </span>Prévenez-moi

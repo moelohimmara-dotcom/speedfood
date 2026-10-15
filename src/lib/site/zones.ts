@@ -24,6 +24,8 @@ export interface ZoneQuartier {
 
 export interface ZoneCommune {
   id: string;
+  /** Annonce publique choisie par l'équipe (« Bientôt », « Pilote ») ; null sinon. Les autres statuts restent internes. */
+  annonce: "bientot" | "pilote" | null;
   /** Ville de la commune (Conakry) ; vide hors Conakry. */
   villeNom: string;
   prefectureId: string;
@@ -101,7 +103,7 @@ export const lireHierarchieZones = cache(async (): Promise<ZoneRegion[]> => {
   const [regionsR, prefsR, communesR, quartiersR, accueil] = await Promise.all([
     supabase.from("regions").select("id, nom, slug, latitude, longitude").eq("actif", true).order("nom"),
     supabase.from("prefectures").select("id, nom, slug, region_id, latitude, longitude").eq("actif", true).order("nom"),
-    supabase.from("communes").select("id, nom, slug, prefecture_id, noms_alternatifs, latitude, longitude, villes(nom)").eq("actif", true).order("nom"),
+    supabase.from("communes").select("id, nom, slug, prefecture_id, noms_alternatifs, latitude, longitude, statut_lancement, villes(nom)").eq("actif", true).order("nom"),
     supabase.from("neighborhoods").select("id, nom, commune_id, noms_alternatifs, latitude, longitude").eq("actif", true).eq("generique", false).order("nom"),
     lireAccueil(),
   ]);
@@ -126,6 +128,7 @@ export const lireHierarchieZones = cache(async (): Promise<ZoneRegion[]> => {
       const ville = Array.isArray(c.villes) ? c.villes[0]?.nom : c.villes?.nom;
       return {
         id: c.id,
+        annonce: (c.statut_lancement === "bientot" ? "bientot" : c.statut_lancement === "pilote" ? "pilote" : null) as "bientot" | "pilote" | null,
         villeNom: ville ?? "",
         prefectureId: pref.id,
         prefectureNom: pref.nom,

@@ -18,6 +18,8 @@ verifier("numéro de téléphone normalisé laissé lisible", cellule("+22462200
 verifier("formule neutralisée (@)", cellule("@SUM(A1)"), '"\'@SUM(A1)"');
 verifier("vide et null", [cellule(null), cellule(undefined), cellule("")], ['""', '""', '""']);
 verifier("nombre", cellule(12), '"12"');
+verifier("nombre négatif non neutralisé", cellule(-13.55), '"-13.55"');
+verifier("texte négatif neutralisé", cellule("-13.55"), '"\'-13.55"');
 verifier("CSV complet : BOM, séparateur point-virgule, fin de ligne", construireCsv(["Zone", "Contact"], [["Kankan", "a@b.co"]]), '﻿"Zone";"Contact"\r\n"Kankan";"a@b.co"\r\n');
 
 if (ko > 0) process.exit(1);

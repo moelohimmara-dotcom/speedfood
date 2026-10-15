@@ -1561,3 +1561,20 @@
 .localites-acces-bouton {
   min-height: 44px;
 }
+
+.localites-annonce {
+  padding: 1px 8px;
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  color: var(--encre);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.pub-zone-annonce {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 6px solid var(--mangue);
+  background: var(--creme);
+  font-weight: 700;
+}

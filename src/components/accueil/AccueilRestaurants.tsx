@@ -70,6 +70,12 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
             {t["accueil.carte.vide_titre"]}
           </h2>
           <p className="pub-accueil-lead">{t["accueil.carte.vide_texte"]}</p>
+          {zone.niveau === "commune" && zones.find((c) => c.id === zone.id)?.annonce ? (
+            <p className="pub-zone-annonce">
+              {zones.find((c) => c.id === zone.id)?.annonce === "pilote" ? "Phase pilote à " : "Bientôt à "}
+              {zone.nom} : les premiers restaurants arrivent. Laissez votre contact pour être prévenu à l&apos;ouverture.
+            </p>
+          ) : null}
         </div>
         {voisines.length > 0 ? (
           <nav className="pub-communes-index" aria-label="Localités voisines">

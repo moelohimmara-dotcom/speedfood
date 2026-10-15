@@ -26,6 +26,17 @@ export interface CommuneCouverture extends LigneCouverture {
   quartiersCouverts: number;
 }
 
+/** Un point de la carte : une commune avec son point central, ce qu'elle compte de restaurants, de personnes en attente, et son annonce. */
+export interface PointCarte {
+  nom: string;
+  prefecture: string;
+  latitude: number;
+  longitude: number;
+  restaurants: number;
+  attente: number;
+  annonce: "bientot" | "pilote" | null;
+}
+
 export interface ZoneARecruter {
   nom: string;
   contexte: string;
@@ -37,6 +48,8 @@ export interface Couverture {
   regions: RegionCouverture[];
   /** Communes avec au moins un restaurant ou une personne en attente (les autres ne sont pas listées). */
   communes: CommuneCouverture[];
+  /** Toutes les communes actives qui ont un point central, pour la carte. */
+  points: PointCarte[];
   /** Zones où des personnes attendent un restaurant alors qu'il n'y en a aucun : où recruter en premier. */
   aRecruter: ZoneARecruter[];
   totaux: { restaurants: number; ouverts: number; communesCouvertes: number; communesActives: number; attente: number };
@@ -47,7 +60,7 @@ export async function lireCouverture(): Promise<Couverture> {
   const [regionsR, prefsR, communesR, quartiersR, restosR, alertesR] = await Promise.all([
     admin.from("regions").select("id, nom").eq("actif", true).order("nom"),
     admin.from("prefectures").select("id, nom, region_id").eq("actif", true).order("nom"),
-    admin.from("communes").select("id, nom, prefecture_id").eq("actif", true).order("nom"),
+    admin.from("communes").select("id, nom, prefecture_id, latitude, longitude, statut_lancement").eq("actif", true).order("nom"),
     admin.from("neighborhoods").select("id, nom, commune_id, generique").eq("actif", true),
     admin.from("restaurants").select("id, quartier_id, ouvert, accepte_commandes").eq("publie", true).eq("donnees_demo", false),
     admin.from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id"),
@@ -139,9 +152,26 @@ export async function lireCouverture(): Promise<Couverture> {
   }
   aRecruter.sort((a, b) => b.attente - a.attente);
 
+  const points: PointCarte[] = communes.flatMap((c) =>
+    c.latitude === null || c.longitude === null
+      ? []
+      : [
+          {
+            nom: c.nom,
+            prefecture: prefs.find((p) => p.id === c.prefecture_id)?.nom ?? "",
+            latitude: c.latitude,
+            longitude: c.longitude,
+            restaurants: restosAvecZone.filter((x) => x.communeId === c.id).length,
+            attente: alertesAvecZone.filter((a) => a.communeId === c.id).length,
+            annonce: (c.statut_lancement === "bientot" ? "bientot" : c.statut_lancement === "pilote" ? "pilote" : null) as "bientot" | "pilote" | null,
+          },
+        ]
+  );
+
   return {
     regions: regionsCouv,
     communes: communesCouv,
+    points,
     aRecruter,
     totaux: {
       restaurants: restos.length,
