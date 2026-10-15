@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { ListeChoix } from "@/components/ui/ListeChoix";
+import { useNotification } from "@/components/console/ConsoleProviders";
 import {
   enregistrerCommuneAction,
   enregistrerPrefectureAction,
@@ -34,6 +35,21 @@ function useSuiviModification() {
       setModifie(true);
     },
   };
+}
+
+/**
+ * Confirme un enregistrement par une notification de la console, qui ne dépend pas de la ligne : la ligne est redessinée après l'envoi
+ * (la page est rechargée) et son petit « Enregistré. » pouvait disparaître avant d'être lu. Le nom est lu au moment du succès, sans relancer l'effet.
+ */
+function useConfirmationEnregistrement(etat: EtatGeographie, nom: string | undefined) {
+  const notifier = useNotification();
+  const nomRef = useRef(nom);
+  useEffect(() => {
+    nomRef.current = nom;
+  }, [nom]);
+  useEffect(() => {
+    if (etat.succes) notifier("succes", nomRef.current ? `« ${nomRef.current} » est enregistré.` : "Enregistré.");
+  }, [etat, notifier]);
 }
 
 function BoutonLigne({
@@ -172,6 +188,9 @@ function ChampsPoint({
             name="latitude"
             type="text"
             inputMode="decimal"
+            ref={(champ) => champ?.setCustomValidity(probleme ?? "")}
+            // Un champ refusé dans un panneau replié ne peut pas recevoir le focus : le panneau s'ouvre pour montrer le message.
+            onInvalid={(e) => e.currentTarget.closest("details")?.setAttribute("open", "")}
             value={lat}
             onChange={(e) => setLat(e.target.value)}
             placeholder="9.6412"
@@ -247,6 +266,7 @@ function ChampsPoint({
 export function FormulaireZoneLargeSysteme({ zone, type, contexte = "" }: { zone: ZoneLargeSysteme; type: "region" | "prefecture"; contexte?: string }) {
   const [etat, action, enCours] = useActionState(type === "region" ? enregistrerRegionAction : enregistrerPrefectureAction, etatInitial);
   const suivi = useSuiviModification();
+  useConfirmationEnregistrement(etat, zone.nom);
   const envoyer = (donnees: FormData) => {
     suivi.remettre();
     action(donnees);
@@ -279,6 +299,7 @@ const OPTIONS_STATUT = [
 export function FormulaireCommuneSysteme({ commune, contexte = "" }: { commune: CommuneSysteme; contexte?: string }) {
   const [etat, action, enCours] = useActionState(enregistrerCommuneAction, etatInitial);
   const suivi = useSuiviModification();
+  useConfirmationEnregistrement(etat, commune.nom);
   const [statut, setStatut] = useState<StatutLancement | "auto">(commune.statutLancement ?? "auto");
   const envoyer = (donnees: FormData) => {
     suivi.remettre();
@@ -330,6 +351,7 @@ export function FormulaireQuartierSysteme({
 }) {
   const [etat, action, enCours] = useActionState(enregistrerQuartierAction, etatInitial);
   const suivi = useSuiviModification();
+  useConfirmationEnregistrement(etat, quartier?.nom);
   const [communeId, setCommuneId] = useState(quartier?.communeId ?? "");
   const libelleNom = quartier ? `Nom du quartier ${quartier.nom}` : "Nom du nouveau quartier";
   const envoyer = (donnees: FormData) => {

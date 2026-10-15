@@ -238,11 +238,11 @@ function lirePoint(formData: FormData): { latitude: number | null; longitude: nu
   const lat = String(formData.get("latitude") ?? "").trim().replace(",", ".");
   const lon = String(formData.get("longitude") ?? "").trim().replace(",", ".");
   if (lat === "" && lon === "") return { latitude: null, longitude: null };
-  if (lat === "" || lon === "") return { erreur: "Indiquez la latitude ET la longitude, ou laissez les deux vides." };
+  if (lat === "" || lon === "") return { erreur: "Indiquez la latitude ET la longitude, ou videz les deux." };
   const latitude = Number(lat);
   const longitude = Number(lon);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return { erreur: "La latitude et la longitude doivent être des nombres (par exemple 9.64 et -13.58)." };
-  if (latitude < 7 || latitude > 13 || longitude < -15.5 || longitude > -7) return { erreur: "Ce point est en dehors de la Guinée (latitude de 7 à 13, longitude de -15,5 à -7)." };
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return { erreur: "Écrivez des nombres, par exemple 9.64 et -13.58." };
+  if (latitude < 7 || latitude > 13 || longitude < -15.5 || longitude > -7) return { erreur: "Ce point est hors de la Guinée (latitude de 7 à 13, longitude de -15,5 à -7)." };
   return { latitude: Math.round(latitude * 1e5) / 1e5, longitude: Math.round(longitude * 1e5) / 1e5 };
 }
 
