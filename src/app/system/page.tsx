@@ -126,7 +126,19 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
       ton: "danger",
     });
   }
-  const fileOuverte = roleAPermission(role, "restaurant.moderer") || roleAPermission(role, "commande.consulter");
+  // Zones où des personnes attendent un restaurant : une action de recrutement, donc à traiter (les trois plus demandées).
+  if (couverture && roleAPermission(role, "attente.gerer")) {
+    for (const zone of couverture.aRecruter.slice(0, 3)) {
+      lignesFile.push({
+        href: "/system/catalogue/liste-attente",
+        titre: `${zone.nom}${zone.contexte ? ` (${zone.contexte})` : ""}`,
+        meta: `${zone.attente} personne${zone.attente > 1 ? "s attendent" : " attend"} un restaurant dans cette zone`,
+        badge: "À recruter",
+        ton: "neutre",
+      });
+    }
+  }
+  const fileOuverte = roleAPermission(role, "restaurant.moderer") || roleAPermission(role, "commande.consulter") || roleAPermission(role, "attente.gerer");
 
   const lignesActivite: LigneActivite[] = (activite ?? []).map((evenement) => ({
     id: evenement.id,
@@ -197,6 +209,9 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
           ))}
         </ul>
       ) : null}
+
+      {/* À traiter d'abord : ce qui attend une décision passe avant les chiffres. */}
+      {fileOuverte ? <FilePrioritaire lignes={lignesFile} notesDeTest={lignesTest.length} /> : null}
 
       {/* 1. Chiffres clés */}
       {courant && precedent ? (
@@ -310,23 +325,18 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         ) : null}
       </section>
 
-      {/* 2. À traiter et restaurants */}
-      {fileOuverte || compteursRestaurants ? (
-        <div className="ad-pilotage-deux">
-          {fileOuverte ? <FilePrioritaire lignes={lignesFile} notesDeTest={lignesTest.length} /> : null}
-          {compteursRestaurants ? (
-            <Panneau titre="Restaurants">
-              <BarresHorizontales
-                lignes={[
-                  { cle: "publies", libelle: "Publiés", valeur: compteursRestaurants.publies, couleur: "var(--succes)", href: lienRestaurants("publies") },
-                  { cle: "attente", libelle: "En attente de validation", valeur: compteursRestaurants.enAttente, couleur: "var(--orange)", href: lienRestaurants("en_attente") },
-                  { cle: "correction", libelle: "Correction demandée", valeur: compteursRestaurants.correction, couleur: "var(--secondaire)", href: lienRestaurants("correction") },
-                  { cle: "suspendus", libelle: "Suspendus", valeur: compteursRestaurants.suspendus, couleur: "var(--danger)", href: lienRestaurants("suspendus") },
-                ]}
-              />
-            </Panneau>
-          ) : null}
-        </div>
+      {/* 2. Restaurants (la file « À traiter » est montée en tête de page) */}
+      {compteursRestaurants ? (
+        <Panneau titre="Restaurants">
+          <BarresHorizontales
+            lignes={[
+              { cle: "publies", libelle: "Publiés", valeur: compteursRestaurants.publies, couleur: "var(--succes)", href: lienRestaurants("publies") },
+              { cle: "attente", libelle: "En attente de validation", valeur: compteursRestaurants.enAttente, couleur: "var(--orange)", href: lienRestaurants("en_attente") },
+              { cle: "correction", libelle: "Correction demandée", valeur: compteursRestaurants.correction, couleur: "var(--secondaire)", href: lienRestaurants("correction") },
+              { cle: "suspendus", libelle: "Suspendus", valeur: compteursRestaurants.suspendus, couleur: "var(--danger)", href: lienRestaurants("suspendus") },
+            ]}
+          />
+        </Panneau>
       ) : null}
 
       {/* 3. Graphiques de commandes */}

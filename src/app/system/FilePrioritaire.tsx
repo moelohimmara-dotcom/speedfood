@@ -21,12 +21,12 @@ export function FilePrioritaire({ lignes, notesDeTest = 0 }: { lignes: LigneFile
       {lignes.length === 0 ? (
         <EtatVide
           titre="Tout est à jour"
-          texte={`Aucune validation de restaurant ni de proposition client n'attend dans les files ouvertes à votre rôle.${notesDeTest > 0 ? ` ${notesDeTest} élément(s) de test sont rangés plus bas.` : ""}`}
+          texte={`Aucune validation de restaurant, proposition client ni zone à recruter n'attend dans les files ouvertes à votre rôle.${notesDeTest > 0 ? ` ${notesDeTest} élément(s) de test sont rangés plus bas.` : ""}`}
         />
       ) : (
         <ul className="ad-liste">
           {lignes.map((ligne) => (
-            <li key={ligne.href}>
+            <li key={`${ligne.href}|${ligne.titre}`}>
               <Link href={ligne.href} className="ad-liste-lien">
                 <span className="ad-liste-texte">
                   <span className="ad-liste-titre">{ligne.titre}</span>
