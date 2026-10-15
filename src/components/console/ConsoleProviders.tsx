@@ -113,6 +113,8 @@ function BoiteConfirmation({ demande, onFermer }: { demande: DemandeEnCours; onF
   useEffect(() => {
     const d = dialogue.current;
     if (d && !d.open) d.showModal();
+    // showModal() donne le focus au premier champ (la saisie) : on le remet explicitement sur le refus.
+    d?.querySelector<HTMLButtonElement>("[data-annuler]")?.focus();
   }, []);
 
   // Fermer la boîte AVANT de la retirer : `close()` rend le focus à l'élément qui l'avait ouverte (retirée du DOM encore ouverte, elle le perdrait).
@@ -162,7 +164,7 @@ function BoiteConfirmation({ demande, onFermer }: { demande: DemandeEnCours; onF
         ) : null}
         <div className="sx-actions">
           {/* Le focus initial va au refus : une confirmation ne doit jamais s'obtenir d'une simple touche Entrée. */}
-          <button type="button" className="sx-btn" autoFocus onClick={() => fermer({ confirme: false })}>
+          <button type="button" className="sx-btn" data-annuler onClick={() => fermer({ confirme: false })}>
             Annuler
           </button>
           <button type="button" className={`sx-btn ${demande.danger ? "sx-btn-danger" : "sx-btn-primaire"}`} onClick={valider}>
