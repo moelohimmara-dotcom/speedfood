@@ -173,6 +173,9 @@ export default async function RestaurantDetailSystemePage({
               <Pastille ton={restaurant.publie ? "succes" : "neutre"}>{restaurant.publie ? "Publié" : "En attente"}</Pastille>
             )}
             <Pastille ton={restaurant.ouvert ? "succes" : "neutre"}>{restaurant.ouvert ? "Ouvert" : "Fermé"}</Pastille>
+            <Link href={`/restaurants/${restaurant.id}`} className="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+              Voir la page (aperçu administrateur)<span className="sr-only"> (nouvel onglet)</span>
+            </Link>
           </>
         }
       />

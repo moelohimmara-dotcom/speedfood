@@ -1,6 +1,11 @@
 import { detailLivraison } from "@/lib/site/livraison";
 import { notFound } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/db/database.types";
 import { creerClientPublic } from "@/lib/db/public";
+import { creerClientServeur } from "@/lib/db/server";
+import { lireVueFiche } from "@/lib/restaurant/vue-fiche";
+import { BandeauApercuFiche } from "@/components/restaurant/BandeauApercuFiche";
 import { Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
 import { VignettePlat } from "@/components/VignettePlat";
@@ -33,7 +38,10 @@ import {
  */
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { data } = await creerClientPublic()
+  // Le propriétaire et l'administrateur lisent aussi un restaurant non encore publié (aperçu) : jamais indexé.
+  const role = await lireVueFiche(id);
+  const clientMeta: SupabaseClient<Database> = role === "visiteur" ? creerClientPublic() : await creerClientServeur();
+  const { data } = await clientMeta
     .from("restaurants")
     .select("nom, photo_url, menu_categories(nom), neighborhoods(nom, generique, communes(nom))")
     .eq("id", id)
@@ -45,6 +53,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title: data.nom,
     description,
+    ...(role !== "visiteur" ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title: data.nom,
       description,
@@ -58,16 +67,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function FicheRestaurantPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ vue?: string }>;
 }) {
   const { id } = await params;
-  const supabase = creerClientPublic();
+  // Qui regarde : visiteur, propriétaire (ou équipe) ou administrateur. Les deux derniers voient la page même non publiée, avec un bandeau
+  // d'aperçu, et peuvent basculer en « vue visiteur » (?vue=visiteur) pour voir exactement ce que voit un client.
+  const role = await lireVueFiche(id);
+  const apercu = role !== "visiteur";
+  const visiteurSimule = apercu && (await searchParams).vue === "visiteur";
+  const supabase: SupabaseClient<Database> = apercu ? await creerClientServeur() : creerClientPublic();
 
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, consignes, ouvert, accepte_commandes, accepte_sur_place, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom, generique, communes(nom))"
+      "id, nom, publie, suspendu_le, horaires, consignes, ouvert, accepte_commandes, accepte_sur_place, statut_mis_a_jour_le, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, moyens_paiement, latitude, longitude, menu_categories(nom), neighborhoods(nom, generique, communes(nom))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -147,7 +163,9 @@ export default async function FicheRestaurantPage({
   }
   const platsSansSection = platsParSection.get(null) ?? [];
 
-  const commandable = estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes });
+  // Dans la vue propriétaire/administrateur, on ne commande pas (aperçu) ; la « vue visiteur » rétablit le parcours complet pour le tester.
+  const apercuSansCommande = apercu && !visiteurSimule;
+  const commandable = !apercuSansCommande && estCommandable({ ouvert: restaurantSur.ouvert, accepteCommandes: restaurantSur.accepte_commandes });
   const categorie = restaurantSur.menu_categories?.nom ?? "";
 
   const etatsPlats = menuListe.map((item) =>
@@ -244,6 +262,9 @@ export default async function FicheRestaurantPage({
 
   return (
     <main className="fiche">
+      {apercu ? (
+        <BandeauApercuFiche role={role} restaurantId={restaurant.id} visiteurSimule={visiteurSimule} publie={restaurant.publie} suspendu={restaurant.suspendu_le !== null} />
+      ) : null}
       <script
         type="application/ld+json"
         // Échappe `<` pour qu'un nom de restaurant ne puisse pas fermer la balise script.
@@ -332,7 +353,15 @@ export default async function FicheRestaurantPage({
             <MenuFiltre groupes={groupesFiltre} niveauSection={avecSections} />
           )}
         </div>
-        <ResumePanierFiche restaurantId={restaurantSur.id} paiement={textePaiement} />
+        {apercuSansCommande ? (
+          <aside className="fiche-panier fiche-panier-apercu" aria-label="Aperçu de la commande">
+            <h2 className="fiche-panier-titre">Commande</h2>
+            <p className="fiche-panier-videtexte">Les commandes sont désactivées dans cette vue. Pour tester le parcours d&apos;un client, utilisez « Voir comme un visiteur ».</p>
+            <p className="fiche-panier-note">{textePaiement}</p>
+          </aside>
+        ) : (
+          <ResumePanierFiche restaurantId={restaurantSur.id} paiement={textePaiement} />
+        )}
       </div>
     </main>
   );

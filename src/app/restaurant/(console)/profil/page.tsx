@@ -95,11 +95,9 @@ export default async function ProfilPage() {
                 ? "Votre page est visible dans le catalogue public."
                 : "Pas encore visible : en attente de validation par l'équipe Speedfood."}
             </p>
-            {restaurant.publie ? (
-              <Link href={`/restaurants/${membership.restaurant_id}`} className="btn btn-secondary btn-block" target="_blank" rel="noopener noreferrer">
-                Voir ma page publique ↗
-              </Link>
-            ) : null}
+            <Link href={`/restaurants/${membership.restaurant_id}`} className="btn btn-secondary btn-block" target="_blank" rel="noopener noreferrer">
+              {restaurant.publie ? "Voir ma page publique" : "Aperçu de ma page"} ↗<span className="sr-only"> (nouvel onglet)</span>
+            </Link>
             <p className="profil-apercu-note">
               Pour ouvrir, fermer ou mettre les commandes en pause, utilisez la tuile « État du restaurant » de l&apos;
               <Link href="/restaurant" className="lien-texte">

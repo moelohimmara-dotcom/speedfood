@@ -48,12 +48,11 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         <AlerteCommandes clePublique={lireClesVapid()?.clePublique ?? null} />
         <InstallationApp />
       </div>
-      {restaurant?.publie ? (
-        <Link href={`/restaurants/${membership.restaurant_id}`} className="ad-lien-bas" target="_blank" rel="noopener noreferrer">
-          <IconeAdmin nom="boutique" />
-          Voir ma page publique
-        </Link>
-      ) : null}
+      <Link href={`/restaurants/${membership.restaurant_id}`} className="ad-lien-bas" target="_blank" rel="noopener noreferrer">
+        <IconeAdmin nom="boutique" />
+        {restaurant?.publie ? "Voir ma page publique" : "Aperçu de ma page"}
+        <span className="sr-only"> (nouvel onglet)</span>
+      </Link>
       <Link href="/restaurant/affiche" className="ad-lien-bas">
         <IconeAdmin nom="boutique" />
         Affiche et QR code
