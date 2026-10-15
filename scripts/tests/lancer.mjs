@@ -117,6 +117,7 @@ copier("src/lib/commande/a-traiter.ts");
 copier("scripts/tests/atraiter.test.mts");
 copier("src/lib/console/confirmation.ts");
 copier("src/lib/console/notifications.ts");
+copier("src/lib/console/recherche.ts");
 copier("scripts/tests/console.test.mts");
 
 let statut = 0;

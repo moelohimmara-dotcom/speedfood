@@ -1,6 +1,8 @@
 import { MOTIF_MAX, MOTIF_MIN, validerConfirmation } from "../../src/lib/console/confirmation";
 import { DUREE_MS, MAX_NOTIFICATIONS, ajouterNotification, retirerNotification, type Notification } from "../../src/lib/console/notifications";
 
+import { filtrerEntrees, normaliser, type EntreeRecherche } from "../../src/lib/console/recherche";
+
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
   if (JSON.stringify(obtenu) !== JSON.stringify(attendu)) {
@@ -42,5 +44,27 @@ verifier("notification : au plus " + MAX_NOTIFICATIONS + ", les plus récentes g
 verifier("notification : retrait par identifiant", retirerNotification(liste, 5).map((n) => n.id), [4, 6]);
 verifier("notification : message tronqué à 300 caractères", ajouterNotification([], { ton: "info", message: "x".repeat(500) }, 1)[0].message.length, 300);
 verifier("notification : une erreur reste plus longtemps qu'un succès", DUREE_MS.erreur > DUREE_MS.succes, true);
+
+
+// Recherche rapide
+const ENTREES: EntreeRecherche[] = [
+  { libelle: "Restaurants", famille: "Catalogue", href: "/system/catalogue/restaurants" },
+  { libelle: "Taxonomie", famille: "Catalogue", href: "/system/catalogue/taxonomie" },
+  { libelle: "Liste d'attente", famille: "Catalogue", href: "/system/catalogue/liste-attente" },
+  { libelle: "Pages", famille: "Contenu", href: "/system/contenu/pages" },
+  { libelle: "Bannières", famille: "Contenu", href: "/system/contenu/bannieres" },
+  { libelle: "Rôles système", famille: "Accès", href: "/system/acces/roles" },
+];
+const libelles = (r: EntreeRecherche[]) => r.map((e) => e.libelle);
+verifier("recherche : accents et casse ignorés", normaliser("  BANNIÈRES  "), "bannieres");
+verifier("recherche : apostrophe typographique", normaliser("Liste d’attente"), "liste d attente");
+verifier("recherche : sans accent trouve avec accent", libelles(filtrerEntrees(ENTREES, "bannieres")), ["Bannières"]);
+verifier("recherche : début de libellé, puis libellé contenant, puis famille", libelles(filtrerEntrees(ENTREES, "ta")), ["Taxonomie", "Restaurants", "Liste d'attente"]);
+verifier("recherche : par famille", libelles(filtrerEntrees(ENTREES, "contenu")), ["Pages", "Bannières"]);
+verifier("recherche : plusieurs mots (libellé + famille)", libelles(filtrerEntrees(ENTREES, "catalogue liste")), ["Liste d'attente"]);
+verifier("recherche : mot interne du libellé", libelles(filtrerEntrees(ENTREES, "attente")), ["Liste d'attente"]);
+verifier("recherche : rien ne correspond", filtrerEntrees(ENTREES, "zzz"), []);
+verifier("recherche : requête vide = premières entrées dans l'ordre", libelles(filtrerEntrees(ENTREES, "", 3)), ["Restaurants", "Taxonomie", "Liste d'attente"]);
+verifier("recherche : limite respectée", filtrerEntrees(ENTREES, "e", 2).length, 2);
 
 if (ko > 0) process.exit(1);

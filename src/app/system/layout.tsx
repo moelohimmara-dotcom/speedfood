@@ -5,6 +5,7 @@ import { aUnMembershipRestaurant } from "@/lib/auth/doubleAcces";
 import { groupesNavPourRole, LIBELLES_ROLES, VERSION_MATRICE } from "@/lib/system-admin/permissions";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { BoutonRecherche, PaletteRecherche } from "@/components/console/PaletteRecherche";
 import { AdminMenuMobile } from "@/components/admin/AdminMenuMobile";
 import { IconeAdmin } from "@/components/admin/icones";
 import type { Metadata } from "next";
@@ -22,6 +23,10 @@ export const metadata: Metadata = { title: "Administration" };
 export default async function SystemLayout({ children }: { children: React.ReactNode }) {
   const contexte = await obtenirContexteSysteme();
   const groupes = groupesNavPourRole(contexte.role);
+  const entreesRecherche = [
+    { libelle: "Tableau de bord", famille: "Accueil", href: "/system" },
+    ...groupes.flatMap((g) => g.entrees.map((e) => ({ libelle: e.libelle, famille: g.libelle, href: e.href }))),
+  ];
   const aAussiUnRestaurant = await aUnMembershipRestaurant(contexte.supabase, contexte.utilisateurId);
 
   const marque = (
@@ -59,6 +64,7 @@ export default async function SystemLayout({ children }: { children: React.React
   const contenuLateral = (
     <div className="ad-lateral-interieur">
       {marque}
+      <BoutonRecherche />
       <AdminNav groupes={groupes} />
       {liensBas}
     </div>
@@ -66,6 +72,7 @@ export default async function SystemLayout({ children }: { children: React.React
 
   return (
     <div className="ad-app">
+      <PaletteRecherche entrees={entreesRecherche} />
       <a href="#contenu" className="lien-evitement">
         Aller au contenu
       </a>

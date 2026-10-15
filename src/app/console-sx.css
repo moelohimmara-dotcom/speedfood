@@ -276,3 +276,109 @@ body:has(.rc-bas) .sx-notifications {
     transition: background 0.15s var(--ease);
   }
 }
+
+/* ===== Recherche rapide (Ctrl+K) ===== */
+.sx-recherche-bouton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--secondaire);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sx-recherche-bouton:hover {
+  border-color: var(--encre);
+}
+.sx-recherche-bouton:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.sx-kbd {
+  padding: 2px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+  color: var(--secondaire);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.sx-palette {
+  margin: 12vh auto auto;
+  width: min(92vw, 560px);
+  max-height: 76dvh;
+  padding: 0;
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: 4px 4px 0 var(--encre);
+}
+.sx-palette::backdrop {
+  background: rgba(43, 33, 29, 0.55);
+}
+.sx-palette-cadre {
+  display: grid;
+}
+.sx-palette-champ {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 2px solid var(--encre);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 1.05rem;
+}
+.sx-palette-champ:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: -3px;
+}
+.sx-palette-liste {
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  overflow-y: auto;
+}
+.sx-palette-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.sx-palette-option.actif {
+  background: var(--creme);
+  outline: 2px solid var(--encre);
+  outline-offset: -2px;
+}
+.sx-palette-libelle {
+  font-weight: 700;
+}
+.sx-palette-famille {
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.sx-palette-vide,
+.sx-palette-aide {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.sx-palette-aide {
+  border-top: 1.5px solid var(--bordure);
+}
