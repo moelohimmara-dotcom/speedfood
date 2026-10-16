@@ -65,7 +65,7 @@ La synthèse et les vérifications ci-dessous sont de la session principale (Son
 | Tiroirs latéraux d'édition | Manque (modales centrées seulement) | Feuille plein écran sur téléphone, pas de tiroir latéral | L / M |
 | Listes puissantes | Filtres par puces existent ; manquent tri, pagination, actions groupées génériques | Filtres rapides et tri par ancienneté ; **pas** de colonnes configurables | L / S |
 | États vides utiles | Existent ; manque l'action et la distinction « vide » / « aucun résultat » | Déjà bons | S |
-| Barre d'enregistrement unique | Composant bon mais sous-employé | Surtout pour le profil (4 enregistrements séparés) | M |
+| Barre d'enregistrement unique | Composant bon mais sous-employé | **Déjà faite pour le profil** (voir la correction du 16 octobre en § 6 ter) | M |
 | Aide contextuelle et fil d'Ariane | Fil d'Ariane facile (S) ; aide M | Aide légère (lien WhatsApp constant) | S à M |
 
 ## 5. Architecture proposée (par tâches, pas par tables)
@@ -146,6 +146,8 @@ Ces durées sont des ordres de grandeur, pas des engagements : elles dépendent 
 | Géographie | Listes de 20 lignes à la fois (606 Ko → 261 Ko) ; un seul message de refus, envoi bloqué pour un point invalide, notification d'enregistrement ; import CSV : dernier aperçu toujours visible et confirmation effacée à chaque aperçu | `83f3df9`, `ad57710`, `51e9d5a` | `b181627c`, `ff46563c`, `7a7abebd` |
 
 **Constat de cadrage corrigé en cours de route** : la navigation à deux niveaux existait déjà dans la console admin (familles repliables). Ce qui manquait était la recherche rapide et un accueil orienté vers l'action ; le tableau de bord avait déjà une file « À traiter ».
+
+**Correction du 16 octobre 2026** : l'audit disait « profil : quatre enregistrements séparés ». C'était périmé : le profil est déjà un seul formulaire (`FormulaireProfil`) avec une seule barre d'enregistrement pour photo, logo, couleur, horaires, consignes et paiement. Restent séparés, volontairement : les éditeurs d'illustrations (autre action) et le quartier / les zones de livraison (une liste où l'on ajoute et retire). Vérifié en lisant le code ; rien à refaire.
 
 **Ce qui n'a pas été fait** : mode « hors ligne » complet (une commande ne peut pas arriver sans réseau ; seul un bandeau le dit), fil d'Ariane sur les pages de détail (elles ont déjà un lien de retour), tiroir latéral pour l'édition (aucune gêne actuelle), recherche globale des entités (commandes, comptes : prudence sur les coordonnées clients), équipe et rôles côté restaurant, page Paiement dédiée.
 
