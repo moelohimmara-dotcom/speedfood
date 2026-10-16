@@ -6,10 +6,17 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    // Identité stable de l'application installée : sans `id`, le navigateur la déduit de `start_url` et une future modification de celle-ci
+    // ferait passer l'application pour une autre (nouvelle installation, ancienne orpheline).
+    id: "/",
     name: "Speedfood",
     short_name: "Speedfood",
     description: "Découvrez et commandez chez vos restaurants préférés à Conakry.",
     lang: "fr",
+    dir: "ltr",
+    categories: ["food", "shopping"],
+    // Pas de `orientation` : la console restaurateur sert aussi sur tablette posée au comptoir, dans le sens que le restaurateur choisit.
+    prefer_related_applications: false,
     start_url: "/",
     scope: "/",
     display: "standalone",
