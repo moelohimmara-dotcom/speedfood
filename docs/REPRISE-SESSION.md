@@ -166,7 +166,8 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 1. **Révoquer les jetons Supabase** : deux jetons d'accès personnel ont été exposés en clair.
    Supabase → Account → Access Tokens → révoquer. C'est la porte la plus importante.
-2. **Restreindre puis tourner le token Cloudflare** : il est sur-scopé. Cloudflare → My Profile → API Tokens.
+   **Déclaré fait par la propriétaire le 16 octobre 2026** (non vérifiable par un agent : aucun outil ne liste les jetons d'une autre personne). Après cela, le déploiement (`wrangler`, connexion OAuth) et l'accès à la base de l'agent fonctionnent toujours.
+2. **Restreindre puis tourner le token Cloudflare** : il est sur-scopé. Cloudflare → My Profile → API Tokens. **À confirmer** : la propriétaire a indiqué que « le point 1 » (jetons exposés) est corrigé ; le jeton Cloudflare n'a pas été mentionné séparément.
 3. Double authentification sur les comptes d'administration : **écartée par décision explicite** le
    9 octobre 2026 (risque connu et assumé : un mot de passe seul donne accès aux coordonnées des clients).
 4. Test de 5 minutes sur un téléphone réel (jamais fait).

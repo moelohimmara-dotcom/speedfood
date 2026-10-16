@@ -247,4 +247,6 @@ ne sont pas revérifiées et gardent l'état du tableau.
 **À faire par la propriétaire, qu'aucun agent ne peut faire** : révoquer les deux jetons d'accès Supabase exposés ; restreindre puis renouveler le jeton Cloudflare ; compléter les contacts du plan d'incident ;
 décider du sort des 13 restaurants de démonstration ; vérifier le plan Cloudflare et les métriques d'erreur du 15 octobre.
 
-**Bloquant avant de recevoir de vrais clients** (ma lecture, à valider par la propriétaire) : jetons exposés non révoqués ; cause du 1102 inconnue ; revue indépendante ; cache PWA ; sauvegarde récente ; autorisation écrite.
+**Mise à jour du 16 octobre 2026** : la propriétaire déclare avoir corrigé le point des jetons exposés (non vérifiable par l'agent) ; le jeton Cloudflare est à confirmer.
+
+**Bloquant avant de recevoir de vrais clients** (ma lecture, à valider par la propriétaire) : ~~jetons exposés non révoqués~~ (déclaré corrigé, voir ci-dessus) ; cause du 1102 inconnue ; revue indépendante ; cache PWA ; sauvegarde récente ; autorisation écrite.
