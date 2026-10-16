@@ -134,6 +134,25 @@ Ces durées sont des ordres de grandeur, pas des engagements : elles dépendent 
 
 **Piège de test** : dans le navigateur intégré, un onglet en arrière-plan ne rend pas les pages en flux (elles restent sur « Chargement… » sans erreur). Ne mesurer que l'onglet au premier plan.
 
+## 6 ter. Phases 1 à 3 et suites : état d'avancement (15 et 16 octobre 2026, déployées, version en ligne `7a7abebd`)
+
+| Étape | Livré | Commit | Version |
+|---|---|---|---|
+| Éditeur de design, éditeur de pages, Taxonomie | Champs à 44 px et saisie invalide signalée tout de suite ; éditeur de pages : erreurs par champ, bouton « Agrandir l'aperçu », seuil 1024 px ; Taxonomie : recherche et lots de 30 | `bc9046d` | `113bcc4c` |
+| Phase 1, fondations | `ConsoleProviders` (confirmation simple / motif / phrase, notifications), `Tiroir`, `FilAriane`, styles `sx-` (`docs/CONSOLE-FONDATIONS.md`) ; focus initial sur « Annuler » | `bc9046d`, `f4ae9f9` | `113bcc4c`, `c1be98d5` |
+| Phase 2, fin des `confirm()` natifs | Console admin (pages, bannières, mises en avant, rôles, paliers, liste d'attente), console restaurateur (plat, section, commande, paiement, proposition), panier et suivi public ; fournisseur monté à la racine | `8c99d19`, `4d4c312`, `56f169d` | `36333107`, `2c68726f` |
+| Phase 3, recherche et accueils | Recherche rapide Ctrl+K (admin, sans accents, filtrée par permission) ; « À traiter » en tête de l'accueil admin (avec les zones à recruter) et de l'accueil restaurateur (la plus ancienne d'abord) | `77cb9d0`, `953f953`, `7ab236b` | `797a3f99`, `e14fa048`, `4ccb1776` |
+| Restaurateur | Historique des commandes par fenêtres de 20 ; mode service (écran gardé allumé, état réel des alertes) | `6ff6db6`, `cc57850` | `ce9e6d06`, `c8abceee` |
+| Géographie | Listes de 20 lignes à la fois (606 Ko → 261 Ko) ; un seul message de refus, envoi bloqué pour un point invalide, notification d'enregistrement ; import CSV : dernier aperçu toujours visible et confirmation effacée à chaque aperçu | `83f3df9`, `ad57710`, `51e9d5a` | `b181627c`, `ff46563c`, `7a7abebd` |
+
+**Constat de cadrage corrigé en cours de route** : la navigation à deux niveaux existait déjà dans la console admin (familles repliables). Ce qui manquait était la recherche rapide et un accueil orienté vers l'action ; le tableau de bord avait déjà une file « À traiter ».
+
+**Ce qui n'a pas été fait** : mode « hors ligne » complet (une commande ne peut pas arriver sans réseau ; seul un bandeau le dit), fil d'Ariane sur les pages de détail (elles ont déjà un lien de retour), tiroir latéral pour l'édition (aucune gêne actuelle), recherche globale des entités (commandes, comptes : prudence sur les coordonnées clients), équipe et rôles côté restaurant, page Paiement dédiée.
+
+**Incident** : le 15 octobre 2026, vers 14 h UTC, des pages dynamiques ont répondu 503/500 quelques minutes (Cloudflare 1102), après l'ouverture de la page Géographie. Cause non confirmée ; allègement de la page déployé ; plan Cloudflare et métriques à vérifier (voir `docs/REPRISE-SESSION.md` § 5, point 8).
+
+**Restent** : résumés « Point central » à 36 px (cosmétique), fusion de quartiers et suggestion de point non essayées sur données réelles, mode service à essayer sur un vrai appareil.
+
 ## 7. Décisions à prendre avant de coder
 
 1. **Identité de la console** : sobre (outil de travail, recommandé) ou colorée comme le site public.

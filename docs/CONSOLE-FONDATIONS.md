@@ -20,5 +20,16 @@ Créées le 15 octobre 2026. Briques communes à la console d'administration (`/
 - Taxonomie : suppression avec confirmation nommée + notification ; recherche et lots de 30.
 - Éditeur de design : « Tout rétablir » en niveau `saisie` (phrase `RÉTABLIR`).
 
-## À migrer (phase 2)
-Les autres `window.confirm` / `confirm(` des consoles, les messages de retour locaux (`useActionState`) vers `notifier`, les formulaires d'édition vers `Tiroir`, `FilAriane` sur les pages de détail.
+## Montage et usage (phase 2, 16 octobre 2026)
+- `ConsoleProviders` est monté **à la racine** (`src/app/layout.tsx`) : consoles et site public (panier, suivi). Ne pas le remonter dans une console.
+- Plus aucun `confirm()` natif. Pour un formulaire (`<form action>`), intercepter l'envoi, demander, puis rejouer avec `requestSubmit()` (un drapeau `useRef`
+  laisse passer le second envoi) : voir `FormulaireSuppressionContact.tsx` et `ActionsZoneAttente.tsx`.
+- `notifier("succes", …)` après une action réussie ; l'enregistrement d'une ligne de la Géographie utilise `useConfirmationEnregistrement`.
+
+## Recherche rapide et mode service (phase 3)
+- `PaletteRecherche` + `BoutonRecherche` (`src/components/console/`), logique pure `src/lib/console/recherche.ts` (sans accents, classement : début de libellé,
+  mot du libellé, libellé, famille). Entrées construites côté serveur depuis `groupesNavPourRole` : jamais une page que le menu ne montre pas. Ctrl+K est libre
+  dans l'éditeur de pages (`.studio-editeur`), le bouton reste disponible.
+- Mode service du restaurateur : `src/components/restaurant/ModeService.tsx`, texte d'état dans `src/lib/alertes/mode-service.ts` (11 contrôles). Règle : ne jamais
+  afficher « actif » si la garde d'écran n'est pas réellement accordée, ni sans réseau.
+- Listes lourdes : afficher par fenêtres (`ListesGeo.tsx`, historique des commandes avec `limiteHistorique`), jamais toutes les lignes d'un coup.

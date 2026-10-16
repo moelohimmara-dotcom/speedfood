@@ -812,3 +812,17 @@ Tout est déployé en production. Les commits jusqu'à `dec267d` sont sur GitHub
 **Montée de Next.js 16.3.6 → 16.3.8 (15 octobre 2026)** : correctif de la série 16.3, `npm audit --omit=dev` passe de 2 failles à 0 ; OpenNext 1.20.6 inchangé. Vérifié : 1620 tests, build, `cf:build`, Worker local (`opennextjs-cloudflare preview`) qui sert accueil, `/quartiers`, `/restaurants`, fiche et connexion sans l'erreur `loadManifest` de Next 16.4.0. L'essai Next 16.4 est abandonné (voir `REPRISE-SESSION.md`). Les failles d'`npm audit` restantes sont dans les outils de développement. **Déploiement : voir la ligne suivante ou le journal de déploiement.**
 
 **Phase 0 des consoles déployée (15 octobre 2026, version `81b93a5b`)** : correctifs de fiabilité issus de l'audit (`docs/audit-2026-10-15-consoles/README.md`) : alerte de commandes du restaurateur montée une seule fois et compteur « à traiter » sans les commandes qui attendent le client, « À traiter » trié du plus ancien au plus récent, Taxonomie sans quartiers techniques (et suppression refusée tant que la liste d'attente ou des zones en dépendent), boîtes de dialogue centrées, erreurs affichées (plats, taxonomie, bannières, mises en avant), `error.tsx` et `loading.tsx`, rappel de double authentification compact sur téléphone, cibles tactiles. Mesures avant/après en production dans le README de l'audit.
+
+## 16 octobre 2026 : refonte des consoles (phases 1 à 3), Géographie vérifiée en production (version `7a7abebd`)
+
+Détail, commits et versions par étape : `docs/audit-2026-10-15-consoles/README.md` § 6 ter ; briques communes : `docs/CONSOLE-FONDATIONS.md`.
+
+**Livré et déployé** : fondations des consoles (confirmation, notifications, tiroir, fil d'Ariane) ; plus aucun `confirm()` natif dans l'application ; recherche rapide Ctrl+K ; « À traiter » en tête des deux accueils ; historique des commandes par fenêtres de 20 ; mode service du restaurateur ; page Géographie allégée (606 Ko → 261 Ko) et corrigée (message de refus unique, notification d'enregistrement, import CSV sans aperçu masqué ni confirmation conservée).
+
+**Vérifié en production avec la session de la propriétaire** (modifications réversibles, état d'origine rétabli et contrôlé en base à chaque fois) : Géographie, enregistrement d'une ligne, noms alternatifs, point central valide et invalide, interrupteur « Visible », lot sur un quartier sans restaurant, import CSV en deux étapes (refus en bloc d'un fichier invalide, aperçu sans écriture, application tracée dans l'audit, retour en arrière). Accueil restaurateur : une commande de test insérée en base puis supprimée par son identifiant a bien fait passer « À traiter » en tête.
+
+**Non vérifié** : fusion de quartiers et suggestion de point sur données réelles ; mode service sur un vrai appareil ; refus d'une proposition dans le suivi ; bouton « Afficher 20 de plus » de l'historique des commandes sur du volume réel ; commande de test par un vrai parcours (contrôle anti-robot).
+
+**Incident (15 octobre, vers 14 h UTC)** : erreurs 503/500 (Cloudflare 1102) pendant quelques minutes sur des pages dynamiques, y compris publiques, après l'ouverture de la page Géographie. Cause non établie. À vérifier : plan Cloudflare (gratuit = 10 ms de calcul par requête) et « Metrics > Errors > Invocation Statuses ».
+
+**Pièges payés** : `docs/REPRISE-SESSION.md` § 5, points 7 à 10 (cache du navigateur intégré, erreur 1102, tests dans le navigateur intégré, fournisseur à la racine).

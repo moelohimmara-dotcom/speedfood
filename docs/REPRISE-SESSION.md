@@ -1,6 +1,6 @@
 # Reprise de projet : continuer Speedfood sans l'auteur
 
-Document de référence pour reprendre le projet à froid. Rédigé et mis à jour le **10 octobre 2026**.
+Document de référence pour reprendre le projet à froid. Rédigé le 10 octobre 2026, mis à jour le **16 octobre 2026**.
 **Il ne contient aucune valeur secrète**, seulement des noms. Sources de vérité complémentaires :
 `CLAUDE.md` (règles), `docs/cadrage/` (mandat, architecture, sécurité), `docs/STATUT-PROJET.md` (journal chronologique).
 
@@ -15,9 +15,9 @@ Document de référence pour reprendre le projet à froid. Rédigé et mis à jo
 |---|---|
 | Dépôt | **`C:\Users\moelo\dev\speedfood`** — branche `master`, distant `moelohimmara-dotcom/speedfood`. C'est le seul dépôt (l'ancienne copie du Bureau OneDrive a été supprimée le 15 octobre 2026 : voir § 8, point 9) |
 | Production | https://speedfood-app.moelohimmara.workers.dev (Worker Cloudflare `speedfood-app`) |
-| Version en ligne | `dde477fa-cb84-4a30-99a3-5c38d6162ca3` (15 octobre 2026, commit `481a74a` ; HEAD `a10a2e6` = documentation seulement) |
+| Version en ligne | `7a7abebd` (identifiant court ; `npx wrangler deployments list` donne le complet) (16 octobre 2026, commit `51e9d5a` ; les commits de documentation qui suivent ne changent pas le code déployé) |
 | Base | Supabase `ggldjdizqrtpetdiohxy` — schéma vérifié au déploiement |
-| État Git | `master` à jour avec `origin/master` (poussé le 15 octobre 2026), arbre propre. Dépôt de travail actuel : `C:\Users\moelo\dev\speedfood` |
+| État Git | `master` à jour avec `origin/master` au commit `51e9d5a` (code), arbre propre. Dépôt de travail : `C:\Users\moelo\dev\speedfood` |
 
 **Ordre de lecture recommandé**
 
@@ -47,7 +47,8 @@ Depuis la racine du dépôt. Sous PowerShell, passer par `cmd /c` pour `npm`/`np
 | Icônes de l'application | `node scripts/generer-icones.mjs` |
 
 `cf:deploy` exécute d'abord `scripts/verifier-base.mjs`, qui **échoue si une table manque en production** :
-c'est une protection, pas un bug.
+c'est une protection, pas un bug. Elle peut aussi s'arrêter sur « Vérification de la base impossible… délai dépassé » : c'est un
+problème de réseau, relancer `cf:deploy` une fois (le code n'est pas en cause).
 
 Un nouveau fichier de test pur doit être déclaré dans `scripts/tests/lancer.mjs` (liste `copier(...)`
 puis liste des fichiers à exécuter), sinon il n'est jamais lancé.
@@ -65,6 +66,8 @@ puis liste des fichiers à exécuter), sinon il n'est jamais lancé.
 | Aperçu de fiche et commandes de test | Aperçu propriétaire / administrateur (`?vue=visiteur`, `?vue=test`) ; commandes marquées `est_test` par le serveur, exclues de tous les chiffres | `docs/ZONES-ET-COMMANDES-DE-TEST.md` §2 et §3 |
 | Console Géographie | Qualité des données, lot, fusion de quartiers, export / import CSV, statut de lancement, carte de couverture, historique | `docs/ZONES-ET-COMMANDES-DE-TEST.md` §4 |
 | Correctifs du 10 octobre | Mise en page de `/entrer` (collision de classe), profil et coordonnées réellement enregistrés, redirections client | `docs/AUDIT-VISUEL-2026-10-10.md` |
+
+| Refonte des consoles, phases 0 à 3 (15 et 16 octobre) | Correctifs de fiabilité ; fondations communes (confirmation à 3 niveaux, notifications, tiroir, fil d'Ariane, styles `sx-`) ; plus aucun `confirm()` natif ; recherche rapide Ctrl+K ; « À traiter » en tête des accueils ; mode service du restaurateur ; historique des commandes par fenêtres ; Géographie allégée et corrigée | `docs/CONSOLE-FONDATIONS.md`, `docs/audit-2026-10-15-consoles/README.md` § 6 ter |
 
 Le journal complet, avec ce qui est **vérifié** et ce qui est **supposé**, est dans `docs/STATUT-PROJET.md`.
 
@@ -110,7 +113,20 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
    et le test réel a trouvé quatre défauts.
 6. **Ne pas commiter un script de vérification temporaire** ; le retirer avec une suppression récupérable
    (`rm -- <chemin>`) avant de commiter.
-7. Après un déploiement, une page peut encore servir l'ancien contenu (cache) : recharger en ignorant le cache.
+7. Après un déploiement, une page peut encore servir l'ancien contenu (cache) : recharger en ignorant le cache. Dans le navigateur
+   intégré, une URL déjà visitée peut être servie depuis son cache : ajouter un paramètre (`?v=2`) avant de conclure qu'un déploiement n'a rien changé.
+8. **Erreur Cloudflare 1102 (« Worker exceeded resource limits »), 15 octobre 2026.** Des pages dynamiques ont répondu 503/500 pendant
+   quelques minutes, y compris l'accueil public, après l'ouverture de la page Géographie (606 Ko, 158 formulaires). Cause **non confirmée** ; la page
+   a été allégée (20 lignes à la fois, 261 Ko). À vérifier côté Cloudflare : plan utilisé (gratuit = 10 ms de calcul par requête ; les pages
+   consomment 12 à 880 ms) et « Metrics > Errors > Invocation Statuses ». Les journaux se lisent avec `npx wrangler tail speedfood-app --format json`.
+   Si la panne revient : retour à la version précédente avec l'accord de la propriétaire.
+9. **Tester une console dans le navigateur intégré** : pages d'essai temporaires (jamais commitées, supprimées ensuite) dans la coque `.ad-app` avec des
+   données fictives ; un `<details>` replié donne `innerText` vide (utiliser `textContent` ou l'ouvrir) ; la liste de choix (`ListeChoix`) réagit à
+   `mousedown`, pas à `click` ; le panneau du navigateur peut se refermer et la connexion de la propriétaire est alors perdue (elle se reconnecte, jamais
+   d'identifiants saisis par l'agent). Le contrôle anti-robot (Turnstile) empêche de passer une commande publique dans ce navigateur : une commande de
+   test se crée en base (`est_test = true`) puis se supprime par son identifiant exact.
+10. **Fournisseur de retour d'information à la racine.** `ConsoleProviders` est monté dans `src/app/layout.tsx` : `useConfirmation()` et `useNotification()`
+    marchent partout (consoles et site public). Ne pas le remonter ailleurs (deux zones de notifications = deux annonces).
 
 ---
 
@@ -163,13 +179,20 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 7. Portes avant pilote : `docs/cadrage/PROCEDURE-SECURITE.md` §9 (certaines sont bloquantes).
 8. Décider du sort des 13 restaurants de démonstration (publier ou dépublier avant le pilote).
 
-### À vérifier avec une session réelle (jamais éprouvé)
+### À vérifier avec une session réelle
 
-- Actions serveur de la console Géographie : enregistrer, lot, import appliqué, suggestion de point, historique.
-- Une commande de test créée par un restaurateur connecté (pastille « Test », absente des chiffres de l'administration).
-- Aperçu de fiche en session propriétaire et administrateur.
+Vérifié en production le 16 octobre 2026, avec la session de la propriétaire et retour à l'état d'origine à chaque fois : Géographie (enregistrer une ligne, noms
+alternatifs, point central valide et invalide, interrupteur « Visible », lot, import CSV en deux étapes avec confirmation, historique d'audit).
+
+Reste à faire :
+- Fusion de deux quartiers (`fn_fusionner_quartiers`) : jamais essayée sur données réelles (elle déplace restaurants et clients).
+- Suggestion de point (OpenStreetMap) depuis l'interface.
+- Mode service sur un vrai téléphone ou une tablette (garde d'écran réelle, retour d'un onglet en arrière-plan).
+- Refus d'une proposition dans le suivi de commande (nouvelle boîte de confirmation) et bouton « Afficher 20 de plus » de l'historique des commandes, sur du volume réel.
+- Commande de test passée par un vrai parcours (le contrôle anti-robot l'empêche dans le navigateur intégré).
 - Annonce « Bientôt / Pilote » sur une commune réelle (aucune n'a ce statut).
 - Compléter les points centraux des quartiers de Conakry (46 sans point) : par export / import CSV.
+- Plan Cloudflare et métriques d'erreurs (voir § 5, point 8).
 
 ### En suspens
 
@@ -188,7 +211,7 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 
 L'audit du 11 octobre 2026 est regroupé dans `docs/audit-2026-10-11/README.md`, qui sert d'index unique pour les constats visuels, sécurité/performance, feuille de route, journal de déploiement et captures. Les rapports ne doivent pas être recréés à la racine du dépôt.
 
-L'audit des deux consoles (super admin et restaurateur) du 15 octobre 2026, préalable à une refonte « type Wix », est dans `docs/audit-2026-10-15-consoles/README.md` (synthèse, défauts vérifiés V1 à V7, architecture proposée, plan en phases, décisions à prendre) avec les quatre rapports détaillés. **Phase 0 recommandée avant toute refonte** : l'alerte de commandes du restaurateur est montée deux fois et son état est invisible sur téléphone.
+L'audit des deux consoles (super admin et restaurateur) du 15 octobre 2026, préalable à une refonte « type Wix », est dans `docs/audit-2026-10-15-consoles/README.md` (synthèse, défauts vérifiés V1 à V7, architecture proposée, plan en phases, décisions à prendre) avec les quatre rapports détaillés. La phase 0 (fiabilité) et les phases 1 à 3 (fondations, recherche rapide, accueils, mode service) sont **faites et déployées** : voir `docs/audit-2026-10-15-consoles/README.md` § 6 bis et 6 ter, et `docs/CONSOLE-FONDATIONS.md` pour les briques communes.
 
 ## 10. En cas de problème
 
