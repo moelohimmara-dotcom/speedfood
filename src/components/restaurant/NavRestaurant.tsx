@@ -8,16 +8,17 @@ import { IconeAdmin } from "@/components/admin/icones";
  * Navigation de l'espace restaurateur : quatre tâches. `NavRestaurantCote` (barre latérale sombre, grand écran et tiroir du téléphone)
  * et `NavRestaurantBas` (barre sous le pouce, téléphone et tablette) partagent la même liste. La pastille signale les commandes à traiter.
  */
-type Entree = { href: string; libelle: string; court?: string; icone: string; exact: boolean };
+type Entree = { href: string; libelle: string; court?: string; icone: string; exact: boolean; /** Autres pages qui relèvent de cette entrée (elle reste allumée). */ aussi?: readonly string[] };
 const ENTREES: readonly Entree[] = [
   { href: "/restaurant", libelle: "Accueil", icone: "tableau", exact: true },
   { href: "/restaurant/commandes", libelle: "Commandes", icone: "commandes", exact: false },
   { href: "/restaurant/menu", libelle: "Menu", icone: "carte", exact: false },
-  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false },
+  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false, aussi: ["/restaurant/affiche", "/restaurant/tables", "/restaurant/documents"] },
 ];
 
 function estActif(chemin: string, e: Entree) {
-  return e.exact ? chemin === e.href : chemin === e.href || chemin.startsWith(`${e.href}/`);
+  if (e.exact) return chemin === e.href;
+  return [e.href, ...(e.aussi ?? [])].some((h) => chemin === h || chemin.startsWith(`${h}/`));
 }
 
 export function NavRestaurantCote({ aTraiter }: { aTraiter: number }) {

@@ -694,3 +694,173 @@
 .rc-service-mode-actif .rc-service-texte::before {
   content: "✓ ";
 }
+
+/* Hub « Mon restaurant » : une vitrine (auvent rayé), une carte à tampons et des cartes à autocollants. Uniquement les jetons du design system. */
+.hub-vitrine {
+  max-width: 560px;
+  margin: 0 auto var(--space-6);
+  background: var(--surface);
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 5px 5px 0 var(--encre);
+  overflow: hidden;
+}
+.hub-auvent {
+  display: flex;
+  height: 40px;
+  background: var(--surface);
+}
+.hub-auvent span {
+  flex: 1;
+  height: 34px;
+  border-radius: 0 0 18px 18px;
+}
+.hub-auvent span:nth-child(odd) {
+  background: var(--rouge-fonce);
+}
+.hub-auvent span:nth-child(even) {
+  background: var(--mangue);
+}
+.hub-corps {
+  padding: var(--space-4);
+}
+.hub-nom {
+  margin: 0;
+  font-size: 1.35rem;
+}
+.hub-mot {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--secondaire);
+  line-height: 1.45;
+}
+.hub-tampons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: 2px dashed var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+}
+.hub-tampon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 2px dashed var(--secondaire);
+  border-radius: 50%;
+  color: var(--encre);
+}
+.hub-tampon.fait {
+  background: var(--mangue);
+  border: 2px solid var(--encre);
+  transform: rotate(-8deg);
+}
+.hub-tampon.fait:nth-child(even) {
+  transform: rotate(7deg);
+}
+.hub-tampons-texte {
+  margin-left: var(--space-2);
+  font-size: 0.85rem;
+  line-height: 1.3;
+  color: var(--secondaire);
+}
+.hub-tampons-texte strong {
+  color: var(--encre);
+}
+.hub-liste {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hub-carte {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 2.5px solid var(--encre);
+  border-radius: var(--radius-md);
+  box-shadow: 3px 3px 0 var(--encre);
+  color: var(--encre);
+  text-decoration: none;
+}
+.hub-carte:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--encre);
+}
+.hub-carte:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+.hub-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  background: var(--mangue);
+  border: 2px solid var(--encre);
+  border-radius: 50%;
+}
+.hub-texte {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.hub-titre {
+  font-weight: 800;
+}
+.hub-sous-titre {
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+/* L'état est écrit en toutes lettres : jamais porté par la couleur seule. */
+.hub-autocollant {
+  flex: none;
+  padding: 3px 9px;
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.hub-autocollant.pret {
+  background: var(--succes-fond);
+  border-color: var(--succes);
+  color: var(--succes);
+  transform: rotate(2deg);
+}
+.hub-autocollant.a-completer {
+  background: var(--mangue);
+  color: var(--encre);
+  transform: rotate(-3deg);
+}
+.hub-pied {
+  margin: var(--space-4) 0 0;
+  text-align: center;
+}
+@media (max-width: 480px) {
+  .hub-carte {
+    flex-wrap: wrap;
+  }
+  /* Le texte garde une largeur lisible : l'autocollant, trop large pour tenir à côté, passe dessous, aligné sur le texte. */
+  .hub-texte {
+    flex: 1 1 12rem;
+  }
+  .hub-autocollant {
+    margin-left: calc(40px + var(--space-3));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hub-carte {
+    transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease);
+  }
+}

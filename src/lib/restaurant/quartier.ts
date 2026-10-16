@@ -47,6 +47,6 @@ export async function modifierQuartierRestaurantAction(
     return { erreur: "Impossible d'enregistrer le quartier. Réessayez dans un instant." };
   }
 
-  revalidatePath("/restaurant/profil");
+  revalidatePath("/restaurant/profil", "layout");
   return { succes: true };
 }

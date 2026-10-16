@@ -61,7 +61,7 @@ export async function definirIllustrationRestoAction(
     if (error) return { erreur: "Impossible d'enregistrer l'illustration." };
   }
 
-  revalidatePath("/restaurant/profil");
+  revalidatePath("/restaurant/profil", "layout");
   revalidatePath("/restaurant/menu");
   revalidatePath(`/restaurants/${membership.restaurant_id}`);
   return { succes: true };

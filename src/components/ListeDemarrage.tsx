@@ -27,11 +27,11 @@ export function ListeDemarrage({
   whatsapp?: string | null;
 }) {
   const etapes = [
-    { cle: "photo", libelle: "Ajouter une photo de couverture", fait: etat.photo, href: "/restaurant/profil" },
-    { cle: "logo", libelle: "Ajouter votre logo", fait: etat.logo, href: "/restaurant/profil" },
+    { cle: "photo", libelle: "Ajouter une photo de couverture", fait: etat.photo, href: "/restaurant/profil/page-publique" },
+    { cle: "logo", libelle: "Ajouter votre logo", fait: etat.logo, href: "/restaurant/profil/page-publique" },
     { cle: "plats", libelle: "Créer au moins un plat au menu", fait: etat.plats, href: "/restaurant/menu" },
-    { cle: "horaires", libelle: "Indiquer vos horaires", fait: etat.horaires, href: "/restaurant/profil" },
-    { cle: "paiement", libelle: "Choisir les moyens de paiement acceptés", fait: etat.paiement, href: "/restaurant/profil" },
+    { cle: "horaires", libelle: "Indiquer vos horaires", fait: etat.horaires, href: "/restaurant/profil/page-publique" },
+    { cle: "paiement", libelle: "Choisir les moyens de paiement acceptés", fait: etat.paiement, href: "/restaurant/profil/page-publique" },
   ];
   const faites = etapes.filter((e) => e.fait).length;
   if (faites === etapes.length && etat.publie) {

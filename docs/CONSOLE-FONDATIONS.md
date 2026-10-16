@@ -33,3 +33,13 @@ Créées le 15 octobre 2026. Briques communes à la console d'administration (`/
 - Mode service du restaurateur : `src/components/restaurant/ModeService.tsx`, texte d'état dans `src/lib/alertes/mode-service.ts` (11 contrôles). Règle : ne jamais
   afficher « actif » si la garde d'écran n'est pas réellement accordée, ni sans réseau.
 - Listes lourdes : afficher par fenêtres (`ListesGeo.tsx`, historique des commandes avec `limiteHistorique`), jamais toutes les lignes d'un coup.
+
+## Hub « Mon restaurant » (16 octobre 2026)
+- `/restaurant/profil` est le **sommaire** des réglages du restaurateur (cinq cartes). Les formulaires sont dans `/restaurant/profil/page-publique` (photo, logo,
+  horaires, consignes, paiement, illustrations) et `/restaurant/profil/zones` (quartier, zones de livraison). `/restaurant/affiche`, `/restaurant/documents` et
+  `/compte/securite` gardent leurs adresses. Les anciens liens vers `/restaurant/profil` mènent au hub : rien n'est cassé.
+- État de chaque carte : `src/lib/restaurant/hub.ts` (pur, 18 contrôles). Une carte n'affiche un état que s'il est calculable (la sécurité n'en a pas et ne compte
+  pas dans les tampons). Présentation : `src/components/restaurant/HubVitrine.tsx`, styles `hub-*` dans `console-resto.css` (jetons du design system seulement).
+- **Piège** : les actions serveur du profil appelaient `revalidatePath("/restaurant/profil")`, qui ne rafraîchit pas les sous-pages. Elles utilisent maintenant
+  `revalidatePath("/restaurant/profil", "layout")`. Toute nouvelle sous-page du profil doit être servie par une action qui revalide l'arbre.
+- Le fil d'Ariane (`FilAriane`) est utilisé pour la première fois sur les deux sous-pages. L'entrée « Mon restaurant » du menu reste allumée sur affiche, tables et documents.

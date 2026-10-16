@@ -65,7 +65,7 @@ export async function declarerZoneDesserviePAction(_etat: EtatZoneDesservie, for
     : await supabase.from("restaurant_zones_desservies").insert({ restaurant_id: membership.restaurant_id, [colonne]: id, ...valeurs });
   if (error) return { erreur: "Impossible d'enregistrer cette zone. Réessayez dans un instant." };
 
-  revalidatePath("/restaurant/profil");
+  revalidatePath("/restaurant/profil", "layout");
   revalidatePath(`/restaurants/${membership.restaurant_id}`);
   return { succes: true, message: "Zone enregistrée.", rev: Date.now() };
 }
@@ -77,7 +77,7 @@ export async function retirerZoneDesserviePAction(_etat: EtatZoneDesservie, form
   if (!estUuid(id)) return { erreur: "Zone introuvable." };
   const { data, error } = await supabase.from("restaurant_zones_desservies").delete().eq("id", id).eq("restaurant_id", membership.restaurant_id).select("id");
   if (error) return { erreur: "Impossible de retirer cette zone. Réessayez dans un instant." };
-  revalidatePath("/restaurant/profil");
+  revalidatePath("/restaurant/profil", "layout");
   revalidatePath(`/restaurants/${membership.restaurant_id}`);
   return data && data.length > 0 ? { succes: true, message: "Zone retirée.", rev: Date.now() } : { erreur: "Cette zone était déjà retirée." };
 }

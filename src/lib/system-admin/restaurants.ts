@@ -156,7 +156,7 @@ export async function modifierProfilRestaurantAdminAction(
 
   revalidatePath("/system/catalogue/restaurants");
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
-  revalidatePath(`/restaurant/profil`);
+  revalidatePath("/restaurant/profil", "layout");
   revalidatePath(`/restaurants/${restaurantId}`);
   return { succes: true };
 }
@@ -187,7 +187,7 @@ export async function enregistrerHorairesRestaurantAction(
 
   revalidatePath("/system/catalogue/restaurants");
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
-  revalidatePath(`/restaurant/profil`);
+  revalidatePath("/restaurant/profil", "layout");
   return { succes: true };
 }
 

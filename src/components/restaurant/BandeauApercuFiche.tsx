@@ -23,7 +23,7 @@ export function BandeauApercuFiche({
   const test = mode === "test";
   const visibleDuPublic = publie && !suspendu;
   const retour = role === "admin" ? { href: `/system/catalogue/restaurants/${restaurantId}`, libelle: "Retour à la fiche d'administration" } : { href: "/restaurant", libelle: "Retour à ma console" };
-  const modifier = role === "admin" ? null : { href: "/restaurant/profil", libelle: "Modifier mon restaurant" };
+  const modifier = role === "admin" ? null : { href: "/restaurant/profil/page-publique", libelle: "Modifier ma page" };
   const fiche = `/restaurants/${restaurantId}`;
 
   return (

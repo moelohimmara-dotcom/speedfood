@@ -146,7 +146,7 @@ export async function modifierProfilAction(
     await supprimerImage(ancien?.[colonne] ?? null);
   }
 
-  revalidatePath("/restaurant/profil");
+  revalidatePath("/restaurant/profil", "layout");
   revalidatePath("/restaurant");
   return { succes: true };
 }
@@ -186,6 +186,6 @@ export async function definirStatutRestaurantAction(
   }
 
   revalidatePath("/restaurant");
-  revalidatePath("/restaurant/profil");
+  revalidatePath("/restaurant/profil", "layout");
   return { ok: true };
 }
