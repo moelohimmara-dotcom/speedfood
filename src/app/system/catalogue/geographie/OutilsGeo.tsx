@@ -83,6 +83,8 @@ export function ImportGeographie({ lienExport }: { lienExport: string }) {
   const [resultat, appliquer, enCoursApplication] = useActionState(appliquerImportAction, apercuInitial);
   const [texte, setTexte] = useState("");
   const [confirme, setConfirme] = useState(false);
+  // Ce que montre l'écran : le dernier aperçu demandé ou le dernier résultat appliqué, jamais un résultat ancien devant un aperçu neuf.
+  const [vue, setVue] = useState<"apercu" | "resultat">("apercu");
   const idFichier = useId();
   const idTexte = useId();
   const idConfirmation = useId();
@@ -98,7 +100,18 @@ export function ImportGeographie({ lienExport }: { lienExport: string }) {
     setTexte(await fichier.text());
   }
 
-  const montre = resultat.appliques !== undefined || resultat.erreur || resultat.erreurs ? resultat : apercu;
+  const montre = vue === "resultat" ? resultat : apercu;
+  // Chaque nouvel aperçu et chaque application effacent la confirmation : un « j'ai relu » ne vaut que pour l'aperçu qu'on a sous les yeux.
+  const demanderApercu = (donnees: FormData) => {
+    setVue("apercu");
+    setConfirme(false);
+    voir(donnees);
+  };
+  const demanderApplication = (donnees: FormData) => {
+    setVue("resultat");
+    setConfirme(false);
+    appliquer(donnees);
+  };
 
   return (
     <div className="geo-import">
@@ -111,7 +124,7 @@ export function ImportGeographie({ lienExport }: { lienExport: string }) {
           Télécharger le fichier de la région (CSV)
         </a>
       </p>
-      <form className="geo-import-formulaire" action={voir}>
+      <form className="geo-import-formulaire" action={demanderApercu}>
         <label htmlFor={idFichier} className="geo-outils-etiquette">
           Fichier corrigé (CSV)
         </label>
@@ -171,7 +184,7 @@ export function ImportGeographie({ lienExport }: { lienExport: string }) {
                   <input id={idConfirmation} type="checkbox" name="confirmation" checked={confirme} onChange={(e) => setConfirme(e.target.checked)} />
                   <span>J&apos;ai relu ces changements et je confirme</span>
                 </label>
-                <button type="submit" formAction={appliquer} className="btn btn-primary" disabled={enCoursApplication || !confirme}>
+                <button type="submit" formAction={demanderApplication} className="btn btn-primary" disabled={enCoursApplication || !confirme}>
                   {enCoursApplication ? "Application…" : `Appliquer ${montre.changements.length} changement${montre.changements.length > 1 ? "s" : ""}`}
                 </button>
               </>
@@ -179,7 +192,7 @@ export function ImportGeographie({ lienExport }: { lienExport: string }) {
           </div>
         ) : null}
 
-        {resultat.appliques !== undefined ? (
+        {vue === "resultat" && resultat.appliques !== undefined ? (
           <div role="status" aria-live="polite" className="geo-ok">
             <p>
               {resultat.appliques} modification{resultat.appliques > 1 ? "s" : ""} appliquée{resultat.appliques > 1 ? "s" : ""}.
