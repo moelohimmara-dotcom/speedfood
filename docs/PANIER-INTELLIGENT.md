@@ -79,3 +79,17 @@ poussé à 26 000 GNF) et le bloc disparaît, aucune règle ne s'appliquant plus
 Appliquer le même principe aux deux autres surfaces : propositions sur la fiche
 restaurant (« Autres plats de la maison »), et rappel d'un plat laissé au
 panier d'une visite précédente.
+
+## Module de gestion du panier (16 octobre 2026)
+
+Les règles du panier sont isolées dans **`src/lib/panier/gestion.ts`** : pures, sans React ni navigateur, testées par `scripts/tests/panier.test.mts` (49 contrôles).
+Elles couvrent la clé de ligne (plat + suppléments, ordre indifférent), l'assainissement d'un panier relu du stockage (lignes invalides écartées, quantités
+plafonnées, miniature https seulement), l'ajout (un seul restaurant, 50 lignes, 30 par ligne), la quantité, le retrait et les totaux en GNF entiers.
+Chaque fonction rend un nouveau panier sans modifier l'entrée, et **la même référence quand rien ne change** (`PANIER_VIDE`, `conflit`, `plein`) : c'est ce
+qu'exige `useSyncExternalStore`.
+
+`src/components/panier/panier.ts` n'est plus que l'**adaptateur navigateur** (localStorage `speedfood.panier.v1`, abonnements, crochets `usePanier` et
+`usePanierPret`). Il garde exactement les mêmes exports : aucun écran n'a changé. Une nouvelle règle va dans `gestion.ts` avec son test, jamais dans l'adaptateur.
+Aucune dépendance ajoutée : le choix d'une librairie externe a été écarté (panier maison déjà éprouvé, suppléments et mono-restaurant propres à Speedfood).
+
+Vérifié en navigateur après l'extraction : ajout, quantité, conflit de restaurant avec confirmation, remplacement, persistance après rechargement, stockage corrompu ignoré.
