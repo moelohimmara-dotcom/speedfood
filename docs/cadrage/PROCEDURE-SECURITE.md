@@ -226,3 +226,25 @@ Ne pas envoyer de notification vers un abonnement sans rattachement autorisé au
 **Points de procédure à trancher par le propriétaire :**
 - La procédure suppose une préproduction. En créer une demanderait un second projet Supabase et un second Worker (accord explicite de la propriétaire requis) ; sinon, adapter la procédure et le consigner.
 - La règle « aucun agent ne déploie en production » : désormais, chaque déploiement n'a lieu qu'avec un **feu vert explicite de la propriétaire dans la conversation**, et sa version, sa date et ses limites sont consignées dans `STATUT-PROJET.md`. Cette règle a été appliquée à tous les déploiements du 3 octobre 2026.
+
+### Revue des portes du 16 octobre 2026 (complète le tableau ci-dessus, qui date du 3 au 7 octobre)
+
+Faite par l'agent de développement, **ce n'est pas une revue indépendante ni une certification**. « Revérifié aujourd'hui » = contrôlé le 16 octobre 2026 ; les autres lignes
+ne sont pas revérifiées et gardent l'état du tableau.
+
+| Porte | État au 16 octobre | Détail |
+|---|---|---|
+| Révision en production identifiée | À jour | Version `e7320934`, commit `f9dd1c2` (déploiement du 16 octobre). Le lien version → commit reste manuel : le noter à chaque déploiement. |
+| Aucune clé privilégiée dans le navigateur | **Revérifié aujourd'hui** | 0 occurrence de `service_role`, `COMMANDE_JETON_SECRET`, `TURNSTILE_SECRET_KEY`, `VAPID_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` dans `.open-next/assets` et `.next/static` (noms seulement : la valeur des secrets n'a pas été lue). |
+| Avis de sécurité Supabase | **Revérifié aujourd'hui** | 0 erreur. **21 avertissements** « fonction `SECURITY DEFINER` exécutable par un compte connecté » : ce sont les fonctions `fn_*` qui contrôlent le rôle elle-mêmes (connu depuis les blocs 2 et 4) ; à relire une à une lors de la revue indépendante. **1 avertissement** : protection contre les mots de passe compromis désactivée (réglage Supabase Auth ; sa disponibilité dépend du plan, à vérifier). **5 informations** : tables avec RLS sans policy (`design_tokens`, `design_tokens_historique`, `rate_limits`, `reinitialisation_jetons`, `restaurant_compteurs_documents`) : voulu, elles ne sont lues que par le serveur (clé de service). |
+| Page de confidentialité | **Publiée** (revérifié aujourd'hui) | `/confidentialite` répond 200, avec le contact `moelohimmara@gmail.com`. La ligne « page non publiée » du tableau ci-dessus est périmée. **Reste** : validation juridique en Guinée. |
+| Plan d'incident | Partiel | Jamais exercé volontairement ; tableau des contacts toujours à compléter. **L'incident du 15 octobre 2026** (erreurs 503/500, Cloudflare 1102, quelques minutes, pages dynamiques y compris publiques) en est la première occurrence réelle : cause **non établie**, voir `docs/REPRISE-SESSION.md` § 5, point 8. |
+| Sauvegarde | À renouveler | Dernier export documenté : 7 octobre 2026 (plus de 9 jours). `npm run export:donnees` puis `npm run export:verifier` ; l'export contient des données clients : le garder hors du dépôt. |
+| Cache PWA examiné | **Toujours à examiner** | Rien n'a changé ; à voir sur un vrai téléphone. Le mode service du restaurateur (16 octobre) ne met rien en cache. |
+| Revue indépendante | À refaire | Limitée aux 14 points corrigés le 3 octobre, plus les fonctions `fn_*` ci-dessus, plus des tests de concurrence réelle. |
+| Autorisation de la propriétaire | Non donnée | Aucun pilote avec données réelles n'est ouvert. |
+
+**À faire par la propriétaire, qu'aucun agent ne peut faire** : révoquer les deux jetons d'accès Supabase exposés ; restreindre puis renouveler le jeton Cloudflare ; compléter les contacts du plan d'incident ;
+décider du sort des 13 restaurants de démonstration ; vérifier le plan Cloudflare et les métriques d'erreur du 15 octobre.
+
+**Bloquant avant de recevoir de vrais clients** (ma lecture, à valider par la propriétaire) : jetons exposés non révoqués ; cause du 1102 inconnue ; revue indépendante ; cache PWA ; sauvegarde récente ; autorisation écrite.
