@@ -118,7 +118,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `c5f66a5d-1475-4384-8beb-a7f0eb763adc` | 17 oct. 21 h | Livraison phases 1a, 1b et 2 (frais, livreurs, répartition, console livreur, carte) ; calcul des frais **éteint** ; migrations `livraison_socle` et `livraison_dispatch` déjà appliquées |
 | `8894eb68-1ccb-422e-bcdf-fa08dd8f1547` | 17 oct. 21 h 30 | Option « livreur Speedfood » ouverte aux restaurateurs |
 | `ecacb692-b73c-4483-a9f8-97ace99742ee` | 17 oct. 22 h | Refonte des pages Livreurs et Livraisons, une seule entrée de menu active |
-| `9642a39e-4633-4c28-a5c9-5e07604aba59` | 17 oct. 23 h | Fiches livreurs : cycle de vie, création individuelle et groupée, liens d'activation, approbation. **Dépend de la migration `livreurs_cycle_dossiers`** : un retour arrière du code est sans risque, un retour arrière de la migration ne l'est pas (version en production au 17 octobre) |
+| `9642a39e-4633-4c28-a5c9-5e07604aba59` | 17 oct. 23 h | Fiches livreurs : cycle de vie, création individuelle et groupée, liens d'activation, approbation. **Dépend de la migration `livreurs_cycle_dossiers`** : un retour arrière du code est sans risque, un retour arrière de la migration ne l'est pas |
+| `5ec2143f-bc2e-4081-be4a-9eeca8328ec6` | 18 oct. 0 h | Consultation et suppression du dossier d'un livreur par le super administrateur (version en production au 18 octobre) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
