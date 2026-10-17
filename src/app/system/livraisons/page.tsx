@@ -2,7 +2,7 @@ import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerLivraisonsAdmin, listerLivreursAdmin } from "@/lib/livraison/admin-lectures";
 import { Alert } from "@/components/ui";
-import { EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
+import { CarteChiffre, EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../SousNav";
 import { formaterDateCourte } from "../formatage";
 import { ActionsLivraison } from "./ActionsLivraison";
@@ -17,11 +17,19 @@ export default async function LivraisonsPage() {
   const [livraisons, livreurs] = await Promise.all([listerLivraisonsAdmin(), listerLivreursAdmin()]);
   const disponibles = livreurs.filter((l) => l.statut === "disponible").map((l) => ({ id: l.id, nom: l.nom }));
   const sansLivreur = livraisons.filter((l) => l.mode === "speedfood" && (l.statut === "a_assigner" || l.statut === "offre_envoyee"));
+  const enCours = livraisons.filter((l) => ["assignee", "vers_restaurant", "recuperee", "vers_client"].includes(l.statut)).length;
+  const terminees = livraisons.filter((l) => l.statut === "livree").length;
 
   return (
     <div>
       <PageHeader titre="Livraisons" description="Courses en cours, livreur sollicité ou affecté, reprise en main. Les livreurs de démonstration répondent automatiquement aux offres." />
       <SousNav entrees={sousSectionsAccessibles("Commandes", contexte.role)} />
+
+      <div className="ad-cartes livreurs-compteurs">
+        <CarteChiffre libelle="En recherche de livreur" valeur={sansLivreur.length} sous="Offre envoyée ou en attente" ton={sansLivreur.length > 0 ? "danger" : "neutre"} />
+        <CarteChiffre libelle="En cours" valeur={enCours} sous="Livreur affecté, course en route" />
+        <CarteChiffre libelle="Livrées" valeur={terminees} sous="Parmi les 60 dernières livraisons" ton={terminees > 0 ? "succes" : "neutre"} />
+      </div>
 
       {sansLivreur.length > 0 ? (
         <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>

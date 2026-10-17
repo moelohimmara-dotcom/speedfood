@@ -1,5 +1,6 @@
 "use client";
 
+import { entreeActive } from "@/lib/system-admin/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -30,7 +31,9 @@ export function AdminNav({ groupes }: { groupes: readonly GroupeNav[] }) {
   // Choix explicite par famille : undefined = « laisser l'état par défaut (famille courante) ».
   const [choix, setChoix] = useState<Map<string, boolean>>(() => new Map());
 
-  const estActif = (href: string) => chemin === href || chemin.startsWith(`${href}/`);
+  // Une seule entrée active dans tout le menu : la plus précise (sinon « Livraisons » s'allumait avec « Livreurs »).
+  const adresseActive = entreeActive(chemin, groupes.flatMap((g) => g.entrees.map((e) => e.href)));
+  const estActif = (href: string) => href === adresseActive;
   const basculer = (libelle: string, ouverte: boolean) =>
     setChoix((precedent) => {
       const suivant = new Map(precedent);

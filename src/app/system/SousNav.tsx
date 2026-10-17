@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { entreeActive } from "@/lib/system-admin/navigation";
 
 export interface EntreeSousNav {
   href: string;
@@ -20,11 +21,13 @@ export function SousNav({ entrees }: { entrees: readonly EntreeSousNav[] }) {
     return null;
   }
 
+  const adresseActive = entreeActive(pathname ?? "", entrees.map((e) => e.href));
+
   return (
     <nav aria-label="Sous-sections">
       <ul className="ad-onglets">
         {entrees.map((entree) => {
-          const actif = pathname === entree.href || pathname.startsWith(`${entree.href}/`);
+          const actif = entree.href === adresseActive;
           return (
             <li key={entree.href}>
               <Link href={entree.href} className={`ad-onglet${actif ? " actif" : ""}`} aria-current={actif ? "page" : undefined}>

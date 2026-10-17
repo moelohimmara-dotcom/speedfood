@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { assignerLivraisonAction, avancerLivraisonAdminAction, relancerRepartitionAction, type EtatActionLivraisonAdmin } from "@/lib/system-admin/livraisons";
 import { estFinal, type ModeLivraison, type StatutLivraison } from "@/lib/livraison/statuts";
 import { Button } from "@/components/ui";
-import { useConfirmation } from "@/components/console/ConsoleProviders";
+import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 
 interface Props {
   livraison: { id: string; mode: ModeLivraison; statut: StatutLivraison; commandeReference: string };
@@ -16,17 +16,17 @@ interface Props {
 export function ActionsLivraison({ livraison, disponibles }: Props) {
   const router = useRouter();
   const confirmer = useConfirmation();
-  const [message, setMessage] = useState<EtatActionLivraisonAdmin | null>(null);
+  const notifier = useNotification();
   const [choix, setChoix] = useState("");
   const [enCours, demarrer] = useTransition();
 
   if (estFinal(livraison.statut)) return <span className="ad-secondaire">—</span>;
 
   function lancer(travail: () => Promise<EtatActionLivraisonAdmin>) {
-    setMessage(null);
     demarrer(async () => {
       const r = await travail();
-      setMessage(r);
+      if (r.erreur) notifier("erreur", r.erreur);
+      else if (r.succes) notifier("succes", r.succes);
       router.refresh();
     });
   }
@@ -67,7 +67,7 @@ export function ActionsLivraison({ livraison, disponibles }: Props) {
         </>
       ) : null}
       {etape ? (
-        <Button type="button" variante="secondary" disabled={enCours} onClick={() => lancer(() => avancerLivraisonAdminAction(livraison.id, etape.vers))}>
+        <Button type="button" disabled={enCours} onClick={() => lancer(() => avancerLivraisonAdminAction(livraison.id, etape.vers))}>
           {etape.libelle}
         </Button>
       ) : null}
@@ -89,8 +89,6 @@ export function ActionsLivraison({ livraison, disponibles }: Props) {
       >
         Annuler
       </Button>
-      {message?.erreur ? <p className="field-error">{message.erreur}</p> : null}
-      {message?.succes ? <p className="ad-secondaire" role="status">{message.succes}</p> : null}
     </div>
   );
 }
