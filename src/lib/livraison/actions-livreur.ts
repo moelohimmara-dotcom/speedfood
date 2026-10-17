@@ -37,8 +37,11 @@ export async function basculerEnLigneAction(enLigne: boolean): Promise<ResultatL
     .update(enLigne ? { statut: "disponible" } : { statut: "hors_ligne" })
     .eq("id", moi.fiche.id)
     .neq("statut", "en_course")
+    .eq("cycle", enLigne ? "actif" : moi.fiche.cycle)
     .select("id");
-  if (!data || data.length === 0) return { ok: false, message: "Vous êtes en course : terminez-la avant de changer de statut." };
+  if (!data || data.length === 0) {
+    return { ok: false, message: enLigne && moi.fiche.cycle !== "actif" ? "Votre fiche n'est pas active : vous ne pouvez pas vous mettre en ligne." : "Vous êtes en course : terminez-la avant de changer de statut." };
+  }
   return { ok: true };
 }
 

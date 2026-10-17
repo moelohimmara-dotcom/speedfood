@@ -444,6 +444,31 @@ await interdit("le support ne modifie pas une livraison par l'API", ID.support, 
 await interdit("personne ne lit ni n'écrit le code par l'API", ID.admin, `update livraison_codes set code = '0000'`);
 await interdit("un code à 3 chiffres est refusé par la base", ID.admin, `insert into livraison_codes (livraison_id, code) values (${U(LIVRAISON_A)}, '123')`);
 
+
+// ---------------------------------------------------------------- 6 quinquies. cycle des livreurs, liens d'activation, dossiers
+console.log("\n--- Fiches livreurs : liens et dossiers");
+await db.exec(`
+  insert into livreur_invitations (livreur_id, empreinte, expire_le) values (${U(LIVREUR_1)}, '${"a1".repeat(32)}', now() + interval '7 days');
+  insert into livreur_dossiers (livreur_id, piece_type, piece_numero, urgence_nom, urgence_telephone) values (${U(LIVREUR_1)}, 'carte_identite', 'AB12345', 'Proche Un', '+224622000009');
+`);
+for (const [nom, qui] of [["le super administrateur", ID.admin], ["le support", ID.support], ["le livreur lui-même", U_LIV], ["un restaurateur", ID.user_a], ["un client", ID.client], ["un anonyme", null]]) {
+  verifier(`liens d'activation : illisibles pour ${nom}`, VIDE(await nb(qui, "livreur_invitations")));
+}
+verifier("dossiers : lisibles par le super administrateur seulement", (await nb(ID.admin, "livreur_dossiers")) === 1);
+for (const [nom, qui] of [["le support", ID.support], ["le livreur lui-même", U_LIV], ["un restaurateur", ID.user_a], ["un client", ID.client], ["un anonyme", null]]) {
+  verifier(`dossiers : illisibles pour ${nom}`, VIDE(await nb(qui, "livreur_dossiers")));
+}
+await interdit("personne n'écrit un lien d'activation par l'API", ID.admin, `insert into livreur_invitations (livreur_id, empreinte, expire_le) values (${U(LIVREUR_2)}, '${"b2".repeat(32)}', now())`);
+await interdit("le livreur ne modifie pas son dossier par l'API", U_LIV, `update livreur_dossiers set piece_numero = 'ZZ99999' where livreur_id = ${U(LIVREUR_1)}`);
+await interdit("le livreur ne s'approuve pas lui-même par l'API", U_LIV, `update livreurs set cycle = 'actif' where id = ${U(LIVREUR_1)}`);
+await interdit("une empreinte de la mauvaise longueur est refusée", ID.admin, `insert into livreur_invitations (livreur_id, empreinte, expire_le) values (${U(LIVREUR_2)}, 'court', now())`);
+await db.exec(`insert into livreurs (nom, telephone, cycle) values ('Tel Un', '+224622555001', 'invite')`);
+const doublon = await ecrire(ID.admin, `select 1`);
+verifier("deux fiches non archivées ne partagent pas un téléphone (base)", await (async () => { try { await db.exec(`insert into livreurs (nom, telephone, cycle) values ('Tel Deux', '+224622555001', 'candidat')`); return false; } catch { return true; } })() && doublon.erreur === null);
+await db.exec(`update livreurs set cycle = 'archive' where telephone = '+224622555001'`);
+verifier("un téléphone d'une fiche archivée peut être réutilisé", await (async () => { try { await db.exec(`insert into livreurs (nom, telephone, cycle) values ('Tel Trois', '+224622555001', 'invite')`); return true; } catch { return false; } })());
+await db.exec(`delete from livreurs where telephone = '+224622555001'`);
+
 // ---------------------------------------------------------------- 7. gardes structurelles : une régression future est signalée ici
 console.log("\n--- Gardes structurelles");
 const sansRls = (await db.query(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows;

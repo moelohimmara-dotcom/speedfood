@@ -88,8 +88,9 @@ export async function basculerLivreurAction(livreurId: string, enLigne: boolean)
     .update(enLigne ? { statut: "disponible", position_le: new Date().toISOString() } : { statut: "hors_ligne" })
     .eq("id", livreurId)
     .neq("statut", "en_course")
+    .eq("cycle", "actif")
     .select("id");
-  if (!data || data.length === 0) return { erreur: "Ce livreur est en course ou n'existe plus." };
+  if (!data || data.length === 0) return { erreur: "Ce livreur est en course, n'est pas actif ou n'existe plus." };
   revalidatePath("/system/livraisons/livreurs");
   if (enLigne) await traiterOffres().catch(() => undefined);
   return { succes: enLigne ? "Livreur en ligne." : "Livreur hors ligne." };

@@ -14,6 +14,9 @@ export interface FicheLivreur {
   nom: string;
   statut: "hors_ligne" | "disponible" | "en_course";
   vehicule: string;
+  /** Cycle de vie de la fiche : seul « actif » permet de travailler. */
+  cycle: string;
+  motifCycle: string | null;
 }
 
 export interface OffreLivreur {
@@ -52,8 +55,10 @@ const un = <T>(r: Relation<T>): T | null => (Array.isArray(r) ? (r[0] ?? null) :
 
 /** Fiche du livreur lié à ce compte, ou `null` si le compte n'est pas un compte livreur. */
 export async function livreurDuCompte(utilisateurId: string): Promise<FicheLivreur | null> {
-  const { data } = await clientLivraison().from("livreurs").select("id, nom, statut, vehicule").eq("utilisateur_id", utilisateurId).maybeSingle();
-  return (data as FicheLivreur | null) ?? null;
+  const { data } = await clientLivraison().from("livreurs").select("id, nom, statut, vehicule, cycle, motif_cycle").eq("utilisateur_id", utilisateurId).maybeSingle();
+  if (!data) return null;
+  const l = data as { id: string; nom: string; statut: FicheLivreur["statut"]; vehicule: string; cycle: string; motif_cycle: string | null };
+  return { id: l.id, nom: l.nom, statut: l.statut, vehicule: l.vehicule, cycle: l.cycle, motifCycle: l.motif_cycle };
 }
 
 const ACTIVES = ["assignee", "vers_restaurant", "recuperee", "vers_client"];
@@ -66,7 +71,7 @@ export async function lireEtatLivreur(utilisateurId: string): Promise<EtatLivreu
   const db = clientLivraison();
 
   const { data: livreurLigne } = await db.from("livreurs").select("id, nom, statut, vehicule, latitude, longitude").eq("id", fiche.id).maybeSingle();
-  const livreur = (livreurLigne as (FicheLivreur & { latitude: number | null; longitude: number | null }) | null) ?? { ...fiche, latitude: null, longitude: null };
+  const livreur = { ...fiche, ...((livreurLigne as { statut: FicheLivreur["statut"]; latitude: number | null; longitude: number | null } | null) ?? { latitude: null, longitude: null }) };
 
   const maintenantIso = new Date().toISOString();
   const { data: offreLigne } = await db
@@ -142,7 +147,7 @@ export async function lireEtatLivreur(utilisateurId: string): Promise<EtatLivreu
     }
   }
 
-  return { livreur: fiche.id === livreur.id ? { id: livreur.id, nom: livreur.nom, statut: livreur.statut, vehicule: livreur.vehicule } : fiche, offre, course, positionConnue: livreur.latitude !== null };
+  return { livreur: { id: livreur.id, nom: livreur.nom, statut: livreur.statut, vehicule: livreur.vehicule, cycle: fiche.cycle, motifCycle: fiche.motifCycle }, offre, course, positionConnue: livreur.latitude !== null };
 }
 
 /** Enregistre la position du livreur (au plus une fois toutes les 4 secondes ; coordonnées bornées à la Guinée et ses environs). */
