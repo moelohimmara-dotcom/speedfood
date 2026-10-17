@@ -36,7 +36,8 @@ delete from public.securite_questions where utilisateur_id = '<identifiant>';
 
 - `npm run test:unit` : normalisation, empreintes, codes, essais et blocage (`scripts/tests/questions.test.mts`).
 - `npm run test:cloisonnement` : les trois tables sont illisibles et non modifiables par l'API pour tout le monde sauf le serveur ; l'état d'un compte ne montre ni sel ni empreinte ; la validation d'une session ne profite pas à un autre compte ; expiration ; aal2.
-- **Non testé automatiquement** : le parcours complet dans un navigateur avec un vrai compte (création, connexion, redirections, codes de secours). À jouer une fois migration appliquée : voir `docs/REPRISE-SESSION.md`.
+- **Joué à la main le 17 octobre 2026** (compte de test `+test1`, serveur local, base de production) : inscription (mot de passe de 12 caractères exigé), confirmation, activation des questions (8 codes, 1 empreinte, 1 trace d'audit en base), arrêt par la porte sur `/restaurant`, mauvaises réponses refusées, bonnes réponses acceptées malgré majuscules, accents et espaces.
+- **Pas encore joué** : code de secours (usage unique, refus du second usage), blocage après 5 erreurs, régénération des codes, désactivation, retrait par un super administrateur (`/system/acces/comptes`). Tant que ce n'est pas fait, ne pas présenter la porte de secours comme éprouvée. Le compte de test `moelohimmara+test1@gmail.com` existe encore : à supprimer depuis `/system/acces/comptes` après ces essais.
 
 ## Limites assumées
 
