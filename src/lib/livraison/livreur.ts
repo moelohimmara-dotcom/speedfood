@@ -47,6 +47,8 @@ export interface EtatLivreur {
   livreur: FicheLivreur;
   offre: OffreLivreur | null;
   course: CourseLivreur | null;
+  /** Dernière livraison terminée (14 jours), pour noter le client en privé ; `null` s'il n'y en a pas ou si une course est en cours. */
+  aNoter: { orderId: string; commandeReference: string; restaurantNom: string; note: { note: number; etiquettes: string[] } | null } | null;
   positionConnue: boolean;
 }
 
@@ -147,7 +149,31 @@ export async function lireEtatLivreur(utilisateurId: string): Promise<EtatLivreu
     }
   }
 
-  return { livreur: { id: livreur.id, nom: livreur.nom, statut: livreur.statut, vehicule: livreur.vehicule, cycle: fiche.cycle, motifCycle: fiche.motifCycle }, offre, course, positionConnue: livreur.latitude !== null };
+  // Dernière livraison terminée, notable pendant 14 jours (hors commande de test). Lecture tolérante : sans table d'avis, rien à noter.
+  let aNoter: EtatLivreur["aNoter"] = null;
+  if (!course) {
+    const limite = new Date(Date.now() - 14 * 86_400_000).toISOString();
+    const { data: derniere } = await db
+      .from("livraisons")
+      .select("order_id, livree_le, orders(reference, statut, est_test), restaurants(nom)")
+      .eq("livreur_id", fiche.id)
+      .eq("statut", "livree")
+      .gte("livree_le", limite)
+      .order("livree_le", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const d = derniere as unknown as { order_id: string; orders: Relation<{ reference: string; statut: string; est_test: boolean }>; restaurants: Relation<{ nom: string }> } | null;
+    const commande = d ? un(d.orders) : null;
+    if (d && commande && commande.statut === "terminee" && !commande.est_test) {
+      const { data: avis, error } = await db.from("avis").select("note, etiquettes").eq("order_id", d.order_id).eq("cible", "client").eq("auteur", "livreur").maybeSingle();
+      if (!error) {
+        const n = avis as { note: number; etiquettes: string[] } | null;
+        aNoter = { orderId: d.order_id, commandeReference: commande.reference, restaurantNom: un(d.restaurants)?.nom ?? "Restaurant", note: n ? { note: n.note, etiquettes: n.etiquettes ?? [] } : null };
+      }
+    }
+  }
+
+  return { livreur: { id: livreur.id, nom: livreur.nom, statut: livreur.statut, vehicule: livreur.vehicule, cycle: fiche.cycle, motifCycle: fiche.motifCycle }, offre, course, aNoter, positionConnue: livreur.latitude !== null };
 }
 
 /** Enregistre la position du livreur (au plus une fois toutes les 4 secondes ; coordonnées bornées à la Guinée et ses environs). */

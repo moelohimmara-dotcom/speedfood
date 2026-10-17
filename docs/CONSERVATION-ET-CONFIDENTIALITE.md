@@ -146,3 +146,14 @@ puis journalise la demande dans l'audit **avec un motif sans coordonnées**. Pen
 
 - Publier la page `/confidentialite` (le texte du §5 est prêt). **Responsable indiqué par Malika le 3 octobre 2026 : Mo elohim.** **Contact publié : moelohimmara@gmail.com** (confirmé par Malika le 3 octobre 2026). La page `/confidentialite` est écrite (durée lue en direct dans le réglage de conservation, donc toujours exacte), liée depuis l'accueil et depuis le consentement de la commande ; **pas encore déployée**. Reste la validation juridique en Guinée.
 - Faire valider les durées et les obligations en Guinée par un conseil compétent avant le pilote avec de vraies données.
+
+### 6.7 Avis et notes (ajouté le 18 octobre 2026)
+
+| Donnée | Visibilité | Conservation prévue |
+|---|---|---|
+| Avis public sur un restaurant (note, étiquettes, commentaire, prénom affiché = pseudo du compte) | Public ; jamais d'identifiant de compte ni de numéro de commande | Tant que le restaurant est publié ; la note annulée ou le commentaire masqué par l'exploitation reste en base avec son motif |
+| Note du client sur un livreur | Privée : le livreur, l'exploitation et l'auteur seulement | 12 mois puis suppression (**suppression automatique non construite**) |
+| Note du restaurant ou du livreur sur un client (étoiles et étiquettes, jamais de texte libre) | Privée : l'auteur et l'exploitation ; **le client ne la voit jamais** | 12 mois puis suppression (**suppression automatique non construite**) |
+| Signalements d'avis (motif, auteur du signalement) | Exploitation seulement | Jusqu'au traitement, puis 12 mois |
+
+Suppression d'un compte : les avis restent mais l'identifiant de l'auteur est vidé (`on delete set null`). Les commandes de test ne produisent aucun avis compté.

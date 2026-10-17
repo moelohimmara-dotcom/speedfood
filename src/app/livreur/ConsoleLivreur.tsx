@@ -11,6 +11,8 @@ import {
 import type { EtatLivreur } from "@/lib/livraison/livreur";
 import { liensCarte } from "@/lib/parametres/assistance-format";
 import { Alert, Button, Card } from "@/components/ui";
+import { NoterClient } from "@/components/notation/NoterClient";
+import { noterClientParLivreurAction } from "@/lib/notation/actions-gestion";
 
 const INTERVALLE_ETAT_MS = 4000;
 const INTERVALLE_POSITION_MS = 8000;
@@ -82,7 +84,7 @@ export function ConsoleLivreur({ etatInitial }: { etatInitial: EtatLivreur }) {
     });
   }
 
-  const { livreur, offre, course } = etat;
+  const { livreur, offre, course, aNoter } = etat;
 
   return (
     <div className="livreur-contenu">
@@ -204,6 +206,15 @@ export function ConsoleLivreur({ etatInitial }: { etatInitial: EtatLivreur }) {
               </>
             ) : null}
           </div>
+        </Card>
+      ) : null}
+
+      {aNoter ? (
+        <Card>
+          <p className="livreur-ligne">
+            Dernière livraison : <strong>{aNoter.restaurantNom}</strong> · commande {aNoter.commandeReference}
+          </p>
+          <NoterClient key={aNoter.orderId} initial={aNoter.note} enregistrer={(note, etiquettes) => noterClientParLivreurAction(aNoter.orderId, note, etiquettes)} />
         </Card>
       ) : null}
 
