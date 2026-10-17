@@ -93,5 +93,5 @@ Photos d'avis, avis vérifiés par achat tiers, notation des délais de prépara
 | Étape | Contenu | État |
 |---|---|---|
 | N1 | Règles pures (validation, étiquettes, moyenne, lissage, fenêtres) et classement composite avec tests ; migration `20261018010000` (avis, signalements, agrégats, fréquentation, réglages du classement) ; 31 contrôles de cloisonnement | **Fait, migration non appliquée** |
-| N2 | Le client note après sa commande (suivi) ; moyenne et avis sur les cartes et les fiches des restaurants ; réponse du restaurant ; signalement | À faire |
-| N3 | Le restaurant et le livreur notent le client ; console d'exploitation (modération, alertes) ; classement du catalogue (note, prix, fréquentation), tri au choix, réglages `/system/parametres/classement` | À faire |
+| N2 | Le client note après sa commande (suivi) ; moyenne et avis sur les cartes et les fiches des restaurants ; réponse du restaurant ; signalement | **Fait, non joué en navigateur ; nécessite la migration** |
+| N3 | Le restaurant et le livreur notent le client ; console d'exploitation (modération, alertes) ; classement du catalogue (note, prix, fréquentation), tri au choix, réglages `/system/parametres/classement` | **Fait sauf : note du client par le livreur (action prête, pas encore d'écran dans la console livreur)** |

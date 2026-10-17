@@ -37,6 +37,15 @@ export default async function ParametresSystemePage() {
       </div>
 
       <div style={{ marginTop: "var(--space-6)" }}>
+        <Panneau titre="Classement du catalogue">
+          <p style={{ marginTop: 0 }}>Poids de la note des clients, du prix des plats et de la fréquentation dans l&apos;ordre « Recommandés ».</p>
+          <Link href="/system/parametres/classement" className="lien-texte">
+            Régler le classement
+          </Link>
+        </Panneau>
+      </div>
+
+      <div style={{ marginTop: "var(--space-6)" }}>
         <Panneau titre="Zone dangereuse">
           <p style={{ marginTop: 0 }}>
             Remettre toute l&apos;application à l&apos;état neuf avant la mise en production : restaurants, commandes, clients et comptes sont supprimés
