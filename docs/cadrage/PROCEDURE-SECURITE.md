@@ -245,7 +245,7 @@ ne sont pas revérifiées et gardent l'état du tableau.
 | Autorisation de la propriétaire | Non donnée | Aucun pilote avec données réelles n'est ouvert. |
 
 **À faire par la propriétaire, qu'aucun agent ne peut faire** : révoquer les deux jetons d'accès Supabase exposés ; restreindre puis renouveler le jeton Cloudflare ; compléter les contacts du plan d'incident ;
-~~décider du sort des restaurants de démonstration~~ (fait le 17 octobre 2026 : 12 dépubliés) ; trancher le cas du restaurant publié « barbie » sans responsable ; vérifier le plan Cloudflare et les métriques d'erreur du 15 octobre.
+~~décider du sort des restaurants de démonstration~~ (fait le 17 octobre 2026 : 12 dépubliés) ; « barbie » (essai, sans responsable) dépublié le 17 octobre 2026 ; vérifier le plan Cloudflare et les métriques d'erreur du 15 octobre.
 
 **Mise à jour du 16 octobre 2026** : la propriétaire déclare avoir corrigé le point des jetons exposés (non vérifiable par l'agent) ; le jeton Cloudflare est à confirmer.
 
