@@ -15,7 +15,7 @@ interface Props {
 /** Qui livre, et où se trouve le restaurant : la position sert à calculer les frais de livraison d'après la distance. */
 export function FormulaireLivraisonResto({ mode, latitude, longitude }: Props) {
   const [etat, action, enCours] = useActionState(definirLivraisonRestaurantAction, etatInitial);
-  const [choix, setChoix] = useState<"aucune" | "propre">(mode === "aucune" ? "aucune" : "propre");
+  const [choix, setChoix] = useState<"aucune" | "propre" | "speedfood">(mode);
   const [lat, setLat] = useState(latitude === null ? "" : String(latitude));
   const [lon, setLon] = useState(longitude === null ? "" : String(longitude));
   const [avis, setAvis] = useState<string | null>(null);
@@ -57,11 +57,14 @@ export function FormulaireLivraisonResto({ mode, latitude, longitude }: Props) {
               <small>Retrait sur place seulement.</small>
             </span>
           </label>
-          <label className="choix-carte restaurant-livraison-bientot">
-            <input type="radio" name="livraison_mode_bientot" value="speedfood" disabled />
+          <label className="choix-carte">
+            <input type="radio" name="livraison_mode" value="speedfood" checked={choix === "speedfood"} onChange={() => setChoix("speedfood")} />
             <span className="choix-texte">
               <strong>Un livreur Speedfood</strong>
-              <small>Bientôt : un livreur est affecté à la course et suit la commande jusqu&apos;au client.</small>
+              <small>
+                Un livreur est affecté à chaque course et suit la commande jusqu&apos;au client. Pendant la phase pilote, les livreurs sont des livreurs de
+                démonstration.
+              </small>
             </span>
           </label>
         </fieldset>
