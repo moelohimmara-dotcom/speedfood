@@ -1579,9 +1579,15 @@ a.ad-carte-lien:hover {
   align-content: start;
   min-width: 0;
 }
-@media (min-width: 1000px) {
+/* Sous 1200 px la décision passe sous le dossier : la barre fixe `.ad-barre-decision` la rappelle. Entre 1000 et 1199 px, la colonne principale
+   ne gardait que 381 px (menu latéral + décision), d'où le seuil (audit du 17 octobre 2026). */
+.ad-fiche {
+  padding-bottom: 88px;
+}
+@media (min-width: 1200px) {
   .ad-fiche {
-    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    padding-bottom: 0;
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
     align-items: start;
   }
   .ad-fiche-decision {
@@ -1761,9 +1767,102 @@ a.ad-carte-lien:hover {
   gap: var(--space-2) var(--space-4);
   margin: var(--space-4) 0 0;
 }
+.ad-decision-entete {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
 .ad-decision-etat {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   font-weight: 700;
+}
+/* Le point qui bloque, avec le moyen de le régler : l'action principale tant que « Approuver » n'est pas possible. */
+.ad-decision-blocage {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1.5px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-fond);
+}
+.ad-decision-blocage h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--danger);
+}
+.ad-decision-blocage ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ad-decision-blocage li {
+  display: grid;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+.ad-decision-blocage li span {
+  color: var(--secondaire);
+}
+.ad-decision-plus {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--bordure);
+}
+.ad-decision-plus summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--secondaire);
+  font-weight: 700;
+  cursor: pointer;
+}
+.ad-decision-plus summary:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 2px;
+}
+.ad-decision-plus-corps {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+}
+/* Barre d'action fixe : téléphone et tablette. */
+.ad-barre-decision {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  border-top: 2.5px solid var(--encre);
+  background: var(--creme);
+}
+.ad-barre-decision-texte {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+.ad-barre-decision-texte span {
+  color: var(--secondaire);
+}
+.ad-barre-decision-attention {
+  border-top-color: var(--rouge-fonce);
+}
+@media (min-width: 1200px) {
+  .ad-barre-decision {
+    display: none;
+  }
+}
+#decision,
+#dossier,
+#equipe {
+  scroll-margin-top: var(--space-4);
 }
 .ad-decision {
   display: grid;

@@ -43,3 +43,13 @@ Créées le 15 octobre 2026. Briques communes à la console d'administration (`/
 - **Piège** : les actions serveur du profil appelaient `revalidatePath("/restaurant/profil")`, qui ne rafraîchit pas les sous-pages. Elles utilisent maintenant
   `revalidatePath("/restaurant/profil", "layout")`. Toute nouvelle sous-page du profil doit être servie par une action qui revalide l'arbre.
 - Le fil d'Ariane (`FilAriane`) est utilisé pour la première fois sur les deux sous-pages. L'entrée « Mon restaurant » du menu reste allumée sur affiche, tables et documents.
+
+## Bloc « Décision » de la fiche restaurant (17 octobre 2026)
+- Logique pure et testée : `src/lib/system-admin/decision-restaurant.ts` (`decision()`, 21 contrôles). Elle dit seulement quoi AFFICHER ; le serveur revérifie droits et conditions à chaque action.
+- Principe : une seule action principale selon l'état (régler le point qui bloque, approuver, réactiver) ; jamais un bouton grisé sans solution ; « Demander une correction » seulement
+  s'il y a un propriétaire à qui écrire ; la suspension reste dans « Plus d'actions ». Chaque point bloquant a son moyen de le régler (`cibleBlocage` : ancres `#equipe`,
+  `#administration-restaurant`, `#dossier`).
+- Sous 1200 px la décision passe sous le dossier et `BarreDecisionMobile` (barre fixe, masquée quand le bloc est à l'écran, absente quand rien n'est à décider) y mène.
+- Piège : `console-b.css` donne le style « carte » (bordure épaisse, ombre) à une liste de classes ; une classe de contenu rangée dans un panneau (`.ad-decision`, `.ad-fiche-synthese`)
+  ne doit PAS y figurer, sinon on obtient une carte dans une carte sans remplissage.
+- La file « À traiter » du tableau de bord exclut les restaurants `donnees_demo` et sépare les éléments de test (`repartirEnAttente`).

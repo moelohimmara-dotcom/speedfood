@@ -43,6 +43,8 @@ copier("scripts/tests/livraison.test.mts");
 copier("src/lib/system-admin/csv.ts");
 copier("scripts/tests/csv.test.mts");
 copier("src/lib/alertes/commandes.ts");
+copier("src/lib/system-admin/decision-restaurant.ts");
+copier("scripts/tests/decision.test.mts");
 copier("src/lib/restaurant/hub.ts");
 copier("scripts/tests/hub.test.mts");
 copier("src/lib/panier/gestion.ts");
@@ -127,7 +129,7 @@ copier("src/lib/console/recherche.ts");
 copier("scripts/tests/console.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

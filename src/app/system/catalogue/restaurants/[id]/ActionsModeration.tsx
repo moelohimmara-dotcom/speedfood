@@ -8,26 +8,29 @@ import {
   reactiverRestaurantAction,
   type EtatActionRestaurant,
 } from "@/lib/system-admin/restaurants";
+import type { PointBloquant, SortieDecision } from "@/lib/system-admin/decision-restaurant";
+import { Pastille } from "@/components/admin/blocs";
 import { Button, Alert } from "@/components/ui";
 
 const etatInitial: EtatActionRestaurant = {};
 
 interface Props {
   restaurantId: string;
-  publie: boolean;
-  suspendu: boolean;
-  aUneCorrectionEnCours: boolean;
-  /** Points obligatoires manquants du dossier : l'approbation est alors bloquée. */
-  bloquants?: string[];
+  /** Ce qu'il faut proposer, déjà décidé côté serveur (`decision`). */
+  sortie: SortieDecision;
+  /** Points obligatoires manquants du dossier. */
+  bloquants: PointBloquant[];
 }
 
 /**
- * Décision de modération. Les deux actions qui demandent un motif passent par une fenêtre du design system
- * (`ad-dialogue`, même grammaire que la suppression d'un compte) : la fenêtre reste ouverte tant que l'action n'a pas
- * abouti, pour qu'un refus du serveur (motif vide, droits insuffisants) reste lisible. Le formulaire ne se referme plus
- * à l'envoi — c'était le défaut : une demande refusée passait pour un succès.
+ * Décision de modération (refonte du 17 octobre 2026). Une seule action principale selon l'état : régler le point qui bloque, approuver, ou réactiver.
+ * « Demander une correction » vient ensuite ; la suspension reste à l'écart dans « Plus d'actions ». Aucun bouton grisé sans solution : tant qu'un point
+ * bloque, « Approuver » n'apparaît pas et le moyen de régler le point est proposé. Le serveur revérifie tout (droits, motif, conditions).
+ *
+ * Les deux actions qui demandent un motif passent par une fenêtre du design system (`ad-dialogue`) : elle ne se ferme qu'une fois l'action confirmée
+ * par le serveur, pour qu'un refus (motif vide, droits insuffisants) reste lisible.
  */
-export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrectionEnCours, bloquants = [] }: Props) {
+export function ActionsModeration({ restaurantId, sortie, bloquants }: Props) {
   const [enTransition, demarrerTransition] = useTransition();
   const dialogueCorrection = useRef<HTMLDialogElement>(null);
   const dialogueSuspension = useRef<HTMLDialogElement>(null);
@@ -35,9 +38,6 @@ export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrecti
   const [motifCorrection, setMotifCorrection] = useState("");
   const [motifSuspension, setMotifSuspension] = useState("");
 
-  // La fenêtre ne se ferme qu'une fois l'action confirmée par le serveur. Avant, le formulaire se refermait à
-  // l'envoi et le message d'erreur s'affichait dans une fenêtre déjà retirée de l'écran : une demande refusée
-  // (motif vide, droits insuffisants) passait pour un succès.
   const [etatApprobation, actionApprobation, approbationEnCours] = useActionState(approuverRestaurantAction, etatInitial);
   const [etatCorrection, actionCorrection, correctionEnCours] = useActionState(
     async (etat: EtatActionRestaurant, formData: FormData) => {
@@ -62,13 +62,23 @@ export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrecti
     etatInitial
   );
 
-  const peutApprouver = bloquants.length === 0;
+  const boutonCorrection = (
+    <Button type="button" variante="secondary" pleineLargeur aria-haspopup="dialog" onClick={() => dialogueCorrection.current?.showModal()}>
+      Demander une correction
+    </Button>
+  );
+  const aDesActionsSecondaires = sortie.correctionDansPlus || sortie.suspensionVisible;
 
   return (
     <div className="ad-decision">
+      <div className="ad-decision-entete">
+        <Pastille ton={sortie.etat.ton}>{sortie.etat.libelle}</Pastille>
+        <p className="ad-decision-etat">{sortie.phrase}</p>
+      </div>
+
       {etatApprobation.erreur ? <Alert ton="danger">{etatApprobation.erreur}</Alert> : null}
 
-      {suspendu ? (
+      {sortie.action === "reactiver" ? (
         <div className="ad-decision-groupe">
           <Button
             type="button"
@@ -80,57 +90,65 @@ export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrecti
           </Button>
           <p className="ad-decision-aide">Le restaurant redevient visible des clients.</p>
         </div>
-      ) : (
-        <>
-          {!publie || aUneCorrectionEnCours ? (
-            <div className="ad-decision-groupe">
-              <form action={actionApprobation}>
-                <input type="hidden" name="restaurant_id" value={restaurantId} />
-                <Button
-                  type="submit"
-                  pleineLargeur
-                  disabled={approbationEnCours || !peutApprouver}
-                  aria-describedby="aide-approbation"
-                >
-                  {approbationEnCours ? "Approbation…" : "Approuver et publier"}
+      ) : null}
+
+      {sortie.action === "regler" && sortie.premierBlocage ? (
+        <div className="ad-decision-groupe">
+          <div className="ad-decision-blocage" role="group" aria-labelledby="titre-blocage">
+            <h3 id="titre-blocage">
+              {bloquants.length} point{bloquants.length > 1 ? "s" : ""} à régler avant d&apos;approuver
+            </h3>
+            <ul>
+              {bloquants.map((p) => (
+                <li key={p.cle}>
+                  <strong>{p.libelle}</strong>
+                  <span>{p.detail}</span>
+                </li>
+              ))}
+            </ul>
+            <a className="btn btn-primary btn-block" href={sortie.premierBlocage.href}>
+              {sortie.premierBlocage.cta}
+            </a>
+          </div>
+          <p className="ad-decision-aide">« Approuver et publier » apparaît dès que {bloquants.length > 1 ? "ces points sont réglés" : "ce point est réglé"}.</p>
+        </div>
+      ) : null}
+
+      {sortie.action === "approuver" ? (
+        <div className="ad-decision-groupe">
+          <form action={actionApprobation}>
+            <input type="hidden" name="restaurant_id" value={restaurantId} />
+            <Button type="submit" pleineLargeur disabled={approbationEnCours}>
+              {approbationEnCours ? "Approbation…" : "Approuver et publier"}
+            </Button>
+          </form>
+          <p className="ad-decision-aide">Le restaurant devient visible et peut recevoir des commandes.</p>
+        </div>
+      ) : null}
+
+      {sortie.correctionVisible ? (
+        <div className="ad-decision-groupe">
+          {boutonCorrection}
+          <p className="ad-decision-aide">Le restaurateur voit votre message et corrige sa fiche.</p>
+        </div>
+      ) : null}
+
+      {aDesActionsSecondaires ? (
+        <details className="ad-decision-plus">
+          <summary>Plus d&apos;actions</summary>
+          <div className="ad-decision-plus-corps">
+            {sortie.correctionDansPlus ? boutonCorrection : null}
+            {sortie.suspensionVisible ? (
+              <div className="ad-decision-sensible">
+                <Button type="button" variante="danger" pleineLargeur aria-haspopup="dialog" onClick={() => dialogueSuspension.current?.showModal()}>
+                  Suspendre…
                 </Button>
-              </form>
-              <p className="ad-decision-aide" id="aide-approbation">
-                {peutApprouver
-                  ? "Le restaurant devient visible et peut recevoir des commandes."
-                  : `Pour approuver, il manque : ${bloquants.join(", ")}.`}
-              </p>
-            </div>
-          ) : null}
-
-          <div className="ad-decision-groupe">
-            <Button
-              type="button"
-              variante="secondary"
-              pleineLargeur
-              aria-haspopup="dialog"
-              onClick={() => dialogueCorrection.current?.showModal()}
-            >
-              Demander une correction
-            </Button>
-            <p className="ad-decision-aide">Le restaurateur voit votre message et corrige sa fiche.</p>
+                <p className="ad-decision-aide">Retire le restaurant du catalogue. Un motif est obligatoire et reste dans le journal.</p>
+              </div>
+            ) : null}
           </div>
-
-          <div className="ad-decision-sensible">
-            <h3>Zone sensible</h3>
-            <Button
-              type="button"
-              variante="danger"
-              pleineLargeur
-              aria-haspopup="dialog"
-              onClick={() => dialogueSuspension.current?.showModal()}
-            >
-              Suspendre
-            </Button>
-            <p className="ad-decision-aide">Retire le restaurant du catalogue. Un motif est obligatoire et reste dans le journal.</p>
-          </div>
-        </>
-      )}
+        </details>
+      ) : null}
 
       <dialog ref={dialogueCorrection} className="ad-dialogue" aria-labelledby="titre-correction">
         <form action={actionCorrection} className="ad-dialogue-corps">

@@ -16,6 +16,8 @@ import { definirIllustrationAction, listerPlatsAdmin } from "@/lib/system-admin/
 import { Illustration } from "@/components/illustrations/Illustration";
 import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from "@/lib/illustrations/automatique";
 import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
+import { BarreDecisionMobile } from "./BarreDecisionMobile";
+import { decision } from "@/lib/system-admin/decision-restaurant";
 import { ActionsModeration } from "./ActionsModeration";
 import { EditeurHoraires } from "./EditeurHoraires";
 import { EditeurProfilRestaurant } from "./EditeurProfilRestaurant";
@@ -145,16 +147,18 @@ export default async function RestaurantDetailSystemePage({
         },
       ]
     : [];
-  const bloquants = points.filter((p) => p.obligatoire && p.niveau === "manque").map((p) => p.libelle.toLowerCase());
+  const pointsBloquants = points.filter((p) => p.obligatoire && p.niveau === "manque");
+  const bloquants = pointsBloquants.map((p) => p.libelle.toLowerCase());
   const conseilles = points.filter((p) => p.niveau === "conseille").length;
 
-  const phrasEtat = restaurant.suspendu_le
-    ? "Suspendu : invisible des clients tant qu'il n'est pas réactivé."
-    : enLigne
-      ? "En ligne : visible des clients."
-      : restaurant.motif_correction
-        ? "En attente d'une correction du restaurateur."
-        : "En attente de votre décision : invisible des clients.";
+  // Ce qu'on propose dans le bloc « Décision » (logique pure et testée : decision-restaurant.ts). Le serveur revérifie tout à l'action.
+  const sortieDecision = decision({
+    publie: restaurant.publie,
+    suspendu: restaurant.suspendu_le !== null,
+    correctionEnCours: restaurant.motif_correction !== null,
+    bloquants: pointsBloquants.map((p) => ({ cle: p.cle, libelle: p.libelle, detail: p.detail })),
+    aProprietaire: aUnProprietaire,
+  });
 
   return (
     <div>
@@ -232,6 +236,7 @@ export default async function RestaurantDetailSystemePage({
       <div className="ad-fiche">
         <div className="ad-fiche-principal">
           <Panneau
+            id="dossier"
             titre="Dossier à contrôler"
             actions={
               <span className={bloquants.length > 0 ? "ad-fiche-synthese ad-fiche-synthese-manque" : "ad-fiche-synthese"}>
@@ -362,6 +367,7 @@ export default async function RestaurantDetailSystemePage({
           ) : null}
 
           <Volet
+            id="equipe"
             titre="Équipe"
             ouvert={membres.length === 0}
             resume={membres.length === 0 ? "Aucun membre" : `${membres.length} membre${membres.length > 1 ? "s" : ""}`}
@@ -380,8 +386,12 @@ export default async function RestaurantDetailSystemePage({
         </div>
 
         <aside className="ad-fiche-decision" aria-label="Décision de modération">
-          <Panneau titre="Décision">
-            <p className="ad-decision-etat">{phrasEtat}</p>
+          <Panneau titre="Décision" id="decision">
+            <ActionsModeration
+              restaurantId={restaurant.id}
+              sortie={sortieDecision}
+              bloquants={pointsBloquants.map((p) => ({ cle: p.cle, libelle: p.libelle, detail: p.detail }))}
+            />
             {!enLigne && reglages.delaiValidationHeures !== null ? (
               <p className="ad-aide-champ ad-aide-champ-premier">
                 Délai annoncé aux restaurateurs : {reglages.delaiValidationHeures} h
@@ -395,13 +405,6 @@ export default async function RestaurantDetailSystemePage({
                 ) : null}
               </p>
             ) : null}
-            <ActionsModeration
-              restaurantId={restaurant.id}
-              publie={restaurant.publie}
-              suspendu={restaurant.suspendu_le !== null}
-              aUneCorrectionEnCours={restaurant.motif_correction !== null}
-              bloquants={bloquants}
-            />
             {restaurant.suspendu_le || restaurant.motif_correction ? (
               <p className="ad-aide-champ">
                 <Link href="/system/audit?action=restaurant.suspension" className="lien-texte">
@@ -412,6 +415,10 @@ export default async function RestaurantDetailSystemePage({
           </Panneau>
         </aside>
       </div>
+      {/* Seulement quand une action est attendue : « En ligne, rien à décider » n'a pas besoin d'une barre fixe. */}
+      {sortieDecision.action !== "aucune" ? (
+        <BarreDecisionMobile titre={sortieDecision.barre.titre} sous={sortieDecision.barre.sous} ton={sortieDecision.barre.ton} />
+      ) : null}
     </div>
   );
 }
