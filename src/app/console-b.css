@@ -32,7 +32,8 @@
 }
 
 /* ===== Surfaces : contour épais et ombre décalée ===== */
-.ad-app :is(.ad-panneau, .ad-tuile, .ad-carte, .card, .ad-volet, .ad-fiche-synthese, .ad-table-cadre, .ad-decision, .ad-dialogue) {
+/* `.ad-fiche-synthese` (compteur du dossier) et `.ad-decision` (contenu du panneau Décision) n'en font plus partie : une carte dans une carte, sans remplissage, collait le texte au bord (audit du 17 octobre 2026). */
+.ad-app :is(.ad-panneau, .ad-tuile, .ad-carte, .card, .ad-volet, .ad-table-cadre, .ad-dialogue) {
   border: var(--pub-trait) solid var(--encre);
   border-radius: var(--radius-lg);
   box-shadow: var(--pub-ombre);

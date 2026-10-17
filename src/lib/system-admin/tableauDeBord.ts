@@ -226,6 +226,8 @@ export async function listerRestaurantsEnAttenteValidation(
     .from("restaurants")
     .select("id, nom, cree_le")
     .eq("publie", false)
+    // Un restaurant de démonstration dépublié n'est pas une demande de mise en ligne : il ne doit pas passer devant les vraies (16 octobre 2026).
+    .eq("donnees_demo", false)
     .is("suspendu_le", null)
     .is("motif_correction", null)
     .order("cree_le", { ascending: true })

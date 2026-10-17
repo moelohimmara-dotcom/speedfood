@@ -15,6 +15,7 @@ import {
   comparerPeriodes,
   construireJours,
   estElementDeTest,
+  repartirEnAttente,
   heuresPleines,
   maximumAxe,
   normaliserStatistiques,
@@ -163,6 +164,12 @@ verifier("axe : 7 → 8", maximumAxe(7), 8);
 verifier("axe : 23 → 25", maximumAxe(23), 25);
 verifier("axe : 100 → 100", maximumAxe(100), 100);
 verifier("test : [DEV] Restaurant", estElementDeTest("[DEV] Restaurant publié"), true);
+{
+  const file = repartirEnAttente([{ nom: "[DEV] Café Matam" }, { nom: "Malika" }, { nom: "Chez Test Auth" }, { nom: "Le Soleil" }]);
+  verifier("file : les demandes réelles gardent leur ordre", file.reels.map((r) => r.nom), ["Malika", "Le Soleil"]);
+  verifier("file : les éléments de test sont à part", file.tests.map((r) => r.nom), ["[DEV] Café Matam", "Chez Test Auth"]);
+  verifier("file : liste vide", repartirEnAttente([]), { reels: [], tests: [] });
+}
 verifier("test : Chez Test Auth", estElementDeTest("Chez Test Auth"), true);
 verifier("pas test : « Contestation »", estElementDeTest("La Contestation"), false);
 verifier("pas test : restaurant réel", estElementDeTest("Chez Fatoumata"), false);

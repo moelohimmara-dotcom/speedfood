@@ -365,6 +365,8 @@
 .ad-entete-page-actions {
   display: flex;
   flex-wrap: wrap;
+  /* `stretch` (défaut) étirait les étiquettes d'état à 48 px, la hauteur du bouton voisin : un état ressemblait à un bouton. */
+  align-items: center;
   gap: var(--space-2);
 }
 .ad-retour {
@@ -1568,6 +1570,8 @@ a.ad-carte-lien:hover {
 .ad-fiche {
   display: grid;
   gap: var(--space-5);
+  /* La fiche suit un panneau dans un conteneur sans pile : sans cet écart, l'ombre du panneau passait sous les cartes (audit du 17 octobre 2026). */
+  margin-top: var(--space-5);
 }
 .ad-fiche-principal {
   display: grid;
@@ -1586,12 +1590,27 @@ a.ad-carte-lien:hover {
   }
 }
 .ad-fiche-synthese {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: var(--succes-fond);
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--succes);
+  white-space: nowrap;
+}
+.ad-fiche-synthese::before {
+  content: "✓";
 }
 .ad-fiche-synthese-manque {
+  background: var(--danger-fond);
   color: var(--danger);
+}
+.ad-fiche-synthese-manque::before {
+  content: "⚠";
 }
 .ad-apercus {
   display: flex;

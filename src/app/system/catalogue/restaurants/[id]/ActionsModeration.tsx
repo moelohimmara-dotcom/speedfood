@@ -98,7 +98,7 @@ export function ActionsModeration({ restaurantId, publie, suspendu, aUneCorrecti
               <p className="ad-decision-aide" id="aide-approbation">
                 {peutApprouver
                   ? "Le restaurant devient visible et peut recevoir des commandes."
-                  : `Impossible pour l'instant : ${bloquants.join(", ")}.`}
+                  : `Pour approuver, il manque : ${bloquants.join(", ")}.`}
               </p>
             </div>
           ) : null}

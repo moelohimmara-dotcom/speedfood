@@ -155,6 +155,17 @@ export function estElementDeTest(nom: string): boolean {
   return /^\s*\[dev\]/i.test(nom) || /(^|[^a-zà-ÿ])(test|essai)([^a-zà-ÿ]|$)/i.test(nom);
 }
 
+/**
+ * Sépare les demandes réelles des éléments de test (noms « [DEV] », « test », « essai »). Les demandes réelles gardent leur ordre (les plus anciennes
+ * d'abord) : c'est ce qu'on affiche dans la file « À traiter », jamais mélangées aux éléments de test.
+ */
+export function repartirEnAttente<T extends { nom: string }>(restaurants: T[]): { reels: T[]; tests: T[] } {
+  const reels: T[] = [];
+  const tests: T[] = [];
+  for (const restaurant of restaurants) (estElementDeTest(restaurant.nom) ? tests : reels).push(restaurant);
+  return { reels, tests };
+}
+
 /** Statistiques agrégées de toute l'application (réponse de `fn_statistiques_application`), toutes en nombres. */
 export interface StatistiquesApplication {
   restaurants: Record<"total" | "publies" | "enAttente" | "correction" | "suspendus" | "ouverts" | "acceptentCommandes" | "avecLogo" | "avecPhoto" | "nouveaux", number>;

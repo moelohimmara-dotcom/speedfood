@@ -18,7 +18,7 @@ import { lireCouverture } from "@/lib/system-admin/couverture";
 import {
   comparerPeriodes,
   construireJours,
-  estElementDeTest,
+  repartirEnAttente,
   heuresPleines,
   pourcentage,
   tauxAcceptation,
@@ -80,7 +80,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
   const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture] = await Promise.all([
     obtenirStatistiquesApplication(periode),
     roleAPermission(role, "systeme.roles") ? obtenirComptesSystemeParRole() : null,
-    roleAPermission(role, "restaurant.moderer") ? listerRestaurantsEnAttenteValidation() : null,
+    roleAPermission(role, "restaurant.moderer") ? listerRestaurantsEnAttenteValidation(20) : null,
     roleAPermission(role, "commande.consulter") ? listerPropositionsEnAttente() : null,
     roleAPermission(role, "systeme.audit") ? obtenirActiviteRecente() : null,
     roleAPermission(role, "commande.consulter") ? obtenirPilotageCommandes(periode) : null,
@@ -112,11 +112,13 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
       ton: "danger",
     });
   }
-  for (const restaurant of restaurantsEnAttente ?? []) {
-    if (estElementDeTest(restaurant.nom)) {
-      lignesTest.push({ id: restaurant.id, nom: restaurant.nom, creeLe: restaurant.creeLe });
-      continue;
-    }
+  const { reels: demandesReelles, tests: demandesTest } = repartirEnAttente(restaurantsEnAttente ?? []);
+  for (const restaurant of demandesTest) {
+    lignesTest.push({ id: restaurant.id, nom: restaurant.nom, creeLe: restaurant.creeLe });
+  }
+  // Le compteur « en attente de validation » compte les VRAIES demandes (hors démonstration et essais), pas tous les restaurants non publiés.
+  const enAttenteReelles = restaurantsEnAttente ? demandesReelles.length : (compteursRestaurants?.enAttente ?? 0);
+  for (const restaurant of demandesReelles) {
     const jourAttente = Math.floor((maintenant.getTime() - new Date(restaurant.creeLe).getTime()) / 86_400_000);
     lignesFile.push({
       href: `/system/catalogue/restaurants/${restaurant.id}`,
@@ -252,8 +254,8 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
               valeur={compteursRestaurants.publies}
               href={lienRestaurants("publies")}
               sous={
-                compteursRestaurants.enAttente > 0
-                  ? `${compteursRestaurants.enAttente} en attente de validation`
+                enAttenteReelles > 0
+                  ? `${enAttenteReelles} en attente de validation`
                   : "Aucune validation en attente"
               }
             />
@@ -265,7 +267,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             libelle="Restaurants publiés"
             valeur={compteursRestaurants.publies}
             href={lienRestaurants("publies")}
-            sous={`${compteursRestaurants.enAttente} en attente de validation`}
+            sous={`${enAttenteReelles} en attente de validation`}
           />
         </section>
       ) : null}
@@ -331,7 +333,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
           <BarresHorizontales
             lignes={[
               { cle: "publies", libelle: "Publiés", valeur: compteursRestaurants.publies, couleur: "var(--succes)", href: lienRestaurants("publies") },
-              { cle: "attente", libelle: "En attente de validation", valeur: compteursRestaurants.enAttente, couleur: "var(--orange)", href: lienRestaurants("en_attente") },
+              { cle: "attente", libelle: "En attente de validation", valeur: enAttenteReelles, couleur: "var(--orange)", href: lienRestaurants("en_attente") },
               { cle: "correction", libelle: "Correction demandée", valeur: compteursRestaurants.correction, couleur: "var(--secondaire)", href: lienRestaurants("correction") },
               { cle: "suspendus", libelle: "Suspendus", valeur: compteursRestaurants.suspendus, couleur: "var(--danger)", href: lienRestaurants("suspendus") },
             ]}
