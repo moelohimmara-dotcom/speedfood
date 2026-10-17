@@ -1,6 +1,7 @@
 import { Alert, Badge, Card } from "@/components/ui";
 import { estFinal } from "@/lib/livraison/statuts";
 import type { VueLivraison } from "@/lib/livraison/vues";
+import { CarteLivraison } from "@/components/livraison/CarteLivraison";
 
 const ETAPES = ["Livreur trouvé", "Vers le restaurant", "Commande récupérée", "En route vers vous", "Livrée"];
 const ETAPES_PROPRE = ["Prête à partir", "En route vers vous", "Livrée"];
@@ -45,6 +46,19 @@ export function BlocLivraisonClient({ livraison }: { livraison: VueLivraison & {
             </li>
           ))}
         </ol>
+      ) : null}
+      {livraison.minutesAvantArrivee !== null ? (
+        <p style={{ margin: "var(--space-3) 0 0" }}>
+          Arrivée estimée dans environ <strong>{livraison.minutesAvantArrivee} min</strong>.
+        </p>
+      ) : null}
+      {!final && !propre && (livraison.restaurantPoint || livraison.arriveePoint) ? (
+        <CarteLivraison
+          restaurant={livraison.restaurantPoint}
+          destination={livraison.arriveePoint}
+          livreur={livraison.livreurPoint}
+          description="Carte de la livraison : le restaurant, votre adresse et la position du livreur."
+        />
       ) : null}
       {livraison.code ? (
         <div className="suivi-code-remise">

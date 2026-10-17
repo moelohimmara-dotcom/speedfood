@@ -1006,3 +1006,41 @@
   border: 1px solid var(--bordure);
   border-radius: var(--radius-md);
 }
+
+/* ---- Carte de livraison (Leaflet) ---- */
+.carte-livraison {
+  margin-top: var(--space-4);
+}
+.carte-livraison-zone {
+  height: 260px;
+  border: 2px solid var(--encre, currentColor);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  z-index: 0;
+}
+.carte-livraison-legende {
+  margin: var(--space-2) 0 0;
+  font-size: 0.85rem;
+  color: var(--secondaire);
+}
+.carte-repere {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.carte-repere-resto {
+  background: #b3261e;
+}
+.carte-repere-client {
+  background: #1a7f37;
+}
+.carte-repere-livreur {
+  background: #1f2a44;
+}

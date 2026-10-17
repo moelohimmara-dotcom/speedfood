@@ -5,6 +5,7 @@ import { agirSurLivraisonAction } from "@/lib/livraison/actions-restaurant";
 import type { VueLivraison } from "@/lib/livraison/vues";
 import { estFinal } from "@/lib/livraison/statuts";
 import { Alert, Button } from "@/components/ui";
+import { CarteLivraison } from "@/components/livraison/CarteLivraison";
 
 const ETAPES_SPEEDFOOD = ["Livreur", "Vers le restaurant", "Récupérée", "En route", "Livrée"];
 
@@ -44,6 +45,18 @@ export function BlocLivraison({ livraison, commandePrete }: { livraison: VueLivr
             </li>
           ))}
         </ol>
+      ) : null}
+
+      {livraison.mode === "speedfood" && !final && livraison.livreurPoint && (livraison.restaurantPoint || livraison.arriveePoint) ? (
+        <details className="commande-livraison-carte">
+          <summary>Voir le livreur sur la carte</summary>
+          <CarteLivraison
+            restaurant={livraison.restaurantPoint}
+            destination={livraison.arriveePoint}
+            livreur={livraison.livreurPoint}
+            description="Carte de la livraison : votre restaurant, l'adresse du client et la position du livreur."
+          />
+        </details>
       ) : null}
 
       {livraison.mode === "propre" && !final ? (

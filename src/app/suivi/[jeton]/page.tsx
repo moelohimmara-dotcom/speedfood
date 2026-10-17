@@ -106,7 +106,7 @@ export async function renderSuiviPage(jeton: string, session = false) {
       const { data: ligne } = await clientLivraison().from("orders").select("id").eq("jeton_suivi", jeton).maybeSingle();
       if (ligne) {
         livraison = await vueLivraisonPourClient(ligne.id as string);
-        if (livraison && (livraison.statut === "a_assigner" || livraison.statut === "offre_envoyee")) {
+        if (livraison && livraison.mode === "speedfood" && !["livree", "echec", "annulee"].includes(livraison.statut)) {
           const { traiterOffres } = await import("@/lib/livraison/service");
           await traiterOffres();
           livraison = await vueLivraisonPourClient(ligne.id as string);
@@ -228,7 +228,7 @@ export async function renderSuiviPage(jeton: string, session = false) {
         Conservez ce lien : c&apos;est la clé de suivi de votre commande. Ne le partagez pas.
       </Alert>
 
-      <RafraichissementAuto />
+      <RafraichissementAuto intervalleSecondes={livraison && livraison.statut !== "livree" && livraison.statut !== "echec" && livraison.statut !== "annulee" ? 6 : 20} />
     </main>
   );
 }

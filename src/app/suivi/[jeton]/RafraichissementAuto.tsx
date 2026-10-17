@@ -8,16 +8,16 @@ import { useRouter } from "next/navigation";
  * toutes les 20 secondes, plus un bouton « Actualiser ». Aucune donnée
  * personnelle n'est stockée ni mise en cache côté navigateur.
  */
-export function RafraichissementAuto() {
+export function RafraichissementAuto({ intervalleSecondes = 20 }: { intervalleSecondes?: number }) {
   const router = useRouter();
   const [enCours, demarrer] = useTransition();
 
   useEffect(() => {
     const minuteur = window.setInterval(() => {
       router.refresh();
-    }, 20_000);
+    }, intervalleSecondes * 1000);
     return () => window.clearInterval(minuteur);
-  }, [router]);
+  }, [router, intervalleSecondes]);
 
   return (
     <p style={{ margin: "var(--space-4) 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
