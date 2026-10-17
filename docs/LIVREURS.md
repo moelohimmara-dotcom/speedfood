@@ -70,9 +70,9 @@ Dans `/system/parametres/livraison`, section **Livreurs** :
 | Étape | Contenu | État |
 |---|---|---|
 | L1 | Règles pures (cycle, validation, analyse d'une liste ou d'un CSV, jeton, dossier) avec 45 tests ; migration `20261017220000` ; 18 contrôles de cloisonnement | **Fait, migration non appliquée** |
-| L2 | Création individuelle et groupée (liste collée ou fichier CSV, aperçu ligne par ligne), liens d'activation (WhatsApp, copie, CSV), page `/livreur/activer`, dossier selon les réglages | **Code écrit, non déployé** |
-| L3 | Approbation, refus, suspension, réactivation, archivage (avec motif, journalisés) ; réglages de la console ; répartition et mise en ligne réservées aux fiches actives ; écrans « en attente » et « suspendu » pour le livreur | **Code écrit, non déployé** |
+| L2 | Création individuelle et groupée (liste collée ou fichier CSV, aperçu ligne par ligne), liens d'activation (WhatsApp, copie, CSV), page `/livreur/activer`, dossier selon les réglages | **Déployé le 17 octobre 2026 (version `9642a39e`)** |
+| L3 | Approbation, refus, suspension, réactivation, archivage (avec motif, journalisés) ; réglages de la console ; répartition et mise en ligne réservées aux fiches actives ; écrans « en attente » et « suspendu » pour le livreur | **Déployé le 17 octobre 2026 (version `9642a39e`), parcours dans un navigateur non joué** |
 
-**Avant tout déploiement de ce code** : appliquer la migration `20261017220000_livreurs_cycle_dossiers.sql` (le code lit `livreurs.cycle`) et lancer `get_advisors`. Les livreurs de démonstration existants passent « actifs » par défaut.
+**Migration appliquée en production le 17 octobre 2026** (alertes de sécurité relues : seule la table des liens, sans règle d'accès, est ajoutée). Rappel : appliquer la migration `20261017220000_livreurs_cycle_dossiers.sql` (le code lit `livreurs.cycle`) et lancer `get_advisors`. Les livreurs de démonstration existants passent « actifs » par défaut.
 
 **Pas encore fait** : écran de lecture du dossier (pièce, contact d'urgence) par le super administrateur ; dépôt de scans de documents ; suppression automatique du dossier d'un livreur archivé (12 mois, à confirmer) ; notification d'un livreur dont la fiche est approuvée (il doit revenir sur `/livreur`).

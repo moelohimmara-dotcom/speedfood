@@ -117,7 +117,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `a014e31d-6d56-4d3a-adab-de7c3df0319f` | 17 oct. 16 h 30 | Bouton de pause des animations retiré du pied de page |
 | `c5f66a5d-1475-4384-8beb-a7f0eb763adc` | 17 oct. 21 h | Livraison phases 1a, 1b et 2 (frais, livreurs, répartition, console livreur, carte) ; calcul des frais **éteint** ; migrations `livraison_socle` et `livraison_dispatch` déjà appliquées |
 | `8894eb68-1ccb-422e-bcdf-fa08dd8f1547` | 17 oct. 21 h 30 | Option « livreur Speedfood » ouverte aux restaurateurs |
-| `ecacb692-b73c-4483-a9f8-97ace99742ee` | 17 oct. 22 h | Refonte des pages Livreurs et Livraisons, une seule entrée de menu active (version en production au 17 octobre) |
+| `ecacb692-b73c-4483-a9f8-97ace99742ee` | 17 oct. 22 h | Refonte des pages Livreurs et Livraisons, une seule entrée de menu active |
+| `9642a39e-4633-4c28-a5c9-5e07604aba59` | 17 oct. 23 h | Fiches livreurs : cycle de vie, création individuelle et groupée, liens d'activation, approbation. **Dépend de la migration `livreurs_cycle_dossiers`** : un retour arrière du code est sans risque, un retour arrière de la migration ne l'est pas (version en production au 17 octobre) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
