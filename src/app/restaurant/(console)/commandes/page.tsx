@@ -66,19 +66,21 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
   // Livraisons (lues avec la session du restaurateur : la RLS ne lui montre que les siennes). Table absente = aucune livraison.
   const livraisons = await livraisonsDesCommandes(supabase as unknown as SupabaseClient, affichees.map((c) => c.id)).catch(() => new Map());
   // Notes privées déjà données aux clients (lecture tolérante : sans migration de notation, aucune note).
+  let notationDisponible = true;
   const notesClients = new Map<string, { note: number; etiquettes: string[] }>();
   try {
-    const { data: notes } = await supabase
+    const { data: notes, error: erreurNotes } = await supabase
       .from("avis" as never)
       .select("order_id, note, etiquettes")
       .eq("cible", "client")
       .eq("auteur", "restaurant")
       .in("order_id", historique.map((c) => c.id));
+    if (erreurNotes) throw new Error("notation indisponible");
     for (const n of (notes ?? []) as unknown as { order_id: string; note: number; etiquettes: string[] }[]) {
       notesClients.set(n.order_id, { note: n.note, etiquettes: n.etiquettes ?? [] });
     }
   } catch {
-    // Pas de notes à afficher.
+    notationDisponible = false;
   }
   const documentsDe = (id: string) => {
     const r: { recu?: string; facture?: string } = {};
@@ -111,7 +113,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
             ) : (
               <div className="cmd-liste">
                 {aTraiter.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notesClients.get(commande.id) ?? null} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} />
                 ))}
               </div>
             )}
@@ -124,7 +126,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
               </h2>
               <div className="cmd-liste">
                 {enCours.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notesClients.get(commande.id) ?? null} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} />
                 ))}
               </div>
             </section>
@@ -137,7 +139,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
               </summary>
               <div className="cmd-liste">
                 {historique.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notesClients.get(commande.id) ?? null} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} />
                 ))}
               </div>
               {restantes > 0 ? (

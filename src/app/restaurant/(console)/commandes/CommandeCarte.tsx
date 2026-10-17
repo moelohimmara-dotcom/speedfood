@@ -60,6 +60,7 @@ export function CommandeCarte({
   documents = {},
   livraison = null,
   noteClient = null,
+  notationDisponible = true,
 }: {
   commande: ApercuCommandeRestaurant;
   age?: string;
@@ -72,6 +73,7 @@ export function CommandeCarte({
   livraison?: VueLivraison | null;
   /** Note privée déjà donnée au client pour cette commande. */
   noteClient?: { note: number; etiquettes: string[] } | null;
+  notationDisponible?: boolean;
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
@@ -412,7 +414,7 @@ export function CommandeCarte({
         </div>
       ) : null}
 
-      {commande.etatDerive === "terminee" && !commande.estTest ? (
+      {notationDisponible && commande.etatDerive === "terminee" && !commande.estTest ? (
         <NoterClient initial={noteClient} enregistrer={(note, etiquettes) => noterClientParRestaurantAction(commande.id, note, etiquettes)} />
       ) : null}
 

@@ -75,10 +75,12 @@ export async function etatNotationClient(jeton: string, utilisateurId: string, m
   const raison = raisonNotationImpossible({ statut: commande.statut, estTest: commande.est_test, clotureLe: commande.mis_a_jour_le }, maintenant);
   if (raison) return { notable: false, message: messageRefus(raison), restaurantNom, restaurant: null, livreur: null };
 
-  const [{ data: avis }, livreur] = await Promise.all([
+  const [{ data: avis, error: erreurAvis }, livreur] = await Promise.all([
     clientLivraison().from("avis").select("cible, note, etiquettes, commentaire, cree_le").eq("order_id", commande.id).eq("auteur", "client"),
     livreurDeLaCommande(commande.id),
   ]);
+  // Table des avis absente (migration non appliquée) ou panne : on ne propose pas un formulaire qui échouerait.
+  if (erreurAvis) return { notable: false, message: null, restaurantNom, restaurant: null, livreur: null };
   const lignes = (avis ?? []) as { cible: string; note: number; etiquettes: string[]; commentaire: string | null; cree_le: string }[];
   return {
     notable: true,
