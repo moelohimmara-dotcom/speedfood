@@ -119,7 +119,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `8894eb68-1ccb-422e-bcdf-fa08dd8f1547` | 17 oct. 21 h 30 | Option « livreur Speedfood » ouverte aux restaurateurs |
 | `ecacb692-b73c-4483-a9f8-97ace99742ee` | 17 oct. 22 h | Refonte des pages Livreurs et Livraisons, une seule entrée de menu active |
 | `9642a39e-4633-4c28-a5c9-5e07604aba59` | 17 oct. 23 h | Fiches livreurs : cycle de vie, création individuelle et groupée, liens d'activation, approbation. **Dépend de la migration `livreurs_cycle_dossiers`** : un retour arrière du code est sans risque, un retour arrière de la migration ne l'est pas |
-| `5ec2143f-bc2e-4081-be4a-9eeca8328ec6` | 18 oct. 0 h | Consultation et suppression du dossier d'un livreur par le super administrateur (version en production au 18 octobre) |
+| `5ec2143f-bc2e-4081-be4a-9eeca8328ec6` | 18 oct. 0 h | Consultation et suppression du dossier d'un livreur par le super administrateur |
+| `ab0ebcbd-eb61-43b9-b36b-be6b54bb87e2` | 18 oct. | Notation (avis, réponses, modération) et classement du catalogue par note, prix et fréquentation ; migration `20261018010000` appliquée (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
