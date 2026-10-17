@@ -178,7 +178,7 @@ Ce sont les pièges qui ont coûté du temps ; ils reviendront sinon.
 6. Renseigner `/system/parametres` (numéro WhatsApp d'assistance, textes d'accueil, activation de la
    position sur carte).
 7. Portes avant pilote : `docs/cadrage/PROCEDURE-SECURITE.md` §9 (certaines sont bloquantes).
-8. Décider du sort des 13 restaurants de démonstration (publier ou dépublier avant le pilote).
+8. ~~Décider du sort des restaurants de démonstration~~ **Fait le 17 octobre 2026 (option 1) : les 12 restaurants `donnees_demo` sont dépubliés** (`publie = false`, par une requête SQL limitée à `donnees_demo = true`, 12 lignes). Ils ne sont plus visibles du public ; rien n'est supprimé. Pour les remontrer lors d'une démonstration : même requête avec `publie = true`, toujours limitée à `donnees_demo = true`. Le chiffre « 13 » des anciens documents était faux (12 démonstration ; « barbie » et « barbie food » sont à part). Publiés aujourd'hui : « barbie » (sans responsable, à trancher) et « barbie food ». **Aucune trace d'audit** : la modification a été faite en base, pas par la console (qui n'a pas d'action « dépublier »).
 
 ### À vérifier avec une session réelle
 

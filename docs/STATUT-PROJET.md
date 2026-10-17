@@ -826,3 +826,7 @@ Détail, commits et versions par étape : `docs/audit-2026-10-15-consoles/README
 **Incident (15 octobre, vers 14 h UTC)** : erreurs 503/500 (Cloudflare 1102) pendant quelques minutes sur des pages dynamiques, y compris publiques, après l'ouverture de la page Géographie. Cause non établie. À vérifier : plan Cloudflare (gratuit = 10 ms de calcul par requête) et « Metrics > Errors > Invocation Statuses ».
 
 **Pièges payés** : `docs/REPRISE-SESSION.md` § 5, points 7 à 10 (cache du navigateur intégré, erreur 1102, tests dans le navigateur intégré, fournisseur à la racine).
+
+## 17 octobre 2026 : restaurants de démonstration dépubliés
+
+Décision de la propriétaire (option 1 sur trois) : les **12** restaurants marqués `donnees_demo` (et non 13) étaient publiés, ouverts, sans responsable : une commande passée chez l'un d'eux n'aurait été vue par personne. Ils sont dépubliés (`publie = false`), rien n'est supprimé. Vérifié : en base, 2 restaurants publiés (« barbie », « barbie food »), 0 démonstration publiée ; le catalogue public ne cite plus aucun restaurant de démonstration. Modification faite par une requête SQL (la console n'a pas d'action « dépublier » : « demander une correction » et « suspendre » ont d'autres sens), donc **sans entrée dans le journal d'audit**. Rétablissement : voir `docs/REPRISE-SESSION.md` § 8, point 8. À trancher : « barbie » (publié, sans responsable, 2 commandes anciennes).
