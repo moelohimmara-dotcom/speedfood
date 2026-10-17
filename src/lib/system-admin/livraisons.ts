@@ -6,6 +6,7 @@ import { clientLivraison } from "@/lib/livraison/lecture";
 import { assignerManuellement, avancerLivraison, repartir, traiterOffres } from "@/lib/livraison/service";
 import { estStatutLivraison, type StatutLivraison } from "@/lib/livraison/statuts";
 import { journaliserActionSysteme } from "./audit";
+import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 
 /**
@@ -124,4 +125,30 @@ export async function avancerLivraisonAdminAction(livraisonId: string, vers: str
   await journaliserActionSysteme(contexte, { action: "livraison.statut_modifie", cibleType: "livraison", cibleId: livraisonId, motif: `→ ${vers}${raison ? ` : ${raison.trim().slice(0, 200)}` : ""}` });
   revalidatePath("/system/livraisons");
   return { succes: "Livraison mise à jour." };
+}
+
+/**
+ * Lie un compte existant à une fiche livreur : ce compte pourra ouvrir `/livreur`. Réservé au super administrateur (la recherche
+ * d'un compte par e-mail l'est aussi en base). Un compte n'a qu'une fiche livreur. Le livreur est créé HORS LIGNE.
+ */
+export async function creerLivreurPourCompteAction(_prec: EtatActionLivraisonAdmin, formData: FormData): Promise<EtatActionLivraisonAdmin> {
+  const contexte = await verifierPermission("parametres.editer");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const nom = String(formData.get("nom") ?? "").replace(/\s+/g, " ").trim();
+  const telephone = String(formData.get("telephone") ?? "").replace(/\s+/g, " ").trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { erreur: "Adresse e-mail invalide." };
+  if (nom.length < 2 || nom.length > 80) return { erreur: "Le nom doit faire 2 à 80 caractères." };
+  if (telephone !== "" && (telephone.length < 6 || telephone.length > 20)) return { erreur: "Téléphone invalide (6 à 20 caractères) ou laissez vide." };
+
+  const supabase = await creerClientServeur();
+  const { data: trouve } = await supabase.rpc("fn_trouver_utilisateur_par_email", { p_email: email });
+  const compte = Array.isArray(trouve) ? trouve[0] : null;
+  if (!compte?.id) return { erreur: "Aucun compte ne correspond à cette adresse : la personne doit d'abord créer son compte." };
+
+  const { error } = await clientLivraison().from("livreurs").insert({ utilisateur_id: compte.id, nom, telephone: telephone || null, vehicule: "moto", statut: "hors_ligne" });
+  if (error) return { erreur: error.code === "23505" ? "Ce compte est déjà un compte livreur." : "Impossible de créer le livreur. Réessayez." };
+
+  await journaliserActionSysteme(contexte, { action: "livraison.livreur_cree", cibleType: "livreurs", cibleId: compte.id, motif: "Compte lié à une fiche livreur" });
+  revalidatePath("/system/livraisons/livreurs");
+  return { succes: "Livreur créé. Cette personne peut ouvrir la page /livreur avec son compte." };
 }

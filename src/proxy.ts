@@ -60,7 +60,8 @@ export async function proxy(request: NextRequest) {
   // = fiches publiques du catalogue, qui doivent rester accessibles sans compte.
   const cheminProtege =
     request.nextUrl.pathname === "/restaurant" ||
-    request.nextUrl.pathname.startsWith("/restaurant/");
+    request.nextUrl.pathname.startsWith("/restaurant/") ||
+    request.nextUrl.pathname === "/livreur";
 
   if (!user && cheminProtege) {
     const urlConnexion = request.nextUrl.clone();

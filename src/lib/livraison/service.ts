@@ -194,6 +194,10 @@ export async function traiterOffres(delaiSimulationSecondes = 3): Promise<void> 
 
   const { data: sansLivreur } = await db.from("livraisons").select("id").eq("statut", "a_assigner").eq("mode", "speedfood").limit(20);
   for (const l of (sansLivreur ?? []) as Array<{ id: string }>) await repartir(l.id);
+
+  // Les livreurs de démonstration roulent et enchaînent leurs étapes (import dynamique : la simulation utilise ce service).
+  const { avancerSimulation } = await import("./simulation");
+  await avancerSimulation();
 }
 
 export interface DemandeAvancement {

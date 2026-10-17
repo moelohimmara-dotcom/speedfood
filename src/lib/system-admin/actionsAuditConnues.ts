@@ -21,6 +21,7 @@ export const ACTIONS_AUDIT_CONNUES = [
   // Questions de sécurité facultatives (écrites par le serveur, voir src/lib/auth/questions-actions.ts).
   "livraison.reglages_modifies",
   "livraison.livreurs_demo_crees",
+  "livraison.livreur_cree",
   "livraison.livreurs_demo_supprimes",
   "livraison.assignee",
   "livraison.statut_modifie",
@@ -88,6 +89,7 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "compte.revocation": "Membre retiré d'une équipe",
   "livraison.reglages_modifies": "Réglages de livraison modifiés",
   "livraison.livreurs_demo_crees": "Livreurs de démonstration créés",
+  "livraison.livreur_cree": "Compte lié à une fiche livreur",
   "livraison.livreurs_demo_supprimes": "Livreurs de démonstration supprimés",
   "livraison.assignee": "Course de livraison affectée à un livreur",
   "livraison.statut_modifie": "Statut de livraison modifié par l'exploitation",

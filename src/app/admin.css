@@ -2942,3 +2942,10 @@ a.ad-carte-lien:hover {
   display: inline-flex;
   gap: var(--space-2);
 }
+.livraison-formulaire-livreur {
+  flex-basis: 100%;
+  display: grid;
+  gap: var(--space-2);
+  max-width: 420px;
+  margin-top: var(--space-4);
+}

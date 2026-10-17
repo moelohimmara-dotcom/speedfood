@@ -1,5 +1,5 @@
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
-import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
+import { roleAPermission, sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerLivreursAdmin } from "@/lib/livraison/admin-lectures";
 import { EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
@@ -21,7 +21,7 @@ export default async function LivreursPage() {
     <div>
       <PageHeader titre="Livreurs" description="Livreurs de démonstration (simulés) : ils répondent seuls aux offres de course. De vrais livreurs viendront après le pilote." />
       <SousNav entrees={sousSectionsAccessibles("Commandes", contexte.role)} />
-      <ActionsLivreurs nombreSimules={livreurs.filter((l) => l.simule).length} />
+      <ActionsLivreurs nombreSimules={livreurs.filter((l) => l.simule).length} peutLierUnCompte={roleAPermission(contexte.role, "parametres.editer")} />
 
       {livreurs.length === 0 ? (
         <div className="ad-panneau">

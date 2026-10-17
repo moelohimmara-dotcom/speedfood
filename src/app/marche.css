@@ -970,3 +970,39 @@
   letter-spacing: 0.35em;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- Console livreur ---- */
+.livreur-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+}
+.livreur-contenu {
+  display: grid;
+  gap: var(--space-4);
+}
+.livreur-titre {
+  margin: 0 0 var(--space-2);
+  font-size: 1.2rem;
+}
+.livreur-ligne {
+  margin: 0 0 var(--space-2);
+}
+.livreur-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+.livreur-compte-a-rebours {
+  margin: 0 0 var(--space-3);
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.livreur-client {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+}

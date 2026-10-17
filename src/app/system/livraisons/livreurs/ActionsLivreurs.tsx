@@ -1,12 +1,41 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { basculerLivreurAction, creerLivreursDemoAction, supprimerLivreursDemoAction, type EtatActionLivraisonAdmin } from "@/lib/system-admin/livraisons";
+import { useActionState, useState, useTransition } from "react";
+import { basculerLivreurAction, creerLivreurPourCompteAction, creerLivreursDemoAction, supprimerLivreursDemoAction, type EtatActionLivraisonAdmin } from "@/lib/system-admin/livraisons";
 import { Alert, Button } from "@/components/ui";
 
-/** Création et suppression des livreurs de démonstration. */
-export function ActionsLivreurs({ nombreSimules }: { nombreSimules: number }) {
+const etatInitial: EtatActionLivraisonAdmin = {};
+
+/** Lier un compte existant à une fiche livreur (super administrateur). */
+function FormulaireLivreurReel() {
+  const [etat, action, enCours] = useActionState(creerLivreurPourCompteAction, etatInitial);
+  return (
+    <form action={action} className="livraison-formulaire-livreur">
+      <h2 className="ad-sous-titre">Créer un livreur avec un vrai compte</h2>
+      <div className="field">
+        <label htmlFor="liv-email">Adresse e-mail du compte</label>
+        <input id="liv-email" name="email" type="email" required autoComplete="off" />
+      </div>
+      <div className="field">
+        <label htmlFor="liv-nom">Nom affiché</label>
+        <input id="liv-nom" name="nom" required minLength={2} maxLength={80} />
+      </div>
+      <div className="field">
+        <label htmlFor="liv-tel">Téléphone (facultatif)</label>
+        <input id="liv-tel" name="telephone" inputMode="tel" maxLength={20} />
+      </div>
+      <Button type="submit" disabled={enCours}>
+        {enCours ? "Création…" : "Créer le livreur"}
+      </Button>
+      {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
+      {etat.succes ? <p className="ad-secondaire" role="status">{etat.succes}</p> : null}
+    </form>
+  );
+}
+
+/** Création et suppression des livreurs de démonstration, et liaison d'un compte réel. */
+export function ActionsLivreurs({ nombreSimules, peutLierUnCompte = false }: { nombreSimules: number; peutLierUnCompte?: boolean }) {
   const router = useRouter();
   const [message, setMessage] = useState<EtatActionLivraisonAdmin | null>(null);
   const [enCours, demarrer] = useTransition();
@@ -31,6 +60,7 @@ export function ActionsLivreurs({ nombreSimules }: { nombreSimules: number }) {
       ) : null}
       {message?.erreur ? <Alert ton="danger">{message.erreur}</Alert> : null}
       {message?.succes ? <p className="ad-secondaire" role="status">{message.succes}</p> : null}
+      {peutLierUnCompte ? <FormulaireLivreurReel /> : null}
     </div>
   );
 }
