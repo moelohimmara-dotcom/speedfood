@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:unit": "node scripts/tests/lancer.mjs",
+    "test:cloisonnement": "node scripts/tests/cloisonnement.mjs",
     "export:donnees": "node scripts/export/exporter.mjs",
     "export:verifier": "node scripts/export/verifier-restauration.mjs",
     "cf:build": "node scripts/verifier-base.mjs && opennextjs-cloudflare build",

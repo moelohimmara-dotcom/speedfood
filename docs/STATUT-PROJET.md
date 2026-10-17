@@ -839,3 +839,5 @@ Décision de la propriétaire (option 1 sur trois) : les **12** restaurants marq
 `docs/PLAN-INCIDENT.md` passe en version 0.2 : sauvegarde existante, retour arrière (identifiants des 7 dernières versions du Worker), outils de diagnostic en lecture seule, retour d'expérience du 15 octobre.
 
 **Non fait.** Chiffrement du disque non confirmé (droits administrateur) ; copie hors machine ; restauration sur un vrai projet Supabase ; contacts du §1 du plan d'incident (informations que seule la propriétaire peut donner).
+
+**Surveillance et cloisonnement (17 octobre 2026, suite).** `docs/SURVEILLANCE.md` : script local en lecture seule (pages publiques toutes les 5 minutes, alerte Windows au deuxième échec, âge de la sauvegarde) ; **testé à la main, la tâche planifiée n'est pas encore installée** (décision de la propriétaire). `docs/TESTS-CLOISONNEMENT.md` : `npm run test:cloisonnement`, 103 contrôles sur les migrations rejouées (A/B/client/anonyme/administrateur/support, 2FA, 21 fonctions privilégiées, gardes structurelles), vérifié à l'envers par sabotage. Il ne remplace ni un essai avec de vrais jetons, ni la relecture des routes serveur.

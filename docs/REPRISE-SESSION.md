@@ -228,3 +228,8 @@ L'audit des deux consoles (super admin et restaurateur) du 15 octobre 2026, pré
 Rappels utiles : le premier clic dans un formulaire du navigateur intégré est souvent ignoré ;
 l'inscription exige une confirmation par e-mail (pour tester, confirmer le compte puis **le supprimer**) ;
 publier un restaurant de test en production est refusé par un garde-fou — ne pas le contourner.
+
+## Tests de cloisonnement et surveillance (17 octobre 2026)
+
+- `npm run test:cloisonnement` (prérequis : `cd supabase/rejeu && npm ci`) : à lancer après toute migration touchant une table, une policy ou une fonction. Une **nouvelle fonction `SECURITY DEFINER` ouverte aux comptes connectés fait échouer le test** tant qu'elle n'est pas déclarée dans `definerConnu` (`scripts/tests/cloisonnement.mjs`) avec son test. Voir `docs/TESTS-CLOISONNEMENT.md`.
+- Surveillance : `scripts/surveillance/` et `docs/SURVEILLANCE.md`. La tâche planifiée « Speedfood - surveillance » n'est installée que si la propriétaire l'a demandé (`installer-tache.ps1`).
