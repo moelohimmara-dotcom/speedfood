@@ -54,7 +54,7 @@ Des livreurs **simulés** (`livreurs.simule = true`, `donnees_demo = true`) parc
 
 | Phase | Contenu | État |
 |---|---|---|
-| **1a. Socle** | Calcul des frais (module pur, testé) ; réglages de livraison en console ; point d'arrivée du client (position ou quartier) ; frais réels à la commande ; mode de livraison du restaurant ; migration | **Code écrit et testé (1 826 contrôles unitaires, 147 de cloisonnement) ; migration `20261017170000` non appliquée ; non déployé ; parcours dans un navigateur non joué** |
+| **1a. Socle** | Calcul des frais (module pur, testé) ; réglages de livraison en console ; point d'arrivée du client (position ou quartier) ; frais réels à la commande ; mode de livraison du restaurant ; migration | **Code écrit et testé (1 826 contrôles unitaires, 147 de cloisonnement) ; migration `20261017170000` **appliquée en production le 17 octobre 2026** (calcul éteint, alertes de sécurité relues : rien d'inattendu) ; code non déployé ; parcours dans un navigateur non joué** |
 | **1b. Livraison et dispatch** | Tables `livreurs`, `livraisons`, `livraison_offres` ; machine à états ; dispatch ; code de remise ; console admin « Livraisons » | À faire |
 | **2. Console livreur et suivi** | `/livreur` (disponibilité, offres, navigation, statuts) ; page de suivi client avec carte et heure estimée ; simulateur de livreurs | À faire |
 | **3. Argent** | Gains par course, espèces encaissées à reverser, commission restaurant, tableau de bord | À faire |
