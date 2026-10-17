@@ -9,9 +9,10 @@ import { RestaurantCard, type PlatCarte } from "@/components/RestaurantCard";
 import { Alert } from "@/components/ui";
 import { StampFraicheur } from "@/components/StampFraicheur";
 import { rechercherCatalogue } from "@/lib/decouverte/recherche";
+import { LIBELLES_TRI, estModeTri, type ModeTri } from "@/lib/decouverte/recommandation";
 import { LIBELLES_GROUPES, ORDRE_GROUPES, type ResultatClasse } from "@/lib/decouverte/classement";
 import { etatRestaurant, libelleDisponibilite } from "@/lib/disponibilite/etat";
-import type { RestaurantCatalogue } from "@/lib/decouverte/recherche";
+import type { ReputationRestaurant, RestaurantCatalogue } from "@/lib/decouverte/recherche";
 import type { Metadata } from "next";
 import { lirePromesse } from "@/lib/parametres/promesse";
 import { lireChiffresEnDirect } from "@/lib/decouverte/chiffres";
@@ -28,6 +29,7 @@ interface Recherche {
   ouvert?: string;
   commandes?: string;
   dispo?: string;
+  tri?: string;
   compte?: string;
 }
 
@@ -67,12 +69,14 @@ export default async function CataloguePage({
     dispo: params.dispo === "1",
   };
 
+  const tri: ModeTri = params.tri && estModeTri(params.tri) ? params.tri : "recommandes";
+
   const supabase = creerClientPublic();
   const [{ data: categories, error: erreurCategories }, { data: quartiers, error: erreurQuartiers }, recherche, base] =
     await Promise.all([
       supabase.from("menu_categories").select("id, nom").order("ordre"),
       supabase.from("neighborhoods").select("id, nom").order("ordre"),
-      rechercherCatalogue({ q, categorie, quartier, filtres }),
+      rechercherCatalogue({ q, categorie, quartier, filtres, tri }),
       // Même recherche sans filtre de cuisine ni de quartier : sert aux compteurs des puces (avec l'autre filtre actif).
       rechercherCatalogue({ q, filtres }),
     ]);
@@ -82,11 +86,11 @@ export default async function CataloguePage({
   const prefectureFiltre = (params.prefecture ?? "").slice(0, 80);
   const regionFiltre = (params.region ?? "").slice(0, 80);
   const zoneFiltre = communeFiltre || prefectureFiltre || regionFiltre;
-  const accueilNu = !q && !categorie && !quartier && !zoneFiltre && !filtres.ouvert && !filtres.commandes && !filtres.dispo;
+  const accueilNu = !q && !categorie && !quartier && !zoneFiltre && !filtres.ouvert && !filtres.commandes && !filtres.dispo && tri === "recommandes";
   const chiffres = accueilNu ? await lireChiffresEnDirect() : null;
 
   const erreur = erreurCategories || erreurQuartiers || recherche.erreur;
-  const etat = { q, categorie, quartier, ...filtres };
+  const etat = { q, categorie, quartier, ...filtres, tri };
   // Commune choisie depuis l'accueil : on garde les restaurants de cette commune, et les plats mis en avant qui en viennent.
   const dansLaZoneFiltree = (r: RestaurantCatalogue) =>
     communeFiltre ? r.communeSlug === communeFiltre : prefectureFiltre ? r.prefectureSlug === prefectureFiltre : r.regionSlug === regionFiltre;
@@ -161,6 +165,19 @@ export default async function CataloguePage({
               Plat disponible
             </Link>
           </div>
+          <nav className="notation-tri" aria-label="Trier les restaurants">
+            <span className="notation-tri-titre">Trier par</span>
+            {(Object.keys(LIBELLES_TRI) as ModeTri[]).map((mode) => (
+              <Link
+                key={mode}
+                href={lien(etat, { tri: mode })}
+                className={`chip ${tri === mode ? "actif" : ""}`}
+                aria-current={tri === mode ? "true" : undefined}
+              >
+                {LIBELLES_TRI[mode]}
+              </Link>
+            ))}
+          </nav>
           </div>
           {/* Illustration vectorielle animée (ordinateur) : une loupe qui passe de plat en plat, en rapport avec la rubrique. */}
           <div className="decouverte-vecteur" aria-hidden="true">
@@ -280,13 +297,13 @@ export default async function CataloguePage({
             <section key={groupe}>
               <h2 className="groupe-resultats-titre">{LIBELLES_GROUPES[groupe]}</h2>
               <div className="grille-restaurants">
-                {duGroupe.map((r) => carte(r, recherche.maintenant))}
+                {duGroupe.map((r) => carte(r, recherche.maintenant, recherche.reputations))}
               </div>
             </section>
           );
         })
       ) : (
-        <div className="grille-restaurants">{ouvertsDabord(resultats).map((r) => carte(r, recherche.maintenant))}</div>
+        <div className="grille-restaurants">{resultats.map((r) => carte(r, recherche.maintenant, recherche.reputations))}</div>
       )}
         </div>
       </div>
@@ -294,15 +311,7 @@ export default async function CataloguePage({
   );
 }
 
-/** Restaurants ouverts aux commandes d'abord, puis en pause, puis fermés ; à égalité, ordre alphabétique (liste sans recherche seulement). */
-function ouvertsDabord(resultats: ResultatClasse<RestaurantCatalogue>[]): ResultatClasse<RestaurantCatalogue>[] {
-  const rang = { ouvert: 0, pause: 1, ferme: 2 } as const;
-  return [...resultats].sort(
-    (a, b) => rang[etatRestaurant(a.restaurant)] - rang[etatRestaurant(b.restaurant)] || a.restaurant.nom.localeCompare(b.restaurant.nom, "fr")
-  );
-}
-
-function carte(resultat: ResultatClasse<RestaurantCatalogue>, maintenant: Date) {
+function carte(resultat: ResultatClasse<RestaurantCatalogue>, maintenant: Date, reputations: Map<string, ReputationRestaurant>) {
   const r = resultat.restaurant;
   const plats: PlatCarte[] = resultat.platsCorrespondants.slice(0, MAX_PLATS_PAR_CARTE).map((p) => ({
     id: p.plat.id,
@@ -321,6 +330,7 @@ function carte(resultat: ResultatClasse<RestaurantCatalogue>, maintenant: Date) 
       couleurAccent={r.couleurAccent}
       couvertureIllustration={r.couvertureIllustration}
       logoIllustration={r.logoIllustration}
+      reputation={reputations.get(r.id)}
       categorie={r.categorie}
       quartier={r.quartier}
       plats={plats}
@@ -336,6 +346,7 @@ interface EtatFiltres {
   ouvert: boolean;
   commandes: boolean;
   dispo: boolean;
+  tri: ModeTri;
 }
 
 /** Lien qui applique des changements aux filtres en conservant tous les autres paramètres. */
@@ -348,6 +359,7 @@ function lien(actuel: EtatFiltres, changements: Partial<EtatFiltres>) {
   if (suivant.ouvert) params.set("ouvert", "1");
   if (suivant.commandes) params.set("commandes", "1");
   if (suivant.dispo) params.set("dispo", "1");
+  if (suivant.tri !== "recommandes") params.set("tri", suivant.tri);
   const chaine = params.toString();
   return chaine ? `/restaurants?${chaine}` : "/restaurants";
 }

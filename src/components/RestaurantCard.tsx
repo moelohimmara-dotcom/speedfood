@@ -3,6 +3,8 @@ import { Badge, Card } from "@/components/ui";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { familleDepuisCategorie, illustrationCouverture, illustrationLogo } from "@/lib/illustrations/automatique";
 import type { Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
+import { NoteResume } from "@/components/notation/NoteResume";
+import type { Pastille } from "@/lib/decouverte/recommandation";
 import { libelleEtatRestaurant, type EtatRestaurant, type LibelleDisponibilite } from "@/lib/disponibilite/etat";
 
 export interface PlatCarte {
@@ -27,6 +29,8 @@ interface RestaurantCardProps {
   /** Illustrations modifiables (console admin), utilisées quand il n'y a ni photo ni logo téléversés. */
   couvertureIllustration?: ModeleIllustration | null;
   logoIllustration?: ModeleIllustration | null;
+  /** Réputation (note publique à partir de 5 avis, pastilles). Absente : rien n'est affiché. */
+  reputation?: { moyenne: number | null; total: number; pastilles: Pastille[] };
 }
 
 /**
@@ -55,6 +59,7 @@ export function RestaurantCard({
   couleurAccent,
   couvertureIllustration,
   logoIllustration,
+  reputation,
 }: RestaurantCardProps) {
   const famille = familleDepuisCategorie(categorie);
   const couverture = couvertureIllustration ?? illustrationCouverture(famille);
@@ -94,6 +99,7 @@ export function RestaurantCard({
             <span className="pastille-categorie" style={{ background: couleurCategorie }} aria-hidden="true" />
             {categorie} · {quartier}
           </p>
+          {reputation ? <NoteResume moyenne={reputation.moyenne} total={reputation.total} pastilles={reputation.pastilles} /> : null}
           <Badge ton={libelleEtat.ton} className={libelleEtat.ton === "succes" ? "boucle" : ""}>
             {libelleEtat.texte}
           </Badge>

@@ -4,13 +4,18 @@ import { validerIllustration, type Illustration } from "@/lib/illustrations/mode
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { etatDisponibilite, scoreFraicheur, type EtatDisponibilite } from "@/lib/disponibilite/etat";
 import { communeDuQuartier } from "@/lib/geographie/quartiers";
+import { etatRestaurant } from "@/lib/disponibilite/etat";
+import { lireSignauxClassement } from "./signaux";
 import {
+  ORDRE_GROUPES,
   classerResultats,
   type FiltresDecouverte,
   type PlatPublic,
   type ResultatClasse,
   type RestaurantClassable,
 } from "./classement";
+import { pastilles, scoresRestaurants, type ModeTri, type Pastille, type ScoreRestaurant } from "./recommandation";
+import { moyenneAffichee } from "@/lib/notation/regles";
 
 /**
  * Recherche publique : restaurants publiés (la RLS de lecture publique ne
@@ -53,6 +58,17 @@ export interface RechercheCatalogue {
   categorie?: string;
   quartier?: string;
   filtres: FiltresDecouverte;
+  /** Mode de tri choisi par le visiteur (« recommandés » par défaut). */
+  tri?: ModeTri;
+}
+
+/** Ce que la carte d'un restaurant affiche de sa réputation (jamais d'identifiant de compte). */
+export interface ReputationRestaurant {
+  /** Moyenne publique, seulement à partir de 5 avis ; sinon `null`. */
+  moyenne: number | null;
+  total: number;
+  pastilles: Pastille[];
+  score: ScoreRestaurant;
 }
 
 /** Plat mis en avant dans le carrousel « Plats du moment » : jamais sans photo, jamais épuisé. */
@@ -70,6 +86,7 @@ export interface PlatVedette {
 export interface ResultatRecherche {
   vedettes: PlatVedette[];
   resultats: ResultatClasse<RestaurantCatalogue>[];
+  reputations: Map<string, ReputationRestaurant>;
   fraicheurHeures: number;
   maintenant: Date;
   erreur: boolean;
@@ -170,20 +187,56 @@ export async function lireCatalogue(
 export async function rechercherCatalogue(recherche: RechercheCatalogue): Promise<ResultatRecherche> {
   const catalogue = await lireCatalogue({ categorie: recherche.categorie, quartier: recherche.quartier });
   if (catalogue.erreur) {
-    return { vedettes: [], resultats: [], fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: true };
+    return { vedettes: [], resultats: [], reputations: new Map(), fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: true };
   }
 
-  const resultats = classerResultats({
+  const classes = classerResultats({
     terme: recherche.q,
     restaurants: catalogue.restaurants,
     platsParRestaurant: catalogue.platsParRestaurant,
     fraicheurHeures: catalogue.fraicheurHeures,
     maintenant: catalogue.maintenant,
     filtres: recherche.filtres,
-  }).slice(0, LIMITE_RESULTATS_AFFICHES);
+  });
+
+  // Note, prix et fréquentation : comparés à TOUS les restaurants lus (pas seulement aux résultats), pour qu'un score ne change pas selon le filtre.
+  const signaux = await lireSignauxClassement(
+    catalogue.restaurants.map((r) => r.id),
+    catalogue.platsParRestaurant
+  );
+  const entrees = catalogue.restaurants.map((r) => signaux.entrees.get(r.id)!);
+  const scores = new Map(scoresRestaurants(entrees, signaux.poids).map((s) => [s.id, s]));
+  const reputations = new Map<string, ReputationRestaurant>();
+  for (const e of entrees) {
+    const score = scores.get(e.id)!;
+    reputations.set(e.id, { moyenne: moyenneAffichee(e.avisSomme, e.avisTotal), total: e.avisTotal, pastilles: pastilles(e, score), score });
+  }
+
+  const tri: ModeTri = recherche.tri ?? "recommandes";
+  const valeurTri = (id: string): number => {
+    const s = scores.get(id)!;
+    return tri === "mieux_notes" ? s.note : tri === "moins_chers" ? s.prix : tri === "populaires" ? s.frequentation : s.global;
+  };
+  // Une recherche par texte garde l'ordre de pertinence existant (« recommandés ») ; sinon le score global ou le tri choisi ordonne
+  // À L'INTÉRIEUR de chaque groupe, les restaurants ouverts d'abord. À égalité, l'ordre d'origine est conservé.
+  const garderPertinence = recherche.q.trim().length > 0 && tri === "recommandes";
+  const rangOuverture = (r: RestaurantCatalogue) => (etatRestaurant(r) === "ouvert" ? 0 : etatRestaurant(r) === "pause" ? 1 : 2);
+  const ordonnes = garderPertinence
+    ? classes
+    : classes
+        .map((c, i) => ({ c, i }))
+        .sort(
+          (a, b) =>
+            ORDRE_GROUPES.indexOf(a.c.groupe) - ORDRE_GROUPES.indexOf(b.c.groupe) ||
+            rangOuverture(a.c.restaurant) - rangOuverture(b.c.restaurant) ||
+            valeurTri(b.c.restaurant.id) - valeurTri(a.c.restaurant.id) ||
+            a.i - b.i
+        )
+        .map((x) => x.c);
+  const resultats = ordonnes.slice(0, LIMITE_RESULTATS_AFFICHES);
 
   const vedettes = choisirVedettes(resultats, catalogue.platsParRestaurant, catalogue.fraicheurHeures, catalogue.maintenant);
-  return { vedettes, resultats, fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: false };
+  return { vedettes, resultats, reputations, fraicheurHeures: catalogue.fraicheurHeures, maintenant: catalogue.maintenant, erreur: false };
 }
 
 const MAX_VEDETTES = 12;

@@ -1,0 +1,42 @@
+/* Notation et classement (docs/NOTATION.md). Noms préfixés `notation-` : le CSS est global. Aucun token redéfini. */
+.notation-resume {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--space-3);
+  font-size: 0.85rem;
+}
+.notation-etoile {
+  color: var(--orange);
+  font-size: 1rem;
+  line-height: 1;
+}
+.notation-resume-valeur {
+  color: var(--encre);
+  font-weight: 700;
+}
+.notation-resume-neutre {
+  color: var(--secondaire);
+}
+.notation-pastille {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--creme);
+  border: 1px solid var(--bordure);
+  color: var(--encre);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.notation-tri {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--space-3);
+}
+.notation-tri-titre {
+  color: var(--secondaire);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
