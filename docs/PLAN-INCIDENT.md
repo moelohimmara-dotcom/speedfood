@@ -111,7 +111,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `c2416b8a-9ed4-4deb-a5b9-f7f8c2704d19` | 16 oct. 09 h 47 | Hub « Mon restaurant » |
 | `53b368e1-6035-4f6e-97ab-97393bf1580a` | 17 oct. 12 h 10 | Correctif de la fiche restaurant et de la file « À traiter » |
 | `0ef48465-1028-49ec-a780-3f71924d81f1` | 17 oct. 12 h 32 | Refonte du bloc « Décision » |
-| `e19ecff0-9281-485f-bfcd-9b93263fcb99` | 17 oct. 13 h 04 | Page Taxonomie et onglets (version en production au 17 octobre) |
+| `e19ecff0-9281-485f-bfcd-9b93263fcb99` | 17 oct. 13 h 04 | Page Taxonomie et onglets |
+| `ff565497-79b5-4b72-9b37-e54dddcc6e97` | 17 oct. 15 h 10 | Mot de passe de 12 caractères, questions de sécurité facultatives (version en production au 17 octobre ; son retour arrière ne défait pas la migration `questions_securite`, sans effet sans le code) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 

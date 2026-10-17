@@ -1,6 +1,6 @@
 # Questions de sécurité (facultatives)
 
-**Version :** 0.1, 17 octobre 2026. **Statut : migration appliquée en production le 17 octobre 2026 (alertes de sécurité relues : rien d'inattendu) ; code non déployé ; parcours dans un navigateur non joué.**
+**Version :** 0.1, 17 octobre 2026. **Statut : migration appliquée en production le 17 octobre 2026 (alertes de sécurité relues : rien d'inattendu) ; **code déployé le 17 octobre 2026 (version `ff565497`) ; porte de secours, blocage, désactivation et retrait administrateur non joués.**
 
 ## Ce que c'est, et ce que ce n'est pas
 
