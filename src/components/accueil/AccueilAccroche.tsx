@@ -6,6 +6,8 @@ import { etatDisponibilite, libelleDisponibilite } from "@/lib/disponibilite/eta
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { FAMILLES_ENVIE, catalogueDeLaRequete, choisirSuggestions, lireAccueil } from "@/lib/site/accueil";
 import { descriptionZone, lireHierarchieZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { lienWhatsAppAssistance } from "@/lib/parametres/assistance-format";
 import { pastille } from "./commun";
 import { promesseDeLaRequete } from "./lectures";
 import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
@@ -16,7 +18,7 @@ import { RechercheLocalite, type OptionLocalite } from "./RechercheLocalite";
  * `lirePromesse()` ; plats suggérés : `lireAccueil()`.
  */
 export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | null }) {
-  const [promesse, donnees, hierarchie, catalogue, scenesActives, positionActive, t] = await Promise.all([
+  const [promesse, donnees, hierarchie, catalogue, scenesActives, positionActive, t, assistance] = await Promise.all([
     promesseDeLaRequete(),
     lireAccueil(),
     lireHierarchieZones(),
@@ -24,6 +26,8 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
     fonctionnaliteActive("scenes_envie_accueil"),
     fonctionnaliteActive("zone_position"),
     lireTextes(),
+    // Une panne de lecture ne doit jamais casser l'accueil : sans réglage, la ligne d'assistance n'apparaît pas.
+    lireReglagesAssistance().catch(() => null),
   ]);
 
   /** « Confirmé il y a 12 min » si le restaurant a confirmé le plat récemment, sinon « Disponibilité à confirmer ». */
@@ -113,6 +117,15 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
           <span className="pub-surligne">{t["accueil.hero.preuve_reponse"]}</span>
         </p>
         <p className="pub-accueil-preuve-ligne">{t["accueil.hero.pilote"]}</p>
+        {assistance?.whatsapp ? (
+          <p className="pub-accueil-preuve-ligne accueil-assistance">
+            Une question ?{" "}
+            <a href={lienWhatsAppAssistance(assistance.whatsapp)} className="lien-texte" target="_blank" rel="noopener noreferrer">
+              Écrivez-nous sur WhatsApp
+              <span className="sr-only"> (ouvre WhatsApp dans un nouvel onglet)</span>
+            </a>
+          </p>
+        ) : null}
       </div>
       <aside className="pub-accueil-envie" aria-label={t["accueil.hero.encart_aria"]}>
         {envies.length > 0 ? (

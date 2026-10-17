@@ -25,7 +25,7 @@
 |---|---|---|
 | Restaurateur de test | `moelohimmara+resto1@gmail.com` (arrive dans votre boîte habituelle) | téléphone, ou Chrome |
 | Administrateur | votre compte habituel | Chrome, autre fenêtre |
-| Client | aucun compte (commande invité) | **fenêtre de navigation privée** (Ctrl+Maj+N) |
+| Client | **un compte client est obligatoire pour commander** (page `/commande` : identification exigée, TDR v0.2 §5.1) : créer `moelohimmara+client1@gmail.com` par `/entrer` | **fenêtre de navigation privée** (Ctrl+Maj+N) |
 
 Notez les heures : elles servent à lire les journaux en cas de problème.
 
@@ -49,8 +49,9 @@ Pour chaque étape : **Attendu** et, à droite, ce que vous constatez (OK, gêne
 9. Après approbation : la fiche publique du restaurant s'ouvre pour un visiteur. **Attendu** : visible dans le catalogue de sa zone, pas ailleurs.
 
 ### D. Le premier client commande (fenêtre privée)
+9 bis. **Créer le compte client** (`/entrer`), confirmer son adresse par le mail reçu, se connecter. **Attendu** : mail de confirmation reçu (spams ?), arrivée sur « Mon compte ». Ce parcours consomme un mail de plus sur la limite de 30 par heure.
 10. Choisir la zone, trouver le restaurant, ajouter des plats au panier. **Attendu** : prix identiques à ceux saisis, total correct, frais de livraison cohérents.
-11. Passer la commande en invité (nom, téléphone, adresse si livraison). Le contrôle anti-robot s'affiche. **Attendu** : commande envoyée, page de suivi ; **copier l'adresse de suivi** (elle est la seule clé de la commande).
+11. Passer la commande connecté (nom, téléphone, adresse si livraison ; préremplis si le compte a déjà des coordonnées). Le contrôle anti-robot s'affiche. **Attendu** : commande envoyée, page de suivi ; **copier l'adresse de suivi** (elle est la seule clé de la commande).
 12. Une seconde commande **depuis le compte du restaurateur** avec `?vue=test` sur la fiche : **Attendu** : marquée « Test », exclue des chiffres.
 
 ### E. Le restaurateur traite

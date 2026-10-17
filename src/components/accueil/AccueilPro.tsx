@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { lireTextes } from "@/lib/cms/textes";
+import { BoutonAssistance } from "@/components/BoutonAssistance";
+import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { FLECHE, pastille } from "./commun";
 
 /** Bande « Espace restaurateurs » : invitation à devenir partenaire (emplacements `accueil.pro.*`). */
 export async function AccueilPro() {
-  const t = await lireTextes();
+  const [t, assistance] = await Promise.all([lireTextes(), lireReglagesAssistance().catch(() => null)]);
   return (
     <section className="pub-conteneur pub-rubrique" aria-labelledby="accueil-pro">
       <div className="pub-bande-pro">
@@ -22,12 +24,15 @@ export async function AccueilPro() {
             <p className="pub-accueil-lead pub-lead-encre">{t["accueil.pro.texte"]}</p>
           </div>
         </div>
-        <Link href="/devenir-partenaire" className="pub-btn pub-btn-clair">
-          {t["accueil.pro.bouton"]}
-          <span className="pub-btn-point" aria-hidden="true">
-            {FLECHE}
-          </span>
-        </Link>
+        <div className="accueil-pro-actions">
+          <Link href="/devenir-partenaire" className="pub-btn pub-btn-clair">
+            {t["accueil.pro.bouton"]}
+            <span className="pub-btn-point" aria-hidden="true">
+              {FLECHE}
+            </span>
+          </Link>
+          <BoutonAssistance numero={assistance?.whatsapp ?? null} className="pub-btn pub-btn-clair" />
+        </div>
       </div>
     </section>
   );
