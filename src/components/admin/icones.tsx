@@ -3,6 +3,11 @@
  * libellé texte porte toujours le sens.
  */
 const CHEMINS: Record<string, React.ReactNode> = {
+  etoile: (
+    <>
+      <path d="M12 3.8l2.5 5.1 5.6.8-4.1 4 1 5.6-5-2.7-5 2.7 1-5.6-4.1-4 5.6-.8L12 3.8z" />
+    </>
+  ),
   tableau: (
     <>
       <rect x="3.5" y="3.5" width="7" height="8" rx="1.5" />

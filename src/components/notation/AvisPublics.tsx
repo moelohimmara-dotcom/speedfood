@@ -1,6 +1,7 @@
 import { lireAvisPublics, libelleEtiquette } from "@/lib/notation/lecture-publique";
 import { SEUIL_AFFICHAGE } from "@/lib/notation/regles";
 import { NoteResume } from "./NoteResume";
+import { SignalerAvis } from "./SignalerAvis";
 
 function Etoiles({ note }: { note: number }) {
   return (
@@ -23,8 +24,8 @@ export async function AvisPublics({ restaurantId }: { restaurantId: string }) {
       <NoteResume moyenne={moyenne} total={total} />
       {moyenne === null ? <p className="notation-aide">La note moyenne s&apos;affiche à partir de {SEUIL_AFFICHAGE} avis.</p> : null}
       <ul className="notation-avis-liste">
-        {avis.map((a, i) => (
-          <li key={i} className="notation-avis-item">
+        {avis.map((a) => (
+          <li key={a.id} className="notation-avis-item">
             <p className="notation-avis-entete">
               <Etoiles note={a.note} /> <strong>{a.prenom}</strong>
               <span className="notation-aide"> · {new Date(a.date).toLocaleDateString("fr-FR", { dateStyle: "medium" })}</span>
@@ -44,6 +45,7 @@ export async function AvisPublics({ restaurantId }: { restaurantId: string }) {
                 <strong>Réponse du restaurant :</strong> {a.reponse}
               </p>
             ) : null}
+            <SignalerAvis avisId={a.id} />
           </li>
         ))}
       </ul>

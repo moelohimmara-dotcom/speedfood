@@ -4,6 +4,7 @@ import { ETIQUETTES, moyenneAffichee } from "./regles";
 
 /** Ce que la fiche publique d'un restaurant montre de ses avis. Jamais d'identifiant de compte ni de numéro de commande. */
 export interface AvisPublic {
+  id: string;
   note: number;
   etiquettes: string[];
   commentaire: string | null;
@@ -33,7 +34,7 @@ export async function lireAvisPublics(restaurantId: string, limite = 10): Promis
       db.from("restaurants").select("avis_somme, avis_total").eq("id", restaurantId).maybeSingle(),
       db
         .from("avis")
-        .select("note, etiquettes, commentaire, statut, prenom_affiche, cree_le, reponse_texte")
+        .select("id, note, etiquettes, commentaire, statut, prenom_affiche, cree_le, reponse_texte")
         .eq("restaurant_id", restaurantId)
         .eq("cible", "restaurant")
         .eq("est_test", false)
@@ -46,7 +47,8 @@ export async function lireAvisPublics(restaurantId: string, limite = 10): Promis
     return {
       moyenne: moyenneAffichee(r.avis_somme ?? 0, r.avis_total ?? 0),
       total: r.avis_total ?? 0,
-      avis: ((lignes ?? []) as { note: number; etiquettes: string[]; commentaire: string | null; statut: string; prenom_affiche: string | null; cree_le: string; reponse_texte: string | null }[]).map((l) => ({
+      avis: ((lignes ?? []) as { id: string; note: number; etiquettes: string[]; commentaire: string | null; statut: string; prenom_affiche: string | null; cree_le: string; reponse_texte: string | null }[]).map((l) => ({
+        id: l.id,
         note: l.note,
         etiquettes: l.etiquettes ?? [],
         // Un commentaire masqué par l'exploitation garde sa note mais n'est plus affiché.

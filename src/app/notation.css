@@ -63,3 +63,9 @@
 .notation-avis-etoiles-vides { color: var(--bordure); }
 .notation-avis-etiquettes { display: flex; flex-wrap: wrap; gap: 6px; }
 .notation-avis-reponse { padding-left: var(--space-3); border-left: 3px solid var(--bordure); color: var(--secondaire); font-size: 0.9rem; }
+.notation-reponse-form { display: grid; gap: var(--space-2); }
+.notation-reponse-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.notation-client { display: grid; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3); border: 1px solid var(--bordure); border-radius: var(--radius-md); }
+.notation-client-ligne { margin: var(--space-3) 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.notation-erreur { margin: 0; color: var(--danger); font-size: 0.9rem; }
+.notation-lien-signaler { justify-self: start; padding: 0; border: 0; background: none; color: var(--secondaire); font-size: 0.8rem; text-decoration: underline; cursor: pointer; }

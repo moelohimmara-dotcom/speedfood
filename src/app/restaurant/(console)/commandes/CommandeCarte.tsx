@@ -14,6 +14,8 @@ import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
 import { BlocLivraison } from "./BlocLivraison";
+import { NoterClient } from "@/components/notation/NoterClient";
+import { noterClientParRestaurantAction } from "@/lib/notation/actions-gestion";
 import type { VueLivraison } from "@/lib/livraison/vues";
 import { useConfirmation } from "@/components/console/ConsoleProviders";
 
@@ -57,6 +59,7 @@ export function CommandeCarte({
   restaurantNom = "Votre restaurant",
   documents = {},
   livraison = null,
+  noteClient = null,
 }: {
   commande: ApercuCommandeRestaurant;
   age?: string;
@@ -67,6 +70,8 @@ export function CommandeCarte({
   documents?: { recu?: string; facture?: string };
   /** Livraison de la commande (si elle a été créée à l'acceptation) : remplace le bouton « Marquer livrée ». */
   livraison?: VueLivraison | null;
+  /** Note privée déjà donnée au client pour cette commande. */
+  noteClient?: { note: number; etiquettes: string[] } | null;
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
@@ -405,6 +410,10 @@ export function CommandeCarte({
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {commande.etatDerive === "terminee" && !commande.estTest ? (
+        <NoterClient initial={noteClient} enregistrer={(note, etiquettes) => noterClientParRestaurantAction(commande.id, note, etiquettes)} />
       ) : null}
 
       {livraison && ["acceptee", "prete"].includes(commande.etatDerive) ? (

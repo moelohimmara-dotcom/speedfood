@@ -196,7 +196,7 @@ verifier("nav : super_admin voit les 6 familles", groupesNavPourRole("super_admi
   "Paramètres",
   "Audit",
 ]);
-verifier("nav : super_admin voit les 20 sous-sections (dont Géographie, Couverture, Liste d'attente, Livraisons et Livreurs)", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 20);
+verifier("nav : super_admin voit les 21 sous-sections (dont Géographie, Couverture, Liste d'attente, Livraisons, Livreurs et Avis)", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 21);
 verifier("nav : operations ne voit ni Commandes ni Paramètres", groupesNavPourRole("operations").map((g) => g.libelle), [
   "Catalogue",
   "Accès",
