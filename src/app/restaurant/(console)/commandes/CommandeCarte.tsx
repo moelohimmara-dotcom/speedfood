@@ -13,6 +13,8 @@ import { libelleMode } from "@/lib/commande/mode";
 import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
+import { BlocLivraison } from "./BlocLivraison";
+import type { VueLivraison } from "@/lib/livraison/vues";
 import { useConfirmation } from "@/components/console/ConsoleProviders";
 
 const LIBELLES_ETAT: Record<EtatDeriveCommande, string> = {
@@ -54,6 +56,7 @@ export function CommandeCarte({
   retardMinutes = null,
   restaurantNom = "Votre restaurant",
   documents = {},
+  livraison = null,
 }: {
   commande: ApercuCommandeRestaurant;
   age?: string;
@@ -62,6 +65,8 @@ export function CommandeCarte({
   restaurantNom?: string;
   /** Numéros des documents déjà établis pour cette commande. */
   documents?: { recu?: string; facture?: string };
+  /** Livraison de la commande (si elle a été créée à l'acceptation) : remplace le bouton « Marquer livrée ». */
+  livraison?: VueLivraison | null;
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
@@ -402,7 +407,11 @@ export function CommandeCarte({
         </div>
       ) : null}
 
-      {commande.etatDerive === "prete" ? (
+      {livraison && ["acceptee", "prete"].includes(commande.etatDerive) ? (
+        <BlocLivraison livraison={livraison} commandePrete={commande.etatDerive === "prete"} />
+      ) : null}
+
+      {commande.etatDerive === "prete" && !livraison ? (
         <div className="cmd-actions">
           <Button type="button" className="cmd-principale" disabled={enCours} onClick={() => traiter("terminee")}>
             {commande.mode === "livraison" ? "Marquer livrée" : commande.mode === "sur_place" ? "Marquer servie" : "Marquer remise au client"}

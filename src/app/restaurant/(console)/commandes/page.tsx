@@ -8,6 +8,8 @@ import { HISTORIQUE_PAS, limiteHistorique } from "@/lib/commande/a-traiter";
 import { Alert } from "@/components/ui";
 import { EtatVide, PageHeader } from "@/components/admin/blocs";
 import { CommandeCarte } from "./CommandeCarte";
+import { livraisonsDesCommandes } from "@/lib/livraison/vues";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -61,6 +63,8 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
   const { data: docs } = affichees.length
     ? await supabase.from("documents_commande").select("order_id, type, numero").in("order_id", affichees.map((c) => c.id))
     : { data: [] as { order_id: string; type: string; numero: string }[] };
+  // Livraisons (lues avec la session du restaurateur : la RLS ne lui montre que les siennes). Table absente = aucune livraison.
+  const livraisons = await livraisonsDesCommandes(supabase as unknown as SupabaseClient, affichees.map((c) => c.id)).catch(() => new Map());
   const documentsDe = (id: string) => {
     const r: { recu?: string; facture?: string } = {};
     for (const d of docs ?? []) {
@@ -92,7 +96,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
             ) : (
               <div className="cmd-liste">
                 {aTraiter.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} />
                 ))}
               </div>
             )}
@@ -105,7 +109,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
               </h2>
               <div className="cmd-liste">
                 {enCours.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} />
                 ))}
               </div>
             </section>
@@ -118,7 +122,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
               </summary>
               <div className="cmd-liste">
                 {historique.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} />
                 ))}
               </div>
               {restantes > 0 ? (

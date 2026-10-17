@@ -9,6 +9,9 @@ import { PanneauPaiement } from "./PanneauPaiement";
 import { RafraichissementAuto } from "./RafraichissementAuto";
 import { FriseSuivi } from "@/components/site/FriseSuivi";
 import { CelebrationCommande } from "@/components/site/CelebrationCommande";
+import { BlocLivraisonClient } from "./BlocLivraisonClient";
+import { clientLivraison } from "@/lib/livraison/lecture";
+import { vueLivraisonPourClient } from "@/lib/livraison/vues";
 
 /**
  * Suivi public d'une commande par jeton opaque (TDR.md §5, ADR-005).
@@ -95,6 +98,25 @@ export async function renderSuiviPage(jeton: string, session = false) {
 
   const totalIndicatif = suivi.sousTotal + suivi.fraisLivraisonEstime;
 
+  // Livraison : lue pour CETTE commande (retrouvée par son jeton) ; une panne ne casse jamais le suivi. En répartition, on fait
+  // d'abord avancer les offres en attente (expiration, réponse des livreurs simulés).
+  let livraison = null;
+  if (suivi.mode === "livraison") {
+    try {
+      const { data: ligne } = await clientLivraison().from("orders").select("id").eq("jeton_suivi", jeton).maybeSingle();
+      if (ligne) {
+        livraison = await vueLivraisonPourClient(ligne.id as string);
+        if (livraison && (livraison.statut === "a_assigner" || livraison.statut === "offre_envoyee")) {
+          const { traiterOffres } = await import("@/lib/livraison/service");
+          await traiterOffres();
+          livraison = await vueLivraisonPourClient(ligne.id as string);
+        }
+      }
+    } catch {
+      livraison = null;
+    }
+  }
+
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
@@ -120,6 +142,8 @@ export async function renderSuiviPage(jeton: string, session = false) {
           </div>
         </div>
       </Card>
+
+      {livraison ? <BlocLivraisonClient livraison={livraison} /> : null}
 
       {suivi.propositionActive ? (
         <PropositionCarte

@@ -390,6 +390,60 @@ await interdit("A ne modifie pas la destination d'une commande", ID.user_a, `upd
 await interdit("A ne rend pas gratuite la livraison d'une commande", ID.user_a, `update orders set livraison_gratuite = true where id = '${CMD_A}'`);
 await autorise("A change toujours le statut de sa commande (garde-fou)", ID.user_a, `update orders set statut = 'refusee' where id = '${CMD_A}'`);
 
+// ---------------------------------------------------------------- 6 quater. livreurs, livraisons, offres, codes de remise
+console.log("\n--- Livreurs et livraisons");
+const U_LIV = "00000000-0000-4000-8000-00000000f001";
+const U_LIV2 = "00000000-0000-4000-8000-00000000f002";
+const LIVREUR_1 = "00000000-0000-4000-8000-0000000000f1";
+const LIVREUR_2 = "00000000-0000-4000-8000-0000000000f2";
+const LIVRAISON_A = "00000000-0000-4000-8000-0000000001a1";
+const LIVRAISON_B = "00000000-0000-4000-8000-0000000001b1";
+await db.exec(`
+  insert into auth.users (id, email) values (${U(U_LIV)}, 'livreur1@test.invalid'), (${U(U_LIV2)}, 'livreur2@test.invalid');
+  insert into livreurs (id, utilisateur_id, nom, statut, latitude, longitude, position_le) values
+    (${U(LIVREUR_1)}, ${U(U_LIV)}, 'Livreur Un', 'en_course', 9.5, -13.7, now()),
+    (${U(LIVREUR_2)}, ${U(U_LIV2)}, 'Livreur Deux', 'disponible', 9.6, -13.6, now());
+  insert into livraisons (id, order_id, restaurant_id, mode, statut, livreur_id) values
+    (${U(LIVRAISON_A)}, '${CMD_A}', ${U(ID.resto_a)}, 'speedfood', 'assignee', ${U(LIVREUR_1)}),
+    (${U(LIVRAISON_B)}, '${CMD_B}', ${U(ID.resto_b)}, 'speedfood', 'offre_envoyee', null);
+  insert into livraison_codes (livraison_id, code) values (${U(LIVRAISON_A)}, '4821'), (${U(LIVRAISON_B)}, '9034');
+  insert into livraison_offres (livraison_id, livreur_id, expire_le) values
+    (${U(LIVRAISON_B)}, ${U(LIVREUR_2)}, now() + interval '1 minute');
+`);
+const nbL = (qui, table) => nb(qui, table);
+verifier("livraisons : le restaurant A voit la sienne, pas celle de B", (await nbL(ID.user_a, "livraisons")) === 1 && VIDE(await nb(ID.user_a, "livraisons", `restaurant_id = ${U(ID.resto_b)}`)));
+verifier("livraisons : le restaurant B voit la sienne seulement", (await nbL(ID.user_b, "livraisons")) === 1 && VIDE(await nb(ID.user_b, "livraisons", `restaurant_id = ${U(ID.resto_a)}`)));
+verifier("livraisons : le livreur 1 voit sa course seulement", (await nbL(U_LIV, "livraisons")) === 1);
+verifier("livraisons : le livreur 2 (sans course) n'en voit aucune", VIDE(await nbL(U_LIV2, "livraisons")));
+verifier("livraisons : le super administrateur et le support voient tout", (await nbL(ID.admin, "livraisons")) === 2 && (await nbL(ID.support, "livraisons")) === 2);
+verifier("livraisons : un client et un anonyme ne voient rien", VIDE(await nbL(ID.client, "livraisons")) && VIDE(await nbL(null, "livraisons")));
+
+verifier("livreurs : le restaurant A voit SON livreur, pas l'autre", (await nbL(ID.user_a, "livreurs")) === 1 && (await nb(ID.user_a, "livreurs", `id = ${U(LIVREUR_1)}`)) === 1);
+verifier("livreurs : le restaurant B ne voit aucun livreur affecté (sa course est encore sans livreur)", VIDE(await nbL(ID.user_b, "livreurs")));
+verifier("livreurs : un livreur ne voit que sa propre fiche", (await nbL(U_LIV, "livreurs")) === 1 && (await nbL(U_LIV2, "livreurs")) === 1);
+verifier("livreurs : l'exploitation voit tous les livreurs", (await nbL(ID.admin, "livreurs")) === 2 && (await nbL(ID.support, "livreurs")) === 2);
+verifier("livreurs : un client et un anonyme ne voient rien", VIDE(await nbL(ID.client, "livreurs")) && VIDE(await nbL(null, "livreurs")));
+
+verifier("offres : le livreur 2 voit son offre", (await nbL(U_LIV2, "livraison_offres")) === 1);
+verifier("offres : le livreur 1 ne voit pas l'offre du livreur 2", VIDE(await nbL(U_LIV, "livraison_offres")));
+verifier("offres : un restaurant ne voit aucune offre (le dispatch ne le regarde pas)", VIDE(await nbL(ID.user_a, "livraison_offres")) && VIDE(await nbL(ID.user_b, "livraison_offres")));
+verifier("offres : l'exploitation les voit", (await nbL(ID.admin, "livraison_offres")) === 1);
+
+for (const [nom, qui] of [["le restaurant A", ID.user_a], ["le restaurant B", ID.user_b], ["le livreur 1", U_LIV], ["le livreur 2", U_LIV2], ["le super administrateur", ID.admin], ["le support", ID.support], ["un client", ID.client], ["un anonyme", null]]) {
+  verifier(`codes de remise : illisibles pour ${nom}`, VIDE(await nbL(qui, "livraison_codes")));
+}
+
+await interdit("A ne modifie pas le statut d'une livraison par l'API", ID.user_a, `update livraisons set statut = 'livree' where id = ${U(LIVRAISON_A)}`);
+await interdit("A ne crée pas de livraison par l'API", ID.user_a, `insert into livraisons (order_id, restaurant_id, mode) values ('${CMD_A}', ${U(ID.resto_a)}, 'propre')`);
+await interdit("le livreur ne marque pas sa course livrée par l'API (le code est exigé côté serveur)", U_LIV, `update livraisons set statut = 'livree' where id = ${U(LIVRAISON_A)}`);
+await interdit("le livreur n'accepte pas une offre par l'API", U_LIV2, `update livraison_offres set statut = 'acceptee' where livreur_id = ${U(LIVREUR_2)}`);
+await interdit("le livreur ne déplace pas sa position par l'API", U_LIV, `update livreurs set latitude = 0.5 where id = ${U(LIVREUR_1)}`);
+await interdit("le livreur ne se met pas disponible par l'API", U_LIV, `update livreurs set statut = 'disponible' where id = ${U(LIVREUR_1)}`);
+await interdit("personne ne crée de livreur par l'API", ID.admin, `insert into livreurs (nom) values ('Intrus')`);
+await interdit("le support ne modifie pas une livraison par l'API", ID.support, `update livraisons set statut = 'annulee' where id = ${U(LIVRAISON_B)}`);
+await interdit("personne ne lit ni n'écrit le code par l'API", ID.admin, `update livraison_codes set code = '0000'`);
+await interdit("un code à 3 chiffres est refusé par la base", ID.admin, `insert into livraison_codes (livraison_id, code) values (${U(LIVRAISON_A)}, '123')`);
+
 // ---------------------------------------------------------------- 7. gardes structurelles : une régression future est signalée ici
 console.log("\n--- Gardes structurelles");
 const sansRls = (await db.query(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows;
@@ -413,7 +467,7 @@ verifier("aucune fonction privilégiée n'est exécutable par un visiteur anonym
 const definerConnu = new Set([
   "fn_admin_definir_illustration", "fn_admin_dossier_restaurant", "fn_admin_lister_plats", "fn_creer_restaurant_et_owner",
   "fn_emettre_document", "fn_est_admin_systeme", "fn_est_membre_restaurant", "fn_fusionner_quartiers", "fn_lister_audit",
-  "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_reinitialisation_simuler", "fn_reinitialiser_application",
+  "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_est_ce_mon_livreur", "fn_mon_restaurant_a_ce_livreur", "fn_reinitialisation_simuler", "fn_reinitialiser_application",
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
 ]);

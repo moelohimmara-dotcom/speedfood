@@ -4,6 +4,7 @@ import { transitionAutorisee, type StatutCommande } from "@/lib/contracts/statut
 import type { EtatDeriveCommande, PropositionRevisee } from "@/lib/contracts/commande";
 import type { ClientCommandeDb } from "./commun";
 import { versStatutCommande } from "./commun";
+import { apresTransitionCommande } from "@/lib/livraison/apres-commande";
 
 /**
  * Transitions de statut de commande (TDR.md §6, statuts.ts).
@@ -103,6 +104,9 @@ export async function appliquerTransitionStatut(
     statutSuivant: vers,
     acteur,
   });
+
+  // Livraison : créée à l'acceptation, annulée au refus ou à l'annulation. Ne fait jamais échouer la transition.
+  await apresTransitionCommande(commande.id, vers);
 }
 
 /**

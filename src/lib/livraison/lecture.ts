@@ -84,7 +84,7 @@ function pointDe(ligne: LignePoint | null | undefined): Point | null {
 }
 
 /** Centre d'un quartier ; à défaut, centre de sa commune. */
-async function pointDuQuartier(db: SupabaseClient, quartierId: string): Promise<Point | null> {
+export async function pointDuQuartier(db: SupabaseClient, quartierId: string): Promise<Point | null> {
   const { data: quartier } = await db.from("neighborhoods").select("latitude, longitude, commune_id").eq("id", quartierId).maybeSingle();
   if (!quartier) return null;
   const direct = pointDe(quartier);
@@ -95,7 +95,7 @@ async function pointDuQuartier(db: SupabaseClient, quartierId: string): Promise<
 }
 
 /** Départ : la position du restaurant ; à défaut, le centre de son quartier. */
-async function pointDuRestaurant(db: SupabaseClient, restaurantId: string): Promise<{ point: Point | null; mode: string }> {
+export async function pointDuRestaurant(db: SupabaseClient, restaurantId: string): Promise<{ point: Point | null; mode: string }> {
   const { data } = await db.from("restaurants").select("latitude, longitude, quartier_id").eq("id", restaurantId).maybeSingle();
   if (!data) return { point: null, mode: "aucune" };
   // Mode de livraison lu à part : tant que la colonne n'existe pas (migration non appliquée), le restaurant garde
