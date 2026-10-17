@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/blocs";
 import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 import { FormulaireQuartier } from "../FormulaireQuartier";
 import { FormulaireZonesDesservies } from "../FormulaireZonesDesservies";
+import { FormulaireLivraisonResto } from "../FormulaireLivraisonResto";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Où je suis, où je livre" };
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: "Où je suis, où je livre" };
 export default async function ZonesPage() {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/profil/zones");
 
-  const { data: restaurant } = await supabase.from("restaurants").select("quartier_id").eq("id", membership.restaurant_id).maybeSingle();
+  const { data: restaurant } = await supabase.from("restaurants").select("quartier_id, latitude, longitude, livraison_mode").eq("id", membership.restaurant_id).maybeSingle();
   if (!restaurant) {
     return null;
   }
@@ -45,6 +46,14 @@ export default async function ZonesPage() {
           groupes={grouperParCommune(quartiers)}
           quartierActuelId={restaurant.quartier_id}
           quartierActuelValide={quartierActuelValide}
+        />
+      </div>
+
+      <div className="profil-section">
+        <FormulaireLivraisonResto
+          mode={restaurant.livraison_mode === "aucune" || restaurant.livraison_mode === "speedfood" ? restaurant.livraison_mode : "propre"}
+          latitude={restaurant.latitude}
+          longitude={restaurant.longitude}
         />
       </div>
 

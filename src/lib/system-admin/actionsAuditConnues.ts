@@ -19,6 +19,7 @@ export const ACTIONS_AUDIT_CONNUES = [
   "compte.invitation",
   "compte.revocation",
   // Questions de sécurité facultatives (écrites par le serveur, voir src/lib/auth/questions-actions.ts).
+  "livraison.reglages_modifies",
   "securite.questions_activees",
   "securite.questions_modifiees",
   "securite.questions_desactivees",
@@ -81,6 +82,7 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "application.reinitialisation": "Application réinitialisée",
   "compte.invitation": "Membre ajouté à une équipe",
   "compte.revocation": "Membre retiré d'une équipe",
+  "livraison.reglages_modifies": "Réglages de livraison modifiés",
   "securite.questions_activees": "Questions de sécurité activées",
   "securite.questions_modifiees": "Questions de sécurité modifiées",
   "securite.questions_desactivees": "Questions de sécurité désactivées",

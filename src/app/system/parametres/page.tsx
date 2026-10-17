@@ -28,6 +28,15 @@ export default async function ParametresSystemePage() {
       <FormulaireParametres parametres={parametres} />
 
       <div style={{ marginTop: "var(--space-6)" }}>
+        <Panneau titre="Livraison">
+          <p style={{ marginTop: 0 }}>Frais de livraison au kilomètre, minimum, gratuité, rayon maximal et temps laissé aux livreurs pour accepter une course.</p>
+          <Link href="/system/parametres/livraison" className="lien-texte">
+            Régler la livraison
+          </Link>
+        </Panneau>
+      </div>
+
+      <div style={{ marginTop: "var(--space-6)" }}>
         <Panneau titre="Zone dangereuse">
           <p style={{ marginTop: 0 }}>
             Remettre toute l&apos;application à l&apos;état neuf avant la mise en production : restaurants, commandes, clients et comptes sont supprimés

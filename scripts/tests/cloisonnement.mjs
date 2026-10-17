@@ -366,6 +366,30 @@ verifier("validation expirée : de nouveau requises", e6.requise === true, JSON.
 const e7 = await etatQuestions(null, {});
 verifier("anonyme : fonction non exécutable", !!e7.erreur, JSON.stringify(e7));
 
+// ---------------------------------------------------------------- 6 ter. livraison (réglages, mode du restaurant, colonnes de la commande)
+console.log("\n--- Livraison");
+const nbReglages = async (qui) => (await lire(qui, "select count(*)::int n from parametres_livraison")).lignes[0]?.n ?? "refus";
+verifier("réglages de livraison : lisibles par le super administrateur", (await nbReglages(ID.admin)) === 1);
+verifier("réglages de livraison : illisibles pour un restaurateur", VIDE(await nbReglages(ID.user_a)));
+verifier("réglages de livraison : illisibles pour le support", VIDE(await nbReglages(ID.support)));
+verifier("réglages de livraison : illisibles pour un client", VIDE(await nbReglages(ID.client)));
+verifier("réglages de livraison : illisibles pour un anonyme", VIDE(await nbReglages(null)));
+await autorise("le super administrateur modifie les réglages de livraison", ID.admin, `update parametres_livraison set base_gnf = 6000 where id = true`);
+await interdit("un restaurateur ne modifie pas les réglages de livraison", ID.user_a, `update parametres_livraison set base_gnf = 1 where id = true`);
+await interdit("le support ne modifie pas les réglages de livraison", ID.support, `update parametres_livraison set base_gnf = 1 where id = true`);
+await interdit("personne ne supprime les réglages de livraison", ID.admin, `delete from parametres_livraison`);
+await interdit("des frais négatifs sont refusés par la base", ID.admin, `update parametres_livraison set base_gnf = -5 where id = true`);
+await interdit("un rayon nul est refusé par la base", ID.admin, `update parametres_livraison set rayon_max_km = 0 where id = true`);
+
+await autorise("A choisit le mode de livraison de son restaurant", ID.user_a, `update restaurants set livraison_mode = 'aucune' where id = ${U(ID.resto_a)}`);
+await interdit("A ne change pas le mode de livraison du restaurant de B", ID.user_a, `update restaurants set livraison_mode = 'aucune' where id = ${U(ID.resto_b)}`);
+await interdit("un mode de livraison inconnu est refusé", ID.user_a, `update restaurants set livraison_mode = 'drone' where id = ${U(ID.resto_a)}`);
+
+await interdit("A ne modifie pas la distance de livraison d'une commande", ID.user_a, `update orders set livraison_distance_m = 1 where id = '${CMD_A}'`);
+await interdit("A ne modifie pas la destination d'une commande", ID.user_a, `update orders set livraison_latitude = 9.5, livraison_longitude = -13.7 where id = '${CMD_A}'`);
+await interdit("A ne rend pas gratuite la livraison d'une commande", ID.user_a, `update orders set livraison_gratuite = true where id = '${CMD_A}'`);
+await autorise("A change toujours le statut de sa commande (garde-fou)", ID.user_a, `update orders set statut = 'refusee' where id = '${CMD_A}'`);
+
 // ---------------------------------------------------------------- 7. gardes structurelles : une régression future est signalée ici
 console.log("\n--- Gardes structurelles");
 const sansRls = (await db.query(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows;

@@ -6,6 +6,7 @@ import { usePanier, usePanierPret, sousTotalPanier, nombreArticlesPanier, prixLi
 import { Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
 import { FormulaireCommande } from "./FormulaireCommande";
+import type { OptionChoix } from "@/components/ui/ListeChoix";
 
 /**
  * Checkout invité (TDR.md §6 « Parcours client », ADR-005) : sans compte,
@@ -23,7 +24,15 @@ export interface CompteCommande {
   prefill: { nom: string; telephone: string; adresse: string } | null;
 }
 
-export function CommandeClient({ cleSiteTurnstile, compte }: { cleSiteTurnstile?: string; compte: CompteCommande }) {
+export function CommandeClient({
+  cleSiteTurnstile,
+  compte,
+  quartiersLivraison,
+}: {
+  cleSiteTurnstile?: string;
+  compte: CompteCommande;
+  quartiersLivraison: OptionChoix[];
+}) {
   const panier = usePanier();
   const pret = usePanierPret();
 
@@ -116,7 +125,7 @@ export function CommandeClient({ cleSiteTurnstile, compte }: { cleSiteTurnstile?
       </h2>
 
       {compte.connecte ? (
-        <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} />
+        <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} quartiersLivraison={quartiersLivraison} />
       ) : (
         <Card className="commande-connexion">
           <p className="commande-connexion-titre">Connectez-vous pour envoyer votre commande</p>

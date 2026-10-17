@@ -1120,6 +1120,10 @@ export type Database = {
           client_user_id: string | null
           cree_le: string
           est_test: boolean
+          livraison_distance_m: number | null
+          livraison_gratuite: boolean
+          livraison_latitude: number | null
+          livraison_longitude: number | null
           frais_livraison_estime: number
           id: string
           jeton_suivi: string
@@ -1144,6 +1148,10 @@ export type Database = {
           client_user_id?: string | null
           cree_le?: string
           est_test?: boolean
+          livraison_distance_m?: number | null
+          livraison_gratuite?: boolean
+          livraison_latitude?: number | null
+          livraison_longitude?: number | null
           frais_livraison_estime?: number
           id?: string
           jeton_suivi: string
@@ -1168,6 +1176,10 @@ export type Database = {
           client_user_id?: string | null
           cree_le?: string
           est_test?: boolean
+          livraison_distance_m?: number | null
+          livraison_gratuite?: boolean
+          livraison_latitude?: number | null
+          livraison_longitude?: number | null
           frais_livraison_estime?: number
           id?: string
           jeton_suivi?: string
@@ -1519,6 +1531,7 @@ export type Database = {
           latitude: number | null
           logo_illustration: Json | null
           logo_url: string | null
+          livraison_mode: string
           longitude: number | null
           mis_a_jour_le: string
           motif_correction: string | null
@@ -1547,6 +1560,7 @@ export type Database = {
           latitude?: number | null
           logo_illustration?: Json | null
           logo_url?: string | null
+          livraison_mode?: string
           longitude?: number | null
           mis_a_jour_le?: string
           motif_correction?: string | null
@@ -1575,6 +1589,7 @@ export type Database = {
           latitude?: number | null
           logo_illustration?: Json | null
           logo_url?: string | null
+          livraison_mode?: string
           longitude?: number | null
           mis_a_jour_le?: string
           motif_correction?: string | null

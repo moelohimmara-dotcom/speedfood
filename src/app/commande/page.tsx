@@ -1,6 +1,7 @@
 import { CommandeClient, type CompteCommande } from "./CommandeClient";
 import { connexionClientActive } from "@/lib/client/reglage";
 import { creerClientServeur } from "@/lib/db/server";
+import { lireHierarchieZones } from "@/lib/site/zones";
 
 /**
  * La clé de site Turnstile est publique mais lue à l'exécution côté serveur (variable du
@@ -37,6 +38,26 @@ async function lireCompte(): Promise<CompteCommande> {
   return { actif, connecte: true, estClient: true, prefill };
 }
 
+/** Quartiers proposés pour la livraison : « Quartier, Commune », triés ; l'identifiant sert à retrouver le centre du quartier côté serveur. */
+async function lireQuartiersLivraison() {
+  try {
+    const hierarchie = await lireHierarchieZones();
+    return hierarchie
+      .flatMap((r) => r.prefectures.flatMap((p) => p.communes))
+      .flatMap((c) => c.quartiers.map((q) => ({ valeur: q.id, libelle: `${q.nom}, ${c.nom}` })))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+  } catch {
+    return [];
+  }
+}
+
 export default async function CommandePage() {
-  return <CommandeClient cleSiteTurnstile={process.env.TURNSTILE_SITE_KEY || undefined} compte={await lireCompte()} />;
+  const [compte, quartiersLivraison] = await Promise.all([lireCompte(), lireQuartiersLivraison()]);
+  return (
+    <CommandeClient
+      cleSiteTurnstile={process.env.TURNSTILE_SITE_KEY || undefined}
+      compte={compte}
+      quartiersLivraison={quartiersLivraison}
+    />
+  );
 }

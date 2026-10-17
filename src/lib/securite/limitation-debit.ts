@@ -62,6 +62,9 @@ export const LIMITE_ECHANGE_SUIVI_PAR_IP: RegleLimite = { nom: "suivi-session-ip
 // « Utiliser ma position » : chaque appel sollicite le service OpenStreetMap, dont la politique d'usage interdit les rafales.
 export const LIMITE_ZONE_POSITION_PAR_IP: RegleLimite = { nom: "zone-position-ip", max: 20, fenetreSecondes: 600 };
 
+// Estimation des frais de livraison à la commande : un calcul par changement de destination, jamais en rafale.
+export const LIMITE_ESTIMATION_LIVRAISON_PAR_IP: RegleLimite = { nom: "livraison-estimation-ip", max: 60, fenetreSecondes: 600 };
+
 // Liste d'attente par zone : un contact est une donnée personnelle, on évite les inscriptions en rafale.
 export const LIMITE_ZONE_ALERTE_PAR_IP: RegleLimite = { nom: "zone-alerte-ip", max: 5, fenetreSecondes: 3600 };
 
@@ -165,6 +168,10 @@ export async function limiterReponseProposition(): Promise<void> {
 
 export async function limiterZonePosition(): Promise<void> {
   await appliquerLimite(LIMITE_ZONE_POSITION_PAR_IP, await adresseClient());
+}
+
+export async function limiterEstimationLivraison(): Promise<void> {
+  await appliquerLimite(LIMITE_ESTIMATION_LIVRAISON_PAR_IP, await adresseClient());
 }
 
 export async function limiterZoneAlerte(): Promise<void> {

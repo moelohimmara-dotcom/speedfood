@@ -6,6 +6,7 @@ import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { recalculerLignes, verifierRestaurantCommandable } from "./calculs";
 import { genererJetonSuivi, genererReference } from "./jetons";
 import { enregistrerEvenementStatut } from "./transitions";
+import { estimerLivraison } from "@/lib/livraison/lecture";
 
 /**
  * Création d'une commande invitée (ADR-005).
@@ -125,6 +126,33 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     );
   }
 
+  // Livraison : frais calculés ICI (distance, réglages de la console), jamais d'après le navigateur. Tant que l'interrupteur
+  // du calcul est éteint, rien ne change : frais à 0, à convenir avec le restaurant, comme avant.
+  let fraisLivraison = 0;
+  let livraisonDistanceM: number | null = null;
+  let livraisonGratuite = false;
+  let livraisonPoint: { latitude: number; longitude: number } | null = null;
+  if (payload.mode === "livraison") {
+    const estimation = await estimerLivraison(payload.restaurantId, payload.destination ?? null, sousTotal);
+    if (estimation.statut === "erreur") {
+      throw new ErreurMetier("VALIDATION", estimation.message, { livraison: estimation.message });
+    }
+    if (estimation.statut === "ok") {
+      // Le client doit avoir vu les bons frais : sinon rien n'est créé et le nouveau montant lui est présenté.
+      if (payload.fraisAffiches !== estimation.fraisGnf) {
+        throw new ErreurMetier(
+          "CONFLIT_ETAT",
+          `Les frais de livraison ont changé : ${estimation.fraisGnf.toLocaleString("fr-FR")} GNF (au lieu de ${(payload.fraisAffiches ?? 0).toLocaleString("fr-FR")} GNF). Vérifiez, puis confirmez de nouveau.`,
+          { fraisServeur: String(estimation.fraisGnf) }
+        );
+      }
+      fraisLivraison = estimation.fraisGnf;
+      livraisonDistanceM = Math.round(estimation.distanceKm * 1000);
+      livraisonGratuite = estimation.gratuite;
+      livraisonPoint = estimation.arrivee;
+    }
+  }
+
   const estTest = await auteurEstDeLEquipe(db, payload.restaurantId, utilisateurId);
 
   // Trois tentatives au cas (rare) où la référence aléatoire serait déjà prise.
@@ -143,9 +171,16 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
         mode: payload.mode,
         table_numero: payload.mode === "sur_place" ? (payload.table ?? null) : null,
         sous_total: sousTotal,
-        // Aucun calcul de livraison : les frais restent à convenir avec le
-        // restaurant (TDR.md §5 exclut tout calcul automatique de livraison).
-        frais_livraison_estime: 0,
+        // Frais calculés par le serveur (voir plus haut) ; 0 tant que le calcul automatique est éteint (frais à convenir).
+        frais_livraison_estime: fraisLivraison,
+        ...(livraisonPoint
+          ? {
+              livraison_latitude: livraisonPoint.latitude,
+              livraison_longitude: livraisonPoint.longitude,
+              livraison_distance_m: livraisonDistanceM,
+              livraison_gratuite: livraisonGratuite,
+            }
+          : {}),
         statut: "en_attente",
         est_test: estTest,
       })

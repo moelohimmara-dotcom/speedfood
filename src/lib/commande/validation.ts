@@ -167,6 +167,33 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     adresse = adresseBrute;
   }
 
+  // Destination de livraison : un point (latitude + longitude) OU un quartier. Le serveur revérifie tout.
+  let destination: CreationCommandePayload["destination"];
+  const dest = (payload as { destination?: { latitude?: unknown; longitude?: unknown; quartierId?: unknown } }).destination;
+  if (mode === "livraison" && dest && typeof dest === "object") {
+    if (typeof dest.latitude === "number" && typeof dest.longitude === "number") {
+      if (!Number.isFinite(dest.latitude) || !Number.isFinite(dest.longitude) || Math.abs(dest.latitude) > 90 || Math.abs(dest.longitude) > 180) {
+        champs.destination = "Position invalide.";
+      } else {
+        // Arrondi à 4 décimales (environ 10 m) : la précision d'un point de livraison n'a pas besoin de plus.
+        destination = { latitude: Math.round(dest.latitude * 1e4) / 1e4, longitude: Math.round(dest.longitude * 1e4) / 1e4 };
+      }
+    } else if (estUuid(dest.quartierId)) {
+      destination = { quartierId: dest.quartierId as string };
+    } else if (dest.latitude !== undefined || dest.longitude !== undefined || dest.quartierId !== undefined) {
+      champs.destination = "Destination de livraison invalide.";
+    }
+  }
+  const fraisBruts = (payload as { fraisAffiches?: unknown }).fraisAffiches;
+  let fraisAffiches: number | undefined;
+  if (fraisBruts !== undefined) {
+    if (typeof fraisBruts !== "number" || !Number.isSafeInteger(fraisBruts) || fraisBruts < 0) {
+      champs.fraisAffiches = "Frais affichés invalides. Rechargez la page.";
+    } else {
+      fraisAffiches = fraisBruts;
+    }
+  }
+
   const sousTotalAffiche = payload.sousTotalAffiche;
   if (typeof sousTotalAffiche !== "number" || !Number.isSafeInteger(sousTotalAffiche) || sousTotalAffiche < 0) {
     champs.sousTotalAffiche = "Total affiché invalide. Rechargez la page.";
@@ -201,6 +228,8 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
       table,
       lignes: lignes.lignes,
       consentementReglement: true,
+      ...(destination ? { destination } : {}),
+      ...(fraisAffiches !== undefined ? { fraisAffiches } : {}),
     },
   };
 }

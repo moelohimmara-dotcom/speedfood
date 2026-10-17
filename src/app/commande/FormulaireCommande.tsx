@@ -15,6 +15,9 @@ import { Button, Input, Alert } from "@/components/ui";
 import { useTableMemorisee } from "@/lib/commande/table-memoire";
 import { lireNumeroTable } from "@/lib/commande/mode";
 import { Turnstile } from "@/components/Turnstile";
+import type { OptionChoix } from "@/components/ui/ListeChoix";
+import type { EstimationPublique } from "@/lib/livraison/actions";
+import { ChoixLivraison, type DestinationChoisie } from "./ChoixLivraison";
 import type { CompteCommande } from "./CommandeClient";
 
 /** Délai au-delà duquel on considère que le défi anti-robot ne sechargera pas (voir la sonde plus bas). */
@@ -25,6 +28,8 @@ interface Props {
   /** Clé de site Turnstile (publique) ; absente = vérification anti-robot désactivée. */
   cleSiteTurnstile?: string;
   compte: CompteCommande;
+  /** Quartiers proposés pour calculer la livraison (identifiant, « Quartier, Commune »). */
+  quartiersLivraison: OptionChoix[];
 }
 
 /**
@@ -35,7 +40,7 @@ interface Props {
  * La validation serveur fait foi ; celle-ci n'est qu'un confort d'affichage.
  * Aucun montant n'est envoyé : le serveur recalcule tout (ADR-006).
  */
-export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) {
+export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiersLivraison }: Props) {
   const router = useRouter();
   const [nom, setNom] = useState(compte.prefill?.nom ?? "");
   const [telephone, setTelephone] = useState(compte.prefill?.telephone ?? "");
@@ -92,7 +97,14 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
   // serveur a signalé un changement de prix : il affiche alors le nouveau total, que le
   // client confirme explicitement en validant de nouveau.
   const [totalServeur, setTotalServeur] = useState<number | null>(null);
-  const totalAffiche = totalServeur ?? sousTotalPanier(panier);
+  const sousTotalAffiche = totalServeur ?? sousTotalPanier(panier);
+  // Livraison : destination et frais calculés par le serveur (ChoixLivraison). Sans calcul actif, les frais restent à convenir.
+  const [livraison, setLivraison] = useState<{ destination: DestinationChoisie | null; estimation: EstimationPublique | null }>({
+    destination: null,
+    estimation: null,
+  });
+  const fraisCalcules = mode === "livraison" && livraison.estimation?.statut === "ok" ? livraison.estimation.fraisGnf : null;
+  const totalAffiche = sousTotalAffiche + (fraisCalcules ?? 0);
 
   function soumettre() {
     const erreurs: Record<string, string> = {};
@@ -105,6 +117,12 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
     }
     if (mode === "livraison" && adresse.trim().length < 5) {
       erreurs.adresse = "L'adresse de livraison est obligatoire.";
+    }
+    if (mode === "livraison" && livraison.estimation?.statut === "erreur") {
+      erreurs.livraison = livraison.estimation.message;
+    }
+    if (mode === "livraison" && livraison.estimation?.statut === "ok" && !livraison.destination) {
+      erreurs.livraison = "Indiquez où livrer.";
     }
     if (mode === "sur_place" && !lireNumeroTable(table)) {
       erreurs.table = "Indiquez votre numéro de table (1 à 10 caractères).";
@@ -128,7 +146,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
 
     const payload: CreationCommandePayload = {
       cleIdempotence,
-      sousTotalAffiche: totalAffiche,
+      sousTotalAffiche,
       restaurantId: panier.restaurantId as string,
       client: {
         nom: nom.trim(),
@@ -145,6 +163,8 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
       })),
       consentementReglement: true,
       jetonVerification: jetonVerification ?? undefined,
+      ...(mode === "livraison" && livraison.destination ? { destination: livraison.destination } : {}),
+      ...(fraisCalcules !== null ? { fraisAffiches: fraisCalcules } : {}),
     };
 
     setErreurGenerale(null);
@@ -173,6 +193,10 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
     const nouveauTotal = Number(erreur.champs?.sousTotalServeur);
     if (erreur.code === "CONFLIT_ETAT" && Number.isSafeInteger(nouveauTotal)) {
       setTotalServeur(nouveauTotal);
+    }
+    // Frais recalculés par le serveur : on redemande l'estimation (nouveau sous-total, donc nouveaux frais éventuels).
+    if (erreur.code === "CONFLIT_ETAT" && erreur.champs?.fraisServeur !== undefined) {
+      setLivraison((l) => ({ ...l, estimation: null }));
     }
     setChamps(erreur.champs ?? {});
     setErreurGenerale(erreur.message);
@@ -249,7 +273,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
           />
           <span className="choix-texte">
             <strong>Livraison</strong>
-            <small>À confirmer avec le restaurant</small>
+            <small>{livraison.estimation?.statut === "ok" ? "Frais calculés selon la distance" : "À confirmer avec le restaurant"}</small>
           </span>
         </label>
       </fieldset>
@@ -266,6 +290,20 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte }: Props) 
           onChange={(e) => setTable(e.target.value)}
           erreur={champs.table}
         />
+      ) : null}
+
+      {mode === "livraison" ? (
+        <ChoixLivraison
+          restaurantId={panier.restaurantId as string}
+          sousTotalGnf={sousTotalAffiche}
+          quartiers={quartiersLivraison}
+          onChange={setLivraison}
+        />
+      ) : null}
+      {mode === "livraison" && champs.livraison ? (
+        <p className="field-error" style={{ marginTop: -8, marginBottom: "var(--space-4)" }}>
+          {champs.livraison}
+        </p>
       ) : null}
 
       {mode === "livraison" ? (

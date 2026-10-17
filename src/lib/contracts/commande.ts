@@ -149,6 +149,13 @@ export interface CreationCommandePayload {
   sousTotalAffiche: number;
   /** Consentement explicite au règlement hors portail et à la confirmation par le restaurant. */
   consentementReglement: boolean;
+  /**
+   * Livraison seulement : où livrer (position partagée, ou quartier dont le centre sert de point d'arrivée).
+   * Le serveur en déduit distance et frais ; rien de cela n'est cru tel quel venant du navigateur.
+   */
+  destination?: { latitude?: number; longitude?: number; quartierId?: string };
+  /** Frais de livraison (GNF, entier) que le client a vus à l'écran ; jamais utilisés comme prix, seulement comparés au calcul serveur. */
+  fraisAffiches?: number;
 }
 
 /** Réponse de la création : le jeton de suivi est la clé d'accès du client à `/suivi/[jeton]`. */

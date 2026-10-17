@@ -2924,3 +2924,9 @@ a.ad-carte-lien:hover {
     padding-inline: 8px;
   }
 }
+
+/* ---- Réglages de livraison : exemples chiffrés ---- */
+.livraison-exemples {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.2rem;
+}

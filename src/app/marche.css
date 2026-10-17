@@ -863,3 +863,45 @@
   margin: var(--space-4) 0 0;
   text-align: center;
 }
+
+/* ---- Commande : où livrer et frais de livraison ---- */
+.commande-livraison {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+.commande-livraison-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.commande-livraison-position {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.commande-livraison-aide {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.commande-livraison-frais {
+  margin: 0;
+}
+
+/* ---- Console restaurateur : qui livre et où ---- */
+.restaurant-livraison-bientot {
+  opacity: 0.6;
+}
+.restaurant-livraison-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
