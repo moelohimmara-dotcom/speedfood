@@ -76,4 +76,4 @@ Pour chaque étape : **Attendu** et, à droite, ce que vous constatez (OK, gêne
 
 ## 4. Critères pour passer à de vrais restaurants
 
-Tout le parcours A à F joué sans blocage ; les e-mails d'inscription arrivent de façon fiable ; au moins une notification arrive sur un vrai téléphone ; la propriétaire donne par écrit, dans la conversation, l'autorisation d'enrôler (et de recevoir de vraies commandes, qui est une autre autorisation) ; le plan d'incident a un contact de secours.
+Tout le parcours A à F joué sans blocage ; les e-mails d'inscription arrivent de façon fiable ; au moins une notification arrive sur un vrai téléphone ; l'autorisation d'enrôler et de recevoir de vraies commandes a été **donnée le 17 octobre 2026** (voir `PROCEDURE-SECURITE.md`, section « Autorisation du 17 octobre 2026 ») ; le plan d'incident a un contact de secours.
