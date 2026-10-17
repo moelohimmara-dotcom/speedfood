@@ -69,9 +69,9 @@ export function InscriptionCompleteForm({ suite }: { suite: string }) {
           label="Mot de passe"
           name="mot_de_passe"
           required
-          minLength={8}
+          minLength={12}
           autoComplete="new-password"
-          placeholder="Au moins 8 caractères"
+          placeholder="Au moins 12 caractères"
         />
       </div>
 
@@ -80,7 +80,7 @@ export function InscriptionCompleteForm({ suite }: { suite: string }) {
           label="Confirmer le mot de passe"
           name="mot_de_passe_confirmation"
           required
-          minLength={8}
+          minLength={12}
           autoComplete="new-password"
           placeholder="Répétez votre mot de passe"
         />

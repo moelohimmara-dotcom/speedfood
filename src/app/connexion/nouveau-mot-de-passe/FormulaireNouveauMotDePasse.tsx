@@ -28,7 +28,7 @@ export function FormulaireNouveauMotDePasse() {
         label="Nouveau mot de passe"
         name="mot_de_passe"
         required
-        minLength={8}
+        minLength={12}
         autoComplete="new-password"
         onChange={(e) => setMotDePasse(e.target.value)}
       />
@@ -36,12 +36,12 @@ export function FormulaireNouveauMotDePasse() {
         label="Confirmer le mot de passe"
         name="confirmation"
         required
-        minLength={8}
+        minLength={12}
         autoComplete="new-password"
         onChange={(e) => setConfirmation(e.target.value)}
       />
       <ul className="criteres" aria-label="Conditions du mot de passe">
-        <Critere ok={motDePasse.length >= 8}>8 caractères au moins</Critere>
+        <Critere ok={motDePasse.length >= 12}>12 caractères au moins</Critere>
         <Critere ok={motDePasse.length > 0 && motDePasse === confirmation}>Les deux champs sont identiques</Critere>
       </ul>
       {etat.erreur ? (

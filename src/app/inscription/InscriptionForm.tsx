@@ -46,7 +46,7 @@ export function InscriptionForm() {
         label="Mot de passe"
         name="mot_de_passe"
         required
-        minLength={8}
+        minLength={12}
         autoComplete="new-password"
       />
       {etat.erreur ? (

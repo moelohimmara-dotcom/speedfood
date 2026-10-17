@@ -52,8 +52,8 @@ export async function inscriptionCompleteAction(
   if (nom.length < 2 || nom.length > 120) {
     return { erreur: "Le nom doit contenir entre 2 et 120 caractères." };
   }
-  if (motDePasse.length < 8) {
-    return { erreur: "Le mot de passe doit contenir au moins 8 caractères." };
+  if (motDePasse.length < 12) {
+    return { erreur: "Le mot de passe doit contenir au moins 12 caractères." };
   }
   if (motDePasse !== motDePasseConfirmation) {
     return { erreur: "Les deux mots de passe ne correspondent pas." };
@@ -222,7 +222,10 @@ function traduireErreurAuth(message: string): string {
     return "Email ou mot de passe incorrect.";
   }
   if (message.includes("Password should be at least")) {
-    return "Le mot de passe doit contenir au moins 8 caractères.";
+    return "Le mot de passe doit contenir au moins 12 caractères.";
+  }
+  if (message.includes("weak") || message.includes("pwned") || message.includes("compromised")) {
+    return "Ce mot de passe est connu dans des fuites de données. Choisissez-en un autre.";
   }
   return "Une erreur est survenue. Réessayez dans un instant.";
 }

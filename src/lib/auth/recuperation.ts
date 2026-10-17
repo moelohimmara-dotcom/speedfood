@@ -53,8 +53,8 @@ export async function nouveauMotDePasseAction(
   const motDePasse = String(formData.get("mot_de_passe") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "");
 
-  if (motDePasse.length < 8) {
-    return { erreur: "Le mot de passe doit contenir au moins 8 caractères." };
+  if (motDePasse.length < 12) {
+    return { erreur: "Le mot de passe doit contenir au moins 12 caractères." };
   }
   if (motDePasse.length > 200) {
     return { erreur: "Le mot de passe est trop long." };
@@ -77,7 +77,7 @@ export async function nouveauMotDePasseAction(
       return { erreur: "Choisissez un mot de passe différent de l'ancien." };
     }
     if (error.message.includes("Password should be at least")) {
-      return { erreur: "Le mot de passe doit contenir au moins 8 caractères." };
+      return { erreur: "Le mot de passe doit contenir au moins 12 caractères." };
     }
     return { erreur: "Impossible de changer le mot de passe pour le moment. Réessayez dans un instant." };
   }
