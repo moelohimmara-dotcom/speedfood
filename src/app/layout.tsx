@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { ConsoleProviders } from "@/components/console/ConsoleProviders";
 import "./globals.css";
 import "./components.css";
+import "./questions.css";
 import "./landing.css";
 import "./catalogue.css";
 import "./marche.css";

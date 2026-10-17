@@ -18,14 +18,15 @@ Les 80 fichiers de `supabase/migrations/` sont rejoués sur une base PostgreSQL 
 
 **Rien n'est touché en production** : aucun compte réel, aucune clé, aucun réseau.
 
-## Ce qui est vérifié (103 contrôles)
+## Ce qui est vérifié (129 contrôles)
 
 1. **Lecture** : pour chaque table privée rattachée à un restaurant (commandes, lignes, historique, propositions, abonnements push, code marchand, identité, scans), A voit ses lignes (garde-fou contre un test creux), jamais celles de B ; B jamais celles de A ; un client connecté et un anonyme ne voient rien.
 2. **Publié / non publié** : l'anonyme voit les restaurants publiés et leur menu, pas les autres ; un restaurateur voit son restaurant non publié, pas celui d'un autre ; l'administrateur voit tout.
 3. **Écriture** : A ne peut ni modifier, ni supprimer, ni créer, ni déplacer vers B (plats, commandes, historique, propositions, fiche, membres, zones) ; personne ne peut s'attribuer un rôle système ; l'anonyme n'écrit nulle part.
 4. **Double authentification** : un compte qui a activé la 2FA perd ses droits en session au mot de passe seul (aal1) et les retrouve en aal2.
 5. **Fonctions privilégiées** (`SECURITY DEFINER`, ouvertes aux comptes connectés) : appelées par un mauvais appelant avec des arguments visant B, elles refusent ou ne renvoient rien de B ; des **contrôles positifs** (le support, l'administrateur) prouvent que les refus ne viennent pas d'une erreur d'appel.
-6. **Gardes structurelles** : toutes les tables du schéma public ont la RLS ; aucune policy ouverte à tous hors catégories et quartiers ; aucune fonction privilégiée pour l'anonyme ; **toute nouvelle fonction privilégiée ouverte aux comptes connectés fait échouer le test** tant qu'elle n'est pas déclarée dans `definerConnu` (et testée).
+6. **Questions de sécurité** : les trois tables sont illisibles et non modifiables par l'API ; l'état d'un compte ne contient ni sel ni empreinte ; une validation de session ne profite pas à un autre compte ; elle expire ; une session renforcée n'a pas à répondre.
+7. **Gardes structurelles** : toutes les tables du schéma public ont la RLS ; aucune policy ouverte à tous hors catégories et quartiers ; aucune fonction privilégiée pour l'anonyme ; **toute nouvelle fonction privilégiée ouverte aux comptes connectés fait échouer le test** tant qu'elle n'est pas déclarée dans `definerConnu` (et testée).
 
 Le test a été vérifié à l'envers : en ajoutant volontairement une policy `using (true)` sur les commandes, une policy de modification ouverte sur le menu et une fonction privilégiée non déclarée, 10 contrôles échouent.
 

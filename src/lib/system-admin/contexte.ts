@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { lireEtatQuestions } from "@/lib/auth/questions-serveur";
 import { estRoleSysteme, roleAPermission, type Permission, type RoleSysteme } from "./permissions";
 
 /**
@@ -49,6 +50,12 @@ export async function chargerContexteSysteme(): Promise<ContexteSysteme | null> 
   // chaque action serveur, même si le proxy était contourné ou en échec.
   const { data: niveau } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (niveau && niveau.nextLevel === "aal2" && niveau.currentLevel !== "aal2") {
+    return null;
+  }
+
+  // Questions de sécurité facultatives : si le compte les a activées et que cette session n'y a pas encore répondu,
+  // aucun rôle système n'est accordé (même garantie que ci-dessus, dans chaque action serveur).
+  if ((await lireEtatQuestions(supabase)).requise) {
     return null;
   }
 

@@ -1693,6 +1693,7 @@ export type Database = {
         Returns: boolean
       }
       fn_generer_code_court: { Args: never; Returns: string }
+      fn_questions_etat: { Args: never; Returns: Json }
       fn_limiter_debit: {
         Args: { p_cle: string; p_fenetre_secondes: number; p_max: number }
         Returns: boolean

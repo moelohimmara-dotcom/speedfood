@@ -18,6 +18,14 @@ export const ACTIONS_AUDIT_CONNUES = [
   "application.reinitialisation",
   "compte.invitation",
   "compte.revocation",
+  // Questions de sécurité facultatives (écrites par le serveur, voir src/lib/auth/questions-actions.ts).
+  "securite.questions_activees",
+  "securite.questions_modifiees",
+  "securite.questions_desactivees",
+  "securite.questions_reinitialisees",
+  "securite.questions_blocage",
+  "securite.code_secours_utilise",
+  "securite.codes_secours_regeneres",
   // Écrit en base par `fn_preparer_suppression_compte` (pas par `journaliserActionSysteme`) :
   // sans cette ligne, la suppression d'un compte est journalisée mais jamais filtrable.
   "compte.suppression",
@@ -73,6 +81,13 @@ export const LIBELLES_ACTIONS_AUDIT: Record<string, string> = {
   "application.reinitialisation": "Application réinitialisée",
   "compte.invitation": "Membre ajouté à une équipe",
   "compte.revocation": "Membre retiré d'une équipe",
+  "securite.questions_activees": "Questions de sécurité activées",
+  "securite.questions_modifiees": "Questions de sécurité modifiées",
+  "securite.questions_desactivees": "Questions de sécurité désactivées",
+  "securite.questions_reinitialisees": "Questions de sécurité retirées par un administrateur",
+  "securite.questions_blocage": "Accès bloqué après trop d'erreurs aux questions de sécurité",
+  "securite.code_secours_utilise": "Code de secours utilisé",
+  "securite.codes_secours_regeneres": "Nouveaux codes de secours générés",
   "compte.suppression": "Compte supprimé",
   "taxonomie.creation": "Catégorie, quartier ou zone créé",
   "taxonomie.modification": "Catégorie, quartier ou zone modifié",

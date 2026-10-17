@@ -2,6 +2,7 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { LIBELLES_ROLES, roleAPermission, sousSectionsAccessibles, type RoleSysteme } from "@/lib/system-admin/permissions";
 import { SuppressionCompte } from "./SuppressionCompte";
+import { ReinitialiserQuestions } from "./ReinitialiserQuestions";
 import { BarreSelectionGroupee, CaseCompte, CaseToutSelectionner } from "./SelectionGroupee";
 import { estCompteDeTest } from "@/lib/system-admin/comptesTest";
 import {
@@ -204,6 +205,11 @@ export default async function ComptesSystemePage({
                       {formaterDateCourte(compte.creeLe)}
                     </td>
                     <td data-label="Actions">
+                      {compte.utilisateurId !== contexte.utilisateurId && roleAPermission(contexte.role, "systeme.roles") ? (
+                        <div className="questions-actions" style={{ marginBottom: "var(--space-2)" }}>
+                          <ReinitialiserQuestions utilisateurId={compte.utilisateurId} email={compte.email} />
+                        </div>
+                      ) : null}
                       {estSupprimable(compte) ? (
                         <SuppressionCompte
                           utilisateurId={compte.utilisateurId}

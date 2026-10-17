@@ -4,13 +4,16 @@ import { lireEtatMfa } from "@/lib/auth/mfa-etat";
 import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
 import { Alert, Card } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
+import { lireEtatQuestions } from "@/lib/auth/questions-serveur";
 import { ActivationMfa } from "./ActivationMfa";
+import { QuestionsSecurite } from "./QuestionsSecurite";
 
 /**
  * Sécurité du compte : activer ou désactiver la double authentification (facultative).
  * Ouverte à tout compte connecté (restaurateur ou administrateur).
  */
-export default async function SecuriteComptePage() {
+export default async function SecuriteComptePage({ searchParams }: { searchParams: Promise<{ secours?: string }> }) {
+  const { secours } = await searchParams;
   const supabase = await creerClientServeur();
   const {
     data: { user },
@@ -21,6 +24,7 @@ export default async function SecuriteComptePage() {
 
   const etat = await lireEtatMfa(supabase);
   const administrateur = await aUnRoleSysteme(supabase, user.id);
+  const questions = await lireEtatQuestions(supabase);
 
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
@@ -48,6 +52,23 @@ export default async function SecuriteComptePage() {
 
       <Card>
         <ActivationMfa actif={etat.actif} facteurId={etat.facteurId} sessionRenforcee={etat.sessionRenforcee} />
+      </Card>
+
+      <h2 style={{ fontSize: "1.1rem", margin: "var(--space-6) 0 var(--space-2)" }}>Questions de sécurité</h2>
+      {secours === "1" ? (
+        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+          Vous êtes entré avec un code de secours : il est maintenant utilisé. Redéfinissez vos questions ou générez de nouveaux codes
+          ci-dessous.
+        </Alert>
+      ) : null}
+      <p className="questions-aide">
+        Deux questions personnelles posées après votre mot de passe, avec des codes de secours si vous les oubliez. <strong>Facultatif.</strong>{" "}
+        C&apos;est une protection de plus pour les pages de l&apos;application, <strong>moins forte</strong> que l&apos;application
+        d&apos;authentification ci-dessus : elle ne protège pas l&apos;accès direct à la base de données. Si vous activez les deux, l&apos;application
+        d&apos;authentification suffit à entrer.
+      </p>
+      <Card>
+        <QuestionsSecurite active={questions.active} requise={questions.requise} codesRestants={questions.codesRestants} />
       </Card>
 
       <h2 style={{ fontSize: "1.1rem", margin: "var(--space-6) 0 var(--space-2)" }}>À savoir avant d&apos;activer</h2>

@@ -114,3 +114,7 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `e19ecff0-9281-485f-bfcd-9b93263fcb99` | 17 oct. 13 h 04 | Page Taxonomie et onglets (version en production au 17 octobre) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
+
+## 9. Compte verrouillé par les questions de sécurité
+
+Si le super administrateur a oublié ses réponses **et** perdu ses codes de secours, personne ne peut le débloquer depuis la console : le retrait se fait en base (requête SQL dans `docs/QUESTIONS-SECURITE.md`, éditeur SQL de Supabase), par une personne ayant cet accès, après vérification de son identité. Noter l'heure UTC, la personne qui a agi et le motif. D'où l'importance d'une deuxième personne ayant accès à Supabase (§1).

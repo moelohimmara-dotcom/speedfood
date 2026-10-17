@@ -317,6 +317,55 @@ await refuse("fn_reinitialiser_application par un restaurateur", ID.user_a, `sel
 await refuse("fn_reinitialiser_application par un administrateur sans jeton valide", ID.admin, `select fn_reinitialiser_application('00000000-0000-4000-8000-000000000001'::uuid, 'motif assez long pour passer')`);
 verifier("les données de test sont intactes après ces tentatives", (await db.query("select count(*)::int n from orders")).rows[0].n === 2 && (await nb(ID.admin, "restaurants")) === 3);
 
+// ---------------------------------------------------------------- 6 bis. questions de sécurité (barrière d'application)
+console.log("\n--- Questions de sécurité");
+const SESSION_OK = "00000000-0000-4000-8000-0000000005e1";
+const SESSION_AUTRE = "00000000-0000-4000-8000-0000000005e2";
+await db.exec(`
+  insert into securite_questions (utilisateur_id, question_1, question_2, sel, empreinte)
+    values (${U(ID.user_a)}, 'premier_ecole', 'surnom_enfance', '00112233445566778899aabbccddeeff', '${"ab".repeat(32)}');
+  insert into securite_codes_secours (utilisateur_id, empreinte) values (${U(ID.user_a)}, '${"cd".repeat(32)}');
+  insert into securite_questions_sessions (session_id, utilisateur_id, valide_jusqu)
+    values ('${SESSION_OK}', ${U(ID.user_a)}, now() + interval '1 hour');
+`);
+for (const t of ["securite_questions", "securite_codes_secours", "securite_questions_sessions"]) {
+  for (const [nom, qui] of [["le titulaire", ID.user_a], ["un autre restaurateur", ID.user_b], ["un client", ID.client], ["un administrateur", ID.admin], ["un anonyme", null]]) {
+    const n = await nb(qui, t);
+    verifier(`${t} : illisible pour ${nom} (seul le serveur à clé de service y accède)`, VIDE(n), `vu : ${n}`);
+  }
+}
+await interdit("le titulaire ne s'écrit pas lui-même une validation de session", ID.user_a, `insert into securite_questions_sessions (session_id, utilisateur_id, valide_jusqu) values ('${SESSION_AUTRE}', ${U(ID.user_a)}, now() + interval '1 day')`);
+await interdit("le titulaire ne retire pas lui-même ses questions par l'API", ID.user_a, `delete from securite_questions where utilisateur_id = ${U(ID.user_a)}`);
+await interdit("un autre compte ne crée pas de questions pour A par l'API", ID.user_b, `insert into securite_questions (utilisateur_id, question_1, question_2, sel, empreinte) values (${U(ID.user_b)}, 'premier_ecole', 'surnom_enfance', '00112233445566778899aabbccddeeff', '${"ab".repeat(32)}')`);
+
+async function etatQuestions(qui, claims) {
+  await db.exec(`select set_config('request.jwt.claims', '${JSON.stringify(claims)}', false), set_config('request.jwt.claim.sub', '${qui ?? ""}', false)`);
+  await db.exec(`set role ${qui === null ? "anon" : "authenticated"}`);
+  try {
+    return (await db.query("select fn_questions_etat() as e")).rows[0].e;
+  } catch (e) {
+    return { erreur: e.message };
+  } finally {
+    await db.exec("reset role");
+  }
+}
+const e1 = await etatQuestions(ID.user_a, { sub: ID.user_a, role: "authenticated", aal: "aal1", session_id: SESSION_AUTRE });
+verifier("session qui n'a pas répondu : les questions sont requises", e1.active === true && e1.requise === true, JSON.stringify(e1));
+verifier("l'état ne contient ni sel ni empreinte", !JSON.stringify(e1).includes("empreinte") && !JSON.stringify(e1).includes("sel") && !JSON.stringify(e1).includes("abab"), JSON.stringify(e1));
+const e2 = await etatQuestions(ID.user_a, { sub: ID.user_a, role: "authenticated", aal: "aal1", session_id: SESSION_OK });
+verifier("session qui a répondu : plus requises", e2.active === true && e2.requise === false, JSON.stringify(e2));
+const e3 = await etatQuestions(ID.user_a, { sub: ID.user_a, role: "authenticated", aal: "aal1" });
+verifier("jeton sans identifiant de session : requises", e3.requise === true, JSON.stringify(e3));
+const e4 = await etatQuestions(ID.user_a, { sub: ID.user_a, role: "authenticated", aal: "aal2", session_id: SESSION_AUTRE });
+verifier("session renforcée par l'application d'authentification : les questions ne sont pas redemandées", e4.requise === false, JSON.stringify(e4));
+const e5 = await etatQuestions(ID.user_b, { sub: ID.user_b, role: "authenticated", aal: "aal1", session_id: SESSION_OK });
+verifier("un autre compte n'hérite pas de la validation d'une session qui n'est pas la sienne", e5.active === false && e5.requise === false, JSON.stringify(e5));
+await db.exec(`update securite_questions_sessions set valide_jusqu = now() - interval '1 minute' where session_id = '${SESSION_OK}'`);
+const e6 = await etatQuestions(ID.user_a, { sub: ID.user_a, role: "authenticated", aal: "aal1", session_id: SESSION_OK });
+verifier("validation expirée : de nouveau requises", e6.requise === true, JSON.stringify(e6));
+const e7 = await etatQuestions(null, {});
+verifier("anonyme : fonction non exécutable", !!e7.erreur, JSON.stringify(e7));
+
 // ---------------------------------------------------------------- 7. gardes structurelles : une régression future est signalée ici
 console.log("\n--- Gardes structurelles");
 const sansRls = (await db.query(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows;
@@ -340,7 +389,7 @@ verifier("aucune fonction privilégiée n'est exécutable par un visiteur anonym
 const definerConnu = new Set([
   "fn_admin_definir_illustration", "fn_admin_dossier_restaurant", "fn_admin_lister_plats", "fn_creer_restaurant_et_owner",
   "fn_emettre_document", "fn_est_admin_systeme", "fn_est_membre_restaurant", "fn_fusionner_quartiers", "fn_lister_audit",
-  "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_reinitialisation_simuler", "fn_reinitialiser_application",
+  "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_reinitialisation_simuler", "fn_reinitialiser_application",
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
 ]);

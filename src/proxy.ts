@@ -101,6 +101,23 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Questions de sécurité (facultatives) : même principe, pour les comptes qui les ont activées et sans application
+  // d'authentification. Une page ne s'affiche pas tant que la session n'a pas répondu ; chaque page et chaque action
+  // serveur le revérifient (src/lib/auth/contexte.ts et src/lib/system-admin/contexte.ts).
+  if (user && (cheminProtege || cheminSysteme)) {
+    const { data: etatQuestions, error: erreurQuestions } = await supabase.rpc("fn_questions_etat");
+    const requise = !erreurQuestions
+      ? (etatQuestions as { requise?: boolean } | null)?.requise === true
+      : erreurQuestions.code !== "PGRST202" && erreurQuestions.code !== "42883";
+    if (requise) {
+      const urlQuestions = request.nextUrl.clone();
+      urlQuestions.pathname = "/connexion/questions";
+      urlQuestions.search = "";
+      urlQuestions.searchParams.set("suite", request.nextUrl.pathname);
+      return NextResponse.redirect(urlQuestions);
+    }
+  }
+
   return reponse;
 }
 

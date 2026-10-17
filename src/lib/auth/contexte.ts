@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/db/server";
+import { lireEtatQuestions } from "./questions-serveur";
 
 /**
  * Vérifie que l'utilisateur est connecté et rattaché à un restaurant, redirige
@@ -20,6 +21,11 @@ export async function obtenirContexteRestaurant(cheminActuel: string) {
 
   if (!user) {
     redirect(`/connexion?suite=${encodeURIComponent(cheminActuel)}`);
+  }
+
+  // Questions de sécurité facultatives : à répondre une fois par session si le compte les a activées.
+  if ((await lireEtatQuestions(supabase)).requise) {
+    redirect(`/connexion/questions?suite=${encodeURIComponent(cheminActuel)}`);
   }
 
   const { data: membership } = await supabase
