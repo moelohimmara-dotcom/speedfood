@@ -12,6 +12,9 @@ import { CelebrationCommande } from "@/components/site/CelebrationCommande";
 import { BlocLivraisonClient } from "./BlocLivraisonClient";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { vueLivraisonPourClient } from "@/lib/livraison/vues";
+import { creerClientServeur } from "@/lib/db/server";
+import { etatNotationClient } from "@/lib/notation/service";
+import { BlocNotation } from "./BlocNotation";
 
 /**
  * Suivi public d'une commande par jeton opaque (TDR.md §5, ADR-005).
@@ -117,6 +120,19 @@ export async function renderSuiviPage(jeton: string, session = false) {
     }
   }
 
+  // Notation : proposée au propriétaire de la commande (compte connecté) une fois la commande terminée. Une panne n'affecte pas le suivi.
+  let notation = null;
+  if (suivi.etatDerive === "terminee" && !suivi.estTest) {
+    try {
+      const {
+        data: { user },
+      } = await (await creerClientServeur()).auth.getUser();
+      if (user) notation = await etatNotationClient(jeton, user.id);
+    } catch {
+      notation = null;
+    }
+  }
+
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
@@ -144,6 +160,10 @@ export async function renderSuiviPage(jeton: string, session = false) {
       </Card>
 
       {livraison ? <BlocLivraisonClient livraison={livraison} /> : null}
+
+      {notation?.notable ? (
+        <BlocNotation jeton={jeton} restaurantNom={notation.restaurantNom} restaurant={notation.restaurant} livreur={notation.livreur} />
+      ) : null}
 
       {suivi.propositionActive ? (
         <PropositionCarte

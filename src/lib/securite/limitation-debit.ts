@@ -177,3 +177,10 @@ export async function limiterEstimationLivraison(): Promise<void> {
 export async function limiterZoneAlerte(): Promise<void> {
   await appliquerLimite(LIMITE_ZONE_ALERTE_PAR_IP, await adresseClient());
 }
+
+// Notes d'avis : quelques dizaines par heure suffisent largement à un client réel.
+export const LIMITE_NOTATION_PAR_IP: RegleLimite = { nom: "notation-ip", max: 30, fenetreSecondes: 3600 };
+
+export async function limiterNotation(): Promise<void> {
+  await appliquerLimite(LIMITE_NOTATION_PAR_IP, await adresseClient());
+}

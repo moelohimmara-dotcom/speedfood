@@ -40,3 +40,26 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* Formulaire de notation du suivi */
+.notation-titre { margin: 0 0 var(--space-3); font-size: 1.15rem; }
+.notation-groupe { border: 1px solid var(--bordure); border-radius: var(--radius-md); padding: var(--space-3); margin: 0 0 var(--space-3); display: grid; gap: var(--space-3); }
+.notation-groupe legend { font-weight: 700; padding: 0 6px; }
+.notation-etoiles { display: flex; gap: 4px; }
+.notation-bouton-etoile { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--bordure); font-size: 2rem; line-height: 1; cursor: pointer; }
+.notation-bouton-etoile-pleine { color: var(--orange); }
+.notation-bouton-etoile:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
+.notation-etiquettes { display: flex; flex-wrap: wrap; gap: 8px; }
+.notation-aide { margin: 0; color: var(--secondaire); font-size: 0.85rem; }
+.notation-commentaire { width: 100%; padding: var(--space-3); border: 1px solid var(--bordure); border-radius: var(--radius-sm); font: inherit; resize: vertical; }
+
+/* Avis publics sur la fiche */
+.notation-avis { margin: var(--space-5) 0; }
+.notation-avis-titre { margin: 0 0 var(--space-2); font-size: 1.2rem; }
+.notation-avis-liste { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: grid; gap: var(--space-3); }
+.notation-avis-item { border: 1px solid var(--bordure); border-radius: var(--radius-md); padding: var(--space-3); background: var(--surface); display: grid; gap: 6px; }
+.notation-avis-item p { margin: 0; }
+.notation-avis-etoiles { color: var(--orange); letter-spacing: 1px; }
+.notation-avis-etoiles-vides { color: var(--bordure); }
+.notation-avis-etiquettes { display: flex; flex-wrap: wrap; gap: 6px; }
+.notation-avis-reponse { padding-left: var(--space-3); border-left: 3px solid var(--bordure); color: var(--secondaire); font-size: 0.9rem; }

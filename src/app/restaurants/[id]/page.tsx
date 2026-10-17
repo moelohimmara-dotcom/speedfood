@@ -7,6 +7,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { lireVueFiche } from "@/lib/restaurant/vue-fiche";
 import { BandeauApercuFiche } from "@/components/restaurant/BandeauApercuFiche";
 import { Alert } from "@/components/ui";
+import { AvisPublics } from "@/components/notation/AvisPublics";
 import { LienRetour } from "@/components/LienRetour";
 import { VignettePlat } from "@/components/VignettePlat";
 import { ResumePanierFiche } from "@/components/ResumePanierFiche";
@@ -330,6 +331,8 @@ export default async function FicheRestaurantPage({
         )}
       </section>
       ) : null}
+
+      <AvisPublics restaurantId={restaurant.id} />
 
       {etatResto === "ferme" ? (
         <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
