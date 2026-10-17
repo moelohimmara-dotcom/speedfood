@@ -67,7 +67,7 @@ Sans argument, vérifie l'export le plus récent ; avec un chemin, celui-ci. L'o
 2. reconstruit une base jetable en mémoire (PGlite, sans Docker, sans compte, sans coût) avec toutes les migrations ;
 3. y recharge l'export, compare le nombre de lignes de chaque table et vérifie que rien ne pointe dans le vide.
 
-Il doit se terminer par **« RESTAURATION VÉRIFIÉE »**. Tout autre résultat signifie que l'export n'est pas fiable : relancer
+Il doit se terminer par **« RESTAURATION VÉRIFIÉE »**. Prérequis, une seule fois : `cd supabase/rejeu && npm ci` (une seule dépendance, figée par son fichier de verrouillage ; sans elle l'outil répond « PGlite absent »). Tout autre résultat signifie que l'export n'est pas fiable : relancer
 l'export, et si cela se reproduit, alerter Malika. **À faire au moins une fois par mois, et après toute migration.**
 
 ## 6. La tâche planifiée
@@ -165,3 +165,10 @@ enregistrés tels quels dans `orders.jeton_suivi`).
 Fichiers : `scripts/export/exporter.mjs`, `scripts/export/verifier-restauration.mjs`, `scripts/export/lancer-export.cmd`. Garder :
 lecture seule, aucune donnée affichée, rotation à 4 exports, écriture hors du dépôt. Après modification : faire un export,
 puis `npm run export:verifier`, puis consigner le résultat dans `STATUT-PROJET.md`.
+
+## 9. Pièges payés
+
+- **17 octobre 2026 : la tâche hebdomadaire échouait depuis le 11 octobre** (« NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définies dans .env.local », code 1). Le journal l'avait enregistré, mais personne ne le lisait : **le dernier export réussi datait du 7 octobre**.
+  La règle du §6 (« si le dernier dossier date de plus de 8 jours, il y a un problème ») n'est appliquée que si quelqu'un la regarde. Contrôle rapide : `Get-ScheduledTaskInfo -TaskName "Speedfood - export hebdomadaire"` doit donner un résultat 0 et une dernière exécution de moins de 8 jours.
+- Un export réussi aussi à la main (`npm run export:donnees`) ajoute un dossier et supprime le plus ancien : ne pas en enchaîner plusieurs pour rien, la rotation à 4 exports efface les anciens.
+- **Disque chiffré** : sous Windows, la propriété `System.Volume.BitLockerProtection` du disque système a renvoyé le code 2 le 17 octobre 2026, ce qui ne permet pas de conclure sans droits administrateur. À confirmer dans Paramètres, Confidentialité et sécurité, Chiffrement de l'appareil.

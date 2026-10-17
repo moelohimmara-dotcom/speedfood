@@ -830,3 +830,12 @@ Détail, commits et versions par étape : `docs/audit-2026-10-15-consoles/README
 ## 17 octobre 2026 : restaurants de démonstration dépubliés
 
 Décision de la propriétaire (option 1 sur trois) : les **12** restaurants marqués `donnees_demo` (et non 13) étaient publiés, ouverts, sans responsable : une commande passée chez l'un d'eux n'aurait été vue par personne. Ils sont dépubliés (`publie = false`), rien n'est supprimé. Vérifié : en base, 2 restaurants publiés (« barbie », « barbie food »), 0 démonstration publiée ; le catalogue public ne cite plus aucun restaurant de démonstration. Modification faite par une requête SQL (la console n'a pas d'action « dépublier » : « demander une correction » et « suspendre » ont d'autres sens), donc **sans entrée dans le journal d'audit**. Rétablissement : voir `docs/REPRISE-SESSION.md` § 8, point 8. **« barbie » aussi dépublié** (restaurant d'essai du 27 septembre, sans responsable, 2 commandes restées « en attente » non touchées), sur décision de la propriétaire. Il ne reste qu'**un** restaurant publié : « barbie food ». Même remarque : requête SQL, pas d'entrée d'audit.
+
+## 17 octobre 2026 (suite) : sauvegarde renouvelée et restauration prouvée, plan d'incident mis à jour
+
+**Découvert.** La tâche d'export hebdomadaire échouait depuis le 11 octobre (variables absentes à cette date) : le dernier export réussi datait du 7 octobre, soit 10 jours. Aucune alerte ne l'avait signalé.
+
+**Fait.** Export de la production (40 tables, 3 comptes, 1 fichier du stockage) ; vérification : **RESTAURATION VÉRIFIÉE** (lignes identiques, 0 ligne orpheline, base jetable en mémoire) ; tâche planifiée relancée, résultat 0, prochaine exécution le 18 octobre à 20 h ; l'export n'est pas dans OneDrive. Outil de vérification installé par `cd supabase/rejeu && npm ci` (une dépendance figée, 0 vulnérabilité).
+`docs/PLAN-INCIDENT.md` passe en version 0.2 : sauvegarde existante, retour arrière (identifiants des 7 dernières versions du Worker), outils de diagnostic en lecture seule, retour d'expérience du 15 octobre.
+
+**Non fait.** Chiffrement du disque non confirmé (droits administrateur) ; copie hors machine ; restauration sur un vrai projet Supabase ; contacts du §1 du plan d'incident (informations que seule la propriétaire peut donner).
