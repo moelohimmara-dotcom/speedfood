@@ -15,11 +15,14 @@ import {
   archiverLivreur,
   creerFicheEtLien,
   genererLien,
+  lireDossier,
   lireReglagesLivreurs,
   reactiverLivreur,
   refuserLivreur,
+  supprimerDossier,
   suspendreLivreur,
   telephonesDesFiches,
+  type DossierLivreur,
   type LienCree,
 } from "@/lib/livraison/livreurs-service";
 import { clientLivraison } from "@/lib/livraison/lecture";
@@ -204,4 +207,24 @@ export async function archiverLivreurAction(livreurId: string, motif: string): P
   await journaliserActionSysteme(contexte, { action: "livreur.archive", cibleType: "livreur", cibleId: livreurId, motif: m.motif });
   revalidatePath("/system/livraisons/livreurs");
   return { succes: "Fiche archivée." };
+}
+
+/**
+ * Consultation du dossier (pièce d'identité, contact d'urgence) : réservée au SUPER ADMINISTRATEUR (`parametres.editer`), comme la
+ * lecture en base. Chaque consultation est journalisée AVANT d'afficher quoi que ce soit (sans le contenu du dossier).
+ */
+export async function consulterDossierLivreurAction(livreurId: string): Promise<{ erreur?: string; dossier?: DossierLivreur | null }> {
+  const contexte = await verifierPermission("parametres.editer");
+  if (!estUuid(livreurId)) return { erreur: "Fiche invalide." };
+  await journaliserActionSysteme(contexte, { action: "livreur.dossier_consulte", cibleType: "livreur", cibleId: livreurId });
+  return { dossier: await lireDossier(livreurId) };
+}
+
+export async function supprimerDossierLivreurAction(livreurId: string): Promise<EtatActionFiche> {
+  const contexte = await verifierPermission("parametres.editer");
+  if (!estUuid(livreurId)) return { erreur: "Fiche invalide." };
+  if (!(await supprimerDossier(livreurId))) return { erreur: "Aucun dossier à supprimer." };
+  await journaliserActionSysteme(contexte, { action: "livreur.dossier_supprime", cibleType: "livreur", cibleId: livreurId });
+  revalidatePath("/system/livraisons/livreurs");
+  return { succes: "Dossier supprimé." };
 }

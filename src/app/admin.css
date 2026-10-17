@@ -3049,3 +3049,16 @@ a.ad-carte-lien:hover {
   gap: var(--space-2);
   margin-bottom: var(--space-3);
 }
+
+.livreurs-dossier {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+.livreurs-dossier dt {
+  font-weight: 700;
+}
+.livreurs-dossier dd {
+  margin: 0;
+}

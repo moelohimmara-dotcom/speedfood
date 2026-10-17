@@ -30,6 +30,8 @@ export interface LivreurAdmin {
   motifCycle: string | null;
   /** Fin de validité du lien d'activation en cours (fiche « invitée »), sinon `null`. */
   lienValideJusqu: string | null;
+  /** Un dossier (pièce, contact d'urgence) existe pour cette fiche. */
+  aDossier: boolean;
   vehicule: string;
   statut: "hors_ligne" | "disponible" | "en_course";
   simule: boolean;
@@ -111,6 +113,8 @@ export async function listerLivreursAdmin(): Promise<LivreurAdmin[]> {
     .select("livreur_id, expire_le")
     .is("utilise_le", null)
     .gt("expire_le", new Date().toISOString());
+  const { data: dossiers } = await db.from("livreur_dossiers").select("livreur_id");
+  const avecDossier = new Set(((dossiers ?? []) as Array<{ livreur_id: string }>).map((d) => d.livreur_id));
   const lienParLivreur = new Map(((liens ?? []) as Array<{ livreur_id: string; expire_le: string }>).map((l) => [l.livreur_id, l.expire_le]));
   return ((data ?? []) as Array<{
     id: string;
@@ -131,6 +135,7 @@ export async function listerLivreursAdmin(): Promise<LivreurAdmin[]> {
     cycle: l.cycle,
     motifCycle: l.motif_cycle,
     lienValideJusqu: lienParLivreur.get(l.id) ?? null,
+    aDossier: avecDossier.has(l.id),
     vehicule: l.vehicule,
     statut: l.statut,
     simule: l.simule,

@@ -75,4 +75,6 @@ Dans `/system/parametres/livraison`, section **Livreurs** :
 
 **Migration appliquée en production le 17 octobre 2026** (alertes de sécurité relues : seule la table des liens, sans règle d'accès, est ajoutée). Rappel : appliquer la migration `20261017220000_livreurs_cycle_dossiers.sql` (le code lit `livreurs.cycle`) et lancer `get_advisors`. Les livreurs de démonstration existants passent « actifs » par défaut.
 
-**Pas encore fait** : écran de lecture du dossier (pièce, contact d'urgence) par le super administrateur ; dépôt de scans de documents ; suppression automatique du dossier d'un livreur archivé (12 mois, à confirmer) ; notification d'un livreur dont la fiche est approuvée (il doit revenir sur `/livreur`).
+**Fait ensuite (code écrit, non déployé)** : « Voir le dossier » et « Supprimer le dossier » pour le super administrateur (consultation journalisée avant affichage, sans le contenu).
+
+**Pas encore fait** : dépôt de scans de documents ; suppression **automatique** du dossier d'un livreur archivé (12 mois, à confirmer) ; notification d'un livreur dont la fiche est approuvée (il doit revenir sur `/livreur`).

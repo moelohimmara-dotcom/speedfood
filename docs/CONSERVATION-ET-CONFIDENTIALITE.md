@@ -16,6 +16,9 @@ Relevé fait dans le schéma de production le 3 octobre 2026 (colonnes dont le n
 | Contenu de la commande | `order_items`, `order_item_options` | Le client | Peu (plats et prix) |
 | Email des restaurateurs et du personnel | `auth.users` (Supabase Auth) | La personne | Oui |
 | Motifs de modération, suspension, accès | `audit_events.motif`, `restaurants.motif_correction`, `restaurants.suspendu_motif` | Le personnel Speedfood | Peu, mais ne doit jamais contenir de téléphone ni d'adresse |
+| Nom, téléphone, véhicule d'un livreur | `livreurs` | L'exploitation, à la création de la fiche | Oui (personnelle) |
+| Pièce d'identité (type, numéro) et contact d'urgence d'un livreur | `livreur_dossiers` | Le livreur, à l'activation, **seulement si la console l'exige** | **Oui, sensible** : lisible par le seul super administrateur, chaque consultation est journalisée |
+| Position d'un livreur | `livreurs.latitude`, `longitude` (dernière position seulement) | Son téléphone, tant qu'il est en ligne | Oui : écrasée à chaque envoi, jamais historisée |
 | Compteurs de limitation de débit | `rate_limits` | Calculé | Non : empreintes irréversibles, effacées par un nettoyage opportuniste (au bout d'un jour ou plus selon le trafic) |
 | Photos et logos | stockage `medias` | Les restaurants | Non personnelles (à ne pas y mettre de visages sans accord) |
 
@@ -35,6 +38,8 @@ Hébergement : base Supabase en Irlande (`eu-west-1`), application sur Cloudflar
 | Journal d'audit | 12 mois | Traçabilité des actions sensibles ; ne contient pas de coordonnées client |
 | Email d'un compte restaurateur | Tant que le compte existe ; effacé à la fermeture du compte sur demande | Nécessaire pour se connecter |
 | Compte de test | Supprimé dès la fin du test (c'est déjà la règle) | |
+| Dossier d'un livreur (pièce, contact d'urgence) | **Supprimé 12 mois après l'archivage de la fiche** (proposition, à valider) ; suppression à la main possible à tout moment par le super administrateur (« Voir le dossier », « Supprimer le dossier ») | Donnée sensible : ne pas la garder plus que nécessaire. **La suppression automatique n'est pas encore faite** : en attendant, à effectuer à la main |
+| Fiche d'un livreur archivée (nom, téléphone) | Conservée tant que des courses y sont rattachées (historique et comptes) | Une fiche avec des courses n'est jamais supprimée |
 
 **Décision de Malika (3 octobre 2026) : 90 jours retenus, réglables** dans `/system/parametres` (§6). Si un restaurateur a besoin de retrouver un client plus longtemps, c'est à lui de le noter lui-même, hors Speedfood.
 

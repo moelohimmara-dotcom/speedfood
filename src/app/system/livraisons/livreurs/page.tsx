@@ -124,7 +124,14 @@ export default async function LivreursPage({ searchParams }: { searchParams: Pro
                     {l.aPosition && l.positionLe ? `Mise à jour ${ancienneteLisible(new Date(l.positionLe), maintenant)}` : "Inconnue"}
                   </td>
                   <td data-label="Actions">
-                    <ActionsFiche livreurId={l.id} nom={l.nom} cycle={l.cycle} enCourse={l.statut === "en_course"} />
+                    <ActionsFiche
+                      livreurId={l.id}
+                      nom={l.nom}
+                      cycle={l.cycle}
+                      enCourse={l.statut === "en_course"}
+                      aDossier={l.aDossier}
+                      peutVoirDossier={roleAPermission(contexte.role, "parametres.editer")}
+                    />
                   </td>
                 </tr>
               ))}

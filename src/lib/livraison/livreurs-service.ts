@@ -209,3 +209,28 @@ export async function fichePourJeton(jeton: string, db: SupabaseClient = clientL
   const fiche = Array.isArray(l) ? l[0] : l;
   return fiche && fiche.cycle === "invite" && !fiche.utilisateur_id ? { nom: fiche.nom } : null;
 }
+
+export interface DossierLivreur {
+  pieceType: string | null;
+  pieceNumero: string | null;
+  urgenceNom: string | null;
+  urgenceTelephone: string | null;
+  consentementLe: string | null;
+}
+
+/** Lecture du dossier d'une fiche (l'appelant a vérifié que c'est le super administrateur et journalise la consultation). */
+export async function lireDossier(livreurId: string, db: SupabaseClient = clientLivraison()): Promise<DossierLivreur | null> {
+  const { data } = await db
+    .from("livreur_dossiers")
+    .select("piece_type, piece_numero, urgence_nom, urgence_telephone, consentement_le")
+    .eq("livreur_id", livreurId)
+    .maybeSingle();
+  if (!data) return null;
+  const d = data as { piece_type: string | null; piece_numero: string | null; urgence_nom: string | null; urgence_telephone: string | null; consentement_le: string | null };
+  return { pieceType: d.piece_type, pieceNumero: d.piece_numero, urgenceNom: d.urgence_nom, urgenceTelephone: d.urgence_telephone, consentementLe: d.consentement_le };
+}
+
+export async function supprimerDossier(livreurId: string, db: SupabaseClient = clientLivraison()): Promise<boolean> {
+  const { data } = await db.from("livreur_dossiers").delete().eq("livreur_id", livreurId).select("livreur_id");
+  return (data ?? []).length > 0;
+}

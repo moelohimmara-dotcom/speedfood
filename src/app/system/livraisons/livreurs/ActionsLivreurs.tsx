@@ -13,11 +13,13 @@ import {
   apercuListeLivreursAction,
   approuverLivreurAction,
   archiverLivreurAction,
+  consulterDossierLivreurAction,
   creerLivreurIndividuelAction,
   creerLivreursGroupeAction,
   reactiverLivreurAction,
   refuserLivreurAction,
   regenererLienAction,
+  supprimerDossierLivreurAction,
   suspendreLivreurAction,
   type ApercuListe,
   type EtatCreationLivreurs,
@@ -26,6 +28,9 @@ import {
 import { Alert, Button } from "@/components/ui";
 import { useConfirmation, useNotification } from "@/components/console/ConsoleProviders";
 import { LiensCrees } from "./LiensCrees";
+import type { DossierLivreur } from "@/lib/livraison/livreurs-service";
+
+const LIBELLES_PIECES: Record<string, string> = { carte_identite: "Carte d'identité", passeport: "Passeport", permis: "Permis de conduire", autre: "Autre pièce" };
 
 const etatInitial: EtatActionLivraisonAdmin = {};
 const etatCreationInitial: EtatCreationLivreurs = {};
@@ -398,12 +403,27 @@ function useAction() {
 }
 
 /** Boutons d'une fiche selon son cycle : lien (créée, invitée), approuver ou refuser (à approuver), suspendre, réactiver, archiver. */
-export function ActionsFiche({ livreurId, nom, cycle, enCourse }: { livreurId: string; nom: string; cycle: string; enCourse: boolean }) {
+export function ActionsFiche({
+  livreurId,
+  nom,
+  cycle,
+  enCourse,
+  aDossier = false,
+  peutVoirDossier = false,
+}: {
+  livreurId: string;
+  nom: string;
+  cycle: string;
+  enCourse: boolean;
+  aDossier?: boolean;
+  peutVoirDossier?: boolean;
+}) {
   const confirmer = useConfirmation();
   const notifier = useNotification();
   const { enCours, lancer } = useAction();
   const [liens, setLiens] = useState<LienAffiche[]>([]);
   const [chargement, demarrerLien] = useTransition();
+  const [dossier, setDossier] = useState<DossierLivreur | null | undefined>(undefined);
 
   async function avecMotif(titre: string, action: string, libelleMotif: string, travail: (motif: string) => Promise<{ erreur?: string; succes?: string }>) {
     const r = await confirmer({ titre, message: <p>{nom}</p>, libelleAction: action, danger: true, niveau: "motif", libelleMotif });
@@ -449,6 +469,73 @@ export function ActionsFiche({ livreurId, nom, cycle, enCourse }: { livreurId: s
         <Button type="button" variante="secondary" disabled={enCours || enCourse} onClick={() => avecMotif(`Archiver ${nom} ?`, "Archiver", "Motif de l'archivage", (m) => archiverLivreurAction(livreurId, m))}>
           Archiver
         </Button>
+      ) : null}
+      {aDossier && peutVoirDossier ? (
+        <Button
+          type="button"
+          variante="secondary"
+          disabled={chargement}
+          onClick={() =>
+            demarrerLien(async () => {
+              const r = await consulterDossierLivreurAction(livreurId);
+              if (r.erreur) notifier("erreur", r.erreur);
+              else setDossier(r.dossier ?? null);
+            })
+          }
+        >
+          Voir le dossier
+        </Button>
+      ) : null}
+      {dossier !== undefined ? (
+        <dialog
+          className="ad-dialogue livreurs-dialogue"
+          ref={(el) => {
+            if (el && !el.open) el.showModal();
+          }}
+          onClose={() => setDossier(undefined)}
+        >
+          <div className="ad-dialogue-corps">
+            <h2>Dossier de {nom}</h2>
+            {dossier === null ? (
+              <p>Aucun dossier.</p>
+            ) : (
+              <dl className="livreurs-dossier">
+                <dt>Pièce d&apos;identité</dt>
+                <dd>{dossier.pieceType ? `${LIBELLES_PIECES[dossier.pieceType] ?? dossier.pieceType} · ${dossier.pieceNumero ?? ""}` : "Non demandée"}</dd>
+                <dt>Contact d&apos;urgence</dt>
+                <dd>{dossier.urgenceNom ? `${dossier.urgenceNom} · ${dossier.urgenceTelephone ?? ""}` : "Non demandé"}</dd>
+                <dt>Consentement donné le</dt>
+                <dd>{dossier.consentementLe ? new Date(dossier.consentementLe).toLocaleDateString("fr-FR") : "—"}</dd>
+              </dl>
+            )}
+            <p className="ad-secondaire">Cette consultation est inscrite dans le journal d&apos;audit.</p>
+            <div className="ad-dialogue-actions">
+              {dossier !== null ? (
+                <Button
+                  type="button"
+                  variante="danger"
+                  disabled={enCours}
+                  onClick={async () => {
+                    const rep = await confirmer({
+                      titre: `Supprimer le dossier de ${nom} ?`,
+                      message: <p>La pièce d&apos;identité et le contact d&apos;urgence sont effacés définitivement.</p>,
+                      libelleAction: "Supprimer le dossier",
+                      danger: true,
+                    });
+                    if (!rep.confirme) return;
+                    lancer(() => supprimerDossierLivreurAction(livreurId));
+                    setDossier(undefined);
+                  }}
+                >
+                  Supprimer le dossier
+                </Button>
+              ) : null}
+              <Button type="button" variante="secondary" onClick={() => setDossier(undefined)}>
+                Fermer
+              </Button>
+            </div>
+          </div>
+        </dialog>
       ) : null}
       {liens.length > 0 ? (
         <dialog
