@@ -82,6 +82,8 @@ async function en_tant_que(qui, fn) {
     return await fn();
   } finally {
     await db.exec("reset role");
+    // Retour au contexte « serveur » : sans identité, comme la clé de service (auth.uid() est nul).
+    await db.exec("select set_config('request.jwt.claims', '{}', false), set_config('request.jwt.claim.sub', '', false)");
   }
 }
 
@@ -468,6 +470,70 @@ verifier("deux fiches non archivées ne partagent pas un téléphone (base)", aw
 await db.exec(`update livreurs set cycle = 'archive' where telephone = '+224622555001'`);
 verifier("un téléphone d'une fiche archivée peut être réutilisé", await (async () => { try { await db.exec(`insert into livreurs (nom, telephone, cycle) values ('Tel Trois', '+224622555001', 'invite')`); return true; } catch { return false; } })());
 await db.exec(`delete from livreurs where telephone = '+224622555001'`);
+
+// ---------------------------------------------------------------- 6 sexies. notation : avis, agrégats, classement
+console.log("\n--- Notation");
+await db.exec("select set_config('request.jwt.claims', '{}', false), set_config('request.jwt.claim.sub', '', false)");
+const AVIS_RESTO = "00000000-0000-4000-8000-0000000002a1";
+const AVIS_LIVREUR = "00000000-0000-4000-8000-0000000002a2";
+const AVIS_CLIENT_PAR_RESTO = "00000000-0000-4000-8000-0000000002a3";
+const AVIS_CLIENT_PAR_LIVREUR = "00000000-0000-4000-8000-0000000002a4";
+await db.exec(`
+  insert into avis (id, order_id, cible, auteur, restaurant_id, auteur_utilisateur_id, note, etiquettes, commentaire, prenom_affiche)
+    values ('${AVIS_RESTO}', '${CMD_A}', 'restaurant', 'client', ${U(ID.resto_a)}, ${U(ID.client)}, 5, '{plat_chaud}', 'Très bon', 'Awa');
+  insert into avis (id, order_id, cible, auteur, restaurant_id, livreur_id, auteur_utilisateur_id, note)
+    values ('${AVIS_LIVREUR}', '${CMD_A}', 'livreur', 'client', ${U(ID.resto_a)}, ${U(LIVREUR_1)}, ${U(ID.client)}, 4);
+  insert into avis (id, order_id, cible, auteur, restaurant_id, auteur_utilisateur_id, note, etiquettes)
+    values ('${AVIS_CLIENT_PAR_RESTO}', '${CMD_A}', 'client', 'restaurant', ${U(ID.resto_a)}, ${U(ID.user_a)}, 2, '{injoignable}');
+  insert into avis (id, order_id, cible, auteur, restaurant_id, livreur_id, auteur_utilisateur_id, note)
+    values ('${AVIS_CLIENT_PAR_LIVREUR}', '${CMD_A}', 'client', 'livreur', ${U(ID.resto_a)}, ${U(LIVREUR_1)}, ${U(U_LIV)}, 3);
+`);
+const nbA = (qui, filtre = "true") => nb(qui, "avis", filtre);
+verifier("avis : illisibles pour un anonyme", VIDE(await nbA(null)));
+verifier("avis : le client voit ses propres notes (restaurant, livreur), pas celles que des tiers ont mises sur lui", (await nbA(ID.client)) === 2 && VIDE(await nbA(ID.client, "cible = 'client'")));
+verifier("avis : le restaurant A voit l'avis public qui le concerne et la note qu'il a écrite", (await nbA(ID.user_a)) === 2 && (await nbA(ID.user_a, "cible = 'restaurant'")) === 1);
+verifier("avis : le restaurant A ne voit ni la note du livreur sur le client ni la note du client sur le livreur", VIDE(await nbA(ID.user_a, "cible = 'livreur'")));
+verifier("avis : le restaurant B ne voit rien d'un autre restaurant", VIDE(await nbA(ID.user_b)));
+verifier("avis : le livreur voit la note qui le concerne et celle qu'il a écrite", (await nbA(U_LIV)) === 2 && (await nbA(U_LIV, "cible = 'livreur'")) === 1);
+verifier("avis : un autre livreur ne voit rien", VIDE(await nbA(U_LIV2)));
+verifier("avis : l'exploitation voit tout", (await nbA(ID.admin)) === 4 && (await nbA(ID.support)) === 4);
+verifier("signalements : illisibles hors exploitation", VIDE(await nb(ID.user_a, "avis_signalements")) && VIDE(await nb(ID.client, "avis_signalements")) && VIDE(await nb(null, "avis_signalements")));
+
+await interdit("le client ne modifie pas sa note par l'API (le serveur applique la fenêtre de 24 h)", ID.client, `update avis set note = 1 where id = '${AVIS_RESTO}'`);
+await interdit("le restaurant ne se répond pas par l'API", ID.user_a, `update avis set reponse_texte = 'Merci' where id = '${AVIS_RESTO}'`);
+await interdit("personne ne crée d'avis par l'API", ID.client, `insert into avis (order_id, cible, auteur, restaurant_id, note) values ('${CMD_B}', 'restaurant', 'client', ${U(ID.resto_b)}, 5)`);
+await interdit("le restaurant ne supprime pas un avis par l'API", ID.user_a, `delete from avis where id = '${AVIS_RESTO}'`);
+verifier("base : un restaurant ne peut pas noter un restaurant", await (async () => { try { await db.exec(`insert into avis (order_id, cible, auteur, restaurant_id, note) values ('${CMD_B}', 'restaurant', 'restaurant', ${U(ID.resto_b)}, 5)`); return false; } catch { return true; } })());
+verifier("base : un commentaire libre sur un client est refusé", await (async () => { try { await db.exec(`insert into avis (order_id, cible, auteur, restaurant_id, note, commentaire) values ('${CMD_B}', 'client', 'restaurant', ${U(ID.resto_b)}, 2, 'Il ment')`); return false; } catch { return true; } })());
+verifier("base : une note hors 1 à 5 est refusée", await (async () => { try { await db.exec(`insert into avis (order_id, cible, auteur, restaurant_id, note) values ('${CMD_B}', 'restaurant', 'client', ${U(ID.resto_b)}, 6)`); return false; } catch { return true; } })());
+verifier("base : une seule note par commande, cible et auteur", await (async () => { try { await db.exec(`insert into avis (order_id, cible, auteur, restaurant_id, note) values ('${CMD_A}', 'restaurant', 'client', ${U(ID.resto_a)}, 3)`); return false; } catch { return true; } })());
+
+// agrégats du restaurant, recalculés par la base
+const agregat = async () => (await db.query(`select avis_somme, avis_total from restaurants where id = ${U(ID.resto_a)}`)).rows[0];
+verifier("agrégat : l'avis public compte (somme 5, total 1) ; les notes du livreur et du client ne comptent pas", JSON.stringify(await agregat()) === JSON.stringify({ avis_somme: 5, avis_total: 1 }));
+await db.exec(`update avis set statut = 'commentaire_masque' where id = '${AVIS_RESTO}'`);
+verifier("agrégat : masquer un commentaire garde la note", (await agregat()).avis_total === 1);
+await db.exec(`update avis set statut = 'annule' where id = '${AVIS_RESTO}'`);
+verifier("agrégat : une note annulée sort du calcul", (await agregat()).avis_total === 0);
+await db.exec(`update avis set statut = 'publie', est_test = true where id = '${AVIS_RESTO}'`);
+verifier("agrégat : un avis de commande de test ne compte pas", (await agregat()).avis_total === 0);
+await db.exec(`update avis set est_test = false where id = '${AVIS_RESTO}'`);
+verifier("agrégat : retour à la normale", JSON.stringify(await agregat()) === JSON.stringify({ avis_somme: 5, avis_total: 1 }));
+await interdit("un restaurateur ne fixe pas ses propres notes", ID.user_a, `update restaurants set avis_somme = 500, avis_total = 100 where id = ${U(ID.resto_a)}`);
+verifier("les agrégats n'ont pas bougé", JSON.stringify(await agregat()) === JSON.stringify({ avis_somme: 5, avis_total: 1 }));
+
+// fréquentation : réservée au serveur
+for (const [nom, qui] of [["un restaurateur", ID.user_a], ["l'administrateur", ID.admin], ["un anonyme", null]]) {
+  const r = await lire(qui, "select * from fn_frequentation_restaurants(30)");
+  verifier(`fn_frequentation_restaurants : non exécutable par ${nom}`, !!r.erreur);
+}
+
+// réglages du classement
+const nbReglagesClassement = (qui) => nb(qui, "parametres_classement");
+verifier("réglages du classement : lisibles par le super administrateur seulement", (await nbReglagesClassement(ID.admin)) === 1 && VIDE(await nbReglagesClassement(ID.user_a)) && VIDE(await nbReglagesClassement(ID.support)) && VIDE(await nbReglagesClassement(null)));
+await autorise("le super administrateur règle les poids (somme 100)", ID.admin, `update parametres_classement set poids_note = 40, poids_prix = 30, poids_frequentation = 30 where id = true`);
+await interdit("des poids dont la somme n'est pas 100 sont refusés", ID.admin, `update parametres_classement set poids_note = 80 where id = true`);
+await interdit("un restaurateur ne règle pas le classement", ID.user_a, `update parametres_classement set poids_note = 0, poids_prix = 0, poids_frequentation = 100 where id = true`);
 
 // ---------------------------------------------------------------- 7. gardes structurelles : une régression future est signalée ici
 console.log("\n--- Gardes structurelles");
