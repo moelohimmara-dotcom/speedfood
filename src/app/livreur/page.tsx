@@ -33,6 +33,31 @@ export default async function LivreurPage() {
     );
   }
 
+  // Seule une fiche ACTIVE travaille : les autres états expliquent où en est la personne.
+  if (etat.livreur.cycle !== "actif") {
+    const attente = etat.livreur.cycle === "candidat";
+    const suspendu = etat.livreur.cycle === "suspendu";
+    return (
+      <main className="livreur-page">
+        <h1>Console livreur</h1>
+        <Card>
+          <p>
+            <strong>{etat.livreur.nom}</strong>
+          </p>
+          {attente ? (
+            <Alert ton="info">Votre fiche est en cours d&apos;examen par l&apos;équipe Speedfood. Vous pourrez recevoir des courses dès qu&apos;elle sera approuvée.</Alert>
+          ) : suspendu ? (
+            <Alert ton="danger">
+              Votre fiche est suspendue{etat.livreur.motifCycle ? ` : ${etat.livreur.motifCycle}` : ""}. Contactez Speedfood pour en savoir plus.
+            </Alert>
+          ) : (
+            <Alert ton="danger">Votre fiche n&apos;est plus active. Contactez Speedfood.</Alert>
+          )}
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="livreur-page">
       <h1>Console livreur</h1>

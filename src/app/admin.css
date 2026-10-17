@@ -2984,3 +2984,68 @@ a.ad-carte-lien:hover {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
 }
+
+/* ---- Livreurs : filtres, fenêtre d'ajout, liens d'activation, aperçu d'une liste ---- */
+.livreurs-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.livreurs-dialogue {
+  width: min(680px, calc(100vw - 2 * var(--space-4)));
+}
+.livreurs-actions-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.livreurs-formulaire textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+}
+.livreurs-liens {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 2px solid currentColor;
+  border-radius: var(--radius-md);
+}
+.livreurs-liens ul {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.livreurs-liens li {
+  display: grid;
+  gap: var(--space-2);
+}
+.livreurs-liens-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.livreurs-liens-avertissement {
+  margin: 0;
+  font-weight: 700;
+}
+.livreurs-erreur {
+  color: var(--danger, #b3261e);
+}
+.livreurs-ok {
+  color: var(--succes, #1a7f37);
+}
+.livreurs-apercu {
+  display: grid;
+  gap: var(--space-2);
+}
+.ad-onglets-compacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}

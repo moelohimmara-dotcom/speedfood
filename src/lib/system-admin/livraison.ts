@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { clientLivraison, lireReglagesLivraison } from "@/lib/livraison/lecture";
+import { lireReglagesLivreurs, type ReglagesLivreurs } from "@/lib/livraison/livreurs-service";
 import { calculerFraisLivraison, reglagesValides, type ReglagesLivraison } from "@/lib/livraison/frais";
 import { journaliserActionSysteme } from "./audit";
 import { verifierPermission } from "./contexte";
@@ -22,12 +23,13 @@ export interface ReglagesLivraisonAffiches {
   reglages: ReglagesLivraison;
   vitesseMoyenneKmh: number;
   delaiOffreSecondes: number;
+  livreurs: ReglagesLivreurs;
 }
 
 export async function listerReglagesLivraison(): Promise<ReglagesLivraisonAffiches> {
   await verifierPermission("parametres.editer");
-  const lu = await lireReglagesLivraison();
-  return { fraisActifs: lu.fraisActifs, reglages: lu.reglages, vitesseMoyenneKmh: lu.vitesseMoyenneKmh, delaiOffreSecondes: lu.delaiOffreSecondes };
+  const [lu, livreurs] = await Promise.all([lireReglagesLivraison(), lireReglagesLivreurs()]);
+  return { fraisActifs: lu.fraisActifs, reglages: lu.reglages, vitesseMoyenneKmh: lu.vitesseMoyenneKmh, delaiOffreSecondes: lu.delaiOffreSecondes, livreurs };
 }
 
 function entier(brut: FormDataEntryValue | null): number {
@@ -51,6 +53,13 @@ export async function modifierReglagesLivraisonAction(_prec: EtatActionLivraison
   const vitesse = entier(formData.get("vitesse_moyenne_kmh"));
   const delaiOffre = entier(formData.get("delai_offre_secondes"));
   const fraisActifs = formData.get("frais_actifs") === "on";
+  const approbation = formData.get("livreur_approbation_requise") === "on";
+  const pieceRequise = formData.get("livreur_piece_requise") === "on";
+  const urgenceRequise = formData.get("livreur_urgence_requise") === "on";
+  const validiteLien = entier(formData.get("livreur_lien_validite_jours"));
+  if (!Number.isInteger(validiteLien) || validiteLien < 1 || validiteLien > 30) {
+    return { erreur: "La validité du lien d'activation doit être comprise entre 1 et 30 jours." };
+  }
 
   if (!reglagesValides(reglages) || Number.isNaN(reglages.baseGnf) || Number.isNaN(reglages.prixKmGnf) || Number.isNaN(reglages.minimumGnf)) {
     return { erreur: "Montants invalides : des nombres entiers positifs en GNF, un rayon entre 0,1 et 200 km, un arrondi entre 1 et 10 000 GNF." };
@@ -82,6 +91,10 @@ export async function modifierReglagesLivraisonAction(_prec: EtatActionLivraison
       arrondi_gnf: reglages.arrondiGnf,
       vitesse_moyenne_kmh: vitesse,
       delai_offre_secondes: delaiOffre,
+      livreur_approbation_requise: approbation,
+      livreur_piece_requise: pieceRequise,
+      livreur_urgence_requise: urgenceRequise,
+      livreur_lien_validite_jours: validiteLien,
       mis_a_jour_le: new Date().toISOString(),
       mis_a_jour_par: contexte.utilisateurId,
     })
@@ -92,7 +105,7 @@ export async function modifierReglagesLivraisonAction(_prec: EtatActionLivraison
     action: "livraison.reglages_modifies",
     cibleType: "parametres_livraison",
     cibleId: "singleton",
-    motif: `Calcul des frais ${fraisActifs ? "actif" : "éteint"}, base ${reglages.baseGnf} GNF, ${reglages.prixKmGnf} GNF/km, minimum ${reglages.minimumGnf} GNF, gratuit dès ${reglages.gratuitDesGnf ?? "jamais"}, rayon ${reglages.rayonMaxKm} km`,
+    motif: `Calcul des frais ${fraisActifs ? "actif" : "éteint"}, base ${reglages.baseGnf} GNF, ${reglages.prixKmGnf} GNF/km, minimum ${reglages.minimumGnf} GNF, gratuit dès ${reglages.gratuitDesGnf ?? "jamais"}, rayon ${reglages.rayonMaxKm} km ; livreurs : approbation ${approbation ? "oui" : "non"}, pièce ${pieceRequise ? "oui" : "non"}, urgence ${urgenceRequise ? "oui" : "non"}, lien ${validiteLien} j`,
   });
 
   revalidatePath("/system/parametres/livraison");

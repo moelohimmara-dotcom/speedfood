@@ -97,6 +97,40 @@ export function FormulaireLivraison({ valeurs }: { valeurs: ReglagesLivraisonAff
         </div>
       </Panneau>
 
+      <Panneau titre="Fiches des livreurs">
+        <div className="field">
+          <label className="case-parametre">
+            <input type="checkbox" name="livreur_approbation_requise" defaultChecked={valeurs.livreurs.approbationRequise} />
+            Approuver chaque livreur avant sa première course
+          </label>
+          <Aide>
+            Coché : après avoir activé son compte, le livreur attend l&apos;approbation de l&apos;équipe (écran Livreurs, « À approuver »). Décoché : il peut travailler dès
+            l&apos;activation.
+          </Aide>
+        </div>
+        <div className="field">
+          <label className="case-parametre">
+            <input type="checkbox" name="livreur_piece_requise" defaultChecked={valeurs.livreurs.pieceRequise} />
+            Demander une pièce d&apos;identité (type et numéro)
+          </label>
+        </div>
+        <div className="field">
+          <label className="case-parametre">
+            <input type="checkbox" name="livreur_urgence_requise" defaultChecked={valeurs.livreurs.urgenceRequise} />
+            Demander un contact d&apos;urgence (nom et téléphone)
+          </label>
+          <Aide>
+            Ces informations sont sensibles : seules celles que vous exigez ici sont demandées, et seul le super administrateur peut les lire. Elles se saisissent à
+            l&apos;activation du compte.
+          </Aide>
+        </div>
+        <div className="field">
+          <label htmlFor="liv-lien">Validité du lien d&apos;activation (jours)</label>
+          <input id="liv-lien" name="livreur_lien_validite_jours" inputMode="numeric" defaultValue={valeurs.livreurs.lienValiditeJours} required />
+          <Aide>Le lien envoyé par WhatsApp ne sert qu&apos;une fois et expire passé ce délai (de 1 à 30 jours).</Aide>
+        </div>
+      </Panneau>
+
       <BarreEnregistrement modifie={modifie} enCours={enCours} etat={etat} onAnnuler={annuler} messageSucces="Réglages de livraison enregistrés" />
     </form>
   );

@@ -25,6 +25,11 @@ export interface LivraisonAdmin {
 export interface LivreurAdmin {
   id: string;
   nom: string;
+  telephone: string | null;
+  cycle: string;
+  motifCycle: string | null;
+  /** Fin de validité du lien d'activation en cours (fiche « invitée »), sinon `null`. */
+  lienValideJusqu: string | null;
   vehicule: string;
   statut: "hors_ligne" | "disponible" | "en_course";
   simule: boolean;
@@ -95,14 +100,24 @@ export async function listerLivraisonsAdmin(): Promise<LivraisonAdmin[]> {
 }
 
 export async function listerLivreursAdmin(): Promise<LivreurAdmin[]> {
-  const { data } = await clientLivraison()
+  const db = clientLivraison();
+  const { data } = await db
     .from("livreurs")
-    .select("id, nom, vehicule, statut, simule, position_le, latitude, derniere_course_le")
-    .order("cree_le", { ascending: true })
-    .limit(200);
+    .select("id, nom, telephone, cycle, motif_cycle, vehicule, statut, simule, position_le, latitude, derniere_course_le")
+    .order("cree_le", { ascending: false })
+    .limit(300);
+  const { data: liens } = await db
+    .from("livreur_invitations")
+    .select("livreur_id, expire_le")
+    .is("utilise_le", null)
+    .gt("expire_le", new Date().toISOString());
+  const lienParLivreur = new Map(((liens ?? []) as Array<{ livreur_id: string; expire_le: string }>).map((l) => [l.livreur_id, l.expire_le]));
   return ((data ?? []) as Array<{
     id: string;
     nom: string;
+    telephone: string | null;
+    cycle: string;
+    motif_cycle: string | null;
     vehicule: string;
     statut: LivreurAdmin["statut"];
     simule: boolean;
@@ -112,6 +127,10 @@ export async function listerLivreursAdmin(): Promise<LivreurAdmin[]> {
   }>).map((l) => ({
     id: l.id,
     nom: l.nom,
+    telephone: l.telephone,
+    cycle: l.cycle,
+    motifCycle: l.motif_cycle,
+    lienValideJusqu: lienParLivreur.get(l.id) ?? null,
     vehicule: l.vehicule,
     statut: l.statut,
     simule: l.simule,

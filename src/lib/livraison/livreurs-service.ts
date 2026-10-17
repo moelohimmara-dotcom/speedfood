@@ -193,3 +193,19 @@ export const refuserLivreur = (livreurId: string, auteurId: string, motif: strin
 export const suspendreLivreur = (livreurId: string, auteurId: string, motif: string) => changerCycle(livreurId, "suspendu", { auteurId, motif, depuis: ["actif"] });
 export const reactiverLivreur = (livreurId: string, auteurId: string) => changerCycle(livreurId, "actif", { auteurId, depuis: ["suspendu"] });
 export const archiverLivreur = (livreurId: string, auteurId: string, motif: string) => changerCycle(livreurId, "archive", { auteurId, motif, depuis: ["cree", "invite", "actif", "suspendu"] });
+
+/** Nom de la fiche à laquelle correspond un lien valide (pour l'afficher avant l'activation) ; `null` si le lien ne marche pas. */
+export async function fichePourJeton(jeton: string, db: SupabaseClient = clientLivraison()): Promise<{ nom: string } | null> {
+  if (!jetonActivationPlausible(jeton)) return null;
+  const empreinte = await hacherJetonActivation(jeton);
+  const { data } = await db
+    .from("livreur_invitations")
+    .select("livreurs(nom, cycle, utilisateur_id)")
+    .eq("empreinte", empreinte)
+    .is("utilise_le", null)
+    .gt("expire_le", new Date().toISOString())
+    .maybeSingle();
+  const l = (data as unknown as { livreurs: { nom: string; cycle: string; utilisateur_id: string | null } | { nom: string; cycle: string; utilisateur_id: string | null }[] | null } | null)?.livreurs;
+  const fiche = Array.isArray(l) ? l[0] : l;
+  return fiche && fiche.cycle === "invite" && !fiche.utilisateur_id ? { nom: fiche.nom } : null;
+}

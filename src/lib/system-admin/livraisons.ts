@@ -146,7 +146,7 @@ export async function creerLivreurPourCompteAction(_prec: EtatActionLivraisonAdm
   const compte = Array.isArray(trouve) ? trouve[0] : null;
   if (!compte?.id) return { erreur: "Aucun compte ne correspond à cette adresse : la personne doit d'abord créer son compte." };
 
-  const { error } = await clientLivraison().from("livreurs").insert({ utilisateur_id: compte.id, nom, telephone: telephone || null, vehicule: "moto", statut: "hors_ligne" });
+  const { error } = await clientLivraison().from("livreurs").insert({ utilisateur_id: compte.id, nom, telephone: telephone || null, vehicule: "moto", statut: "hors_ligne", cycle: "actif", approuve_le: new Date().toISOString(), approuve_par: contexte.utilisateurId });
   if (error) return { erreur: error.code === "23505" ? "Ce compte est déjà un compte livreur." : "Impossible de créer le livreur. Réessayez." };
 
   await journaliserActionSysteme(contexte, { action: "livraison.livreur_cree", cibleType: "livreurs", cibleId: compte.id, motif: "Compte lié à une fiche livreur" });
