@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BoutonAnimations } from "@/components/site/PilotageAnimations";
 import { lirePagesPublieesPourNavigation } from "@/lib/cms/lecture";
 
 /**
@@ -53,9 +52,6 @@ export async function PiedSite() {
         </nav>
       </div>
       <p className="site-pied-mentions">Service en phase pilote dans certaines zones de Conakry.</p>
-      <p className="site-pied-animations">
-        <BoutonAnimations />
-      </p>
     </footer>
   );
 }
