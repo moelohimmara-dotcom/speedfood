@@ -3,6 +3,7 @@ import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerTaxonomie } from "@/lib/system-admin/taxonomie";
 import { PageHeader, Panneau } from "@/components/admin/blocs";
+import { FilAriane } from "@/components/console/FilAriane";
 import { SousNav } from "../../SousNav";
 import { ListeTaxonomie } from "./ListeTaxonomie";
 
@@ -18,16 +19,21 @@ export default async function TaxonomieSystemePage() {
 
   return (
     <div>
-      <PageHeader titre="Catalogue" description="Les catégories de menu et les quartiers proposés aux restaurants et aux clients." />
+      <FilAriane elements={[{ libelle: "Catalogue", href: "/system/catalogue/restaurants" }, { libelle: "Taxonomie" }]} />
+      <PageHeader titre="Taxonomie" description="Les catégories de menu et les quartiers proposés aux restaurants et aux clients." />
       <SousNav entrees={sousSectionsAccessibles("Catalogue", contexte.role)} />
 
-      <div className="ad-grille-deux" style={{ marginTop: 0 }}>
+      <div className="tx-colonnes">
         <Panneau titre="Catégories de menu">
           <ListeTaxonomie table="menu_categories" elements={categories} />
         </Panneau>
         <Panneau titre="Quartiers">
           <p className="ad-aide-champ">
-            Quartiers de Conakry. Les communes et leurs quartiers « Centre de … » se gèrent dans <Link href="/system/catalogue/geographie">Géographie</Link>.
+            Quartiers de Conakry. Les communes et leurs quartiers « Centre de … » se gèrent dans{" "}
+            <Link href="/system/catalogue/geographie" className="lien-texte">
+              Géographie
+            </Link>
+            .
           </p>
           <ListeTaxonomie table="neighborhoods" elements={quartiers} />
         </Panneau>

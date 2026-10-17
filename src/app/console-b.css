@@ -112,13 +112,15 @@
   border: 2px solid var(--encre);
   border-radius: var(--radius-md);
 }
-.ad-app .ad-onglet {
-  border: 2px solid var(--encre);
+/* Onglets : le style souligné d'admin.css est conservé. L'ancienne surcharge (bordure épaisse, fond noir) en faisait des boutons carrés, avec le trait
+   rouge de l'onglet actif resté sous le fond noir (audit du 17 octobre 2026, page Taxonomie). */
+.ad-app .ad-onglets {
+  border-bottom: 2px solid var(--bordure);
 }
-.ad-app .ad-onglet[aria-current="page"],
-.ad-app .ad-onglet.actif {
-  background: var(--encre);
-  color: var(--creme);
+.ad-app .ad-onglet:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: -3px;
+  border-radius: var(--radius-sm);
 }
 
 /* ===== Tableaux ===== */

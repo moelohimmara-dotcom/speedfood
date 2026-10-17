@@ -35,6 +35,7 @@ export function ListeTaxonomie({ table, elements }: { table: Table; elements: El
   const affiches = trouves.slice(0, limite);
   const avecRecherche = elements.length > SEUIL_RECHERCHE;
   const nomPluriel = table === "neighborhoods" ? "quartiers" : "catégories";
+  const nomSingulier = table === "neighborhoods" ? "quartier" : "catégorie";
 
   return (
     <div>
@@ -53,7 +54,7 @@ export function ListeTaxonomie({ table, elements }: { table: Table; elements: El
               setLimite(TAILLE_LOT);
             }}
             autoComplete="off"
-            placeholder="Nom"
+            placeholder={`Nom du ${nomSingulier}`}
           />
           <p role="status" aria-live="polite" className="tx-recherche-etat">
             {requete ? `${trouves.length} résultat${trouves.length > 1 ? "s" : ""}` : `${elements.length} ${nomPluriel}`}
@@ -61,7 +62,7 @@ export function ListeTaxonomie({ table, elements }: { table: Table; elements: El
           </p>
         </div>
       ) : null}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: "var(--space-4)" }}>
+      <div className="tx-liste">
         {affiches.map((e) => (
           <LigneElement key={e.id} table={table} element={e} />
         ))}
@@ -73,19 +74,19 @@ export function ListeTaxonomie({ table, elements }: { table: Table; elements: El
         ) : null}
       </div>
 
-      <form action={creer} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-        <div className="field" style={{ marginBottom: 0, flex: "1 1 160px" }}>
-          <label htmlFor={`nom-${table}`}>Nouveau nom</label>
+      <form action={creer} className="tx-ajout" aria-label={`Ajouter un ${nomSingulier}`}>
+        <div className="field tx-ajout-nom">
+          <label htmlFor={`nom-${table}`}>Nom du nouveau {nomSingulier}</label>
           <input id={`nom-${table}`} name="nom" type="text" required maxLength={100} />
         </div>
-        <div className="field" style={{ marginBottom: 0, width: 100 }}>
-          <label htmlFor={`ordre-${table}`}>Ordre</label>
+        <div className="field tx-champ-ordre">
+          <label htmlFor={`ordre-${table}`}>Position</label>
           <input id={`ordre-${table}`} name="ordre" type="number" defaultValue={elements.length} />
         </div>
         <Button type="submit">Ajouter</Button>
       </form>
       {etatCreation.erreur ? (
-        <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+        <Alert ton="danger" className="tx-alerte">
           {etatCreation.erreur}
         </Alert>
       ) : null}
@@ -112,35 +113,35 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
 
   if (enEdition) {
     return (
-      <form
-        action={modifier}
-        style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}
-      >
+      <form action={modifier} className="tx-ligne tx-edition" aria-label={`Modifier ${element.nom}`}>
         <input type="hidden" name="id" value={element.id} />
-        <Input label="Nom" name="nom" type="text" required maxLength={100} defaultValue={element.nom} />
-        <Input label="Ordre" name="ordre" type="number" defaultValue={element.ordre} style={{ width: 100 }} />
+        <Input label="Nom" name="nom" type="text" required maxLength={100} defaultValue={element.nom} className="tx-edition-nom" />
+        <Input label="Position" name="ordre" type="number" defaultValue={element.ordre} className="tx-champ-ordre" />
         <Button type="submit">Enregistrer</Button>
         <Button type="button" variante="secondary" onClick={() => setEnEdition(false)}>
           Annuler
         </Button>
-        {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
+        {etat.erreur ? (
+          <Alert ton="danger" className="tx-alerte tx-alerte-ligne">
+            {etat.erreur}
+          </Alert>
+        ) : null}
       </form>
     );
   }
 
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <span>
-        {element.nom} <span style={{ color: "var(--secondaire)", fontSize: "0.85rem", whiteSpace: "nowrap" }}>(ordre&nbsp;{element.ordre})</span>
-      </span>
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <Button type="button" variante="secondary" onClick={() => setEnEdition(true)}>
+    <div className="tx-ligne">
+      <span className="tx-nom">{element.nom}</span>
+      <div className="tx-actions">
+        <Button type="button" variante="secondary" className="btn-compact" onClick={() => setEnEdition(true)} aria-label={`Modifier ${element.nom}`}>
           Modifier
         </Button>
         <Button
           type="button"
           variante="danger"
-          className="ad-action-discrete"
+          className="tx-supprimer"
+          aria-label={`Supprimer ${element.nom}`}
           disabled={enTransition}
           onClick={async () => {
             // Confirmation commune (fondations de la refonte) : nommée, annulable au clavier, focus sur « Annuler ».
@@ -162,7 +163,7 @@ function LigneElement({ table, element }: { table: Table; element: ElementTaxono
         </Button>
       </div>
       {erreurSuppression ? (
-        <Alert ton="danger" style={{ width: "100%" }}>
+        <Alert ton="danger" className="tx-alerte tx-alerte-ligne">
           {erreurSuppression}
         </Alert>
       ) : null}

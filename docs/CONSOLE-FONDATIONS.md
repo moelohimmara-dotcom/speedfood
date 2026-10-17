@@ -53,3 +53,11 @@ Créées le 15 octobre 2026. Briques communes à la console d'administration (`/
 - Piège : `console-b.css` donne le style « carte » (bordure épaisse, ombre) à une liste de classes ; une classe de contenu rangée dans un panneau (`.ad-decision`, `.ad-fiche-synthese`)
   ne doit PAS y figurer, sinon on obtient une carte dans une carte sans remplissage.
 - La file « À traiter » du tableau de bord exclut les restaurants `donnees_demo` et sépare les éléments de test (`repartirEnAttente`).
+
+## Page Taxonomie et onglets de sous-sections (17 octobre 2026)
+- **Onglets** (`SousNav`, `.ad-onglet`) : `console-b.css` leur imposait bordure épaisse et fond noir (boutons carrés, avec le trait rouge de l'onglet actif resté dessous). Le style souligné d'`admin.css`
+  est rétabli pour tous les groupes (Catalogue, Contenu, Accès). Sous 900 px ils se rangent en grille de colonnes égales (2 lignes à 375 px au lieu de 3).
+- **Taxonomie** : titre « Taxonomie » (l'ancien « Catalogue » ne disait pas où l'on était), fil d'Ariane, colonnes 1/3 (catégories) et 2/3 (quartiers) dès 1100 px, lignes à plat (nom en gras,
+  « Modifier » compact, « Supprimer » en texte rouge), position d'affichage renommée « Position » et plus montrée dans la liste, lien « Géographie » souligné, aucun `style={{…}}` : classes `tx-*` dans `admin.css`.
+- **Piège** : `console-b.css` (chargée après `admin.css`) donne à tout `.btn` bordure, ombre et 48 px. Pour alléger un bouton dans une liste, il faut un sélecteur plus précis (`.ad-app .tx-actions .btn.tx-supprimer`),
+  et les règles mobiles doivent venir APRÈS les règles de base (à spécificité égale, la dernière gagne).

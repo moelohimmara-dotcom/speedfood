@@ -652,13 +652,18 @@ a.ad-tuile-lien:hover {
 
 /* Mobile : les onglets se partagent la largeur et passent à la ligne si besoin (le dernier était coupé sous une barre de défilement). */
 @media (max-width: 899px) {
+  /* Une grille de colonnes égales (au moins 6,25 rem) : 6 onglets tiennent sur 2 lignes à 375 px au lieu de 3, sans onglet coupé. */
   .ad-onglets {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
     overflow: visible;
   }
   .ad-onglet {
-    padding: 0 10px;
+    justify-content: center;
+    padding: 0 6px;
     font-size: 0.92rem;
+    text-align: center;
+    white-space: normal;
   }
 }
 
@@ -2800,4 +2805,122 @@ a.ad-carte-lien:hover {
 .geo-suite {
   margin: var(--space-4) 0 0;
   text-align: center;
+}
+
+/* Taxonomie : deux colonnes (catégories, courtes ; quartiers, longs), lignes à plat avec actions discrètes. */
+.tx-colonnes {
+  display: grid;
+  gap: var(--space-5);
+}
+@media (min-width: 1100px) {
+  .tx-colonnes {
+    grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+.tx-liste {
+  display: grid;
+  margin-bottom: var(--space-4);
+}
+.tx-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  min-height: 52px;
+  padding: var(--space-1) 0;
+}
+.tx-ligne + .tx-ligne {
+  border-top: 1px solid var(--bordure);
+}
+.tx-nom {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.tx-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+/* Actions d'une ligne. La feuille de la console (`console-b.css`, chargée après) donne à tout `.btn` bordure épaisse, ombre dure et 48 px de haut, y compris
+   à l'état survolé : les sélecteurs ci-dessous sont volontairement plus précis pour l'emporter. */
+.ad-app .tx-actions .btn.btn-compact {
+  min-height: 44px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  box-shadow: 2px 2px 0 var(--encre);
+}
+/* « Supprimer » : du texte rouge, jamais un bouton aussi lourd que « Modifier » (la confirmation protège de l'erreur). */
+.ad-app .tx-actions .btn.tx-supprimer,
+.ad-app .tx-actions .btn.tx-supprimer:hover:not(:disabled),
+.ad-app .tx-actions .btn.tx-supprimer:active:not(:disabled) {
+  min-height: 44px;
+  padding: 6px 12px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  color: var(--danger);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.ad-app .tx-actions .btn.tx-supprimer:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-fond);
+}
+.tx-edition {
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: var(--space-3) 0;
+}
+.tx-edition .field {
+  margin-bottom: 0;
+}
+.tx-edition-nom {
+  flex: 1 1 12rem;
+}
+.tx-champ-ordre {
+  width: 7rem;
+  margin-bottom: 0;
+}
+.tx-ajout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--bordure);
+}
+.tx-ajout .field {
+  margin-bottom: 0;
+}
+.tx-ajout-nom {
+  flex: 1 1 12rem;
+}
+.tx-alerte {
+  margin-top: var(--space-3);
+}
+.tx-alerte-ligne {
+  flex-basis: 100%;
+  margin-top: 0;
+}
+
+@media (max-width: 480px) {
+  /* Sur téléphone le nom se contente de moins de place et les boutons de moins de marge, pour que « Modifier » et « Supprimer » restent sur sa ligne
+     (les cibles gardent 44 px de haut). */
+  .tx-nom {
+    flex-basis: 7rem;
+  }
+  .ad-app .tx-actions .btn.btn-compact {
+    padding-inline: 10px;
+  }
+  .ad-app .tx-actions .btn.tx-supprimer,
+  .ad-app .tx-actions .btn.tx-supprimer:hover:not(:disabled),
+  .ad-app .tx-actions .btn.tx-supprimer:active:not(:disabled) {
+    padding-inline: 8px;
+  }
 }
