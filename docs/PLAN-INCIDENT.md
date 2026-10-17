@@ -114,7 +114,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `e19ecff0-9281-485f-bfcd-9b93263fcb99` | 17 oct. 13 h 04 | Page Taxonomie et onglets |
 | `ff565497-79b5-4b72-9b37-e54dddcc6e97` | 17 oct. 15 h 10 | Mot de passe de 12 caractères, questions de sécurité facultatives (son retour arrière ne défait pas la migration `questions_securite`, sans effet sans le code) |
 | `c9e616f2-698f-4963-921a-d7128d94e59f` | 17 oct. 16 h | Accueil : ligne d'assistance WhatsApp |
-| `a014e31d-6d56-4d3a-adab-de7c3df0319f` | 17 oct. 16 h 30 | Bouton de pause des animations retiré du pied de page (version en production au 17 octobre) |
+| `a014e31d-6d56-4d3a-adab-de7c3df0319f` | 17 oct. 16 h 30 | Bouton de pause des animations retiré du pied de page |
+| `c5f66a5d-1475-4384-8beb-a7f0eb763adc` | 17 oct. 21 h | Livraison phases 1a, 1b et 2 (frais, livreurs, répartition, console livreur, carte) ; calcul des frais **éteint** ; migrations `livraison_socle` et `livraison_dispatch` déjà appliquées (version en production au 17 octobre) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
