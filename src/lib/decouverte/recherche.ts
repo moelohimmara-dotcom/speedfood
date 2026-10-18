@@ -16,19 +16,25 @@ import {
 } from "./classement";
 import { pastilles, scoresRestaurants, type ModeTri, type Pastille, type ScoreRestaurant } from "./recommandation";
 import { moyenneAffichee } from "@/lib/notation/regles";
+import { cache } from "react";
+import { lireToutesLesPages } from "./pagination";
 
 /**
  * Recherche publique : restaurants publiés (la RLS de lecture publique ne
  * renvoie déjà que ceux-là), leurs plats, classement explicable.
  *
- * Volumes du pilote : le filtrage par texte se fait ici, sans accents ni
- * casse (la base ne les ignore pas sans extension dédiée), sur au plus
- * LIMITE_RESTAURANTS_LUS restaurants et LIMITE_PLATS_LUS plats. À revoir
- * (extension `unaccent` ou index trigramme, côté base) bien avant d'approcher
- * ces plafonds.
+ * Le filtrage par texte se fait ici, sans accents ni casse (la base ne les
+ * ignore pas sans extension dédiée). La lecture se fait PAR PAGES de
+ * TAILLE_PAGE lignes jusqu'à la dernière : plus de plafond silencieux (avant,
+ * 500 restaurants et 2 000 plats, au-delà desquels des plats disparaissaient
+ * sans erreur). Les plafonds de sécurité ci-dessous protègent la mémoire d'un
+ * Worker ; s'ils sont atteints, la lecture le SIGNALE (`tronque`, journal
+ * `catalogue_tronque`) au lieu de se taire. À revoir (filtrage par zone côté
+ * base, extension `unaccent`) bien avant d'approcher ces plafonds.
  */
-const LIMITE_RESTAURANTS_LUS = 500;
-const LIMITE_PLATS_LUS = 2000;
+const TAILLE_PAGE = 1000;
+const PLAFOND_RESTAURANTS = 5000;
+const PLAFOND_PLATS = 30000;
 export const LIMITE_RESULTATS_AFFICHES = 60;
 
 export interface RestaurantCatalogue extends RestaurantClassable {
@@ -101,37 +107,52 @@ export interface CatalogueLu {
   fraicheurHeures: number;
   maintenant: Date;
   erreur: boolean;
+  /** Un plafond de sécurité a été atteint : le catalogue est incomplet (jamais sous les volumes du pilote). */
+  tronque?: boolean;
 }
 
-/** Lecture publique du catalogue (restaurants publiés et leurs plats), partagée par la recherche et les alternatives. */
-export async function lireCatalogue(
-  filtres: { categorie?: string; quartier?: string } = {}
-): Promise<CatalogueLu> {
+/**
+ * Lecture publique du catalogue (restaurants publiés et leurs plats), partagée par la recherche, les alternatives et l'aide au choix.
+ * Mémorisée PAR REQUÊTE (React `cache`, clé = filtres) : une page qui l'appelle plusieurs fois, comme `/restaurants`, ne lit qu'une fois.
+ */
+export function lireCatalogue(filtres: { categorie?: string; quartier?: string } = {}): Promise<CatalogueLu> {
+  return lireCatalogueMemorise(filtres.categorie ?? "", filtres.quartier ?? "");
+}
+
+const lireCatalogueMemorise = cache(async (categorie: string, quartier: string): Promise<CatalogueLu> => {
   const supabase = creerClientPublic();
   const maintenant = new Date();
   const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
 
-  let requete = supabase
-    .from("restaurants")
-    .select(
-      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, latitude, longitude, menu_categories(nom), neighborhoods(id, nom, generique, communes(id, nom, slug, prefectures(id, nom, slug, regions(id, nom, slug))))"
-    )
-    .order("nom")
-    .limit(LIMITE_RESTAURANTS_LUS);
-  if (filtres.categorie) requete = requete.eq("categorie_id", filtres.categorie);
-  if (filtres.quartier) requete = requete.eq("quartier_id", filtres.quartier);
+  const [lectureRestaurants, lecturePlats] = await Promise.all([
+    lireToutesLesPages((de, a) => {
+      let requete = supabase
+        .from("restaurants")
+        .select(
+          "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, latitude, longitude, menu_categories(nom), neighborhoods(id, nom, generique, communes(id, nom, slug, prefectures(id, nom, slug, regions(id, nom, slug))))"
+        )
+        .order("nom")
+        .order("id")
+        .range(de, a);
+      if (categorie) requete = requete.eq("categorie_id", categorie);
+      if (quartier) requete = requete.eq("quartier_id", quartier);
+      return requete;
+    }, TAILLE_PAGE, PLAFOND_RESTAURANTS),
+    lireToutesLesPages(
+      (de, a) =>
+        supabase
+          .from("menu_items")
+          .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, illustration")
+          .is("archive_le", null)
+          .order("restaurant_id")
+          .order("id")
+          .range(de, a),
+      TAILLE_PAGE,
+      PLAFOND_PLATS
+    ),
+  ]);
 
-  const [{ data: restaurantsBruts, error: erreurRestaurants }, { data: platsBruts, error: erreurPlats }] =
-    await Promise.all([
-      requete,
-      supabase
-        .from("menu_items")
-        .select("id, restaurant_id, nom, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, illustration")
-        .is("archive_le", null)
-        .limit(LIMITE_PLATS_LUS),
-    ]);
-
-  if (erreurRestaurants || erreurPlats) {
+  if (lectureRestaurants.erreur || lecturePlats.erreur) {
     return {
       restaurants: [],
       platsParRestaurant: new Map(),
@@ -140,8 +161,16 @@ export async function lireCatalogue(
       erreur: true,
     };
   }
+  const tronque = lectureRestaurants.tronque || lecturePlats.tronque;
+  if (tronque) {
+    // Aucune donnée personnelle : seulement les volumes, pour que l'exploitation sache qu'il faut passer au filtrage côté base.
+    console.error("catalogue_tronque", { restaurants: lectureRestaurants.lignes.length, plats: lecturePlats.lignes.length });
+  }
+  const restaurantsBruts = lectureRestaurants.lignes;
+  const platsBruts = lecturePlats.lignes;
+  const idsRetenus = new Set(restaurantsBruts.map((r) => r.id));
 
-  const restaurants: RestaurantCatalogue[] = (restaurantsBruts ?? []).map((r) => ({
+  const restaurants: RestaurantCatalogue[] = restaurantsBruts.map((r) => ({
     id: r.id,
     nom: r.nom,
     horaires: r.horaires,
@@ -171,7 +200,9 @@ export async function lireCatalogue(
   }));
 
   const platsParRestaurant = new Map<string, PlatPublic[]>();
-  for (const p of platsBruts ?? []) {
+  for (const p of platsBruts) {
+    // Un filtre de cuisine ou de quartier ne garde en mémoire que les plats des restaurants retenus.
+    if (!idsRetenus.has(p.restaurant_id)) continue;
     const liste = platsParRestaurant.get(p.restaurant_id) ?? [];
     liste.push({
       id: p.id,
@@ -186,8 +217,8 @@ export async function lireCatalogue(
     platsParRestaurant.set(p.restaurant_id, liste);
   }
 
-  return { restaurants, platsParRestaurant, fraicheurHeures: disponibiliteFraicheurHeures, maintenant, erreur: false };
-}
+  return { restaurants, platsParRestaurant, fraicheurHeures: disponibiliteFraicheurHeures, maintenant, erreur: false, tronque };
+});
 
 export async function rechercherCatalogue(recherche: RechercheCatalogue): Promise<ResultatRecherche> {
   const catalogue = await lireCatalogue({ categorie: recherche.categorie, quartier: recherche.quartier });

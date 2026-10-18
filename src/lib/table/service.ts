@@ -108,25 +108,27 @@ export async function vueTableParJeton(jeton: string): Promise<VueTable | null> 
   return vueTable(db, sessionId);
 }
 
+type CommandeBrute = { id: string; session_id?: string; reference: string; statut: string; sous_total: number; cree_le: string; client_nom: string; order_items: { nom: string; quantite: number; prix: number }[] };
+
+const COLONNES_COMMANDE = "id, session_id, reference, statut, sous_total, cree_le, client_nom, order_items(nom, quantite, prix)";
+
+function versCommande(c: CommandeBrute): CommandeDeTable {
+  return {
+    id: c.id,
+    reference: c.reference,
+    statut: versStatutCommande(c.statut),
+    sousTotal: c.sous_total,
+    creeLe: c.cree_le,
+    client: c.client_nom,
+    lignes: c.order_items ?? [],
+  };
+}
+
 export async function vueTable(db: Db, sessionId: string): Promise<VueTable | null> {
   const { data: s } = await db.from("table_sessions").select(COLONNES).eq("id", sessionId).maybeSingle();
   if (!s) return null;
-  const { data: cmds } = await db
-    .from("orders")
-    .select("id, reference, statut, sous_total, cree_le, client_nom, order_items(nom, quantite, prix)")
-    .eq("session_id", sessionId)
-    .order("cree_le", { ascending: true });
-  const commandes = ((cmds ?? []) as unknown as { id: string; reference: string; statut: string; sous_total: number; cree_le: string; client_nom: string; order_items: { nom: string; quantite: number; prix: number }[] }[]).map(
-    (c): CommandeDeTable => ({
-      id: c.id,
-      reference: c.reference,
-      statut: versStatutCommande(c.statut),
-      sousTotal: c.sous_total,
-      creeLe: c.cree_le,
-      client: c.client_nom,
-      lignes: c.order_items ?? [],
-    })
-  );
+  const { data: cmds } = await db.from("orders").select(COLONNES_COMMANDE).eq("session_id", sessionId).order("cree_le", { ascending: true });
+  const commandes = ((cmds ?? []) as unknown as CommandeBrute[]).map(versCommande);
   return { session: versSession(s as SessionBrute), commandes, total: totalAddition(commandes) };
 }
 
@@ -160,11 +162,29 @@ export interface TableOuverte {
   total: number;
 }
 
+/**
+ * Tables ouvertes d'un restaurant avec leurs commandes. DEUX requêtes au total, quel que soit le nombre de tables (la salle se rafraîchit
+ * toutes les 10 s : une requête par table ferait vite dépasser la limite de sous-requêtes d'un Worker).
+ */
 export async function tablesOuvertes(restaurantId: string): Promise<TableOuverte[]> {
   const db = clientLivraison();
   const { data } = await db.from("table_sessions").select(COLONNES).eq("restaurant_id", restaurantId).eq("statut", "ouverte").order("ouverte_le", { ascending: true });
-  const vues = await Promise.all(((data ?? []) as SessionBrute[]).map((s) => vueTable(db, s.id)));
-  return vues.filter((v): v is VueTable => v !== null);
+  const sessions = (data ?? []) as SessionBrute[];
+  if (sessions.length === 0) return [];
+  const { data: cmds } = await db
+    .from("orders")
+    .select(COLONNES_COMMANDE)
+    .in("session_id", sessions.map((s) => s.id))
+    .order("cree_le", { ascending: true });
+  const parSession = new Map<string, CommandeDeTable[]>();
+  for (const c of (cmds ?? []) as unknown as CommandeBrute[]) {
+    if (!c.session_id) continue;
+    parSession.set(c.session_id, [...(parSession.get(c.session_id) ?? []), versCommande(c)]);
+  }
+  return sessions.map((s) => {
+    const commandes = parSession.get(s.id) ?? [];
+    return { session: versSession(s), commandes, total: totalAddition(commandes) };
+  });
 }
 
 /** Le personnel a vu l'appel : le signal est effacé (l'addition demandée reste jusqu'au règlement). */

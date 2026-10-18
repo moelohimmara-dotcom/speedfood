@@ -52,6 +52,7 @@ Lien « Positionnement prix » dans la colonne de gauche. Le restaurateur voit s
 
 ## 8. Limites connues et suite
 
+- **Volumes** : le catalogue est lu **par pages de 1 000 lignes** jusqu'à la dernière (plafonds de sécurité : 5 000 restaurants, 30 000 plats ; s'ils sont atteints, le journal `catalogue_tronque` le signale et `CatalogueLu.tronque` vaut vrai), et mémorisé **par requête** : plus de plafond silencieux à 500 restaurants et 2 000 plats. Au-delà de ces volumes, passer au filtrage par zone côté base.
 - La distance est une **estimation à vol d'oiseau × 1,3**, pas un itinéraire réel ; la zone choisie (quartier, commune) est plus grossière que le GPS.
 - Le budget est comparé au **prix d'un plat**, pas à un repas complet (plat + boisson + accompagnement) : à affiner avec les données de commande.
 - Pas d'apprentissage ni de préférences individuelles tant qu'il n'y a pas de volume ; pas de lien encore avec le classement « Recommandés » du catalogue.

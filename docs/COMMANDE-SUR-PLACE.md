@@ -81,3 +81,7 @@ Limites : pas de téléphone du convive (pas de suivi sur son téléphone, sauf 
 - saisie au nom d'un compte qui n'est PAS membre : refusée (`NON_AUTORISE`) ;
 - 2ᵉ commande sur la même table : même session, acceptée, 2 commandes, 1 seule session ouverte.
 **Non essayé** : l'écran de saisie lui-même et la Salle (connexion de restaurateur nécessaire) ; les suppléments et le mode comptoir en saisie serveur.
+
+## 10. Salle : requêtes regroupées
+
+`tablesOuvertes` lit toutes les tables ouvertes et leurs commandes en **deux requêtes** quel que soit le nombre de tables (avant : deux par table, ce qui aurait dépassé la limite de sous-requêtes d'un Worker au-delà d'une vingtaine de tables, avec un rafraîchissement toutes les 10 s). Vérifié le 18 octobre 2026 avec 3 tables et 4 commandes : totaux 50 000 / 65 000 / 120 000 GNF corrects.
