@@ -125,7 +125,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `f5b75dcd-1cc5-47d0-9d51-28f2201fbb65` | 18 oct. | Assistant « Aide-moi à choisir » (budget, position, gamme de prix), positionnement restaurateur, console admin ; migration `20261018120000` appliquée |
 | `10160902-386e-48be-9864-c451b546c90a` | 18 oct. | Commande sur place S1 : ardoise de table, comptoir et numéro d'appel, convive sans compte par restaurant, Salle ; migration `20261018180000` appliquée |
 | `a9b3ca44-f9d7-4ee6-b598-4bd6f7e339a0` | 18 oct. | Commande sur place S2 : mode serveur (le personnel prend la commande d'une table) ; migration `20261018220000` appliquée |
-| `27282312-75e2-48fd-900f-fdd2117f9235` | 18 oct. | Correctifs de volume : catalogue lu par pages sans plafond silencieux et mémorisé par requête, salle en deux requêtes (version en production) |
+| `27282312-75e2-48fd-900f-fdd2117f9235` | 18 oct. | Correctifs de volume : catalogue lu par pages sans plafond silencieux et mémorisé par requête, salle en deux requêtes |
+| `c661b3d5-3094-464c-bb0b-ff216a7a78c4` | 18 oct. | Volumes : lectures d'administration paginées, commandes du restaurant bornées, garde-fou des requêtes non bornées (`docs/VOLUMES.md`) (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
