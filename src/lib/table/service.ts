@@ -199,6 +199,22 @@ export async function acquitterAppel(restaurantId: string, sessionId: string): P
   return error || !data || data.length === 0 ? { ok: false, erreur: "Table introuvable." } : { ok: true };
 }
 
+/** Fait passer une commande servie à « terminée » par les étapes autorisées (acceptée → prête → terminée), avec l'historique de chaque étape. */
+async function terminerCommande(db: Db, id: string, depuis: string, acteur: string): Promise<boolean> {
+  let statutPrecedent = depuis;
+  if (statutPrecedent === "acceptee") {
+    const { data, error } = await db.from("orders").update({ statut: "prete" }).eq("id", id).eq("statut", "acceptee").select("id");
+    if (error || !data || data.length === 0) return false;
+    await db.from("order_status_events").insert({ order_id: id, statut_precedent: "acceptee", statut_suivant: "prete", acteur });
+    statutPrecedent = "prete";
+  }
+  if (statutPrecedent !== "prete") return false;
+  const { data, error } = await db.from("orders").update({ statut: "terminee" }).eq("id", id).eq("statut", "prete").select("id");
+  if (error || !data || data.length === 0) return false;
+  await db.from("order_status_events").insert({ order_id: id, statut_precedent: "prete", statut_suivant: "terminee", acteur });
+  return true;
+}
+
 /**
  * Clôture une table : le serveur a encaissé l'addition (Speedfood n'encaisse rien). Les commandes servies (acceptée, prête) passent à
  * « terminée » et leur règlement est marqué reçu avec le mode indiqué ; une commande encore « en attente » bloque la clôture (le personnel
@@ -211,12 +227,19 @@ export async function cloturerTable(args: { restaurantId: string; sessionId: str
   if (!vue || vue.session.restaurantId !== args.restaurantId || vue.session.statut !== "ouverte") return { ok: false, erreur: "Table introuvable ou déjà clôturée." };
   if (vue.commandes.some((c) => c.statut === "en_attente")) return { ok: false, erreur: "Une commande de cette table attend encore une réponse : acceptez-la ou refusez-la avant de clôturer." };
 
+  // 1) Les commandes servies passent à « terminée » en suivant le parcours autorisé (acceptée → prête → terminée) ; si l'une échoue, rien n'est
+  //    clôturé (la table reste ouverte et on le dit), plutôt que de marquer « payée » une table dont les commandes ne le sont pas.
   const maintenant = new Date().toISOString();
-  for (const c of vue.commandes.filter((c) => compteDansAddition(c.statut))) {
-    if (c.statut !== "terminee") {
-      const { error } = await db.from("orders").update({ statut: "terminee" }).eq("id", c.id).in("statut", ["acceptee", "prete"]);
-      if (!error) await db.from("order_status_events").insert({ order_id: c.id, statut_precedent: c.statut === "prete" ? "prete" : "acceptee", statut_suivant: "terminee", acteur: `restaurant:${args.acteurId}` });
+  const acteur = `restaurant:${args.acteurId}`;
+  const aTerminer = vue.commandes.filter((c) => compteDansAddition(c.statut));
+  for (const c of aTerminer) {
+    if (c.statut === "terminee") continue;
+    if (!(await terminerCommande(db, c.id, c.statut, acteur))) {
+      return { ok: false, erreur: "Une commande de cette table n'a pas pu passer à « terminée ». Réessayez ; la table reste ouverte." };
     }
+  }
+  // 2) Règlement reçu sur toutes les commandes qui comptent, puis clôture de la session.
+  for (const c of aTerminer) {
     await db.from("orders").update({ paiement_mode: args.mode, paiement_statut: "recu", paiement_declare_le: maintenant }).eq("id", c.id).neq("paiement_statut", "recu");
   }
   const { data, error } = await db

@@ -189,7 +189,8 @@ export type ActionModeration = "masquer_commentaire" | "annuler_note" | "retabli
 /** Le motif est obligatoire sauf pour « classer sans suite » : l'exploitation doit pouvoir expliquer chaque retrait. */
 export async function modererAvis(args: { avisId: string; action: ActionModeration; motif: string; adminId: string }): Promise<Resultat> {
   const motif = args.motif.replace(/\s+/g, " ").trim().slice(0, 300);
-  if (args.action !== "classer_sans_suite" && motif.length < 5) return { ok: false, erreur: "Indiquez le motif (5 caractères au moins)." };
+  // Un motif est exigé pour RETIRER du contenu public (masquer, annuler) : il est journalisé. Rétablir ou classer sans suite n'en demande pas.
+  if ((args.action === "masquer_commentaire" || args.action === "annuler_note") && motif.length < 5) return { ok: false, erreur: "Indiquez le motif (5 caractères au moins)." };
   const db = clientLivraison();
   const { data } = await db.from("avis").select("id, cible").eq("id", args.avisId).maybeSingle();
   if (!data || (data as { cible: string }).cible !== "restaurant") return { ok: false, erreur: "Avis introuvable." };

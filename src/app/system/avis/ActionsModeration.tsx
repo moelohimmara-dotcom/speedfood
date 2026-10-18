@@ -32,7 +32,7 @@ export function ActionsModeration({ avisId, statut }: { avisId: string; statut: 
   return (
     <div className="notation-reponse-form">
       <label className="notation-aide" htmlFor={`motif-${avisId}`}>
-        Motif de la décision (obligatoire pour masquer ou annuler)
+        Motif de la décision (obligatoire pour masquer ou annuler ; facultatif pour rétablir ou classer sans suite)
       </label>
       <input id={`motif-${avisId}`} className="notation-commentaire" maxLength={300} value={motif} onChange={(e) => setMotif(e.target.value)} />
       {erreur ? <p className="notation-erreur" role="alert">{erreur}</p> : null}
