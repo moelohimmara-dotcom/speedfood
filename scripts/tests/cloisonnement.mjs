@@ -564,6 +564,35 @@ await autorise("le super administrateur règle les seuils", ID.admin, `update pa
 await interdit("des seuils non croissants sont refusés", ID.admin, `update parametres_aide_choix set seuil_economique_gnf = 95000 where id = true`);
 await interdit("un restaurateur ne règle pas l'aide au choix", ID.user_a, `update parametres_aide_choix set nb_propositions = 10 where id = true`);
 
+// ---------------------------------------------------------------- commande sur place : sessions de table, numéro d'appel
+console.log("\n--- Commande sur place");
+await db.exec("select set_config('request.jwt.claims', '{}', false), set_config('request.jwt.claim.sub', '', false)");
+const SESS_A = "00000000-0000-4000-8000-0000000003a1";
+await db.exec(`insert into table_sessions (id, restaurant_id, table_numero) values ('${SESS_A}', ${U(ID.resto_a)}, 'A1')`);
+verifier("sessions de table : le restaurant A voit la sienne", (await nb(ID.user_a, "table_sessions")) === 1);
+verifier("sessions de table : le restaurant B ne voit rien", VIDE(await nb(ID.user_b, "table_sessions")));
+verifier("sessions de table : un client et un anonyme ne voient rien", VIDE(await nb(ID.client, "table_sessions")) && VIDE(await nb(null, "table_sessions")));
+verifier("sessions de table : l'exploitation voit tout", (await nb(ID.admin, "table_sessions")) === 1 && (await nb(ID.support, "table_sessions")) === 1);
+await interdit("un restaurateur ne crée pas de session par l'API (le serveur vérifie)", ID.user_a, `insert into table_sessions (restaurant_id, table_numero) values (${U(ID.resto_a)}, 'Z9')`);
+await interdit("un restaurateur ne modifie pas une session par l'API", ID.user_a, `update table_sessions set statut = 'payee', cloturee_le = now() where id = '${SESS_A}'`);
+verifier("base : une seule session ouverte par table, casse ignorée", await (async () => { try { await db.exec(`insert into table_sessions (restaurant_id, table_numero) values (${U(ID.resto_a)}, 'a1')`); return false; } catch { return true; } })());
+verifier("base : deux restaurants peuvent avoir la même table", await (async () => { try { await db.exec(`insert into table_sessions (restaurant_id, table_numero) values (${U(ID.resto_b)}, 'A1')`); return true; } catch { return false; } })());
+verifier("base : une session ouverte ne peut pas être « clôturée » sans date", await (async () => { try { await db.exec(`update table_sessions set statut = 'payee' where id = '${SESS_A}'`); return false; } catch { return true; } })());
+await db.exec(`update table_sessions set statut = 'payee', cloturee_le = now(), paiement_mode = 'especes' where id = '${SESS_A}'`);
+verifier("base : après clôture, la table peut s'ouvrir de nouveau", await (async () => { try { await db.exec(`insert into table_sessions (restaurant_id, table_numero) values (${U(ID.resto_a)}, 'A1')`); return true; } catch { return false; } })());
+verifier("base : un mode de règlement inconnu est refusé", await (async () => { try { await db.exec(`update table_sessions set paiement_mode = 'carte' where id = '${SESS_A}'`); return false; } catch { return true; } })());
+
+await interdit("un restaurateur ne change pas le numéro d'appel d'une commande", ID.user_a, `update orders set numero_appel = 7 where id = '${CMD_A}'`);
+await interdit("un restaurateur ne rattache pas une commande à une session", ID.user_a, `update orders set session_id = '${SESS_A}' where id = '${CMD_A}'`);
+await interdit("un restaurateur ne change pas le numéro de table d'une commande", ID.user_a, `update orders set table_numero = '99' where id = '${CMD_A}'`);
+await db.exec(`update orders set numero_appel = 5 where id = '${CMD_A}'`);
+verifier("base : le numéro d'appel est unique par restaurant et par jour", await (async () => { try { await db.exec(`insert into orders (reference, jeton_suivi, restaurant_id, client_nom, client_telephone, mode, sous_total, statut, numero_appel) values ('SF-DOUBL', 'jeton-doubl', ${U(ID.resto_a)}, 'X', '620000009', 'sur_place', 1000, 'en_attente', 5)`); return false; } catch { return true; } })());
+
+await autorise("un restaurateur règle son service sur place", ID.user_a, `update restaurants set service_table = 'comptoir', table_sans_compte = true, table_validation = 'toutes' where id = ${U(ID.resto_a)}`);
+await interdit("un restaurateur ne règle pas le service d'un autre restaurant", ID.user_b, `update restaurants set table_sans_compte = true where id = ${U(ID.resto_a)}`);
+await interdit("une valeur de service inconnue est refusée par la base", ID.user_a, `update restaurants set service_table = 'terrasse' where id = ${U(ID.resto_a)}`);
+await interdit("une validation inconnue est refusée par la base", ID.user_a, `update restaurants set table_validation = 'parfois' where id = ${U(ID.resto_a)}`);
+
 const ouvertes = (await db.query(`
   select tablename, policyname, cmd from pg_policies
   where schemaname = 'public' and (qual is null or qual = 'true') and (with_check is null or with_check = 'true')
