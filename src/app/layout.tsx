@@ -11,6 +11,7 @@ import "./catalogue.css";
 import "./notation.css";
 import "./aide-choix.css";
 import "./sur-place.css";
+import "./installer.css";
 import "./marche.css";
 import "./cadre.css";
 import "./public.css";

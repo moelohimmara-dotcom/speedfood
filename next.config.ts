@@ -77,6 +77,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Les actions serveur sont limitées à 1 Mo par défaut ; une photo peut aller jusqu'à 5 Mo (storage/images.ts).
   experimental: { serverActions: { bodySizeLimit: "6mb" } },
+  // Android vérifie ce fichier à ce chemin exact ; un dossier `.well-known` statique n'est pas fiable sur Workers.
+  async rewrites() {
+    return [{ source: "/.well-known/assetlinks.json", destination: "/api/assetlinks" }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: enTetesSecurite }];
   },

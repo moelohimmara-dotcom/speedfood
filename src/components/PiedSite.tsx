@@ -44,6 +44,7 @@ export async function PiedSite() {
           <p className="site-pied-titre">Informations</p>
           <Link href="/confidentialite">Confidentialité</Link>
           <Link href="/a-propos">À propos</Link>
+          <Link href="/installer">Installer l&apos;application</Link>
           {pagesPubliees.map((p) => (
             <Link key={p.slug} href={`/p/${p.slug}`}>
               {p.titre}

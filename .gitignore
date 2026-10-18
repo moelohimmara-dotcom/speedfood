@@ -46,3 +46,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Clés de signature Android (jamais dans le dépôt)
+*.keystore
+*.jks
+android/build/
+android/.gradle/
+android/app/build/
+android/*.apk
+android/*.aab
+android/local.properties
+android/*.idsig
+android/*.apks
+android/.idea/

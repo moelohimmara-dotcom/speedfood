@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origine}/aide`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${origine}/devenir-partenaire`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${origine}/a-propos`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${origine}/installer`, changeFrequency: "monthly", priority: 0.3 },
     ...(data ?? []).map((restaurant) => ({
       url: `${origine}/restaurants/${restaurant.id}`,
       lastModified: restaurant.mis_a_jour_le,
