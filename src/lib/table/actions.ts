@@ -10,6 +10,9 @@ import { creerClientAdmin } from "@/lib/db/admin";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { limiterAppelTable } from "@/lib/securite/limitation-debit";
 import { estReglageValidation, estServiceTable, type ServiceTable } from "./regles";
+import { creerCommande } from "@/lib/commande/creation";
+import { validerCreationCommande } from "@/lib/commande/validation";
+import type { CreationCommandePayload } from "@/lib/contracts/commande";
 import { acquitterAppel, annulerTable, cloturerTable, signalerAuPersonnel, type Resultat } from "./service";
 
 /** Actions du convive (porteur du jeton de suivi d'une commande de la table) et du restaurant (membre, table de SON restaurant). */
@@ -113,4 +116,54 @@ export async function lireServiceSurPlaceAction(restaurantId: string): Promise<S
   const r = data as { accepte_sur_place: boolean; service_table: string; table_sans_compte: boolean } | null;
   if (!r) return null;
   return { accepteSurPlace: r.accepte_sur_place, service: estServiceTable(r.service_table) ? r.service_table : "table", sansCompte: r.table_sans_compte };
+}
+
+// ---------------------------------------------------------------- mode serveur : le personnel prend la commande d'une table
+
+export interface SaisieServeur {
+  cleIdempotence: string;
+  table: string;
+  nom: string;
+  lignes: { menuItemId: string; quantite: number; optionIds: string[] }[];
+  /** Total que le serveur a vu à l'écran : le serveur le compare au total recalculé (prix jamais crus). */
+  sousTotalAffiche: number;
+}
+
+export type ResultatSaisie = { ok: true; reference: string } | { ok: false; erreur: string; sousTotalServeur?: number };
+
+/**
+ * Le serveur prend la commande de la table pour un convive : la commande est rattachée à SON compte (`saisie_par`), n'est jamais de test, et
+ * passe directement en cuisine (le personnel est la validation). Les prix sont recalculés côté serveur comme pour un client.
+ */
+export async function prendreCommandeSalleAction(saisie: SaisieServeur): Promise<ResultatSaisie> {
+  const { membership, user } = await obtenirContexteRestaurant("/restaurant/salle");
+  const payload: CreationCommandePayload = {
+    cleIdempotence: saisie?.cleIdempotence,
+    sousTotalAffiche: saisie?.sousTotalAffiche,
+    restaurantId: membership.restaurant_id,
+    client: { nom: String(saisie?.nom ?? "").trim() || `Table ${String(saisie?.table ?? "").trim()}`, telephone: "", adresse: null },
+    mode: "sur_place",
+    table: saisie?.table,
+    lignes: saisie?.lignes,
+    consentementReglement: true,
+  } as CreationCommandePayload;
+  const validation = validerCreationCommande(payload);
+  if (!validation.ok) {
+    const premier = Object.values(validation.erreur.champs ?? {})[0];
+    return { ok: false, erreur: premier ?? validation.erreur.message };
+  }
+  const refus = await limiter();
+  if (refus && !refus.ok) return { ok: false, erreur: refus.erreur };
+  try {
+    const cree = await creerCommande(validation.valeurs, null, { saisiePar: user.id });
+    revalidatePath("/restaurant/salle");
+    revalidatePath("/restaurant/commandes");
+    return { ok: true, reference: cree.reference };
+  } catch (erreur) {
+    if (erreur instanceof ErreurMetier) {
+      const nouveau = Number(erreur.toApi().champs?.sousTotalServeur);
+      return { ok: false, erreur: erreur.message, ...(Number.isSafeInteger(nouveau) ? { sousTotalServeur: nouveau } : {}) };
+    }
+    return { ok: false, erreur: "Commande non enregistrée. Réessayez dans un instant." };
+  }
 }

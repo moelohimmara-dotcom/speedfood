@@ -588,6 +588,9 @@ await interdit("un restaurateur ne change pas le numéro de table d'une commande
 await db.exec(`update orders set numero_appel = 5 where id = '${CMD_A}'`);
 verifier("base : le numéro d'appel est unique par restaurant et par jour", await (async () => { try { await db.exec(`insert into orders (reference, jeton_suivi, restaurant_id, client_nom, client_telephone, mode, sous_total, statut, numero_appel) values ('SF-DOUBL', 'jeton-doubl', ${U(ID.resto_a)}, 'X', '620000009', 'sur_place', 1000, 'en_attente', 5)`); return false; } catch { return true; } })());
 
+await interdit("un restaurateur ne s'attribue pas la saisie d'une commande", ID.user_a, `update orders set saisie_par = '${ID.user_a}' where id = '${CMD_A}'`);
+await db.exec(`update orders set saisie_par = '${ID.user_a}' where id = '${CMD_A}'`);
+verifier("base : saisie_par désigne le compte du membre qui a saisi", (await db.query(`select saisie_par from orders where id = '${CMD_A}'`)).rows[0].saisie_par === ID.user_a);
 await autorise("un restaurateur règle son service sur place", ID.user_a, `update restaurants set service_table = 'comptoir', table_sans_compte = true, table_validation = 'toutes' where id = ${U(ID.resto_a)}`);
 await interdit("un restaurateur ne règle pas le service d'un autre restaurant", ID.user_b, `update restaurants set table_sans_compte = true where id = ${U(ID.resto_a)}`);
 await interdit("une valeur de service inconnue est refusée par la base", ID.user_a, `update restaurants set service_table = 'terrasse' where id = ${U(ID.resto_a)}`);

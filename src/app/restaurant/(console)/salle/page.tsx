@@ -17,6 +17,13 @@ export default async function SallePage() {
   return (
     <div>
       <PageHeader titre="Salle" description="Les tables ouvertes en ce moment. La page se met à jour toute seule ; un signal sonore prévient quand une table appelle ou demande l'addition." />
+      {resto?.accepte_sur_place ? (
+        <p>
+          <Link href="/restaurant/salle/saisie" className="btn btn-primary">
+            Prendre une commande
+          </Link>
+        </p>
+      ) : null}
       {!resto?.accepte_sur_place ? (
         <EtatVide
           icone="carte"

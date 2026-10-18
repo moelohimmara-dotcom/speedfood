@@ -94,9 +94,25 @@ function verifierMemeRestaurant(restaurantExistant: string, restaurantDemande: s
  * `utilisateurId` : compte identifié qui envoie la commande (obligatoire, TDR v0.2 §5.1). Un rejeu idempotent
  * ne rend jamais la commande d'un autre compte.
  */
-export async function creerCommande(payload: CreationCommandePayload, utilisateurId: string | null): Promise<CommandeCreee> {
+export interface OptionsCreation {
+  /**
+   * Commande saisie par un membre du restaurant (mode serveur) : `saisiePar` est son compte, DÉJÀ vérifié par l'appelant et revérifié ici.
+   * Elle est toujours à table, jamais de test, et passe directement en cuisine (le personnel est la validation).
+   */
+  saisiePar?: string;
+}
+
+export async function creerCommande(payload: CreationCommandePayload, utilisateurId: string | null, options: OptionsCreation = {}): Promise<CommandeCreee> {
+  const saisiePar = options.saisiePar ?? null;
   const db = creerClientAdmin();
   const jeton = genererJetonSuivi(payload.cleIdempotence);
+  if (saisiePar !== null) {
+    if (utilisateurId !== null || payload.mode !== "sur_place") {
+      throw new ErreurMetier("VALIDATION", "Commande de salle invalide.");
+    }
+    const { data: membre } = await db.from("restaurant_memberships").select("utilisateur_id").eq("restaurant_id", payload.restaurantId).eq("utilisateur_id", saisiePar).maybeSingle();
+    if (!membre) throw new ErreurMetier("NON_AUTORISE", "Vous ne faites pas partie de ce restaurant.");
+  }
 
   // Rejeu idempotent : la commande existe déjà pour cette clé d'idempotence.
   const { data: existante } = await db
@@ -141,10 +157,10 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     if (estServiceTable(r.service_table)) serviceTable = r.service_table;
     if (estReglageValidation(r.table_validation)) reglageValidation = r.table_validation;
     // Convive sans compte : seulement si CE restaurant l'a autorisé (dérogation décidée restaurant par restaurant, docs/COMMANDE-SUR-PLACE.md).
-    if (utilisateurId === null && !r.table_sans_compte) {
+    if (utilisateurId === null && saisiePar === null && !r.table_sans_compte) {
       throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous pour envoyer votre commande.");
     }
-  } else if (utilisateurId === null) {
+  } else if (utilisateurId === null && saisiePar === null) {
     throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous pour envoyer votre commande.");
   }
   const { lignes, sousTotal } = await recalculerLignes(
@@ -191,6 +207,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     }
   }
 
+  // Une commande saisie par le personnel est une vraie commande (jamais de test) ; une commande passée avec un compte de l'équipe reste de test.
   const estTest = utilisateurId === null ? false : await auteurEstDeLEquipe(db, payload.restaurantId, utilisateurId);
 
   // Commande sur place : session de table (service à table) ou numéro d'appel (comptoir), et validation éventuelle par le personnel.
@@ -201,10 +218,10 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
       const session = await ouvrirOuRejoindreSession(clientLivraison(), payload.restaurantId, payload.table ?? "");
       if (!session) throw new ErreurMetier("ERREUR_SERVEUR", "Impossible d'ouvrir la table. Réessayez dans un instant.");
       sessionId = session.id;
-      validerAvantPreparation = validationRequise({ reglage: reglageValidation, tableDejaValidee: session.valideeLe !== null, sansCompte: utilisateurId === null });
+      validerAvantPreparation = saisiePar === null && validationRequise({ reglage: reglageValidation, tableDejaValidee: session.valideeLe !== null, sansCompte: utilisateurId === null });
     } else {
       // Comptoir : pas de table à suivre ; « première » n'a pas de sens, seule « toutes » valide tout (le convive sans compte est toujours validé).
-      validerAvantPreparation = validationRequise({ reglage: reglageValidation === "premiere" ? "aucune" : reglageValidation, tableDejaValidee: false, sansCompte: utilisateurId === null });
+      validerAvantPreparation = saisiePar === null && validationRequise({ reglage: reglageValidation === "premiere" ? "aucune" : reglageValidation, tableDejaValidee: false, sansCompte: utilisateurId === null });
     }
   }
 
@@ -215,7 +232,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     const { data: inseree, error } = await db
       .from("orders")
       .insert({
-        ...({ session_id: sessionId, numero_appel: numeroAppel, invite: utilisateurId === null } as object),
+        ...({ session_id: sessionId, numero_appel: numeroAppel, invite: utilisateurId === null && saisiePar === null, saisie_par: saisiePar } as object),
         reference,
         jeton_suivi: jeton,
         restaurant_id: payload.restaurantId,
@@ -288,7 +305,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
 
         // Pas de validation requise : la commande de table passe directement « acceptée » et arrive en cuisine.
         if (payload.mode === "sur_place" && !validerAvantPreparation) {
-          await appliquerTransitionStatut(db, { id: inseree.id, statut: "en_attente" }, "acceptee", "systeme:table_sans_validation");
+          await appliquerTransitionStatut(db, { id: inseree.id, statut: "en_attente" }, "acceptee", saisiePar !== null ? `restaurant:${saisiePar}` : "systeme:table_sans_validation");
         }
       } catch (echec) {
         // Pas de transaction Supabase possible ici : on retire la commande

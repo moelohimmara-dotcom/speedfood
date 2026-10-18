@@ -23,3 +23,16 @@
 .salle-total { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
 .salle-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .salle-reglement { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+
+/* Mode serveur : saisie d'une commande en salle */
+.saisie-contenu { display: grid; gap: var(--space-4); }
+.saisie-entete { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.saisie-plats { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.saisie-plat { border: 1px solid var(--bordure); border-radius: var(--radius-md); padding: var(--space-3); background: var(--surface); min-width: 0; }
+.saisie-plat-choisi { border-color: var(--orange); }
+.saisie-plat-ligne { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.saisie-plat-nom { min-width: 0; overflow-wrap: anywhere; }
+.saisie-quantite { display: inline-flex; align-items: center; gap: var(--space-2); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.saisie-quantite .btn { min-width: 44px; min-height: 44px; padding: 0; }
+.saisie-options { display: grid; gap: 4px; margin-top: var(--space-2); }
+.saisie-pied { position: sticky; bottom: 0; background: var(--bg, var(--creme)); padding: var(--space-3) 0; display: grid; gap: var(--space-2); border-top: 1px solid var(--bordure); }

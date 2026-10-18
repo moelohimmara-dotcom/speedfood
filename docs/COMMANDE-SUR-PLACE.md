@@ -56,8 +56,20 @@ Comptoir : pas de session ; chaque commande reçoit un **numéro d'appel unique 
 
 ## 8. Limites et suite (lots suivants)
 
-- **S2** : mode serveur (prise de commande sur le téléphone du serveur), validation par table dans la Salle plus fine, hors-ligne.
+- **S2 (fait, voir §9)** : mode serveur (prise de commande sur le téléphone du serveur). **Reste de S2** : validation par table plus fine dans la Salle, hors-ligne.
 - **S3** : services du haut de gamme (entrée, plat, dessert « lancés » par le serveur), allergies et notes.
 - **S4** : partage de l'addition entre convives, pourboire des serveurs, tampons de fidélité, tableau de bord du gérant.
 - Écran admin dédié (restaurants avec service sur place, sessions ouvertes, convives sans compte) : à ajouter.
 - **Essai du 18 octobre 2026** (restaurant de démonstration « barbie food », réglages rétablis et données de test supprimées ensuite) : commande à table SANS compte envoyée depuis un QR (`?table=7`), session ouverte, commande « en attente » car table non validée ; appel du serveur et demande d'addition enregistrés, répétition refusée avant 60 s ; table validée (simulée en base) : 2ᵉ convive sur la MÊME session, commande acceptée automatiquement (historique `systeme:table_sans_validation`), addition 65 000 GNF affichée aux deux ; mode comptoir : numéro d'appel 1, aucune session. **Non essayé** : toutes les actions du personnel (Salle : valider, « J'y vais », « Table réglée », annuler ; réglages), qui demandent une connexion de restaurateur, et l'affichage du gros numéro d'appel côté client. Parcours **à jouer** avec de vrais comptes et un vrai restaurant ; à faire pendant le pilote d'un restaurant milieu de gamme (mesurer : part des tables qui commandent par QR, temps de service, commandes par table).
+
+## 9. Mode serveur (lot S2)
+
+Le serveur ouvre **Salle → Prendre une commande** (`/restaurant/salle/saisie`) : il indique la table (suggestion des tables ouvertes ; au comptoir, aucun numéro à saisir), un prénom facultatif, choisit les plats avec quantités et suppléments, et envoie.
+
+- **Rattachée au compte du serveur** : colonne `orders.saisie_par` (migration `20261018220000_commande_saisie_personnel.sql`, protégée contre toute modification par un membre). Même traçabilité qu'une commande de client.
+- **Vraie commande, pas un test** : contrairement à une commande passée avec un compte de l'équipe (qui est marquée « test » et exclue des chiffres), une commande saisie en salle compte dans les chiffres du restaurant.
+- **Directement en cuisine** : le personnel est la validation ; la commande est acceptée aussitôt (historique `restaurant:<compte>`) et valide la table.
+- **Mêmes garde-fous qu'un client** : prix, disponibilité et suppléments recalculés côté serveur ; le total vu à l'écran est comparé au total recalculé (écart signalé, rien créé) ; clé d'idempotence (un double envoi ne crée pas deux commandes) ; plafond de débit ; le serveur revérifie que le compte est bien membre du restaurant, que la commande est à table, et que le service à table est activé.
+- **Rejoint l'ardoise** : la commande s'ajoute à la session de la table, comme celles des convives.
+
+Limites : pas de téléphone du convive (pas de suivi sur son téléphone, sauf s'il scanne le QR) ; pas de modification ni d'annulation d'une ligne après envoi (à passer par la console Commandes) ; pas de saisie hors connexion.
