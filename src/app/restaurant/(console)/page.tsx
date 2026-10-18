@@ -62,7 +62,7 @@ export default async function AccueilConsolePage() {
       .maybeSingle(),
     supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", id).is("archive_le", null),
     // Tableau de bord : ce qui attend une action + les commandes terminées des deux dernières périodes (période courante et précédente).
-    chargerApercusCommandes(supabase, id, { depuisLe: new Date(Date.now() - 2 * PERIODE * 86_400_000).toISOString() }).catch(() => [] as ApercuCommandeRestaurant[]),
+    chargerApercusCommandes(supabase, id, { depuisLe: new Date(new Date().getTime() - 2 * PERIODE * 86_400_000).toISOString() }).catch(() => [] as ApercuCommandeRestaurant[]),
   ]);
 
   const origine = await origineDuSite();
