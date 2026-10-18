@@ -15,6 +15,8 @@ import { vueLivraisonPourClient } from "@/lib/livraison/vues";
 import { creerClientServeur } from "@/lib/db/server";
 import { etatNotationClient } from "@/lib/notation/service";
 import { BlocNotation } from "./BlocNotation";
+import { InviteNotation } from "./InviteNotation";
+import { etatRattachement, type EtatRattachement } from "@/lib/notation/rattachement";
 import { BlocTable } from "./BlocTable";
 import { vueTableParJeton } from "@/lib/table/service";
 
@@ -137,12 +139,14 @@ export async function renderSuiviPage(jeton: string, session = false) {
 
   // Notation : proposée au propriétaire de la commande (compte connecté) une fois la commande terminée. Une panne n'affecte pas le suivi.
   let notation = null;
+  let rattachement: EtatRattachement = "sans_objet";
   if (suivi.etatDerive === "terminee" && !suivi.estTest) {
     try {
       const {
         data: { user },
       } = await (await creerClientServeur()).auth.getUser();
-      if (user) notation = await etatNotationClient(jeton, user.id);
+      rattachement = await etatRattachement(jeton, user?.id ?? null);
+      if (user && rattachement === "deja_a_vous") notation = await etatNotationClient(jeton, user.id);
     } catch {
       notation = null;
     }
@@ -184,12 +188,14 @@ export async function renderSuiviPage(jeton: string, session = false) {
         </Card>
       ) : null}
 
-      {tableVue ? <BlocTable jeton={jeton} vue={tableVue} /> : null}
+      {tableVue ? <BlocTable jeton={session ? undefined : jeton} vue={tableVue} /> : null}
 
       {livraison ? <BlocLivraisonClient livraison={livraison} /> : null}
 
       {notation?.notable ? (
-        <BlocNotation jeton={jeton} restaurantNom={notation.restaurantNom} restaurant={notation.restaurant} livreur={notation.livreur} />
+        <BlocNotation jeton={session ? undefined : jeton} restaurantNom={notation.restaurantNom} restaurant={notation.restaurant} livreur={notation.livreur} />
+      ) : rattachement === "non_connecte" || rattachement === "rattachable" ? (
+        <InviteNotation mode={rattachement} jeton={session ? undefined : jeton} restaurantNom={suivi.restaurant.nom} />
       ) : null}
 
       {suivi.propositionActive ? (

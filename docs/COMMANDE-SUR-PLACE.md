@@ -106,4 +106,16 @@ Scénario de 47 contrôles joué par une route temporaire locale (supprimée), a
 1. **Clôture d'une table** : les commandes restaient « acceptées » (la base refuse « acceptée » → « terminée » directement ; l'erreur était ignorée), donc jamais « terminées », sans notation possible, alors que la table passait « payée ». Désormais acceptée → prête → terminée avec l'historique de chaque étape, et la table n'est clôturée que si toutes les commandes ont pu passer ; sinon message clair et la table reste ouverte. Test de non-régression en base ajouté.
 2. **Modération** : « Rétablir un avis » exigeait un motif, contrairement à ce qu'annonçait l'écran. Le motif n'est exigé que pour retirer du contenu (masquer, annuler).
 
-**Constats non corrigés** : un convive sans compte ne voit aucun formulaire de notation (la notation demande un compte) ; la page « alternatives » sans plat choisi renvoie une 404 avec le code 200 (comportement d'avant). **Non essayé** (sessions et comptes nécessaires) : toutes les actions de la console, les formulaires de notation du client, le parcours de livraison.
+**Constat traité ensuite (§13)** : un convive sans compte ne voyait aucun formulaire de notation. **Constat non corrigé** : la page « alternatives » sans plat choisi renvoie une 404 avec le code 200 (comportement d'avant). **Non essayé** (sessions et comptes nécessaires) : toutes les actions de la console, les formulaires de notation du client, le parcours de livraison.
+
+## 13. Noter une commande passée sans compte (18 octobre 2026)
+
+Une commande terminée affiche, sur la page de suivi, **« Votre avis compte »** :
+- **visiteur sans session** : bouton « Me connecter pour noter ». Il pose la session de suivi (cookie HttpOnly) puis ouvre `/entrer?suite=/suivi` : **le lien de suivi n'apparaît jamais dans une adresse de redirection** ;
+- **visiteur connecté, commande passée sans compte** : « Rattacher cette commande à mon compte ». Le lien de suivi est la clé de la commande : le détenir suffit à la revendiquer, **une seule fois** (le rattachement est conditionnel : la première personne gagne), et rejouer l'action avec le même compte est sans effet. Après quoi le formulaire de notation habituel s'affiche ;
+- **membre de l'équipe du restaurant ou administrateur** : rien n'est proposé et le rattachement est refusé (conflit d'intérêts) ;
+- commande d'un autre compte, commande de test, commande non terminée ou délai de 14 jours dépassé : rien.
+
+**Hygiène du lien de suivi** (corrigée au passage) : sur la page `/suivi` (session), le lien n'est plus envoyé au navigateur par les blocs de table et de notation ; les actions le lisent dans le cookie. Vérifié : le HTML de `/suivi` ne contient pas le lien.
+
+Essai (route temporaire locale, données supprimées) : 19 contrôles sur la vraie logique serveur : invitation absente tant que la commande est en cours, invitation à se connecter, rattachement refusé aux membres et aux mauvais liens, rattachement réussi puis idempotent, un autre compte ne peut plus la prendre, formulaire proposé seulement après rattachement, avis public enregistré (non test), agrégat du restaurant, modification dans les 24 h, un autre compte ne peut pas noter. Dans le navigateur : l'invitation s'affiche sur les deux pages de suivi et le bouton mène à `/entrer?suite=/suivi`. **Non essayé** : la connexion réelle puis le clic sur « Rattacher » avec une session.

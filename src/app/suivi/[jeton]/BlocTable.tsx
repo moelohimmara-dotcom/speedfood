@@ -17,7 +17,7 @@ const LIBELLE_STATUT: Record<string, string> = {
 };
 
 /** Ardoise de la table vue par le convive : toutes les commandes de la table, le total, et les appels au personnel. */
-export function BlocTable({ jeton, vue }: { jeton: string; vue: VueTable }) {
+export function BlocTable({ jeton, vue }: { jeton?: string; vue: VueTable }) {
   const [message, setMessage] = useState<{ ton: "succes" | "danger"; texte: string } | null>(null);
   const [enCours, demarrer] = useTransition();
   const ouverte = vue.session.statut === "ouverte";

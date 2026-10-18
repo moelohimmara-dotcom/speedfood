@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { estUuid } from "@/lib/commande/commun";
 import { estJetonValide } from "@/lib/commande/jetons";
+import { lireJetonSessionSuivi } from "@/lib/commande/sessionSuivi";
 import { appliquerTransitionStatut } from "@/lib/commande/transitions";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { creerClientAdmin } from "@/lib/db/admin";
@@ -28,12 +29,14 @@ async function limiter(): Promise<Resultat | null> {
 
 // ---------------------------------------------------------------- convive
 
-export async function signalerAuPersonnelAction(jeton: string, quoi: "serveur" | "addition"): Promise<Resultat> {
+export async function signalerAuPersonnelAction(jetonRecu: string | undefined, quoi: "serveur" | "addition"): Promise<Resultat> {
+  // Sur la page `/suivi` (session), le lien de suivi n'est pas envoyé au navigateur : il vient du cookie HttpOnly.
+  const jeton = typeof jetonRecu === "string" ? jetonRecu : await lireJetonSessionSuivi();
   if (!estJetonValide(jeton) || (quoi !== "serveur" && quoi !== "addition")) return { ok: false, erreur: "Demande invalide." };
   const refus = await limiter();
   if (refus) return refus;
   const r = await signalerAuPersonnel(jeton, quoi);
-  revalidatePath(`/suivi/${jeton}`);
+  if (typeof jetonRecu === "string") revalidatePath(`/suivi/${jeton}`);
   return r;
 }
 

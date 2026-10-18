@@ -7,7 +7,8 @@ import { COMMENTAIRE_MAX, ETIQUETTES } from "@/lib/notation/regles";
 import type { AvisExistant } from "@/lib/notation/service";
 
 interface Props {
-  jeton: string;
+  /** Absent sur la page `/suivi` : le lien reste dans le cookie, jamais dans la page. */
+  jeton?: string;
   restaurantNom: string;
   restaurant: AvisExistant | null;
   livreur: { nom: string; avis: AvisExistant | null } | null;
