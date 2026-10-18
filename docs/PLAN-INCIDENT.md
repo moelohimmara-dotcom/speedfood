@@ -121,7 +121,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `9642a39e-4633-4c28-a5c9-5e07604aba59` | 17 oct. 23 h | Fiches livreurs : cycle de vie, création individuelle et groupée, liens d'activation, approbation. **Dépend de la migration `livreurs_cycle_dossiers`** : un retour arrière du code est sans risque, un retour arrière de la migration ne l'est pas |
 | `5ec2143f-bc2e-4081-be4a-9eeca8328ec6` | 18 oct. 0 h | Consultation et suppression du dossier d'un livreur par le super administrateur |
 | `ab0ebcbd-eb61-43b9-b36b-be6b54bb87e2` | 18 oct. | Notation (avis, réponses, modération) et classement du catalogue par note, prix et fréquentation ; migration `20261018010000` appliquée |
-| `7c95084c-4870-4716-8e28-38c0ed651fcd` | 18 oct. | Le livreur note le client depuis sa console (version en production) |
+| `7c95084c-4870-4716-8e28-38c0ed651fcd` | 18 oct. | Le livreur note le client depuis sa console |
+| `f5b75dcd-1cc5-47d0-9d51-28f2201fbb65` | 18 oct. | Assistant « Aide-moi à choisir » (budget, position, gamme de prix), positionnement restaurateur, console admin ; migration `20261018120000` appliquée (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
