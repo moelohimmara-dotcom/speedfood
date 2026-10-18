@@ -9,6 +9,7 @@ import "./questions.css";
 import "./landing.css";
 import "./catalogue.css";
 import "./notation.css";
+import "./aide-choix.css";
 import "./marche.css";
 import "./cadre.css";
 import "./public.css";

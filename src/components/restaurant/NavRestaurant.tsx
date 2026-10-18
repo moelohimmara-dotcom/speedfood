@@ -14,7 +14,7 @@ const ENTREES: readonly Entree[] = [
   { href: "/restaurant/commandes", libelle: "Commandes", icone: "commandes", exact: false },
   { href: "/restaurant/menu", libelle: "Menu", icone: "carte", exact: false },
   { href: "/restaurant/avis", libelle: "Avis", icone: "etoile", exact: false },
-  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false, aussi: ["/restaurant/affiche", "/restaurant/tables", "/restaurant/documents"] },
+  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false, aussi: ["/restaurant/affiche", "/restaurant/tables", "/restaurant/documents", "/restaurant/positionnement"] },
 ];
 
 function estActif(chemin: string, e: Entree) {

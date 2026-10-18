@@ -32,6 +32,9 @@ const LIMITE_PLATS_LUS = 2000;
 export const LIMITE_RESULTATS_AFFICHES = 60;
 
 export interface RestaurantCatalogue extends RestaurantClassable {
+  /** Coordonnées déclarées par le restaurant ; `null` tant qu'elles ne sont pas renseignées (aucune distance n'est alors inventée). */
+  latitude: number | null;
+  longitude: number | null;
   categorieId: string | null;
   couleurAccent: string | null;
   logoIllustration: Illustration | null;
@@ -111,7 +114,7 @@ export async function lireCatalogue(
   let requete = supabase
     .from("restaurants")
     .select(
-      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, menu_categories(nom), neighborhoods(id, nom, generique, communes(id, nom, slug, prefectures(id, nom, slug, regions(id, nom, slug))))"
+      "id, nom, horaires, ouvert, accepte_commandes, photo_url, logo_url, logo_illustration, couverture_illustration, couleur_accent, categorie_id, latitude, longitude, menu_categories(nom), neighborhoods(id, nom, generique, communes(id, nom, slug, prefectures(id, nom, slug, regions(id, nom, slug))))"
     )
     .order("nom")
     .limit(LIMITE_RESTAURANTS_LUS);
@@ -145,6 +148,8 @@ export async function lireCatalogue(
     ouvert: r.ouvert,
     accepteCommandes: r.accepte_commandes,
     categorieId: r.categorie_id,
+    latitude: r.latitude,
+    longitude: r.longitude,
     photoUrl: r.photo_url,
     logoUrl: r.logo_url,
     couleurAccent: r.couleur_accent,

@@ -154,6 +154,10 @@ export default async function CataloguePage({
 
           <RecherchesRecentes courante={q} />
 
+          <Link href="/aide-au-choix" className="btn btn-secondary aide-choix-cta">
+            Aide-moi à choisir selon mon budget
+          </Link>
+
           <div className="chip-row decouverte-puces">
             <Link href={lien(etat, { ouvert: !filtres.ouvert })} className={`chip ${filtres.ouvert ? "actif" : ""}`}>
               Ouvert maintenant

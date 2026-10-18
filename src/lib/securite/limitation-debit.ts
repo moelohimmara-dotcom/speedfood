@@ -184,3 +184,10 @@ export const LIMITE_NOTATION_PAR_IP: RegleLimite = { nom: "notation-ip", max: 30
 export async function limiterNotation(): Promise<void> {
   await appliquerLimite(LIMITE_NOTATION_PAR_IP, await adresseClient());
 }
+
+// Aide au choix : une recherche par changement de budget ou de position, jamais en rafale.
+export const LIMITE_AIDE_CHOIX_PAR_IP: RegleLimite = { nom: "aide-choix-ip", max: 40, fenetreSecondes: 600 };
+
+export async function limiterAideChoix(): Promise<void> {
+  await appliquerLimite(LIMITE_AIDE_CHOIX_PAR_IP, await adresseClient());
+}

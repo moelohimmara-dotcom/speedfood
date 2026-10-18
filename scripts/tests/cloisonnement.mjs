@@ -540,6 +540,30 @@ console.log("\n--- Gardes structurelles");
 const sansRls = (await db.query(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows;
 verifier("toutes les tables du schéma public ont la RLS activée", sansRls.length === 0, sansRls.map((r) => r.relname).join(", "));
 
+// ---------------------------------------------------------------- aide au choix : gamme, demandes, réglages
+console.log("\n--- Aide au choix");
+await db.exec("select set_config('request.jwt.claims', '{}', false), set_config('request.jwt.claim.sub', '', false)");
+await interdit("un restaurateur ne fixe pas lui-même la gamme validée de son restaurant", ID.user_a, `update restaurants set gamme_validee = 'premium' where id = ${U(ID.resto_a)}`);
+await autorise("l'administrateur système fixe la gamme validée", ID.admin, `update restaurants set gamme_validee = 'haut_de_gamme' where id = ${U(ID.resto_a)}`);
+verifier("la gamme validée est enregistrée", (await db.query(`select gamme_validee from restaurants where id = ${U(ID.resto_a)}`)).rows[0].gamme_validee === "haut_de_gamme");
+await interdit("une gamme inconnue est refusée par la base", ID.admin, `update restaurants set gamme_validee = 'luxe' where id = ${U(ID.resto_a)}`);
+
+await db.exec(`insert into gamme_demandes (restaurant_id, gamme_demandee, motif, demande_par) values (${U(ID.resto_a)}, 'premium', 'Cadre et service haut de gamme malgré des plats abordables', ${U(ID.user_a)})`);
+verifier("demandes de gamme : le restaurant A voit la sienne", (await nb(ID.user_a, "gamme_demandes")) === 1);
+verifier("demandes de gamme : le restaurant B ne voit rien", VIDE(await nb(ID.user_b, "gamme_demandes")));
+verifier("demandes de gamme : un client et un anonyme ne voient rien", VIDE(await nb(ID.client, "gamme_demandes")) && VIDE(await nb(null, "gamme_demandes")));
+verifier("demandes de gamme : l'exploitation voit tout", (await nb(ID.admin, "gamme_demandes")) === 1 && (await nb(ID.support, "gamme_demandes")) === 1);
+await interdit("un restaurateur n'écrit pas de demande par l'API (le serveur vérifie)", ID.user_a, `insert into gamme_demandes (restaurant_id, gamme_demandee, motif) values (${U(ID.resto_a)}, 'economique', 'Un motif assez long pour passer')`);
+await interdit("un restaurateur n'accepte pas sa propre demande", ID.user_a, `update gamme_demandes set statut = 'acceptee' where restaurant_id = ${U(ID.resto_a)}`);
+verifier("base : une seule demande en attente par restaurant", await (async () => { try { await db.exec(`insert into gamme_demandes (restaurant_id, gamme_demandee, motif) values (${U(ID.resto_a)}, 'economique', 'Une deuxième demande en attente')`); return false; } catch { return true; } })());
+verifier("base : un motif trop court est refusé", await (async () => { try { await db.exec(`insert into gamme_demandes (restaurant_id, gamme_demandee, motif, statut) values (${U(ID.resto_b)}, 'economique', 'court', 'refusee')`); return false; } catch { return true; } })());
+
+const nbAide = (qui) => nb(qui, "parametres_aide_choix");
+verifier("réglages de l'aide au choix : lisibles par le super administrateur seulement", (await nbAide(ID.admin)) === 1 && VIDE(await nbAide(ID.user_a)) && VIDE(await nbAide(ID.support)) && VIDE(await nbAide(null)));
+await autorise("le super administrateur règle les seuils", ID.admin, `update parametres_aide_choix set seuil_economique_gnf = 20000, seuil_intermediaire_gnf = 45000, seuil_haut_de_gamme_gnf = 90000 where id = true`);
+await interdit("des seuils non croissants sont refusés", ID.admin, `update parametres_aide_choix set seuil_economique_gnf = 95000 where id = true`);
+await interdit("un restaurateur ne règle pas l'aide au choix", ID.user_a, `update parametres_aide_choix set nb_propositions = 10 where id = true`);
+
 const ouvertes = (await db.query(`
   select tablename, policyname, cmd from pg_policies
   where schemaname = 'public' and (qual is null or qual = 'true') and (with_check is null or with_check = 'true')
