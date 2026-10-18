@@ -61,6 +61,7 @@ export function CommandeCarte({
   livraison = null,
   noteClient = null,
   notationDisponible = true,
+  surPlace = null,
 }: {
   commande: ApercuCommandeRestaurant;
   age?: string;
@@ -74,6 +75,8 @@ export function CommandeCarte({
   /** Note privée déjà donnée au client pour cette commande. */
   noteClient?: { note: number; etiquettes: string[] } | null;
   notationDisponible?: boolean;
+  /** Numéro d'appel du comptoir et convive sans compte (commande sur place). */
+  surPlace?: { numeroAppel: number | null; invite: boolean } | null;
 }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [propositionOuverte, setPropositionOuverte] = useState(false);
@@ -175,6 +178,8 @@ export function CommandeCarte({
             >
               {LIBELLES_ETAT[commande.etatDerive]}
             </Badge>
+            {surPlace?.numeroAppel ? <span className="salle-etat">N° {surPlace.numeroAppel}</span> : null}
+            {surPlace?.invite ? <span className="salle-etat" title="Convive sans compte : vérifiez qu'il est bien sur place">Sans compte</span> : null}
             {commande.estTest ? <span className="commande-test-pastille" title="Commande de test : exclue des chiffres">Test</span> : null}
           </div>
           <p style={{ margin: "4px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>

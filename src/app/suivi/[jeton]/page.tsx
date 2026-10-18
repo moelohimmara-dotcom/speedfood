@@ -15,6 +15,8 @@ import { vueLivraisonPourClient } from "@/lib/livraison/vues";
 import { creerClientServeur } from "@/lib/db/server";
 import { etatNotationClient } from "@/lib/notation/service";
 import { BlocNotation } from "./BlocNotation";
+import { BlocTable } from "./BlocTable";
+import { vueTableParJeton } from "@/lib/table/service";
 
 /**
  * Suivi public d'une commande par jeton opaque (TDR.md §5, ADR-005).
@@ -120,6 +122,19 @@ export async function renderSuiviPage(jeton: string, session = false) {
     }
   }
 
+  // Commande sur place : ardoise de la table (table partagée) et numéro d'appel au comptoir. Une panne n'affecte jamais le suivi.
+  let tableVue = null;
+  let numeroAppel: number | null = null;
+  if (suivi.mode === "sur_place") {
+    try {
+      tableVue = await vueTableParJeton(jeton);
+      const { data } = await clientLivraison().from("orders").select("numero_appel").eq("jeton_suivi", jeton).maybeSingle();
+      numeroAppel = (data as { numero_appel: number | null } | null)?.numero_appel ?? null;
+    } catch {
+      tableVue = null;
+    }
+  }
+
   // Notation : proposée au propriétaire de la commande (compte connecté) une fois la commande terminée. Une panne n'affecte pas le suivi.
   let notation = null;
   if (suivi.etatDerive === "terminee" && !suivi.estTest) {
@@ -158,6 +173,18 @@ export async function renderSuiviPage(jeton: string, session = false) {
           </div>
         </div>
       </Card>
+
+      {numeroAppel !== null ? (
+        <Card style={{ marginTop: "var(--space-4)", textAlign: "center" }}>
+          <p style={{ margin: 0, color: "var(--secondaire)" }}>Votre numéro d&apos;appel</p>
+          <p className="table-numero-appel">{numeroAppel}</p>
+          <p style={{ margin: 0 }}>
+            {suivi.etatDerive === "prete" ? "Votre commande est prête : présentez ce numéro au comptoir." : "Gardez ce numéro : on l'appelle quand votre commande est prête."}
+          </p>
+        </Card>
+      ) : null}
+
+      {tableVue ? <BlocTable jeton={jeton} vue={tableVue} /> : null}
 
       {livraison ? <BlocLivraisonClient livraison={livraison} /> : null}
 

@@ -5,7 +5,10 @@ import { creerClientAdmin } from "@/lib/db/admin";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { recalculerLignes, verifierRestaurantCommandable } from "./calculs";
 import { genererJetonSuivi, genererReference } from "./jetons";
-import { enregistrerEvenementStatut } from "./transitions";
+import { appliquerTransitionStatut, enregistrerEvenementStatut } from "./transitions";
+import { clientLivraison } from "@/lib/livraison/lecture";
+import { estReglageValidation, estServiceTable, prochainNumeroAppel, validationRequise } from "@/lib/table/regles";
+import { ouvrirOuRejoindreSession } from "@/lib/table/service";
 import { estimerLivraison } from "@/lib/livraison/lecture";
 
 /**
@@ -53,6 +56,26 @@ function estViolationUniqueJeton(error: { code?: string; message: string }): boo
   return error.code === "23505" && error.message.includes("jeton_suivi");
 }
 
+function estViolationUniqueNumeroAppel(error: { code?: string; message: string }): boolean {
+  return error.code === "23505" && error.message.includes("numero_appel");
+}
+
+/** Dernier numéro d'appel du jour (Conakry est à l'heure UTC) pour ce restaurant. */
+async function dernierNumeroAppelDuJour(restaurantId: string): Promise<number | null> {
+  const debut = new Date();
+  debut.setUTCHours(0, 0, 0, 0);
+  const { data } = await clientLivraison()
+    .from("orders")
+    .select("numero_appel")
+    .eq("restaurant_id", restaurantId)
+    .gte("cree_le", debut.toISOString())
+    .not("numero_appel", "is", null)
+    .order("numero_appel", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as { numero_appel: number } | null)?.numero_appel ?? null;
+}
+
 function estViolationUniqueReference(error: { code?: string; message: string }): boolean {
   return error.code === "23505" && error.message.includes("reference");
 }
@@ -71,7 +94,7 @@ function verifierMemeRestaurant(restaurantExistant: string, restaurantDemande: s
  * `utilisateurId` : compte identifié qui envoie la commande (obligatoire, TDR v0.2 §5.1). Un rejeu idempotent
  * ne rend jamais la commande d'un autre compte.
  */
-export async function creerCommande(payload: CreationCommandePayload, utilisateurId: string): Promise<CommandeCreee> {
+export async function creerCommande(payload: CreationCommandePayload, utilisateurId: string | null): Promise<CommandeCreee> {
   const db = creerClientAdmin();
   const jeton = genererJetonSuivi(payload.cleIdempotence);
 
@@ -98,16 +121,31 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   // Recalcul serveur systématique : prix et totaux du navigateur ignorés.
   await verifierRestaurantCommandable(db, payload.restaurantId);
   // Le service à table n'existe que si le restaurant l'a activé : un numéro de table venu d'un QR ou du navigateur n'autorise rien.
+  let serviceTable: "table" | "comptoir" = "table";
+  let reglageValidation: "aucune" | "premiere" | "toutes" = "premiere";
   if (payload.mode === "sur_place") {
     if (!(await fonctionnaliteActive("commande_a_table"))) {
       throw new ErreurMetier("VALIDATION", "La commande à table est momentanément indisponible. Choisissez le retrait ou la livraison.");
     }
-    const { data: resto } = await db.from("restaurants").select("accepte_sur_place").eq("id", payload.restaurantId).maybeSingle();
-    if (!resto?.accepte_sur_place) {
+    const { data: resto } = await clientLivraison()
+      .from("restaurants")
+      .select("accepte_sur_place, service_table, table_sans_compte, table_validation")
+      .eq("id", payload.restaurantId)
+      .maybeSingle();
+    const r = resto as { accepte_sur_place: boolean; service_table?: string; table_sans_compte?: boolean; table_validation?: string } | null;
+    if (!r?.accepte_sur_place) {
       throw new ErreurMetier("VALIDATION", "Ce restaurant ne prend pas les commandes à table. Choisissez le retrait ou la livraison.", {
         mode: "Service à table indisponible.",
       });
     }
+    if (estServiceTable(r.service_table)) serviceTable = r.service_table;
+    if (estReglageValidation(r.table_validation)) reglageValidation = r.table_validation;
+    // Convive sans compte : seulement si CE restaurant l'a autorisé (dérogation décidée restaurant par restaurant, docs/COMMANDE-SUR-PLACE.md).
+    if (utilisateurId === null && !r.table_sans_compte) {
+      throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous pour envoyer votre commande.");
+    }
+  } else if (utilisateurId === null) {
+    throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous pour envoyer votre commande.");
   }
   const { lignes, sousTotal } = await recalculerLignes(
     db,
@@ -153,14 +191,31 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     }
   }
 
-  const estTest = await auteurEstDeLEquipe(db, payload.restaurantId, utilisateurId);
+  const estTest = utilisateurId === null ? false : await auteurEstDeLEquipe(db, payload.restaurantId, utilisateurId);
+
+  // Commande sur place : session de table (service à table) ou numéro d'appel (comptoir), et validation éventuelle par le personnel.
+  let sessionId: string | null = null;
+  let validerAvantPreparation = false;
+  if (payload.mode === "sur_place") {
+    if (serviceTable === "table") {
+      const session = await ouvrirOuRejoindreSession(clientLivraison(), payload.restaurantId, payload.table ?? "");
+      if (!session) throw new ErreurMetier("ERREUR_SERVEUR", "Impossible d'ouvrir la table. Réessayez dans un instant.");
+      sessionId = session.id;
+      validerAvantPreparation = validationRequise({ reglage: reglageValidation, tableDejaValidee: session.valideeLe !== null, sansCompte: utilisateurId === null });
+    } else {
+      // Comptoir : pas de table à suivre ; « première » n'a pas de sens, seule « toutes » valide tout (le convive sans compte est toujours validé).
+      validerAvantPreparation = validationRequise({ reglage: reglageValidation === "premiere" ? "aucune" : reglageValidation, tableDejaValidee: false, sansCompte: utilisateurId === null });
+    }
+  }
 
   // Trois tentatives au cas (rare) où la référence aléatoire serait déjà prise.
   for (let tentative = 0; tentative < 3; tentative += 1) {
     const reference = genererReference();
+    const numeroAppel = payload.mode === "sur_place" && serviceTable === "comptoir" ? prochainNumeroAppel(await dernierNumeroAppelDuJour(payload.restaurantId)) : null;
     const { data: inseree, error } = await db
       .from("orders")
       .insert({
+        ...({ session_id: sessionId, numero_appel: numeroAppel, invite: utilisateurId === null } as object),
         reference,
         jeton_suivi: jeton,
         restaurant_id: payload.restaurantId,
@@ -230,6 +285,11 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
           statutSuivant: "en_attente",
           acteur: `client:${inseree.reference}`,
         });
+
+        // Pas de validation requise : la commande de table passe directement « acceptée » et arrive en cuisine.
+        if (payload.mode === "sur_place" && !validerAvantPreparation) {
+          await appliquerTransitionStatut(db, { id: inseree.id, statut: "en_attente" }, "acceptee", "systeme:table_sans_validation");
+        }
       } catch (echec) {
         // Pas de transaction Supabase possible ici : on retire la commande
         // orpheline pour ne jamais laisser une commande sans lignes.
@@ -266,6 +326,9 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
           estTest: concurrente.est_test,
         };
       }
+    }
+    if (error && estViolationUniqueNumeroAppel(error)) {
+      continue; // deux commandes de comptoir simultanées : nouveau calcul du numéro
     }
     if (error && !estViolationUniqueReference(error)) {
       throw new ErreurMetier(

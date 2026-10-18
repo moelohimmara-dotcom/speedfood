@@ -48,7 +48,8 @@ export async function creerCommandeAction(
   const {
     data: { user },
   } = await (await creerClientServeur()).auth.getUser();
-  if (!user) {
+  // Sans compte : seule la commande à table peut passer, et seulement si le restaurant l'a autorisé (revérifié dans creerCommande).
+  if (!user && (typeof payload !== "object" || payload === null || payload.mode !== "sur_place")) {
     return {
       ok: false,
       erreur: { code: "NON_AUTHENTIFIE", message: "Connectez-vous pour envoyer votre commande." },
@@ -64,7 +65,7 @@ export async function creerCommandeAction(
     // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
     await verifierAntiRobot(validation.valeurs.jetonVerification);
     await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone);
-    const cree = await creerCommande(validation.valeurs, user.id);
+    const cree = await creerCommande(validation.valeurs, user?.id ?? null);
     if (!cree.idempotent) {
       // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.
       const restaurantId = validation.valeurs.restaurantId;

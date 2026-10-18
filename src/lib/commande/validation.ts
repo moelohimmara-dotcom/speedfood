@@ -133,8 +133,10 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
   }
 
   const telephoneBrut = typeof payload.client?.telephone === "string" ? payload.client.telephone : "";
-  const telephone = normaliserTelephone(telephoneBrut);
-  if (!telephone) {
+  // À table, le numéro est facultatif (un convive sans compte peut commander sans le donner) ; partout ailleurs il reste obligatoire.
+  const telephoneFacultatif = payload.mode === "sur_place" && telephoneBrut.trim() === "";
+  const telephone: string | null = telephoneFacultatif ? "" : normaliserTelephone(telephoneBrut);
+  if (telephone === null) {
     champs.telephone =
       "Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (ex. +224 622 12 34 56).";
   }
@@ -209,7 +211,7 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     champs.lignes = lignes.erreur.champs?.lignes ?? lignes.erreur.message;
   }
 
-  if (Object.keys(champs).length > 0 || !telephone || !lignes.ok || (mode !== "retrait" && mode !== "livraison" && mode !== "sur_place")) {
+  if (Object.keys(champs).length > 0 || telephone === null || !lignes.ok || (mode !== "retrait" && mode !== "livraison" && mode !== "sur_place")) {
     return erreurValidation("Certains champs sont à corriger.", champs);
   }
 

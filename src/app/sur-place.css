@@ -1,0 +1,25 @@
+/* Commande sur place (docs/COMMANDE-SUR-PLACE.md). Noms préfixés `table-` et `salle-` : le CSS est global. Aucun token redéfini. */
+.table-titre { margin: 0 0 var(--space-3); font-size: 1.15rem; }
+.table-commandes { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-2); }
+.table-commande { border-bottom: 1px solid var(--bordure); padding-bottom: var(--space-2); }
+.table-commande p { margin: 0; }
+.table-commande-entete { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.table-commande-montant { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+.table-commande-lignes { color: var(--secondaire); font-size: 0.9rem; }
+.table-total { display: flex; justify-content: space-between; font-size: 1.15rem; margin: 0 0 var(--space-3); font-variant-numeric: tabular-nums; }
+.table-aide { margin: 0 0 var(--space-3); color: var(--secondaire); font-size: 0.85rem; }
+.table-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.table-numero-appel { margin: 0; font-size: 4rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--rouge-fonce); }
+
+/* Salle du restaurateur */
+.salle-grille { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.salle-table { border: 1px solid var(--bordure); border-radius: var(--radius-md); padding: var(--space-4); background: var(--surface); display: grid; gap: var(--space-2); min-width: 0; }
+.salle-table-alerte { border-color: var(--rouge); box-shadow: var(--shadow-sm); }
+.salle-table-tete { display: flex; justify-content: space-between; gap: var(--space-2); align-items: center; }
+.salle-table-nom { margin: 0; font-size: 1.3rem; }
+.salle-etat { padding: 2px 10px; border-radius: var(--radius-pill); background: var(--creme); border: 1px solid var(--bordure); font-size: 0.8rem; font-weight: 700; }
+.salle-etat-alerte { background: var(--danger-fond); border-color: var(--danger); color: var(--danger); }
+.salle-lignes { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; }
+.salle-total { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+.salle-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.salle-reglement { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }

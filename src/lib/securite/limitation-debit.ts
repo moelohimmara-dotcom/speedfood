@@ -130,7 +130,8 @@ export async function limiterCreationCommande(restaurantId: string, telephone: s
   const ip = await adresseClient();
   await Promise.all([
     appliquerLimite(LIMITE_COMMANDE_PAR_IP, ip),
-    appliquerLimite(LIMITE_COMMANDE_PAR_TELEPHONE, telephone.replace(/\D/g, "")),
+    // Convive sans numéro (commande à table) : pas de plafond par téléphone, les plafonds par adresse et par restaurant restent.
+    telephone.replace(/\D/g, "") === "" ? Promise.resolve() : appliquerLimite(LIMITE_COMMANDE_PAR_TELEPHONE, telephone.replace(/\D/g, "")),
     appliquerLimite(LIMITE_COMMANDE_PAR_RESTAURANT, restaurantId),
   ]);
 }
@@ -190,4 +191,11 @@ export const LIMITE_AIDE_CHOIX_PAR_IP: RegleLimite = { nom: "aide-choix-ip", max
 
 export async function limiterAideChoix(): Promise<void> {
   await appliquerLimite(LIMITE_AIDE_CHOIX_PAR_IP, await adresseClient());
+}
+
+// Appels au serveur et demandes d'addition depuis une table : le délai par table est dans le service ; ce plafond limite le martèlement par adresse.
+export const LIMITE_APPEL_TABLE_PAR_IP: RegleLimite = { nom: "appel-table-ip", max: 30, fenetreSecondes: 600 };
+
+export async function limiterAppelTable(): Promise<void> {
+  await appliquerLimite(LIMITE_APPEL_TABLE_PAR_IP, await adresseClient());
 }

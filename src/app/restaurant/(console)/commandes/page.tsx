@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui";
 import { EtatVide, PageHeader } from "@/components/admin/blocs";
 import { CommandeCarte } from "./CommandeCarte";
 import { livraisonsDesCommandes } from "@/lib/livraison/vues";
+import { clientLivraison } from "@/lib/livraison/lecture";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -82,6 +83,14 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
   } catch {
     notationDisponible = false;
   }
+  // Numéro d'appel (comptoir) et convive sans compte, pour les commandes affichées (lecture tolérante).
+  const surPlace = new Map<string, { numeroAppel: number | null; invite: boolean }>();
+  try {
+    const { data: sp } = await clientLivraison().from("orders").select("id, numero_appel, invite").in("id", affichees.map((c) => c.id));
+    for (const o of (sp ?? []) as { id: string; numero_appel: number | null; invite: boolean }[]) surPlace.set(o.id, { numeroAppel: o.numero_appel, invite: o.invite });
+  } catch {
+    // Pas de pastille.
+  }
   const documentsDe = (id: string) => {
     const r: { recu?: string; facture?: string } = {};
     for (const d of docs ?? []) {
@@ -113,7 +122,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
             ) : (
               <div className="cmd-liste">
                 {aTraiter.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} surPlace={surPlace.get(commande.id) ?? null} />
                 ))}
               </div>
             )}
@@ -126,7 +135,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
               </h2>
               <div className="cmd-liste">
                 {enCours.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} surPlace={surPlace.get(commande.id) ?? null} />
                 ))}
               </div>
             </section>
@@ -139,7 +148,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
               </summary>
               <div className="cmd-liste">
                 {historique.map((commande) => (
-                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} />
+                  <CommandeCarte key={commande.id} commande={commande} age={age(commande)} retardMinutes={attente(commande)} restaurantNom={restaurantNom} documents={documentsDe(commande.id)} livraison={livraisons.get(commande.id) ?? null} noteClient={notationDisponible ? (notesClients.get(commande.id) ?? null) : undefined} notationDisponible={notationDisponible} surPlace={surPlace.get(commande.id) ?? null} />
                 ))}
               </div>
               {restantes > 0 ? (

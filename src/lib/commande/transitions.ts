@@ -5,6 +5,7 @@ import type { EtatDeriveCommande, PropositionRevisee } from "@/lib/contracts/com
 import type { ClientCommandeDb } from "./commun";
 import { versStatutCommande } from "./commun";
 import { apresTransitionCommande } from "@/lib/livraison/apres-commande";
+import { validerSessionApresAcceptation } from "@/lib/table/service";
 
 /**
  * Transitions de statut de commande (TDR.md §6, statuts.ts).
@@ -107,6 +108,10 @@ export async function appliquerTransitionStatut(
 
   // Livraison : créée à l'acceptation, annulée au refus ou à l'annulation. Ne fait jamais échouer la transition.
   await apresTransitionCommande(commande.id, vers);
+  // Commande de table acceptée par le personnel : la table est validée. Ne fait jamais échouer la transition.
+  if (vers === "acceptee") {
+    await validerSessionApresAcceptation(commande.id).catch(() => undefined);
+  }
 }
 
 /**

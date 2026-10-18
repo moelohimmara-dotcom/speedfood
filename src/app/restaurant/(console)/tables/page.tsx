@@ -1,6 +1,9 @@
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { EtatVide, PageHeader, Panneau } from "@/components/admin/blocs";
 import { BasculeServiceTable } from "./BasculeServiceTable";
+import { ReglagesSurPlace } from "./ReglagesSurPlace";
+import { clientLivraison } from "@/lib/livraison/lecture";
+import { estReglageValidation, estServiceTable } from "@/lib/table/regles";
 import { BoutonImprimerTables } from "./BoutonImprimerTables";
 import type { Metadata } from "next";
 
@@ -25,6 +28,12 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
       </div>
     );
   }
+  // Réglages du service sur place (lecture tolérante : sans migration, valeurs par défaut).
+  const { data: reglagesBruts } = await clientLivraison().from("restaurants").select("service_table, table_sans_compte, table_validation").eq("id", id).maybeSingle();
+  const rb = reglagesBruts as { service_table?: string; table_sans_compte?: boolean; table_validation?: string } | null;
+  const service = estServiceTable(rb?.service_table) ? rb.service_table : "table";
+  const sansCompte = rb?.table_sans_compte ?? false;
+  const validation = estReglageValidation(rb?.table_validation) ? rb.table_validation : "premiere";
   const { n } = await searchParams;
   const brut = /^\d{1,3}$/.test(n ?? "") ? Number(n) : 0;
   const nombre = Math.min(Math.max(brut, 0), MAX_TABLES);
@@ -40,6 +49,9 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
         <Panneau titre="Service à table">
           <BasculeServiceTable actif={restaurant.accepte_sur_place} />
         </Panneau>
+        <Panneau titre="Façon de servir sur place">
+          <ReglagesSurPlace service={service} sansCompte={sansCompte} validation={validation} />
+        </Panneau>
         <Panneau titre="Combien de tables ?">
           <form method="get" className="tables-formulaire">
             <div className="field">
@@ -53,7 +65,17 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
         </Panneau>
       </div>
 
-      {nombre > 0 ? (
+      {service === "comptoir" ? (
+        <div className="tables-planche">
+          <div className="table-carte">
+            <p className="table-marque">Speedfood · {restaurant.nom}</p>
+            <p className="table-numero">Comptoir</p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- SVG généré par notre propre route. */}
+            <img src={`/restaurants/${id}/qr?t=Comptoir`} alt="QR code du comptoir" width={200} height={200} className="table-qr" loading="lazy" />
+            <p className="table-texte">Scannez pour commander : on vous appellera avec votre numéro</p>
+          </div>
+        </div>
+      ) : nombre > 0 ? (
         <>
           {!restaurant.accepte_sur_place ? (
             <p className="alerte alerte-info" role="status">

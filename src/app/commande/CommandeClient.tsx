@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { VecteurPanierVide } from "@/components/site/vecteurs/VecteurPanierVide";
 import { usePanier, usePanierPret, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
+import { useEffect, useState } from "react";
 import { Card, Alert } from "@/components/ui";
+import { useTableMemorisee } from "@/lib/commande/table-memoire";
+import { lireServiceSurPlaceAction } from "@/lib/table/actions";
 import { LienRetour } from "@/components/LienRetour";
 import { FormulaireCommande } from "./FormulaireCommande";
 import type { OptionChoix } from "@/components/ui/ListeChoix";
@@ -35,6 +38,25 @@ export function CommandeClient({
 }) {
   const panier = usePanier();
   const pret = usePanierPret();
+  // Convive sans compte : possible seulement à table (QR scanné) ET si ce restaurant l'a autorisé ; le serveur revérifie à l'envoi.
+  const tableScannee = useTableMemorisee(panier.restaurantId);
+  const [restaurantAutorise, setRestaurantAutorise] = useState<string | null>(null);
+  const restaurantTable = !compte.connecte && tableScannee ? panier.restaurantId : null;
+  useEffect(() => {
+    if (!restaurantTable) return;
+    let annule = false;
+    lireServiceSurPlaceAction(restaurantTable)
+      .then((r) => {
+        if (!annule) setRestaurantAutorise(r?.accepteSurPlace && r.sansCompte ? restaurantTable : null);
+      })
+      .catch(() => {
+        if (!annule) setRestaurantAutorise(null);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [restaurantTable]);
+  const invitePossible = restaurantTable !== null && restaurantAutorise === restaurantTable;
 
   if (!pret) {
     return (
@@ -121,11 +143,11 @@ export function CommandeClient({
 
       <div className="commande-formulaire">
       <h2 style={{ fontSize: "1.25rem", margin: "var(--space-6) 0 var(--space-3)" }} className="commande-formulaire-titre">
-        {compte.connecte ? "Vos coordonnées" : "Connexion"}
+        {compte.connecte || invitePossible ? "Vos coordonnées" : "Connexion"}
       </h2>
 
-      {compte.connecte ? (
-        <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} quartiersLivraison={quartiersLivraison} />
+      {compte.connecte || invitePossible ? (
+        <FormulaireCommande panier={panier} cleSiteTurnstile={cleSiteTurnstile} compte={compte} quartiersLivraison={quartiersLivraison} invite={!compte.connecte} />
       ) : (
         <Card className="commande-connexion">
           <p className="commande-connexion-titre">Connectez-vous pour envoyer votre commande</p>

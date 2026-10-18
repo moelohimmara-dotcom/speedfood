@@ -30,6 +30,8 @@ interface Props {
   compte: CompteCommande;
   /** Quartiers proposés pour calculer la livraison (identifiant, « Quartier, Commune »). */
   quartiersLivraison: OptionChoix[];
+  /** Convive sans compte (commande à table autorisée par le restaurant) : à table seulement, téléphone facultatif. */
+  invite?: boolean;
 }
 
 /**
@@ -40,7 +42,7 @@ interface Props {
  * La validation serveur fait foi ; celle-ci n'est qu'un confort d'affichage.
  * Aucun montant n'est envoyé : le serveur recalcule tout (ADR-006).
  */
-export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiersLivraison }: Props) {
+export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiersLivraison, invite = false }: Props) {
   const router = useRouter();
   const [nom, setNom] = useState(compte.prefill?.nom ?? "");
   const [telephone, setTelephone] = useState(compte.prefill?.telephone ?? "");
@@ -49,7 +51,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
   const tableScannee = useTableMemorisee(panier.restaurantId);
   const [modeChoisi, setMode] = useState<ModeRetrait | null>(null);
   const [tableSaisie, setTable] = useState<string | null>(null);
-  const mode: ModeRetrait = modeChoisi ?? (tableScannee ? "sur_place" : "retrait");
+  const mode: ModeRetrait = invite ? "sur_place" : (modeChoisi ?? (tableScannee ? "sur_place" : "retrait"));
   const table = tableSaisie ?? tableScannee ?? "";
   // Mémoriser les coordonnées dans le compte : jamais coché d'office, c'est un choix explicite du client.
   const [memoriser, setMemoriser] = useState(false);
@@ -108,10 +110,11 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
 
   function soumettre() {
     const erreurs: Record<string, string> = {};
-    if (nom.trim().length < 2 || nom.trim().length > 120) {
+    // À table, le nom et le numéro sont facultatifs pour un convive sans compte : la commande part au nom de la table.
+    if (!(invite && nom.trim() === "") && (nom.trim().length < 2 || nom.trim().length > 120)) {
       erreurs.nom = "Indiquez votre nom (2 à 120 caractères).";
     }
-    if (telephone.trim().length < 8) {
+    if (mode === "sur_place" ? telephone.trim() !== "" && telephone.trim().length < 8 : telephone.trim().length < 8) {
       erreurs.telephone =
         "Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (ex. +224 622 12 34 56).";
     }
@@ -149,7 +152,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
       sousTotalAffiche,
       restaurantId: panier.restaurantId as string,
       client: {
-        nom: nom.trim(),
+        nom: nom.trim() || `Table ${lireNumeroTable(table) ?? ""}`.trim(),
         telephone: telephone.trim(),
         // L'adresse n'est transmise au restaurant qu'en livraison (minimisation des données), même si elle est préremplie.
         adresse: mode === "livraison" && adresse.trim().length > 0 ? adresse.trim() : null,
@@ -216,10 +219,10 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         </p>
       ) : null}
       <Input
-        label="Votre nom"
+        label={invite ? "Votre prénom (facultatif)" : "Votre nom"}
         name="nom"
         type="text"
-        required
+        required={!invite}
         maxLength={120}
         autoComplete="name"
         value={nom}
@@ -227,10 +230,10 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         erreur={champs.nom}
       />
       <Input
-        label="Numéro de téléphone"
+        label={mode === "sur_place" ? "Numéro de téléphone (facultatif)" : "Numéro de téléphone"}
         name="telephone"
         type="tel"
-        required
+        required={mode !== "sur_place"}
         maxLength={24}
         autoComplete="tel"
         placeholder="+224 622 12 34 56"
@@ -239,7 +242,12 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         erreur={champs.telephone}
       />
 
-      <fieldset className="choix-groupe">
+      {invite ? (
+        <p className="commande-prefill" role="status">
+          Vous commandez à table, sans compte. Le serveur validera votre première commande.
+        </p>
+      ) : null}
+      <fieldset className="choix-groupe" hidden={invite}>
         <legend>Mode de réception</legend>
         {tableScannee ? (
           <label className="choix-carte">
