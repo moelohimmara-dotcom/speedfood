@@ -17,6 +17,7 @@ import {
   type ElementActuel,
   type StatutLancement,
 } from "./geographie-outils";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Géographie administrable depuis la console système : communes (activer / désactiver, renommer) et
@@ -120,23 +121,32 @@ export async function listerGeographieSysteme(regionSlug = "conakry"): Promise<G
     ? await supabase.from("prefectures").select("id, nom, slug, actif, code_officiel, latitude, longitude").eq("region_id", regionLue.id).order("nom")
     : { data: [] };
 
-  const { data: communes } = await supabase
-    .from("communes")
-    .select("id, nom, slug, actif, code_officiel, latitude, longitude, noms_alternatifs, statut_lancement, prefectures!inner(slug, regions!inner(slug))")
-    .eq("prefectures.regions.slug", regionChoisie.slug)
-    .order("nom");
+  const { data: communes } = await lireTout((de, a) =>
+    supabase
+      .from("communes")
+      .select("id, nom, slug, actif, code_officiel, latitude, longitude, noms_alternatifs, statut_lancement, prefectures!inner(slug, regions!inner(slug))")
+      .eq("prefectures.regions.slug", regionChoisie.slug)
+      .order("nom")
+      .order("id")
+      .range(de, a)
+  );
   const idsCommunes = (communes ?? []).map((c) => c.id);
   const { data: quartiers } = idsCommunes.length
-    ? await supabase
-        .from("neighborhoods")
-        .select("id, nom, actif, commune_id, latitude, longitude, noms_alternatifs, communes(nom)")
-        .in("commune_id", idsCommunes)
-        .eq("generique", false)
-        .order("nom")
+    ? await lireTout((de, a) =>
+        supabase
+          .from("neighborhoods")
+          .select("id, nom, actif, commune_id, latitude, longitude, noms_alternatifs, communes(nom)")
+          .in("commune_id", idsCommunes)
+          .eq("generique", false)
+          .order("nom")
+          .order("id")
+          .range(de, a)
+      )
     : { data: [] };
 
   // Demande : combien de personnes attendent, par zone. Seuls des nombres sortent (aucun contact n'est lu).
-  const { data: alertes } = await creerClientAdmin().from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id");
+  const admin = creerClientAdmin();
+  const { data: alertes } = await lireTout((de, a) => admin.from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id").order("id").range(de, a));
   const parCol = (col: "region_id" | "prefecture_id" | "commune_id" | "neighborhood_id") => {
     const m = new Map<string, number>();
     for (const a of alertes ?? []) {

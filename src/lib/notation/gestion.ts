@@ -10,6 +10,7 @@ import {
   validerReponse,
   type AvisSaisi,
 } from "./regles";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Gestion des avis par le restaurant, le livreur et l'exploitation (voir docs/NOTATION.md). Chaque fonction reçoit une identité DÉJÀ
@@ -219,7 +220,7 @@ export interface AlerteNotation {
 export async function calculerAlertes(): Promise<AlerteNotation[]> {
   const db = clientLivraison();
   const alertes: AlerteNotation[] = [];
-  const { data: restos } = await db.from("restaurants").select("nom, avis_somme, avis_total").gte("avis_total", 5);
+  const { data: restos } = await lireTout((de, a) => db.from("restaurants").select("nom, avis_somme, avis_total").gte("avis_total", 5).order("id").range(de, a));
   for (const r of (restos ?? []) as { nom: string; avis_somme: number; avis_total: number }[]) {
     if (sousLeSeuil(r.avis_somme, r.avis_total)) {
       alertes.push({ type: "restaurant_sous_seuil", cible: r.nom, detail: `${moyenne(r.avis_somme, r.avis_total)?.toLocaleString("fr-FR")} sur ${r.avis_total} avis` });

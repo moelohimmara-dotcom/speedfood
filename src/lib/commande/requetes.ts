@@ -189,17 +189,50 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
  * de la session membre : la RLS `membres_lecture_leurs_commandes` est la source
  * d'autorité (restaurant A ne voit jamais restaurant B).
  */
+export interface OptionsApercus {
+  /** Nombre de commandes terminées, refusées ou annulées à charger (les plus récentes). 20 par défaut. */
+  historique?: number;
+  /** Alternative : toutes les commandes terminées depuis cette date (tableau de bord sur une période). */
+  depuisLe?: string;
+}
+
+const STATUTS_ACTIFS = ["en_attente", "acceptee", "prete"];
+const STATUTS_FINAUX = ["terminee", "refusee", "annulee"];
+/** Plafonds de sécurité (jamais atteints en service normal) : au-delà, le journal `commandes_plafond` le signale. */
+const PLAFOND_ACTIVES = 500;
+const PLAFOND_PERIODE = 3000;
+
+/** Nombre total de commandes terminées, refusées ou annulées (pour proposer « voir plus » sans tout charger). */
+export async function compterHistorique(db: ClientCommandeDb, restaurantId: string): Promise<number> {
+  const { count } = await db.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).in("statut", STATUTS_FINAUX);
+  return count ?? 0;
+}
+
 export async function chargerApercusCommandes(
   db: ClientCommandeDb,
-  restaurantId: string
+  restaurantId: string,
+  options: OptionsApercus = {}
 ): Promise<ApercuCommandeRestaurant[]> {
-  const { data: commandes, error } = await db
-    .from("orders")
-    .select(
-      `id, reference, client_nom, client_telephone, client_adresse, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, est_test, jeton_suivi, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
-    )
-    .eq("restaurant_id", restaurantId)
-    .order("cree_le", { ascending: false });
+  // Deux lectures BORNÉES au lieu de toutes les commandes du restaurant : ce qui attend une action (toutes, c'est l'essentiel du service),
+  // et un historique limité. Avant, la page chargeait et filtrait en mémoire l'historique entier à chaque rafraîchissement.
+  const base = () =>
+    db
+      .from("orders")
+      .select(
+        `id, reference, client_nom, client_telephone, client_adresse, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, est_test, jeton_suivi, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
+      )
+      .eq("restaurant_id", restaurantId);
+  const [actives, finales] = await Promise.all([
+    base().in("statut", STATUTS_ACTIFS).order("cree_le", { ascending: false }).limit(PLAFOND_ACTIVES),
+    options.depuisLe
+      ? base().in("statut", STATUTS_FINAUX).gte("cree_le", options.depuisLe).order("cree_le", { ascending: false }).limit(PLAFOND_PERIODE)
+      : base().in("statut", STATUTS_FINAUX).order("cree_le", { ascending: false }).limit(Math.max(1, Math.min(options.historique ?? 20, 500))),
+  ]);
+  const error = actives.error ?? finales.error;
+  if ((actives.data?.length ?? 0) >= PLAFOND_ACTIVES || (options.depuisLe && (finales.data?.length ?? 0) >= PLAFOND_PERIODE)) {
+    console.error("commandes_plafond", { actives: actives.data?.length ?? 0, finales: finales.data?.length ?? 0 });
+  }
+  const commandes = [...(actives.data ?? []), ...(finales.data ?? [])].sort((x, y) => y.cree_le.localeCompare(x.cree_le));
 
   if (error) {
     throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de charger les commandes. Réessayez.");

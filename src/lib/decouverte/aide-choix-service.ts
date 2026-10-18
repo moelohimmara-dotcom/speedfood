@@ -18,6 +18,7 @@ import {
 } from "./aide-choix";
 import { lireCatalogue, type RestaurantCatalogue } from "./recherche";
 import { lireSignauxClassement } from "./signaux";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Service de l'aide au choix (voir docs/AIDE-AU-CHOIX.md). Lit le catalogue public, les réglages de l'exploitation et les gammes
@@ -65,7 +66,8 @@ export async function lireReglagesAideChoix(): Promise<ReglagesAideChoix> {
 async function lireGammesValidees(): Promise<Map<string, Gamme>> {
   const m = new Map<string, Gamme>();
   try {
-    const { data } = await clientLivraison().from("restaurants").select("id, gamme_validee").not("gamme_validee", "is", null);
+    const db = clientLivraison();
+    const { data } = await lireTout((de, a) => db.from("restaurants").select("id, gamme_validee").not("gamme_validee", "is", null).order("id").range(de, a));
     for (const r of (data ?? []) as { id: string; gamme_validee: string }[]) if (estGamme(r.gamme_validee)) m.set(r.id, r.gamme_validee);
   } catch {
     // Pas de gamme validée.

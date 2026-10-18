@@ -1,5 +1,6 @@
 import "server-only";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Couverture de Speedfood par zone, pour la console système : où il y a des restaurants, où ils sont ouverts, et où des
@@ -58,12 +59,12 @@ export interface Couverture {
 export async function lireCouverture(): Promise<Couverture> {
   const admin = creerClientAdmin();
   const [regionsR, prefsR, communesR, quartiersR, restosR, alertesR] = await Promise.all([
-    admin.from("regions").select("id, nom").eq("actif", true).order("nom"),
-    admin.from("prefectures").select("id, nom, region_id").eq("actif", true).order("nom"),
-    admin.from("communes").select("id, nom, prefecture_id, latitude, longitude, statut_lancement").eq("actif", true).order("nom"),
-    admin.from("neighborhoods").select("id, nom, commune_id, generique").eq("actif", true),
-    admin.from("restaurants").select("id, quartier_id, ouvert, accepte_commandes").eq("publie", true).eq("donnees_demo", false),
-    admin.from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id"),
+    lireTout((de, a) => admin.from("regions").select("id, nom").eq("actif", true).order("nom").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("prefectures").select("id, nom, region_id").eq("actif", true).order("nom").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("communes").select("id, nom, prefecture_id, latitude, longitude, statut_lancement").eq("actif", true).order("nom").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("neighborhoods").select("id, nom, commune_id, generique").eq("actif", true).order("id").range(de, a)),
+    lireTout((de, a) => admin.from("restaurants").select("id, quartier_id, ouvert, accepte_commandes").eq("publie", true).eq("donnees_demo", false).order("id").range(de, a)),
+    lireTout((de, a) => admin.from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id").order("id").range(de, a)),
   ]);
 
   const regions = regionsR.data ?? [];

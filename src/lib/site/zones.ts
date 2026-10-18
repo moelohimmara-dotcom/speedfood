@@ -3,6 +3,7 @@ import { creerClientPublic } from "@/lib/db/public";
 import { lireAccueil } from "@/lib/site/accueil";
 import { slugQuartier } from "@/lib/site/quartiers";
 import type { RestaurantCatalogue } from "@/lib/decouverte/recherche";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Zones de recherche, sur la géographie réellement enregistrée : région → préfecture → commune (ou sous-préfecture) → quartier.
@@ -101,10 +102,10 @@ const premier = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] :
 export const lireHierarchieZones = cache(async (): Promise<ZoneRegion[]> => {
   const supabase = creerClientPublic();
   const [regionsR, prefsR, communesR, quartiersR, accueil] = await Promise.all([
-    supabase.from("regions").select("id, nom, slug, latitude, longitude").eq("actif", true).order("nom"),
-    supabase.from("prefectures").select("id, nom, slug, region_id, latitude, longitude").eq("actif", true).order("nom"),
-    supabase.from("communes").select("id, nom, slug, prefecture_id, noms_alternatifs, latitude, longitude, statut_lancement, villes(nom)").eq("actif", true).order("nom"),
-    supabase.from("neighborhoods").select("id, nom, commune_id, noms_alternatifs, latitude, longitude").eq("actif", true).eq("generique", false).order("nom"),
+    lireTout((de, a) => supabase.from("regions").select("id, nom, slug, latitude, longitude").eq("actif", true).order("nom").order("id").range(de, a)),
+    lireTout((de, a) => supabase.from("prefectures").select("id, nom, slug, region_id, latitude, longitude").eq("actif", true).order("nom").order("id").range(de, a)),
+    lireTout((de, a) => supabase.from("communes").select("id, nom, slug, prefecture_id, noms_alternatifs, latitude, longitude, statut_lancement, villes(nom)").eq("actif", true).order("nom").order("id").range(de, a)),
+    lireTout((de, a) => supabase.from("neighborhoods").select("id, nom, commune_id, noms_alternatifs, latitude, longitude").eq("actif", true).eq("generique", false).order("nom").order("id").range(de, a)),
     lireAccueil(),
   ]);
   if (regionsR.error || prefsR.error || communesR.error || quartiersR.error) return [];

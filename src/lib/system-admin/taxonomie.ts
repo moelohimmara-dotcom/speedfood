@@ -5,6 +5,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Taxonomie (catégories de menu, quartiers) — bloc 8c. Ces deux tables
@@ -47,7 +48,7 @@ export async function listerTaxonomie(table: TableTaxonomie): Promise<ElementTax
   // supprimer ici (ils se gèrent par la commune, dans Géographie). Ils noyaient la liste (près de 1 000 boutons) et pouvaient être supprimés.
   const { data, error } =
     table === "neighborhoods"
-      ? await supabase.from("neighborhoods").select("id, nom, ordre").eq("generique", false).order("ordre")
+      ? await lireTout((de, a) => supabase.from("neighborhoods").select("id, nom, ordre").eq("generique", false).order("ordre").order("id").range(de, a))
       : await supabase.from("menu_categories").select("id, nom, ordre").order("ordre");
   if (error || !data) {
     return [];

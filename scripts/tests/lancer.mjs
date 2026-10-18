@@ -157,5 +157,8 @@ for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage"
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }
+// Garde-fou des volumes : aucune lecture de base sans borne ni déclaration (voir scripts/verifier-requetes.mjs).
+const volumes = spawnSync(process.execPath, [join(racine, "scripts", "verifier-requetes.mjs")], { stdio: "inherit" });
+statut = statut || (volumes.status ?? 1);
 rmSync(tmp, { recursive: true, force: true });
 process.exit(statut);

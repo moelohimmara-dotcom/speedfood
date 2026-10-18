@@ -5,6 +5,7 @@ import { journaliserActionSysteme } from "@/lib/system-admin/audit";
 import { obtenirContexteSysteme } from "@/lib/system-admin/contexte";
 import { construireCsv } from "@/lib/system-admin/csv";
 import { roleAPermission } from "@/lib/system-admin/permissions";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Export CSV des contacts d'UNE zone de la liste d'attente. Permission `attente.gerer` ; la trace d'audit est écrite AVANT l'envoi des
@@ -25,11 +26,13 @@ export async function GET(request: Request) {
   }
   const colonne = COLONNE[niveau as keyof typeof COLONNE];
 
-  const { data, error } = await creerClientAdmin()
-    .from("zone_alertes")
-    .select("contact_type, contact, cree_le, notifie_le")
-    .eq(colonne, id)
-    .order("cree_le");
+  // Export COMPLET : pages jusqu'à la dernière (une liste amputée à 1 000 contacts sans le dire serait pire qu'une erreur).
+  const admin = creerClientAdmin();
+  const { data, error, tronque } = await lireTout(
+    (de, a) => admin.from("zone_alertes").select("contact_type, contact, cree_le, notifie_le").eq(colonne, id).order("cree_le").order("id").range(de, a),
+    100000
+  );
+  if (tronque) return new NextResponse("Export trop volumineux : réduisez la zone ou contactez le support technique.", { status: 413 });
   if (error) return new NextResponse("Erreur serveur", { status: 500 });
 
   await journaliserActionSysteme(contexte, {

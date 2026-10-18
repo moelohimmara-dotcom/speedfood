@@ -1,5 +1,5 @@
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { chargerApercusCommandes } from "@/lib/commande/requetes";
+import { chargerApercusCommandes, compterHistorique } from "@/lib/commande/requetes";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import type { ApercuCommandeRestaurant } from "@/lib/contracts/commande";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
@@ -35,7 +35,7 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
   let commandes: ApercuCommandeRestaurant[] = [];
   let erreurChargement: string | null = null;
   try {
-    commandes = await chargerApercusCommandes(supabase, membership.restaurant_id);
+    commandes = await chargerApercusCommandes(supabase, membership.restaurant_id, { historique: limite });
   } catch (erreur) {
     erreurChargement =
       erreur instanceof ErreurMetier
@@ -57,7 +57,9 @@ export default async function CommandesPage({ searchParams }: { searchParams: Pr
   const historiqueComplet = commandes.filter((c) => ["terminee", "refusee", "annulee"].includes(c.etatDerive));
   // L'historique grossit sans fin : on n'en montre qu'une fenêtre (les plus récentes), le reste se déplie par pas.
   const historique = historiqueComplet.slice(0, limite);
-  const restantes = historiqueComplet.length - historique.length;
+  // Le total de l'historique vient d'un simple comptage : seules les `limite` commandes les plus récentes sont chargées.
+  const totalHistorique = await compterHistorique(supabase, membership.restaurant_id).catch(() => historiqueComplet.length);
+  const restantes = Math.max(0, totalHistorique - historique.length);
 
   // Documents : seulement pour les commandes réellement affichées (une liste d'identifiants trop longue ferait échouer la requête).
   const affichees = [...aTraiter, ...enCours, ...historique];

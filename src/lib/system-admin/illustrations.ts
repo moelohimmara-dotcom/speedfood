@@ -8,6 +8,7 @@ import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
 import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 import { familleDepuisCategorie, illustrationCouverture, illustrationLogo, illustrationPlat } from "@/lib/illustrations/automatique";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Illustrations des restaurants et des plats (logo, couverture, plat), modifiables depuis la console. Toute valeur passe
@@ -100,9 +101,13 @@ export async function genererIllustrationsDemoAction(): Promise<{ restaurants: n
   const contexte = await verifierPermission("restaurant.moderer");
   const admin = creerClientAdmin();
 
-  const { data: restos, error } = await admin
-    .from("restaurants")
-    .select("id, nom, logo_url, photo_url, logo_illustration, couverture_illustration, menu_categories(nom)");
+  const { data: restos, error } = await lireTout((de, a) =>
+    admin
+      .from("restaurants")
+      .select("id, nom, logo_url, photo_url, logo_illustration, couverture_illustration, menu_categories(nom)")
+      .order("id")
+      .range(de, a)
+  );
   if (error || !restos) {
     return { restaurants: 0, plats: 0, erreur: "Lecture des restaurants impossible." };
   }
@@ -121,10 +126,9 @@ export async function genererIllustrationsDemoAction(): Promise<{ restaurants: n
     }
   }
 
-  const { data: plats } = await admin
-    .from("menu_items")
-    .select("id, nom, restaurant_id, photo_url, illustration")
-    .is("archive_le", null);
+  const { data: plats } = await lireTout((de, a) =>
+    admin.from("menu_items").select("id, nom, restaurant_id, photo_url, illustration").is("archive_le", null).order("id").range(de, a)
+  );
   let nbPlats = 0;
   for (const p of plats ?? []) {
     if (p.photo_url || validerIllustration(p.illustration)) continue;

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/database.types";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Géographie de la Guinée : région → préfecture → commune (ou sous-préfecture) → quartier ; Conakry suit la réforme territoriale de 2024.
@@ -60,12 +61,16 @@ export function grouperParCommune(quartiers: QuartierChoix[]): GroupeCommune[] {
 export async function lireQuartiersActifs(
   supabase: SupabaseClient<Database>
 ): Promise<QuartierChoix[]> {
-  const { data, error } = await supabase
-    .from("neighborhoods")
-    .select("id, nom, generique, communes!inner(id, nom, actif, prefectures(id, nom, regions(id, nom)))")
-    .eq("actif", true)
-    .eq("communes.actif", true)
-    .order("nom");
+  const { data, error } = await lireTout((de, a) =>
+    supabase
+      .from("neighborhoods")
+      .select("id, nom, generique, communes!inner(id, nom, actif, prefectures(id, nom, regions(id, nom)))")
+      .eq("actif", true)
+      .eq("communes.actif", true)
+      .order("nom")
+      .order("id")
+      .range(de, a)
+  );
   if (error || !data) {
     return [];
   }

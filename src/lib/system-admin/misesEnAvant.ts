@@ -5,6 +5,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
 import { erreurAction, type RetourAction } from "./retour-action";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Mises en avant (bloc 8c) : permission `contenu.mettre_en_avant`, réservée à
@@ -54,12 +55,9 @@ export async function listerMisesEnAvant(): Promise<MiseEnAvant[]> {
 export async function listerRestaurantsPublies(): Promise<{ id: string; nom: string }[]> {
   await verifierPermission("contenu.mettre_en_avant");
   const supabase = await creerClientServeur();
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select("id, nom")
-    .eq("publie", true)
-    .is("suspendu_le", null)
-    .order("nom");
+  const { data, error } = await lireTout((de, a) =>
+    supabase.from("restaurants").select("id, nom").eq("publie", true).is("suspendu_le", null).order("nom").order("id").range(de, a)
+  );
   if (error || !data) {
     return [];
   }

@@ -2,6 +2,7 @@ import "server-only";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { POIDS_PAR_DEFAUT, poidsValides, prixMedian, type EntreeClassement, type PoidsClassement } from "./recommandation";
 import type { PlatPublic } from "./classement";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Signaux du classement « recommandés » (note, prix, fréquentation) — voir docs/NOTATION.md §9.
@@ -44,10 +45,13 @@ export async function lireSignauxClassement(
     }
 
     const [{ data: notes }, { data: frequentation }] = await Promise.all([
-      supabase.from("restaurants").select("id, avis_somme, avis_total").in("id", idsRestaurants),
+      // Tous les restaurants par pages, puis filtre local : un `.in(id, …)` avec des milliers d'identifiants dépasserait la longueur d'une adresse.
+      lireTout((de, a) => supabase.from("restaurants").select("id, avis_somme, avis_total").order("id").range(de, a)),
       supabase.rpc("fn_frequentation_restaurants", { p_jours: fenetre }),
     ]);
+    const retenus = new Set(idsRestaurants);
     for (const n of (notes ?? []) as { id: string; avis_somme: number; avis_total: number }[]) {
+      if (!retenus.has(n.id)) continue;
       avis.set(n.id, { somme: n.avis_somme ?? 0, total: n.avis_total ?? 0 });
     }
     for (const f of (frequentation ?? []) as { restaurant_id: string; commandes: number }[]) {

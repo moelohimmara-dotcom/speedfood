@@ -112,8 +112,11 @@ export async function listerLivreursAdmin(): Promise<LivreurAdmin[]> {
     .from("livreur_invitations")
     .select("livreur_id, expire_le")
     .is("utilise_le", null)
-    .gt("expire_le", new Date().toISOString());
-  const { data: dossiers } = await db.from("livreur_dossiers").select("livreur_id");
+    .gt("expire_le", new Date().toISOString())
+    .limit(1000);
+  // Seuls les dossiers des livreurs affichés (au plus 300) : jamais la table entière.
+  const idsAffiches = ((data ?? []) as Array<{ id: string }>).map((l) => l.id);
+  const { data: dossiers } = idsAffiches.length > 0 ? await db.from("livreur_dossiers").select("livreur_id").in("livreur_id", idsAffiches) : { data: [] };
   const avecDossier = new Set(((dossiers ?? []) as Array<{ livreur_id: string }>).map((d) => d.livreur_id));
   const lienParLivreur = new Map(((liens ?? []) as Array<{ livreur_id: string; expire_le: string }>).map((l) => [l.livreur_id, l.expire_le]));
   return ((data ?? []) as Array<{

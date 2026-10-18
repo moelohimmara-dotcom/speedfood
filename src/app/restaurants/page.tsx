@@ -17,6 +17,7 @@ import type { Metadata } from "next";
 import { lirePromesse } from "@/lib/parametres/promesse";
 import { lireChiffresEnDirect } from "@/lib/decouverte/chiffres";
 import { origineDuSite } from "@/lib/partage/origine";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 interface Recherche {
   q?: string;
@@ -75,7 +76,7 @@ export default async function CataloguePage({
   const [{ data: categories, error: erreurCategories }, { data: quartiers, error: erreurQuartiers }, recherche, base] =
     await Promise.all([
       supabase.from("menu_categories").select("id, nom").order("ordre"),
-      supabase.from("neighborhoods").select("id, nom").order("ordre"),
+      lireTout((de, a) => supabase.from("neighborhoods").select("id, nom").order("ordre").order("id").range(de, a)),
       rechercherCatalogue({ q, categorie, quartier, filtres, tri }),
       // Même recherche sans filtre de cuisine ni de quartier : sert aux compteurs des puces (avec l'autre filtre actif).
       rechercherCatalogue({ q, filtres }),

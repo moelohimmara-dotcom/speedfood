@@ -6,6 +6,7 @@ import { verifierPermission } from "./contexte";
 import { journaliserActionSysteme } from "./audit";
 import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 import { estUuid } from "@/lib/commande/commun";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Modération des restaurants (bloc 8b). Toute mutation :
@@ -59,27 +60,31 @@ export async function listerRestaurantsAdmin(filtres: {
   await verifierPermission("restaurant.consulter");
   const supabase = await creerClientServeur();
 
-  let requete = supabase
-    .from("restaurants")
-    .select(
-      "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, menu_categories(nom), neighborhoods(nom)"
-    )
-    .order("cree_le", { ascending: false });
+  const construire = () => {
+    let requete = supabase
+      .from("restaurants")
+      .select(
+        "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, menu_categories(nom), neighborhoods(nom)"
+      )
+      .order("cree_le", { ascending: false })
+      .order("id");
 
-  if (filtres.q) {
-    requete = requete.ilike("nom", `%${filtres.q}%`);
-  }
-  if (filtres.statut === "en_attente") {
-    requete = requete.eq("publie", false).is("suspendu_le", null).is("motif_correction", null);
-  } else if (filtres.statut === "publies") {
-    requete = requete.eq("publie", true).is("suspendu_le", null);
-  } else if (filtres.statut === "suspendus") {
-    requete = requete.not("suspendu_le", "is", null);
-  } else if (filtres.statut === "correction") {
-    requete = requete.not("motif_correction", "is", null);
-  }
+    if (filtres.q) {
+      requete = requete.ilike("nom", `%${filtres.q}%`);
+    }
+    if (filtres.statut === "en_attente") {
+      requete = requete.eq("publie", false).is("suspendu_le", null).is("motif_correction", null);
+    } else if (filtres.statut === "publies") {
+      requete = requete.eq("publie", true).is("suspendu_le", null);
+    } else if (filtres.statut === "suspendus") {
+      requete = requete.not("suspendu_le", "is", null);
+    } else if (filtres.statut === "correction") {
+      requete = requete.not("motif_correction", "is", null);
+    }
+    return requete;
+  };
 
-  const { data, error } = await requete;
+  const { data, error } = await lireTout((de, a) => construire().range(de, a), 5000);
   if (error || !data) {
     return [];
   }

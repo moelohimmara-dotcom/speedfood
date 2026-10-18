@@ -6,6 +6,7 @@ import { estUuid } from "@/lib/commande/commun";
 import { validerContactAlerte } from "@/lib/site/zone-alerte";
 import { journaliserActionSysteme } from "./audit";
 import { verifierPermission } from "./contexte";
+import { lireTout } from "@/lib/db/lecture-complete";
 
 /**
  * Liste d'attente par zone, côté administration. Les contacts sont des données personnelles : la lecture, l'export et la suppression
@@ -53,11 +54,11 @@ export async function listerZonesEnAttente(): Promise<ZoneEnAttente[]> {
   await verifierPermission("attente.gerer");
   const admin = creerClientAdmin();
   const [alertesR, regionsR, prefsR, communesR, quartiersR] = await Promise.all([
-    admin.from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id, notifie_le, cree_le"),
-    admin.from("regions").select("id, nom"),
-    admin.from("prefectures").select("id, nom, region_id"),
-    admin.from("communes").select("id, nom, prefecture_id"),
-    admin.from("neighborhoods").select("id, nom, commune_id"),
+    lireTout((de, a) => admin.from("zone_alertes").select("region_id, prefecture_id, commune_id, neighborhood_id, notifie_le, cree_le").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("regions").select("id, nom").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("prefectures").select("id, nom, region_id").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("communes").select("id, nom, prefecture_id").order("id").range(de, a)),
+    lireTout((de, a) => admin.from("neighborhoods").select("id, nom, commune_id").order("id").range(de, a)),
   ]);
   const regions = new Map((regionsR.data ?? []).map((r) => [r.id, r]));
   const prefs = new Map((prefsR.data ?? []).map((p) => [p.id, p]));

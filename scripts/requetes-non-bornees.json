@@ -1,0 +1,328 @@
+[
+  {
+    "fichier": "src/app/aide-au-choix/page.tsx",
+    "table": "menu_categories",
+    "raison": "Table de référence (quelques catégories de cuisine) : très loin des 1 000 lignes de l'API."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/affiche/page.tsx",
+    "table": "restaurant_scans",
+    "raison": "Scans d'UN restaurant, agrégés sur une courte période."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/commandes/page.tsx",
+    "table": "documents_commande",
+    "raison": "Documents d'UNE commande ou des commandes affichées (au plus quelques centaines)."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/commandes/page.tsx",
+    "table": "orders",
+    "raison": "Filtrée par une liste d'identifiants bornée, ou lecture d'UNE commande ; ou construite puis bornée par .limit()/.range() à l'appel."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/documents/page.tsx",
+    "table": "orders",
+    "raison": "Filtrée par une liste d'identifiants bornée, ou lecture d'UNE commande ; ou construite puis bornée par .limit()/.range() à l'appel."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/menu-du-jour/page.tsx",
+    "table": "menu_items",
+    "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/menu/page.tsx",
+    "table": "menu_items",
+    "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/menu/page.tsx",
+    "table": "menu_sections",
+    "raison": "Sections du menu d'UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/ouverture/page.tsx",
+    "table": "menu_items",
+    "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/ouverture/page.tsx",
+    "table": "menu_sections",
+    "raison": "Sections du menu d'UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/profil/zones/page.tsx",
+    "table": "restaurant_zones_desservies",
+    "raison": "Zones déclarées par UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/app/restaurant/(console)/salle/saisie/page.tsx",
+    "table": "menu_items",
+    "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
+  },
+  {
+    "fichier": "src/app/restaurant/nouveau/page.tsx",
+    "table": "menu_categories",
+    "raison": "Table de référence (quelques catégories de cuisine) : très loin des 1 000 lignes de l'API."
+  },
+  {
+    "fichier": "src/app/restaurants/[id]/page.tsx",
+    "table": "menu_item_options",
+    "raison": "Suppléments des plats d'UN menu : quelques centaines au plus."
+  },
+  {
+    "fichier": "src/app/restaurants/[id]/page.tsx",
+    "table": "menu_items",
+    "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
+  },
+  {
+    "fichier": "src/app/restaurants/[id]/page.tsx",
+    "table": "menu_sections",
+    "raison": "Sections du menu d'UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/app/restaurants/[id]/page.tsx",
+    "table": "restaurant_zones_desservies",
+    "raison": "Zones déclarées par UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/app/system/catalogue/restaurants/[id]/page.tsx",
+    "table": "restaurant_zones_desservies",
+    "raison": "Zones déclarées par UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/app/system/contenu/pages/page.tsx",
+    "table": "content_pages",
+    "raison": "Pages éditoriales : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/cms/textes.ts",
+    "table": "contenu_emplacements",
+    "raison": "Emplacements de contenu éditorial : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/commande/calculs.ts",
+    "table": "menu_item_options",
+    "raison": "Suppléments des plats d'UN menu : quelques centaines au plus."
+  },
+  {
+    "fichier": "src/lib/commande/calculs.ts",
+    "table": "menu_items",
+    "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
+  },
+  {
+    "fichier": "src/lib/commande/propositions.ts",
+    "table": "order_proposals",
+    "raison": "Propositions d'UNE commande : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/commande/requetes.ts",
+    "table": "order_items",
+    "raison": "Lignes d'UNE commande : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/commande/requetes.ts",
+    "table": "order_status_events",
+    "raison": "Historique d'UNE commande : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/commande/requetes.ts",
+    "table": "orders",
+    "raison": "Filtrée par une liste d'identifiants bornée, ou lecture d'UNE commande ; ou construite puis bornée par .limit()/.range() à l'appel."
+  },
+  {
+    "fichier": "src/lib/fonctionnalites/lire.ts",
+    "table": "fonctionnalites",
+    "raison": "Interrupteurs de fonctionnalités : une vingtaine de lignes."
+  },
+  {
+    "fichier": "src/lib/livraison/admin-lectures.ts",
+    "table": "livraison_offres",
+    "raison": "Offres d'UNE livraison ou d'un livreur, ou filtrée par une liste d'identifiants bornée : quelques lignes."
+  },
+  {
+    "fichier": "src/lib/livraison/admin-lectures.ts",
+    "table": "livreur_dossiers",
+    "raison": "Filtrée par les livreurs affichés (au plus 300)."
+  },
+  {
+    "fichier": "src/lib/livraison/service.ts",
+    "table": "livraison_offres",
+    "raison": "Offres d'UNE livraison ou d'un livreur, ou filtrée par une liste d'identifiants bornée : quelques lignes.",
+    "nombre": 2
+  },
+  {
+    "fichier": "src/lib/livraison/service.ts",
+    "table": "livreurs",
+    "raison": "Livreurs candidats d'UNE offre : quelques lignes."
+  },
+  {
+    "fichier": "src/lib/livraison/vues.ts",
+    "table": "livraisons",
+    "raison": "Filtrée par les commandes affichées (liste d'identifiants bornée)."
+  },
+  {
+    "fichier": "src/lib/menu/actions.ts",
+    "table": "menu_sections",
+    "raison": "Sections du menu d'UN restaurant : quelques dizaines.",
+    "nombre": 3
+  },
+  {
+    "fichier": "src/lib/notation/service.ts",
+    "table": "avis",
+    "raison": "Notes d'UNE commande (au plus quatre) : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/paiement/documents.ts",
+    "table": "documents_commande",
+    "raison": "Documents d'UNE commande ou des commandes affichées (au plus quelques centaines)."
+  },
+  {
+    "fichier": "src/lib/push/envoi.ts",
+    "table": "push_subscriptions",
+    "raison": "Appareils abonnés d'UN restaurant : quelques-uns.",
+    "nombre": 2
+  },
+  {
+    "fichier": "src/lib/site/livraison-lecture.ts",
+    "table": "restaurant_zones_desservies",
+    "raison": "Zones déclarées par UN restaurant : quelques dizaines."
+  },
+  {
+    "fichier": "src/lib/studio/jetons-actions.ts",
+    "table": "design_tokens",
+    "raison": "Jetons de design : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/studio/jetons-lecture.ts",
+    "table": "design_tokens",
+    "raison": "Jetons de design : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/acces-paliers.ts",
+    "table": "acces_paliers",
+    "raison": "Habilitations de l'équipe d'administration : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/acces-paliers.ts",
+    "table": "system_admin_memberships",
+    "raison": "Équipe d'administration : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/annuaire.ts",
+    "table": "restaurant_memberships",
+    "raison": "Équipe d'UN restaurant : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/annuaire.ts",
+    "table": "system_admin_memberships",
+    "raison": "Équipe d'administration : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/commandes.ts",
+    "table": "order_items",
+    "raison": "Lignes d'UNE commande : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/system-admin/commandes.ts",
+    "table": "order_proposals",
+    "raison": "Propositions d'UNE commande : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/system-admin/commandes.ts",
+    "table": "order_status_events",
+    "raison": "Historique d'UNE commande : bornée par la commande."
+  },
+  {
+    "fichier": "src/lib/system-admin/contenus.ts",
+    "table": "content_banners",
+    "raison": "Bannières éditoriales : quelques lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/contenus.ts",
+    "table": "content_pages",
+    "raison": "Pages éditoriales : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/emplacements.ts",
+    "table": "contenu_emplacements",
+    "raison": "Emplacements de contenu éditorial : quelques dizaines de lignes.",
+    "nombre": 2
+  },
+  {
+    "fichier": "src/lib/system-admin/fonctionnalites.ts",
+    "table": "fonctionnalites",
+    "raison": "Interrupteurs de fonctionnalités : une vingtaine de lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/geographie.ts",
+    "table": "communes",
+    "raison": "Par lots de 100 identifiants (.in) : au plus 100 lignes par requête."
+  },
+  {
+    "fichier": "src/lib/system-admin/geographie.ts",
+    "table": "neighborhoods",
+    "raison": "Par lots de 100 identifiants (.in) : au plus 100 lignes par requête."
+  },
+  {
+    "fichier": "src/lib/system-admin/geographie.ts",
+    "table": "prefectures",
+    "raison": "Une région (ou ses préfectures) : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/geographie.ts",
+    "table": "regions",
+    "raison": "Une région (ou ses préfectures) : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/misesEnAvant.ts",
+    "table": "featured_placements",
+    "raison": "Mises en avant : quelques lignes (positions limitées)."
+  },
+  {
+    "fichier": "src/lib/system-admin/pages-blocs.ts",
+    "table": "content_pages_versions",
+    "raison": "Versions d'UNE page éditoriale : quelques dizaines de lignes."
+  },
+  {
+    "fichier": "src/lib/system-admin/paliers-serveur.ts",
+    "table": "acces_paliers",
+    "raison": "Habilitations de l'équipe d'administration : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/restaurants.ts",
+    "table": "restaurants",
+    "raison": "Construite puis paginée par lireTout (.range ajouté à l'appel, plafond 5 000)."
+  },
+  {
+    "fichier": "src/lib/system-admin/roles.ts",
+    "table": "system_admin_memberships",
+    "raison": "Équipe d'administration : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/tableauDeBord.ts",
+    "table": "system_admin_memberships",
+    "raison": "Équipe d'administration : quelques comptes."
+  },
+  {
+    "fichier": "src/lib/system-admin/taxonomie.ts",
+    "table": "menu_categories",
+    "raison": "Table de référence (quelques catégories de cuisine) : très loin des 1 000 lignes de l'API."
+  },
+  {
+    "fichier": "src/lib/table/actions.ts",
+    "table": "orders",
+    "raison": "Filtrée par une liste d'identifiants bornée, ou lecture d'UNE commande ; ou construite puis bornée par .limit()/.range() à l'appel."
+  },
+  {
+    "fichier": "src/lib/table/service.ts",
+    "table": "orders",
+    "raison": "Filtrée par une liste d'identifiants bornée, ou lecture d'UNE commande ; ou construite puis bornée par .limit()/.range() à l'appel.",
+    "nombre": 2
+  },
+  {
+    "fichier": "src/lib/table/service.ts",
+    "table": "table_sessions",
+    "raison": "Tables ouvertes (ou une table) d'UN restaurant : quelques dizaines au plus.",
+    "nombre": 2
+  }
+]
