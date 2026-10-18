@@ -12,10 +12,10 @@ type Entree = { href: string; libelle: string; court?: string; icone: string; ex
 const ENTREES: readonly Entree[] = [
   { href: "/restaurant", libelle: "Accueil", icone: "tableau", exact: true },
   { href: "/restaurant/commandes", libelle: "Commandes", icone: "commandes", exact: false },
-  { href: "/restaurant/salle", libelle: "Salle", icone: "tableau", exact: false },
+  { href: "/restaurant/salle", libelle: "Salle", icone: "tableau", exact: false, aussi: ["/restaurant/tables"] },
   { href: "/restaurant/menu", libelle: "Menu", icone: "carte", exact: false },
   { href: "/restaurant/avis", libelle: "Avis", icone: "etoile", exact: false },
-  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false, aussi: ["/restaurant/affiche", "/restaurant/tables", "/restaurant/documents", "/restaurant/positionnement"] },
+  { href: "/restaurant/profil", libelle: "Mon restaurant", court: "Mon resto", icone: "boutique", exact: false, aussi: ["/restaurant/affiche", "/restaurant/documents", "/restaurant/positionnement"] },
 ];
 
 function estActif(chemin: string, e: Entree) {

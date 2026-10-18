@@ -36,3 +36,54 @@
 .saisie-quantite .btn { min-width: 44px; min-height: 44px; padding: 0; }
 .saisie-options { display: grid; gap: 4px; margin-top: var(--space-2); }
 .saisie-pied { position: sticky; bottom: 0; background: var(--bg, var(--creme)); padding: var(--space-3) 0; display: grid; gap: var(--space-2); border-top: 1px solid var(--bordure); }
+
+/* Service sur place et QR : réglage en trois étapes (préfixe ssp-) */
+.ssp-onglets { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: var(--space-2); margin: 0 0 var(--space-4); border-bottom: 1px solid var(--bordure); }
+.ssp-onglet { padding: 10px 16px; border-bottom: 3px solid transparent; color: var(--secondaire); font-weight: 700; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; }
+.ssp-onglet:hover, .ssp-onglet:focus-visible { color: var(--encre); }
+.ssp-onglet.actif { color: var(--encre); border-bottom-color: var(--orange); }
+.ssp { display: grid; gap: var(--space-4); margin-bottom: var(--space-5); }
+.ssp-resume { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--creme); border: 1px solid var(--bordure); font-weight: 700; overflow-wrap: anywhere; }
+.ssp-carte { border: 1px solid var(--bordure); border-radius: var(--radius-md); background: var(--surface); padding: var(--space-4); display: grid; gap: var(--space-4); min-width: 0; }
+.ssp-tete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.ssp-tete > div { flex: 1 1 320px; min-width: 0; }
+.ssp-titre { margin: 0 0 4px; font-size: 1.2rem; }
+.ssp-titre-2 { padding: 0; }
+.ssp-sous-titre { margin: 0 0 var(--space-2); font-size: 1rem; font-weight: 800; }
+.ssp-aide { margin: 0; color: var(--secondaire); font-size: 0.9rem; max-width: 70ch; }
+.ssp-interrupteur { display: inline-flex; align-items: center; gap: var(--space-3); padding: 6px 14px 6px 6px; border: 2px solid var(--bordure); border-radius: var(--radius-pill); background: var(--surface); cursor: pointer; font: inherit; font-weight: 800; min-height: 48px; }
+.ssp-interrupteur-bouton { width: 40px; height: 28px; border-radius: var(--radius-pill); background: var(--bordure); position: relative; transition: background var(--duration-base) var(--ease); }
+.ssp-interrupteur-bouton::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--duration-base) var(--ease); }
+.ssp-interrupteur-actif { border-color: var(--succes); }
+.ssp-interrupteur-actif .ssp-interrupteur-bouton { background: var(--succes); }
+.ssp-interrupteur-actif .ssp-interrupteur-bouton::after { transform: translateX(12px); }
+.ssp-interrupteur:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.ssp-reglages { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: var(--space-4); }
+.ssp-reglages:disabled { opacity: 0.55; }
+.ssp-profils { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.ssp-etiquette { color: var(--secondaire); font-size: 0.9rem; font-weight: 700; }
+.ssp-modes { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 700px) { .ssp-modes { grid-template-columns: minmax(0, 1fr); } }
+.ssp-mode { display: grid; gap: 6px; align-content: start; padding: var(--space-4); border: 2px solid var(--bordure); border-radius: var(--radius-md); cursor: pointer; background: var(--surface); min-width: 0; }
+.ssp-mode input { justify-self: start; width: 20px; height: 20px; accent-color: var(--orange); }
+.ssp-mode-choisi { border-color: var(--orange); background: var(--creme); }
+.ssp-mode-titre { font-weight: 800; font-size: 1.05rem; }
+.ssp-maquette { padding: 8px 10px; border-radius: var(--radius-sm); border: 1px dashed var(--bordure); background: var(--surface); font-size: 0.85rem; overflow-wrap: anywhere; }
+.ssp-bloc { display: grid; gap: var(--space-2); min-width: 0; }
+.ssp-case { display: flex; align-items: flex-start; gap: var(--space-2); min-height: 32px; cursor: pointer; }
+.ssp-case input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--orange); flex-shrink: 0; }
+.ssp-validations { display: grid; gap: var(--space-2); }
+.ssp-lien { justify-self: start; padding: 0; border: 0; background: none; color: var(--rouge-fonce); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.9rem; }
+.ssp-barre { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--radius-md); box-shadow: var(--shadow-md); }
+.ssp-barre-etat { min-width: 0; overflow-wrap: anywhere; }
+.ssp-barre-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ssp-erreur { color: var(--danger); font-weight: 700; }
+.ssp-ok { color: var(--succes); font-weight: 700; }
+.ssp-etape { display: grid; gap: var(--space-3); }
+.ssp-nombre { display: grid; gap: var(--space-2); }
+.ssp-nombre-ligne { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ssp-nombre-ligne input { width: 90px; min-height: 44px; text-align: center; padding: 8px; border: 1px solid var(--bordure); border-radius: var(--radius-sm); font: inherit; font-weight: 800; font-variant-numeric: tabular-nums; background: var(--surface); }
+.ssp-nombre-ligne .btn { min-width: 44px; min-height: 44px; padding: 0; font-size: 1.3rem; }
+@media print { .ssp, .ssp-onglets, .ssp-nombre, .ssp-etape > .ssp-titre, .ssp-etape > .ssp-aide { display: none !important; } }
+/* Téléphone et tablette : la barre d'enregistrement se pose au-dessus de la barre de navigation fixe du bas (≈ 72 px). */
+@media (max-width: 1023px) { .ssp-barre { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } }

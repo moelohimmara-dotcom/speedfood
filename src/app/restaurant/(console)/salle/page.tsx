@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { EtatVide, PageHeader } from "@/components/admin/blocs";
 import { tablesOuvertes } from "@/lib/table/service";
+import { OngletsSalle } from "@/components/restaurant/OngletsSalle";
 import { SalleTables } from "./SalleTables";
 import type { Metadata } from "next";
 
@@ -17,27 +17,18 @@ export default async function SallePage() {
   return (
     <div>
       <PageHeader titre="Salle" description="Les tables ouvertes en ce moment. La page se met à jour toute seule ; un signal sonore prévient quand une table appelle ou demande l'addition." />
-      {resto?.accepte_sur_place ? (
-        <p>
-          <Link href="/restaurant/salle/saisie" className="btn btn-primary">
-            Prendre une commande
-          </Link>
-        </p>
-      ) : null}
+      <OngletsSalle />
       {!resto?.accepte_sur_place ? (
         <EtatVide
           icone="carte"
-          titre="Le service à table est désactivé"
-          texte="Activez-le dans « QR de tables » pour que vos clients commandent depuis leur table."
+          titre="Le service sur place est désactivé"
+          texte="Activez-le dans l'onglet « Service et QR » pour que vos clients commandent depuis leur table ou au comptoir."
         />
       ) : tables.length === 0 ? (
         <EtatVide icone="commandes" titre="Aucune table ouverte" texte="Une table apparaît ici dès qu'un convive y envoie une commande." />
       ) : (
         <SalleTables tables={tables} />
       )}
-      <p className="notation-aide">
-        Réglages du service (table ou comptoir, convive sans compte, validation) : <Link href="/restaurant/tables" className="lien-texte">QR de tables</Link>.
-      </p>
     </div>
   );
 }

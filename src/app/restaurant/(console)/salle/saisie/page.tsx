@@ -1,6 +1,6 @@
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { EtatVide, PageHeader } from "@/components/admin/blocs";
-import { LienRetour } from "@/components/LienRetour";
+import { OngletsSalle } from "@/components/restaurant/OngletsSalle";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { estServiceTable } from "@/lib/table/regles";
 import { tablesOuvertes } from "@/lib/table/service";
@@ -37,10 +37,10 @@ export default async function SaisieSallePage() {
 
   return (
     <div>
-      <LienRetour href="/restaurant/salle">Retour à la salle</LienRetour>
       <PageHeader titre="Prendre une commande" description="Pour un convive qui préfère commander au serveur. La commande part en cuisine à votre nom et s'ajoute à l'addition de la table." />
+      <OngletsSalle />
       {!resto?.accepte_sur_place ? (
-        <EtatVide icone="carte" titre="Le service à table est désactivé" texte="Activez-le dans « QR de tables » pour prendre des commandes en salle." />
+        <EtatVide icone="carte" titre="Le service à table est désactivé" texte="Activez-le dans l'onglet « Service et QR » pour prendre des commandes en salle." />
       ) : liste.length === 0 ? (
         <EtatVide icone="carte" titre="Aucun plat disponible" texte="Ajoutez ou rendez disponible au moins un plat dans votre menu." />
       ) : (

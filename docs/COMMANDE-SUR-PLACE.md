@@ -85,3 +85,15 @@ Limites : pas de téléphone du convive (pas de suivi sur son téléphone, sauf 
 ## 10. Salle : requêtes regroupées
 
 `tablesOuvertes` lit toutes les tables ouvertes et leurs commandes en **deux requêtes** quel que soit le nombre de tables (avant : deux par table, ce qui aurait dépassé la limite de sous-requêtes d'un Worker au-delà d'une vingtaine de tables, avec un rafraîchissement toutes les 10 s). Vérifié le 18 octobre 2026 avec 3 tables et 4 commandes : totaux 50 000 / 65 000 / 120 000 GNF corrects.
+
+## 11. Écran « Service et QR » repensé (18 octobre 2026)
+
+`/restaurant/tables` devient **Service et QR**, en trois étapes sur une seule page, dans un jeu d'onglets avec **Salle** et **Prendre une commande** (la page fait partie de la section Salle de la navigation).
+
+1. **Activer** : un vrai interrupteur « Service sur place » ; désactivé, les réglages sont grisés (« Activez le service pour régler ces options »).
+2. **Choisir** : trois **profils en un clic** (Fast-food : comptoir et aucune validation ; Restaurant : à table et première commande validée ; Haut de gamme : à table et toutes les commandes validées), puis deux grandes cartes « À table » / « Au comptoir » avec ce que voit le client, « Faut-il un compte ? » (détail replié) et la validation. **Un profil ne touche jamais à « commander sans compte »** : c'est une dérogation au TDR que le restaurateur décide lui-même ; avec « sans compte » et « aucune validation », l'écran rappelle que la première commande de chaque table sera quand même validée. Les réglages qui ne correspondent à aucun profil sont signalés « Personnalisé ».
+3. **Imprimer** : nombre de tables avec − et + (la planche suit, sans bouton), exemple affiché tant qu'aucun nombre n'est choisi, QR « Comptoir » unique en mode comptoir.
+
+**Un seul enregistrement** : barre fixe (« Modifications non enregistrées », Annuler, Enregistrer ; Ctrl/Cmd + S ; confirmation avant de fermer l'onglet), au-dessus de la barre de navigation du bas sur téléphone. Une ligne de synthèse en tête résume l'état enregistré. Avant un changement de mode ou une désactivation, l'écran indique combien de tables sont ouvertes et ce qui leur arrive (elles gardent leur fonctionnement, seules les nouvelles commandes changent). Action serveur unique : `enregistrerServiceSurPlaceAction` (remplace deux actions et deux composants).
+
+**Essai** (page temporaire avec données factices, supprimée) : interrupteur et réglages grisés, profils, carte choisie, rappel de validation, « Personnalisé », message sur les tables ouvertes, annulation. **Non essayé** : l'enregistrement réel et l'écran avec une session de restaurateur.

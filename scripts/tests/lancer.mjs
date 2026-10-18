@@ -153,9 +153,11 @@ copier("src/lib/decouverte/pagination.ts");
 copier("scripts/tests/pagination.test.mts");
 copier("src/lib/cms/apercu-textes.ts");
 copier("scripts/tests/apercu-textes.test.mts");
+copier("src/lib/table/profils.ts");
+copier("scripts/tests/profils.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "pagination", "apercu-textes"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "pagination", "apercu-textes", "profils"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

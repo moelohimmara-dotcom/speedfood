@@ -83,19 +83,32 @@ export async function annulerTableAction(sessionId: string): Promise<Resultat> {
 
 // ---------------------------------------------------------------- réglages du service sur place
 
-export async function definirReglagesSurPlaceAction(reglages: { service: string; sansCompte: boolean; validation: string }): Promise<Resultat> {
+export interface ReglagesServiceEnvoyes {
+  actif: boolean;
+  service: string;
+  sansCompte: boolean;
+  validation: string;
+}
+
+/**
+ * Enregistre d'un seul coup le service sur place d'un restaurant : activé ou non, façon de servir (table ou comptoir), commande sans
+ * compte, validation par le personnel. Désactiver le service bloque aussitôt les NOUVELLES commandes sur place (vérifié à chaque envoi),
+ * même avec des QR déjà imprimés ; les tables déjà ouvertes restent consultables et se règlent normalement.
+ */
+export async function enregistrerServiceSurPlaceAction(reglages: ReglagesServiceEnvoyes): Promise<Resultat> {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/tables");
-  if (!estServiceTable(reglages?.service) || typeof reglages.sansCompte !== "boolean" || !estReglageValidation(reglages.validation)) {
+  if (typeof reglages?.actif !== "boolean" || !estServiceTable(reglages.service) || typeof reglages.sansCompte !== "boolean" || !estReglageValidation(reglages.validation)) {
     return { ok: false, erreur: "Réglages invalides." };
   }
   // Écriture par la session du membre : la RLS limite la mise à jour à son propre restaurant.
   const { data, error } = await supabase
     .from("restaurants")
-    .update({ service_table: reglages.service, table_sans_compte: reglages.sansCompte, table_validation: reglages.validation } as never)
+    .update({ accepte_sur_place: reglages.actif, service_table: reglages.service, table_sans_compte: reglages.sansCompte, table_validation: reglages.validation } as never)
     .eq("id", membership.restaurant_id)
     .select("id");
   if (error || !data || data.length === 0) return { ok: false, erreur: "Enregistrement impossible. Réessayez." };
   revalidatePath("/restaurant/tables");
+  revalidatePath("/restaurant/salle");
   revalidatePath(`/restaurants/${membership.restaurant_id}`);
   return { ok: true };
 }
