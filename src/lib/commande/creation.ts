@@ -300,7 +300,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
           commandeId: inseree.id,
           statutPrecedent: null,
           statutSuivant: "en_attente",
-          acteur: `client:${inseree.reference}`,
+          acteur: saisiePar !== null ? `restaurant:${saisiePar}` : `client:${inseree.reference}`,
         });
 
         // Pas de validation requise : la commande de table passe directement « acceptée » et arrive en cuisine.

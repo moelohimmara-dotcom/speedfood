@@ -73,3 +73,11 @@ Le serveur ouvre **Salle → Prendre une commande** (`/restaurant/salle/saisie`)
 - **Rejoint l'ardoise** : la commande s'ajoute à la session de la table, comme celles des convives.
 
 Limites : pas de téléphone du convive (pas de suivi sur son téléphone, sauf s'il scanne le QR) ; pas de modification ni d'annulation d'une ligne après envoi (à passer par la console Commandes) ; pas de saisie hors connexion.
+
+**Essai du 18 octobre 2026 (S2)** — la logique de création a été appelée directement, avec un vrai membre du restaurant de démonstration (route temporaire locale, supprimée ensuite ; données de test supprimées et réglages rétablis) :
+- commande valide table 12 (1 riz + 2 poulets, 105 000 GNF) : créée, **acceptée tout de suite**, `est_test` faux, `saisie_par` = le membre, historique `restaurant:<membre>`, table **validée** ;
+- même clé rejouée : même commande, marquée idempotente (pas de doublon) ;
+- total affiché faux (1 000 au lieu de 105 000) : refusé, le vrai total est renvoyé ;
+- saisie au nom d'un compte qui n'est PAS membre : refusée (`NON_AUTORISE`) ;
+- 2ᵉ commande sur la même table : même session, acceptée, 2 commandes, 1 seule session ouverte.
+**Non essayé** : l'écran de saisie lui-même et la Salle (connexion de restaurateur nécessaire) ; les suppléments et le mode comptoir en saisie serveur.
