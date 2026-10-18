@@ -14,6 +14,7 @@ import { lirePagePubliee } from "@/lib/cms/lecture";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { decider, type DecisionAccueil, type EntreeDecisionAccueil } from "@/lib/studio/accueil";
 import { peutVoirApercu } from "@/lib/studio/droit-apercu";
+import { ApercuTextesPont } from "@/components/accueil/ApercuTextesPont";
 import { SLUG_ACCUEIL } from "@/lib/studio/registre";
 import { lireTextes } from "@/lib/cms/textes";
 import { promesseDeLaRequete } from "@/components/accueil/lectures";
@@ -108,7 +109,14 @@ export default async function AccueilPage({ searchParams }: Props) {
       { region: params.region, prefecture: params.prefecture, commune: params.commune, quartier: params.quartier },
       await lireHierarchieZones()
     );
-    return <AccueilRepli zone={zone} />;
+    // Aperçu des textes dans la console (cadre de même origine) : le pont n'est monté que pour une personne qui peut éditer les contenus.
+    const pont = params.apercu_textes === "1" && (await peutVoirApercu());
+    return (
+      <>
+        <AccueilRepli zone={zone} />
+        {pont ? <ApercuTextesPont /> : null}
+      </>
+    );
   }
 
   if (decision.mode === "apercu-invalide") {

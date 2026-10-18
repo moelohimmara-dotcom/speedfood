@@ -344,3 +344,37 @@
 .ad-app .ad-paliers-habilitation { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; overflow-wrap: anywhere; }
 .ad-app .ad-paliers-retrait { display: inline-flex; align-items: center; gap: var(--space-2); }
 .ad-app .ad-paliers-garantie { padding: var(--space-3); border: 2px solid var(--encre); border-radius: var(--radius-md); background: var(--creme); }
+
+/* ===== Éditeur des textes : aperçu en direct, sommaire, barre d'enregistrement (préfixe etx-) ===== */
+.ad-app .etx { display: grid; gap: var(--space-4); }
+.ad-app .etx-colonne { display: grid; gap: var(--space-4); min-width: 0; }
+@media (min-width: 1100px) {
+  .ad-app .etx { grid-template-columns: minmax(0, 1fr) minmax(380px, 460px); align-items: start; }
+  .ad-app .etx-apercu { position: sticky; top: var(--space-4); }
+}
+.ad-app .etx-outils { display: grid; gap: var(--space-3); }
+.ad-app .etx-recherche input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: var(--radius-sm); font: inherit; background: var(--surface); }
+.ad-app .etx-filtres, .ad-app .etx-appareils { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ad-app .etx-sommaire { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ad-app .etx-sommaire-lien { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border: 1px solid var(--bordure); border-radius: var(--radius-pill); background: var(--surface); color: inherit; text-decoration: none; font-size: 0.9rem; }
+.ad-app .etx-sommaire-lien:hover, .ad-app .etx-sommaire-lien:focus-visible { border-color: var(--orange); }
+.ad-app .etx-sommaire-n { font-size: 0.78rem; color: var(--secondaire); font-variant-numeric: tabular-nums; }
+.ad-app .etx-sommaire-n strong { color: var(--rouge-fonce); }
+.ad-app .etx-champ-modifie input, .ad-app .etx-champ-modifie textarea { border-color: var(--orange); box-shadow: var(--shadow-focus); }
+.ad-app .etx-etats { display: inline-flex; gap: var(--space-2); }
+.ad-app .etx-origine { font-size: 0.85rem; color: var(--secondaire); min-width: 0; }
+.ad-app .etx-origine summary { cursor: pointer; }
+.ad-app .etx-origine p { margin: 6px 0; overflow-wrap: anywhere; }
+.ad-app .etx-lien { justify-self: start; padding: 0; border: 0; background: none; color: var(--rouge-fonce); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.85rem; }
+.ad-app .etx-compteur-ok { color: var(--secondaire); }
+.ad-app .etx-compteur-proche { color: #8a5a00; font-weight: 700; }
+.ad-app .etx-compteur-depasse { color: var(--rouge-fonce); font-weight: 800; }
+.ad-app .etx-barre { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--radius-md); box-shadow: var(--shadow-md); }
+.ad-app .etx-barre-etat { min-width: 0; overflow-wrap: anywhere; }
+.ad-app .etx-barre-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ad-app .etx-barre-erreur { color: var(--danger); font-weight: 700; }
+.ad-app .etx-barre-ok { color: var(--succes); font-weight: 700; }
+.ad-app .etx-apercu { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid var(--bordure); border-radius: var(--radius-md); background: var(--surface); }
+.ad-app .etx-apercu-tete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.ad-app .etx-zone { position: relative; overflow: hidden; border: 1px solid var(--bordure); border-radius: var(--radius-sm); background: #fff; }
+.ad-app .etx-cadre { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; background: #fff; }

@@ -4,9 +4,9 @@ import { listerSurcharges } from "@/lib/system-admin/emplacements";
 import { exigerPalier } from "@/lib/system-admin/paliers-serveur";
 import { MINIMUMS_STUDIO, explicationPalier } from "@/lib/system-admin/paliers";
 import { EMPLACEMENTS, longueurMax } from "@/lib/cms/emplacements";
-import { PageHeader, Panneau } from "@/components/admin/blocs";
+import { PageHeader } from "@/components/admin/blocs";
 import { SousNav } from "../../SousNav";
-import { GroupeTextes, type ChampTexte } from "./GroupeTextes";
+import { EditeurTextes, type ChampTexte } from "./EditeurTextes";
 
 export const metadata = { title: "Textes du site (administration)" };
 
@@ -42,8 +42,8 @@ export default async function TextesSystemePage() {
   return (
     <div>
       <PageHeader
-        titre="Contenu"
-        description="Les textes de la page d'accueil. Laissez un champ vide, ou rétablissez le défaut, pour revenir au texte d'origine."
+        titre="Textes du site"
+        description="Les textes de la page d'accueil, avec un aperçu en direct. Un texte enregistré est en ligne aussitôt ; « Texte d'origine » permet de revenir au texte prévu par défaut."
         actions={
           <a className="btn btn-secondary" href="/" target="_blank" rel="noopener noreferrer">
             Voir l&apos;accueil
@@ -57,13 +57,7 @@ export default async function TextesSystemePage() {
           Lecture seule : un texte enregistré apparaît aussitôt sur le site. {limite}
         </p>
       ) : null}
-      <div className="ad-textes">
-        {groupes.map((g, i) => (
-          <Panneau key={g.nom} titre={g.nom} id={`textes-${i}`}>
-            <GroupeTextes groupe={g.nom} champs={g.champs} lectureSeule={Boolean(limite)} />
-          </Panneau>
-        ))}
-      </div>
+      <EditeurTextes groupes={groupes} lectureSeule={Boolean(limite)} />
     </div>
   );
 }
