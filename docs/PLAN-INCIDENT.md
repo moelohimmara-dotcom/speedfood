@@ -128,7 +128,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `27282312-75e2-48fd-900f-fdd2117f9235` | 18 oct. | Correctifs de volume : catalogue lu par pages sans plafond silencieux et mémorisé par requête, salle en deux requêtes |
 | `c661b3d5-3094-464c-bb0b-ff216a7a78c4` | 18 oct. | Volumes : lectures d'administration paginées, commandes du restaurant bornées, garde-fou des requêtes non bornées (`docs/VOLUMES.md`) |
 | `3bf247a7-c222-4368-9d23-f6482451729a` | 18 oct. | Éditeur des textes du site (aperçu en direct, recherche, filtres, enregistrement global) et écran « Service et QR » en trois étapes avec profils |
-| `f0e4f8dd-8ecb-4eb7-8ac5-8c41a6489832` | 18 oct. | Correctifs de l'essai de bout en bout : clôture de table par les étapes autorisées, rétablissement d'un avis sans motif (version en production) |
+| `f0e4f8dd-8ecb-4eb7-8ac5-8c41a6489832` | 18 oct. | Correctifs de l'essai de bout en bout : clôture de table par les étapes autorisées, rétablissement d'un avis sans motif |
+| `d269d124-b32b-4f22-9871-0ca778bd3539` | 18 oct. | Noter une commande passée sans compte (connexion puis rattachement), lien de suivi retiré des blocs de la page de session (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
