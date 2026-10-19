@@ -137,7 +137,9 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `76e358ec-17a7-497c-954d-baea189d159c` | 19 oct. | Micro-cache des pages publiques dans le Worker (`worker-entree.js`) et chemin rapide du proxy ; retour arrière : `wrangler.jsonc` main = `.open-next/worker.js`. **Contient la régression de la clé de table** (toute commande à table d'un client refusée) |
 | `8229057f-da05-42da-9b8f-dcb96ff7c0ce` | 19 oct. | Correctif de la clé de table (validation), micro-cache durci, plafonds de débit adaptés aux salles pleines ; migrations 20261019110000 et 20261019110100 appliquées |
 | `8dfe176e-4472-4353-9f66-3dce2c41fdb3` | 19 oct. | Réessais automatiques des 503 de Cloudflare dans le service worker (forfait gratuit) |
-| `1250bcaf-dfda-4d91-bd33-cf3742008d8b` | 19 oct. | Correctifs d'affichage mobile des tableaux d'administration et de la géographie (version en production) |
+| `1250bcaf-dfda-4d91-bd33-cf3742008d8b` | 19 oct. | Correctifs d'affichage mobile des tableaux d'administration et de la géographie |
+| `ec62d0a9-2581-4099-9d0e-af1f834edeac` | 19 oct. | Textes sous 12 px portés à 12 px, cases à cocher isolées à 24 px |
+| `3af206c3-6052-44fb-b39f-6bfa3d762d7a` | 19 oct. | Rangées de boutons et pastilles de la page Restaurants espacées, lien dans une rangée d'actions sans chevauchement (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
