@@ -16,10 +16,10 @@ const sandbox = {
 vm.createContext(sandbox); vm.runInContext(code, sandbox);
 const attendre = []; const ev = (extra) => ({ waitUntil: (p) => attendre.push(p), ...extra });
 handlers.install(ev()); await Promise.all(attendre.splice(0));
-assert.ok(store.has("/hors-ligne.html") && store.has("/icons/icon-192.png"), "precache");
+assert.ok(store.has("/hors-ligne") && store.has("/icons/icon-192.png"), "precache");
 handlers.activate(ev()); await Promise.all(attendre.splice(0)); assert.equal(sandbox.supprime, "ancien");
 const repondre = async (requete) => { let p; const e = { request: requete, respondWith: (x) => (p = x) }; handlers.fetch(e); return p === undefined ? "IGNORE" : await p; };
-assert.equal(await repondre({ mode: "navigate", method: "GET" }), "FICHIER:/hors-ligne.html", "hors ligne -> page hors ligne");
+assert.equal(await repondre({ mode: "navigate", method: "GET" }), "FICHIER:/hors-ligne", "hors ligne -> page hors ligne");
 assert.equal(await repondre({ mode: "cors", method: "GET" }), "IGNORE", "non-navigation ignoree");
 assert.equal(await repondre({ mode: "navigate", method: "POST" }), "IGNORE", "POST ignore");
 reseau = true;

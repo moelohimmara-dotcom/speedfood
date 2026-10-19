@@ -2,7 +2,7 @@
  * Service Worker de Speedfood : (1) écran « hors connexion » quand le réseau manque, (2) notifications push de nouvelle commande
  * (console restaurateur).
  *
- * - Cache : UNIQUEMENT la page `/hors-ligne.html` et l'icône qu'elle affiche, des fichiers publics identiques pour tout le monde.
+ * - Cache : UNIQUEMENT la page `/hors-ligne` et l'icône qu'elle affiche, des fichiers publics identiques pour tout le monde.
  *   Aucune page de Speedfood ni aucune réponse du serveur n'est jamais mise en cache : une page privée (commande, compte, suivi,
  *   console) ne peut donc pas rester sur un téléphone partagé, ni être servie à quelqu'un d'autre.
  * - Il ne touche qu'aux navigations (changement de page) qui ÉCHOUENT faute de réseau ; toute autre requête passe sans détour.
@@ -11,7 +11,9 @@
  * - Un clic ouvre (ou ramène au premier plan) la liste des commandes.
  */
 const CACHE_HORS_LIGNE = "speedfood-hors-ligne-v1";
-const PAGE_HORS_LIGNE = "/hors-ligne.html";
+// Adresse SANS extension : Cloudflare redirige `/hors-ligne.html` vers `/hors-ligne` (307), et une réponse issue d'une redirection ne peut pas
+// être servie à une navigation.
+const PAGE_HORS_LIGNE = "/hors-ligne";
 const FICHIERS_HORS_LIGNE = [PAGE_HORS_LIGNE, "/icons/icon-192.png"];
 
 self.addEventListener("install", (evenement) => {
