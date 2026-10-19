@@ -135,7 +135,9 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `29464f17-9b03-45ce-baf1-36111854c380` | 19 oct. | Correctif : écran hors connexion servi à `/hors-ligne` |
 | `50d41dab-118e-49f1-b018-adb178a64d22` | 19 oct. | Corrections de la revue du 19 octobre (jeton de reçu, clé de table du QR, avis et classement, contrôles d'origine, prénom seul, numéro d'appel atomique) ; migrations 20261019100000, 20261019100050 puis 20261019100100 appliquées |
 | `76e358ec-17a7-497c-954d-baea189d159c` | 19 oct. | Micro-cache des pages publiques dans le Worker (`worker-entree.js`) et chemin rapide du proxy ; retour arrière : `wrangler.jsonc` main = `.open-next/worker.js`. **Contient la régression de la clé de table** (toute commande à table d'un client refusée) |
-| `8229057f-da05-42da-9b8f-dcb96ff7c0ce` | 19 oct. | Correctif de la clé de table (validation), micro-cache durci, plafonds de débit adaptés aux salles pleines ; migrations 20261019110000 et 20261019110100 appliquées (version en production) |
+| `8229057f-da05-42da-9b8f-dcb96ff7c0ce` | 19 oct. | Correctif de la clé de table (validation), micro-cache durci, plafonds de débit adaptés aux salles pleines ; migrations 20261019110000 et 20261019110100 appliquées |
+| `8dfe176e-4472-4353-9f66-3dce2c41fdb3` | 19 oct. | Réessais automatiques des 503 de Cloudflare dans le service worker (forfait gratuit) |
+| `1250bcaf-dfda-4d91-bd33-cf3742008d8b` | 19 oct. | Correctifs d'affichage mobile des tableaux d'administration et de la géographie (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
