@@ -502,8 +502,8 @@ a.ad-liste-lien:hover {
   color: var(--succes);
 }
 .ad-pastille-attention {
-  background: #fdf0de;
-  color: #8a4b00;
+  background: var(--avertissement-fond);
+  color: var(--avertissement-texte);
 }
 
 /* --- Tuiles de chiffres --- */
@@ -921,7 +921,7 @@ a.ad-tuile-lien:hover {
   border-color: var(--danger);
 }
 .ad-bandeau-attention {
-  background: #fdf0de;
+  background: var(--avertissement-fond);
   border-color: var(--mangue);
 }
 .ad-chronologie {
@@ -1024,7 +1024,7 @@ a.ad-tuile-lien:hover {
   font-weight: 700;
 }
 .ad-barre-etat-modifie {
-  color: #8a4b00;
+  color: var(--avertissement-texte);
 }
 .ad-barre-etat-modifie::before {
   content: "";
@@ -1692,7 +1692,7 @@ a.ad-carte-lien:hover {
   background: var(--bordure);
 }
 .ad-controle-ok .ad-controle-marque {
-  background: var(--succes-fond, #e3f3e6);
+  background: var(--succes-fond);
   color: var(--succes);
 }
 .ad-controle-manque .ad-controle-marque {
@@ -1700,7 +1700,7 @@ a.ad-carte-lien:hover {
   color: var(--danger);
 }
 .ad-controle-conseille .ad-controle-marque {
-  background: var(--mangue, #f6c453);
+  background: var(--mangue);
   color: var(--encre);
 }
 .ad-controle-tag {
@@ -1749,7 +1749,7 @@ a.ad-carte-lien:hover {
   padding: var(--space-3);
   border: 1px solid var(--bordure);
   border-radius: var(--rayon-sm);
-  background: var(--surface-alt, #fffaf3);
+  background: var(--surface-alt);
 }
 .ad-horaires-editeur textarea {
   width: 100%;
@@ -3049,10 +3049,10 @@ a.ad-carte-lien:hover {
   font-weight: 700;
 }
 .livreurs-erreur {
-  color: var(--danger, #b3261e);
+  color: var(--danger);
 }
 .livreurs-ok {
-  color: var(--succes, #1a7f37);
+  color: var(--succes);
 }
 .livreurs-apercu {
   display: grid;

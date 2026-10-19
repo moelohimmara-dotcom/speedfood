@@ -325,7 +325,7 @@
 
 /* ===== Lot 7 : squelette de chargement qui ressemble à la page ===== */
 .squelette-decouverte .squelette-hero { height: 250px; border-radius: 0; }
-.squelette-decouverte .squelette-ligne { height: 52px; border-radius: 26px; }
+.squelette-decouverte .squelette-ligne { height: 52px; border-radius: var(--radius-xl); }
 .squelette-decouverte .squelette-grille-cartes {
   display: grid;
   gap: var(--space-4);

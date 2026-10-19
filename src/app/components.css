@@ -145,7 +145,7 @@
 }
 
 .alerte-info {
-  background: #fdf0de;
+  background: var(--avertissement-fond);
   border: 1px solid var(--mangue);
   color: var(--encre);
 }

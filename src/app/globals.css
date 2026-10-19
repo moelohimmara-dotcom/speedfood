@@ -18,6 +18,10 @@
   --succes-fond: #e7f4e8;
   --danger: #c62828;
   --danger-fond: #fbeaea;
+  --avertissement-fond: #fdf0de;
+  --avertissement-texte: #8a4b00;
+  --surface-alt: #fffaf3;
+  --radius-xl: 24px;
 
   /* Réservé à l'action principale (bouton, barre de panier) — voir DESIGN-SYSTEM.md */
   /* Contraste du texte blanc sur TOUT le dégradé : de 4,56 : 1 (extrémité orange) à 6,19 : 1 (extrémité rouge), AA partout.

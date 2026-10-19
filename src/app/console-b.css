@@ -131,7 +131,7 @@
 /* ===== Barre latérale (reste sombre) : le lien actif devient une pastille mangue ===== */
 .ad-app .ad-marque img {
   border: 2.5px solid var(--creme);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 .ad-app .ad-nav-lien {
   border-radius: 14px;
@@ -367,7 +367,7 @@
 .ad-app .etx-origine p { margin: 6px 0; overflow-wrap: anywhere; }
 .ad-app .etx-lien { justify-self: start; padding: 0; border: 0; background: none; color: var(--rouge-fonce); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.85rem; }
 .ad-app .etx-compteur-ok { color: var(--secondaire); }
-.ad-app .etx-compteur-proche { color: #8a5a00; font-weight: 700; }
+.ad-app .etx-compteur-proche { color: var(--avertissement-texte); font-weight: 700; }
 .ad-app .etx-compteur-depasse { color: var(--rouge-fonce); font-weight: 800; }
 .ad-app .etx-barre { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--radius-md); box-shadow: var(--shadow-md); }
 .ad-app .etx-barre-etat { min-width: 0; overflow-wrap: anywhere; }

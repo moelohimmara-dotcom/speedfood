@@ -151,7 +151,7 @@
   min-height: 72px;
   padding: 14px 64px 14px 14px;
   border: var(--pub-trait, 2.5px) dashed var(--encre);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   background-color: var(--surface);
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%232b211d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h3l2-2.5h6L17 8h3v11H4z'/%3E%3Ccircle cx='12' cy='13' r='3.2'/%3E%3C/svg%3E"),
@@ -167,7 +167,7 @@
 :is(.theme-public, .ad-app) input[type="file"]:hover {
   transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0 var(--encre);
-  background-color: #fffaf0;
+  background-color: var(--surface-alt);
 }
 :is(.theme-public, .ad-app) input[type="file"]:focus-visible {
   outline: 3px solid var(--mangue);

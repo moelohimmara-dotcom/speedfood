@@ -509,7 +509,7 @@ svg.icon {
 }
 .role-toggle button.active {
   border-color: var(--rouge-fonce);
-  background: #fdedeb;
+  background: var(--danger-fond);
   color: var(--rouge-fonce);
 }
 .role-toggle button.active svg.icon {

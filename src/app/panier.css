@@ -1,0 +1,108 @@
+/* Page Panier : mise en page portée par la feuille (plus de style en ligne). Revue UX du 19 octobre 2026 : total de chaque ligne visible, quantité et retrait
+   regroupés sur une rangée à part, cibles de 44 px conservées. */
+.panier-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+.panier-titre {
+  font-size: 2rem;
+  margin: 0 0 var(--space-4);
+}
+.panier-vide {
+  text-align: center;
+}
+.panier-vide-titre {
+  margin-top: 0;
+  font-weight: 700;
+}
+.panier-vide-texte {
+  color: var(--secondaire);
+  margin-bottom: var(--space-5);
+}
+.panier-note {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.panier-restaurant {
+  margin: 0 0 var(--space-1);
+  font-weight: 700;
+}
+.panier-lignes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.panier-ligne {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "media texte total"
+    "controles controles controles";
+  align-items: center;
+  gap: var(--space-3);
+}
+.panier-ligne .panier-ligne-media {
+  grid-area: media;
+}
+.panier-ligne-media .tuile {
+  font-size: 1.6rem;
+}
+.panier-ligne-texte {
+  grid-area: texte;
+  min-width: 0;
+}
+.panier-ligne-options {
+  margin: 2px 0 0;
+  padding-left: var(--space-4);
+  font-size: 0.8rem;
+  color: var(--secondaire);
+}
+.panier-ligne-total {
+  grid-area: total;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.panier-ligne-controles {
+  grid-area: controles;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.panier-ligne-controles .panier-retirer {
+  margin-left: auto;
+}
+.panier-pas {
+  padding: 6px 12px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.panier-quantite {
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.panier-sous-total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.panier-recapitulatif,
+.panier-avis {
+  margin-top: var(--space-4);
+}
+.panier-recapitulatif .panier-note {
+  margin-top: var(--space-2);
+}
+.panier-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

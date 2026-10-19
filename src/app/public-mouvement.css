@@ -248,7 +248,7 @@
   100% { background-position: -120% 0; }
 }
 .squelette {
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   background: linear-gradient(100deg, var(--bordure) 30%, rgba(255, 255, 255, 0.7) 50%, var(--bordure) 70%);
   background-size: 240% 100%;
   animation: squelette 1.4s linear infinite;

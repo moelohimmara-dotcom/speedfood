@@ -1036,10 +1036,10 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 .carte-repere-resto {
-  background: #b3261e;
+  background: var(--danger);
 }
 .carte-repere-client {
-  background: #1a7f37;
+  background: var(--succes);
 }
 .carte-repere-livreur {
   background: #1f2a44;

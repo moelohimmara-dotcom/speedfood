@@ -47,7 +47,7 @@
   height: 38px;
   border: var(--pub-trait) solid var(--encre);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--creme);
   box-shadow: 2px 2px 0 var(--encre);
   transform: rotate(-6deg);

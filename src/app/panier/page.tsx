@@ -27,18 +27,18 @@ export default function PanierPage() {
   const nombre = nombreArticlesPanier(panier);
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Mon panier</h1>
+    <main className="panier-page">
+      <h1 className="panier-titre">Mon panier</h1>
 
       {!pret ? (
         <div className="squelette" role="status" aria-busy="true">
           <span className="sr-only">Chargement du panier…</span>
         </div>
       ) : panier.lignes.length === 0 ? (
-        <Card style={{ textAlign: "center" }}>
+        <Card className="panier-vide">
           <VecteurPanierVide />
-          <p style={{ marginTop: 0, fontWeight: 700 }}>Votre panier est vide.</p>
-          <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
+          <p className="panier-vide-titre">Votre panier est vide.</p>
+          <p className="panier-vide-texte">
             Parcourez le catalogue et ajoutez les plats d&apos;un seul restaurant.
           </p>
           <Link href="/restaurants" className="btn btn-primary">
@@ -48,40 +48,31 @@ export default function PanierPage() {
       ) : (
         <>
           <Card>
-            <p style={{ marginTop: 0, fontWeight: 700 }}>
+            <p className="panier-restaurant">
               Restaurant : {panier.restaurantNom ?? "—"}
             </p>
-            <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+            <p className="panier-note">
               Un panier ne peut contenir qu&apos;un seul restaurant.
             </p>
           </Card>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: "var(--space-4)" }}>
+          <div className="panier-lignes">
             {panier.lignes.map((ligne) => (
-              <Card
-                key={ligne.cle}
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
+              <Card key={ligne.cle} className="panier-ligne">
                 <div className="panier-ligne-media" aria-hidden="true">
                   {ligne.photoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- miniature d'une photo déjà affichée, URL Supabase Storage dynamique.
                     <img src={ligne.photoUrl} alt="" />
                   ) : (
-                    <span className="tuile tuile-neutre" style={{ fontSize: "1.6rem" }}>
+                    <span className="tuile tuile-neutre">
                       {initialePlat(ligne.nom)}
                     </span>
                   )}
                 </div>
-                <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                <div className="panier-ligne-texte">
                   <strong>{ligne.nom}</strong>
                   {ligne.options.length > 0 ? (
-                    <ul style={{ margin: "2px 0 0", paddingLeft: 16, fontSize: "0.8rem", color: "var(--secondaire)" }}>
+                    <ul className="panier-ligne-options">
                       {ligne.options.map((o) => (
                         <li key={o.id}>
                           {o.nom} (+{o.prix.toLocaleString("fr-FR")} GNF)
@@ -89,21 +80,22 @@ export default function PanierPage() {
                       ))}
                     </ul>
                   ) : null}
-                  <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+                  <p className="panier-note">
                     {prixLigne(ligne).toLocaleString("fr-FR")} GNF l&apos;unité
                   </p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+                <p className="panier-ligne-total">{(prixLigne(ligne) * ligne.quantite).toLocaleString("fr-FR")} GNF</p>
+                <div className="panier-ligne-controles">
                   <Button
                     type="button"
                     variante="secondary"
                     aria-label={`Retirer un « ${ligne.nom} »`}
                     onClick={() => changerQuantite(ligne.cle, ligne.quantite - 1)}
-                    style={{ padding: "6px 12px", minWidth: 44, minHeight: 44 }}
+                    className="panier-pas"
                   >
                     −
                   </Button>
-                  <span style={{ fontWeight: 700, minWidth: 20, textAlign: "center" }}>
+                  <span className="panier-quantite">
                     {ligne.quantite}
                   </span>
                   <Button
@@ -112,7 +104,7 @@ export default function PanierPage() {
                     aria-label={`Ajouter un « ${ligne.nom} »`}
                     disabled={ligne.quantite >= QUANTITE_MAX_LIGNE}
                     onClick={() => changerQuantite(ligne.cle, ligne.quantite + 1)}
-                    style={{ padding: "6px 12px", minWidth: 44, minHeight: 44 }}
+                    className="panier-pas"
                   >
                     +
                   </Button>
@@ -120,7 +112,7 @@ export default function PanierPage() {
                     type="button"
                     variante="danger"
                     onClick={() => supprimerArticle(ligne.cle)}
-                    style={{ padding: "6px 12px", minWidth: 44, minHeight: 44 }}
+                    className="panier-pas panier-retirer"
                   >
                     Retirer
                   </Button>
@@ -137,20 +129,20 @@ export default function PanierPage() {
             />
           ) : null}
 
-          <Card style={{ marginTop: "var(--space-4)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+          <Card className="panier-recapitulatif">
+            <div className="panier-sous-total">
               <span>
                 Sous-total ({nombre} article{nombre > 1 ? "s" : ""})
               </span>
               <span>{total.toLocaleString("fr-FR")} GNF</span>
             </div>
-            <p style={{ margin: "8px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+            <p className="panier-note">
               Les prix et la disponibilité seront revérifiés par le restaurant à l&apos;envoi de la
               commande. Le règlement se fait directement avec le restaurant.
             </p>
           </Card>
 
-          <div style={{ display: "flex", gap: 8, marginTop: "var(--space-4)", flexWrap: "wrap" }}>
+          <div className="panier-actions">
             <Link href="/commande" className="btn btn-primary">
               Passer la commande
             </Link>
@@ -161,7 +153,7 @@ export default function PanierPage() {
             ) : null}
           </div>
 
-          <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+          <Alert ton="info" className="panier-avis">
             Votre panier est conservé uniquement sur cet appareil.
           </Alert>
         </>
