@@ -175,10 +175,15 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
               </button>
               <p className="aide-choix-aide">Votre position sert à ce calcul uniquement : elle n&apos;est ni enregistrée ni conservée.</p>
               {etatGps === "ok" && lieuTrouve && lieuTrouve !== "inconnu" ? (
-                <p className="aide-choix-lieu" role="status">
-                  Vous êtes près de <strong>{lieuTrouve.libelle}</strong>
-                  {lieuTrouve.km >= 0.1 ? ` (à environ ${lieuTrouve.km < 1 ? Math.round(lieuTrouve.km * 10) * 100 + " m" : lieuTrouve.km.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " km"} du centre du quartier)` : ""}. Ce quartier est pré-rempli dans « Mon quartier » : changez-le si besoin.
-                </p>
+                lieuTrouve.km < 1 ? (
+                  <p className="aide-choix-lieu" role="status">
+                    Vous êtes près de <strong>{lieuTrouve.libelle}</strong>. Ce quartier est pré-rempli dans « Mon quartier » : changez-le si besoin.
+                  </p>
+                ) : (
+                  <p className="aide-choix-lieu" role="status">
+                    Le quartier repéré le plus proche est <strong>{lieuTrouve.libelle}</strong>, à environ {lieuTrouve.km.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km. Ce n&apos;est peut-être pas le vôtre (tous les quartiers n&apos;ont pas encore de repère GPS) : choisissez le vôtre dans « Mon quartier ».
+                  </p>
+                )
               ) : null}
               {etatGps === "ok" && lieuTrouve === "inconnu" ? (
                 <p className="aide-choix-lieu" role="status">
