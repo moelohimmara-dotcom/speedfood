@@ -41,3 +41,6 @@
 .aide-choix-envoi:disabled { opacity: 1; background: var(--bordure); color: #4a4039; cursor: not-allowed; background-image: none; }
 
 .aide-choix-lieu { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--succes-fond); color: var(--encre); font-size: 0.95rem; }
+
+.aide-choix-elargir { display: grid; gap: var(--space-3); justify-items: start; margin-block: var(--space-3); }
+.aide-choix-elargir p { margin: 0; }

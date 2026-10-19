@@ -141,6 +141,8 @@ export interface ResultatAideChoix {
   diagnostic: { restaurantsPublies: number; ouvertsAuxCommandes: number; dansLaZone: number; avecPrix: number; cuisineFiltree: boolean };
   rayonKm: number;
   zoneLibelle: string | null;
+  /** Liste vide : le restaurant adapté au budget le plus proche, hors du rayon (pour proposer d'élargir). `null` si aucun, même à 50 km. */
+  elargissement: { id: string; nom: string; distanceKm: number; approchee: boolean } | null;
   erreur: boolean;
 }
 
@@ -203,6 +205,7 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
     diagnostic: { restaurantsPublies: 0, ouvertsAuxCommandes: 0, dansLaZone: 0, avecPrix: 0, cuisineFiltree: false },
     rayonKm,
     zoneLibelle: null,
+    elargissement: null,
     erreur,
   });
   const reglages = await lireReglagesAideChoix();
@@ -245,6 +248,17 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
   const proposees = proposer(candidats, params);
   const parId = new Map(catalogue.restaurants.map((r) => [r.id, r]));
 
+  // Liste vide : on cherche, sans limite de rayon (50 km), le restaurant adapté au budget le plus proche, pour proposer d'élargir.
+  let elargissement: ResultatAideChoix["elargissement"] = null;
+  if (proposees.length === 0) {
+    const large = proposer(candidats, { ...params, rayonKm: 50, max: 50 }).filter((p) => p.distanceKm !== null);
+    large.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    const premier = large[0];
+    if (premier && premier.distanceKm !== null) {
+      elargissement = { id: premier.id, nom: premier.nom, distanceKm: premier.distanceKm, approchee: candidats.find((c) => c.id === premier.id)?.distanceApprochee === true };
+    }
+  }
+
   const ouverts = candidats.filter((c) => c.ouvert && c.accepteCommandes);
   const dansLaZone = ouverts.filter((c) => (c.distanceKm !== null ? c.distanceKm <= rayonKm : c.memeZone));
   return {
@@ -261,6 +275,7 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
     },
     rayonKm,
     zoneLibelle: zone.libelle,
+    elargissement,
     erreur: false,
   };
 }

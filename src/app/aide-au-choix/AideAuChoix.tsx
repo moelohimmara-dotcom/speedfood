@@ -79,11 +79,11 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
 
   const positionPrete = mode === "gps" ? gps !== null : mode === "quartier" ? quartierId !== "" : communeId !== "";
 
-  function chercher() {
+  function chercher(rayonKm?: number) {
     setErreur(null);
     const position = mode === "gps" && gps ? ({ type: "gps", ...gps } as const) : mode === "quartier" ? ({ type: "quartier", id: quartierId } as const) : ({ type: "commune", id: communeId } as const);
     demarrer(async () => {
-      const r = await aideAuChoixAction({ budgetGnf: budget, position, categorieId: cuisineId || undefined, retenirQuartier: retenir && mode === "quartier" });
+      const r = await aideAuChoixAction({ budgetGnf: budget, position, categorieId: cuisineId || undefined, rayonKm, retenirQuartier: retenir && mode === "quartier" });
       if (r.ok) {
         setResultat(r.resultat);
         setResultatPour(cle);
@@ -293,6 +293,7 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
               Pour {gnf(budget)}
               {libelleZone ? ` · ${libelleZone}` : ""}
               {libelleCuisine ? ` · ${libelleCuisine}` : ""}
+              {resultat.rayonKm !== rayonKm ? ` · rayon ${resultat.rayonKm.toLocaleString("fr-FR")} km` : ""}
             </p>
           )}
           {resultat.propositions.length === 0 ? (
@@ -311,6 +312,17 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
                         ? "Les restaurants ouverts de cette zone n'ont pas encore de plat disponible avec un prix."
                         : "Les restaurants ouverts de cette zone dépassent ce budget. Essayez avec un budget un peu plus élevé."}
               </p>
+              {resultat.elargissement ? (
+                <div className="aide-choix-elargir">
+                  <p>
+                    Le restaurant le plus proche pour ce budget est <strong>{resultat.elargissement.nom}</strong>, à {resultat.elargissement.approchee ? "environ " : ""}
+                    {resultat.elargissement.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km (votre rayon actuel : {resultat.rayonKm.toLocaleString("fr-FR")} km).
+                  </p>
+                  <button type="button" className="btn btn-primary" disabled={enCours} onClick={() => chercher(Math.min(50, Math.ceil(resultat.elargissement!.distanceKm)))}>
+                    Élargir la recherche à {Math.min(50, Math.ceil(resultat.elargissement.distanceKm)).toLocaleString("fr-FR")} km
+                  </button>
+                </div>
+              ) : null}
               <p>
                 <Link href="/restaurants" className="lien-texte">
                   Voir tous les restaurants

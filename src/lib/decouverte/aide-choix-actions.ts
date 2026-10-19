@@ -12,6 +12,8 @@ export interface DemandeAideChoix {
   budgetGnf: number;
   position: PositionClient;
   categorieId?: string;
+  /** Rayon de recherche en km (élargissement proposé quand rien n'est trouvé) ; le serveur le borne. */
+  rayonKm?: number;
   /** Retenir le quartier choisi sur le compte (compte connecté seulement). */
   retenirQuartier?: boolean;
 }
@@ -33,13 +35,14 @@ export async function aideAuChoixAction(demande: DemandeAideChoix): Promise<Repo
   if (!demande || !budgetValide(demande.budgetGnf)) return { ok: false, erreur: "Indiquez un budget entre 5 000 et 1 000 000 GNF." };
   if (!positionValide(demande.position)) return { ok: false, erreur: "Indiquez votre position ou choisissez votre quartier." };
   if (demande.categorieId !== undefined && !estUuid(demande.categorieId)) return { ok: false, erreur: "Type de cuisine invalide." };
+  if (demande.rayonKm !== undefined && (typeof demande.rayonKm !== "number" || !Number.isFinite(demande.rayonKm))) return { ok: false, erreur: "Rayon invalide." };
   try {
     await limiterAideChoix();
   } catch (erreur) {
     return { ok: false, erreur: erreur instanceof ErreurMetier ? erreur.message : "Réessayez dans un instant." };
   }
   try {
-    const resultat = await chercherAideChoix({ budgetGnf: demande.budgetGnf, position: demande.position, categorieId: demande.categorieId });
+    const resultat = await chercherAideChoix({ budgetGnf: demande.budgetGnf, position: demande.position, categorieId: demande.categorieId, rayonKm: demande.rayonKm });
     if (resultat.erreur) return { ok: false, erreur: "Impossible de lire les restaurants pour le moment. Réessayez dans un instant." };
 
     if (demande.retenirQuartier && demande.position.type === "quartier") {
