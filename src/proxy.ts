@@ -35,26 +35,32 @@ export async function proxy(request: NextRequest) {
     return reponse;
   }
 
-  const supabase = createServerClient(url, cle, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesASetter) {
-        for (const { name, value } of cookiesASetter) {
-          request.cookies.set(name, value);
-        }
-        reponse = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesASetter) {
-          reponse.cookies.set(name, value, optionsCookieSession(options));
-        }
-      },
-    },
-  });
+  // Visiteur sans cookie de session (la grande majorité des pages vues) : ni client d'authentification ni appel, il n'y a rien à vérifier ni à
+  // rafraîchir. Chaque requête coûte du calcul au Worker (revue de charge du 19 octobre 2026) : ce chemin rapide l'économise. Le motif est celui de
+  // `lireVueFiche` ; un cookie de session partiel ou expiré passe, lui, par le chemin complet ci-dessous.
+  const aUneSession = request.cookies.getAll().some((c) => /^sb-.+-auth-token/.test(c.name));
+  const supabase = aUneSession ? creerClientProxy() : null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  function creerClientProxy() {
+    return createServerClient(url as string, cle as string, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesASetter) {
+          for (const { name, value } of cookiesASetter) {
+            request.cookies.set(name, value);
+          }
+          reponse = NextResponse.next({ request });
+          for (const { name, value, options } of cookiesASetter) {
+            reponse.cookies.set(name, value, optionsCookieSession(options));
+          }
+        },
+      },
+    });
+  }
+
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
 
   // "/restaurant/..." et "/restaurant" exact = console protégée ; "/restaurants/..."
   // = fiches publiques du catalogue, qui doivent rester accessibles sans compte.
@@ -91,7 +97,7 @@ export async function proxy(request: NextRequest) {
   // (niveau aal1). Il est renvoyé saisir son code. Les comptes sans double authentification
   // ne sont pas touchés. La même règle est appliquée côté base (migration
   // double_authentification_aal2) pour les appels directs à l'API.
-  if (user && (cheminProtege || cheminSysteme)) {
+  if (supabase && user && (cheminProtege || cheminSysteme)) {
     const { data: niveau } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (niveau && niveau.nextLevel === "aal2" && niveau.currentLevel !== "aal2") {
       const urlVerification = request.nextUrl.clone();
@@ -105,7 +111,7 @@ export async function proxy(request: NextRequest) {
   // Questions de sécurité (facultatives) : même principe, pour les comptes qui les ont activées et sans application
   // d'authentification. Une page ne s'affiche pas tant que la session n'a pas répondu ; chaque page et chaque action
   // serveur le revérifient (src/lib/auth/contexte.ts et src/lib/system-admin/contexte.ts).
-  if (user && (cheminProtege || cheminSysteme)) {
+  if (supabase && user && (cheminProtege || cheminSysteme)) {
     const { data: etatQuestions, error: erreurQuestions } = await supabase.rpc("fn_questions_etat");
     const requise = !erreurQuestions
       ? (etatQuestions as { requise?: boolean } | null)?.requise === true

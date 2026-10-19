@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
+  // Worker d'entrée : l'application OpenNext précédée d'un micro-cache des pages publiques (voir worker-entree.js).
+  "main": "worker-entree.js",
   // Nom distinct du projet Cloudflare Pages statique existant "speedfood"
   // (landing + prototype de démonstration) pour ne jamais les confondre.
   "name": "speedfood-app",
