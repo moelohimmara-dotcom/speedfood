@@ -4,7 +4,12 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 // Initialise les bindings Cloudflare (Workers) pendant `next dev`, pour que le
 // code serveur qui y accède ne se comporte pas différemment qu'en production
 // déployée. Voir docs/DEPLOIEMENT-CLOUDFLARE.md.
-initOpenNextCloudflareForDev();
+// SEULEMENT en développement : en construction de production (`next build`), cet appel ouvre une session distante vers Cloudflare (binding `AI`
+// déclaré `remote`) et exige un jeton CLOUDFLARE_API_TOKEN. Cela a fait échouer les deux premières constructions sur Hostinger (19 octobre 2026).
+// Le déploiement Cloudflare ne dépend pas de cet appel : `opennextjs-cloudflare build` prépare ses propres bindings.
+if (process.env.NODE_ENV === "development") {
+  initOpenNextCloudflareForDev();
+}
 
 // En-têtes de sécurité appliqués à toutes les routes (source "/:path*", vérifié
 // avant le système de fichiers d'après la documentation Next 16 locale).
