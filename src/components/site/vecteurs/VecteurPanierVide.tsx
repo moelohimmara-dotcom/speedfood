@@ -4,7 +4,7 @@
  */
 export function VecteurPanierVide() {
   return (
-    <div className="vec-cadre vec-vide boucle">
+    <div className="vec-cadre vec-vide boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 400 320" aria-hidden="true" focusable="false">
         <g className="v-flotte">
           <ellipse cx="200" cy="34" rx="56" ry="17" className="v-trait3" style={{ strokeDasharray: "8 8" }} />

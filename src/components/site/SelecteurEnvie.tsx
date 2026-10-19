@@ -31,7 +31,7 @@ function suivreReduit(rappel: () => void) {
 function animationsPermises(racine: HTMLElement | null): boolean {
   const html = document.documentElement;
   if (html.hasAttribute("data-calme") || html.hasAttribute("data-eco") || html.hasAttribute("data-cache")) return false;
-  return !racine?.classList.contains("hors-ecran");
+  return !racine?.hasAttribute("data-hors-ecran");
 }
 
 /**
@@ -68,7 +68,7 @@ export function SelecteurEnvie({ envies, scenes = true }: { envies: EnvieAffiche
   if (!e) return null;
 
   return (
-    <div className="pub-envie boucle" ref={racine} data-famille={e.famille}>
+    <div className="pub-envie boucle" suppressHydrationWarning ref={racine} data-famille={e.famille}>
       <div className="pub-envie-tete">
         <p className="pub-kicker">Votre envie du moment ?</p>
         {scenes && envies.length > 1 && !reduit ? (

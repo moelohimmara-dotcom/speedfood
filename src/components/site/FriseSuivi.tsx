@@ -32,6 +32,7 @@ export function FriseSuivi({ etat }: { etat: EtatDeriveCommande }) {
           <li
             key={e.cle}
             className={`suivi-etape suivi-etape-${finale ? "faite" : etatEtape}${etatEtape === "courante" && !finale ? " suivi-etape-courante boucle" : ""}`}
+            suppressHydrationWarning
             aria-current={etatEtape === "courante" ? "step" : undefined}
           >
             <span className="suivi-etape-point" aria-hidden="true">

@@ -4,7 +4,7 @@
  */
 export function VecteurAide() {
   return (
-    <div className="vec-cadre boucle">
+    <div className="vec-cadre boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
         <g className="v-soleil">
           <circle cx="430" cy="64" r="40" className="v-ombre" transform="translate(5 5)" />

@@ -195,7 +195,7 @@ export default async function CataloguePage({
         <section className="accueil-preuve" aria-label="En ce moment">
           {chiffres && (chiffres.platsConfirmes > 0 || chiffres.restaurantsOuverts > 0) ? (
             <p className="accueil-preuve-direct" role="status">
-              <span className="accueil-preuve-point boucle" aria-hidden="true" />
+              <span className="accueil-preuve-point boucle" suppressHydrationWarning aria-hidden="true" />
               En ce moment :{" "}
               {chiffres.restaurantsOuverts > 0 ? (
                 <strong>

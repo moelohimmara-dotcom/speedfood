@@ -81,8 +81,8 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
   return (
     <section className="pub-conteneur pub-accueil-hero" aria-labelledby="accueil-titre">
       {/* Deux grandes taches de couleur qui dérivent lentement (décor, en pause hors écran et si les animations sont coupées). */}
-      <span className="pub-blob pub-blob-mangue boucle" aria-hidden="true" />
-      <span className="pub-blob pub-blob-orange boucle" aria-hidden="true" />
+      <span className="pub-blob pub-blob-mangue boucle" suppressHydrationWarning aria-hidden="true" />
+      <span className="pub-blob pub-blob-orange boucle" suppressHydrationWarning aria-hidden="true" />
       <div className="pub-accueil-texte">
         <p className="pub-kicker pub-kicker-encre">{promesse.signature}</p>
         <h1 id="accueil-titre" className="pub-titre pub-accueil-h1">
@@ -137,7 +137,7 @@ export async function AccueilAccroche({ zone = null }: { zone?: ZoneChoisie | nu
             <p className="pub-envie-resto">{t["accueil.vide.texte"]}</p>
           </div>
         )}
-        <span className="pub-autocollant pub-accueil-sticker boucle">{t["accueil.hero.macaron"]}</span>
+        <span className="pub-autocollant pub-accueil-sticker boucle" suppressHydrationWarning>{t["accueil.hero.macaron"]}</span>
       </aside>
     </section>
   );

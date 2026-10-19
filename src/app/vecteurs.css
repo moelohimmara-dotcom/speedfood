@@ -110,8 +110,8 @@
 }
 .v-etape { animation: v-etape 3.6s ease-in-out infinite; }
 
-/* Mise en pause hors écran (le conteneur porte `.boucle` et reçoit `.hors-ecran`) et arrêt demandé par le visiteur. */
-.boucle.hors-ecran .vec *,
+/* Mise en pause hors écran (le conteneur porte `.boucle` et reçoit `data-hors-ecran`) et arrêt demandé par le visiteur. */
+.boucle[data-hors-ecran] .vec *,
 html[data-cache] .vec * {
   animation-play-state: paused;
 }

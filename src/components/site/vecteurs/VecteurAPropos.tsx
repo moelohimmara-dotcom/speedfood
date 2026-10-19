@@ -4,7 +4,7 @@
  */
 export function VecteurAPropos() {
   return (
-    <div className="vec-cadre boucle">
+    <div className="vec-cadre boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
         <g className="v-soleil">
           <circle cx="440" cy="52" r="34" className="v-ombre" transform="translate(5 5)" />

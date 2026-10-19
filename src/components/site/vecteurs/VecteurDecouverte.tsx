@@ -6,7 +6,7 @@
  */
 export function VecteurDecouverte() {
   return (
-    <div className="vec-cadre boucle">
+    <div className="vec-cadre boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 520 340" aria-hidden="true" focusable="false">
         {/* Soleil crème et nuage */}
         <g className="v-soleil">

@@ -6,7 +6,7 @@ const RAYURES = Array.from({ length: 7 }, (_, i) => 84 + i * 46);
 
 export function VecteurRestaurateur() {
   return (
-    <div className="vec-cadre boucle">
+    <div className="vec-cadre boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
         {/* Ciel : soleil et nuages */}
         <g className="v-soleil">

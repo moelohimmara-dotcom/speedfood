@@ -8,7 +8,7 @@ import { useEffect, useSyncExternalStore } from "react";
  * - `data-calme` sur <html> : le visiteur a coupé les animations (mémorisé) ; CSS les arrête toutes. Exigence WCAG 2.2.2 (pause, arrêt).
  * - `data-eco` : économie de données demandée par le navigateur ou appareil très limité ; mêmes effets, sans mémoire.
  * - `data-cache` : onglet masqué ; les boucles se figent (batterie).
- * - `.hors-ecran` : posé sur les éléments `.boucle` qui ne sont pas visibles ; ils se figent aussi.
+ * - `data-hors-ecran` : posé sur les éléments `.boucle` qui ne sont pas visibles ; ils se figent aussi.
  * Aucune donnée n'est envoyée ; seul un « oui/non » est gardé dans le navigateur.
  */
 const CLE = "speedfood.animations.calmes";
@@ -47,7 +47,7 @@ export function PilotageAnimations({ forceCalme = false }: { forceCalme?: boolea
     let suivi: MutationObserver | null = null;
     if (typeof IntersectionObserver !== "undefined") {
       io = new IntersectionObserver((entrees) => {
-        for (const e of entrees) e.target.classList.toggle("hors-ecran", !e.isIntersecting);
+        for (const e of entrees) e.target.toggleAttribute("data-hors-ecran", !e.isIntersecting);
       });
       const brancher = (parent: ParentNode) => parent.querySelectorAll(".boucle").forEach((el) => io?.observe(el));
       brancher(document);

@@ -4,7 +4,7 @@
  */
 export function VecteurIntrouvable() {
   return (
-    <div className="vec-cadre vec-vide boucle">
+    <div className="vec-cadre vec-vide boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 400 320" aria-hidden="true" focusable="false">
         {/* Assiette et point d'interrogation */}
         <ellipse cx="200" cy="268" rx="150" ry="26" className="v-ombre" transform="translate(7 7)" />

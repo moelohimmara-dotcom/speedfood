@@ -100,7 +100,7 @@ export function RestaurantCard({
             {categorie} · {quartier}
           </p>
           {reputation ? <NoteResume moyenne={reputation.moyenne} total={reputation.total} pastilles={reputation.pastilles} /> : null}
-          <Badge ton={libelleEtat.ton} className={libelleEtat.ton === "succes" ? "boucle" : ""}>
+          <Badge ton={libelleEtat.ton} className={libelleEtat.ton === "succes" ? "boucle" : ""} suppressHydrationWarning>
             {libelleEtat.texte}
           </Badge>
           {plats.length > 0 ? (

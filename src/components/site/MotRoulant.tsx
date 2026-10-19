@@ -9,7 +9,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
  *   ce composant est donc masqué à l'accessibilité : pas de mots qui défilent annoncés.
  * - Le premier mot est rendu côté serveur : sans JavaScript, ou avec animations coupées / mouvement réduit, on lit « alloco », fixe.
  * - Le mot change toutes les 2,8 s, seulement si la page est visible, le bloc à l'écran et les animations non coupées (`data-calme`,
- *   `data-eco`, `data-cache`, `.hors-ecran`, voir PilotageAnimations). Seuls `transform` et `opacity` bougent ; la largeur du conteneur
+ *   `data-eco`, `data-cache`, `data-hors-ecran`, voir PilotageAnimations). Seuls `transform` et `opacity` bougent ; la largeur du conteneur
  *   s'ajuste (élément minuscule) pour que le « ? » suive le mot sans saut.
  */
 const INTERVALLE_MS = 2800;
@@ -18,7 +18,7 @@ function animationsPermises(racine: HTMLElement | null): boolean {
   const html = document.documentElement;
   if (html.hasAttribute("data-calme") || html.hasAttribute("data-eco") || html.hasAttribute("data-cache")) return false;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-  return !racine?.classList.contains("hors-ecran");
+  return !racine?.hasAttribute("data-hors-ecran");
 }
 
 export function MotRoulant({ mots }: { mots: string[] }) {
@@ -59,6 +59,7 @@ export function MotRoulant({ mots }: { mots: string[] }) {
     <span
       ref={racine}
       className={`mot-roulant boucle${largeur !== null ? " mot-roulant-actif" : ""}`}
+      suppressHydrationWarning
       style={largeur !== null ? { width: precedent !== null ? Math.max(largeur, largeurPrecedente) : largeur } : undefined}
       aria-hidden="true"
     >

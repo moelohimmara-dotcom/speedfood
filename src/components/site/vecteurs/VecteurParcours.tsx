@@ -5,7 +5,7 @@
  */
 export function VecteurParcours() {
   return (
-    <div className="vec-cadre boucle">
+    <div className="vec-cadre boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
         <g className="v-soleil">
           <circle cx="440" cy="62" r="38" className="v-ombre" transform="translate(5 5)" />

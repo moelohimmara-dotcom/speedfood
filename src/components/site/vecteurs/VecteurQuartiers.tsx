@@ -25,7 +25,7 @@ function Fenetres({ x, haut, lignes }: { x: number; haut: number; lignes: number
 
 export function VecteurQuartiers() {
   return (
-    <div className="vec-cadre boucle">
+    <div className="vec-cadre boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
         {/* Ciel */}
         <g className="v-soleil">

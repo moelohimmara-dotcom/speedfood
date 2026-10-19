@@ -160,8 +160,8 @@
 .v-flamme { transform-origin: 50% 100%; animation: v-flamme 0.9s ease-in-out infinite; }
 
 /* Pauses : hors écran, onglet masqué, interrupteur du pied ; arrêt total en mouvement réduit. */
-.boucle.hors-ecran .pub-puce-defile::after,
-.boucle.hors-ecran .pub-envie-scene-interieur,
+.boucle[data-hors-ecran] .pub-puce-defile::after,
+.boucle[data-hors-ecran] .pub-envie-scene-interieur,
 html[data-cache] .pub-puce-defile::after {
   animation-play-state: paused;
 }

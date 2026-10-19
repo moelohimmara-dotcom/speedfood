@@ -33,9 +33,9 @@
 html[data-cache] .boucle,
 html[data-cache] .boucle::before,
 html[data-cache] .boucle::after,
-.boucle.hors-ecran,
-.boucle.hors-ecran::before,
-.boucle.hors-ecran::after {
+.boucle[data-hors-ecran],
+.boucle[data-hors-ecran]::before,
+.boucle[data-hors-ecran]::after {
   animation-play-state: paused;
 }
 html[data-calme] .boucle,
