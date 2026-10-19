@@ -1,5 +1,6 @@
 import { CadreSite } from "@/components/CadreSite";
 import type { Metadata } from "next";
+import "../commande.css";
 
 /** Commande : en-tête et pied de page, sans navigation basse (écran de saisie, une seule tâche). */
 export const metadata: Metadata = { title: "Ma commande" };

@@ -1114,9 +1114,6 @@
     grid-column: 1;
     grid-row: 1;
   }
-  .commande-formulaire-titre {
-    margin-top: 0 !important;
-  }
 }
 
 /* --- Fenêtres basses (zoom 200 % ou 400 %, téléphone en paysage) : les barres fixes ne doivent pas masquer le

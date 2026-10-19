@@ -42,7 +42,7 @@ export async function renderRecuPage(jeton: string, docDemande?: string, liens?:
     return (
       <main className="recu">
         {l.retour ? <LienRetour href={l.retour}>Retour au suivi</LienRetour> : null}
-        <h1 className="recu-titre" style={{ marginTop: "var(--space-3)" }}>
+        <h1 className="recu-titre recu-titre-espace">
           Pas encore de reçu
         </h1>
         <p>Le reçu est disponible une fois la commande acceptée par le restaurant.</p>
@@ -90,19 +90,19 @@ export async function renderRecuPage(jeton: string, docDemande?: string, liens?:
   return (
     <main className="recu">
       {l.retour ? <LienRetour href={l.retour}>Retour au suivi</LienRetour> : null}
-      <article className="recu-carte" aria-label={confirme ? "Reçu de paiement" : "Récapitulatif de commande"} style={{ marginTop: "var(--space-3)" }}>
+      <article className="recu-carte recu-carte-espace" aria-label={confirme ? "Reçu de paiement" : "Récapitulatif de commande"}>
         <div className="recu-entete">
           <div>
             <h1 className="recu-titre">{confirme ? "Reçu de paiement" : "Récapitulatif de commande"}</h1>
-            <p style={{ margin: "4px 0 0", color: "var(--secondaire)" }}>{suivi.restaurant.nom}</p>
+            <p className="recu-secondaire">{suivi.restaurant.nom}</p>
           </div>
-          <div style={{ textAlign: "right" }}>
+          <div className="recu-droite">
             <strong>{suivi.reference}</strong>
-            <p style={{ margin: "4px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>{formaterDate(suivi.creeLe)}</p>
+            <p className="recu-secondaire recu-secondaire-petit">{formaterDate(suivi.creeLe)}</p>
           </div>
         </div>
 
-        <p style={{ margin: "0 0 var(--space-2)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
+        <p className="recu-intro">
           {libelleMode(suivi.mode, suivi.tableNumero)}
         </p>
 
@@ -111,10 +111,10 @@ export async function renderRecuPage(jeton: string, docDemande?: string, liens?:
             <span>
               {ligne.quantite} × {ligne.nom}
               {ligne.options.length > 0 ? (
-                <span style={{ display: "block", color: "var(--secondaire)", fontSize: "0.8rem" }}>{ligne.options.map((o) => o.nom).join(", ")}</span>
+                <span className="recu-ligne-options">{ligne.options.map((o) => o.nom).join(", ")}</span>
               ) : null}
             </span>
-            <strong style={{ whiteSpace: "nowrap" }}>{formaterMontantGnf(ligne.prix * ligne.quantite)}</strong>
+            <strong className="recu-ligne-prix">{formaterMontantGnf(ligne.prix * ligne.quantite)}</strong>
           </div>
         ))}
         <div className="recu-ligne">
@@ -130,20 +130,20 @@ export async function renderRecuPage(jeton: string, docDemande?: string, liens?:
           <span>{formaterMontantGnf(total)}</span>
         </div>
 
-        <div style={{ marginTop: "var(--space-4)" }}>
+        <div className="recu-reglement">
           {confirme ? (
             <>
-              <p style={{ margin: 0, fontWeight: 700 }}>
+              <p className="recu-reglement-titre">
                 {suivi.paiement.mode === "especes" ? "Espèces encaissées par le restaurant" : "Paiement reçu par le restaurant"}
               </p>
-              <p style={{ margin: "2px 0 0", color: "var(--secondaire)", fontSize: "0.9rem" }}>
+              <p className="recu-reglement-detail">
                 {suivi.paiement.mode ? LIBELLES_MODE[suivi.paiement.mode] : ""}
                 {suivi.paiement.recuLe ? ` · confirmé le ${formaterDate(suivi.paiement.recuLe)}` : ""}
                 {suivi.paiement.reference ? ` · réf. ${suivi.paiement.reference}` : ""}
               </p>
             </>
           ) : (
-            <p style={{ margin: 0, color: "var(--secondaire)" }}>
+            <p className="recu-reglement-absent">
               Paiement non confirmé à ce jour : le règlement se fait directement avec le restaurant.
             </p>
           )}

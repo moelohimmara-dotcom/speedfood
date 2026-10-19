@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import "../../suivi.css";
 import type { EtatDeriveCommande, LigneCommandeApercu } from "@/lib/contracts/commande";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
@@ -72,24 +73,16 @@ function formaterDate(iso: string) {
 
 function LigneRecap({ ligne }: { ligne: LigneCommandeApercu }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "6px 0",
-        borderBottom: "1px solid var(--bordure)",
-      }}
-    >
+    <div className="suivi-ligne">
       <span>
         {ligne.quantite} × {ligne.nom}
         {ligne.options.length > 0 ? (
-          <span style={{ display: "block", color: "var(--secondaire)", fontSize: "0.8rem" }}>
+          <span className="suivi-ligne-options">
             {ligne.options.map((o) => o.nom).join(", ")}
           </span>
         ) : null}
       </span>
-      <strong style={{ whiteSpace: "nowrap" }}>
+      <strong className="suivi-ligne-prix">
         {formaterGNF(ligne.prix * ligne.quantite)}
       </strong>
     </div>
@@ -153,11 +146,11 @@ export async function renderSuiviPage(jeton: string, session = false) {
   }
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+    <main className="suivi-page">
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
 
-      <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 4px" }}>Suivi de votre commande</h1>
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-3)" }}>
+      <h1 className="suivi-titre">Suivi de votre commande</h1>
+      <p className="suivi-reference">
         Référence <strong>{suivi.reference}</strong> · passée le {formaterDate(suivi.creeLe)}
       </p>
 
@@ -170,19 +163,19 @@ export async function renderSuiviPage(jeton: string, session = false) {
       <FriseSuivi etat={suivi.etatDerive} />
 
       <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div className="suivi-etat">
           <div>
             <Badge ton={TONS_BADGE[suivi.etatDerive]}>{LIBELLES_ETAT[suivi.etatDerive]}</Badge>
-            <p style={{ margin: "10px 0 0" }}>{DESCRIPTIONS_ETAT[suivi.etatDerive]}</p>
+            <p className="suivi-etat-description">{DESCRIPTIONS_ETAT[suivi.etatDerive]}</p>
           </div>
         </div>
       </Card>
 
       {numeroAppel !== null ? (
-        <Card style={{ marginTop: "var(--space-4)", textAlign: "center" }}>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Votre numéro d&apos;appel</p>
+        <Card className="suivi-bloc suivi-appel">
+          <p className="suivi-appel-libelle">Votre numéro d&apos;appel</p>
           <p className="table-numero-appel">{numeroAppel}</p>
-          <p style={{ margin: 0 }}>
+          <p className="suivi-appel-consigne">
             {suivi.etatDerive === "prete" ? "Votre commande est prête : présentez ce numéro au comptoir." : "Gardez ce numéro : on l'appelle quand votre commande est prête."}
           </p>
         </Card>
@@ -210,13 +203,13 @@ export async function renderSuiviPage(jeton: string, session = false) {
 
       <PanneauPaiement jeton={session ? undefined : jeton} session={session} paiement={suivi.paiement} total={totalIndicatif} restaurant={suivi.restaurant.nom} />
 
-      <Card style={{ marginTop: "var(--space-4)" }}>
-        <p style={{ marginTop: 0, fontWeight: 700 }}>{suivi.restaurant.nom}</p>
-        <p style={{ margin: "0 0 4px", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+      <Card className="suivi-bloc">
+        <p className="suivi-resto-nom">{suivi.restaurant.nom}</p>
+        <p className="suivi-note">
           {suivi.restaurant.horaires}
         </p>
         {suivi.restaurant.consignes ? (
-          <p style={{ margin: "0 0 10px", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+          <p className="suivi-note suivi-note-consignes">
             {suivi.restaurant.consignes}
           </p>
         ) : null}
@@ -224,18 +217,18 @@ export async function renderSuiviPage(jeton: string, session = false) {
           {suivi.restaurant.ouvert ? "Ouvert actuellement" : "Fermé actuellement"}
         </Badge>
 
-        <div style={{ marginTop: "var(--space-3)" }}>
+        <div className="suivi-recap-lignes">
           {suivi.lignes.map((ligne, index) => (
             <LigneRecap key={`${ligne.nom}-${index}`} ligne={ligne} />
           ))}
         </div>
 
-        <div style={{ marginTop: "var(--space-3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div className="suivi-totaux">
+          <div className="suivi-total-ligne">
             <span>Sous-total</span>
             <span>{formaterGNF(suivi.sousTotal)}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div className="suivi-total-ligne">
             <span>Frais de livraison</span>
             <span>
               {suivi.mode === "livraison"
@@ -243,11 +236,11 @@ export async function renderSuiviPage(jeton: string, session = false) {
                 : formaterGNF(suivi.fraisLivraisonEstime)}
             </span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+          <div className="suivi-total-ligne suivi-total-final">
             <span>Total indicatif</span>
             <span>{formaterGNF(totalIndicatif)}</span>
           </div>
-          <p style={{ margin: "8px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+          <p className="suivi-note suivi-note-mentions">
             {suivi.mode === "livraison" ? "Livraison demandée" : libelleMode(suivi.mode, suivi.tableNumero)} · montants
             indicatifs : aucun paiement n&apos;est encaissé par Speedfood et aucun frais de livraison
             n&apos;est calculé automatiquement.
@@ -256,9 +249,9 @@ export async function renderSuiviPage(jeton: string, session = false) {
       </Card>
 
       {suivi.historiqueStatuts.length > 0 ? (
-        <Card style={{ marginTop: "var(--space-4)" }}>
-          <p style={{ marginTop: 0, fontWeight: 700 }}>Historique</p>
-          <ul style={{ margin: 0, paddingLeft: 18, color: "var(--secondaire)" }}>
+        <Card className="suivi-bloc">
+          <p className="suivi-historique-titre">Historique</p>
+          <ul className="suivi-historique">
             {suivi.historiqueStatuts.map((evenement, index) => (
               <li key={`${evenement.horodatage}-${index}`}>
                 {LIBELLES_ETAT[evenement.statutSuivant] ?? evenement.statutSuivant} ·{" "}
@@ -270,14 +263,14 @@ export async function renderSuiviPage(jeton: string, session = false) {
       ) : null}
 
       {suivi.etatDerive !== "en_attente" && suivi.etatDerive !== "refusee" && suivi.etatDerive !== "annulee" && suivi.paiement.statut !== "recu" ? (
-        <p style={{ marginTop: "var(--space-3)" }}>
+        <p className="suivi-recu">
           <a href={session ? "/suivi/recu" : `/suivi/${jeton}/recu`} className="lien-texte">
             Voir le récapitulatif imprimable de ma commande
           </a>
         </p>
       ) : null}
 
-      <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+      <Alert ton="info" className="suivi-bloc">
         Conservez ce lien : c&apos;est la clé de suivi de votre commande. Ne le partagez pas.
       </Alert>
 

@@ -1,0 +1,66 @@
+/* Page Commande : mise en page portée par la feuille (plus de style en ligne). Reprend les valeurs exactes des anciens styles. */
+.commande-titre {
+  font-size: 2rem;
+  margin: 0 0 var(--space-4);
+}
+.commande-page .commande-titre {
+  margin-top: var(--space-3);
+}
+.commande-vide {
+  text-align: center;
+}
+.commande-vide-texte {
+  margin: 0 0 var(--space-5);
+}
+.commande-recap-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.commande-recap-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+.commande-recap-options {
+  display: block;
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.commande-recap-prix {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.commande-recap-total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-weight: 700;
+  padding-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.commande-note {
+  margin: var(--space-2) 0 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.commande-formulaire-titre {
+  font-size: 1.25rem;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.commande-avis {
+  margin-top: var(--space-4);
+}
+.commande-alerte {
+  margin-bottom: var(--space-4);
+}
+.commande-erreur-champ {
+  margin-top: -8px;
+  margin-bottom: var(--space-4);
+}
+@media (min-width: 900px) {
+  .commande-formulaire-titre {
+    margin-top: 0;
+  }
+}

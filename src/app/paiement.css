@@ -145,3 +145,48 @@
     border: 0;
   }
 }
+
+/* Reçu : mise en page portée par la feuille (plus de style en ligne). */
+.recu-titre-espace,
+.recu-carte-espace {
+  margin-top: var(--space-3);
+}
+.recu-secondaire {
+  margin: 4px 0 0;
+  color: var(--secondaire);
+}
+.recu-secondaire-petit {
+  font-size: 0.85rem;
+}
+.recu-droite {
+  text-align: right;
+}
+.recu-intro {
+  margin: 0 0 var(--space-2);
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.recu-ligne-options {
+  display: block;
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.recu-ligne-prix {
+  white-space: nowrap;
+}
+.recu-reglement {
+  margin-top: var(--space-4);
+}
+.recu-reglement-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.recu-reglement-detail {
+  margin: 2px 0 0;
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.recu-reglement-absent {
+  margin: 0;
+  color: var(--secondaire);
+}

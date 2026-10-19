@@ -66,55 +66,55 @@ export function PropositionCarte({ jeton, session = false, proposition, sousTota
   }
 
   return (
-    <Card style={{ marginTop: "var(--space-4)", border: "2px solid var(--orange)" }}>
-      <p style={{ marginTop: 0, fontWeight: 700, fontSize: "1.1rem" }}>
+    <Card className="suivi-bloc suivi-proposition">
+      <p className="suivi-prop-titre">
         Le restaurant propose une modification
       </p>
-      <p style={{ margin: "0 0 var(--space-3)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
+      <p className="suivi-prop-aide">
         Votre commande reste en attente : elle ne sera ni préparée ni confirmée tant que vous n&apos;avez
         pas accepté cette version. Si vous refusez, ou si personne ne répond avant l&apos;échéance,
         la commande est annulée sans frais.
       </p>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "var(--space-3)" }}>
+      <table className="suivi-prop-table">
         <thead>
           <tr>
-            <th style={{ textAlign: "left", padding: "4px 0" }}> </th>
-            <th style={{ textAlign: "right", padding: "4px 0" }}>Votre commande</th>
-            <th style={{ textAlign: "right", padding: "4px 0" }}>Proposé</th>
+            <th> </th>
+            <th>Votre commande</th>
+            <th>Proposé</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style={{ padding: "4px 0" }}>Sous-total</td>
-            <td style={{ textAlign: "right" }}>{formaterGNF(sousTotalInitial)}</td>
-            <td style={{ textAlign: "right", fontWeight: 700 }}>
+            <td>Sous-total</td>
+            <td>{formaterGNF(sousTotalInitial)}</td>
+            <td className="suivi-prop-gras">
               {formaterGNF(proposition.nouveauSousTotal)}
             </td>
           </tr>
           <tr>
-            <td style={{ padding: "4px 0" }}>Frais de livraison</td>
-            <td style={{ textAlign: "right" }}>{formaterGNF(fraisInitial)}</td>
-            <td style={{ textAlign: "right", fontWeight: 700 }}>
+            <td>Frais de livraison</td>
+            <td>{formaterGNF(fraisInitial)}</td>
+            <td className="suivi-prop-gras">
               {formaterGNF(proposition.nouveauxFraisLivraison)}
             </td>
           </tr>
           <tr>
-            <td style={{ padding: "4px 0", fontWeight: 700 }}>Total</td>
-            <td style={{ textAlign: "right", fontWeight: 700 }}>{formaterGNF(totalInitial)}</td>
-            <td style={{ textAlign: "right", fontWeight: 700 }}>{formaterGNF(totalPropose)}</td>
+            <td className="suivi-prop-gras">Total</td>
+            <td className="suivi-prop-gras">{formaterGNF(totalInitial)}</td>
+            <td className="suivi-prop-gras">{formaterGNF(totalPropose)}</td>
           </tr>
         </tbody>
       </table>
 
       {proposition.conditionsModifiees ? (
-        <p style={{ margin: "0 0 var(--space-3)" }}>
+        <p className="suivi-prop-texte">
           <strong>Conditions proposées : </strong>
           {proposition.conditionsModifiees}
         </p>
       ) : null}
 
-      <p style={{ margin: "0 0 var(--space-3)", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+      <p className="suivi-prop-aide suivi-prop-aide-petit">
         {proposition.expireLe
           ? `À répondre avant le ${formaterDate(proposition.expireLe)}.`
           : "À répondre dans les meilleurs délais."}
@@ -122,12 +122,12 @@ export function PropositionCarte({ jeton, session = false, proposition, sousTota
       </p>
 
       {erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-3)" }}>
+        <Alert ton="danger" className="suivi-prop-erreur">
           {erreur}
         </Alert>
       ) : null}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="suivi-prop-actions">
         <Button type="button" disabled={enCours} onClick={() => repondre("acceptee")}>
           {enCours ? "Traitement…" : "Accepter la modification"}
         </Button>

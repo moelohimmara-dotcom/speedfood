@@ -60,8 +60,8 @@ export function CommandeClient({
 
   if (!pret) {
     return (
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-        <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Votre commande</h1>
+      <main className="commande-page">
+        <h1 className="commande-titre">Votre commande</h1>
         <div className="squelette" role="status" aria-busy="true">
           <span className="sr-only">Chargement de votre commande…</span>
         </div>
@@ -71,11 +71,11 @@ export function CommandeClient({
 
   if (panier.lignes.length === 0 || panier.restaurantId === null) {
     return (
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-        <h1 style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>Votre commande</h1>
-        <Card style={{ textAlign: "center" }}>
+      <main className="commande-page">
+        <h1 className="commande-titre">Votre commande</h1>
+        <Card className="commande-vide">
           <VecteurPanierVide />
-          <p style={{ marginTop: 0, marginBottom: "var(--space-5)" }}>Votre panier est vide : rien à commander pour le moment.</p>
+          <p className="commande-vide-texte">Votre panier est vide : rien à commander pour le moment.</p>
           <Link href="/restaurants" className="btn btn-primary">
             Voir les restaurants
           </Link>
@@ -88,53 +88,37 @@ export function CommandeClient({
     <main className="commande-page">
       <LienRetour href="/panier">Retour au panier</LienRetour>
 
-      <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 var(--space-4)" }}>
+      <h1 className="commande-titre">
         Votre commande
       </h1>
 
       <div className="commande-grille">
       <div className="commande-recap">
       <Card>
-        <p style={{ marginTop: 0, fontWeight: 700 }}>
+        <p className="commande-recap-titre">
           {panier.restaurantNom} · {nombreArticlesPanier(panier)} article
           {nombreArticlesPanier(panier) > 1 ? "s" : ""}
         </p>
         {panier.lignes.map((ligne) => (
-          <div
-            key={ligne.cle}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: "6px 0",
-              borderBottom: "1px solid var(--bordure)",
-            }}
-          >
+          <div key={ligne.cle} className="commande-recap-ligne">
             <span>
               {ligne.quantite} × {ligne.nom}
               {ligne.options.length > 0 ? (
-                <span style={{ display: "block", color: "var(--secondaire)", fontSize: "0.8rem" }}>
+                <span className="commande-recap-options">
                   {ligne.options.map((o) => o.nom).join(", ")}
                 </span>
               ) : null}
             </span>
-            <strong style={{ whiteSpace: "nowrap" }}>
+            <strong className="commande-recap-prix">
               {(prixLigne(ligne) * ligne.quantite).toLocaleString("fr-FR")} GNF
             </strong>
           </div>
         ))}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontWeight: 700,
-            paddingTop: 10,
-          }}
-        >
+        <div className="commande-recap-total">
           <span>Sous-total indicatif</span>
           <span>{sousTotalPanier(panier).toLocaleString("fr-FR")} GNF</span>
         </div>
-        <p style={{ margin: "8px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+        <p className="commande-note">
           Montant indicatif : le serveur recalcule les prix et la disponibilité au moment de
           l&apos;envoi, et le restaurant confirme la commande.
         </p>
@@ -142,7 +126,7 @@ export function CommandeClient({
       </div>
 
       <div className="commande-formulaire">
-      <h2 style={{ fontSize: "1.25rem", margin: "var(--space-6) 0 var(--space-3)" }} className="commande-formulaire-titre">
+      <h2 className="commande-formulaire-titre">
         {compte.connecte || invitePossible ? "Vos coordonnées" : "Connexion"}
       </h2>
 
@@ -161,7 +145,7 @@ export function CommandeClient({
         </Card>
       )}
 
-      <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+      <Alert ton="info" className="commande-avis">
         Une fois envoyée, votre commande reste « en attente » jusqu&apos;à la réponse du restaurant.
         Vous recevrez un lien de suivi à conserver.
       </Alert>

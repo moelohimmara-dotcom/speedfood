@@ -103,7 +103,7 @@ function OptionEspeces({ jeton, session = false, choisi }: { jeton?: string; ses
   return (
     <div className={`pay-option${choisi ? " pay-option-choisie" : ""}`}>
       <h3 className="pay-option-titre">Payer en espèces</h3>
-      <p style={{ margin: "0 0 var(--space-3)" }}>Vous réglez au restaurant à la remise de la commande.</p>
+      <p className="suivi-pay-texte">Vous réglez au restaurant à la remise de la commande.</p>
       {erreur ? <Alert ton="danger">{erreur}</Alert> : null}
       <Button
         type="button"
@@ -142,9 +142,9 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
 
   if (statut === "recu") {
     return (
-      <Card style={{ marginTop: "var(--space-4)", border: "2px solid var(--succes)" }}>
-        <p style={{ marginTop: 0, fontWeight: 700 }}>{libelleStatutPaiement(statut, mode)}</p>
-        <p style={{ margin: "0 0 var(--space-3)", color: "var(--secondaire)" }}>
+      <Card className="suivi-bloc suivi-paye">
+        <p className="suivi-resto-nom">{libelleStatutPaiement(statut, mode)}</p>
+        <p className="suivi-pay-texte suivi-pay-secondaire">
           {mode ? `${LIBELLES_MODE[mode]}` : "Paiement"}
           {paiement.recuLe ? ` · confirmé le ${formaterDate(paiement.recuLe)}` : ""}
           {paiement.reference ? ` · réf. ${paiement.reference}` : ""}
@@ -158,9 +158,9 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
 
   if (options.length === 0) {
     return (
-      <Card style={{ marginTop: "var(--space-4)" }}>
-        <p style={{ marginTop: 0, fontWeight: 700 }}>Règlement</p>
-        <p style={{ margin: 0, color: "var(--secondaire)" }}>
+      <Card className="suivi-bloc">
+        <p className="suivi-resto-nom">Règlement</p>
+        <p className="suivi-pay-sans-marge suivi-pay-secondaire">
           Vous réglez directement avec le restaurant, selon ses modalités (espèces ou mobile money). Speedfood n&apos;encaisse rien. Quand le restaurant aura accepté
           votre commande, ses moyens de paiement s&apos;afficheront ici.
         </p>
@@ -169,23 +169,23 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
   }
 
   return (
-    <Card style={{ marginTop: "var(--space-4)" }}>
-      <p style={{ marginTop: 0, fontWeight: 700, fontSize: "1.1rem" }}>Payer {restaurant}</p>
+    <Card className="suivi-bloc">
+      <p className="suivi-prop-titre">Payer {restaurant}</p>
       <p className="pay-montant">{formaterMontantGnf(total)}</p>
-      <p style={{ margin: "0 0 var(--space-3)", color: "var(--secondaire)", fontSize: "0.9rem" }}>
+      <p className="suivi-prop-aide">
         Vous payez directement le restaurant : Speedfood ne reçoit jamais l&apos;argent. Pour une livraison, les frais sont à confirmer avec le restaurant : payez le montant
         convenu avec lui.
       </p>
 
       {statut === "declare" || statut === "especes" ? (
-        <Alert ton="info" style={{ marginBottom: "var(--space-3)" }}>
+        <Alert ton="info" className="suivi-prop-erreur">
           {libelleStatutPaiement(statut, mode)}
           {mode && mode !== "especes" && paiement.reference ? ` (réf. ${paiement.reference})` : ""}
           {paiement.declareLe ? ` · ${formaterDate(paiement.declareLe)}` : ""}.
         </Alert>
       ) : null}
       {statut === "non_recu" ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-3)" }}>
+        <Alert ton="danger" className="suivi-prop-erreur">
           Le restaurant n&apos;a pas retrouvé votre paiement. Vérifiez le code et le montant, ou contactez-le, puis déclarez-le à nouveau.
         </Alert>
       ) : null}

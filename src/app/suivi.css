@@ -1,0 +1,151 @@
+/* Page Suivi de commande : mise en page portée par la feuille (plus de style en ligne). Reprend les valeurs exactes des anciens styles. */
+.suivi-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+.suivi-titre {
+  font-size: 2rem;
+  margin: var(--space-3) 0 4px;
+}
+.suivi-reference {
+  color: var(--secondaire);
+  margin-bottom: var(--space-3);
+}
+.suivi-etat {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.suivi-etat-description {
+  margin: 10px 0 0;
+}
+.suivi-bloc {
+  margin-top: var(--space-4);
+}
+.suivi-appel {
+  text-align: center;
+}
+.suivi-appel-libelle,
+.suivi-appel-consigne {
+  margin: 0;
+}
+.suivi-appel-libelle {
+  color: var(--secondaire);
+}
+.suivi-resto-nom,
+.suivi-historique-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.suivi-note {
+  margin: 0 0 4px;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.suivi-note-consignes {
+  margin-bottom: 10px;
+}
+.suivi-note-mentions {
+  margin: var(--space-2) 0 0;
+}
+.suivi-recap-lignes,
+.suivi-totaux {
+  margin-top: var(--space-3);
+}
+.suivi-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+.suivi-ligne-options {
+  display: block;
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.suivi-ligne-prix {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.suivi-total-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+.suivi-total-final {
+  font-weight: 700;
+}
+.suivi-historique {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--secondaire);
+}
+.suivi-recu {
+  margin-top: var(--space-3);
+}
+
+/* Carte « proposition du restaurant » (modification de la commande à accepter ou refuser). */
+.suivi-proposition {
+  border: 2px solid var(--orange);
+}
+.suivi-prop-titre {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.suivi-prop-aide {
+  margin: 0 0 var(--space-3);
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.suivi-prop-aide-petit {
+  font-size: 0.85rem;
+}
+.suivi-prop-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+.suivi-prop-table :is(th, td) {
+  padding: 4px 0;
+}
+.suivi-prop-table th:first-child,
+.suivi-prop-table td:first-child {
+  text-align: left;
+}
+.suivi-prop-table :is(th, td):not(:first-child) {
+  text-align: right;
+}
+.suivi-prop-gras {
+  font-weight: 700;
+}
+.suivi-prop-texte {
+  margin: 0 0 var(--space-3);
+}
+.suivi-prop-erreur {
+  margin-bottom: var(--space-3);
+}
+.suivi-prop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Panneau de règlement. */
+.suivi-paye {
+  border: 2px solid var(--succes);
+}
+.suivi-pay-texte {
+  margin: 0 0 var(--space-3);
+}
+.suivi-pay-secondaire {
+  color: var(--secondaire);
+}
+.suivi-pay-sans-marge {
+  margin: 0;
+}

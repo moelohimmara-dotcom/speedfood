@@ -310,7 +310,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         />
       ) : null}
       {mode === "livraison" && champs.livraison ? (
-        <p className="field-error" style={{ marginTop: -8, marginBottom: "var(--space-4)" }}>
+        <p className="field-error commande-erreur-champ">
           {champs.livraison}
         </p>
       ) : null}
@@ -365,7 +365,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         </span>
       </label>
       {champs.consentement ? (
-        <p className="field-error" style={{ marginTop: -8, marginBottom: "var(--space-4)" }}>
+        <p className="field-error commande-erreur-champ">
           {champs.consentement}
         </p>
       ) : null}
@@ -385,7 +385,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
             renouveler={renouvelerVerification}
           />
           {champs.verification ? (
-            <p className="field-error" style={{ marginTop: -8, marginBottom: "var(--space-4)" }}>
+            <p className="field-error commande-erreur-champ">
               {champs.verification}
             </p>
           ) : null}
@@ -393,12 +393,12 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
       ) : null}
 
       {champs.lignes ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="commande-alerte">
           {champs.lignes}
         </Alert>
       ) : null}
       {erreurGenerale ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="commande-alerte">
           {erreurGenerale}
         </Alert>
       ) : null}
