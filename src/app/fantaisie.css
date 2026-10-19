@@ -234,7 +234,7 @@
     background-image: repeating-linear-gradient(135deg, rgba(255, 194, 71, 0.18) 0 10px, transparent 10px 20px);
     background-repeat: repeat;
     background-position: 0 0;
-    font-size: 0.74rem;
+    font-size: 0.75rem;
     color: var(--encre);
   }
   :is(.theme-public, .ad-app) input[type="file"]::file-selector-button {
@@ -246,8 +246,9 @@
 
 /* Cases à cocher et boutons radio : la zone tactile est le libellé entier (44 px au moins) ; la case elle-même est plus grande. */
 :is(.theme-public, .ad-app) input:is([type="checkbox"], [type="radio"]) {
-  width: 22px;
-  height: 22px;
+  /* 24 px : minimum de la norme WCAG 2.2 (critère 2.5.8) pour une case isolée sans libellé cliquable, comme « tout sélectionner » d'un tableau ; avec un libellé, c'est le libellé entier qui sert de zone tactile. */
+  width: 24px;
+  height: 24px;
   flex: none;
   accent-color: var(--rouge-fonce);
 }
