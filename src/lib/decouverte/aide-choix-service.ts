@@ -133,6 +133,11 @@ export interface PropositionRestaurant extends Proposition {
   communeNom: string;
   photoUrl: string | null;
   logoUrl: string | null;
+  /** Horaires tels que le restaurant les a saisis (texte libre), vides si absents. */
+  horaires: string;
+  /** Note moyenne affichable (règles de moyenne affichée) et nombre d'avis ; `null` / 0 sans avis. */
+  note: number | null;
+  avisTotal: number;
 }
 
 export interface ResultatAideChoix {
@@ -264,7 +269,18 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
   return {
     propositions: proposees.map((p) => {
       const r = parId.get(p.id)!;
-      return { ...p, categorie: r.categorie, quartier: r.quartier, communeNom: r.communeNom, photoUrl: r.photoUrl, logoUrl: r.logoUrl };
+      const e = signaux.entrees.get(p.id);
+      return {
+        ...p,
+        categorie: r.categorie,
+        quartier: r.quartier,
+        communeNom: r.communeNom,
+        photoUrl: r.photoUrl,
+        logoUrl: r.logoUrl,
+        horaires: r.horaires,
+        note: e ? moyenneAffichee(e.avisSomme, e.avisTotal) : null,
+        avisTotal: e?.avisTotal ?? 0,
+      };
     }),
     diagnostic: {
       cuisineFiltree: Boolean(entree.categorieId),

@@ -3,6 +3,8 @@ import { creerClientServeur } from "@/lib/db/server";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { creerClientPublic } from "@/lib/db/public";
 import { lireReglagesAideChoix } from "@/lib/decouverte/aide-choix-service";
+import { budgetValide } from "@/lib/decouverte/aide-choix";
+import { estUuid } from "@/lib/commande/commun";
 import { AideAuChoix, type OptionZone } from "./AideAuChoix";
 import type { Metadata } from "next";
 
@@ -13,7 +15,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /** Page de l'assistant de choix : budget par personne et position, propositions expliquées du moins cher au plus huppé. */
-export default async function AideAuChoixPage() {
+export default async function AideAuChoixPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const requete = await searchParams;
   const db = creerClientPublic();
   const [reglages, { data: categories }, { data: lignesQuartiers }, { data: lignesCommunes }] = await Promise.all([
     lireReglagesAideChoix(),
@@ -33,6 +36,19 @@ export default async function AideAuChoixPage() {
     .sort((a, b) => (a.groupe ?? "").localeCompare(b.groupe ?? "", "fr") || a.libelle.localeCompare(b.libelle, "fr"));
   const communes: OptionZone[] = ((lignesCommunes ?? []) as { id: string; nom: string }[]).map((c) => ({ id: c.id, libelle: c.nom }));
   const quartierExiste = (id: string) => quartiers.some((q) => q.id === id);
+
+  // Recherche partagée par lien (?b=budget&q=quartier|c=commune&k=cuisine) : valeurs vérifiées, jamais de position GPS dans un lien.
+  const un = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const budgetLien = Number(un(requete.b));
+  const quartierLien = un(requete.q);
+  const communeLien = un(requete.c);
+  const cuisineLien = un(requete.k);
+  const initial = {
+    budget: budgetValide(budgetLien) ? budgetLien : null,
+    quartierId: quartierLien && estUuid(quartierLien) && quartierExiste(quartierLien) ? quartierLien : null,
+    communeId: communeLien && estUuid(communeLien) && communes.some((c) => c.id === communeLien) ? communeLien : null,
+    cuisineId: cuisineLien && estUuid(cuisineLien) && (categories ?? []).some((c) => c.id === cuisineLien) ? cuisineLien : null,
+  };
 
   // Quartier retenu sur le compte (facultatif, lecture tolérante).
   let connecte = false;
@@ -64,6 +80,7 @@ export default async function AideAuChoixPage() {
         connecte={connecte}
         quartierRetenu={quartierRetenu && quartierExiste(quartierRetenu) ? quartierRetenu : null}
         rayonKm={reglages.rayonDefautKm}
+        initial={initial}
       />
     </main>
   );

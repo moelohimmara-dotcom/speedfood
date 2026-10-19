@@ -17,6 +17,8 @@ interface Props {
   connecte: boolean;
   quartierRetenu: string | null;
   rayonKm: number;
+  /** Recherche rouverte depuis un lien partagé (valeurs déjà vérifiées par le serveur). */
+  initial: { budget: number | null; quartierId: string | null; communeId: string | null; cuisineId: string | null };
 }
 
 const BUDGETS_RAPIDES = [15_000, 30_000, 50_000, 100_000, 200_000];
@@ -25,12 +27,13 @@ const gnf = (n: number) => `${n.toLocaleString("fr-FR")} GNF`;
 type Mode = "gps" | "quartier" | "commune";
 
 /** Assistant de choix : budget (curseur, montants rapides, saisie), position (GPS, quartier ou commune), cuisine facultative. */
-export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierRetenu, rayonKm }: Props) {
-  const [budget, setBudget] = useState(30_000);
-  const [mode, setMode] = useState<Mode>(quartierRetenu ? "quartier" : quartiers.length > 0 ? "quartier" : "commune");
-  const [quartierId, setQuartierId] = useState(quartierRetenu ?? "");
-  const [communeId, setCommuneId] = useState("");
-  const [cuisineId, setCuisineId] = useState("");
+export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierRetenu, rayonKm, initial }: Props) {
+  const depuisLien = initial.quartierId !== null || initial.communeId !== null;
+  const [budget, setBudget] = useState(initial.budget ?? 30_000);
+  const [mode, setMode] = useState<Mode>(initial.communeId && !initial.quartierId ? "commune" : quartierRetenu || initial.quartierId ? "quartier" : quartiers.length > 0 ? "quartier" : "commune");
+  const [quartierId, setQuartierId] = useState(initial.quartierId ?? quartierRetenu ?? "");
+  const [communeId, setCommuneId] = useState(initial.communeId ?? "");
+  const [cuisineId, setCuisineId] = useState(initial.cuisineId ?? "");
   const [retenir, setRetenir] = useState(false);
   const [gps, setGps] = useState<{ latitude: number; longitude: number } | null>(null);
   const [etatGps, setEtatGps] = useState<"repos" | "recherche" | "ok" | "refuse">("repos");
@@ -39,7 +42,9 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
   const [erreur, setErreur] = useState<string | null>(null);
   const [resultat, setResultat] = useState<ResultatAideChoix | null>(null);
   const [resultatPour, setResultatPour] = useState("");
-  const [saisie, setSaisie] = useState("30 000");
+  const [saisie, setSaisie] = useState((initial.budget ?? 30_000).toLocaleString("fr-FR"));
+  const [lienCopie, setLienCopie] = useState(false);
+  const lancee = useRef(false);
   const [enCours, demarrer] = useTransition();
   const zoneRef = useRef<HTMLElement>(null);
 
@@ -94,6 +99,39 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
       }
     });
   }
+
+  /** Lien partageable : budget, zone choisie (quartier ou commune) et cuisine ; jamais la position GPS. */
+  function lienPartage(): string | null {
+    if (mode === "gps") return null;
+    const zone = mode === "quartier" ? quartierId : communeId;
+    if (!zone) return null;
+    const u = new URL("/aide-au-choix", window.location.origin);
+    u.searchParams.set("b", String(budget));
+    u.searchParams.set(mode === "quartier" ? "q" : "c", zone);
+    if (cuisineId) u.searchParams.set("k", cuisineId);
+    return u.toString();
+  }
+
+  async function copierLien() {
+    const lien = lienPartage();
+    if (!lien) return;
+    try {
+      await navigator.clipboard.writeText(lien);
+      setLienCopie(true);
+      window.setTimeout(() => setLienCopie(false), 3000);
+    } catch {
+      window.prompt("Copiez ce lien :", lien);
+    }
+  }
+
+  // Un lien partagé rouvre la recherche tout de suite (une seule fois).
+  useEffect(() => {
+    if (depuisLien && !lancee.current) {
+      lancee.current = true;
+      chercher();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lancement unique à l'ouverture
+  }, []);
 
   // Amène les résultats à l'écran (et au lecteur d'écran) quand une recherche vient d'aboutir.
   useEffect(() => {
@@ -296,6 +334,21 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
               {resultat.rayonKm !== rayonKm ? ` · rayon ${resultat.rayonKm.toLocaleString("fr-FR")} km` : ""}
             </p>
           )}
+          {!perime && lienPartage() ? (
+            <div className="aide-choix-partage">
+              <button type="button" className="btn btn-secondary" onClick={copierLien}>
+                {lienCopie ? "Lien copié" : "Copier le lien de cette recherche"}
+              </button>
+              <a
+                className="btn btn-secondary"
+                href={`https://wa.me/?text=${encodeURIComponent(`Restaurants pour ${gnf(budget)} par personne : ${lienPartage()}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Partager sur WhatsApp
+              </a>
+            </div>
+          ) : null}
           {resultat.propositions.length === 0 ? (
             <div className="aide-choix-vide" role="status">
               <h2>Aucune proposition pour ce budget ici</h2>
@@ -355,21 +408,36 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
 function CartePropositionAide({ p }: { p: PropositionRestaurant }) {
   return (
     <li className="aide-choix-carte">
-      <div className="aide-choix-carte-tete">
-        <h3 className="aide-choix-carte-nom">{p.nom}</h3>
-        {p.gamme ? <span className="aide-choix-gamme">{LIBELLES_GAMME[p.gamme]}</span> : null}
+      {p.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
+        <img src={p.photoUrl} alt="" className="aide-choix-photo" loading="lazy" />
+      ) : null}
+      <div className="aide-choix-carte-corps">
+        <div className="aide-choix-carte-tete">
+          <h3 className="aide-choix-carte-nom">{p.nom}</h3>
+          {p.gamme ? <span className="aide-choix-gamme">{LIBELLES_GAMME[p.gamme]}</span> : null}
+          <span className="aide-choix-ouvert">Ouvert</span>
+        </div>
+        <p className="aide-choix-aide">
+          {[p.categorie, p.quartier || p.communeNom].filter(Boolean).join(" · ")} · prix typique {gnf(p.prixTypique)}
+        </p>
+        {p.note !== null ? (
+          <p className="aide-choix-note">
+            <span aria-hidden="true">★</span> {p.note.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sur 5 · {p.avisTotal} avis
+          </p>
+        ) : null}
+        {p.horaires ? <p className="aide-choix-horaires">Horaires : {p.horaires}</p> : null}
+        <ul className="aide-choix-raisons">
+          {p.raisons
+            .filter((r) => !r.startsWith("Noté"))
+            .map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+        </ul>
+        <Link href={`/restaurants/${p.id}`} className="btn btn-primary">
+          Voir le menu et commander
+        </Link>
       </div>
-      <p className="aide-choix-aide">
-        {[p.categorie, p.quartier || p.communeNom].filter(Boolean).join(" · ")} · prix typique {gnf(p.prixTypique)}
-      </p>
-      <ul className="aide-choix-raisons">
-        {p.raisons.map((r) => (
-          <li key={r}>{r}</li>
-        ))}
-      </ul>
-      <Link href={`/restaurants/${p.id}`} className="btn btn-primary">
-        Voir le menu
-      </Link>
     </li>
   );
 }
