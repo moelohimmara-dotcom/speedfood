@@ -352,4 +352,27 @@
   .accueil-preuve-point.boucle {
     animation: none !important;
   }
+}
+
+/* Revue du 19 octobre 2026 (capture de la propriétaire) : dans le bandeau de la page Restaurants, le bouton « Aide-moi à choisir », la rangée de filtres et la
+   barre de tri n'avaient aucun espace entre eux (bas d'un bloc exactement au niveau du haut du suivant) et, à l'intérieur des rangées, les pastilles passées à la
+   ligne se touchaient : avec l'ombre dure du thème public, on avait l'impression de boutons empilés les uns sur les autres. Espacement vertical explicite. */
+.theme-public .decouverte-bandeau .aide-choix-cta {
+  margin: var(--space-4) 0 var(--space-4);
 }
+.theme-public .decouverte-bandeau :is(.decouverte-puces, .notation-tri) {
+  gap: 14px 10px;
+  margin: 0 0 var(--space-4);
+}
+.theme-public .decouverte-bandeau .notation-tri {
+  margin-bottom: var(--space-3);
+}
+
+
+/* Un lien de texte dans une rangée d'actions (flex avec espacement) : ses marges négatives (prévues pour sa zone tactile de 44 px dans un paragraphe) mangeaient
+   l'espacement de la rangée et faisaient chevaucher sa zone tactile avec le bouton voisin (bandeau « aperçu » de la fiche restaurant : « Modifier ma page » et
+   « Retour à ma console » se chevauchaient de 4 px quand ils passaient à la ligne). */
+:is([class*="actions"], .chip-row) > .lien-texte {
+  margin-block: 0;
+}
+
