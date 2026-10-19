@@ -77,6 +77,8 @@ export interface CandidatChoix {
   prixPlats: number[];
   /** Distance estimée au client ; `null` si elle ne peut pas être calculée. */
   distanceKm: number | null;
+  /** Vrai si la distance part du centre du quartier du restaurant (sans coordonnées propres) : affichée « environ ». */
+  distanceApprochee?: boolean;
   /** Même quartier ou même commune que le client : permet de proposer un restaurant sans coordonnées. */
   memeZone: boolean;
   gamme: Gamme | null;
@@ -147,7 +149,7 @@ function evaluer(c: CandidatChoix, p: ParametresChoix): Proposition | null {
   else return null;
 
   const raisons: string[] = [];
-  if (c.distanceKm !== null) raisons.push(`À ${arrondiDistance(c.distanceKm)} de vous`);
+  if (c.distanceKm !== null) raisons.push(`${c.distanceApprochee ? "À environ" : "À"} ${arrondiDistance(c.distanceKm)} de vous`);
   else raisons.push("Dans votre zone");
   if (groupe === "dans_budget") raisons.push(`${dansBudget} plat${dansBudget > 1 ? "s" : ""} dans votre budget, dès ${formaterGnf(prixMin)}`);
   else raisons.push(`Plats dès ${formaterGnf(prixMin)}, soit ${formaterGnf(prixMin - p.budgetGnf)} de plus que votre budget`);

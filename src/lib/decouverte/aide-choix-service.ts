@@ -138,7 +138,7 @@ export interface PropositionRestaurant extends Proposition {
 export interface ResultatAideChoix {
   propositions: PropositionRestaurant[];
   /** Pourquoi la liste est vide ou courte : compteurs honnêtes, jamais d'excuse inventée. */
-  diagnostic: { restaurantsPublies: number; ouvertsAuxCommandes: number; dansLaZone: number; avecPrix: number };
+  diagnostic: { restaurantsPublies: number; ouvertsAuxCommandes: number; dansLaZone: number; avecPrix: number; cuisineFiltree: boolean };
   rayonKm: number;
   zoneLibelle: string | null;
   erreur: boolean;
@@ -163,19 +163,42 @@ async function pointDeLaZone(position: PositionClient): Promise<{ point: Point |
   return { point: p && pointValide(p) ? p : null, libelle: data.nom, erreur: false };
 }
 
-function distanceAuClient(r: RestaurantCatalogue, position: PositionClient, centre: Point | null): { distanceKm: number | null; memeZone: boolean } {
+/** Centre de chaque quartier connu (repli quand un restaurant n'a pas ses propres coordonnées). Lecture tolérante. */
+async function centresDesQuartiers(ids: string[]): Promise<Map<string, Point>> {
+  const m = new Map<string, Point>();
+  if (ids.length === 0) return m;
+  try {
+    const { data } = await creerClientPublic().from("neighborhoods").select("id, latitude, longitude").in("id", ids).limit(ids.length);
+    for (const q of (data ?? []) as { id: string; latitude: number | string | null; longitude: number | string | null }[]) {
+      if (q.latitude === null || q.longitude === null) continue;
+      const p = { latitude: Number(q.latitude), longitude: Number(q.longitude) };
+      if (pointValide(p)) m.set(q.id, p);
+    }
+  } catch {
+    // Pas de repli : ces restaurants ne seront trouvés que par quartier ou commune.
+  }
+  return m;
+}
+
+function distanceAuClient(
+  r: RestaurantCatalogue,
+  position: PositionClient,
+  centre: Point | null,
+  centreQuartier?: Point
+): { distanceKm: number | null; memeZone: boolean; approchee: boolean } {
   const memeZone = position.type === "quartier" ? r.quartierId === position.id : position.type === "commune" ? r.communeId === position.id : false;
   // Dans la même zone choisie, le centre de la commune n'est pas la position du client : on ne fabrique pas de distance.
-  if (memeZone) return { distanceKm: null, memeZone };
-  const resto = r.latitude !== null && r.longitude !== null ? { latitude: r.latitude, longitude: r.longitude } : null;
-  if (!centre || !resto || !pointValide(resto)) return { distanceKm: null, memeZone };
-  return { distanceKm: Math.round(distanceRouteEstimeeKm(centre, resto) * 10) / 10, memeZone };
+  if (memeZone) return { distanceKm: null, memeZone, approchee: false };
+  const propre = r.latitude !== null && r.longitude !== null ? { latitude: r.latitude, longitude: r.longitude } : null;
+  const resto = propre && pointValide(propre) ? propre : (centreQuartier ?? null);
+  if (!centre || !resto) return { distanceKm: null, memeZone, approchee: false };
+  return { distanceKm: Math.round(distanceRouteEstimeeKm(centre, resto) * 10) / 10, memeZone, approchee: resto !== propre };
 }
 
 export async function chercherAideChoix(entree: EntreeAideChoix): Promise<ResultatAideChoix> {
   const vide = (erreur: boolean, rayonKm: number): ResultatAideChoix => ({
     propositions: [],
-    diagnostic: { restaurantsPublies: 0, ouvertsAuxCommandes: 0, dansLaZone: 0, avecPrix: 0 },
+    diagnostic: { restaurantsPublies: 0, ouvertsAuxCommandes: 0, dansLaZone: 0, avecPrix: 0, cuisineFiltree: false },
     rayonKm,
     zoneLibelle: null,
     erreur,
@@ -190,6 +213,8 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
   ]);
   if (zone.erreur || catalogue.erreur) return vide(true, rayonKm);
 
+  const sansCoordonnees = [...new Set(catalogue.restaurants.filter((r) => r.latitude === null || r.longitude === null).map((r) => r.quartierId).filter(Boolean))];
+  const centres = await centresDesQuartiers(sansCoordonnees);
   const signaux = await lireSignauxClassement(
     catalogue.restaurants.map((r) => r.id),
     catalogue.platsParRestaurant
@@ -197,7 +222,7 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
 
   const candidats: CandidatChoix[] = catalogue.restaurants.map((r) => {
     const prix = (catalogue.platsParRestaurant.get(r.id) ?? []).filter((p) => p.disponible).map((p) => p.prixPromo ?? p.prix).filter((x) => x > 0);
-    const { distanceKm, memeZone } = distanceAuClient(r, entree.position, zone.point);
+    const { distanceKm, memeZone, approchee } = distanceAuClient(r, entree.position, zone.point, centres.get(r.quartierId));
     const e = signaux.entrees.get(r.id);
     return {
       id: r.id,
@@ -206,6 +231,7 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
       accepteCommandes: r.accepteCommandes,
       prixPlats: prix,
       distanceKm,
+      distanceApprochee: approchee,
       memeZone,
       gamme: gammeEffective(gammeAutomatique(prix.length > 0 ? mediane(prix) : null, reglages.seuils), validees.get(r.id) ?? null),
       noteMoyenne: e ? moyenneAffichee(e.avisSomme, e.avisTotal) : null,
@@ -225,6 +251,7 @@ export async function chercherAideChoix(entree: EntreeAideChoix): Promise<Result
       return { ...p, categorie: r.categorie, quartier: r.quartier, communeNom: r.communeNom, photoUrl: r.photoUrl, logoUrl: r.logoUrl };
     }),
     diagnostic: {
+      cuisineFiltree: Boolean(entree.categorieId),
       restaurantsPublies: candidats.length,
       ouvertsAuxCommandes: ouverts.length,
       dansLaZone: dansLaZone.length,

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui";
 import { aideAuChoixAction, oublierQuartierRetenuAction } from "@/lib/decouverte/aide-choix-actions";
 import type { PropositionRestaurant, ResultatAideChoix } from "@/lib/decouverte/aide-choix-service";
@@ -39,7 +39,19 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
   const [retenuActif, setRetenuActif] = useState(quartierRetenu);
   const [erreur, setErreur] = useState<string | null>(null);
   const [resultat, setResultat] = useState<ResultatAideChoix | null>(null);
+  const [resultatPour, setResultatPour] = useState("");
+  const [saisie, setSaisie] = useState("30 000");
   const [enCours, demarrer] = useTransition();
+  const zoneRef = useRef<HTMLElement>(null);
+
+  // Les critères du moment : un résultat affiché pour d'autres critères est signalé comme périmé.
+  const cle = JSON.stringify([budget, mode, mode === "gps" ? gps : mode === "quartier" ? quartierId : communeId, cuisineId]);
+  const perime = resultat !== null && resultatPour !== cle;
+
+  function fixerBudget(n: number) {
+    setBudget(n);
+    setSaisie(n > 0 ? n.toLocaleString("fr-FR") : "");
+  }
 
   function localiser() {
     if (!("geolocation" in navigator)) {
@@ -66,6 +78,7 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
       const r = await aideAuChoixAction({ budgetGnf: budget, position, categorieId: cuisineId || undefined, retenirQuartier: retenir && mode === "quartier" });
       if (r.ok) {
         setResultat(r.resultat);
+        setResultatPour(cle);
         if (retenir && mode === "quartier") setRetenuActif(quartierId);
       } else {
         setErreur(r.erreur);
@@ -74,7 +87,14 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
     });
   }
 
+  // Amène les résultats à l'écran (et au lecteur d'écran) quand une recherche vient d'aboutir.
+  useEffect(() => {
+    if (resultat && !perime) zoneRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [resultat, perime]);
+
   const groupes: GroupeChoix[] = ["dans_budget", "un_peu_au_dessus"];
+  const libelleZone = mode === "gps" ? "votre position" : (mode === "quartier" ? quartiers : communes).find((z) => z.id === (mode === "quartier" ? quartierId : communeId))?.libelle ?? "";
+  const libelleCuisine = cuisines.find((c) => c.id === cuisineId)?.libelle;
 
   return (
     <div className="aide-choix">
@@ -97,11 +117,12 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
             max={300_000}
             step={5_000}
             value={Math.min(budget, 300_000)}
-            onChange={(e) => setBudget(Number(e.target.value))}
+            aria-valuetext={gnf(budget)}
+            onChange={(e) => fixerBudget(Number(e.target.value))}
           />
           <div className="aide-choix-puces">
             {BUDGETS_RAPIDES.map((b) => (
-              <button key={b} type="button" aria-pressed={budget === b} className={`chip ${budget === b ? "actif" : ""}`} onClick={() => setBudget(b)}>
+              <button key={b} type="button" aria-pressed={budget === b} className={`chip ${budget === b ? "actif" : ""}`} onClick={() => fixerBudget(b)}>
                 {gnf(b)}
               </button>
             ))}
@@ -110,10 +131,12 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
             Ou saisissez un montant (GNF)
             <input
               inputMode="numeric"
-              value={budget}
+              value={saisie}
               onChange={(e) => {
-                const n = Number(e.target.value.replace(/\D/g, ""));
-                setBudget(Math.min(n, BUDGET_MAX_GNF));
+                const chiffres = e.target.value.replace(/\D/g, "");
+                const n = Math.min(Number(chiffres || 0), BUDGET_MAX_GNF);
+                setBudget(n);
+                setSaisie(chiffres === "" ? "" : n.toLocaleString("fr-FR"));
               }}
             />
           </label>
@@ -223,14 +246,33 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
 
       {erreur ? <Alert ton="danger">{erreur}</Alert> : null}
 
-      {resultat ? (
-        <section className="aide-choix-resultats" aria-live="polite" aria-label="Propositions">
+      {enCours ? (
+        <p className="aide-choix-chargement" role="status">
+          Recherche des restaurants…
+        </p>
+      ) : null}
+
+      {resultat && !enCours ? (
+        <section ref={zoneRef} className={`aide-choix-resultats${perime ? " aide-choix-perime" : ""}`} aria-live="polite" aria-label="Propositions">
+          {perime ? (
+            <p className="aide-choix-aide" role="status">
+              Vos critères ont changé : relancez la recherche pour mettre ces propositions à jour.
+            </p>
+          ) : (
+            <p className="aide-choix-recap">
+              Pour {gnf(budget)}
+              {libelleZone ? ` · ${libelleZone}` : ""}
+              {libelleCuisine ? ` · ${libelleCuisine}` : ""}
+            </p>
+          )}
           {resultat.propositions.length === 0 ? (
             <div className="aide-choix-vide" role="status">
               <h2>Aucune proposition pour ce budget ici</h2>
               <p>
                 {resultat.diagnostic.restaurantsPublies === 0
-                  ? "Aucun restaurant n'est publié pour le moment."
+                  ? resultat.diagnostic.cuisineFiltree
+                    ? "Aucun restaurant de cette cuisine n'est publié pour le moment. Essayez « Peu importe »."
+                    : "Aucun restaurant n'est publié pour le moment."
                   : resultat.diagnostic.ouvertsAuxCommandes === 0
                     ? "Aucun restaurant n'accepte de commandes en ce moment."
                     : resultat.diagnostic.dansLaZone === 0
