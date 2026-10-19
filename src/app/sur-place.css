@@ -75,7 +75,7 @@
 .ssp-case { display: flex; align-items: flex-start; gap: var(--space-2); min-height: 32px; cursor: pointer; }
 .ssp-case input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--orange); flex-shrink: 0; }
 .ssp-validations { display: grid; gap: var(--space-2); }
-.ssp-lien { justify-self: start; padding: 0; border: 0; background: none; color: var(--rouge-fonce); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.9rem; }
+.ssp-lien { justify-self: start; display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--rouge-fonce); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.9rem; }
 .ssp-barre { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--radius-md); box-shadow: var(--shadow-md); }
 .ssp-barre-etat { min-width: 0; overflow-wrap: anywhere; }
 .ssp-barre-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

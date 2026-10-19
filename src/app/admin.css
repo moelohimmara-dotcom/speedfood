@@ -67,7 +67,7 @@
   border-radius: var(--radius-pill);
   background: rgba(255, 246, 237, 0.14);
   color: var(--creme);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -854,6 +854,15 @@ a.ad-tuile-lien:hover {
     padding: 3px 0;
     border: 0;
     text-align: right;
+    /* Revue du 19 octobre 2026 : un texte « sans retour à la ligne » (dates, motifs, adresses) sortait de la carte et était coupé à droite de l'écran
+       (journal d'audit, comptes). Sur téléphone, la valeur passe à la ligne au lieu de déborder. */
+    min-width: 0;
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ad-table td.ad-nombre {
+    white-space: normal;
   }
   .ad-table td::before {
     content: attr(data-label);
@@ -2119,6 +2128,9 @@ a.ad-carte-lien:hover {
 }
 .geo-details-corps label {
   display: grid;
+  /* Revue du 19 octobre 2026 : sans ceci, la colonne du libellé prenait la largeur naturelle du champ (191 px) et dépassait de 9 px à droite de l'écran. */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 4px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -2167,6 +2179,9 @@ a.ad-carte-lien:hover {
 /* Géographie : champs au gabarit de la console (bordure, 44 px, focus) */
 .geo-ligne-haut input:not([type="checkbox"]),
 .geo-details-corps :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 44px;
   padding: 12px 14px;
   border: 1px solid var(--bordure);
