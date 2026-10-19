@@ -37,6 +37,7 @@ import "./envie-b.css";
 import "./cms-public.css";
 import "./studio-blocs.css";
 import "./studio-editeur.css";
+import { EnregistrementServiceWorker } from "@/components/EnregistrementServiceWorker";
 import { FichiersAnimes } from "@/components/FichiersAnimes";
 import { cssJetonsSite } from "@/lib/studio/jetons-lecture";
 
@@ -113,6 +114,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* Confirmation et notifications communes : consoles ET site public (panier, suivi), un seul fournisseur. */}
         <ConsoleProviders>{children}</ConsoleProviders>
         <FichiersAnimes />
+        <EnregistrementServiceWorker />
       </body>
     </html>
   );
