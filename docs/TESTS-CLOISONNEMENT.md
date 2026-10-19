@@ -37,7 +37,7 @@ Le test a été vérifié à l'envers : en ajoutant volontairement une policy `u
 - Les **jetons réels** de Supabase Auth et le passage par l'API (PostgREST) : les identités sont simulées dans la base. C'est équivalent pour les policies, pas pour la validation des jetons elle-même.
 - Les **routes serveur** qui utilisent la clé de service (qui contourne la RLS) : leur propre contrôle d'accès est du code applicatif, à relire (revue du 17 octobre) et non couvert ici.
 - Le **stockage** (fichiers : politiques de seaux), la configuration de Supabase Auth, les droits `GRANT` hors ceux rejoués par les migrations.
-- La **concurrence** (deux requêtes simultanées).
+- La **concurrence** (deux requêtes simultanées) : voir `docs/TESTS-CONCURRENCE.md` (`npm run test:concurrence`, vrai PostgreSQL 17).
 - PGlite est PostgreSQL 18 ; la production est 17.
 
 ## Quand le lancer

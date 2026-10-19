@@ -1,0 +1,10 @@
+{
+  "name": "speedfood-concurrence",
+  "private": true,
+  "type": "module",
+  "description": "Essais de concurrence en écriture sur un vrai PostgreSQL 17 jetable (voir docs/TESTS-CONCURRENCE.md).",
+  "dependencies": {
+    "embedded-postgres": "17.10.0-beta.17",
+    "pg": "^8.13.0"
+  }
+}

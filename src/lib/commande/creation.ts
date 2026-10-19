@@ -77,6 +77,18 @@ async function dernierNumeroAppelDuJour(restaurantId: string): Promise<number | 
   return (data as { numero_appel: number } | null)?.numero_appel ?? null;
 }
 
+/**
+ * Numéro d'appel du comptoir, attribué de façon ATOMIQUE par la base (compteur par restaurant et par jour, `fn_attribuer_numero_appel`) : deux
+ * clients qui commandent dans la même fraction de seconde reçoivent deux numéros différents. L'ancienne méthode (relire le dernier numéro, ajouter 1,
+ * insérer) perdait la plupart des commandes simultanées (essais de concurrence du 19 octobre 2026). Repli sur l'ancienne méthode si la fonction est
+ * absente (migration non appliquée) ou en panne : mieux vaut un numéro probable qu'une commande refusée.
+ */
+async function attribuerNumeroAppel(restaurantId: string): Promise<number> {
+  const { data, error } = await clientLivraison().rpc("fn_attribuer_numero_appel", { p_restaurant: restaurantId });
+  if (!error && typeof data === "number" && Number.isInteger(data) && data > 0) return data;
+  return prochainNumeroAppel(await dernierNumeroAppelDuJour(restaurantId));
+}
+
 function estViolationUniqueReference(error: { code?: string; message: string }): boolean {
   return error.code === "23505" && error.message.includes("reference");
 }
@@ -234,7 +246,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   // Trois tentatives au cas (rare) où la référence aléatoire serait déjà prise.
   for (let tentative = 0; tentative < 3; tentative += 1) {
     const reference = genererReference();
-    const numeroAppel = payload.mode === "sur_place" && serviceTable === "comptoir" ? prochainNumeroAppel(await dernierNumeroAppelDuJour(payload.restaurantId)) : null;
+    const numeroAppel = payload.mode === "sur_place" && serviceTable === "comptoir" ? await attribuerNumeroAppel(payload.restaurantId) : null;
     const { data: inseree, error } = await db
       .from("orders")
       .insert({
