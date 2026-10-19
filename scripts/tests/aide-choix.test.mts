@@ -9,6 +9,7 @@ import {
   type CandidatChoix,
   type ParametresChoix,
 } from "../../src/lib/decouverte/aide-choix";
+import { distanceDroiteKm, zoneLaPlusProche } from "../../src/lib/decouverte/zone-proche";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -26,6 +27,15 @@ verifier("gamme : sans prix, aucune gamme inventée", [gammeAutomatique(null), g
 verifier("gamme validée l'emporte", [gammeEffective("economique", "premium"), gammeEffective("economique", null), gammeEffective(null, null)], ["premium", "economique", null]);
 verifier("seuils valides", [seuilsValides(SEUILS_PAR_DEFAUT), seuilsValides({ economiqueJusqua: 50_000, intermediaireJusqua: 40_000, hautDeGammeJusqua: 100_000 }), seuilsValides({ economiqueJusqua: 10.5, intermediaireJusqua: 40_000, hautDeGammeJusqua: 100_000 }), seuilsValides({ economiqueJusqua: 500, intermediaireJusqua: 40_000, hautDeGammeJusqua: 100_000 })], [true, false, false, false]);
 verifier("budget valide", [budgetValide(40_000), budgetValide(1000), budgetValide(40_000.5), budgetValide("40000"), budgetValide(2_000_000)], [true, false, false, false, false]);
+const ZONES = [
+  { id: "kaporo", libelle: "Kaporo Centre", latitude: 9.60976, longitude: -13.64236 },
+  { id: "sans", libelle: "Sans coordonnées", latitude: null, longitude: null },
+  { id: "loin", libelle: "Loin", latitude: 10.5, longitude: -13.7 },
+];
+verifier("distance droite : un degré de latitude ≈ 111 km", [Math.round(distanceDroiteKm({ latitude: 9, longitude: -13 }, { latitude: 10, longitude: -13 }))], [111]);
+verifier("zone la plus proche : trouvée, avec sa distance", [zoneLaPlusProche({ latitude: 9.612, longitude: -13.64 }, ZONES)?.zone.id, (zoneLaPlusProche({ latitude: 9.612, longitude: -13.64 }, ZONES)?.km ?? 99) < 1], ["kaporo", true]);
+verifier("zone la plus proche : trop loin ou sans coordonnées -> aucune", [zoneLaPlusProche({ latitude: 9.661, longitude: -13.607 }, ZONES), zoneLaPlusProche({ latitude: 9.612, longitude: -13.64 }, [ZONES[1]])], [null, null]);
+verifier("zone la plus proche : rayon réglable", [zoneLaPlusProche({ latitude: 9.661, longitude: -13.607 }, ZONES, 10)?.zone.id], ["kaporo"]);
 verifier("médiane", [mediane([30, 10, 20]), mediane([10, 20, 30, 40]), mediane([5])], [20, 25, 5]);
 
 // Les espaces des milliers en français sont des espaces insécables fines : on les normalise pour comparer.

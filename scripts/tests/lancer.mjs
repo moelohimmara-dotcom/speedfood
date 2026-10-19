@@ -163,6 +163,7 @@ copier("scripts/tests/notation.test.mts");
 copier("src/lib/decouverte/recommandation.ts");
 copier("scripts/tests/recommandation.test.mts");
 copier("src/lib/decouverte/aide-choix.ts");
+copier("src/lib/decouverte/zone-proche.ts");
 copier("scripts/tests/aide-choix.test.mts");
 copier("src/lib/table/regles.ts");
 copier("scripts/tests/table.test.mts");

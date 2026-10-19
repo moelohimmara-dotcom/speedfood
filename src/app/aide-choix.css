@@ -39,3 +39,5 @@
 .aide-choix-recap { margin: 0; font-weight: 600; }
 .aide-choix-lien { min-height: 24px; min-width: 24px; padding-block: 4px; }
 .aide-choix-envoi:disabled { opacity: 1; background: var(--bordure); color: #4a4039; cursor: not-allowed; background-image: none; }
+
+.aide-choix-lieu { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--succes-fond); color: var(--encre); font-size: 0.95rem; }

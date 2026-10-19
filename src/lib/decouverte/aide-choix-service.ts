@@ -156,10 +156,12 @@ async function pointDeLaZone(position: PositionClient): Promise<{ point: Point |
     const p = data.latitude !== null && data.longitude !== null ? { latitude: data.latitude, longitude: data.longitude } : null;
     return { point: p && pointValide(p) ? p : null, libelle: data.nom, erreur: false };
   }
-  const { data } = await db.from("neighborhoods").select("nom, communes(nom, latitude, longitude)").eq("id", position.id).maybeSingle();
+  const { data } = await db.from("neighborhoods").select("nom, latitude, longitude, communes(nom, latitude, longitude)").eq("id", position.id).maybeSingle();
   if (!data) return { point: null, libelle: null, erreur: true };
+  // Le centre du quartier est plus précis que celui de la commune : on le préfère quand il est connu.
+  const propre = data.latitude !== null && data.longitude !== null ? { latitude: Number(data.latitude), longitude: Number(data.longitude) } : null;
   const c = Array.isArray(data.communes) ? data.communes[0] : data.communes;
-  const p = c && c.latitude !== null && c.longitude !== null ? { latitude: c.latitude, longitude: c.longitude } : null;
+  const p = propre && pointValide(propre) ? propre : c && c.latitude !== null && c.longitude !== null ? { latitude: c.latitude, longitude: c.longitude } : null;
   return { point: p && pointValide(p) ? p : null, libelle: data.nom, erreur: false };
 }
 

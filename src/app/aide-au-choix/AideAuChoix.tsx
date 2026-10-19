@@ -5,12 +5,10 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui";
 import { aideAuChoixAction, oublierQuartierRetenuAction } from "@/lib/decouverte/aide-choix-actions";
 import type { PropositionRestaurant, ResultatAideChoix } from "@/lib/decouverte/aide-choix-service";
+import { zoneLaPlusProche, type ZoneAvecPoint } from "@/lib/decouverte/zone-proche";
 import { BUDGET_MAX_GNF, BUDGET_MIN_GNF, LIBELLES_GAMME, LIBELLES_GROUPE_CHOIX, type GroupeChoix } from "@/lib/decouverte/aide-choix";
 
-export interface OptionZone {
-  id: string;
-  libelle: string;
-}
+export type OptionZone = ZoneAvecPoint;
 
 interface Props {
   quartiers: OptionZone[];
@@ -37,6 +35,7 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
   const [gps, setGps] = useState<{ latitude: number; longitude: number } | null>(null);
   const [etatGps, setEtatGps] = useState<"repos" | "recherche" | "ok" | "refuse">("repos");
   const [retenuActif, setRetenuActif] = useState(quartierRetenu);
+  const [lieuTrouve, setLieuTrouve] = useState<{ libelle: string; km: number } | "inconnu" | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [resultat, setResultat] = useState<ResultatAideChoix | null>(null);
   const [resultatPour, setResultatPour] = useState("");
@@ -61,8 +60,17 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
     setEtatGps("recherche");
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        setGps({ latitude: p.coords.latitude, longitude: p.coords.longitude });
+        const point = { latitude: p.coords.latitude, longitude: p.coords.longitude };
+        setGps(point);
         setEtatGps("ok");
+        // On dit au visiteur où il se trouve et on remplit le champ « quartier » : il peut le corriger ou passer en « Mon quartier ».
+        const proche = zoneLaPlusProche(point, quartiers, 5);
+        if (proche) {
+          setQuartierId(proche.zone.id);
+          setLieuTrouve({ libelle: `${proche.zone.libelle}, ${proche.zone.groupe ?? ""}`.replace(/, $/, ""), km: proche.km });
+        } else {
+          setLieuTrouve("inconnu");
+        }
       },
       () => setEtatGps("refuse"),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 }
@@ -166,6 +174,17 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
                 {etatGps === "recherche" ? "Recherche de votre position…" : etatGps === "ok" ? "Position trouvée (relancer)" : "Utiliser ma position"}
               </button>
               <p className="aide-choix-aide">Votre position sert à ce calcul uniquement : elle n&apos;est ni enregistrée ni conservée.</p>
+              {etatGps === "ok" && lieuTrouve && lieuTrouve !== "inconnu" ? (
+                <p className="aide-choix-lieu" role="status">
+                  Vous êtes près de <strong>{lieuTrouve.libelle}</strong>
+                  {lieuTrouve.km >= 0.1 ? ` (à environ ${lieuTrouve.km < 1 ? Math.round(lieuTrouve.km * 10) * 100 + " m" : lieuTrouve.km.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " km"} du centre du quartier)` : ""}. Ce quartier est pré-rempli dans « Mon quartier » : changez-le si besoin.
+                </p>
+              ) : null}
+              {etatGps === "ok" && lieuTrouve === "inconnu" ? (
+                <p className="aide-choix-lieu" role="status">
+                  Position trouvée, mais aucun quartier connu à moins de 5 km : la recherche utilise votre position exacte.
+                </p>
+              ) : null}
               {etatGps === "refuse" ? <Alert ton="info">La position n&apos;a pas pu être obtenue. Choisissez votre quartier ou votre commune.</Alert> : null}
             </div>
           ) : mode === "quartier" ? (
@@ -173,10 +192,16 @@ export function AideAuChoix({ quartiers, communes, cuisines, connecte, quartierR
               Quartier
               <select value={quartierId} onChange={(e) => setQuartierId(e.target.value)}>
                 <option value="">Choisir…</option>
-                {quartiers.map((q) => (
-                  <option key={q.id} value={q.id}>
-                    {q.libelle}
-                  </option>
+                {[...new Set(quartiers.map((q) => q.groupe ?? ""))].map((groupe) => (
+                  <optgroup key={groupe} label={groupe || "Autres"}>
+                    {quartiers
+                      .filter((q) => (q.groupe ?? "") === groupe)
+                      .map((q) => (
+                        <option key={q.id} value={q.id}>
+                          {q.libelle}
+                        </option>
+                      ))}
+                  </optgroup>
                 ))}
               </select>
             </label>

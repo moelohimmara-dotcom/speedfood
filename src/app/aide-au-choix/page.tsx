@@ -2,7 +2,6 @@ import { LienRetour } from "@/components/LienRetour";
 import { creerClientServeur } from "@/lib/db/server";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { creerClientPublic } from "@/lib/db/public";
-import { lireCatalogue } from "@/lib/decouverte/recherche";
 import { lireReglagesAideChoix } from "@/lib/decouverte/aide-choix-service";
 import { AideAuChoix, type OptionZone } from "./AideAuChoix";
 import type { Metadata } from "next";
@@ -15,20 +14,25 @@ export const dynamic = "force-dynamic";
 
 /** Page de l'assistant de choix : budget par personne et position, propositions expliquées du moins cher au plus huppé. */
 export default async function AideAuChoixPage() {
-  const [catalogue, reglages, { data: categories }] = await Promise.all([
-    lireCatalogue(),
+  const db = creerClientPublic();
+  const [reglages, { data: categories }, { data: lignesQuartiers }, { data: lignesCommunes }] = await Promise.all([
     lireReglagesAideChoix(),
-    creerClientPublic().from("menu_categories").select("id, nom").order("ordre"),
+    db.from("menu_categories").select("id, nom").order("ordre"),
+    db.from("neighborhoods").select("id, nom, latitude, longitude, communes(nom)").eq("generique", false).order("nom").limit(2000),
+    db.from("communes").select("id, nom").order("nom").limit(2000),
   ]);
 
-  // Zones proposées : seulement celles où il y a au moins un restaurant publié (une liste de toute la Guinée serait inutilisable).
-  const quartiers = new Map<string, OptionZone>();
-  const communes = new Map<string, OptionZone>();
-  for (const r of catalogue.restaurants) {
-    if (r.quartierId && r.quartier && !r.quartierGenerique) quartiers.set(r.quartierId, { id: r.quartierId, libelle: `${r.quartier}, ${r.communeNom}` });
-    if (r.communeId && r.communeNom) communes.set(r.communeId, { id: r.communeId, libelle: r.communeNom });
-  }
-  const trier = (m: Map<string, OptionZone>) => [...m.values()].sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+  // Toutes les zones sont proposées (le visiteur peut être n'importe où), les quartiers regroupés par commune ; un quartier sans restaurant
+  // donne simplement une réponse honnête (aucun restaurant). Les coordonnées servent à retrouver le quartier le plus proche de la position GPS.
+  const enNombre = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  const quartiers: OptionZone[] = ((lignesQuartiers ?? []) as unknown as { id: string; nom: string; latitude: number | string | null; longitude: number | string | null; communes: { nom: string } | { nom: string }[] | null }[])
+    .map((q) => {
+      const commune = Array.isArray(q.communes) ? q.communes[0] : q.communes;
+      return { id: q.id, libelle: q.nom, groupe: commune?.nom ?? "", latitude: enNombre(q.latitude), longitude: enNombre(q.longitude) };
+    })
+    .sort((a, b) => (a.groupe ?? "").localeCompare(b.groupe ?? "", "fr") || a.libelle.localeCompare(b.libelle, "fr"));
+  const communes: OptionZone[] = ((lignesCommunes ?? []) as { id: string; nom: string }[]).map((c) => ({ id: c.id, libelle: c.nom }));
+  const quartierExiste = (id: string) => quartiers.some((q) => q.id === id);
 
   // Quartier retenu sur le compte (facultatif, lecture tolérante).
   let connecte = false;
@@ -54,11 +58,11 @@ export default async function AideAuChoixPage() {
         Dites-nous votre budget par personne et où vous êtes. Nous vous proposons des restaurants ouverts près de vous, du moins cher au plus huppé, avec la raison de chaque proposition.
       </p>
       <AideAuChoix
-        quartiers={trier(quartiers)}
-        communes={trier(communes)}
+        quartiers={quartiers}
+        communes={communes}
         cuisines={(categories ?? []).map((c) => ({ id: c.id, libelle: c.nom }))}
         connecte={connecte}
-        quartierRetenu={quartierRetenu && quartiers.has(quartierRetenu) ? quartierRetenu : null}
+        quartierRetenu={quartierRetenu && quartierExiste(quartierRetenu) ? quartierRetenu : null}
         rayonKm={reglages.rayonDefautKm}
       />
     </main>
