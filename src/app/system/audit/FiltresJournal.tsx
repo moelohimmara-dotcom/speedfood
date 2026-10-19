@@ -17,8 +17,8 @@ export function FiltresJournal({
   depuisJoursActuel?: number;
 }) {
   return (
-    <form method="GET" role="search" className="ad-outils" style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-      <div className="field" style={{ marginBottom: 0, flex: "1 1 220px" }}>
+    <form method="GET" role="search" className="ad-outils u-d-flex-g-12px-fwrap-wrap-ai-flex-end">
+      <div className="field u-mb-0-flex-1-1-220px">
         <label htmlFor="action">Type d&apos;action</label>
         <select id="action" name="action" defaultValue={actionActuelle ?? ""}>
           <option value="">Toutes les actions</option>
@@ -29,7 +29,7 @@ export function FiltresJournal({
           ))}
         </select>
       </div>
-      <div className="field" style={{ marginBottom: 0, flex: "1 1 160px" }}>
+      <div className="field u-mb-0-flex-1-1-160px">
         <label htmlFor="depuis">Période</label>
         <select id="depuis" name="depuis" defaultValue={depuisJoursActuel ?? ""}>
           {PERIODES.map((p) => (
@@ -39,7 +39,7 @@ export function FiltresJournal({
           ))}
         </select>
       </div>
-      <button type="submit" className="btn btn-secondary" style={{ alignSelf: "flex-end" }}>
+      <button type="submit" className="btn btn-secondary u-as-flex-end">
         Filtrer
       </button>
     </form>

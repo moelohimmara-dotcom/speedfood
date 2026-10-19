@@ -141,13 +141,13 @@ export default async function AccueilConsolePage() {
 
       {restaurant?.motif_correction ? (
         <div className="ad-bandeau ad-bandeau-attention" role="note">
-          <p style={{ margin: 0 }}>
+          <p className="u-m-0">
             <strong>Une correction est demandée avant publication :</strong> {restaurant.motif_correction}
           </p>
         </div>
       ) : !restaurant?.publie ? (
         <div className="ad-bandeau ad-bandeau-attention" role="note">
-          <p style={{ margin: 0 }}>
+          <p className="u-m-0">
             Votre restaurant n&apos;est pas encore visible au catalogue. Une personne de l&apos;équipe Speedfood doit d&apos;abord le valider.
           </p>
         </div>
@@ -179,7 +179,7 @@ export default async function AccueilConsolePage() {
         {aTraiter.length === 0 ? panneauATraiter : null}
       </div>
 
-      <section className="ad-cartes" aria-label={`Chiffres des ${PERIODE} derniers jours`} style={{ marginTop: "var(--space-5)" }}>
+      <section className="ad-cartes u-mt-s5" aria-label={`Chiffres des ${PERIODE} derniers jours`}>
         <CarteChiffre
           libelle={`Commandes, ${PERIODE} derniers jours`}
           valeur={courant.total}
@@ -251,14 +251,14 @@ export default async function AccueilConsolePage() {
               </div>
             </div>
           ) : (
-            <p className="ad-aide-champ" style={{ margin: 0 }}>
+            <p className="ad-aide-champ u-m-0">
               Votre lien, votre QR code et le partage WhatsApp seront disponibles dès que l&apos;équipe Speedfood aura validé et publié votre page.
             </p>
           )}
         </Volet>
 
         <Volet titre="Mon menu" resume={`${nombrePlats ?? 0} plat${(nombrePlats ?? 0) > 1 ? "s" : ""} au menu`}>
-          <p style={{ margin: 0 }}>
+          <p className="u-m-0">
             <Link href="/restaurant/menu" className="lien-texte">
               Gérer mes plats, mes sections et leur disponibilité
             </Link>

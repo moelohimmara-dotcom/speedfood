@@ -26,20 +26,20 @@ export function BlocLivraisonClient({ livraison }: { livraison: VueLivraison & {
     : livraison.etape;
 
   return (
-    <Card style={{ marginTop: "var(--space-4)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+    <Card className="u-mt-s4">
+      <div className="u-145926cb">
         <strong>Livraison</strong>
         <Badge ton={livraison.statut === "livree" ? "succes" : livraison.statut === "echec" || livraison.statut === "annulee" ? "danger" : "neutre"}>
           {livraison.libelle}
         </Badge>
       </div>
       {livraison.livreurNom && !final ? (
-        <p style={{ margin: "var(--space-2) 0 0" }}>
+        <p className="u-m-s2-0-0">
           Votre livreur : <strong>{livraison.livreurNom}</strong>
         </p>
       ) : null}
       {!final ? (
-        <ol className="commande-livraison-etapes" aria-label="Avancement de la livraison" style={{ marginTop: "var(--space-3)" }}>
+        <ol className="commande-livraison-etapes u-mt-s3" aria-label="Avancement de la livraison">
           {etapes.map((nom, i) => (
             <li key={nom} className={i + 1 <= courante ? "fait" : ""} aria-current={i + 1 === courante ? "step" : undefined}>
               {nom}
@@ -48,7 +48,7 @@ export function BlocLivraisonClient({ livraison }: { livraison: VueLivraison & {
         </ol>
       ) : null}
       {livraison.minutesAvantArrivee !== null ? (
-        <p style={{ margin: "var(--space-3) 0 0" }}>
+        <p className="u-m-s3-0-0">
           Arrivée estimée dans environ <strong>{livraison.minutesAvantArrivee} min</strong>.
         </p>
       ) : null}
@@ -62,20 +62,20 @@ export function BlocLivraisonClient({ livraison }: { livraison: VueLivraison & {
       ) : null}
       {livraison.code ? (
         <div className="suivi-code-remise">
-          <p style={{ margin: 0 }}>Donnez ce code au livreur quand il vous remet la commande :</p>
+          <p className="u-m-0">Donnez ce code au livreur quand il vous remet la commande :</p>
           <p className="suivi-code-remise-valeur" aria-label={`Code de remise ${livraison.code.split("").join(" ")}`}>
             {livraison.code}
           </p>
         </div>
       ) : null}
       {livraison.fraisGnf > 0 ? (
-        <p style={{ margin: "var(--space-3) 0 0", color: "var(--secondaire)", fontSize: "0.9rem" }}>
+        <p className="u-m-s3-0-0-c-secondaire-fs-0-9rem">
           Frais de livraison : {livraison.fraisGnf.toLocaleString("fr-FR")} GNF, à régler directement
           {livraison.distanceKm !== null ? ` · ${livraison.distanceKm.toLocaleString("fr-FR")} km` : ""}.
         </p>
       ) : null}
       {livraison.statut === "echec" ? (
-        <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+        <Alert ton="danger" className="u-mt-s3">
           La livraison n&apos;a pas pu aboutir. Contactez le restaurant.
         </Alert>
       ) : null}

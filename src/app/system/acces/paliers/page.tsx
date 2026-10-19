@@ -56,7 +56,7 @@ export default async function PaliersSystemePage() {
       <SousNav entrees={sousSectionsAccessibles("Accès", contexte.role)} />
 
       {lisible ? null : (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           Les habilitations n&apos;ont pas pu être lues (la table n&apos;est peut-être pas encore installée). Par prudence, tant
           que cette lecture échoue, les éditeurs ne peuvent plus rien faire dans les Pages, Bannières et Textes du site ; les
           super administrateurs ne sont pas concernés.
@@ -115,7 +115,7 @@ export default async function PaliersSystemePage() {
         </div>
       </Panneau>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="u-mt-s5">
         <Panneau titre="Attribuer une habilitation">
           <FormulaireAttributionPalier
             actifs={ACTIFS.map((a) => ({ code: a.code, libelle: a.libelle, garde: actifEstGarde(a.code) }))}
@@ -125,7 +125,7 @@ export default async function PaliersSystemePage() {
         </Panneau>
       </div>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="u-mt-s5">
         {personnes.length === 0 ? (
           <div className="ad-panneau">
             <EtatVide icone="acces" titre="Personne" texte="Aucun compte n'a de rôle système." />
@@ -144,8 +144,8 @@ export default async function PaliersSystemePage() {
               <tbody>
                 {personnes.map((p) => (
                   <tr key={p.utilisateurId}>
-                    <td className="ad-cellule-principale" data-label="Compte" style={{ overflowWrap: "anywhere" }}>
-                      <span style={{ fontWeight: 800 }}>{p.email}</span>
+                    <td className="ad-cellule-principale u-ow-anywhere" data-label="Compte">
+                      <span className="u-fw-800">{p.email}</span>
                     </td>
                     <td data-label="Rôle et préréglage">
                       <span className="ad-paliers-role">

@@ -40,7 +40,7 @@ export default async function BannieresSystemePage({
       <PageHeader titre="Contenu" description="Bannières diffusées sur les écrans publics." />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
 
-      <div className="ad-filtres" role="group" aria-label="Filtrer par statut" style={{ marginBottom: "var(--space-4)" }}>
+      <div className="ad-filtres u-mb-s4" role="group" aria-label="Filtrer par statut">
         {(["tous", "publie", "brouillon"] as const).map((valeur) => (
           <Link
             key={valeur}
@@ -56,7 +56,7 @@ export default async function BannieresSystemePage({
         ))}
       </div>
 
-      <div style={{ marginBottom: "var(--space-5)" }}>
+      <div className="u-mb-s5">
         <Panneau titre="Nouvelle bannière">
           {palier >= MINIMUMS_STUDIO.brouillon ? (
             <FormulaireNouvelleBanniere />
@@ -68,10 +68,10 @@ export default async function BannieresSystemePage({
 
       {bannieres.length === 0 ? (
         <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune bannière pour l&apos;instant.</p>
+          <p className="u-m-0-c-secondaire">Aucune bannière pour l&apos;instant.</p>
         </Card>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="u-d-flex-fdir-column-g-8px">
           {bannieres.map((b) => (
             <BanniereItem key={b.id} banniere={b} indisponible={limitePublication} />
           ))}

@@ -91,7 +91,7 @@ export default async function ComptesSystemePage({
       <SousNav entrees={sousSectionsAccessibles("Accès", contexte.role)} />
 
       {supprime === "1" ? (
-        <Alert ton="succes" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="succes" className="u-mb-s4">
           {Number.isFinite(comptesSupprimes) && comptesSupprimes !== 1
             ? `${comptesSupprimes} comptes supprimés définitivement.`
             : "Compte supprimé définitivement."}
@@ -145,7 +145,7 @@ export default async function ComptesSystemePage({
       </div>
 
       {tronque ? (
-        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="info" className="u-mb-s4">
           <strong>Liste incomplète.</strong> L&apos;annuaire a atteint sa borne de lecture : affinez la recherche par e-mail pour
           trouver un compte absent de cette page.
         </Alert>
@@ -166,7 +166,7 @@ export default async function ComptesSystemePage({
               <thead>
                 <tr>
                   <th scope="col">
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <span className="u-d-inline-flex-ai-center-g-8px">
                       {nombreSupprimables > 0 ? <CaseToutSelectionner /> : null}
                       Compte
                     </span>
@@ -179,19 +179,19 @@ export default async function ComptesSystemePage({
               <tbody>
                 {comptes.map((compte) => (
                   <tr key={compte.utilisateurId}>
-                    <td className="ad-cellule-principale" data-label="Compte" style={{ overflowWrap: "anywhere" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <td className="ad-cellule-principale u-ow-anywhere" data-label="Compte">
+                      <span className="u-d-inline-flex-ai-center-g-8px">
                         {estSupprimable(compte) ? <CaseCompte utilisateurId={compte.utilisateurId} email={compte.email} /> : null}
-                        <span style={{ fontWeight: 800 }}>{compte.email}</span>
+                        <span className="u-fw-800">{compte.email}</span>
                       </span>
                     </td>
                     <td data-label="Accès">
-                      <div style={{ display: "grid", gap: 4, justifyItems: "start", textAlign: "left" }}>
+                      <div className="u-d-grid-g-4px-justify-items-start-ta-left">
                         {compte.roleSysteme ? (
                           <Pastille ton="succes">{LIBELLES_ROLES[compte.roleSysteme as RoleSysteme] ?? compte.roleSysteme}</Pastille>
                         ) : null}
                         {compte.restaurants.map((affiliation) => (
-                          <span key={affiliation.restaurantId} style={{ fontSize: "0.88rem" }}>
+                          <span key={affiliation.restaurantId} className="u-fs-0-88rem">
                             {affiliation.role === "owner" ? "Propriétaire" : "Équipier"} de{" "}
                             <Link href={`/system/catalogue/restaurants/${affiliation.restaurantId}`} className="lien-texte">
                               {affiliation.nom}
@@ -201,12 +201,12 @@ export default async function ComptesSystemePage({
                         {compte.roleSysteme === null && compte.restaurants.length === 0 ? <Pastille ton="neutre">Sans affiliation</Pastille> : null}
                       </div>
                     </td>
-                    <td className="ad-secondaire" data-label="Créé le" style={{ whiteSpace: "nowrap" }}>
+                    <td className="ad-secondaire u-ws-nowrap" data-label="Créé le">
                       {formaterDateCourte(compte.creeLe)}
                     </td>
                     <td data-label="Actions">
                       {compte.utilisateurId !== contexte.utilisateurId && roleAPermission(contexte.role, "systeme.roles") ? (
-                        <div className="questions-actions" style={{ marginBottom: "var(--space-2)" }}>
+                        <div className="questions-actions u-mb-s2">
                           <ReinitialiserQuestions utilisateurId={compte.utilisateurId} email={compte.email} />
                         </div>
                       ) : null}
@@ -219,7 +219,7 @@ export default async function ComptesSystemePage({
                       ) : compte.utilisateurId === contexte.utilisateurId ? (
                         <Pastille ton="neutre">Vous</Pastille>
                       ) : compte.roleSysteme === "super_admin" ? (
-                        <span className="ad-secondaire" style={{ fontSize: "0.82rem" }}>
+                        <span className="ad-secondaire u-fs-0-82rem">
                           Retirez d&apos;abord son rôle
                         </span>
                       ) : (

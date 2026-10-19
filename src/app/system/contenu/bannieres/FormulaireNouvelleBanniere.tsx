@@ -21,7 +21,7 @@ export function FormulaireNouvelleBanniere() {
       <div className="field">
         <label htmlFor="image">Image (optionnel)</label>
         <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" />
-        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+        <p className="u-m-4px-0-0-fs-0-8rem-c-secondaire">
           JPEG, PNG ou WebP, 5 Mo maximum.
         </p>
       </div>

@@ -26,7 +26,7 @@ export default async function MisesEnAvantSystemePage() {
 
       <Panneau titre="Ajouter une mise en avant">
         {restaurantsDisponibles.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>
+          <p className="u-m-0-c-secondaire">
             Tous les restaurants publiés sont déjà mis en avant, ou aucun restaurant n&apos;est publié.
           </p>
         ) : (
@@ -34,7 +34,7 @@ export default async function MisesEnAvantSystemePage() {
         )}
       </Panneau>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="u-mt-s5">
         {misesEnAvant.length === 0 ? (
           <div className="ad-panneau">
             <EtatVide icone="catalogue" titre="Aucune mise en avant" texte="Aucun restaurant n'est mis en avant pour l'instant." />

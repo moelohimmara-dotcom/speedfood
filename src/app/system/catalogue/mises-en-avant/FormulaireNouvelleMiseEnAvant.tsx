@@ -16,8 +16,8 @@ export function FormulaireNouvelleMiseEnAvant({
   const [etat, action, enCours] = useActionState(ajouterMiseEnAvantAction, etatInitial);
 
   return (
-    <form action={action} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-      <div className="field" style={{ marginBottom: 0, flex: "1 1 220px" }}>
+    <form action={action} className="u-d-flex-g-8px-ai-flex-end-fwrap-wrap">
+      <div className="field u-mb-0-flex-1-1-220px">
         <label htmlFor="restaurant_id">Restaurant</label>
         <select id="restaurant_id" name="restaurant_id" required defaultValue="">
           <option value="" disabled>
@@ -30,7 +30,7 @@ export function FormulaireNouvelleMiseEnAvant({
           ))}
         </select>
       </div>
-      <div className="field" style={{ marginBottom: 0, width: 100 }}>
+      <div className="field u-mb-0-w-100px">
         <label htmlFor="position">Position</label>
         <input id="position" name="position" type="number" defaultValue={prochainePosition} />
       </div>

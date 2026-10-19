@@ -70,7 +70,7 @@ export function FormulaireNouvellePageBlocs() {
       {/* Guidance avant le clic, même logique que « Nouvelle page (texte) ». */}
       {!ouvert ? <p className="ad-palier-note">Composez visuellement : titres, images, colonnes, boutons…</p> : null}
       {ouvert ? (
-        <form id="nouvelle-page-blocs" onSubmit={soumettre} style={{ marginTop: "var(--space-4)" }}>
+        <form id="nouvelle-page-blocs" onSubmit={soumettre} className="u-mt-s4">
           <p className="ad-palier-note">Une page composée de blocs (titres, paragraphes, boutons…), modifiée dans l&apos;éditeur visuel.</p>
           <Input id="nouvelle-page-blocs-titre" label="Titre" name="titre" type="text" required maxLength={200} />
           <Input label="Adresse (slug)" name="slug" type="text" required maxLength={100} placeholder="nos-engagements" />

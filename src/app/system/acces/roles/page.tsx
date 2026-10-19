@@ -28,13 +28,13 @@ export default async function RolesSystemePage() {
       <SousNav entrees={sousSectionsAccessibles("Accès", contexte.role)} />
 
       <Panneau titre="Attribuer un rôle">
-        <p style={{ color: "var(--secondaire)", marginTop: 0 }}>
+        <p className="u-c-secondaire-mt-0">
           La personne doit déjà s&apos;être inscrite : cet écran attribue un rôle, il ne crée pas de compte.
         </p>
         <FormulaireAttributionRole />
       </Panneau>
 
-      <div style={{ marginTop: "var(--space-5)" }}>
+      <div className="u-mt-s5">
         {membres.length === 0 ? (
           <div className="ad-panneau">
             <EtatVide icone="acces" titre="Aucun rôle système" texte="Aucun compte n'a de rôle système." />

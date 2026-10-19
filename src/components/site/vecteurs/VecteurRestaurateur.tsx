@@ -43,8 +43,8 @@ export function VecteurRestaurateur() {
         <ellipse cx="182" cy="259" rx="38" ry="7" className="v-mangue v-e3" />
         <circle cx="182" cy="249" r="6" className="v-encre" />
         <path d="M164 242q-7-11 0-21t0-21" className="v-trait3 v-vapeur" />
-        <path d="M182 240q-7-11 0-21t0-21" className="v-trait3 v-vapeur" style={{ animationDelay: "0.8s" }} />
-        <path d="M200 242q-7-11 0-21t0-21" className="v-trait3 v-vapeur" style={{ animationDelay: "1.6s" }} />
+        <path d="M182 240q-7-11 0-21t0-21" className="v-trait3 v-vapeur u-ad-0-8s" />
+        <path d="M200 242q-7-11 0-21t0-21" className="v-trait3 v-vapeur u-ad-1-6s" />
 
         {/* Porte et panneau « ouvert » qui se balance */}
         <rect x="300" y="214" width="84" height="126" rx="6" className="v-mangue v-e" />
@@ -78,7 +78,7 @@ export function VecteurRestaurateur() {
           <rect x="8" y="14" width="80" height="148" rx="8" className="v-creme v-e3" />
           <rect x="8" y="14" width="80" height="24" rx="8" className="v-rouge v-e3" />
           <circle cx="24" cy="26" r="5" className="v-mangue" />
-          <path d="M36 26h40" className="v-trait3" style={{ stroke: "var(--creme)" }} />
+          <path d="M36 26h40" className="v-trait3 u-stroke-creme" />
           <g className="v-notif">
             <rect x="16" y="48" width="64" height="48" rx="7" className="v-blanc v-e3" />
             <path d="M24 62h36M24 74h24M24 84h30" className="v-trait3" />

@@ -21,7 +21,7 @@ export function VecteurParcours() {
           <rect x="0" y="0" width="150" height="260" rx="22" className="v-blanc v-e" />
           <rect x="12" y="20" width="126" height="224" rx="12" className="v-creme v-e3" />
           <rect x="12" y="20" width="126" height="32" rx="12" className="v-rouge v-e3" />
-          <path d="M26 36h50" className="v-trait3" style={{ stroke: "var(--creme)" }} />
+          <path d="M26 36h50" className="v-trait3 u-stroke-creme" />
           {[0, 1, 2].map((i) => (
             <g key={i}>
               <rect x="22" y={64 + i * 50} width="106" height="40" rx="9" className="v-blanc v-e3" />
@@ -40,11 +40,11 @@ export function VecteurParcours() {
             <circle cx="238" cy="160" r="19" className="v-blanc v-e" />
             <path d="M229 160l7 7 11-12" className="v-trait3" />
           </g>
-          <g className="v-etape" style={{ animationDelay: "0.9s" }}>
+          <g className="v-etape u-ad-0-9s">
             <circle cx="300" cy="124" r="19" className="v-mangue v-e" />
             <path d="M300 112v13l9 5" className="v-trait3" />
           </g>
-          <g className="v-etape" style={{ animationDelay: "1.8s" }}>
+          <g className="v-etape u-ad-1-8s">
             <circle cx="362" cy="160" r="19" className="v-blanc v-e" />
             <path d="M352 166h20l-3 -12h-14zM357 154v-4a5 5 0 0 1 10 0v4" className="v-trait3" />
           </g>
@@ -59,8 +59,8 @@ export function VecteurParcours() {
           <path d="M50 84c12 6 24 8 36 8s24-2 36-8c-6 12-22 18-36 18s-30-6-36-18z" className="v-rouge v-e3" />
           <path d="M62 70q8-8 16 0t16 0 16 0" className="v-trait3" />
           <path d="M70 46q-7-11 0-21t0-21" className="v-trait3 v-vapeur" />
-          <path d="M92 44q-7-11 0-21t0-21" className="v-trait3 v-vapeur" style={{ animationDelay: "0.8s" }} />
-          <path d="M114 46q-7-11 0-21t0-21" className="v-trait3 v-vapeur" style={{ animationDelay: "1.6s" }} />
+          <path d="M92 44q-7-11 0-21t0-21" className="v-trait3 v-vapeur u-ad-0-8s" />
+          <path d="M114 46q-7-11 0-21t0-21" className="v-trait3 v-vapeur u-ad-1-6s" />
         </g>
 
         {/* Sol et étincelles */}

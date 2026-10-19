@@ -68,7 +68,7 @@ export function ActivationMfa({ actif, facteurId, sessionRenforcee }: Props) {
   if (actif) {
     return (
       <div>
-        <p style={{ marginTop: 0 }}>
+        <p className="u-mt-0">
           <strong>Active.</strong> {sessionRenforcee ? "Cette session est protégée par votre code." : ""}
         </p>
         {!confirmationDesactivation ? (
@@ -77,10 +77,10 @@ export function ActivationMfa({ actif, facteurId, sessionRenforcee }: Props) {
           </Button>
         ) : (
           <div>
-            <Alert ton="danger" style={{ marginBottom: "var(--space-3)" }}>
+            <Alert ton="danger" className="u-mb-s3">
               Votre compte ne sera plus protégé que par son mot de passe. Confirmer la désactivation ?
             </Alert>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="u-d-flex-g-8px">
               <Button type="button" variante="danger" disabled={enCours} onClick={desactiver}>
                 {enCours ? "Désactivation…" : "Oui, désactiver"}
               </Button>
@@ -91,7 +91,7 @@ export function ActivationMfa({ actif, facteurId, sessionRenforcee }: Props) {
           </div>
         )}
         {erreur ? (
-          <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+          <Alert ton="danger" className="u-mt-s3">
             {erreur}
           </Alert>
         ) : null}
@@ -102,12 +102,12 @@ export function ActivationMfa({ actif, facteurId, sessionRenforcee }: Props) {
   if (!etape) {
     return (
       <div>
-        <p style={{ marginTop: 0 }}>La double authentification n&apos;est pas activée.</p>
+        <p className="u-mt-0">La double authentification n&apos;est pas activée.</p>
         <Button type="button" disabled={enCours} onClick={commencer}>
           {enCours ? "Préparation…" : "Activer la double authentification"}
         </Button>
         {erreur ? (
-          <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+          <Alert ton="danger" className="u-mt-s3">
             {erreur}
           </Alert>
         ) : null}
@@ -117,24 +117,24 @@ export function ActivationMfa({ actif, facteurId, sessionRenforcee }: Props) {
 
   return (
     <div>
-      <ol style={{ paddingLeft: "1.2rem", marginTop: 0 }}>
+      <ol className="u-pl-1-2rem-mt-0">
         <li>Ouvrez votre application d&apos;authentification et ajoutez un compte en scannant ce code.</li>
       </ol>
       {etape.qr ? (
         // eslint-disable-next-line @next/next/no-img-element -- image SVG fournie par Supabase (data URI), pas un asset du site.
         <img src={etape.qr} alt="Code QR à scanner avec l'application d'authentification" width={200} height={200} />
       ) : null}
-      <p style={{ fontSize: "0.85rem", color: "var(--secondaire)" }}>
+      <p className="u-fs-0-85rem-c-secondaire">
         Impossible de scanner ? Saisissez cette clé dans l&apos;application, et <strong>conservez-la dans un gestionnaire de
         mots de passe</strong> : c&apos;est votre seul moyen de récupération si vous perdez le téléphone.
       </p>
-      <code style={{ display: "block", wordBreak: "break-all", padding: 8, background: "var(--surface)", borderRadius: "var(--radius-md)" }}>
+      <code className="u-b3fb66f1">
         {etape.secret}
       </code>
-      <ol start={2} style={{ paddingLeft: "1.2rem" }}>
+      <ol start={2} className="u-pl-1-2rem">
         <li>Saisissez le code à 6 chiffres affiché dans l&apos;application pour confirmer.</li>
       </ol>
-      <div className="field" style={{ marginBottom: "var(--space-3)" }}>
+      <div className="field u-mb-s3">
         <label htmlFor="code-mfa">Code à 6 chiffres</label>
         <input
           id="code-mfa"
@@ -146,11 +146,11 @@ export function ActivationMfa({ actif, facteurId, sessionRenforcee }: Props) {
         />
       </div>
       {erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-3)" }}>
+        <Alert ton="danger" className="u-mb-s3">
           {erreur}
         </Alert>
       ) : null}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div className="u-d-flex-g-8px">
         <Button type="button" disabled={enCours} onClick={confirmer}>
           {enCours ? "Vérification…" : "Confirmer et activer"}
         </Button>

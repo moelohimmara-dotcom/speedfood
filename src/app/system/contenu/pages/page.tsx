@@ -82,7 +82,7 @@ export default async function ContenusSystemePage({
           {palier >= MINIMUMS_STUDIO.brouillon ? (
             <div>
               <FormulaireNouvellePageBlocs />
-              <p className="ad-palier-note" style={{ marginTop: "var(--space-3)" }}>
+              <p className="ad-palier-note u-mt-s3">
                 Toutes les pages se composent désormais dans l&apos;éditeur visuel. Une page publiée apparaît
                 automatiquement dans le pied de page du site, colonne « Informations ».
               </p>

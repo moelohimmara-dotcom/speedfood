@@ -109,7 +109,7 @@ export function FormulaireBienvenue({
               🎲 Une autre idée
             </button>
             {etat.erreur ? (
-              <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+              <Alert ton="danger" className="u-mt-s3">
                 {etat.erreur}
               </Alert>
             ) : null}

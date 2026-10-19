@@ -27,7 +27,7 @@ export function SupprimerPage({
   const notifier = useNotification();
 
   return (
-    <span style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+    <span className="u-d-grid-g-6px-justify-items-start">
       {erreur ? <Alert ton="danger">{erreur}</Alert> : null}
       <Button
         type="button"

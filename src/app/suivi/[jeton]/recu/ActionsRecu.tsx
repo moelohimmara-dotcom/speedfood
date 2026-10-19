@@ -29,7 +29,7 @@ export function ActionsRecu({ lienWhatsApp, lien }: { lienWhatsApp: string; lien
       <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
         Imprimer ou enregistrer en PDF
       </button>
-      <p role="status" style={{ flexBasis: "100%", margin: 0, color: "var(--secondaire)", fontSize: "0.85rem" }}>
+      <p role="status" className="u-flex-basis-100-m-0-c-secondaire-fs-0-85rem">
         {message}
       </p>
     </div>

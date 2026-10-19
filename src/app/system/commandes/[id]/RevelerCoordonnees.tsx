@@ -22,13 +22,13 @@ export function RevelerCoordonnees({
   if (devoile) {
     return (
       <div>
-        <p style={{ margin: "0 0 4px" }}>
+        <p className="u-m-0-0-4px">
           <strong>Téléphone :</strong> {devoile.telephone}
         </p>
-        <p style={{ margin: "0 0 4px" }}>
+        <p className="u-m-0-0-4px">
           <strong>Adresse :</strong> {devoile.adresse}
         </p>
-        <p style={{ fontSize: "0.8rem", color: "var(--secondaire)" }}>
+        <p className="u-fs-0-8rem-c-secondaire">
           Révélation journalisée. Rechargez la page pour revenir au masquage par défaut.
         </p>
       </div>
@@ -37,10 +37,10 @@ export function RevelerCoordonnees({
 
   return (
     <div>
-      <p style={{ margin: "0 0 4px" }}>
+      <p className="u-m-0-0-4px">
         <strong>Téléphone :</strong> {telephoneAffiche}
       </p>
-      <p style={{ margin: "0 0 8px" }}>
+      <p className="u-m-0-0-8px">
         <strong>Adresse :</strong> {adresseAffichee}
       </p>
 
@@ -57,7 +57,7 @@ export function RevelerCoordonnees({
             />
           </div>
           {erreur ? <Alert ton="danger">{erreur}</Alert> : null}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="u-d-flex-g-8px">
             <Button
               type="button"
               disabled={enTransition}

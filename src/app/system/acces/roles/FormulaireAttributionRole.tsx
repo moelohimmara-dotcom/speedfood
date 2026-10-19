@@ -11,12 +11,12 @@ export function FormulaireAttributionRole() {
   const [etat, action, enCours] = useActionState(attribuerRoleAction, etatInitial);
 
   return (
-    <form action={action} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-      <div className="field" style={{ marginBottom: 0, flex: "1 1 220px" }}>
+    <form action={action} className="u-d-flex-g-8px-ai-flex-end-fwrap-wrap">
+      <div className="field u-mb-0-flex-1-1-220px">
         <label htmlFor="email">Email du compte</label>
         <input id="email" name="email" type="email" required placeholder="nom@exemple.com" />
       </div>
-      <div className="field" style={{ marginBottom: 0, flex: "1 1 180px" }}>
+      <div className="field u-mb-0-flex-1-1-180px">
         <label htmlFor="role">Rôle</label>
         <select id="role" name="role" required defaultValue="">
           <option value="" disabled>

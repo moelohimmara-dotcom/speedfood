@@ -31,7 +31,7 @@ export function ActionSupportStatut({
 
   if (statutsPossibles.length === 0) {
     return (
-      <p style={{ margin: 0, color: "var(--secondaire)" }}>
+      <p className="u-m-0-c-secondaire">
         Aucune transition possible depuis « {LIBELLES_STATUT[statutActuel]} ».
       </p>
     );

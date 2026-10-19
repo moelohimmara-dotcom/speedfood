@@ -22,14 +22,14 @@ export function ConnexionForm({ suite }: { suite: string }) {
         autoComplete="current-password"
       />
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           {etat.erreur}
         </Alert>
       ) : null}
       <Button type="submit" pleineLargeur disabled={enCours}>
         {enCours ? "Connexion…" : "Se connecter"}
       </Button>
-      <p style={{ marginTop: "var(--space-3)", marginBottom: 0, fontSize: "0.9rem" }}>
+      <p className="u-mt-s3-mb-0-fs-0-9rem">
         <Link href="/connexion/oubli" className="lien-texte">Mot de passe oublié ?</Link>
       </p>
     </form>

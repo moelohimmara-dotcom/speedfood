@@ -68,7 +68,7 @@ export function RestaurantCard({
   const libelleEtat = libelleEtatRestaurant(etat);
 
   return (
-    <Link href={`/restaurants/${id}`} style={{ textDecoration: "none" }}>
+    <Link href={`/restaurants/${id}`} className="u-td-none">
       <Card
         className="carte-restaurant"
         style={{
@@ -93,8 +93,8 @@ export function RestaurantCard({
             </span>
           )}
         </div>
-        <div className="carte-restaurant-corps" style={{ paddingTop: "calc(var(--space-4) + 18px)" }}>
-          <h3 style={{ fontSize: "1.2rem", marginBottom: 6 }}>{nom}</h3>
+        <div className="carte-restaurant-corps u-pt-calc-s4-18px">
+          <h3 className="u-fs-1-2rem-mb-6px">{nom}</h3>
           <p className="carte-restaurant-meta">
             <span className="pastille-categorie" style={{ background: couleurCategorie }} aria-hidden="true" />
             {categorie} · {quartier}

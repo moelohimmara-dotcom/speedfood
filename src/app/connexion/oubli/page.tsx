@@ -19,7 +19,7 @@ export default async function OubliPage({ searchParams }: { searchParams: Promis
       }
     >
       {lien === "invalide" ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           Ce lien est invalide ou a expiré. Demandez-en un nouveau ci-dessous.
         </Alert>
       ) : null}

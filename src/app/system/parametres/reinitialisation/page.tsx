@@ -31,10 +31,10 @@ export default async function ReinitialisationPage() {
         Zone dangereuse. Cette action supprime tous les restaurants, menus, commandes, clients et comptes (sauf super administrateurs). Elle est
         enregistrée dans le journal d&apos;audit.
       </Alert>
-      <div style={{ height: "var(--space-5)" }} />
+      <div className="u-h-s5" />
       {!mfa.actif ? (
         <Panneau titre="Double authentification requise">
-          <p style={{ marginTop: 0 }}>
+          <p className="u-mt-0">
             Pour votre sécurité, cette action n&apos;est possible qu&apos;avec la double authentification activée sur votre compte.
           </p>
           <Link href="/compte/securite" className="lien-texte">
@@ -43,7 +43,7 @@ export default async function ReinitialisationPage() {
         </Panneau>
       ) : !mfa.sessionRenforcee ? (
         <Panneau titre="Confirmez votre identité">
-          <p style={{ marginTop: 0 }}>
+          <p className="u-mt-0">
             Déconnectez-vous puis reconnectez-vous en saisissant le code de votre application : la session doit être renforcée pour continuer.
           </p>
         </Panneau>

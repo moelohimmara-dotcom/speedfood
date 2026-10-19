@@ -19,7 +19,7 @@ export function VecteurAide() {
           <rect x="68" y="118" width="250" height="112" rx="24" className="v-ombre" transform="translate(7 7)" />
           <path d="M104 226l-14 36 48-30z" className="v-blanc v-e" />
           <rect x="60" y="110" width="250" height="112" rx="24" className="v-blanc v-e" />
-          <path d="M104 221h28" style={{ stroke: "var(--surface)", strokeWidth: 6 }} />
+          <path d="M104 221h28" className="u-stroke-surface-stroke-width-6" />
           <circle cx="118" cy="166" r="30" className="v-mangue v-e" />
           <text x="118" y="181" textAnchor="middle" className="v-texte" fontSize="44">
             ?
@@ -28,11 +28,11 @@ export function VecteurAide() {
         </g>
 
         {/* Bulle de la réponse */}
-        <g className="v-bulle" style={{ animationDelay: "-2s" }}>
+        <g className="v-bulle u-ad-2s">
           <rect x="226" y="246" width="250" height="112" rx="24" className="v-ombre" transform="translate(7 7)" />
           <path d="M440 354l16 34-46-28z" className="v-mangue v-e" />
           <rect x="218" y="238" width="250" height="112" rx="24" className="v-mangue v-e" />
-          <path d="M416 349h26" style={{ stroke: "var(--mangue)", strokeWidth: 6 }} />
+          <path d="M416 349h26" className="u-stroke-mangue-stroke-width-6" />
           <circle cx="262" cy="294" r="26" className="v-blanc v-e" />
           <path d="M250 294l9 9 16-18" className="v-trait" />
           <path d="M306 276h130M306 296h104M306 316h76" className="v-trait" />

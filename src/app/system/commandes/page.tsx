@@ -78,18 +78,18 @@ export default async function SupportCommandesSystemePage({
         </form>
 
         {jour ? (
-          <div className="alerte alerte-info" role="note" style={{ fontSize: "0.85rem" }}>
+          <div className="alerte alerte-info u-fs-0-85rem" role="note">
             Filtre « du jour » : seules les commandes créées depuis minuit (UTC) sont affichées.{" "}
-            <Link href={lienSansJour ? `/system/commandes?${lienSansJour}` : "/system/commandes"} style={{ fontWeight: 700 }}>
+            <Link href={lienSansJour ? `/system/commandes?${lienSansJour}` : "/system/commandes"} className="u-fw-700">
               Voir toutes les périodes
             </Link>
           </div>
         ) : null}
 
         {restaurantId ? (
-          <div className="alerte alerte-info" role="note" style={{ fontSize: "0.85rem" }}>
+          <div className="alerte alerte-info u-fs-0-85rem" role="note">
             Filtre : commandes d&apos;un seul restaurant{commandes[0]?.restaurantNom ? ` (${commandes[0].restaurantNom})` : ""}.{" "}
-            <Link href="/system/commandes" style={{ fontWeight: 700 }}>
+            <Link href="/system/commandes" className="u-fw-700">
               Voir tous les restaurants
             </Link>
           </div>

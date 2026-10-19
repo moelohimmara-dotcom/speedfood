@@ -31,7 +31,7 @@ export function FormulaireQuestions({ suite, question1, question2, codesRestants
         </div>
         <p className="questions-aide">Les majuscules, les accents et les espaces en trop n&apos;ont pas d&apos;importance.</p>
         {etat.erreur ? (
-          <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+          <Alert ton="danger" className="u-mb-s4">
             {etat.erreur}
           </Alert>
         ) : null}
@@ -53,7 +53,7 @@ export function FormulaireQuestions({ suite, question1, question2, codesRestants
               <input id="questions-code" name="code" autoComplete="off" required maxLength={16} spellCheck={false} />
             </div>
             {etatCode.erreur ? (
-              <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+              <Alert ton="danger" className="u-mb-s4">
                 {etatCode.erreur}
               </Alert>
             ) : null}

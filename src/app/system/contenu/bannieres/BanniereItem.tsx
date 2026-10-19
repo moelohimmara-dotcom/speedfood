@@ -18,23 +18,23 @@ export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; i
   const publie = banniere.statut === "publie";
 
   return (
-    <Card style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+    <Card className="u-d-flex-jc-space-between-fwrap-wrap-g-8px">
+      <div className="u-d-flex-g-12px-ai-center">
         {banniere.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local.
           <img
             src={banniere.image_url}
             alt=""
-            style={{ width: 96, height: 54, objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }}
+            className="u-50b72dd2"
           />
         ) : null}
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="u-d-flex-ai-center-g-8px">
             <strong>{banniere.titre}</strong>
             <Badge ton={publie ? "succes" : "neutre"}>{publie ? "Publiée" : "Brouillon"}</Badge>
           </div>
           {banniere.texte ? (
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>{banniere.texte}</p>
+            <p className="u-m-0-fs-0-85rem-c-secondaire">{banniere.texte}</p>
           ) : null}
           {indisponible ? (
             <p className="ad-palier-note" id={`banniere-${banniere.id}-limite`}>
@@ -43,7 +43,7 @@ export function BanniereItem({ banniere, indisponible }: { banniere: Banniere; i
           ) : null}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div className="u-d-flex-g-6px">
         <Button
           type="button"
           variante="secondary"

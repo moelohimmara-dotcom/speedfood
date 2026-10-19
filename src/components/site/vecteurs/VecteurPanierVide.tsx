@@ -7,13 +7,13 @@ export function VecteurPanierVide() {
     <div className="vec-cadre vec-vide boucle" suppressHydrationWarning>
       <svg className="vec" viewBox="0 0 400 320" aria-hidden="true" focusable="false">
         <g className="v-flotte">
-          <ellipse cx="200" cy="34" rx="56" ry="17" className="v-trait3" style={{ strokeDasharray: "8 8" }} />
+          <ellipse cx="200" cy="34" rx="56" ry="17" className="v-trait3 u-stroke-dasharray-8-8" />
           <path d="M200 25v18M191 34h18" className="v-trait3" />
         </g>
 
         {/* Anse en deux traits (encre puis mangue) */}
-        <path d="M120 158C120 54 280 54 280 158" className="v-trait" style={{ strokeWidth: 16 }} />
-        <path d="M120 158C120 54 280 54 280 158" className="v-trait" style={{ stroke: "var(--mangue)", strokeWidth: 8 }} />
+        <path d="M120 158C120 54 280 54 280 158" className="v-trait u-stroke-width-16" />
+        <path d="M120 158C120 54 280 54 280 158" className="v-trait u-stroke-mangue-stroke-width-8" />
 
         {/* Corbeille */}
         <path d="M78 160h244l-30 134a14 14 0 0 1-14 11H122a14 14 0 0 1-14-11z" className="v-ombre" transform="translate(7 7)" />

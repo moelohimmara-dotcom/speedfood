@@ -16,11 +16,11 @@ export function RoleItem({ membre }: { membre: MembreRoleSysteme }) {
 
   return (
     <tr>
-      <td className="ad-cellule-principale" data-label="Compte" style={{ overflowWrap: "anywhere" }}>
-        <span style={{ fontWeight: 800 }}>{membre.email}</span>
+      <td className="ad-cellule-principale u-ow-anywhere" data-label="Compte">
+        <span className="u-fw-800">{membre.email}</span>
       </td>
       <td data-label="Rôle">
-        <span style={{ display: "grid", gap: 4, justifyItems: "start", textAlign: "left" }}>
+        <span className="u-d-grid-g-4px-justify-items-start-ta-left">
           <Pastille ton="neutre">{LIBELLES_ROLES[membre.role]}</Pastille>
           <span className="ad-secondaire" style={{ fontSize: "0.8rem", maxWidth: 46 + "ch" }}>
             {DESCRIPTIONS_ROLES[membre.role]}

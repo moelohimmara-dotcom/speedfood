@@ -108,19 +108,15 @@ export function FormulaireProposition({
         soumettre();
       }}
       noValidate
-      style={{
-        border: "1px solid var(--bordure)",
-        borderRadius: "var(--radius-md)",
-        padding: 12,
-      }}
+      className="u-bd-1px-solid-bordure-br-radius-md-p-12px"
     >
-      <p style={{ marginTop: 0, fontWeight: 700 }}>Proposer une modification</p>
-      <p style={{ margin: "0 0 var(--space-3)", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+      <p className="u-mt-0-fw-700">Proposer une modification</p>
+      <p className="u-m-0-0-s3-c-secondaire-fs-0-85rem">
         Le client devra accepter cette nouvelle version avant toute préparation. En cas de refus ou
         d&apos;absence de réponse à l&apos;échéance, la commande sera annulée sans frais.
       </p>
       {initiales.reprise ? (
-        <p className="aide-champ" style={{ margin: "0 0 var(--space-3)" }}>
+        <p className="aide-champ u-m-0-0-s3">
           Repris de votre proposition précédente : modifiez ce qu&apos;il faut avant d&apos;envoyer.
         </p>
       ) : null}
@@ -163,12 +159,12 @@ export function FormulaireProposition({
       </div>
 
       {erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-3)" }}>
+        <Alert ton="danger" className="u-mb-s3">
           {erreur}
         </Alert>
       ) : null}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="u-d-flex-g-8px-fwrap-wrap">
         <Button type="submit" disabled={enCours}>
           {enCours ? "Envoi…" : "Envoyer la proposition"}
         </Button>

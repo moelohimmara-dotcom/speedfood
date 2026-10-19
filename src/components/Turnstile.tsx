@@ -94,5 +94,5 @@ export function Turnstile({ siteKey, onToken, onProbleme, renouveler }: Props) {
     }
   }, [renouveler]);
 
-  return <div ref={conteneur} style={{ margin: "0 0 var(--space-4)" }} />;
+  return <div ref={conteneur} className="u-m-0-0-s4" />;
 }

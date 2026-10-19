@@ -36,7 +36,7 @@ export default async function AlternativesPage({
   const catalogue = await lireCatalogue();
   if (catalogue.erreur) {
     return (
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+      <main className="u-maxw-960px-m-0-auto-p-s8-s4">
         <Alert ton="danger">Impossible de charger les alternatives pour le moment. Réessayez dans un instant.</Alert>
       </main>
     );
@@ -64,17 +64,17 @@ export default async function AlternativesPage({
   const epuise = !platSource.disponible;
 
   return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+    <main className="u-maxw-960px-m-0-auto-p-s8-s4">
       <LienRetour href={`/restaurants/${id}`}>Retour à {restaurantSource.nom}</LienRetour>
-      <h1 style={{ fontSize: "1.8rem", margin: "var(--space-3) 0 var(--space-2)" }}>Trouver ailleurs</h1>
-      <p style={{ color: "var(--secondaire)", margin: "0 0 var(--space-2)" }}>
+      <h1 className="u-fs-1-8rem-m-s3-0-s2">Trouver ailleurs</h1>
+      <p className="u-c-secondaire-m-0-0-s2">
         « {platSource.nom} » {epuise ? "est épuisé" : "n'est pas forcément disponible"} chez {restaurantSource.nom}
         {platSource.confirmeLe
           ? ` (information de ${ancienneteLisible(new Date(platSource.confirmeLe), maintenant)})`
           : ""}
         .
       </p>
-      <p style={{ color: "var(--secondaire)", fontSize: "0.85rem", margin: "0 0 var(--space-5)" }}>
+      <p className="u-c-secondaire-fs-0-85rem-m-0-0-s5">
         Rien n&apos;est ajouté à votre panier : c&apos;est vous qui choisissez. Seuls les restaurants ouverts qui
         acceptent des commandes sont proposés. La disponibilité est déclarée par chaque restaurant ; sans
         reconfirmation depuis {fraicheurHeures} h, elle s&apos;affiche « à confirmer ».
@@ -83,7 +83,7 @@ export default async function AlternativesPage({
       {alternatives.length === 0 ? (
         <Alert ton="info">
           Aucune alternative ouverte pour le moment.{" "}
-          <Link href={`/restaurants?q=${encodeURIComponent(platSource.nom)}`} style={{ fontWeight: 700, display: "inline-flex", alignItems: "center", minHeight: 44 }}>
+          <Link href={`/restaurants?q=${encodeURIComponent(platSource.nom)}`} className="u-fw-700-d-inline-flex-ai-center-minh-44px">
             Chercher « {platSource.nom} » dans tout le catalogue
           </Link>
         </Alert>

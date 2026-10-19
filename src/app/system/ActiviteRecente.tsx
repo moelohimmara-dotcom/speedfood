@@ -21,7 +21,7 @@ export function ListeActivite({ evenements }: { evenements: LigneActivite[] }) {
   return (
     <>
       {evenements.length === 0 ? (
-        <p className="ad-liste-meta" style={{ padding: "var(--space-4)" }}>
+        <p className="ad-liste-meta u-p-s4">
           Aucun événement pour l&apos;instant.
         </p>
       ) : (
@@ -44,7 +44,7 @@ export function ListeActivite({ evenements }: { evenements: LigneActivite[] }) {
           ))}
         </ul>
       )}
-      <p style={{ margin: "var(--space-3) 0 0" }}>
+      <p className="u-m-s3-0-0">
         <Link href="/system/audit" className="lien-texte">
           Tout le journal
         </Link>
@@ -65,7 +65,7 @@ export function ActiviteRecente({ evenements }: { evenements: LigneActivite[] })
       }
     >
       {evenements.length === 0 ? (
-        <p className="ad-liste-meta" style={{ padding: "var(--space-4)" }}>
+        <p className="ad-liste-meta u-p-s4">
           Aucun événement pour l&apos;instant.
         </p>
       ) : (

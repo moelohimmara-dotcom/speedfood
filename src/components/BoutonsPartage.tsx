@@ -98,7 +98,7 @@ export function BoutonsPartage({ texte, url, compact = false, variante = "bouton
 
   const classe = compact ? "btn btn-secondary btn-compact" : "btn btn-secondary";
   return (
-    <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+    <span className="u-d-inline-flex-fwrap-wrap-g-8px-ai-center">
       <a href={lienWhatsApp(texte)} target="_blank" rel="noopener noreferrer" className={classe}>
         Partager sur WhatsApp
       </a>

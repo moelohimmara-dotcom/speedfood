@@ -48,15 +48,15 @@ export function SuppressionCompte({ utilisateurId, email, nombreRestaurants }: P
             d&apos;audit est conservé, sans lien vers le compte.
           </Alert>
           {nombreRestaurants > 0 ? (
-            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: "0.9rem" }}>
-              <input type="checkbox" name="supprimer_restaurants" style={{ marginTop: 3 }} />
+            <label className="u-d-flex-g-8px-ai-flex-start-fs-0-9rem">
+              <input type="checkbox" name="supprimer_restaurants" className="u-mt-3px" />
               <span>
                 Supprimer aussi ses restaurants <strong>s&apos;il en est le seul membre et qu&apos;ils n&apos;ont aucune commande</strong>{" "}
                 (menus et plats inclus). Un restaurant qui a des commandes n&apos;est jamais supprimé.
               </span>
             </label>
           ) : null}
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field u-mb-0">
             <label htmlFor={`motif-${utilisateurId}`}>Motif (obligatoire, ex. « compte de test »)</label>
             <input
               id={`motif-${utilisateurId}`}
@@ -68,7 +68,7 @@ export function SuppressionCompte({ utilisateurId, email, nombreRestaurants }: P
               onChange={(e) => setMotif(e.target.value)}
             />
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field u-mb-0">
             <label htmlFor={`confirmation-${utilisateurId}`}>Pour confirmer, retapez l&apos;adresse e-mail du compte</label>
             <input
               id={`confirmation-${utilisateurId}`}
@@ -86,7 +86,7 @@ export function SuppressionCompte({ utilisateurId, email, nombreRestaurants }: P
             <Button type="button" variante="secondary" onClick={() => dialogue.current?.close()}>
               Annuler
             </Button>
-            <Button type="submit" variante="danger" disabled={enCours} style={{ borderColor: "var(--danger)" }}>
+            <Button type="submit" variante="danger" disabled={enCours} className="u-border-color-danger">
               {enCours ? "Suppression…" : "Supprimer définitivement"}
             </Button>
           </div>

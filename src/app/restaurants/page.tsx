@@ -228,7 +228,7 @@ export default async function CataloguePage({
       <div className="decouverte-corps decouverte-corps-large">
         <div className="decouverte-resultats">
       {!erreur && !q && vedettes.length > 0 ? (
-        <section aria-labelledby="titre-vedettes" style={{ marginBottom: "var(--space-5)" }}>
+        <section aria-labelledby="titre-vedettes" className="u-mb-s5">
           {/* Titre fidèle au contenu : « du moment » seulement s'il y a des plats confirmés récemment ; sinon « à découvrir ». */}
           <h2 id="titre-vedettes" className="groupe-resultats-titre">
             {nbConfirmes > 0 ? "Plats du moment" : "Plats à découvrir"}
@@ -262,7 +262,7 @@ export default async function CataloguePage({
       ) : null}
 
       {q || filtres.dispo ? (
-        <p style={{ color: "var(--secondaire)", fontSize: "0.85rem", margin: "0 0 var(--space-3)" }}>
+        <p className="u-c-secondaire-fs-0-85rem-m-0-0-s3">
           La disponibilité est déclarée par chaque restaurant. Sans reconfirmation depuis{" "}
           {recherche.fraicheurHeures} h, elle s&apos;affiche « à confirmer » : le restaurant confirme à la
           commande.

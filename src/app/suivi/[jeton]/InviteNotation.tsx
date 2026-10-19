@@ -49,7 +49,7 @@ export function InviteNotation({ mode, jeton, restaurantNom }: Props) {
   }
 
   return (
-    <Card style={{ marginTop: "var(--space-4)" }}>
+    <Card className="u-mt-s4">
       <h2 className="notation-titre">Votre avis compte</h2>
       {mode === "non_connecte" ? (
         <>

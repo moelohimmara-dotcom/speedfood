@@ -170,7 +170,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
             Laissez un champ vide pour garder le texte par défaut. Ne promettez que ce que l&apos;application tient : pas de délai de
             livraison, pas de chiffre non calculé.
           </Aide>
-          <div className="field" style={{ marginTop: "var(--space-4)" }}>
+          <div className="field u-mt-s4">
             <label htmlFor="promesse_signature">Signature, au-dessus de l&apos;accroche (80 caractères)</label>
             <input
               id="promesse_signature"
@@ -215,7 +215,7 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
             encore conservées. Allonger un délai n&apos;a d&apos;effet que pour l&apos;avenir. Les durées doivent rester cohérentes avec la
             page de confidentialité publiée.
           </Alert>
-          <div className="field" style={{ marginTop: "var(--space-4)" }}>
+          <div className="field u-mt-s4">
             <label htmlFor="conservation_coordonnees_jours">
               Coordonnées d&apos;une commande terminée, refusée ou annulée : jours conservés (7 à 3650)
             </label>

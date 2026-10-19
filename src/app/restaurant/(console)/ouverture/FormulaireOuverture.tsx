@@ -47,7 +47,7 @@ export function FormulaireOuverture({ plats, erreur }: { plats: PlatOuverture[];
     <form action={ouvrirJourneeAction} className="rc-ouv">
       {erreur ? (
         <div className="ad-bandeau ad-bandeau-attention" role="alert">
-          <p style={{ margin: 0 }}>Vos choix n&apos;ont pas pu être enregistrés. Réessayez dans un instant.</p>
+          <p className="u-m-0">Vos choix n&apos;ont pas pu être enregistrés. Réessayez dans un instant.</p>
         </div>
       ) : null}
 

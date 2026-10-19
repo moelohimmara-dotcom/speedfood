@@ -27,12 +27,12 @@ export default async function SecuriteComptePage({ searchParams }: { searchParam
   const questions = await lireEtatQuestions(supabase);
 
   return (
-    <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+    <main className="u-maxw-560px-m-0-auto-p-s8-s4">
       <LienRetour href={administrateur ? "/system" : "/restaurant"}>Retour</LienRetour>
-      <h1 style={{ fontSize: "1.8rem", margin: "var(--space-3) 0 var(--space-2)" }}>Sécurité du compte</h1>
-      <p style={{ color: "var(--secondaire)", marginTop: 0 }}>Connecté en tant que {user.email}.</p>
+      <h1 className="u-fs-1-8rem-m-s3-0-s2">Sécurité du compte</h1>
+      <p className="u-c-secondaire-mt-0">Connecté en tant que {user.email}.</p>
 
-      <Alert ton={etat.actif ? "succes" : administrateur ? "danger" : "info"} style={{ marginBottom: "var(--space-5)" }}>
+      <Alert ton={etat.actif ? "succes" : administrateur ? "danger" : "info"} className="u-mb-s5">
         {etat.actif ? (
           <>
             <strong>La double authentification est activée.</strong> À chaque connexion, après votre mot de passe, un code
@@ -54,9 +54,9 @@ export default async function SecuriteComptePage({ searchParams }: { searchParam
         <ActivationMfa actif={etat.actif} facteurId={etat.facteurId} sessionRenforcee={etat.sessionRenforcee} />
       </Card>
 
-      <h2 style={{ fontSize: "1.1rem", margin: "var(--space-6) 0 var(--space-2)" }}>Questions de sécurité</h2>
+      <h2 className="u-fs-1-1rem-m-s6-0-s2">Questions de sécurité</h2>
       {secours === "1" ? (
-        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="info" className="u-mb-s4">
           Vous êtes entré avec un code de secours : il est maintenant utilisé. Redéfinissez vos questions ou générez de nouveaux codes
           ci-dessous.
         </Alert>
@@ -71,8 +71,8 @@ export default async function SecuriteComptePage({ searchParams }: { searchParam
         <QuestionsSecurite active={questions.active} requise={questions.requise} codesRestants={questions.codesRestants} />
       </Card>
 
-      <h2 style={{ fontSize: "1.1rem", margin: "var(--space-6) 0 var(--space-2)" }}>À savoir avant d&apos;activer</h2>
-      <ul style={{ color: "var(--secondaire)", fontSize: "0.9rem", paddingLeft: "1.2rem", margin: 0 }}>
+      <h2 className="u-fs-1-1rem-m-s6-0-s2">À savoir avant d&apos;activer</h2>
+      <ul className="u-c-secondaire-fs-0-9rem-pl-1-2rem-m-0">
         <li>
           Il faut une application d&apos;authentification sur le téléphone (Google Authenticator, Microsoft Authenticator,
           Aegis, 2FAS…).

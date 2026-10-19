@@ -49,7 +49,7 @@ export function FormulaireOubli() {
     >
       <Input label="Email du compte" name="email" type="email" required autoComplete="email" defaultValue={autreAdresse ? "" : etat.email} />
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           {etat.erreur}
         </Alert>
       ) : null}

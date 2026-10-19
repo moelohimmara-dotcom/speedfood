@@ -68,7 +68,7 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
               <img
                 src={plat.photo_url}
                 alt=""
-                style={{ width: 120, height: 90, objectFit: "cover", borderRadius: "var(--radius-md)", marginBottom: 8, display: "block" }}
+                className="u-839251f3"
               />
             ) : null}
             <input
@@ -77,7 +77,7 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
               type="file"
               accept="image/jpeg,image/png,image/webp"
             />
-            <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            <p className="u-m-4px-0-0-fs-0-8rem-c-secondaire">
               Laissez vide pour ne pas changer la photo actuelle.
             </p>
           </div>
@@ -109,7 +109,7 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
               step={1}
               defaultValue={plat.prix_promo ?? ""}
             />
-            <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+            <p className="u-m-4px-0-0-fs-0-8rem-c-secondaire">
               Facultatif — inférieur ou égal au prix normal. Laissez vide pour retirer la promo.
             </p>
           </div>
@@ -127,11 +127,11 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
             </div>
           ) : null}
           {etat.erreur ? (
-            <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+            <Alert ton="danger" className="u-mb-s4">
               {etat.erreur}
             </Alert>
           ) : null}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="u-d-flex-g-8px">
             <Button type="submit" disabled={enCours}>
               {enCours ? "Enregistrement…" : "Enregistrer"}
             </Button>
@@ -165,7 +165,7 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
           {plat.prix_promo !== null ? (
             <p className="plat-ligne-prix">
               <span className="plat-ligne-prix-barre">{plat.prix.toLocaleString("fr-FR")} GNF</span>
-              <strong style={{ color: "var(--rouge-fonce)" }}>{plat.prix_promo.toLocaleString("fr-FR")} GNF</strong>
+              <strong className="u-c-rouge-fonce">{plat.prix_promo.toLocaleString("fr-FR")} GNF</strong>
             </p>
           ) : (
             <p className="plat-ligne-prix">

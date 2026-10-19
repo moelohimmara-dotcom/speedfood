@@ -33,7 +33,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
     <div className="ad-marque">
       {/* Le logo du restaurant prend la place de l'icône Speedfood quand il existe : le restaurateur retrouve SON identité (photo d'abord). */}
       {/* eslint-disable-next-line @next/next/no-img-element -- logo : URL Supabase Storage dynamique ; icône locale sinon. */}
-      <img src={restaurant?.logo_url ?? "/icons/icon-192.png"} alt="" width={40} height={40} style={{ objectFit: "cover" }} />
+      <img src={restaurant?.logo_url ?? "/icons/icon-192.png"} alt="" width={40} height={40} className="u-of-cover" />
       <div>
         <span className="ad-marque-nom">Speedfood</span>
         <span className="ad-marque-role">{restaurant?.nom ?? "Espace restaurateur"}</span>

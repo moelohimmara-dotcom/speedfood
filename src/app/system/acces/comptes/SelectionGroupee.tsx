@@ -16,7 +16,7 @@ function cochees(): HTMLInputElement[] {
 /** Case de l'en-tête de colonne : coche ou décoche tous les comptes sélectionnables de la page. */
 export function CaseToutSelectionner() {
   return (
-    <label className="ad-case-ligne" style={{ margin: "-12px 0 -12px -16px" }}>
+    <label className="ad-case-ligne u-m-12px-0-12px-16px">
       <input
         type="checkbox"
         aria-label="Sélectionner tous les comptes de la page"
@@ -70,7 +70,7 @@ export function BarreSelectionGroupee() {
 
   return (
     <div className="ad-barre-selection" data-vide={nombre === 0} role="region" aria-label="Suppression groupée">
-      <p style={{ margin: 0 }} role="status">
+      <p className="u-m-0" role="status">
         <strong>{nombre}</strong> compte{nombre > 1 ? "s" : ""} sélectionné{nombre > 1 ? "s" : ""}
       </p>
       <button
@@ -104,18 +104,18 @@ export function BarreSelectionGroupee() {
             propre au vôtre ou super administrateur est refusé automatiquement. L&apos;historique d&apos;audit est conservé, sans lien
             vers les comptes.
           </Alert>
-          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: "0.9rem" }}>
-            <input type="checkbox" name="supprimer_restaurants" style={{ marginTop: 3 }} />
+          <label className="u-d-flex-g-8px-ai-flex-start-fs-0-9rem">
+            <input type="checkbox" name="supprimer_restaurants" className="u-mt-3px" />
             <span>
               Supprimer aussi leurs restaurants <strong>s&apos;ils n&apos;ont aucun autre membre et aucune commande</strong> (menus et
               plats inclus). Un restaurant qui a des commandes n&apos;est jamais supprimé.
             </span>
           </label>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field u-mb-0">
             <label htmlFor="motif-groupe">Motif (obligatoire, ex. « comptes de test »)</label>
             <input id="motif-groupe" name="motif" type="text" maxLength={500} required value={motif} onChange={(e) => setMotif(e.target.value)} />
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field u-mb-0">
             <label htmlFor="confirmation-groupe">
               Pour confirmer, tapez <strong>SUPPRIMER</strong>
             </label>
@@ -135,7 +135,7 @@ export function BarreSelectionGroupee() {
             <Button type="button" variante="secondary" onClick={() => dialogue.current?.close()}>
               Annuler
             </Button>
-            <Button type="submit" variante="danger" disabled={enCours || nombre === 0} style={{ borderColor: "var(--danger)" }}>
+            <Button type="submit" variante="danger" disabled={enCours || nombre === 0} className="u-border-color-danger">
               {enCours ? "Suppression…" : "Supprimer définitivement"}
             </Button>
           </div>

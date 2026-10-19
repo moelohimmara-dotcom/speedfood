@@ -38,7 +38,7 @@ export function ReinitialiserQuestions({ utilisateurId, email }: Props) {
             Compte : {email}. La personne a oublié ses réponses et n&apos;a plus de code de secours. <strong>Vérifiez son identité avant</strong> (appel,
             message depuis un canal connu). Son mot de passe et son éventuelle application d&apos;authentification ne changent pas.
           </Alert>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field u-mb-0">
             <label htmlFor={`questions-motif-${utilisateurId}`}>Comment l&apos;identité a-t-elle été vérifiée ? (obligatoire, journalisé)</label>
             <input
               id={`questions-motif-${utilisateurId}`}

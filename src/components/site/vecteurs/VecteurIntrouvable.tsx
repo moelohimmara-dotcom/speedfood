@@ -19,7 +19,7 @@ export function VecteurIntrouvable() {
         <g className="v-leve">
           <path d="M92 248a108 98 0 0 1 216 0z" className="v-ombre" transform="translate(7 7)" />
           <path d="M92 248a108 98 0 0 1 216 0z" className="v-blanc v-e" />
-          <path d="M120 218a84 76 0 0 1 56-62" className="v-trait3" style={{ opacity: 0.5 }} />
+          <path d="M120 218a84 76 0 0 1 56-62" className="v-trait3 u-op-0-5" />
           <circle cx="200" cy="142" r="12" className="v-rouge v-e" />
           <path d="M80 248h240" className="v-trait" />
         </g>

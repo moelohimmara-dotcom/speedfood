@@ -43,7 +43,7 @@ export default async function AuditSystemePage({
     <div>
       <PageHeader titre="Journal d'audit" description="Toutes les actions sensibles de l'équipe, avec leur auteur et leur motif." />
 
-      <div className="ad-tuiles" style={{ marginBottom: "var(--space-5)" }}>
+      <div className="ad-tuiles u-mb-s5">
         {indicateurs.map((ind) => (
           <Tuile key={ind.cle} valeur={ind.valeur} libelle={ind.libelle} definition={ind.definition} />
         ))}
@@ -75,7 +75,7 @@ export default async function AuditSystemePage({
               <tbody>
                 {journal.map((entree) => (
                   <tr key={entree.id}>
-                    <td className="ad-secondaire" data-label="Date" style={{ whiteSpace: "nowrap" }}>
+                    <td className="ad-secondaire u-ws-nowrap" data-label="Date">
                       {new Date(entree.horodatage).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
                     </td>
                     <td className="ad-nombre" data-label="Action" title={entree.action}>

@@ -153,7 +153,7 @@ export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
           // eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob) de la photo choisie, jamais envoyé tel quel.
           <img src={apercu} alt="Aperçu de la photo choisie" className="saisie-apercu" />
         ) : null}
-        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+        <p className="u-m-4px-0-0-fs-0-8rem-c-secondaire">
           JPEG, PNG ou WebP. Les grandes photos sont réduites automatiquement. Facultatif.
         </p>
       </div>
@@ -164,7 +164,7 @@ export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
             <IconeMicro />
             {ecoute ? "Je vous écoute…" : "Dicter le nom et le prix"}
           </button>
-          <p className="aide-champ" style={{ margin: 0 }}>
+          <p className="aide-champ u-m-0">
             Dites par exemple : « Attiéké poisson, vingt-cinq mille ». La dictée passe par le service vocal de votre navigateur.
           </p>
         </div>
@@ -210,7 +210,7 @@ export function FormulairePlat({ sections = [] }: { sections?: Section[] }) {
         </div>
       ) : null}
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           {etat.erreur}
         </Alert>
       ) : null}

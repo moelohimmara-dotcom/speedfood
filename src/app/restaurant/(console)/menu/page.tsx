@@ -147,7 +147,7 @@ export default async function MenuPage() {
               </a>
             </div>
           ) : sectionsListe.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="u-d-flex-fdir-column-g-8px">
               {platsListe.map((plat) => (
                 <PlatItem
                   key={plat.id}
@@ -159,11 +159,7 @@ export default async function MenuPage() {
             </div>
           ) : (
             <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-5)",
-              }}
+              className="u-d-flex-fdir-column-g-s5"
             >
               {sectionsListe.map((section) => {
                 const platsDeSection = platsParSection.get(section.id) ?? [];
@@ -173,19 +169,12 @@ export default async function MenuPage() {
                 return (
                   <div key={section.id}>
                     <h2
-                      style={{
-                        marginBottom: "var(--space-3)",
-                        fontSize: "1.25rem",
-                      }}
+                      className="u-mb-s3-fs-1-25rem"
                     >
                       {section.nom}
                     </h2>
                     <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                      }}
+                      className="u-d-flex-fdir-column-g-8px"
                     >
                       {platsDeSection.map((plat) => (
                         <PlatItem
@@ -203,15 +192,12 @@ export default async function MenuPage() {
               {platsSansSection.length > 0 ? (
                 <div>
                   <h2
-                    style={{
-                      marginBottom: "var(--space-3)",
-                      fontSize: "1.25rem",
-                    }}
+                    className="u-mb-s3-fs-1-25rem"
                   >
                     Sans section
                   </h2>
                   <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                    className="u-d-flex-fdir-column-g-8px"
                   >
                     {platsSansSection.map((plat) => (
                       <PlatItem
@@ -235,7 +221,7 @@ export default async function MenuPage() {
           id="ajout-plat"
         >
           <Card>
-            <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>
+            <h2 className="u-mb-s3-fs-1-25rem">
               Ajouter un plat
             </h2>
             <FormulairePlat sections={sectionsListe} />

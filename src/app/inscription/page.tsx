@@ -32,13 +32,13 @@ export default async function InscriptionPage() {
         </p>
       }
     >
-      <Alert ton="info" style={{ marginBottom: "var(--space-5)" }}>
+      <Alert ton="info" className="u-mb-s5">
         Votre restaurant ne sera pas visible au catalogue tant qu&apos;une personne de l&apos;équipe Speedfood ne
         l&apos;aura pas validé.
         {delaiValidationHeures ? ` Réponse en général sous ${formaterDelaiValidation(delaiValidationHeures)}.` : null}
       </Alert>
       {whatsapp ? (
-        <p style={{ marginBottom: "var(--space-4)" }}>
+        <p className="u-mb-s4">
           Besoin d&apos;aide pour vous inscrire ? <BoutonAssistance numero={whatsapp} className="btn btn-secondary btn-compact" />
         </p>
       ) : null}

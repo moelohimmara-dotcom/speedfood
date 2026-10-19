@@ -22,8 +22,8 @@ export function VecteurDecouverte() {
           <circle cx="76" cy="84" r="38" className="v-ombre" transform="translate(5 5)" />
           <path d="M60 114l-14 30 38-18z" className="v-blanc v-e" />
           <circle cx="76" cy="84" r="38" className="v-blanc v-e" />
-          <path d="M62 112h22" style={{ stroke: "var(--surface)", strokeWidth: 6 }} />
-          <text x="76" y="100" textAnchor="middle" className="v-texte" fontSize="46" style={{ fill: "var(--rouge-fonce)" }}>
+          <path d="M62 112h22" className="u-stroke-surface-stroke-width-6" />
+          <text x="76" y="100" textAnchor="middle" className="v-texte u-fill-rouge-fonce" fontSize="46">
             ?
           </text>
         </g>
@@ -41,8 +41,8 @@ export function VecteurDecouverte() {
           <path d="M96 218c10 6 22 8 36 8s26-2 36-8c-4 10-18 16-36 16s-32-6-36-16z" className="v-rouge v-e3" />
           <path d="M96 204q8-8 16 0t16 0 16 0" className="v-trait3" />
           <path d="M110 176q-7-11 0-21t0-21" className="v-trait3 v-vapeur" />
-          <path d="M134 172q-7-11 0-21t0-21" className="v-trait3 v-vapeur" style={{ animationDelay: "0.8s" }} />
-          <path d="M158 176q-7-11 0-21t0-21" className="v-trait3 v-vapeur" style={{ animationDelay: "1.6s" }} />
+          <path d="M134 172q-7-11 0-21t0-21" className="v-trait3 v-vapeur u-ad-0-8s" />
+          <path d="M158 176q-7-11 0-21t0-21" className="v-trait3 v-vapeur u-ad-1-6s" />
         </g>
 
         {/* Burger */}
@@ -68,11 +68,11 @@ export function VecteurDecouverte() {
 
         {/* Grande loupe : elle passe de plat en plat et s'arrête sur chacun */}
         <g className="v-loupe">
-          <circle cx="262" cy="196" r="52" className="v-ombre" transform="translate(6 6)" style={{ opacity: 0.35 }} />
-          <circle cx="262" cy="196" r="52" style={{ fill: "rgba(255,255,255,0.45)" }} className="v-e" strokeWidth="7" />
-          <path d="M226 176a42 42 0 0 1 28-26" className="v-trait3" style={{ stroke: "var(--surface)", strokeWidth: 5 }} />
-          <path d="M300 236l42 46" className="v-trait" style={{ strokeWidth: 15 }} />
-          <path d="M300 236l42 46" className="v-trait" style={{ stroke: "var(--rouge-fonce)", strokeWidth: 7 }} />
+          <circle cx="262" cy="196" r="52" className="v-ombre u-op-0-35" transform="translate(6 6)" />
+          <circle cx="262" cy="196" r="52" className="v-e u-fill-rgba-255-255-255-0-45" strokeWidth="7" />
+          <path d="M226 176a42 42 0 0 1 28-26" className="v-trait3 u-stroke-surface-stroke-width-5" />
+          <path d="M300 236l42 46" className="v-trait u-stroke-width-15" />
+          <path d="M300 236l42 46" className="v-trait u-stroke-rouge-fonce-stroke-width-7" />
         </g>
 
         <path d="M492 150l4-11 4 11 11 4-11 4-4 11-4-11-11-4z" className="v-creme v-e3 v-scintille" />

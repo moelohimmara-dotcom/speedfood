@@ -69,14 +69,14 @@ export default async function AffichePage() {
 
         <div className="affiche-cote">
           <Panneau titre="Mon lien court">
-            <p style={{ margin: "0 0 var(--space-2)" }}>
+            <p className="u-m-0-0-s2">
               <strong className="affiche-lien-court">{lien}</strong>
             </p>
-            <p className="ad-aide-champ" style={{ margin: 0 }}>
+            <p className="ad-aide-champ u-m-0">
               À mettre dans votre bio, vos statuts WhatsApp et sur vos cartes. Ajoutez <code>?s=whatsapp</code> à la fin pour suivre ce qui vient de WhatsApp
               (ou <code>?s=carte</code> pour une carte de visite).
             </p>
-            <p style={{ margin: "var(--space-3) 0 0" }}>
+            <p className="u-m-s3-0-0">
               <a href={`/restaurants/${id}/qr?s=qr&telecharger=1`} className="btn btn-secondary">
                 Télécharger le QR code (SVG)
               </a>
@@ -84,7 +84,7 @@ export default async function AffichePage() {
           </Panneau>
 
           <Panneau titre="QR de tables">
-            <p className="ad-aide-champ" style={{ margin: "0 0 var(--space-3)" }}>
+            <p className="ad-aide-champ u-m-0-0-s3">
               Un QR par table : le client scanne et commande à sa table, le numéro apparaît sur la commande.
             </p>
             <a href="/restaurant/tables" className="btn btn-secondary">
@@ -94,12 +94,12 @@ export default async function AffichePage() {
 
           <Panneau titre="Visites sur 30 jours">
             {lignes.length === 0 ? (
-              <p className="ad-aide-champ" style={{ margin: 0 }}>
+              <p className="ad-aide-champ u-m-0">
                 Aucune visite pour l&apos;instant. Imprimez l&apos;affiche et partagez votre lien : les scans apparaîtront ici.
               </p>
             ) : (
               <>
-                <p style={{ margin: "0 0 var(--space-2)" }}>
+                <p className="u-m-0-0-s2">
                   <strong>{total30}</strong> visite{total30 > 1 ? "s" : ""} en 30 jours, dont <strong>{total7}</strong> cette semaine.
                 </p>
                 <table className="affiche-table">
@@ -120,7 +120,7 @@ export default async function AffichePage() {
                     ))}
                   </tbody>
                 </table>
-                <p className="ad-aide-champ" style={{ margin: "var(--space-2) 0 0" }}>
+                <p className="ad-aide-champ u-m-s2-0-0">
                   Chaque ouverture du lien compte une visite : une même personne peut être comptée plusieurs fois.
                 </p>
               </>

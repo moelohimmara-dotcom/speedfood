@@ -58,7 +58,7 @@ export function ChefIA({ sections }: { sections: { id: string; nom: string }[] }
     <details className="saisie-lot chef-ia">
       <summary>Lire mon menu avec l&apos;assistant</summary>
       <div className="saisie-lot-corps">
-        <p className="aide-champ" style={{ margin: 0 }}>
+        <p className="aide-champ u-m-0">
           Photographiez votre menu : ardoise, feuille imprimée ou carte de vitrine.
           L&apos;assistant propose les plats et leurs prix, vous relisez tout avant
           l&apos;enregistrement. La photo n&apos;est pas conservée.

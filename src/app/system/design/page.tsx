@@ -34,12 +34,12 @@ export default async function DesignPage() {
       <SousNav entrees={sousSectionsAccessibles("Paramètres", contexte.role)} />
 
       {personnalises.length === 0 ? (
-        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="info" className="u-mb-s4">
           Aucun réglage pour l&apos;instant : le site utilise ses valeurs d&apos;origine, déclarées dans le code.
           La première modification faite ici sera visible immédiatement sur toutes les pages.
         </Alert>
       ) : (
-        <p className="ad-secondaire" style={{ marginBottom: "var(--space-4)" }}>
+        <p className="ad-secondaire u-mb-s4">
           {personnalises.length} réglage{personnalises.length > 1 ? "s" : ""} personnalisé{personnalises.length > 1 ? "s" : ""} ·{" "}
           {restants} valeur{restants > 1 ? "s" : ""} d&apos;origine.
         </p>

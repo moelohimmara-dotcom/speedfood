@@ -27,36 +27,36 @@ export default async function ParametresSystemePage() {
 
       <FormulaireParametres parametres={parametres} />
 
-      <div style={{ marginTop: "var(--space-6)" }}>
+      <div className="u-mt-s6">
         <Panneau titre="Livraison">
-          <p style={{ marginTop: 0 }}>Frais de livraison au kilomètre, minimum, gratuité, rayon maximal et temps laissé aux livreurs pour accepter une course.</p>
+          <p className="u-mt-0">Frais de livraison au kilomètre, minimum, gratuité, rayon maximal et temps laissé aux livreurs pour accepter une course.</p>
           <Link href="/system/parametres/livraison" className="lien-texte">
             Régler la livraison
           </Link>
         </Panneau>
       </div>
 
-      <div style={{ marginTop: "var(--space-6)" }}>
+      <div className="u-mt-s6">
         <Panneau titre="Classement du catalogue">
-          <p style={{ marginTop: 0 }}>Poids de la note des clients, du prix des plats et de la fréquentation dans l&apos;ordre « Recommandés ».</p>
+          <p className="u-mt-0">Poids de la note des clients, du prix des plats et de la fréquentation dans l&apos;ordre « Recommandés ».</p>
           <Link href="/system/parametres/classement" className="lien-texte">
             Régler le classement
           </Link>
         </Panneau>
       </div>
 
-      <div style={{ marginTop: "var(--space-6)" }}>
+      <div className="u-mt-s6">
         <Panneau titre="Aide au choix">
-          <p style={{ marginTop: 0 }}>Seuils des gammes de prix, rayon de recherche et nombre de propositions de l&apos;assistant « Aide-moi à choisir ».</p>
+          <p className="u-mt-0">Seuils des gammes de prix, rayon de recherche et nombre de propositions de l&apos;assistant « Aide-moi à choisir ».</p>
           <Link href="/system/parametres/aide-choix" className="lien-texte">
             Régler l&apos;aide au choix
           </Link>
         </Panneau>
       </div>
 
-      <div style={{ marginTop: "var(--space-6)" }}>
+      <div className="u-mt-s6">
         <Panneau titre="Zone dangereuse">
-          <p style={{ marginTop: 0 }}>
+          <p className="u-mt-0">
             Remettre toute l&apos;application à l&apos;état neuf avant la mise en production : restaurants, commandes, clients et comptes sont supprimés
             (après une sauvegarde automatique).
           </p>

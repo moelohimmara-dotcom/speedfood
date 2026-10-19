@@ -63,7 +63,7 @@ export default async function EntrerPage({
       }
     >
       {message ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           {message}
         </Alert>
       ) : null}

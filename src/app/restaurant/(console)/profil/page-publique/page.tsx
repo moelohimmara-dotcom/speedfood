@@ -92,7 +92,7 @@ export default async function PagePubliquePage() {
 
       <div className="profil-section">
         <Panneau titre="Illustrations de remplacement">
-          <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+          <p className="ad-aide-champ u-mt-0">
             Elles s&apos;affichent tant que vous n&apos;avez pas ajouté de photo ou de logo. Dès que vous en téléversez un, il prend toujours leur place.
           </p>
           <h3 className="ad-sous-titre">Logo</h3>

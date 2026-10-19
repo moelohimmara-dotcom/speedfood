@@ -45,7 +45,7 @@ export function FormulaireNouveauMotDePasse() {
         <Critere ok={motDePasse.length > 0 && motDePasse === confirmation}>Les deux champs sont identiques</Critere>
       </ul>
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mb-s4">
           {etat.erreur}
         </Alert>
       ) : null}

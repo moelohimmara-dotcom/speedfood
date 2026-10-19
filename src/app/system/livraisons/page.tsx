@@ -32,7 +32,7 @@ export default async function LivraisonsPage() {
       </div>
 
       {sansLivreur.length > 0 ? (
-        <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+        <Alert ton="info" className="u-mb-s4">
           {sansLivreur.length} course{sansLivreur.length > 1 ? "s" : ""} en recherche de livreur. {disponibles.length === 0 ? "Aucun livreur n'est en ligne : créez des livreurs de démonstration ou mettez-en un en ligne (onglet Livreurs)." : ""}
         </Alert>
       ) : null}
@@ -64,33 +64,33 @@ export default async function LivraisonsPage() {
                   </td>
                   <td data-label="Restaurant">
                     {l.restaurantNom}
-                    <span className="ad-secondaire" style={{ display: "block", fontSize: "0.8rem" }}>
+                    <span className="ad-secondaire u-d-block-fs-0-8rem">
                       {l.mode === "propre" ? "Livre lui-même" : "Livreur Speedfood"}
                     </span>
                   </td>
                   <td data-label="Statut">
                     <Pastille ton={l.statut === "livree" ? "succes" : l.statut === "echec" || l.statut === "annulee" ? "danger" : "neutre"}>{l.libelle}</Pastille>
                     {l.offreEnCours ? (
-                      <span className="ad-secondaire" style={{ display: "block", fontSize: "0.8rem" }}>
+                      <span className="ad-secondaire u-d-block-fs-0-8rem">
                         Offre à {l.offreEnCours.livreurNom}
                       </span>
                     ) : null}
                     {l.raison ? (
-                      <span className="ad-secondaire" style={{ display: "block", fontSize: "0.8rem" }}>
+                      <span className="ad-secondaire u-d-block-fs-0-8rem">
                         {l.raison}
                       </span>
                     ) : null}
                   </td>
                   <td data-label="Livreur">{l.livreurNom ?? "—"}</td>
-                  <td data-label="Frais" style={{ whiteSpace: "nowrap" }}>
+                  <td data-label="Frais" className="u-ws-nowrap">
                     {l.fraisGnf > 0 ? `${l.fraisGnf.toLocaleString("fr-FR")} GNF` : "—"}
                     {l.distanceKm !== null ? (
-                      <span className="ad-secondaire" style={{ display: "block", fontSize: "0.8rem" }}>
+                      <span className="ad-secondaire u-d-block-fs-0-8rem">
                         {l.distanceKm.toLocaleString("fr-FR")} km
                       </span>
                     ) : null}
                   </td>
-                  <td className="ad-secondaire" data-label="Créée le" style={{ whiteSpace: "nowrap" }}>
+                  <td className="ad-secondaire u-ws-nowrap" data-label="Créée le">
                     {formaterDateCourte(l.creeLe)}
                   </td>
                   <td data-label="Actions">

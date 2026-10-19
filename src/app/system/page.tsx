@@ -343,7 +343,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
 
       {/* 3. Graphiques de commandes */}
       {courant && pilotage ? (
-        <div className="ad-pilotage-graphes" style={{ marginTop: "var(--space-4)" }}>
+        <div className="ad-pilotage-graphes u-mt-s4">
           <Panneau titre={`Commandes par jour, ${periode} derniers jours`}>
             {courant.total === 0 ? (
               <EtatVide icone="commandes" titre="Aucune commande sur cette période" texte="Les graphiques apparaissent dès la première commande." />
@@ -419,7 +419,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             </Panneau>
             <Panneau titre="Heures de pointe">
               <GraphiqueHeures valeurs={heures} identifiant="graphique-heures" />
-              <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+              <p className="ad-aide-champ u-mt-0">
                 Heure locale (la Guinée est à l&apos;heure UTC). Barre rouge : l&apos;heure la plus chargée.
               </p>
             </Panneau>
@@ -440,7 +440,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
               <Tuile valeur={formaterGnf(stats.commandes.panierMoyen)} libelle="Panier moyen" definition="Moyenne des commandes acceptées, prêtes ou terminées (hors frais de livraison)." />
               <Tuile valeur={stats.propositions.total} libelle="Propositions de prix" definition={`${stats.propositions.acceptees} acceptées, ${stats.propositions.refusees} refusées, ${stats.propositions.expirees} expirées, ${stats.propositions.enAttente} en attente.`} href="/system/commandes?statut=en_attente" ton={stats.propositions.enAttente > 0 ? "danger" : "neutre"} />
             </div>
-            <div className="ad-pilotage-deux" style={{ marginTop: "var(--space-4)" }}>
+            <div className="ad-pilotage-deux u-mt-s4">
               <div>
                 <h3 className="ad-sous-titre">Livraison ou retrait</h3>
                 <BarresHorizontales
@@ -571,11 +571,11 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             titre="Éléments de test à nettoyer"
             resume={`${lignesTest.length} restaurant${lignesTest.length > 1 ? "s" : ""} de test en attente`}
           >
-            <p className="ad-aide-champ" style={{ marginTop: 0 }}>
+            <p className="ad-aide-champ u-mt-0">
               Ces restaurants portent un nom de test : ils sont écartés de la file « À traiter » pour ne pas la noyer. Vous pouvez
               les suspendre avec un motif, ou supprimer les comptes de test.
             </p>
-            <ul className="ad-liste" style={{ margin: "0 calc(var(--space-4) * -1)" }}>
+            <ul className="ad-liste u-m-0-calc-s4-1">
               {lignesTest.map((element) => (
                 <li key={element.id}>
                   <Link href={`/system/catalogue/restaurants/${element.id}`} className="ad-liste-lien">
@@ -592,7 +592,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
               ))}
             </ul>
             {roleAPermission(role, "compte.consulter") ? (
-              <p style={{ margin: "var(--space-3) 0 0" }}>
+              <p className="u-m-s3-0-0">
                 <Link href="/system/acces/comptes?type=test" className="lien-texte">
                   Voir les comptes de test
                 </Link>
@@ -608,9 +608,9 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         ) : null}
 
         <Volet titre="Ce que votre rôle permet" resume={`${permissions.length} permission${permissions.length > 1 ? "s" : ""}`}>
-          <ul style={{ paddingLeft: "1.2rem", margin: 0 }}>
+          <ul className="u-pl-1-2rem-m-0">
             {permissions.map((permission) => (
-              <li key={permission} style={{ marginBottom: 4 }}>
+              <li key={permission} className="u-mb-4px">
                 {LIBELLES_PERMISSIONS[permission]}
               </li>
             ))}

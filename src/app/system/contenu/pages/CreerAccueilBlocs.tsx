@@ -61,10 +61,10 @@ export function CreerAccueilBlocs() {
         {enCours ? "Création…" : "Créer l'accueil en blocs"}
       </Button>
       {erreur ? (
-        <div role="alert" style={{ marginTop: "var(--space-3)" }}>
+        <div role="alert" className="u-mt-s3">
           <Alert ton="danger">{erreur}</Alert>
           {existante ? (
-            <p style={{ marginTop: "var(--space-2)" }}>
+            <p className="u-mt-s2">
               <Link href={existante.format === "blocs" ? `/system/contenu/pages/${existante.id}/blocs` : `/system/contenu/pages/${existante.id}`} className="lien-texte">
                 Ouvrir la page d&apos;accueil existante
               </Link>

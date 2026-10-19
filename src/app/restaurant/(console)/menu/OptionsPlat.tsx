@@ -27,12 +27,12 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <div style={{ marginTop: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--bordure)" }}>
-      <p style={{ margin: "0 0 6px", fontSize: "0.85rem", fontWeight: 700 }}>Suppléments</p>
+    <div className="u-mt-s3-pt-s3-bt-1px-solid-bordure">
+      <p className="u-m-0-0-6px-fs-0-85rem-fw-700">Suppléments</p>
       {options.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        <div className="u-d-flex-fwrap-wrap-g-6px-mb-8px">
           {options.map((option) => (
-            <Badge key={option.id} ton="neutre" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Badge key={option.id} ton="neutre" className="u-d-inline-flex-ai-center-g-6px">
               {option.nom} (+{option.prix.toLocaleString("fr-FR")} GNF)
               <button
                 type="button"
@@ -47,7 +47,7 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
           ))}
         </div>
       ) : (
-        <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+        <p className="u-m-0-0-8px-fs-0-8rem-c-secondaire">
           Aucun supplément pour ce plat.
         </p>
       )}
@@ -74,7 +74,7 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
         </Button>
       </form>
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginTop: 8 }}>
+        <Alert ton="danger" className="u-mt-8px">
           {etat.erreur}
         </Alert>
       ) : null}

@@ -72,35 +72,29 @@ export function ComplementsPanier({
   }
 
   return (
-    <section aria-labelledby="complements-titre" style={{ marginTop: "var(--space-4)" }}>
-      <h2 id="complements-titre" style={{ fontSize: "1.05rem", margin: "0 0 var(--space-2)" }}>
+    <section aria-labelledby="complements-titre" className="u-mt-s4">
+      <h2 id="complements-titre" className="u-fs-1-05rem-m-0-0-s2">
         Pour accompagner votre commande
       </h2>
-      <ul style={{ display: "grid", gap: 8, margin: 0, padding: 0, listStyle: "none" }}>
+      <ul className="u-d-grid-g-8px-m-0-p-0-ls-none">
         {suggestions.map(({ plat, raison }) => (
           <li key={plat.id}>
             <div
-              className="carte complement-panier"
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
+              className="carte complement-panier u-d-flex-g-12px-ai-center-fwrap-wrap"
             >
               <div className="panier-ligne-media" aria-hidden="true">
                 {plat.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, déjà visible sur la page du restaurant.
                   <img src={plat.photoUrl} alt="" />
                 ) : (
-                  <span className="tuile tuile-neutre" style={{ fontSize: "1.4rem" }}>
+                  <span className="tuile tuile-neutre u-fs-1-4rem">
                     {initialePlat(plat.nom)}
                   </span>
                 )}
               </div>
-              <div style={{ flex: "1 1 150px", minWidth: 0 }}>
-                <strong style={{ display: "block" }}>{plat.nom}</strong>
-                <span style={{ fontSize: "0.85rem", color: "var(--secondaire)" }}>
+              <div className="u-flex-1-1-150px-minw-0">
+                <strong className="u-d-block">{plat.nom}</strong>
+                <span className="u-fs-0-85rem-c-secondaire">
                   {raison} · {plat.prix.toLocaleString("fr-FR")} GNF
                   {plat.aConfirmer ? " · disponibilité à confirmer" : ""}
                 </span>

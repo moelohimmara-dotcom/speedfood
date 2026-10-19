@@ -43,11 +43,11 @@ export default async function NouvelEtablissementPage() {
   ]);
 
   return (
-    <main style={{ maxWidth: 420, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-      <h1 style={{ fontSize: "1.8rem", marginBottom: "var(--space-3)" }}>
+    <main className="u-maxw-420px-m-0-auto-p-s8-s4">
+      <h1 className="u-fs-1-8rem-mb-s3">
         Configurons votre établissement
       </h1>
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-5)" }}>
+      <p className="u-c-secondaire-mb-s5">
         Ces informations pourront être modifiées plus tard depuis votre espace restaurant.
       </p>
       <Card>

@@ -59,7 +59,7 @@ export default async function OuverturePage({ searchParams }: { searchParams: Pr
       {liste.length === 0 ? (
         <>
           <EtatVide titre="Aucun plat pour l'instant" texte="Ajoutez d'abord vos plats dans « Mon menu », puis revenez ici chaque matin." />
-          <p style={{ textAlign: "center" }}>
+          <p className="u-ta-center">
             <Link href="/restaurant/menu" className="btn btn-primary">
               Ajouter mes plats
             </Link>

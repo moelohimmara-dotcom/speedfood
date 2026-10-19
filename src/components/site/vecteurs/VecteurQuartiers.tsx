@@ -69,7 +69,7 @@ export function VecteurQuartiers() {
 
         {/* Rue : bitume et pointillés qui défilent */}
         <rect x="0" y={SOL} width="520" height="44" className="v-encre" />
-        <path d={`M-14 ${SOL + 22}H534`} className="v-trait3 v-route" style={{ stroke: "var(--mangue)" }} />
+        <path d={`M-14 ${SOL + 22}H534`} className="v-trait3 v-route u-stroke-mangue" />
 
         {/* Repère qui rebondit au-dessus de Dixinn, avec son ombre sur la rue */}
         <ellipse cx="192" cy={SOL + 34} rx="22" ry="5" className="v-creme v-repere-ombre" />

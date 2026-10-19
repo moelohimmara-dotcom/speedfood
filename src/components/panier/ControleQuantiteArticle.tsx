@@ -84,7 +84,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
 
     if (!ligne) {
       return (
-        <Button type="button" variante="secondary" onClick={(e) => ajouter(e.currentTarget)} className="vignette-ajouter" style={{ marginTop: 6 }}>
+        <Button type="button" variante="secondary" onClick={(e) => ajouter(e.currentTarget)} className="vignette-ajouter u-mt-6px">
           Ajouter
         </Button>
       );
@@ -105,7 +105,7 @@ export function ControleQuantiteArticle({ restaurant, article, optionsDisponible
   }
 
   return (
-    <div style={{ marginTop: 6 }}>
+    <div className="u-mt-6px">
       <div className="options-supplements">
         {optionsDisponibles.map((option) => (
           <label key={option.id} className="option-supplement">

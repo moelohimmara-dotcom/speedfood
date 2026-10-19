@@ -335,11 +335,11 @@ export default async function FicheRestaurantPage({
       <AvisPublics restaurantId={restaurant.id} />
 
       {etatResto === "ferme" ? (
-        <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+        <Alert ton="info" className="u-mt-s4">
           Ce restaurant est actuellement fermé. Vous pouvez consulter le menu, mais pas commander.
         </Alert>
       ) : etatResto === "pause" ? (
-        <Alert ton="info" style={{ marginTop: "var(--space-4)" }}>
+        <Alert ton="info" className="u-mt-s4">
           Ce restaurant est ouvert mais ne prend plus de commandes pour le moment. Vous pouvez consulter le menu et
           réessayer plus tard.
         </Alert>
@@ -350,7 +350,7 @@ export default async function FicheRestaurantPage({
         <div className="fiche-menu">
           {/* Le message « à confirmer » vit ici, au moment du choix, et une seule fois. */}
           {aucunConfirme ? (
-            <Alert ton="info" style={{ marginBottom: "var(--space-4)" }}>
+            <Alert ton="info" className="u-mb-s4">
               Aucun plat n&apos;a été confirmé récemment. La disponibilité sera confirmée par le restaurant à la commande.
             </Alert>
           ) : null}

@@ -35,7 +35,7 @@ export default async function MisesAJourPage() {
       <SousNav entrees={sousSectionsAccessibles("Paramètres", contexte.role)} />
 
       <Panneau titre="État général">
-        <p style={{ margin: 0 }}>
+        <p className="u-m-0">
           {coupees === 0 ? (
             <>
               <Pastille ton="succes">Tout est actif</Pastille> {fonctionnalites.length} fonctionnalités pilotables, aucune coupée.

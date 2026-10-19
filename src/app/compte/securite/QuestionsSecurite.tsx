@@ -32,7 +32,7 @@ function CodesSecours({ codes, onTermine }: { codes: string[]; onTermine: () => 
   }
   return (
     <div>
-      <Alert ton="succes" style={{ marginBottom: "var(--space-4)" }}>
+      <Alert ton="succes" className="u-mb-s4">
         <strong>Notez ces {codes.length} codes de secours maintenant.</strong> Ils ne seront plus jamais affichés. Chacun ne sert
         qu&apos;une fois et remplace vos réponses si vous les oubliez. Gardez-les hors de cet appareil si possible (papier, gestionnaire de
         mots de passe).
@@ -112,12 +112,12 @@ export function QuestionsSecurite({ active, requise, codesRestants }: Props) {
     <div>
       {active && !formulaireOuvert ? (
         <>
-          <Alert ton="succes" style={{ marginBottom: "var(--space-4)" }}>
+          <Alert ton="succes" className="u-mb-s4">
             <strong>Les questions de sécurité sont activées.</strong> Il vous reste {codesRestants} code{codesRestants > 1 ? "s" : ""} de
             secours.
           </Alert>
           {codesRestants <= 2 ? (
-            <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+            <Alert ton="danger" className="u-mb-s4">
               Il vous reste peu de codes de secours. Générez-en de nouveaux pour ne pas risquer d&apos;être bloqué.
             </Alert>
           ) : null}
@@ -148,7 +148,7 @@ export function QuestionsSecurite({ active, requise, codesRestants }: Props) {
 
       {!active && !formulaireOuvert ? (
         <>
-          <p style={{ marginTop: 0 }}>
+          <p className="u-mt-0">
             Deux questions personnelles auxquelles vous répondrez après votre mot de passe. <strong>Facultatif.</strong>
           </p>
           <Button type="button" onClick={() => setFormulaireOuvert(true)}>
@@ -191,7 +191,7 @@ export function QuestionsSecurite({ active, requise, codesRestants }: Props) {
             </fieldset>
           ))}
           {etat.erreur ? (
-            <Alert ton="danger" style={{ marginBottom: "var(--space-4)" }}>
+            <Alert ton="danger" className="u-mb-s4">
               {etat.erreur}
             </Alert>
           ) : null}
@@ -207,7 +207,7 @@ export function QuestionsSecurite({ active, requise, codesRestants }: Props) {
       ) : null}
 
       {erreur ? (
-        <Alert ton="danger" style={{ marginTop: "var(--space-4)" }}>
+        <Alert ton="danger" className="u-mt-s4">
           {erreur}
         </Alert>
       ) : null}

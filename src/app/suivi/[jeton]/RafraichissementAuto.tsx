@@ -20,7 +20,7 @@ export function RafraichissementAuto({ intervalleSecondes = 20 }: { intervalleSe
   }, [router, intervalleSecondes]);
 
   return (
-    <p style={{ margin: "var(--space-4) 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+    <p className="u-m-s4-0-0-c-secondaire-fs-0-85rem">
       La page se met à jour automatiquement.{" "}
       <button
         type="button"

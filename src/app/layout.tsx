@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Bricolage_Grotesque, Manrope } from "next/font/google";
 import type { ReactNode } from "react";
 import { ConsoleProviders } from "@/components/console/ConsoleProviders";
+import "./utilitaires.css";
 import "./globals.css";
 import "./components.css";
 import "./questions.css";

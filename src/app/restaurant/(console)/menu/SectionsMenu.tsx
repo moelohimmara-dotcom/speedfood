@@ -81,7 +81,7 @@ function LigneSection({ section, index, total }: { section: Section; index: numb
         ✕
       </button>
       {etat.erreur ? (
-        <Alert ton="danger" style={{ flexBasis: "100%" }}>
+        <Alert ton="danger" className="u-flex-basis-100">
           {etat.erreur}
         </Alert>
       ) : null}
@@ -100,20 +100,20 @@ export function SectionsMenu({ sections }: { sections: Section[] }) {
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <Card style={{ marginBottom: "var(--space-5)" }}>
-      <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>Sections du menu</h2>
-      <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.85rem", color: "var(--secondaire)" }}>
+    <Card className="u-mb-s5">
+      <h2 className="u-mb-s3-fs-1-25rem">Sections du menu</h2>
+      <p className="u-m-0-0-s3-fs-0-85rem-c-secondaire">
         Organisez vos plats comme vous voulez (ex. Entrées froides, Plats — Riz, Desserts).
         Facultatif : un plat sans section reste visible normalement.
       </p>
       {sections.length > 0 ? (
-        <div style={{ marginBottom: "var(--space-3)" }}>
+        <div className="u-mb-s3">
           {sections.map((section, index) => (
             <LigneSection key={section.id} section={section} index={index} total={sections.length} />
           ))}
         </div>
       ) : (
-        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.85rem", color: "var(--secondaire)" }}>
+        <p className="u-m-0-0-s3-fs-0-85rem-c-secondaire">
           Aucune section pour l&apos;instant.
         </p>
       )}
@@ -123,9 +123,9 @@ export function SectionsMenu({ sections }: { sections: Section[] }) {
           action(formData);
           formRef.current?.reset();
         }}
-        style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}
+        className="u-d-flex-g-8px-ai-flex-end-fwrap-wrap"
       >
-        <div className="field" style={{ marginBottom: 0, flex: "1 1 220px" }}>
+        <div className="field u-mb-0-flex-1-1-220px">
           <label htmlFor="nouvelle-section">Nouvelle section</label>
           <input id="nouvelle-section" name="nom" type="text" maxLength={60} placeholder="Ex. Entrées froides" required />
         </div>
@@ -134,7 +134,7 @@ export function SectionsMenu({ sections }: { sections: Section[] }) {
         </Button>
       </form>
       {etat.erreur ? (
-        <Alert ton="danger" style={{ marginTop: 8 }}>
+        <Alert ton="danger" className="u-mt-8px">
           {etat.erreur}
         </Alert>
       ) : null}

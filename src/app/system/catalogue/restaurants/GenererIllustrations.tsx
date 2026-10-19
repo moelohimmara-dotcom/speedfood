@@ -10,7 +10,7 @@ export function GenererIllustrations() {
   const [message, setMessage] = useState<string | null>(null);
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3)", margin: "0 0 var(--space-4)" }}>
+    <div className="u-d-flex-fwrap-wrap-ai-center-g-s3-m-0-0-s4">
       <Button
         type="button"
         variante="secondary"
@@ -25,7 +25,7 @@ export function GenererIllustrations() {
       >
         {enCours ? "Génération…" : "Générer les illustrations manquantes"}
       </Button>
-      <span className="ad-aide-champ" role="status" style={{ margin: 0 }}>
+      <span className="ad-aide-champ u-m-0" role="status">
         {message ?? "Pour les restaurants et plats sans photo ni illustration."}
       </span>
     </div>

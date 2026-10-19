@@ -51,9 +51,9 @@ export function FormulaireReinitialisation() {
   }
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-5)" }}>
+    <div className="u-d-grid-g-s5">
       <Panneau titre="Étape 1 · Voir ce qui serait supprimé">
-        <p style={{ marginTop: 0 }}>Ce calcul ne supprime rien. Il délivre aussi une autorisation valable 5 minutes pour l&apos;étape 2.</p>
+        <p className="u-mt-0">Ce calcul ne supprime rien. Il délivre aussi une autorisation valable 5 minutes pour l&apos;étape 2.</p>
         <Button
           type="button"
           variante="secondary"

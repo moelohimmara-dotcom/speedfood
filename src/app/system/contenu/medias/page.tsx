@@ -26,27 +26,27 @@ export default async function MediasSystemePage() {
     <div>
       <PageHeader titre="Contenu" description="Images utilisées par les bannières." />
       <SousNav entrees={sousSectionsAccessibles("Contenu", contexte.role)} />
-      <p style={{ color: "var(--secondaire)", marginBottom: "var(--space-4)" }}>
+      <p className="u-c-secondaire-mb-s4">
         Images actuellement utilisées par une bannière. Pour ajouter ou remplacer une image,
         utilisez <Link href="/system/contenu/bannieres">Bannières</Link>.
       </p>
 
       {bannieres.length === 0 ? (
         <Card>
-          <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune bannière n&apos;a d&apos;image pour l&apos;instant.</p>
+          <p className="u-m-0-c-secondaire">Aucune bannière n&apos;a d&apos;image pour l&apos;instant.</p>
         </Card>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+        <div className="u-0ec50343">
           {bannieres.map((b) => (
-            <Card key={b.id} style={{ padding: 0, overflow: "hidden" }}>
+            <Card key={b.id} className="u-p-0-ov-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
               <img
                 src={b.image_url!}
                 alt=""
-                style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }}
+                className="u-w-100-h-120px-of-cover-d-block"
               />
-              <div style={{ padding: "var(--space-3)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <div className="u-p-s3">
+                <div className="u-d-flex-ai-center-g-8px-mb-4px">
                   <strong>{b.titre}</strong>
                   <Badge ton={b.statut === "publie" ? "succes" : "neutre"}>
                     {b.statut === "publie" ? "Publiée" : "Brouillon"}

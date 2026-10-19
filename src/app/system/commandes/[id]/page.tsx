@@ -55,7 +55,7 @@ export default async function CommandeDetailSystemePage({
         actions={<Pastille ton="neutre">{LIBELLES_STATUT[commande.statut] ?? commande.statut}</Pastille>}
       />
 
-      <div className="ad-grille-deux" style={{ marginTop: 0 }}>
+      <div className="ad-grille-deux u-mt-0">
         <div className="ad-pile">
           <Panneau titre="Détails">
             <dl className="ad-donnees">
@@ -68,7 +68,7 @@ export default async function CommandeDetailSystemePage({
               <dt>Montant</dt>
               <dd>{commande.sousTotal.toLocaleString("fr-FR")} GNF</dd>
             </dl>
-            <div style={{ marginTop: "var(--space-4)" }}>
+            <div className="u-mt-s4">
               <RevelerCoordonnees
                 commandeId={commande.id}
                 telephoneAffiche={commande.telephoneAffiche}
@@ -78,14 +78,14 @@ export default async function CommandeDetailSystemePage({
           </Panneau>
 
           <Panneau titre="Propositions révisées">
-            <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginTop: 0 }}>
+            <p className="u-fs-0-85rem-c-secondaire-mt-0">
               Historique complet des versions proposées par le restaurant. Lecture seule : les propositions sont immuables, seule
               la réponse du client les fait évoluer.
             </p>
             {commande.propositions.length === 0 ? (
-              <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucune proposition révisée.</p>
+              <p className="u-m-0-c-secondaire">Aucune proposition révisée.</p>
             ) : (
-              <div className="ad-pile" style={{ gap: 10 }}>
+              <div className="ad-pile u-g-10px">
                 {commande.propositions.map((proposition) => (
                   <LigneProposition key={proposition.version} proposition={proposition} />
                 ))}
@@ -97,7 +97,7 @@ export default async function CommandeDetailSystemePage({
         <div className="ad-pile">
           <Panneau titre="Historique">
             {commande.historique.length === 0 ? (
-              <p style={{ margin: 0, color: "var(--secondaire)" }}>Aucun événement.</p>
+              <p className="u-m-0-c-secondaire">Aucun événement.</p>
             ) : (
               <ol className="ad-chronologie">
                 {commande.historique.map((e, index) => (
@@ -116,7 +116,7 @@ export default async function CommandeDetailSystemePage({
           </Panneau>
 
           <Panneau titre="Action de support">
-            <p style={{ fontSize: "0.85rem", color: "var(--secondaire)", marginTop: 0 }}>
+            <p className="u-fs-0-85rem-c-secondaire-mt-0">
               Réservée à une procédure de support explicite (motif obligatoire, journalisée). Ce n&apos;est pas l&apos;action
               normale du restaurant.
             </p>
@@ -136,31 +136,31 @@ function formaterMontant(montant: number): string {
 function LigneProposition({ proposition }: { proposition: PropositionRevisseeAdmin }) {
   return (
     <div className="ad-version">
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div className="u-d-flex-ai-center-g-8px-fwrap-wrap">
         <strong>Version {proposition.version}</strong>
         <Badge ton={TONS_STATUT_PROPOSITION[proposition.statut]}>
           {LIBELLES_STATUT_PROPOSITION[proposition.statut]}
         </Badge>
       </div>
-      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+      <p className="u-m-0-fs-0-85rem">
         <strong>Sous-total :</strong> {formaterMontant(proposition.sousTotalPrecedent)} →{" "}
         {formaterMontant(proposition.nouveauSousTotal)}
       </p>
-      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+      <p className="u-m-0-fs-0-85rem">
         <strong>Frais de livraison :</strong>{" "}
         {proposition.fraisLivraisonPrecedent === null
           ? formaterMontant(proposition.nouveauxFraisLivraison)
           : `${formaterMontant(proposition.fraisLivraisonPrecedent)} → ${formaterMontant(proposition.nouveauxFraisLivraison)}`}
       </p>
-      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+      <p className="u-m-0-fs-0-85rem">
         <strong>Conditions :</strong>{" "}
         {proposition.conditionsModifiees ? proposition.conditionsModifiees : "—"}
       </p>
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
+      <p className="u-m-0-fs-0-85rem-c-secondaire">
         Échéance : {formaterEcheance(proposition.expireLe)} · Créée le{" "}
         {formaterDateCourte(proposition.creeLe)}
       </p>
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--secondaire)" }}>
+      <p className="u-m-0-fs-0-85rem-c-secondaire">
         Réponse :{" "}
         {proposition.reponduLe
           ? `le ${formaterDateCourte(proposition.reponduLe)}`

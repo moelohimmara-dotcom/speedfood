@@ -29,7 +29,7 @@ export function AjoutEnLot({ sections, prixMax }: { sections: { id: string; nom:
         }}
         className="saisie-lot-corps"
       >
-        <p className="aide-champ" style={{ margin: 0 }}>
+        <p className="aide-champ u-m-0">
           Collez une liste, une ligne par plat, le prix à la fin. Exemple :
         </p>
         <pre className="saisie-lot-exemple">{EXEMPLE}</pre>

@@ -17,7 +17,7 @@ export function SelecteurCouleur({ valeurInitiale }: { valeurInitiale: string | 
       <div
         role="group"
         aria-label="Couleur d'accent"
-        style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
+        className="u-d-flex-fwrap-wrap-g-8px-ai-center"
       >
         <button
           type="button"

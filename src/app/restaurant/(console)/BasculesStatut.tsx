@@ -38,12 +38,12 @@ export function BasculesStatut({ ouvert, accepteCommandes, miseAJour }: Props) {
   }
 
   return (
-    <Card style={{ marginBottom: "var(--space-4)" }}>
-      <h2 style={{ marginBottom: "var(--space-3)", fontSize: "1.25rem" }}>État du restaurant</h2>
+    <Card className="u-mb-s4">
+      <h2 className="u-mb-s3-fs-1-25rem">État du restaurant</h2>
 
       <div className="rc-bascules">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div className="u-d-flex-ai-center-g-8px-mb-8px">
             <strong>Restaurant</strong>
             <Badge ton={etat.ouvert ? "succes" : "danger"}>{etat.ouvert ? "Ouvert" : "Fermé"}</Badge>
           </div>
@@ -63,7 +63,7 @@ export function BasculesStatut({ ouvert, accepteCommandes, miseAJour }: Props) {
         </div>
 
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div className="u-d-flex-ai-center-g-8px-mb-8px">
             <strong>Commandes</strong>
             <Badge ton={etat.accepte_commandes ? "succes" : "neutre"}>
               {etat.accepte_commandes ? "Acceptées" : "En pause"}
@@ -82,7 +82,7 @@ export function BasculesStatut({ ouvert, accepteCommandes, miseAJour }: Props) {
                 ? "Mettre les commandes en pause"
                 : "Reprendre les commandes"}
           </Button>
-          <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "var(--secondaire)" }}>
+          <p className="u-m-6px-0-0-fs-0-8rem-c-secondaire">
             En pause, les clients voient votre menu mais ne peuvent plus commander. Le restaurant reste
             ouvert.
           </p>
@@ -90,11 +90,11 @@ export function BasculesStatut({ ouvert, accepteCommandes, miseAJour }: Props) {
       </div>
 
       {erreur ? (
-        <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+        <Alert ton="danger" className="u-mt-s3">
           {erreur}
         </Alert>
       ) : null}
-      <p style={{ margin: "var(--space-3) 0 0", fontSize: "0.78rem", color: "var(--secondaire)" }}>
+      <p className="u-m-s3-0-0-fs-0-78rem-c-secondaire">
         Dernier changement : {miseAJour}.
       </p>
     </Card>

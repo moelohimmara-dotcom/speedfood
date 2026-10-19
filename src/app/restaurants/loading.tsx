@@ -5,7 +5,7 @@ export default function Chargement() {
         Chargement des restaurants…
       </p>
       <div className="squelette squelette-hero" aria-hidden="true" />
-      <div style={{ maxWidth: 1160, margin: "0 auto", padding: "var(--space-4)" }} aria-hidden="true">
+      <div className="u-maxw-1160px-m-0-auto-p-s4" aria-hidden="true">
         <div className="squelette squelette-ligne" />
         <div className="squelette-grille-cartes">
           {Array.from({ length: 6 }, (_, i) => (

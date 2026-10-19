@@ -20,7 +20,7 @@ export function MiseEnAvantItem({ miseEnAvant }: { miseEnAvant: MiseEnAvant }) {
   return (
     <tr>
       <td className="ad-cellule-principale" data-label="Restaurant">
-        <span style={{ fontWeight: 800 }}>{miseEnAvant.restaurant_nom}</span>
+        <span className="u-fw-800">{miseEnAvant.restaurant_nom}</span>
       </td>
       <td className="ad-secondaire" data-label="Position">
         {miseEnAvant.position}
@@ -29,7 +29,7 @@ export function MiseEnAvantItem({ miseEnAvant }: { miseEnAvant: MiseEnAvant }) {
         <Pastille ton={miseEnAvant.actif ? "succes" : "neutre"}>{miseEnAvant.actif ? "Active" : "Inactive"}</Pastille>
       </td>
       <td className="ad-droite" data-label="Actions">
-        <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <span className="u-d-inline-flex-g-6px-fwrap-wrap-jc-flex-end">
           <Button
             type="button"
             variante="secondary"

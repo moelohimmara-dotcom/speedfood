@@ -60,13 +60,13 @@ export default async function EditionPageSystemePage({
             Cette page est composée de blocs (titres, paragraphes, boutons…). Son contenu se modifie, se publie et se restaure dans
             l&apos;éditeur visuel, sur tablette ou ordinateur.
           </p>
-          <p style={{ marginTop: "var(--space-4)" }}>
+          <p className="u-mt-s4">
             <Link href={`/system/contenu/pages/${page.id}/blocs`} className="btn btn-primary">
               Ouvrir l&apos;éditeur
             </Link>
           </p>
           {page.statut === "publie" ? (
-            <div style={{ marginTop: "var(--space-4)" }}>
+            <div className="u-mt-s4">
               <BasculerPublicationPage
                 id={page.id}
                 publie

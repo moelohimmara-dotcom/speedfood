@@ -31,7 +31,7 @@ export function BlocTable({ jeton, vue }: { jeton?: string; vue: VueTable }) {
   }
 
   return (
-    <Card style={{ marginTop: "var(--space-4)" }}>
+    <Card className="u-mt-s4">
       <h2 className="table-titre">Table {vue.session.tableNumero}</h2>
       <ul className="table-commandes">
         {vue.commandes.map((c) => (

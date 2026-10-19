@@ -30,7 +30,7 @@ export function EditeurPage({ page, limites }: { page: PageEditoriale; limites?:
   const [contenu, setContenu] = useState(page.contenu);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-5)" }}>
+    <div className="u-d-grid-gtc-1fr-g-s5">
       <form action={action}>
         <input type="hidden" name="id" value={page.id} />
         <Input
@@ -61,27 +61,20 @@ export function EditeurPage({ page, limites }: { page: PageEditoriale; limites?:
         <Button type="submit" disabled={enCours || lectureSeule}>
           {enCours ? "Enregistrement…" : "Enregistrer"}
         </Button>
-        <div style={{ marginTop: "var(--space-4)" }}>
+        <div className="u-mt-s4">
           <BasculerPublicationPage id={page.id} publie={page.statut === "publie"} indisponible={limites?.publication} />
         </div>
       </form>
 
       <div
-        style={{
-          maxWidth: 360,
-          margin: "0 auto",
-          border: "1px solid var(--bordure)",
-          borderRadius: "var(--radius-lg)",
-          padding: "var(--space-4)",
-          background: "var(--creme)",
-        }}
+        className="u-a775f1ea"
       >
-        <p style={{ fontSize: "0.75rem", color: "var(--secondaire)", marginBottom: "var(--space-2)" }}>
+        <p className="u-fs-0-75rem-c-secondaire-mb-s2">
           Aperçu mobile (375px)
         </p>
-        <h2 style={{ fontSize: "1.2rem", marginBottom: "var(--space-2)" }}>{titre}</h2>
-        <div style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem", color: "var(--encre)" }}>
-          {contenu || <span style={{ color: "var(--secondaire)" }}>(contenu vide)</span>}
+        <h2 className="u-fs-1-2rem-mb-s2">{titre}</h2>
+        <div className="u-ws-pre-wrap-fs-0-9rem-c-encre">
+          {contenu || <span className="u-c-secondaire">(contenu vide)</span>}
         </div>
       </div>
     </div>

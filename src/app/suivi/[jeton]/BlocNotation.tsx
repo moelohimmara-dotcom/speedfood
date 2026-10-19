@@ -84,7 +84,7 @@ export function BlocNotation({ jeton, restaurantNom, restaurant, livreur }: Prop
   }
 
   return (
-    <Card style={{ marginTop: "var(--space-4)" }}>
+    <Card className="u-mt-s4">
       <h2 className="notation-titre">{restaurant ? "Votre avis" : "Donnez votre avis"}</h2>
       {verrouille ? <p className="notation-aide">Votre avis est enregistré. Il n&apos;est plus modifiable.</p> : null}
 

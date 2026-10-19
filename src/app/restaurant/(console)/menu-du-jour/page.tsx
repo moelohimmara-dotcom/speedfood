@@ -45,20 +45,20 @@ export default async function MenuDuJourPage({ searchParams }: { searchParams: P
       />
       {ouvert === "1" ? (
         <div className="ad-bandeau" role="status">
-          <p style={{ margin: 0 }}>
+          <p className="u-m-0">
             <strong>Votre journée est ouverte.</strong> Vos clients voient l&apos;heure de votre confirmation. Partagez votre menu :
           </p>
         </div>
       ) : null}
       {restaurant && !restaurant.publie ? (
         <div className="ad-bandeau ad-bandeau-attention" role="note">
-          <p style={{ margin: 0 }}>Votre restaurant n&apos;est pas encore publié : le lien de l&apos;image ne fonctionnera qu&apos;après validation par l&apos;équipe Speedfood.</p>
+          <p className="u-m-0">Votre restaurant n&apos;est pas encore publié : le lien de l&apos;image ne fonctionnera qu&apos;après validation par l&apos;équipe Speedfood.</p>
         </div>
       ) : null}
       {lignes.length === 0 ? (
         <>
           <EtatVide titre="Aucun plat confirmé récemment" texte="Confirmez vos plats du matin pour pouvoir les montrer. Seuls les plats confirmés dans les dernières heures apparaissent sur l'image." />
-          <p style={{ textAlign: "center" }}>
+          <p className="u-ta-center">
             <Link href="/restaurant/ouverture" className="btn btn-primary">
               Ouvrir ma journée
             </Link>
