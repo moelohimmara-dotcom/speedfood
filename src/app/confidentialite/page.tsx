@@ -29,21 +29,21 @@ export default async function ConfidentialitePage() {
   const duree = await lireDureeConservation();
 
   return (
-    <main style={{ maxWidth: 680, margin: "0 auto", padding: "var(--space-8) var(--space-4)", lineHeight: 1.6 }}>
+    <main className="confidentialite-page">
       <LienRetour href="/restaurants">Retour aux restaurants</LienRetour>
-      <h1 style={{ fontSize: "2rem", margin: "var(--space-3) 0 var(--space-4)" }}>Vos données sur Speedfood</h1>
+      <h1 className="confidentialite-titre">Vos données sur Speedfood</h1>
       <p>
         Speedfood est un portail qui vous aide à trouver un restaurant et à lui envoyer une demande de commande. Voici,
         simplement, ce qui se passe avec vos informations.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Ce que nous demandons</h2>
+      <h2>Ce que nous demandons</h2>
       <p>
         Pour envoyer une demande, nous vous demandons votre nom et votre numéro de téléphone, et votre adresse seulement si
         vous demandez une livraison. Rien d&apos;autre. Vous n&apos;avez pas besoin de créer de compte.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Votre position (facultatif)</h2>
+      <h2>Votre position (facultatif)</h2>
       <p>
         Le bouton « Utiliser ma position » de l&apos;accueil ne s&apos;active que si vous cliquez dessus et acceptez que votre appareil
         la partage. Elle sert uniquement à retrouver votre commune ou votre quartier : elle est arrondie (environ 100 mètres),
@@ -51,7 +51,7 @@ export default async function ConfidentialitePage() {
         l&apos;enregistre pas. Vous pouvez toujours choisir votre zone à la main.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Liste d&apos;attente d&apos;une zone (facultatif)</h2>
+      <h2>Liste d&apos;attente d&apos;une zone (facultatif)</h2>
       <p>
         Si aucun restaurant n&apos;est encore référencé dans votre zone, vous pouvez laisser votre e-mail ou votre numéro pour être
         prévenu(e) une seule fois à l&apos;ouverture d&apos;un restaurant. Vous cochez une case de consentement avant l&apos;envoi. Votre
@@ -59,20 +59,20 @@ export default async function ConfidentialitePage() {
         zone l&apos;est), jamais partagé ni vendu. Pour le retirer, écrivez à {CONTACT}.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Pourquoi</h2>
+      <h2>Pourquoi</h2>
       <p>
         Uniquement pour que le restaurant puisse traiter votre commande et vous joindre. Nous ne vous envoyons pas de
         publicité et nous ne vendons pas vos informations.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Qui peut les voir</h2>
+      <h2>Qui peut les voir</h2>
       <p>
         Le restaurant que vous avez choisi, pour votre commande. L&apos;équipe Speedfood ne voit votre téléphone et votre adresse
         que si une aide est nécessaire, avec un motif obligatoire qui est enregistré. Votre lien de suivi est secret : ne le
         partagez pas.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Si vous créez un compte (facultatif)</h2>
+      <h2>Si vous créez un compte (facultatif)</h2>
       <p>
         Vous pouvez créer un compte avec Facebook. Facebook nous transmet votre nom et votre adresse e-mail, jamais vos amis, vos
         publications ni vos pages. Speedfood garde l&apos;identifiant de votre compte, votre pseudo et l&apos;avatar que vous avez
@@ -88,16 +88,16 @@ export default async function ConfidentialitePage() {
         effacées si vous supprimez votre compte. Votre adresse n&apos;est transmise à un restaurant que pour une livraison.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Paiement</h2>
+      <h2>Paiement</h2>
       <p>Speedfood ne reçoit aucun paiement. Vous réglez directement avec le restaurant.</p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Combien de temps</h2>
+      <h2>Combien de temps</h2>
       <p>
         Votre nom, votre téléphone et votre adresse sont effacés de nos systèmes <strong>{duree} jours</strong> après la fin de
         votre commande. Les montants et les plats restent, sans vous identifier.
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Vos droits</h2>
+      <h2>Vos droits</h2>
       <p>
         Vous pouvez demander à voir, corriger ou effacer vos informations, à tout moment, en écrivant à{" "}
         {/* Lien en pleine phrase : la marge verticale n'agrandit pas la ligne, mais porte la
@@ -108,7 +108,7 @@ export default async function ConfidentialitePage() {
         . Nous répondons sous 30 jours. Pour aller plus vite, indiquez la référence de votre commande (de la forme SF-XXXXX).
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Où elles sont stockées</h2>
+      <h2>Où elles sont stockées</h2>
       <p>
         Dans un service d&apos;hébergement situé en Irlande (Supabase) et servies par Cloudflare. Ces prestataires peuvent voir des
         informations techniques de connexion (comme l&apos;adresse IP) selon leurs propres règles ; Speedfood ne les conserve pas.
@@ -116,7 +116,7 @@ export default async function ConfidentialitePage() {
         (Turnstile).
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginTop: "var(--space-5)" }}>Responsable</h2>
+      <h2>Responsable</h2>
       <p>
         {RESPONSABLE}. Dernière mise à jour : {DERNIERE_MISE_A_JOUR}.
       </p>

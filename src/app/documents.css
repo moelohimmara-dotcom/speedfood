@@ -85,3 +85,19 @@
     display: none !important;
   }
 }
+
+/* Page « Vos données sur Speedfood » : mise en page portée par la feuille (plus de style en ligne). */
+.confidentialite-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+  line-height: 1.6;
+}
+.confidentialite-titre {
+  font-size: 2rem;
+  margin: var(--space-3) 0 var(--space-4);
+}
+.confidentialite-page h2 {
+  font-size: 1.2rem;
+  margin-top: var(--space-5);
+}
