@@ -5,6 +5,7 @@ import { creerClientAdmin } from "@/lib/db/admin";
 import { limiterZoneAlerte } from "@/lib/securite/limitation-debit";
 import { validerContactAlerte } from "@/lib/site/zone-alerte";
 import { lireHierarchieZones, resoudreZone, type NiveauZone } from "@/lib/site/zones";
+import { origineValide } from "@/lib/push/session";
 
 /**
  * Liste d'attente par zone : « Prévenez-moi quand un restaurant ouvre ici ».
@@ -15,6 +16,9 @@ import { lireHierarchieZones, resoudreZone, type NiveauZone } from "@/lib/site/z
 const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
+  if (!origineValide(request)) {
+    return NextResponse.json({ erreur: "Requête refusée : origine non autorisée." }, { status: 403, headers: SANS_CACHE });
+  }
   if (!(await fonctionnaliteActive("zone_liste_attente"))) {
     return NextResponse.json({ erreur: "Cette fonction est désactivée pour le moment." }, { status: 404, headers: SANS_CACHE });
   }

@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuivi";
 import { creerClientServeur } from "@/lib/db/server";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { origineDuSite } from "@/lib/partage/origine";
@@ -105,12 +107,15 @@ export async function supprimerMonCompteAction(_etat: EtatSuppression, formData:
     return { erreur: "Impossible de supprimer le compte pour le moment. Réessayez dans un instant." };
   }
   await supabase.auth.signOut();
+  (await cookies()).delete({ name: NOM_COOKIE_SUIVI, path: optionsCookieSuivi().path });
   redirect("/restaurants?compte=supprime");
 }
 
 export async function deconnexionClientAction(): Promise<void> {
   const supabase = await creerClientServeur();
   await supabase.auth.signOut();
+  // Le cookie de suivi de commande ne doit pas survivre à la déconnexion : même chemin que celui posé à sa création.
+  (await cookies()).delete({ name: NOM_COOKIE_SUIVI, path: optionsCookieSuivi().path });
   redirect("/restaurants");
 }
 

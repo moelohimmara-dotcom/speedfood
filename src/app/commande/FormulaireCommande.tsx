@@ -12,7 +12,7 @@ import { memoriserCoordonneesAction } from "@/lib/client/actions";
 import type { CreationCommandePayload, ModeRetrait } from "@/lib/contracts/commande";
 import type { ErreurApi } from "@/lib/contracts/erreurs";
 import { Button, Input, Alert } from "@/components/ui";
-import { useTableMemorisee } from "@/lib/commande/table-memoire";
+import { lireCleTableMemorisee, useTableMemorisee } from "@/lib/commande/table-memoire";
 import { lireNumeroTable } from "@/lib/commande/mode";
 import { Turnstile } from "@/components/Turnstile";
 import type { OptionChoix } from "@/components/ui/ListeChoix";
@@ -159,6 +159,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
       },
       mode,
       table: mode === "sur_place" ? lireNumeroTable(table) : null,
+      cleTable: mode === "sur_place" ? lireCleTableMemorisee(panier.restaurantId, lireNumeroTable(table)) : null,
       lignes: panier.lignes.map((ligne) => ({
         menuItemId: ligne.menuItemId,
         quantite: ligne.quantite,

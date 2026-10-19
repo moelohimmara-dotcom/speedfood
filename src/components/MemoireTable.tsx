@@ -12,9 +12,10 @@ export function MemoireTable({ restaurantId, accepteSurPlace }: { restaurantId: 
   const table = useTableMemorisee(restaurantId);
 
   useEffect(() => {
-    const dansLien = lireNumeroTable(new URLSearchParams(window.location.search).get("table"));
+    const parametres = new URLSearchParams(window.location.search);
+    const dansLien = lireNumeroTable(parametres.get("table"));
     if (dansLien) {
-      memoriserTable(restaurantId, dansLien);
+      memoriserTable(restaurantId, dansLien, parametres.get("k"));
     }
   }, [restaurantId]);
 

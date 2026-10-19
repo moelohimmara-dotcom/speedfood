@@ -618,7 +618,7 @@ verifier("aucune fonction privilégiée n'est exécutable par un visiteur anonym
 const definerConnu = new Set([
   "fn_admin_definir_illustration", "fn_admin_dossier_restaurant", "fn_admin_lister_plats", "fn_creer_restaurant_et_owner",
   "fn_emettre_document", "fn_est_admin_systeme", "fn_est_membre_restaurant", "fn_fusionner_quartiers", "fn_lister_audit",
-  "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_est_ce_mon_livreur", "fn_mon_restaurant_a_ce_livreur", "fn_reinitialisation_simuler", "fn_reinitialiser_application",
+  "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_est_ce_mon_livreur", "fn_mon_restaurant_a_ce_livreur",
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
 ]);
@@ -627,6 +627,35 @@ const definerAuth = (await db.query(`
   where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef and has_function_privilege('authenticated', p.oid, 'execute')`)).rows.map((r) => r.proname);
 const nouvelles = definerAuth.filter((n) => !definerConnu.has(n));
 verifier("aucune nouvelle fonction privilégiée n'est apparue sans être déclarée et testée ici", nouvelles.length === 0, nouvelles.join(", "));
+
+// ---------------------------------------------------------------- 7. revue du 19 octobre 2026 : jeton de suivi, réinitialisation, avis
+console.log("\n--- Jeton de suivi, réinitialisation, avis (revue du 19 octobre 2026)");
+const colOrders = (await db.query(`select column_name from information_schema.columns where table_schema='public' and table_name='orders'`)).rows.map((r) => r.column_name);
+const jetonLisible = (await db.query(`select has_column_privilege('authenticated','public.orders','jeton_suivi','select') a, has_column_privilege('anon','public.orders','jeton_suivi','select') b`)).rows[0];
+verifier("jeton_suivi n'est lisible ni par un compte connecté ni par un visiteur", !jetonLisible.a && !jetonLisible.b);
+const colsSansDroit = (await db.query(`select column_name from information_schema.columns where table_schema='public' and table_name='orders' and column_name <> 'jeton_suivi' and not has_column_privilege('authenticated','public.orders',column_name,'select')`)).rows.map((r) => r.column_name);
+verifier("toute autre colonne de orders reste lisible par la console (une nouvelle colonne ne casse pas les lectures)", colsSansDroit.length === 0, colsSansDroit.join(", "));
+verifier("orders a bien une colonne jeton_recu distincte du jeton de suivi", colOrders.includes("jeton_recu") && colOrders.includes("jeton_suivi"));
+const lectJeton = await lire(ID.user_a, `select jeton_suivi from orders where id = '${CMD_A}'`);
+verifier("un restaurateur ne peut pas lire le jeton de suivi de SA commande", lectJeton.erreur !== null, lectJeton.erreur ?? "lu");
+const lectTout = await lire(ID.user_a, `select * from orders where id = '${CMD_A}'`);
+verifier("select * sur orders par un restaurateur est refusé (le code liste ses colonnes)", lectTout.erreur !== null, lectTout.erreur ?? "lu");
+const lectRecu = await lire(ID.user_a, `select id, reference, jeton_recu from orders where id = '${CMD_A}'`);
+verifier("contrôle positif : un restaurateur lit le jeton de reçu de sa commande", !lectRecu.erreur && lectRecu.lignes.length === 1 && String(lectRecu.lignes[0].jeton_recu).length === 64, lectRecu.erreur ?? "");
+const lectRecuB = await lire(ID.user_a, `select jeton_recu from orders where id = '${CMD_B}'`);
+verifier("un restaurateur ne lit pas le jeton de reçu de la commande d'un AUTRE restaurant", !lectRecuB.erreur && lectRecuB.lignes.length === 0, lectRecuB.erreur ?? `${lectRecuB.lignes.length} ligne(s)`);
+const lectAnon = await lire(null, `select id from orders`);
+verifier("un visiteur anonyme ne lit aucune commande", lectAnon.erreur !== null || lectAnon.lignes.length === 0);
+const jetonsRecu = (await db.query(`select count(*)::int n, count(distinct jeton_recu)::int d from orders`)).rows[0];
+verifier("les jetons de reçu sont tous distincts", jetonsRecu.n === jetonsRecu.d);
+const reinit = (await db.query(`select has_function_privilege('authenticated','public.fn_reinitialiser_application(uuid,text)','execute') a, has_function_privilege('authenticated','public.fn_reinitialisation_simuler()','execute') b`)).rows[0];
+verifier("la réinitialisation de l'application n'est plus exécutable par un compte connecté", !reinit.a && !reinit.b);
+const avisCol = await lire(ID.user_a, `select auteur_utilisateur_id from avis`);
+verifier("un restaurateur ne lit pas l'auteur d'un avis", avisCol.erreur !== null, avisCol.erreur ?? "lu");
+const avisOrder = await lire(ID.user_a, `select order_id from avis`);
+verifier("un restaurateur ne lit pas la commande d'un avis", avisOrder.erreur !== null, avisOrder.erreur ?? "lu");
+const avisOk = await lire(ID.user_a, `select note, cible, statut, commentaire from avis`);
+verifier("contrôle positif : un restaurateur lit toujours la note et le commentaire des avis qui le concernent", !avisOk.erreur, avisOk.erreur ?? "");
 
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

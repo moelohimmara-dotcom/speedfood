@@ -8,5 +8,6 @@ export default async function RecuSessionPage({ searchParams }: { searchParams: 
   const jeton = await lireJetonSessionSuivi();
   if (!jeton) return <InitialiserSessionSuivi />;
   const { doc } = await searchParams;
-  return renderRecuPage(jeton, doc);
+  // Le lien de suivi reste dans le cookie : la page n'écrit aucune adresse contenant le jeton.
+  return renderRecuPage(jeton, doc, { racine: "/suivi/recu", retour: "/suivi" });
 }

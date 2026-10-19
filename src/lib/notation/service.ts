@@ -1,6 +1,7 @@
 import "server-only";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import {
+  INTERVALLE_AVIS_MEME_RESTAURANT_JOURS,
   messageRefus,
   noteModifiable,
   prenomAffiche,
@@ -37,6 +38,7 @@ interface CommandeDuClient {
   restaurant_id: string;
   statut: string;
   est_test: boolean;
+  saisie_par: string | null;
   mis_a_jour_le: string;
   restaurants: { nom: string } | null;
 }
@@ -45,7 +47,7 @@ interface CommandeDuClient {
 async function commandeDuClient(jeton: string, utilisateurId: string): Promise<CommandeDuClient | null> {
   const { data } = await clientLivraison()
     .from("orders")
-    .select("id, restaurant_id, statut, est_test, mis_a_jour_le, restaurants(nom)")
+    .select("id, restaurant_id, statut, est_test, saisie_par, mis_a_jour_le, restaurants(nom)")
     .eq("jeton_suivi", jeton)
     .eq("client_user_id", utilisateurId)
     .maybeSingle();
@@ -72,7 +74,7 @@ export async function etatNotationClient(jeton: string, utilisateurId: string, m
   const commande = await commandeDuClient(jeton, utilisateurId);
   if (!commande) return null;
   const restaurantNom = commande.restaurants?.nom ?? "le restaurant";
-  const raison = raisonNotationImpossible({ statut: commande.statut, estTest: commande.est_test, clotureLe: commande.mis_a_jour_le }, maintenant);
+  const raison = raisonNotationImpossible({ statut: commande.statut, estTest: commande.est_test, clotureLe: commande.mis_a_jour_le, saisiePersonnel: commande.saisie_par !== null }, maintenant);
   if (raison) return { notable: false, message: messageRefus(raison), restaurantNom, restaurant: null, livreur: null };
 
   const [{ data: avis, error: erreurAvis }, livreur] = await Promise.all([
@@ -107,7 +109,7 @@ export async function enregistrerAvisClient(args: {
   const maintenant = args.maintenant ?? new Date();
   const commande = await commandeDuClient(args.jeton, args.utilisateurId);
   if (!commande) return { ok: false, erreur: "Commande introuvable." };
-  const raison = raisonNotationImpossible({ statut: commande.statut, estTest: commande.est_test, clotureLe: commande.mis_a_jour_le }, maintenant);
+  const raison = raisonNotationImpossible({ statut: commande.statut, estTest: commande.est_test, clotureLe: commande.mis_a_jour_le, saisiePersonnel: commande.saisie_par !== null }, maintenant);
   if (raison) return { ok: false, erreur: messageRefus(raison) };
 
   const resto = validerAvis({ ...args.restaurant, auteur: "client", cible: "restaurant" });
@@ -128,6 +130,21 @@ export async function enregistrerAvisClient(args: {
   // Prénom affiché : le pseudo du compte (jamais l'e-mail ni le téléphone).
   const { data: profil } = await db.from("client_profils").select("pseudo").eq("utilisateur_id", args.utilisateurId).maybeSingle();
   const prenom = prenomAffiche((profil as { pseudo?: string } | null)?.pseudo ?? "");
+
+  // Anti-bourrage : un compte ne note un même restaurant qu'une fois par période (une note déjà donnée pour CETTE commande reste modifiable).
+  const { data: dejaCetteCommande } = await db.from("avis").select("id").eq("order_id", commande.id).eq("cible", "restaurant").eq("auteur", "client").maybeSingle();
+  if (!dejaCetteCommande) {
+    const depuis = new Date(maintenant.getTime() - INTERVALLE_AVIS_MEME_RESTAURANT_JOURS * 86_400_000).toISOString();
+    const { count } = await db
+      .from("avis")
+      .select("id", { count: "exact", head: true })
+      .eq("auteur_utilisateur_id", args.utilisateurId)
+      .eq("restaurant_id", commande.restaurant_id)
+      .eq("cible", "restaurant")
+      .eq("auteur", "client")
+      .gte("cree_le", depuis);
+    if ((count ?? 0) > 0) return { ok: false, erreur: `Vous avez déjà donné un avis sur ce restaurant ces ${INTERVALLE_AVIS_MEME_RESTAURANT_JOURS} derniers jours.` };
+  }
 
   const poser = async (cible: "restaurant" | "livreur", avis: AvisValide): Promise<string | null> => {
     const { data: existant } = await db

@@ -23,6 +23,14 @@ export async function obtenirContexteRestaurant(cheminActuel: string) {
     redirect(`/connexion?suite=${encodeURIComponent(cheminActuel)}`);
   }
 
+  // Double authentification (revue du 19 octobre 2026, M-6) : un compte qui a un facteur confirmé n'utilise pas la console avec une session au seul
+  // mot de passe (aal1). Le proxy le fait déjà par chemin ; ceci le garantit aussi pour les actions serveur à clé de service (salle, avis,
+  // positionnement...), qui ne passent pas par la RLS, même si le proxy était contourné ou en échec.
+  const { data: niveau } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (niveau && niveau.nextLevel === "aal2" && niveau.currentLevel !== "aal2") {
+    redirect(`/connexion/verification?suite=${encodeURIComponent(cheminActuel)}`);
+  }
+
   // Questions de sécurité facultatives : à répondre une fois par session si le compte les a activées.
   if ((await lireEtatQuestions(supabase)).requise) {
     redirect(`/connexion/questions?suite=${encodeURIComponent(cheminActuel)}`);

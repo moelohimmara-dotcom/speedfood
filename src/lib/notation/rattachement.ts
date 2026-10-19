@@ -16,11 +16,12 @@ interface CommandeBrute {
   client_user_id: string | null;
   statut: string;
   est_test: boolean;
+  saisie_par: string | null;
   mis_a_jour_le: string;
 }
 
 async function commandeParJeton(jeton: string): Promise<CommandeBrute | null> {
-  const { data } = await clientLivraison().from("orders").select("id, restaurant_id, client_user_id, statut, est_test, mis_a_jour_le").eq("jeton_suivi", jeton).maybeSingle();
+  const { data } = await clientLivraison().from("orders").select("id, restaurant_id, client_user_id, statut, est_test, saisie_par, mis_a_jour_le").eq("jeton_suivi", jeton).maybeSingle();
   return (data as CommandeBrute | null) ?? null;
 }
 
@@ -43,7 +44,7 @@ async function estDeLEquipe(restaurantId: string, utilisateurId: string): Promis
 export async function etatRattachement(jeton: string, utilisateurId: string | null, maintenant = new Date()): Promise<EtatRattachement> {
   const c = await commandeParJeton(jeton);
   if (!c) return "sans_objet";
-  if (raisonNotationImpossible({ statut: c.statut, estTest: c.est_test, clotureLe: c.mis_a_jour_le }, maintenant)) return "sans_objet";
+  if (raisonNotationImpossible({ statut: c.statut, estTest: c.est_test, clotureLe: c.mis_a_jour_le, saisiePersonnel: c.saisie_par !== null }, maintenant)) return "sans_objet";
   if (utilisateurId === null) return "non_connecte";
   if (c.client_user_id === utilisateurId) return "deja_a_vous";
   if (c.client_user_id !== null) return "sans_objet";
@@ -56,7 +57,7 @@ export async function rattacherCommande(args: { jeton: string; utilisateurId: st
   const maintenant = args.maintenant ?? new Date();
   const c = await commandeParJeton(args.jeton);
   if (!c) return { ok: false, erreur: "Commande introuvable." };
-  const raison = raisonNotationImpossible({ statut: c.statut, estTest: c.est_test, clotureLe: c.mis_a_jour_le }, maintenant);
+  const raison = raisonNotationImpossible({ statut: c.statut, estTest: c.est_test, clotureLe: c.mis_a_jour_le, saisiePersonnel: c.saisie_par !== null }, maintenant);
   if (raison) return { ok: false, erreur: messageRefus(raison) };
   if (c.client_user_id === args.utilisateurId) return { ok: true };
   if (c.client_user_id !== null) return { ok: false, erreur: "Cette commande est déjà rattachée à un compte." };

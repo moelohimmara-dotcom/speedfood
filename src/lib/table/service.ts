@@ -1,7 +1,7 @@
 import "server-only";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { versStatutCommande } from "@/lib/commande/commun";
-import { appelPossible, compteDansAddition, estModeReglement, totalAddition, type ModeReglement } from "./regles";
+import { appelPossible, compteDansAddition, estModeReglement, prenomSeul, totalAddition, type ModeReglement } from "./regles";
 
 /**
  * Sessions de table (voir docs/COMMANDE-SUR-PLACE.md). Toutes les écritures passent ici, avec la clé de service ; l'appelant a DÉJÀ
@@ -105,30 +105,33 @@ export async function vueTableParJeton(jeton: string): Promise<VueTable | null> 
   const { data: cmd } = await db.from("orders").select("session_id").eq("jeton_suivi", jeton).maybeSingle();
   const sessionId = (cmd as { session_id: string | null } | null)?.session_id;
   if (!sessionId) return null;
-  return vueTable(db, sessionId);
+  // Convive : seul le prénom des autres est montré (jamais le nom complet).
+  return vueTable(db, sessionId, { prenomSeul: true });
 }
 
 type CommandeBrute = { id: string; session_id?: string; reference: string; statut: string; sous_total: number; cree_le: string; client_nom: string; order_items: { nom: string; quantite: number; prix: number }[] };
 
 const COLONNES_COMMANDE = "id, session_id, reference, statut, sous_total, cree_le, client_nom, order_items(nom, quantite, prix)";
 
-function versCommande(c: CommandeBrute): CommandeDeTable {
+function versCommande(c: CommandeBrute, seulPrenom = false): CommandeDeTable {
   return {
     id: c.id,
     reference: c.reference,
     statut: versStatutCommande(c.statut),
     sousTotal: c.sous_total,
     creeLe: c.cree_le,
-    client: c.client_nom,
+    client: seulPrenom ? prenomSeul(c.client_nom) : c.client_nom,
     lignes: c.order_items ?? [],
   };
 }
 
-export async function vueTable(db: Db, sessionId: string): Promise<VueTable | null> {
+/** Options : `prenomSeul` remplace le nom de chaque commande par son premier mot (vue du convive). Sans option, le nom complet. */
+export async function vueTable(db: Db, sessionId: string, options?: { prenomSeul?: boolean }): Promise<VueTable | null> {
   const { data: s } = await db.from("table_sessions").select(COLONNES).eq("id", sessionId).maybeSingle();
   if (!s) return null;
   const { data: cmds } = await db.from("orders").select(COLONNES_COMMANDE).eq("session_id", sessionId).order("cree_le", { ascending: true });
-  const commandes = ((cmds ?? []) as unknown as CommandeBrute[]).map(versCommande);
+  const seulPrenom = options?.prenomSeul === true;
+  const commandes = ((cmds ?? []) as unknown as CommandeBrute[]).map((c) => versCommande(c, seulPrenom));
   return { session: versSession(s as SessionBrute), commandes, total: totalAddition(commandes) };
 }
 

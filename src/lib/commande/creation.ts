@@ -8,6 +8,7 @@ import { genererJetonSuivi, genererReference } from "./jetons";
 import { appliquerTransitionStatut, enregistrerEvenementStatut } from "./transitions";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { estReglageValidation, estServiceTable, prochainNumeroAppel, validationRequise } from "@/lib/table/regles";
+import { cleDeTableValide } from "@/lib/table/cle";
 import { ouvrirOuRejoindreSession } from "@/lib/table/service";
 import { estimerLivraison } from "@/lib/livraison/lecture";
 
@@ -215,6 +216,11 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   let validerAvantPreparation = false;
   if (payload.mode === "sur_place") {
     if (serviceTable === "table") {
+      // Un client (compte ou invité) ne commande à table qu'avec la clé du QR de SA table : le numéro seul ne prouve rien (revue du 19 octobre
+      // 2026, I-1). La saisie par le personnel passe par son propre contrôle d'appartenance et n'a pas besoin de la clé.
+      if (saisiePar === null && !cleDeTableValide(payload.restaurantId, payload.table, payload.cleTable)) {
+        throw new ErreurMetier("VALIDATION", "Scannez le QR code affiché sur votre table pour commander à table.");
+      }
       const session = await ouvrirOuRejoindreSession(clientLivraison(), payload.restaurantId, payload.table ?? "");
       if (!session) throw new ErreurMetier("ERREUR_SERVEUR", "Impossible d'ouvrir la table. Réessayez dans un instant.");
       sessionId = session.id;

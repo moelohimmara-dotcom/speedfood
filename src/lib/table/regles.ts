@@ -102,5 +102,15 @@ export const LIBELLES_ETAT_TABLE: Record<EtatTable, string> = {
   en_cours: "En cours",
 };
 
+/**
+ * Ce que la vue du convive montre du nom d'une autre personne : le premier mot seulement, tronqué à 24 caractères.
+ * Vide ou blanc → « Convive ». Les caractères sont comptés un à un (un emoji ne se coupe pas en deux).
+ */
+export function prenomSeul(nom: string): string {
+  const premier = (nom ?? "").trim().split(/\s+/)[0] ?? "";
+  if (premier === "") return "Convive";
+  return Array.from(premier).slice(0, 24).join("");
+}
+
 /** Ordre d'affichage de la salle : ce qui attend le personnel d'abord. */
 export const ORDRE_ETAT_TABLE: Record<EtatTable, number> = { a_valider: 0, appel: 1, addition_demandee: 2, en_cours: 3 };

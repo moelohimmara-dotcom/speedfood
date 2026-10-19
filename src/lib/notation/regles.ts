@@ -63,6 +63,8 @@ export const COMMENTAIRE_MAX = 500;
 export const REPONSE_MAX = 500;
 export const FENETRE_NOTATION_JOURS = 14;
 export const FENETRE_MODIFICATION_HEURES = 24;
+/** Un même compte ne peut donner qu'un avis sur un même restaurant par période de ce nombre de jours (anti-bourrage des notes). */
+export const INTERVALLE_AVIS_MEME_RESTAURANT_JOURS = 7;
 /** Nombre d'avis publiés à partir duquel la moyenne s'affiche et compte dans le classement. */
 export const SEUIL_AFFICHAGE = 5;
 /** Poids et moyenne de départ du lissage : un restaurant sans avis vaut 10 avis « virtuels » à 4,0 (5 avis à 5,0 ne devancent pas 30 avis à 4,5). */
@@ -136,13 +138,16 @@ export interface CommandeNotable {
   estTest: boolean;
   /** Date de clôture de la commande (ISO) : sa dernière mise à jour une fois « terminée ». */
   clotureLe: string;
+  /** Commande saisie par le personnel du restaurant : il ne peut pas se noter lui-même. */
+  saisiePersonnel?: boolean;
 }
 
-export type RaisonRefus = "pas_terminee" | "commande_de_test" | "delai_depasse";
+export type RaisonRefus = "pas_terminee" | "commande_de_test" | "delai_depasse" | "saisie_personnel";
 
 /** `null` si on peut noter cette commande, sinon la raison du refus. */
 export function raisonNotationImpossible(commande: CommandeNotable, maintenant: Date): RaisonRefus | null {
   if (commande.estTest) return "commande_de_test";
+  if (commande.saisiePersonnel) return "saisie_personnel";
   if (commande.statut !== "terminee") return "pas_terminee";
   const ecoule = maintenant.getTime() - new Date(commande.clotureLe).getTime();
   if (!Number.isFinite(ecoule) || ecoule > FENETRE_NOTATION_JOURS * 86_400_000) return "delai_depasse";
@@ -153,6 +158,8 @@ export function messageRefus(raison: RaisonRefus): string {
   switch (raison) {
     case "pas_terminee":
       return "Vous pourrez noter cette commande quand elle sera terminée.";
+    case "saisie_personnel":
+      return "Une commande saisie par le personnel du restaurant ne se note pas.";
     case "commande_de_test":
       return "Une commande de test ne se note pas.";
     case "delai_depasse":

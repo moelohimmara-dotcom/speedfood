@@ -4,6 +4,7 @@ import { cheminRestaurant } from "@/lib/partage/liens";
 import { estRobotApercu, lireSourceScan } from "@/lib/partage/scans";
 import { lireNumeroTable } from "@/lib/commande/mode";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
+import { estCleTableValideDeForme } from "@/lib/table/cle";
 
 /**
  * Lien court d'un restaurant (`/r/ab12cd`) : c'est ce que contiennent le QR code et l'affiche. Il compte la visite par source
@@ -22,7 +23,10 @@ export async function GET(requete: Request, { params }: { params: Promise<{ code
 
   const table = lireNumeroTable(url.searchParams.get("t"));
   const source = table ? "table" : lireSourceScan(url.searchParams.get("s"));
-  const vers = (id: string) => `${cheminRestaurant(id)}${table ? `?table=${encodeURIComponent(table)}` : ""}`;
+  // La clé de table (revue du 19 octobre 2026) suit le client jusqu'à la commande ; sa validité est vérifiée par le serveur à ce moment-là.
+  const cleBrute = url.searchParams.get("k");
+  const cle = table && estCleTableValideDeForme(cleBrute) ? cleBrute : null;
+  const vers = (id: string) => `${cheminRestaurant(id)}${table ? `?table=${encodeURIComponent(table)}${cle ? `&k=${cle}` : ""}` : ""}`;
   const compter = !estRobotApercu(requete.headers.get("user-agent")) && (await fonctionnaliteActive("lien_court_scans"));
   try {
     const admin = creerClientAdmin();

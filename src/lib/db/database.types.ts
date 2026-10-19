@@ -1127,6 +1127,7 @@ export type Database = {
           frais_livraison_estime: number
           id: string
           jeton_suivi: string
+          jeton_recu: string
           mis_a_jour_le: string
           mode: string
           paiement_declare_le: string | null
@@ -1155,6 +1156,7 @@ export type Database = {
           frais_livraison_estime?: number
           id?: string
           jeton_suivi: string
+          jeton_recu?: string
           mis_a_jour_le?: string
           mode: string
           paiement_declare_le?: string | null
@@ -1183,6 +1185,7 @@ export type Database = {
           frais_livraison_estime?: number
           id?: string
           jeton_suivi?: string
+          jeton_recu?: string
           mis_a_jour_le?: string
           mode?: string
           paiement_declare_le?: string | null

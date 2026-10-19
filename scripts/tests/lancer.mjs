@@ -3,7 +3,7 @@
 // que Node exige, puis exécute le fichier de tests. Usage : npm run test:unit
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -17,7 +17,12 @@ function copier(rel) {
   mkdirSync(dirname(dest), { recursive: true });
   const contenu = readFileSync(join(racine, rel), "utf8")
     .replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"')
-    .replace(/from\s+"(zod\/mini)"/g, (_, nom) => `from "${paquets[nom]}"`);
+    .replace(/from\s+"(zod\/mini)"/g, (_, nom) => `from "${paquets[nom]}"`)
+    // Alias `@/` du projet : réécrit en chemin relatif vers la copie (les imports de types disparaissent de toute façon à l'exécution).
+    .replace(/from\s+"@\/([^"]+?)(?<!\.ts)"/g, (_, chemin) => {
+      const relatif = relative(dirname(dest), join(tmp, "src")).split("\\").join("/");
+      return `from "${relatif.startsWith(".") ? relatif : "./" + relatif}/${chemin}.ts"`;
+    });
   writeFileSync(dest, contenu);
 }
 
@@ -117,6 +122,10 @@ copier("src/lib/menu/chefMenu.ts");
 copier("scripts/tests/chefia.test.mts");
 copier("src/lib/panier/complements.ts");
 copier("scripts/tests/complements.test.mts");
+copier("src/lib/commande/mode.ts");
+copier("src/lib/table/cle-calcul.ts");
+copier("scripts/tests/cle-table.test.mts");
+copier("src/lib/db/lecture-complete.ts");
 copier("src/lib/geographie/quartiers.ts");
 copier("scripts/tests/geographie.test.mts");
 copier("src/lib/system-admin/geographie-outils.ts");
@@ -157,7 +166,7 @@ copier("src/lib/table/profils.ts");
 copier("scripts/tests/profils.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "pagination", "apercu-textes", "profils"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "pagination", "apercu-textes", "profils"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

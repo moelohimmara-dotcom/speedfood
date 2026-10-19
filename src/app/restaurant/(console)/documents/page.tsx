@@ -31,8 +31,8 @@ export default async function DocumentsPage() {
 
   const orderIds = [...new Set((documents ?? []).map((d) => d.order_id))];
   const { data: commandes } = orderIds.length
-    ? await supabase.from("orders").select("id, reference, jeton_suivi").in("id", orderIds)
-    : { data: [] as { id: string; reference: string; jeton_suivi: string }[] };
+    ? await supabase.from("orders").select("id, reference, jeton_recu").in("id", orderIds)
+    : { data: [] as { id: string; reference: string; jeton_recu: string }[] };
   const parCommande = new Map((commandes ?? []).map((c) => [c.id, c]));
 
   return (
@@ -63,7 +63,7 @@ export default async function DocumentsPage() {
               {documents.map((d) => {
                 const commande = parCommande.get(d.order_id);
                 const type = d.type as TypeDocument;
-                const lien = commande ? `/suivi/${commande.jeton_suivi}/recu${type === "facture" ? "?doc=facture" : ""}` : null;
+                const lien = commande ? `/recu/${commande.jeton_recu}${type === "facture" ? "?doc=facture" : ""}` : null;
                 return (
                   <li key={d.id} className="doc-ligne">
                     <div>

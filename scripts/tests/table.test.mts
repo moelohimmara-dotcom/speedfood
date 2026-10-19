@@ -5,6 +5,7 @@ import {
   estReglageValidation,
   estServiceTable,
   etatTable,
+  prenomSeul,
   prochainNumeroAppel,
   totalAddition,
   validationRequise,
@@ -32,6 +33,12 @@ verifier("addition : refusée et annulée ne comptent pas", totalAddition([{ sta
 verifier("addition : valeurs invalides ignorées (jamais de flottant)", totalAddition([{ statut: "acceptee", sousTotal: 1000.5 }, { statut: "acceptee", sousTotal: -5 }, { statut: "acceptee", sousTotal: 2000 }]), 2000);
 verifier("addition vide", totalAddition([]), 0);
 verifier("compteDansAddition", [compteDansAddition("en_attente"), compteDansAddition("refusee"), compteDansAddition("annulee")], [true, false, false]);
+
+// --- prénom seul (vue du convive)
+verifier("prénom seul : premier mot, nom complet ignoré", [prenomSeul("Mariama Diallo"), prenomSeul("  Ibrahima   Sow ")], ["Mariama", "Ibrahima"]);
+verifier("prénom seul : vide ou blanc → Convive", [prenomSeul(""), prenomSeul("   "), prenomSeul(undefined as unknown as string)], ["Convive", "Convive", "Convive"]);
+verifier("prénom seul : tronqué à 24 caractères", prenomSeul("Abcdefghijklmnopqrstuvwxyz").length, 24);
+verifier("prénom seul : un emoji n'est pas coupé en deux", prenomSeul("😀".repeat(30)), "😀".repeat(24));
 
 // --- numéro d'appel
 verifier("numéro d'appel", [prochainNumeroAppel(null), prochainNumeroAppel(0), prochainNumeroAppel(41), prochainNumeroAppel(Number.NaN)], [1, 1, 42, 1]);

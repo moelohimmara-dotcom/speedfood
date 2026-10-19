@@ -4,6 +4,7 @@ import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { limiterZonePosition } from "@/lib/securite/limitation-debit";
 import { arrondirCoordonnee, positionDansLaGuinee, zoneDeLaPosition } from "@/lib/site/zone-position";
 import { lireHierarchieZones } from "@/lib/site/zones";
+import { origineValide } from "@/lib/push/session";
 
 /**
  * « Utiliser ma position » : rattache une position à une zone Speedfood.
@@ -19,6 +20,9 @@ const IDENTIFICATION = "Speedfood/1.0 (+https://speedfood-app.moelohimmara.worke
 const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
+  if (!origineValide(request)) {
+    return NextResponse.json({ erreur: "Requête refusée : origine non autorisée." }, { status: 403, headers: SANS_CACHE });
+  }
   if (!(await fonctionnaliteActive("zone_position"))) {
     return NextResponse.json({ erreur: "Cette fonction est désactivée pour le moment." }, { status: 404, headers: SANS_CACHE });
   }

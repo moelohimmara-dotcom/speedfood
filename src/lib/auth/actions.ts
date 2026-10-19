@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { estUuid } from "@/lib/commande/commun";
+import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuivi";
 import { creerClientServeur } from "@/lib/db/server";
 import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "./redirection";
@@ -160,6 +162,8 @@ export async function connexionAction(
 export async function deconnexionAction(): Promise<void> {
   const supabase = await creerClientServeur();
   await supabase.auth.signOut();
+  // Le cookie de suivi de commande ne doit pas survivre à la déconnexion : même chemin que celui posé à sa création.
+  (await cookies()).delete({ name: NOM_COOKIE_SUIVI, path: optionsCookieSuivi().path });
   redirect("/connexion");
 }
 

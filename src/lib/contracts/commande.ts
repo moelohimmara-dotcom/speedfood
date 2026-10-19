@@ -142,6 +142,8 @@ export interface CreationCommandePayload {
   mode: ModeRetrait;
   /** Numéro de table (QR de table), seulement pour le mode « sur_place ». */
   table?: string | null;
+  /** Clé de la table lue dans le QR (voir `src/lib/table/cle.ts`) : exigée pour une commande à table passée par un client. */
+  cleTable?: string | null;
   lignes: LigneCommandeClient[];
   /** Jeton Cloudflare Turnstile (usage unique), exigé seulement si la vérification anti-robot est active. */
   jetonVerification?: string;
@@ -246,6 +248,6 @@ export interface ApercuCommandeRestaurant {
   paiementMode: ModePaiement | null;
   paiementReference: string | null;
   paiementRecuLe: string | null;
-  /** Jeton privé du client : sert uniquement à composer le lien du reçu envoyé par le restaurateur. */
-  jetonSuivi: string;
+  /** Jeton de LECTURE SEULE du reçu (distinct du jeton de suivi, qui reste la clé privée du client) : sert à composer le lien du reçu envoyé par le restaurateur. */
+  jetonRecu: string;
 }

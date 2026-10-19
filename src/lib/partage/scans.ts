@@ -22,6 +22,6 @@ export function estRobotApercu(agent: string | null): boolean {
 }
 
 /** Lien court à imprimer ou partager. */
-export function lienCourt(origine: string, code: string, source: SourceScan, table?: string | null): string {
-  return `${origine.replace(/\/+$/, "")}/r/${code}?s=${source}${table ? `&t=${encodeURIComponent(table)}` : ""}`;
+export function lienCourt(origine: string, code: string, source: SourceScan, table?: string | null, cleTable?: string | null): string {
+  return `${origine.replace(/\/+$/, "")}/r/${code}?s=${source}${table ? `&t=${encodeURIComponent(table)}` : ""}${table && cleTable ? `&k=${encodeURIComponent(cleTable)}` : ""}`;
 }

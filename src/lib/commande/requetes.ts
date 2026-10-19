@@ -219,7 +219,7 @@ export async function chargerApercusCommandes(
     db
       .from("orders")
       .select(
-        `id, reference, client_nom, client_telephone, client_adresse, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, est_test, jeton_suivi, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
+        `id, reference, client_nom, client_telephone, client_adresse, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, est_test, jeton_recu, paiement_statut, paiement_mode, paiement_reference, paiement_recu_le, order_items(nom, prix, quantite, order_item_options(nom, prix)), order_proposals(${CHAMPS_PROPOSITION})`
       )
       .eq("restaurant_id", restaurantId);
   const [actives, finales] = await Promise.all([
@@ -287,8 +287,23 @@ export async function chargerApercusCommandes(
       paiementMode: versModePaiement(commande.paiement_mode),
       paiementReference: commande.paiement_reference,
       paiementRecuLe: commande.paiement_recu_le,
-      jetonSuivi: commande.jeton_suivi,
+      jetonRecu: commande.jeton_recu,
     });
   }
   return apercus;
+}
+
+/** Jeton de reçu : 64 caractères hexadécimaux (voir la migration `20261019100000`). */
+export function estJetonRecuValide(jeton: string): boolean {
+  return /^[0-9a-f]{64}$/.test(jeton);
+}
+
+/**
+ * Jeton de suivi de la commande dont le reçu est partagé par ce jeton de reçu. Le jeton de suivi n'est utilisé que côté serveur pour charger
+ * le reçu : il n'est jamais écrit dans la page renvoyée (le restaurant, qui détient le jeton de reçu, ne doit pas pouvoir remonter au suivi).
+ */
+export async function jetonSuiviDepuisJetonRecu(jetonRecu: string): Promise<string | null> {
+  if (!estJetonRecuValide(jetonRecu)) return null;
+  const { data } = await creerClientAdmin().from("orders").select("jeton_suivi").eq("jeton_recu", jetonRecu).maybeSingle();
+  return (data as { jeton_suivi: string } | null)?.jeton_suivi ?? null;
 }

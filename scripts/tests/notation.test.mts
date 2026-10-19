@@ -57,6 +57,8 @@ const il_y_a_jours = (j: number) => new Date(maintenant.getTime() - j * 86_400_0
 verifier("commande terminée récente : notable", raisonNotationImpossible({ statut: "terminee", estTest: false, clotureLe: il_y_a_jours(2) }, maintenant), null);
 verifier("commande de test : refusée", raisonNotationImpossible({ statut: "terminee", estTest: true, clotureLe: il_y_a_jours(1) }, maintenant), "commande_de_test");
 verifier("commande pas terminée : refusée", ["en_attente", "acceptee", "prete", "refusee", "annulee"].map((s) => raisonNotationImpossible({ statut: s, estTest: false, clotureLe: il_y_a_jours(0) }, maintenant)), Array(5).fill("pas_terminee"));
+verifier("commande saisie par le personnel : refusée", raisonNotationImpossible({ statut: "terminee", estTest: false, clotureLe: il_y_a_jours(1), saisiePersonnel: true }, maintenant), "saisie_personnel");
+verifier("saisie personnel explicitement faux : notable", raisonNotationImpossible({ statut: "terminee", estTest: false, clotureLe: il_y_a_jours(1), saisiePersonnel: false }, maintenant), null);
 verifier("14 jours exactement : encore notable", raisonNotationImpossible({ statut: "terminee", estTest: false, clotureLe: il_y_a_jours(14) }, maintenant), null);
 verifier("15 jours : délai dépassé", raisonNotationImpossible({ statut: "terminee", estTest: false, clotureLe: il_y_a_jours(15) }, maintenant), "delai_depasse");
 verifier("date illisible : refusée", raisonNotationImpossible({ statut: "terminee", estTest: false, clotureLe: "n'importe quoi" }, maintenant), "delai_depasse");

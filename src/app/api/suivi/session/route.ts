@@ -4,9 +4,17 @@ import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuivi";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { limiterEchangeSuivi } from "@/lib/securite/limitation-debit";
+import { origineValide } from "@/lib/push/session";
 
 /** Échange ponctuel du jeton reçu dans le fragment contre une session HttpOnly. */
 export async function POST(request: Request) {
+  if (!origineValide(request)) {
+    return NextResponse.json({ erreur: "Requête refusée : origine non autorisée." }, { status: 403 });
+  }
+  if (!(request.headers.get("content-type") ?? "").includes("application/json")) {
+    return NextResponse.json({ erreur: "Requête invalide." }, { status: 415 });
+  }
+
   let corps: unknown;
   try {
     corps = await request.json();

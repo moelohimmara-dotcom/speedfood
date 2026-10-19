@@ -13,6 +13,12 @@ import Link from "next/link";
 
 export const metadata: Metadata = { title: "Reçu de commande", robots: { index: false, follow: false } };
 
+/** Adresses de la page de reçu : `racine` sert aux onglets et au lien à partager ; `retour` est le lien vers le suivi, ou `null` quand on ne doit pas y renvoyer. */
+export interface LiensRecu {
+  racine: string;
+  retour: string | null;
+}
+
 function formaterDate(iso: string) {
   return new Date(iso).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
 }
@@ -22,7 +28,10 @@ function formaterDate(iso: string) {
  * seulement quand le restaurateur a confirmé avoir reçu le paiement ; sinon c'est un « Récapitulatif de commande ». Ce n'est
  * pas une facture fiscale : le restaurant reste responsable de ses propres pièces comptables. Ni téléphone ni adresse du client.
  */
-export async function renderRecuPage(jeton: string, docDemande?: string) {
+export async function renderRecuPage(jeton: string, docDemande?: string, liens?: LiensRecu) {
+  // Par défaut, le lien privé de suivi du client. Le reçu partagé par le restaurant (`/recu/[jeton]`) et la page de session n'écrivent jamais
+  // le jeton de suivi dans la page : ils passent leurs propres adresses.
+  const l: LiensRecu = liens ?? { racine: `/suivi/${jeton}/recu`, retour: `/suivi/${jeton}` };
   const suivi = await chargerSuiviParJeton(jeton);
   if (!suivi) {
     notFound();
@@ -32,7 +41,7 @@ export async function renderRecuPage(jeton: string, docDemande?: string) {
   if (!accepte) {
     return (
       <main className="recu">
-        <LienRetour href={`/suivi/${jeton}`}>Retour au suivi</LienRetour>
+        {l.retour ? <LienRetour href={l.retour}>Retour au suivi</LienRetour> : null}
         <h1 className="recu-titre" style={{ marginTop: "var(--space-3)" }}>
           Pas encore de reçu
         </h1>
@@ -46,7 +55,7 @@ export async function renderRecuPage(jeton: string, docDemande?: string) {
   const emis = (docDemande === "facture" ? documents.facture : documents.recu) ?? documents.recu ?? documents.facture;
   if (emis) {
     const origineDoc = await origineDuSite();
-    const lienDoc = `${origineDoc}/suivi/${jeton}/recu${emis.type === "facture" ? "?doc=facture" : ""}`;
+    const lienDoc = `${origineDoc}${l.racine}${emis.type === "facture" ? "?doc=facture" : ""}`;
     const totalDoc = emis.total;
     const texteDoc = texteDocumentWhatsApp({ type: emis.type, numero: emis.numero, restaurant: emis.emetteur.nom, total: totalDoc, lien: lienDoc });
     const paiementLigne =
@@ -55,13 +64,13 @@ export async function renderRecuPage(jeton: string, docDemande?: string) {
         : null;
     return (
       <main className="recu">
-        <LienRetour href={`/suivi/${jeton}`}>Retour au suivi</LienRetour>
+        {l.retour ? <LienRetour href={l.retour}>Retour au suivi</LienRetour> : null}
         {documents.recu && documents.facture ? (
           <div className="recu-onglets">
-            <Link href={`/suivi/${jeton}/recu`} className={`btn ${emis.type === "recu" ? "btn-primary" : "btn-secondary"}`}>
+            <Link href={l.racine} className={`btn ${emis.type === "recu" ? "btn-primary" : "btn-secondary"}`}>
               Reçu
             </Link>
-            <Link href={`/suivi/${jeton}/recu?doc=facture`} className={`btn ${emis.type === "facture" ? "btn-primary" : "btn-secondary"}`}>
+            <Link href={`${l.racine}?doc=facture`} className={`btn ${emis.type === "facture" ? "btn-primary" : "btn-secondary"}`}>
               Facture
             </Link>
           </div>
@@ -75,12 +84,12 @@ export async function renderRecuPage(jeton: string, docDemande?: string) {
   const total = suivi.sousTotal + suivi.fraisLivraisonEstime;
   const confirme = suivi.paiement.statut === "recu";
   const origine = await origineDuSite();
-  const lien = `${origine}/suivi/${jeton}/recu`;
+  const lien = `${origine}${l.racine}`;
   const texte = texteRecuWhatsApp({ restaurant: suivi.restaurant.nom, reference: suivi.reference, total, statut: suivi.paiement.statut, lien });
 
   return (
     <main className="recu">
-      <LienRetour href={`/suivi/${jeton}`}>Retour au suivi</LienRetour>
+      {l.retour ? <LienRetour href={l.retour}>Retour au suivi</LienRetour> : null}
       <article className="recu-carte" aria-label={confirme ? "Reçu de paiement" : "Récapitulatif de commande"} style={{ marginTop: "var(--space-3)" }}>
         <div className="recu-entete">
           <div>

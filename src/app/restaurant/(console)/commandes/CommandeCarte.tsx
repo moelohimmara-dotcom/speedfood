@@ -125,7 +125,7 @@ export function CommandeCarte({
   }
 
   function envoyerFactureWhatsApp() {
-    const lien = `${window.location.origin}/suivi/${commande.jetonSuivi}/recu?doc=facture`;
+    const lien = `${window.location.origin}/recu/${commande.jetonRecu}?doc=facture`;
     const message = texteDocumentWhatsApp({ type: "facture", numero: documents.facture ?? "", restaurant: restaurantNom, total, lien });
     const url = lienWhatsAppVers(commande.clientTelephone, message);
     if (!url) {
@@ -137,7 +137,7 @@ export function CommandeCarte({
 
   /** Ouvre WhatsApp vers le client avec le lien de son reçu : le restaurateur appuie lui-même sur « Envoyer » (aucun envoi automatique). */
   function envoyerRecuWhatsApp() {
-    const lien = `${window.location.origin}/suivi/${commande.jetonSuivi}/recu`;
+    const lien = `${window.location.origin}/recu/${commande.jetonRecu}`;
     const message = texteRecuWhatsApp({ restaurant: restaurantNom, reference: commande.reference, total, statut: commande.paiementStatut, lien });
     const url = lienWhatsAppVers(commande.clientTelephone, message);
     if (!url) {
