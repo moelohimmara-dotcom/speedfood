@@ -149,7 +149,7 @@ function evaluer(c: CandidatChoix, p: ParametresChoix): Proposition | null {
   else return null;
 
   const raisons: string[] = [];
-  if (c.distanceKm !== null) raisons.push(`${c.distanceApprochee ? "À environ" : "À"} ${arrondiDistance(c.distanceKm)} de vous`);
+  if (c.distanceKm !== null) raisons.push(`${c.distanceApprochee && c.distanceKm >= 1 ? "À environ" : "À"} ${arrondiDistance(c.distanceKm)} de vous`);
   else raisons.push("Dans votre zone");
   if (groupe === "dans_budget") raisons.push(`${dansBudget} plat${dansBudget > 1 ? "s" : ""} dans votre budget, dès ${formaterGnf(prixMin)}`);
   else raisons.push(`Plats dès ${formaterGnf(prixMin)}, soit ${formaterGnf(prixMin - p.budgetGnf)} de plus que votre budget`);

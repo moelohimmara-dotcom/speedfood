@@ -54,6 +54,7 @@ verifier("hors rayon exclu", ids(proposer([c("loin", [10_000], { distanceKm: 6 }
 verifier("sans distance : même zone seulement", ids(proposer([c("zone", [10_000], { distanceKm: null, memeZone: true }), c("ailleurs", [10_000], { distanceKm: null, memeZone: false })], P)), ["zone"]);
 verifier("sans prix : exclu (budget invérifiable)", ids(proposer([c("vide", [])], P)), []);
 verifier("distance depuis le centre du quartier : annoncée « environ »", [proposer([c("a", [10_000], { distanceKm: 1.4, distanceApprochee: true })], P)[0].raisons[0], proposer([c("b", [10_000], { distanceKm: 1.4 })], P)[0].raisons[0]], ["À environ 1,4 km de vous", "À 1,4 km de vous"]);
+verifier("distance approchée sous 1 km : « à moins d'1 km », jamais « environ moins d'1 km »", [proposer([c("a", [10_000], { distanceKm: 0.6, distanceApprochee: true })], P)[0].raisons[0]], ["À moins d'1 km de vous"]);
 verifier("trop cher exclu, un peu au-dessus gardé et placé après", proposer([c("trop", [60_000]), c("limite", [49_000]), c("ok", [30_000])], P).map((x) => [x.id, x.groupe]), [["ok", "dans_budget"], ["limite", "un_peu_au_dessus"]]);
 verifier("dépassement exactement à la marge accepté (+25 % = 50 000)", ids(proposer([c("pile", [50_000])], P)), ["pile"]);
 verifier("raison : distance, plats dans le budget, note", proposer([c("a", [10_000, 20_000, 90_000], { distanceKm: 1.26, noteMoyenne: 4.4, avisTotal: 12 })], P)[0].raisons.map(esp), ["À 1,3 km de vous", "2 plats dans votre budget, dès 10 000 GNF", "Noté 4,4 sur 12 avis"]);
