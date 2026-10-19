@@ -130,7 +130,8 @@ Heures en UTC. L'identifiant complet se lit avec `npx wrangler deployments list`
 | `3bf247a7-c222-4368-9d23-f6482451729a` | 18 oct. | Éditeur des textes du site (aperçu en direct, recherche, filtres, enregistrement global) et écran « Service et QR » en trois étapes avec profils |
 | `f0e4f8dd-8ecb-4eb7-8ac5-8c41a6489832` | 18 oct. | Correctifs de l'essai de bout en bout : clôture de table par les étapes autorisées, rétablissement d'un avis sans motif |
 | `d269d124-b32b-4f22-9871-0ca778bd3539` | 18 oct. | Noter une commande passée sans compte (connexion puis rattachement), lien de suivi retiré des blocs de la page de session |
-| `aafdac70-0e37-496d-8ee3-3b28c09e4a69` | 18 oct. | Application Android (APK) et page /installer, assetlinks (version en production) |
+| `aafdac70-0e37-496d-8ee3-3b28c09e4a69` | 18 oct. | Application Android (APK) et page /installer, assetlinks |
+| `2beb5f09-7bba-4cf6-8912-ef3a25ca9ff8` | 19 oct. | Écran « hors connexion » (service worker limité aux navigations en échec) (version en production) |
 
 Un retour arrière ne défait pas une migration de base : avant de revenir à une version antérieure à une migration, vérifier que l'ancien code sait lire le schéma actuel.
 
