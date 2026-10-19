@@ -13,6 +13,8 @@ select:not([multiple]):not([size]) {
   background-position: right 16px center !important;
   background-size: 16px 16px !important;
   text-overflow: ellipsis;
+  /* Plancher tactile (revue du 19 octobre 2026) : un sélecteur sans règle propre mesurait 16 px de haut. */
+  min-height: 44px;
 }
 select:not([multiple]):not([size]):disabled {
   opacity: 0.6;

@@ -23,6 +23,8 @@
 .salle-total { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
 .salle-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .salle-reglement { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+/* Revue du 19 octobre 2026 : ce sélecteur n'avait ni hauteur ni bordure (16 px de haut, impossible à toucher) alors que les champs du site font 48 px. */
+.salle-reglement select { box-sizing: border-box; flex: 1 1 12rem; min-width: 0; height: var(--h-controle, 48px); padding: 0 44px 0 14px; border: 1px solid var(--bordure); border-radius: var(--radius-md); background-color: var(--surface); color: var(--encre); font: inherit; }
 
 /* Mode serveur : saisie d'une commande en salle */
 .saisie-contenu { display: grid; gap: var(--space-4); }
