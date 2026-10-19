@@ -147,6 +147,7 @@ function ChampsPoint({
   const [lon, setLon] = useState(longitude === null ? "" : String(longitude));
   const [recherche, setRecherche] = useState(false);
   const [suggestion, setSuggestion] = useState<SuggestionPoint | null>(null);
+  const [relevePosition, setRelevePosition] = useState<string | null>(null);
 
   const nombreLat = Number(lat.replace(",", "."));
   const nombreLon = Number(lon.replace(",", "."));
@@ -165,6 +166,26 @@ function ChampsPoint({
     setSuggestion(null);
     setSuggestion(await suggererPointAction(nom, contexte));
     setRecherche(false);
+  }
+
+  /** Relevé sur le terrain : la position du navigateur remplit les deux champs (à enregistrer ensuite avec le formulaire). */
+  function utiliserMaPosition() {
+    if (!("geolocation" in navigator)) {
+      setRelevePosition("La position n'est pas disponible sur cet appareil.");
+      return;
+    }
+    setRelevePosition("Recherche de votre position…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude.toFixed(5));
+        setLon(pos.coords.longitude.toFixed(5));
+        setSuggestion(null);
+        onModifie();
+        setRelevePosition(`Position relevée (précision environ ${Math.round(pos.coords.accuracy)} m). Placez-vous au centre du quartier, puis enregistrez.`);
+      },
+      () => setRelevePosition("La position n'a pas pu être obtenue : autorisez la localisation dans le navigateur."),
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 }
+    );
   }
 
   function accepter() {
@@ -215,6 +236,9 @@ function ChampsPoint({
           <button type="button" className="btn btn-secondary" onClick={(e) => void suggerer(e.currentTarget)} disabled={recherche}>
             {recherche ? "Recherche…" : "Suggérer un point"}
           </button>
+          <button type="button" className="btn btn-secondary" onClick={utiliserMaPosition}>
+            Utiliser ma position actuelle
+          </button>
           {renseigne ? (
             <a href={lienCarte(nombreLat, nombreLon)} target="_blank" rel="noopener noreferrer" className="geo-lien-public">
               Voir sur la carte<span className="sr-only"> (nouvel onglet)</span>
@@ -222,7 +246,7 @@ function ChampsPoint({
           ) : null}
         </div>
         <p role="status" aria-live="polite" className={probleme ? "geo-erreur geo-point-etat" : "geo-point-etat"}>
-          {probleme ?? ""}
+          {probleme ?? relevePosition ?? ""}
         </p>
         {suggestion ? (
           <div className="geo-suggestion" role="status">
