@@ -352,7 +352,7 @@
   .accueil-preuve-point.boucle {
     animation: none !important;
   }
-}
+}
 
 /* Revue du 19 octobre 2026 (capture de la propriétaire) : dans le bandeau de la page Restaurants, le bouton « Aide-moi à choisir », la rangée de filtres et la
    barre de tri n'avaient aucun espace entre eux (bas d'un bloc exactement au niveau du haut du suivant) et, à l'intérieur des rangées, les pastilles passées à la
@@ -367,7 +367,7 @@
 .theme-public .decouverte-bandeau .notation-tri {
   margin-bottom: var(--space-3);
 }
-
+
 
 /* Un lien de texte dans une rangée d'actions (flex avec espacement) : ses marges négatives (prévues pour sa zone tactile de 44 px dans un paragraphe) mangeaient
    l'espacement de la rangée et faisaient chevaucher sa zone tactile avec le bouton voisin (bandeau « aperçu » de la fiche restaurant : « Modifier ma page » et
@@ -376,3 +376,29 @@
   margin-block: 0;
 }
 
+
+/* Revue UX du 19 octobre 2026 : sur téléphone, le bandeau de la page Restaurants (puces une par ligne) occupait plus d'un écran entier et repoussait la première
+   fiche à 995 px (écran de 812 px). Les rangées de filtres et de tri tiennent maintenant sur une ligne défilante (accrochage doux, cibles de 44 px conservées). */
+@media (max-width: 767px) {
+  .theme-public .decouverte-bandeau :is(.decouverte-puces, .notation-tri) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    margin-inline: calc(var(--space-4) * -1);
+    padding: 4px var(--space-4);
+    margin-bottom: var(--space-2);
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--space-4);
+    scrollbar-width: none;
+  }
+  .theme-public .decouverte-bandeau :is(.decouverte-puces, .notation-tri)::-webkit-scrollbar {
+    display: none;
+  }
+  .theme-public .decouverte-bandeau :is(.decouverte-puces, .notation-tri) > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  .theme-public .decouverte-bandeau .aide-choix-cta {
+    margin-block: var(--space-3);
+  }
+}

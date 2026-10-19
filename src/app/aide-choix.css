@@ -35,7 +35,7 @@
 
 /* Audit du 19 octobre 2026 : résultats périmés, chargement, récapitulatif, cible tactile de « L'oublier ». */
 .aide-choix-perime > :not(.aide-choix-aide) { opacity: 0.45; pointer-events: none; }
-.aide-choix-chargement { margin: 0; padding: var(--space-4); border: 1px dashed var(--bordure); border-radius: var(--radius-md); color: var(--texte-secondaire, #75695F); }
+.aide-choix-chargement { margin: 0; padding: var(--space-4); border: 1px dashed var(--bordure); border-radius: var(--radius-md); color: var(--secondaire); }
 .aide-choix-recap { margin: 0; font-weight: 600; }
 .aide-choix-lien { min-height: 24px; min-width: 24px; padding-block: 4px; }
 .aide-choix-envoi:disabled { opacity: 1; background: var(--bordure); color: #4a4039; cursor: not-allowed; background-image: none; }
