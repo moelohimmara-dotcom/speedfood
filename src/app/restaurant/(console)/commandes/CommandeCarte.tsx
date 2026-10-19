@@ -154,18 +154,10 @@ export function CommandeCarte({
           En attente depuis {retardMinutes} min : le client attend votre réponse.
         </p>
       ) : null}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "flex-start",
-        }}
-      >
+      <div className="cmd-entete">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <strong style={{ fontSize: "1.1rem" }}>{commande.reference}</strong>
+          <div className="cmd-ref-ligne">
+            <strong className="cmd-reference">{commande.reference}</strong>
             <Badge
               ton={
                 commande.etatDerive === "refusee" || commande.etatDerive === "annulee"
@@ -182,28 +174,28 @@ export function CommandeCarte({
             {surPlace?.invite ? <span className="salle-etat" title="Convive sans compte : vérifiez qu'il est bien sur place">Sans compte</span> : null}
             {commande.estTest ? <span className="commande-test-pastille" title="Commande de test : exclue des chiffres">Test</span> : null}
           </div>
-          <p style={{ margin: "4px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+          <p className="cmd-meta">
             {age ? `${age} · ` : ""}{formaterDate(commande.creeLe)} ·{" "}
             {libelleMode(commande.mode, commande.tableNumero)}
           </p>
         </div>
-        <div style={{ textAlign: "right", marginLeft: "auto" }}>
-          <p style={{ margin: 0, fontWeight: 700 }}>{formaterGNF(total)}</p>
+        <div className="cmd-montants">
+          <p className="cmd-total">{formaterGNF(total)}</p>
           {commande.mode === "livraison" ? (
-            <p style={{ margin: 0, color: "var(--secondaire)", fontSize: "0.8rem" }}>
+            <p className="cmd-frais">
               dont frais de livraison {formaterGNF(commande.fraisLivraisonEstime)}
             </p>
           ) : null}
         </div>
       </div>
 
-      <div style={{ marginTop: "var(--space-3)" }}>
-        <p style={{ margin: 0, fontWeight: 700 }}>{commande.clientNom}</p>
-        <p style={{ margin: "2px 0 0", fontSize: "0.9rem" }}>
+      <div className="cmd-client">
+        <p className="cmd-client-nom">{commande.clientNom}</p>
+        <p className="cmd-client-tel">
           <a href={`tel:${commande.clientTelephone}`} className="cmd-appel">{commande.clientTelephone}</a>
         </p>
         {commande.clientAdresse ? (
-          <p style={{ margin: "2px 0 0", color: "var(--secondaire)", fontSize: "0.9rem" }}>
+          <p className="cmd-client-adresse">
             {commande.clientAdresse}
           </p>
         ) : null}
@@ -217,54 +209,37 @@ export function CommandeCarte({
         </div>
       </div>
 
-      <div style={{ marginTop: "var(--space-3)" }}>
+      <div className="cmd-lignes">
         {commande.lignes.map((ligne, index) => (
-          <div
-            key={`${ligne.nom}-${index}`}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: "4px 0",
-              borderBottom: "1px solid var(--bordure)",
-              fontSize: "0.95rem",
-            }}
-          >
+          <div key={`${ligne.nom}-${index}`} className="cmd-ligne">
             <span>
               {ligne.quantite} × {ligne.nom}
               {ligne.options.length > 0 ? (
-                <span style={{ display: "block", color: "var(--secondaire)", fontSize: "0.8rem" }}>
+                <span className="cmd-ligne-options">
                   {ligne.options.map((o) => o.nom).join(", ")}
                 </span>
               ) : null}
             </span>
-            <strong style={{ whiteSpace: "nowrap" }}>{formaterGNF(ligne.prix * ligne.quantite)}</strong>
+            <strong className="cmd-ligne-prix">{formaterGNF(ligne.prix * ligne.quantite)}</strong>
           </div>
         ))}
       </div>
 
       {commande.propositionActive ? (
-        <div
-          style={{
-            marginTop: "var(--space-3)",
-            border: "1px solid var(--orange)",
-            borderRadius: "var(--radius-md)",
-            padding: 12,
-          }}
-        >
-          <p style={{ margin: 0, fontWeight: 700 }}>
+        <div className="cmd-proposition">
+          <p className="cmd-prop-titre">
             Proposition envoyée au client (version {commande.propositionActive.version})
           </p>
-          <p style={{ margin: "4px 0 0", fontSize: "0.9rem" }}>
+          <p className="cmd-prop-texte">
             Nouveau sous-total {formaterGNF(commande.propositionActive.nouveauSousTotal)} ·
             {" "}nouveaux frais {formaterGNF(commande.propositionActive.nouveauxFraisLivraison)}
           </p>
           {commande.propositionActive.conditionsModifiees ? (
-            <p style={{ margin: "4px 0 0", fontSize: "0.9rem" }}>
+            <p className="cmd-prop-texte">
               {commande.propositionActive.conditionsModifiees}
             </p>
           ) : null}
-          <p style={{ margin: "6px 0 0", color: "var(--secondaire)", fontSize: "0.85rem" }}>
+          <p className="cmd-prop-aide">
             En attente de la réponse du client
             {commande.propositionActive.expireLe
               ? `, jusqu'au ${formaterDate(commande.propositionActive.expireLe)}`
@@ -335,13 +310,13 @@ export function CommandeCarte({
       ) : null}
 
       {erreur ? (
-        <Alert ton="danger" style={{ marginTop: "var(--space-3)" }}>
+        <Alert ton="danger" className="cmd-erreur">
           {erreur}
         </Alert>
       ) : null}
 
       {propositionOuverte ? (
-        <div style={{ marginTop: "var(--space-3)" }}>
+        <div className="cmd-formulaire">
           <FormulaireProposition
             commandeId={commande.id}
             sousTotalActuel={commande.sousTotal}

@@ -864,3 +864,95 @@
     transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease);
   }
 }
+
+/* Carte de commande de la console : mise en page portée par la feuille (plus de style en ligne). Valeurs identiques aux anciens styles. */
+.cmd-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.cmd-ref-ligne {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.cmd-reference {
+  font-size: 1.1rem;
+}
+.cmd-meta {
+  margin: 4px 0 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.cmd-montants {
+  text-align: right;
+  margin-left: auto;
+}
+.cmd-total {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cmd-frais {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.cmd-client,
+.cmd-lignes,
+.cmd-formulaire {
+  margin-top: var(--space-3);
+}
+.cmd-client-nom {
+  margin: 0;
+  font-weight: 700;
+}
+.cmd-client-tel,
+.cmd-client-adresse {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+}
+.cmd-client-adresse {
+  color: var(--secondaire);
+}
+.cmd-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bordure);
+  font-size: 0.95rem;
+}
+.cmd-ligne-options {
+  display: block;
+  color: var(--secondaire);
+  font-size: 0.8rem;
+}
+.cmd-ligne-prix {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cmd-proposition {
+  margin-top: var(--space-3);
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+.cmd-prop-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.cmd-prop-texte {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+.cmd-prop-aide {
+  margin: 6px 0 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.cmd-erreur {
+  margin-top: var(--space-3);
+}
