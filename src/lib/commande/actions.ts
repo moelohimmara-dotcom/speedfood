@@ -12,6 +12,7 @@ import { creerCommande } from "./creation";
 import { repondreProposition } from "./propositions";
 import { estJetonValide } from "./jetons";
 import { limiterCreationCommande, limiterDeclarationPaiement, limiterReponseProposition } from "@/lib/securite/limitation-debit";
+import { cleDeTableValide } from "@/lib/table/cle";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { creerClientServeur } from "@/lib/db/server";
 import { chargerSuiviParJeton } from "./requetes";
@@ -64,7 +65,12 @@ export async function creerCommandeAction(
   try {
     // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
     await verifierAntiRobot(validation.valeurs.jetonVerification);
-    await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone);
+    // Commande à table avec la clé du QR de la table : plafond d'adresse large (salle pleine derrière un seul Wi-Fi) et plafond par table.
+    const tableVerifiee =
+      validation.valeurs.mode === "sur_place" && cleDeTableValide(validation.valeurs.restaurantId, validation.valeurs.table, validation.valeurs.cleTable)
+        ? validation.valeurs.table
+        : null;
+    await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone, { table: tableVerifiee });
     const cree = await creerCommande(validation.valeurs, user?.id ?? null);
     if (!cree.idempotent) {
       // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.

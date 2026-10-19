@@ -43,6 +43,16 @@ const COOKIE_SESSION = /(^|;\s*)sb-[^=]*-auth-token/;
 const COOKIE_SUIVI = /(^|;\s*)speedfood_suivi=/;
 const LONGUEUR_MAX_RECHERCHE = 200;
 
+/**
+ * Paramètres d'adresse admis par page. Toute autre page ne se met en cache que SANS paramètre, et une adresse avec un paramètre inconnu passe sans
+ * cache : sinon un anonyme pourrait remplir la mémoire de variantes (`?x=1`, `?x=2`…) et évincer les vraies pages (revue du 19 octobre 2026).
+ * La recherche libre (`q`) n'est jamais mise en cache : trop de variantes, peu de répétitions.
+ */
+const PARAMETRES_ADMIS: Record<string, ReadonlySet<string>> = {
+  "/restaurants": new Set(["categorie", "quartier", "ouvert", "commandes", "dispo", "tri", "commune", "prefecture", "region"]),
+};
+const AUCUN_PARAMETRE: ReadonlySet<string> = new Set();
+
 export interface RequeteLue {
   methode: string;
   url: string;
@@ -67,13 +77,19 @@ export function decisionCache(r: RequeteLue): DecisionCache | null {
   if (url.search.length > LONGUEUR_MAX_RECHERCHE) return null;
   if (url.searchParams.has("_rsc") || url.searchParams.has("apercu_textes")) return null;
   const chemin = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
+  const admis = PARAMETRES_ADMIS[chemin] ?? AUCUN_PARAMETRE;
+  for (const nom of url.searchParams.keys()) {
+    if (!admis.has(nom)) return null;
+  }
   let ttlMs = PAGES_EXACTES[chemin];
   if (ttlMs === undefined) {
     if (FICHE_RESTAURANT.test(chemin)) ttlMs = TTL_VIVANT;
     else if (FICHE_LOCALITE.test(chemin)) ttlMs = TTL_LOCALITES;
   }
   if (ttlMs === undefined) return null;
-  return { cle: `${chemin}${url.search}`, ttlMs };
+  // Le domaine fait partie de la clé : certaines pages construisent des liens absolus à partir de l'adresse demandée (partage, QR). Si un domaine
+  // propre s'ajoute un jour au domaine workers.dev, l'un ne doit jamais recevoir les liens de l'autre.
+  return { cle: `${url.host}${chemin}${url.search}`, ttlMs };
 }
 
 /** Une réponse n'est conservée que si elle est identique pour tout visiteur sans session. */
@@ -119,6 +135,9 @@ export class MicroCache {
       this.retirer(cle);
       return null;
     }
+    // Plus récemment utilisée : remise en fin de liste (la plus ancienne sort d'abord).
+    this.lignes.delete(cle);
+    this.lignes.set(cle, e);
     return e;
   }
 

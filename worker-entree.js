@@ -13,6 +13,17 @@ const enCours = new Map();
 
 const ENTETES_NEXT = ["rsc", "next-action", "next-router-state-tree", "next-router-prefetch", "next-url"];
 const ENTETES_A_RETIRER = new Set(["content-length", "content-encoding", "transfer-encoding", "set-cookie"]);
+// En-têtes de requête qui changent la réponse (revalidation, morceau de fichier) : jamais transmis au rendu PARTAGÉ, sinon un visiteur recevrait le 304 ou le
+// 206 d'un autre. Le rendu partagé est toujours complet.
+const ENTETES_CONDITIONNELS = ["if-none-match", "if-modified-since", "if-match", "if-unmodified-since", "if-range", "range"];
+const STATUTS_SANS_CORPS = new Set([101, 204, 205, 304]);
+
+function demandeComplete(request) {
+  if (!ENTETES_CONDITIONNELS.some((nom) => request.headers.has(nom))) return request;
+  const entetes = new Headers(request.headers);
+  for (const nom of ENTETES_CONDITIONNELS) entetes.delete(nom);
+  return new Request(request, { headers: entetes });
+}
 
 function versReponse(entree, etat, maintenant, avecCookies = false) {
   const entetes = new Headers(entree.entetes);
@@ -20,14 +31,15 @@ function versReponse(entree, etat, maintenant, avecCookies = false) {
   if (avecCookies) for (const c of entree.cookies) entetes.append("set-cookie", c);
   entetes.set("x-microcache", etat);
   entetes.set("age", String(Math.max(0, Math.round((maintenant - entree.creeLe) / 1000))));
-  return new Response(entree.corps.slice(0), { status: entree.statut, headers: entetes });
+  return new Response(STATUTS_SANS_CORPS.has(entree.statut) ? null : entree.corps.slice(0), { status: entree.statut, headers: entetes });
 }
 
 async function rendre(request, env, ctx) {
   const reponse = await handler.fetch(request, env, ctx);
   const conservable = reponseConservable(reponse.status, reponse.headers);
   const cookies = typeof reponse.headers.getSetCookie === "function" ? reponse.headers.getSetCookie() : [];
-  const partageable = cookies.length === 0 && reponse.status < 500;
+  // Partagée avec les visiteurs simultanés seulement si elle est complète et identique pour tous : 200, 404 ou redirection, sans cookie.
+  const partageable = cookies.length === 0 && (reponse.status === 200 || reponse.status === 404 || (reponse.status >= 300 && reponse.status < 400 && reponse.status !== 304));
   const corps = await reponse.arrayBuffer();
   const entetes = [];
   reponse.headers.forEach((valeur, nom) => {
@@ -63,7 +75,7 @@ const worker = {
       return handler.fetch(request, env, ctx);
     }
 
-    const promesse = rendre(request, env, ctx);
+    const promesse = rendre(demandeComplete(request), env, ctx);
     enCours.set(decision.cle, promesse);
     try {
       const entree = await promesse;

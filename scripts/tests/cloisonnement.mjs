@@ -654,6 +654,10 @@ const avisCol = await lire(ID.user_a, `select auteur_utilisateur_id from avis`);
 verifier("un restaurateur ne lit pas l'auteur d'un avis", avisCol.erreur !== null, avisCol.erreur ?? "lu");
 const avisOrder = await lire(ID.user_a, `select order_id from avis`);
 verifier("un restaurateur ne lit pas la commande d'un avis", avisOrder.erreur !== null, avisOrder.erreur ?? "lu");
+await refuse("un restaurateur ne peut pas remplacer le jeton de reçu de sa commande", ID.user_a, `update orders set jeton_recu = 'a' where id = '${CMD_A}'`);
+const recuIntact = (await db.query(`select length(jeton_recu)::int n from orders where id = '${CMD_A}'`)).rows[0].n;
+verifier("le jeton de reçu est resté intact après la tentative", recuIntact === 64, `longueur ${recuIntact}`);
+await refuse("un restaurateur ne peut toujours pas remplacer le jeton de suivi", ID.user_a, `update orders set jeton_suivi = 'x' where id = '${CMD_A}'`);
 const avisOk = await lire(ID.user_a, `select note, cible, statut, commentaire from avis`);
 verifier("contrôle positif : un restaurateur lit toujours la note et le commentaire des avis qui le concernent", !avisOk.erreur, avisOk.erreur ?? "");
 

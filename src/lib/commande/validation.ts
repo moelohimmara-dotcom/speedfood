@@ -228,6 +228,9 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
       client: { nom, telephone, adresse },
       mode: mode as ModeRetrait,
       table,
+      // Clé du QR de la table (src/lib/table/cle.ts) : à recopier ICI, sinon le contrôle de `creation.ts` ne la voit jamais et toute commande à table
+      // d'un client est refusée (régression du 19 octobre 2026, corrigée le jour même). Sa validité n'est PAS vérifiée ici mais à la création.
+      cleTable: typeof payload.cleTable === "string" && payload.cleTable.length <= 64 ? payload.cleTable : null,
       lignes: lignes.lignes,
       consentementReglement: true,
       ...(destination ? { destination } : {}),

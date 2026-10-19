@@ -17,13 +17,15 @@ export interface ErreurApi {
 }
 
 export class ErreurMetier extends Error {
-  constructor(
-    public readonly code: ErreurApi["code"],
-    message: string,
-    public readonly champs?: Record<string, string>
-  ) {
+  readonly code: ErreurApi["code"];
+  readonly champs?: Record<string, string>;
+
+  // Champs explicites (et non des « propriétés de paramètre ») : les tests exécutent ce fichier avec Node en mode « types effacés ».
+  constructor(code: ErreurApi["code"], message: string, champs?: Record<string, string>) {
     super(message);
     this.name = "ErreurMetier";
+    this.code = code;
+    this.champs = champs;
   }
 
   toApi(): ErreurApi {

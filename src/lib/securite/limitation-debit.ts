@@ -25,7 +25,13 @@ interface RegleLimite {
 }
 
 // Valeurs initiales à ajuster avec l'usage réel du pilote.
-export const LIMITE_COMMANDE_PAR_IP: RegleLimite = { nom: "commande-ip", max: 10, fenetreSecondes: 600 };
+// Plafonds relevés le 19 octobre 2026 après simulation (docs/REVUE-2026-10-19.md §11) : derrière le Wi-Fi d'un restaurant ou le réseau mobile partagé
+// (plusieurs clients, une seule adresse publique), 10 commandes par 10 min laissaient 30 convives sur 40 avec « Trop de demandes ». Les autres garde-fous
+// restent : anti-robot, plafond par téléphone et plafond par restaurant.
+export const LIMITE_COMMANDE_PAR_IP: RegleLimite = { nom: "commande-ip", max: 30, fenetreSecondes: 600 };
+// Commande à table avec la clé du QR de la table (présence probable, voir src/lib/table/cle.ts) : plafond d'adresse large, plafond PAR TABLE strict.
+export const LIMITE_COMMANDE_PAR_IP_TABLE: RegleLimite = { nom: "commande-ip-table", max: 60, fenetreSecondes: 600 };
+export const LIMITE_COMMANDE_PAR_TABLE: RegleLimite = { nom: "commande-table", max: 15, fenetreSecondes: 600 };
 export const LIMITE_COMMANDE_PAR_TELEPHONE: RegleLimite = {
   nom: "commande-tel",
   max: 5,
@@ -126,10 +132,17 @@ async function appliquerLimite(regle: RegleLimite, identifiant: string): Promise
 }
 
 /** À appeler après validation du format et avant toute écriture. Lève `TROP_DE_REQUETES`. */
-export async function limiterCreationCommande(restaurantId: string, telephone: string): Promise<void> {
+export async function limiterCreationCommande(
+  restaurantId: string,
+  telephone: string,
+  options: { table?: string | null } = {}
+): Promise<void> {
   const ip = await adresseClient();
+  // `table` n'est renseignée que si la clé du QR de la table a été vérifiée : sinon, le plafond d'adresse ordinaire s'applique.
+  const table = options.table ?? null;
   await Promise.all([
-    appliquerLimite(LIMITE_COMMANDE_PAR_IP, ip),
+    table ? appliquerLimite(LIMITE_COMMANDE_PAR_IP_TABLE, ip) : appliquerLimite(LIMITE_COMMANDE_PAR_IP, ip),
+    table ? appliquerLimite(LIMITE_COMMANDE_PAR_TABLE, `${restaurantId}:${table.toLowerCase()}`) : Promise.resolve(),
     // Convive sans numéro (commande à table) : pas de plafond par téléphone, les plafonds par adresse et par restaurant restent.
     telephone.replace(/\D/g, "") === "" ? Promise.resolve() : appliquerLimite(LIMITE_COMMANDE_PAR_TELEPHONE, telephone.replace(/\D/g, "")),
     appliquerLimite(LIMITE_COMMANDE_PAR_RESTAURANT, restaurantId),
@@ -180,7 +193,7 @@ export async function limiterZoneAlerte(): Promise<void> {
 }
 
 // Notes d'avis : quelques dizaines par heure suffisent largement à un client réel.
-export const LIMITE_NOTATION_PAR_IP: RegleLimite = { nom: "notation-ip", max: 30, fenetreSecondes: 3600 };
+export const LIMITE_NOTATION_PAR_IP: RegleLimite = { nom: "notation-ip", max: 120, fenetreSecondes: 3600 };
 
 export async function limiterNotation(): Promise<void> {
   await appliquerLimite(LIMITE_NOTATION_PAR_IP, await adresseClient());
@@ -194,7 +207,7 @@ export async function limiterAideChoix(): Promise<void> {
 }
 
 // Appels au serveur et demandes d'addition depuis une table : le délai par table est dans le service ; ce plafond limite le martèlement par adresse.
-export const LIMITE_APPEL_TABLE_PAR_IP: RegleLimite = { nom: "appel-table-ip", max: 30, fenetreSecondes: 600 };
+export const LIMITE_APPEL_TABLE_PAR_IP: RegleLimite = { nom: "appel-table-ip", max: 120, fenetreSecondes: 600 };
 
 export async function limiterAppelTable(): Promise<void> {
   await appliquerLimite(LIMITE_APPEL_TABLE_PAR_IP, await adresseClient());
