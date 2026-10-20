@@ -43,6 +43,8 @@
   // usage unique dans la chaîne de requête de /auth/confirmation ; il n'a rien à
   // faire dans des journaux conservés sept jours. Contrepartie assumée : les
   // filtres d'URL (?statut=, ?jour=) n'apparaîtront plus dans les journaux.
+  // Tâche planifiée : entretien du paiement en ligne (voir worker-entree.js). Sans effet tant que le secret PAIEMENT_ENTRETIEN_SECRET est absent.
+  "triggers": { "crons": ["*/5 * * * *"] },
   "observability": {
     "enabled": true,
     "redact_query_string": true,

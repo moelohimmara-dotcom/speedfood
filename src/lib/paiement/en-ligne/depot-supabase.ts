@@ -189,6 +189,19 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
       return true;
     },
 
+    async paiementsAExpirer(avant, limite) {
+      const { data } = await db.from("paiements").select("id, fournisseur").eq("etat", "en_attente").lt("expire_le", avant).limit(limite);
+      return ((data ?? []) as Ligne[]).map((d) => ({ id: String(d.id), fournisseur: d.fournisseur === "chapchap" ? ("chapchap" as const) : ("simulation" as const) }));
+    },
+
+    async paiementsAReprendre(maxTentatives, limite) {
+      const { data: versements } = await db.from("paiement_versements").select("paiement_id").in("etat", ["a_verser", "echoue"]).lt("tentatives", maxTentatives).limit(limite * 2);
+      const ids = [...new Set(((versements ?? []) as Ligne[]).map((v) => String(v.paiement_id)))].slice(0, limite);
+      if (ids.length === 0) return [];
+      const { data } = await db.from("paiements").select("id, fournisseur").in("id", ids).eq("etat", "libere").limit(limite);
+      return ((data ?? []) as Ligne[]).map((d) => ({ id: String(d.id), fournisseur: d.fournisseur === "chapchap" ? ("chapchap" as const) : ("simulation" as const) }));
+    },
+
     async synchroniserCommande(orderId, situation) {
       // Jamais sur une commande payée par un autre mode : les conditions `paiement_mode = 'speedfood'` / `paiement_statut <> 'recu'` protègent le règlement classique.
       const maintenant = new Date().toISOString();

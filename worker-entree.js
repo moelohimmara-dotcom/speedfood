@@ -50,6 +50,20 @@ async function rendre(request, env, ctx) {
 }
 
 const worker = {
+  /**
+   * Tâche planifiée (toutes les 5 minutes, voir "triggers" dans wrangler.jsonc) : entretien du paiement en ligne (expiration des paiements
+   * abandonnés, reprise des versements). Sans le secret PAIEMENT_ENTRETIEN_SECRET (secret du Worker), elle ne fait rien. La route vérifie
+   * elle-même le secret ; l'adresse n'a aucune importance, la requête ne quitte pas le Worker.
+   */
+  async scheduled(_evenement, env, ctx) {
+    if (!env.PAIEMENT_ENTRETIEN_SECRET) return;
+    const requete = new Request("https://entretien.interne/api/paiement/entretien", {
+      method: "POST",
+      headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
+    });
+    ctx.waitUntil(handler.fetch(requete, env, ctx).then(() => undefined, () => undefined));
+  },
+
   async fetch(request, env, ctx) {
     const decision = decisionCache({
       methode: request.method,

@@ -151,6 +151,10 @@ export interface DepotPaiement {
   enregistrerEvenement(e: EvenementRecu): Promise<boolean>;
   /** Reflète le paiement en ligne sur la commande (mode « speedfood », statut de paiement) : en cours, payée, ou abandonnée (retour aux autres modes). */
   synchroniserCommande(orderId: string, situation: "en_cours" | "payee" | "abandonnee"): Promise<void>;
+  /** Paiements « en attente » dont le délai est passé (entretien périodique). */
+  paiementsAExpirer(avant: string, limite: number): Promise<{ id: string; fournisseur: NomFournisseur }[]>;
+  /** Paiements libérés dont un versement reste à faire ou a échoué (moins de `maxTentatives` essais). */
+  paiementsAReprendre(maxTentatives: number, limite: number): Promise<{ id: string; fournisseur: NomFournisseur }[]>;
   /** Un groupe d'écritures, atomique. Vrai si écrit, faux si cette clé d'idempotence l'avait déjà été. */
   ajouterEcritures(paiementId: string, cleIdempotence: string, ecritures: readonly Ecriture[]): Promise<boolean>;
   lireCompteVersement(b: Beneficiaire, proprietaireId: string): Promise<CompteVersement | null>;
@@ -613,6 +617,23 @@ export function creerServicePaiement(deps: DependancesService) {
     return { ok: true, deja: true };
   }
 
+  /**
+   * Entretien périodique (toutes les quelques minutes) : expire les paiements restés en attente, relance les versements à faire ou en
+   * échec. Ne traite que les paiements du fournisseur de CETTE passerelle. Borné : au plus `limite` paiements par passage.
+   */
+  async function entretien(options: { limite?: number; maxTentatives?: number } = {}): Promise<{ expires: number; reprises: number }> {
+    const limite = options.limite ?? 50;
+    let expires = 0;
+    let reprises = 0;
+    for (const p of await depot.paiementsAExpirer(iso(), limite)) {
+      if (p.fournisseur === passerelle.nom && (await expirerSiBesoin(p.id))) expires += 1;
+    }
+    for (const p of await depot.paiementsAReprendre(options.maxTentatives ?? 5, limite)) {
+      if (p.fournisseur === passerelle.nom && (await reprendreVersements(p.id)).ok) reprises += 1;
+    }
+    return { expires, reprises };
+  }
+
   /** Paiements restés « en attente » après le délai : expirés. À appeler périodiquement. */
   async function expirerSiBesoin(paiementId: string): Promise<boolean> {
     const p = await depot.paiementParId(paiementId);
@@ -633,6 +654,7 @@ export function creerServicePaiement(deps: DependancesService) {
     surCommandeTerminee,
     surCommandeAnnulee,
     expirerSiBesoin,
+    entretien,
   };
 }
 

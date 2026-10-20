@@ -6,6 +6,7 @@ import { creerDepotMemoire, reglagesParDefaut } from "./depot-memoire";
 import type { CommandePourPaiement } from "../../src/lib/paiement/en-ligne/service";
 
 let ko = 0;
+let n2 = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
   if (JSON.stringify(obtenu) !== JSON.stringify(attendu)) {
     ko++;
@@ -325,6 +326,47 @@ verifier("numéro masqué : seuls les deux derniers chiffres", [masquerNumero("+
   const l = await b.service.ouvrirLitige({ paiementId: p.id, ouvertPar: "client", situation: "plat_manquant_ou_errone", montantDemandeGnf: 20_000, preuveFournie: true });
   const r = await b.service.trancherLitige({ paiementId: p.id, litigeId: l.ok ? l.litigeId : "", decision: "liberer", motif: "Le restaurant a prouvé la remise" });
   verifier("litige tranché par un humain (libérer) : les bénéficiaires sont payés", [r.ok, (await b.depot.paiementParId(p.id))?.etat, b.appels.verser], [true, "libere", 2]);
+}
+
+// ------------------------------------------------------------------ entretien périodique
+{
+  let maintenant = new Date("2026-10-21T10:00:00Z");
+  const { depot, etat } = creerDepotMemoire({ commandes: [commande("cmd-1"), commande("cmd-2")] });
+  const passerelle = creerPasserelleSimulation({ cle: "cle-test" });
+  const service = creerServicePaiement({ depot, passerelle, maintenant: () => maintenant, genererReference: (p) => `${p}-ENT${++n2}` });
+  const o1 = await service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const o2 = await service.ouvrirPaiement({ orderId: "cmd-2", operateur: "mtn_momo" });
+  maintenant = new Date("2026-10-21T10:05:00Z");
+  const tot = await service.entretien();
+  verifier("entretien avant le délai (15 min) : rien n'expire", [tot.expires, [...etat.paiements.values()].map((p) => p.etat)], [0, ["en_attente", "en_attente"]]);
+  maintenant = new Date("2026-10-21T10:16:00Z");
+  const tard = await service.entretien();
+  verifier("entretien après le délai : les deux paiements abandonnés expirent", [tard.expires, [...etat.paiements.values()].map((p) => p.etat)], [2, ["expire", "expire"]]);
+  verifier("entretien : les commandes retrouvent les autres modes de paiement", [etat.commandesSync.get("cmd-1"), etat.commandesSync.get("cmd-2")], ["abandonnee", "abandonnee"]);
+  const encore = await service.entretien();
+  verifier("entretien rejoué : plus rien à faire", [encore.expires, encore.reprises], [0, 0]);
+  verifier("entretien : ouverture sans erreur (contrôle du banc)", [o1.ok, o2.ok], [true, true]);
+}
+{
+  const b = banc();
+  const { p } = await ouvrirEtPayer(b);
+  await b.service.libererPaiement(p.id); // aucun compte de versement : deux versements « à verser »
+  const sans = await b.service.entretien();
+  verifier("entretien sans compte de versement : les versements restent à faire, sans appel au prestataire", [sans.reprises, b.appels.verser], [1, 0]);
+  b.ajouterComptes();
+  const avec = await b.service.entretien();
+  verifier("entretien : dès que les comptes sont vérifiés, les versements partent tout seuls", [avec.reprises, b.appels.verser, [...b.etat.versements.values()].map((v) => v.etat)], [1, 2, ["confirme", "confirme"]]);
+  const fin = await b.service.entretien();
+  verifier("entretien : plus rien à reprendre une fois tout versé", [fin.reprises, b.appels.verser], [0, 2]);
+}
+{
+  const b = banc();
+  b.ajouterComptes();
+  b.pannes.verser = true;
+  const { p } = await ouvrirEtPayer(b);
+  await b.service.libererPaiement(p.id);
+  for (let i = 0; i < 8; i++) await b.service.entretien({ maxTentatives: 3 });
+  verifier("entretien : un versement qui échoue sans cesse est abandonné après 3 essais (reste visible à l'exploitation)", [b.appels.verser <= 6, [...b.etat.versements.values()].map((v) => v.etat)], [true, ["echoue", "echoue"]]);
 }
 
 // ------------------------------------------------------------------ invariant global

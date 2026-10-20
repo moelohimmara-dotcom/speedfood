@@ -811,5 +811,24 @@ await serveur("argent non reçu : un paiement réel resté « en attente » peut
   update paiements set etat = 'en_attente' where id = ${U(PAY_F)};
   delete from orders where id = '${CMD_F}'`, false);
 
+// ---------------------------------------------------------------- 9. paiement en ligne : pas de confirmation manuelle (durcissement du 21 octobre 2026)
+console.log("\n--- Paiement en ligne : confirmation manuelle interdite en base");
+const CMD_G = "00000000-0000-4000-8000-00000000a0g1".replace("g", "9");
+const CMD_H = "00000000-0000-4000-8000-00000000a0h1".replace("h", "8");
+await db.exec(`
+  insert into orders (id, reference, jeton_suivi, restaurant_id, client_nom, client_telephone, client_adresse, mode, sous_total, statut, paiement_mode, paiement_statut) values
+    ('${CMD_G}', 'SF-GGGGG', 'jeton-g', ${U(ID.resto_a)}, 'Client G', '620000007', 'Adresse G', 'retrait', 25000, 'acceptee', 'speedfood', 'non_demande'),
+    ('${CMD_H}', 'SF-HHHHH', 'jeton-h', ${U(ID.resto_a)}, 'Client H', '620000008', 'Adresse H', 'retrait', 25000, 'acceptee', null, 'non_demande');
+`);
+await interdit("restaurateur : ne marque pas « reçu » une commande payée en ligne", ID.user_a, `update orders set paiement_statut = 'recu' where id = '${CMD_G}'`);
+await interdit("restaurateur : ne conteste pas non plus (« non reçu ») une commande payée en ligne", ID.user_a, `update orders set paiement_statut = 'non_recu' where id = '${CMD_G}'`);
+await interdit("restaurateur : ne se fabrique pas un paiement en ligne en changeant le mode", ID.user_a, `update orders set paiement_mode = 'speedfood' where id = '${CMD_H}'`);
+await autorise("contrôle positif : le restaurateur confirme toujours un paiement classique", ID.user_a, `update orders set paiement_statut = 'recu' where id = '${CMD_H}'`);
+const enLigneIntact = (await db.query(`select paiement_statut from orders where id = '${CMD_G}'`)).rows[0].paiement_statut;
+verifier("la commande payée en ligne n'a pas bougé après les tentatives", enLigneIntact === "non_demande", enLigneIntact);
+await serveur("le serveur (sans identité) fait évoluer le statut d'un paiement en ligne", `update orders set paiement_statut = 'recu' where id = '${CMD_G}'`, false);
+const recuLe = (await db.query(`select paiement_recu_le is not null as ok from orders where id = '${CMD_G}'`)).rows[0].ok;
+verifier("la date de réception est posée par la base à la confirmation du serveur", recuLe === true);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

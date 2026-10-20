@@ -53,6 +53,8 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
     litiges: new Map<string, LigneLitige & { decision?: string; regle?: string }>(),
     compteur: 0,
     commandesSync: new Map<string, string>(),
+    /** Date d'expiration posée à l'ouverture, par paiement (le dépôt réel la garde dans la colonne expire_le). */
+    expirations: new Map<string, string>(),
   };
   const id = (p: string) => `${p}-${++etat.compteur}`;
 
@@ -94,6 +96,7 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
       if (!p || p.etat !== de) return false;
       p.etat = vers;
       if (patch?.referenceExterne) p.referenceExterne = patch.referenceExterne;
+      if (patch?.expireLe) etat.expirations.set(i, patch.expireLe);
       if (patch?.rembourseGnf !== undefined) p.rembourseGnf = patch.rembourseGnf;
       return true;
     },
@@ -106,6 +109,21 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
       if (etat.evenements.has(cle)) return false;
       etat.evenements.add(cle);
       return true;
+    },
+    async paiementsAExpirer(avant, limite) {
+      return [...etat.paiements.values()]
+        .filter((p) => p.etat === "en_attente" && (etat.expirations.get(p.id) ?? "") < avant)
+        .slice(0, limite)
+        .map((p) => ({ id: p.id, fournisseur: p.fournisseur }));
+    },
+    async paiementsAReprendre(maxTentatives, limite) {
+      const ids = new Set(
+        [...etat.versements.values()].filter((v) => (v.etat === "a_verser" || v.etat === "echoue") && v.tentatives < maxTentatives).map((v) => v.paiementId)
+      );
+      return [...etat.paiements.values()]
+        .filter((p) => ids.has(p.id) && p.etat === "libere")
+        .slice(0, limite)
+        .map((p) => ({ id: p.id, fournisseur: p.fournisseur }));
     },
     async synchroniserCommande(orderId, situation) {
       etat.commandesSync.set(orderId, situation);
