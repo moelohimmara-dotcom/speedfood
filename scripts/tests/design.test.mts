@@ -159,8 +159,7 @@ const globalsCss = fs.readFileSync(path.join(racine, "src", "app", "globals.css"
 // Les jetons sont semés par la migration d'origine puis complétés par des migrations ultérieures (jamais en modifiant celle déjà appliquée).
 const migration = ["20261007184500_jetons_design.sql", "20261020140000_jetons_design_complements.sql"]
   .map((f) => fs.readFileSync(path.join(racine, "supabase", "migrations", f), "utf8"))
-  .join("
-");
+  .join(" ");
 
 // Extrait `--nom: valeur;` du bloc :root de globals.css.
 const blocRoot = globalsCss.slice(globalsCss.indexOf(":root {"), globalsCss.indexOf("html {"));
