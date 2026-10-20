@@ -10,10 +10,12 @@ interface Props {
   mode: "aucune" | "propre" | "speedfood";
   latitude: number | null;
   longitude: number | null;
+  /** Il existe un livreur Speedfood réel utilisable près du restaurant (garde-fou). */
+  speedfoodDisponible: boolean;
 }
 
 /** Qui livre, et où se trouve le restaurant : la position sert à calculer les frais de livraison d'après la distance. */
-export function FormulaireLivraisonResto({ mode, latitude, longitude }: Props) {
+export function FormulaireLivraisonResto({ mode, latitude, longitude, speedfoodDisponible }: Props) {
   const [etat, action, enCours] = useActionState(definirLivraisonRestaurantAction, etatInitial);
   const [choix, setChoix] = useState<"aucune" | "propre" | "speedfood">(mode);
   const [lat, setLat] = useState(latitude === null ? "" : String(latitude));
@@ -58,12 +60,12 @@ export function FormulaireLivraisonResto({ mode, latitude, longitude }: Props) {
             </span>
           </label>
           <label className="choix-carte">
-            <input type="radio" name="livraison_mode" value="speedfood" checked={choix === "speedfood"} onChange={() => setChoix("speedfood")} />
+            <input type="radio" name="livraison_mode" value="speedfood" checked={choix === "speedfood"} disabled={!speedfoodDisponible && mode !== "speedfood"} onChange={() => setChoix("speedfood")} />
             <span className="choix-texte">
               <strong>Un livreur Speedfood</strong>
               <small>
-                Un livreur est affecté à chaque course et suit la commande jusqu&apos;au client. Pendant la phase pilote, les livreurs sont des livreurs de
-                démonstration.
+                Un livreur est affecté à chaque course et suit la commande jusqu&apos;au client.
+                {speedfoodDisponible ? "" : " Indisponible pour le moment : aucun livreur Speedfood actif près de chez vous."}
               </small>
             </span>
           </label>
@@ -90,6 +92,12 @@ export function FormulaireLivraisonResto({ mode, latitude, longitude }: Props) {
           </Button>
         </div>
         {avis ? <p className="aide-champ">{avis}</p> : null}
+        {mode === "speedfood" && !speedfoodDisponible ? (
+          <Alert ton="info">
+            Aucun livreur Speedfood n&apos;est actif près de chez vous en ce moment : vos nouvelles commandes en livraison sont confiées à votre personnel, jusqu&apos;à ce qu&apos;un
+            livreur soit actif dans votre zone.
+          </Alert>
+        ) : null}
         {etat.erreur ? <Alert ton="danger">{etat.erreur}</Alert> : null}
         {etat.succes ? <Alert ton="succes">{etat.message}</Alert> : null}
       </form>

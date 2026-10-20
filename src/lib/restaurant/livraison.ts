@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { analyserPosition } from "./position";
+import { clientLivraison, pointDuRestaurant, speedfoodPossible } from "@/lib/livraison/lecture";
+import { MESSAGE_SPEEDFOOD_INDISPONIBLE } from "@/lib/livraison/garde-fou-speedfood";
 
 /**
  * Livraison du restaurant : qui livre (« aucune » = retrait seulement, « propre » = son personnel) et où il se trouve exactement.
@@ -26,6 +28,17 @@ export async function definirLivraisonRestaurantAction(_prec: EtatLivraisonResta
   }
   const position = analyserPosition(String(formData.get("latitude") ?? ""), String(formData.get("longitude") ?? ""));
   if (!position.ok) return { erreur: position.erreur };
+
+  // Garde-fou : « Livreur Speedfood » ne se choisit que s'il existe un livreur réel utilisable près du restaurant (un restaurant qui l'a déjà
+  // peut enregistrer sa position sans être bloqué ; ses nouvelles commandes retombent alors sur sa livraison propre).
+  if (mode === "speedfood") {
+    const { data: actuel } = await supabase.from("restaurants").select("livraison_mode, donnees_demo").eq("id", membership.restaurant_id).maybeSingle();
+    if (actuel?.livraison_mode !== "speedfood") {
+      const db = clientLivraison();
+      const depart = position.position ?? (await pointDuRestaurant(db, membership.restaurant_id)).point;
+      if (!(await speedfoodPossible(db, depart, actuel?.donnees_demo === true))) return { erreur: MESSAGE_SPEEDFOOD_INDISPONIBLE };
+    }
+  }
 
   const { error } = await supabase
     .from("restaurants")

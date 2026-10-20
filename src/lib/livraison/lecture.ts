@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { livreurUtilisableProche, modeEffectifLivraison } from "./garde-fou-speedfood";
 import {
   REGLAGES_PAR_DEFAUT,
   calculerFraisLivraison,
@@ -94,18 +95,41 @@ export async function pointDuQuartier(db: SupabaseClient, quartierId: string): P
   return pointDe(commune);
 }
 
-/** Départ : la position du restaurant ; à défaut, le centre de son quartier. */
-export async function pointDuRestaurant(db: SupabaseClient, restaurantId: string): Promise<{ point: Point | null; mode: string }> {
-  const { data } = await db.from("restaurants").select("latitude, longitude, quartier_id").eq("id", restaurantId).maybeSingle();
-  if (!data) return { point: null, mode: "aucune" };
+/**
+ * Garde-fou « Livreur Speedfood » (docs/LIVRAISON-LIVREURS-V2.md §8) : existe-t-il un livreur actif, réel, récent, dans le rayon du point ?
+ * Lecture bornée (500 fiches actives au plus) : largement au-dessus du pilote ; à revoir avec le volume.
+ */
+export async function speedfoodPossible(db: SupabaseClient, point: Point | null, restaurantDemo: boolean): Promise<boolean> {
+  if (!point) return false;
+  // Les fiches simulées sont écartées par la règle elle-même (sauf restaurant de démonstration), pas par la requête.
+  const { data } = await db.from("livreurs").select("cycle, simule, latitude, longitude, position_le").eq("cycle", "actif").not("latitude", "is", null).limit(500);
+  const livreurs = ((data ?? []) as Array<{ cycle: string; simule: boolean; latitude: number | null; longitude: number | null; position_le: string | null }>).map((l) => ({
+    cycle: l.cycle,
+    simule: l.simule,
+    latitude: l.latitude,
+    longitude: l.longitude,
+    positionLe: l.position_le,
+  }));
+  return livreurUtilisableProche(point, livreurs, new Date(), { restaurantDemo });
+}
+
+/**
+ * Départ : la position du restaurant ; à défaut, le centre de son quartier. `mode` est le mode EFFECTIF : un restaurant configuré
+ * « speedfood » sans livreur utilisable près de lui retombe sur « propre » pour les nouvelles commandes (`repli` vrai).
+ */
+export async function pointDuRestaurant(db: SupabaseClient, restaurantId: string): Promise<{ point: Point | null; mode: string; repli: boolean }> {
+  const { data } = await db.from("restaurants").select("latitude, longitude, quartier_id, donnees_demo").eq("id", restaurantId).maybeSingle();
+  if (!data) return { point: null, mode: "aucune", repli: false };
   // Mode de livraison lu à part : tant que la colonne n'existe pas (migration non appliquée), le restaurant garde
   // le comportement d'avant (« propre » : il livre lui-même) au lieu de se voir refuser la livraison.
   const { data: reglage, error } = await db.from("restaurants").select("livraison_mode").eq("id", restaurantId).maybeSingle();
-  const mode = !error && reglage?.livraison_mode ? String(reglage.livraison_mode) : "propre";
+  const configure = !error && reglage?.livraison_mode ? String(reglage.livraison_mode) : "propre";
   const direct = pointDe(data);
-  if (direct) return { point: direct, mode };
-  const duQuartier = data.quartier_id ? await pointDuQuartier(db, data.quartier_id) : null;
-  return { point: duQuartier, mode };
+  const point = direct ?? (data.quartier_id ? await pointDuQuartier(db, data.quartier_id) : null);
+  // Une lecture de plus seulement pour les restaurants qui ont choisi « speedfood ».
+  const possible = configure === "speedfood" ? await speedfoodPossible(db, point, data.donnees_demo === true) : true;
+  const { mode, repli } = modeEffectifLivraison(configure, possible);
+  return { point, mode, repli };
 }
 
 /**

@@ -5,6 +5,7 @@ import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartie
 import { FormulaireQuartier } from "../FormulaireQuartier";
 import { FormulaireZonesDesservies } from "../FormulaireZonesDesservies";
 import { FormulaireLivraisonResto } from "../FormulaireLivraisonResto";
+import { clientLivraison, pointDuRestaurant, speedfoodPossible } from "@/lib/livraison/lecture";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Où je suis, où je livre" };
@@ -17,6 +18,11 @@ export default async function ZonesPage() {
   if (!restaurant) {
     return null;
   }
+  // Garde-fou « Livreur Speedfood » : proposé seulement s'il existe un livreur réel utilisable près du restaurant.
+  const db = clientLivraison();
+  const depart = await pointDuRestaurant(db, membership.restaurant_id);
+  const dejaSpeedfood = restaurant.livraison_mode === "speedfood";
+  const speedfoodDisponible = dejaSpeedfood ? !depart.repli : await speedfoodPossible(db, depart.point, false);
   const quartiers = await lireQuartiersActifs(supabase);
   const quartierActuelValide = quartiers.some((q) => q.id === restaurant.quartier_id);
   const { data: zonesDesservies } = await supabase
@@ -54,6 +60,7 @@ export default async function ZonesPage() {
           mode={restaurant.livraison_mode === "aucune" || restaurant.livraison_mode === "speedfood" ? restaurant.livraison_mode : "propre"}
           latitude={restaurant.latitude}
           longitude={restaurant.longitude}
+          speedfoodDisponible={speedfoodDisponible}
         />
       </div>
 
