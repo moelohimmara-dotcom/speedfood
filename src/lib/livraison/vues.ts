@@ -13,6 +13,7 @@ export interface VueLivraison {
   statut: StatutLivraison;
   libelle: string;
   etape: number;
+  livreurId: string | null;
   livreurNom: string | null;
   livreurTelephone: string | null;
   fraisGnf: number;
@@ -30,6 +31,7 @@ interface LigneVue {
   order_id: string;
   mode: string;
   statut: string;
+  livreur_id: string | null;
   frais_gnf: number;
   distance_m: number | null;
   depart_latitude: number | null;
@@ -48,7 +50,7 @@ interface LivreurVue {
 }
 
 const SELECTION =
-  "id, order_id, mode, statut, frais_gnf, distance_m, depart_latitude, depart_longitude, arrivee_latitude, arrivee_longitude, livreurs(nom, telephone, latitude, longitude, position_le)";
+  "id, order_id, mode, statut, livreur_id, frais_gnf, distance_m, depart_latitude, depart_longitude, arrivee_latitude, arrivee_longitude, livreurs(nom, telephone, latitude, longitude, position_le)";
 
 function pointOuNull(lat: number | null, lon: number | null): Point | null {
   if (lat === null || lon === null) return null;
@@ -73,6 +75,7 @@ function versVue(l: LigneVue, vitesseKmh: number): VueLivraison | null {
     statut: l.statut,
     libelle: libelleLivraison(l.statut, mode),
     etape: etapeLivraison(l.statut),
+    livreurId: l.livreur_id ?? null,
     livreurNom: livreur?.nom ?? null,
     livreurTelephone: livreur?.telephone ?? null,
     fraisGnf: l.frais_gnf,

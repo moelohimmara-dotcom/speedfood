@@ -102,7 +102,7 @@ export async function pointDuQuartier(db: SupabaseClient, quartierId: string): P
 export async function speedfoodPossible(db: SupabaseClient, point: Point | null, restaurantDemo: boolean): Promise<boolean> {
   if (!point) return false;
   // Les fiches simulées sont écartées par la règle elle-même (sauf restaurant de démonstration), pas par la requête.
-  const { data } = await db.from("livreurs").select("cycle, simule, latitude, longitude, position_le").eq("cycle", "actif").not("latitude", "is", null).limit(500);
+  const { data } = await db.from("livreurs").select("cycle, simule, latitude, longitude, position_le").eq("cycle", "actif").is("restaurant_id", null).not("latitude", "is", null).limit(500);
   const livreurs = ((data ?? []) as Array<{ cycle: string; simule: boolean; latitude: number | null; longitude: number | null; position_le: string | null }>).map((l) => ({
     cycle: l.cycle,
     simule: l.simule,

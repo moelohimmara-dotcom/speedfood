@@ -956,3 +956,35 @@
 .cmd-erreur {
   margin-top: var(--space-3);
 }
+
+/* Livreurs du restaurant (21 octobre 2026) */
+.registre-livreurs-formulaire {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+.registre-livreurs-liste {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+.registre-livreurs-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--bordure);
+}
+.commande-livraison-livreur {
+  display: grid;
+  gap: var(--space-1);
+  margin-block: var(--space-2);
+}
+.commande-livraison-livreur select {
+  max-width: 100%;
+}

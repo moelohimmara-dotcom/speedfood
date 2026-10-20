@@ -830,5 +830,38 @@ await serveur("le serveur (sans identité) fait évoluer le statut d'un paiement
 const recuLe = (await db.query(`select paiement_recu_le is not null as ok from orders where id = '${CMD_G}'`)).rows[0].ok;
 verifier("la date de réception est posée par la base à la confirmation du serveur", recuLe === true);
 
+// ---------------------------------------------------------------- 10. livreurs du restaurant (lot 1 du module livreurs, 21 octobre 2026)
+console.log("\n--- Livreurs du restaurant");
+const RLA1 = "00000000-0000-4000-8000-0000000000f3";
+const RLB1 = "00000000-0000-4000-8000-0000000000f4";
+const LIV_H = "00000000-0000-4000-8000-0000000001c1";
+await db.exec(`
+  insert into livreurs (id, nom, telephone, cycle, origine, restaurant_id) values
+    (${U(RLA1)}, 'Livreur du resto A', '+224622700001', 'actif', 'restaurant', ${U(ID.resto_a)}),
+    (${U(RLB1)}, 'Livreur du resto B', '+224622700002', 'actif', 'restaurant', ${U(ID.resto_b)});
+  insert into livraisons (id, order_id, restaurant_id, mode, statut) values (${U(LIV_H)}, '${CMD_H}', ${U(ID.resto_a)}, 'propre', 'assignee');
+`);
+verifier("livreurs du restaurant : A voit le sien (en plus de celui qui a déjà livré pour lui), pas celui de B", (await nb(ID.user_a, "livreurs", `id = ${U(RLA1)}`)) === 1 && VIDE(await nb(ID.user_a, "livreurs", `id = ${U(RLB1)}`)));
+verifier("livreurs du restaurant : B voit le sien, pas celui de A", (await nb(ID.user_b, "livreurs", `id = ${U(RLB1)}`)) === 1 && VIDE(await nb(ID.user_b, "livreurs", `id = ${U(RLA1)}`)));
+verifier("livreurs du restaurant : un client, un anonyme et un livreur du groupe ne les voient pas", VIDE(await nb(ID.client, "livreurs", `restaurant_id is not null`)) && VIDE(await nb(null, "livreurs", `restaurant_id is not null`)) && VIDE(await nb(U_LIV, "livreurs", `restaurant_id is not null`)));
+verifier("livreurs du restaurant : l'exploitation les voit", (await nb(ID.admin, "livreurs", `restaurant_id is not null`)) === 2);
+await interdit("le restaurateur ne crée pas de livreur par l'API (écriture par le serveur seulement)", ID.user_a, `insert into livreurs (nom, cycle, origine, restaurant_id) values ('Intrus', 'actif', 'restaurant', ${U(ID.resto_a)})`);
+await interdit("le restaurateur ne modifie pas son livreur par l'API", ID.user_a, `update livreurs set nom = 'Autre' where id = ${U(RLA1)}`);
+await interdit("le restaurateur ne touche pas au livreur d'un autre restaurant", ID.user_a, `update livreurs set cycle = 'archive' where id = ${U(RLB1)}`);
+await serveur("base : un livreur de restaurant doit avoir un restaurant, un autre non (cohérence)", `insert into livreurs (nom, origine) values ('Sans resto', 'restaurant')`, true);
+await serveur("base : un livreur du groupe ne porte pas de restaurant", `insert into livreurs (nom, origine, restaurant_id) values ('Faux groupe', 'exploitation', ${U(ID.resto_a)})`, true);
+await serveur("base : le rattachement d'un livreur ne se modifie pas (restaurant)", `update livreurs set restaurant_id = ${U(ID.resto_b)} where id = ${U(RLA1)}`, true);
+await serveur("base : le rattachement d'un livreur ne se modifie pas (origine)", `update livreurs set origine = 'exploitation', restaurant_id = null where id = ${U(RLA1)}`, true);
+await serveur("base : le même téléphone, deux fois dans le même restaurant, est refusé", `insert into livreurs (nom, telephone, cycle, origine, restaurant_id) values ('Doublon', '+224622700001', 'actif', 'restaurant', ${U(ID.resto_a)})`, true);
+await serveur("base : le même téléphone dans un AUTRE restaurant est accepté (une personne livre pour deux)", `insert into livreurs (nom, telephone, cycle, origine, restaurant_id) values ('Même personne', '+224622700001', 'actif', 'restaurant', ${U(ID.resto_b)})`, false);
+await serveur("base : ce téléphone peut aussi exister dans le groupe Speedfood (portées distinctes)", `insert into livreurs (nom, telephone, cycle) values ('Groupe', '+224622700001', 'candidat')`, false);
+await serveur("base : après archivage, le téléphone se réutilise dans le même restaurant", `update livreurs set cycle = 'archive' where id = ${U(RLA1)}; insert into livreurs (nom, telephone, cycle, origine, restaurant_id) values ('Retour', '+224622700001', 'actif', 'restaurant', ${U(ID.resto_a)})`, false);
+await serveur("affectation : un livreur de A sur la livraison de B est refusé par la base", `update livraisons set livreur_id = ${U(RLA1)} where id = ${U(LIVRAISON_B)}`, true);
+await serveur("affectation : un livreur de B sur la livraison de A est refusé aussi", `update livraisons set livreur_id = ${U(RLB1)} where id = ${U(LIV_H)}`, true);
+await serveur("affectation : un livreur de A sur la livraison de A est accepté", `update livraisons set livreur_id = ${U(RLA1)} where id = ${U(LIV_H)}`, false);
+await serveur("affectation : un livreur du groupe Speedfood reste affectable partout (inchangé)", `update livraisons set livreur_id = ${U(LIVREUR_2)} where id = ${U(LIVRAISON_B)}`, false);
+await serveur("affectation : retirer le livreur reste possible", `update livraisons set livreur_id = null where id = ${U(LIV_H)}`, false);
+verifier("les livreurs du groupe ne sont pas concernés : leur restaurant et leur origine sont inchangés", (await db.query(`select count(*)::int n from livreurs where id in (${U(LIVREUR_1)}, ${U(LIVREUR_2)}) and restaurant_id is null and origine = 'exploitation'`)).rows[0].n === 2);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

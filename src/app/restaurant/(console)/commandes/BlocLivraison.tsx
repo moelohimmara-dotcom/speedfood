@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { agirSurLivraisonAction } from "@/lib/livraison/actions-restaurant";
+import { affecterLivreurAction } from "@/lib/livraison/registre-restaurant";
 import type { VueLivraison } from "@/lib/livraison/vues";
 import { estFinal } from "@/lib/livraison/statuts";
 import { Alert, Button } from "@/components/ui";
@@ -14,11 +16,19 @@ const ETAPES_SPEEDFOOD = ["Livreur", "Vers le restaurant", "Récupérée", "En r
  * qui vient chercher la commande. Livraison par son propre personnel : « Parti livrer », puis « Livrée » avec le code à 4 chiffres
  * que le client donne à la porte (le restaurant ne voit jamais ce code).
  */
-export function BlocLivraison({ livraison, commandePrete }: { livraison: VueLivraison; commandePrete: boolean }) {
+export function BlocLivraison({ livraison, commandePrete, livreursRestaurant = [] }: { livraison: VueLivraison; commandePrete: boolean; livreursRestaurant?: { id: string; nom: string }[] }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [enCours, demarrer] = useTransition();
   const final = estFinal(livraison.statut);
+
+  function affecter(livreurId: string) {
+    setErreur(null);
+    demarrer(async () => {
+      const r = await affecterLivreurAction(livraison.id, livreurId);
+      if (!r.ok) setErreur(r.message);
+    });
+  }
 
   function agir(action: "partir" | "livree" | "annuler") {
     setErreur(null);
@@ -33,7 +43,7 @@ export function BlocLivraison({ livraison, commandePrete }: { livraison: VueLivr
     <div className="commande-livraison-bloc">
       <p className="commande-livraison-statut">
         <strong>Livraison : {livraison.libelle}</strong>
-        {livraison.mode === "speedfood" && livraison.livreurNom ? ` · ${livraison.livreurNom}` : ""}
+        {livraison.livreurNom ? ` · ${livraison.livreurNom}` : ""}
         {livraison.fraisGnf > 0 ? ` · frais ${livraison.fraisGnf.toLocaleString("fr-FR")} GNF` : ""}
         {livraison.distanceKm !== null ? ` · ${livraison.distanceKm.toLocaleString("fr-FR")} km` : ""}
       </p>
@@ -57,6 +67,28 @@ export function BlocLivraison({ livraison, commandePrete }: { livraison: VueLivr
             description="Carte de la livraison : votre restaurant, l'adresse du client et la position du livreur."
           />
         </details>
+      ) : null}
+
+      {livraison.mode === "propre" && livraison.statut === "assignee" ? (
+        <div className="commande-livraison-livreur">
+          {livreursRestaurant.length > 0 ? (
+            <label>
+              Livreur
+              <select value={livraison.livreurId ?? ""} disabled={enCours} onChange={(e) => affecter(e.target.value)}>
+                <option value="">Moi-même / non précisé</option>
+                {livreursRestaurant.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nom}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="aide-champ">
+              Vous livrez vous-même. <Link href="/restaurant/profil/livreurs">Ajoutez vos livreurs</Link> pour choisir qui livre chaque commande.
+            </p>
+          )}
+        </div>
       ) : null}
 
       {livraison.mode === "propre" && !final ? (

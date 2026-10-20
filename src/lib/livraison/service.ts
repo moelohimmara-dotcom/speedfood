@@ -88,7 +88,8 @@ export async function repartir(livraisonId: string): Promise<boolean> {
   const [reglages, { data: dejaSollicites }, { data: livreurs }] = await Promise.all([
     lireReglagesLivraison(db),
     db.from("livraison_offres").select("livreur_id").eq("livraison_id", livraisonId),
-    db.from("livreurs").select("id, statut, latitude, longitude, position_le, derniere_course_le").eq("statut", "disponible").eq("cycle", "actif"),
+    // Les livreurs d'un restaurant ne reçoivent pas d'offre du groupe Speedfood (restaurant_id nul = groupe).
+    db.from("livreurs").select("id, statut, latitude, longitude, position_le, derniere_course_le").eq("statut", "disponible").eq("cycle", "actif").is("restaurant_id", null),
   ]);
   const candidats: CandidatLivreur[] = ((livreurs ?? []) as Array<{
     id: string;

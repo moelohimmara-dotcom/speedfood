@@ -59,6 +59,7 @@ export function CommandeCarte({
   restaurantNom = "Votre restaurant",
   documents = {},
   livraison = null,
+  livreursRestaurant = [],
   noteClient = null,
   notationDisponible = true,
   surPlace = null,
@@ -72,6 +73,8 @@ export function CommandeCarte({
   documents?: { recu?: string; facture?: string };
   /** Livraison de la commande (si elle a été créée à l'acceptation) : remplace le bouton « Marquer livrée ». */
   livraison?: VueLivraison | null;
+  /** Livreurs du registre du restaurant, proposés pour l'affectation d'une livraison par son personnel. */
+  livreursRestaurant?: { id: string; nom: string }[];
   /** Note privée déjà donnée au client pour cette commande. */
   noteClient?: { note: number; etiquettes: string[] } | null;
   notationDisponible?: boolean;
@@ -406,7 +409,7 @@ export function CommandeCarte({
       ) : null}
 
       {livraison && ["acceptee", "prete"].includes(commande.etatDerive) ? (
-        <BlocLivraison livraison={livraison} commandePrete={commande.etatDerive === "prete"} />
+        <BlocLivraison livraison={livraison} commandePrete={commande.etatDerive === "prete"} livreursRestaurant={livreursRestaurant} />
       ) : null}
 
       {commande.etatDerive === "prete" && !livraison ? (

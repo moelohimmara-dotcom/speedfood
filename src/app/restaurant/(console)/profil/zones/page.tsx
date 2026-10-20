@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { FilAriane } from "@/components/console/FilAriane";
 import { PageHeader } from "@/components/admin/blocs";
@@ -62,6 +63,12 @@ export default async function ZonesPage() {
           longitude={restaurant.longitude}
           speedfoodDisponible={speedfoodDisponible}
         />
+      </div>
+
+      <div className="profil-section">
+        <p className="aide-champ">
+          Vous livrez avec votre personnel ? <Link href="/restaurant/profil/livreurs">Gérez vos livreurs</Link> pour choisir qui livre chaque commande.
+        </p>
       </div>
 
       <div className="profil-section">
