@@ -166,7 +166,15 @@ export function ConsoleLivreur({ etatInitial }: { etatInitial: EtatLivreur }) {
           ) : null}
 
           <div className="livreur-actions">
-            {course.statut === "assignee" ? (
+            {course.statut === "assignee" && course.mode === "propre" ? (
+              <>
+                <Button type="button" disabled={enCours || course.commandeStatut !== "prete"} onClick={() => lancer(() => avancerMaCourseAction("vers_client"))}>
+                  Je pars livrer
+                </Button>
+                {course.commandeStatut !== "prete" ? <p className="aide-champ">La commande n&apos;est pas encore prête : le restaurant la prépare.</p> : null}
+              </>
+            ) : null}
+            {course.statut === "assignee" && course.mode !== "propre" ? (
               <Button type="button" disabled={enCours} onClick={() => lancer(() => avancerMaCourseAction("vers_restaurant"))}>
                 Je pars au restaurant
               </Button>

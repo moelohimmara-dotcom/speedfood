@@ -52,7 +52,7 @@ export function BlocLivraisonClient({ livraison }: { livraison: VueLivraison & {
           Arrivée estimée dans environ <strong>{livraison.minutesAvantArrivee} min</strong>.
         </p>
       ) : null}
-      {!final && !propre && (livraison.restaurantPoint || livraison.arriveePoint) ? (
+      {!final && (!propre || livraison.livreurPoint) && (livraison.restaurantPoint || livraison.arriveePoint) ? (
         <CarteLivraison
           restaurant={livraison.restaurantPoint}
           destination={livraison.arriveePoint}

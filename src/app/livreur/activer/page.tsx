@@ -32,14 +32,22 @@ export default async function ActiverLivreurPage({ searchParams }: { searchParam
   }
 
   const reglages = await lireReglagesLivreurs();
+  // Livreur d'un restaurant : ni dossier d'identité ni approbation (le restaurateur le connaît), et il ne verra que les livraisons de ce restaurant.
+  const duRestaurant = fiche.restaurantNom !== null;
   return (
     <main className="livreur-page">
-      <h1>Devenir livreur Speedfood</h1>
+      <h1>{duRestaurant ? `Livreur de ${fiche.restaurantNom}` : "Devenir livreur Speedfood"}</h1>
       <Card>
         <p>
           Bonjour <strong>{fiche.nom}</strong>. Ce lien active votre compte livreur ({user.email}). Il ne sert qu&apos;une fois.
+          {duRestaurant ? ` Vous verrez ici les livraisons de ${fiche.restaurantNom}, et seulement celles-ci.` : ""}
         </p>
-        <FormulaireActivation jeton={jeton} pieceRequise={reglages.pieceRequise} urgenceRequise={reglages.urgenceRequise} approbation={reglages.approbationRequise} />
+        <FormulaireActivation
+          jeton={jeton}
+          pieceRequise={duRestaurant ? false : reglages.pieceRequise}
+          urgenceRequise={duRestaurant ? false : reglages.urgenceRequise}
+          approbation={duRestaurant ? false : reglages.approbationRequise}
+        />
       </Card>
     </main>
   );

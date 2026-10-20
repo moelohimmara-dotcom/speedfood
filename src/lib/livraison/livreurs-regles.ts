@@ -217,6 +217,41 @@ export async function hacherJetonActivation(jeton: string): Promise<string> {
   return Array.from(new Uint8Array(condensat), (o) => o.toString(16).padStart(2, "0")).join("");
 }
 
+/** Fiche telle que l'activation par lien la voit. */
+export interface FichePourActivation {
+  cycle: string;
+  utilisateurId: string | null;
+  /** Renseigné : livreur d'un restaurant. */
+  restaurantId: string | null;
+}
+
+/**
+ * Une fiche peut recevoir un lien d'activation (et être activée) si elle n'est liée à aucun compte et :
+ *  - fiche du groupe Speedfood : « créée » ou « invitée » (l'exploitation la fait ensuite approuver) ;
+ *  - livreur d'un restaurant : « actif » (le restaurateur le connaît : pas d'approbation, pas de dossier d'identité).
+ */
+export function ficheActivable(f: FichePourActivation, pourGenerationDeLien = false): boolean {
+  if (f.utilisateurId) return false;
+  if (f.restaurantId) return f.cycle === "actif";
+  return pourGenerationDeLien ? f.cycle === "cree" || f.cycle === "invite" : f.cycle === "invite";
+}
+
+/** Cycle d'une fiche juste après son activation : un livreur de restaurant reste actif, un livreur du groupe attend l'approbation si elle est requise. */
+export function cycleApresActivation(f: FichePourActivation, approbationRequise: boolean): CycleLivreur {
+  if (f.restaurantId) return "actif";
+  return approbationRequise ? "candidat" : "actif";
+}
+
+/** Le dossier d'identité (pièce, contact d'urgence) ne se demande qu'aux livreurs du groupe Speedfood, qui manipulent l'argent de tous. */
+export function dossierExigible(f: FichePourActivation): boolean {
+  return f.restaurantId === null;
+}
+
+export function messageWhatsAppActivationRestaurant(nom: string, restaurant: string, lien: string, validiteJours: number): string {
+  const prenom = nom.split(" ")[0] ?? nom;
+  return `Bonjour ${prenom}, ${restaurant} vous ajoute comme livreur sur Speedfood : ${lien}\nIl ne sert qu'une fois et reste valable ${validiteJours} jour${validiteJours > 1 ? "s" : ""}. Ouvrez-le sur votre téléphone, créez votre compte ou connectez-vous : vous verrez ici les livraisons de ${restaurant}.`;
+}
+
 export function messageWhatsAppActivation(nom: string, lien: string, validiteJours: number): string {
   const prenom = nom.split(" ")[0] ?? nom;
   return `Bonjour ${prenom}, voici votre lien pour devenir livreur Speedfood : ${lien}\nIl ne sert qu'une fois et reste valable ${validiteJours} jour${validiteJours > 1 ? "s" : ""}. Ouvrez-le sur votre téléphone, créez votre compte ou connectez-vous, puis suivez les étapes.`;

@@ -6,6 +6,10 @@ import {
   expirationLien,
   genererJetonActivation,
   hacherJetonActivation,
+  ficheActivable,
+  cycleApresActivation,
+  dossierExigible,
+  messageWhatsAppActivationRestaurant,
   jetonActivationPlausible,
   lienWhatsAppVers,
   messageWhatsAppActivation,
@@ -91,6 +95,18 @@ verifier("expiration à 7 jours", expirationLien(new Date("2026-10-17T12:00:00Z"
 const message = messageWhatsAppActivation("Mamadou Diallo", "https://exemple.invalid/livreur/activer?jeton=X", 7);
 verifier("message WhatsApp : prénom, lien, validité", [message.includes("Bonjour Mamadou,"), message.includes("jeton=X"), message.includes("7 jours")], [true, true, true]);
 verifier("lien WhatsApp vers le numéro", lienWhatsAppVers("+224622123456", "Salut").startsWith("https://wa.me/224622123456?text="), true);
+
+// --- livreurs d'un restaurant : activation par lien
+const groupe = (cycle: string, utilisateurId: string | null = null) => ({ cycle, utilisateurId, restaurantId: null });
+const resto = (cycle: string, utilisateurId: string | null = null) => ({ cycle, utilisateurId, restaurantId: "resto-1" });
+verifier("lien (génération) : groupe créé ou invité oui, candidat ou actif non", [ficheActivable(groupe("cree"), true), ficheActivable(groupe("invite"), true), ficheActivable(groupe("candidat"), true), ficheActivable(groupe("actif"), true)], [true, true, false, false]);
+verifier("lien (génération) : livreur de restaurant actif oui, archivé ou suspendu non", [ficheActivable(resto("actif"), true), ficheActivable(resto("archive"), true), ficheActivable(resto("suspendu"), true), ficheActivable(resto("cree"), true)], [true, false, false, false]);
+verifier("activation : groupe seulement invité ; restaurant seulement actif", [ficheActivable(groupe("invite")), ficheActivable(groupe("cree")), ficheActivable(resto("actif")), ficheActivable(resto("invite"))], [true, false, true, false]);
+verifier("une fiche déjà liée à un compte n'est plus activable (lien à usage unique)", [ficheActivable(groupe("invite", "u1")), ficheActivable(resto("actif", "u1"), true)], [false, false]);
+verifier("après activation : le livreur de restaurant reste actif, celui du groupe attend l'approbation si elle est requise", [cycleApresActivation(resto("actif"), true), cycleApresActivation(groupe("invite"), true), cycleApresActivation(groupe("invite"), false)], ["actif", "candidat", "actif"]);
+verifier("dossier d'identité : exigible du groupe Speedfood seulement", [dossierExigible(groupe("invite")), dossierExigible(resto("actif"))], [true, false]);
+const messageResto = messageWhatsAppActivationRestaurant("Mamadou Diallo", "Chez Fanta", "https://exemple.invalid/livreur/activer?jeton=X", 7);
+verifier("message WhatsApp du restaurant : prénom, restaurant, lien, validité", [messageResto.includes("Bonjour Mamadou,"), messageResto.includes("Chez Fanta"), messageResto.includes("jeton=X"), messageResto.includes("7 jours")], [true, true, true, true]);
 
 // --- dossier
 const aucun = { pieceRequise: false, urgenceRequise: false };

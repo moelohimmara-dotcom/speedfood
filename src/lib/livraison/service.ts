@@ -214,9 +214,12 @@ export interface DemandeAvancement {
 
 async function libererLivreur(db: SupabaseClient, livreurId: string | null, courseTerminee: boolean): Promise<void> {
   if (!livreurId) return;
+  // Un livreur de restaurant ne reçoit pas d'offre : à la fin de sa course il retombe hors ligne (sa position cesse d'être envoyée).
+  const { data: fiche } = await db.from("livreurs").select("restaurant_id").eq("id", livreurId).maybeSingle();
+  const statut = fiche?.restaurant_id ? "hors_ligne" : "disponible";
   await db
     .from("livreurs")
-    .update(courseTerminee ? { statut: "disponible", derniere_course_le: maintenant().toISOString() } : { statut: "disponible" })
+    .update(courseTerminee ? { statut, derniere_course_le: maintenant().toISOString() } : { statut })
     .eq("id", livreurId)
     .eq("statut", "en_course");
 }
@@ -241,6 +244,10 @@ export async function avancerLivraison(d: DemandeAvancement): Promise<ResultatSe
   if (d.vers === "vers_client" && mode === "propre" && !["acceptee", "prete"].includes(commande.statut as string)) {
     return refuser("La commande doit être acceptée avant de partir livrer.");
   }
+  // Un livreur du restaurant ne part qu'avec la commande en main : le restaurant l'a déclarée prête.
+  if (d.vers === "vers_client" && mode === "propre" && d.acteur === "livreur" && commande.statut !== "prete") {
+    return refuser("La commande n'est pas encore prête : attendez que le restaurant la déclare prête.");
+  }
 
   if (d.vers === "livree" && d.acteur !== "admin") {
     if (l.essais_code >= ESSAIS_CODE_MAX) return refuser("Trop d'essais de code. Contactez l'assistance.");
@@ -260,6 +267,9 @@ export async function avancerLivraison(d: DemandeAvancement): Promise<ResultatSe
 
   const { data: changee } = await db.from("livraisons").update(patch).eq("id", l.id).eq("statut", de).select("id");
   if (!changee || changee.length === 0) return refuser("La livraison a changé d'état entre-temps. Rechargez la page.");
+
+  // Livraison par le personnel du restaurant avec un livreur du registre : « en course » dès le départ (sa position est alors partagée au client).
+  if (d.vers === "vers_client" && mode === "propre" && l.livreur_id) await db.from("livreurs").update({ statut: "en_course" }).eq("id", l.livreur_id).neq("statut", "en_course");
 
   if (d.vers === "livree") {
     await libererLivreur(db, l.livreur_id, true);

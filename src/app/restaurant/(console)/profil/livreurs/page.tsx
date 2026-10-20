@@ -17,16 +17,18 @@ export default async function MesLivreursPage() {
   // Les types générés ne connaissent pas encore la table : client sans typage de tables (la RLS limite la lecture à ce restaurant).
   const { data } = await (supabase as unknown as SupabaseClient)
     .from("livreurs")
-    .select("id, nom, telephone, vehicule")
+    .select("id, nom, telephone, vehicule, utilisateur_id")
     .eq("restaurant_id", membership.restaurant_id)
     .eq("cycle", "actif")
     .order("nom")
     .limit(50);
-  const livreurs = ((data ?? []) as Array<{ id: string; nom: string; telephone: string | null; vehicule: string }>).map((l) => ({
+  const livreurs = ((data ?? []) as Array<{ id: string; nom: string; telephone: string | null; vehicule: string; utilisateur_id: string | null }>).map((l) => ({
     id: l.id,
     nom: l.nom,
     telephone: l.telephone,
     vehicule: l.vehicule,
+    // Seulement l'information « a un compte », jamais l'identifiant du compte.
+    compteActive: l.utilisateur_id !== null,
   }));
 
   return (

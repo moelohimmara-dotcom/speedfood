@@ -83,7 +83,8 @@ export function acteurPeut(acteur: ActeurLivraison, de: StatutLivraison, vers: S
     case "restaurant":
       return mode === "propre" || vers === "annulee";
     case "livreur":
-      return mode === "speedfood" && ["vers_restaurant", "recuperee", "vers_client", "livree", "echec"].includes(vers);
+      // Groupe Speedfood : toute la chaîne. Livraison par le personnel du restaurant (livreur du registre) : départ, remise avec le code, échec.
+      return mode === "speedfood" ? ["vers_restaurant", "recuperee", "vers_client", "livree", "echec"].includes(vers) : ["vers_client", "livree", "echec"].includes(vers);
   }
 }
 

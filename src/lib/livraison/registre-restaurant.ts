@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { estUuid } from "@/lib/commande/commun";
+import { origineDuSite } from "@/lib/partage/origine";
 import { clientLivraison } from "./lecture";
-import { validerFicheLivreur } from "./livreurs-regles";
+import { genererLien, lireReglagesLivreurs } from "./livreurs-service";
+import { lienWhatsAppVers, messageWhatsAppActivationRestaurant, validerFicheLivreur } from "./livreurs-regles";
 import { estFinal, estStatutLivraison } from "./statuts";
 
 /**
@@ -77,9 +79,37 @@ export async function archiverLivreurRestaurantAction(livreurId: string): Promis
     .eq("restaurant_id", membership.restaurant_id)
     .select("id");
   if (error || !data || data.length === 0) return { ok: false, message: "Impossible d'archiver pour le moment." };
+  // Un lien d'activation non utilisé ne doit plus marcher.
+  await db.from("livreur_invitations").update({ expire_le: new Date().toISOString() }).eq("livreur_id", livreurId).is("utilise_le", null);
   revalidatePath("/restaurant/profil/livreurs");
   revalidatePath("/restaurant/commandes");
   return { ok: true };
+}
+
+export type ResultatLienLivreur =
+  | { ok: true; nom: string; lien: string; message: string; lienWhatsApp: string; expireLe: string }
+  | { ok: false; message: string };
+
+/**
+ * Lien d'activation d'un livreur de CE restaurant (étape 2 : docs/LIVRAISON-LIVREURS-V2.md §5). Le livreur l'ouvre sur son téléphone, crée
+ * ou ouvre son compte, et voit ensuite uniquement les livraisons de ce restaurant. Un nouveau lien annule les précédents. Le lien lui-même
+ * n'est montré qu'ici, une seule fois : seule son empreinte est conservée.
+ */
+export async function genererLienLivreurRestaurantAction(livreurId: string): Promise<ResultatLienLivreur> {
+  const { membership, user } = await obtenirContexteRestaurant("/restaurant/profil/livreurs");
+  if (!estUuid(livreurId)) return { ok: false, message: "Livreur invalide." };
+  const db = clientLivraison();
+  const { data: fiche } = await db.from("livreurs").select("id, nom, telephone, restaurant_id, cycle").eq("id", livreurId).maybeSingle();
+  if (!fiche || fiche.restaurant_id !== membership.restaurant_id) return { ok: false, message: "Livreur introuvable." };
+  if (!fiche.telephone) return { ok: false, message: "Ce livreur n'a pas de numéro de téléphone." };
+
+  const r = await genererLien(livreurId, user.id, db, membership.restaurant_id);
+  if (!r.ok) return { ok: false, message: r.message };
+  const { data: resto } = await db.from("restaurants").select("nom").eq("id", membership.restaurant_id).maybeSingle();
+  const reglages = await lireReglagesLivreurs(db);
+  const adresse = `${await origineDuSite()}/livreur/activer?jeton=${r.lien.jeton}`;
+  const message = messageWhatsAppActivationRestaurant(String(fiche.nom), String(resto?.nom ?? "Votre restaurant"), adresse, reglages.lienValiditeJours);
+  return { ok: true, nom: String(fiche.nom), lien: adresse, message, lienWhatsApp: lienWhatsAppVers(String(fiche.telephone), message), expireLe: r.lien.expireLe };
 }
 
 /**

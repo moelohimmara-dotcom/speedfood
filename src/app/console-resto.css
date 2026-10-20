@@ -971,6 +971,25 @@
   display: grid;
   gap: var(--space-2);
 }
+.registre-livreurs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.registre-livreurs-lien {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1.5px dashed var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+}
+.registre-livreurs-adresse {
+  margin: 0;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
 .registre-livreurs-ligne {
   display: flex;
   flex-wrap: wrap;

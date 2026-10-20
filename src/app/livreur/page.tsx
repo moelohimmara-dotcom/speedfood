@@ -60,7 +60,8 @@ export default async function LivreurPage() {
 
   return (
     <main className="livreur-page">
-      <h1>Console livreur</h1>
+      <h1>{etat.livreur.restaurantNom ? `Livreur de ${etat.livreur.restaurantNom}` : "Console livreur"}</h1>
+      {etat.livreur.restaurantNom ? <p className="aide-champ">Vous voyez ici les livraisons de ce restaurant uniquement.</p> : null}
       <ConsoleLivreur etatInitial={etat} />
     </main>
   );

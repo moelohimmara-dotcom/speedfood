@@ -17,6 +17,8 @@ export interface FicheLivreur {
   /** Cycle de vie de la fiche : seul « actif » permet de travailler. */
   cycle: string;
   motifCycle: string | null;
+  /** Livreur d'un restaurant : le nom de ce restaurant (il ne voit que ses courses) ; `null` pour le groupe Speedfood. */
+  restaurantNom: string | null;
 }
 
 export interface OffreLivreur {
@@ -32,6 +34,8 @@ export interface OffreLivreur {
 export interface CourseLivreur {
   livraisonId: string;
   statut: StatutLivraison;
+  /** « propre » : livraison par le personnel du restaurant (livreur du registre) ; « speedfood » : répartition du groupe. */
+  mode: ModeLivraison;
   libelle: string;
   commandeReference: string;
   commandeStatut: string;
@@ -57,10 +61,10 @@ const un = <T>(r: Relation<T>): T | null => (Array.isArray(r) ? (r[0] ?? null) :
 
 /** Fiche du livreur lié à ce compte, ou `null` si le compte n'est pas un compte livreur. */
 export async function livreurDuCompte(utilisateurId: string): Promise<FicheLivreur | null> {
-  const { data } = await clientLivraison().from("livreurs").select("id, nom, statut, vehicule, cycle, motif_cycle").eq("utilisateur_id", utilisateurId).maybeSingle();
+  const { data } = await clientLivraison().from("livreurs").select("id, nom, statut, vehicule, cycle, motif_cycle, restaurant_id, restaurants(nom)").eq("utilisateur_id", utilisateurId).maybeSingle();
   if (!data) return null;
-  const l = data as { id: string; nom: string; statut: FicheLivreur["statut"]; vehicule: string; cycle: string; motif_cycle: string | null };
-  return { id: l.id, nom: l.nom, statut: l.statut, vehicule: l.vehicule, cycle: l.cycle, motifCycle: l.motif_cycle };
+  const l = data as unknown as { id: string; nom: string; statut: FicheLivreur["statut"]; vehicule: string; cycle: string; motif_cycle: string | null; restaurant_id: string | null; restaurants: Relation<{ nom: string }> };
+  return { id: l.id, nom: l.nom, statut: l.statut, vehicule: l.vehicule, cycle: l.cycle, motifCycle: l.motif_cycle, restaurantNom: l.restaurant_id ? (un(l.restaurants)?.nom ?? null) : null };
 }
 
 const ACTIVES = ["assignee", "vers_restaurant", "recuperee", "vers_client"];
@@ -137,6 +141,7 @@ export async function lireEtatLivreur(utilisateurId: string): Promise<EtatLivreu
       course = {
         livraisonId: c.id,
         statut: c.statut,
+        mode: c.mode === "propre" ? "propre" : "speedfood",
         libelle: libelleLivraison(c.statut, c.mode as ModeLivraison),
         commandeReference: commande?.reference ?? "—",
         commandeStatut: commande?.statut ?? "",
@@ -173,7 +178,7 @@ export async function lireEtatLivreur(utilisateurId: string): Promise<EtatLivreu
     }
   }
 
-  return { livreur: { id: livreur.id, nom: livreur.nom, statut: livreur.statut, vehicule: livreur.vehicule, cycle: fiche.cycle, motifCycle: fiche.motifCycle }, offre, course, aNoter, positionConnue: livreur.latitude !== null };
+  return { livreur: { id: livreur.id, nom: livreur.nom, statut: livreur.statut, vehicule: livreur.vehicule, cycle: fiche.cycle, motifCycle: fiche.motifCycle, restaurantNom: fiche.restaurantNom }, offre, course, aNoter, positionConnue: livreur.latitude !== null };
 }
 
 /** Enregistre la position du livreur (au plus une fois toutes les 4 secondes ; coordonnées bornées à la Guinée et ses environs). */

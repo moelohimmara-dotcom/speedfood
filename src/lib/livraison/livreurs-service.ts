@@ -10,6 +10,9 @@ import {
   transitionCycleAutorisee,
   validerDossier,
   estCycleLivreur,
+  ficheActivable,
+  cycleApresActivation,
+  dossierExigible,
   type CycleLivreur,
   type DossierSaisi,
   type FicheLivreurValide,
@@ -62,13 +65,20 @@ export interface LienCree {
 }
 
 /** Génère un lien d'activation (les précédents cessent de marcher) et passe la fiche « créée » à « invitée ». */
-export async function genererLien(livreurId: string, auteurId: string | null, db: SupabaseClient = clientLivraison()): Promise<Resultat<{ lien: LienCree }>> {
-  const { data: l } = await db.from("livreurs").select("id, cycle, utilisateur_id").eq("id", livreurId).maybeSingle();
+export async function genererLien(
+  livreurId: string,
+  auteurId: string | null,
+  db: SupabaseClient = clientLivraison(),
+  /** Appel d'un restaurant : la fiche doit être celle d'un livreur de CE restaurant. */
+  restaurantId: string | null = null
+): Promise<Resultat<{ lien: LienCree }>> {
+  const { data: l } = await db.from("livreurs").select("id, cycle, utilisateur_id, restaurant_id").eq("id", livreurId).maybeSingle();
   if (!l) return refuser("Fiche introuvable.");
-  if (!estCycleLivreur(l.cycle as string) || !["cree", "invite"].includes(l.cycle as string)) {
-    return refuser("Un lien d'activation ne se génère que pour une fiche créée ou invitée.");
-  }
+  if (restaurantId !== null && l.restaurant_id !== restaurantId) return refuser("Fiche introuvable.");
   if (l.utilisateur_id) return refuser("Cette fiche est déjà liée à un compte.");
+  if (!estCycleLivreur(l.cycle as string) || !ficheActivable({ cycle: l.cycle as string, utilisateurId: null, restaurantId: (l.restaurant_id as string | null) ?? null }, true)) {
+    return refuser("Un lien d'activation ne se génère que pour une fiche créée ou invitée, ou pour un livreur actif de votre registre.");
+  }
 
   const reglages = await lireReglagesLivreurs(db);
   const maintenant = new Date();
@@ -80,7 +90,8 @@ export async function genererLien(livreurId: string, auteurId: string | null, db
   await db.from("livreur_invitations").update({ expire_le: maintenant.toISOString() }).eq("livreur_id", livreurId).is("utilise_le", null).gt("expire_le", maintenant.toISOString());
   const { error } = await db.from("livreur_invitations").insert({ livreur_id: livreurId, empreinte, expire_le: expireLe, cree_par: auteurId });
   if (error) return refuser("Impossible de créer le lien. Réessayez.");
-  await db.from("livreurs").update({ cycle: "invite" }).eq("id", livreurId).in("cycle", ["cree", "invite"]);
+  // Un livreur de restaurant reste « actif » (il travaille déjà pour son restaurant) ; une fiche du groupe passe à « invitée ».
+  if (!l.restaurant_id) await db.from("livreurs").update({ cycle: "invite" }).eq("id", livreurId).in("cycle", ["cree", "invite"]);
   return { ok: true, lien: { livreurId, jeton, expireLe } };
 }
 
@@ -127,23 +138,26 @@ export async function activerCompte(jeton: string, utilisateurId: string, dossie
   const { data: deja } = await db.from("livreurs").select("id").eq("utilisateur_id", utilisateurId).maybeSingle();
   if (deja) return refuser("Ce compte est déjà lié à une fiche livreur.");
 
-  const { data: fiche } = await db.from("livreurs").select("id, cycle, utilisateur_id").eq("id", invitation.livreur_id).maybeSingle();
-  if (!fiche || fiche.cycle !== "invite" || fiche.utilisateur_id) return refuser(invalide);
+  const { data: fiche } = await db.from("livreurs").select("id, cycle, utilisateur_id, restaurant_id").eq("id", invitation.livreur_id).maybeSingle();
+  const pour = fiche ? { cycle: fiche.cycle as string, utilisateurId: (fiche.utilisateur_id as string | null) ?? null, restaurantId: (fiche.restaurant_id as string | null) ?? null } : null;
+  if (!fiche || !pour || !ficheActivable(pour)) return refuser(invalide);
 
   const reglages = await lireReglagesLivreurs(db);
-  const controle = validerDossier(dossier, { pieceRequise: reglages.pieceRequise, urgenceRequise: reglages.urgenceRequise });
+  // Le dossier d'identité n'est exigé que des livreurs du groupe Speedfood.
+  const controle = validerDossier(dossier, dossierExigible(pour) ? { pieceRequise: reglages.pieceRequise, urgenceRequise: reglages.urgenceRequise } : { pieceRequise: false, urgenceRequise: false });
   if (!controle.ok) return refuser(controle.erreur);
 
   // Le lien est consommé D'ABORD (conditionnel) : deux ouvertures simultanées ne lient pas deux comptes.
   const { data: consomme } = await db.from("livreur_invitations").update({ utilise_le: maintenantIso }).eq("id", invitation.id).is("utilise_le", null).select("id");
   if (!consomme || consomme.length === 0) return refuser(invalide);
 
-  const cycle: CycleLivreur = reglages.approbationRequise ? "candidat" : "actif";
+  const cycle: CycleLivreur = cycleApresActivation(pour, reglages.approbationRequise);
+  // Un livreur de restaurant n'est pas « approuvé par Speedfood » : ni date ni indicateur de vérification.
   const { data: lie, error } = await db
     .from("livreurs")
-    .update({ utilisateur_id: utilisateurId, cycle, ...(cycle === "actif" ? { approuve_le: maintenantIso } : {}) })
+    .update({ utilisateur_id: utilisateurId, cycle, ...(cycle === "actif" && !pour.restaurantId ? { approuve_le: maintenantIso } : {}) })
     .eq("id", fiche.id)
-    .eq("cycle", "invite")
+    .eq("cycle", pour.cycle)
     .select("id");
   if (error || !lie || lie.length === 0) return refuser("Impossible d'activer le compte. Demandez un nouveau lien.");
 
@@ -195,19 +209,22 @@ export const reactiverLivreur = (livreurId: string, auteurId: string) => changer
 export const archiverLivreur = (livreurId: string, auteurId: string, motif: string) => changerCycle(livreurId, "archive", { auteurId, motif, depuis: ["cree", "invite", "actif", "suspendu"] });
 
 /** Nom de la fiche à laquelle correspond un lien valide (pour l'afficher avant l'activation) ; `null` si le lien ne marche pas. */
-export async function fichePourJeton(jeton: string, db: SupabaseClient = clientLivraison()): Promise<{ nom: string } | null> {
+export async function fichePourJeton(jeton: string, db: SupabaseClient = clientLivraison()): Promise<{ nom: string; restaurantNom: string | null } | null> {
   if (!jetonActivationPlausible(jeton)) return null;
   const empreinte = await hacherJetonActivation(jeton);
   const { data } = await db
     .from("livreur_invitations")
-    .select("livreurs(nom, cycle, utilisateur_id)")
+    .select("livreurs(nom, cycle, utilisateur_id, restaurant_id, restaurants(nom))")
     .eq("empreinte", empreinte)
     .is("utilise_le", null)
     .gt("expire_le", new Date().toISOString())
     .maybeSingle();
-  const l = (data as unknown as { livreurs: { nom: string; cycle: string; utilisateur_id: string | null } | { nom: string; cycle: string; utilisateur_id: string | null }[] | null } | null)?.livreurs;
+  type Fiche = { nom: string; cycle: string; utilisateur_id: string | null; restaurant_id: string | null; restaurants: { nom: string } | { nom: string }[] | null };
+  const l = (data as unknown as { livreurs: Fiche | Fiche[] | null } | null)?.livreurs;
   const fiche = Array.isArray(l) ? l[0] : l;
-  return fiche && fiche.cycle === "invite" && !fiche.utilisateur_id ? { nom: fiche.nom } : null;
+  if (!fiche || !ficheActivable({ cycle: fiche.cycle, utilisateurId: fiche.utilisateur_id, restaurantId: fiche.restaurant_id })) return null;
+  const resto = Array.isArray(fiche.restaurants) ? fiche.restaurants[0] : fiche.restaurants;
+  return { nom: fiche.nom, restaurantNom: fiche.restaurant_id ? (resto?.nom ?? null) : null };
 }
 
 export interface DossierLivreur {

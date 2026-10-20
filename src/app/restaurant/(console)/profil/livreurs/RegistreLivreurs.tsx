@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ajouterLivreurRestaurantAction, archiverLivreurRestaurantAction, type EtatRegistreLivreurs } from "@/lib/livraison/registre-restaurant";
+import { ajouterLivreurRestaurantAction, archiverLivreurRestaurantAction, genererLienLivreurRestaurantAction, type EtatRegistreLivreurs, type ResultatLienLivreur } from "@/lib/livraison/registre-restaurant";
 import { Alert, Button, Card } from "@/components/ui";
 
 const etatInitial: EtatRegistreLivreurs = {};
@@ -12,6 +12,8 @@ export interface LivreurRegistre {
   nom: string;
   telephone: string | null;
   vehicule: string;
+  /** Le livreur a déjà activé son compte (il voit ses livraisons dans sa console). */
+  compteActive: boolean;
 }
 
 const LIBELLES_VEHICULE: Record<string, string> = { moto: "Moto", velo: "Vélo", voiture: "Voiture", pied: "À pied" };
@@ -30,6 +32,28 @@ export function RegistreLivreurs({ livreurs }: { livreurs: LivreurRegistre[] }) 
   );
   const [message, setMessage] = useState<string | null>(null);
   const [archivage, demarrer] = useTransition();
+  const [lien, setLien] = useState<(ResultatLienLivreur & { ok: true }) | null>(null);
+  const [copie, setCopie] = useState(false);
+
+  function envoyerLien(id: string) {
+    setMessage(null);
+    setLien(null);
+    setCopie(false);
+    demarrer(async () => {
+      const r = await genererLienLivreurRestaurantAction(id);
+      if (!r.ok) setMessage(r.message);
+      else setLien(r);
+    });
+  }
+
+  async function copierLien(texte: string) {
+    try {
+      await navigator.clipboard.writeText(texte);
+      setCopie(true);
+    } catch {
+      setMessage("Copie impossible : sélectionnez le lien et copiez-le.");
+    }
+  }
 
   function archiver(id: string, nom: string) {
     setMessage(null);
@@ -91,16 +115,41 @@ export function RegistreLivreurs({ livreurs }: { livreurs: LivreurRegistre[] }) 
                     {" "}
                     · {LIBELLES_VEHICULE[l.vehicule] ?? l.vehicule}
                     {l.telephone ? ` · ${l.telephone}` : ""}
+                    {l.compteActive ? " · console activée" : " · pas de console"}
                   </small>
                 </span>
-                <Button type="button" variante="secondary" disabled={archivage} onClick={() => archiver(l.id, l.nom)}>
-                  Archiver
-                </Button>
+                <span className="registre-livreurs-actions">
+                  {l.compteActive ? null : (
+                    <Button type="button" variante="secondary" disabled={archivage} onClick={() => envoyerLien(l.id)}>
+                      Lien d&apos;activation
+                    </Button>
+                  )}
+                  <Button type="button" variante="secondary" disabled={archivage} onClick={() => archiver(l.id, l.nom)}>
+                    Archiver
+                  </Button>
+                </span>
               </li>
             ))}
           </ul>
         )}
         {message ? <Alert ton="info">{message}</Alert> : null}
+        {lien ? (
+          <div className="registre-livreurs-lien">
+            <p>
+              <strong>Lien d&apos;activation pour {lien.nom}</strong> (usage unique, valable jusqu&apos;au {new Date(lien.expireLe).toLocaleDateString("fr-FR", { dateStyle: "long" })}). Il ne s&apos;affichera plus : envoyez-le maintenant.
+            </p>
+            <p className="registre-livreurs-adresse">{lien.lien}</p>
+            <div className="registre-livreurs-actions">
+              <a className="btn btn-primary" href={lien.lienWhatsApp} target="_blank" rel="noopener noreferrer">
+                Envoyer sur WhatsApp
+              </a>
+              <Button type="button" variante="secondary" onClick={() => copierLien(lien.lien)}>
+                {copie ? "Lien copié" : "Copier le lien"}
+              </Button>
+            </div>
+            <p className="aide-champ">Un nouveau lien annule les précédents. Une fois activée, la console du livreur ne montre que les livraisons de votre restaurant.</p>
+          </div>
+        ) : null}
       </Card>
     </>
   );

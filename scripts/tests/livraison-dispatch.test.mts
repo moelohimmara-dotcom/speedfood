@@ -42,7 +42,8 @@ verifier("propre : pas de passage par le restaurant", transitionLivraisonAutoris
 
 // --- qui peut quoi
 verifier("livreur : peut aller au restaurant (speedfood)", acteurPeut("livreur", "assignee", "vers_restaurant", "speedfood"), true);
-verifier("livreur : ne peut pas agir en mode propre", acteurPeut("livreur", "vers_client", "livree", "propre"), false);
+verifier("livreur du restaurant (mode propre) : part livrer, remet avec le code, déclare un échec", [acteurPeut("livreur", "assignee", "vers_client", "propre"), acteurPeut("livreur", "vers_client", "livree", "propre"), acteurPeut("livreur", "vers_client", "echec", "propre")], [true, true, true]);
+verifier("livreur du restaurant (mode propre) : ni répartition, ni passage au restaurant, ni annulation", [acteurPeut("livreur", "assignee", "vers_restaurant", "propre"), acteurPeut("livreur", "assignee", "annulee", "propre"), acteurPeut("livreur", "a_assigner", "assignee", "propre")], [false, false, false]);
 verifier("livreur : ne peut pas annuler", acteurPeut("livreur", "assignee", "annulee", "speedfood"), false);
 verifier("livreur : ne peut pas s'assigner une course", acteurPeut("livreur", "a_assigner", "assignee", "speedfood"), false);
 verifier("restaurant en mode propre : fait avancer sa livraison", [acteurPeut("restaurant", "assignee", "vers_client", "propre"), acteurPeut("restaurant", "vers_client", "livree", "propre")], [true, true]);
