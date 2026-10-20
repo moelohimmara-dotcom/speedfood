@@ -1,6 +1,6 @@
 # Livreurs du restaurant et livreurs indépendants : spécification
 
-**Version :** 0.1, 20 octobre 2026. **Statut : conception validée en discussion avec Malika le 20 octobre 2026 ; rien n'est implémenté.** Complète `docs/LIVRAISON.md` (modèle, dispatch, suivi) et `docs/LIVREURS.md` (fiche, cycle de vie, approbation, lien d'activation). En cas de contradiction, ce document gouverne les points qu'il traite.
+**Version :** 0.1, 20 octobre 2026. **Statut : conception validée en discussion avec Malika le 20 octobre 2026 ; rien n'est implémenté.** Complète `docs/LIVRAISON.md` (modèle, dispatch, suivi) et `docs/LIVREURS.md` (fiche, cycle de vie, approbation, lien d'activation). En cas de contradiction, ce document gouverne les points qu'il traite. **Cadre juridique : voir `docs/CADRE-JURIDIQUE-LIVREURS.md` (§13 ci-dessous en reprend les conséquences de conception).**
 
 ## 1. Objectif
 
@@ -20,7 +20,7 @@ Faire de la livraison une fonction complète de Speedfood, à la manière des pl
 | Repli sur le groupe Speedfood | **Désactivé par défaut** pour chaque restaurant | |
 | Pièce d'identité des indépendants | **Exigée** (et contact d'urgence), car ils manipulent de l'argent | Valeur de simulation, réglable (voir §6) |
 | Option « Livreur Speedfood » | **Masquée tant qu'il n'y a pas de livreur actif dans la zone** | Supprime le risque de commandes bloquées (§8) |
-| Filtre « livreurs sérieux » et revenu côté livreur | **Frais de dossier unique** (confirmé à la main) **+ niveaux de confiance** gagnés par la performance. **Pas de système de points payés pour accéder aux courses.** | Décision du 20 octobre 2026 ; montant de simulation (§6) ; politique de remboursement à fixer (§12) |
+| Filtre « livreurs sérieux » et revenu côté livreur | **Niveaux de confiance** gagnés par la performance. Le **frais de dossier unique** est **conçu mais INACTIF au pilote** et **ne doit pas être activé avant un avis juridique** (art. 110.5 et 523.21 du Code du travail : voir §13). **Pas de système de points payés pour accéder aux courses.** | Décision du 20 octobre 2026, ajustée le même jour après lecture du Code du travail |
 
 ## 3. Ce qui existe déjà (ne pas refaire)
 
@@ -63,13 +63,13 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 4. Le candidat doit avoir un compte Speedfood (connexion ou création) : un compte, une fiche (règle existante).
 
 ### Frais de dossier (livreurs indépendants)
-4a. Réglage `frais_dossier_actif` : éteint par défaut. Allumé, l'inscription affiche le montant (`frais_dossier_gnf`), les **instructions de paiement saisies par Malika** et une **référence unique** (`dossier_reference`) à indiquer dans le transfert mobile money. **Aucun paiement n'est collecté par l'application** : pas d'intégration, pas d'encaissement par Speedfood au sens technique.
+4a. Réglage `frais_dossier_actif` : **éteint par défaut et à laisser éteint tant qu'un avocat n'a pas validé** (§13). Le mécanisme est construit pour pouvoir être activé sans développement le jour où le cadre juridique le permet. Allumé, l'inscription affiche le montant (`frais_dossier_gnf`), les **instructions de paiement saisies par Malika** et une **référence unique** (`dossier_reference`) à indiquer dans le transfert mobile money. **Aucun paiement n'est collecté par l'application** : pas d'intégration, pas d'encaissement par Speedfood au sens technique.
 4b. L'exploitation, en vérifiant la réception, coche **« dossier payé »** (date et agent enregistrés). Un dossier non payé reste `candidat` et ne peut pas être approuvé tant que le frais est actif.
 4c. Le frais couvre la **vérification** (appel, contrôle de la pièce). Il est **unique** : jamais prélevé à la course. Le livreur ne paie rien pour accéder à une offre.
 4d. **Politique de remboursement : voir « Politique de remboursement du frais de dossier » ci-dessous.** Elle est affichée AVANT le paiement et se lit dans les réglages ; l'interface n'annonce jamais autre chose que ce qui est réglé.
 
 ### Politique de remboursement du frais de dossier
-Principes : le frais paie un **service réel** (vérification de la pièce, appel). Un candidat ne perd donc de l'argent que si ce travail a été **effectivement fait**, et jamais par la faute ou le silence de Speedfood. Chaque cas est objectif (une date enregistrée), jamais une appréciation au cas par cas.
+**Ne s'applique que si le frais est un jour activé (voir §13).** Principes : le frais paie un **service réel** (vérification de la pièce, appel). Un candidat ne perd donc de l'argent que si ce travail a été **effectivement fait**, et jamais par la faute ou le silence de Speedfood. Chaque cas est objectif (une date enregistrée), jamais une appréciation au cas par cas.
 
 Jalons enregistrés (colonnes ajoutées, §4) : `dossier_paye_le`, `verification_appel_le` (l'agent a joint ou tenté de joindre le candidat), `decision_le`.
 
@@ -159,7 +159,7 @@ Règle : l'option n'est **sélectionnable** que s'il existe au moins un livreur 
 | Lot | Contenu | Critère d'acceptation |
 |---|---|---|
 | **1** | Garde-fou §8 ; colonnes `restaurant_id`, `origine`, `verifie_speedfood` ; registre « Mes livreurs » ; affectation sur la carte de commande ; étape 1 complète | Un restaurateur ajoute un livreur, l'affecte à une commande, la fait avancer jusqu'à « Livrée » ; l'option Speedfood est invisible sans livreur actif |
-| **2** | Page `/devenir-livreur` ; protection anti-abus ; réglages d'inscription ; **frais de dossier avec référence et confirmation manuelle** ; approbation avec origine visible | Une candidature apparaît chez l'exploitation, avec référence de paiement ; l'agent coche « dossier payé » ; approuvée, la personne peut se mettre en ligne |
+| **2** | Page `/devenir-livreur` ; protection anti-abus ; réglages d'inscription ; **frais de dossier avec référence et confirmation manuelle, INACTIF par défaut (§13)** ; approbation avec origine visible | Une candidature apparaît chez l'exploitation ; sans frais actif, elle est vérifiée et approuvée gratuitement ; frais actif (hors pilote) : référence de paiement et case « dossier payé » ; approuvée, la personne peut se mettre en ligne |
 | **3** | Lien d'activation pour les livreurs du restaurant ; console limitée à ce restaurant ; position et carte pour le client | Un livreur du restaurant active son lien, voit ses seules courses, et le client le suit |
 | **4** | Priorité d'offre aux livreurs du restaurant ; repli optionnel ; bascule | Une offre va d'abord aux livreurs du restaurant ; sans acceptation, repli seulement si autorisé |
 | **5** | Argent : mode de paiement du repas, plafonds, reversement avec confirmation, gains, blocage en cas de retard ; **niveaux de confiance** (niveau 1 sans espèces, niveau 2 après N courses réussies, rétrogradation) | Un livreur de niveau 1 ne reçoit jamais de course en espèces ; il passe au niveau 2 après N courses réussies ; un reversement en retard empêche la mise en ligne ; un litige remonte à l'exploitation |
@@ -179,3 +179,23 @@ Paiement des livreurs par Speedfood, paiement par carte, application native, not
 6. **Politique de remboursement :** une proposition complète est écrite ci-dessus ; il reste à **la valider** et à obtenir un **avis juridique** sur le fait de faire payer un travailleur pour s'inscrire (je ne suis pas juriste et n'ai pas vérifié le droit guinéen).
 7. **Numéro mobile money de réception des frais de dossier :** fourni par Malika le 20 octobre 2026 ; **volontairement absent de ce document et de tout le dépôt** (le dépôt GitHub est public). Il se saisit dans les réglages de livraison (`paiement_dossier_instructions`) et ne figure jamais dans le code, les migrations ni les tests. Contrôle des réceptions : Malika. À envisager : un compte marchand ou un numéro dédié, et l'affichage du **nom du titulaire** pour que le candidat vérifie à qui il paie.
 8. Durée de conservation des dossiers des livreurs archivés (12 mois proposés dans `LIVREURS.md`, à valider).
+
+## 13. Garde-fous juridiques de conception (20 octobre 2026)
+
+Voir `docs/CADRE-JURIDIQUE-LIVREURS.md` pour les textes lus, les limites de ma lecture et les questions pour un avocat. **Je ne suis pas juriste.** Conséquences retenues pour la conception :
+
+1. **Inscription et vérification gratuites pour le livreur au pilote.** Le Code du travail interdit aux services d'emploi privés de faire payer les chercheurs d'emploi (art. 110.5) avec une amende égale au triple de la somme demandée (art. 523.21). Faute de certitude que Speedfood n'en est pas un, le frais est **construit mais inactif**. Le revenu de Speedfood vient du restaurateur (frais par commande, test à blanc) et, plus tard, d'une commission sur les courses livrées.
+2. **Ni points d'accès, ni dépôt de garantie, ni kit obligatoire payant** avant avis juridique. Une alternative inspirée de Swiggy et Zomato (un **objet** optionnel, vendu à prix coûtant, déduit des gains) sera examinée avec l'avocat, pas construite.
+3. **Indépendance du livreur, pour limiter le risque de requalification en salarié (art. 121.1)** :
+   - le livreur peut **refuser** toute offre sans pénalité ; refuser n'abaisse pas son niveau ;
+   - **aucune exclusivité** : il peut livrer pour d'autres plateformes ou restaurants ;
+   - **aucun horaire imposé**, aucune présence minimale ;
+   - il utilise **son propre véhicule et son téléphone** ;
+   - les suspensions ne sanctionnent que la **fraude, la sécurité et les espèces non reversées**, avec motif écrit, jamais l'activité insuffisante ;
+   - les conditions d'utilisation sont rédigées comme un **contrat de prestation de services** (à faire relire par l'avocat) ;
+   - le prix de la course (base + km) est présenté comme **le tarif du service**, visible avant l'acceptation.
+4. **Minimisation des données.** Par défaut, le serveur **ne conserve pas le numéro de la pièce d'identité** : il conserve le **résultat** (« pièce vérifiée le [date] par [agent] », type de pièce). Nouveau réglage `conserver_numero_piece` (faux par défaut) et nouvelle colonne `livreur_dossiers.piece_verifiee_le`. Le contact d'urgence est un tiers : il n'est demandé que si le réglage l'exige, et jamais affiché ailleurs que chez le super administrateur.
+5. **Information et consentement** : chaque formulaire du livreur affiche **qui collecte, pourquoi, combien de temps** les données sont gardées, et recueille un consentement explicite. Une durée de conservation est écrite dans `docs/CONSERVATION-ET-CONFIDENTIALITE.md` avant l'ouverture des inscriptions.
+6. **Formalités sur les données personnelles** : tenir à jour la liste des traitements (pièce, téléphone, position) et leur finalité, pour pouvoir **déclarer** auprès de l'autorité dès qu'elle sera opérationnelle ; l'hébergement de la base est en **Irlande** (`eu-west-1`), à signaler à l'avocat.
+7. **Argent** : aucun paiement de livreur à Speedfood sur un **numéro de particulier** ; si un jour un frais est activé, il passe par un compte marchand ou un numéro dédié, avec nom du titulaire affiché. Les espèces du repas restent entre le livreur et le restaurant (reversement confirmé, §5) : Speedfood ne détient pas leur argent.
+8. **Aucune activation commerciale** (frais, dépôt, points) sans la **checklist d'avis juridique** du §6 de `CADRE-JURIDIQUE-LIVREURS.md` traitée et la décision de Malika notée dans ce document.
