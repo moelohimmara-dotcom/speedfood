@@ -5,7 +5,9 @@
 .aide-choix { display: grid; gap: var(--space-5); }
 .aide-choix-formulaire { display: grid; gap: var(--space-4); }
 .aide-choix-bloc { border: 1px solid var(--bordure); border-radius: var(--radius-md); padding: var(--space-4); margin: 0; display: grid; gap: var(--space-3); background: var(--surface); min-width: 0; }
-.aide-choix-bloc legend { font-weight: 700; padding: 0 6px; }
+/* Titre DANS la carte : un <legend> natif se dessine à cheval sur le trait du fieldset (il le coupe et flotte à moitié hors de la carte, sur le fond crème).
+   Flottant à pleine largeur, il redevient un élément ordinaire de la grille de la carte (même principe que les autres formulaires du site). */
+.aide-choix-bloc > legend { float: left; width: 100%; padding: 0; margin: 0; font-size: 1.1rem; font-weight: 800; }
 .aide-choix-budget { margin: 0; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .aide-choix-bloc input[type="range"] { width: 100%; accent-color: var(--orange); }
 .aide-choix-puces { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -38,7 +40,6 @@
 .aide-choix-chargement { margin: 0; padding: var(--space-4); border: 1px dashed var(--bordure); border-radius: var(--radius-md); color: var(--secondaire); }
 .aide-choix-recap { margin: 0; font-weight: 600; }
 .aide-choix-lien { min-height: 24px; min-width: 24px; padding-block: 4px; }
-.aide-choix-envoi:disabled { opacity: 1; background: var(--bordure); color: #4a4039; cursor: not-allowed; background-image: none; }
 
 .aide-choix-lieu { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--succes-fond); color: var(--encre); font-size: 0.95rem; }
 

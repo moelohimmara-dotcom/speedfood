@@ -22,6 +22,9 @@
   --avertissement-texte: #8a4b00;
   --surface-alt: #fffaf3;
   --radius-xl: 24px;
+  /* Bouton désactivé : gris lisible (7:1) plutôt que la couleur d'origine à demi transparente (rose pâle, texte blanc illisible). */
+  --desactive-fond: var(--bordure);
+  --desactive-texte: #4a4039;
 
   /* Réservé à l'action principale (bouton, barre de panier) — voir DESIGN-SYSTEM.md */
   /* Contraste du texte blanc sur TOUT le dégradé : de 4,56 : 1 (extrémité orange) à 6,19 : 1 (extrémité rouge), AA partout.

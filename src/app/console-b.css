@@ -70,7 +70,10 @@
 }
 .ad-app .btn:disabled {
   box-shadow: none;
-  opacity: 0.55;
+  opacity: 1;
+  background: var(--desactive-fond);
+  background-image: none;
+  color: var(--desactive-texte);
 }
 .ad-app .btn-primary {
   background: var(--rouge-fonce);

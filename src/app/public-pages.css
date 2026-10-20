@@ -585,7 +585,10 @@
 }
 .theme-public .btn:disabled {
   box-shadow: none;
-  opacity: 0.55;
+  opacity: 1;
+  background: var(--desactive-fond);
+  background-image: none;
+  color: var(--desactive-texte);
 }
 .theme-public .btn-primary {
   background: var(--rouge-fonce);
