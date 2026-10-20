@@ -62,6 +62,32 @@ export default async function ComptePage() {
       ) : null}
 
       {profil ? (
+        <Card className="compte-espace">
+          <h2>Mon espace</h2>
+          <ul className="compte-espace-liste">
+            <li>
+              <Link href="/compte/commandes" className="compte-espace-lien">
+                <strong>Mes commandes</strong>
+                <span>Suivre une commande, retrouver un reçu, commander à nouveau</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/compte/favoris" className="compte-espace-lien">
+                <strong>Mes restaurants favoris</strong>
+                <span>Les restaurants que vous aimez, à portée de main</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/compte/securite" className="compte-espace-lien">
+                <strong>Sécurité du compte</strong>
+                <span>Double authentification et questions de sécurité</span>
+              </Link>
+            </li>
+          </ul>
+        </Card>
+      ) : null}
+
+      {profil ? (
         <FormulaireQuartierClient groupes={grouperParCommune(quartiers)} quartierActuelId={profil.quartier_id} />
       ) : null}
 

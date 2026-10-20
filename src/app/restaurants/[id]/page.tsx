@@ -16,6 +16,7 @@ import { MenuFiltre, type GroupeDuMenu } from "@/components/MenuFiltre";
 import { validerIllustration } from "@/lib/illustrations/modele";
 import { MemoireTable } from "@/components/MemoireTable";
 import { BoutonsPartage } from "@/components/BoutonsPartage";
+import { BoutonFavori } from "@/components/BoutonFavori";
 import { cheminRestaurant, lienWhatsApp, textePlat, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { liensCarte } from "@/lib/parametres/assistance-format";
@@ -293,6 +294,7 @@ export default async function FicheRestaurantPage({
         menuConfirme={menuConfirme}
       >
         <BoutonsPartage texte={texteRestaurant(restaurant.nom, urlRestaurant)} url={urlRestaurant} variante="boutons" />
+        <BoutonFavori restaurantId={restaurant.id} />
       </BanniereRestaurant>
 
       {/* Sur grand écran le paiement vit dans la colonne de commande ; sur téléphone il reste ici. */}

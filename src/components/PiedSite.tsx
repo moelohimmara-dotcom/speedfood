@@ -32,13 +32,16 @@ export async function PiedSite() {
           <Link href="/quartiers">Explorer les localités</Link>
           <Link href="/comment-ca-marche">Comment ça marche</Link>
           <Link href="/panier">Mon panier</Link>
+          <Link href="/compte">Mon compte</Link>
+          <Link href="/compte/commandes">Mes commandes</Link>
+          <Link href="/compte/favoris">Mes favoris</Link>
           <Link href="/aide">Aide et questions</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Restaurateurs">
           <p className="site-pied-titre">Restaurateurs</p>
           <Link href="/devenir-partenaire">Devenir partenaire</Link>
           <Link href="/inscription">Inscrire mon restaurant</Link>
-          <Link href="/connexion">Se connecter</Link>
+          <Link href="/connexion">Espace restaurateur</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Informations">
           <p className="site-pied-titre">Informations</p>

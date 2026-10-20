@@ -863,5 +863,25 @@ await serveur("affectation : un livreur du groupe Speedfood reste affectable par
 await serveur("affectation : retirer le livreur reste possible", `update livraisons set livreur_id = null where id = ${U(LIV_H)}`, false);
 verifier("les livreurs du groupe ne sont pas concernés : leur restaurant et leur origine sont inchangés", (await db.query(`select count(*)::int n from livreurs where id in (${U(LIVREUR_1)}, ${U(LIVREUR_2)}) and restaurant_id is null and origine = 'exploitation'`)).rows[0].n === 2);
 
+// ---------------------------------------------------------------- 11. espace client : restaurants favoris
+console.log("\n--- Favoris du client");
+await db.exec(`
+  insert into client_favoris (utilisateur_id, restaurant_id) values
+    (${U(ID.client)}, ${U(ID.resto_a)}), (${U(ID.client)}, ${U(ID.resto_b)}), (${U(ID.user_a)}, ${U(ID.resto_b)});
+`);
+verifier("favoris : le client lit les siens (2), pas ceux des autres", (await nb(ID.client, "client_favoris")) === 2 && VIDE(await nb(ID.client, "client_favoris", `utilisateur_id = ${U(ID.user_a)}`)));
+verifier("favoris : un autre compte ne voit que les siens", (await nb(ID.user_a, "client_favoris")) === 1 && VIDE(await nb(ID.user_b, "client_favoris")));
+verifier("favoris : un anonyme ne lit rien", VIDE(await nb(null, "client_favoris")));
+verifier("favoris : l'exploitation n'a pas de passe-droit en lecture (écran du client seulement)", VIDE(await nb(ID.admin, "client_favoris")));
+await interdit("favoris : le client n'ajoute pas par l'API (écriture par le serveur)", ID.client, `insert into client_favoris (utilisateur_id, restaurant_id) values (${U(ID.client)}, ${U(RESTO_B2)})`);
+await interdit("favoris : le client ne supprime pas par l'API", ID.client, `delete from client_favoris where utilisateur_id = ${U(ID.client)}`);
+await interdit("favoris : on n'ajoute jamais pour un autre compte", ID.client, `insert into client_favoris (utilisateur_id, restaurant_id) values (${U(ID.user_b)}, ${U(ID.resto_a)})`);
+await serveur("favoris : un même restaurant deux fois est refusé", `insert into client_favoris (utilisateur_id, restaurant_id) values (${U(ID.client)}, ${U(ID.resto_a)})`, true);
+await db.exec(`insert into restaurants (nom, categorie_id, quartier_id, publie) select 'Fav ' || g, '${CAT}', '${QUA}', false from generate_series(1, 100) g`);
+await serveur("favoris : jusqu'à 100 restaurants par compte", `insert into client_favoris (utilisateur_id, restaurant_id) select ${U(ID.user_b)}, id from restaurants where nom like 'Fav %' limit 100`, false);
+await serveur("favoris : le 101e est refusé par la base", `insert into client_favoris (utilisateur_id, restaurant_id) values (${U(ID.user_b)}, ${U(ID.resto_a)})`, true);
+await serveur("favoris : supprimer un restaurant supprime les favoris qui le visent", `delete from restaurants where id = ${U(RESTO_B2)}`, false);
+verifier("favoris : après suppression du compte, ses favoris disparaissent (cascade)", await (async () => { await db.exec(`delete from auth.users where id = ${U(ID.user_a)}`).catch(() => {}); return (await db.query(`select count(*)::int n from client_favoris where utilisateur_id = ${U(ID.user_a)}`)).rows[0].n === 0; })());
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);
