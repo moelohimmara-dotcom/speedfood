@@ -173,7 +173,7 @@ try {
   verifier("expirée : la commande retrouve les autres modes de paiement", (await commande(CMD_EXPIREE)).paiement_mode === null);
   const tard = await notifier(p4b, "essai-expiree-1");
   const p4c = await paiementDe(CMD_EXPIREE);
-  verifier("expirée : l'argent qui arrive APRÈS l'expiration est remboursé automatiquement", tard.statut === "applique" && p4c.etat === "rembourse", JSON.stringify([tard, p4c.etat]));
+  verifier("expirée : l'argent qui arrive APRÈS l'expiration est GARDÉ (la commande est toujours acceptée et sans autre paiement), commande de nouveau marquée payée", tard.statut === "applique" && p4c.etat === "confirme" && (await commande(CMD_EXPIREE)).paiement_statut === "recu", JSON.stringify([tard, p4c.etat]));
 
   // ------------------------------------------------------------ 5. contrôles transversaux
   const toutes = [p1.id, p2.id, p3.id, p4.id];
