@@ -65,7 +65,15 @@ export function BarreSelectionGroupee() {
   useEffect(() => {
     const maj = () => setNombre(cochees().length);
     document.addEventListener("selection-comptes", maj);
-    return () => document.removeEventListener("selection-comptes", maj);
+    // Après une suppression, la page est rechargée côté serveur : les cases sont de nouvelles cases (décochées) alors que ce
+    // composant garde son compteur. Sans cette veille, le bouton restait actif et l'envoi échouait avec « Cochez au moins un compte ».
+    const veille = new MutationObserver(maj);
+    veille.observe(document.body, { childList: true, subtree: true });
+    maj();
+    return () => {
+      document.removeEventListener("selection-comptes", maj);
+      veille.disconnect();
+    };
   }, []);
 
   return (
@@ -78,7 +86,10 @@ export function BarreSelectionGroupee() {
         className="btn btn-danger ad-action-discrete"
         disabled={nombre === 0}
         aria-haspopup="dialog"
-        onClick={() => dialogue.current?.showModal()}
+        onClick={() => {
+          setNombre(cochees().length);
+          if (cochees().length > 0) dialogue.current?.showModal();
+        }}
       >
         <IconeAdmin nom="corbeille" taille={18} />
         Supprimer la sélection
@@ -93,6 +104,11 @@ export function BarreSelectionGroupee() {
           onSubmit={(evenement) => {
             evenement.preventDefault();
             const donnees = new FormData(evenement.currentTarget);
+            if (cochees().length === 0) {
+              setNombre(0);
+              dialogue.current?.close();
+              return;
+            }
             demarrer(() => action(donnees));
           }}
         >
