@@ -16,7 +16,12 @@ import { creerPasserelleSimulation } from "./simulation";
  */
 export function creerPasserelle(nom: NomFournisseur): PasserelleDePaiement {
   if (nom === "chapchap") {
-    return creerPasserelleChapChap({ cleApi: process.env.CHAPCHAP_CLE_API ?? null, cleSignature: process.env.CHAPCHAP_CLE_SIGNATURE ?? null });
+    return creerPasserelleChapChap({
+      cleApi: process.env.CHAPCHAP_CLE_API ?? null,
+      cleSignature: process.env.CHAPCHAP_CLE_SIGNATURE ?? null,
+      // Le service « API Push » (versement direct) n'est pas activé sur le compte : versement manuel. À passer à vrai quand il le sera.
+      pushActif: process.env.CHAPCHAP_PUSH_ACTIF === "1",
+    });
   }
   const cle = process.env.PAIEMENT_SIMULATION_CLE;
   if (!cle || cle.length < 16) throw new ErreurPasserelle("non_configuree", "PAIEMENT_SIMULATION_CLE (16 caractères au moins) doit être définie pour la simulation.");
@@ -27,7 +32,16 @@ export function creerPasserelle(nom: NomFournisseur): PasserelleDePaiement {
 export async function obtenirServicePaiement(fournisseur?: NomFournisseur): Promise<ServicePaiement> {
   const depot = creerDepotSupabase();
   const nom = fournisseur ?? (await depot.lireReglages()).fournisseur;
-  return creerServicePaiement({ depot, passerelle: creerPasserelle(nom) });
+  return creerServicePaiement({ depot, passerelle: creerPasserelle(nom), urls: adressesPubliques(nom) });
+}
+
+/**
+ * Adresses publiques communiquées au prestataire : webhook (HTTPS obligatoire chez Chap Chap Pay), retour et annulation du client. L'origine
+ * est `PAIEMENT_URL_PUBLIQUE` (sans barre finale), à défaut l'adresse de production actuelle.
+ */
+export function adressesPubliques(fournisseur: NomFournisseur): { notification: string; retour: string; annulation: string } {
+  const origine = (process.env.PAIEMENT_URL_PUBLIQUE ?? "https://speedfood-app.moelohimmara.workers.dev").replace(/\/+$/, "");
+  return { notification: `${origine}/api/paiement/notification/${fournisseur}`, retour: `${origine}/suivi`, annulation: `${origine}/suivi` };
 }
 
 /**
@@ -38,5 +52,5 @@ export async function obtenirServicePourCommande(orderId: string): Promise<Servi
   const depot = creerDepotSupabase();
   const paiement = await depot.paiementParCommande(orderId);
   if (!paiement) return null;
-  return creerServicePaiement({ depot, passerelle: creerPasserelle(paiement.fournisseur) });
+  return creerServicePaiement({ depot, passerelle: creerPasserelle(paiement.fournisseur), urls: adressesPubliques(paiement.fournisseur) });
 }

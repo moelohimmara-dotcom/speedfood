@@ -52,6 +52,9 @@ export function ActionsPaiement({ paiementId, etat, versementsEnAttente, litigeA
             <Button type="button" variante="secondary" disabled={enCours} onClick={() => lancer(() => trancherLitigeAction(paiementId, litigeAHumain, "rembourser", motif))}>
               Rembourser le client
             </Button>
+            <Button type="button" variante="secondary" disabled={enCours} onClick={() => lancer(() => trancherLitigeAction(paiementId, litigeAHumain, "rembourser_manuel", motif))}>
+              Remboursé à la main
+            </Button>
             <Button type="button" disabled={enCours} onClick={() => lancer(() => trancherLitigeAction(paiementId, litigeAHumain, "liberer", motif))}>
               Libérer l&apos;argent
             </Button>

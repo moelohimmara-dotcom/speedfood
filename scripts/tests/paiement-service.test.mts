@@ -25,17 +25,20 @@ const commande = (id: string, surcharge: Partial<CommandePourPaiement> = {}): Co
   fraisLivraisonGnf: 5_000,
   livraisonMode: "speedfood",
   livreurId: "liv-1",
+  paiementMode: null,
+  paiementStatut: "non_demande",
   ...surcharge,
 });
 
 /** Banc d'essai : un service, un dépôt en mémoire, une passerelle de simulation dont on peut compter les appels et provoquer des pannes. */
-function banc(options: { commandes?: CommandePourPaiement[]; reglages?: ReturnType<typeof reglagesParDefaut> } = {}) {
+function banc(options: { commandes?: CommandePourPaiement[]; reglages?: ReturnType<typeof reglagesParDefaut>; capacites?: { versement: boolean; remboursement: boolean } } = {}) {
   const { depot, etat } = creerDepotMemoire({ commandes: options.commandes ?? [commande("cmd-1")], reglages: options.reglages });
   const base = creerPasserelleSimulation({ cle: "cle-test" });
   const appels = { verser: 0, rembourser: 0, encaisser: 0 };
   const pannes = { verser: false, rembourser: false, encaisser: false };
   const passerelle: PasserelleSimulation = {
     ...base,
+    ...(options.capacites ? { capacites: options.capacites } : {}),
     async encaisser(d) {
       appels.encaisser++;
       if (pannes.encaisser) throw new ErreurPasserelle("reseau", "panne");
@@ -229,6 +232,7 @@ verifier("numéro masqué : seuls les deux derniers chiffres", [masquerNumero("+
   const b = banc();
   const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
   const r = await b.service.surCommandeAnnulee("cmd-1");
+  b.etat.commandes.get("cmd-1")!.statut = "annulee";
   verifier("commande annulée avant paiement : paiement annulé", [r?.ok, (await b.depot.paiementParId(o.ok ? o.paiementId : ""))?.etat], [true, "annule"]);
   const p = (await b.depot.paiementParId(o.ok ? o.paiementId : ""))!;
   const tard = await b.payer(p.referenceExterne!, p.totalGnf);
@@ -251,7 +255,7 @@ verifier("numéro masqué : seuls les deux derniers chiffres", [masquerNumero("+
   const { p } = await ouvrirEtPayer(b);
   b.pannes.rembourser = true;
   const r = await b.service.surCommandeAnnulee("cmd-1");
-  verifier("remboursement impossible (prestataire en panne) : le paiement reste confirmé, rien n'est écrit", [r?.ok, (await b.depot.paiementParId(p.id))?.etat, b.etat.ecritures.some((e) => e.cle === "remboursement")], [false, "confirme", false]);
+  verifier("remboursement impossible (prestataire en panne) : le paiement est GELÉ en litige pour l'exploitation, aucune écriture de remboursement", [r?.ok, (await b.depot.paiementParId(p.id))?.etat, [...b.etat.litiges.values()][0]?.etat, b.etat.ecritures.some((e) => e.cle === "remboursement")], [false, "en_litige", "a_humain", false]);
 }
 {
   const b = banc();
@@ -306,6 +310,74 @@ verifier("numéro masqué : seuls les deux derniers chiffres", [masquerNumero("+
   const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
   const r = await b.service.ouvrirLitige({ paiementId: o.ok ? o.paiementId : "", ouvertPar: "client", situation: "restaurant_refuse_ou_annule" });
   verifier("litige sur un paiement non confirmé : refusé", [r.ok, r.ok ? null : r.raison], [false, "etat_incompatible"]);
+}
+
+// ------------------------------------------------------------------ succès tardif : garder ou rendre selon la commande
+{
+  const b = banc();
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = (await b.depot.paiementParId(o.ok ? o.paiementId : ""))!;
+  await b.service.expirerSiBesoin(p.id);
+  const tard = await b.payer(p.referenceExterne!, p.totalGnf);
+  verifier("succès tardif, commande toujours acceptée et sans autre paiement : le paiement est GARDÉ (pas de remboursement)", [tard.statut, (await b.depot.paiementParId(p.id))?.etat, b.appels.rembourser, b.etat.commandesSync.get("cmd-1")], ["applique", "confirme", 0, "payee"]);
+}
+{
+  const b = banc();
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = (await b.depot.paiementParId(o.ok ? o.paiementId : ""))!;
+  await b.service.expirerSiBesoin(p.id);
+  const c = b.etat.commandes.get("cmd-1")!;
+  c.paiementMode = "especes"; // le client, voyant l'échec, a choisi de payer en espèces
+  await b.payer(p.referenceExterne!, p.totalGnf);
+  verifier("succès tardif alors que le client est passé aux espèces : l'argent est rendu", [(await b.depot.paiementParId(p.id))?.etat, b.appels.rembourser], ["rembourse", 1]);
+}
+{
+  const b = banc();
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = (await b.depot.paiementParId(o.ok ? o.paiementId : ""))!;
+  await b.service.expirerSiBesoin(p.id);
+  b.etat.commandes.get("cmd-1")!.paiementStatut = "recu"; // le restaurateur a déjà marqué la commande payée
+  await b.payer(p.referenceExterne!, p.totalGnf);
+  verifier("succès tardif alors que la commande est déjà payée à la main : l'argent est rendu", [(await b.depot.paiementParId(p.id))?.etat, b.appels.rembourser], ["rembourse", 1]);
+}
+
+// ------------------------------------------------------------------ prestataire sans remboursement ni versement automatiques (Chap Chap Pay)
+{
+  const b = banc({ capacites: { versement: false, remboursement: false } });
+  const { p } = await ouvrirEtPayer(b);
+  const r = await b.service.surCommandeAnnulee("cmd-1");
+  const apres = (await b.depot.paiementParId(p.id))!;
+  const litige = [...b.etat.litiges.values()][0];
+  verifier("remboursement impossible chez le prestataire : AUCUN appel, paiement gelé en litige confié à l'exploitation", [r?.ok, b.appels.rembourser, apres.etat, litige?.etat, litige?.regle], [false, 0, "en_litige", "a_humain", "remboursement_a_faire_a_la_main"]);
+  verifier("paiement gelé : ni libération ni versement", [(await b.service.libererPaiement(p.id)).ok, b.appels.verser], [false, 0]);
+  const ouvert = litige!;
+  const fait = await b.service.trancherLitige({ paiementId: p.id, litigeId: ouvert.id, decision: "rembourser_manuel", motif: "Remboursé depuis le compte Chap Chap, réf. X" });
+  verifier("remboursement fait à la main puis enregistré : paiement « remboursé », litige clos, livre équilibré", [fait.ok, (await b.depot.paiementParId(p.id))?.etat, b.etat.litiges.get(ouvert.id)?.etat, estEquilibre(b.etat.ecritures)], [true, "rembourse", "clos", true]);
+  const s = soldes(b.etat.ecritures);
+  verifier("remboursement manuel : le client est rendu, Speedfood n'a perdu que les frais du prestataire", [s.fonds_a_liberer, s.fonds_operateur], [0, -450]);
+  verifier("remboursement manuel : la commande n'est plus marquée payée", b.etat.commandesSync.get("cmd-1"), "abandonnee");
+}
+{
+  const b = banc({ capacites: { versement: false, remboursement: false } });
+  b.ajouterComptes();
+  const { p } = await ouvrirEtPayer(b);
+  await b.service.surCommandeTerminee("cmd-1");
+  const versements = [...b.etat.versements.values()];
+  verifier("versement non automatique : le paiement est libéré, les versements attendent l'exploitation, le prestataire n'est jamais appelé", [(await b.depot.paiementParId(p.id))?.etat, versements.map((v) => v.etat), b.appels.verser], ["libere", ["a_verser", "a_verser"], 0]);
+  const entretien = await b.service.entretien();
+  verifier("l'entretien périodique ne verse rien non plus (et ne compte aucun échec)", [b.appels.verser, versements.every((v) => v.tentatives === 0)], [0, true]);
+  void entretien;
+  const [vr, vl] = [...b.etat.versements.values()];
+  const r1 = await b.service.confirmerVersementManuel(vr.id, "REF-MANUEL-1");
+  const r2 = await b.service.confirmerVersementManuel(vr.id, "REF-MANUEL-1");
+  verifier("versement déclaré fait à la main : confirmé une seule fois, avec sa référence", [r1.ok, r2.ok, r2.ok ? null : r2.raison, b.etat.versements.get(vr.id)?.etat, b.etat.versements.get(vr.id)?.referenceExterne], [true, false, "deja_traite", "confirme", "REF-MANUEL-1"]);
+  await b.service.confirmerVersementManuel(vl.id, "REF-MANUEL-2");
+  const s = soldes(b.etat.ecritures);
+  verifier("deux versements manuels : plus rien à verser, le livre est équilibré, Speedfood garde 1 000 − 450", [s.a_verser_restaurant, s.a_verser_livreur, s.fonds_operateur, estEquilibre(b.etat.ecritures)], [0, 0, 550, true]);
+  const nonLibere = banc();
+  const o = await nonLibere.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  void o;
+  verifier("versement d'un paiement non libéré : refusé", (await nonLibere.service.confirmerVersementManuel("inconnu", "X")).ok, false);
 }
 
 // ------------------------------------------------------------------ décision humaine sur un litige

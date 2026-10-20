@@ -171,6 +171,10 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
     async versementsDuPaiement(paiementId) {
       return [...etat.versements.values()].filter((v) => v.paiementId === paiementId).map((v) => ({ ...v }));
     },
+    async versementParId(i) {
+      const v = etat.versements.get(i);
+      return v ? { ...v } : null;
+    },
     async versementParReferenceExterne(r) {
       const v = [...etat.versements.values()].find((x) => x.referenceExterne === r);
       return v ? { ...v } : null;

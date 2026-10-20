@@ -3089,6 +3089,15 @@ a.ad-carte-lien:hover {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+.paiement-numero {
+  margin: 0;
+  padding: var(--space-2);
+  border: 1.5px dashed var(--encre);
+  border-radius: var(--radius-sm);
+  background: var(--creme);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
 .paiement-compte-ligne {
   display: grid;
   gap: var(--space-2);

@@ -8,6 +8,7 @@ import { CarteChiffre, EtatVide, PageHeader, Pastille } from "@/components/admin
 import { SousNav } from "../SousNav";
 import { formaterDateCourte } from "../formatage";
 import { ActionsPaiement } from "./ActionsPaiement";
+import { VersementManuel } from "./VersementManuel";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Paiements en ligne (administration)" };
@@ -32,6 +33,7 @@ const LIBELLES_ERREUR: Record<string, string> = {
   reseau: "prestataire injoignable",
   non_configuree: "prestataire non configuré",
   non_implemente: "prestataire non branché",
+  versement_manuel_requis: "versement manuel : à faire depuis le compte du prestataire",
 };
 
 function tonEtat(etat: string): "neutre" | "danger" | "succes" | "attention" {
@@ -148,6 +150,11 @@ export default async function PaiementsAdminPage() {
                       {formaterDateCourte(p.creeLe)}
                     </td>
                     <td data-label="Actions">
+                      {contexte.role === "super_admin"
+                        ? p.versements
+                            .filter((v) => (v.etat === "a_verser" || v.etat === "echoue") && p.etat === "libere")
+                            .map((v) => <VersementManuel key={v.id} versementId={v.id} beneficiaire={v.beneficiaire} montantLibelle={formaterMontantGnf(v.montantGnf)} />)
+                        : null}
                       <ActionsPaiement
                         paiementId={p.id}
                         etat={p.etat}

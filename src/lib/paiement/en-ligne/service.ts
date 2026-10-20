@@ -50,6 +50,9 @@ export interface CommandePourPaiement {
   livraisonMode: "speedfood" | "propre" | "aucune";
   /** Livreur affecté à la commande, s'il y en a un. */
   livreurId: string | null;
+  /** Mode de paiement actuellement enregistré sur la commande (null : aucun) et son statut (« recu » : déjà payée par un autre moyen). */
+  paiementMode: string | null;
+  paiementStatut: string;
 }
 
 export interface LignePaiement {
@@ -161,6 +164,7 @@ export interface DepotPaiement {
   /** Crée le versement, ou renvoie celui qui existe déjà pour ce (paiement, bénéficiaire). */
   creerVersement(v: NouveauVersement): Promise<LigneVersement>;
   versementsDuPaiement(paiementId: string): Promise<LigneVersement[]>;
+  versementParId(id: string): Promise<LigneVersement | null>;
   versementParReferenceExterne(reference: string): Promise<LigneVersement | null>;
   /** Compare-and-set : « je prends ce versement ». Vrai si son état était l'un de `depuis` et qu'il passe à « envoyé » (tentative comptée). */
   reserverVersement(id: string, depuis: readonly LigneVersement["etat"][]): Promise<boolean>;
@@ -174,6 +178,8 @@ export interface DependancesService {
   depot: DepotPaiement;
   passerelle: PasserelleDePaiement;
   maintenant?: () => Date;
+  /** Adresses publiques transmises au prestataire (webhook, retour client, annulation). Absentes : la passerelle n'en reçoit pas. */
+  urls?: { notification: string; retour: string; annulation: string };
   /** Référence interne unique (non devinable). */
   genererReference?: (prefixe: string) => string;
 }
@@ -290,6 +296,9 @@ export function creerServicePaiement(deps: DependancesService) {
         montantGnf: r.totalClientGnf,
         operateur: entree.operateur,
         description: "Commande Speedfood",
+        urlNotification: deps.urls?.notification,
+        urlRetour: deps.urls?.retour,
+        urlAnnulation: deps.urls?.annulation,
       });
       const ok = await depot.changerEtat(paiement.id, "cree", "en_attente", { referenceExterne: demande.referenceExterne, expireLe });
       if (ok) await depot.synchroniserCommande(commande.id, "en_cours");
@@ -323,7 +332,7 @@ export function creerServicePaiement(deps: DependancesService) {
       });
 
     // Rejeu : le même identifiant ne produit jamais un second effet.
-    if (!(await enregistre("recu"))) return { statut: "doublon" };
+    if (!(await enregistre(ev.statutBrut ? `recu:${ev.statutBrut}`.slice(0, 80) : "recu"))) return { statut: "doublon" };
 
     const paiement = (await depot.paiementParReferenceExterne(ev.referenceExterne)) ?? (ev.referenceInterne ? await depot.paiementParReferenceInterne(ev.referenceInterne) : null);
     if (!paiement) {
@@ -355,12 +364,28 @@ export function creerServicePaiement(deps: DependancesService) {
 
     if (t.etat === "echoue" || t.etat === "annule" || t.etat === "expire") await depot.synchroniserCommande(paiement.orderId, "abandonnee");
     if (t.etat === "confirme") {
-      await depot.synchroniserCommande(paiement.orderId, "payee");
       await depot.ajouterEcritures(paiement.id, "encaissement", ecrituresEncaissement(paiement.totalGnf));
       await depot.ajouterEcritures(paiement.id, "frais_mobile", ecrituresFraisMobile(paiement.fraisMobileGnf));
-      // Argent arrivé APRÈS une expiration ou une annulation : la commande n'est plus valable, on rend l'argent.
-      if (paiement.etat === "expire" || paiement.etat === "annule") await rembourserTotal(paiement.id);
-      else await libererSiCommandeTerminee(paiement);
+      if (paiement.etat === "expire" || paiement.etat === "annule") {
+        // Argent arrivé APRÈS une expiration ou une annulation de notre côté. Si la commande tient toujours et n'a été réglée par aucun
+        // autre moyen, le paiement est valable : on le garde. Sinon (commande annulée, client passé aux espèces, déjà payée à la main) l'argent
+        // est rendu, ou, si le prestataire ne sait pas rembourser, confié à un humain.
+        const commande = await depot.lireCommande(paiement.orderId);
+        const valable =
+          commande !== null &&
+          ["acceptee", "prete", "terminee"].includes(commande.statut) &&
+          (commande.paiementMode === null || commande.paiementMode === "speedfood") &&
+          commande.paiementStatut !== "recu";
+        if (valable) {
+          await depot.synchroniserCommande(paiement.orderId, "payee");
+          await libererSiCommandeTerminee(paiement);
+        } else {
+          await rembourserOuEscalader(paiement.id);
+        }
+      } else {
+        await depot.synchroniserCommande(paiement.orderId, "payee");
+        await libererSiCommandeTerminee(paiement);
+      }
     }
     return { statut: "applique", paiementId: paiement.id, etat: (await depot.paiementParId(paiement.id))?.etat ?? t.etat };
   }
@@ -442,6 +467,8 @@ export function creerServicePaiement(deps: DependancesService) {
     const compte = proprietaire ? await depot.lireCompteVersement(v.beneficiaire, proprietaire) : null;
     if (!compte) return void (await depot.majVersement(v.id, { etat: "a_verser", erreurCode: "compte_absent" }));
     if (!compte.verifie) return void (await depot.majVersement(v.id, { etat: "a_verser", erreurCode: "compte_non_verifie" }));
+    // La passerelle ne verse pas (service non activé) : versement MANUEL, visible à l'exploitation, jamais tenté ni compté comme échec.
+    if (passerelle.capacites?.versement === false) return void (await depot.majVersement(v.id, { etat: "a_verser", erreurCode: "versement_manuel_requis" }));
     // Un seul traitement à la fois par versement : celui qui ne réussit pas à le « prendre » s'arrête là.
     if (!(await depot.reserverVersement(v.id, ["a_verser", "echoue"]))) return;
     try {
@@ -485,6 +512,9 @@ export function creerServicePaiement(deps: DependancesService) {
     // Un litige qui a déjà été libéré ne se rembourse pas automatiquement : on ne reprend pas d'argent à des tiers.
     if (p.etat === "en_litige" && (await depot.versementsDuPaiement(p.id)).length > 0) return { ok: false, raison: "etat_incompatible", etat: p.etat };
 
+    // Le prestataire ne sait pas rembourser : aucun appel, le cas est confié à un humain (voir rembourserOuEscalader).
+    if (passerelle.capacites?.remboursement === false) return { ok: false, raison: "passerelle", etat: p.etat };
+
     const evenement: EvenementPaiement = p.etat === "confirme" ? "remboursement_total" : "clore_litige_rembourser";
     const t = transitionPaiement(p.etat, evenement);
     if (!t.ok) return { ok: false, raison: "etat_incompatible", etat: p.etat };
@@ -502,6 +532,52 @@ export function creerServicePaiement(deps: DependancesService) {
     await depot.ajouterEcritures(p.id, "remboursement", ecrituresRemboursementAvantLiberation(p.totalGnf));
     await depot.synchroniserCommande(p.orderId, "abandonnee");
     return { ok: true, deja: false };
+  }
+
+  /**
+   * Tente le remboursement automatique ; s'il est impossible (le prestataire ne rembourse pas, ou est en panne), le paiement est GELÉ en
+   * litige confié à l'exploitation, avec la règle « remboursement à faire à la main ». L'argent ne se libère jamais vers les bénéficiaires
+   * dans l'intervalle.
+   */
+  async function rembourserOuEscalader(paiementId: string): Promise<ResultatRemboursement> {
+    const r = await rembourserTotal(paiementId);
+    if (r.ok || r.raison !== "passerelle") return r;
+    const p = await depot.paiementParId(paiementId);
+    if (p && p.etat === "confirme" && (await depot.changerEtat(p.id, "confirme", "en_litige"))) {
+      const litige = await depot.creerLitige({ paiementId: p.id, ouvertPar: "systeme", situation: "restaurant_refuse_ou_annule", montantDemandeGnf: p.totalGnf, preuveFournie: false });
+      await depot.majLitige(litige.id, { etat: "a_humain", decision: "rembourser_total", regle: "remboursement_a_faire_a_la_main", remboursementGnf: null });
+    }
+    return r;
+  }
+
+  /** L'exploitation a rendu l'argent au client HORS de l'application (compte du prestataire, mobile money) : on l'enregistre. */
+  async function rembourserManuellement(paiementId: string): Promise<ResultatRemboursement> {
+    const p = await depot.paiementParId(paiementId);
+    if (!p) return { ok: false, raison: "introuvable" };
+    if (p.etat === "rembourse") return { ok: true, deja: true };
+    if (p.etat !== "confirme" && p.etat !== "en_litige") return { ok: false, raison: "etat_incompatible", etat: p.etat };
+    if ((await depot.versementsDuPaiement(p.id)).length > 0) return { ok: false, raison: "etat_incompatible", etat: p.etat };
+    const passe = await depot.changerEtat(p.id, p.etat, "rembourse", { rembourseGnf: p.totalGnf });
+    if (!passe) return { ok: false, raison: "concurrent" };
+    await depot.ajouterEcritures(p.id, "remboursement", ecrituresRemboursementAvantLiberation(p.totalGnf));
+    await depot.synchroniserCommande(p.orderId, "abandonnee");
+    return { ok: true, deja: false };
+  }
+
+  /**
+   * L'exploitation a versé le bénéficiaire HORS de l'application (depuis le compte du prestataire) : on enregistre le versement avec sa
+   * référence. Une seule fois : un versement déjà confirmé est refusé.
+   */
+  async function confirmerVersementManuel(versementId: string, reference: string): Promise<{ ok: true } | { ok: false; raison: "introuvable" | "deja_traite" | "paiement_non_libere" }> {
+    const v = await depot.versementParId(versementId);
+    if (!v) return { ok: false, raison: "introuvable" };
+    const p = await depot.paiementParId(v.paiementId);
+    if (!p || p.etat !== "libere") return { ok: false, raison: "paiement_non_libere" };
+    if (!(await depot.reserverVersement(v.id, ["a_verser", "echoue"]))) return { ok: false, raison: "deja_traite" };
+    await depot.majVersement(v.id, { etat: "confirme", referenceExterne: reference.slice(0, 80), erreurCode: null });
+    const reglages = await depot.lireReglages();
+    await depot.ajouterEcritures(v.paiementId, `versement:${v.beneficiaire}`, ecrituresVersement(v.beneficiaire, v.montantGnf, reglages.fraisVersementGnf));
+    return { ok: true };
   }
 
   // -------------------------------------------------------------------------------------------------- 5. litiges
@@ -564,7 +640,7 @@ export function creerServicePaiement(deps: DependancesService) {
    * Décision HUMAINE sur un litige resté à l'exploitation : rendre l'argent au client ou libérer vers les bénéficiaires. Le remboursement
    * est refusé si l'argent est déjà parti (aucun retrait automatique chez un tiers) : l'exploitation le traite alors à la main.
    */
-  async function trancherLitige(entree: { paiementId: string; litigeId: string; decision: "rembourser" | "liberer"; motif: string }): Promise<
+  async function trancherLitige(entree: { paiementId: string; litigeId: string; decision: "rembourser" | "liberer" | "rembourser_manuel"; motif: string }): Promise<
     { ok: true } | { ok: false; raison: "introuvable" | "litige_clos" | "deja_verse" | "echec" }
   > {
     const p = await depot.paiementParId(entree.paiementId);
@@ -574,9 +650,9 @@ export function creerServicePaiement(deps: DependancesService) {
     if (!litige) return { ok: false, raison: "litige_clos" };
     if (p.etat !== "en_litige") return { ok: false, raison: "echec" };
 
-    if (entree.decision === "rembourser") {
+    if (entree.decision === "rembourser" || entree.decision === "rembourser_manuel") {
       if ((await depot.versementsDuPaiement(p.id)).length > 0) return { ok: false, raison: "deja_verse" };
-      const r = await rembourserTotal(p.id);
+      const r = entree.decision === "rembourser_manuel" ? await rembourserManuellement(p.id) : await rembourserTotal(p.id);
       if (!r.ok) return { ok: false, raison: "echec" };
     } else {
       const r = await libererPaiement(p.id, { depuisLitige: true });
@@ -584,9 +660,9 @@ export function creerServicePaiement(deps: DependancesService) {
     }
     await depot.majLitige(litige.id, {
       etat: "clos",
-      decision: entree.decision === "rembourser" ? "rembourser_total" : "aucun_remboursement",
-      regle: "decision_humaine",
-      remboursementGnf: entree.decision === "rembourser" ? p.totalGnf : 0,
+      decision: entree.decision === "liberer" ? "aucun_remboursement" : "rembourser_total",
+      regle: entree.decision === "rembourser_manuel" ? "decision_humaine_remboursement_manuel" : "decision_humaine",
+      remboursementGnf: entree.decision === "liberer" ? 0 : p.totalGnf,
       motifCloture: entree.motif.slice(0, 300),
     });
     return { ok: true };
@@ -612,7 +688,7 @@ export function creerServicePaiement(deps: DependancesService) {
       if (t.ok && (await depot.changerEtat(p.id, p.etat, "annule"))) await depot.synchroniserCommande(p.orderId, "abandonnee");
       return { ok: true, deja: false };
     }
-    if (p.etat === "confirme") return rembourserTotal(p.id);
+    if (p.etat === "confirme") return rembourserOuEscalader(p.id);
     if (argentRecu(p.etat)) return { ok: false, raison: "etat_incompatible", etat: p.etat };
     return { ok: true, deja: true };
   }
@@ -649,6 +725,8 @@ export function creerServicePaiement(deps: DependancesService) {
     libererPaiement,
     reprendreVersements,
     rembourserTotal,
+    rembourserManuellement,
+    confirmerVersementManuel,
     ouvrirLitige,
     trancherLitige,
     surCommandeTerminee,

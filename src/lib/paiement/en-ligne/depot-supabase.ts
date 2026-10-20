@@ -105,7 +105,7 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
     },
 
     async lireCommande(orderId): Promise<CommandePourPaiement | null> {
-      const { data: o } = await db.from("orders").select("id, restaurant_id, statut, mode, sous_total, frais_livraison_estime").eq("id", orderId).maybeSingle();
+      const { data: o } = await db.from("orders").select("id, restaurant_id, statut, mode, sous_total, frais_livraison_estime, paiement_mode, paiement_statut").eq("id", orderId).maybeSingle();
       if (!o) return null;
       const [depart, livraison] = await Promise.all([
         pointDuRestaurant(db, String(o.restaurant_id)),
@@ -122,6 +122,8 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
         fraisLivraisonGnf: Number(o.frais_livraison_estime ?? 0),
         livraisonMode: mode,
         livreurId: typeof livreur === "string" ? livreur : null,
+        paiementMode: typeof o.paiement_mode === "string" ? o.paiement_mode : null,
+        paiementStatut: typeof o.paiement_statut === "string" ? o.paiement_statut : "non_demande",
       };
     },
 
@@ -267,6 +269,11 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
     async versementsDuPaiement(paiementId) {
       const { data } = await db.from("paiement_versements").select(COLONNES_VERSEMENT).eq("paiement_id", paiementId).limit(4);
       return ((data ?? []) as Ligne[]).map(enVersement);
+    },
+
+    async versementParId(id) {
+      const { data } = await db.from("paiement_versements").select(COLONNES_VERSEMENT).eq("id", id).maybeSingle();
+      return data ? enVersement(data as Ligne) : null;
     },
 
     async versementParReferenceExterne(reference) {

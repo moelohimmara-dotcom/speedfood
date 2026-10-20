@@ -202,14 +202,104 @@ verifier("simulation : champs manquants, état inconnu, montant invalide refusé
 verifier("simulation : corps illisible refusé sans exception", (() => { const c = "pas du json"; const r = sim.verifierNotification(c, { "x-simulation-signature": calculerSignature(c, "cle-test") }); return r.ok ? "accepté" : r.raison; })(), "corps_illisible");
 verifier("simulation : versement et remboursement réussissent sans réseau", [(await sim.verser({ referenceInterne: "V-1", montantGnf: 24_000, operateur: "mtn_momo", numero: "620000000" })).etat, (await sim.rembourser({ referenceExterneEncaissement: "SIM-P-1", referenceInterne: "R-1", montantGnf: 5_000 })).etat], ["succes", "succes"]);
 
-// ---------------------------------------------------------------- adaptateur Chap Chap Pay (squelette)
-verifier("chapchap : statuts de notification connus convertis, `error` et inconnus = indéterminés", ["success", "failed", "canceled", "expired", "error", "autre", ""].map(etatDepuisStatutChapChap), ["succes", "echec", "annule", "expire", null, null, null]);
+// ---------------------------------------------------------------- adaptateur Chap Chap Pay (Référence API du 21 octobre 2026)
+verifier(
+  "chapchap : success, canceled et expired changent l'état ; failed, error, new et pending laissent « en attente » ; un statut inconnu est refusé",
+  ["success", "canceled", "expired", "failed", "error", "new", "pending", "autre", ""].map(etatDepuisStatutChapChap),
+  ["succes", "annule", "expire", "en_attente", "en_attente", "en_attente", "en_attente", null, null]
+);
+type Appel = { url: string; methode: string; entetes: Record<string, string>; corps: string | undefined };
+function faussaire(reponses: { statut: number; corps?: unknown }[] | Error) {
+  const appels: Appel[] = [];
+  let i = 0;
+  const f = (async (url: string, init: RequestInit) => {
+    appels.push({ url, methode: String(init.method), entetes: init.headers as Record<string, string>, corps: init.body as string | undefined });
+    if (reponses instanceof Error) throw reponses;
+    const r = reponses[Math.min(i++, reponses.length - 1)];
+    return new Response(r.corps === undefined ? null : JSON.stringify(r.corps), { status: r.statut });
+  }) as unknown as typeof fetch;
+  return { f, appels };
+}
+const CLE_API = "a".repeat(64);
+const CLE_SIG = "secret-de-signature-de-test";
+const demande = {
+  referenceInterne: "SF-PAY-TEST000001",
+  montantGnf: 30_000,
+  operateur: "orange_money" as const,
+  description: "Commande Speedfood",
+  urlNotification: "https://exemple.test/api/paiement/notification/chapchap",
+  urlRetour: "https://exemple.test/suivi",
+  urlAnnulation: "https://exemple.test/suivi",
+};
 const sansCles = creerPasserelleChapChap({ cleApi: null, cleSignature: null });
-const avecCles = creerPasserelleChapChap({ cleApi: "k", cleSignature: "s" });
-const demande = { referenceInterne: "P-2", montantGnf: 10_000, operateur: "orange_money" as const, description: "x" };
-verifier("chapchap : sans clés, refuse proprement", await leve(() => sansCles.encaisser(demande)), "non_configuree");
-verifier("chapchap : avec clés mais sans référence API, refuse explicitement plutôt que de deviner", [await leve(() => avecCles.encaisser(demande)), await leve(() => avecCles.lireStatut("X")), await leve(() => avecCles.verser({ referenceInterne: "V", montantGnf: 1, operateur: "mtn_momo", numero: "6" })), await leve(() => avecCles.rembourser({ referenceExterneEncaissement: "X", referenceInterne: "R", montantGnf: 1 }))], ["non_implemente", "non_implemente", "non_implemente", "non_implemente"]);
-verifier("chapchap : toute notification est refusée tant que le format est inconnu", avecCles.verifierNotification("{}", { "ccp-hmac-signature": "abc" }), { ok: false, raison: "adaptateur_non_implemente" });
+verifier("chapchap : sans clés, refuse proprement", [await leve(() => sansCles.encaisser(demande)), await leve(() => sansCles.lireStatut("2db401d7-cad3-449f-9e3e-ec2cf9e48472"))], ["non_configuree", "non_configuree"]);
+{
+  const { f, appels } = faussaire([{ statut: 201, corps: { operation_id: "2db401d7-cad3-449f-9e3e-ec2cf9e48472", payment_url: "https://chapchappay.com/pay/2db401d7-cad3-449f-9e3e-ec2cf9e48472" } }]);
+  const cc = creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG, fetch: f });
+  const r = await cc.encaisser(demande);
+  const a = appels[0];
+  const corps = JSON.parse(a.corps ?? "{}");
+  verifier("chapchap encaisser : bonne adresse, méthode POST, clé d'API en-tête", [a.url, a.methode, a.entetes["CCP-Api-Key"] === CLE_API], ["https://chapchappay.com/api/ecommerce/create", "POST", true]);
+  verifier("chapchap encaisser : la signature est celle des octets EXACTS envoyés (HMAC-SHA256 hexadécimal)", a.entetes["CCP-HMAC-Signature"], calculerSignature(a.corps ?? "", CLE_SIG, "hex"));
+  verifier("chapchap encaisser : montant entier, référence interne, frais déduits de Speedfood, adresses, opérateur direct", [corps.amount, corps.order_id, corps.fee_handling, corps.callback_url, corps.return_url, corps.options["jump-to-payment-method"]], [30_000, "SF-PAY-TEST000001", "deduct", demande.urlNotification, demande.urlRetour, "orange_money"]);
+  verifier("chapchap encaisser : opération et adresse de paiement renvoyées", r, { referenceExterne: "2db401d7-cad3-449f-9e3e-ec2cf9e48472", urlPaiement: "https://chapchappay.com/pay/2db401d7-cad3-449f-9e3e-ec2cf9e48472" });
+}
+for (const [nom, corps] of [
+  ["adresse chez un tiers", { operation_id: "op-1", payment_url: "https://pirate.example/pay/1" }],
+  ["adresse non sécurisée", { operation_id: "op-1", payment_url: "http://chapchappay.com/pay/1" }],
+  ["hôte qui imite le prestataire", { operation_id: "op-1", payment_url: "https://chapchappay.com.pirate.example/pay/1" }],
+  ["opération absente", { payment_url: "https://chapchappay.com/pay/1" }],
+] as const) {
+  const { f } = faussaire([{ statut: 201, corps }]);
+  verifier(`chapchap encaisser : réponse refusée (${nom})`, await leve(() => creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG, fetch: f }).encaisser(demande)), "reponse_invalide");
+}
+for (const [statut, attendu] of [[401, "refusee"], [400, "refusee"], [500, "reseau"], [503, "reseau"]] as const) {
+  const { f } = faussaire([{ statut, corps: { message: "x" } }]);
+  verifier(`chapchap encaisser : HTTP ${statut} → ${attendu}`, await leve(() => creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG, fetch: f }).encaisser(demande)), attendu);
+}
+verifier("chapchap encaisser : réseau coupé → reseau", await leve(() => creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG, fetch: faussaire(new Error("coupé")).f }).encaisser(demande)), "reseau");
+{
+  const { f, appels } = faussaire([{ statut: 200, corps: { status: { code: "pending" }, amount: 30_000 } }, { statut: 200, corps: { status: { code: "success" }, amount: 30_000 } }, { statut: 200, corps: { status: { code: "wat" } } }]);
+  const cc = creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG, fetch: f });
+  const id = "2db401d7-cad3-449f-9e3e-ec2cf9e48472";
+  verifier("chapchap lireStatut : en attente puis succès, montant lu", [await cc.lireStatut(id), await cc.lireStatut(id)], [{ referenceExterne: id, etat: "en_attente", montantGnf: 30_000 }, { referenceExterne: id, etat: "succes", montantGnf: 30_000 }]);
+  verifier("chapchap lireStatut : GET sans signature, bonne adresse ; statut inconnu refusé ; identifiant douteux refusé sans appel", [appels[0].methode, appels[0].url, appels[0].entetes["CCP-HMAC-Signature"], await leve(() => cc.lireStatut(id)), await leve(() => cc.lireStatut("../../x")), appels.length], ["GET", `https://chapchappay.com/api/ecommerce/${id}`, undefined, "reponse_invalide", "reponse_invalide", 3]);
+}
+{
+  const cc = creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG });
+  const webhook = (code: string, extra: Record<string, unknown> = {}) => {
+    const corps = JSON.stringify({ order_id: "SF-PAY-TEST000001", operation_id: "op-42", amount: 30_000, description: "x", status: { code, description: "d" }, transaction: { payment_method: "orange_money" }, ...extra });
+    return { corps, entetes: { "ccp-hmac-signature": calculerSignature(corps, CLE_SIG, "hex") } };
+  };
+  const ok = webhook("success");
+  const v = cc.verifierNotification(ok.corps, ok.entetes);
+  verifier("chapchap notification : succès signé accepté, identifiant = opération:statut, montant et référence lus", v.ok ? [v.evenement.identifiant, v.evenement.referenceExterne, v.evenement.referenceInterne, v.evenement.etat, v.evenement.montantGnf, v.evenement.statutBrut] : v, ["op-42:success", "op-42", "SF-PAY-TEST000001", "succes", 30_000, "success"]);
+  const echec = webhook("failed");
+  const ve = cc.verifierNotification(echec.corps, echec.entetes);
+  verifier("chapchap notification : « failed » est reçu mais ne ferme PAS le paiement (état « en attente », statut brut conservé)", ve.ok ? [ve.evenement.etat, ve.evenement.statutBrut, ve.evenement.identifiant] : ve, ["en_attente", "failed", "op-42:failed"]);
+  verifier("chapchap notification : signature absente, fausse, ou corps modifié → refusée", [
+    cc.verifierNotification(ok.corps, {}),
+    cc.verifierNotification(ok.corps, { "ccp-hmac-signature": "00".repeat(32) }),
+    cc.verifierNotification(ok.corps.replace("30000", "1"), ok.entetes),
+  ].map((r) => (r.ok ? "accepté" : r.raison)), ["signature_invalide", "signature_invalide", "signature_invalide"]);
+  const inconnu = webhook("bizarre");
+  const sansOperation = (() => { const c = JSON.stringify({ status: { code: "success" } }); return { c, e: { "ccp-hmac-signature": calculerSignature(c, CLE_SIG, "hex") } }; })();
+  const illisible = (() => { const c = "pas du json"; return { c, e: { "ccp-hmac-signature": calculerSignature(c, CLE_SIG, "hex") } }; })();
+  const decimal = webhook("success", { amount: 30000.5 });
+  verifier("chapchap notification : statut inconnu, champs manquants, corps illisible, montant décimal → refusés", [
+    cc.verifierNotification(inconnu.corps, inconnu.entetes),
+    cc.verifierNotification(sansOperation.c, sansOperation.e),
+    cc.verifierNotification(illisible.c, illisible.e),
+    cc.verifierNotification(decimal.corps, decimal.entetes),
+  ].map((r) => (r.ok ? "accepté" : r.raison)), ["statut_inconnu", "champs_manquants", "corps_illisible", "montant_invalide"]);
+  verifier("chapchap notification : sans clé de signature configurée → refusée sans exception", creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: null }).verifierNotification(ok.corps, ok.entetes), { ok: false, raison: "non_configuree" });
+  const decimalAmount = webhook("success", { amount: 30000.0 });
+  verifier("chapchap notification : montant écrit « 30000.0 » (entier côté JSON) accepté", cc.verifierNotification(decimalAmount.corps, decimalAmount.entetes).ok, true);
+}
+{
+  const cc = creerPasserelleChapChap({ cleApi: CLE_API, cleSignature: CLE_SIG });
+  verifier("chapchap : pas de remboursement dans l'API (non implémenté) et pas de versement tant que le service Push n'est pas activé", [await leve(() => cc.rembourser({ referenceExterneEncaissement: "X", referenceInterne: "R", montantGnf: 1 })), await leve(() => cc.verser({ referenceInterne: "V", montantGnf: 1, operateur: "mtn_momo", numero: "6" })), cc.capacites], ["non_implemente", "non_implemente", { versement: false, remboursement: false }]);
+}
 
 // ---------------------------------------------------------------- la base et le code ont la MÊME machine à états
 const racine = process.env.SPEEDFOOD_RACINE;

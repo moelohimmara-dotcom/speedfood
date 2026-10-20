@@ -126,3 +126,18 @@ Pour le rejouer : créer un restaurant non publié (`livraison_mode = 'speedfood
 **Entretien.** Une tâche planifiée du Worker (toutes les 5 minutes, `triggers.crons`) appelle `POST /api/paiement/entretien` (secret `PAIEMENT_ENTRETIEN_SECRET`, sinon la route n'existe pas) : expire les paiements restés en attente après le délai et relance les versements « à verser » ou en échec (5 tentatives au plus ; au-delà ils restent visibles à l'exploitation). Il traite aussi les paiements déjà ouverts quand l'interrupteur est éteint. Reste pour P6 : un versement resté « envoyé » après une panne en plein appel, le rapprochement avec le prestataire.
 
 **Durcissement en base.** Un membre du restaurant ne peut plus changer le statut de paiement d'une commande payée en ligne (déclencheur `fn_valider_paiement_commande`, migration `20261021120000`) : seul le serveur le fait, à la notification signée du prestataire.
+
+## 14. Lot P5 : adaptateur Chap Chap Pay et traitement manuel (21 octobre 2026)
+
+**Adaptateur** (`chapchap.ts`, testé avec un faux réseau, 40 contrôles) : encaissement par lien hébergé (`POST /ecommerce/create`, frais déduits de Speedfood, opérateur choisi, adresses de notification et de retour), lecture de statut, vérification de notification (HMAC-SHA256 hexadécimal sur le corps brut, identifiant d'idempotence `operation_id:statut`). `failed` et `error` ne ferment **pas** le paiement (la Référence dit qu'ils peuvent être suivis d'un succès). L'adresse de paiement renvoyée n'est suivie que si elle est en `https` chez chapchappay.com. Voir `docs/CHAPCHAP-NOTES-API.md`.
+
+**Ce que le prestataire ne fait pas (aujourd'hui) est traité à la main, visiblement :**
+- **Remboursement** : aucun endpoint. Le service ne tente rien ; le paiement est **gelé en litige** (règle « remboursement à faire à la main ») ; l'exploitation rend l'argent depuis le compte du prestataire puis clique **« Remboursé à la main »** (écriture du livre, commande libérée).
+- **Versement** : l'API Push n'est pas activée sur le compte. Les versements restent « à verser » avec le code « versement manuel » ; le **super administrateur** affiche le numéro du bénéficiaire (action journalisée, numéro non conservé), verse depuis le compte du prestataire, puis clique **« Marquer versé »** avec la référence du transfert (une seule fois, écriture du livre). Quand l'API Push sera activée, `CHAPCHAP_PUSH_ACTIF=1` et l'implémentation de `verser` suffiront.
+- **Argent arrivé après notre expiration** (15 min, le lien dure 72 h) : si la commande tient toujours et n'a été payée par aucun autre moyen, le paiement est **gardé** ; sinon (annulée, client passé aux espèces, déjà payée à la main) il est remboursé, ou gelé en litige faute de remboursement automatique.
+
+**Adresses** : `PAIEMENT_URL_PUBLIQUE` (sans barre finale ; défaut : l'adresse de production actuelle) sert à composer le webhook `/api/paiement/notification/chapchap`, le retour et l'annulation (`/suivi`). Le webhook exige HTTPS public.
+
+**Essai réel en mode test** : `node scripts/chapchap-essai-test.mjs` crée UNE opération de 1 000 GNF avec la clé de test (comptes de test uniquement), affiche l'adresse de paiement et suit le statut. Lecture seule du compte : `node scripts/chapchap-lecture.mjs`.
+
+**Reste avant tout argent réel** : vérification d'entreprise (KYC) chez Chap Chap, avis de l'avocat sur le solde détenu et les versements, accord écrit, API Push activée (ou règlement convenu), puis P6 (rapprochement, surveillance, durcissements). L'allumage de Chap Chap reste refusé par l'écran des réglages.

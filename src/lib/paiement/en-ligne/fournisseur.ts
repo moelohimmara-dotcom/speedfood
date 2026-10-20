@@ -13,6 +13,12 @@ export interface DemandeEncaissement {
   montantGnf: number;
   operateur: OperateurMobile;
   description: string;
+  /** Adresse où le prestataire notifie le résultat (webhook), si le prestataire en demande une. */
+  urlNotification?: string;
+  /** Adresse où le client revient après le paiement. */
+  urlRetour?: string;
+  /** Adresse où le client revient s'il annule. */
+  urlAnnulation?: string;
 }
 
 export interface ResultatEncaissement {
@@ -37,6 +43,8 @@ export interface EvenementNotification {
   referenceInterne: string | null;
   etat: EtatOperation;
   montantGnf: number | null;
+  /** Statut tel que le prestataire l'a écrit (journal) : utile quand plusieurs statuts du prestataire donnent le même état interne. */
+  statutBrut?: string;
 }
 
 export type ResultatVerification = { ok: true; evenement: EvenementNotification } | { ok: false; raison: string };
@@ -67,6 +75,11 @@ export interface ResultatRemboursement {
 
 export interface PasserelleDePaiement {
   readonly nom: NomFournisseur;
+  /**
+   * Ce que la passerelle sait faire. Absent : tout (la simulation). Faux : le service ne tente pas l'appel et bascule en traitement
+   * MANUEL (versement fait par l'exploitation et déclaré dans l'application ; remboursement confié à un humain).
+   */
+  readonly capacites?: { versement: boolean; remboursement: boolean };
   encaisser(demande: DemandeEncaissement): Promise<ResultatEncaissement>;
   lireStatut(referenceExterne: string): Promise<StatutOperation>;
   /** Vérifie la signature du corps BRUT puis le lit. Ne lève jamais : renvoie `{ ok: false }` si quoi que ce soit cloche. */

@@ -18,6 +18,8 @@ import { verifierPermission } from "./contexte";
 export interface EtatActionPaiementAdmin {
   erreur?: string;
   succes?: string;
+  /** Texte à afficher une seule fois (numéro révélé) ; jamais conservé côté serveur. */
+  affichage?: string;
 }
 
 const db = () => creerClientAdmin() as unknown as SupabaseClient;
@@ -41,7 +43,7 @@ export async function reprendreVersementsAction(paiementId: string): Promise<Eta
 /** Décision humaine sur un litige : rendre l'argent au client ou libérer vers le restaurant et le livreur. Le motif est obligatoire. */
 export async function trancherLitigeAction(paiementId: string, litigeId: string, decision: string, motif: string): Promise<EtatActionPaiementAdmin> {
   const contexte = await verifierPermission("commande.support");
-  if (!estUuid(paiementId) || !estUuid(litigeId) || (decision !== "rembourser" && decision !== "liberer")) return { erreur: "Demande invalide." };
+  if (!estUuid(paiementId) || !estUuid(litigeId) || (decision !== "rembourser" && decision !== "liberer" && decision !== "rembourser_manuel")) return { erreur: "Demande invalide." };
   const motifNet = motif.trim();
   if (motifNet.length < 5) return { erreur: "Indiquez le motif de la décision (5 caractères au moins)." };
   try {
@@ -61,7 +63,48 @@ export async function trancherLitigeAction(paiementId: string, litigeId: string,
   }
   await journaliserActionSysteme(contexte, { action: "paiement.litige_tranche", cibleType: "litige_paiement", cibleId: litigeId, motif: `${decision} : ${motifNet.slice(0, 200)}` });
   revalidatePath("/system/paiements");
-  return { succes: decision === "rembourser" ? "Client remboursé, litige clos." : "Paiement libéré, litige clos." };
+  return { succes: decision === "liberer" ? "Paiement libéré, litige clos." : "Client remboursé, litige clos." };
+}
+
+/**
+ * Versement fait à la main par le super administrateur depuis le compte du prestataire (versement automatique non disponible) : on
+ * l'enregistre avec sa référence. Réservé à `parametres.editer`, car il engage de l'argent.
+ */
+export async function marquerVersementEffectueAction(versementId: string, reference: string): Promise<EtatActionPaiementAdmin> {
+  const contexte = await verifierPermission("parametres.editer");
+  if (!estUuid(versementId)) return { erreur: "Versement invalide." };
+  const ref = reference.trim();
+  if (ref.length < 4 || ref.length > 80) return { erreur: "Indiquez la référence du transfert (4 à 80 caractères)." };
+  try {
+    const service = await obtenirServicePaiement();
+    const r = await service.confirmerVersementManuel(versementId, ref);
+    if (!r.ok) {
+      const messages = { introuvable: "Versement introuvable.", deja_traite: "Ce versement est déjà traité.", paiement_non_libere: "Le paiement n'est pas libéré." } as const;
+      return { erreur: messages[r.raison] };
+    }
+  } catch {
+    return { erreur: "Le service de paiement n'est pas disponible." };
+  }
+  await journaliserActionSysteme(contexte, { action: "paiement.versement_manuel", cibleType: "paiement_versement", cibleId: versementId, motif: `référence ${ref.slice(0, 40)}` });
+  revalidatePath("/system/paiements");
+  return { succes: "Versement enregistré." };
+}
+
+/** Affiche une fois le numéro du bénéficiaire d'un versement manuel (action journalisée, sans le numéro dans le journal). */
+export async function revelerNumeroVersementAction(versementId: string): Promise<EtatActionPaiementAdmin> {
+  const contexte = await verifierPermission("parametres.editer");
+  if (!estUuid(versementId)) return { erreur: "Versement invalide." };
+  const { data: v } = await db().from("paiement_versements").select("restaurant_id, livreur_id, etat, montant_gnf").eq("id", versementId).maybeSingle();
+  if (!v || (v.etat !== "a_verser" && v.etat !== "echoue")) return { erreur: "Ce versement n'est plus à faire." };
+  const colonne = v.restaurant_id ? "restaurant_id" : "livreur_id";
+  const proprietaire = (v.restaurant_id ?? v.livreur_id) as string | null;
+  if (!proprietaire) return { erreur: "Bénéficiaire introuvable." };
+  const { data: compte } = await db().from("comptes_versement").select("operateur, numero, titulaire_nom, verifie_le").eq(colonne, proprietaire).eq("actif", true).maybeSingle();
+  if (!compte) return { erreur: "Aucun compte de versement enregistré pour ce bénéficiaire." };
+  if (!compte.verifie_le) return { erreur: "Le compte n'est pas encore vérifié : vérifiez-le avant de verser." };
+  await journaliserActionSysteme(contexte, { action: "paiement.numero_revele", cibleType: "paiement_versement", cibleId: versementId });
+  const operateur = compte.operateur === "orange_money" ? "Orange Money" : "MTN MoMo";
+  return { affichage: `${operateur} · ${String(compte.numero)} · ${String(compte.titulaire_nom ?? "titulaire non renseigné")} · ${Number(v.montant_gnf).toLocaleString("fr-FR")} GNF` };
 }
 
 function entier(valeur: FormDataEntryValue | null, min: number, max: number): number | null {
