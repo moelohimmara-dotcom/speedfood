@@ -1591,6 +1591,9 @@
 /* --- Accès : deux pistes séparées (client / restaurateur) --- */
 .acces-piste-titre,
 .acces-piste-sous {
+  width: auto;
+  max-width: 60ch;
+  margin-inline: auto;
   text-align: center;
 }
 .acces-piste-grille {

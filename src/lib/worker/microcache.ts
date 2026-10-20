@@ -32,7 +32,9 @@ const PAGES_EXACTES: Record<string, number> = {
   "/comment-ca-marche": TTL_STATIQUE,
   "/aide": TTL_STATIQUE,
   "/a-propos": TTL_STATIQUE,
+  "/restaurateurs": TTL_STATIQUE,
   "/devenir-partenaire": TTL_STATIQUE,
+  "/conditions": TTL_STATIQUE,
   "/installer": TTL_STATIQUE,
   "/confidentialite": TTL_STATIQUE,
 };

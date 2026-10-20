@@ -25,7 +25,7 @@ export async function AccueilPro() {
           </div>
         </div>
         <div className="accueil-pro-actions">
-          <Link href="/devenir-partenaire" className="pub-btn pub-btn-clair">
+          <Link href="/restaurateurs" className="pub-btn pub-btn-clair">
             {t["accueil.pro.bouton"]}
             <span className="pub-btn-point" aria-hidden="true">
               {FLECHE}

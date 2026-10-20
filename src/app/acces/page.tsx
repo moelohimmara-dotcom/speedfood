@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/db/server";
+import { SymboleAudience } from "@/components/site/SymboleAudience";
 
 /**
  * Porte d'entrée unique : deux pistes séparées dès le départ. « Je suis client » (commander, favoris, suivi)
@@ -36,6 +37,7 @@ export default async function AccesPage() {
 
       <div className="acces-piste-grille">
         <section className="acces-piste-carte" aria-labelledby="acces-piste-client">
+          <SymboleAudience public="client" />
           <h2 id="acces-piste-client">Je suis client</h2>
           <p>Je veux commander, retrouver mes commandes, mes adresses et mes restaurants favoris.</p>
           <div className="acces-piste-actions">
@@ -48,6 +50,7 @@ export default async function AccesPage() {
         </section>
 
         <section className="acces-piste-carte acces-piste-carte-resto" aria-labelledby="acces-piste-resto">
+          <SymboleAudience public="restaurateur" />
           <h2 id="acces-piste-resto">Je suis restaurateur</h2>
           <p>Je tiens un restaurant et je veux recevoir des commandes, gérer mon menu et mes plats du jour.</p>
           <div className="acces-piste-actions">
@@ -55,12 +58,14 @@ export default async function AccesPage() {
             <Link href="/connexion?role=restaurateur" className="btn btn-secondary btn-block">Me connecter à ma console</Link>
           </div>
           <p className="acces-piste-note">
-            <Link href="/devenir-partenaire" className="lien-texte">Comment ça marche pour un restaurateur ?</Link>
+            <Link href="/restaurateurs" className="lien-texte">Comment ça marche pour un restaurateur ?</Link>
           </p>
         </section>
       </div>
 
       <p className="acces-piste-equipe">
+        Investisseur, mécène ou entreprise ? <Link href="/devenir-partenaire" className="lien-texte">Devenir partenaire</Link>
+        <br />
         Équipe Speedfood ? <Link href="/connexion?suite=/system" className="lien-texte">Administration</Link>
       </p>
     </main>

@@ -15,7 +15,7 @@ export const RUBRIQUES: readonly Rubrique[] = [
   { cle: "restaurants", href: "/restaurants", libelle: "Restaurants", prefixe: "/restaurants" },
   { cle: "quartiers", href: "/quartiers", libelle: "Explorer les localités", prefixe: "/quartiers" },
   { cle: "comment", href: "/comment-ca-marche", libelle: "Comment ça marche", prefixe: "/comment-ca-marche" },
-  { cle: "restaurateurs", href: "/devenir-partenaire", libelle: "Restaurateurs", prefixe: "/devenir-partenaire" },
+  { cle: "restaurateurs", href: "/restaurateurs", libelle: "Restaurateurs", prefixe: "/restaurateurs" },
   { cle: "aide", href: "/aide", libelle: "Aide", prefixe: "/aide" },
 ];
 

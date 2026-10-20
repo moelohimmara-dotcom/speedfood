@@ -40,14 +40,16 @@ export async function PiedSite() {
         </nav>
         <nav className="site-pied-colonne" aria-label="Restaurateurs">
           <p className="site-pied-titre">Restaurateurs</p>
-          <Link href="/devenir-partenaire">Devenir partenaire</Link>
+          <Link href="/restaurateurs">Votre restaurant sur Speedfood</Link>
           <Link href="/inscription">Inscrire mon restaurant</Link>
           <Link href="/connexion?role=restaurateur">Espace restaurateur</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Informations">
           <p className="site-pied-titre">Informations</p>
           <Link href="/confidentialite">Confidentialité</Link>
-          <Link href="/a-propos">À propos</Link>
+          <Link href="/a-propos">À propos : mission et vision</Link>
+          <Link href="/devenir-partenaire">Devenir partenaire</Link>
+          <Link href="/conditions">Conditions d&apos;utilisation</Link>
           <Link href="/installer">Installer l&apos;application</Link>
           {pagesPubliees.map((p) => (
             <Link key={p.slug} href={`/p/${p.slug}`}>

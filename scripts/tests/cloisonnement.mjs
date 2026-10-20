@@ -927,5 +927,18 @@ await serveur("notifications : la même étape d'une commande n'est notifiée qu
 await serveur("notifications : une autre étape de la même commande est acceptée", `insert into client_notifications (utilisateur_id, order_id, type) values (${U(ID.client)}, '${CMD_A}', 'prete')`, false);
 await serveur("notifications : un type inconnu est refusé", `insert into client_notifications (utilisateur_id, order_id, type) values (${U(ID.client)}, '${CMD_A}', 'piratage')`, true);
 
+// ---------------------------------------------------------------- demandes de partenariat (page « Devenir partenaire »)
+console.log("--- Demandes de partenariat");
+await serveur("partenariat : le serveur enregistre une demande valide", `insert into partenariat_demandes (forme, organisation, nom_contact, contact_type, contact, message) values ('investir', 'Fonds Kaloum', 'Aïssatou Diallo', 'email', 'aissatou@exemple.org', 'Nous souhaitons financer du matériel pour dix restaurants.')`, false);
+verifier("partenariat : aucun compte ne lit les demandes (anonyme, client, restaurateur, exploitation)", VIDE(await nb(null, "partenariat_demandes")) && VIDE(await nb(ID.client, "partenariat_demandes")) && VIDE(await nb(ID.user_a, "partenariat_demandes")) && VIDE(await nb(ID.admin, "partenariat_demandes")));
+await interdit("partenariat : pas d'écriture par l'API (anonyme)", null, `insert into partenariat_demandes (forme, organisation, nom_contact, contact_type, contact, message) values ('investir', 'Robot', 'Robot', 'email', 'robot@exemple.org', 'Message automatique de plus de vingt caractères.')`);
+await interdit("partenariat : pas d'écriture par l'API (compte connecté)", ID.client, `insert into partenariat_demandes (forme, organisation, nom_contact, contact_type, contact, message) values ('investir', 'Robot', 'Robot', 'email', 'robot@exemple.org', 'Message automatique de plus de vingt caractères.')`);
+await interdit("partenariat : pas de changement de statut par l'API", ID.admin, `update partenariat_demandes set statut = 'classee'`);
+await interdit("partenariat : pas de suppression par l'API", ID.admin, `delete from partenariat_demandes`);
+await serveur("partenariat : une forme inconnue est refusée par la base", `insert into partenariat_demandes (forme, organisation, nom_contact, contact_type, contact, message) values ('restaurant', 'Chez Awa', 'Awa', 'email', 'awa@exemple.org', 'Je tiens un restaurant et je veux commander.')`, true);
+await serveur("partenariat : un message trop court est refusé par la base", `insert into partenariat_demandes (forme, organisation, nom_contact, contact_type, contact, message) values ('soutenir', 'Association', 'Moussa', 'email', 'moussa@exemple.org', 'Bonjour')`, true);
+await serveur("partenariat : un statut inconnu est refusé par la base", `update partenariat_demandes set statut = 'archivee'`, true);
+await serveur("partenariat : le serveur peut changer le statut", `update partenariat_demandes set statut = 'en_cours'`, false);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

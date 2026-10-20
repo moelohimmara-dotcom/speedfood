@@ -15,20 +15,21 @@ export default async function InscriptionPage() {
   return (
     <PageCompte
       titre="Inscrire mon restaurant"
+      sousTitre="Créez votre compte restaurateur, puis décrivez votre établissement."
+      libellePanneau="Les trois étapes de l'inscription"
       panneau={{
-        titre: "Une page à vous, validée par l'équipe.",
+        titre: "Trois étapes, vous êtes à la première.",
         points: [
-          "Votre menu, vos horaires et vos photos sur une page Speedfood.",
-          "Un lien WhatsApp et un QR code à afficher dans votre établissement.",
-          "Les clients voient depuis quand vous avez confirmé chaque plat.",
-          "Rien n'est publié avant la validation par une personne de l'équipe Speedfood.",
+          "1. Votre compte : une adresse e-mail et un mot de passe (c'est ici).",
+          "2. Votre restaurant : nom, type de cuisine et quartier, puis menu, horaires et photos.",
+          "3. La validation : une personne de l'équipe relit votre page avant publication.",
         ],
       }}
       pied={
         <p>
           Déjà un compte ? <Link href="/connexion?role=restaurateur" className="lien-texte">Connexion restaurateur</Link>
           {" · "}
-          <Link href="/devenir-partenaire" className="lien-texte">Voir les étapes</Link>
+          <Link href="/restaurateurs" className="lien-texte">Voir les étapes</Link>
           <br />
           Vous êtes client ? <Link href="/entrer" className="lien-texte">Créez votre compte client</Link>
         </p>

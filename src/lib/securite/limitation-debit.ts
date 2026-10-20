@@ -81,6 +81,9 @@ export const LIMITE_ZONE_ALERTE_PAR_IP: RegleLimite = { nom: "zone-alerte-ip", m
 // ressources rares (téléversements, tentatives de connexion).
 export const LIMITE_CHEF_IA_PAR_RESTAURANT: RegleLimite = { nom: "chef-ia-resto", max: 20, fenetreSecondes: 3600 };
 
+// Demandes de partenariat : une personne réelle en envoie une ou deux ; le plafond protège la boîte de l'équipe et la base.
+export const LIMITE_PARTENARIAT_PAR_IP: RegleLimite = { nom: "partenariat-ip", max: 3, fenetreSecondes: 3600 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -186,6 +189,10 @@ export async function limiterZonePosition(): Promise<void> {
 
 export async function limiterEstimationLivraison(): Promise<void> {
   await appliquerLimite(LIMITE_ESTIMATION_LIVRAISON_PAR_IP, await adresseClient());
+}
+
+export async function limiterPartenariat(): Promise<void> {
+  await appliquerLimite(LIMITE_PARTENARIAT_PAR_IP, await adresseClient());
 }
 
 export async function limiterZoneAlerte(): Promise<void> {

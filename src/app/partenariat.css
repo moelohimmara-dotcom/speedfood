@@ -1,0 +1,417 @@
+/*
+ * Devenir partenaire, À propos (mission, vision, philosophie), Conditions d'utilisation, pictogrammes des trois publics.
+ * Couleurs : uniquement les jetons du design system (encre, crème, surface, mangue, rouge foncé, orange, succès). Chaque public a un accent :
+ * client = rouge foncé, restaurateur = orange, partenaire = succès ; chaque forme de partenariat a le sien (investir = mangue, soutenir = rouge,
+ * moyens = succès, contribuer = orange). Les animations n'utilisent que transform et opacity, s'arrêtent avec « mouvement réduit », l'interrupteur
+ * du pied de page et l'économie de données (voir boucles.css), et le contenu reste complet sans elles.
+ */
+
+/* ===== Pictogrammes ===== */
+.partenariat-sym,
+.audience-sym {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: var(--pub-trait, 2.5px) solid var(--encre);
+  border-radius: var(--radius-md);
+  background: var(--creme);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.partenariat-sym-investir { background: var(--mangue); }
+.partenariat-sym-soutenir { background: var(--creme); }
+.partenariat-sym-moyens { background: var(--surface-alt); }
+.partenariat-sym-contribuer { background: var(--creme); }
+.audience-sym-client { background: var(--creme); }
+.audience-sym-restaurateur { background: var(--mangue); }
+.audience-sym-partenaire { background: var(--surface-alt); }
+.partenariat-sym svg,
+.audience-sym svg {
+  display: block;
+  overflow: visible;
+}
+.partenariat-sym-anime,
+.audience-sym-anime {
+  transform-box: fill-box;
+  transform-origin: 50% 70%;
+}
+
+/* ===== Illustration : la pousse oscille doucement ===== */
+.parte-pousse {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: parte-pousse 5s ease-in-out infinite;
+}
+@keyframes parte-pousse {
+  0%, 100% { transform: rotate(-2.5deg) scale(1); }
+  50% { transform: rotate(2.5deg) scale(1.03); }
+}
+
+/* ===== Page Devenir partenaire ===== */
+.partenariat-aiguillage {
+  margin: var(--space-4) 0 0;
+  color: var(--secondaire);
+  font-size: 0.92rem;
+}
+.partenariat-cartes {
+  display: grid;
+  gap: var(--space-5);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+}
+.partenariat-carte {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  border-top-width: 8px;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.partenariat-carte h3,
+.partenariat-carte p {
+  margin: 0;
+}
+.partenariat-carte-investir { border-top-color: var(--mangue); }
+.partenariat-carte-soutenir { border-top-color: var(--rouge-fonce); }
+.partenariat-carte-moyens { border-top-color: var(--succes); }
+.partenariat-carte-contribuer { border-top-color: var(--orange); }
+.partenariat-cherche {
+  color: var(--secondaire);
+  font-size: 0.9rem;
+}
+.partenariat-carte .lien-texte {
+  margin-top: auto;
+  font-weight: 800;
+}
+.partenariat-engagements li h3 {
+  margin: 0 0 var(--space-2);
+}
+.partenariat-intro-form p {
+  margin: 0 0 var(--space-4);
+}
+.partenariat-page [id] {
+  scroll-margin-top: 96px;
+}
+
+/* ===== Formulaire ===== */
+.partenariat-formulaire {
+  display: grid;
+  gap: var(--space-4);
+}
+.partenariat-formes {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.partenariat-formes legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 800;
+}
+.partenariat-forme {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 2px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), transform 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.partenariat-forme:hover {
+  border-color: var(--encre);
+}
+.partenariat-forme.est-choisie {
+  border-color: var(--encre);
+  background: var(--creme);
+  box-shadow: 3px 3px 0 var(--encre);
+}
+.partenariat-forme input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.partenariat-forme:has(input:focus-visible) {
+  box-shadow: var(--shadow-focus);
+}
+.partenariat-forme .partenariat-sym {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  box-shadow: none;
+}
+.partenariat-forme .partenariat-sym svg {
+  width: 34px;
+  height: 34px;
+}
+.partenariat-forme-texte {
+  display: grid;
+  min-width: 0;
+}
+.partenariat-forme-texte small {
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.partenariat-formulaire textarea {
+  resize: vertical;
+}
+.partenariat-piege {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.partenariat-consentement {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+.partenariat-consentement input {
+  flex: none;
+  margin-top: 3px;
+}
+
+/* ===== Remerciement : la coche se trace ===== */
+.partenariat-merci {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.partenariat-merci p {
+  margin: 0;
+}
+.partenariat-merci-titre {
+  margin: 0;
+}
+.partenariat-merci-icone {
+  animation: partenariat-pop 0.5s var(--ease) both;
+}
+.partenariat-merci-trait {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: partenariat-trace 0.6s 0.25s var(--ease) forwards;
+}
+@keyframes partenariat-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes partenariat-trace {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ===== À propos : mission, vision, philosophie, publics ===== */
+.apropos-marque {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.apropos-bloc {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-6);
+  border: var(--pub-trait, 2.5px) solid var(--encre);
+  border-radius: var(--radius-lg);
+  box-shadow: 4px 4px 0 var(--encre);
+}
+.apropos-bloc p {
+  margin: 0;
+}
+.apropos-bloc .pub-kicker {
+  margin: 0;
+}
+.apropos-bloc-mission { background: var(--mangue); }
+.apropos-bloc-vision { background: var(--surface); }
+.apropos-valeurs,
+.apropos-publics {
+  display: grid;
+  gap: var(--space-5);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.apropos-valeurs li {
+  position: relative;
+  min-width: 0;
+}
+/* Cinq convictions : trois sur la première rangée, deux plus larges sur la seconde, sans case orpheline. */
+@media (min-width: 960px) {
+  .apropos-valeurs {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .apropos-valeurs li {
+    grid-column: span 2;
+  }
+  .apropos-valeurs li:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+}
+.apropos-valeurs h3,
+.apropos-valeurs p,
+.apropos-public h3,
+.apropos-public p {
+  margin: 0;
+}
+.apropos-valeurs li > * + * {
+  margin-top: var(--space-2);
+}
+.apropos-valeur-num {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--mangue);
+  font-family: var(--font-titre);
+  font-weight: 800;
+}
+.apropos-public {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  border-top-width: 8px;
+}
+.apropos-public-client { border-top-color: var(--rouge-fonce); }
+.apropos-public-restaurateur { border-top-color: var(--orange); }
+.apropos-public-partenaire { border-top-color: var(--succes); }
+.apropos-public .lien-texte {
+  margin-top: auto;
+  font-weight: 800;
+}
+
+/* ===== Conditions d'utilisation ===== */
+.conditions-disposition {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+.conditions-sommaire {
+  padding: var(--space-4) var(--space-5);
+  border: 2px solid var(--bordure);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.conditions-sommaire-titre {
+  margin: 0 0 var(--space-2);
+  font-weight: 800;
+}
+.conditions-sommaire ol {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+.conditions-sommaire a {
+  color: var(--encre);
+}
+.conditions-corps {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.conditions-corps section > * + * {
+  margin-top: var(--space-3);
+}
+.conditions-corps section h2,
+.conditions-corps section p {
+  margin-bottom: 0;
+}
+.conditions-clients { border-left: 8px solid var(--rouge-fonce); }
+.conditions-restaurateurs { border-left: 8px solid var(--orange); }
+.conditions-partenaires { border-left: 8px solid var(--succes); }
+.conditions-page [id] {
+  scroll-margin-top: 96px;
+}
+@media (min-width: 960px) {
+  .conditions-disposition {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+  .conditions-sommaire {
+    position: sticky;
+    top: 96px;
+  }
+}
+
+/* ===== Administration : demandes de partenariat ===== */
+.partenariat-admin-message {
+  margin: var(--space-2) 0 0;
+  max-width: 56ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.partenariat-admin-statut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ===== Animations au survol et à l'apparition (transform et opacity seulement) ===== */
+@media (hover: hover) {
+  .partenariat-carte:hover,
+  .apropos-public:hover {
+    transform: translateY(-4px);
+  }
+  .partenariat-carte:hover .partenariat-sym-anime,
+  .apropos-public:hover .audience-sym-anime,
+  .partenariat-forme:hover .partenariat-sym-anime {
+    animation: partenariat-sym 0.9s var(--ease);
+  }
+}
+@keyframes partenariat-sym {
+  0% { transform: scale(1) rotate(0); }
+  35% { transform: scale(1.12) rotate(-6deg); }
+  70% { transform: scale(0.96) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.partenariat-forme.est-choisie .partenariat-sym-anime {
+  animation: partenariat-sym 0.7s var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parte-pousse,
+  .partenariat-carte,
+  .partenariat-forme,
+  .partenariat-forme .partenariat-sym-anime,
+  .partenariat-carte:hover .partenariat-sym-anime,
+  .apropos-public:hover .audience-sym-anime,
+  .partenariat-merci-icone {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+  .partenariat-merci-trait {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+html[data-calme] :is(.parte-pousse, .partenariat-merci-icone, .partenariat-sym-anime, .audience-sym-anime),
+html[data-eco] :is(.parte-pousse, .partenariat-merci-icone, .partenariat-sym-anime, .audience-sym-anime) {
+  animation: none !important;
+}
+html[data-calme] .partenariat-merci-trait,
+html[data-eco] .partenariat-merci-trait {
+  animation: none !important;
+  stroke-dashoffset: 0;
+}

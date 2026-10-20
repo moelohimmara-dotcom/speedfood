@@ -178,6 +178,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
       { href: "/system/catalogue/geographie", libelle: "Géographie", permission: "taxonomie.editer" },
       { href: "/system/catalogue/couverture", libelle: "Couverture", permission: "taxonomie.editer" },
       { href: "/system/catalogue/liste-attente", libelle: "Liste d'attente", permission: "attente.gerer" },
+      { href: "/system/catalogue/partenariats", libelle: "Partenariats", permission: "attente.gerer" },
       {
         href: "/system/catalogue/mises-en-avant",
         libelle: "Mises en avant",

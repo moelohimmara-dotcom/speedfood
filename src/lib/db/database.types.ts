@@ -124,6 +124,48 @@ export type Database = {
           },
         ]
       }
+      partenariat_demandes: {
+        Row: {
+          consentement_le: string
+          contact: string
+          contact_type: string
+          cree_le: string
+          forme: string
+          id: string
+          message: string
+          nom_contact: string
+          organisation: string
+          statut: string
+          traitee_le: string | null
+        }
+        Insert: {
+          consentement_le?: string
+          contact: string
+          contact_type: string
+          cree_le?: string
+          forme: string
+          id?: string
+          message: string
+          nom_contact: string
+          organisation: string
+          statut?: string
+          traitee_le?: string | null
+        }
+        Update: {
+          consentement_le?: string
+          contact?: string
+          contact_type?: string
+          cree_le?: string
+          forme?: string
+          id?: string
+          message?: string
+          nom_contact?: string
+          organisation?: string
+          statut?: string
+          traitee_le?: string | null
+        }
+        Relationships: []
+      }
       zone_alertes: {
         Row: {
           prefecture_id: string | null
