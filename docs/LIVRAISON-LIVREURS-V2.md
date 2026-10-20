@@ -20,6 +20,7 @@ Faire de la livraison une fonction complète de Speedfood, à la manière des pl
 | Repli sur le groupe Speedfood | **Désactivé par défaut** pour chaque restaurant | |
 | Pièce d'identité des indépendants | **Exigée** (et contact d'urgence), car ils manipulent de l'argent | Valeur de simulation, réglable (voir §6) |
 | Option « Livreur Speedfood » | **Masquée tant qu'il n'y a pas de livreur actif dans la zone** | Supprime le risque de commandes bloquées (§8) |
+| Filtre « livreurs sérieux » et revenu côté livreur | **Frais de dossier unique** (confirmé à la main) **+ niveaux de confiance** gagnés par la performance. **Pas de système de points payés pour accéder aux courses.** | Décision du 20 octobre 2026 ; montant de simulation (§6) ; politique de remboursement à fixer (§12) |
 
 ## 3. Ce qui existe déjà (ne pas refaire)
 
@@ -38,6 +39,8 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 - `verifie_speedfood boolean default false` : vrai seulement après approbation par l'exploitation ; les livreurs d'un restaurant restent « non vérifiés par Speedfood » tant qu'ils ne sont pas approuvés.
 - `quartier_base_id uuid null`, `rayon_km numeric null` (zone de travail déclarée).
 - `mobile_money_numero text null` (numéro pour recevoir des paiements ; jamais affiché au client).
+- `niveau smallint not null default 1` (1 ou 2, indépendants seulement) ; `courses_reussies integer not null default 0` ; `niveau_modifie_le timestamptz null`.
+- `dossier_reference text null` (référence de paiement du frais de dossier, ex. `SF-LIV-4F7K`, unique) ; `dossier_paye_le timestamptz null` ; `dossier_paye_par uuid null references auth.users(id)` (l'agent qui a confirmé).
 - Unicité du téléphone : parmi les fiches non archivées **du groupe Speedfood** ; **par restaurant** pour les livreurs d'un restaurant (une même personne peut livrer pour deux restaurants).
 
 **`restaurants`** (colonne ajoutée) : `livraison_repli_speedfood boolean not null default false` (offres du restaurant qui passent au groupe Speedfood si aucun de ses livreurs n'accepte).
@@ -48,7 +51,7 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 
 **`livraison_especes`** (nouvelle) : `livraison_id`, `livreur_id`, `restaurant_id`, `montant_gnf` (repas encaissé), `statut` (`a_reverser`, `remis`, `confirme`, `litige`), `remis_le`, `confirme_le`, `echeance_le`. Une ligne par livraison payée en espèces.
 
-**`parametres_livraison`** (colonnes ajoutées) : `livreur_inscription_ouverte boolean default false` ; `independant_piece_requise boolean default true` ; `independant_urgence_requise boolean default true` ; `plafond_panier_especes_gnf integer default 60000` ; `plafond_especes_livreur_gnf integer default 150000` ; `delai_reversement_heures integer default 24` ; `valeurs_validees_le timestamptz null` (vide tant que Malika n'a pas validé les valeurs : l'écran des réglages affiche alors « valeurs de simulation »). **Les valeurs par défaut sont des valeurs de simulation (§6).**
+**`parametres_livraison`** (colonnes ajoutées) : `livreur_inscription_ouverte boolean default false` ; `independant_piece_requise boolean default true` ; `independant_urgence_requise boolean default true` ; `plafond_panier_especes_gnf integer default 60000` ; `plafond_especes_livreur_gnf integer default 150000` ; `delai_reversement_heures integer default 24` ; `frais_dossier_gnf integer default 10000` ; `frais_dossier_actif boolean default false` ; `paiement_dossier_instructions text null` (texte affiché au candidat : numéro mobile money Speedfood et consigne, **saisi par Malika**, jamais dans le code) ; `courses_pour_niveau2 integer default 10` ; `valeurs_validees_le timestamptz null` (vide tant que Malika n'a pas validé les valeurs : l'écran des réglages affiche alors « valeurs de simulation »). **Les valeurs par défaut sont des valeurs de simulation (§6).**
 
 ## 5. Règles métier
 
@@ -57,6 +60,12 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 2. Protection contre les abus : anti-robot Turnstile et limitation de débit par IP, comme les formulaires existants. Aucun SMS de vérification au pilote (coût) : la vérification est l'**appel de l'exploitation** avant approbation.
 3. La candidature crée une fiche `candidat` (`origine = auto_inscription`, `restaurant_id = null`). L'exploitation approuve ou refuse avec motif (refus : archivage). Seul un livreur `actif` peut se mettre en ligne.
 4. Le candidat doit avoir un compte Speedfood (connexion ou création) : un compte, une fiche (règle existante).
+
+### Frais de dossier (livreurs indépendants)
+4a. Réglage `frais_dossier_actif` : éteint par défaut. Allumé, l'inscription affiche le montant (`frais_dossier_gnf`), les **instructions de paiement saisies par Malika** et une **référence unique** (`dossier_reference`) à indiquer dans le transfert mobile money. **Aucun paiement n'est collecté par l'application** : pas d'intégration, pas d'encaissement par Speedfood au sens technique.
+4b. L'exploitation, en vérifiant la réception, coche **« dossier payé »** (date et agent enregistrés). Un dossier non payé reste `candidat` et ne peut pas être approuvé tant que le frais est actif.
+4c. Le frais couvre la **vérification** (appel, contrôle de la pièce). Il est **unique** : jamais prélevé à la course. Le livreur ne paie rien pour accéder à une offre.
+4d. Politique de remboursement en cas de refus ou d'abandon : **à décider par Malika** (§12). Tant qu'elle n'est pas fixée, l'interface n'annonce aucune promesse de remboursement.
 
 ### Livreurs du restaurant
 5. **Étape 1 : registre.** Le restaurateur (permission restaurant) ajoute, modifie, archive des livreurs : nom, téléphone, véhicule. Ces fiches sont créées `actif` avec `origine = restaurant`, `verifie_speedfood = false`. Sans compte : le restaurateur fait avancer la livraison (« Parti », « Livrée » avec le code).
@@ -70,6 +79,13 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 11. **Repas payé en espèces** : proposé seulement si le panier est inférieur ou égal à `plafond_panier_especes_gnf` **et** si le livreur reste sous `plafond_especes_livreur_gnf` avec l'encaissement. Au-delà, la course exige un paiement d'avance ou n'est pas proposée à ce livreur.
 12. **Reversement :** après une livraison en espèces, une ligne `a_reverser` est créée ; le livreur déclare « remis » ; le restaurant confirme. Échéance `delai_reversement_heures`. Un livreur dont une échéance est dépassée **ne peut plus se mettre en ligne** jusqu'à régularisation. Un désaccord passe en `litige` et remonte à l'exploitation.
 13. **Gains :** chaque course livrée crée une ligne `livraison_gains` (100 % au livreur au pilote). Speedfood **ne paie pas** les livreurs au pilote : les frais sont encaissés en espèces par le livreur ; l'écran de gains est informatif.
+
+### Niveaux de confiance (livreurs indépendants)
+13a. **Niveau 1 (nouveau livreur).** N'est proposé que pour des livraisons dont le **repas est payé d'avance** : son plafond d'espèces en poche est **zéro**. Il peut encaisser ses frais de livraison (règle 9), qui sont les siens.
+13b. **Niveau 2.** Atteint après `courses_pour_niveau2` livraisons **réussies** (statut `livree`, code de remise saisi) sans litige ni retard de reversement ouvert. Il lève la restriction : les livraisons en espèces lui sont proposées, dans la limite de `plafond_especes_livreur_gnf`.
+13c. **Rétrogradation.** Un litige d'espèces non résolu en sa faveur, ou un reversement en retard (règle 12), le remet au niveau 1 ; l'exploitation peut aussi le rétrograder ou le suspendre avec motif (journalisé).
+13d. Les niveaux ne s'appliquent qu'aux livreurs du groupe Speedfood : le risque d'espèces d'un livreur de restaurant est celui du restaurant, qui le connaît.
+13e. Le niveau est calculé et modifié **par le serveur** ; le livreur le voit (« niveau 1 : encore N courses avant le niveau 2 »), jamais il ne peut le changer.
 
 ## 6. Valeurs de simulation (précisé par Malika le 20 octobre 2026)
 
@@ -88,6 +104,8 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 | Pièce d'identité des indépendants | Exigée | `independant_piece_requise` |
 | Contact d'urgence des indépendants | Exigé | `independant_urgence_requise` |
 | Repli sur le groupe Speedfood | Désactivé par défaut | `restaurants.livraison_repli_speedfood` |
+| Frais de dossier (indépendants) | 10 000 GNF, désactivé par défaut | `frais_dossier_gnf`, `frais_dossier_actif` |
+| Courses réussies pour passer au niveau 2 | 10 | `courses_pour_niveau2` |
 
 ## 7. Écrans
 
@@ -115,13 +133,14 @@ Règle : l'option n'est **sélectionnable** que s'il existe au moins un livreur 
 | Lot | Contenu | Critère d'acceptation |
 |---|---|---|
 | **1** | Garde-fou §8 ; colonnes `restaurant_id`, `origine`, `verifie_speedfood` ; registre « Mes livreurs » ; affectation sur la carte de commande ; étape 1 complète | Un restaurateur ajoute un livreur, l'affecte à une commande, la fait avancer jusqu'à « Livrée » ; l'option Speedfood est invisible sans livreur actif |
-| **2** | Page `/devenir-livreur` ; protection anti-abus ; réglages d'inscription ; approbation avec origine visible | Une candidature apparaît chez l'exploitation, avec appel de vérification ; approuvée, la personne peut se mettre en ligne |
+| **2** | Page `/devenir-livreur` ; protection anti-abus ; réglages d'inscription ; **frais de dossier avec référence et confirmation manuelle** ; approbation avec origine visible | Une candidature apparaît chez l'exploitation, avec référence de paiement ; l'agent coche « dossier payé » ; approuvée, la personne peut se mettre en ligne |
 | **3** | Lien d'activation pour les livreurs du restaurant ; console limitée à ce restaurant ; position et carte pour le client | Un livreur du restaurant active son lien, voit ses seules courses, et le client le suit |
 | **4** | Priorité d'offre aux livreurs du restaurant ; repli optionnel ; bascule | Une offre va d'abord aux livreurs du restaurant ; sans acceptation, repli seulement si autorisé |
-| **5** | Argent : mode de paiement du repas, plafonds, reversement avec confirmation, gains, blocage en cas de retard | Un reversement en retard empêche la mise en ligne ; un litige remonte à l'exploitation |
+| **5** | Argent : mode de paiement du repas, plafonds, reversement avec confirmation, gains, blocage en cas de retard ; **niveaux de confiance** (niveau 1 sans espèces, niveau 2 après N courses réussies, rétrogradation) | Un livreur de niveau 1 ne reçoit jamais de course en espèces ; il passe au niveau 2 après N courses réussies ; un reversement en retard empêche la mise en ligne ; un litige remonte à l'exploitation |
 
 ## 11. Hors périmètre (à ne pas faire ici)
 
+**Système de points payés pour accéder aux courses** : écarté le 20 octobre 2026 (voir la discussion : revenu faible, freine le recrutement, intérêts mal alignés avec le client, encaissement et réglementation à vérifier). Dépôt de garantie remboursable : possible plus tard, après avis juridique, en lien avec le plafond d'espèces.
 Paiement des livreurs par Speedfood, paiement par carte, application native, notation des livreurs par les clients, pourboires, planning des livreurs, assurance. Les livreurs de démonstration restent pour la démonstration et n'entrent pas dans les calculs du garde-fou.
 
 ## 12. Questions ouvertes
@@ -131,4 +150,6 @@ Paiement des livreurs par Speedfood, paiement par carte, application native, not
 3. Valeurs réelles du §6 : **à saisir par Malika quand elles seront connues** (ce sont aujourd'hui des valeurs de simulation, réglables sans déploiement).
 4. Vérification du téléphone par message : exclue du pilote pour éviter un coût ; à reconsidérer si la fraude apparaît.
 5. Qui contacte les candidats pour l'appel de vérification, et sous quel délai ?
-6. Durée de conservation des dossiers des livreurs archivés (12 mois proposés dans `LIVREURS.md`, à valider).
+6. **Politique de remboursement du frais de dossier** (refus, abandon, retrait) et mention dans les conditions d'utilisation : à fixer par Malika ; avis juridique conseillé sur le fait de faire payer un travailleur pour s'inscrire.
+7. Numéro mobile money à utiliser pour recevoir les frais de dossier : à saisir par Malika dans les réglages (jamais dans le code), et qui contrôle les réceptions.
+8. Durée de conservation des dossiers des livreurs archivés (12 mois proposés dans `LIVREURS.md`, à valider).
