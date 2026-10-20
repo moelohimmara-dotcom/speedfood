@@ -41,6 +41,7 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 - `mobile_money_numero text null` (numéro pour recevoir des paiements ; jamais affiché au client).
 - `niveau smallint not null default 1` (1 ou 2, indépendants seulement) ; `courses_reussies integer not null default 0` ; `niveau_modifie_le timestamptz null`.
 - `dossier_reference text null` (référence de paiement du frais de dossier, ex. `SF-LIV-4F7K`, unique) ; `dossier_paye_le timestamptz null` ; `dossier_paye_par uuid null references auth.users(id)` (l'agent qui a confirmé).
+- `dossier_statut text not null default 'aucun'` (`aucun`, `a_payer`, `paye`, `rembourse`, `acquis`) ; `verification_appel_le timestamptz null` ; `verification_par uuid null` ; `decision_le timestamptz null` ; `rembourse_le timestamptz null` ; `rembourse_montant_gnf integer null` ; `motif_remboursement text null` ; `rembourse_par uuid null`.
 - Unicité du téléphone : parmi les fiches non archivées **du groupe Speedfood** ; **par restaurant** pour les livreurs d'un restaurant (une même personne peut livrer pour deux restaurants).
 
 **`restaurants`** (colonne ajoutée) : `livraison_repli_speedfood boolean not null default false` (offres du restaurant qui passent au groupe Speedfood si aucun de ses livreurs n'accepte).
@@ -51,7 +52,7 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 
 **`livraison_especes`** (nouvelle) : `livraison_id`, `livreur_id`, `restaurant_id`, `montant_gnf` (repas encaissé), `statut` (`a_reverser`, `remis`, `confirme`, `litige`), `remis_le`, `confirme_le`, `echeance_le`. Une ligne par livraison payée en espèces.
 
-**`parametres_livraison`** (colonnes ajoutées) : `livreur_inscription_ouverte boolean default false` ; `independant_piece_requise boolean default true` ; `independant_urgence_requise boolean default true` ; `plafond_panier_especes_gnf integer default 60000` ; `plafond_especes_livreur_gnf integer default 150000` ; `delai_reversement_heures integer default 24` ; `frais_dossier_gnf integer default 10000` ; `frais_dossier_actif boolean default false` ; `paiement_dossier_instructions text null` (texte affiché au candidat : numéro mobile money Speedfood et consigne, **saisi par Malika**, jamais dans le code) ; `courses_pour_niveau2 integer default 10` ; `valeurs_validees_le timestamptz null` (vide tant que Malika n'a pas validé les valeurs : l'écran des réglages affiche alors « valeurs de simulation »). **Les valeurs par défaut sont des valeurs de simulation (§6).**
+**`parametres_livraison`** (colonnes ajoutées) : `livreur_inscription_ouverte boolean default false` ; `independant_piece_requise boolean default true` ; `independant_urgence_requise boolean default true` ; `plafond_panier_especes_gnf integer default 60000` ; `plafond_especes_livreur_gnf integer default 150000` ; `delai_reversement_heures integer default 24` ; `frais_dossier_gnf integer default 10000` ; `frais_dossier_actif boolean default false` ; `paiement_dossier_instructions text null` (texte affiché au candidat : numéro mobile money Speedfood et consigne, **saisi par Malika**, jamais dans le code) ; `politique_remboursement jsonb null` (pourcentages par situation, validé par le serveur) ; `delai_decision_jours integer default 5` ; `delai_remboursement_heures integer default 72` ; `courses_pour_niveau2 integer default 10` ; `valeurs_validees_le timestamptz null` (vide tant que Malika n'a pas validé les valeurs : l'écran des réglages affiche alors « valeurs de simulation »). **Les valeurs par défaut sont des valeurs de simulation (§6).**
 
 ## 5. Règles métier
 
@@ -65,7 +66,29 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 4a. Réglage `frais_dossier_actif` : éteint par défaut. Allumé, l'inscription affiche le montant (`frais_dossier_gnf`), les **instructions de paiement saisies par Malika** et une **référence unique** (`dossier_reference`) à indiquer dans le transfert mobile money. **Aucun paiement n'est collecté par l'application** : pas d'intégration, pas d'encaissement par Speedfood au sens technique.
 4b. L'exploitation, en vérifiant la réception, coche **« dossier payé »** (date et agent enregistrés). Un dossier non payé reste `candidat` et ne peut pas être approuvé tant que le frais est actif.
 4c. Le frais couvre la **vérification** (appel, contrôle de la pièce). Il est **unique** : jamais prélevé à la course. Le livreur ne paie rien pour accéder à une offre.
-4d. Politique de remboursement en cas de refus ou d'abandon : **à décider par Malika** (§12). Tant qu'elle n'est pas fixée, l'interface n'annonce aucune promesse de remboursement.
+4d. **Politique de remboursement : voir « Politique de remboursement du frais de dossier » ci-dessous.** Elle est affichée AVANT le paiement et se lit dans les réglages ; l'interface n'annonce jamais autre chose que ce qui est réglé.
+
+### Politique de remboursement du frais de dossier
+Principes : le frais paie un **service réel** (vérification de la pièce, appel). Un candidat ne perd donc de l'argent que si ce travail a été **effectivement fait**, et jamais par la faute ou le silence de Speedfood. Chaque cas est objectif (une date enregistrée), jamais une appréciation au cas par cas.
+
+Jalons enregistrés (colonnes ajoutées, §4) : `dossier_paye_le`, `verification_appel_le` (l'agent a joint ou tenté de joindre le candidat), `decision_le`.
+
+| Situation | Remboursement | Pourquoi |
+|---|---|---|
+| Paiement en double, mauvaise référence, erreur de montant | **100 %** | Erreur, pas un frais dû |
+| Candidat qui renonce **avant** l'appel de vérification | **100 %** | Aucun travail n'a été fait |
+| Refus **avant** l'appel (dossier incomplet, pièce illisible, hors zone) | **100 %** | Le service de vérification n'a pas eu lieu |
+| Aucune décision de Speedfood dans le délai annoncé (`delai_decision_jours`, simulation : 5 jours) | **100 %**, sur simple demande | Un silence ne doit pas coûter au candidat |
+| Candidat qui renonce **après** l'appel | **0 %** (frais acquis) | Le travail de vérification est fait |
+| Refus **après** l'appel pour motif lié au candidat (pièce fausse ou ne correspondant pas, comportement) | **0 %** | Vérification faite, motif imputable au candidat |
+| Refus **après** l'appel pour un motif **non imputable** (pas de besoin dans sa zone, quota atteint) | **100 %** | Ce n'est pas la faute du candidat |
+| Approuvé | **0 %** | Le service a été rendu |
+
+- Les pourcentages et le délai sont des **valeurs de simulation réglables** (colonne `politique_remboursement`, validée côté serveur) ; ils ne sont jamais en dur dans le code.
+- **Mode de remboursement :** par mobile money, vers le numéro du candidat, sous `delai_remboursement_heures` (simulation : 72 heures), **frais de transfert à la charge de Speedfood**. Le remboursement est journalisé (`dossier_statut`, `rembourse_le`, `rembourse_montant_gnf`, motif, agent).
+- **Reçu :** le candidat reçoit à la confirmation de paiement un récapitulatif (référence, montant, date, politique applicable) qu'il peut conserver, et un second à chaque remboursement.
+- **Transparence :** le texte des conditions d'utilisation et l'écran de paiement sont **générés à partir des réglages** : la politique affichée est toujours celle qui s'applique.
+- **Variante à garder en tête (non retenue pour le pilote) :** ne rien faire payer à l'avance et prélever le frais sur les premières courses. Elle supprime les remboursements, mais exige de suivre une dette du livreur envers Speedfood (même mécanique que les espèces à reverser).
 
 ### Livreurs du restaurant
 5. **Étape 1 : registre.** Le restaurateur (permission restaurant) ajoute, modifie, archive des livreurs : nom, téléphone, véhicule. Ces fiches sont créées `actif` avec `origine = restaurant`, `verifie_speedfood = false`. Sans compte : le restaurateur fait avancer la livraison (« Parti », « Livrée » avec le code).
@@ -106,6 +129,9 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 | Repli sur le groupe Speedfood | Désactivé par défaut | `restaurants.livraison_repli_speedfood` |
 | Frais de dossier (indépendants) | 10 000 GNF, désactivé par défaut | `frais_dossier_gnf`, `frais_dossier_actif` |
 | Courses réussies pour passer au niveau 2 | 10 | `courses_pour_niveau2` |
+| Délai de décision annoncé au candidat | 5 jours | `delai_decision_jours` |
+| Délai de remboursement | 72 heures | `delai_remboursement_heures` |
+| Remboursements par situation | tableau de la politique ci-dessus | `politique_remboursement` |
 
 ## 7. Écrans
 
@@ -150,6 +176,6 @@ Paiement des livreurs par Speedfood, paiement par carte, application native, not
 3. Valeurs réelles du §6 : **à saisir par Malika quand elles seront connues** (ce sont aujourd'hui des valeurs de simulation, réglables sans déploiement).
 4. Vérification du téléphone par message : exclue du pilote pour éviter un coût ; à reconsidérer si la fraude apparaît.
 5. Qui contacte les candidats pour l'appel de vérification, et sous quel délai ?
-6. **Politique de remboursement du frais de dossier** (refus, abandon, retrait) et mention dans les conditions d'utilisation : à fixer par Malika ; avis juridique conseillé sur le fait de faire payer un travailleur pour s'inscrire.
-7. Numéro mobile money à utiliser pour recevoir les frais de dossier : à saisir par Malika dans les réglages (jamais dans le code), et qui contrôle les réceptions.
+6. **Politique de remboursement :** une proposition complète est écrite ci-dessus ; il reste à **la valider** et à obtenir un **avis juridique** sur le fait de faire payer un travailleur pour s'inscrire (je ne suis pas juriste et n'ai pas vérifié le droit guinéen).
+7. **Numéro mobile money de réception des frais de dossier :** fourni par Malika le 20 octobre 2026 ; **volontairement absent de ce document et de tout le dépôt** (le dépôt GitHub est public). Il se saisit dans les réglages de livraison (`paiement_dossier_instructions`) et ne figure jamais dans le code, les migrations ni les tests. Contrôle des réceptions : Malika. À envisager : un compte marchand ou un numéro dédié, et l'affichage du **nom du titulaire** pour que le candidat vérifie à qui il paie.
 8. Durée de conservation des dossiers des livreurs archivés (12 mois proposés dans `LIVREURS.md`, à valider).
