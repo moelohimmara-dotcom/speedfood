@@ -40,6 +40,7 @@ import {
   obtenirStatistiquesApplication,
 } from "@/lib/system-admin/tableauDeBord";
 import { FilePrioritaire, type LigneFilePriorite } from "./FilePrioritaire";
+import { compterDemandesPartenariatNouvelles } from "@/lib/system-admin/partenariats-lecture";
 import { ListeActivite, type LigneActivite } from "./ActiviteRecente";
 import { formaterEcheance } from "./formatage";
 
@@ -77,7 +78,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
   const lienRestaurants = (statut: string) => (roleAPermission(role, "restaurant.moderer") ? `/system/catalogue/restaurants?statut=${statut}` : undefined);
   const lienMisesEnAvant = roleAPermission(role, "contenu.mettre_en_avant") ? "/system/catalogue/mises-en-avant" : undefined;
   const peutVoirCouverture = roleAPermission(role, "taxonomie.editer") || roleAPermission(role, "attente.gerer");
-  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture] = await Promise.all([
+  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture, demandesPartenariat] = await Promise.all([
     obtenirStatistiquesApplication(periode),
     roleAPermission(role, "systeme.roles") ? obtenirComptesSystemeParRole() : null,
     roleAPermission(role, "restaurant.moderer") ? listerRestaurantsEnAttenteValidation(20) : null,
@@ -85,6 +86,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
     roleAPermission(role, "systeme.audit") ? obtenirActiviteRecente() : null,
     roleAPermission(role, "commande.consulter") ? obtenirPilotageCommandes(periode) : null,
     peutVoirCouverture ? lireCouverture() : null,
+    roleAPermission(role, "attente.gerer") ? compterDemandesPartenariatNouvelles() : null,
   ]);
   const compteursRestaurants = peutVoirRestaurants ? stats.restaurants : null;
 
@@ -139,6 +141,16 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         ton: "neutre",
       });
     }
+  }
+  // Demandes de partenariat jamais ouvertes : quelqu'un attend une réponse.
+  if (demandesPartenariat) {
+    lignesFile.push({
+      href: "/system/catalogue/partenariats",
+      titre: `${demandesPartenariat} nouvelle${demandesPartenariat > 1 ? "s" : ""} demande${demandesPartenariat > 1 ? "s" : ""} de partenariat`,
+      meta: "Investir, soutenir, apporter des moyens ou contribuer : une personne attend votre réponse",
+      badge: "À contacter",
+      ton: "neutre",
+    });
   }
   const fileOuverte = roleAPermission(role, "restaurant.moderer") || roleAPermission(role, "commande.consulter") || roleAPermission(role, "attente.gerer");
 

@@ -58,7 +58,16 @@ export default async function PartenariatsPage() {
                         <Pastille ton="neutre">{LIBELLES_FORMES[d.forme]}</Pastille>
                         <p className="partenariat-admin-message">{d.message}</p>
                       </td>
-                      <td data-label="Contact">{d.contact}</td>
+                      <td data-label="Contact">
+                        <span className="partenariat-admin-contact">{d.contact}</span>
+                        <a
+                          className="lien-texte partenariat-admin-repondre"
+                          href={d.contactType === "email" ? `mailto:${d.contact}` : `https://wa.me/${d.contact.replace(/\D/g, "")}`}
+                          {...(d.contactType === "email" ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+                        >
+                          {d.contactType === "email" ? "Répondre par e-mail" : "Répondre sur WhatsApp"}
+                        </a>
+                      </td>
                       <td data-label="Statut">
                         <form action={changerStatutPartenariatAction} className="partenariat-admin-statut">
                           <input type="hidden" name="id" value={d.id} />

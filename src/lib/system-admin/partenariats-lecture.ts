@@ -14,6 +14,12 @@ export interface DemandePartenariatListee {
   creeLe: string;
 }
 
+/** Nombre de demandes jamais ouvertes (statut « nouvelle ») : alimente la file « À traiter » du tableau de bord. 0 si la lecture échoue. */
+export async function compterDemandesPartenariatNouvelles(): Promise<number> {
+  const { count, error } = await creerClientAdmin().from("partenariat_demandes").select("id", { count: "exact", head: true }).eq("statut", "nouvelle");
+  return error ? 0 : (count ?? 0);
+}
+
 /** Les 200 demandes les plus récentes (borne volontaire : une page d'administration, pas un export). */
 export async function listerDemandesPartenariat(): Promise<DemandePartenariatListee[]> {
   const { data, error } = await creerClientAdmin()

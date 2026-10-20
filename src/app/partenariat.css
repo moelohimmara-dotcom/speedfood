@@ -361,6 +361,15 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.partenariat-admin-contact {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.partenariat-admin-repondre {
+  display: inline-block;
+  margin-top: var(--space-1);
+  font-weight: 700;
+}
 .partenariat-admin-statut {
   display: flex;
   flex-wrap: wrap;
