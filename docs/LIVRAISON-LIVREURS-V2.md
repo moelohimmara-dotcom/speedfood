@@ -15,10 +15,10 @@ Faire de la livraison une fonction complète de Speedfood, à la manière des pl
 |---|---|---|
 | Livreurs du restaurant | **Trois étapes** : (1) registre simple piloté par le restaurant, (2) console livreur par lien WhatsApp, (3) offres en priorité aux livreurs du restaurant | |
 | Rémunération des indépendants | **100 % des frais de livraison au livreur** pour le pilote ; le modèle de données prévoit déjà la part de Speedfood pour la changer plus tard | Valeur du pilote, pas une décision définitive |
-| Argent du repas | **Au choix du client**, avec plafonds : repas payé d'avance (mobile money au restaurant) ou espèces à la livraison | Option la plus complexe ; plafonds à confirmer (voir §6) |
+| Argent du repas | **Au choix du client**, avec plafonds : repas payé d'avance (mobile money au restaurant) ou espèces à la livraison | Option la plus complexe ; **tous les montants et délais sont des valeurs factices de simulation** (voir §6) |
 | Frais de livraison | **Toujours payés en espèces au livreur, à la porte**, même si le repas est payé d'avance | Choix de conception de ce document |
 | Repli sur le groupe Speedfood | **Désactivé par défaut** pour chaque restaurant | |
-| Pièce d'identité des indépendants | **Exigée** (et contact d'urgence), car ils manipulent de l'argent | Valeur par défaut proposée |
+| Pièce d'identité des indépendants | **Exigée** (et contact d'urgence), car ils manipulent de l'argent | Valeur de simulation, réglable (voir §6) |
 | Option « Livreur Speedfood » | **Masquée tant qu'il n'y a pas de livreur actif dans la zone** | Supprime le risque de commandes bloquées (§8) |
 
 ## 3. Ce qui existe déjà (ne pas refaire)
@@ -48,7 +48,7 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 
 **`livraison_especes`** (nouvelle) : `livraison_id`, `livreur_id`, `restaurant_id`, `montant_gnf` (repas encaissé), `statut` (`a_reverser`, `remis`, `confirme`, `litige`), `remis_le`, `confirme_le`, `echeance_le`. Une ligne par livraison payée en espèces.
 
-**`parametres_livraison`** (colonnes ajoutées) : `livreur_inscription_ouverte boolean default false` ; `independant_piece_requise boolean default true` ; `independant_urgence_requise boolean default true` ; `plafond_panier_especes_gnf integer default 60000` ; `plafond_especes_livreur_gnf integer default 150000` ; `delai_reversement_heures integer default 24`.
+**`parametres_livraison`** (colonnes ajoutées) : `livreur_inscription_ouverte boolean default false` ; `independant_piece_requise boolean default true` ; `independant_urgence_requise boolean default true` ; `plafond_panier_especes_gnf integer default 60000` ; `plafond_especes_livreur_gnf integer default 150000` ; `delai_reversement_heures integer default 24` ; `valeurs_validees_le timestamptz null` (vide tant que Malika n'a pas validé les valeurs : l'écran des réglages affiche alors « valeurs de simulation »). **Les valeurs par défaut sont des valeurs de simulation (§6).**
 
 ## 5. Règles métier
 
@@ -71,15 +71,23 @@ Chaque migration appliquée en base a son fichier dans `supabase/migrations/` da
 12. **Reversement :** après une livraison en espèces, une ligne `a_reverser` est créée ; le livreur déclare « remis » ; le restaurant confirme. Échéance `delai_reversement_heures`. Un livreur dont une échéance est dépassée **ne peut plus se mettre en ligne** jusqu'à régularisation. Un désaccord passe en `litige` et remonte à l'exploitation.
 13. **Gains :** chaque course livrée crée une ligne `livraison_gains` (100 % au livreur au pilote). Speedfood **ne paie pas** les livreurs au pilote : les frais sont encaissés en espèces par le livreur ; l'écran de gains est informatif.
 
-## 6. Valeurs proposées à confirmer par Malika
+## 6. Valeurs de simulation (précisé par Malika le 20 octobre 2026)
 
-| Paramètre | Valeur proposée | Remarque |
+**Les montants, délais et exigences ci-dessous sont des valeurs FACTICES, à titre de simulation.** Les valeurs réelles seront saisies plus tard par Malika. Conséquences pour la construction :
+
+1. **Aucune de ces valeurs n'est écrite en dur dans le code.** Chacune vit dans `parametres_livraison` (ou `restaurants` pour le repli) et se modifie depuis `/system/parametres/livraison`, sans déploiement ni migration.
+2. Les valeurs initiales de la migration sont celles du tableau, **marquées « valeurs de simulation » dans l'écran des réglages** (bandeau visible tant que Malika ne les a pas validées une première fois), pour qu'on ne les prenne pas pour des décisions.
+3. Les tests utilisent leurs **propres** valeurs, passées en paramètres : aucun test ne dépend d'un montant du tableau.
+4. Le prix d'une course (base + prix au kilomètre) reste réglé comme aujourd'hui dans `/system/parametres/livraison` ; cette spécification n'y touche pas.
+
+| Paramètre | Valeur de simulation | Réglage |
 |---|---|---|
-| Plafond de panier en espèces | 60 000 GNF | Un plat typique observé : 25 000 GNF |
-| Plafond d'espèces en poche d'un livreur | 150 000 GNF | |
-| Délai de reversement | 24 heures | |
-| Pièce d'identité des indépendants | Exigée | |
-| Repli sur le groupe Speedfood | Désactivé par défaut | |
+| Plafond de panier en espèces | 60 000 GNF | `plafond_panier_especes_gnf` |
+| Plafond d'espèces en poche d'un livreur | 150 000 GNF | `plafond_especes_livreur_gnf` |
+| Délai de reversement | 24 heures | `delai_reversement_heures` |
+| Pièce d'identité des indépendants | Exigée | `independant_piece_requise` |
+| Contact d'urgence des indépendants | Exigé | `independant_urgence_requise` |
+| Repli sur le groupe Speedfood | Désactivé par défaut | `restaurants.livraison_repli_speedfood` |
 
 ## 7. Écrans
 
@@ -120,7 +128,7 @@ Paiement des livreurs par Speedfood, paiement par carte, application native, not
 
 1. **Cadre juridique et assurance** des livreurs indépendants en Guinée (statut, accidents, responsabilité). À établir par Malika avant de recruter de vrais livreurs ; ce document ne le remplace pas.
 2. Conditions d'utilisation à rédiger pour les livreurs (inscription et activation).
-3. Valeurs du §6 à confirmer.
+3. Valeurs réelles du §6 : **à saisir par Malika quand elles seront connues** (ce sont aujourd'hui des valeurs de simulation, réglables sans déploiement).
 4. Vérification du téléphone par message : exclue du pilote pour éviter un coût ; à reconsidérer si la fraude apparaît.
 5. Qui contacte les candidats pour l'appel de vérification, et sous quel délai ?
 6. Durée de conservation des dossiers des livreurs archivés (12 mois proposés dans `LIVREURS.md`, à valider).
