@@ -17,4 +17,23 @@ export async function apresTransitionCommande(commandeId: string, vers: StatutCo
   } catch {
     console.error("livraison_apres_transition_echec");
   }
+  await apresTransitionPaiement(commandeId, vers);
+}
+
+/**
+ * Paiement en ligne (mode « speedfood ») : commande terminée → libération et versements ; commande refusée ou annulée → remboursement.
+ * Sans effet pour une commande qui n'a pas de paiement en ligne (la grande majorité : une seule lecture). Ne fait jamais échouer la
+ * transition ; un échec est repris par l'exploitation (versements à verser, remboursement en échec visibles en base).
+ */
+async function apresTransitionPaiement(commandeId: string, vers: StatutCommande): Promise<void> {
+  if (vers !== "terminee" && vers !== "refusee" && vers !== "annulee") return;
+  try {
+    const { obtenirServicePourCommande } = await import("@/lib/paiement/en-ligne/fabrique");
+    const service = await obtenirServicePourCommande(commandeId);
+    if (!service) return;
+    if (vers === "terminee") await service.surCommandeTerminee(commandeId);
+    else await service.surCommandeAnnulee(commandeId);
+  } catch {
+    console.error("paiement_apres_transition_echec");
+  }
 }

@@ -90,9 +90,21 @@ Endpoint de création d'un paiement (PULL), chaîne exacte à signer, format des
 |---|---|---|
 | **P1** | Modules purs + tests : états, répartition, écritures, litiges, signature, simulation | Non |
 | **P2** | Migration : tables, contraintes d'unicité, équilibre du livre, RLS ; tests de cloisonnement ; contrôle de sécurité de la base | Non |
-| **P3** | `service.ts`, route de notification, branchement sur la fin de livraison et l'annulation (derrière l'interrupteur), mode simulation complet | Non |
+| **P3** *(fait, 21 octobre 2026)* | `service.ts` (orchestration derrière deux ports : `DepotPaiement`, `PasserelleDePaiement`), `depot-supabase.ts`, `fabrique.ts`, route `POST /api/paiement/notification/[fournisseur]`, branchement dans `apres-commande.ts` (commande terminée → libération ; refusée ou annulée → remboursement). Testé de bout en bout avec un dépôt en mémoire (`paiement-service.test.mts`). **Pas encore appelé par l'interface** : aucun écran ne crée de paiement (P4) | Non |
 | **P4** | Écran client (choix recommandé du paiement en ligne), écran restaurant (statut), écran d'administration (paiements, versements en échec, litiges), réglages | Non |
 | **P5** | Adaptateur Chap Chap Pay réel : **après réception de la Référence API, de clés de test et d'un accord écrit** | Test d'abord |
 | **P6** | Rapprochement quotidien, plafonds, surveillance, bascule en production : **après avis juridique et validation de Malika** | Oui |
 
 **Règle :** aucun lot n'active le paiement en production ; seul P6, décidé par Malika, le fera.
+
+## 11. Lot P3 : ce qui existe, ce qui reste volontairement fermé
+
+**Existe.** `ouvrirPaiement` (montants lus en base, jamais du navigateur ; idempotent), `appliquerNotification` (signature, journal d'idempotence, montant attendu, succès tardif remboursé), `libererPaiement` (livre, un versement par bénéficiaire, versement « pris » par compare-and-set avant l'appel au prestataire, reprise possible), `rembourserTotal` (avant libération seulement), `ouvrirLitige` (deux décisions automatiques, tout le reste à un humain, paiement gelé), `surCommandeTerminee`, `surCommandeAnnulee`, `expirerSiBesoin`.
+
+**Reste fermé volontairement.**
+- Aucune interface ne crée de paiement : sans écran (P4) et sans interrupteur allumé, rien de ceci ne s'exécute. Le branchement de `apres-commande.ts` ne fait qu'une lecture légère par transition terminale et ne fait rien tant qu'il n'existe pas de ligne dans `paiements`.
+- Un paiement échoué, expiré ou annulé ne se relance pas (une commande = un paiement ; contrainte d'unicité). Le client choisira un autre mode ; la reprise sera décidée en P4.
+- Remboursement partiel et remboursement après libération : `a_humain` (aucun retrait automatique chez un tiers).
+- Expiration : la fonction existe, aucune tâche planifiée ne l'appelle encore (P4/P6).
+- Rapprochement avec le prestataire, versement resté « envoyé » après une panne : lot P6.
+- Simulation : la notification est forgée par `fabriquerNotification` ; en ligne, elle exige `PAIEMENT_SIMULATION_CLE` (secret du Worker), sans valeur par défaut.
