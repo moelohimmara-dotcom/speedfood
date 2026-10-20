@@ -14,6 +14,7 @@ Que le paiement passe par Speedfood, comme sur les grandes plateformes : le clie
 | Frais de paiement mobile | **Supportés par Speedfood** (ni le client, ni le restaurant, ni le livreur) |
 | Trésorerie des restaurants et livreurs | **Crédités dès qu'une opération est réussie**, sans attente d'un cycle hebdomadaire |
 | Fraude et litiges | **Traités par le système** (règles automatiques, avec une porte de sortie humaine, voir §7) |
+| Façon de créditer | **A : versement direct** sur le compte mobile money du restaurant et du livreur à chaque opération réussie ; **aucun solde détenu par Speedfood** (décision du 20 octobre 2026) |
 
 ## 3. Ce que dit le droit guinéen (lu dans le recueil de la BCRG)
 
@@ -116,9 +117,9 @@ Chaque décision est **journalisée** (qui, quand, règle appliquée, preuves) e
 8. Un **mandat d'encaissement** donné par chaque restaurateur à Speedfood change-t-il l'analyse ?
 9. Le **versement immédiat** vers le compte mobile du livreur et du restaurant pose-t-il un problème ?
 
-## 10. Question ouverte pour Malika
+## 10. Décision prise : comment créditer
 
-**Comment créditer ?** A (versement direct, aucun solde détenu, compatible avec l'étape 2) ou B (solde interne retirable, nécessite un partenaire agréé : étape 3). Recommandation : **A**.
+**A (versement direct)**, décidée par Malika le 20 octobre 2026 : Speedfood verse sur le compte mobile money du restaurant et du livreur à chaque opération réussie, sans détenir de solde. La variante B (solde interne retirable) est écartée tant qu'aucun partenaire agréé ne fait tourner un portefeuille. **Conséquences à traiter :** frais de versement à chiffrer (question 4 du §9), trésorerie de roulement (§6), chaque restaurant et chaque livreur doit renseigner un compte mobile money valide et à son nom (à vérifier avant le premier versement).
 
 ## 11. Risques à ne pas oublier
 
