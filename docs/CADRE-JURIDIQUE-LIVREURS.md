@@ -70,6 +70,14 @@
 8. **Assurance** obligatoire pour des livreurs à moto et responsabilité de la plateforme en cas d'accident ?
 9. Régime **fiscal et social** (impôt, cotisations) pour des livreurs indépendants et pour Speedfood ?
 
+**Paiement en ligne par Speedfood (ajoutées le 20 octobre 2026, voir `docs/STRATEGIE-PAIEMENT.md`) :**
+10. Speedfood, client d'une **passerelle de paiement** (ou accepteur d'un établissement agréé), peut-il **encaisser pour le compte de restaurants et de livreurs**, puis leur **verser** après la livraison, **sans être lui-même agréé** comme établissement de monnaie électronique ou prestataire de paiement ?
+11. Un **mandat d'encaissement** donné par chaque restaurateur (et chaque livreur) à Speedfood change-t-il cette analyse ? Quelles clauses est-il prudent d'y mettre ?
+12. Le **versement immédiat** sur le compte mobile money du restaurant et du livreur, à chaque opération réussie, pose-t-il un problème (détention de fonds, identification, lutte contre le blanchiment) ?
+13. **Quelles obligations** restent à la charge de Speedfood (conservation des preuves, déclaration d'opérations suspectes à la CENTIF, traitement des plaintes sous 30 jours) lorsque l'encaissement passe par un prestataire agréé ?
+14. La **passerelle choisie** (Chap Chap Pay) est-elle bien agréée par la BCRG ? Comment le vérifier (numéro, liste officielle) ?
+15. Les **conditions d'utilisation** du paiement en ligne (remboursements automatiques, règles de litige décidées par le système) sont-elles opposables au client, et quelle voie de recours humaine faut-il garantir ?
+
 ## 7. Sources
 - Loi L/2014/072/CNT portant Code du travail (texte officiel, [FAOLEX](https://faolex.fao.org/docs/pdf/gui212958.pdf)) : articles 110.4 à 110.6, 121.1, 514.3, 523.21.
 - BCRG, [Recueil de textes](https://www.bcrg-guinee.org/wp-content/uploads/2020/02/Recueil-de-textes.pdf), décision D/2015/003/CAM.

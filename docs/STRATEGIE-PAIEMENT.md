@@ -28,6 +28,19 @@ Voir `CADRE-JURIDIQUE-LIVREURS.md` §2.2 pour la décision D/2015/003/CAM. Rappe
 
 **Ce que je n'ai pas pu établir :** si un encaissement **pour le compte de tiers** (le restaurant, le livreur) avec libération différée fait de Speedfood un prestataire de paiement. **À poser à un avocat et à l'opérateur.**
 
+## 3 bis. Fournisseur retenu : Chap Chap Pay (21 octobre 2026)
+
+Malika a choisi de passer par **Chap Chap**. Ce que j'ai pu établir **sur leur site public** (chapchappay.com, pages d'accueil, guide et contact lues le 20 octobre 2026) :
+
+- **Société :** Chap Chap Pay SARL, Conakry. Se présente comme « agréée par la Banque Centrale de la République de Guinée » : **aucun numéro ni date d'agrément n'est affiché ; à vérifier auprès de la BCRG** (qui indique 11 établissements de monnaie électronique agréés fin 2025, sans les nommer dans les textes que j'ai lus).
+- **Services annoncés :** paiement marchand et e-commerce, **QR code**, **API « PULL »** (encaissement à la demande ou récurrent), **API « PUSH »** (envoi d'argent vers wallets, comptes bancaires, cartes prépayées). Partenaires de paiement : PayCard, Orange Money, MTN MoMo, Visa/MasterCard, Kulu, Soutra Money, Akiba.
+- **Technique, dans le guide public :** URL de base unique `https://chapchappay.com/api` ; en-tête de clé `CCP-Api-Key` (clé **Test** et clé **Production**, le mode dépend de la clé) ; signature **HMAC-SHA256** en-tête `CCP-HMAC-Signature` pour PULL et PUSH ; **webhooks** avec réessais, réponse attendue sous 20 secondes, statuts `success`, `failed`, `canceled`, `expired`, `error`, notifications **possiblement multiples** donc à traiter de façon idempotente ; un endpoint documenté : `POST /api/ecommerce/operation` (exemple en GNF).
+- **Contact :** contact@, support@ et sales@ chapchappay.com ; téléphone +224 613 13 60 60 (lundi au vendredi, 8 h à 18 h).
+- **Ce que le guide public ne donne PAS** (renvoi à une « Référence API » que je n'ai pas pu lire) : endpoint et paramètres de PULL, vérification de statut, **chaîne exacte à signer**, format du webhook, détails de PUSH, **remboursement**, **sandbox** (URL et comportement), **délais de règlement**, **frais** (« tarification transparente » sans grille), codes d'erreur, limites.
+- **« Chap Chap Money » :** le site public ne mentionne que Chap Chap Pay. **À confirmer par Malika** qu'il s'agit bien du même service (sinon, de quel produit parle-t-on).
+
+**Conséquence :** ces informations **ne remplacent pas** les questions du §9 : les frais, le délai de règlement, le remboursement et les conditions de PUSH restent à obtenir **auprès de Chap Chap**. L'architecture (voir `docs/PAIEMENT-ARCHITECTURE.md`) est construite **sans dépendre** de ces réponses : une couche d'adaptation isole le fournisseur, et un fournisseur de **simulation** permet de tout tester sans argent.
+
 ## 4. Étapes
 
 | Étape | Ce que fait Speedfood | Détient-il l'argent ? | Prérequis |
