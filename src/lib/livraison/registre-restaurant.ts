@@ -22,7 +22,7 @@ export interface EtatRegistreLivreurs {
 }
 
 /** Plafond de fiches actives par restaurant : un registre de pilote, pas un annuaire. */
-export const LIVREURS_MAX_PAR_RESTAURANT = 30;
+const LIVREURS_MAX_PAR_RESTAURANT = 30;
 
 export async function ajouterLivreurRestaurantAction(_prec: EtatRegistreLivreurs, formData: FormData): Promise<EtatRegistreLivreurs> {
   const { membership } = await obtenirContexteRestaurant("/restaurant/profil/livreurs");
