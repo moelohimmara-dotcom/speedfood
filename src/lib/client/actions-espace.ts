@@ -9,6 +9,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { estUuid } from "@/lib/commande/commun";
 import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuivi";
 import { messageRecommande, reconstruireCommande, type PlatDuMenu } from "./recommander";
+import { lireModePrefere, validerAdresseClient } from "./espace";
 import type { LignePanier } from "@/lib/panier/gestion";
 
 /**
@@ -138,4 +139,69 @@ export async function preparerRecommandeAction(orderId: string): Promise<Resulta
   const r = reconstruireCommande(passees, menu);
   if (r.lignes.length === 0) return { ok: false, message: "Aucun plat de cette commande n'est plus proposé. Ouvrez le menu du restaurant pour choisir." };
   return { ok: true, restaurant: { id: resto.id, nom: resto.nom }, lignes: r.lignes, message: messageRecommande(r) };
+}
+
+export interface EtatEspaceClient {
+  erreur?: string;
+  succes?: string;
+}
+
+/** Ajoute une adresse au carnet du client (cinq au plus ; la première devient l'adresse par défaut). */
+export async function ajouterAdresseAction(_prec: EtatEspaceClient, formulaire: FormData): Promise<EtatEspaceClient> {
+  const utilisateur = await utilisateurConnecte();
+  if (!utilisateur) return { erreur: "Connectez-vous pour enregistrer une adresse." };
+  const v = validerAdresseClient(String(formulaire.get("libelle") ?? ""), String(formulaire.get("adresse") ?? ""));
+  if (!v.ok) return { erreur: v.erreur };
+  const db = dbSansTypes();
+  const { count } = await db.from("client_adresses").select("id", { count: "exact", head: true }).eq("utilisateur_id", utilisateur);
+  const { error } = await db.from("client_adresses").insert({ utilisateur_id: utilisateur, libelle: v.libelle, adresse: v.adresse, par_defaut: (count ?? 0) === 0 });
+  if (error) return { erreur: error.code === "23514" && (count ?? 0) >= 5 ? "Vous avez déjà 5 adresses : supprimez-en une avant d'en ajouter." : "Impossible d'enregistrer cette adresse pour le moment." };
+  revalidatePath("/compte/adresses");
+  return { succes: "Adresse enregistrée." };
+}
+
+export async function supprimerAdresseAction(adresseId: string): Promise<void> {
+  const utilisateur = await utilisateurConnecte();
+  if (!utilisateur) redirect("/entrer?suite=/compte/adresses");
+  if (!estUuid(adresseId)) return;
+  const db = dbSansTypes();
+  const { data: supprimee } = await db.from("client_adresses").delete().eq("id", adresseId).eq("utilisateur_id", utilisateur).select("par_defaut");
+  // L'adresse par défaut supprimée : la plus ancienne qui reste prend le relais.
+  if (supprimee?.[0]?.par_defaut) {
+    const { data: reste } = await db.from("client_adresses").select("id").eq("utilisateur_id", utilisateur).order("cree_le", { ascending: true }).limit(1);
+    if (reste?.[0]) await db.from("client_adresses").update({ par_defaut: true }).eq("id", reste[0].id).eq("utilisateur_id", utilisateur);
+  }
+  revalidatePath("/compte/adresses");
+}
+
+export async function definirAdresseParDefautAction(adresseId: string): Promise<void> {
+  const utilisateur = await utilisateurConnecte();
+  if (!utilisateur) redirect("/entrer?suite=/compte/adresses");
+  if (!estUuid(adresseId)) return;
+  const db = dbSansTypes();
+  const { data: cible } = await db.from("client_adresses").select("id").eq("id", adresseId).eq("utilisateur_id", utilisateur).maybeSingle();
+  if (!cible) return;
+  // L'index unique n'admet qu'une adresse par défaut : on retire l'ancienne avant de poser la nouvelle.
+  await db.from("client_adresses").update({ par_defaut: false }).eq("utilisateur_id", utilisateur).eq("par_defaut", true);
+  await db.from("client_adresses").update({ par_defaut: true }).eq("id", adresseId).eq("utilisateur_id", utilisateur);
+  revalidatePath("/compte/adresses");
+}
+
+/** Préférences de commande : mode proposé d'abord, notifications de suivi. Le profil est modifié avec la session du client (sa policy habituelle). */
+export async function enregistrerPreferencesAction(_prec: EtatEspaceClient, formulaire: FormData): Promise<EtatEspaceClient> {
+  const supabase = await creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { erreur: "Connectez-vous pour régler vos préférences." };
+  const mode = lireModePrefere(formulaire.get("mode_prefere"));
+  if (mode === undefined) return { erreur: "Mode de commande inconnu." };
+  const { data, error } = await (supabase as unknown as SupabaseClient)
+    .from("client_profils")
+    .update({ mode_prefere: mode, notifications_commande: formulaire.get("notifications") === "on" })
+    .eq("utilisateur_id", user.id)
+    .select("utilisateur_id");
+  if (error || !data || data.length === 0) return { erreur: "Impossible d'enregistrer vos préférences. Complétez d'abord votre profil." };
+  revalidatePath("/compte/preferences");
+  return { succes: "Préférences enregistrées." };
 }

@@ -46,12 +46,14 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
   const router = useRouter();
   const [nom, setNom] = useState(compte.prefill?.nom ?? "");
   const [telephone, setTelephone] = useState(compte.prefill?.telephone ?? "");
-  const [adresse, setAdresse] = useState(compte.prefill?.adresse ?? "");
+  // Adresse de départ : celle mémorisée avec les coordonnées, sinon l'adresse par défaut du carnet de l'espace client.
+  const [adresse, setAdresse] = useState(compte.prefill?.adresse || compte.adresses.find((a) => a.parDefaut)?.adresse || "");
   // Numéro de table du QR scanné (mémoire du navigateur, 6 h) : propose le service à table, sans jamais l'imposer.
   const tableScannee = useTableMemorisee(panier.restaurantId);
   const [modeChoisi, setMode] = useState<ModeRetrait | null>(null);
   const [tableSaisie, setTable] = useState<string | null>(null);
-  const mode: ModeRetrait = invite ? "sur_place" : (modeChoisi ?? (tableScannee ? "sur_place" : "retrait"));
+  // Un QR de table scanné prime sur la préférence ; la préférence du client prime sur le retrait par défaut.
+  const mode: ModeRetrait = invite ? "sur_place" : (modeChoisi ?? (tableScannee ? "sur_place" : (compte.modePrefere ?? "retrait")));
   const table = tableSaisie ?? tableScannee ?? "";
   // Mémoriser les coordonnées dans le compte : jamais coché d'office, c'est un choix explicite du client.
   const [memoriser, setMemoriser] = useState(false);
@@ -313,6 +315,21 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         <p className="field-error commande-erreur-champ">
           {champs.livraison}
         </p>
+      ) : null}
+
+      {mode === "livraison" && compte.adresses.length > 0 ? (
+        <div className="field">
+          <label htmlFor="adresse-enregistree">Mes adresses</label>
+          <select id="adresse-enregistree" value={compte.adresses.find((a) => a.adresse === adresse)?.id ?? ""} onChange={(e) => setAdresse(compte.adresses.find((a) => a.id === e.target.value)?.adresse ?? adresse)}>
+            <option value="">Autre adresse (saisie ci-dessous)</option>
+            {compte.adresses.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.libelle}
+                {a.parDefaut ? " (par défaut)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
       ) : null}
 
       {mode === "livraison" ? (

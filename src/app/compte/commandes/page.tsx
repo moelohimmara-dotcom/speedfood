@@ -69,7 +69,9 @@ function CarteCommande({ commande: c }: { commande: Awaited<ReturnType<typeof li
         <strong>
           <Link href={`/restaurants/${c.restaurantId}`}>{c.restaurantNom}</Link>
         </strong>
-        <Badge ton={statut.ton === "attention" ? "neutre" : statut.ton}>{statut.libelle}</Badge>
+        <span>
+          {c.estTest ? <Badge ton="neutre">Test</Badge> : null} <Badge ton={statut.ton === "attention" ? "neutre" : statut.ton}>{statut.libelle}</Badge>
+        </span>
       </div>
       <p className="espace-secondaire">
         Commande {c.reference} · {formaterDateCommande(c.creeLe)} · {libelleMode(c.mode)}

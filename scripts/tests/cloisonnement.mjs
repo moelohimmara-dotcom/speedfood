@@ -883,5 +883,26 @@ await serveur("favoris : le 101e est refusé par la base", `insert into client_f
 await serveur("favoris : supprimer un restaurant supprime les favoris qui le visent", `delete from restaurants where id = ${U(RESTO_B2)}`, false);
 verifier("favoris : après suppression du compte, ses favoris disparaissent (cascade)", await (async () => { await db.exec(`delete from auth.users where id = ${U(ID.user_a)}`).catch(() => {}); return (await db.query(`select count(*)::int n from client_favoris where utilisateur_id = ${U(ID.user_a)}`)).rows[0].n === 0; })());
 
+// ---------------------------------------------------------------- 12. espace client : adresses et préférences
+console.log("\n--- Adresses et préférences du client");
+await db.exec(`
+  insert into client_adresses (utilisateur_id, libelle, adresse, par_defaut) values
+    (${U(ID.client)}, 'Maison', 'Kaloum, près du marché', true), (${U(ID.client)}, 'Travail', 'Ratoma, avenue de la République', false),
+    (${U(ID.user_b)}, 'Bureau', 'Dixinn, rue du port', true);
+`);
+verifier("adresses : le client lit les siennes (2), pas celles des autres", (await nb(ID.client, "client_adresses")) === 2 && VIDE(await nb(ID.client, "client_adresses", `utilisateur_id = ${U(ID.user_b)}`)));
+verifier("adresses : un autre compte ne voit que les siennes ; un anonyme et l'exploitation rien", (await nb(ID.user_b, "client_adresses")) === 1 && VIDE(await nb(null, "client_adresses")) && VIDE(await nb(ID.admin, "client_adresses")));
+await interdit("adresses : le client n'écrit pas par l'API", ID.client, `insert into client_adresses (utilisateur_id, libelle, adresse) values (${U(ID.client)}, 'Autre', 'Quelque part, Conakry')`);
+await interdit("adresses : le client ne modifie ni ne supprime par l'API", ID.client, `update client_adresses set adresse = 'Ailleurs, Conakry' where utilisateur_id = ${U(ID.client)}`);
+await interdit("adresses : on ne lit ni ne modifie celle d'un autre", ID.user_a, `delete from client_adresses where utilisateur_id = ${U(ID.client)}`);
+await serveur("adresses : une seule adresse par défaut par compte", `insert into client_adresses (utilisateur_id, libelle, adresse, par_defaut) values (${U(ID.client)}, 'Autre', 'Matoto, route du niger', true)`, true);
+await serveur("adresses : libellé trop court ou adresse trop courte refusés", `insert into client_adresses (utilisateur_id, libelle, adresse) values (${U(ID.client)}, 'X', 'abcde')`, true);
+await serveur("adresses : jusqu'à cinq par compte", `insert into client_adresses (utilisateur_id, libelle, adresse) values (${U(ID.client)}, 'Ami 1', 'Matoto, chez un ami'), (${U(ID.client)}, 'Ami 2', 'Matam, chez un ami'), (${U(ID.client)}, 'Ami 3', 'Dubréka, chez un ami')`, false);
+await serveur("adresses : la sixième est refusée par la base", `insert into client_adresses (utilisateur_id, libelle, adresse) values (${U(ID.client)}, 'Ami 4', 'Coyah, chez un ami')`, true);
+await db.exec(`insert into client_profils (utilisateur_id, pseudo, avatar) values (${U(ID.client)}, 'ClientTest', 'burger') on conflict do nothing`);
+await autorise("préférences : le client règle son mode préféré et ses notifications (policy habituelle du profil)", ID.client, `update client_profils set mode_prefere = 'livraison', notifications_commande = false where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : un mode inconnu est refusé", ID.client, `update client_profils set mode_prefere = 'drone' where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : on ne touche pas au profil d'un autre", ID.user_a, `update client_profils set mode_prefere = 'retrait' where utilisateur_id = ${U(ID.client)}`);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

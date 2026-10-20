@@ -25,6 +25,10 @@ export interface CompteCommande {
   estClient: boolean;
   /** Coordonnées mémorisées, ou `null`. */
   prefill: { nom: string; telephone: string; adresse: string } | null;
+  /** Adresses enregistrées dans l'espace client (cinq au plus), proposées en livraison. */
+  adresses: { id: string; libelle: string; adresse: string; parDefaut: boolean }[];
+  /** Mode de remise préféré du client, proposé d'abord. */
+  modePrefere: "retrait" | "livraison" | "sur_place" | null;
 }
 
 export function CommandeClient({

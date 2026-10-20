@@ -78,6 +78,24 @@ export default async function ComptePage() {
               </Link>
             </li>
             <li>
+              <Link href="/compte/adresses" className="compte-espace-lien">
+                <strong>Mes adresses</strong>
+                <span>Jusqu&apos;à cinq adresses de livraison, à choisir d&apos;un geste</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/compte/avis" className="compte-espace-lien">
+                <strong>Mes avis</strong>
+                <span>Ce que vous avez écrit sur les restaurants, et leurs réponses</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/compte/preferences" className="compte-espace-lien">
+                <strong>Mes préférences</strong>
+                <span>Mode de commande habituel, notifications de suivi</span>
+              </Link>
+            </li>
+            <li>
               <Link href="/compte/securite" className="compte-espace-lien">
                 <strong>Sécurité du compte</strong>
                 <span>Double authentification et questions de sécurité</span>

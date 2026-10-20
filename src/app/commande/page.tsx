@@ -2,6 +2,8 @@ import { CommandeClient, type CompteCommande } from "./CommandeClient";
 import { connexionClientActive } from "@/lib/client/reglage";
 import { creerClientServeur } from "@/lib/db/server";
 import { lireHierarchieZones } from "@/lib/site/zones";
+import { lireModePrefere } from "@/lib/client/espace";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * La clé de site Turnstile est publique mais lue à l'exécution côté serveur (variable du
@@ -21,7 +23,7 @@ async function lireCompte(): Promise<CompteCommande> {
   } = await supabase.auth.getUser();
   // Identification obligatoire pour commander (TDR v0.2 §5.1) : la page ne montre le formulaire qu'à un compte connecté.
   if (!user) {
-    return { actif, connecte: false, estClient: false, prefill: null };
+    return { actif, connecte: false, estClient: false, prefill: null, adresses: [], modePrefere: null };
   }
   const { data: profil } = await supabase
     .from("client_profils")
@@ -29,13 +31,20 @@ async function lireCompte(): Promise<CompteCommande> {
     .eq("utilisateur_id", user.id)
     .maybeSingle();
   if (!profil) {
-    return { actif, connecte: true, estClient: false, prefill: null };
+    return { actif, connecte: true, estClient: false, prefill: null, adresses: [], modePrefere: null };
   }
   const prefill =
     profil.nom_commande && profil.telephone
       ? { nom: profil.nom_commande, telephone: profil.telephone, adresse: profil.adresse ?? "" }
       : null;
-  return { actif, connecte: true, estClient: true, prefill };
+  // Carnet d'adresses et mode préféré (espace client) : lecture tolérante, la commande ne dépend jamais d'eux.
+  const sansTypes = supabase as unknown as SupabaseClient;
+  const [{ data: lignesAdresses }, { data: preferences }] = await Promise.all([
+    sansTypes.from("client_adresses").select("id, libelle, adresse, par_defaut").order("cree_le", { ascending: true }).limit(5),
+    sansTypes.from("client_profils").select("mode_prefere").eq("utilisateur_id", user.id).maybeSingle(),
+  ]);
+  const adresses = ((lignesAdresses ?? []) as Array<{ id: string; libelle: string; adresse: string; par_defaut: boolean }>).map((a) => ({ id: a.id, libelle: a.libelle, adresse: a.adresse, parDefaut: a.par_defaut }));
+  return { actif, connecte: true, estClient: true, prefill, adresses, modePrefere: lireModePrefere(preferences?.mode_prefere) ?? null };
 }
 
 /** Quartiers proposés pour la livraison : « Quartier, Commune », triés ; l'identifiant sert à retrouver le centre du quartier côté serveur. */
