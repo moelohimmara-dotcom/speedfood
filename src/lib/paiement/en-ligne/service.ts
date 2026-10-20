@@ -33,6 +33,8 @@ export interface Reglages {
   tauxMobilePermille: { orange_money: number; mtn_momo: number };
   fraisSpeedfoodCommandeGnf: number;
   fraisVersementGnf: number;
+  /** Partie fixe des frais de paiement mobile, en GNF (s'ajoute au pourcentage). */
+  fraisMobileFixeGnf: number;
   delaiExpirationMinutes: number;
   plafondPaiementGnf: number;
   plafondRemboursementAutoPermille: number;
@@ -266,6 +268,7 @@ export function creerServicePaiement(deps: DependancesService) {
       tauxFraisMobilePermille: reglages.tauxMobilePermille[entree.operateur],
       livraisonPar,
       fraisVersementGnf: reglages.fraisVersementGnf,
+      fraisMobileFixeGnf: reglages.fraisMobileFixeGnf,
     });
     if (!calcul.ok) return { ok: false, raison: "montant_invalide", detail: calcul.raison };
     const r = calcul.repartition;

@@ -122,6 +122,7 @@ export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiemen
     frais_mobile_permille_mtn: entier(formulaire.get("fraisMtn"), 0, 100),
     frais_speedfood_commande_gnf: entier(formulaire.get("fraisSpeedfood"), 0, 100_000),
     frais_versement_gnf: entier(formulaire.get("fraisVersement"), 0, 100_000),
+    frais_mobile_fixe_gnf: entier(formulaire.get("fraisMobileFixe"), 0, 100_000),
     delai_expiration_minutes: entier(formulaire.get("delai"), 1, 120),
     plafond_paiement_gnf: entier(formulaire.get("plafond"), 1_000, 10_000_000),
     plafond_remboursement_auto_permille: entier(formulaire.get("plafondRemboursement"), 0, 1000),

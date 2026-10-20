@@ -32,6 +32,7 @@ export function reglagesParDefaut(surcharge: Partial<Reglages> = {}): Reglages {
     tauxMobilePermille: { orange_money: 15, mtn_momo: 17 },
     fraisSpeedfoodCommandeGnf: 1000,
     fraisVersementGnf: 0,
+    fraisMobileFixeGnf: 0,
     delaiExpirationMinutes: 15,
     plafondPaiementGnf: 500_000,
     plafondRemboursementAutoPermille: 300,

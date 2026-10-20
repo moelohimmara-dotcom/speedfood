@@ -202,6 +202,21 @@ verifier("simulation : champs manquants, état inconnu, montant invalide refusé
 verifier("simulation : corps illisible refusé sans exception", (() => { const c = "pas du json"; const r = sim.verifierNotification(c, { "x-simulation-signature": calculerSignature(c, "cle-test") }); return r.ok ? "accepté" : r.raison; })(), "corps_illisible");
 verifier("simulation : versement et remboursement réussissent sans réseau", [(await sim.verser({ referenceInterne: "V-1", montantGnf: 24_000, operateur: "mtn_momo", numero: "620000000" })).etat, (await sim.rembourser({ referenceExterneEncaissement: "SIM-P-1", referenceInterne: "R-1", montantGnf: 5_000 })).etat], ["succes", "succes"]);
 
+// ---------------------------------------------------------------- partie fixe des frais du prestataire (Chap Chap Pay : 200 GNF + 2 %)
+{
+  const base = { repasGnf: 3_000, fraisLivraisonGnf: 0, fraisSpeedfoodGnf: 1_500, tauxFraisMobilePermille: 20, livraisonPar: "aucune" as const, fraisMobileFixeGnf: 200 };
+  const mesures = [[3_000, 260], [10_000, 400]] as const;
+  const calcules = mesures.map(([repas]) => { const r = calculerRepartition({ ...base, repasGnf: repas }); return r.ok ? r.repartition.fraisMobileGnf : -1; });
+  verifier("frais fixes : la formule 200 GNF + 2 % reproduit les deux commissions mesurées chez Chap Chap Pay (260 et 400)", calcules, mesures.map(([, f]) => f));
+  const r30 = calculerRepartition({ ...base, repasGnf: 30_000 });
+  verifier("frais fixes : prédiction pour 30 000 GNF (800), part de Speedfood nette de 700, restaurant payé 28 500", r30.ok ? [r30.repartition.fraisMobileGnf, r30.repartition.speedfoodNetGnf, r30.repartition.restaurantGnf, r30.repartition.deficit] : r30, [800, 700, 28_500, false]);
+  const sans = calculerRepartition({ ...base, repasGnf: 10_000, fraisMobileFixeGnf: undefined });
+  verifier("frais fixes : absents, le calcul d'avant est inchangé (2 % de 10 000 = 200)", sans.ok ? sans.repartition.fraisMobileGnf : sans, 200);
+  verifier("frais fixes : valeur négative ou décimale refusée", [calculerRepartition({ ...base, fraisMobileFixeGnf: -1 }).ok, calculerRepartition({ ...base, fraisMobileFixeGnf: 1.5 }).ok], [false, false]);
+  const petit = calculerRepartition({ ...base, repasGnf: 3_000, fraisSpeedfoodGnf: 100 });
+  verifier("frais fixes : un frais Speedfood trop faible produit un déficit signalé (pas masqué)", petit.ok ? [petit.repartition.speedfoodNetGnf, petit.repartition.deficit] : petit, [-160, true]);
+}
+
 // ---------------------------------------------------------------- adaptateur Chap Chap Pay (Référence API du 21 octobre 2026)
 verifier(
   "chapchap : success, canceled et expired changent l'état ; failed, error, new et pending laissent « en attente » ; un statut inconnu est refusé",

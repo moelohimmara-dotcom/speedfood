@@ -140,3 +140,16 @@ Chaque décision est **journalisée** (qui, quand, règle appliquée, preuves) e
 - **Marge** : les frais de paiement mobile (§6) peuvent consommer près de la moitié du frais fixe.
 - **Confiance** : une plateforme jeune qui reçoit de l'argent doit montrer des règles claires, des reçus et une assistance joignable.
 - **Volume** : 9 commandes réelles en trois semaines (20 octobre 2026) : ce chantier n'est utile qu'avec une densité de restaurants et de clients.
+
+## 11. Frais du prestataire mesurés et décision du 21 octobre 2026
+
+Chap Chap Pay prélève **200 GNF + 2 %** (mesuré en mode test, deux points concordants : 3 000 → 260, 10 000 → 400 ; voir `docs/CHAPCHAP-NOTES-API.md`). Avec le frais Speedfood de 1 000 GNF, la marge nette sur une commande de 25 000 à 30 000 GNF tombait à 200 à 300 GNF, avant les frais de versement (inconnus). **Décision de Malika : option 2, frais Speedfood relevé pour le paiement en ligne** (de 1 000 à 1 500 GNF), les frais du prestataire restant supportés par Speedfood (`fee_handling = deduct`).
+
+| Repas | Commission prestataire | Frais Speedfood | Net Speedfood (avant frais de versement) |
+|---|---|---|---|
+| 5 000 GNF | 300 | 1 500 | 1 200 |
+| 25 000 GNF | 700 | 1 500 | 800 |
+| 30 000 GNF | 800 | 1 500 | 700 |
+| 100 000 GNF | 2 200 | 1 500 | −700 (déficit signalé) |
+
+Les réglages portent maintenant une **partie fixe** (`frais_mobile_fixe_gnf`) en plus du pour-mille ; valeurs de simulation alignées sur la mesure (200 GNF, 20 ‰ pour les deux opérateurs, 1 500 GNF de frais Speedfood), réglables sans déploiement. Un net négatif est affiché comme **déficit**, jamais masqué : au-delà d'environ 60 000 GNF de repas le frais fixe ne couvre plus la commission, ce qui appelle soit un frais Speedfood proportionnel, soit un plafond du paiement en ligne (réglage `plafond_paiement_gnf`, 500 000 GNF par défaut). À trancher avec les premières données réelles. À confirmer : taux Orange Money, frais de versement, valeurs de production.

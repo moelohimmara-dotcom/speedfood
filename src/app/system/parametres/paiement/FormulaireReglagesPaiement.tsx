@@ -53,6 +53,11 @@ export function FormulaireReglagesPaiement({ reglages: r }: { reglages: Reglages
           <input id="pay-mtn" name="fraisMtn" inputMode="numeric" defaultValue={r.fraisMobilePermilleMtn} required />
         </div>
         <div className="field">
+          <label htmlFor="pay-fixe">Frais fixes du paiement mobile (GNF)</label>
+          <input id="pay-fixe" name="fraisMobileFixe" inputMode="numeric" defaultValue={r.fraisMobileFixeGnf} required />
+          <Aide>S&apos;ajoute au pourcentage ci-dessus. Chap Chap Pay, mesuré en mode test : 200 GNF + 2 % (à confirmer en production).</Aide>
+        </div>
+        <div className="field">
           <label htmlFor="pay-speedfood">Frais Speedfood par commande (GNF)</label>
           <input id="pay-speedfood" name="fraisSpeedfood" inputMode="numeric" defaultValue={r.fraisSpeedfoodCommandeGnf} required />
           <Aide>Prélevé sur la part du restaurant, jamais plus que le repas.</Aide>

@@ -24,6 +24,8 @@ export interface EntreeRepartition {
   livraisonPar: LivraisonPar;
   /** Frais de transfert par versement, payés par Speedfood ; 0 tant que le prestataire ne les a pas communiqués. */
   fraisVersementGnf?: number;
+  /** Partie FIXE des frais de paiement mobile, en GNF, ajoutée au pourcentage (Chap Chap Pay : 200 GNF + 2 %, mesuré en mode test). */
+  fraisMobileFixeGnf?: number;
 }
 
 export interface Repartition {
@@ -51,12 +53,14 @@ export function fraisMobile(totalGnf: number, tauxPermille: number): number {
 
 export function calculerRepartition(e: EntreeRepartition): ResultatRepartition {
   const fraisVersement = e.fraisVersementGnf ?? 0;
+  const fraisMobileFixe = e.fraisMobileFixeGnf ?? 0;
   for (const [nom, v] of [
     ["repas", e.repasGnf],
     ["frais de livraison", e.fraisLivraisonGnf],
     ["frais Speedfood", e.fraisSpeedfoodGnf],
     ["taux de frais mobile", e.tauxFraisMobilePermille],
     ["frais de versement", fraisVersement],
+    ["frais mobile fixes", fraisMobileFixe],
   ] as const) {
     if (!estMontantGnf(v)) return { ok: false, raison: `Valeur invalide : ${nom}.` };
   }
@@ -69,7 +73,7 @@ export function calculerRepartition(e: EntreeRepartition): ResultatRepartition {
   const livreurGnf = e.livraisonPar === "livreur_independant" ? e.fraisLivraisonGnf : 0;
   const restaurantGnf = e.repasGnf - fraisSpeedfoodAppliqueGnf + (e.livraisonPar === "restaurant" ? e.fraisLivraisonGnf : 0);
   const speedfoodBrutGnf = fraisSpeedfoodAppliqueGnf;
-  const fraisMobileGnf = fraisMobile(totalClientGnf, e.tauxFraisMobilePermille);
+  const fraisMobileGnf = fraisMobile(totalClientGnf, e.tauxFraisMobilePermille) + fraisMobileFixe;
   const nombreVersements = (restaurantGnf > 0 ? 1 : 0) + (livreurGnf > 0 ? 1 : 0);
   const fraisVersementTotalGnf = fraisVersement * nombreVersements;
   const speedfoodNetGnf = speedfoodBrutGnf - fraisMobileGnf - fraisVersementTotalGnf;

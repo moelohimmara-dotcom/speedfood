@@ -80,7 +80,19 @@ try {
   const db = creerClientAdmin();
   const brut = creerDepotSupabase(db);
   // L'interrupteur reste ÉTEINT en base ; l'essai le force seulement ici, en mémoire.
-  const depot = { ...brut, lireReglages: async () => ({ ...(await brut.lireReglages()), actif: true, fournisseur: "simulation" }) };
+  const depot = {
+    ...brut,
+    // Valeurs de l'essai (indépendantes des réglages du jour) : 1,5 % Orange, 1,7 % MTN, pas de partie fixe, 1 000 GNF de frais Speedfood.
+    lireReglages: async () => ({
+      ...(await brut.lireReglages()),
+      actif: true,
+      fournisseur: "simulation",
+      tauxMobilePermille: { orange_money: 15, mtn_momo: 17 },
+      fraisMobileFixeGnf: 0,
+      fraisSpeedfoodCommandeGnf: 1000,
+      fraisVersementGnf: 0,
+    }),
+  };
   const passerelle = creerPasserelleSimulation({ cle: process.env.PAIEMENT_SIMULATION_CLE });
   const service = creerServicePaiement({ depot, passerelle });
 

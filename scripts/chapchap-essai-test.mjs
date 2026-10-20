@@ -27,6 +27,12 @@ if (!process.env.CHAPCHAP_CLE_API || !process.env.CHAPCHAP_CLE_SIGNATURE) {
   process.exit(1);
 }
 const operateur = process.argv[2] === "mtn_momo" ? "mtn_momo" : "orange_money";
+// Montant en GNF (3 000 au minimum chez Chap Chap Pay ; 3 000 par défaut) : node scripts/chapchap-essai-test.mjs mtn_momo 10000
+const montant = Number(process.argv[3] ?? 3000);
+if (!Number.isSafeInteger(montant) || montant < 3000 || montant > 500000) {
+  console.error("Montant invalide : un entier entre 3 000 et 500 000 GNF.");
+  process.exit(1);
+}
 
 const tmp = mkdtempSync(join(tmpdir(), "speedfood-chapchap-"));
 function copier(rel) {
@@ -41,7 +47,7 @@ try {
   const cc = creerPasserelleChapChap({ cleApi: process.env.CHAPCHAP_CLE_API, cleSignature: process.env.CHAPCHAP_CLE_SIGNATURE });
 
   const reference = `SF-ESSAI-${Date.now().toString(36).toUpperCase()}`;
-  const creation = await cc.encaisser({ referenceInterne: reference, montantGnf: 3000, operateur, description: "Essai Speedfood (mode test)" });
+  const creation = await cc.encaisser({ referenceInterne: reference, montantGnf: montant, operateur, description: "Essai Speedfood (mode test)" });
   console.log("Opération créée :", creation.referenceExterne);
   console.log("Adresse de paiement :", creation.urlPaiement);
   console.log(`\nOuvrez cette adresse, choisissez ${operateur === "orange_money" ? "Orange Money, compte de TEST 720000001" : "MTN MoMo, compte de TEST 760000001"}.`);
