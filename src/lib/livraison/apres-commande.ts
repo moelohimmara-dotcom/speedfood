@@ -18,6 +18,17 @@ export async function apresTransitionCommande(commandeId: string, vers: StatutCo
     console.error("livraison_apres_transition_echec");
   }
   await apresTransitionPaiement(commandeId, vers);
+  await apresTransitionClient(commandeId, vers);
+}
+
+/** Notification de suivi au client connecté (si ses préférences l'autorisent et qu'il a un appareil abonné). Ne fait jamais échouer la transition. */
+async function apresTransitionClient(commandeId: string, vers: StatutCommande): Promise<void> {
+  try {
+    const { signalerChangementCommande } = await import("@/lib/client/notifications");
+    await signalerChangementCommande(commandeId, vers);
+  } catch {
+    console.error("client_notification_echec");
+  }
 }
 
 /**

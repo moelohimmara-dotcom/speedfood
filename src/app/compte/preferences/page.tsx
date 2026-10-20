@@ -6,6 +6,8 @@ import { Card } from "@/components/ui";
 import { creerClientServeur } from "@/lib/db/server";
 import { lireModePrefere } from "@/lib/client/espace";
 import { FormulairePreferences } from "./FormulairePreferences";
+import { AlertesAppareil } from "./AlertesAppareil";
+import { lireClesVapid } from "@/lib/push/envoi";
 
 export const metadata: Metadata = { title: "Mes préférences" };
 export const dynamic = "force-dynamic";
@@ -28,6 +30,9 @@ export default async function MesPreferencesPage() {
       <h1>Mes préférences</h1>
       <Card>
         <FormulairePreferences modePrefere={lireModePrefere(profil.mode_prefere) ?? null} notifications={profil.notifications_commande !== false} />
+      </Card>
+      <Card>
+        <AlertesAppareil clePublique={lireClesVapid()?.clePublique ?? null} />
       </Card>
     </main>
   );

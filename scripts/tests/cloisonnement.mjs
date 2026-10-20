@@ -904,5 +904,28 @@ await autorise("préférences : le client règle son mode préféré et ses noti
 await interdit("préférences : un mode inconnu est refusé", ID.client, `update client_profils set mode_prefere = 'drone' where utilisateur_id = ${U(ID.client)}`);
 await interdit("préférences : on ne touche pas au profil d'un autre", ID.user_a, `update client_profils set mode_prefere = 'retrait' where utilisateur_id = ${U(ID.client)}`);
 
+// ---------------------------------------------------------------- 13. espace client : notifications de suivi
+console.log("\n--- Notifications du client");
+await db.exec(`
+  insert into client_push_subscriptions (utilisateur_id, endpoint, p256dh, auth) values
+    (${U(ID.client)}, 'https://fcm.googleapis.com/fcm/send/abcdefghij1', 'p256dh-cle-de-test-1', 'auth-cle-test-1'),
+    (${U(ID.user_b)}, 'https://fcm.googleapis.com/fcm/send/abcdefghij2', 'p256dh-cle-de-test-2', 'auth-cle-test-2');
+  insert into client_notifications (utilisateur_id, order_id, type) values
+    (${U(ID.client)}, '${CMD_A}', 'acceptee'), (${U(ID.user_b)}, '${CMD_B}', 'prete');
+`);
+verifier("abonnements push : le client lit les siens seulement", (await nb(ID.client, "client_push_subscriptions")) === 1 && (await nb(ID.user_b, "client_push_subscriptions")) === 1);
+verifier("abonnements push : un anonyme et l'exploitation n'en lisent aucun (les clés de chiffrement restent au serveur)", VIDE(await nb(null, "client_push_subscriptions")) && VIDE(await nb(ID.admin, "client_push_subscriptions")));
+verifier("notifications : chacun lit les siennes, pas celles des autres", (await nb(ID.client, "client_notifications")) === 1 && (await nb(ID.user_b, "client_notifications")) === 1 && VIDE(await nb(ID.user_a, "client_notifications")) && VIDE(await nb(null, "client_notifications")));
+await interdit("abonnements push : pas d'écriture par l'API", ID.client, `insert into client_push_subscriptions (utilisateur_id, endpoint, p256dh, auth) values (${U(ID.client)}, 'https://fcm.googleapis.com/fcm/send/zzzzzzzzzz', 'p256dh-cle-de-test-3', 'auth-cle-test-3')`);
+await interdit("abonnements push : pas de suppression par l'API", ID.client, `delete from client_push_subscriptions where utilisateur_id = ${U(ID.client)}`);
+await interdit("notifications : pas d'écriture ni de marquage « lue » par l'API", ID.client, `update client_notifications set lue_le = now() where utilisateur_id = ${U(ID.client)}`);
+await serveur("abonnements push : un point d'accès non sécurisé est refusé", `insert into client_push_subscriptions (utilisateur_id, endpoint, p256dh, auth) values (${U(ID.client)}, 'http://exemple.test/push/abcdefghij', 'p256dh-cle-de-test-4', 'auth-cle-test-4')`, true);
+await serveur("abonnements push : un même appareil deux fois est refusé", `insert into client_push_subscriptions (utilisateur_id, endpoint, p256dh, auth) values (${U(ID.user_b)}, 'https://fcm.googleapis.com/fcm/send/abcdefghij1', 'p256dh-cle-de-test-5', 'auth-cle-test-5')`, true);
+await serveur("abonnements push : jusqu'à cinq appareils par compte", `insert into client_push_subscriptions (utilisateur_id, endpoint, p256dh, auth) select ${U(ID.client)}, 'https://fcm.googleapis.com/fcm/send/appareil-' || g, 'p256dh-cle-de-test-6', 'auth-cle-test-6' from generate_series(1, 4) g`, false);
+await serveur("abonnements push : le sixième est refusé par la base", `insert into client_push_subscriptions (utilisateur_id, endpoint, p256dh, auth) values (${U(ID.client)}, 'https://fcm.googleapis.com/fcm/send/appareil-6', 'p256dh-cle-de-test-7', 'auth-cle-test-7')`, true);
+await serveur("notifications : la même étape d'une commande n'est notifiée qu'une fois", `insert into client_notifications (utilisateur_id, order_id, type) values (${U(ID.client)}, '${CMD_A}', 'acceptee')`, true);
+await serveur("notifications : une autre étape de la même commande est acceptée", `insert into client_notifications (utilisateur_id, order_id, type) values (${U(ID.client)}, '${CMD_A}', 'prete')`, false);
+await serveur("notifications : un type inconnu est refusé", `insert into client_notifications (utilisateur_id, order_id, type) values (${U(ID.client)}, '${CMD_A}', 'piratage')`, true);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

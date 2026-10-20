@@ -69,7 +69,9 @@ interface LigneAbonnement {
   echecs: number;
 }
 
-async function envoyerAuxAbonnements(lignes: LigneAbonnement[], cles: ClesVapid): Promise<BilanEnvoi> {
+type TableAbonnements = "push_subscriptions" | "client_push_subscriptions";
+
+async function envoyerAuxAbonnements(lignes: LigneAbonnement[], cles: ClesVapid, table: TableAbonnements = "push_subscriptions"): Promise<BilanEnvoi> {
   const admin = creerClientAdmin();
   const bilan: BilanEnvoi = { abonnes: lignes.length, envoyes: 0, expires: 0, echecs: 0 };
 
@@ -78,16 +80,16 @@ async function envoyerAuxAbonnements(lignes: LigneAbonnement[], cles: ClesVapid)
       const issue = await envoyerNotification(ligne.endpoint, cles);
       if (issue === "ok") {
         bilan.envoyes += 1;
-        await admin
-          .from("push_subscriptions")
+        await (admin as unknown as import("@supabase/supabase-js").SupabaseClient)
+          .from(table)
           .update({ derniere_reussite_le: new Date().toISOString(), echecs: 0 })
           .eq("id", ligne.id);
       } else if (issue === "expire" || ligne.echecs + 1 >= ECHECS_AVANT_SUPPRESSION) {
         bilan.expires += 1;
-        await admin.from("push_subscriptions").delete().eq("id", ligne.id);
+        await (admin as unknown as import("@supabase/supabase-js").SupabaseClient).from(table).delete().eq("id", ligne.id);
       } else {
         bilan.echecs += 1;
-        await admin.from("push_subscriptions").update({ echecs: ligne.echecs + 1 }).eq("id", ligne.id);
+        await (admin as unknown as import("@supabase/supabase-js").SupabaseClient).from(table).update({ echecs: ligne.echecs + 1 }).eq("id", ligne.id);
       }
     })
   );
@@ -110,6 +112,19 @@ export async function notifierRestaurant(restaurantId: string): Promise<BilanEnv
   const bilan = await envoyerAuxAbonnements(data, cles);
   console.log("push_commande", JSON.stringify(bilan));
   return bilan;
+}
+
+/** Prévient les appareils d'un CLIENT (suivi de commande). Le texte est récupéré ensuite par son Service Worker auprès de notre serveur. */
+export async function notifierClient(utilisateurId: string): Promise<BilanEnvoi | null> {
+  const cles = lireClesVapid();
+  if (!cles) return null;
+  const { data, error } = await (creerClientAdmin() as unknown as import("@supabase/supabase-js").SupabaseClient)
+    .from("client_push_subscriptions")
+    .select("id, endpoint, echecs")
+    .eq("utilisateur_id", utilisateurId)
+    .limit(5);
+  if (error || !data) return null;
+  return envoyerAuxAbonnements(data as LigneAbonnement[], cles, "client_push_subscriptions");
 }
 
 /** Envoie la notification d'essai aux seuls appareils d'une personne (bouton « Envoyer un essai »). */
