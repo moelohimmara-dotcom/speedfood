@@ -8,6 +8,8 @@ import { creerClientAdmin } from "@/lib/db/admin";
 import { creerClientServeur } from "@/lib/db/server";
 import { estUuid } from "@/lib/commande/commun";
 import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuivi";
+import { messageRecommande, reconstruireCommande, type PlatDuMenu } from "./recommander";
+import type { LignePanier } from "@/lib/panier/gestion";
 
 /**
  * Actions de l'espace client. L'identité vient TOUJOURS de la session : un identifiant de compte envoyé par le navigateur n'est jamais cru.
@@ -84,4 +86,56 @@ export async function retirerFavoriAction(restaurantId: string): Promise<void> {
   if (!utilisateur) redirect("/entrer?suite=/compte/favoris");
   if (estUuid(restaurantId)) await dbSansTypes().from("client_favoris").delete().eq("utilisateur_id", utilisateur).eq("restaurant_id", restaurantId);
   revalidatePath("/compte/favoris");
+}
+
+export type ResultatRecommande =
+  | { ok: true; restaurant: { id: string; nom: string }; lignes: LignePanier[]; message: string | null }
+  | { ok: false; message: string };
+
+/**
+ * « Commander à nouveau » : prépare un panier d'après une commande DU COMPTE et le menu d'aujourd'hui (prix actuels, plats disponibles). Ne crée
+ * aucune commande : le panier est rempli dans le navigateur et le client vérifie avant d'envoyer, comme pour toute commande.
+ */
+export async function preparerRecommandeAction(orderId: string): Promise<ResultatRecommande> {
+  const utilisateur = await utilisateurConnecte();
+  if (!utilisateur) return { ok: false, message: "Connectez-vous pour commander à nouveau." };
+  if (!estUuid(orderId)) return { ok: false, message: "Commande introuvable." };
+  const db = creerClientAdmin();
+
+  const { data: commande } = await db
+    .from("orders")
+    .select("id, restaurant_id, order_items(menu_item_id, nom, quantite, order_item_options(option_id))")
+    .eq("id", orderId)
+    .eq("client_user_id", utilisateur)
+    .maybeSingle();
+  if (!commande) return { ok: false, message: "Commande introuvable." };
+
+  const { data: resto } = await db.from("restaurants").select("id, nom, publie, accepte_commandes, ouvert").eq("id", commande.restaurant_id).maybeSingle();
+  if (!resto || !resto.publie) return { ok: false, message: "Ce restaurant n'est plus disponible sur Speedfood." };
+  if (!resto.accepte_commandes) return { ok: false, message: "Ce restaurant n'accepte pas de commandes pour le moment." };
+
+  const passees = (commande.order_items ?? []).map((l) => ({
+    menuItemId: l.menu_item_id,
+    nom: l.nom,
+    quantite: l.quantite,
+    optionIds: (l.order_item_options ?? []).map((o) => o.option_id).filter((x): x is string => typeof x === "string"),
+  }));
+  const ids = [...new Set(passees.map((l) => l.menuItemId).filter((x): x is string => typeof x === "string"))];
+  const { data: plats } = ids.length
+    ? await db.from("menu_items").select("id, nom, prix, prix_promo, disponible, archive_le, photo_url, menu_item_options(id, nom, prix, disponible)").eq("restaurant_id", commande.restaurant_id).in("id", ids).limit(60)
+    : { data: [] };
+  const menu: PlatDuMenu[] = (plats ?? []).map((p) => ({
+    id: p.id,
+    nom: p.nom,
+    prix: p.prix,
+    prixPromo: p.prix_promo,
+    disponible: p.disponible,
+    archive: p.archive_le !== null,
+    photoUrl: p.photo_url,
+    options: (p.menu_item_options ?? []).map((o) => ({ id: o.id, nom: o.nom, prix: o.prix, disponible: o.disponible })),
+  }));
+
+  const r = reconstruireCommande(passees, menu);
+  if (r.lignes.length === 0) return { ok: false, message: "Aucun plat de cette commande n'est plus proposé. Ouvrez le menu du restaurant pour choisir." };
+  return { ok: true, restaurant: { id: resto.id, nom: resto.nom }, lignes: r.lignes, message: messageRecommande(r) };
 }

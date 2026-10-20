@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { VecteurPanierVide } from "@/components/site/vecteurs/VecteurPanierVide";
 import {
   changerQuantite,
@@ -25,10 +26,17 @@ export default function PanierPage() {
   const pret = usePanierPret();
   const total = sousTotalPanier(panier);
   const nombre = nombreArticlesPanier(panier);
+  // Message transmis par « Commander à nouveau » (plats qui ne sont plus proposés, etc.). Affiché comme TEXTE, jamais comme code.
+  const info = useSyncExternalStore(
+    () => () => {},
+    () => (new URLSearchParams(window.location.search).get("info") ?? "").slice(0, 300) || null,
+    () => null
+  );
 
   return (
     <main className="panier-page">
       <h1 className="panier-titre">Mon panier</h1>
+      {info ? <Alert ton="info">{info}</Alert> : null}
 
       {!pret ? (
         <div className="squelette" role="status" aria-busy="true">

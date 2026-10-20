@@ -7,6 +7,7 @@ import { ouvrirSuiviCommandeAction } from "@/lib/client/actions-espace";
 import { COMMANDES_MAX_AFFICHEES, listerMesCommandes } from "@/lib/client/mes-commandes";
 import { formaterDateCommande, formaterMontantClient, libellePaiementClient, libelleStatutCommandeClient } from "@/lib/client/espace";
 import { libelleMode } from "@/lib/commande/mode";
+import { BoutonRecommander } from "@/components/BoutonRecommander";
 
 export const metadata: Metadata = { title: "Mes commandes" };
 export const dynamic = "force-dynamic";
@@ -90,9 +91,7 @@ function CarteCommande({ commande: c }: { commande: Awaited<ReturnType<typeof li
             </button>
           </form>
         ) : null}
-        <Link href={`/restaurants/${c.restaurantId}`} className="btn btn-secondary btn-compact">
-          Commander à nouveau
-        </Link>
+        <BoutonRecommander orderId={c.id} />
       </div>
     </Card>
   );
