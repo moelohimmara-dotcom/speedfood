@@ -173,9 +173,19 @@ copier("src/lib/cms/apercu-textes.ts");
 copier("scripts/tests/apercu-textes.test.mts");
 copier("src/lib/table/profils.ts");
 copier("scripts/tests/profils.test.mts");
+copier("src/lib/paiement/en-ligne/types.ts");
+copier("src/lib/paiement/en-ligne/machine.ts");
+copier("src/lib/paiement/en-ligne/repartition.ts");
+copier("src/lib/paiement/en-ligne/ecritures.ts");
+copier("src/lib/paiement/en-ligne/litiges.ts");
+copier("src/lib/paiement/en-ligne/signature.ts");
+copier("src/lib/paiement/en-ligne/fournisseur.ts");
+copier("src/lib/paiement/en-ligne/simulation.ts");
+copier("src/lib/paiement/en-ligne/chapchap.ts");
+copier("scripts/tests/paiement-en-ligne.test.mts");
 
 let statut = 0;
-for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils"]) {
+for (const fichier of ["decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

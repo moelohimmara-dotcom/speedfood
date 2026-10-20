@@ -23,7 +23,7 @@
   --surface-alt: #fffaf3;
   --radius-xl: 24px;
   /* Bouton désactivé : gris lisible (7:1) plutôt que la couleur d'origine à demi transparente (rose pâle, texte blanc illisible). */
-  --desactive-fond: var(--bordure);
+  --desactive-fond: #e9dcd2;
   --desactive-texte: #4a4039;
 
   /* Réservé à l'action principale (bouton, barre de panier) — voir DESIGN-SYSTEM.md */

@@ -156,10 +156,11 @@ if (!racine) {
   process.exit(1);
 }
 const globalsCss = fs.readFileSync(path.join(racine, "src", "app", "globals.css"), "utf8");
-const migration = fs.readFileSync(
-  path.join(racine, "supabase", "migrations", "20261007184500_jetons_design.sql"),
-  "utf8"
-);
+// Les jetons sont semés par la migration d'origine puis complétés par des migrations ultérieures (jamais en modifiant celle déjà appliquée).
+const migration = ["20261007184500_jetons_design.sql", "20261020140000_jetons_design_complements.sql"]
+  .map((f) => fs.readFileSync(path.join(racine, "supabase", "migrations", f), "utf8"))
+  .join("
+");
 
 // Extrait `--nom: valeur;` du bloc :root de globals.css.
 const blocRoot = globalsCss.slice(globalsCss.indexOf(":root {"), globalsCss.indexOf("html {"));
@@ -181,7 +182,8 @@ const attendues = [
   "rouge", "rouge-fonce", "orange", "mangue", "creme", "surface", "encre", "secondaire", "bordure",
   "succes", "succes-fond", "danger", "danger-fond", "gradient-marque",
   "space-1", "space-2", "space-3", "space-4", "space-5", "space-6", "space-8",
-  "radius-sm", "radius-md", "radius-lg", "radius-pill",
+  "radius-sm", "radius-md", "radius-lg", "radius-xl", "radius-pill",
+  "avertissement-fond", "avertissement-texte", "surface-alt", "desactive-fond", "desactive-texte",
   "shadow-sm", "shadow-md", "shadow-lg", "shadow-focus",
   "ease", "duration-fast", "duration-base",
 ];
