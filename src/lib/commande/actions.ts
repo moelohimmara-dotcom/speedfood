@@ -163,6 +163,11 @@ export async function declarerPaiementAction(
     if (!peutDeclarer(suivi.paiement.statut)) {
       return { ok: false, erreur: { code: "CONFLIT_ETAT", message: "Le restaurant a déjà confirmé votre paiement." } };
     }
+    // Un paiement en ligne ouvert ou abouti n'est pas remplacé par une déclaration manuelle : l'argent serait compté deux fois.
+    const etatEnLigne = suivi.paiement.enLigne.etat;
+    if (etatEnLigne === "cree" || etatEnLigne === "en_attente" || etatEnLigne === "confirme" || etatEnLigne === "libere" || etatEnLigne === "en_litige") {
+      return { ok: false, erreur: { code: "CONFLIT_ETAT", message: "Un paiement en ligne est déjà en cours pour cette commande." } };
+    }
     const option = suivi.paiement.options.find((o) => o.mode === mode);
     if (!option) {
       return { ok: false, erreur: { code: "VALIDATION", message: "Ce restaurant n'accepte pas ce mode de paiement." } };

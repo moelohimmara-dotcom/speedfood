@@ -149,6 +149,8 @@ export interface DepotPaiement {
   patcher(id: string, patch: PatchPaiement): Promise<void>;
   /** Vrai si l'événement est nouveau, faux si déjà vu (rejeu). */
   enregistrerEvenement(e: EvenementRecu): Promise<boolean>;
+  /** Reflète le paiement en ligne sur la commande (mode « speedfood », statut de paiement) : en cours, payée, ou abandonnée (retour aux autres modes). */
+  synchroniserCommande(orderId: string, situation: "en_cours" | "payee" | "abandonnee"): Promise<void>;
   /** Un groupe d'écritures, atomique. Vrai si écrit, faux si cette clé d'idempotence l'avait déjà été. */
   ajouterEcritures(paiementId: string, cleIdempotence: string, ecritures: readonly Ecriture[]): Promise<boolean>;
   lireCompteVersement(b: Beneficiaire, proprietaireId: string): Promise<CompteVersement | null>;
@@ -286,6 +288,7 @@ export function creerServicePaiement(deps: DependancesService) {
         description: "Commande Speedfood",
       });
       const ok = await depot.changerEtat(paiement.id, "cree", "en_attente", { referenceExterne: demande.referenceExterne, expireLe });
+      if (ok) await depot.synchroniserCommande(commande.id, "en_cours");
       if (!ok) return { ok: true, paiementId: paiement.id, etat: (await depot.paiementParId(paiement.id))?.etat ?? "cree", urlPaiement: demande.urlPaiement, deja: true };
       return { ok: true, paiementId: paiement.id, etat: "en_attente", urlPaiement: demande.urlPaiement, deja: false };
     } catch (e) {
@@ -346,7 +349,9 @@ export function creerServicePaiement(deps: DependancesService) {
       return { statut: "applique", paiementId: paiement.id, etat: actuel?.etat ?? paiement.etat };
     }
 
+    if (t.etat === "echoue" || t.etat === "annule" || t.etat === "expire") await depot.synchroniserCommande(paiement.orderId, "abandonnee");
     if (t.etat === "confirme") {
+      await depot.synchroniserCommande(paiement.orderId, "payee");
       await depot.ajouterEcritures(paiement.id, "encaissement", ecrituresEncaissement(paiement.totalGnf));
       await depot.ajouterEcritures(paiement.id, "frais_mobile", ecrituresFraisMobile(paiement.fraisMobileGnf));
       // Argent arrivé APRÈS une expiration ou une annulation : la commande n'est plus valable, on rend l'argent.
@@ -491,6 +496,7 @@ export function creerServicePaiement(deps: DependancesService) {
     const passe = await depot.changerEtat(p.id, p.etat, "rembourse", { rembourseGnf: p.totalGnf });
     if (!passe) return { ok: false, raison: "concurrent" };
     await depot.ajouterEcritures(p.id, "remboursement", ecrituresRemboursementAvantLiberation(p.totalGnf));
+    await depot.synchroniserCommande(p.orderId, "abandonnee");
     return { ok: true, deja: false };
   }
 
@@ -550,6 +556,38 @@ export function creerServicePaiement(deps: DependancesService) {
     return { ok: true, litigeId: litige.id, decision };
   }
 
+  /**
+   * Décision HUMAINE sur un litige resté à l'exploitation : rendre l'argent au client ou libérer vers les bénéficiaires. Le remboursement
+   * est refusé si l'argent est déjà parti (aucun retrait automatique chez un tiers) : l'exploitation le traite alors à la main.
+   */
+  async function trancherLitige(entree: { paiementId: string; litigeId: string; decision: "rembourser" | "liberer"; motif: string }): Promise<
+    { ok: true } | { ok: false; raison: "introuvable" | "litige_clos" | "deja_verse" | "echec" }
+  > {
+    const p = await depot.paiementParId(entree.paiementId);
+    if (!p) return { ok: false, raison: "introuvable" };
+    const ouverts = await depot.litigesOuverts(p.id);
+    const litige = ouverts.find((l) => l.id === entree.litigeId);
+    if (!litige) return { ok: false, raison: "litige_clos" };
+    if (p.etat !== "en_litige") return { ok: false, raison: "echec" };
+
+    if (entree.decision === "rembourser") {
+      if ((await depot.versementsDuPaiement(p.id)).length > 0) return { ok: false, raison: "deja_verse" };
+      const r = await rembourserTotal(p.id);
+      if (!r.ok) return { ok: false, raison: "echec" };
+    } else {
+      const r = await libererPaiement(p.id, { depuisLitige: true });
+      if (!r.ok) return { ok: false, raison: "echec" };
+    }
+    await depot.majLitige(litige.id, {
+      etat: "clos",
+      decision: entree.decision === "rembourser" ? "rembourser_total" : "aucun_remboursement",
+      regle: "decision_humaine",
+      remboursementGnf: entree.decision === "rembourser" ? p.totalGnf : 0,
+      motifCloture: entree.motif.slice(0, 300),
+    });
+    return { ok: true };
+  }
+
   // -------------------------------------------------------------------------------------------------- 6. réactions aux commandes
   /** Commande terminée (remise au client, retrait fait, servie) : l'objectif est atteint, on libère. Sans effet s'il n'y a pas de paiement en ligne. */
   async function surCommandeTerminee(orderId: string): Promise<ResultatLiberation | null> {
@@ -567,7 +605,7 @@ export function creerServicePaiement(deps: DependancesService) {
     if (p.etat === "rembourse") return { ok: true, deja: true };
     if (p.etat === "cree" || p.etat === "en_attente") {
       const t = transitionPaiement(p.etat, "annuler");
-      if (t.ok) await depot.changerEtat(p.id, p.etat, "annule");
+      if (t.ok && (await depot.changerEtat(p.id, p.etat, "annule"))) await depot.synchroniserCommande(p.orderId, "abandonnee");
       return { ok: true, deja: false };
     }
     if (p.etat === "confirme") return rembourserTotal(p.id);
@@ -579,7 +617,9 @@ export function creerServicePaiement(deps: DependancesService) {
   async function expirerSiBesoin(paiementId: string): Promise<boolean> {
     const p = await depot.paiementParId(paiementId);
     if (!p || p.etat !== "en_attente") return false;
-    return depot.changerEtat(p.id, "en_attente", "expire");
+    const expire = await depot.changerEtat(p.id, "en_attente", "expire");
+    if (expire) await depot.synchroniserCommande(p.orderId, "abandonnee");
+    return expire;
   }
 
   return {
@@ -589,6 +629,7 @@ export function creerServicePaiement(deps: DependancesService) {
     reprendreVersements,
     rembourserTotal,
     ouvrirLitige,
+    trancherLitige,
     surCommandeTerminee,
     surCommandeAnnulee,
     expirerSiBesoin,

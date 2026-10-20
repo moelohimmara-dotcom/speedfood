@@ -7,7 +7,7 @@
  * prix, le client ne doit rien payer.
  */
 
-export type ModePaiement = "especes" | "orange_money" | "mtn_momo";
+export type ModePaiement = "especes" | "orange_money" | "mtn_momo" | "speedfood";
 export type StatutPaiement = "non_demande" | "especes" | "declare" | "recu" | "non_recu";
 
 export interface CodesMarchand {
@@ -26,6 +26,7 @@ export const LIBELLES_MODE: Record<ModePaiement, string> = {
   especes: "Espèces",
   orange_money: "Orange Money",
   mtn_momo: "MTN MoMo",
+  speedfood: "Paiement en ligne Speedfood",
 };
 
 const FORME_CODE = /^[0-9A-Za-z]{3,20}$/;
@@ -70,6 +71,7 @@ export function peutDeclarer(statut: StatutPaiement): boolean {
 export function libelleStatutPaiement(statut: StatutPaiement, mode: ModePaiement | null): string {
   switch (statut) {
     case "recu":
+      if (mode === "speedfood") return "Payé en ligne via Speedfood";
       return mode === "especes" ? "Espèces encaissées" : "Paiement reçu par le restaurant";
     case "declare":
       return "Paiement déclaré, en attente de confirmation du restaurant";
@@ -78,7 +80,7 @@ export function libelleStatutPaiement(statut: StatutPaiement, mode: ModePaiement
     case "non_recu":
       return "Paiement non retrouvé par le restaurant";
     default:
-      return "Paiement non demandé";
+      return mode === "speedfood" ? "Paiement en ligne en cours" : "Paiement non demandé";
   }
 }
 

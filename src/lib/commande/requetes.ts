@@ -1,4 +1,6 @@
 import { versModeCommande } from "./mode";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { lirePaiementEnLigneSuivi } from "@/lib/paiement/en-ligne/suivi";
 import "server-only";
 import type {
   ApercuCommandeRestaurant,
@@ -66,7 +68,7 @@ function versStatutPaiement(valeur: string | null | undefined): StatutPaiement {
 }
 
 function versModePaiement(valeur: string | null | undefined): ModePaiement | null {
-  return valeur === "especes" || valeur === "orange_money" || valeur === "mtn_momo" ? valeur : null;
+  return valeur === "especes" || valeur === "orange_money" || valeur === "mtn_momo" || valeur === "speedfood" ? valeur : null;
 }
 
 function versMode(valeur: string): ModeRetrait {
@@ -137,6 +139,8 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
     options = optionsPaiement(restaurant.moyens_paiement ?? [], { orange: codes?.orange ?? null, mtn: codes?.mtn ?? null });
   }
 
+  const enLigne = await lirePaiementEnLigneSuivi(db as unknown as SupabaseClient, commande.id, statutPaiement !== "recu" && paiementOuvert(statut, propositionActive !== null));
+
   return {
     reference: commande.reference,
     statut,
@@ -170,6 +174,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
       declareLe: fraiche?.paiement_declare_le ?? null,
       recuLe: fraiche?.paiement_recu_le ?? null,
       options,
+      enLigne,
     },
     historiqueStatuts: (evenements ?? []).map(
       (e): EvenementStatutCommande => ({

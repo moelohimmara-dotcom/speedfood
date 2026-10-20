@@ -55,6 +55,15 @@ export default async function ParametresSystemePage() {
       </div>
 
       <div className="u-mt-s6">
+        <Panneau titre="Paiement en ligne">
+          <p className="u-mt-0">Interrupteur, fournisseur, frais, plafonds, et comptes mobile money où Speedfood verse les restaurants et les livreurs.</p>
+          <Link href="/system/parametres/paiement" className="lien-texte">
+            Régler le paiement en ligne
+          </Link>
+        </Panneau>
+      </div>
+
+      <div className="u-mt-s6">
         <Panneau titre="Zone dangereuse">
           <p className="u-mt-0">
             Remettre toute l&apos;application à l&apos;état neuf avant la mise en production : restaurants, commandes, clients et comptes sont supprimés

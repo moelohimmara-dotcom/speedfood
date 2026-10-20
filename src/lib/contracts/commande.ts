@@ -197,6 +197,16 @@ export interface RestaurantSuivi {
  * Ces champs n'existent tout simplement pas dans ce type.
  */
 /** Paiement d'une commande vu par le client : déclaration, confirmation du restaurant, et modes proposés (avec code marchand) une fois la commande acceptée. */
+/** Paiement en ligne via Speedfood (mode « speedfood »), vu par le client. `disponible` : l'interrupteur est allumé et le paiement est ouvert. */
+export interface PaiementEnLigneSuivi {
+  disponible: boolean;
+  /** Fournisseur de démonstration : aucun argent réel, la validation se simule. */
+  simulation: boolean;
+  etat: "cree" | "en_attente" | "confirme" | "libere" | "echoue" | "expire" | "annule" | "rembourse" | "en_litige" | null;
+  operateur: "orange_money" | "mtn_momo" | null;
+  totalGnf: number | null;
+}
+
 export interface PaiementSuivi {
   statut: StatutPaiement;
   mode: ModePaiement | null;
@@ -205,6 +215,7 @@ export interface PaiementSuivi {
   recuLe: string | null;
   /** Modes proposés au client ; vide tant que le paiement n'est pas ouvert (commande non acceptée) ou déjà confirmé. */
   options: OptionPaiement[];
+  enLigne: PaiementEnLigneSuivi;
 }
 
 export interface SuiviCommande {

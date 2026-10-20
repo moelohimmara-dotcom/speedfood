@@ -259,6 +259,13 @@ export function CommandeCarte({
             {commande.paiementRecuLe ? ` · le ${formaterDate(commande.paiementRecuLe)}` : ""}
             {documents.recu ? ` · reçu ${documents.recu}` : ""}
           </p>
+          {commande.paiementMode === "speedfood" ? (
+            <p className="cmd-paiement-detail">
+              {commande.paiementStatut === "recu"
+                ? "Le client a payé en ligne. Vous serez payé sur votre compte mobile money dès que la commande sera remise."
+                : "Le client règle en ligne : rien à encaisser ni à confirmer, la confirmation vient du prestataire de paiement."}
+            </p>
+          ) : null}
           {commande.paiementStatut === "declare" ? (
             <p className="cmd-paiement-detail">Comparez avec le SMS de confirmation de votre opérateur avant de valider.</p>
           ) : null}
@@ -283,7 +290,7 @@ export function CommandeCarte({
                 Espèces encaissées
               </Button>
             ) : null}
-            {commande.paiementStatut === "non_demande" || commande.paiementStatut === "non_recu" ? (
+            {(commande.paiementStatut === "non_demande" || commande.paiementStatut === "non_recu") && commande.paiementMode !== "speedfood" ? (
               <Button type="button" variante="secondary" disabled={enCours} onClick={() => confirmerPaiement("recu", "Marquer cette commande comme payée ?")}>
                 Marquer comme payée
               </Button>

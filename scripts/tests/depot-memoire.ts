@@ -52,6 +52,7 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
     comptes: new Map<string, CompteVersement>(),
     litiges: new Map<string, LigneLitige & { decision?: string; regle?: string }>(),
     compteur: 0,
+    commandesSync: new Map<string, string>(),
   };
   const id = (p: string) => `${p}-${++etat.compteur}`;
 
@@ -105,6 +106,9 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
       if (etat.evenements.has(cle)) return false;
       etat.evenements.add(cle);
       return true;
+    },
+    async synchroniserCommande(orderId, situation) {
+      etat.commandesSync.set(orderId, situation);
     },
     async ajouterEcritures(paiementId, cle, ecritures) {
       if (etat.cles.has(`${paiementId}|${cle}`)) return false;

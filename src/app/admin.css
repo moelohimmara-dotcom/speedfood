@@ -3077,3 +3077,31 @@ a.ad-carte-lien:hover {
 .livreurs-dossier dd {
   margin: 0;
 }
+
+/* Paiements en ligne (21 octobre 2026) */
+.paiement-admin-actions {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 14rem;
+}
+.paiement-admin-boutons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.paiement-compte-ligne {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--bordure);
+}
+.paiement-compte-nom {
+  margin: 0;
+  font-weight: 600;
+}
+.paiement-compte-champs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-2);
+  align-items: center;
+}

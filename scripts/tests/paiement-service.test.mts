@@ -89,6 +89,7 @@ async function ouvrirEtPayer(b: ReturnType<typeof banc>, orderId = "cmd-1", oper
   verifier("ouverture : frais mobile arrondis au GNF supérieur (30 000 × 1,5 % = 450)", p?.fraisMobileGnf, 450);
   verifier("ouverture : aucune écriture avant la confirmation du prestataire", b.etat.ecritures.length, 0);
   const encore = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "mtn_momo" });
+  verifier("ouverture : la commande est marquée « paiement en ligne en cours »", b.etat.commandesSync.get("cmd-1"), "en_cours");
   verifier("ouverture rejouée : renvoie le même paiement, sans second appel au prestataire", [encore.ok && encore.deja, b.etat.paiements.size, b.appels.encaisser], [true, 1, 1]);
 }
 {
@@ -131,6 +132,7 @@ async function ouvrirEtPayer(b: ReturnType<typeof banc>, orderId = "cmd-1", oper
   const s = soldes(b.etat.ecritures);
   verifier("livre après encaissement : 30 000 chez le prestataire moins 450 de frais, 30 000 à libérer", [s.fonds_operateur, s.fonds_a_liberer, s.charge_frais_mobile], [29_550, -30_000, 450]);
   verifier("livre : équilibré", estEquilibre(b.etat.ecritures), true);
+  verifier("paiement confirmé : la commande est marquée payée", b.etat.commandesSync.get("cmd-1"), "payee");
 }
 {
   const b = banc();
@@ -169,6 +171,7 @@ async function ouvrirEtPayer(b: ReturnType<typeof banc>, orderId = "cmd-1", oper
   verifier("notification « en attente » : sans effet", [attente.statut, (await b.depot.paiementParId(p.id))?.etat], ["ignore", "en_attente"]);
   const echec = await b.payer(p.referenceExterne!, null, "echec");
   verifier("échec signalé par le prestataire : paiement « échoué », aucune écriture", [echec.statut, (await b.depot.paiementParId(p.id))?.etat, b.etat.ecritures.length], ["applique", "echoue", 0]);
+  verifier("paiement échoué : la commande retrouve les autres modes de paiement", b.etat.commandesSync.get("cmd-1"), "abandonnee");
 }
 
 // ------------------------------------------------------------------ libération et versements
@@ -238,6 +241,7 @@ verifier("numéro masqué : seuls les deux derniers chiffres", [masquerNumero("+
   const r = await b.service.surCommandeAnnulee("cmd-1");
   verifier("commande refusée après paiement : remboursement total", [r?.ok, (await b.depot.paiementParId(p.id))?.etat, (await b.depot.paiementParId(p.id))?.rembourseGnf], [true, "rembourse", 30_000]);
   const encore = await b.service.surCommandeAnnulee("cmd-1");
+  verifier("remboursement total : la commande n'est plus marquée payée", b.etat.commandesSync.get("cmd-1"), "abandonnee");
   verifier("remboursement demandé deux fois : un seul appel au prestataire", [encore?.ok, b.appels.rembourser], [true, 1]);
   verifier("aucun versement après un remboursement", [(await b.service.libererPaiement(p.id)).ok, b.appels.verser], [false, 0]);
 }
@@ -301,6 +305,26 @@ verifier("numéro masqué : seuls les deux derniers chiffres", [masquerNumero("+
   const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
   const r = await b.service.ouvrirLitige({ paiementId: o.ok ? o.paiementId : "", ouvertPar: "client", situation: "restaurant_refuse_ou_annule" });
   verifier("litige sur un paiement non confirmé : refusé", [r.ok, r.ok ? null : r.raison], [false, "etat_incompatible"]);
+}
+
+// ------------------------------------------------------------------ décision humaine sur un litige
+{
+  const b = banc();
+  const { p } = await ouvrirEtPayer(b);
+  const l = await b.service.ouvrirLitige({ paiementId: p.id, ouvertPar: "client", situation: "plat_manquant_ou_errone", montantDemandeGnf: 20_000, preuveFournie: true });
+  const litigeId = l.ok ? l.litigeId : "";
+  const r = await b.service.trancherLitige({ paiementId: p.id, litigeId, decision: "rembourser", motif: "Photo reçue, plat absent" });
+  verifier("litige tranché par un humain (rembourser) : le client est rendu, le litige est clos", [r.ok, (await b.depot.paiementParId(p.id))?.etat, b.etat.litiges.get(litigeId)?.etat], [true, "rembourse", "clos"]);
+  const encore = await b.service.trancherLitige({ paiementId: p.id, litigeId, decision: "rembourser", motif: "x" });
+  verifier("litige déjà clos : une seconde décision est refusée", [encore.ok, encore.ok ? null : encore.raison], [false, "litige_clos"]);
+}
+{
+  const b = banc();
+  b.ajouterComptes();
+  const { p } = await ouvrirEtPayer(b);
+  const l = await b.service.ouvrirLitige({ paiementId: p.id, ouvertPar: "client", situation: "plat_manquant_ou_errone", montantDemandeGnf: 20_000, preuveFournie: true });
+  const r = await b.service.trancherLitige({ paiementId: p.id, litigeId: l.ok ? l.litigeId : "", decision: "liberer", motif: "Le restaurant a prouvé la remise" });
+  verifier("litige tranché par un humain (libérer) : les bénéficiaires sont payés", [r.ok, (await b.depot.paiementParId(p.id))?.etat, b.appels.verser], [true, "libere", 2]);
 }
 
 // ------------------------------------------------------------------ invariant global

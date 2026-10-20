@@ -91,7 +91,7 @@ Endpoint de création d'un paiement (PULL), chaîne exacte à signer, format des
 | **P1** | Modules purs + tests : états, répartition, écritures, litiges, signature, simulation | Non |
 | **P2** | Migration : tables, contraintes d'unicité, équilibre du livre, RLS ; tests de cloisonnement ; contrôle de sécurité de la base | Non |
 | **P3** *(fait, 21 octobre 2026)* | `service.ts` (orchestration derrière deux ports : `DepotPaiement`, `PasserelleDePaiement`), `depot-supabase.ts`, `fabrique.ts`, route `POST /api/paiement/notification/[fournisseur]`, branchement dans `apres-commande.ts` (commande terminée → libération ; refusée ou annulée → remboursement). Testé de bout en bout avec un dépôt en mémoire (`paiement-service.test.mts`). **Pas encore appelé par l'interface** : aucun écran ne crée de paiement (P4) | Non |
-| **P4** | Écran client (choix recommandé du paiement en ligne), écran restaurant (statut), écran d'administration (paiements, versements en échec, litiges), réglages | Non |
+| **P4** *(fait, 21 octobre 2026)* | Écran client (paiement en ligne recommandé sur la page de suivi, avec validation simulée en démonstration), écran restaurant (statut, plus de confirmation manuelle), écran d'administration `/system/paiements` (paiements, versements à reprendre, litiges à décider), réglages `/system/parametres/paiement` (interrupteur, frais, plafonds, bandeau « valeurs de simulation »), comptes de versement `/system/parametres/paiement/comptes` | Non |
 | **P5** | Adaptateur Chap Chap Pay réel : **après réception de la Référence API, de clés de test et d'un accord écrit** | Test d'abord |
 | **P6** | Rapprochement quotidien, plafonds, surveillance, bascule en production : **après avis juridique et validation de Malika** | Oui |
 
@@ -108,3 +108,11 @@ Endpoint de création d'un paiement (PULL), chaîne exacte à signer, format des
 - Expiration : la fonction existe, aucune tâche planifiée ne l'appelle encore (P4/P6).
 - Rapprochement avec le prestataire, versement resté « envoyé » après une panne : lot P6.
 - Simulation : la notification est forgée par `fabriquerNotification` ; en ligne, elle exige `PAIEMENT_SIMULATION_CLE` (secret du Worker), sans valeur par défaut.
+
+## 12. Lot P4 : interface
+
+- **Client** (`PanneauPaiement.tsx`) : « Payer en ligne avec Speedfood », recommandé, au-dessus des modes classiques, seulement quand le paiement est ouvert (commande acceptée) et l'interrupteur allumé. Tant qu'un paiement en ligne est ouvert ou abouti, la déclaration manuelle est refusée côté serveur (l'argent ne se compte pas deux fois).
+- **Commande** : le service reflète le paiement sur `orders` (`paiement_mode = 'speedfood'`, puis `paiement_statut = 'recu'` à la confirmation du prestataire, donc reçu numérique et libellés habituels). Échec, expiration, annulation ou remboursement : retour aux autres modes.
+- **Restaurant** : plus de bouton « Marquer comme payée » ni « Paiement reçu » pour un paiement en ligne (la base accepte encore la confirmation manuelle par un membre, c'est le code de l'action qui la refuse : à durcir en base au lot P6).
+- **Administration** : permission `commande.support` pour voir et agir (reprendre des versements, trancher un litige avec motif obligatoire) ; `parametres.editer` (super administrateur) pour les réglages et les comptes de versement. Le numéro d'un compte n'est jamais réaffiché ni journalisé.
+- **Allumage** : possible seulement pour la démonstration et si `PAIEMENT_SIMULATION_CLE` est configurée ; Chap Chap Pay ne peut pas être allumé (P5, P6).

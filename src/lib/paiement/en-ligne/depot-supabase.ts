@@ -189,6 +189,18 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
       return true;
     },
 
+    async synchroniserCommande(orderId, situation) {
+      // Jamais sur une commande payée par un autre mode : les conditions `paiement_mode = 'speedfood'` / `paiement_statut <> 'recu'` protègent le règlement classique.
+      const maintenant = new Date().toISOString();
+      if (situation === "en_cours") {
+        await db.from("orders").update({ paiement_mode: "speedfood", paiement_statut: "non_demande", paiement_reference: null, paiement_declare_le: maintenant }).eq("id", orderId).neq("paiement_statut", "recu");
+      } else if (situation === "payee") {
+        await db.from("orders").update({ paiement_mode: "speedfood", paiement_statut: "recu", paiement_reference: null }).eq("id", orderId);
+      } else {
+        await db.from("orders").update({ paiement_mode: null, paiement_statut: "non_demande", paiement_reference: null, paiement_declare_le: null, paiement_recu_le: null }).eq("id", orderId).eq("paiement_mode", "speedfood");
+      }
+    },
+
     async ajouterEcritures(paiementId, cle, ecritures: readonly Ecriture[]) {
       // Une ligne par (compte, sens) : la base impose cette unicité par clé d'idempotence.
       const agregees = new Map<string, Ecriture>();

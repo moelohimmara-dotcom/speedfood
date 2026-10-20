@@ -187,6 +187,8 @@ export async function confirmerPaiementAction(
     .update({ paiement_statut: decision })
     .eq("id", commandeId)
     .eq("restaurant_id", membership.restaurant_id)
+    // Un paiement en ligne se confirme par le prestataire, jamais à la main : le restaurateur ne peut ni le marquer reçu ni le contester.
+    .or("paiement_mode.is.null,paiement_mode.neq.speedfood")
     .select("id");
   if (error) {
     return {
@@ -195,7 +197,7 @@ export async function confirmerPaiementAction(
     };
   }
   if (!data || data.length === 0) {
-    return { ok: false, erreur: { code: "INTROUVABLE", message: "Commande introuvable." } };
+    return { ok: false, erreur: { code: "INTROUVABLE", message: "Commande introuvable, ou payée en ligne (la confirmation vient du prestataire de paiement)." } };
   }
   // Un paiement confirmé donne droit à un reçu numéroté, établi tout de suite (échec silencieux : l'action principale est déjà faite).
   if (decision === "recu" && (await fonctionnaliteActive("documents_recus"))) {
