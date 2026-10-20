@@ -1,4 +1,4 @@
-// Essai de l'adaptateur Chap Chap Pay en MODE TEST : crée UNE opération de paiement (1 000 GNF) avec la clé de test, affiche l'adresse de
+// Essai de l'adaptateur Chap Chap Pay en MODE TEST : crée UNE opération de paiement (3 000 GNF, le minimum du prestataire) avec la clé de test, affiche l'adresse de
 // paiement, puis interroge son statut jusqu'à son issue. Aucun argent réel avec les numéros de test ; rien n'est écrit dans la base Speedfood.
 //
 // Usage : node scripts/chapchap-essai-test.mjs
@@ -41,7 +41,7 @@ try {
   const cc = creerPasserelleChapChap({ cleApi: process.env.CHAPCHAP_CLE_API, cleSignature: process.env.CHAPCHAP_CLE_SIGNATURE });
 
   const reference = `SF-ESSAI-${Date.now().toString(36).toUpperCase()}`;
-  const creation = await cc.encaisser({ referenceInterne: reference, montantGnf: 1000, operateur, description: "Essai Speedfood (mode test)" });
+  const creation = await cc.encaisser({ referenceInterne: reference, montantGnf: 3000, operateur, description: "Essai Speedfood (mode test)" });
   console.log("Opération créée :", creation.referenceExterne);
   console.log("Adresse de paiement :", creation.urlPaiement);
   console.log(`\nOuvrez cette adresse, choisissez ${operateur === "orange_money" ? "Orange Money, compte de TEST 720000001" : "MTN MoMo, compte de TEST 760000001"}.`);

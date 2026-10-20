@@ -30,3 +30,14 @@ Source : la Référence API (`/api`, accessible après connexion à un compte), 
 - Notre délai d'expiration (15 min) est plus court que les 72 h du lien : un succès tardif est déjà remboursé automatiquement par le service. **À remplacer** par un remboursement humain tant que le remboursement n'existe pas (point 1).
 - `verser` : PUSH, une fois activé et documenté ; sinon règlement par `wallet_transfer` avec `payout_data` du bénéficiaire (à confirmer avec Chap Chap).
 - Secrets (jamais dans le dépôt) : `CHAPCHAP_CLE_API`, `CHAPCHAP_CLE_SIGNATURE` (Encryption Password), plus, pour les versements, le code d'accès et le PIN de l'agent API.
+
+## Essai réel en mode test (21 octobre 2026)
+
+Premier encaissement de test de bout en bout avec l'adaptateur (clé de test, compte de test MTN MoMo `760000001`, 3 000 GNF) : création de l'opération, paiement sur la page hébergée, passage à `success` observé par interrogation du statut, transaction visible dans `/account/transaction`.
+
+**Constats** (une seule mesure, en mode test : à recouper avec d'autres montants et en production) :
+- **Minimum d'un paiement : 3 000 GNF** (refus 400 en dessous). Pris en compte : l'adaptateur déclare `montantMinimumGnf = 3000` et le paiement en ligne n'est pas proposé en dessous.
+- **Commission : 260 GNF sur 3 000 GNF** (environ 8,7 %), déduite du solde (3 000 → solde 2 740). C'est très au-dessus de la simulation de Speedfood (1,5 à 1,7 %) : à mesurer sur plusieurs montants (par exemple 10 000 et 30 000) pour trouver la formule (frais fixe + pourcentage ?) avant de décider du modèle économique du paiement en ligne.
+- **`payer_info` contient le numéro du payeur** (dans la transaction ; le webhook documente le même champ) : un remboursement par PUSH vers le payeur serait possible une fois l'API Push activée.
+- **Le choix d'opérateur de la page prime sur `jump-to-payment-method`** : l'essai demandé en Orange Money a été payé en MTN MoMo ; le moyen réellement utilisé est dans `status.payment_method`, à journaliser (la notification le porte aussi).
+- Une annulation par le client (`canceled`) est bien reçue comme telle ; le script de suivi doit rester actif jusqu'à l'issue (la première tentative a été manquée parce que le suivi avait expiré avant le paiement).

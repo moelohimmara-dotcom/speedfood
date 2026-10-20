@@ -53,6 +53,7 @@ export async function payerEnLigneAction(jeton: string, operateur: string): Prom
         commande_introuvable: "Commande introuvable.",
         montant_invalide: "Le montant de cette commande ne peut pas être payé en ligne.",
         plafond_depasse: "Ce montant dépasse la limite du paiement en ligne. Choisissez un autre mode.",
+        montant_minimum: `Le paiement en ligne n'est pas possible pour un montant aussi petit${r.detail ? ` (minimum ${Number(r.detail).toLocaleString("fr-FR")} GNF)` : ""}. Choisissez un autre mode.`,
         passerelle_indisponible: "Le service de paiement ne répond pas. Réessayez ou choisissez un autre mode.",
         commande_non_payable: "Cette commande ne peut plus être payée.",
       };

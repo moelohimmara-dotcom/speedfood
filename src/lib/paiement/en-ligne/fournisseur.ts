@@ -80,6 +80,8 @@ export interface PasserelleDePaiement {
    * MANUEL (versement fait par l'exploitation et déclaré dans l'application ; remboursement confié à un humain).
    */
   readonly capacites?: { versement: boolean; remboursement: boolean };
+  /** Montant minimal d'un encaissement chez ce prestataire, en GNF. En dessous, le paiement en ligne n'est pas proposé. */
+  readonly montantMinimumGnf?: number;
   encaisser(demande: DemandeEncaissement): Promise<ResultatEncaissement>;
   lireStatut(referenceExterne: string): Promise<StatutOperation>;
   /** Vérifie la signature du corps BRUT puis le lit. Ne lève jamais : renvoie `{ ok: false }` si quoi que ce soit cloche. */

@@ -188,7 +188,7 @@ export interface DependancesService {
 
 export type ResultatOuverture =
   | { ok: true; paiementId: string; etat: EtatPaiement; urlPaiement: string | null; deja: boolean }
-  | { ok: false; raison: "desactive" | "commande_introuvable" | "montant_invalide" | "plafond_depasse" | "passerelle_indisponible" | "commande_non_payable"; detail?: string };
+  | { ok: false; raison: "desactive" | "commande_introuvable" | "montant_invalide" | "montant_minimum" | "plafond_depasse" | "passerelle_indisponible" | "commande_non_payable"; detail?: string };
 
 export type ResultatNotification =
   | { statut: "refuse"; raison: string }
@@ -270,6 +270,7 @@ export function creerServicePaiement(deps: DependancesService) {
     if (!calcul.ok) return { ok: false, raison: "montant_invalide", detail: calcul.raison };
     const r = calcul.repartition;
     if (r.totalClientGnf > reglages.plafondPaiementGnf) return { ok: false, raison: "plafond_depasse" };
+    if (passerelle.montantMinimumGnf !== undefined && r.totalClientGnf < passerelle.montantMinimumGnf) return { ok: false, raison: "montant_minimum", detail: String(passerelle.montantMinimumGnf) };
 
     const referenceInterne = genererReference("SF-PAY");
     const expireLe = new Date(maintenant().getTime() + reglages.delaiExpirationMinutes * 60_000).toISOString();

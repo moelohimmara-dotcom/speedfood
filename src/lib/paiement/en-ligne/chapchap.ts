@@ -38,6 +38,8 @@ import type {
 export const CHAPCHAP = {
   urlDeBase: "https://chapchappay.com/api",
   hotePaiement: "chapchappay.com",
+  /** Minimum d'un paiement, constaté en mode test le 21 octobre 2026 (« Le montant doit être supérieur ou égal à 3 000 GNF »). */
+  montantMinimumGnf: 3000,
   enTeteCle: "CCP-Api-Key",
   enTeteSignature: "CCP-HMAC-Signature",
   delaiMs: 15_000,
@@ -112,13 +114,18 @@ export function creerPasserelleChapChap(configuration: ConfigurationChapChap): P
     }
     if (reponse.status === 401 || reponse.status === 403) throw new ErreurPasserelle("refusee", "Chap Chap Pay : clé refusée.");
     if (reponse.status >= 500) throw new ErreurPasserelle("reseau", "Chap Chap Pay : erreur du prestataire.");
-    if (reponse.status >= 400) throw new ErreurPasserelle("refusee", "Chap Chap Pay : demande refusée.");
+    if (reponse.status >= 400) {
+      // Le message du prestataire explique le refus (validation) : il ne contient aucun secret, on le garde pour le diagnostic.
+      const detail = estObjet(lu) && typeof lu.message === "string" ? ` (${lu.message.slice(0, 160)})` : "";
+      throw new ErreurPasserelle("refusee", `Chap Chap Pay : demande refusée${detail}.`);
+    }
     return { statut: reponse.status, corps: lu };
   }
 
   return {
     nom: "chapchap",
     capacites: { versement: configuration.pushActif === true, remboursement: false },
+    montantMinimumGnf: CHAPCHAP.montantMinimumGnf,
 
     async encaisser(d: DemandeEncaissement): Promise<ResultatEncaissement> {
       const options: Record<string, unknown> = { "jump-to-payment-method": d.operateur };

@@ -128,6 +128,13 @@ async function ouvrirEtPayer(b: ReturnType<typeof banc>, orderId = "cmd-1", oper
   verifier("prestataire en panne à l'ouverture : paiement annulé, aucune écriture, le client choisira un autre mode", [o.ok, o.ok ? null : o.raison, p?.etat, b.etat.ecritures.length], [false, "passerelle_indisponible", "annule", 0]);
 }
 
+{
+  const b = banc({ commandes: [commande("cmd-1", { mode: "retrait", sousTotalGnf: 2_500 })] });
+  (b.passerelle as { montantMinimumGnf?: number }).montantMinimumGnf = 3_000;
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  verifier("minimum du prestataire : un paiement de 2 500 GNF n'est pas proposé, rien n'est créé ni envoyé", [o.ok, o.ok ? null : o.raison, b.etat.paiements.size, b.appels.encaisser], [false, "montant_minimum", 0, 0]);
+}
+
 // ------------------------------------------------------------------ notification
 {
   const b = banc();
