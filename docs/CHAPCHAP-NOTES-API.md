@@ -41,3 +41,12 @@ Premier encaissement de test de bout en bout avec l'adaptateur (clé de test, co
 - **`payer_info` contient le numéro du payeur** (dans la transaction ; le webhook documente le même champ) : un remboursement par PUSH vers le payeur serait possible une fois l'API Push activée.
 - **Le choix d'opérateur de la page prime sur `jump-to-payment-method`** : l'essai demandé en Orange Money a été payé en MTN MoMo ; le moyen réellement utilisé est dans `status.payment_method`, à journaliser (la notification le porte aussi).
 - Une annulation par le client (`canceled`) est bien reçue comme telle ; le script de suivi doit rester actif jusqu'à l'issue (la première tentative a été manquée parce que le suivi avait expiré avant le paiement).
+
+### Commission mesurée (21 octobre 2026, mode test, MTN MoMo)
+
+| Montant | Commission | Formule « 200 GNF + 2 % » |
+|---|---|---|
+| 3 000 GNF | 260 GNF | 200 + 60 = 260 ✓ |
+| 10 000 GNF | 400 GNF | 200 + 200 = 400 ✓ |
+
+Deux mesures, une formule qui colle exactement : **frais fixe de 200 GNF + 2 % du montant**, déduits du solde (`fee_handling = deduct`). À confirmer sur un troisième montant (prédiction : 30 000 GNF → 800 GNF), sur Orange Money, et en production (les frais de test peuvent différer). Conséquence : la simulation actuelle de Speedfood (1,5 à 1,7 % sans partie fixe) **sous-estime** les frais ; le frais fixe de Speedfood (1 000 GNF par commande) ne laisse qu'environ 200 à 300 GNF nets sur une commande de 25 000 à 30 000 GNF, avant les frais de versement (inconnus). Voir `docs/STRATEGIE-PAIEMENT.md` pour les options (frais ajoutés au client, frais Speedfood plus élevé, seuil minimal).
