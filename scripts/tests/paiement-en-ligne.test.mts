@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { ETATS_PAIEMENT, EVENEMENTS_PAIEMENT, estMontantGnf, estOperateur, type EtatPaiement } from "../../src/lib/paiement/en-ligne/types";
 import { argentRecu, peutLiberer, transitionPaiement } from "../../src/lib/paiement/en-ligne/machine";
 import { appliquerRemboursementPartiel, calculerRepartition, fraisMobile, type EntreeRepartition } from "../../src/lib/paiement/en-ligne/repartition";
@@ -208,6 +210,23 @@ const demande = { referenceInterne: "P-2", montantGnf: 10_000, operateur: "orang
 verifier("chapchap : sans clés, refuse proprement", await leve(() => sansCles.encaisser(demande)), "non_configuree");
 verifier("chapchap : avec clés mais sans référence API, refuse explicitement plutôt que de deviner", [await leve(() => avecCles.encaisser(demande)), await leve(() => avecCles.lireStatut("X")), await leve(() => avecCles.verser({ referenceInterne: "V", montantGnf: 1, operateur: "mtn_momo", numero: "6" })), await leve(() => avecCles.rembourser({ referenceExterneEncaissement: "X", referenceInterne: "R", montantGnf: 1 }))], ["non_implemente", "non_implemente", "non_implemente", "non_implemente"]);
 verifier("chapchap : toute notification est refusée tant que le format est inconnu", avecCles.verifierNotification("{}", { "ccp-hmac-signature": "abc" }), { ok: false, raison: "adaptateur_non_implemente" });
+
+// ---------------------------------------------------------------- la base et le code ont la MÊME machine à états
+const racine = process.env.SPEEDFOOD_RACINE;
+if (!racine) {
+  console.log("SPEEDFOOD_RACINE absent : lancer par `npm run test:unit`.");
+  process.exit(1);
+}
+const sql = fs.readFileSync(path.join(racine, "supabase", "migrations", "20261021090000_paiement_en_ligne.sql"), "utf8");
+const debutPaires = sql.indexOf("(old.etat, new.etat) in (");
+const finPaires = sql.indexOf(")) then", debutPaires);
+const pairesSql = [...sql.slice(debutPaires, finPaires).matchAll(/\('([a-z_]+)',\s*'([a-z_]+)'\)/g)].map((m) => `${m[1]}>${m[2]}`).sort();
+const pairesCode = [...new Set(ETATS_PAIEMENT.flatMap((e) => EVENEMENTS_PAIEMENT.map((ev) => transitionPaiement(e, ev)).map((r, i) => (r.ok && r.change ? `${e}>${r.etat}` : null)).filter((x): x is string => x !== null)))].sort();
+verifier("base et code : mêmes transitions d'état (aucune dérive silencieuse)", pairesSql, pairesCode);
+const etatsSql = [...(sql.match(/etat text not null default 'cree'\s+check \(etat in \(([^)]*)\)\)/)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+verifier("base et code : mêmes états", etatsSql, [...ETATS_PAIEMENT].sort());
+const comptesSql = [...(sql.match(/compte text not null check \(compte in \(([^)]*)\)\)/)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+verifier("base et code : mêmes comptes du livre", comptesSql, [...COMPTES].sort());
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s)`);

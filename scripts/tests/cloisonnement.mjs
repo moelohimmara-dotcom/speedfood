@@ -661,5 +661,155 @@ await refuse("un restaurateur ne peut toujours pas remplacer le jeton de suivi",
 const avisOk = await lire(ID.user_a, `select note, cible, statut, commentaire from avis`);
 verifier("contrôle positif : un restaurateur lit toujours la note et le commentaire des avis qui le concernent", !avisOk.erreur, avisOk.erreur ?? "");
 
+// ---------------------------------------------------------------- 8. paiement en ligne (lot P2)
+console.log("\n--- Paiement en ligne");
+const PAY_A = "00000000-0000-4000-8000-0000000002a1";
+const PAY_B = "00000000-0000-4000-8000-0000000002b1";
+const CMD_C = "00000000-0000-4000-8000-00000000a0c1";
+const CMD_D = "00000000-0000-4000-8000-00000000a0d1";
+const CMD_E = "00000000-0000-4000-8000-00000000a0e1";
+const CMD_F = "00000000-0000-4000-8000-00000000a0f1";
+const G_A = "00000000-0000-4000-8000-0000000003a1";
+const LITIGE_A = "00000000-0000-4000-8000-0000000004a1";
+await db.exec(`
+  insert into orders (id, reference, jeton_suivi, restaurant_id, client_nom, client_telephone, client_adresse, mode, sous_total, statut) values
+    ('${CMD_C}', 'SF-CCCCC', 'jeton-c', ${U(ID.resto_a)}, 'Client C', '620000003', 'Adresse C', 'retrait', 25000, 'acceptee'),
+    ('${CMD_D}', 'SF-DDDDD', 'jeton-d', ${U(ID.resto_a)}, 'Client D', '620000004', 'Adresse D', 'retrait', 25000, 'acceptee'),
+    ('${CMD_E}', 'SF-EEEEE', 'jeton-e', ${U(ID.resto_a)}, 'Client E', '620000005', 'Adresse E', 'retrait', 25000, 'acceptee'),
+    ('${CMD_F}', 'SF-FFFFF', 'jeton-f', ${U(ID.resto_a)}, 'Client F', '620000006', 'Adresse F', 'retrait', 25000, 'acceptee');
+  insert into paiements (id, order_id, restaurant_id, fournisseur, operateur, repas_gnf, frais_livraison_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne) values
+    (${U(PAY_A)}, '${CMD_A}', ${U(ID.resto_a)}, 'simulation', 'orange_money', 25000, 5000, 'livreur_independant', 1000, 450, 24000, 5000, 1000, 'SF-PAY-AAAAAA'),
+    (${U(PAY_B)}, '${CMD_B}', ${U(ID.resto_b)}, 'simulation', 'mtn_momo', 25000, 0, 'aucune', 1000, 425, 24000, 0, 1000, 'SF-PAY-BBBBBB');
+  insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values
+    (${U(PAY_A)}, ${U(G_A)}, 'encaissement', 'fonds_operateur', 'debit', 30000),
+    (${U(PAY_A)}, ${U(G_A)}, 'encaissement', 'fonds_a_liberer', 'credit', 30000);
+  insert into comptes_versement (proprietaire_type, restaurant_id, operateur, numero, titulaire_nom, verifie_le) values
+    ('restaurant', ${U(ID.resto_a)}, 'orange_money', '+224620000001', 'Resto A', now());
+  insert into comptes_versement (proprietaire_type, livreur_id, operateur, numero, titulaire_nom, verifie_le) values
+    ('livreur', ${U(LIVREUR_1)}, 'mtn_momo', '+224660000001', 'Livreur Un', now());
+  insert into paiement_versements (paiement_id, beneficiaire_type, restaurant_id, operateur, numero_masque, montant_gnf, reference_interne) values
+    (${U(PAY_A)}, 'restaurant', ${U(ID.resto_a)}, 'orange_money', '+224 6** *** *01', 24000, 'SF-VER-RESTAA'),
+    (${U(PAY_B)}, 'restaurant', ${U(ID.resto_b)}, 'mtn_momo', '+224 6** *** *02', 24000, 'SF-VER-RESTAB');
+  insert into paiement_versements (paiement_id, beneficiaire_type, livreur_id, operateur, numero_masque, montant_gnf, reference_interne) values
+    (${U(PAY_A)}, 'livreur', ${U(LIVREUR_1)}, 'mtn_momo', '+224 6** *** *01', 5000, 'SF-VER-LIVRA1');
+  insert into litiges_paiement (id, paiement_id, ouvert_par, situation) values (${U(LITIGE_A)}, ${U(PAY_A)}, 'client', 'client_injoignable');
+`);
+
+// Lectures : chacun ne voit que ce qui le concerne.
+verifier("paiements : le restaurant A voit le sien, pas celui de B", (await nb(ID.user_a, "paiements")) === 1 && VIDE(await nb(ID.user_a, "paiements", `restaurant_id = ${U(ID.resto_b)}`)));
+verifier("paiements : le restaurant B voit le sien, pas celui de A", (await nb(ID.user_b, "paiements")) === 1 && VIDE(await nb(ID.user_b, "paiements", `restaurant_id = ${U(ID.resto_a)}`)));
+verifier("paiements : l'exploitation voit tout", (await nb(ID.admin, "paiements")) === 2 && (await nb(ID.support, "paiements")) === 2);
+verifier("paiements : un client, un livreur et un anonyme ne voient rien", VIDE(await nb(ID.client, "paiements")) && VIDE(await nb(U_LIV, "paiements")) && VIDE(await nb(null, "paiements")));
+verifier("versements : le restaurant A ne voit que le sien", (await nb(ID.user_a, "paiement_versements")) === 1 && VIDE(await nb(ID.user_a, "paiement_versements", `restaurant_id = ${U(ID.resto_b)}`)));
+verifier("versements : le livreur 1 voit seulement son versement", (await nb(U_LIV, "paiement_versements")) === 1 && (await nb(U_LIV, "paiement_versements", "beneficiaire_type = 'livreur'")) === 1);
+verifier("versements : le livreur 2 (sans versement) n'en voit aucun", VIDE(await nb(U_LIV2, "paiement_versements")));
+verifier("versements : l'exploitation voit tout, un client et un anonyme rien", (await nb(ID.admin, "paiement_versements")) === 3 && (await nb(ID.support, "paiement_versements")) === 3 && VIDE(await nb(ID.client, "paiement_versements")) && VIDE(await nb(null, "paiement_versements")));
+verifier("litiges : le restaurant A voit le sien, B rien", (await nb(ID.user_a, "litiges_paiement")) === 1 && VIDE(await nb(ID.user_b, "litiges_paiement")));
+verifier("litiges : un client et un anonyme ne voient rien", VIDE(await nb(ID.client, "litiges_paiement")) && VIDE(await nb(null, "litiges_paiement")));
+for (const table of ["paiement_ecritures", "paiement_evenements", "comptes_versement", "parametres_paiement"]) {
+  verifier(`${table} : le super administrateur la lit`, (await nb(ID.admin, table)) >= 1 || table === "paiement_evenements");
+  for (const [nom, qui] of [["restaurant", ID.user_a], ["support", ID.support], ["livreur", U_LIV], ["client", ID.client], ["anonyme", null]]) {
+    verifier(`${table} : illisible pour ${nom}`, VIDE(await nb(qui, table)));
+  }
+}
+const colonnes = await lire(ID.admin, "select numero from comptes_versement");
+verifier("comptes de versement : seul le super administrateur lit les numéros", colonnes.lignes.length === 2);
+
+// Écritures par l'API : refusées à tous, administrateur compris (tout passe par le serveur).
+await interdit("A ne modifie pas l'état de son paiement", ID.user_a, `update paiements set etat = 'libere' where id = ${U(PAY_A)}`);
+await interdit("A ne crée pas de paiement", ID.user_a, `insert into paiements (order_id, restaurant_id, fournisseur, operateur, repas_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne) values ('${CMD_C}', ${U(ID.resto_a)}, 'simulation', 'orange_money', 100, 'aucune', 0, 0, 100, 0, 0, 'SF-PAY-XXXXXX')`);
+await interdit("A ne supprime pas son paiement", ID.user_a, `delete from paiements where id = ${U(PAY_A)}`);
+await interdit("A ne marque pas un versement comme confirmé", ID.user_a, `update paiement_versements set etat = 'confirme' where restaurant_id = ${U(ID.resto_a)}`);
+await interdit("le livreur ne marque pas son versement comme confirmé", U_LIV, `update paiement_versements set etat = 'confirme' where livreur_id = ${U(LIVREUR_1)}`);
+await interdit("le super administrateur n'écrit pas non plus par l'API (écritures serveur seulement)", ID.admin, `update paiements set etat = 'libere' where id = ${U(PAY_A)}`);
+await interdit("personne n'écrit dans le livre de comptes par l'API", ID.admin, `insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_A)}, gen_random_uuid(), 'x-x-x', 'fonds_operateur', 'debit', 1)`);
+await interdit("personne ne change les réglages de paiement par l'API", ID.admin, `update parametres_paiement set paiement_en_ligne_actif = true`);
+await interdit("un anonyme n'écrit rien", null, `update paiements set etat = 'libere'`);
+
+// Règles de la base, jouées côté serveur (contexte sans identité, comme la clé de service).
+async function serveur(nom, sql, doitEchouer) {
+  let erreur = null;
+  try {
+    await db.exec(sql);
+  } catch (e) {
+    erreur = e.message;
+    await db.exec("rollback").catch(() => {});
+  }
+  verifier(nom, doitEchouer ? erreur !== null : erreur === null, erreur ?? "aucune erreur");
+}
+const nouveauPaiement = (id, order, extra = "") =>
+  `insert into paiements (id, order_id, restaurant_id, fournisseur, operateur, repas_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne ${extra ? ", " + extra.split("|")[0] : ""}) values (${U(id)}, '${order}', ${U(ID.resto_a)}, 'simulation', 'orange_money', 25000, 'aucune', 1000, 375, 24000, 0, 1000, 'SF-${id.slice(-8)}' ${extra ? ", " + extra.split("|")[1] : ""})`;
+const PAY_C = "00000000-0000-4000-8000-0000000002c1";
+const PAY_D = "00000000-0000-4000-8000-0000000002d1";
+const PAY_E = "00000000-0000-4000-8000-0000000002e1";
+const PAY_F = "00000000-0000-4000-8000-0000000002f1";
+
+const reglages = (await db.query("select paiement_en_ligne_actif, fournisseur from parametres_paiement")).rows[0];
+verifier("réglages : le paiement en ligne est ÉTEINT par défaut, fournisseur de simulation", reglages.paiement_en_ligne_actif === false && reglages.fournisseur === "simulation");
+await serveur("réglages : un seul enregistrement possible", `insert into parametres_paiement (id) values (false)`, true);
+
+await serveur("paiement : une répartition dont la somme n'égale pas le total est refusée", `insert into paiements (order_id, restaurant_id, fournisseur, operateur, repas_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne) values ('${CMD_C}', ${U(ID.resto_a)}, 'simulation', 'orange_money', 25000, 'aucune', 1000, 375, 24001, 0, 1000, 'SF-PAY-SOMME1')`, true);
+await serveur("paiement : un montant négatif est refusé", `insert into paiements (order_id, restaurant_id, fournisseur, operateur, repas_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne) values ('${CMD_C}', ${U(ID.resto_a)}, 'simulation', 'orange_money', -5, 'aucune', 0, 0, -5, 0, 0, 'SF-PAY-NEGAT1')`, true);
+await serveur("paiement : on ne naît qu'à l'état « cree »", nouveauPaiement(PAY_C, CMD_C, "etat|'confirme'"), true);
+await serveur("paiement : création valide acceptée", nouveauPaiement(PAY_C, CMD_C), false);
+await serveur("paiement : une commande n'a qu'UN paiement en ligne", nouveauPaiement(PAY_D, CMD_C), true);
+await serveur("paiement : les montants ne se modifient pas", `update paiements set repas_gnf = 1000, restaurant_gnf = -23000 where id = ${U(PAY_C)}`, true);
+await serveur("paiement : la répartition ne se modifie pas", `update paiements set restaurant_gnf = 23000, speedfood_brut_gnf = 2000 where id = ${U(PAY_C)}`, true);
+await serveur("paiement : la référence interne ne se modifie pas", `update paiements set reference_interne = 'SF-AUTRE-XXXX' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : transition interdite cree → libere", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : transition interdite cree → confirme", `update paiements set etat = 'confirme' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : cree → en_attente → confirme → libere acceptés dans l'ordre", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}; update paiements set etat = 'confirme', reference_externe = 'EXT-C' where id = ${U(PAY_C)}; update paiements set etat = 'libere' where id = ${U(PAY_C)}`, false);
+await serveur("paiement : libere → en_attente refusé (pas de retour en arrière)", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : la référence du prestataire, une fois posée, ne change pas", `update paiements set reference_externe = 'EXT-AUTRE' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : un remboursement ne diminue pas", `update paiements set rembourse_gnf = 5000 where id = ${U(PAY_C)}; update paiements set rembourse_gnf = 1000 where id = ${U(PAY_C)}`, true);
+await serveur("paiement : un remboursement ne dépasse pas le total", `update paiements set rembourse_gnf = 25001 where id = ${U(PAY_C)}`, true);
+await serveur("paiement : un succès tardif après expiration est possible (expire → confirme)", `${nouveauPaiement(PAY_D, CMD_D)}; update paiements set etat = 'en_attente' where id = ${U(PAY_D)}; update paiements set etat = 'expire' where id = ${U(PAY_D)}; update paiements set etat = 'confirme' where id = ${U(PAY_D)}`, false);
+
+// Livre de comptes.
+await serveur("livre : deux groupes distincts, chacun déséquilibré, sont refusés", `begin; insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_C)}, gen_random_uuid(), 'liberation', 'fonds_a_liberer', 'debit', 25000), (${U(PAY_C)}, gen_random_uuid(), 'liberation', 'a_verser_restaurant', 'credit', 25000); commit;`, true); // deux groupes différents : chacun déséquilibré
+await serveur("livre : deux lignes d'un même groupe, équilibrées, sont acceptées", `begin; insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_C)}, '00000000-0000-4000-8000-0000000003c1', 'encaissement', 'fonds_operateur', 'debit', 25000), (${U(PAY_C)}, '00000000-0000-4000-8000-0000000003c1', 'encaissement', 'fonds_a_liberer', 'credit', 25000); commit;`, false);
+await serveur("livre : un groupe déséquilibré fait échouer la validation", `begin; insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_C)}, '00000000-0000-4000-8000-0000000003c2', 'liberation', 'fonds_a_liberer', 'debit', 25000), (${U(PAY_C)}, '00000000-0000-4000-8000-0000000003c2', 'liberation', 'a_verser_restaurant', 'credit', 24999); commit;`, true);
+await serveur("livre : le même événement ne s'écrit pas deux fois (idempotence)", `begin; insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_C)}, '00000000-0000-4000-8000-0000000003c3', 'encaissement', 'fonds_operateur', 'debit', 25000), (${U(PAY_C)}, '00000000-0000-4000-8000-0000000003c3', 'encaissement', 'fonds_a_liberer', 'credit', 25000); commit;`, true);
+await serveur("livre : un montant nul est refusé", `insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_C)}, gen_random_uuid(), 'zero-zero', 'fonds_operateur', 'debit', 0)`, true);
+await serveur("livre : un compte inconnu est refusé", `insert into paiement_ecritures (paiement_id, groupe_id, cle_idempotence, compte, sens, montant_gnf) values (${U(PAY_C)}, gen_random_uuid(), 'inconnu-x', 'caisse_noire', 'debit', 10)`, true);
+await serveur("livre : en ajout seul, aucune modification", `update paiement_ecritures set montant_gnf = 1 where paiement_id = ${U(PAY_A)}`, true);
+await serveur("livre : en ajout seul, aucune suppression directe", `delete from paiement_ecritures where paiement_id = ${U(PAY_A)}`, true);
+
+// Versements, notifications.
+await serveur("versement : un seul par bénéficiaire et par paiement", `insert into paiement_versements (paiement_id, beneficiaire_type, restaurant_id, operateur, numero_masque, montant_gnf, reference_interne) values (${U(PAY_A)}, 'restaurant', ${U(ID.resto_a)}, 'orange_money', '+224 6** *** *01', 1000, 'SF-VER-DOUBLE')`, true);
+await serveur("versement : un bénéficiaire restaurant ne porte pas de livreur", `insert into paiement_versements (paiement_id, beneficiaire_type, restaurant_id, livreur_id, operateur, numero_masque, montant_gnf, reference_interne) values (${U(PAY_C)}, 'restaurant', ${U(ID.resto_a)}, ${U(LIVREUR_1)}, 'orange_money', '+224 6** *** *01', 1000, 'SF-VER-MIXTE1')`, true);
+await serveur("versement : un montant nul est refusé", `insert into paiement_versements (paiement_id, beneficiaire_type, restaurant_id, operateur, numero_masque, montant_gnf, reference_interne) values (${U(PAY_C)}, 'restaurant', ${U(ID.resto_a)}, 'orange_money', '+224 6** *** *01', 0, 'SF-VER-ZERO01')`, true);
+await serveur("notification : première réception acceptée", `insert into paiement_evenements (fournisseur, identifiant_evenement, reference_externe, etat_recu, montant_gnf, resultat) values ('simulation', 'evt-1', 'EXT-C', 'succes', 25000, 'applique')`, false);
+await serveur("notification : un rejeu du même identifiant est refusé (idempotence)", `insert into paiement_evenements (fournisseur, identifiant_evenement, reference_externe, etat_recu, montant_gnf, resultat) values ('simulation', 'evt-1', 'EXT-C', 'succes', 25000, 'applique')`, true);
+await serveur("notification : le même identifiant chez un autre fournisseur est un autre événement", `insert into paiement_evenements (fournisseur, identifiant_evenement, reference_externe, etat_recu, montant_gnf, resultat) values ('chapchap', 'evt-1', 'EXT-X', 'succes', 25000, 'applique')`, false);
+
+// Comptes de versement.
+await serveur("compte de versement : un numéro invalide est refusé", `insert into comptes_versement (proprietaire_type, restaurant_id, operateur, numero) values ('restaurant', ${U(ID.resto_b)}, 'orange_money', '12ab')`, true);
+await serveur("compte de versement : un compte sans propriétaire cohérent est refusé", `insert into comptes_versement (proprietaire_type, restaurant_id, livreur_id, operateur, numero) values ('restaurant', ${U(ID.resto_b)}, ${U(LIVREUR_2)}, 'orange_money', '+224620000009')`, true);
+await serveur("compte de versement : un seul compte actif par restaurant", `insert into comptes_versement (proprietaire_type, restaurant_id, operateur, numero) values ('restaurant', ${U(ID.resto_a)}, 'mtn_momo', '+224660000009')`, true);
+
+// Commande : nouveau mode de paiement.
+await serveur("commande : le mode de paiement « speedfood » est accepté", `update orders set paiement_mode = 'speedfood' where id = '${CMD_E}'`, false);
+await serveur("commande : un mode inconnu reste refusé", `update orders set paiement_mode = 'bitcoin' where id = '${CMD_E}'`, true);
+
+// Argent réel : jamais supprimé, même en cascade ; une simulation, oui (réinitialisation de démonstration).
+await serveur("argent réel : un paiement reçu d'un prestataire réel est créé et confirmé", `
+  insert into paiements (id, order_id, restaurant_id, fournisseur, operateur, repas_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne)
+    values (${U(PAY_E)}, '${CMD_E}', ${U(ID.resto_a)}, 'chapchap', 'orange_money', 25000, 'aucune', 1000, 375, 24000, 0, 1000, 'SF-REEL-EEEEEE');
+  update paiements set etat = 'en_attente' where id = ${U(PAY_E)};
+  update paiements set etat = 'confirme', reference_externe = 'EXT-REEL' where id = ${U(PAY_E)}`, false);
+await serveur("argent réel : on ne le supprime pas en supprimant la commande", `delete from orders where id = '${CMD_E}'`, true);
+const toujoursLa = (await db.query(`select count(*)::int n from paiements where id = ${U(PAY_E)}`)).rows[0].n;
+verifier("argent réel : le paiement est toujours là après la tentative", toujoursLa === 1, `lignes : ${toujoursLa}`);
+await serveur("argent réel : directement non plus", `delete from paiements where id = ${U(PAY_E)}`, true);
+await serveur("simulation : une simulation confirmée disparaît avec sa commande, livre compris (démonstration)", `delete from orders where id = '${CMD_C}'`, false);
+const restes = (await db.query(`select (select count(*)::int from paiements where id = ${U(PAY_C)}) p, (select count(*)::int from paiement_ecritures where paiement_id = ${U(PAY_C)}) e`)).rows[0];
+verifier("simulation : paiement et écritures supprimés en cascade", restes.p === 0 && restes.e === 0, JSON.stringify(restes));
+await serveur("argent non reçu : un paiement réel resté « en attente » peut être supprimé avec sa commande", `
+  insert into paiements (id, order_id, restaurant_id, fournisseur, operateur, repas_gnf, livraison_par, frais_speedfood_gnf, frais_mobile_gnf, restaurant_gnf, livreur_gnf, speedfood_brut_gnf, reference_interne)
+    values (${U(PAY_F)}, '${CMD_F}', ${U(ID.resto_a)}, 'chapchap', 'mtn_momo', 25000, 'aucune', 1000, 425, 24000, 0, 1000, 'SF-REEL-FFFFFF');
+  update paiements set etat = 'en_attente' where id = ${U(PAY_F)};
+  delete from orders where id = '${CMD_F}'`, false);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);
