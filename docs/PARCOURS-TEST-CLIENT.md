@@ -22,7 +22,7 @@
 ## 2. Mes commandes (`/compte/commandes`)
 
 Attendu : trois commandes d'essai, avec la pastille **Test**.
-- **En cours** : une commande en livraison, « Acceptée, en préparation », 14 000 GNF (3 × 5 000 + 3 000 de livraison → 18 000 GNF : vérifiez le total affiché).
+- **En cours** : une commande en livraison, « Acceptée, en préparation », total **18 000 GNF** (3 jus à 5 000 + 3 000 de livraison).
 - **Passées** : une « Remise » (payée, Orange Money, il y a 2 jours) et une « Refusée par le restaurant ».
 - Bouton **Suivre ma commande** sur la commande en cours → ouvre `/suivi` sur cette commande, sans qu'aucun lien secret n'apparaisse dans la barre d'adresse.
 - Bouton **Mon reçu** sur la commande payée → ouvre son reçu.
