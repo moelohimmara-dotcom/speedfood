@@ -63,7 +63,7 @@ export function EnteteSite({ compact = false, compteActif = false }: { compact?:
             </nav>
             <div className="pub-actions">
               {compteActif ? (
-                <Link href="/entrer" className="pub-lien-simple pub-seulement-large">
+                <Link href="/acces" className="pub-lien-simple pub-seulement-large">
                   Mon compte
                 </Link>
               ) : null}
@@ -104,8 +104,8 @@ export function EnteteSite({ compact = false, compteActif = false }: { compact?:
                 </Link>
               );
             })}
-            {compteActif ? <Link href="/entrer">Mon compte</Link> : null}
-            <Link href="/connexion" className="pub-tiroir-secondaire">
+            {compteActif ? <Link href="/acces">Mon compte</Link> : null}
+            <Link href="/connexion?role=restaurateur" className="pub-tiroir-secondaire">
               Espace restaurateur
             </Link>
           </nav>

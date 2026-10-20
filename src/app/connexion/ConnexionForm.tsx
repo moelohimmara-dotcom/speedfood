@@ -8,12 +8,13 @@ import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 
 const etatInitial: EtatFormulaire = {};
 
-export function ConnexionForm({ suite }: { suite: string }) {
+export function ConnexionForm({ suite, role }: { suite: string; role: "client" | "restaurateur" | null }) {
   const [etat, action, enCours] = useActionState(connexionAction, etatInitial);
 
   return (
     <form action={action}>
       <input type="hidden" name="suite" value={suite} />
+      {role ? <input type="hidden" name="role" value={role} /> : null}
       <Input label="Email" name="email" type="email" required autoComplete="email" />
       <ChampMotDePasse
         label="Mot de passe"

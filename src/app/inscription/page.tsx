@@ -26,9 +26,11 @@ export default async function InscriptionPage() {
       }}
       pied={
         <p>
-          Déjà un compte ? <Link href="/connexion" className="lien-texte">Connectez-vous</Link>
+          Déjà un compte ? <Link href="/connexion?role=restaurateur" className="lien-texte">Connexion restaurateur</Link>
           {" · "}
           <Link href="/devenir-partenaire" className="lien-texte">Voir les étapes</Link>
+          <br />
+          Vous êtes client ? <Link href="/entrer" className="lien-texte">Créez votre compte client</Link>
         </p>
       }
     >

@@ -1,41 +1,69 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ConnexionForm } from "./ConnexionForm";
 import { Card } from "@/components/ui";
 import { PageCompte } from "@/components/PageCompte";
+import { estCheminInterneSur } from "@/lib/auth/redirection";
+import { lireRoleChoisi, roleDepuisSuite, type RoleChoisi } from "@/lib/auth/acces";
 import type { Metadata } from "next";
 
 /**
- * Page de connexion unique, contextualisée par `suite` (ADR-010 : deux consoles
- * distinctes, une seule porte d'entrée identifiée) :
- * - `suite=/system...` → intitulé « Administration Speedfood », sans lien
- *   d'inscription restaurateur (les comptes système sont créés par un admin) ;
- * - sinon → intitulé neutre « Connexion » : un client inscrit par le formulaire
- *   arrive aussi par ici, et se serait lu « Vous n'êtes pas un restaurateur ».
- * Après connexion, `connexionAction` route selon le type de compte réel :
- * admin système pur → `/system`, restaurateur → `/restaurant`, client → `/compte`.
+ * Connexion par piste (deux espaces séparés, choisis dès `/acces`) :
+ * - `role=client` → « Connexion client » ; `role=restaurateur` → « Connexion restaurateur » ;
+ * - `suite=/system...` → « Administration Speedfood » (comptes de l'équipe, créés par un admin) ;
+ * - ni piste ni destination reconnue → retour à `/acces` (« Qui êtes-vous ? »).
+ * La piste voyage dans le formulaire ; `connexionAction` refuse un compte qui ne lui correspond pas
+ * (un compte client ne peut pas entrer par la piste restaurateur, et inversement), puis route selon le type réel.
  */
 export const metadata: Metadata = { title: "Connexion" };
 
 export default async function ConnexionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ suite?: string }>;
+  searchParams: Promise<{ suite?: string; role?: string }>;
 }) {
-  const { suite } = await searchParams;
+  const { suite, role } = await searchParams;
   const pourSysteme = (suite ?? "").startsWith("/system");
 
+  const deduite = roleDepuisSuite(suite ?? "");
+  const piste: RoleChoisi | null = pourSysteme ? null : lireRoleChoisi(role) ?? (deduite === "systeme" ? null : deduite);
+  // Page ouverte (commande, suivi…) : on y vient pour se reconnecter, sans piste imposée → présentation client, aucun filtre.
+  const sansPiste = !pourSysteme && !piste && estCheminInterneSur(suite ?? "") && (suite ?? "") !== "";
+  if (!pourSysteme && !piste && !sansPiste) redirect("/acces");
+
+  if (pourSysteme) {
+    return (
+      <PageCompte
+        titre="Administration Speedfood"
+        sousTitre="Accès réservé aux comptes de l'équipe Speedfood (rôles système)."
+        pied={
+          <p>
+            Vous êtes restaurateur ? <Link href="/connexion?role=restaurateur" className="lien-texte">Connexion restaurateur</Link>
+            <br />
+            Vous êtes client ? <Link href="/connexion?role=client" className="lien-texte">Connexion client</Link>
+          </p>
+        }
+      >
+        <Card>
+          <ConnexionForm suite={suite ?? ""} role={null} />
+        </Card>
+      </PageCompte>
+    );
+  }
+
+  const estResto = piste === "restaurateur";
+  const roleFormulaire: RoleChoisi | null = sansPiste ? null : piste;
   return (
     <PageCompte
-      titre={pourSysteme ? "Administration Speedfood" : "Connexion"}
+      titre={estResto ? "Connexion restaurateur" : "Connexion client"}
       sousTitre={
-        pourSysteme
-          ? "Accès réservé aux comptes de l'équipe Speedfood (rôles système)."
-          : "Client, restaurateur ou équipe Speedfood : vous arrivez directement à votre espace."
+        estResto
+          ? "Accédez à votre console : commandes, menu et plats du jour."
+          : "Retrouvez vos commandes, vos adresses et vos restaurants favoris."
       }
       panneau={
-        pourSysteme
-          ? undefined
-          : {
+        estResto
+          ? {
               titre: "Votre restaurant, dans votre poche.",
               points: [
                 "Voyez arriver les commandes et répondez d'un geste.",
@@ -44,24 +72,31 @@ export default async function ConnexionPage({
                 "Speedfood n'encaisse rien : vos clients vous paient directement, en espèces ou avec votre code marchand.",
               ],
             }
+          : undefined
       }
+      libellePanneau={estResto ? "À propos de l'espace restaurateur" : undefined}
       pied={
-        pourSysteme ? (
+        estResto ? (
           <p>
-            Vous êtes restaurateur ? <Link href="/connexion" className="lien-texte">Connexion restaurateur</Link>
+            Pas encore de restaurant sur Speedfood ? <Link href="/inscription" className="lien-texte">Inscrivez-le</Link>
+            <br />
+            Vous êtes plutôt client ? <Link href="/connexion?role=client" className="lien-texte">Connexion client</Link>
+            {" · "}
+            <Link href="/acces" className="lien-texte">Changer de piste</Link>
           </p>
         ) : (
           <p>
-            Pas encore de compte ? <Link href="/entrer" className="lien-texte">Créez votre compte</Link> pour commander, ou{" "}
-            <Link href="/inscription" className="lien-texte">inscrivez votre restaurant</Link>
+            Pas encore de compte ? <Link href="/entrer" className="lien-texte">Créez votre compte client</Link>
             <br />
-            Équipe Speedfood ? <Link href="/connexion?suite=/system" className="lien-texte">Administration</Link>
+            Vous tenez un restaurant ? <Link href="/connexion?role=restaurateur" className="lien-texte">Connexion restaurateur</Link>
+            {" · "}
+            <Link href="/acces" className="lien-texte">Changer de piste</Link>
           </p>
         )
       }
     >
       <Card>
-        <ConnexionForm suite={suite ?? ""} />
+        <ConnexionForm suite={suite ?? ""} role={roleFormulaire} />
       </Card>
     </PageCompte>
   );

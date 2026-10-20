@@ -58,7 +58,11 @@ export default async function EntrerPage({
       }}
       pied={
         <p>
+          Déjà un compte ? <Link href="/connexion?role=client" className="lien-texte">Connexion client</Link>
+          <br />
           Pas envie de compte ? <Link href="/restaurants" className="lien-texte">Parcourir les restaurants</Link>
+          <br />
+          Vous tenez un restaurant ? <Link href="/inscription" className="lien-texte">Inscrivez-le ici</Link>
         </p>
       }
     >

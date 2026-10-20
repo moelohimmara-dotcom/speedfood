@@ -7,6 +7,7 @@ import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuiv
 import { creerClientServeur } from "@/lib/db/server";
 import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "./redirection";
+import { lireRoleChoisi, typeDeCompte, verifierPiste } from "./acces";
 import { validerCoordonnees } from "@/lib/client/coordonnees";
 import { assurerProfilClient } from "@/lib/client/profil-serveur";
 
@@ -122,19 +123,10 @@ export async function connexionAction(
     return { erreur: traduireErreurAuth(error.message) };
   }
 
-  // Destination explicite (utilisateur redirigé depuis une page protégée) :
-  // uniquement un chemin interne. `//hote`, `/\hote`, un schéma ou un caractère
-  // de contrôle seraient une redirection ouverte (hameçonnage après connexion).
-  if (estCheminInterneSur(suite)) {
-    redirect(suite);
-  }
-
-  // Sinon, routage par type de compte (deux consoles distinctes, ADR-010) :
-  // un admin système pur va dans son CMS, un restaurateur dans sa console.
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [{ data: roleSysteme }, { data: membership }] = await Promise.all([
+  const [{ data: roleSysteme }, { data: membership }, { data: profil }] = await Promise.all([
     supabase
       .from("system_admin_memberships")
       .select("utilisateur_id")
@@ -145,8 +137,32 @@ export async function connexionAction(
       .select("restaurant_id")
       .eq("utilisateur_id", user?.id ?? "")
       .maybeSingle(),
+    supabase
+      .from("client_profils")
+      .select("utilisateur_id")
+      .eq("utilisateur_id", user?.id ?? "")
+      .maybeSingle(),
   ]);
 
+  // Filtre d'entrée : la personne a dit au départ si elle est client ou restaurateur ; le compte doit correspondre.
+  // Sinon on referme la session aussitôt et on l'oriente vers la bonne piste (aucun accès accordé « par erreur »).
+  const piste = lireRoleChoisi(formData.get("role"));
+  const reel = typeDeCompte({ roleSysteme: !!roleSysteme, membreRestaurant: !!membership, profilClient: !!profil });
+  const verdict = verifierPiste(piste, reel);
+  if (!verdict.ok) {
+    await supabase.auth.signOut();
+    return { erreur: verdict.message };
+  }
+
+  // Destination explicite (utilisateur redirigé depuis une page protégée) :
+  // uniquement un chemin interne. `//hote`, `/\hote`, un schéma ou un caractère
+  // de contrôle seraient une redirection ouverte (hameçonnage après connexion).
+  if (estCheminInterneSur(suite)) {
+    redirect(suite);
+  }
+
+  // Sinon, routage par type de compte (deux consoles distinctes, ADR-010) :
+  // un admin système pur va dans son CMS, un restaurateur dans sa console.
   if (roleSysteme && !membership) {
     redirect("/system");
   }

@@ -32,6 +32,7 @@ export async function PiedSite() {
           <Link href="/quartiers">Explorer les localités</Link>
           <Link href="/comment-ca-marche">Comment ça marche</Link>
           <Link href="/panier">Mon panier</Link>
+          <Link href="/acces">Créer un compte ou me connecter</Link>
           <Link href="/compte">Mon compte</Link>
           <Link href="/compte/commandes">Mes commandes</Link>
           <Link href="/compte/favoris">Mes favoris</Link>
@@ -41,7 +42,7 @@ export async function PiedSite() {
           <p className="site-pied-titre">Restaurateurs</p>
           <Link href="/devenir-partenaire">Devenir partenaire</Link>
           <Link href="/inscription">Inscrire mon restaurant</Link>
-          <Link href="/connexion">Espace restaurateur</Link>
+          <Link href="/connexion?role=restaurateur">Espace restaurateur</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Informations">
           <p className="site-pied-titre">Informations</p>

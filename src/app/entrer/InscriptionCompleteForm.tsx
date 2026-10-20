@@ -38,9 +38,9 @@ export function InscriptionCompleteForm({ suite }: { suite: string }) {
         <ul className="confirmation-envoi-aide">
           <li>Regardez aussi les courriers indésirables.</li>
           <li>Le lien est valable une heure.</li>
-          <li>Rien reçu ? Vérifiez l&apos;adresse saisie, puis réessayez dans quelques minutes.</li>
+          <li>Rien reçu ? Si cette adresse a déjà un compte (client ou restaurateur), aucun e-mail n&apos;est envoyé : connectez-vous. Sinon, vérifiez l&apos;adresse saisie.</li>
         </ul>
-        <Link href="/connexion" className="lien-texte confirmation-envoi-retour">
+        <Link href="/connexion?role=client" className="lien-texte confirmation-envoi-retour">
           Aller à la connexion
         </Link>
       </div>
