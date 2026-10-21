@@ -19,14 +19,14 @@ L'étude montre que Madifood, la référence citée, **n'est pas un revendeur** 
 « **Le repas dont l'heure de confirmation est écrite.** » Là où les autres promettent « moins de 45 min », Speedfood promet une chose vérifiable : chaque plat dit depuis quand le restaurant l'a confirmé, la livraison se suit sur une carte, et le client ne paie jamais un plat que l'on n'a pas confirmé.
 
 ## 3. Ce que l'on reprend, et ce que l'on fait mieux
-**Repris des acteurs établis** (éprouvé) : restaurants inscrits par l'équipe sur formulaire, rappel sous 48 h ; paiement à la commande ; protocole « prix modifié » et « réorientation » ; coursiers payés à la livraison avec virement hebdomadaire sur mobile money ; téléconseillers ; remboursements en crédit (voir réserve ci-dessous) ; extension future aux épiceries et supermarchés.
+**Repris des acteurs établis** (éprouvé) : restaurants inscrits par l'équipe sur formulaire, rappel sous 48 h ; paiement à la commande ; protocole « prix modifié » et « réorientation » ; coursiers payés à la livraison (Madifood : virement hebdomadaire ; Speedfood : virement journalier, décision du 21/10) ; téléconseillers ; remboursements en crédit (voir réserve ci-dessous) ; extension future aux épiceries et supermarchés.
 
 **Où Speedfood se distingue** (déjà construit, ou facile) :
 1. **Disponibilité horodatée** et alternatives proposées *avant* le paiement.
 2. **Suivi GPS du livreur** (absent chez Madifood, qui l'écrit dans ses conditions).
 3. **Commande sans compte** et **par WhatsApp** (pas de téléchargement ni d'inscription obligatoire), là où Madifood impose Google ou Apple.
 4. **Commission publiée** en trois paliers lisibles (les grandes plateformes en ont ; les acteurs guinéens aucune) : un restaurateur choisit en connaissance de cause.
-5. **Livreurs bien traités**, dans l'esprit de Chowdeck : paie au kilomètre, primes simples, **commande envoyée au livreur le plus proche**, virement hebdomadaire.
+5. **Livreurs bien traités**, dans l'esprit de Chowdeck : paie au kilomètre, primes simples, **commande envoyée au livreur le plus proche**, virement journalier.
 6. **Densité avant étendue** : commencer dans une à deux communes (le pilote couvre déjà Kaloum, Dixinn, Ratoma, Matam), pas toute la ville.
 7. **Zéro stock** : Speedfood ne détient jamais de marchandise (la leçon de Getir et Flink).
 8. **Communauté** : la page partenaires (investir, soutenir, apporter des moyens, contribuer) existe déjà.
@@ -40,13 +40,13 @@ L'étude montre que Madifood, la référence citée, **n'est pas un revendeur** 
 - **Réserve juridique sur le « portefeuille »** : créditer les remboursements dans un portefeuille ressemble à de la monnaie électronique, qui peut être réglementée. Commencer par des **avoirs** (bons d'achat) et faire valider.
 
 ## 5. Ce que dit la simulation (hypothèses, `scripts/simulation-economie-revente.mjs`)
-Hypothèses de travail (panier 60 000 GNF, commission 15 %, livraison facturée 8 000, livreur payé 6 000, 60 % d'espèces, 10 % d'échecs en espèces) : marge d'environ **5 200 GNF par commande**. Ce qui la fait le plus bouger, du plus au moins fort :
-1. **Le volume** : les frais fixes par commande (de 3 000 à 8 000 GNF font tomber la marge à quasi zéro) ;
-2. **La commission** et **les frais de livraison facturés** (±3 000 GNF chacun) ;
-3. **La taille du panier** (de 60 000 à 90 000 : +2 900) ;
-4. **Les échecs en espèces** (de 10 à 20 % : −2 200) et le **coût du livreur** (+2 000 : −2 100) ;
+Hypothèses de travail (panier 60 000 GNF, **commission 5 %** décidée le 21/10, livraison facturée 8 000, service 2 000, livreur payé 6 000, 60 % d'espèces, 10 % d'échecs en espèces, virements quotidiens) : marge d'environ **−900 GNF par commande**, donc **légèrement négative** ; à 15 % elle serait de +5 200. Pour que 5 % tienne, les frais de livraison (par exemple 11 000) ou de service (4 000) doivent porter la marge. Ce qui fait le plus bouger la marge, du plus au moins fort :
+1. **La commission** (5 → 15 % : +6 000 GNF par commande) et **le volume** (frais fixes par commande de 3 000 à 8 000 : −5 000) ;
+2. **Les frais de livraison facturés** (±3 000 GNF) et **les frais de service** (+2 000 si portés à 4 000) ;
+3. **Les échecs en espèces** (de 10 à 20 % : −2 200) et le **coût du livreur** (+2 000 : −2 100) ;
+4. **La taille du panier** compte **peu à 5 %** : la commission étant faible, un panier plus gros ne change presque rien ; la marge vient des frais de livraison et de service, pas du panier ;
 5. La **part d'espèces elle-même** pèse peu (±550) : ce qui coûte, ce sont les *échecs*, pas l'espèce.
-**À retenir :** (a) ne rien promettre avant d'avoir du volume dans une zone dense ; (b) fixer un panier minimum ou un supplément de petite commande ; (c) mesurer le taux d'échec par moyen de paiement dès le premier restaurant-test. Aucun de ces chiffres n'est mesuré : ils sont à remplacer par les mesures du pilote.
+**À retenir :** (a) ne rien promettre avant d'avoir du volume dans une zone dense ; (b) **facturer la livraison selon la distance** et prévoir un supplément de petite commande (à 5 %, un gros panier ne rapporte presque pas plus qu'un petit : la marge vient des frais, pas du panier) ; (c) mesurer le taux d'échec par moyen de paiement dès le premier restaurant-test. Aucun de ces chiffres n'est mesuré : ils sont à remplacer par les mesures du pilote.
 
 ## 6. Architecture produit cible
 | Produit | Rôle | État |

@@ -31,7 +31,7 @@ Le consommateur achète **à Speedfood**, qui achète **au restaurant** et livre
 - **Application native** (ADR-019) : devient l'application **client** principale ; l'application **livreur** passe devant l'application restaurateur.
 
 ## 5. Les décisions d'argent
-**Tranchées dans `DECISIONS-MODELE.md`, alignées sur la posture intermédiaire** : prix du restaurant en parité plus frais de livraison et de service affichés, commission retenue et publiée en paliers (départ à tester : 15 %), règlement hebdomadaire des restaurants sans avance, livreurs indépendants Speedfood payés à la livraison. Les options « majoration cachée » et « prix Speedfood libre » proposées au premier cadrage sont écartées. Le réglage par restaurant s'appelle désormais `mode_vente` = `autonome` ou `speedfood`.
+**Tranchées dans `DECISIONS-MODELE.md`, alignées sur la posture intermédiaire** : prix du restaurant en parité plus frais de livraison et de service affichés, commission retenue et publiée en paliers (départ décidé par Malika : 5 %), règlement quotidien des restaurants sans avance, livreurs indépendants Speedfood payés à la livraison avec virement journalier. Les options « majoration cachée » et « prix Speedfood libre » proposées au premier cadrage sont écartées. Le réglage par restaurant s'appelle désormais `mode_vente` = `autonome` ou `speedfood`.
 
 ## 6. Le cadre juridique devient obligatoire (aucun avis donné ici)
 En vendant, Speedfood devient **le vendeur** : cela rend les questions juridiques ouvertes (dossier de questions 10 à 15) **bloquantes avant tout lancement**. À faire valider par un juriste et un expert-comptable de Guinée :
