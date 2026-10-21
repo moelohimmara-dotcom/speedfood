@@ -20,8 +20,8 @@ Décision : ADR-019 (21 octobre 2026). Code : `mobile/`. Ce document est le plan
 | Lot | Contenu | État |
 |---|---|---|
 | N0 Fondations | Projet, design, coque, lecture réelle de la liste des restaurants, APK de débogage, aperçu bureau, tests | voir « État » |
-| N1 Client : découvrir | Recherche, fiche restaurant, menu, disponibilité horodatée, favoris (connexion Supabase) | à faire |
-| N2 Client : commander | `/api/v1/commandes` (prix recalculés), panier, suivi, historique, adresses, « commander à nouveau » | à faire |
+| N1 Client : découvrir | Recherche, fiche restaurant, menu, disponibilité horodatée, favoris (connexion Supabase) | fait (commit 04ca884) : recherche, fiche, menu, disponibilité ; favoris reportés |
+| N2 Client : commander | `/api/v1/commandes` (prix recalculés), panier, suivi, historique, adresses, « commander à nouveau » | N2a fait (non déployé) : compte (connexion/inscription), panier, commande en retrait, suivi avec réponse à la proposition, commandes de l’appareil ; routes `/api/v1/*` à déployer avec une nouvelle APK. Reste N2b : livraison (adresse, frais), historique serveur, « commander à nouveau » |
 | N3 Restaurateur | Commandes en direct, accepter / refuser / proposer, menu, disponibilités, alerte sonore | à faire |
 | N4 Livreur | Missions, statuts, position GPS (premier plan puis arrière-plan avec consentement) | à faire |
 | N5 Alertes natives | FCM (Android), APNs (iOS), liens profonds | à faire, exige Firebase / Apple |

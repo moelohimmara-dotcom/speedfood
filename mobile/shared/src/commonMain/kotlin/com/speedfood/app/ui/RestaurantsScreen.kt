@@ -17,7 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.data.FiltreRestaurants
+import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.Restaurant
 import com.speedfood.app.data.filtrerRestaurants
 import com.speedfood.app.design.Couleurs
@@ -53,12 +58,21 @@ import com.speedfood.app.disponibilite.ancienneteLisible
 import com.speedfood.app.disponibilite.estFraiche
 import com.speedfood.app.disponibilite.etatRestaurant
 import com.speedfood.app.disponibilite.libelleEtat
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RestaurantsScreen(onRetour: () -> Unit, onOuvrir: (String) -> Unit, viewModel: RestaurantsViewModel = koinViewModel()) {
+fun RestaurantsScreen(
+    onRetour: () -> Unit,
+    onOuvrir: (String) -> Unit,
+    onPanier: () -> Unit,
+    onCompte: () -> Unit,
+    viewModel: RestaurantsViewModel = koinViewModel(),
+    panierService: PanierService = koinInject(),
+) {
     val etat by viewModel.etat.collectAsState()
+    val panier by panierService.panier.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -67,6 +81,10 @@ fun RestaurantsScreen(onRetour: () -> Unit, onOuvrir: (String) -> Unit, viewMode
                 title = { Text("Restaurants", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
+                },
+                actions = {
+                    IconButton(onClick = onCompte) { Icon(Icons.Default.Person, contentDescription = "Mon compte et mes commandes") }
+                    BoutonPanier(panier.nombreArticles, onPanier)
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -82,6 +100,16 @@ fun RestaurantsScreen(onRetour: () -> Unit, onOuvrir: (String) -> Unit, viewMode
                     RechercheEtListe(e.restaurants, onOuvrir)
                 }
             }
+        }
+    }
+}
+
+/** Icône du panier avec le nombre d'articles (rien si le panier est vide). */
+@Composable
+internal fun BoutonPanier(nombreArticles: Int, onPanier: () -> Unit) {
+    IconButton(onClick = onPanier) {
+        BadgedBox(badge = { if (nombreArticles > 0) Badge(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme) { Text("$nombreArticles") } }) {
+            Icon(Icons.Default.ShoppingCart, contentDescription = if (nombreArticles > 0) "Mon panier, $nombreArticles article(s)" else "Mon panier")
         }
     }
 }

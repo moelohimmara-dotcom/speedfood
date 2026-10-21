@@ -1,8 +1,22 @@
 package com.speedfood.app
 
 import android.app.Application
+import android.content.Context
 import com.speedfood.app.config.SpeedfoodConfig
+import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.di.initKoin
+
+/** Stockage dans les préférences privées de l'application (illisibles par les autres applications). */
+private class StockagePreferences(contexte: Context) : StockageLocal {
+    private val prefs = contexte.getSharedPreferences("speedfood", Context.MODE_PRIVATE)
+    override fun lire(cle: String): String? = prefs.getString(cle, null)
+    override fun ecrire(cle: String, valeur: String) {
+        prefs.edit().putString(cle, valeur).apply()
+    }
+    override fun effacer(cle: String) {
+        prefs.edit().remove(cle).apply()
+    }
+}
 
 class SpeedfoodApp : Application() {
     override fun onCreate() {
@@ -12,7 +26,7 @@ class SpeedfoodApp : Application() {
             supabaseAnonKey = BuildConfig.SUPABASE_ANON_KEY,
             siteUrl = BuildConfig.SITE_URL,
         )
-        initKoin(config)
+        initKoin(config, StockagePreferences(this))
     }
 
     companion object {

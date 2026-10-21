@@ -8,18 +8,14 @@ import type {
   ResultatCreationCommande,
 } from "@/lib/contracts/commande";
 import { validerCreationCommande } from "./validation";
-import { creerCommande } from "./creation";
+import { executerCreationCommande } from "./creation-service";
 import { repondreProposition } from "./propositions";
 import { estJetonValide } from "./jetons";
-import { limiterCreationCommande, limiterDeclarationPaiement, limiterReponseProposition } from "@/lib/securite/limitation-debit";
-import { cleDeTableValide } from "@/lib/table/cle";
+import { limiterDeclarationPaiement, limiterReponseProposition } from "@/lib/securite/limitation-debit";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { creerClientServeur } from "@/lib/db/server";
 import { chargerSuiviParJeton } from "./requetes";
 import { lireReferencePaiement, paiementOuvert, peutDeclarer, type ModePaiement } from "@/lib/paiement/regles";
-import { verifierAntiRobot } from "@/lib/securite/turnstile";
-import { after } from "next/server";
-import { notifierRestaurant } from "@/lib/push/envoi";
 
 /**
  * Actions serveur du parcours client invité (ADR-005).
@@ -62,39 +58,7 @@ export async function creerCommandeAction(
     return validation;
   }
 
-  try {
-    // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
-    await verifierAntiRobot(validation.valeurs.jetonVerification);
-    // Commande à table avec la clé du QR de la table : plafond d'adresse large (salle pleine derrière un seul Wi-Fi) et plafond par table.
-    const tableVerifiee =
-      validation.valeurs.mode === "sur_place" && cleDeTableValide(validation.valeurs.restaurantId, validation.valeurs.table, validation.valeurs.cleTable)
-        ? validation.valeurs.table
-        : null;
-    await limiterCreationCommande(validation.valeurs.restaurantId, validation.valeurs.client.telephone, { table: tableVerifiee });
-    const cree = await creerCommande(validation.valeurs, user?.id ?? null);
-    if (!cree.idempotent) {
-      // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.
-      const restaurantId = validation.valeurs.restaurantId;
-      after(async () => {
-        try {
-          await notifierRestaurant(restaurantId);
-        } catch {
-          console.error("push_indisponible");
-        }
-      });
-    }
-    return {
-      ok: true,
-      reference: cree.reference,
-      jeton: cree.jeton,
-      idempotent: cree.idempotent,
-    };
-  } catch (erreur) {
-    if (erreur instanceof ErreurMetier) {
-      return { ok: false, erreur: erreur.toApi() };
-    }
-    return { ok: false, erreur: erreurInattendue() };
-  }
+  return executerCreationCommande(validation.valeurs, user?.id ?? null, { antiRobot: true });
 }
 
 /**

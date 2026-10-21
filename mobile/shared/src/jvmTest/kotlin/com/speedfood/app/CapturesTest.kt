@@ -6,8 +6,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Density
+import com.speedfood.app.data.CommandeLocale
 import com.speedfood.app.data.FiltreRestaurants
+import com.speedfood.app.data.LignePanier
+import com.speedfood.app.data.LigneSuivie
 import com.speedfood.app.data.Menu
+import com.speedfood.app.data.OptionSuivie
+import com.speedfood.app.data.Panier
+import com.speedfood.app.data.PropositionSuivie
+import com.speedfood.app.data.RestaurantSuivi
+import com.speedfood.app.data.SuiviCommande
+import com.speedfood.app.ui.CarteCommandeLocale
+import com.speedfood.app.ui.ContenuPanier
+import com.speedfood.app.ui.ContenuSuivi
+import com.speedfood.app.ui.EtatCommande
+import com.speedfood.app.ui.EtatSuivi
+import com.speedfood.app.ui.FormulaireCommande
 import com.speedfood.app.data.OptionPlat
 import com.speedfood.app.data.Plat
 import com.speedfood.app.data.QuartierRef
@@ -86,5 +100,60 @@ class CapturesTest {
             ),
         )
         ContenuRestaurant(fiche, menu)
+    }
+
+    private val rizGras = Plat("p1", "Poulet braisé", "", 35000, prixPromo = 30000, options = listOf(OptionPlat("o1", "Piment", 500)))
+    private val bissap = Plat("p4", "Jus de bissap", "", 5000)
+    private val panierExemple = Panier(
+        restaurantId = "1",
+        restaurantNom = "Chez Awa",
+        lignes = listOf(LignePanier(rizGras, listOf(OptionPlat("o1", "Piment", 500)), 2), LignePanier(bissap, emptyList(), 1)),
+    )
+
+    @Test
+    fun ficheAvecBoutonsAjouter() = capturer("fiche-ajouter", hauteur = 1100) {
+        val fiche = RestaurantFiche(id = "1", nom = "Chez Awa", horaires = "8h – 22h", ouvert = true, accepteCommandes = true, statutMisAJourLe = "2099-01-01T00:00:00Z", quartier = QuartierRef("Kaloum"))
+        val menu = Menu(
+            sections = listOf(Section("s1", "Plats", 1), Section("s2", "Boissons", 2)),
+            plats = listOf(
+                rizGras.copy(confirmeLe = "2099-01-01T00:00:00Z", sectionId = "s1"),
+                Plat("p3", "Riz gras", "", 25000, disponible = false, sectionId = "s1"),
+                bissap.copy(confirmeLe = "2099-01-01T00:00:00Z", sectionId = "s2"),
+            ),
+        )
+        ContenuRestaurant(fiche, menu, surPlat = {})
+    }
+
+    @Test fun panier() = capturer("panier") { ContenuPanier(panierExemple, null, onVoirRestaurant = {}) }
+
+    @Test
+    fun commandeConnecte() = capturer("commande", hauteur = 1000) {
+        FormulaireCommande(Modifier, panierExemple, connecte = true, etat = EtatCommande(erreur = "Indiquez votre nom (2 caractères au moins)."), onConnexion = {}, onEnvoyer = { _, _, _ -> })
+    }
+
+    @Test
+    fun commandeNonConnecte() = capturer("commande-hors-connexion") {
+        FormulaireCommande(Modifier, panierExemple, connecte = false, etat = EtatCommande(), onConnexion = {}, onEnvoyer = { _, _, _ -> })
+    }
+
+    @Test
+    fun suiviAvecProposition() = capturer("suivi-proposition", hauteur = 1000) {
+        val suivi = SuiviCommande(
+            reference = "SF-0042", statut = "en_attente", etatDerive = "attente_confirmation_client", restaurant = RestaurantSuivi("1", "Chez Awa"),
+            lignes = listOf(LigneSuivie("Poulet braisé", 30000, 2, listOf(OptionSuivie("Piment", 500))), LigneSuivie("Jus de bissap", 5000, 1)),
+            sousTotal = 66000, propositionActive = PropositionSuivie("prop", 61000, 0, "Le poulet est remplacé par du poisson grillé."),
+        )
+        ContenuSuivi(EtatSuivi.Pret(suivi), surReponse = {})
+    }
+
+    @Test
+    fun suiviAcceptee() = capturer("suivi-acceptee") {
+        val suivi = SuiviCommande(reference = "SF-0043", statut = "acceptee", restaurant = RestaurantSuivi("1", "Chez Awa"), lignes = listOf(LigneSuivie("Jus de bissap", 5000, 2)), sousTotal = 10000)
+        ContenuSuivi(EtatSuivi.Pret(suivi, alerte = "Connexion perdue : nouvelle tentative en cours."), surReponse = {})
+    }
+
+    @Test
+    fun carteCommandeLocale() = capturer("mes-commandes", hauteur = 300) {
+        CarteCommandeLocale(CommandeLocale("SF-0042", "jeton", "Chez Awa", 0L, 66000), onOuvrir = {})
     }
 }

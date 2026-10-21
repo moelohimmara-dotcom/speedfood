@@ -6,6 +6,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.speedfood.app.config.SpeedfoodConfig
+import com.speedfood.app.data.StockageMemoire
 import com.speedfood.app.di.initKoin
 import java.io.File
 import java.util.Properties
@@ -23,9 +24,10 @@ private fun lireConfig(): SpeedfoodConfig {
     )
 }
 
+/** Aperçu bureau : session et commandes gardées en mémoire seulement (rien n'est écrit sur le disque). */
 fun main() {
     val config = lireConfig()
-    initKoin(config)
+    initKoin(config, StockageMemoire())
     application {
         // Fenêtre au format téléphone : l'aperçu montre ce qu'un téléphone affichera.
         Window(onCloseRequest = ::exitApplication, title = "Speedfood (aperçu)", state = rememberWindowState(size = DpSize(412.dp, 860.dp))) {
