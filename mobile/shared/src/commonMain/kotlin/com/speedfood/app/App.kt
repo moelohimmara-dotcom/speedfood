@@ -9,6 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.speedfood.app.ui.RestaurantScreen
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.design.SpeedfoodTheme
 import com.speedfood.app.ui.EntreeScreen
@@ -21,6 +23,9 @@ object EntreeDestination
 
 @Serializable
 object RestaurantsDestination
+
+@Serializable
+data class RestaurantDestination(val id: String)
 
 @Serializable
 object RestaurateurDestination
@@ -38,7 +43,13 @@ fun App(config: SpeedfoodConfig) {
                     )
                 }
                 composable<RestaurantsDestination> {
-                    RestaurantsScreen(onRetour = { navController.popBackStack() })
+                    RestaurantsScreen(
+                        onRetour = { navController.popBackStack() },
+                        onOuvrir = { id -> navController.navigate(RestaurantDestination(id)) },
+                    )
+                }
+                composable<RestaurantDestination> { entree ->
+                    RestaurantScreen(restaurantId = entree.toRoute<RestaurantDestination>().id, onRetour = { navController.popBackStack() })
                 }
                 composable<RestaurateurDestination> {
                     RestaurateurBientotScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() })

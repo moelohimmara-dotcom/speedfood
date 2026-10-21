@@ -8,6 +8,9 @@ import kotlin.time.Instant
 @Serializable
 data class QuartierRef(val nom: String? = null)
 
+@Serializable
+data class CategorieRef(val nom: String? = null)
+
 /**
  * Restaurant tel que la liste publique le montre (lecture anonyme sous RLS : seuls les restaurants publiés et non suspendus sont visibles).
  * Les noms de champs suivent la base ; les accesseurs en français sont ceux que l'interface utilise.
@@ -27,8 +30,10 @@ data class Restaurant(
     @SerialName("avis_somme") val avisSomme: Int = 0,
     @SerialName("avis_total") val avisTotal: Int = 0,
     val quartier: QuartierRef? = null,
+    val categorie: CategorieRef? = null,
 ) {
     val nomQuartier: String? get() = quartier?.nom?.takeIf { it.isNotBlank() }
+    val nomCategorie: String? get() = categorie?.nom?.takeIf { it.isNotBlank() }
 
     /** Note moyenne sur 5 (arrondie au dixième), ou null tant qu'aucun avis n'existe : jamais de note inventée. */
     val noteMoyenne: Double?

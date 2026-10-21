@@ -3,6 +3,7 @@ package com.speedfood.app.di
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.KtorRestaurantApi
 import com.speedfood.app.data.RestaurantApi
+import com.speedfood.app.ui.RestaurantViewModel
 import com.speedfood.app.ui.RestaurantsViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
@@ -28,6 +29,7 @@ fun modulesApplication(config: SpeedfoodConfig) = listOf(
         }
         single<RestaurantApi> { KtorRestaurantApi(get(), get()) }
         factoryOf(::RestaurantsViewModel)
+        factory { parametres -> RestaurantViewModel(get(), parametres.get()) }
     },
 )
 
