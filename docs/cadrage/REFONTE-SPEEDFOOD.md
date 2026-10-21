@@ -71,6 +71,6 @@ Hypothèses de travail (panier 60 000 GNF, commission 15 %, livraison facturée 
 **Premier restaurant-test :** un seul, de confiance, contrat écrit simple, dans une commune dense ; on mesure avant de promettre.
 
 ## 8. Ce qui est décidé et ce qui ne l'est pas
-- **Décidé par Malika (21/10) :** Speedfood inscrit les restaurants, vend ou encaisse et livre ; application native Kotlin pour Android et iPhone.
-- **Proposé, non validé :** la posture B (intermédiaire), la commission en trois paliers publiés, le « plat du jour confirmé », la livraison groupée.
+- **Décidé par Malika (21/10) :** la posture intermédiaire qui encaisse et livre (`DECISIONS-MODELE.md`) ; Speedfood inscrit les restaurants, vend ou encaisse et livre ; application native Kotlin pour Android et iPhone.
+- **Tranché par l'ingénieur sur mandat, modifiable :** prix en parité plus frais affichés, règlement hebdomadaire, livreurs indépendants (`DECISIONS-MODELE.md`). **Proposé, non validé :** la commission en trois paliers publiés, le « plat du jour confirmé », la livraison groupée.
 - **Bloquant avant tout lancement :** avis juridique et comptable guinéens ; existence légale de la société ; compte marchand mobile money.

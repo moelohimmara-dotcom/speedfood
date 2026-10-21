@@ -30,14 +30,8 @@ Le consommateur achète **à Speedfood**, qui achète **au restaurant** et livre
 - **Espace client** : commandes, favoris, adresses, « commander à nouveau », avis, notifications.
 - **Application native** (ADR-019) : devient l'application **client** principale ; l'application **livreur** passe devant l'application restaurateur.
 
-## 5. Les décisions d'argent (à trancher avant de coder)
-**Prix.** Trois façons de gagner de l'argent, à ne pas mélanger au départ :
-- **A. Majoration visible** : le client paie le prix du restaurant + majoration Speedfood + frais de livraison. Le restaurant touche son prix habituel. Simple à expliquer au restaurant.
-- **B. Commission retenue** : le client paie le prix du menu + livraison ; Speedfood garde un pourcentage sur le prix du restaurant. Le restaurant reçoit moins.
-- **C. Prix Speedfood** (plus libre) : Speedfood fixe son propre prix de vente par article, supérieur au prix d'achat convenu. Le plus flexible, mais le moins lisible pour le client.
-*Recommandation pilote : A pour un seul restaurant-test, avec la majoration affichée en ligne claire dans le panier* (on ne cache jamais une majoration au client).
-
-**Avance de trésorerie.** Option A : le livreur paie le restaurant à l'enlèvement (il faut un fonds de roulement et un rapprochement quotidien des espèces). Option B : règlement hebdomadaire au restaurant (moins de risque d'espèces, mais le restaurant avance la marchandise). *Recommandation pilote : B avec un seul restaurant de confiance, puis A quand le suivi des espèces est éprouvé.*
+## 5. Les décisions d'argent
+**Tranchées dans `DECISIONS-MODELE.md`, alignées sur la posture intermédiaire** : prix du restaurant en parité plus frais de livraison et de service affichés, commission retenue et publiée en paliers (départ à tester : 15 %), règlement hebdomadaire des restaurants sans avance, livreurs indépendants Speedfood payés à la livraison. Les options « majoration cachée » et « prix Speedfood libre » proposées au premier cadrage sont écartées. Le réglage par restaurant s'appelle désormais `mode_vente` = `autonome` ou `speedfood`.
 
 ## 6. Le cadre juridique devient obligatoire (aucun avis donné ici)
 En vendant, Speedfood devient **le vendeur** : cela rend les questions juridiques ouvertes (dossier de questions 10 à 15) **bloquantes avant tout lancement**. À faire valider par un juriste et un expert-comptable de Guinée :
