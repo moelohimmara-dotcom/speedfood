@@ -1,27 +1,36 @@
 package com.speedfood.app.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -35,16 +44,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.speedfood.app.data.EstimationLivraison
 import com.speedfood.app.data.Panier
 import com.speedfood.app.data.PanierService
+import com.speedfood.app.data.QuartierChoix
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.formaterGnf
+import com.speedfood.app.data.normaliser
 import com.speedfood.app.design.Couleurs
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Validation de la commande : retrait au restaurant (la livraison dans l'application arrive dans un lot suivant). Aucun paiement dans l'application : le
+ * Validation de la commande : retrait au restaurant ou livraison (quartier + adresse, frais calculés par le serveur). Aucun paiement dans l'application : le
  * règlement se fait directement avec le restaurant, qui confirme la commande ; la personne le reconnaît avant d'envoyer, comme sur le site.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +70,7 @@ fun CommandeScreen(
     sessionService: SessionService = koinInject(),
 ) {
     val etat by viewModel.etat.collectAsState()
+    val quartiers by viewModel.quartiers.collectAsState()
     val panier by panierService.panier.collectAsState()
     val session by sessionService.session.collectAsState()
 
@@ -82,7 +95,10 @@ fun CommandeScreen(
                 panier = panier,
                 connecte = session != null,
                 etat = etat,
+                quartiers = quartiers,
                 onConnexion = onConnexion,
+                onMode = viewModel::choisirMode,
+                onQuartier = viewModel::choisirQuartier,
                 onEnvoyer = viewModel::envoyer,
             )
         }
@@ -95,11 +111,16 @@ internal fun FormulaireCommande(
     panier: Panier,
     connecte: Boolean,
     etat: EtatCommande,
+    quartiers: List<QuartierChoix>,
     onConnexion: () -> Unit,
-    onEnvoyer: (String, String, Boolean) -> Unit,
+    onMode: (Boolean) -> Unit,
+    onQuartier: (String) -> Unit,
+    onEnvoyer: (String, String, String, Boolean) -> Unit,
 ) {
     var nom by remember { mutableStateOf("") }
     var telephone by remember { mutableStateOf("") }
+    var adresse by remember { mutableStateOf("") }
+    var choixQuartier by remember { mutableStateOf(false) }
     var consentement by remember { mutableStateOf(false) }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -121,7 +142,28 @@ internal fun FormulaireCommande(
                     Text("Total des plats", style = MaterialTheme.typography.titleMedium)
                     Text(formaterGnf(panier.sousTotal), style = MaterialTheme.typography.titleMedium)
                 }
-                Text("Retrait au restaurant · la livraison dans l'application arrive bientôt.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val estimationOk = etat.estimation as? EstimationLivraison.Ok
+                if (etat.livraison && estimationOk != null) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Livraison", style = MaterialTheme.typography.bodyMedium)
+                        Text(if (estimationOk.gratuite) "Offerte" else formaterGnf(estimationOk.fraisGnf), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total à régler", style = MaterialTheme.typography.titleMedium)
+                        Text(formaterGnf(panier.sousTotal + etat.fraisLivraison), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(false to "Retrait au restaurant", true to "Livraison").forEach { (livraison, texte) ->
+                FilterChip(
+                    selected = etat.livraison == livraison,
+                    onClick = { onMode(livraison) },
+                    label = { Text(texte, style = MaterialTheme.typography.labelMedium) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Couleurs.Mangue, selectedLabelColor = Couleurs.Encre),
+                )
             }
         }
 
@@ -131,6 +173,29 @@ internal fun FormulaireCommande(
         } else {
             ChampTexte(nom, { nom = it }, "Votre nom")
             ChampTexte(telephone, { telephone = it }, "Votre téléphone", KeyboardType.Phone, aide = "Le restaurant vous appelle à ce numéro si besoin")
+            if (etat.livraison) {
+                val quartierNom = quartiers.firstOrNull { it.id == etat.quartierId }?.nom
+                OutlinedButton(onClick = { choixQuartier = true }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Bordure)) {
+                    Text(quartierNom?.let { "Quartier : $it" } ?: "Choisir mon quartier", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                }
+                ChampTexte(adresse, { adresse = it }, "Adresse de livraison", aide = "Rue, repère connu, bâtiment, étage")
+                val estimation = etat.estimation
+                when {
+                    etat.estimationEnCours -> Text("Calcul de la livraison…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    estimation is EstimationLivraison.Ok -> Text(
+                        (if (estimation.gratuite) "Livraison offerte" else "Livraison ${formaterGnf(estimation.fraisGnf)}") +
+                            " · environ ${estimation.dureeMinutes} min · ${estimation.libelle}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    estimation is EstimationLivraison.NonCalculee -> Text(
+                        "Les frais de livraison se conviennent avec le restaurant.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    estimation is EstimationLivraison.Erreur -> BlocMessage(estimation.message, erreur = true)
+                }
+            }
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Checkbox(
                     checked = consentement,
@@ -146,9 +211,39 @@ internal fun FormulaireCommande(
             etat.info?.let { BlocMessage(it, erreur = false) }
             etat.erreur?.let { BlocMessage(it, erreur = true) }
             BoutonPrincipal(
-                texte = if (etat.enCours) "Envoi en cours…" else "Envoyer ma commande · ${formaterGnf(panier.sousTotal)}",
+                texte = if (etat.enCours) "Envoi en cours…" else "Envoyer ma commande · ${formaterGnf(panier.sousTotal + etat.fraisLivraison)}",
                 actif = !etat.enCours,
-            ) { onEnvoyer(nom, telephone, consentement) }
+            ) { onEnvoyer(nom, telephone, adresse, consentement) }
         }
     }
+
+    if (choixQuartier) {
+        ChoixQuartierDialogue(quartiers, surAnnuler = { choixQuartier = false }, surChoix = { choixQuartier = false; onQuartier(it) })
+    }
+}
+
+/** Liste des quartiers avec recherche (sans casse ni accents). */
+@Composable
+internal fun ChoixQuartierDialogue(quartiers: List<QuartierChoix>, surAnnuler: () -> Unit, surChoix: (String) -> Unit) {
+    var requete by remember { mutableStateOf("") }
+    val visibles = quartiers.filter { normaliser(it.nom).contains(normaliser(requete.trim())) }
+    AlertDialog(
+        onDismissRequest = surAnnuler,
+        title = { Text("Votre quartier") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChampTexte(requete, { requete = it }, "Rechercher")
+                when {
+                    quartiers.isEmpty() -> Text("Chargement des quartiers…", style = MaterialTheme.typography.bodyMedium)
+                    visibles.isEmpty() -> Text("Aucun quartier ne correspond.", style = MaterialTheme.typography.bodyMedium)
+                    else -> LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                        items(visibles, key = { it.id }) { q ->
+                            Text(q.nom, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().clickable { surChoix(q.id) }.padding(vertical = 12.dp))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = surAnnuler) { Text("Fermer", color = Couleurs.Encre) } },
+    )
 }

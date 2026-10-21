@@ -28,6 +28,9 @@ data class LigneEnvoyee(val menuItemId: String, val quantite: Int, val optionIds
  * choisis comptent ; `sousTotalAffiche` n'est que le total vu à l'écran, comparé au total recalculé par le serveur (écart = commande refusée, rien n'est créé).
  */
 @Serializable
+data class DestinationEnvoyee(val quartierId: String)
+
+@Serializable
 data class CreationCommande(
     val cleIdempotence: String,
     val restaurantId: String,
@@ -36,6 +39,10 @@ data class CreationCommande(
     val lignes: List<LigneEnvoyee>,
     val sousTotalAffiche: Int,
     val consentementReglement: Boolean,
+    /** Livraison seulement : le quartier choisi (le serveur en déduit distance et frais). */
+    val destination: DestinationEnvoyee? = null,
+    /** Livraison seulement : frais vus à l'écran, comparés au calcul du serveur (jamais utilisés comme prix). */
+    val fraisAffiches: Int? = null,
 )
 
 @Serializable
@@ -94,18 +101,47 @@ private data class ReponseSuivi(val ok: Boolean = false, val suivi: SuiviCommand
 
 /** Commande passée depuis cet appareil : la référence et le jeton de suivi reçus à la création (seul moyen d'ouvrir le suivi). */
 @Serializable
-data class CommandeLocale(val reference: String, val jeton: String, val restaurantNom: String, val creeLe: Long, val total: Int)
+data class CommandeLocale(
+    val reference: String,
+    val jeton: String,
+    val restaurantNom: String,
+    val creeLe: Long,
+    val total: Int,
+    /** Pour « commander à nouveau » : le restaurant et les lignes envoyées (absents des commandes enregistrées avant cette version). */
+    val restaurantId: String = "",
+    val lignes: List<LigneEnvoyee> = emptyList(),
+    val mode: String = "retrait",
+)
+
+/** Commande du compte lue sur le serveur (historique, même après une réinstallation) ; le jeton ouvre son suivi. */
+@Serializable
+data class CommandeServeur(
+    val reference: String,
+    val jeton: String = "",
+    val restaurantId: String = "",
+    val restaurantNom: String = "Restaurant",
+    val mode: String = "retrait",
+    val statut: String = "",
+    val totalGnf: Int = 0,
+    val creeLe: String = "",
+)
+
+@Serializable
+private data class ReponseListe(val ok: Boolean = false, val commandes: List<CommandeServeur> = emptyList(), val erreur: ErreurServeur? = null)
 
 interface CommandeApi {
     suspend fun creer(commande: CreationCommande, jetonAcces: String): ResultatCommande
     suspend fun suivi(jeton: String): SuiviCommande?
 
+    /** Commandes du compte connecté, les plus récentes d'abord (50 au plus). */
+    suspend fun lister(jetonAcces: String): List<CommandeServeur>
+
     /** Réponse à la proposition révisée du restaurant (accepter ou refuser). Renvoie un message d'erreur lisible, ou null si la réponse est enregistrée. */
     suspend fun repondreProposition(jeton: String, propositionId: String, accepter: Boolean): String?
 }
 
-/** Les champs vides sont envoyés explicitement (adresse nulle) : le serveur attend la forme complète. */
-private val jsonEnvoi = Json { encodeDefaults = true; explicitNulls = true }
+/** Les champs absents (adresse, destination, frais en retrait) ne sont pas envoyés : le serveur refuse un `null` là où il attend un nombre. */
+private val jsonEnvoi = Json { encodeDefaults = true; explicitNulls = false }
 
 /** Clé d'idempotence d'une soumission : un identifiant aléatoire (UUID v4) ; la renvoyer ne crée jamais une seconde commande. */
 @OptIn(ExperimentalUuidApi::class)
@@ -135,6 +171,17 @@ class KtorCommandeApi(private val client: HttpClient, private val config: Speedf
         }
         if (corps.ok && corps.reference != null && corps.jeton != null) ResultatCommande.Creee(corps.reference, corps.jeton, corps.idempotent)
         else ResultatCommande.Refusee(corps.erreur?.message ?: "Votre commande n'a pas pu être envoyée. Réessayez dans un instant.", corps.erreur?.code ?: "ERREUR_SERVEUR")
+    }
+
+    override suspend fun lister(jetonAcces: String): List<CommandeServeur> = appeler {
+        val reponse = client.get(url("commandes")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }
+        val corps = try {
+            reponse.body<ReponseListe>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!corps.ok) throw ErreurReseau(corps.erreur?.message ?: "Vos commandes n'ont pas pu être chargées. Réessayez dans un instant.")
+        corps.commandes
     }
 
     override suspend fun suivi(jeton: String): SuiviCommande? = appeler {

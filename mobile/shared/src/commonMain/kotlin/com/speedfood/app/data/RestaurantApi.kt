@@ -20,6 +20,9 @@ interface RestaurantApi {
     /** Fiche d'un restaurant publié, ou null s'il n'existe pas (ou n'est pas visible : la RLS décide). */
     suspend fun fiche(id: String): RestaurantFiche?
 
+    /** Quartiers proposés pour la livraison, dans l'ordre d'affichage. Au plus [LIMITE_QUARTIERS] lignes. */
+    suspend fun quartiers(): List<QuartierChoix>
+
     /** Menu d'un restaurant publié : sections, plats non archivés (avec leurs suppléments). */
     suspend fun menu(id: String): Menu
 
@@ -27,6 +30,7 @@ interface RestaurantApi {
         const val LIMITE = 100
         const val LIMITE_PLATS = 500
         const val LIMITE_SECTIONS = 50
+        const val LIMITE_QUARTIERS = 500
     }
 }
 
@@ -90,6 +94,9 @@ class KtorRestaurantApi(
         )
         return liste.firstOrNull()
     }
+
+    override suspend fun quartiers(): List<QuartierChoix> =
+        corps(lire("neighborhoods", mapOf("select" to "id,nom", "order" to "ordre.asc,nom.asc", "limit" to RestaurantApi.LIMITE_QUARTIERS)))
 
     override suspend fun menu(id: String): Menu {
         if (!estIdentifiant(id)) return Menu(emptyList(), emptyList())

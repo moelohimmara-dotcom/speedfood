@@ -103,6 +103,7 @@ fun App(config: SpeedfoodConfig) {
                         onRetour = { navController.popBackStack() },
                         onOuvrir = { jeton -> navController.navigate(SuiviDestination(jeton)) },
                         onConnexion = { navController.navigate(ConnexionDestination) },
+                        onPanier = { navController.navigate(PanierDestination) },
                     )
                 }
                 composable<RestaurateurDestination> {

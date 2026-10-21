@@ -4,6 +4,10 @@ import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.ClientCommande
 import com.speedfood.app.data.CommandeLocale
 import com.speedfood.app.data.CommandesLocales
+import com.speedfood.app.data.DestinationEnvoyee
+import com.speedfood.app.data.EstimationLivraison
+import com.speedfood.app.data.KtorLivraisonApi
+import com.speedfood.app.data.KtorRestaurantApi
 import com.speedfood.app.data.CreationCommande
 import com.speedfood.app.data.ErreurAuth
 import com.speedfood.app.data.KtorAuthApi
@@ -20,6 +24,9 @@ import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageMemoire
 import com.speedfood.app.data.normaliserTelephone
 import com.speedfood.app.data.nouvelleCleIdempotence
+import com.speedfood.app.ui.CommandeAffichee
+import com.speedfood.app.ui.lignesRecommandees
+import com.speedfood.app.ui.fusionnerCommandes
 import com.speedfood.app.ui.libelleStatut
 import com.speedfood.app.ui.verifierConnexion
 import com.speedfood.app.ui.verifierInscription
@@ -281,8 +288,124 @@ class CommandeTest {
         val racine = Json.parseToJsonElement(corps).jsonObject
         assertEquals("retrait", racine["mode"]!!.jsonPrimitive.content)
         assertEquals("62000", racine["sousTotalAffiche"]!!.jsonPrimitive.content)
-        assertTrue(racine["client"]!!.jsonObject.containsKey("adresse"), "l'adresse absente est envoyée explicitement (null)")
+        assertTrue(!racine["client"]!!.jsonObject.containsKey("adresse"), "pas d'adresse en retrait : le champ est absent, jamais null")
+        assertTrue(!racine.containsKey("destination") && !racine.containsKey("fraisAffiches"), "ni destination ni frais en retrait")
         assertTrue(!corps.contains("\"prix\""), "aucun prix de ligne n'est envoyé")
+    }
+
+    @Test
+    fun laCommandeEnLivraisonPorteQuartierAdresseEtFraisVus() = runTest {
+        var corps = ""
+        val api = KtorCommandeApi(
+            client(MockEngine { r -> corps = r.body.toByteArray().decodeToString(); respond("""{"ok":true,"reference":"SF-7","jeton":"j7","idempotent":false}""", HttpStatusCode.Created, json) }),
+            config,
+        )
+        api.creer(
+            CreationCommande("c", "r1", ClientCommande("Aminata", "+224622123456", "Rue KA-012, près de la mosquée"), "livraison", listOf(LigneEnvoyee("p1", 1)), 30_000, true,
+                destination = DestinationEnvoyee("q2"), fraisAffiches = 9_500),
+            "t",
+        )
+        val racine = Json.parseToJsonElement(corps).jsonObject
+        assertEquals("livraison", racine["mode"]!!.jsonPrimitive.content)
+        assertEquals("q2", racine["destination"]!!.jsonObject["quartierId"]!!.jsonPrimitive.content)
+        assertEquals("9500", racine["fraisAffiches"]!!.jsonPrimitive.content)
+        assertEquals("Rue KA-012, près de la mosquée", racine["client"]!!.jsonObject["adresse"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun saisieDeLivraisonControleQuartierAdresseEtCalcul() {
+        val ok = EstimationLivraison.Ok(9_500, 2.4, false, 25, "2,4 km")
+        fun v(adresse: String = "Rue KA-012, Kaloum", quartier: String? = "q1", estimation: EstimationLivraison? = ok, enCours: Boolean = false) =
+            verifierSaisieCommande("Aminata", "622123456", true, true, adresse, quartier, estimation, enCours)
+        assertNull(v())
+        assertNotNull(v(quartier = null), "quartier obligatoire")
+        assertNotNull(v(adresse = "rue"), "adresse trop courte")
+        assertNotNull(v(adresse = "x".repeat(301)), "adresse trop longue")
+        assertNotNull(v(enCours = true), "calcul en cours")
+        assertNotNull(v(estimation = null), "pas de calcul")
+        assertEquals("Trop loin.", v(estimation = EstimationLivraison.Erreur("Trop loin.")))
+        assertNull(v(estimation = EstimationLivraison.NonCalculee), "frais à convenir : on peut commander")
+        // En retrait, rien de tout cela ne compte.
+        assertNull(verifierSaisieCommande("Aminata", "622123456", true))
+    }
+
+    @Test
+    fun estimationDeLivraisonLitLeServeur() = runTest {
+        var corps = ""
+        fun api(reponse: String, statut: HttpStatusCode = HttpStatusCode.OK) =
+            KtorLivraisonApi(client(MockEngine { r -> corps = r.body.toByteArray().decodeToString(); respond(reponse, statut, json) }), config)
+
+        val ok = api("""{"ok":true,"estimation":{"statut":"ok","fraisGnf":9500,"distanceKm":2.4,"gratuite":false,"dureeMinutes":25,"libelle":"2,4 km"}}""")
+            .estimer("r1", "q2", 30_000, "jeton")
+        assertEquals(EstimationLivraison.Ok(9_500, 2.4, false, 25, "2,4 km"), ok)
+        val racine = Json.parseToJsonElement(corps).jsonObject
+        assertEquals("q2", racine["destination"]!!.jsonObject["quartierId"]!!.jsonPrimitive.content)
+        assertEquals("30000", racine["sousTotal"]!!.jsonPrimitive.content)
+
+        assertEquals(EstimationLivraison.NonCalculee, api("""{"ok":true,"estimation":{"statut":"non_calcule"}}""").estimer("r1", "q2", 1, "j"))
+        assertEquals(
+            EstimationLivraison.Erreur("Ce restaurant ne livre pas : choisissez le retrait."),
+            api("""{"ok":true,"estimation":{"statut":"erreur","message":"Ce restaurant ne livre pas : choisissez le retrait."}}""").estimer("r1", "q2", 1, "j"),
+        )
+        assertEquals(
+            EstimationLivraison.Erreur("Connectez-vous pour calculer la livraison."),
+            api("""{"ok":false,"erreur":{"code":"NON_AUTHENTIFIE","message":"Connectez-vous pour calculer la livraison."}}""", HttpStatusCode.Unauthorized).estimer("r1", "q2", 1, "j"),
+        )
+    }
+
+    @Test
+    fun historiqueDuCompteEtFusionAvecLAppareil() = runTest {
+        var autorisation: String? = null
+        val api = KtorCommandeApi(
+            client(MockEngine { r ->
+                autorisation = r.headers[HttpHeaders.Authorization]
+                respond(
+                    """{"ok":true,"commandes":[
+                        {"id":"x","reference":"SF-2","creeLe":"2026-10-21T10:00:00Z","restaurantId":"r1","restaurantNom":"Chez Awa","mode":"livraison","statut":"acceptee","totalGnf":39500,"jeton":"j2","estTest":false},
+                        {"id":"y","reference":"SF-1","creeLe":"2026-10-20T10:00:00Z","restaurantId":"r1","restaurantNom":"Chez Awa","mode":"retrait","statut":"terminee","totalGnf":30000,"jeton":"j1","estTest":false}]}""",
+                    HttpStatusCode.OK, json,
+                )
+            }),
+            config,
+        )
+        val serveur = api.lister("acces")
+        assertEquals("Bearer acces", autorisation)
+        assertEquals(2, serveur.size)
+
+        val locales = listOf(
+            CommandeLocale("SF-1", "j1", "Chez Awa", 1L, 30_000, restaurantId = "r1", lignes = listOf(LigneEnvoyee("p1", 1))),
+            CommandeLocale("SF-3", "j3", "Chez Awa", 4_000_000_000_000L, 5_000), // pas encore vue par le serveur
+        )
+        val fusion = fusionnerCommandes(serveur, locales)
+        assertEquals(listOf("SF-3", "SF-2", "SF-1"), fusion.map { it.reference }, "la plus récente d'abord")
+        val sf2 = fusion.first { it.reference == "SF-2" }
+        assertTrue(sf2.livraison)
+        assertEquals("acceptee", sf2.statut)
+        assertTrue(!sf2.peutRecommander, "l'appareil n'a pas gardé les lignes de SF-2")
+        val sf1 = fusion.first { it.reference == "SF-1" }
+        assertEquals("terminee", sf1.statut, "le serveur fait foi pour le statut")
+        assertTrue(sf1.peutRecommander, "les lignes viennent de l'appareil")
+    }
+
+    @Test
+    fun commanderANouveauUtiliseLeMenuDAujourdhui() {
+        val menu = Menu(
+            emptyList(),
+            listOf(
+                Plat("p1", "Riz gras", prix = 40_000, options = listOf(OptionPlat("o1", "Piment", 1_500), OptionPlat("o2", "Oeuf", 2_000, disponible = false))),
+                Plat("p2", "Jus", prix = 5_000, disponible = false),
+            ),
+        )
+        val lignes = listOf(LigneEnvoyee("p1", 2, listOf("o1", "o2")), LigneEnvoyee("p2", 1), LigneEnvoyee("disparu", 1))
+        val refaites = lignesRecommandees(menu, lignes)
+        assertEquals(1, refaites.size, "le plat épuisé et le plat disparu sont ignorés")
+        val (plat, options, quantite) = refaites.single()
+        assertEquals(40_000, plat.prix, "prix daujourdhui")
+        assertEquals(listOf("o1"), options.map { it.id }, "le supplément devenu indisponible est écarté")
+        assertEquals(2, quantite)
+        assertTrue(CommandeAffichee("SF-1", "j", "r1", "R", 1L, 1, null, false, lignes).peutRecommander)
+        assertTrue(!CommandeAffichee("SF-1", "j", "", "R", 1L, 1, null, false, lignes).peutRecommander)
+        assertTrue(!CommandeAffichee("SF-1", "j", "r1", "R", 1L, 1, null, false, emptyList()).peutRecommander)
     }
 
     @Test

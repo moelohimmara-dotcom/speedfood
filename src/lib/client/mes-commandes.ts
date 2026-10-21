@@ -20,14 +20,16 @@ export interface CommandeClient {
   paiementMode: string | null;
   /** Commande d'essai (« Tester une commande ») : montrée au client qui l'a passée, avec la mention « Test ». */
   estTest: boolean;
+  /** Clé d’accès au suivi : présente SEULEMENT pour l’application native (`avecJeton`), jamais envoyée au navigateur du site. */
+  jeton?: string;
 }
 
 export const COMMANDES_MAX_AFFICHEES = 50;
 
-export async function listerMesCommandes(utilisateurId: string): Promise<CommandeClient[]> {
+export async function listerMesCommandes(utilisateurId: string, options: { avecJeton?: boolean } = {}): Promise<CommandeClient[]> {
   const { data } = await creerClientAdmin()
     .from("orders")
-    .select("id, reference, cree_le, mode, statut, sous_total, frais_livraison_estime, paiement_statut, paiement_mode, est_test, restaurant_id, restaurants(nom)")
+    .select("id, reference, cree_le, mode, statut, sous_total, frais_livraison_estime, paiement_statut, paiement_mode, est_test, restaurant_id, jeton_suivi, restaurants(nom)")
     .eq("client_user_id", utilisateurId)
     .order("cree_le", { ascending: false })
     .limit(COMMANDES_MAX_AFFICHEES);
@@ -45,6 +47,7 @@ export async function listerMesCommandes(utilisateurId: string): Promise<Command
       paiementStatut: o.paiement_statut,
       paiementMode: o.paiement_mode,
       estTest: o.est_test,
+      ...(options.avecJeton ? { jeton: o.jeton_suivi } : {}),
     };
   });
 }

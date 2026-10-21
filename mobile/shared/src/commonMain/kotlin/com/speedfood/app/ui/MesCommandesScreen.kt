@@ -27,32 +27,30 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.speedfood.app.data.CommandeLocale
-import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.formaterGnf
 import com.speedfood.app.design.Couleurs
+import com.speedfood.app.disponibilite.Ton
 import com.speedfood.app.disponibilite.ancienneteLisible
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 
-/** Compte et commandes passées depuis cet appareil (la référence et le jeton de suivi reçus à l'envoi sont gardés sur le téléphone). */
+/** Compte et historique des commandes : celles du compte (serveur) et celles de cet appareil, avec « commander à nouveau ». */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MesCommandesScreen(
     onRetour: () -> Unit,
     onOuvrir: (String) -> Unit,
     onConnexion: () -> Unit,
-    locales: CommandesLocales = koinInject(),
+    onPanier: () -> Unit,
+    viewModel: MesCommandesViewModel = koinViewModel(),
     sessionService: SessionService = koinInject(),
 ) {
     val session by sessionService.session.collectAsState()
-    var commandes by remember { mutableStateOf(locales.lister()) }
+    val etat by viewModel.etat.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -70,40 +68,61 @@ fun MesCommandesScreen(
                 OutlinedButton(
                     onClick = {
                         sessionService.deconnecter()
-                        locales.oublier()
-                        commandes = emptyList()
+                        viewModel.oublierCetAppareil()
                     },
                     border = BorderStroke(2.dp, Couleurs.Encre),
                 ) { Text("Me déconnecter", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
             } else {
-                BlocMessage("Vous n'êtes pas connecté. Connectez-vous pour envoyer des commandes.", erreur = false)
+                BlocMessage("Vous n'êtes pas connecté. Connectez-vous pour envoyer des commandes et retrouver votre historique.", erreur = false)
                 BoutonPrincipal("Me connecter", surClic = onConnexion)
             }
             Text("Mes commandes", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
-            if (commandes.isEmpty()) {
-                Text("Aucune commande passée depuis cet appareil pour l'instant.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            etat.alerte?.let { BlocMessage(it, erreur = false) }
+            etat.message?.let { BlocMessage(it, erreur = false) }
+            if (etat.chargement && etat.commandes.isEmpty()) {
+                Text("Chargement…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (etat.commandes.isEmpty()) {
+                Text("Aucune commande pour l'instant.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            commandes.forEach { CarteCommandeLocale(it, onOuvrir) }
+            etat.commandes.forEach { c ->
+                CarteCommande(c, onOuvrir, onRecommander = { viewModel.recommander(c, onPanier) }, actif = !etat.recommandeEnCours)
+            }
         }
     }
 }
 
 @Composable
-internal fun CarteCommandeLocale(c: CommandeLocale, onOuvrir: (String) -> Unit) {
-    val age = Clock.System.now().toEpochMilliseconds() - c.creeLe
+internal fun CarteCommande(c: CommandeAffichee, onOuvrir: (String) -> Unit, onRecommander: () -> Unit = {}, actif: Boolean = true) {
+    val age = c.creeLeMillis?.let { Clock.System.now().toEpochMilliseconds() - it }
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onOuvrir(c.jeton) },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
         border = BorderStroke(1.dp, Couleurs.Bordure),
     ) {
-        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(c.reference, style = MaterialTheme.typography.titleMedium)
-                Text(c.restaurantNom, style = MaterialTheme.typography.bodyMedium)
-                Text(ancienneteLisible(age), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(c.reference, style = MaterialTheme.typography.titleMedium)
+                    Text(c.restaurantNom, style = MaterialTheme.typography.bodyMedium)
+                    val detail = listOfNotNull(if (c.livraison) "Livraison" else "Retrait", age?.let { ancienneteLisible(it) }).joinToString(" · ")
+                    Text(detail, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(formaterGnf(c.total), style = MaterialTheme.typography.labelLarge)
             }
-            Text(formaterGnf(c.total), style = MaterialTheme.typography.labelLarge)
+            c.statut?.let { s ->
+                val ton = when (s) {
+                    "refusee", "annulee" -> Ton.Danger
+                    "acceptee", "prete", "terminee" -> Ton.Succes
+                    else -> Ton.Neutre
+                }
+                Pastille(libelleStatut(s), ton)
+            }
+            if (c.peutRecommander) {
+                OutlinedButton(onClick = onRecommander, enabled = actif, border = BorderStroke(2.dp, Couleurs.Encre)) {
+                    Text("Commander à nouveau", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                }
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ import { lireCorpsJson, repondre, repondreErreur, utilisateurDuJeton } from "@/l
  *
  *  - POST : crée une commande, MÊME chemin que le site (`executerCreationCommande`) : validation, plafonds de débit, prix et frais recalculés côté serveur,
  *    idempotence par `cleIdempotence`. La réponse porte le jeton de suivi, clé d'accès du client à son suivi.
- *  - GET : les commandes du compte (sans jeton de suivi : l'application garde celui reçu à la création, ou rouvre le suivi depuis le site).
+ *  - GET : les commandes du compte, AVEC le jeton de suivi de chacune (réservé au titulaire du compte, réponse jamais mise en cache) : l’application rouvre ainsi le suivi même après une réinstallation.
  */
 export async function POST(request: Request) {
   const utilisateur = await utilisateurDuJeton(request);
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const utilisateur = await utilisateurDuJeton(request);
   if (!utilisateur) return repondreErreur({ code: "NON_AUTHENTIFIE", message: "Connectez-vous pour voir vos commandes." });
-  const commandes = await listerMesCommandes(utilisateur.id);
+  const commandes = await listerMesCommandes(utilisateur.id, { avecJeton: true });
   return repondre({ ok: true, commandes });
 }
 

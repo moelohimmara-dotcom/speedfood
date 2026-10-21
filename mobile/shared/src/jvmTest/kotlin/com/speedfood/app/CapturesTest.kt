@@ -6,7 +6,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Density
-import com.speedfood.app.data.CommandeLocale
+import com.speedfood.app.data.EstimationLivraison
+import com.speedfood.app.data.LigneEnvoyee
+import com.speedfood.app.data.QuartierChoix
 import com.speedfood.app.data.FiltreRestaurants
 import com.speedfood.app.data.LignePanier
 import com.speedfood.app.data.LigneSuivie
@@ -16,7 +18,8 @@ import com.speedfood.app.data.Panier
 import com.speedfood.app.data.PropositionSuivie
 import com.speedfood.app.data.RestaurantSuivi
 import com.speedfood.app.data.SuiviCommande
-import com.speedfood.app.ui.CarteCommandeLocale
+import com.speedfood.app.ui.CarteCommande
+import com.speedfood.app.ui.CommandeAffichee
 import com.speedfood.app.ui.ContenuPanier
 import com.speedfood.app.ui.ContenuSuivi
 import com.speedfood.app.ui.EtatCommande
@@ -126,15 +129,24 @@ class CapturesTest {
 
     @Test fun panier() = capturer("panier") { ContenuPanier(panierExemple, null, onVoirRestaurant = {}) }
 
-    @Test
-    fun commandeConnecte() = capturer("commande", hauteur = 1000) {
-        FormulaireCommande(Modifier, panierExemple, connecte = true, etat = EtatCommande(erreur = "Indiquez votre nom (2 caractères au moins)."), onConnexion = {}, onEnvoyer = { _, _, _ -> })
+    private val quartiersExemple = listOf(QuartierChoix("q1", "Kaloum"), QuartierChoix("q2", "Dixinn Port"), QuartierChoix("q3", "Hafia I"))
+
+    private fun formulaire(connecte: Boolean, etat: EtatCommande) = capturer(
+        if (!connecte) "commande-hors-connexion" else if (etat.livraison) "commande-livraison" else "commande",
+        hauteur = 1200,
+    ) {
+        FormulaireCommande(Modifier, panierExemple, connecte, etat, quartiersExemple, onConnexion = {}, onMode = {}, onQuartier = {}, onEnvoyer = { _, _, _, _ -> })
     }
 
+    @Test fun commandeConnecte() = formulaire(true, EtatCommande(erreur = "Indiquez votre nom (2 caractères au moins)."))
+
+    @Test fun commandeNonConnecte() = formulaire(false, EtatCommande())
+
     @Test
-    fun commandeNonConnecte() = capturer("commande-hors-connexion") {
-        FormulaireCommande(Modifier, panierExemple, connecte = false, etat = EtatCommande(), onConnexion = {}, onEnvoyer = { _, _, _ -> })
-    }
+    fun commandeEnLivraison() = formulaire(
+        true,
+        EtatCommande(livraison = true, quartierId = "q2", estimation = EstimationLivraison.Ok(9500, 2.4, false, 25, "2,4 km environ")),
+    )
 
     @Test
     fun suiviAvecProposition() = capturer("suivi-proposition", hauteur = 1000) {
@@ -153,7 +165,10 @@ class CapturesTest {
     }
 
     @Test
-    fun carteCommandeLocale() = capturer("mes-commandes", hauteur = 300) {
-        CarteCommandeLocale(CommandeLocale("SF-0042", "jeton", "Chez Awa", 0L, 66000), onOuvrir = {})
+    fun carteCommande() = capturer("mes-commandes", hauteur = 420) {
+        CarteCommande(
+            CommandeAffichee("SF-0042", "jeton", "1", "Chez Awa", 0L, 66000, "acceptee", true, listOf(LigneEnvoyee("p1", 2, listOf("o1")))),
+            onOuvrir = {},
+        )
     }
 }

@@ -6,6 +6,8 @@ import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorCommandeApi
+import com.speedfood.app.data.KtorLivraisonApi
+import com.speedfood.app.data.LivraisonApi
 import com.speedfood.app.data.KtorRestaurantApi
 import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.RestaurantApi
@@ -13,6 +15,7 @@ import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.ui.CommandeViewModel
 import com.speedfood.app.ui.ConnexionViewModel
+import com.speedfood.app.ui.MesCommandesViewModel
 import com.speedfood.app.ui.RestaurantViewModel
 import com.speedfood.app.ui.RestaurantsViewModel
 import com.speedfood.app.ui.SuiviViewModel
@@ -44,12 +47,14 @@ fun modulesApplication(config: SpeedfoodConfig, stockage: StockageLocal) = listO
         single<AuthApi> { KtorAuthApi(get(), get()) { Clock.System.now().epochSeconds } }
         single { SessionService(get(), get()) { Clock.System.now().epochSeconds } }
         single<CommandeApi> { KtorCommandeApi(get(), get()) }
+        single<LivraisonApi> { KtorLivraisonApi(get(), get()) }
         single { PanierService() }
         single { CommandesLocales(get()) }
         factoryOf(::RestaurantsViewModel)
         factory { parametres -> RestaurantViewModel(get(), parametres.get()) }
         factoryOf(::ConnexionViewModel)
         factoryOf(::CommandeViewModel)
+        factoryOf(::MesCommandesViewModel)
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }
     },
 )
