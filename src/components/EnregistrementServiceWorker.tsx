@@ -3,9 +3,10 @@
 import { useEffect } from "react";
 
 /**
- * Enregistre le service worker pour tous les visiteurs, afin que l'application installée affiche l'écran « hors connexion »
- * de Speedfood plutôt que l'erreur brute du navigateur. Le service worker ne met en cache que cette page publique
- * (voir `public/sw.js`). Sans effet en développement, où un service worker gênerait les essais.
+ * Enregistre le service worker pour tous les visiteurs : écran « hors connexion » de Speedfood plutôt que l'erreur brute du navigateur, réessais
+ * automatiques des coupures 503, et notifications push de la console restaurateur. Le service worker ne met en cache que cette page publique
+ * (voir `public/sw.js`). Le site n'est plus installable comme application (le manifeste a été retiré le 21 octobre 2026, ADR-019) : l'application, c'est
+ * l'application native téléchargée depuis /installer. Sans effet en développement, où un service worker gênerait les essais.
  */
 export function EnregistrementServiceWorker() {
   useEffect(() => {

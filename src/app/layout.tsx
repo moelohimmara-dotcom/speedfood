@@ -74,7 +74,6 @@ export const metadata: Metadata = {
   title: { default: "Speedfood", template: "%s · Speedfood" },
   description: PROMESSE_PAR_DEFAUT.partage,
   icons: { apple: "/icons/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "Speedfood", statusBarStyle: "default" },
 };
 
 // Sans ceci, les navigateurs mobiles utilisent un viewport de mise en page ~980px

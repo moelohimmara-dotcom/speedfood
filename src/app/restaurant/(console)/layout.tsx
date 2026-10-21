@@ -5,7 +5,6 @@ import { aUnRoleSysteme } from "@/lib/auth/doubleAcces";
 import { ModeService } from "@/components/restaurant/ModeService";
 import { RappelDoubleAuthentification } from "@/components/RappelDoubleAuthentification";
 import { AlerteCommandes } from "@/components/AlerteCommandes";
-import { InstallationApp } from "@/components/InstallationApp";
 import { AdminMenuMobile } from "@/components/admin/AdminMenuMobile";
 import { IconeAdmin } from "@/components/admin/icones";
 import { NavRestaurantBas, NavRestaurantCote } from "@/components/restaurant/NavRestaurant";
@@ -43,9 +42,6 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
 
   const liensBas = (
     <div className="ad-liens-bas">
-      <div className="rc-outils">
-        <InstallationApp />
-      </div>
       <Link href={`/restaurants/${membership.restaurant_id}`} className="ad-lien-bas" target="_blank" rel="noopener noreferrer">
         <IconeAdmin nom="boutique" />
         {restaurant?.publie ? "Voir ma page publique" : "Aperçu de ma page"}

@@ -46,3 +46,4 @@ Voir la fin de ce fichier, mise à jour au fil des lots.
 - `/installer` propose désormais l'APK **natif** (`public/speedfood.apk`, version 2.0.0, signé avec la clé existante, empreinte publiée). Elle remplace l'ancienne par installation par-dessus (même identifiant, même clé).
 - Procédure de reconstruction et de publication : `docs/APPLICATION-ANDROID.md`.
 - Limite assumée : la version 2.0.0 ne fait que choisir l'espace et parcourir les restaurants ; commander reste possible sur le site dans le navigateur jusqu'aux lots N1 et N2.
+- **Site non installable** : le manifeste, le bloc d'installation de la console restaurateur et le mode « application web » iOS sont retirés. Le service worker reste (hors connexion, réessais 503, push de la console). Le push web sur iPhone disparaît jusqu'à l'application iPhone (APNs, lot N5).

@@ -57,7 +57,9 @@ Réglages (bloc « Alertes actives » de la barre latérale, sur téléphone en 
 - **Android** : le push marche dans Chrome, Firefox et Samsung Internet sans installation (pas dans les navigateurs intégrés de WhatsApp ou Facebook). Chrome interdit `new Notification()` : les notifications locales passent maintenant par le Service Worker. `requireInteraction` est ignoré, son et vibration viennent du canal de notification du téléphone. Icône et badge de notification : à ajouter avec le lot B (aucune icône PNG dans le dépôt). Pas de test sur téléphone réel.
 - **iPhone** : le push n'existe qu'après « Ajouter à l'écran d'accueil » (iOS 16.4+), donc dépend du lot B (manifeste).
 
-## 6. Lot B : application installable
+> **Retiré le 21 octobre 2026 (ADR-019) :** le site n'est plus installable comme application (manifeste `src/app/manifest.ts`, bloc `InstallationApp`, mode « application web » iOS supprimés). L'application, c'est l'application native téléchargée depuis `/installer`. Le service worker `public/sw.js` reste : écran « hors connexion », réessais des coupures 503 et notifications push de la console. Conséquence : le push web sur iPhone (qui exigeait « Ajouter à l'écran d'accueil ») n'existe plus ; il reviendra avec l'application iPhone native (APNs, lot N5).
+
+## 6. Lot B : application installable (historique, retiré)
 
 - `src/app/manifest.ts` : nom, couleurs du design system, affichage `standalone`, raccourcis « Commandes à traiter » et « Restaurants », icônes `any` et `maskable`.
 - Icônes générées par `node scripts/generer-icones.mjs` (emblème du logo officiel `public/logo-speedfood.webp`, sur son fond crème) dans `public/icons/` : 192, 512, maskable 512, `apple-touch-icon` 180, badge de notification 96 (blanc sur transparent). Pour changer de logo : remplacer le fichier source et relancer le script.
