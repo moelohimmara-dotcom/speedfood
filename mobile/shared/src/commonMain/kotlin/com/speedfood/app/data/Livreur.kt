@@ -77,7 +77,10 @@ data class EtatLivreur(
     val offre: OffreLivreur? = null,
     val course: CourseLivreur? = null,
     val positionConnue: Boolean = false,
-)
+) {
+    /** Le livreur doit être suivi (position envoyée) tant qu'il est en ligne ou en course, avec une fiche active. */
+    val doitEtreSuivi: Boolean get() = livreur.cycle == "actif" && livreur.statut != "hors_ligne"
+}
 
 /** Étape suivante d'une course, avec le texte du bouton ; [demandeCode] : la remise exige le code à 4 chiffres du client. */
 data class EtapeCourse(val vers: String, val libelle: String, val demandeCode: Boolean = false)
@@ -196,6 +199,14 @@ interface FournisseurPosition {
 
     /** Garde l'écran allumé tant que le livreur travaille (sans cela, le système coupe la lecture). */
     fun garderEcranAllume(actif: Boolean)
+
+    /** La plateforme sait poursuivre le suivi application fermée ou écran éteint (Android : service au premier plan avec notification visible). */
+    val arrierePlanPossible: Boolean get() = false
+
+    /** Démarre le suivi en arrière-plan ; sans effet s'il est déjà actif. À appeler depuis l'application ouverte, après le consentement du livreur. */
+    fun demarrerArrierePlan() = Unit
+
+    fun arreterArrierePlan() = Unit
 }
 
 class PositionIndisponible : FournisseurPosition {

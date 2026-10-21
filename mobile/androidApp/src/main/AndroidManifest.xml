@@ -5,6 +5,11 @@
     <!-- Espace livreur : position lue seulement pendant que l'application est ouverte (lot N4a). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Suivi du livreur application fermée (lot N4b) : service au premier plan de type position, notification permanente, processeur éveillé pendant le suivi. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
         android:allowBackup="false"
@@ -14,6 +19,10 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Speedfood">
+        <service
+            android:name=".SuiviLivreurService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
         <activity
             android:exported="true"
             android:windowSoftInputMode="adjustResize"

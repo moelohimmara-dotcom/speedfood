@@ -92,6 +92,7 @@ fun LivreurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: Livr
                         surOffre = viewModel::repondreOffre,
                         surEtape = viewModel::avancer,
                         surDemandePosition = viewModel::demanderPosition,
+                        surChoixArrierePlan = viewModel::choisirSuiviArrierePlan,
                     )
                 }
             }
@@ -107,7 +108,9 @@ internal fun ContenuLivreur(
     surOffre: (String, Boolean) -> Unit,
     surEtape: (String, String?, String?) -> Unit,
     surDemandePosition: () -> Unit,
+    surChoixArrierePlan: (Boolean) -> Unit = {},
 ) {
+    var consentement by remember { mutableStateOf(false) }
     val fiche = e.etat.livreur
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -144,7 +147,10 @@ internal fun ContenuLivreur(
 
         if (fiche.statut != "en_course") {
             if (fiche.statut == "hors_ligne") {
-                BoutonPrincipal("Me mettre en ligne", actif = !e.actionEnCours) { surBascule(true) }
+                BoutonPrincipal("Me mettre en ligne", actif = !e.actionEnCours) {
+                    // Première mise en ligne : on explique le suivi application fermée et on demande le choix, une seule fois.
+                    if (e.arrierePlanPossible && e.suiviArrierePlan == null && e.positionAutorisee) consentement = true else surBascule(true)
+                }
             } else {
                 OutlinedButton(onClick = { surBascule(false) }, enabled = !e.actionEnCours, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
                     Text("Me mettre hors ligne", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
@@ -152,12 +158,48 @@ internal fun ContenuLivreur(
             }
         }
 
+        if (e.arrierePlanPossible && e.suiviArrierePlan != null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (e.suiviArrierePlan) "Suivi application fermée : activé" else "Suivi application fermée : désactivé",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { surChoixArrierePlan(!e.suiviArrierePlan) }) { Text(if (e.suiviArrierePlan) "Désactiver" else "Activer", color = Couleurs.Encre) }
+            }
+        }
+
         e.etat.offre?.let { CarteOffre(it, maintenantMillis, e.actionEnCours, surOffre) }
         e.etat.course?.let { CarteCourse(it, e.actionEnCours, surEtape) }
 
         if (fiche.statut == "disponible" && e.etat.offre == null && e.etat.course == null) {
-            Text("En attente d'une course… Gardez l'application ouverte : l'écran reste allumé.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (e.arrierePlanPossible && e.suiviArrierePlan == true) "En attente d'une course… Vous pouvez fermer l'écran : vous serez prévenu par une notification."
+                else "En attente d'une course… Gardez l'application ouverte : l'écran reste allumé.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
+    }
+    if (consentement) {
+        AlertDialog(
+            onDismissRequest = { consentement = false },
+            title = { Text("Recevoir vos courses écran éteint ?") },
+            text = {
+                Text(
+                    "Pour vous proposer des courses même quand l'écran est éteint ou l'application fermée, Speedfood suit votre position tant que vous êtes en ligne. " +
+                        "Une notification reste affichée pendant ce suivi. Votre position ne sert qu'à vous proposer des courses et à suivre votre livraison ; " +
+                        "le suivi s'arrête dès que vous vous mettez hors ligne. Vous pouvez changer d'avis à tout moment.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { consentement = false; surChoixArrierePlan(true); surBascule(true) }) { Text("Autoriser le suivi", color = Couleurs.RougeFonce) }
+            },
+            dismissButton = {
+                TextButton(onClick = { consentement = false; surChoixArrierePlan(false); surBascule(true) }) { Text("Seulement application ouverte", color = Couleurs.Encre) }
+            },
+        )
     }
 }
 
