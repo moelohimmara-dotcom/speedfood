@@ -7,6 +7,12 @@ import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Density
 import com.speedfood.app.data.ClientCourse
+import com.speedfood.app.data.CommandeRestaurateur
+import com.speedfood.app.data.EtatRestaurateur
+import com.speedfood.app.data.LigneApercu
+import com.speedfood.app.data.OptionSuivie
+import com.speedfood.app.data.PropositionApercu
+import com.speedfood.app.data.RestaurantResume
 import com.speedfood.app.data.CourseLivreur
 import com.speedfood.app.data.EstimationLivraison
 import com.speedfood.app.data.EtatLivreur
@@ -18,7 +24,6 @@ import com.speedfood.app.data.FiltreRestaurants
 import com.speedfood.app.data.LignePanier
 import com.speedfood.app.data.LigneSuivie
 import com.speedfood.app.data.Menu
-import com.speedfood.app.data.OptionSuivie
 import com.speedfood.app.data.Panier
 import com.speedfood.app.data.PropositionSuivie
 import com.speedfood.app.data.RestaurantSuivi
@@ -46,7 +51,8 @@ import com.speedfood.app.ui.EntreeScreen
 import com.speedfood.app.ui.ContenuRestaurant
 import com.speedfood.app.ui.ListeRestaurants
 import com.speedfood.app.ui.RechercheEtListe
-import com.speedfood.app.ui.RestaurateurBientotScreen
+import com.speedfood.app.ui.ContenuConsole
+import com.speedfood.app.ui.EtatConsole
 import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 import kotlin.test.Test
@@ -73,7 +79,6 @@ class CapturesTest {
 
     @Test fun entree() = capturer("entree") { EntreeScreen(onClient = {}, onRestaurateur = {}, onLivreur = {}, onVisite = {}) }
 
-    @Test fun restaurateur() = capturer("restaurateur") { RestaurateurBientotScreen("https://speedfood-app.moelohimmara.workers.dev", onRetour = {}) }
 
     @Test
     fun listeDeRestaurants() = capturer("restaurants") {
@@ -228,5 +233,31 @@ class CapturesTest {
         androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
             for (i in 0..4) IllustrationVisite(i, 1f, 0.3f)
         }
+    }
+
+    private val maintenantConsole = kotlin.time.Instant.parse("2026-10-21T12:00:00Z").toEpochMilliseconds()
+
+    @Test
+    fun consoleRestaurateur() = capturer("console-restaurateur", hauteur = 1500) {
+        val commandes = listOf(
+            CommandeRestaurateur(
+                "c1", "SF-4KVB9", "en_attente", "en_attente", "livraison", clientNom = "Aminata Diallo", clientTelephone = "+224622123456", clientAdresse = "Rue KA-012, Kaloum",
+                sousTotal = 66000, fraisLivraisonEstime = 9500, creeLe = "2026-10-21T11:56:00Z",
+                lignes = listOf(LigneApercu("Poulet braisé", 30000, 2, listOf(OptionSuivie("Piment", 500))), LigneApercu("Jus de bissap", 5000, 1)),
+            ),
+            CommandeRestaurateur(
+                "c2", "SF-7RTM2", "en_attente", "attente_confirmation_client", "retrait", clientNom = "Mamadou Barry", clientTelephone = "+224666000111",
+                sousTotal = 45000, creeLe = "2026-10-21T11:40:00Z", lignes = listOf(LigneApercu("Poisson grillé", 45000, 1)),
+                propositionActive = PropositionApercu("p1", 40000, 0, "Capitaine remplacé par du thiof"),
+            ),
+            CommandeRestaurateur(
+                "c3", "SF-2HXN8", "acceptee", "acceptee", "retrait", clientNom = "Fatou Camara", clientTelephone = "+224655999888",
+                sousTotal = 25000, creeLe = "2026-10-21T11:30:00Z", lignes = listOf(LigneApercu("Riz gras", 25000, 1)),
+            ),
+        )
+        ContenuConsole(
+            EtatConsole.Pret(EtatRestaurateur(RestaurantResume("r1", "Chez Awa", ouvert = true, accepteCommandes = true), commandes)),
+            maintenantConsole, { _, _ -> }, { _, _, _, _ -> }, { _, _ -> },
+        )
     }
 }

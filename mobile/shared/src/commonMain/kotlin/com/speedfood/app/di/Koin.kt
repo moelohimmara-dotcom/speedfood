@@ -6,7 +6,11 @@ import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorCommandeApi
+import com.speedfood.app.data.AlerteCommande
+import com.speedfood.app.data.AlerteIndisponible
 import com.speedfood.app.data.FournisseurPosition
+import com.speedfood.app.data.KtorRestaurateurApi
+import com.speedfood.app.data.RestaurateurApi
 import com.speedfood.app.data.KtorLivraisonApi
 import com.speedfood.app.data.KtorLivreurApi
 import com.speedfood.app.data.LivreurApi
@@ -23,6 +27,7 @@ import com.speedfood.app.ui.LivreurViewModel
 import com.speedfood.app.ui.MesCommandesViewModel
 import com.speedfood.app.ui.RestaurantViewModel
 import com.speedfood.app.ui.RestaurantsViewModel
+import com.speedfood.app.ui.RestaurateurViewModel
 import com.speedfood.app.ui.SuiviViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
@@ -34,11 +39,17 @@ import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
 import kotlin.time.Clock
 
-fun modulesApplication(config: SpeedfoodConfig, stockage: StockageLocal, position: FournisseurPosition = PositionIndisponible()) = listOf(
+fun modulesApplication(
+    config: SpeedfoodConfig,
+    stockage: StockageLocal,
+    position: FournisseurPosition = PositionIndisponible(),
+    alerte: AlerteCommande = AlerteIndisponible(),
+) = listOf(
     module {
         single { config }
         single { stockage }
         single { position }
+        single { alerte }
         single {
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -55,6 +66,7 @@ fun modulesApplication(config: SpeedfoodConfig, stockage: StockageLocal, positio
         single<CommandeApi> { KtorCommandeApi(get(), get()) }
         single<LivraisonApi> { KtorLivraisonApi(get(), get()) }
         single<LivreurApi> { KtorLivreurApi(get(), get()) }
+        single<RestaurateurApi> { KtorRestaurateurApi(get(), get()) }
         single { PanierService() }
         single { CommandesLocales(get()) }
         factoryOf(::RestaurantsViewModel)
@@ -63,12 +75,13 @@ fun modulesApplication(config: SpeedfoodConfig, stockage: StockageLocal, positio
         factoryOf(::CommandeViewModel)
         factoryOf(::MesCommandesViewModel)
         factoryOf(::LivreurViewModel)
+        factoryOf(::RestaurateurViewModel)
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }
     },
 )
 
-fun initKoin(config: SpeedfoodConfig, stockage: StockageLocal, position: FournisseurPosition = PositionIndisponible()) {
-    startKoin { modules(modulesApplication(config, stockage, position)) }
+fun initKoin(config: SpeedfoodConfig, stockage: StockageLocal, position: FournisseurPosition = PositionIndisponible(), alerte: AlerteCommande = AlerteIndisponible()) {
+    startKoin { modules(modulesApplication(config, stockage, position, alerte)) }
 }
 
 /**

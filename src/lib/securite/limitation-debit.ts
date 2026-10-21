@@ -90,6 +90,9 @@ export const LIMITE_REFERENCEMENT_PAR_IP: RegleLimite = { nom: "referencement-ip
 // Application livreur : relecture de l’état (toutes les 5 s), position (toutes les 5 à 8 s) et actions ; plafond PAR COMPTE (le compte vient du jeton vérifié).
 export const LIMITE_LIVREUR_PAR_COMPTE: RegleLimite = { nom: "livreur-compte", max: 600, fenetreSecondes: 300 };
 
+// Application restaurateur : relecture des commandes (toutes les quelques secondes) et actions ; plafond PAR COMPTE (le compte vient du jeton vérifié).
+export const LIMITE_RESTAURANT_APP_PAR_COMPTE: RegleLimite = { nom: "restaurant-app-compte", max: 600, fenetreSecondes: 300 };
+
 // Suivi d'une commande par l'application : elle relit le statut toutes les quelques secondes, par jeton ; le plafond protège la base sans gêner un client réel.
 export const LIMITE_LECTURE_SUIVI_PAR_JETON: RegleLimite = { nom: "suivi-lecture-jeton", max: 120, fenetreSecondes: 300 };
 
@@ -210,6 +213,10 @@ export async function limiterReferencement(): Promise<void> {
 
 export async function limiterLivreur(utilisateurId: string): Promise<void> {
   await appliquerLimite(LIMITE_LIVREUR_PAR_COMPTE, utilisateurId);
+}
+
+export async function limiterRestaurantApplication(utilisateurId: string): Promise<void> {
+  await appliquerLimite(LIMITE_RESTAURANT_APP_PAR_COMPTE, utilisateurId);
 }
 
 export async function limiterLectureSuivi(jeton: string): Promise<void> {

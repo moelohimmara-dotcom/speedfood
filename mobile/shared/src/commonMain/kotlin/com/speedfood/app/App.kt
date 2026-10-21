@@ -30,7 +30,7 @@ import com.speedfood.app.ui.MesCommandesScreen
 import com.speedfood.app.ui.PanierScreen
 import com.speedfood.app.ui.RestaurantScreen
 import com.speedfood.app.ui.RestaurantsScreen
-import com.speedfood.app.ui.RestaurateurBientotScreen
+import com.speedfood.app.ui.RestaurateurScreen
 import com.speedfood.app.ui.SuiviScreen
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
@@ -156,7 +156,7 @@ private fun Application(config: SpeedfoodConfig) {
                 LivreurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<RestaurateurDestination> {
-                RestaurateurBientotScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() })
+                RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
         }
 }

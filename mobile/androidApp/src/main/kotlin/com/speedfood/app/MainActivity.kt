@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= 33) autorisations += Manifest.permission.POST_NOTIFICATIONS
             demandeAutorisations.launch(autorisations.toTypedArray())
         }
+        SpeedfoodApp.alerte.lier(this)
         setContent {
             App(SpeedfoodApp.config)
         }
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         SpeedfoodApp.position.delier(this)
+        SpeedfoodApp.alerte.delier(this)
         super.onDestroy()
     }
 }

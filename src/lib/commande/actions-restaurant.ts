@@ -1,19 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ErreurMetier, type ErreurApi } from "@/lib/contracts/erreurs";
+import { type ErreurApi } from "@/lib/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@/lib/contracts/commande";
-import type { StatutCommande } from "@/lib/contracts/statuts";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { estUuid } from "./commun";
-import {
-  lirePropositions,
-  propositionActiveParmi,
-  traiterPropositionEchue,
-  creerPropositionRevisee,
-} from "./propositions";
-import { appliquerTransitionStatut, lireCommandeMinimale } from "./transitions";
+import { proposerRevision, traiterCommande, type ActionStatutCommande } from "./service-restaurant";
 
 /**
  * Actions serveur de la console restaurant (bloc 7).
@@ -32,140 +25,38 @@ import { appliquerTransitionStatut, lireCommandeMinimale } from "./transitions";
  * le client service-role — voir lib/commande/propositions.ts.
  */
 
-export type ActionStatutCommande = "accepter" | "refuser" | "prete" | "terminee" | "annuler";
-
-function erreurInattendue(): ErreurApi {
-  return {
-    code: "ERREUR_SERVEUR",
-    message: "Une erreur est survenue. Réessayez dans un instant.",
-  };
-}
+export type { ActionStatutCommande };
 
 function erreurValidationCommande(): ErreurApi {
   return { code: "VALIDATION", message: "Commande invalide." };
 }
 
 /**
- * Applique une action de la machine à états (accepter/refuser/prete/terminee/
- * annuler). Toute transition invalide est rejetée côté serveur, historisée dans
- * `order_status_events`, et revalidée par le trigger de base.
+ * Applique une action de la machine à états (accepter/refuser/prete/terminee/annuler) pour le membre connecté ; les règles sont dans
+ * `service-restaurant.ts`, partagé avec l’application native.
  */
-export async function traiterCommandeAction(
-  commandeId: string,
-  action: ActionStatutCommande
-): Promise<ResultatActionCommande> {
+export async function traiterCommandeAction(commandeId: string, action: ActionStatutCommande): Promise<ResultatActionCommande> {
   const { supabase, user, membership } = await obtenirContexteRestaurant("/restaurant/commandes");
-
-  if (!estUuid(commandeId)) {
-    return { ok: false, erreur: erreurValidationCommande() };
-  }
-
-  const cibles: Record<ActionStatutCommande, StatutCommande> = {
-    accepter: "acceptee",
-    refuser: "refusee",
-    prete: "prete",
-    terminee: "terminee",
-    annuler: "annulee",
-  };
-  const vers = cibles[action];
-  if (!vers) {
-    return { ok: false, erreur: erreurValidationCommande() };
-  }
-
-  try {
-    // L'appartenance est vérifiée AVANT tout traitement en clé serveur (revue de
-    // sécurité, point 12) ; une proposition échue est ensuite traitée par le système
-    // et la commande relue : elle peut être déjà annulée, la transition sera alors
-    // légitimement refusée.
-    let commande = await lireCommandeMinimale(supabase, commandeId);
-    if (!commande) {
-      return {
-        ok: false,
-        erreur: { code: "INTROUVABLE", message: "Commande introuvable." },
-      };
-    }
-    if (commande.restaurantId !== membership.restaurant_id) {
-      return {
-        ok: false,
-        erreur: { code: "NON_AUTORISE", message: "Cette commande ne relève pas de votre restaurant." },
-      };
-    }
-    if (await traiterPropositionEchue(commandeId)) {
-      commande = (await lireCommandeMinimale(supabase, commandeId)) ?? commande;
-    }
-
-    // Aucune préparation ni acceptation tant que le client n'a pas répondu à la
-    // proposition révisée active (seul l'annullement reste possible).
-    if (action !== "annuler") {
-      const propositions = await lirePropositions(supabase, commandeId);
-      if (propositionActiveParmi(propositions) !== null) {
-        return {
-          ok: false,
-          erreur: {
-            code: "CONFLIT_ETAT",
-            message:
-              "Une proposition de modification attend la réponse du client : aucune autre action n'est possible avant sa réponse ou l'échéance.",
-          },
-        };
-      }
-    }
-
-    await appliquerTransitionStatut(supabase, commande, vers, `restaurant:${user.id}`);
+  const resultat = await traiterCommande(supabase, user.id, membership.restaurant_id, commandeId, action);
+  if (resultat.ok) {
     revalidatePath("/restaurant/commandes");
     revalidatePath("/restaurant");
-    return { ok: true };
-  } catch (erreur) {
-    if (erreur instanceof ErreurMetier) {
-      return { ok: false, erreur: erreur.toApi() };
-    }
-    return { ok: false, erreur: erreurInattendue() };
   }
+  return resultat;
 }
 
 /**
- * Crée une proposition révisée (prix, frais, conditions) : nouvelle version
- * immuable, avec échéance de réponse (voir COMMANDE_PROPOSITION_DELAI_MINUTES).
- * La commande reste en attente et aucune préparation ne reprend avant l'accord
- * du client sur cette version.
+ * Crée une proposition révisée (prix, frais, conditions) : nouvelle version immuable, avec échéance de réponse (voir COMMANDE_PROPOSITION_DELAI_MINUTES).
+ * La commande reste en attente et aucune préparation ne reprend avant l’accord du client sur cette version.
  */
-export async function creerPropositionAction(
-  commandeId: string,
-  valeurs: ValeursProposition
-): Promise<ResultatActionCommande> {
+export async function creerPropositionAction(commandeId: string, valeurs: ValeursProposition): Promise<ResultatActionCommande> {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/commandes");
-
-  if (!estUuid(commandeId)) {
-    return { ok: false, erreur: erreurValidationCommande() };
-  }
-
-  try {
-    let commande = await lireCommandeMinimale(supabase, commandeId);
-    if (!commande) {
-      return {
-        ok: false,
-        erreur: { code: "INTROUVABLE", message: "Commande introuvable." },
-      };
-    }
-    if (commande.restaurantId !== membership.restaurant_id) {
-      return {
-        ok: false,
-        erreur: { code: "NON_AUTORISE", message: "Cette commande ne relève pas de votre restaurant." },
-      };
-    }
-    if (await traiterPropositionEchue(commandeId)) {
-      commande = (await lireCommandeMinimale(supabase, commandeId)) ?? commande;
-    }
-
-    await creerPropositionRevisee(supabase, commande, valeurs);
+  const resultat = await proposerRevision(supabase, membership.restaurant_id, commandeId, valeurs);
+  if (resultat.ok) {
     revalidatePath("/restaurant/commandes");
     revalidatePath("/restaurant");
-    return { ok: true };
-  } catch (erreur) {
-    if (erreur instanceof ErreurMetier) {
-      return { ok: false, erreur: erreur.toApi() };
-    }
-    return { ok: false, erreur: erreurInattendue() };
   }
+  return resultat;
 }
 
 /**

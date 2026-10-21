@@ -27,13 +27,16 @@ class SpeedfoodApp : Application() {
             siteUrl = BuildConfig.SITE_URL,
         )
         position = PositionAndroid(this)
-        initKoin(config, StockagePreferences(this), position)
+        alerte = AlerteAndroid(this)
+        initKoin(config, StockagePreferences(this), position, alerte)
     }
 
     companion object {
         lateinit var config: SpeedfoodConfig
             private set
         lateinit var position: PositionAndroid
+            private set
+        lateinit var alerte: AlerteAndroid
             private set
     }
 }
