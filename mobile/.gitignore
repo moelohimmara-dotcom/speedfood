@@ -1,0 +1,16 @@
+# Gradle / Kotlin / IDE
+.gradle/
+build/
+local.properties
+.kotlin/
+.idea/
+*.iml
+captures/
+# Secrets et configuration locale : jamais dans Git
+speedfood.properties
+Secrets.xcconfig
+*.keystore
+*.jks
+# Xcode
+iosApp/build/
+xcuserdata/

@@ -1,0 +1,7 @@
+# Copier ce fichier en « speedfood.properties » (ignoré par Git) et remplir les deux valeurs.
+# Ce sont les valeurs PUBLIQUES du site (NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans .env.local) :
+# la sécurité repose sur la RLS de la base, pas sur le secret de cette clé. Ne JAMAIS y mettre la clé « service role ».
+supabase.url=
+supabase.anonKey=
+# Adresse du site, pour les routes /api/v1 (lots suivants)
+site.url=https://speedfood-app.moelohimmara.workers.dev

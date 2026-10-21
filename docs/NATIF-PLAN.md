@@ -33,3 +33,10 @@ Règle : un lot n'est « livré » qu'après essai de bout en bout sur un appare
 
 ## État
 Voir la fin de ce fichier, mise à jour au fil des lots.
+
+### Lot N0 : compilé et testé (21 octobre 2026)
+- **Fait et vérifié :** `gradlew :androidApp:assembleDebug` réussit (APK de débogage, 16 Mo) ; `gradlew :shared:jvmTest` : 15 tests verts (règles de disponibilité, lecture de la liste publique avec faux réseau, rendu hors écran des trois écrans en PNG dans `mobile/shared/build/captures/`).
+- **Contenu :** écran « Qui êtes-vous ? » (client / restaurateur), liste des restaurants lue en direct sous RLS (hors données de démonstration, bornée à 100), états Ouvert / Commandes en pause / Fermé avec « statut à confirmer » sans confirmation récente, thème du design système, pictogrammes dessinés.
+- **Non vérifié :** lancement sur un téléphone ou un émulateur (aucun disponible sur ce poste) ; lecture réelle de la base depuis l'application (testée seulement avec un faux réseau) ; toute la partie iOS (la coque est écrite d'après le modèle officiel, jamais compilée : exige macOS).
+- **Outils :** JDK 17 **64 bits** dans `C:\Users\moelo\.speedfood-tools\` (la JDK de Bubblewrap est en 32 bits et ne peut pas lancer Gradle) ; SDK Android dans `C:\Users\moelo\.bubblewrap\android_sdk` ; réglages publics dans `mobile/speedfood.properties` (ignoré par Git, modèle `speedfood.properties.example`).
+- **Commandes** (bash, depuis `mobile/`, avec `JAVA_HOME` et `ANDROID_HOME` définis) : `./gradlew :androidApp:assembleDebug`, `./gradlew :shared:jvmTest`, `./gradlew :desktopApp:run` (aperçu sur ordinateur).
