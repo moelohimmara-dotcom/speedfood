@@ -84,6 +84,9 @@ export const LIMITE_CHEF_IA_PAR_RESTAURANT: RegleLimite = { nom: "chef-ia-resto"
 // Demandes de partenariat : une personne réelle en envoie une ou deux ; le plafond protège la boîte de l'équipe et la base.
 export const LIMITE_PARTENARIAT_PAR_IP: RegleLimite = { nom: "partenariat-ip", max: 3, fenetreSecondes: 3600 };
 
+// Demandes de référencement : un restaurateur réel en envoie une ou deux ; le plafond protège la boîte de l'équipe et la base.
+export const LIMITE_REFERENCEMENT_PAR_IP: RegleLimite = { nom: "referencement-ip", max: 3, fenetreSecondes: 3600 };
+
 const MESSAGE_TROP_DE_REQUETES =
   "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez.";
 
@@ -193,6 +196,10 @@ export async function limiterEstimationLivraison(): Promise<void> {
 
 export async function limiterPartenariat(): Promise<void> {
   await appliquerLimite(LIMITE_PARTENARIAT_PAR_IP, await adresseClient());
+}
+
+export async function limiterReferencement(): Promise<void> {
+  await appliquerLimite(LIMITE_REFERENCEMENT_PAR_IP, await adresseClient());
 }
 
 export async function limiterZoneAlerte(): Promise<void> {

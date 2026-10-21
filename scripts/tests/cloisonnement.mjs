@@ -940,5 +940,32 @@ await serveur("partenariat : un message trop court est refusé par la base", `in
 await serveur("partenariat : un statut inconnu est refusé par la base", `update partenariat_demandes set statut = 'archivee'`, true);
 await serveur("partenariat : le serveur peut changer le statut", `update partenariat_demandes set statut = 'en_cours'`, false);
 
+// ---------------------------------------------------------------- modèle « Speedfood intermédiaire » (ADR-020)
+console.log("--- Mode de vente et référencement");
+const modeDefaut = (await db.query(`select mode_vente from restaurants where id = ${U(ID.resto_a)}`)).rows[0].mode_vente;
+verifier("un restaurant existant reste en mode « autonome » par défaut", modeDefaut === "autonome", modeDefaut);
+await interdit("un restaurateur ne peut pas passer son restaurant en mode « speedfood »", ID.user_a, `update restaurants set mode_vente = 'speedfood' where id = ${U(ID.resto_a)}`);
+await serveur("une valeur de mode de vente inconnue est refusée par la base", `update restaurants set mode_vente = 'revendeur' where id = ${U(ID.resto_a)}`, true);
+await autorise("un administrateur système peut changer le mode de vente", ID.admin, `update restaurants set mode_vente = 'speedfood' where id = ${U(ID.resto_a)}`);
+await serveur("remise du restaurant de test en mode « autonome »", `update restaurants set mode_vente = 'autonome' where id = ${U(ID.resto_a)}`, false);
+const creationOuverte = (await db.query(`select has_function_privilege('authenticated','public.fn_creer_restaurant_et_owner(text,uuid,uuid)','execute') a`)).rows[0].a;
+verifier("la création libre d'un établissement n'est plus exécutable par un compte connecté", !creationOuverte);
+
+await serveur("référencement : le serveur enregistre une demande valide", `insert into referencement_demandes (type_etablissement, organisation, commune, quartier, latitude, longitude, responsable_prenom, responsable_nom, contact_email, contact_telephone) values ('restaurant', 'Chez Awa', 'Kaloum', 'Almamya', 9.5092, -13.7122, 'Awa', 'Diallo', 'awa@exemple.org', '+224622000000')`, false);
+verifier("référencement : aucun compte ne lit les demandes", VIDE(await nb(null, "referencement_demandes")) && VIDE(await nb(ID.client, "referencement_demandes")) && VIDE(await nb(ID.user_a, "referencement_demandes")) && VIDE(await nb(ID.admin, "referencement_demandes")));
+await interdit("référencement : pas d'écriture par l'API (compte connecté)", ID.client, `insert into referencement_demandes (type_etablissement, organisation, commune, quartier, responsable_prenom, responsable_nom, contact_email, contact_telephone) values ('restaurant', 'Robot', 'Kaloum', 'Almamya', 'R', 'R', 'robot@exemple.org', '+224622000001')`);
+await interdit("référencement : pas d'écriture par l'API (anonyme)", null, `insert into referencement_demandes (type_etablissement, organisation, commune, quartier, responsable_prenom, responsable_nom, contact_email, contact_telephone) values ('restaurant', 'Robot', 'Kaloum', 'Almamya', 'R', 'R', 'robot@exemple.org', '+224622000001')`);
+await interdit("référencement : pas de changement de statut par l'API", ID.admin, `update referencement_demandes set statut = 'accord'`);
+await serveur("référencement : un type d'établissement inconnu est refusé", `insert into referencement_demandes (type_etablissement, organisation, commune, quartier, responsable_prenom, responsable_nom, contact_email, contact_telephone) values ('garage', 'Chez Awa', 'Kaloum', 'Almamya', 'A', 'D', 'awa@exemple.org', '+224622000000')`, true);
+await serveur("référencement : des coordonnées GPS à moitié remplies sont refusées", `insert into referencement_demandes (type_etablissement, organisation, commune, quartier, latitude, responsable_prenom, responsable_nom, contact_email, contact_telephone) values ('restaurant', 'Chez Awa', 'Kaloum', 'Almamya', 9.5, 'A', 'D', 'awa@exemple.org', '+224622000000')`, true);
+await serveur("référencement : un statut inconnu est refusé", `update referencement_demandes set statut = 'archivee'`, true);
+await serveur("référencement : une demande peut être rattachée à l'établissement créé", `update referencement_demandes set statut = 'creee', restaurant_id = ${U(ID.resto_a)}`, false);
+
+await serveur("contact interne : le serveur enregistre le téléphone des commandes d'un établissement", `insert into restaurant_contacts_internes (restaurant_id, telephone_commandes) values (${U(ID.resto_a)}, '+224622000000')`, false);
+verifier("contact interne : aucun compte ne lit le téléphone (anonyme, client, restaurateur du même établissement, exploitation)", VIDE(await nb(null, "restaurant_contacts_internes")) && VIDE(await nb(ID.client, "restaurant_contacts_internes")) && VIDE(await nb(ID.user_a, "restaurant_contacts_internes")) && VIDE(await nb(ID.admin, "restaurant_contacts_internes")));
+await interdit("contact interne : pas d'écriture par l'API", ID.user_a, `update restaurant_contacts_internes set telephone_commandes = '+224699999999'`);
+await serveur("contact interne : un numéro trop court est refusé", `update restaurant_contacts_internes set telephone_commandes = '123'`, true);
+await serveur("contact interne : un seul numéro par établissement", `insert into restaurant_contacts_internes (restaurant_id, telephone_commandes) values (${U(ID.resto_a)}, '+224622000001')`, true);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
 process.exit(echecs === 0 ? 0 : 1);

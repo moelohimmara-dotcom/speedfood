@@ -31,6 +31,8 @@ export interface RestaurantAdmin {
   suspendu_motif: string | null;
   motif_correction: string | null;
   cree_le: string;
+  /** « autonome » : le restaurateur tient sa page ; « speedfood » : l'équipe tient le catalogue (ADR-020). */
+  mode_vente: "autonome" | "speedfood";
 }
 
 /** Éléments que l'administrateur contrôle avant d'approuver (fiche complète d'un restaurant). */
@@ -64,7 +66,7 @@ export async function listerRestaurantsAdmin(filtres: {
     let requete = supabase
       .from("restaurants")
       .select(
-        "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, menu_categories(nom), neighborhoods(nom)"
+        "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, mode_vente, menu_categories(nom), neighborhoods(nom)"
       )
       .order("cree_le", { ascending: false })
       .order("id");
@@ -100,6 +102,7 @@ export async function listerRestaurantsAdmin(filtres: {
     suspendu_motif: r.suspendu_motif,
     motif_correction: r.motif_correction,
     cree_le: r.cree_le,
+    mode_vente: r.mode_vente === "speedfood" ? "speedfood" : "autonome",
   }));
 }
 
@@ -110,7 +113,7 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
   const { data, error } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, mode_vente, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -130,6 +133,7 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
     suspendu_motif: data.suspendu_motif,
     motif_correction: data.motif_correction,
     cree_le: data.cree_le,
+    mode_vente: data.mode_vente === "speedfood" ? "speedfood" : "autonome",
   };
 }
 

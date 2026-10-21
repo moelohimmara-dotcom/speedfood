@@ -27,7 +27,7 @@ const VALEURS = [
 
 const PUBLICS: { cle: PublicSpeedfood; titre: string; texte: string; lien: string; href: string }[] = [
   { cle: "client", titre: "Clients", texte: "Trouver un plat vraiment disponible près de chez soi et envoyer sa commande.", lien: "Parcourir les restaurants", href: "/restaurants" },
-  { cle: "restaurateur", titre: "Restaurateurs", texte: "Une page à eux, une console simple, leurs prix et leurs horaires.", lien: "Inscrire mon restaurant", href: "/restaurateurs" },
+  { cle: "restaurateur", titre: "Restaurateurs", texte: "Une fiche créée avec eux par l'équipe, leurs prix, leurs horaires, des commandes confirmées.", lien: "Être référencé", href: "/restaurateurs" },
   { cle: "partenaire", titre: "Partenaires", texte: "Investir, soutenir la communauté, apporter des moyens ou contribuer.", lien: "Devenir partenaire", href: "/devenir-partenaire" },
 ];
 

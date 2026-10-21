@@ -174,6 +174,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
     libelle: "Catalogue",
     sousSections: [
       { href: "/system/catalogue/restaurants", libelle: "Restaurants", permission: "restaurant.moderer" },
+      { href: "/system/catalogue/referencements", libelle: "Référencements", permission: "restaurant.moderer" },
       { href: "/system/catalogue/taxonomie", libelle: "Taxonomie", permission: "taxonomie.editer" },
       { href: "/system/catalogue/geographie", libelle: "Géographie", permission: "taxonomie.editer" },
       { href: "/system/catalogue/couverture", libelle: "Couverture", permission: "taxonomie.editer" },
@@ -198,6 +199,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
   {
     libelle: "Commandes",
     sousSections: [
+      { href: "/system/repartition", libelle: "Répartition", permission: "commande.support" },
       { href: "/system/commandes", libelle: "Support commandes", permission: "commande.consulter" },
       { href: "/system/livraisons", libelle: "Livraisons", permission: "commande.support" },
       { href: "/system/livraisons/livreurs", libelle: "Livreurs", permission: "commande.support" },

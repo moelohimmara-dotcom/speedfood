@@ -4,74 +4,64 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { origineDuSite } from "@/lib/partage/origine";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
-import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
 import { BoutonAssistance } from "@/components/BoutonAssistance";
-import { ChecklistRestaurateur } from "@/components/site/ChecklistRestaurateur";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origine = await origineDuSite();
   return {
-    title: "Restaurateurs : mettre votre carte en ligne",
+    title: "Restaurateurs : être référencé sur Speedfood",
     description:
-      "Inscrivez votre restaurant sur Speedfood : étapes, ce que vous recevez, ce que Speedfood ne fait pas.",
+      "Demandez à être référencé : l'équipe Speedfood vous rappelle, crée votre fiche avec vous et tient votre catalogue.",
     alternates: { canonical: `${origine}/restaurateurs` },
   };
 }
 
 const ETAPES = [
   {
-    titre: "Créez votre compte",
-    texte:
-      "Une adresse e-mail et un mot de passe. Vous pouvez ensuite activer la double authentification.",
+    titre: "Demandez à être référencé",
+    texte: "Un formulaire de deux minutes : votre établissement, son emplacement, la personne à rappeler.",
   },
   {
-    titre: "Décrivez votre établissement",
-    texte:
-      "Nom, type de cuisine et quartier : trois champs, le reste se complète après.",
+    titre: "L'équipe vous rappelle",
+    texte: "Un appel, puis une visite : nous parlons de vos plats, de vos prix, de vos horaires et des conditions, que vous êtes libre d'accepter ou non.",
   },
   {
-    titre: "Complétez votre page",
-    texte:
-      "Photo, logo, menu avec prix, horaires, consignes et moyens de paiement acceptés. Un tableau de bord vous indique ce qu'il reste à faire.",
+    titre: "Nous créons votre fiche avec vous",
+    texte: "L'équipe saisit votre catalogue (plats, prix, photos, horaires) et le tient à jour avec vous. Vos prix restent les vôtres.",
   },
   {
-    titre: "Validation par l'équipe",
-    texte:
-      "Une personne de l'équipe Speedfood relit votre page avant publication. Si une correction est nécessaire, elle vous l'indique dans votre tableau de bord.",
+    titre: "Vous recevez les commandes",
+    texte: "Chaque commande vous est confirmée avant d'être validée, par appel, WhatsApp ou depuis votre console si vous en avez une.",
   },
   {
-    titre: "Recevez vos commandes",
-    texte:
-      "Votre page, son lien et son QR code sont prêts à partager. Chaque nouvelle commande déclenche une alerte sonore, et une notification même console fermée si vous l'activez.",
+    titre: "Vous préparez",
+    texte: "Vous préparez ; l'organisation de la livraison (par vous, ou avec l'aide de Speedfood quand ce service existera) se décide avec vous lors de la visite.",
   },
 ];
 
 /**
  * Page « Restaurateurs » (ancienne page « Devenir partenaire », devenue le 20 octobre 2026 la page des investisseurs et soutiens : voir
- * /devenir-partenaire). Le restaurateur n'a qu'une porte, « Inscrire mon restaurant ». Aucun chiffre ni délai inventé : la durée de validation et les conditions du pilote sont formulées comme des
+ * /devenir-partenaire). Le restaurateur n'a qu'une porte, « Demander à être référencé ». Aucun chiffre ni délai inventé : la durée de validation et les conditions du pilote sont formulées comme des
  * réserves, jusqu'à décision de l'équipe.
  */
 export default async function RestaurateursPage() {
-  const { whatsapp, delaiValidationHeures } = await lireReglagesAssistance();
-  const delai = delaiValidationHeures
-    ? `Réponse en général sous ${formaterDelaiValidation(delaiValidationHeures)}. `
-    : "";
+  const { whatsapp } = await lireReglagesAssistance();
   return (
     <main className="pub-conteneur pub-rubrique">
       <div className="pub-entete-vecteur">
         <div className="pub-entete-rubrique">
           <p className="pub-kicker">Pour les restaurateurs</p>
           <h1 className="pub-titre pub-h1-page">
-            Votre carte <span className="pub-surligne">en ligne</span>
+            Nous nous occupons de <span className="pub-surligne">votre fiche</span>
           </h1>
           <p className="pub-accueil-lead">
             Speedfood met votre restaurant en vitrine à Conakry et vous envoie
-            les commandes. Vous gardez la main sur vos prix, vos horaires et
-            votre livraison.
+            les commandes. L&apos;équipe crée votre fiche et tient votre catalogue
+            avec vous : vous gardez la main sur vos prix et vos horaires.
           </p>
           <div className="pub-accueil-actions">
             <Link href="/inscription" className="pub-btn">
-              Inscrire mon restaurant
+              Demander à être référencé
               <span className="pub-btn-point" aria-hidden="true">
                 <svg
                   viewBox="0 0 24 24"
@@ -110,7 +100,6 @@ export default async function RestaurateursPage() {
                 <div>
                   <h3>{e.titre}</h3>
                   <p>
-                    {e.titre === "Validation par l'équipe" ? delai : ""}
                     {e.texte}
                   </p>
                 </div>
@@ -123,9 +112,14 @@ export default async function RestaurateursPage() {
           className="pub-carte pub-carte-pad"
         >
           <h2 id="partenaire-fiche" className="pub-titre pub-h3-page">
-            Ma fiche est-elle prête ?
+            Ce que nous vous demandons
           </h2>
-          <ChecklistRestaurateur />
+          <ul className="pub-liste-simple">
+            <li>Votre carte avec les prix (une photo du menu suffit pour commencer).</li>
+            <li>Vos horaires et vos jours de fermeture.</li>
+            <li>Un téléphone joignable, WhatsApp si possible, pour confirmer les commandes.</li>
+            <li>Les documents nécessaires vous sont indiqués lors du rappel.</li>
+          </ul>
         </section>
       </div>
 
@@ -154,9 +148,9 @@ export default async function RestaurateursPage() {
           </h2>
           <p>
             Le projet est en phase pilote à Conakry. Les conditions (coût
-            éventuel, commission) sont précisées avec chaque restaurant
-            partenaire avant la publication de sa page ; la création de votre
-            page n&apos;implique aucun paiement.
+            éventuel, commission) vous sont présentées lors de la visite, avant
+            la création de votre fiche ; la demande de référencement
+            n&apos;implique aucun paiement et aucun engagement.
           </p>
           <p>
             <Link href="/aide" className="lien-texte">

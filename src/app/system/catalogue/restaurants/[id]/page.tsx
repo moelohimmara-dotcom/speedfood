@@ -23,6 +23,8 @@ import { EditeurHoraires } from "./EditeurHoraires";
 import { EditeurProfilRestaurant } from "./EditeurProfilRestaurant";
 import { EditeurQuartierRestaurant } from "./EditeurQuartierRestaurant";
 import { GestionEquipe } from "./GestionEquipe";
+import { definirModeVenteAction } from "@/lib/system-admin/catalogue-restaurant";
+import { definirTelephoneCommandesAction } from "@/lib/system-admin/repartition";
 
 export const metadata = { title: "Fiche restaurant (administration)" };
 
@@ -90,15 +92,21 @@ export default async function RestaurantDetailSystemePage({
   // (sinon un restaurant dont le nom contient « test » serait signalé à tort).
   const estDeTest = dossier ? dossier.estDeTest : estElementDeTest(restaurant.nom);
   const aUnProprietaire = membres.some((m) => m.role === "owner");
+  const parEquipe = restaurant.mode_vente === "speedfood";
+  const { data: contactInterne } = await creerClientAdmin().from("restaurant_contacts_internes").select("telephone_commandes").eq("restaurant_id", id).maybeSingle();
 
   const points: PointControle[] = dossier
     ? [
         {
           cle: "proprietaire",
           libelle: "Propriétaire rattaché",
-          detail: aUnProprietaire ? "Un compte propriétaire gère ce restaurant." : "Aucun propriétaire : personne ne peut recevoir les commandes.",
-          niveau: aUnProprietaire ? "ok" : "manque",
-          obligatoire: true,
+          detail: parEquipe
+            ? "Établissement tenu par l'équipe Speedfood : aucun propriétaire n'est nécessaire (les commandes sont suivies par l'équipe)."
+            : aUnProprietaire
+              ? "Un compte propriétaire gère ce restaurant."
+              : "Aucun propriétaire : personne ne peut recevoir les commandes.",
+          niveau: parEquipe || aUnProprietaire ? "ok" : "manque",
+          obligatoire: !parEquipe,
         },
         {
           cle: "menu",
@@ -198,6 +206,44 @@ export default async function RestaurantDetailSystemePage({
           </p>
         </div>
       ) : null}
+
+      <Panneau titre="Mode de vente" id="mode-vente">
+        <p>
+          <Pastille ton={parEquipe ? "succes" : "neutre"}>{parEquipe ? "Tenu par l'équipe Speedfood" : "Autonome"}</Pastille>
+        </p>
+        {parEquipe ? (
+          <>
+            <p className="ad-aide-champ">
+              L&apos;équipe tient les plats, les prix (ceux du restaurant sur place) et les disponibilités. Speedfood encaisse pour le compte du restaurant, retient sa commission
+              et le règle chaque jour (voir DECISIONS-MODELE.md).
+            </p>
+            <p>
+              <Link href={`/system/catalogue/restaurants/${restaurant.id}/menu`} className="btn btn-primary">
+                Gérer le catalogue
+              </Link>
+            </p>
+          </>
+        ) : (
+          <p className="ad-aide-champ">Le restaurateur tient lui-même sa page, ses prix et sa livraison depuis sa console, comme au début du pilote.</p>
+        )}
+        {parEquipe ? (
+          <form action={definirTelephoneCommandesAction} className="partenariat-admin-statut">
+            <input type="hidden" name="restaurant_id" value={restaurant.id} />
+            <div className="field">
+              <label htmlFor="telephone-commandes">Numéro à joindre pour confirmer les commandes (interne, jamais public)</label>
+              <input id="telephone-commandes" name="telephone" type="tel" defaultValue={contactInterne?.telephone_commandes ?? ""} placeholder="622 00 00 00" />
+            </div>
+            <button type="submit" className="btn btn-secondary btn-compact">Enregistrer le numéro</button>
+          </form>
+        ) : null}
+        <form action={definirModeVenteAction}>
+          <input type="hidden" name="restaurant_id" value={restaurant.id} />
+          <input type="hidden" name="mode" value={parEquipe ? "autonome" : "speedfood"} />
+          <button type="submit" className="btn btn-secondary">
+            {parEquipe ? "Repasser en mode autonome" : "Passer en mode « Speedfood »"}
+          </button>
+        </form>
+      </Panneau>
 
       <Panneau titre="Administration du restaurant" id="administration-restaurant" actions={<a href="#administration-restaurant" className="lien-texte">Accéder aux modifications</a>}>
         <p className="ad-aide-champ">Modifiez les informations opérationnelles sans retirer le restaurant du catalogue. Chaque modification est journalisée.</p>

@@ -40,8 +40,8 @@ export async function PiedSite() {
         </nav>
         <nav className="site-pied-colonne" aria-label="Restaurateurs">
           <p className="site-pied-titre">Restaurateurs</p>
-          <Link href="/restaurateurs">Votre restaurant sur Speedfood</Link>
-          <Link href="/inscription">Inscrire mon restaurant</Link>
+          <Link href="/restaurateurs">Être référencé sur Speedfood</Link>
+          <Link href="/inscription">Demander à être référencé</Link>
           <Link href="/connexion?role=restaurateur">Espace restaurateur</Link>
         </nav>
         <nav className="site-pied-colonne" aria-label="Informations">

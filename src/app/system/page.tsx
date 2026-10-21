@@ -41,6 +41,8 @@ import {
 } from "@/lib/system-admin/tableauDeBord";
 import { FilePrioritaire, type LigneFilePriorite } from "./FilePrioritaire";
 import { compterDemandesPartenariatNouvelles } from "@/lib/system-admin/partenariats-lecture";
+import { compterReferencementsNouveaux } from "@/lib/system-admin/referencements-lecture";
+import { compterCommandesAConfirmer } from "@/lib/system-admin/repartition-lecture";
 import { ListeActivite, type LigneActivite } from "./ActiviteRecente";
 import { formaterEcheance } from "./formatage";
 
@@ -78,7 +80,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
   const lienRestaurants = (statut: string) => (roleAPermission(role, "restaurant.moderer") ? `/system/catalogue/restaurants?statut=${statut}` : undefined);
   const lienMisesEnAvant = roleAPermission(role, "contenu.mettre_en_avant") ? "/system/catalogue/mises-en-avant" : undefined;
   const peutVoirCouverture = roleAPermission(role, "taxonomie.editer") || roleAPermission(role, "attente.gerer");
-  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture, demandesPartenariat] = await Promise.all([
+  const [stats, comptesSysteme, restaurantsEnAttente, propositionsEnAttente, activite, pilotage, couverture, demandesPartenariat, referencementsNouveaux, commandesAConfirmer] = await Promise.all([
     obtenirStatistiquesApplication(periode),
     roleAPermission(role, "systeme.roles") ? obtenirComptesSystemeParRole() : null,
     roleAPermission(role, "restaurant.moderer") ? listerRestaurantsEnAttenteValidation(20) : null,
@@ -87,6 +89,8 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
     roleAPermission(role, "commande.consulter") ? obtenirPilotageCommandes(periode) : null,
     peutVoirCouverture ? lireCouverture() : null,
     roleAPermission(role, "attente.gerer") ? compterDemandesPartenariatNouvelles() : null,
+    roleAPermission(role, "restaurant.moderer") ? compterReferencementsNouveaux() : null,
+    roleAPermission(role, "commande.support") ? compterCommandesAConfirmer() : null,
   ]);
   const compteursRestaurants = peutVoirRestaurants ? stats.restaurants : null;
 
@@ -141,6 +145,26 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
         ton: "neutre",
       });
     }
+  }
+  // Commandes d'établissements tenus par l'équipe : le restaurant n'a pas encore été joint.
+  if (commandesAConfirmer) {
+    lignesFile.push({
+      href: "/system/repartition",
+      titre: `${commandesAConfirmer} commande${commandesAConfirmer > 1 ? "s" : ""} à confirmer au restaurant`,
+      meta: "Établissements tenus par l'équipe : joindre le restaurant puis confirmer",
+      badge: "À confirmer",
+      ton: "danger",
+    });
+  }
+  // Demandes de référencement jamais ouvertes : un établissement attend un rappel sous 48 heures.
+  if (referencementsNouveaux) {
+    lignesFile.push({
+      href: "/system/catalogue/referencements",
+      titre: `${referencementsNouveaux} nouvelle${referencementsNouveaux > 1 ? "s" : ""} demande${referencementsNouveaux > 1 ? "s" : ""} de référencement`,
+      meta: "Un établissement veut être référencé : rappel promis sous 48 heures",
+      badge: "À rappeler",
+      ton: "neutre",
+    });
   }
   // Demandes de partenariat jamais ouvertes : quelqu'un attend une réponse.
   if (demandesPartenariat) {

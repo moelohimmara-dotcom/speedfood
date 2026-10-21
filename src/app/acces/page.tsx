@@ -52,9 +52,9 @@ export default async function AccesPage() {
         <section className="acces-piste-carte acces-piste-carte-resto" aria-labelledby="acces-piste-resto">
           <SymboleAudience public="restaurateur" />
           <h2 id="acces-piste-resto">Je suis restaurateur</h2>
-          <p>Je tiens un restaurant et je veux recevoir des commandes, gérer mon menu et mes plats du jour.</p>
+          <p>Je tiens un restaurant et je veux recevoir des commandes : l&apos;équipe Speedfood crée ma fiche avec moi et tient mon catalogue.</p>
           <div className="acces-piste-actions">
-            <Link href="/inscription" className="btn btn-primary btn-block">Inscrire mon restaurant</Link>
+            <Link href="/inscription" className="btn btn-primary btn-block">Demander à être référencé</Link>
             <Link href="/connexion?role=restaurateur" className="btn btn-secondary btn-block">Me connecter à ma console</Link>
           </div>
           <p className="acces-piste-note">

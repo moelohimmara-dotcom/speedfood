@@ -124,6 +124,90 @@ export type Database = {
           },
         ]
       }
+      restaurant_contacts_internes: {
+        Row: {
+          mis_a_jour_le: string
+          restaurant_id: string
+          telephone_commandes: string
+        }
+        Insert: {
+          mis_a_jour_le?: string
+          restaurant_id: string
+          telephone_commandes: string
+        }
+        Update: {
+          mis_a_jour_le?: string
+          restaurant_id?: string
+          telephone_commandes?: string
+        }
+        Relationships: []
+      }
+      referencement_demandes: {
+        Row: {
+          categories: string | null
+          commune: string
+          consentement_le: string
+          contact_email: string
+          contact_telephone: string
+          cree_le: string
+          id: string
+          indications: string | null
+          latitude: number | null
+          longitude: number | null
+          organisation: string
+          quartier: string
+          responsable_nom: string
+          responsable_prenom: string
+          restaurant_id: string | null
+          specialites: string | null
+          statut: string
+          traitee_le: string | null
+          type_etablissement: string
+        }
+        Insert: {
+          categories?: string | null
+          commune: string
+          consentement_le?: string
+          contact_email: string
+          contact_telephone: string
+          cree_le?: string
+          id?: string
+          indications?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          organisation: string
+          quartier: string
+          responsable_nom: string
+          responsable_prenom: string
+          restaurant_id?: string | null
+          specialites?: string | null
+          statut?: string
+          traitee_le?: string | null
+          type_etablissement: string
+        }
+        Update: {
+          categories?: string | null
+          commune?: string
+          consentement_le?: string
+          contact_email?: string
+          contact_telephone?: string
+          cree_le?: string
+          id?: string
+          indications?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          organisation?: string
+          quartier?: string
+          responsable_nom?: string
+          responsable_prenom?: string
+          restaurant_id?: string | null
+          specialites?: string | null
+          statut?: string
+          traitee_le?: string | null
+          type_etablissement?: string
+        }
+        Relationships: []
+      }
       partenariat_demandes: {
         Row: {
           consentement_le: string
@@ -1577,6 +1661,7 @@ export type Database = {
           logo_illustration: Json | null
           logo_url: string | null
           livraison_mode: string
+          mode_vente: string
           longitude: number | null
           mis_a_jour_le: string
           motif_correction: string | null
@@ -1606,6 +1691,7 @@ export type Database = {
           logo_illustration?: Json | null
           logo_url?: string | null
           livraison_mode?: string
+          mode_vente?: string
           longitude?: number | null
           mis_a_jour_le?: string
           motif_correction?: string | null
@@ -1635,6 +1721,7 @@ export type Database = {
           logo_illustration?: Json | null
           logo_url?: string | null
           livraison_mode?: string
+          mode_vente?: string
           longitude?: number | null
           mis_a_jour_le?: string
           motif_correction?: string | null

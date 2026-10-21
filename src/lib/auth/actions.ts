@@ -2,7 +2,6 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { estUuid } from "@/lib/commande/commun";
 import { NOM_COOKIE_SUIVI, optionsCookieSuivi } from "@/lib/commande/sessionSuivi";
 import { creerClientServeur } from "@/lib/db/server";
 import { origineDuSite } from "@/lib/partage/origine";
@@ -181,52 +180,6 @@ export async function deconnexionAction(): Promise<void> {
   // Le cookie de suivi de commande ne doit pas survivre à la déconnexion : même chemin que celui posé à sa création.
   (await cookies()).delete({ name: NOM_COOKIE_SUIVI, path: optionsCookieSuivi().path });
   redirect("/connexion");
-}
-
-export async function creerEtablissementAction(
-  _etatPrecedent: EtatFormulaire,
-  formData: FormData
-): Promise<EtatFormulaire> {
-  const nom = String(formData.get("nom") ?? "").trim();
-  const categorieId = String(formData.get("categorie_id") ?? "");
-  const quartierId = String(formData.get("quartier_id") ?? "");
-
-  if (!nom || !categorieId || !quartierId) {
-    return { erreur: "Tous les champs sont obligatoires." };
-  }
-  if (nom.length < 2 || nom.length > 120) {
-    return { erreur: "Le nom de l'établissement doit compter de 2 à 120 caractères." };
-  }
-  if (!estUuid(categorieId) || !estUuid(quartierId)) {
-    return { erreur: "Catégorie ou quartier invalide." };
-  }
-
-  const supabase = await creerClientServeur();
-
-  // Un quartier désactivé (ou dont la commune l'est) n'est plus proposé : vérifié ici, pas seulement dans le formulaire.
-  const { data: quartierActif } = await supabase
-    .from("neighborhoods")
-    .select("id, communes!inner(actif)")
-    .eq("id", quartierId)
-    .eq("actif", true)
-    .eq("communes.actif", true)
-    .maybeSingle();
-  if (!quartierActif) {
-    return { erreur: "Ce quartier n'est plus proposé. Choisissez-en un autre." };
-  }
-
-  const { error } = await supabase.rpc("fn_creer_restaurant_et_owner", {
-    p_nom: nom,
-    p_categorie_id: categorieId,
-    p_quartier_id: quartierId,
-  });
-
-  if (error) {
-    // Jamais le message brut de la base (revue de sécurité, point 14).
-    return { erreur: "Impossible de créer l'établissement pour le moment. Réessayez dans un instant." };
-  }
-
-  redirect("/restaurant");
 }
 
 /** Messages Supabase Auth traduits en français, compréhensibles sans jargon (TDR.md §7). */

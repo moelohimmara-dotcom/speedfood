@@ -424,3 +424,157 @@ html[data-eco] .partenariat-merci-trait {
   animation: none !important;
   stroke-dashoffset: 0;
 }
+
+/* ===== Demande de référencement (page publique /inscription) ===== */
+.referencement-groupe {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.referencement-groupe legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 800;
+}
+.referencement-gps {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+.referencement-aide {
+  margin: 0;
+  color: var(--secondaire);
+  font-size: 0.85rem;
+}
+.referencement-types {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+/* ===== Administration : référencements et catalogue tenu par l'équipe ===== */
+.referencement-admin-ligne {
+  display: block;
+  margin-top: var(--space-1);
+  overflow-wrap: anywhere;
+}
+.referencement-admin-creation {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  min-width: min(100%, 260px);
+}
+.referencement-admin-creation-bloc summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.catalogue-equipe-liste {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.catalogue-equipe-plat {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.catalogue-equipe-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.catalogue-equipe-photo {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--creme);
+}
+.catalogue-equipe-titre {
+  display: grid;
+  flex: 1 1 180px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.catalogue-equipe-etat {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+.catalogue-equipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.catalogue-equipe-edition summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.catalogue-equipe-formulaire {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.catalogue-equipe-prix {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+/* ===== Administration : poste de répartition ===== */
+.repartition-liste {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.repartition-commande {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.repartition-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+}
+.repartition-lignes {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+.repartition-total {
+  margin: 0;
+  font-weight: 700;
+}
+.repartition-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  overflow-wrap: anywhere;
+}
+.repartition-alerte {
+  color: var(--danger);
+  font-weight: 700;
+}
+.repartition-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

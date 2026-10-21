@@ -60,11 +60,6 @@
     "raison": "Menu d'UN restaurant (ou plats d'un panier) : quelques dizaines à centaines de plats."
   },
   {
-    "fichier": "src/app/restaurant/nouveau/page.tsx",
-    "table": "menu_categories",
-    "raison": "Table de référence (quelques catégories de cuisine) : très loin des 1 000 lignes de l'API."
-  },
-  {
     "fichier": "src/app/restaurants/[id]/page.tsx",
     "table": "menu_item_options",
     "raison": "Suppléments des plats d'UN menu : quelques centaines au plus."

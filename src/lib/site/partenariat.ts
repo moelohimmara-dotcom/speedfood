@@ -2,7 +2,7 @@
 import { validerContactAlerte } from "./zone-alerte";
 
 /**
- * Demande de partenariat (page « Devenir partenaire »). Les restaurateurs ne passent PAS par là : leur porte est « Inscrire mon restaurant ».
+ * Demande de partenariat (page « Devenir partenaire »). Les restaurateurs ne passent PAS par là : leur porte est « Demander à être référencé » (/inscription).
  * Validation partagée entre le formulaire (retour immédiat) et l'action serveur (qui revérifie toujours).
  */
 
