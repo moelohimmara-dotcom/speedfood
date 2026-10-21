@@ -87,6 +87,9 @@ export const LIMITE_PARTENARIAT_PAR_IP: RegleLimite = { nom: "partenariat-ip", m
 // Demandes de référencement : un restaurateur réel en envoie une ou deux ; le plafond protège la boîte de l'équipe et la base.
 export const LIMITE_REFERENCEMENT_PAR_IP: RegleLimite = { nom: "referencement-ip", max: 3, fenetreSecondes: 3600 };
 
+// Application livreur : relecture de l’état (toutes les 5 s), position (toutes les 5 à 8 s) et actions ; plafond PAR COMPTE (le compte vient du jeton vérifié).
+export const LIMITE_LIVREUR_PAR_COMPTE: RegleLimite = { nom: "livreur-compte", max: 600, fenetreSecondes: 300 };
+
 // Suivi d'une commande par l'application : elle relit le statut toutes les quelques secondes, par jeton ; le plafond protège la base sans gêner un client réel.
 export const LIMITE_LECTURE_SUIVI_PAR_JETON: RegleLimite = { nom: "suivi-lecture-jeton", max: 120, fenetreSecondes: 300 };
 
@@ -203,6 +206,10 @@ export async function limiterPartenariat(): Promise<void> {
 
 export async function limiterReferencement(): Promise<void> {
   await appliquerLimite(LIMITE_REFERENCEMENT_PAR_IP, await adresseClient());
+}
+
+export async function limiterLivreur(utilisateurId: string): Promise<void> {
+  await appliquerLimite(LIMITE_LIVREUR_PAR_COMPTE, utilisateurId);
 }
 
 export async function limiterLectureSuivi(jeton: string): Promise<void> {

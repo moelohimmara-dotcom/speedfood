@@ -15,6 +15,7 @@ import com.speedfood.app.design.SpeedfoodTheme
 import com.speedfood.app.ui.CommandeScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.EntreeScreen
+import com.speedfood.app.ui.LivreurScreen
 import com.speedfood.app.ui.MesCommandesScreen
 import com.speedfood.app.ui.PanierScreen
 import com.speedfood.app.ui.RestaurantScreen
@@ -50,6 +51,9 @@ data class SuiviDestination(val jeton: String)
 @Serializable
 object MesCommandesDestination
 
+@Serializable
+object LivreurDestination
+
 @Composable
 fun App(config: SpeedfoodConfig) {
     SpeedfoodTheme {
@@ -60,6 +64,7 @@ fun App(config: SpeedfoodConfig) {
                     EntreeScreen(
                         onClient = { navController.navigate(RestaurantsDestination) },
                         onRestaurateur = { navController.navigate(RestaurateurDestination) },
+                        onLivreur = { navController.navigate(LivreurDestination) },
                     )
                 }
                 composable<RestaurantsDestination> {
@@ -105,6 +110,9 @@ fun App(config: SpeedfoodConfig) {
                         onConnexion = { navController.navigate(ConnexionDestination) },
                         onPanier = { navController.navigate(PanierDestination) },
                     )
+                }
+                composable<LivreurDestination> {
+                    LivreurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
                 }
                 composable<RestaurateurDestination> {
                     RestaurateurBientotScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() })

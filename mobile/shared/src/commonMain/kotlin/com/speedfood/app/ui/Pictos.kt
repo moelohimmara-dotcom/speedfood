@@ -75,3 +75,19 @@ fun PictoRestaurateur() = PastillePicto(Couleurs.Mangue) {
     drawRoundRect(Couleurs.Mangue, Offset(16 * u, 24 * u), Size(8 * u, 12 * u), CornerRadius(1.5f * u))
     drawRoundRect(Couleurs.Encre, Offset(16 * u, 24 * u), Size(8 * u, 12 * u), CornerRadius(1.5f * u), style = trait())
 }
+
+/** Scooter avec sa caisse de livraison (public « livreur »). */
+@Composable
+fun PictoLivreur() = PastillePicto(Couleurs.Surface) {
+    val u = size.minDimension / 40f
+    drawCircle(Couleurs.Surface, radius = 5 * u, center = Offset(8 * u, 29 * u))
+    drawCircle(Couleurs.Encre, radius = 5 * u, center = Offset(8 * u, 29 * u), style = trait())
+    drawCircle(Couleurs.Surface, radius = 5 * u, center = Offset(32 * u, 29 * u))
+    drawCircle(Couleurs.Encre, radius = 5 * u, center = Offset(32 * u, 29 * u), style = trait())
+    val corps = Path().apply { moveTo(8 * u, 29 * u); lineTo(17 * u, 29 * u); lineTo(23 * u, 17 * u); lineTo(29 * u, 17 * u); lineTo(32 * u, 29 * u) }
+    drawPath(corps, Couleurs.RougeFonce, style = Stroke(width = size.minDimension * 0.1f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    drawRoundRect(Couleurs.Mangue, Offset(3 * u, 8 * u), Size(15 * u, 12 * u), CornerRadius(2 * u))
+    drawRoundRect(Couleurs.Encre, Offset(3 * u, 8 * u), Size(15 * u, 12 * u), CornerRadius(2 * u), style = trait())
+    val guidon = Path().apply { moveTo(27 * u, 17 * u); lineTo(26 * u, 10 * u); lineTo(32 * u, 10 * u) }
+    drawPath(guidon, Couleurs.Encre, style = trait())
+}

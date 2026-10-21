@@ -6,7 +6,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Density
+import com.speedfood.app.data.ClientCourse
+import com.speedfood.app.data.CourseLivreur
 import com.speedfood.app.data.EstimationLivraison
+import com.speedfood.app.data.EtatLivreur
+import com.speedfood.app.data.FicheLivreur
+import com.speedfood.app.data.OffreLivreur
 import com.speedfood.app.data.LigneEnvoyee
 import com.speedfood.app.data.QuartierChoix
 import com.speedfood.app.data.FiltreRestaurants
@@ -22,7 +27,9 @@ import com.speedfood.app.ui.CarteCommande
 import com.speedfood.app.ui.CommandeAffichee
 import com.speedfood.app.ui.ContenuPanier
 import com.speedfood.app.ui.ContenuSuivi
+import com.speedfood.app.ui.ContenuLivreur
 import com.speedfood.app.ui.EtatCommande
+import com.speedfood.app.ui.EtatEspaceLivreur
 import com.speedfood.app.ui.EtatSuivi
 import com.speedfood.app.ui.FormulaireCommande
 import com.speedfood.app.data.OptionPlat
@@ -61,7 +68,7 @@ class CapturesTest {
         assertTrue(octets.size > 8_000, "capture « $nom » suspecte (${octets.size} octets) : écran vide ?")
     }
 
-    @Test fun entree() = capturer("entree") { EntreeScreen(onClient = {}, onRestaurateur = {}) }
+    @Test fun entree() = capturer("entree") { EntreeScreen(onClient = {}, onRestaurateur = {}, onLivreur = {}) }
 
     @Test fun restaurateur() = capturer("restaurateur") { RestaurateurBientotScreen("https://speedfood-app.moelohimmara.workers.dev", onRetour = {}) }
 
@@ -170,5 +177,36 @@ class CapturesTest {
             CommandeAffichee("SF-0042", "jeton", "1", "Chez Awa", 0L, 66000, "acceptee", true, listOf(LigneEnvoyee("p1", 2, listOf("o1")))),
             onOuvrir = {},
         )
+    }
+
+    private fun livreur(etat: EtatLivreur, message: String? = null) = EtatEspaceLivreur.Pret(etat, message, positionAutorisee = true, positionDisponible = true)
+    private val ficheActive = FicheLivreur("l1", "Mamadou Barry", "disponible", "Moto", "actif")
+
+    @Test
+    fun livreurOffre() = capturer("livreur-offre", hauteur = 900) {
+        val offre = OffreLivreur("o1", "2099-01-01T00:00:30Z", "Chez Awa", 2.4, 9500, 0.8)
+        ContenuLivreur(livreur(EtatLivreur(ficheActive, offre = offre, positionConnue = true)), kotlin.time.Instant.parse("2099-01-01T00:00:00Z").toEpochMilliseconds() - 0L, {}, { _, _ -> }, { _, _, _ -> }, {})
+    }
+
+    @Test
+    fun livreurCourseARemettre() = capturer("livreur-course", hauteur = 1100) {
+        val course = CourseLivreur(
+            "c1", "vers_client", "speedfood", "En route vers vous", "SF-9", "prete", "Chez Awa", fraisGnf = 9500,
+            client = ClientCourse("Aminata Diallo", "+224622123456", "Rue KA-012, près de la mosquée Fayçal"),
+        )
+        ContenuLivreur(livreur(EtatLivreur(ficheActive.copy(statut = "en_course"), course = course, positionConnue = true), "Code incorrect. 2 essai(s) restant(s)."), 0L, {}, { _, _ -> }, { _, _, _ -> }, {})
+    }
+
+    @Test
+    fun livreurHorsLigneSansPosition() = capturer("livreur-hors-ligne", hauteur = 700) {
+        ContenuLivreur(
+            EtatEspaceLivreur.Pret(EtatLivreur(ficheActive.copy(statut = "hors_ligne")), positionAutorisee = false, positionDisponible = true),
+            0L, {}, { _, _ -> }, { _, _, _ -> }, {},
+        )
+    }
+
+    @Test
+    fun livreurFicheEnExamen() = capturer("livreur-candidat", hauteur = 500) {
+        ContenuLivreur(livreur(EtatLivreur(ficheActive.copy(cycle = "candidat", statut = "hors_ligne"))), 0L, {}, { _, _ -> }, { _, _, _ -> }, {})
     }
 }

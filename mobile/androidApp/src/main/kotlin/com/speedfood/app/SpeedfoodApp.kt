@@ -26,11 +26,14 @@ class SpeedfoodApp : Application() {
             supabaseAnonKey = BuildConfig.SUPABASE_ANON_KEY,
             siteUrl = BuildConfig.SITE_URL,
         )
-        initKoin(config, StockagePreferences(this))
+        position = PositionAndroid(this)
+        initKoin(config, StockagePreferences(this), position)
     }
 
     companion object {
         lateinit var config: SpeedfoodConfig
+            private set
+        lateinit var position: PositionAndroid
             private set
     }
 }

@@ -33,11 +33,11 @@ import androidx.compose.ui.unit.dp
 import com.speedfood.app.design.Couleurs
 
 /**
- * Premier écran : deux pistes séparées dès le départ, comme `/acces` sur le site. Le client parcourt les restaurants sans compte ;
- * le restaurateur a sa propre piste (sa console native arrive au lot N3).
+ * Premier écran : des pistes séparées dès le départ, comme `/acces` sur le site. Le client parcourt les restaurants sans compte ;
+ * le restaurateur a sa propre piste (sa console native arrive au lot N3) ; le livreur a la sienne (compte ouvert par l'équipe Speedfood).
  */
 @Composable
-fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit) {
+fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -52,7 +52,7 @@ fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit) {
         Text("Speedfood", style = MaterialTheme.typography.titleLarge, color = Couleurs.RougeFonce)
         Text("Qui êtes-vous ?", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Deux espaces séparés, chacun avec son propre compte. Choisissez le vôtre.",
+            "Trois espaces séparés, chacun avec son propre compte. Choisissez le vôtre.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -75,6 +75,16 @@ fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit) {
                 texte = "Je tiens un restaurant et je veux recevoir des commandes, gérer mon menu et mes plats du jour.",
                 libelleBouton = "Espace restaurateur",
                 onClick = onRestaurateur,
+                principal = false,
+            )
+        }
+        AnimatedVisibility(visible, enter = fadeIn() + slideInVertically { it / 4 }) {
+            CartePiste(
+                picto = { PictoLivreur() },
+                titre = "Je suis livreur",
+                texte = "Je livre pour Speedfood ou pour un restaurant : je reçois des courses, je suis mon trajet et je remets la commande avec le code du client.",
+                libelleBouton = "Espace livreur",
+                onClick = onLivreur,
                 principal = false,
             )
         }
