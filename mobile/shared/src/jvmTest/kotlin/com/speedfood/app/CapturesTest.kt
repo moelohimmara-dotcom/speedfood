@@ -28,6 +28,9 @@ import com.speedfood.app.ui.CommandeAffichee
 import com.speedfood.app.ui.ContenuPanier
 import com.speedfood.app.ui.ContenuSuivi
 import com.speedfood.app.ui.ContenuLivreur
+import com.speedfood.app.ui.IllustrationVisite
+import com.speedfood.app.ui.SceneOuverture
+import com.speedfood.app.ui.VisiteGuidee
 import com.speedfood.app.ui.EtatCommande
 import com.speedfood.app.ui.EtatEspaceLivreur
 import com.speedfood.app.ui.EtatSuivi
@@ -68,7 +71,7 @@ class CapturesTest {
         assertTrue(octets.size > 8_000, "capture « $nom » suspecte (${octets.size} octets) : écran vide ?")
     }
 
-    @Test fun entree() = capturer("entree") { EntreeScreen(onClient = {}, onRestaurateur = {}, onLivreur = {}) }
+    @Test fun entree() = capturer("entree") { EntreeScreen(onClient = {}, onRestaurateur = {}, onLivreur = {}, onVisite = {}) }
 
     @Test fun restaurateur() = capturer("restaurateur") { RestaurateurBientotScreen("https://speedfood-app.moelohimmara.workers.dev", onRetour = {}) }
 
@@ -208,5 +211,22 @@ class CapturesTest {
     @Test
     fun livreurFicheEnExamen() = capturer("livreur-candidat", hauteur = 500) {
         ContenuLivreur(livreur(EtatLivreur(ficheActive.copy(cycle = "candidat", statut = "hors_ligne"))), 0L, {}, { _, _ -> }, { _, _, _ -> }, {})
+    }
+
+    @Test fun ouverture0() = capturer("ouverture-1", hauteur = 700) { SceneOuverture(350f) }
+
+    @Test fun ouverture1() = capturer("ouverture-2", hauteur = 700) { SceneOuverture(850f) }
+
+    @Test fun ouverture2() = capturer("ouverture-3", hauteur = 700) { SceneOuverture(1500f) }
+
+    @Test fun ouverture3() = capturer("ouverture-4", hauteur = 700) { SceneOuverture(2800f) }
+
+    @Test fun visiteGuidee() = capturer("visite-1", hauteur = 860) { VisiteGuidee {} }
+
+    @Test
+    fun visiteIllustrations() = capturer("visite-illustrations", hauteur = 1400) {
+        androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+            for (i in 0..4) IllustrationVisite(i, 1f, 0.3f)
+        }
     }
 }

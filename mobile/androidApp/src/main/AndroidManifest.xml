@@ -13,7 +13,7 @@
         android:name=".SpeedfoodApp"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.Speedfood">
         <activity
             android:exported="true"
             android:windowSoftInputMode="adjustResize"

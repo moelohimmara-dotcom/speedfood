@@ -1,0 +1,9 @@
+<resources>
+    <!-- Android 12 et plus : l'écran de lancement du système reprend le fond crème ; l'animation du logo prend le relais dans l'application. -->
+    <style name="Theme.Speedfood" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF6ED</item>
+        <item name="android:statusBarColor">#FFF6ED</item>
+        <item name="android:navigationBarColor">#FFF6ED</item>
+        <item name="android:windowSplashScreenBackground">#FFF6ED</item>
+    </style>
+</resources>

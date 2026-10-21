@@ -21,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,7 +38,7 @@ import com.speedfood.app.design.Couleurs
  * le restaurateur a sa propre piste (sa console native arrive au lot N3) ; le livreur a la sienne (compte ouvert par l'équipe Speedfood).
  */
 @Composable
-fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: () -> Unit) {
+fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: () -> Unit, onVisite: () -> Unit = {}) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -87,6 +88,9 @@ fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: ()
                 onClick = onLivreur,
                 principal = false,
             )
+        }
+        TextButton(onClick = onVisite, modifier = Modifier.fillMaxWidth()) {
+            Text("Revoir la visite guidée", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
         }
     }
 }

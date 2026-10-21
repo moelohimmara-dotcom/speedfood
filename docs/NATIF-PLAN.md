@@ -47,3 +47,9 @@ Voir la fin de ce fichier, mise à jour au fil des lots.
 - Procédure de reconstruction et de publication : `docs/APPLICATION-ANDROID.md`.
 - Limite assumée : la version 2.0.0 ne fait que choisir l'espace et parcourir les restaurants ; commander reste possible sur le site dans le navigateur jusqu'aux lots N1 et N2.
 - **Site non installable** : le manifeste, le bloc d'installation de la console restaurateur et le mode « application web » iOS sont retirés. Le service worker reste (hors connexion, réessais 503, push de la console). Le push web sur iPhone disparaît jusqu'à l'application iPhone (APNs, lot N5).
+
+### Accueil animé et visite guidée (21 octobre 2026, non déployé)
+- **Ouverture :** au lancement, le logo s'anime (≈ 2,8 s) : les ailes se déploient, le burger se pose avec un léger écrasement, la vapeur monte en ondulant, puis « SPEEDFOOD » apparaît lettre par lettre avec sa signature. Un toucher passe directement à la suite. Le logo est redessiné en vectoriel (le fichier du logo est une image sans transparence, impossible à animer par parties) ; la teinte bordeaux et l'ocre sont relevées sur le logo officiel.
+- **Visite guidée :** 5 pages glissantes (restaurants, disponibilité horodatée, retrait ou livraison, suivi, trois espaces), chacune avec un dessin animé à son arrivée et un mouvement continu ; points de progression animés ; « Passer » à tout moment. Proposée seulement au premier lancement (clé `visite_vue` du stockage local) ; « Revoir la visite guidée » en bas de l'écran d'accueil. Les textes ne promettent que ce qui existe (pas de notifications, aucun paiement dans l'application).
+- **Android :** fond crème dès la première image (thème `Theme.Speedfood`), écran de lancement du système en crème sur Android 12 et plus : pas d'éclair blanc avant l'animation.
+- **Vérifié :** captures image par image de l'ouverture (4 instants) et de la visite ; 78 tests natifs ; non vu sur un téléphone (la fluidité réelle reste à constater).

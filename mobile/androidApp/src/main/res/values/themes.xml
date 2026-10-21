@@ -1,0 +1,8 @@
+<resources>
+    <!-- Fond crème dès la première image : l'animation du logo démarre sur le même fond, sans éclair blanc. -->
+    <style name="Theme.Speedfood" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF6ED</item>
+        <item name="android:statusBarColor">#FFF6ED</item>
+        <item name="android:navigationBarColor">#FFF6ED</item>
+    </style>
+</resources>
