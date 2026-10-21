@@ -40,3 +40,9 @@ Voir la fin de ce fichier, mise à jour au fil des lots.
 - **Non vérifié :** lancement sur un téléphone ou un émulateur (aucun disponible sur ce poste) ; lecture réelle de la base depuis l'application (testée seulement avec un faux réseau) ; toute la partie iOS (la coque est écrite d'après le modèle officiel, jamais compilée : exige macOS).
 - **Outils :** JDK 17 **64 bits** dans `C:\Users\moelo\.speedfood-tools\` (la JDK de Bubblewrap est en 32 bits et ne peut pas lancer Gradle) ; SDK Android dans `C:\Users\moelo\.bubblewrap\android_sdk` ; réglages publics dans `mobile/speedfood.properties` (ignoré par Git, modèle `speedfood.properties.example`).
 - **Commandes** (bash, depuis `mobile/`, avec `JAVA_HOME` et `ANDROID_HOME` définis) : `./gradlew :androidApp:assembleDebug`, `./gradlew :shared:jvmTest`, `./gradlew :desktopApp:run` (aperçu sur ordinateur).
+
+### Application téléchargeable depuis le site, mode webview supprimé (21 octobre 2026)
+- L'ancienne enveloppe « Trusted Web Activity » (APK du 18 octobre) et tout ce qui la soutenait sont supprimés : projet `android/`, route `/api/assetlinks`, réécriture `/.well-known/assetlinks.json`, bouton d'installation du navigateur, étapes « ajouter à l'écran d'accueil » de `/installer`.
+- `/installer` propose désormais l'APK **natif** (`public/speedfood.apk`, version 2.0.0, signé avec la clé existante, empreinte publiée). Elle remplace l'ancienne par installation par-dessus (même identifiant, même clé).
+- Procédure de reconstruction et de publication : `docs/APPLICATION-ANDROID.md`.
+- Limite assumée : la version 2.0.0 ne fait que choisir l'espace et parcourir les restaurants ; commander reste possible sur le site dans le navigateur jusqu'aux lots N1 et N2.

@@ -1,37 +1,20 @@
 import type { Metadata } from "next";
-import { BoutonInstaller } from "@/components/installer/BoutonInstaller";
 
 export const metadata: Metadata = {
-  title: "Installer Speedfood",
-  description: "Installez Speedfood sur votre téléphone Android, votre iPhone ou votre ordinateur.",
+  title: "Télécharger l'application Speedfood",
+  description: "Téléchargez l'application Speedfood pour Android directement depuis le site, sans passer par un magasin.",
 };
 
-/** Nom du fichier APK servi depuis `public/`. Voir docs/APPLICATION-ANDROID.md pour le reconstruire. */
+/** Fichiers servis depuis `public/`. Voir docs/APPLICATION-ANDROID.md pour reconstruire l'application et mettre à jour l'empreinte. */
 const FICHIER_APK = "/speedfood.apk";
+const FICHIER_EMPREINTE = "/speedfood.apk.sha256";
+const VERSION = "2.0.0";
 
-const ETAPES_ANDROID_APK = [
+const ETAPES_ANDROID = [
   "Touchez « Télécharger l'application Android » ci-dessus.",
   "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
   "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
   "L'icône Speedfood apparaît sur votre écran d'accueil.",
-];
-
-const ETAPES_ANDROID_NAVIGATEUR = [
-  "Ouvrez Speedfood dans Chrome.",
-  "Touchez le menu ⋮ puis « Installer l'application » (ou « Ajouter à l'écran d'accueil »).",
-  "Confirmez : l'icône Speedfood apparaît sur votre écran d'accueil.",
-];
-
-const ETAPES_IPHONE = [
-  "Ouvrez Speedfood dans Safari (pas dans un autre navigateur).",
-  "Touchez le bouton Partager (le carré avec une flèche vers le haut).",
-  "Choisissez « Sur l'écran d'accueil », puis « Ajouter ».",
-];
-
-const ETAPES_ORDINATEUR = [
-  "Ouvrez Speedfood dans Chrome ou Edge.",
-  "Cliquez sur l'icône d'installation à droite de la barre d'adresse (un écran avec une flèche), ou sur le bouton ci-dessus.",
-  "Confirmez : Speedfood s'ouvre dans sa propre fenêtre et se lance depuis votre menu Démarrer ou votre bureau.",
 ];
 
 function Etapes({ etapes }: { etapes: string[] }) {
@@ -44,49 +27,49 @@ function Etapes({ etapes }: { etapes: string[] }) {
   );
 }
 
+/**
+ * Page de téléchargement de l'application native (Kotlin Multiplatform, ADR-019). Elle remplace l'ancienne enveloppe qui ne faisait qu'afficher le
+ * site (« mode webview », supprimée le 21 octobre 2026) : plus d'installation du site sur l'écran d'accueil, plus de bouton d'installation du navigateur.
+ */
 export default function InstallerPage() {
   return (
     <main className="pub-conteneur pub-rubrique installer-page">
       <div className="pub-entete-rubrique">
         <p className="pub-kicker">Application</p>
         <h1 className="pub-titre pub-h1-page">
-          Speedfood sur votre <span className="pub-surligne">écran d&apos;accueil</span>
+          L&apos;application <span className="pub-surligne">Speedfood</span>
         </h1>
-        <p className="pub-accueil-lead">
-          Une icône, un lancement en un geste, les notifications de vos commandes. Choisissez votre appareil.
-        </p>
+        <p className="pub-accueil-lead">Téléchargez-la directement ici : choisissez votre espace et parcourez les restaurants de Conakry.</p>
       </div>
 
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-android">
         <h2 id="installer-android" className="pub-titre pub-h3-page">Téléphone Android</h2>
-        <p>Le plus simple : l&apos;application Android (fichier APK), qui s&apos;ouvre en plein écran comme n&apos;importe quelle autre.</p>
+        <p>
+          Version {VERSION}. Une vraie application Android, pas un raccourci vers le site. Si l&apos;ancienne application Speedfood est déjà installée,
+          installez simplement celle-ci par-dessus : elle la remplace.
+        </p>
         <p>
           <a className="pub-btn" href={FICHIER_APK} download="speedfood.apk">
             Télécharger l&apos;application Android
           </a>
         </p>
-        <Etapes etapes={ETAPES_ANDROID_APK} />
+        <Etapes etapes={ETAPES_ANDROID} />
         <p className="installer-note">
-          L&apos;application n&apos;est pas (encore) sur Google Play : Android affiche donc un avertissement standard avant d&apos;installer un fichier. Elle
-          ne contient que Speedfood et se met à jour toute seule, car elle affiche le site.
+          L&apos;application n&apos;est pas encore sur Google Play : Android affiche donc un avertissement standard avant d&apos;installer un fichier téléchargé.
+          Cette version permet de choisir votre espace (client ou restaurateur) et de parcourir les restaurants. La commande, le suivi et les notifications
+          arrivent dans les prochaines versions ; en attendant, vous commandez depuis le site, dans votre navigateur.
         </p>
-        <details className="installer-detail">
-          <summary>Sans fichier : installer depuis Chrome</summary>
-          <Etapes etapes={ETAPES_ANDROID_NAVIGATEUR} />
-        </details>
+        <p className="installer-note">
+          Pour vérifier le fichier, comparez son empreinte avec <a className="lien-texte" href={FICHIER_EMPREINTE}>l&apos;empreinte SHA-256 publiée</a>.
+        </p>
       </section>
 
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-iphone">
         <h2 id="installer-iphone" className="pub-titre pub-h3-page">iPhone et iPad</h2>
-        <p>Apple n&apos;accepte pas les fichiers APK. Speedfood s&apos;installe depuis Safari, avec la même icône et le même plein écran.</p>
-        <Etapes etapes={ETAPES_IPHONE} />
-      </section>
-
-      <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-ordinateur">
-        <h2 id="installer-ordinateur" className="pub-titre pub-h3-page">Ordinateur (Windows, Mac, Linux)</h2>
-        <p>Pas de fichier à télécharger : le navigateur installe Speedfood comme un programme.</p>
-        <BoutonInstaller />
-        <Etapes etapes={ETAPES_ORDINATEUR} />
+        <p>
+          L&apos;application iPhone est en préparation : elle sera disponible sur l&apos;App Store. En attendant, le site Speedfood fonctionne dans Safari
+          pour parcourir les restaurants et commander.
+        </p>
       </section>
     </main>
   );
