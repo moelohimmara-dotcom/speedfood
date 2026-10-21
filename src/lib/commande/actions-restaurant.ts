@@ -1,11 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { type ErreurApi } from "@/lib/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@/lib/contracts/commande";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
-import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
-import { estUuid } from "./commun";
+import { confirmerPaiement, emettreDocument } from "./service-paiement";
 import { proposerRevision, traiterCommande, type ActionStatutCommande } from "./service-restaurant";
 
 /**
@@ -26,10 +24,6 @@ import { proposerRevision, traiterCommande, type ActionStatutCommande } from "./
  */
 
 export type { ActionStatutCommande };
-
-function erreurValidationCommande(): ErreurApi {
-  return { code: "VALIDATION", message: "Commande invalide." };
-}
 
 /**
  * Applique une action de la machine à états (accepter/refuser/prete/terminee/annuler) pour le membre connecté ; les règles sont dans
@@ -60,71 +54,26 @@ export async function creerPropositionAction(commandeId: string, valeurs: Valeur
 }
 
 /**
- * Le restaurateur CONFIRME avoir reçu le paiement (« recu ») ou CONTESTE une déclaration du client (« non_recu »). Speedfood ne
- * vérifie rien : il compare, de son côté, le SMS de son opérateur. Les règles (seulement après acceptation, seul un paiement
- * déclaré peut être contesté, un paiement confirmé est définitif, le mode et la référence appartiennent au client) sont
- * imposées par le trigger `fn_valider_paiement_commande` : l'interface n'est pas la garde.
+ * Le restaurateur CONFIRME avoir reçu le paiement (« recu ») ou CONTESTE une déclaration du client (« non_recu »). Règles dans `service-paiement.ts`
+ * (partagé avec l’application native) et dans le trigger de base : l’interface n’est pas la garde.
  */
-export async function confirmerPaiementAction(
-  commandeId: string,
-  decision: "recu" | "non_recu"
-): Promise<ResultatActionCommande> {
+export async function confirmerPaiementAction(commandeId: string, decision: "recu" | "non_recu"): Promise<ResultatActionCommande> {
   const { supabase, membership } = await obtenirContexteRestaurant("/restaurant/commandes");
-  if (!estUuid(commandeId) || (decision !== "recu" && decision !== "non_recu")) {
-    return { ok: false, erreur: erreurValidationCommande() };
+  const resultat = await confirmerPaiement(supabase, membership.restaurant_id, commandeId, decision);
+  if (resultat.ok) {
+    revalidatePath("/restaurant/commandes");
+    revalidatePath("/restaurant");
   }
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ paiement_statut: decision })
-    .eq("id", commandeId)
-    .eq("restaurant_id", membership.restaurant_id)
-    // Un paiement en ligne se confirme par le prestataire, jamais à la main : le restaurateur ne peut ni le marquer reçu ni le contester.
-    .or("paiement_mode.is.null,paiement_mode.neq.speedfood")
-    .select("id");
-  if (error) {
-    return {
-      ok: false,
-      erreur: { code: "CONFLIT_ETAT", message: "Ce paiement ne peut pas être modifié maintenant (commande non acceptée, paiement non déclaré ou déjà confirmé)." },
-    };
-  }
-  if (!data || data.length === 0) {
-    return { ok: false, erreur: { code: "INTROUVABLE", message: "Commande introuvable, ou payée en ligne (la confirmation vient du prestataire de paiement)." } };
-  }
-  // Un paiement confirmé donne droit à un reçu numéroté, établi tout de suite (échec silencieux : l'action principale est déjà faite).
-  if (decision === "recu" && (await fonctionnaliteActive("documents_recus"))) {
-    await supabase.rpc("fn_emettre_document", { p_order_id: commandeId, p_type: "recu" });
-  }
-  revalidatePath("/restaurant/commandes");
-  revalidatePath("/restaurant");
-  return { ok: true };
+  return resultat;
 }
 
-/**
- * Le restaurateur établit un reçu (après paiement confirmé) ou une facture (dès l'acceptation) pour une commande. Numérotation continue
- * et contrôles dans `fn_emettre_document` (réservée aux membres du restaurant). Demander deux fois le même document renvoie le premier.
- */
+/** Le restaurateur établit un reçu (après paiement confirmé) ou une facture (dès l’acceptation) pour une commande. Demander deux fois le même document renvoie le premier. */
 export async function emettreDocumentAction(commandeId: string, type: "recu" | "facture"): Promise<ResultatActionCommande> {
   const { supabase } = await obtenirContexteRestaurant("/restaurant/commandes");
-  if (!estUuid(commandeId) || (type !== "recu" && type !== "facture")) {
-    return { ok: false, erreur: erreurValidationCommande() };
+  const resultat = await emettreDocument(supabase, commandeId, type);
+  if (resultat.ok) {
+    revalidatePath("/restaurant/commandes");
+    revalidatePath("/restaurant/documents");
   }
-  if (!(await fonctionnaliteActive("documents_recus"))) {
-    return { ok: false, erreur: { code: "CONFLIT_ETAT", message: "L'émission de documents est momentanément suspendue. Réessayez plus tard." } };
-  }
-  const { error } = await supabase.rpc("fn_emettre_document", { p_order_id: commandeId, p_type: type });
-  if (error) {
-    return {
-      ok: false,
-      erreur: {
-        code: "CONFLIT_ETAT",
-        message:
-          type === "recu"
-            ? "Le reçu s'établit une fois la commande acceptée et le paiement confirmé."
-            : "La facture s'établit une fois la commande acceptée.",
-      },
-    };
-  }
-  revalidatePath("/restaurant/commandes");
-  revalidatePath("/restaurant/documents");
-  return { ok: true };
+  return resultat;
 }

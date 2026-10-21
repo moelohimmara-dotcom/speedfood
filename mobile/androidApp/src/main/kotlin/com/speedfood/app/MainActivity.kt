@@ -21,7 +21,9 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= 33) autorisations += Manifest.permission.POST_NOTIFICATIONS
             demandeAutorisations.launch(autorisations.toTypedArray())
         }
-        SpeedfoodApp.alerte.lier(this)
+        SpeedfoodApp.alerte.lier(this) {
+            if (Build.VERSION.SDK_INT >= 33) demandeAutorisations.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+        }
         setContent {
             App(SpeedfoodApp.config)
         }

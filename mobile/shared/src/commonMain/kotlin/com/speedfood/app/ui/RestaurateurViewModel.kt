@@ -8,6 +8,7 @@ import com.speedfood.app.data.ErreurReseau
 import com.speedfood.app.data.EtatRestaurateur
 import com.speedfood.app.data.RestaurateurApi
 import com.speedfood.app.data.SessionService
+import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.data.classerCommandes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+
+/** Clé du stockage local : « oui » ou « non » à l'alerte application fermée. Absente tant que la question n'a pas été posée. */
+const val CLE_ALERTE_ARRIERE_PLAN = "restaurateur_alerte_arriere_plan"
 
 sealed interface EtatConsole {
     data object Chargement : EtatConsole
@@ -24,7 +28,14 @@ sealed interface EtatConsole {
     data class Erreur(val message: String) : EtatConsole
 
     /** [message] : retour de la dernière action (refus du serveur) ou alerte réseau ; [actionEnCours] : un envoi est en route. */
-    data class Pret(val etat: EtatRestaurateur, val message: String? = null, val actionEnCours: Boolean = false) : EtatConsole
+    data class Pret(
+        val etat: EtatRestaurateur,
+        val message: String? = null,
+        val actionEnCours: Boolean = false,
+        /** Choix du restaurateur d'être alerté application fermée (null = pas encore demandé) ; [arrierePlanPossible] : la plateforme le permet. */
+        val alerteArrierePlan: Boolean? = null,
+        val arrierePlanPossible: Boolean = false,
+    ) : EtatConsole
 }
 
 /** Montants d'une proposition : entiers en GNF, jamais négatifs. Renvoie un message, ou null si tout est correct (le serveur revérifie). */
@@ -48,6 +59,7 @@ class RestaurateurViewModel(
     private val session: SessionService,
     private val api: RestaurateurApi,
     private val alerte: AlerteCommande,
+    private val stockage: StockageLocal,
 ) : ViewModel() {
     private val _etat = MutableStateFlow<EtatConsole>(EtatConsole.Chargement)
     val etat: StateFlow<EtatConsole> = _etat.asStateFlow()
@@ -74,7 +86,9 @@ class RestaurateurViewModel(
         try {
             val etat = api.etat(jeton)
             val avant = _etat.value as? EtatConsole.Pret
-            _etat.value = EtatConsole.Pret(etat, avant?.message, avant?.actionEnCours ?: false)
+            val choix = choixArrierePlan()
+            _etat.value = EtatConsole.Pret(etat, avant?.message, avant?.actionEnCours ?: false, choix, alerte.arrierePlanPossible)
+            if (alerte.arrierePlanPossible && choix == true) alerte.demarrerArrierePlan()
             signalerNouvelles(etat.commandes)
         } catch (e: ErreurReseau) {
             val avant = _etat.value as? EtatConsole.Pret
@@ -92,6 +106,8 @@ class RestaurateurViewModel(
             dernierRappel = maintenant
             return
         }
+        // Le service d'arrière-plan, quand il tourne, alerte déjà (notification sonore) : l'application n'ajoute pas une seconde sonnerie.
+        if (alerte.arrierePlanActif) return
         if ((aTraiter - avant).isNotEmpty()) {
             alerte.sonner()
             dernierRappel = maintenant
@@ -121,11 +137,28 @@ class RestaurateurViewModel(
         }
     }
 
+    private fun choixArrierePlan(): Boolean? = when (stockage.lire(CLE_ALERTE_ARRIERE_PLAN)) {
+        "oui" -> true
+        "non" -> false
+        else -> null
+    }
+
+    /** Enregistre le choix du restaurateur (alerte application fermée : oui ou non) ; « non » arrête aussitôt le service. */
+    fun choisirAlerteArrierePlan(oui: Boolean) {
+        stockage.ecrire(CLE_ALERTE_ARRIERE_PLAN, if (oui) "oui" else "non")
+        (_etat.value as? EtatConsole.Pret)?.let { _etat.value = it.copy(alerteArrierePlan = oui) }
+        if (oui) alerte.demarrerArrierePlan() else alerte.arreterArrierePlan()
+    }
+
     fun traiter(commandeId: String, action: String) = agir { api.agir(it, commandeId, action) }
 
     fun proposer(commandeId: String, sousTotal: Int, frais: Int, conditions: String) = agir { api.proposer(it, commandeId, sousTotal, frais, conditions) }
 
     fun definirStatut(champ: String, valeur: Boolean) = agir { api.definirStatut(it, champ, valeur) }
+
+    fun confirmerPaiement(commandeId: String, decision: String) = agir { api.confirmerPaiement(it, commandeId, decision) }
+
+    fun emettreDocument(commandeId: String, type: String) = agir { api.emettreDocument(it, commandeId, type) }
 
     override fun onCleared() {
         alerte.garderEcranAllume(false)

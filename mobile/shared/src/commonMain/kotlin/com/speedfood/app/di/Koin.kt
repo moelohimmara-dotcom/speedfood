@@ -24,6 +24,7 @@ import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.ui.CommandeViewModel
 import com.speedfood.app.ui.ConnexionViewModel
 import com.speedfood.app.ui.LivreurViewModel
+import com.speedfood.app.ui.MenuRestaurateurViewModel
 import com.speedfood.app.ui.MesCommandesViewModel
 import com.speedfood.app.ui.RestaurantViewModel
 import com.speedfood.app.ui.RestaurantsViewModel
@@ -76,6 +77,7 @@ fun modulesApplication(
         factoryOf(::MesCommandesViewModel)
         factoryOf(::LivreurViewModel)
         factoryOf(::RestaurateurViewModel)
+        factoryOf(::MenuRestaurateurViewModel)
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }
     },
 )
@@ -88,4 +90,7 @@ fun initKoin(config: SpeedfoodConfig, stockage: StockageLocal, position: Fournis
  * Suivi du livreur pour le service d'arrière-plan de la plateforme : même session, même client réseau que le reste de l'application (démarrée par [initKoin]).
  * Une nouvelle instance par démarrage du service, car elle garde la dernière position mesurée.
  */
+/** Surveillance des commandes pour le service d'arrière-plan du restaurateur (même session et même client réseau que le reste de l'application). */
+fun surveillanceCommandesEnArrierePlan(): com.speedfood.app.data.SurveillanceCommandes = org.koin.mp.KoinPlatform.getKoin().let { com.speedfood.app.data.SurveillanceCommandes(it.get(), it.get()) }
+
 fun suiviLivreurEnArrierePlan(): com.speedfood.app.data.SuiviLivreur = org.koin.mp.KoinPlatform.getKoin().let { com.speedfood.app.data.SuiviLivreur(it.get(), it.get()) }

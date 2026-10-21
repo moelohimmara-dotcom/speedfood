@@ -26,6 +26,7 @@ import com.speedfood.app.ui.EcranOuverture
 import com.speedfood.app.ui.EntreeScreen
 import com.speedfood.app.ui.VisiteGuidee
 import com.speedfood.app.ui.LivreurScreen
+import com.speedfood.app.ui.MenuRestaurateurScreen
 import com.speedfood.app.ui.MesCommandesScreen
 import com.speedfood.app.ui.PanierScreen
 import com.speedfood.app.ui.RestaurantScreen
@@ -67,6 +68,9 @@ object LivreurDestination
 
 @Serializable
 object VisiteDestination
+
+@Serializable
+object MenuRestaurateurDestination
 
 /** Les trois temps du lancement : le logo s'anime, la visite guidée (une seule fois, au premier lancement), puis l'application. */
 private enum class Phase { Ouverture, Visite, Application }
@@ -156,7 +160,10 @@ private fun Application(config: SpeedfoodConfig) {
                 LivreurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<RestaurateurDestination> {
-                RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) }, onMenu = { navController.navigate(MenuRestaurateurDestination) })
+            }
+            composable<MenuRestaurateurDestination> {
+                MenuRestaurateurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
         }
 }

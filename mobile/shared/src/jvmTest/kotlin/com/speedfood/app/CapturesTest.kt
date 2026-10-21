@@ -8,6 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Density
 import com.speedfood.app.data.ClientCourse
 import com.speedfood.app.data.CommandeRestaurateur
+import com.speedfood.app.data.MenuGere
+import com.speedfood.app.data.OptionGeree
+import com.speedfood.app.data.PlatGere
+import com.speedfood.app.data.SectionGeree
 import com.speedfood.app.data.EtatRestaurateur
 import com.speedfood.app.data.LigneApercu
 import com.speedfood.app.data.OptionSuivie
@@ -52,6 +56,8 @@ import com.speedfood.app.ui.ContenuRestaurant
 import com.speedfood.app.ui.ListeRestaurants
 import com.speedfood.app.ui.RechercheEtListe
 import com.speedfood.app.ui.ContenuConsole
+import com.speedfood.app.ui.ContenuMenuGere
+import com.speedfood.app.ui.EtatMenuGere
 import com.speedfood.app.ui.EtatConsole
 import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
@@ -259,5 +265,30 @@ class CapturesTest {
             EtatConsole.Pret(EtatRestaurateur(RestaurantResume("r1", "Chez Awa", ouvert = true, accepteCommandes = true), commandes)),
             maintenantConsole, { _, _ -> }, { _, _, _, _ -> }, { _, _ -> },
         )
+    }
+
+    @Test
+    fun consoleAvecPaiement() = capturer("console-paiement", hauteur = 900) {
+        val c = CommandeRestaurateur(
+            "c3", "SF-2HXN8", "acceptee", "acceptee", "retrait", clientNom = "Fatou Camara", clientTelephone = "+224655999888",
+            sousTotal = 25000, creeLe = "2026-10-21T11:30:00Z", lignes = listOf(LigneApercu("Riz gras", 25000, 1)),
+            paiementStatut = "declare", paiementMode = "orange_money", paiementReference = "OM123456", paiementVisible = true,
+            paiementLibelle = "Paiement déclaré, en attente de confirmation du restaurant", lienRecuWhatsApp = "https://wa.me/224655999888?text=x",
+        )
+        ContenuConsole(EtatConsole.Pret(EtatRestaurateur(RestaurantResume("r1", "Chez Awa", ouvert = true, accepteCommandes = true), listOf(c))), maintenantConsole, { _, _ -> }, { _, _, _, _ -> }, { _, _ -> })
+    }
+
+    @Test
+    fun menuDuRestaurateur() = capturer("menu-restaurateur", hauteur = 1300) {
+        val menu = MenuGere(
+            sections = listOf(SectionGeree("s1", "Plats"), SectionGeree("s2", "Boissons")),
+            plats = listOf(
+                PlatGere("p1", "Poulet braisé", "Avec attiéké et sauce piment", 35000, 30000, true, "2099-01-01T00:00:00Z", "s1", listOf(OptionGeree("o1", "Piment", 500))),
+                PlatGere("p2", "Poisson grillé", "Capitaine du jour", 45000, null, true, "2020-01-01T00:00:00Z", "s1"),
+                PlatGere("p3", "Riz gras", "", 25000, null, false, null, "s1"),
+                PlatGere("p4", "Jus de bissap", "", 5000, null, true, "2099-01-01T00:00:00Z", "s2"),
+            ),
+        )
+        ContenuMenuGere(EtatMenuGere.Pret(menu), { _, _ -> }, {}, {}, {}, { _, _, _, _, _ -> }, { _, _, _, _, _, _ -> }, { _, _, _ -> }, {})
     }
 }

@@ -39,10 +39,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.data.ActionCommande
+import com.speedfood.app.data.ActionPaiement
 import com.speedfood.app.data.CommandeRestaurateur
+import com.speedfood.app.data.actionsPaiement
 import com.speedfood.app.data.actionsPossibles
 import com.speedfood.app.data.classerCommandes
 import com.speedfood.app.data.formaterGnf
@@ -57,7 +60,7 @@ import kotlin.time.Instant
 /** Console du restaurateur : commandes en direct (à traiter, en cours, historique), accepter / refuser / préparer / remettre, proposer un changement, ouvrir ou mettre en pause. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RestaurateurScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: RestaurateurViewModel = koinViewModel()) {
+fun RestaurateurScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onMenu: () -> Unit, viewModel: RestaurateurViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -85,6 +88,10 @@ fun RestaurateurScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () ->
                     surAction = viewModel::traiter,
                     surProposition = viewModel::proposer,
                     surStatut = viewModel::definirStatut,
+                    surMenu = onMenu,
+                    surPaiement = viewModel::confirmerPaiement,
+                    surDocument = viewModel::emettreDocument,
+                    surChoixAlerte = viewModel::choisirAlerteArrierePlan,
                 )
             }
         }
@@ -98,8 +105,14 @@ internal fun ContenuConsole(
     surAction: (String, String) -> Unit,
     surProposition: (String, Int, Int, String) -> Unit,
     surStatut: (String, Boolean) -> Unit,
+    surMenu: () -> Unit = {},
+    surPaiement: (String, String) -> Unit = { _, _ -> },
+    surDocument: (String, String) -> Unit = { _, _ -> },
+    surChoixAlerte: (Boolean) -> Unit = {},
 ) {
     val classees = classerCommandes(e.etat.commandes)
+    // Première ouverture : on explique l'alerte application fermée et on demande le choix, une seule fois.
+    var question by remember(e.arrierePlanPossible, e.alerteArrierePlan) { mutableStateOf(e.arrierePlanPossible && e.alerteArrierePlan == null) }
     var historiqueOuvert by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         e.etat.restaurant?.let { r ->
@@ -107,23 +120,52 @@ internal fun ContenuConsole(
             InterrupteurStatut("Ouvert", r.ouvert, !e.actionEnCours) { surStatut("ouvert", it) }
             InterrupteurStatut("Prend des commandes en ce moment", r.accepteCommandes, !e.actionEnCours) { surStatut("accepte_commandes", it) }
         }
+        if (e.arrierePlanPossible && e.alerteArrierePlan != null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (e.alerteArrierePlan) "Alerte application fermée : activée" else "Alerte application fermée : désactivée",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { surChoixAlerte(!e.alerteArrierePlan) }) { Text(if (e.alerteArrierePlan) "Désactiver" else "Activer", color = Couleurs.Encre) }
+            }
+        }
+        OutlinedButton(onClick = surMenu, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+            Text("Mon menu et mes disponibilités", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+        }
         e.message?.let { BlocMessage(it, erreur = false) }
 
         Text("À traiter (${classees.aTraiter.size})", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
         if (classees.aTraiter.isEmpty()) Text("Aucune commande n'attend votre réponse.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        classees.aTraiter.forEach { CarteCommandeRestaurateur(it, maintenantMillis, e.actionEnCours, surAction, surProposition) }
+        classees.aTraiter.forEach { CarteCommandeRestaurateur(it, maintenantMillis, e.actionEnCours, surAction, surProposition, surPaiement, surDocument) }
 
         if (classees.enCours.isNotEmpty()) {
             Text("En cours (${classees.enCours.size})", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
-            classees.enCours.forEach { CarteCommandeRestaurateur(it, maintenantMillis, e.actionEnCours, surAction, surProposition) }
+            classees.enCours.forEach { CarteCommandeRestaurateur(it, maintenantMillis, e.actionEnCours, surAction, surProposition, surPaiement, surDocument) }
         }
 
         if (classees.historique.isNotEmpty()) {
             TextButton(onClick = { historiqueOuvert = !historiqueOuvert }) {
                 Text((if (historiqueOuvert) "Masquer" else "Afficher") + " l'historique récent (${classees.historique.size})", color = Couleurs.Encre)
             }
-            if (historiqueOuvert) classees.historique.forEach { CarteCommandeRestaurateur(it, maintenantMillis, e.actionEnCours, surAction, surProposition) }
+            if (historiqueOuvert) classees.historique.forEach { CarteCommandeRestaurateur(it, maintenantMillis, e.actionEnCours, surAction, surProposition, surPaiement, surDocument) }
         }
+    }
+    if (question) {
+        AlertDialog(
+            onDismissRequest = { question = false },
+            title = { Text("Être alerté application fermée ?") },
+            text = {
+                Text(
+                    "Sans cela, vous n'êtes alerté d'une nouvelle commande que si l'application est ouverte. Avec l'alerte activée, Speedfood surveille vos commandes en continu " +
+                        "(une notification reste affichée) et fait sonner le téléphone à chaque nouvelle commande, même écran éteint ou application fermée. " +
+                        "Branchez de préférence le téléphone sur secteur. La surveillance s'arrête quand le restaurant est fermé et sans commande à traiter. Vous pouvez changer d'avis à tout moment.",
+                )
+            },
+            confirmButton = { TextButton(onClick = { question = false; surChoixAlerte(true) }) { Text("Activer l'alerte", color = Couleurs.RougeFonce) } },
+            dismissButton = { TextButton(onClick = { question = false; surChoixAlerte(false) }) { Text("Seulement application ouverte", color = Couleurs.Encre) } },
+        )
     }
 }
 
@@ -158,7 +200,11 @@ internal fun CarteCommandeRestaurateur(
     occupe: Boolean,
     surAction: (String, String) -> Unit,
     surProposition: (String, Int, Int, String) -> Unit,
+    surPaiement: (String, String) -> Unit = { _, _ -> },
+    surDocument: (String, String) -> Unit = { _, _ -> },
 ) {
+    val ouvreur = LocalUriHandler.current
+    var paiementAConfirmer by remember { mutableStateOf<ActionPaiement?>(null) }
     var aConfirmer by remember { mutableStateOf<ActionCommande?>(null) }
     var proposition by remember { mutableStateOf(false) }
     val age = try {
@@ -227,7 +273,49 @@ internal fun CarteCommandeRestaurateur(
                     TextButton(onClick = { proposition = true }, enabled = !occupe) { Text("Proposer un changement", color = Couleurs.Encre) }
                 }
             }
+
+            if (c.paiementVisible) {
+                Text("Paiement", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
+                Text(
+                    c.paiementLibelle + (c.paiementReference?.let { " · réf. $it" } ?: "") + (c.documents.recu?.let { " · reçu $it" } ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (c.paiementMode == "speedfood") {
+                    Text(
+                        if (c.paiementStatut == "recu") "Le client a payé en ligne : rien à encaisser. Vous serez payé dès que la commande sera remise."
+                        else "Le client règle en ligne : rien à encaisser ni à confirmer, la confirmation vient du prestataire de paiement.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (c.paiementStatut == "declare") {
+                    Text("Comparez avec le SMS de confirmation de votre opérateur avant de valider.", style = MaterialTheme.typography.labelMedium, color = Couleurs.AvertissementTexte)
+                }
+                actionsPaiement(c).forEach { a ->
+                    OutlinedButton(
+                        onClick = {
+                            when (a.genre) {
+                                ActionPaiement.Genre.WhatsApp -> ouvreur.openUri(a.code)
+                                ActionPaiement.Genre.Document -> surDocument(c.id, a.code)
+                                ActionPaiement.Genre.Paiement -> if (a.confirmation != null) paiementAConfirmer = a else surPaiement(c.id, a.code)
+                            }
+                        },
+                        enabled = !occupe || a.genre == ActionPaiement.Genre.WhatsApp,
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, Couleurs.Bordure),
+                    ) { Text(a.libelle, style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
+                }
+            }
         }
+    }
+    paiementAConfirmer?.let { a ->
+        AlertDialog(
+            onDismissRequest = { paiementAConfirmer = null },
+            title = { Text("Confirmer ?") },
+            text = { Text(a.confirmation ?: "") },
+            confirmButton = { TextButton(onClick = { paiementAConfirmer = null; surPaiement(c.id, a.code) }) { Text("Confirmer", color = Couleurs.RougeFonce) } },
+            dismissButton = { TextButton(onClick = { paiementAConfirmer = null }) { Text("Retour", color = Couleurs.Encre) } },
+        )
     }
     aConfirmer?.let { a ->
         AlertDialog(

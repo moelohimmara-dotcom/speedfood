@@ -11,7 +11,10 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 
 /** Erreur lisible par l'utilisateur ; jamais de détail technique ni de clé dans le message. */
-class ErreurReseau(message: String, cause: Throwable? = null) : Exception(message, cause)
+open class ErreurReseau(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** Accès refusé par le serveur (session absente ou expirée, compte non autorisé) : inutile de réessayer tel quel, contrairement à une coupure réseau. */
+class ErreurAcces(message: String) : ErreurReseau(message)
 
 interface RestaurantApi {
     /** Restaurants publiés (hors données de démonstration), de A à Z. Au plus [LIMITE] lignes. */
