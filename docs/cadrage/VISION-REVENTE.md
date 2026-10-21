@@ -2,6 +2,8 @@
 
 **Statut : proposition de Malika, cadrée par l'ingénieur, à valider.** Elle remplace le modèle « place de marché » (ADR-001 à ADR-011 : le restaurant crée sa page et vend lui-même, Speedfood n'encaisse rien) par un modèle **revendeur** : Speedfood inscrit les restaurants, fait découvrir leurs plats, **vend** au consommateur et livre. Rien dans le code n'est encore changé ; ce document dit ce que ce choix implique, avant d'y toucher.
 
+> **Mise à jour du 21/10 (étude en sources ouvertes) :** Madifood, la référence citée, se présente comme **intermédiaire** et non comme revendeur ; voir `REFONTE-SPEEDFOOD.md` §1 (posture A « revendeur » contre posture B « intermédiaire qui encaisse et livre », recommandation B). Le reste de ce document reste valable pour les flux, l'argent et la migration.
+
 ## 1. Le modèle en une phrase
 Le consommateur achète **à Speedfood**, qui achète **au restaurant** et livre. Speedfood est le vendeur du point de vue du client (service, prix, remboursement, réclamation) ; le restaurant est le fournisseur.
 
