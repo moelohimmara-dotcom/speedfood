@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 /** Fichiers servis depuis `public/`. Voir docs/APPLICATION-ANDROID.md pour reconstruire l'application et mettre à jour l'empreinte. */
 const FICHIER_APK = "/speedfood.apk";
 const FICHIER_EMPREINTE = "/speedfood.apk.sha256";
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 
 const ETAPES_ANDROID = [
   "Touchez « Télécharger l'application Android » ci-dessus.",
@@ -56,8 +56,8 @@ export default function InstallerPage() {
         <Etapes etapes={ETAPES_ANDROID} />
         <p className="installer-note">
           L&apos;application n&apos;est pas encore sur Google Play : Android affiche donc un avertissement standard avant d&apos;installer un fichier téléchargé.
-          Cette version permet de choisir votre espace (client ou restaurateur) et de parcourir les restaurants. La commande, le suivi et les notifications
-          arrivent dans les prochaines versions ; en attendant, vous commandez depuis le site, dans votre navigateur.
+          Cette version permet de parcourir les restaurants, de créer un compte, de commander (retrait au restaurant) et de suivre votre commande. La livraison
+          et les notifications arrivent dans les prochaines versions ; la livraison se commande en attendant depuis le site, dans votre navigateur.
         </p>
         <p className="installer-note">
           Pour vérifier le fichier, comparez son empreinte avec <a className="lien-texte" href={FICHIER_EMPREINTE}>l&apos;empreinte SHA-256 publiée</a>.

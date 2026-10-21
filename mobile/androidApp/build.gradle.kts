@@ -31,8 +31,8 @@ android {
         applicationId = "com.speedfood.app"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${reglage("supabase.url")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${reglage("supabase.anonKey")}\"")
         buildConfigField("String", "SITE_URL", "\"${reglage("site.url", "https://speedfood-app.moelohimmara.workers.dev")}\"")
