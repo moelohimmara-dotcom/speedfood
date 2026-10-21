@@ -29,7 +29,7 @@ const CIBLES: Record<ActionRepartition, StatutCommande> = {
   annuler: "annulee",
 };
 
-export function lireActionRepartition(brut: unknown): ActionRepartition | null {
+function lireActionRepartition(brut: unknown): ActionRepartition | null {
   return typeof brut === "string" && brut in CIBLES ? (brut as ActionRepartition) : null;
 }
 
