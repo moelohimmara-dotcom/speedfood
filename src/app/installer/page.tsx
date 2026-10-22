@@ -3,19 +3,21 @@ import { VERSION_APPLICATION } from "@/lib/application/version";
 
 export const metadata: Metadata = {
   title: "Télécharger l'application Speedfood",
-  description: "Téléchargez l'application Speedfood pour Android directement depuis le site, sans passer par un magasin.",
+  description: "Téléchargez l'application Speedfood pour Android : commandez plus vite, suivez votre livraison et recevez les mises à jour automatiquement.",
+  alternates: { canonical: "/installer" },
 };
 
 /** Fichiers servis depuis `public/`. Voir docs/APPLICATION-ANDROID.md pour reconstruire l'application et mettre à jour l'empreinte. */
 const FICHIER_APK = "/speedfood.apk";
 const FICHIER_EMPREINTE = "/speedfood.apk.sha256";
 const VERSION = VERSION_APPLICATION.nom;
+const TAILLE_MO = Math.round(VERSION_APPLICATION.apkTaille / 1_000_000);
 
 const ETAPES_ANDROID = [
   "Touchez « Télécharger l'application Android » ci-dessus.",
   "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
   "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
-  "L'icône Speedfood apparaît sur votre écran d'accueil.",
+  "L'icône Speedfood apparaît sur votre écran d'accueil. Ouvrez-la : elle vous guide au premier lancement.",
 ];
 
 function Etapes({ etapes }: { etapes: string[] }) {
@@ -40,28 +42,52 @@ export default function InstallerPage() {
         <h1 className="pub-titre pub-h1-page">
           L&apos;application <span className="pub-surligne">Speedfood</span>
         </h1>
-        <p className="pub-accueil-lead">Téléchargez-la directement ici : choisissez votre espace et parcourez les restaurants de Conakry.</p>
+        <p className="pub-accueil-lead">Les restaurants de Conakry dans votre poche : commandez, suivez votre livraison, retrouvez vos commandes.</p>
       </div>
 
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-android">
-        <h2 id="installer-android" className="pub-titre pub-h3-page">Téléphone Android</h2>
+        <div className="installer-hero">
+          <div className="installer-bloc">
+            <h2 id="installer-android" className="pub-titre pub-h3-page">Téléphone Android</h2>
+            <p className="installer-note">
+              Gratuite · version {VERSION}
+              {TAILLE_MO > 0 ? ` · ${TAILLE_MO} Mo` : ""}. Si l&apos;ancienne application Speedfood est déjà installée, installez simplement celle-ci par-dessus : elle la remplace.
+            </p>
+            <p>
+              <a className="pub-btn" href={FICHIER_APK} download="speedfood.apk">
+                Télécharger l&apos;application Android
+              </a>
+            </p>
+          </div>
+          <figure className="installer-qr">
+            {/* eslint-disable-next-line @next/next/no-img-element -- QR code SVG généré par le site. */}
+            <img src="/installer/qr" alt="QR code de cette page" width={148} height={148} />
+            <figcaption>Sur ordinateur ? Scannez avec votre téléphone.</figcaption>
+          </figure>
+        </div>
+
+        <h3 className="pub-titre pub-h3-page">Ce que vous gagnez</h3>
+        <ul className="installer-atouts">
+          <li>Un formulaire de commande déjà rempli, votre panier conservé même après la fermeture de l&apos;application.</li>
+          <li>Les notifications de votre commande et, pour les restaurateurs et livreurs, les alertes de nouvelles commandes et de courses.</li>
+          <li>Les restaurants consultables même avec une connexion lente ou coupée.</li>
+        </ul>
+
+        <h3 className="pub-titre pub-h3-page">Toujours à jour</h3>
         <p>
-          Version {VERSION}. Une vraie application Android, pas un raccourci vers le site. Si l&apos;ancienne application Speedfood est déjà installée,
-          installez simplement celle-ci par-dessus : elle la remplace.
+          Dès qu&apos;une amélioration ou un correctif est publié, l&apos;application vous prévient et la nouvelle version s&apos;installe en un geste, sans revenir
+          sur cette page. La première fois, Android demande d&apos;autoriser Speedfood à installer ses mises à jour.
         </p>
-        <p>
-          <a className="pub-btn" href={FICHIER_APK} download="speedfood.apk">
-            Télécharger l&apos;application Android
-          </a>
-        </p>
+
+        <h3 className="pub-titre pub-h3-page">Installer en quatre étapes</h3>
         <Etapes etapes={ETAPES_ANDROID} />
         <p className="installer-note">
           L&apos;application n&apos;est pas encore sur Google Play : Android affiche donc un avertissement standard avant d&apos;installer un fichier téléchargé.
-          Cette version permet de parcourir les restaurants, de créer un compte, de commander (retrait ou livraison), de suivre votre commande et de retrouver votre historique.
-          Les livreurs ont leur espace (compte ouvert par l&apos;équipe Speedfood). Un logo animé et une visite guidée vous accueillent au premier lancement. Les livreurs peuvent poursuivre leur suivi écran éteint, avec leur accord. Les restaurateurs gèrent commandes, menu et paiements, et peuvent être alertés application fermée. Des notifications préviennent des nouvelles commandes, des courses et de l&apos;avancement de votre commande (les téléphones sans services Google n&apos;en reçoivent pas). Les notifications arrivent dans une prochaine version.
+          Les notifications nécessitent les services Google du téléphone.
         </p>
         <p className="installer-note">
           Pour vérifier le fichier, comparez son empreinte avec <a className="lien-texte" href={FICHIER_EMPREINTE}>l&apos;empreinte SHA-256 publiée</a>.
+          L&apos;application contrôle elle-même cette empreinte avant chaque mise à jour.
         </p>
       </section>
 

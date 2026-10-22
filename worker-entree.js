@@ -62,6 +62,12 @@ const worker = {
       headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
     });
     ctx.waitUntil(handler.fetch(requete, env, ctx).then(() => undefined, () => undefined));
+    // Annonce de la version publiée aux applications installées (une seule fois par version : la route est sans effet si elle est déjà annoncée).
+    const annonce = new Request("https://entretien.interne/api/application/annonce-auto", {
+      method: "POST",
+      headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
+    });
+    ctx.waitUntil(handler.fetch(annonce, env, ctx).then(() => undefined, () => undefined));
   },
 
   async fetch(request, env, ctx) {

@@ -23,6 +23,7 @@ class CompteViewModel(
     private val enregistrementPush: EnregistrementPush,
     private val locales: CommandesLocales,
     private val miseAJour: SuiviMiseAJour,
+    val installation: com.speedfood.app.data.InstallationMiseAJour,
     private val aide: AideApi,
     val infos: InfosApplication,
 ) : ViewModel() {
@@ -38,6 +39,11 @@ class CompteViewModel(
 
     private val _whatsapp = MutableStateFlow<String?>(null)
     val whatsapp: StateFlow<String?> = _whatsapp.asStateFlow()
+
+    private val _versionPubliee = MutableStateFlow<com.speedfood.app.data.VersionPubliee?>(null)
+
+    /** Version plus récente publiée par le serveur (pour l'installation en un geste), sinon null. */
+    val versionPubliee: StateFlow<com.speedfood.app.data.VersionPubliee?> = _versionPubliee.asStateFlow()
 
     val urlTelechargement: String get() = miseAJour.urlTelechargement
 
@@ -59,12 +65,15 @@ class CompteViewModel(
     fun verifierMiseAJour() {
         _message.value = "Vérification en cours…"
         _versionDisponible.value = null
+        _versionPubliee.value = null
+        installation.reinitialiser()
         viewModelScope.launch {
             val publiee = miseAJour.derniereVersion()
             _message.value = when {
                 publiee == null -> "Impossible de vérifier pour l'instant. Vérifiez votre connexion puis réessayez."
                 miseAJourDisponible(infos.codeVersion, publiee) -> {
                     _versionDisponible.value = miseAJour.urlTelechargement
+                    _versionPubliee.value = publiee
                     "La version ${publiee.nom} est disponible."
                 }
                 else -> "Vous avez la dernière version (${infos.versionNom})."

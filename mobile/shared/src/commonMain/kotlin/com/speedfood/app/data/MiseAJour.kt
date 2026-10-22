@@ -8,7 +8,15 @@ import kotlinx.serialization.Serializable
 
 /** Dernière version de l'application publiée par le serveur (route publique `/api/v1/version`, même source que la page `/installer`). */
 @Serializable
-data class VersionPubliee(val code: Int, val nom: String, val notes: String = "", val obligatoire: Boolean = false)
+data class VersionPubliee(
+    val code: Int,
+    val nom: String,
+    val notes: String = "",
+    val obligatoire: Boolean = false,
+    /** Empreinte SHA-256 (64 caractères hexadécimaux) de l'APK publiée : l'installation en un geste la vérifie avant d'installer. Vide : lien de téléchargement seulement. */
+    val apkSha256: String = "",
+    val apkTaille: Long = 0,
+)
 
 @Serializable
 private data class ReponseVersion(val ok: Boolean = false, val version: VersionPubliee? = null)

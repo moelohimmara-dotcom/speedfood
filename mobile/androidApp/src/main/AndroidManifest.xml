@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Installer soi-même les mises à jour téléchargées (la personne doit l'autoriser une fois dans les réglages d'Android). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Alerte de commande application fermée (restaurateur) : service au premier plan d'usage spécial (sondage des commandes), sans limite de durée. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
@@ -32,6 +34,9 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="suivi_commande" />
+        <receiver
+            android:name=".RetourInstallation"
+            android:exported="false" />
         <service
             android:name=".SurveillanceRestaurateurService"
             android:exported="false"

@@ -73,7 +73,7 @@ async function choisirAffichage(apercu: boolean): Promise<DecisionAccueil> {
 /** La page d'accueil d'origine : les sections dans l'ordre d'aujourd'hui. Elle reste le repli de la version en blocs. */
 function AccueilRepli({ zone }: { zone: ZoneChoisie | null }) {
   return (
-    <CadreSite>
+    <CadreSite promoApplication>
       <main className="pub-accueil">
         <BandeauAnnonces />
         <AccueilAccroche zone={zone} />
@@ -139,7 +139,7 @@ export default async function AccueilPage({ searchParams }: Props) {
   }
 
   return (
-    <CadreSite>
+    <CadreSite promoApplication>
       <main className="pub-accueil">
         <BandeauAnnonces />
         {decision.mode === "apercu" ? (

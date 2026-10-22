@@ -62,6 +62,9 @@ export function EnteteSite({ compact = false, compteActif = false }: { compact?:
               })}
             </nav>
             <div className="pub-actions">
+              <Link href="/installer" className="pub-lien-simple pub-seulement-large">
+                Application
+              </Link>
               {compteActif ? (
                 <Link href="/acces" className="pub-lien-simple pub-seulement-large">
                   Mon compte
@@ -104,6 +107,7 @@ export function EnteteSite({ compact = false, compteActif = false }: { compact?:
                 </Link>
               );
             })}
+            <Link href="/installer">Télécharger l&apos;application</Link>
             {compteActif ? <Link href="/acces">Mon compte</Link> : null}
             <Link href="/connexion?role=restaurateur" className="pub-tiroir-secondaire">
               Espace restaurateur

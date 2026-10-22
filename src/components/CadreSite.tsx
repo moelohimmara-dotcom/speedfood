@@ -1,4 +1,6 @@
 import { EnteteSite } from "@/components/EnteteSite";
+import { AccueilApplication } from "@/components/accueil/AccueilApplication";
+import { BandeauApplication } from "@/components/site/BandeauApplication";
 import { NavigationClient } from "@/components/NavigationClient";
 import { PiedSite } from "@/components/PiedSite";
 import { Revelation } from "@/components/site/Revelation";
@@ -14,11 +16,14 @@ export async function CadreSite({
   children,
   focus = false,
   compact = false,
+  promoApplication = false,
 }: {
   children: React.ReactNode;
   focus?: boolean;
   /** En-tête allégé (marque et retour au site) pour les pages de compte. */
   compact?: boolean;
+  /** Accueil : bande de téléchargement de l'application sous le contenu (hors de la liste des sections, que l'éditeur de blocs réordonne). */
+  promoApplication?: boolean;
 }) {
   const compteActif = await connexionClientActive();
   const animationsActives = await fonctionnaliteActive("animations_public");
@@ -27,9 +32,11 @@ export async function CadreSite({
       <a href="#contenu" className="lien-evitement">
         Aller au contenu
       </a>
+      <BandeauApplication />
       <EnteteSite compact={compact} compteActif={compteActif} />
       <div id="contenu" tabIndex={-1} className="cadre-site-contenu">
         {children}
+        {promoApplication ? <AccueilApplication /> : null}
       </div>
       <PiedSite />
       {focus ? null : <NavigationClient />}

@@ -28,6 +28,9 @@ export async function PiedSite() {
         </div>
         <nav className="site-pied-colonne" aria-label="Clients">
           <p className="site-pied-titre">Clients</p>
+          <Link href="/installer" className="pied-app">
+            Télécharger l&apos;application Android
+          </Link>
           <Link href="/restaurants">Restaurants</Link>
           <Link href="/quartiers">Explorer les localités</Link>
           <Link href="/comment-ca-marche">Comment ça marche</Link>
@@ -50,7 +53,6 @@ export async function PiedSite() {
           <Link href="/a-propos">À propos : mission et vision</Link>
           <Link href="/devenir-partenaire">Devenir partenaire</Link>
           <Link href="/conditions">Conditions d&apos;utilisation</Link>
-          <Link href="/installer">Installer l&apos;application</Link>
           {pagesPubliees.map((p) => (
             <Link key={p.slug} href={`/p/${p.slug}`}>
               {p.titre}

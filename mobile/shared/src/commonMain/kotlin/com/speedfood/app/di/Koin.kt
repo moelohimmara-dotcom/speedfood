@@ -13,6 +13,9 @@ import com.speedfood.app.data.EquipeApi
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorEquipeApi
 import com.speedfood.app.data.KtorVersionApi
+import com.speedfood.app.data.InstallateurApk
+import com.speedfood.app.data.InstallateurIndisponible
+import com.speedfood.app.data.InstallationMiseAJour
 import com.speedfood.app.data.NotificateurMiseAJour
 import com.speedfood.app.data.NotificateurIndisponible
 import com.speedfood.app.data.PhotoIndisponible
@@ -68,6 +71,9 @@ import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -83,6 +89,7 @@ fun modulesApplication(
     codeVersionApp: Int = 0,
     notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
     selecteurPhoto: SelecteurPhoto = PhotoIndisponible(),
+    installateurApk: InstallateurApk = InstallateurIndisponible(),
 ) = listOf(
     module {
         single { config }
@@ -93,6 +100,8 @@ fun modulesApplication(
         single { google }
         single { notificateurMiseAJour }
         single { selecteurPhoto }
+        single { installateurApk }
+        single { InstallationMiseAJour(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), config.siteUrl) }
         single {
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -152,8 +161,9 @@ fun initKoin(
     codeVersionApp: Int = 0,
     notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
     selecteurPhoto: SelecteurPhoto = PhotoIndisponible(),
+    installateurApk: InstallateurApk = InstallateurIndisponible(),
 ) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto)) }
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto, installateurApk)) }
 }
 
 /**

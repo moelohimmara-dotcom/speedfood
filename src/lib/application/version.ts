@@ -14,11 +14,17 @@ export interface VersionApplication {
   notes: string;
   /** Vrai : l'ancienne version ne doit plus servir (correctif de sécurité) ; l'application ne propose alors pas « Plus tard ». */
   obligatoire: boolean;
+  /** Empreinte SHA-256 de `public/speedfood.apk` : l'application la compare avant d'installer sa mise à jour. Écrite par `scripts/empreinte-apk.mjs`. */
+  apkSha256: string;
+  /** Taille de l'APK en octets (affichée pendant le téléchargement). */
+  apkTaille: number;
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 19,
-  nom: "2.17.0",
-  notes: "Commande plus simple (formulaire rempli avant la connexion, Google en premier, mot de passe affichable ou oublié), panier conservé, mode hors ligne, espace client, menus à reconfirmer pour l'équipe.",
+  code: 20,
+  nom: "2.18.0",
+  notes: "Mise à jour en un geste depuis l'application (téléchargement vérifié, installation guidée), sans repasser par le site.",
   obligatoire: false,
+  apkSha256: "3f66198ba472caed8f9eed8f8c2460a2ae924a10053c8104172e4c400d513395",
+  apkTaille: 14642206,
 };

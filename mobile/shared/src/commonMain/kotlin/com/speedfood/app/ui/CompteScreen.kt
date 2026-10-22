@@ -219,7 +219,14 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
                 Text("Vérifier les mises à jour", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
             }
             versionDisponible?.let { url ->
-                BoutonPrincipal("Télécharger la nouvelle version", surClic = { ouvreur.openUri(url) })
+                val publiee by viewModel.versionPubliee.collectAsState()
+                val etatInstallation by viewModel.installation.etat.collectAsState()
+                val proposee = publiee
+                if (proposee != null && viewModel.installation.possible(proposee)) {
+                    ActionMiseAJour(proposee, url, viewModel.installation, etatInstallation)
+                } else {
+                    BoutonPrincipal("Télécharger la nouvelle version", surClic = { ouvreur.openUri(url) })
+                }
             }
             OutlinedButton(onClick = onVisite, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) {
                 Text("Revoir la visite guidée", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
