@@ -61,12 +61,39 @@ class SessionService(
         try {
             val renouvelee = auth.rafraichir(courante.refreshToken)
             poser(renouvelee)
+            renouveleLe = maintenantSecondes()
             renouvelee.accessToken
         } catch (e: ErreurAuth) {
             // Réseau coupé ou service indisponible : on garde la session (elle servira au prochain essai). Refus définitif du serveur : la session est morte.
             if (e.temporaire) null else {
                 poser(null)
                 null
+            }
+        }
+    }
+
+    private var renouveleLe = -1_000_000L
+
+    /**
+     * Un serveur a refusé [jeton] (401) alors qu'il semblait valable : la session a peut-être été révoquée (mot de passe changé, compte suspendu). On force un renouvellement ;
+     * si le serveur refuse définitivement, la session est fermée et la fonction renvoie vrai. Un refus survenant juste après un renouvellement réussi (moins d'une minute)
+     * ferme aussi la session : sinon on renouvellerait en boucle un jeton que le serveur rejette.
+     */
+    suspend fun jetonRefuse(jeton: String): Boolean = verrou.withLock {
+        val courante = _session.value ?: return false
+        if (courante.accessToken != jeton) return false
+        if (maintenantSecondes() - renouveleLe < 60) {
+            poser(null)
+            return true
+        }
+        try {
+            poser(auth.rafraichir(courante.refreshToken))
+            renouveleLe = maintenantSecondes()
+            false
+        } catch (e: ErreurAuth) {
+            if (e.temporaire) false else {
+                poser(null)
+                true
             }
         }
     }

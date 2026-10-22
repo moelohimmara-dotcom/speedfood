@@ -128,7 +128,7 @@ createServer(async (req, res) => {
   // Espace livreur
   if (chemin.startsWith("/api/v1/livreur/")) {
     if (!compte.roles.livreur) return ok(res, { ok: true, etat: null });
-    if (chemin === "/api/v1/livreur/etat") return ok(res, { ok: true, etat: { livreur: { id: "lv1", nom: "Mamadou Barry", statut: "en_ligne", vehicule: "Moto", cycle: "actif", motifCycle: null, restaurantNom: null }, offre: null, course: null, aNoter: null, positionConnue: true } });
+    if (chemin === "/api/v1/livreur/etat") return ok(res, { ok: true, etat: { livreur: { id: "lv1", nom: "Mamadou Barry", statut: "disponible", vehicule: "Moto", cycle: "actif", motifCycle: null, restaurantNom: null }, offre: null, course: null, aNoter: null, positionConnue: true } });
     await lireCorps(req);
     return ok(res);
   }

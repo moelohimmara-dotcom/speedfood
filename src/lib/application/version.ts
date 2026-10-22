@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 21,
-  nom: "2.19.0",
-  notes: "Une interface par public : le client voit sa navigation, restaurateurs, livreurs et équipe Speedfood ont chacun leur espace, ouvert seulement avec leur compte.",
+  code: 22,
+  nom: "2.20.0",
+  notes: "Session plus fiable : session expirée annoncée avec « Me reconnecter », droits relus automatiquement, commandes en cours conservées à la déconnexion, ouverture directe de votre espace professionnel.",
   obligatoire: false,
-  apkSha256: "bcca268822950e83a380b9f6c2f51b476cf02fb263267be5985c01ccabba56f8",
-  apkTaille: 14674978,
+  apkSha256: "f7bff91c3545d13c4e9804343beb1d9fa0c67dfd8698988ac1a13ad0a1942072",
+  apkTaille: 14691362,
 };

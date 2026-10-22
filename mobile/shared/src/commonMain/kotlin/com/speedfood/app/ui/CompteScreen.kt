@@ -105,6 +105,8 @@ fun CompteScreen(
     val message by viewModel.message.collectAsState()
     val ouvreur = LocalUriHandler.current
     var deconnexion by remember { mutableStateOf(false) }
+    val droits by espaces.roles.collectAsState()
+    val pro = droits?.takeIf { it.aUnEspacePro }
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -125,7 +127,7 @@ fun CompteScreen(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         if (session != null) {
                             Text(session?.email ?: "Compte connecté", style = MaterialTheme.typography.titleMedium)
-                            Text("Compte client Speedfood", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Compte Speedfood" + (pro?.let { " · " + it.espacesPro.joinToString(", ") { e -> e.nom } } ?: ""), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             Text("Vous n'êtes pas connecté", style = MaterialTheme.typography.titleMedium)
                             Text("Connectez-vous pour commander et retrouver vos commandes.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -135,6 +137,12 @@ fun CompteScreen(
             }
             if (session == null) BoutonPrincipal("Me connecter", surClic = onConnexion)
             message?.let { BlocMessage(it, erreur = false) }
+
+            // Un client ordinaire ne voit AUCUN espace professionnel ; un compte qui y a droit les trouve ici, en premier.
+            if (pro != null) {
+                TitreRubrique("Mes espaces professionnels")
+                pro.espacesPro.forEach { e -> LigneMenu(e.libelle, e.icone(), e.sousTitre(pro)) { espaces.entrer(e) } }
+            }
 
             TitreRubrique("Mon espace")
             if (session != null) {
@@ -147,15 +155,8 @@ fun CompteScreen(
             LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres)
             LigneMenu("Aide et contact", Icons.Default.Phone, "Questions fréquentes, assistance, à propos", onAide)
 
-            // Un client ordinaire ne voit AUCUN espace professionnel : seuls les comptes qui y ont droit les voient, avec un accès discret pour les autres.
-            val droits by espaces.roles.collectAsState()
-            val pro = droits?.takeIf { it.aUnEspacePro }
-            if (pro != null) {
-                TitreRubrique("Mes espaces professionnels")
-                pro.espacesPro.forEach { e -> LigneMenu("Espace ${e.titre.lowercase()}", e.icone(), e.sousTitre(pro)) { espaces.entrer(e) } }
-            } else {
-                LigneMenu("Espace professionnel", Icons.Default.Lock, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
-            }
+            // Pas d'espace professionnel : un accès discret ; les comptes qui en ont un le voient tout en haut de cette page.
+            if (pro == null) LigneMenu("Espace professionnel", Icons.Default.Lock, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
 
             TitreRubrique("Informations")
             LigneMenu("Conditions d'utilisation", Icons.Default.Info) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/conditions") }
@@ -170,13 +171,7 @@ fun CompteScreen(
         }
     }
     if (deconnexion) {
-        AlertDialog(
-            onDismissRequest = { deconnexion = false },
-            title = { Text("Se déconnecter ?") },
-            text = { Text("Cet appareil ne recevra plus les notifications de votre compte et oubliera vos commandes enregistrées ici. Vous les retrouverez en vous reconnectant.") },
-            confirmButton = { TextButton(onClick = { deconnexion = false; viewModel.deconnecter() }) { Text("Me déconnecter", color = Couleurs.Danger) } },
-            dismissButton = { TextButton(onClick = { deconnexion = false }) { Text("Retour", color = Couleurs.Encre) } },
-        )
+        DialogueDeconnexion(surAnnuler = { deconnexion = false }, surConfirmer = { effacer -> deconnexion = false; viewModel.deconnecter(effacer) })
     }
 }
 

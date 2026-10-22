@@ -22,6 +22,7 @@ class CompteViewModel(
     private val session: SessionService,
     private val enregistrementPush: EnregistrementPush,
     private val locales: CommandesLocales,
+    private val deconnexion: com.speedfood.app.data.DeconnexionService,
     private val miseAJour: SuiviMiseAJour,
     val installation: com.speedfood.app.data.InstallationMiseAJour,
     private val aide: AideApi,
@@ -81,19 +82,8 @@ class CompteViewModel(
         }
     }
 
-    /** Déconnexion : l'appareil est d'abord retiré du compte (il ne doit plus recevoir ses alertes), puis la session est fermée et l'historique local oublié. */
-    fun deconnecter() {
-        viewModelScope.launch {
-            try {
-                enregistrementPush.retirer()
-            } catch (_: Exception) {
-                // Meilleur effort : on se déconnecte quoi qu'il arrive.
-            }
-            session.deconnecter()
-            locales.oublier()
-            _message.value = "Vous êtes déconnecté."
-        }
-    }
+    /** Déconnexion volontaire (voir [DeconnexionService]) : les commandes en cours restent suivies sur l'appareil sauf si [effacerCommandes]. */
+    fun deconnecter(effacerCommandes: Boolean) = deconnexion.deconnecter(effacerCommandes)
 
     fun oublierCommandesDeCetAppareil() {
         locales.oublier()

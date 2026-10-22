@@ -67,7 +67,7 @@ private val DIAPOS = listOf(
     Diapo("Une disponibilité qui dit vrai", "Chaque plat et chaque restaurant indique quand il a été confirmé. Sans confirmation récente, on vous le dit : « à confirmer »."),
     Diapo("Retrait ou livraison", "Choisissez votre quartier, voyez les frais de livraison avant d'envoyer, et réglez directement le restaurant. Aucun paiement dans l'application."),
     Diapo("Suivez votre commande", "Envoyée, acceptée, prête, terminée : l'écran se met à jour tout seul. Si le restaurant propose un changement, c'est vous qui décidez."),
-    Diapo("Chacun son espace", "Client, restaurateur ou livreur : trois espaces, chacun avec son compte. Choisissez le vôtre pour commencer."),
+    Diapo("Chacun son espace", "Pour commander, vous n'avez rien à choisir. Restaurateurs, livreurs et équipe Speedfood ouvrent leur espace depuis Compte, avec leur propre compte."),
 )
 
 val NOMBRE_DIAPOS = DIAPOS.size

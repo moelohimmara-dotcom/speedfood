@@ -18,8 +18,11 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,7 +64,7 @@ internal fun BoutonRetour(onRetour: () -> Unit) {
 }
 
 internal fun Espace.sousTitre(roles: RolesCompte?): String = when (this) {
-    Espace.Client -> "Commander, suivre vos commandes"
+    Espace.Client -> "Commander et suivre vos commandes"
     Espace.Restaurateur -> roles?.restaurateur?.restaurant ?: "Commandes et menu de votre restaurant"
     Espace.Livreur -> "Courses et gains"
     Espace.Equipe -> "Gestion de Speedfood"
@@ -104,7 +107,11 @@ fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> 
             val droits = roles
             when {
                 session == null -> {
-                    BoutonPrincipal("Me connecter à mon espace", surClic = onConnexion)
+                    BoutonPrincipal("Me connecter à mon espace") {
+                        // Après la connexion, l'application ouvre directement l'espace du compte (ou propose le choix s'il en a plusieurs).
+                        espaces.intentionPro = true
+                        onConnexion()
+                    }
                 }
                 droits == null -> {
                     CircularProgressIndicator(color = Couleurs.RougeFonce)
@@ -112,7 +119,7 @@ fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> 
                 }
                 droits.aUnEspacePro -> {
                     TitreRubrique("Vos espaces")
-                    droits.espacesPro.forEach { e -> LigneMenu("Espace ${e.titre.lowercase()}", e.icone(), e.sousTitre(droits)) { espaces.entrer(e) } }
+                    droits.espacesPro.forEach { e -> LigneMenu(e.libelle, e.icone(), e.sousTitre(droits)) { espaces.entrer(e) } }
                 }
                 else -> {
                     BlocMessage("Ce compte n'est rattaché à aucun espace professionnel. Connectez-vous avec le compte de votre restaurant, de livreur ou d'équipe.", erreur = false)
@@ -147,14 +154,14 @@ fun CompteProScreen(espace: Espace, onParametres: () -> Unit, onAide: () -> Unit
                 colors = CardDefaults.cardColors(containerColor = Couleurs.Encre),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Espace ${espace.titre.lowercase()}", style = MaterialTheme.typography.titleLarge, color = Couleurs.Mangue)
+                    Text(espace.libelle, style = MaterialTheme.typography.titleLarge, color = Couleurs.Mangue)
                     Text(espace.sousTitre(roles), style = MaterialTheme.typography.bodyMedium, color = Couleurs.Creme)
                     Text(session?.email ?: "", style = MaterialTheme.typography.bodySmall, color = Couleurs.Creme)
                 }
             }
             TitreRubrique("Changer d'espace")
             LigneMenu("Espace client", Icons.Default.Home, "Retourner commander comme un client") { espaces.quitter() }
-            roles?.espacesPro?.filter { it != espace }?.forEach { e -> LigneMenu("Espace ${e.titre.lowercase()}", e.icone(), e.sousTitre(roles)) { espaces.entrer(e) } }
+            roles?.espacesPro?.filter { it != espace }?.forEach { e -> LigneMenu(e.libelle, e.icone(), e.sousTitre(roles)) { espaces.entrer(e) } }
 
             TitreRubrique("Application")
             LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres)
@@ -167,12 +174,30 @@ fun CompteProScreen(espace: Espace, onParametres: () -> Unit, onAide: () -> Unit
         }
     }
     if (deconnexion) {
-        AlertDialog(
-            onDismissRequest = { deconnexion = false },
-            title = { Text("Se déconnecter ?") },
-            text = { Text("Vous quittez votre espace professionnel. Cet appareil ne recevra plus vos alertes.") },
-            confirmButton = { TextButton(onClick = { deconnexion = false; viewModel.deconnecter() }) { Text("Me déconnecter", color = Couleurs.Danger) } },
-            dismissButton = { TextButton(onClick = { deconnexion = false }) { Text("Retour", color = Couleurs.Encre) } },
-        )
+        DialogueDeconnexion(surAnnuler = { deconnexion = false }, surConfirmer = { effacer -> deconnexion = false; viewModel.deconnecter(effacer) })
     }
+}
+
+/**
+ * Confirmation de déconnexion, la même dans tous les espaces. Les commandes en cours restent suivies sur l'appareil (c'est leur seul moyen de suivi) : la case permet de
+ * les effacer, par exemple sur un téléphone prêté.
+ */
+@Composable
+internal fun DialogueDeconnexion(surAnnuler: () -> Unit, surConfirmer: (effacerCommandes: Boolean) -> Unit) {
+    var effacer by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = surAnnuler,
+        title = { Text("Se déconnecter ?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Cet appareil ne recevra plus les notifications de votre compte. Vos commandes en cours restent suivies ici, et votre panier est conservé.")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = effacer, onCheckedChange = { effacer = it })
+                    Text("Effacer aussi les commandes enregistrées sur cet appareil", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { surConfirmer(effacer) }) { Text("Me déconnecter", color = Couleurs.Danger) } },
+        dismissButton = { TextButton(onClick = surAnnuler) { Text("Retour", color = Couleurs.Encre) } },
+    )
 }

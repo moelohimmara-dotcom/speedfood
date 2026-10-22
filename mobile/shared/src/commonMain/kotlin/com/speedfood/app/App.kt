@@ -24,6 +24,11 @@ import com.speedfood.app.data.Espace
 import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.PanierService
 import com.speedfood.app.ui.AccesProScreen
+import com.speedfood.app.ui.BandeauAvisAcces
+import com.speedfood.app.ui.ChoixEspaceDialogue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.ui.CompteScreen
 import com.speedfood.app.ui.ParametresScreen
@@ -191,12 +196,20 @@ fun App(config: SpeedfoodConfig) {
 private fun Application(config: SpeedfoodConfig) {
     val espaces: EspaceService = koinInject()
     val espace by espaces.espace.collectAsState()
-    // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
-    if (espace == Espace.Client) ApplicationClient(config) else EspacePro(espace, config)
+    // À la reprise de l'application, les droits du compte sont relus (un droit ajouté ou retiré se voit tout de suite).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { espaces.actualiser() }
+    Box {
+        // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
+        if (espace == Espace.Client) ApplicationClient(config) else EspacePro(espace, config)
+        BandeauAvisAcces(Modifier.align(Alignment.BottomCenter))
+    }
 }
 
 @Composable
 private fun ApplicationClient(config: SpeedfoodConfig) {
+        val espaces: EspaceService = koinInject()
+        val connexionDemandee by espaces.connexionDemandee.collectAsState()
+        ChoixEspaceDialogue()
         val navController: NavHostController = rememberNavController()
         val panierService: PanierService = koinInject()
         val panier by panierService.panier.collectAsState()
@@ -208,6 +221,13 @@ private fun ApplicationClient(config: SpeedfoodConfig) {
             Onglet("Panier", Icons.Default.ShoppingCart, PanierDestination),
             Onglet("Compte", Icons.Default.Person, CompteDestination),
         )
+        // « Me reconnecter » (session expirée) ouvre l'écran de connexion ; la demande est consommée une seule fois.
+        LaunchedEffect(connexionDemandee) {
+            if (connexionDemandee) {
+                navController.navigate(ConnexionDestination)
+                espaces.connexionTraitee()
+            }
+        }
         val barreVisible = onglets.any { o -> destination?.hierarchy?.any { it.hasRoute(o.route::class) } == true }
         fun versOnglet(route: Any) = navController.navigate(route) {
             popUpTo<RestaurantsDestination> { saveState = true }

@@ -90,6 +90,7 @@ class MesCommandesViewModel(
     private val restaurants: RestaurantApi,
     private val panier: PanierService,
     private val enregistrementPush: EnregistrementPush,
+    private val deconnexion: com.speedfood.app.data.DeconnexionService,
 ) : ViewModel() {
     private val _etat = MutableStateFlow(EtatMesCommandes(commandes = fusionnerCommandes(emptyList(), locales.lister())))
     val etat: StateFlow<EtatMesCommandes> = _etat.asStateFlow()
@@ -128,18 +129,8 @@ class MesCommandesViewModel(
         }
     }
 
-    /** Déconnexion : l'appareil est d'abord retiré du compte (il ne doit plus recevoir ses alertes), puis la session est fermée et ce que l'appareil gardait est oublié. */
-    fun deconnecter() {
-        viewModelScope.launch {
-            try {
-                enregistrementPush.retirer()
-            } catch (_: Exception) {
-                // Meilleur effort : on se déconnecte quoi qu'il arrive.
-            }
-            session.deconnecter()
-            oublierCetAppareil()
-        }
-    }
+    /** Déconnexion volontaire (voir [com.speedfood.app.data.DeconnexionService]) : les commandes en cours restent suivies sur l'appareil. */
+    fun deconnecter() = deconnexion.deconnecter(effacerCommandes = false)
 
     fun oublierCetAppareil() {
         locales.oublier()

@@ -12,6 +12,9 @@
 - L'espace pro est repris au redémarrage ; la déconnexion depuis un espace pro ramène au client, l'appareil est retiré du compte (`/appareils/retirer`).
 - Tunnel de commande sans compte : le formulaire se remplit AVANT la connexion et il est conservé.
 
+## Phase A livrée le 22 octobre 2026 (2.20.0)
+Corrigés et vérifiés dans l'émulateur avec le faux serveur : **S1** (un 401 ferme la session proprement : bandeau « Votre session a expiré » avec « Me reconnecter », retour au client, rien d'effacé), **S2** (la déconnexion garde les commandes en cours ; case « Effacer aussi… »), **S3** (droits relus à la reprise et toutes les 10 min ; un 403 dans un espace relit les droits ; « Votre accès … a été retiré »), **S4** (connexion depuis « Espace professionnel » : espace ouvert directement, ou choix « Quel espace ouvrir ? » s'il y en a plusieurs ; espaces pro en tête de Compte), **S5** (message après déconnexion), **S7** (libellés), **O1** (visite guidée page 5). Tests natifs : `AccesSessionTest`.
+
 ## Constats, par gravité
 **P0 : à corriger avant d'ouvrir au public**
 
@@ -30,7 +33,7 @@
 | O1 | Visite guidée, page 5 : « Choisissez le vôtre pour commencer » : faux depuis la 2.19.0 (plus de choix de rôle au lancement). | Remplacer par le message sur les espaces professionnels ; raccourcir à 3 écrans. |
 | O2 | Aucune préparation des autorisations (position, notifications) avant la demande du système ; aucun choix de zone au premier lancement. | Écrans « pourquoi on demande » au moment utile (pas au lancement), choix de la localité avant la liste. |
 | S6 | Connexion : pas de Google (interrupteur éteint), pas de téléphone ; compte obligatoire pour commander ; un invité ne retrouve pas sa commande hors de l'appareil. | Google (interrupteur), puis code SMS (décision de coût), suivi par téléphone + référence. |
-| L1 | Livreur : le bouton **« Me mettre hors ligne » est affiché alors que le livreur est déjà hors ligne** ; pas d'onglet gains/historique ; pas d'explication des autorisations de position. | Bouton selon l'état (« Me mettre en ligne » grisé tant que la position manque) ; onglets Courses · Gains · Compte. |
+| L1 | ~~Livreur : bouton « Me mettre hors ligne » affiché alors que hors ligne~~ **Retiré** : erreur de mon faux serveur (statut inventé `en_ligne`) ; l'application affiche correctement « Me mettre en ligne » / « Me mettre hors ligne » selon le statut réel. Reste : pas d'onglet gains/historique. | Onglets Courses · Gains · Compte. |
 | C1 | Accueil nu : pas de bandeaux, cuisines, photos, ni temps/frais/note sur la carte ; jargon « Statut à confirmer (dernière confirmation il y a 19 jours) ». | Sections (Ouverts maintenant, Près de vous, Les mieux notés), pastilles de cuisine, photos, ETA et frais ; libellé « Disponibilité à vérifier ». |
 | C2 | Fiche restaurant : pas de photos, pas de navigation par sections, pas de fiche plat (options, quantité), « À confirmer » sur chaque plat décourage la commande. | Fiche plat, stepper de quantité, reconfirmation des menus (outil livré en 2.17.0 ; reste le contenu). |
 | C3 | Commande : pas de carnet d'adresses, pas de détail des frais ni de délai estimé, pas de note au restaurant, pas de commande programmée. | Voir feuille de route, phase C. |

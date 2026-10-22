@@ -13,7 +13,12 @@ import com.speedfood.app.data.EquipeApi
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorEquipeApi
 import com.speedfood.app.data.KtorVersionApi
+import com.speedfood.app.data.DeconnexionService
 import com.speedfood.app.data.EspaceService
+import com.speedfood.app.data.ReactionAcces
+import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.plugin
+import io.ktor.http.HttpHeaders
 import com.speedfood.app.data.InstallateurApk
 import com.speedfood.app.data.KtorMoiApi
 import com.speedfood.app.data.MoiApi
@@ -105,13 +110,26 @@ fun modulesApplication(
         single { selecteurPhoto }
         single { installateurApk }
         single { InstallationMiseAJour(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), config.siteUrl) }
+        single { ReactionAcces() }
         single {
+            val reaction: ReactionAcces = get()
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
                 // Réseau mobile lent à Conakry : on attend, mais pas indéfiniment.
                 install(HttpTimeout) {
                     requestTimeoutMillis = 20_000
                     connectTimeoutMillis = 10_000
+                }
+            }.also { client ->
+                // Un 401/403 sur un appel authentifié n'est PAS une coupure du réseau : il est signalé au service d'accès (session expirée, droit retiré).
+                client.plugin(HttpSend).intercept { requete ->
+                    val appel = execute(requete)
+                    val autorisation = requete.headers[HttpHeaders.Authorization]
+                    val statut = appel.response.status.value
+                    if ((statut == 401 || statut == 403) && autorisation != null && autorisation.startsWith("Bearer ")) {
+                        reaction.signaler(statut, requete.url.build().encodedPath, autorisation.removePrefix("Bearer "))
+                    }
+                    appel
                 }
             }
         }
@@ -126,7 +144,8 @@ fun modulesApplication(
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
         single<VersionApi> { KtorVersionApi(get(), get()) }
         single<MoiApi> { KtorMoiApi(get(), get()) }
-        single { EspaceService(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+        single { EspaceService(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), get()) }
+        single { DeconnexionService(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
         single<AideApi> { KtorAideApi(get(), get()) }
         single<ClientApi> { KtorClientApi(get(), get()) }
         single { InfosApplication(versionApp ?: "", codeVersionApp) }
