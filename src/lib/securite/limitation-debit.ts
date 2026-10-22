@@ -93,6 +93,9 @@ export const LIMITE_LIVREUR_PAR_COMPTE: RegleLimite = { nom: "livreur-compte", m
 // Application restaurateur : relecture des commandes (toutes les quelques secondes) et actions ; plafond PAR COMPTE (le compte vient du jeton vérifié).
 export const LIMITE_RESTAURANT_APP_PAR_COMPTE: RegleLimite = { nom: "restaurant-app-compte", max: 600, fenetreSecondes: 300 };
 
+// Enregistrement et retrait de l'appareil pour les notifications poussées : quelques fois par jour suffisent (connexion, changement de jeton, déconnexion).
+export const LIMITE_APPAREIL_PAR_COMPTE: RegleLimite = { nom: "appareil-compte", max: 30, fenetreSecondes: 3600 };
+
 // Suivi d'une commande par l'application : elle relit le statut toutes les quelques secondes, par jeton ; le plafond protège la base sans gêner un client réel.
 export const LIMITE_LECTURE_SUIVI_PAR_JETON: RegleLimite = { nom: "suivi-lecture-jeton", max: 120, fenetreSecondes: 300 };
 
@@ -213,6 +216,10 @@ export async function limiterReferencement(): Promise<void> {
 
 export async function limiterLivreur(utilisateurId: string): Promise<void> {
   await appliquerLimite(LIMITE_LIVREUR_PAR_COMPTE, utilisateurId);
+}
+
+export async function limiterAppareil(utilisateurId: string): Promise<void> {
+  await appliquerLimite(LIMITE_APPAREIL_PAR_COMPTE, utilisateurId);
 }
 
 export async function limiterRestaurantApplication(utilisateurId: string): Promise<void> {

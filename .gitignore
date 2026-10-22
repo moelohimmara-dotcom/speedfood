@@ -62,3 +62,6 @@ android/.idea/
 
 # Résultat intermédiaire de la collecte ponctuelle des coordonnées
 scripts/.geocodage-quartiers.json
+
+# Configuration Firebase (identifiants propres au projet Speedfood) : jamais dans le dépôt public.
+mobile/androidApp/google-services.json

@@ -19,6 +19,17 @@ dependencies {
     implementation(libs.compose.uiToolingPreview)
     implementation(libs.compose.foundation)
     implementation(libs.ktor.client.okhttp)
+    // Notifications poussées (Firebase Cloud Messaging) et rapports de plantage (Crashlytics). Google Analytics n'est pas activé sur le projet Firebase.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
+}
+
+// Le fichier de configuration Firebase (`google-services.json`, hors Git) est propre au projet Firebase de Speedfood. Sans lui (autre poste, intégration continue), l'application
+// se construit quand même : Firebase reste simplement inactif (voir `FirebaseSpeedfood`).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {

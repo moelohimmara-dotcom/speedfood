@@ -6,6 +6,7 @@ import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandeLocale
 import com.speedfood.app.data.CommandeServeur
 import com.speedfood.app.data.CommandesLocales
+import com.speedfood.app.data.EnregistrementPush
 import com.speedfood.app.data.ErreurReseau
 import com.speedfood.app.data.LigneEnvoyee
 import com.speedfood.app.data.Menu
@@ -88,6 +89,7 @@ class MesCommandesViewModel(
     private val locales: CommandesLocales,
     private val restaurants: RestaurantApi,
     private val panier: PanierService,
+    private val enregistrementPush: EnregistrementPush,
 ) : ViewModel() {
     private val _etat = MutableStateFlow(EtatMesCommandes(commandes = fusionnerCommandes(emptyList(), locales.lister())))
     val etat: StateFlow<EtatMesCommandes> = _etat.asStateFlow()
@@ -110,6 +112,19 @@ class MesCommandesViewModel(
             } catch (e: ErreurReseau) {
                 _etat.value = _etat.value.copy(chargement = false, alerte = "Votre historique complet n'a pas pu être chargé (${e.message}) Les commandes de cet appareil restent affichées.")
             }
+        }
+    }
+
+    /** Déconnexion : l'appareil est d'abord retiré du compte (il ne doit plus recevoir ses alertes), puis la session est fermée et ce que l'appareil gardait est oublié. */
+    fun deconnecter() {
+        viewModelScope.launch {
+            try {
+                enregistrementPush.retirer()
+            } catch (_: Exception) {
+                // Meilleur effort : on se déconnecte quoi qu'il arrive.
+            }
+            session.deconnecter()
+            oublierCetAppareil()
         }
     }
 

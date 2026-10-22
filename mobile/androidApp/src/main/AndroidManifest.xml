@@ -21,6 +21,17 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Speedfood">
+        <!-- Notifications poussées : le texte est affiché par le système ; ce service ne sert qu'à renouveler le jeton de l'appareil. -->
+        <service
+            android:name=".SpeedfoodMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="suivi_commande" />
         <service
             android:name=".SurveillanceRestaurateurService"
             android:exported="false"

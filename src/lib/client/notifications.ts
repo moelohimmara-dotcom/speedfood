@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { notifierUtilisateursFcm } from "@/lib/push/appareils";
 import { notifierClient } from "@/lib/push/envoi";
 import { contenuNotificationClient, typeDepuisStatutCommande, type ContenuNotification } from "./notifications-regles";
 
@@ -24,6 +25,10 @@ export async function signalerChangementCommande(commandeId: string, statut: str
   // Préférence du client : « Me prévenir quand ma commande avance ». Absente = activée.
   const { data: profil } = await db.from("client_profils").select("notifications_commande").eq("utilisateur_id", utilisateurId).maybeSingle();
   if (profil && profil.notifications_commande === false) return;
+
+  // Application native du client (Firebase) : texte générique par étape, indépendant du push web ci-dessous. Meilleur effort.
+  const typeNatif = ({ acceptee: "commande_acceptee", prete: "commande_prete", terminee: "commande_terminee", refusee: "commande_refusee", annulee: "commande_annulee" } as const)[statut as "acceptee"];
+  if (typeNatif) await notifierUtilisateursFcm([utilisateurId], typeNatif).catch(() => undefined);
 
   // Aucun appareil : inutile de garder une notification que personne ne lira.
   const { count } = await db.from("client_push_subscriptions").select("id", { count: "exact", head: true }).eq("utilisateur_id", utilisateurId);

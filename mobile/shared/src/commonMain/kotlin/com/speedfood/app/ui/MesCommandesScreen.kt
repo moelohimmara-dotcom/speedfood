@@ -66,10 +66,7 @@ fun MesCommandesScreen(
             if (session != null) {
                 Text(session?.email ?: "Compte connecté", style = MaterialTheme.typography.titleMedium)
                 OutlinedButton(
-                    onClick = {
-                        sessionService.deconnecter()
-                        viewModel.oublierCetAppareil()
-                    },
+                    onClick = viewModel::deconnecter,
                     border = BorderStroke(2.dp, Couleurs.Encre),
                 ) { Text("Me déconnecter", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
             } else {

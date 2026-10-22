@@ -1,5 +1,6 @@
 import "server-only";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { notifierRestaurantFcm } from "./appareils";
 import {
   creerJetonVapid,
   ECHECS_AVANT_SUPPRESSION,
@@ -98,6 +99,8 @@ async function envoyerAuxAbonnements(lignes: LigneAbonnement[], cles: ClesVapid,
 
 /** Prévient tous les appareils abonnés d'un restaurant qu'une commande est arrivée. Meilleur effort, jamais bloquant. */
 export async function notifierRestaurant(restaurantId: string): Promise<BilanEnvoi | null> {
+  // Applications natives (Firebase) : indépendantes du push web ci-dessous, chacune en meilleur effort.
+  await notifierRestaurantFcm(restaurantId, "commande_nouvelle").catch(() => undefined);
   const cles = lireClesVapid();
   if (!cles) {
     return null;

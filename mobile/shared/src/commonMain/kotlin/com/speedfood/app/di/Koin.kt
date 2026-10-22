@@ -7,6 +7,11 @@ import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorCommandeApi
 import com.speedfood.app.data.AlerteCommande
+import com.speedfood.app.data.AppareilApi
+import com.speedfood.app.data.EnregistrementPush
+import com.speedfood.app.data.FournisseurJetonPush
+import com.speedfood.app.data.JetonPushIndisponible
+import com.speedfood.app.data.KtorAppareilApi
 import com.speedfood.app.data.AlerteIndisponible
 import com.speedfood.app.data.FournisseurPosition
 import com.speedfood.app.data.KtorRestaurateurApi
@@ -38,6 +43,7 @@ import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 fun modulesApplication(
@@ -45,12 +51,16 @@ fun modulesApplication(
     stockage: StockageLocal,
     position: FournisseurPosition = PositionIndisponible(),
     alerte: AlerteCommande = AlerteIndisponible(),
+    jetonPush: FournisseurJetonPush = JetonPushIndisponible(),
+    plateforme: String = "android",
+    versionApp: String? = null,
 ) = listOf(
     module {
         single { config }
         single { stockage }
         single { position }
         single { alerte }
+        single { jetonPush }
         single {
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -68,6 +78,8 @@ fun modulesApplication(
         single<LivraisonApi> { KtorLivraisonApi(get(), get()) }
         single<LivreurApi> { KtorLivreurApi(get(), get()) }
         single<RestaurateurApi> { KtorRestaurateurApi(get(), get()) }
+        single<AppareilApi> { KtorAppareilApi(get(), get()) }
+        single { EnregistrementPush(get(), get(), get(), get(), plateforme, versionApp) }
         single { PanierService() }
         single { CommandesLocales(get()) }
         factoryOf(::RestaurantsViewModel)
@@ -82,8 +94,34 @@ fun modulesApplication(
     },
 )
 
-fun initKoin(config: SpeedfoodConfig, stockage: StockageLocal, position: FournisseurPosition = PositionIndisponible(), alerte: AlerteCommande = AlerteIndisponible()) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte)) }
+fun initKoin(
+    config: SpeedfoodConfig,
+    stockage: StockageLocal,
+    position: FournisseurPosition = PositionIndisponible(),
+    alerte: AlerteCommande = AlerteIndisponible(),
+    jetonPush: FournisseurJetonPush = JetonPushIndisponible(),
+    plateforme: String = "android",
+    versionApp: String? = null,
+) {
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp)) }
+}
+
+/**
+ * Lie l'appareil au compte connecté pour les notifications poussées : enregistre à chaque connexion (et dès le démarrage si une session existe). À appeler une fois au
+ * démarrage de l'application, avec une portée qui vit autant qu'elle ; les changements de jeton rappellent [enregistrerAppareilPush].
+ */
+fun lancerEnregistrementPush(portee: kotlinx.coroutines.CoroutineScope) {
+    val koin = org.koin.mp.KoinPlatform.getKoin()
+    val session: com.speedfood.app.data.SessionService = koin.get()
+    val enregistrement: EnregistrementPush = koin.get()
+    portee.launch {
+        session.session.collect { if (it != null) enregistrement.enregistrer() }
+    }
+}
+
+/** Rejoue l'enregistrement de l'appareil (nouveau jeton fourni par la plateforme). */
+suspend fun enregistrerAppareilPush() {
+    org.koin.mp.KoinPlatform.getKoin().get<EnregistrementPush>().enregistrer()
 }
 
 /**

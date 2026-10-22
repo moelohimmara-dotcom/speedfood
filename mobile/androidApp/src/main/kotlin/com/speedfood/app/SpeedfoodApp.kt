@@ -5,6 +5,10 @@ import android.content.Context
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.di.initKoin
+import com.speedfood.app.di.lancerEnregistrementPush
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /** Stockage dans les préférences privées de l'application (illisibles par les autres applications). */
 private class StockagePreferences(contexte: Context) : StockageLocal {
@@ -28,7 +32,10 @@ class SpeedfoodApp : Application() {
         )
         position = PositionAndroid(this)
         alerte = AlerteAndroid(this)
-        initKoin(config, StockagePreferences(this), position, alerte)
+        creerCanauxNotification(this)
+        initKoin(config, StockagePreferences(this), position, alerte, JetonFirebase(this), "android", BuildConfig.VERSION_NAME)
+        // Lie l'appareil au compte connecté pour les notifications poussées (dès le démarrage si une session existe, puis à chaque connexion).
+        lancerEnregistrementPush(CoroutineScope(SupervisorJob() + Dispatchers.IO))
     }
 
     companion object {

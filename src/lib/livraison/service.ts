@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { appliquerTransitionStatut } from "@/lib/commande/transitions";
+import { notifierUtilisateursFcm } from "@/lib/push/appareils";
 import { clientLivraison, lireReglagesLivraison, pointDuRestaurant } from "./lecture";
 import { ESSAIS_CODE_MAX, codeRemiseCorrect, genererCodeRemise } from "./code";
 import { OPTIONS_PAR_DEFAUT, choisirLivreur, echeanceOffre, type CandidatLivreur } from "./dispatch";
@@ -122,6 +123,10 @@ export async function repartir(livraisonId: string): Promise<boolean> {
     await db.from("livraisons").update({ statut: "a_assigner" }).eq("id", livraisonId).eq("statut", "offre_envoyee");
     return false;
   }
+  // Alerte du livreur (application native) : meilleur effort, sans jamais retarder ni faire échouer la répartition.
+  const { data: fiche } = await db.from("livreurs").select("utilisateur_id").eq("id", choix.livreurId).maybeSingle();
+  const utilisateurId = (fiche as { utilisateur_id: string | null } | null)?.utilisateur_id;
+  if (utilisateurId) await notifierUtilisateursFcm([utilisateurId], "course_offre").catch(() => undefined);
   return true;
 }
 
