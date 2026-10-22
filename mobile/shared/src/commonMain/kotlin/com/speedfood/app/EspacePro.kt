@@ -45,6 +45,7 @@ import com.speedfood.app.ui.EcranVerrou
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.ui.ActiviteRestaurantScreen
 import com.speedfood.app.ui.AideScreen
+import com.speedfood.app.ui.AvisEquipeScreen
 import com.speedfood.app.ui.GainsLivreurScreen
 import com.speedfood.app.ui.CompteProScreen
 import com.speedfood.app.ui.ConnexionScreen
@@ -69,6 +70,9 @@ object CompteProDestination
 
 @Serializable
 object ActiviteDestination
+
+@Serializable
+object AvisEquipeDestination
 
 @Serializable
 object GainsDestination
@@ -183,6 +187,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                             onLivreurs = { vers(LivreursEquipeDestination) },
                             onParametres = { vers(ParametresDestination) },
                             onMenus = { vers(MenusEquipeDestination) },
+                            onAvis = { vers(AvisEquipeDestination) },
                         )
                     }
                 }
@@ -198,6 +203,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<RepartitionDestination> { RepartitionScreen(onRetour = retour, onConnexion = connexion) }
                 composable<LivreursEquipeDestination> { LivreursEquipeScreen(onRetour = retour, onConnexion = connexion) }
                 composable<MenusEquipeDestination> { MenusEquipeScreen(onRetour = retour, onConnexion = connexion) }
+                composable<AvisEquipeDestination> { AvisEquipeScreen(onRetour = retour, onConnexion = connexion) }
                 composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
                 composable<GainsDestination> { sansFleche { GainsLivreurScreen(onConnexion = connexion) } }
                 composable<CompteProDestination> {

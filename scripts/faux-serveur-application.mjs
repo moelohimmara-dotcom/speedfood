@@ -28,6 +28,10 @@ const parJeton = (req) => {
 };
 
 const favorisEssai = new Set();
+const signalementsEssai = [
+  { id: "s1", avisId: "a1", motif: "Insultes envers le personnel", date: "2026-10-22T09:00:00Z", restaurantNom: "Chez Awa (essai)", note: 1, commentaire: "Nul, personnel désagréable et plat froid", statutAvis: "publie" },
+  { id: "s2", avisId: "a2", motif: "Avis d'un concurrent", date: "2026-10-21T16:30:00Z", restaurantNom: "Chez Awa (essai)", note: 2, commentaire: null, statutAvis: "publie" },
+];
 const maintenant = () => new Date().toISOString();
 let commandes = [
   { id: "c1", reference: "SF-1001", statut: "en_attente", etatDerive: "en_attente", mode: "livraison", clientNom: "Aminata Diallo", clientTelephone: "+224622000001", clientAdresse: "Kaporo Centre, rue KA-012", sousTotal: 60000, fraisLivraisonEstime: 9500, creeLe: maintenant(), estTest: false, lignes: [{ nom: "Poulet braisé", prix: 30000, quantite: 2, options: [{ nom: "Piment", prix: 0 }] }], propositionActive: null, propositions: [], paiementStatut: "non_declare" },
@@ -146,11 +150,19 @@ createServer(async (req, res) => {
   if (chemin.startsWith("/api/v1/equipe/")) {
     if (!compte.roles.equipe) return refus(res, 403, "NON_AUTORISE", "Cet espace est réservé à l'équipe Speedfood.");
     const sous = chemin.replace("/api/v1/equipe/", "");
-    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
+    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
     if (sous === "tableau") return ok(res, { ok: true, commandes: { activesDuJour: 7, enAttente: 2, propositionsEnAttente: 1 }, exploitation: { aConfirmer: 3, etablissementsSansTelephone: 1, coursesSansLivreur: 1, livreursEnLigne: 4, candidatsLivreurs: 2 }, catalogue: { enAttenteValidation: 2, publies: 1, suspendus: 0, aCorriger: 1, platsAReconfirmer: 12 } });
     if (sous === "repartition") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, statut: c.statut, mode: c.mode, sousTotal: c.sousTotal, fraisLivraison: c.fraisLivraisonEstime, creeLe: c.creeLe, estTest: false, restaurantId: "r1", restaurantNom: "Chez Awa (essai)", telephoneRestaurant: "+224622999999", lignes: c.lignes.map((l) => ({ nom: l.nom, quantite: l.quantite })) })) });
     if (sous === "commandes") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", restaurantId: "r1", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] })) });
     if (sous.startsWith("commandes/")) { const c = commandes[0]; return ok(res, { ok: true, commande: { id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] }, transitions: ["acceptee", "annulee"], peutReveler: true }); }
+    if (sous === "avis") return ok(res, { ok: true, signalements: signalementsEssai, alertes: [{ type: "restaurant_sous_seuil", cible: "Chez Awa (essai)", detail: "3,2 sur 6 avis" }] });
+    if (sous === "avis/moderation") {
+      const c = await lireCorps(req);
+      if ((c.action === "masquer_commentaire" || c.action === "annuler_note") && String(c.motif ?? "").trim().length < 5) return refus(res, 400, "VALIDATION", "Indiquez le motif (5 caractères au moins).");
+      const i = signalementsEssai.findIndex((s) => s.avisId === c.avisId);
+      if (i >= 0) { if (c.action === "classer_sans_suite" || c.action === "retablir") signalementsEssai.splice(i, 1); else signalementsEssai[i].statutAvis = c.action === "annuler_note" ? "annule" : "commentaire_masque"; }
+      return ok(res, { ok: true, message: "Décision enregistrée." });
+    }
     if (sous === "livraisons") return ok(res, { ok: true, livraisons: livraisonsEquipe, livreurs: livreursEquipe });
     if (sous === "menus") return ok(res, { ok: true, fraicheurHeures: 6, menus: [{ restaurantId: "r1", nom: "Chez Awa (essai)", plats: 3, aReconfirmer: 1, epuises: 1, derniereConfirmation: null }] });
     if (sous.startsWith("menus/") && !sous.endsWith("confirmer") && !sous.endsWith("disponibilite")) return ok(res, { ok: true, nom: "Chez Awa (essai)", plats: plats.map((p) => ({ id: p.id, nom: p.nom, prix: p.prix, disponible: p.disponible, confirmeLe: p.confirmeLe, etat: !p.disponible ? "epuise" : p.confirmeLe && p.confirmeLe > "2026-10-22" ? "disponible" : "a_confirmer" })) });

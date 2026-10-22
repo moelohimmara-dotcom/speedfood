@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 25,
-  nom: "2.23.0",
-  notes: "Restaurateur : onglet Activité (commandes et chiffre du jour et de la semaine). Livreur : onglet Gains. Tableau de l'équipe classé par priorité, bandeau d'identité dans chaque espace pro.",
+  code: 26,
+  nom: "2.24.0",
+  notes: "Équipe Speedfood : modération des avis dans l'application (signalements, décision motivée, alertes de qualité).",
   obligatoire: false,
-  apkSha256: "a69c9ff6eae48f19390e69962d10bbc34af9b7d40653060fcde26300e48f74f2",
-  apkTaille: 14756898,
+  apkSha256: "14f54709c17603ce8b60a3cff2ea0298597017dee68f71ba38be8f563222ccdf",
+  apkTaille: 14773282,
 };
