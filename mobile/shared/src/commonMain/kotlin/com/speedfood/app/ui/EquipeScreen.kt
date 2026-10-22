@@ -55,7 +55,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Espace équipe Speedfood : le menu du compte, comme sur le site `/system`. Une section native s'ouvre dans l'application, les autres sur le site. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, viewModel: EquipeViewModel = koinViewModel()) {
+fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, onMenus: () -> Unit = {}, viewModel: EquipeViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -73,18 +73,21 @@ fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit,
                 EtatEquipe.Chargement -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = Couleurs.RougeFonce)
                 EtatEquipe.NonConnecte -> MessageEtat("Connectez-vous avec votre compte de l'équipe.", "Me connecter", onConnexion)
                 is EtatEquipe.Refuse -> MessageEtat(e.message, "Réessayer", viewModel::charger)
-                is EtatEquipe.Pret -> ContenuEquipe(e, siteUrl, onRepartition, onSupport, onLivraisons, onLivreurs, onParametres)
+                is EtatEquipe.Pret -> ContenuEquipe(e, siteUrl, onRepartition, onSupport, onLivraisons, onLivreurs, onParametres, onMenus)
             }
         }
     }
 }
 
 @Composable
-internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}) {
+internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, onMenus: () -> Unit = {}) {
     val ouvreur = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Rôle : ${libelleRole(e.acces.role)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        e.tableau?.let { TableauDeBord(it, onRepartition, onSupport, onLivraisons, onLivreurs) }
+        e.tableau?.let { TableauDeBord(it, onRepartition, onSupport, onLivraisons, onLivreurs, onMenus) }
+        if ("restaurant.moderer" in e.acces.permissions) {
+            CarteSection(EntreeMenuEquipe("", "Menus à reconfirmer", true), onMenus)
+        }
         e.acces.groupes.forEach { groupe ->
             Text(groupe.libelle, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
             groupe.entrees.forEach { entree ->
@@ -112,7 +115,7 @@ internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: (
 
 /** Tableau de bord de l'équipe : les chiffres à surveiller, un bloc par domaine selon le rôle. Une carte rouge demande une action ; toucher une carte ouvre la section. */
 @Composable
-internal fun TableauDeBord(t: com.speedfood.app.data.TableauEquipe, onRepartition: () -> Unit, onSupport: () -> Unit, onLivraisons: () -> Unit, onLivreurs: () -> Unit) {
+internal fun TableauDeBord(t: com.speedfood.app.data.TableauEquipe, onRepartition: () -> Unit, onSupport: () -> Unit, onLivraisons: () -> Unit, onLivreurs: () -> Unit, onMenus: () -> Unit = {}) {
     val alertes = com.speedfood.app.data.alertesEquipe(t)
     Text("Tableau de bord", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
     Text(
@@ -152,6 +155,7 @@ internal fun TableauDeBord(t: com.speedfood.app.data.TableauEquipe, onRepartitio
                 Chiffre("À valider ou corriger", k.enAttenteValidation + k.aCorriger, k.enAttenteValidation + k.aCorriger > 0, {}),
             ),
         )
+        LigneChiffres(listOf(Chiffre("Plats à reconfirmer", k.platsAReconfirmer, k.platsAReconfirmer > 0, onMenus)))
     }
 }
 

@@ -60,7 +60,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Panier : quantités, retrait d'un plat, total (P0) | ✅ |
 | Panier conservé après fermeture de l'application (P0) | ✅ 2.16.0 (48 h) |
 | Choix retrait ou livraison, frais et délai estimés (P0) | ✅ |
-| Commande sans compte ou compte créé en deux gestes (P0) | ❌ (connexion obligatoire) |
+| Commande sans compte ou compte créé en deux gestes (P0) | 🟡 2.17.0 (le compte reste obligatoire, règle de sécurité ; mais le formulaire se remplit AVANT la connexion et est conservé, Google passe en premier, mot de passe affichable, « Mot de passe oublié ») |
 | Adresse choisie sur carte avec position GPS, adresses enregistrées (P0) | ❌ (quartier + texte libre) |
 | Consigne pour le livreur ou le restaurant (P1) | ❌ |
 | Code promo, minimum de commande (P1) | ❌ |
@@ -95,8 +95,8 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Inscription et connexion par e-mail (P0) | ✅ |
 | Connexion avec Google (P1) | ✅ |
 | Connexion par numéro de téléphone (code SMS) (P1, norme locale) | ❌ |
-| Mot de passe oublié (P0) | ❌ dans l'application (🌐 sur le site) |
-| Afficher/masquer le mot de passe (P0) | ❌ |
+| Mot de passe oublié (P0) | ✅ 2.17.0 (ouvre la page du site) |
+| Afficher/masquer le mot de passe (P0) | ✅ 2.17.0 |
 | Profil : pseudo, avatar, préférences de commande (P0) | ✅ 2.15.0 (le nom et le téléphone ne sont volontairement pas affichés : confidentialité) |
 | Adresses enregistrées (domicile, travail) (P0) | 🟡 2.15.0 (carnet de 5 adresses avec principale ; pas encore proposé dans le formulaire de commande) |
 | Historique des commandes avec filtres et détail (P0) | 🟡 (liste simple) |
@@ -190,7 +190,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Commandes du jour par statut, en attente de confirmation (P0) | ✅ 2.14.0 (actives du jour, en attente, propositions) |
 | Courses sans livreur, livreurs en ligne (P0) | ✅ 2.14.0 |
 | Chiffre d'affaires, panier moyen, taux d'annulation, délai moyen de préparation (P1) | 🌐 partiel |
-| Établissements sans numéro à joindre, plats à reconfirmer (P0) | 🟡 2.14.0 (sans numéro oui ; plats à reconfirmer non) |
+| Établissements sans numéro à joindre, plats à reconfirmer (P0) | ✅ 2.17.0 |
 | Alertes : erreurs, paiements bloqués, avis négatifs (P1) | ❌ |
 | Courbes sur 7 et 30 jours (P1) | 🌐 |
 
@@ -211,7 +211,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Menu et disponibilité tenus par l'équipe (P0) | 🌐 |
 | Demandes de partenariat, référencement, liste d'attente (P0) | 🌐 |
 | Publication, suspension, fermeture d'un établissement (P0) | 🌐 |
-| Rappel automatique de reconfirmation des plats avant le service (P0) | ❌ |
+| Rappel automatique de reconfirmation des plats avant le service (P0) | 🟡 2.17.0 (écran « Menus à reconfirmer » et chiffre dans le tableau de bord ; reconfirmer tout un menu ou un plat, épuisé / remis en vente ; pas encore de notification automatique avant le service) |
 | Contrats et commissions par établissement (P1) | ❌ |
 | Journal de contacts avec chaque établissement (P2) | ❌ |
 

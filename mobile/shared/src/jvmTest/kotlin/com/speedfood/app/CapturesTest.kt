@@ -383,4 +383,13 @@ class CapturesTest {
         )
         com.speedfood.app.ui.ContenuEquipe(com.speedfood.app.ui.EtatEquipe.Pret(accesEquipe, tableau), "https://exemple.test", {})
     }
+
+    @Test
+    fun equipeMenus() = capturer("equipe-menus", hauteur = 1300) {
+        val menus = listOf(
+            com.speedfood.app.data.MenuEquipeResume("r1", "Barbie food", 3, 3, 0, null),
+            com.speedfood.app.data.MenuEquipeResume("r2", "Chez Awa", 8, 0, 1, "2026-10-22T09:30:00Z"),
+        )
+        com.speedfood.app.ui.ContenuMenusEquipe(com.speedfood.app.ui.EtatMenusEquipe.Pret(menus, 6), {}, {}, { _, _ -> }, { _, _, _ -> })
+    }
 }

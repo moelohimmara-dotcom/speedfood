@@ -17,8 +17,8 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 18,
-  nom: "2.16.0",
-  notes: "Panier conservé après redémarrage, restaurants et menus consultables hors ligne, espace client (profil, adresses, favoris, avis), navigation par onglets.",
+  code: 19,
+  nom: "2.17.0",
+  notes: "Commande plus simple (formulaire rempli avant la connexion, Google en premier, mot de passe affichable ou oublié), panier conservé, mode hors ligne, espace client, menus à reconfirmer pour l'équipe.",
   obligatoire: false,
 };

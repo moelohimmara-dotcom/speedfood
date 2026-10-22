@@ -50,6 +50,7 @@ import com.speedfood.app.ui.SupportViewModel
 import com.speedfood.app.ui.CompteViewModel
 import com.speedfood.app.ui.EspaceClientViewModel
 import com.speedfood.app.ui.ExploitationViewModel
+import com.speedfood.app.ui.MenusEquipeViewModel
 import com.speedfood.app.ui.DetailSupportViewModel
 import com.speedfood.app.ui.ConnexionViewModel
 import com.speedfood.app.ui.LivreurViewModel
@@ -133,6 +134,7 @@ fun modulesApplication(
         factoryOf(::CompteViewModel)
         factoryOf(::EspaceClientViewModel)
         factoryOf(::ExploitationViewModel)
+        factoryOf(::MenusEquipeViewModel)
         factory { parametres -> DetailSupportViewModel(get(), get(), parametres.get()) }
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }
     },

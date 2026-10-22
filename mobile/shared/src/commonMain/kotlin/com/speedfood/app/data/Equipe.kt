@@ -247,15 +247,31 @@ data class BlocExploitation(
 )
 
 @Serializable
-data class BlocCatalogue(val enAttenteValidation: Int = 0, val publies: Int = 0, val suspendus: Int = 0, val aCorriger: Int = 0)
+data class BlocCatalogue(val enAttenteValidation: Int = 0, val publies: Int = 0, val suspendus: Int = 0, val aCorriger: Int = 0, val platsAReconfirmer: Int = 0)
+
+/** Fraîcheur du menu d'un établissement tenu par l'équipe. */
+@Serializable
+data class MenuEquipeResume(val restaurantId: String, val nom: String = "", val plats: Int = 0, val aReconfirmer: Int = 0, val epuises: Int = 0, val derniereConfirmation: String? = null)
+
+@Serializable
+data class PlatMenuEquipe(val id: String, val nom: String = "", val prix: Int = 0, val disponible: Boolean = true, val confirmeLe: String? = null, val etat: String = "")
+
+@Serializable
+data class DetailMenuEquipe(val nom: String = "", val plats: List<PlatMenuEquipe> = emptyList())
 
 /** Nombre de points qui demandent une action de l'équipe maintenant (sert d'indicateur d'alerte en tête de tableau). */
 fun alertesEquipe(t: TableauEquipe): Int =
     (t.exploitation?.let { it.aConfirmer + it.coursesSansLivreur + it.etablissementsSansTelephone + it.candidatsLivreurs } ?: 0) +
-        (t.commandes?.propositionsEnAttente ?: 0) + (t.catalogue?.let { it.enAttenteValidation + it.aCorriger } ?: 0)
+        (t.commandes?.propositionsEnAttente ?: 0) + (t.catalogue?.let { it.enAttenteValidation + it.aCorriger + (if (it.platsAReconfirmer > 0) 1 else 0) } ?: 0)
 
 @Serializable
 private data class ReponseTableau(val ok: Boolean = false, val commandes: BlocCommandes? = null, val exploitation: BlocExploitation? = null, val catalogue: BlocCatalogue? = null, val erreur: ErreurServeurEquipe? = null)
+
+@Serializable
+private data class ReponseMenus(val ok: Boolean = false, val menus: List<MenuEquipeResume> = emptyList(), val fraicheurHeures: Int = 6, val erreur: ErreurServeurEquipe? = null)
+
+@Serializable
+private data class ReponseMenuDetail(val ok: Boolean = false, val nom: String = "", val plats: List<PlatMenuEquipe> = emptyList(), val erreur: ErreurServeurEquipe? = null)
 
 @Serializable
 private data class ErreurServeurEquipe(val code: String = "", val message: String = "")
@@ -296,6 +312,17 @@ interface EquipeApi {
 
     /** Tableau de bord de l'équipe (chiffres du jour, alertes). Lève [ErreurAcces]/[ErreurReseau] avec le message du serveur. */
     suspend fun tableau(jetonAcces: String): TableauEquipe
+
+    /** Fraîcheur des menus des établissements tenus par l'équipe, et la durée de fraîcheur (heures). */
+    suspend fun menus(jetonAcces: String): Pair<List<MenuEquipeResume>, Int>
+
+    suspend fun menu(jetonAcces: String, restaurantId: String): DetailMenuEquipe
+
+    /** Reconfirme un plat ([platId]) ou tout le menu (null). */
+    suspend fun reconfirmer(jetonAcces: String, restaurantId: String, platId: String?): RetourEquipe
+
+    /** Plat épuisé (false) ou remis en vente (true). */
+    suspend fun definirDisponibilite(jetonAcces: String, restaurantId: String, platId: String, disponible: Boolean): RetourEquipe
 
     /** Livraisons récentes et fiches des livreurs (exploitation). */
     suspend fun exploitation(jetonAcces: String): ExploitationLivraison
@@ -397,6 +424,43 @@ class KtorEquipeApi(private val client: HttpClient, private val config: Speedfoo
             return@appeler "La réponse de Speedfood est illisible. Actualisez pour voir l'état de la commande."
         }
         if (lu.ok) null else lu.erreur?.message ?: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant."
+    }
+
+    override suspend fun menus(jetonAcces: String): Pair<List<MenuEquipeResume>, Int> = appeler {
+        val r = try {
+            client.get(url("menus")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }.body<ReponseMenus>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!r.ok) refus(r.erreur, "Les menus n'ont pas pu être chargés. Réessayez dans un instant.")
+        r.menus to r.fraicheurHeures
+    }
+
+    override suspend fun menu(jetonAcces: String, restaurantId: String): DetailMenuEquipe = appeler {
+        val r = try {
+            client.get(url("menus/$restaurantId")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }.body<ReponseMenuDetail>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!r.ok) refus(r.erreur, "Ce menu n'a pas pu être chargé. Réessayez dans un instant.")
+        DetailMenuEquipe(r.nom, r.plats)
+    }
+
+    override suspend fun reconfirmer(jetonAcces: String, restaurantId: String, platId: String?): RetourEquipe {
+        val corps = buildJsonObject {
+            put("restaurantId", restaurantId)
+            if (platId != null) put("platId", platId)
+        }
+        return envoyerAction("menus/confirmer", jetonAcces, corps.toString())
+    }
+
+    override suspend fun definirDisponibilite(jetonAcces: String, restaurantId: String, platId: String, disponible: Boolean): RetourEquipe {
+        val corps = buildJsonObject {
+            put("restaurantId", restaurantId)
+            put("platId", platId)
+            put("disponible", disponible)
+        }
+        return envoyerAction("menus/disponibilite", jetonAcces, corps.toString())
     }
 
     override suspend fun tableau(jetonAcces: String): TableauEquipe = appeler {

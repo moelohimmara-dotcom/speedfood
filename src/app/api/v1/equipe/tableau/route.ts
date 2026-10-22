@@ -3,6 +3,7 @@ import { equipeAuthentifiee } from "@/lib/api/v1-equipe";
 import { STATUTS_ACTIFS } from "@/lib/contracts/statuts";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { roleAPermission } from "@/lib/system-admin/permissions";
+import { listerMenusEquipe } from "@/lib/system-admin/menus-equipe-service";
 import { compterCommandesAConfirmer, compterSansTelephoneCommandes } from "@/lib/system-admin/repartition-lecture";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -59,7 +60,14 @@ export async function GET(request: Request) {
       supabase.from("restaurants").select("id", { count: "exact", head: true }).not("suspendu_le", "is", null),
       supabase.from("restaurants").select("id", { count: "exact", head: true }).not("motif_correction", "is", null),
     ]);
-    corps.catalogue = { enAttenteValidation: enAttente.count ?? 0, publies: publies.count ?? 0, suspendus: suspendus.count ?? 0, aCorriger: correction.count ?? 0 };
+    const { menus } = await listerMenusEquipe();
+    corps.catalogue = {
+      enAttenteValidation: enAttente.count ?? 0,
+      publies: publies.count ?? 0,
+      suspendus: suspendus.count ?? 0,
+      aCorriger: correction.count ?? 0,
+      platsAReconfirmer: menus.reduce((n, m) => n + m.aReconfirmer, 0),
+    };
   }
 
   return repondre(corps);

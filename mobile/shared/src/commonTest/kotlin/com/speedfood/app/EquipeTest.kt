@@ -21,6 +21,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -117,5 +118,41 @@ class EquipeTest {
         // 3 à confirmer + 2 courses sans livreur + 1 sans numéro + 1 candidat + 1 proposition = 8 points.
         assertEquals(8, com.speedfood.app.data.alertesEquipe(t))
         assertEquals(0, com.speedfood.app.data.alertesEquipe(com.speedfood.app.data.TableauEquipe()))
+    }
+
+    @Test
+    fun lesMenusSeLisentEtSeReconfirmentAvecLeBonCorps() = runTest {
+        val vus = mutableListOf<Pair<String, String>>()
+        val moteur = MockEngine { requete ->
+            vus += requete.url.encodedPath to requete.body.toByteArray().decodeToString()
+            when {
+                requete.url.encodedPath.endsWith("/menus") -> respond("""{"ok":true,"fraicheurHeures":6,"menus":[{"restaurantId":"r1","nom":"Chez Awa","plats":3,"aReconfirmer":3,"epuises":0,"derniereConfirmation":null}]}""", HttpStatusCode.OK, json)
+                requete.url.encodedPath.contains("/menus/r1") -> respond("""{"ok":true,"nom":"Chez Awa","plats":[{"id":"p1","nom":"Poulet braisé","prix":40000,"disponible":true,"confirmeLe":null,"etat":"a_confirmer"}]}""", HttpStatusCode.OK, json)
+                else -> respond("""{"ok":true,"message":"3 plats reconfirmés."}""", HttpStatusCode.OK, json)
+            }
+        }
+        val api = KtorEquipeApi(client(moteur), config)
+        val (menus, heures) = api.menus("j")
+        assertEquals(6, heures)
+        assertEquals(3, menus.single().aReconfirmer)
+        assertNull(menus.single().derniereConfirmation)
+        assertEquals("a_confirmer", api.menu("j", "r1").plats.single().etat)
+        assertTrue(api.reconfirmer("j", "r1", null).ok)
+        assertTrue(api.reconfirmer("j", "r1", "p1").ok)
+        assertTrue(api.definirDisponibilite("j", "r1", "p1", false).ok)
+        val toutMenu = Json.parseToJsonElement(vus.first { it.first.endsWith("/menus/confirmer") }.second).jsonObject
+        assertEquals("r1", toutMenu["restaurantId"]!!.jsonPrimitive.content)
+        assertFalse(toutMenu.containsKey("platId"), "sans platId : tout le menu")
+        val unPlat = Json.parseToJsonElement(vus.filter { it.first.endsWith("/menus/confirmer") }[1].second).jsonObject
+        assertEquals("p1", unPlat["platId"]!!.jsonPrimitive.content)
+        val dispo = Json.parseToJsonElement(vus.first { it.first.endsWith("/menus/disponibilite") }.second).jsonObject
+        assertEquals("false", dispo["disponible"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun unPlatARepconfirmerCompteDansLesAlertesDuTableau() {
+        val t = com.speedfood.app.data.TableauEquipe(catalogue = com.speedfood.app.data.BlocCatalogue(platsAReconfirmer = 5))
+        assertEquals(1, com.speedfood.app.data.alertesEquipe(t))
+        assertEquals(0, com.speedfood.app.data.alertesEquipe(com.speedfood.app.data.TableauEquipe(catalogue = com.speedfood.app.data.BlocCatalogue(publies = 3))))
     }
 }

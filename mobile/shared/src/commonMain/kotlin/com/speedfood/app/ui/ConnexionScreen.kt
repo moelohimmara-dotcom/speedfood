@@ -34,6 +34,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +46,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun ChampTexte(valeur: String, surChangement: (String) -> Unit, libelle: String, clavier: KeyboardType = KeyboardType.Text, secret: Boolean = false, aide: String? = null) {
+    var visible by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = valeur,
         onValueChange = surChangement,
@@ -52,7 +55,10 @@ internal fun ChampTexte(valeur: String, surChangement: (String) -> Unit, libelle
         label = { Text(libelle) },
         supportingText = aide?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = clavier),
-        visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (secret && !visible) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        trailingIcon = if (secret) {
+            { TextButton(onClick = { visible = !visible }) { Text(if (visible) "Masquer" else "Afficher", style = MaterialTheme.typography.labelMedium, color = Couleurs.Encre) } }
+        } else null,
         shape = MaterialTheme.shapes.medium,
     )
 }
@@ -85,6 +91,8 @@ internal fun BlocMessage(texte: String, erreur: Boolean) {
 fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: ConnexionViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
     val googleActif by viewModel.googleActif.collectAsState()
+    val config: com.speedfood.app.config.SpeedfoodConfig = org.koin.compose.koinInject()
+    val ouvreur = androidx.compose.ui.platform.LocalUriHandler.current
     var inscription by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var motDePasse by remember { mutableStateOf("") }
@@ -126,13 +134,6 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                     erreur = false,
                 )
             } else {
-                if (inscription) {
-                    ChampTexte(nom, { nom = it }, "Nom")
-                    ChampTexte(telephone, { telephone = it }, "Téléphone", KeyboardType.Phone, aide = "Numéro guinéen, par exemple 622 12 34 56")
-                }
-                ChampTexte(email, { email = it }, "Adresse e-mail", KeyboardType.Email)
-                ChampTexte(motDePasse, { motDePasse = it }, "Mot de passe", KeyboardType.Password, secret = true, aide = if (inscription) "12 caractères au moins" else null)
-                etat.erreur?.let { BlocMessage(it, erreur = true) }
                 if (googleActif) {
                     OutlinedButton(
                         onClick = { viewModel.continuerAvecGoogle(onConnecte) },
@@ -140,6 +141,17 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(2.dp, Couleurs.Encre),
                     ) { Text("Continuer avec Google", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
+                    Text("ou avec votre adresse e-mail", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
+                if (inscription) {
+                    ChampTexte(nom, { nom = it }, "Nom")
+                    ChampTexte(telephone, { telephone = it }, "Téléphone", KeyboardType.Phone, aide = "Numéro guinéen, par exemple 622 12 34 56")
+                }
+                ChampTexte(email, { email = it }, "Adresse e-mail", KeyboardType.Email)
+                ChampTexte(motDePasse, { motDePasse = it }, "Mot de passe", KeyboardType.Password, secret = true, aide = if (inscription) "12 caractères au moins" else null)
+                etat.erreur?.let { BlocMessage(it, erreur = true) }
+                if (!inscription) {
+                    TextButton(onClick = { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/connexion/oubli") }) { Text("Mot de passe oublié ?", color = Couleurs.RougeFonce) }
                 }
                 BoutonPrincipal(
                     texte = if (etat.enCours) "Veuillez patienter…" else if (inscription) "Créer mon compte" else "Se connecter",

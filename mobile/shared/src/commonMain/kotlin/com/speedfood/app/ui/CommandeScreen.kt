@@ -39,6 +39,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -117,11 +118,12 @@ internal fun FormulaireCommande(
     onQuartier: (String) -> Unit,
     onEnvoyer: (String, String, String, Boolean) -> Unit,
 ) {
-    var nom by remember { mutableStateOf("") }
-    var telephone by remember { mutableStateOf("") }
-    var adresse by remember { mutableStateOf("") }
+    // rememberSaveable : le brouillon survit à l'aller-retour vers l'écran de connexion (et à une rotation).
+    var nom by rememberSaveable { mutableStateOf("") }
+    var telephone by rememberSaveable { mutableStateOf("") }
+    var adresse by rememberSaveable { mutableStateOf("") }
     var choixQuartier by remember { mutableStateOf(false) }
-    var consentement by remember { mutableStateOf(false) }
+    var consentement by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Card(
@@ -167,10 +169,10 @@ internal fun FormulaireCommande(
             }
         }
 
-        if (!connecte) {
-            BlocMessage("Connectez-vous (ou créez un compte) pour envoyer votre commande.", erreur = false)
-            BoutonPrincipal("Me connecter", surClic = onConnexion)
-        } else {
+        run {
+            if (!connecte) {
+                BlocMessage("Remplissez votre commande : un compte est demandé au moment de l'envoyer (il protège les restaurants des fausses commandes). Vos informations sont conservées.", erreur = false)
+            }
             ChampTexte(nom, { nom = it }, "Votre nom")
             ChampTexte(telephone, { telephone = it }, "Votre téléphone", KeyboardType.Phone, aide = "Le restaurant vous appelle à ce numéro si besoin")
             if (etat.livraison) {
@@ -211,9 +213,13 @@ internal fun FormulaireCommande(
             etat.info?.let { BlocMessage(it, erreur = false) }
             etat.erreur?.let { BlocMessage(it, erreur = true) }
             BoutonPrincipal(
-                texte = if (etat.enCours) "Envoi en cours…" else "Envoyer ma commande · ${formaterGnf(panier.sousTotal + etat.fraisLivraison)}",
+                texte = when {
+                    etat.enCours -> "Envoi en cours…"
+                    !connecte -> "Me connecter pour envoyer · ${formaterGnf(panier.sousTotal + etat.fraisLivraison)}"
+                    else -> "Envoyer ma commande · ${formaterGnf(panier.sousTotal + etat.fraisLivraison)}"
+                },
                 actif = !etat.enCours,
-            ) { onEnvoyer(nom, telephone, adresse, consentement) }
+            ) { if (connecte) onEnvoyer(nom, telephone, adresse, consentement) else onConnexion() }
         }
     }
 

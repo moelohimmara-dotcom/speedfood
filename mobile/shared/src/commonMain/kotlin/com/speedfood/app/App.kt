@@ -56,6 +56,7 @@ import com.speedfood.app.ui.EquipeScreen
 import com.speedfood.app.ui.RepartitionScreen
 import com.speedfood.app.ui.SupportCommandesScreen
 import com.speedfood.app.ui.LivraisonsEquipeScreen
+import com.speedfood.app.ui.MenusEquipeScreen
 import com.speedfood.app.ui.LivreursEquipeScreen
 import com.speedfood.app.ui.DetailSupportScreen
 import com.speedfood.app.ui.ConnexionScreen
@@ -142,6 +143,9 @@ object AvisDestination
 
 @Serializable
 object LivraisonsEquipeDestination
+
+@Serializable
+object MenusEquipeDestination
 
 @Serializable
 object LivreursEquipeDestination
@@ -327,7 +331,11 @@ private fun Application(config: SpeedfoodConfig) {
                     onLivraisons = { navController.navigate(LivraisonsEquipeDestination) },
                     onLivreurs = { navController.navigate(LivreursEquipeDestination) },
                     onParametres = { navController.navigate(ParametresDestination) },
+                    onMenus = { navController.navigate(MenusEquipeDestination) },
                 )
+            }
+            composable<MenusEquipeDestination> {
+                MenusEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<LivraisonsEquipeDestination> {
                 LivraisonsEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
