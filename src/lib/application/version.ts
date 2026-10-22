@@ -17,8 +17,8 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 12,
-  nom: "2.10.0",
-  notes: "Photos des plats depuis l'application (restaurateur), connexion avec Google, notifications poussées, alerte de nouvelle version.",
+  code: 13,
+  nom: "2.11.0",
+  notes: "Espace équipe Speedfood dans l'application (poste de répartition avec alerte), photos des plats, connexion avec Google.",
   obligatoire: false,
 };

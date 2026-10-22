@@ -38,3 +38,11 @@ Demandes de partenariat et référencement, fiche et publication d'un établisse
 
 ## Règles de réalisation (rappel)
 Chaque lot : migration versionnée dans `supabase/migrations/` dans le même commit, advisors de sécurité après toute migration RLS, tests purs et contrôle de cloisonnement verts, vérification de bout en bout avant de le dire livré, déploiement uniquement avec feu vert. Aucun coût ni service externe sans consigne explicite.
+
+## Parité console web / application (décision du 22 octobre 2026)
+Tout ce que fait `/system` doit exister dans l'application, avec des routes d'API propres (`/api/v1/equipe/*`, jeton porteur, rôle lu en base, mêmes barrières que le site : second facteur, questions de sécurité, plafond par compte, audit).
+
+**Socle livré (APK 2.11.0)** : `equipeAuthentifiee` (`src/lib/api/v1-equipe.ts`), `GET /api/v1/equipe/moi` (rôle, permissions et menu identiques au site, filtrés par permission), poste de répartition natif (`GET /api/v1/equipe/repartition`, `POST .../repartition/action`, alerte sonore à chaque nouvelle commande, actions destructives confirmées), notification poussée à l'équipe (rôles `support` et `super_admin`). Le service de répartition est partagé entre le site et l'application (`repartition-service.ts`).
+**Principe d'avancement** : le hub de l'application affiche TOUTES les sections du site selon les droits ; une section sans écran natif s'ouvre sur le site (« Sur le site »), une section native s'ouvre dans l'application (« Dans l'application »). On bascule section par section en ajoutant son écran et ses routes `/api/v1/equipe/<section>` et en l'ajoutant à `SECTIONS_NATIVES` (`src/app/api/v1/equipe/moi/route.ts`).
+
+Ordre de bascule proposé : 1 répartition (fait) ; 2 support commandes et détail commande ; 3 livraisons et livreurs ; 4 paiements ; 5 restaurants, référencements, menu d'un établissement ; 6 partenariats, liste d'attente ; 7 avis ; 8 comptes ; 9 contenu, design, paramètres, mises à jour ; 10 audit. Les écrans d'édition lourde (pages et blocs, design, géographie) resteront sur le site tant qu'un écran natif n'apporte rien (décision à reprendre section par section).

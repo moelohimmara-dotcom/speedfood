@@ -6,11 +6,10 @@ import { estUuid } from "@/lib/commande/commun";
 import { normaliserTelephone } from "@/lib/commande/telephone";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import type { StatutCommande } from "@/lib/contracts/statuts";
-import { lirePropositions, propositionActiveParmi } from "@/lib/commande/propositions";
-import { appliquerTransitionStatut, lireCommandeMinimale } from "@/lib/commande/transitions";
 import { journaliserActionSysteme } from "./audit";
 import { verifierPermission } from "./contexte";
 import { lireModeVente } from "./catalogue-restaurant-lecture";
+import { appliquerActionRepartition } from "./repartition-service";
 
 /**
  * Poste de répartition (ADR-020) : pour un établissement tenu par l'équipe (mode « speedfood »), personne du restaurant n'a de console. L'équipe confirme
@@ -19,51 +18,17 @@ import { lireModeVente } from "./catalogue-restaurant-lecture";
  * Permission : `commande.support` (support et super administrateur). Un établissement « autonome » n'est jamais traité d'ici.
  */
 
-export type ActionRepartition = "accepter" | "refuser" | "prete" | "terminee" | "annuler";
-
-const CIBLES: Record<ActionRepartition, StatutCommande> = {
-  accepter: "acceptee",
-  refuser: "refusee",
-  prete: "prete",
-  terminee: "terminee",
-  annuler: "annulee",
-};
-
-function lireActionRepartition(brut: unknown): ActionRepartition | null {
-  return typeof brut === "string" && brut in CIBLES ? (brut as ActionRepartition) : null;
-}
-
 export async function traiterCommandeEquipeAction(formData: FormData): Promise<void> {
   const contexte = await verifierPermission("commande.support");
   const commandeId = String(formData.get("commande_id") ?? "");
-  const action = lireActionRepartition(formData.get("action"));
-  if (!estUuid(commandeId) || !action) return;
-
-  const admin = creerClientAdmin();
-  try {
-    const commande = await lireCommandeMinimale(admin, commandeId);
-    if (!commande) return;
-
-    // L'équipe ne traite que les établissements qu'elle tient : vérifié ici, pas seulement affiché.
-    const { data: resto } = await admin.from("restaurants").select("mode_vente").eq("id", commande.restaurantId).maybeSingle();
-    if (lireModeVente(resto?.mode_vente) !== "speedfood") return;
-
-    // Comme en console restaurateur : rien ne se prépare tant que le client n'a pas répondu à une proposition révisée active (seule l'annulation reste possible).
-    if (action !== "annuler") {
-      const propositions = await lirePropositions(admin, commandeId);
-      if (propositionActiveParmi(propositions) !== null) return;
-    }
-
-    await appliquerTransitionStatut(admin, commande, CIBLES[action], `equipe:${contexte.utilisateurId}`);
+  const resultat = await appliquerActionRepartition(creerClientAdmin(), contexte.utilisateurId, commandeId, formData.get("action"));
+  if (resultat.ok) {
     await journaliserActionSysteme(contexte, {
       action: "repartition.commande",
       cibleType: "commande",
       cibleId: commandeId,
-      motif: `${commande.statut} -> ${CIBLES[action]}`,
+      motif: `${resultat.de} -> ${resultat.vers}`,
     });
-  } catch (erreur) {
-    // Transition refusée (commande déjà modifiée) : l'écran se recharge et montre l'état réel.
-    if (!(erreur instanceof ErreurMetier)) throw erreur;
   }
   revalidatePath("/system/repartition");
 }

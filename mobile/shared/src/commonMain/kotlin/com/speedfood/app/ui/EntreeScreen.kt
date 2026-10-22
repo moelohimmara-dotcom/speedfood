@@ -38,7 +38,7 @@ import com.speedfood.app.design.Couleurs
  * le restaurateur a sa propre piste (sa console native arrive au lot N3) ; le livreur a la sienne (compte ouvert par l'équipe Speedfood).
  */
 @Composable
-fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: () -> Unit, onVisite: () -> Unit = {}) {
+fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: () -> Unit, onVisite: () -> Unit = {}, onEquipe: () -> Unit = {}) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -91,6 +91,9 @@ fun EntreeScreen(onClient: () -> Unit, onRestaurateur: () -> Unit, onLivreur: ()
         }
         TextButton(onClick = onVisite, modifier = Modifier.fillMaxWidth()) {
             Text("Revoir la visite guidée", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+        }
+        TextButton(onClick = onEquipe, modifier = Modifier.fillMaxWidth()) {
+            Text("Équipe Speedfood", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

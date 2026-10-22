@@ -4,7 +4,9 @@ import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.AuthApi
 import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandesLocales
+import com.speedfood.app.data.EquipeApi
 import com.speedfood.app.data.KtorAuthApi
+import com.speedfood.app.data.KtorEquipeApi
 import com.speedfood.app.data.KtorVersionApi
 import com.speedfood.app.data.NotificateurMiseAJour
 import com.speedfood.app.data.NotificateurIndisponible
@@ -36,6 +38,8 @@ import com.speedfood.app.data.RestaurantApi
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.ui.CommandeViewModel
+import com.speedfood.app.ui.EquipeViewModel
+import com.speedfood.app.ui.RepartitionViewModel
 import com.speedfood.app.ui.ConnexionViewModel
 import com.speedfood.app.ui.LivreurViewModel
 import com.speedfood.app.ui.MenuRestaurateurViewModel
@@ -94,6 +98,7 @@ fun modulesApplication(
         single<LivraisonApi> { KtorLivraisonApi(get(), get()) }
         single<LivreurApi> { KtorLivreurApi(get(), get()) }
         single<RestaurateurApi> { KtorRestaurateurApi(get(), get()) }
+        single<EquipeApi> { KtorEquipeApi(get(), get()) }
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
         single<VersionApi> { KtorVersionApi(get(), get()) }
         single { SuiviMiseAJour(get(), get(), codeVersionApp, get(), get()) }
@@ -108,6 +113,8 @@ fun modulesApplication(
         factoryOf(::LivreurViewModel)
         factoryOf(::RestaurateurViewModel)
         factoryOf(::MenuRestaurateurViewModel)
+        factoryOf(::EquipeViewModel)
+        factoryOf(::RepartitionViewModel)
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }
     },
 )

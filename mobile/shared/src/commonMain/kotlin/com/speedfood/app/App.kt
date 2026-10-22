@@ -23,6 +23,8 @@ import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.design.SpeedfoodTheme
 import com.speedfood.app.ui.BandeauMiseAJour
 import com.speedfood.app.ui.CommandeScreen
+import com.speedfood.app.ui.EquipeScreen
+import com.speedfood.app.ui.RepartitionScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.CLE_VISITE_VUE
 import com.speedfood.app.ui.EcranOuverture
@@ -75,6 +77,12 @@ object VisiteDestination
 @Serializable
 object MenuRestaurateurDestination
 
+@Serializable
+object EquipeDestination
+
+@Serializable
+object RepartitionDestination
+
 /** Les trois temps du lancement : le logo s'anime, la visite guidée (une seule fois, au premier lancement), puis l'application. */
 private enum class Phase { Ouverture, Visite, Application }
 
@@ -112,6 +120,7 @@ private fun Application(config: SpeedfoodConfig) {
                     onClient = { navController.navigate(RestaurantsDestination) },
                     onRestaurateur = { navController.navigate(RestaurateurDestination) },
                     onLivreur = { navController.navigate(LivreurDestination) },
+                    onEquipe = { navController.navigate(EquipeDestination) },
                     onVisite = { navController.navigate(VisiteDestination) },
                 )
             }
@@ -167,6 +176,17 @@ private fun Application(config: SpeedfoodConfig) {
             }
             composable<RestaurateurDestination> {
                 RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) }, onMenu = { navController.navigate(MenuRestaurateurDestination) })
+            }
+            composable<EquipeDestination> {
+                EquipeScreen(
+                    siteUrl = config.siteUrl,
+                    onRetour = { navController.popBackStack() },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
+                    onRepartition = { navController.navigate(RepartitionDestination) },
+                )
+            }
+            composable<RepartitionDestination> {
+                RepartitionScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<MenuRestaurateurDestination> {
                 MenuRestaurateurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
