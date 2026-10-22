@@ -1,6 +1,6 @@
 # Check-list : ce qu'une application de commande de repas (marketplace) doit avoir
 
-Établie le 22 octobre 2026 à la demande de Malika. Elle sert de référence pour décider quoi construire avant d'ouvrir au public. Chaque ligne indique l'état de l'**application Android (APK 2.13.0)**.
+Établie le 22 octobre 2026 à la demande de Malika, mise à jour le même jour après la livraison de la charpente de navigation (APK 2.14.0). Elle sert de référence pour décider quoi construire avant d'ouvrir au public. Chaque ligne indique l'état de l'**application Android (APK 2.13.0)**.
 
 Légende : ✅ présent dans l'application · 🟡 partiel · 🌐 existe sur le site web seulement (à porter dans l'application) · ❌ n'existe nulle part · (P0) indispensable avant l'ouverture, (P1) à avoir dans les deux mois, (P2) plus tard.
 
@@ -20,11 +20,11 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 
 | Élément | État |
 |---|---|
-| Barre de navigation basse persistante (P0) | ❌ (aujourd'hui : un écran « Qui êtes-vous ? » puis des écrans empilés avec des flèches de retour) |
-| Ouverture directe sur les restaurants, les autres espaces (restaurateur, livreur, équipe) rangés dans « Compte » (P0) | ❌ |
-| Menu / tiroir latéral ou page « Compte » listant toutes les rubriques (P0) | ❌ |
+| Barre de navigation basse persistante (P0) | ✅ 2.14.0 (Accueil, Commandes, Panier, Compte ; pas d'onglet Recherche séparé, la recherche est dans l'Accueil) |
+| Ouverture directe sur les restaurants, les autres espaces (restaurateur, livreur, équipe) rangés dans « Compte » (P0) | ✅ 2.14.0 |
+| Menu / tiroir latéral ou page « Compte » listant toutes les rubriques (P0) | ✅ 2.14.0 (page Compte) |
 | Écran d'accueil avec sections (promotions, ouverts maintenant, nouveautés, populaires) (P1) | ❌ |
-| Icône de panier avec compteur sur tous les écrans (P0) | 🟡 (présent sur la liste et la fiche) |
+| Icône de panier avec compteur sur tous les écrans (P0) | ✅ 2.14.0 (pastille de compteur sur l'onglet Panier) |
 | Bouton « Commander à nouveau » (P1) | 🟡 (sur l'historique) |
 
 ### A2. Découverte et recherche
@@ -101,28 +101,28 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Adresses enregistrées (domicile, travail) (P0) | 🌐 |
 | Historique des commandes avec filtres et détail (P0) | 🟡 (liste simple) |
 | Favoris (P1) | 🌐 |
-| Déconnexion visible (P0) | ❌ (aucun bouton) |
+| Déconnexion visible (P0) | ✅ 2.14.0 (page Compte, avec confirmation) |
 | Suppression du compte et des données (obligatoire, P0) | 🌐 |
 
 ### A8. Paramètres de l'application (absents)
 | Élément | État |
 |---|---|
-| Notifications : par type (commande, promotions), son, silence nocturne (P0) | ❌ |
+| Notifications : par type (commande, promotions), son, silence nocturne (P0) | 🟡 2.14.0 (explication et « Tester les notifications » ; pas encore de réglage par type) |
 | Langue (français, anglais, puis langues locales) (P1) | ❌ |
 | Thème clair / sombre / automatique (P2) | ❌ |
 | Taille du texte respectée (P0) | 🟡 (lisible à 1,6× avec quelques coupures) |
 | Confidentialité : choix sur la position, les données, consentements (P0) | ❌ |
 | Gérer les autorisations (position, notifications) avec explications (P0) | ❌ |
-| Vider le cache, version de l'application, rechercher une mise à jour (P1) | 🟡 (bandeau de mise à jour automatique) |
-| Revoir la visite guidée (P2) | ✅ |
+| Vider le cache, version de l'application, rechercher une mise à jour (P1) | ✅ 2.14.0 (version, « Vérifier les mises à jour », oublier les commandes de l'appareil) |
+| Revoir la visite guidée (P2) | ✅ (Paramètres) |
 
 ### A9. Aide, confiance et légal
 | Élément | État |
 |---|---|
-| Centre d'aide / questions fréquentes (P0) | 🌐 (partiel) |
-| Contacter le support : WhatsApp, appel, formulaire (P0) | ❌ dans l'application |
-| Conditions d'utilisation, confidentialité, mentions légales accessibles depuis l'application (P0) | 🌐 |
-| Page « À propos » (qui sommes-nous, version, contact) (P1) | ❌ |
+| Centre d'aide / questions fréquentes (P0) | ✅ 2.14.0 (6 questions + lien vers le centre d'aide du site) |
+| Contacter le support : WhatsApp, appel, formulaire (P0) | 🟡 2.14.0 (WhatsApp et appel si le numéro est renseigné dans `/system/parametres`, sinon lien vers le centre d'aide) |
+| Conditions d'utilisation, confidentialité, mentions légales accessibles depuis l'application (P0) | ✅ 2.14.0 (Compte et Aide ; ouvrent le site) |
+| Page « À propos » (qui sommes-nous, version, contact) (P1) | ✅ 2.14.0 (dans Aide et contact) |
 | Signaler un restaurant ou un avis (P2) | ❌ |
 
 ### A10. Notifications et messages
@@ -178,19 +178,19 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 ### D1. Structure
 | Élément | État |
 |---|---|
-| **Tableau de bord d'accueil** avec les chiffres du jour et les alertes (P0) | 🌐 (existe sur le site) ❌ dans l'application |
+| **Tableau de bord d'accueil** avec les chiffres du jour et les alertes (P0) | ✅ 2.14.0 (en tête du hub : à confirmer, courses sans livreur, livreurs en ligne, candidats, commandes du jour, propositions, restaurants publiés ; blocs selon le rôle) |
 | **Menu de navigation** par famille (Commandes, Catalogue, Livraison, Finances, Clients, Contenu, Accès, Paramètres) (P0) | 🟡 (liste dans l'application, selon les droits) |
-| **Paramètres de l'équipe** : profil, notifications d'équipe, sécurité du compte (double authentification, questions), déconnexion (P0) | ❌ dans l'application (🌐 partiel) |
+| **Paramètres de l'équipe** : profil, notifications d'équipe, sécurité du compte (double authentification, questions), déconnexion (P0) | 🟡 2.14.0 (rôle affiché, Paramètres, lien vers la sécurité du compte sur le site ; la double authentification elle-même reste sur le site) |
 | Rôles et permissions clairs (super admin, support, opérations, éditeur) (P0) | ✅ |
 | Journal d'audit consultable (P0) | 🌐 |
 
 ### D2. Tableau de bord (à afficher dès l'ouverture)
 | Indicateur | État |
 |---|---|
-| Commandes du jour par statut, en attente de confirmation (P0) | 🌐 |
-| Courses sans livreur, livreurs en ligne (P0) | 🌐 |
+| Commandes du jour par statut, en attente de confirmation (P0) | ✅ 2.14.0 (actives du jour, en attente, propositions) |
+| Courses sans livreur, livreurs en ligne (P0) | ✅ 2.14.0 |
 | Chiffre d'affaires, panier moyen, taux d'annulation, délai moyen de préparation (P1) | 🌐 partiel |
-| Établissements sans numéro à joindre, plats à reconfirmer (P0) | 🌐 partiel |
+| Établissements sans numéro à joindre, plats à reconfirmer (P0) | 🟡 2.14.0 (sans numéro oui ; plats à reconfirmer non) |
 | Alertes : erreurs, paiements bloqués, avis négatifs (P1) | ❌ |
 | Courbes sur 7 et 30 jours (P1) | 🌐 |
 
@@ -252,7 +252,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 ---
 
 ## E. Ce qu'il faut construire en premier (ordre proposé)
-1. **Charpente de navigation** : barre basse (Accueil, Recherche, Commandes, Panier, Compte), page **Compte** avec menu complet, **Paramètres**, déconnexion, aide, légal, à propos. Même principe côté équipe : **tableau de bord** en page d'accueil de l'espace équipe, puis menu par familles, puis paramètres de l'équipe.
+1. ~~**Charpente de navigation**~~ **(fait en 2.14.0)** : barre basse (Accueil, Recherche, Commandes, Panier, Compte), page **Compte** avec menu complet, **Paramètres**, déconnexion, aide, légal, à propos. Même principe côté équipe : **tableau de bord** en page d'accueil de l'espace équipe, puis menu par familles, puis paramètres de l'équipe.
 2. **Compte client** dans l'application : profil, adresses, favoris, historique, mot de passe oublié, suppression du compte.
 3. **Les quatre correctifs de l'audit** : catalogue rempli, commande sans friction, panier conservé, cache hors ligne.
 4. **Tableau de bord de l'équipe** (chiffres du jour et alertes) dans l'application.

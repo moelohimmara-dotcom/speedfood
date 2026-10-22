@@ -226,6 +226,37 @@ private data class ReponseExploitation(val ok: Boolean = false, val livraisons: 
 @Serializable
 private data class ReponseMessage(val ok: Boolean = false, val message: String = "", val erreur: ErreurServeurEquipe? = null)
 
+/** Chiffres du tableau de bord de l'équipe : un bloc par domaine, présent seulement si le rôle y a droit (null = pas concerné, jamais « 0 » par défaut). */
+@Serializable
+data class TableauEquipe(
+    val commandes: BlocCommandes? = null,
+    val exploitation: BlocExploitation? = null,
+    val catalogue: BlocCatalogue? = null,
+)
+
+@Serializable
+data class BlocCommandes(val activesDuJour: Int = 0, val enAttente: Int = 0, val propositionsEnAttente: Int = 0)
+
+@Serializable
+data class BlocExploitation(
+    val aConfirmer: Int = 0,
+    val etablissementsSansTelephone: Int = 0,
+    val coursesSansLivreur: Int = 0,
+    val livreursEnLigne: Int = 0,
+    val candidatsLivreurs: Int = 0,
+)
+
+@Serializable
+data class BlocCatalogue(val enAttenteValidation: Int = 0, val publies: Int = 0, val suspendus: Int = 0, val aCorriger: Int = 0)
+
+/** Nombre de points qui demandent une action de l'équipe maintenant (sert d'indicateur d'alerte en tête de tableau). */
+fun alertesEquipe(t: TableauEquipe): Int =
+    (t.exploitation?.let { it.aConfirmer + it.coursesSansLivreur + it.etablissementsSansTelephone + it.candidatsLivreurs } ?: 0) +
+        (t.commandes?.propositionsEnAttente ?: 0) + (t.catalogue?.let { it.enAttenteValidation + it.aCorriger } ?: 0)
+
+@Serializable
+private data class ReponseTableau(val ok: Boolean = false, val commandes: BlocCommandes? = null, val exploitation: BlocExploitation? = null, val catalogue: BlocCatalogue? = null, val erreur: ErreurServeurEquipe? = null)
+
 @Serializable
 private data class ErreurServeurEquipe(val code: String = "", val message: String = "")
 
@@ -262,6 +293,9 @@ interface EquipeApi {
 
     /** Révèle téléphone et adresse (motif obligatoire, tracé avant affichage). Lève [ErreurReseau]/[ErreurAcces] avec le message du serveur en cas de refus. */
     suspend fun reveler(jetonAcces: String, commandeId: String, motif: String): CoordonneesClient
+
+    /** Tableau de bord de l'équipe (chiffres du jour, alertes). Lève [ErreurAcces]/[ErreurReseau] avec le message du serveur. */
+    suspend fun tableau(jetonAcces: String): TableauEquipe
 
     /** Livraisons récentes et fiches des livreurs (exploitation). */
     suspend fun exploitation(jetonAcces: String): ExploitationLivraison
@@ -363,6 +397,16 @@ class KtorEquipeApi(private val client: HttpClient, private val config: Speedfoo
             return@appeler "La réponse de Speedfood est illisible. Actualisez pour voir l'état de la commande."
         }
         if (lu.ok) null else lu.erreur?.message ?: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant."
+    }
+
+    override suspend fun tableau(jetonAcces: String): TableauEquipe = appeler {
+        val r = try {
+            client.get(url("tableau")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }.body<ReponseTableau>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!r.ok) refus(r.erreur, "Le tableau de bord n'a pas pu être chargé. Réessayez dans un instant.")
+        TableauEquipe(r.commandes, r.exploitation, r.catalogue)
     }
 
     override suspend fun exploitation(jetonAcces: String): ExploitationLivraison = appeler {

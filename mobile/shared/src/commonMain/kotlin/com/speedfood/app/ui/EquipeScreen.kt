@@ -55,7 +55,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Espace équipe Speedfood : le menu du compte, comme sur le site `/system`. Une section native s'ouvre dans l'application, les autres sur le site. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, viewModel: EquipeViewModel = koinViewModel()) {
+fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, viewModel: EquipeViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -73,17 +73,18 @@ fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit,
                 EtatEquipe.Chargement -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = Couleurs.RougeFonce)
                 EtatEquipe.NonConnecte -> MessageEtat("Connectez-vous avec votre compte de l'équipe.", "Me connecter", onConnexion)
                 is EtatEquipe.Refuse -> MessageEtat(e.message, "Réessayer", viewModel::charger)
-                is EtatEquipe.Pret -> ContenuEquipe(e, siteUrl, onRepartition, onSupport, onLivraisons, onLivreurs)
+                is EtatEquipe.Pret -> ContenuEquipe(e, siteUrl, onRepartition, onSupport, onLivraisons, onLivreurs, onParametres)
             }
         }
     }
 }
 
 @Composable
-internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}) {
+internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}) {
     val ouvreur = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Rôle : ${libelleRole(e.acces.role)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        e.tableau?.let { TableauDeBord(it, onRepartition, onSupport, onLivraisons, onLivreurs) }
         e.acces.groupes.forEach { groupe ->
             Text(groupe.libelle, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
             groupe.entrees.forEach { entree ->
@@ -98,11 +99,80 @@ internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: (
                 }
             }
         }
+        Text("Mon compte d'équipe", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
+        CarteSection(EntreeMenuEquipe("", "Paramètres", true), onParametres)
+        CarteSection(EntreeMenuEquipe("", "Sécurité du compte (double authentification)", false)) { ouvreur.openUri("${siteUrl.trimEnd('/')}/compte/securite") }
         Text(
             "Les sections marquées « sur le site » s'ouvrent dans votre navigateur ; elles passent progressivement dans l'application.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Tableau de bord de l'équipe : les chiffres à surveiller, un bloc par domaine selon le rôle. Une carte rouge demande une action ; toucher une carte ouvre la section. */
+@Composable
+internal fun TableauDeBord(t: com.speedfood.app.data.TableauEquipe, onRepartition: () -> Unit, onSupport: () -> Unit, onLivraisons: () -> Unit, onLivreurs: () -> Unit) {
+    val alertes = com.speedfood.app.data.alertesEquipe(t)
+    Text("Tableau de bord", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
+    Text(
+        if (alertes == 0) "Rien n'attend l'équipe pour le moment." else "$alertes point(s) attendent l'équipe.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (alertes == 0) Couleurs.Succes else Couleurs.Danger,
+    )
+    t.exploitation?.let { x ->
+        LigneChiffres(
+            listOf(
+                Chiffre("À confirmer", x.aConfirmer, x.aConfirmer > 0, onRepartition),
+                Chiffre("Courses sans livreur", x.coursesSansLivreur, x.coursesSansLivreur > 0, onLivraisons),
+            ),
+        )
+        LigneChiffres(
+            listOf(
+                Chiffre("Livreurs en ligne", x.livreursEnLigne, x.livreursEnLigne == 0, onLivreurs),
+                Chiffre("Candidats livreurs", x.candidatsLivreurs, x.candidatsLivreurs > 0, onLivreurs),
+            ),
+        )
+        if (x.etablissementsSansTelephone > 0) {
+            Text("${x.etablissementsSansTelephone} établissement(s) sans numéro à joindre : ajoutez-le sur leur fiche (site).", style = MaterialTheme.typography.bodySmall, color = Couleurs.Danger)
+        }
+    }
+    t.commandes?.let { c ->
+        LigneChiffres(
+            listOf(
+                Chiffre("Commandes actives aujourd'hui", c.activesDuJour, false, onSupport),
+                Chiffre("Propositions en attente", c.propositionsEnAttente, c.propositionsEnAttente > 0, onSupport),
+            ),
+        )
+    }
+    t.catalogue?.let { k ->
+        LigneChiffres(
+            listOf(
+                Chiffre("Restaurants publiés", k.publies, k.publies == 0, {}),
+                Chiffre("À valider ou corriger", k.enAttenteValidation + k.aCorriger, k.enAttenteValidation + k.aCorriger > 0, {}),
+            ),
+        )
+    }
+}
+
+internal class Chiffre(val libelle: String, val valeur: Int, val alerte: Boolean, val onClick: () -> Unit)
+
+@Composable
+private fun LigneChiffres(chiffres: List<Chiffre>) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        chiffres.forEach { c ->
+            Card(
+                modifier = Modifier.weight(1f).clickable(onClick = c.onClick),
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(containerColor = if (c.alerte) Couleurs.DangerFond else Couleurs.Surface),
+                border = BorderStroke(1.dp, if (c.alerte) Couleurs.Danger else Couleurs.Bordure),
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(c.valeur.toString(), style = MaterialTheme.typography.headlineMedium, color = if (c.alerte) Couleurs.Danger else Couleurs.Encre)
+                    Text(c.libelle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
     }
 }
 

@@ -4,6 +4,9 @@ import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.AuthApi
 import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandesLocales
+import com.speedfood.app.data.AideApi
+import com.speedfood.app.data.InfosApplication
+import com.speedfood.app.data.KtorAideApi
 import com.speedfood.app.data.EquipeApi
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorEquipeApi
@@ -41,6 +44,7 @@ import com.speedfood.app.ui.CommandeViewModel
 import com.speedfood.app.ui.EquipeViewModel
 import com.speedfood.app.ui.RepartitionViewModel
 import com.speedfood.app.ui.SupportViewModel
+import com.speedfood.app.ui.CompteViewModel
 import com.speedfood.app.ui.ExploitationViewModel
 import com.speedfood.app.ui.DetailSupportViewModel
 import com.speedfood.app.ui.ConnexionViewModel
@@ -104,6 +108,8 @@ fun modulesApplication(
         single<EquipeApi> { KtorEquipeApi(get(), get()) }
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
         single<VersionApi> { KtorVersionApi(get(), get()) }
+        single<AideApi> { KtorAideApi(get(), get()) }
+        single { InfosApplication(versionApp ?: "", codeVersionApp) }
         single { SuiviMiseAJour(get(), get(), codeVersionApp, get(), get()) }
         single { EnregistrementPush(get(), get(), get(), get(), plateforme, versionApp) }
         single { PanierService() }
@@ -119,6 +125,7 @@ fun modulesApplication(
         factoryOf(::EquipeViewModel)
         factoryOf(::RepartitionViewModel)
         factoryOf(::SupportViewModel)
+        factoryOf(::CompteViewModel)
         factoryOf(::ExploitationViewModel)
         factory { parametres -> DetailSupportViewModel(get(), get(), parametres.get()) }
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }

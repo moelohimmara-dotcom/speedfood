@@ -373,4 +373,14 @@ class CapturesTest {
     fun repartitionGrandeFont() = capturerGrandeFont("a11y-repartition-1_5x", 1600) {
         com.speedfood.app.ui.ContenuRepartition(com.speedfood.app.ui.EtatRepartition.Pret(listOf(commandeEquipe("c1", "SF-4KVB9", "en_attente"))), { _, _ -> })
     }
+
+    @Test
+    fun equipeTableauDeBord() = capturer("equipe-tableau", hauteur = 1500) {
+        val tableau = com.speedfood.app.data.TableauEquipe(
+            commandes = com.speedfood.app.data.BlocCommandes(12, 3, 1),
+            exploitation = com.speedfood.app.data.BlocExploitation(aConfirmer = 3, etablissementsSansTelephone = 1, coursesSansLivreur = 2, livreursEnLigne = 4, candidatsLivreurs = 0),
+            catalogue = com.speedfood.app.data.BlocCatalogue(enAttenteValidation = 2, publies = 7, suspendus = 0, aCorriger = 1),
+        )
+        com.speedfood.app.ui.ContenuEquipe(com.speedfood.app.ui.EtatEquipe.Pret(accesEquipe, tableau), "https://exemple.test", {})
+    }
 }

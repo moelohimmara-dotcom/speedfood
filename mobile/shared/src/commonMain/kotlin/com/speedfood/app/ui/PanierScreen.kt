@@ -40,7 +40,7 @@ import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PanierScreen(onRetour: () -> Unit, onCommander: () -> Unit, onVoirRestaurant: (String) -> Unit, service: PanierService = koinInject()) {
+fun PanierScreen(onRetour: () -> Unit, onCommander: () -> Unit, onVoirRestaurant: (String) -> Unit, racine: Boolean = false, service: PanierService = koinInject()) {
     val panier by service.panier.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -48,7 +48,7 @@ fun PanierScreen(onRetour: () -> Unit, onCommander: () -> Unit, onVoirRestaurant
         topBar = {
             TopAppBar(
                 title = { Text("Mon panier", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { if (!racine) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

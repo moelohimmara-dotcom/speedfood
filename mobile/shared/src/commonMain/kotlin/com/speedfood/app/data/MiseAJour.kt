@@ -64,6 +64,9 @@ class SuiviMiseAJour(
         return publiee
     }
 
+    /** Dernière version publiée (vérification demandée par la personne, dans Paramètres), ou null si le serveur ne répond pas. */
+    suspend fun derniereVersion(): VersionPubliee? = api.derniere()
+
     fun reporter(version: VersionPubliee) {
         if (!version.obligatoire) stockage.ecrire(CLE_REPORTEE, version.code.toString())
     }

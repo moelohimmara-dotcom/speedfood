@@ -68,6 +68,7 @@ fun RestaurantsScreen(
     onOuvrir: (String) -> Unit,
     onPanier: () -> Unit,
     onCompte: () -> Unit,
+    racine: Boolean = false,
     viewModel: RestaurantsViewModel = koinViewModel(),
     panierService: PanierService = koinInject(),
 ) {
@@ -80,11 +81,13 @@ fun RestaurantsScreen(
             TopAppBar(
                 title = { Text("Restaurants", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
-                    IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
+                    if (!racine) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
                 },
                 actions = {
-                    IconButton(onClick = onCompte) { Icon(Icons.Default.Person, contentDescription = "Mon compte et mes commandes") }
-                    BoutonPanier(panier.nombreArticles, onPanier)
+                    if (!racine) {
+                        IconButton(onClick = onCompte) { Icon(Icons.Default.Person, contentDescription = "Mon compte et mes commandes") }
+                        BoutonPanier(panier.nombreArticles, onPanier)
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )

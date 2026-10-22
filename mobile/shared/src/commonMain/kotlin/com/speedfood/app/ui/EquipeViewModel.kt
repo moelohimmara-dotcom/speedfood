@@ -9,6 +9,7 @@ import com.speedfood.app.data.EquipeApi
 import com.speedfood.app.data.ErreurAcces
 import com.speedfood.app.data.ErreurReseau
 import com.speedfood.app.data.SessionService
+import com.speedfood.app.data.TableauEquipe
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +24,7 @@ sealed interface EtatEquipe {
     /** Compte sans rôle dans l'équipe, accès refusé (double authentification...), ou indisponible : message du serveur. */
     data class Refuse(val message: String) : EtatEquipe
 
-    data class Pret(val acces: AccesEquipe) : EtatEquipe
+    data class Pret(val acces: AccesEquipe, val tableau: TableauEquipe? = null) : EtatEquipe
 }
 
 /** Hub de l'espace équipe Speedfood : le menu du compte (mêmes sections que le site `/system`, déjà filtrées par permission côté serveur). */
@@ -44,7 +45,10 @@ class EquipeViewModel(private val session: SessionService, private val api: Equi
                 return@launch
             }
             _etat.value = try {
-                EtatEquipe.Pret(api.moi(jeton))
+                val acces = api.moi(jeton)
+                // Le tableau de bord est un confort : s'il ne charge pas, le menu s'affiche quand même.
+                val tableau = try { api.tableau(jeton) } catch (_: ErreurReseau) { null }
+                EtatEquipe.Pret(acces, tableau)
             } catch (e: ErreurAcces) {
                 EtatEquipe.Refuse(e.message ?: "Cet espace est réservé à l'équipe Speedfood.")
             } catch (e: ErreurReseau) {

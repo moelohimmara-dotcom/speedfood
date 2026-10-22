@@ -46,6 +46,7 @@ fun MesCommandesScreen(
     onOuvrir: (String) -> Unit,
     onConnexion: () -> Unit,
     onPanier: () -> Unit,
+    racine: Boolean = false,
     viewModel: MesCommandesViewModel = koinViewModel(),
     sessionService: SessionService = koinInject(),
 ) {
@@ -56,14 +57,19 @@ fun MesCommandesScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Mon compte", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                title = { Text(if (racine) "Mes commandes" else "Mon compte", style = MaterialTheme.typography.titleLarge) },
+                navigationIcon = { if (!racine) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
     ) { marges ->
         Column(Modifier.fillMaxSize().padding(marges).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (session != null) {
+            if (racine) {
+                if (session == null) {
+                    BlocMessage("Vous n'êtes pas connecté. Connectez-vous pour envoyer des commandes et retrouver votre historique.", erreur = false)
+                    BoutonPrincipal("Me connecter", surClic = onConnexion)
+                }
+            } else if (session != null) {
                 Text(session?.email ?: "Compte connecté", style = MaterialTheme.typography.titleMedium)
                 OutlinedButton(onClick = viewModel::essaiNotification, border = BorderStroke(1.dp, Couleurs.Bordure)) {
                     Text("Tester les notifications", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
@@ -76,7 +82,7 @@ fun MesCommandesScreen(
                 BlocMessage("Vous n'êtes pas connecté. Connectez-vous pour envoyer des commandes et retrouver votre historique.", erreur = false)
                 BoutonPrincipal("Me connecter", surClic = onConnexion)
             }
-            Text("Mes commandes", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
+            if (!racine) Text("Mes commandes", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
             etat.alerte?.let { BlocMessage(it, erreur = false) }
             etat.message?.let { BlocMessage(it, erreur = false) }
             if (etat.chargement && etat.commandes.isEmpty()) {

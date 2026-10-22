@@ -102,4 +102,20 @@ class EquipeTest {
         val moteur = MockEngine { respond("""{"ok":false,"erreur":{"code":"VALIDATION","message":"Cette commande a déjà changé d'état. Actualisez."}}""", HttpStatusCode.BadRequest, json) }
         assertEquals("Cette commande a déjà changé d'état. Actualisez.", KtorEquipeApi(client(moteur), config).agir("j", "c1", "prete"))
     }
+
+    @Test
+    fun leTableauDeBordNeContientQueLesBlocsDuRole() = runTest {
+        var chemin = ""
+        val moteur = MockEngine { requete ->
+            chemin = requete.url.encodedPath
+            respond("""{"ok":true,"role":"support","commandes":{"activesDuJour":4,"enAttente":2,"propositionsEnAttente":1},"exploitation":{"aConfirmer":3,"etablissementsSansTelephone":1,"coursesSansLivreur":2,"livreursEnLigne":0,"candidatsLivreurs":1}}""", HttpStatusCode.OK, json)
+        }
+        val t = KtorEquipeApi(client(moteur), config).tableau("j")
+        assertEquals("/api/v1/equipe/tableau", chemin)
+        assertEquals(3, t.exploitation?.aConfirmer)
+        assertNull(t.catalogue, "un rôle sans la permission ne reçoit pas le bloc catalogue")
+        // 3 à confirmer + 2 courses sans livreur + 1 sans numéro + 1 candidat + 1 proposition = 8 points.
+        assertEquals(8, com.speedfood.app.data.alertesEquipe(t))
+        assertEquals(0, com.speedfood.app.data.alertesEquipe(com.speedfood.app.data.TableauEquipe()))
+    }
 }

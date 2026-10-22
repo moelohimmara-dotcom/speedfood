@@ -1,5 +1,30 @@
 package com.speedfood.app
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.collectAsState
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import com.speedfood.app.data.PanierService
+import com.speedfood.app.design.Couleurs
+import com.speedfood.app.ui.CompteScreen
+import com.speedfood.app.ui.ParametresScreen
+import com.speedfood.app.ui.AideScreen
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -91,6 +116,15 @@ object RepartitionDestination
 object SupportDestination
 
 @Serializable
+object CompteDestination
+
+@Serializable
+object ParametresDestination
+
+@Serializable
+object AideDestination
+
+@Serializable
 object LivraisonsEquipeDestination
 
 @Serializable
@@ -130,18 +164,70 @@ fun App(config: SpeedfoodConfig) {
 @Composable
 private fun Application(config: SpeedfoodConfig) {
         val navController: NavHostController = rememberNavController()
-        NavHost(navController = navController, startDestination = EntreeDestination) {
-            composable<EntreeDestination> {
-                EntreeScreen(
-                    onClient = { navController.navigate(RestaurantsDestination) },
+        val panierService: PanierService = koinInject()
+        val panier by panierService.panier.collectAsState()
+        val entree by navController.currentBackStackEntryAsState()
+        val destination = entree?.destination
+        val onglets = listOf(
+            Onglet("Accueil", Icons.Default.Home, RestaurantsDestination),
+            Onglet("Commandes", Icons.Default.List, MesCommandesDestination),
+            Onglet("Panier", Icons.Default.ShoppingCart, PanierDestination),
+            Onglet("Compte", Icons.Default.Person, CompteDestination),
+        )
+        val barreVisible = onglets.any { o -> destination?.hierarchy?.any { it.hasRoute(o.route::class) } == true }
+        fun versOnglet(route: Any) = navController.navigate(route) {
+            popUpTo<RestaurantsDestination> { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            bottomBar = {
+                if (barreVisible) {
+                    NavigationBar(containerColor = Couleurs.Surface) {
+                        onglets.forEach { o ->
+                            val choisi = destination?.hierarchy?.any { it.hasRoute(o.route::class) } == true
+                            NavigationBarItem(
+                                selected = choisi,
+                                onClick = { if (!choisi) versOnglet(o.route) },
+                                icon = {
+                                    if (o.route == PanierDestination && panier.nombreArticles > 0) {
+                                        BadgedBox(badge = { Badge(containerColor = Couleurs.RougeFonce) { Text(panier.nombreArticles.toString()) } }) { Icon(o.icone, contentDescription = null) }
+                                    } else {
+                                        Icon(o.icone, contentDescription = null)
+                                    }
+                                },
+                                label = { Text(o.libelle, style = MaterialTheme.typography.labelMedium) },
+                                colors = NavigationBarItemDefaults.colors(selectedIconColor = Couleurs.Encre, selectedTextColor = Couleurs.Encre, indicatorColor = Couleurs.Mangue, unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                            )
+                        }
+                    }
+                }
+            },
+        ) { interieur ->
+        Box(Modifier.padding(interieur).consumeWindowInsets(interieur)) {
+        NavHost(navController = navController, startDestination = RestaurantsDestination) {
+            composable<CompteDestination> {
+                CompteScreen(
+                    onConnexion = { navController.navigate(ConnexionDestination) },
+                    onCommandes = { versOnglet(MesCommandesDestination) },
+                    onParametres = { navController.navigate(ParametresDestination) },
+                    onAide = { navController.navigate(AideDestination) },
                     onRestaurateur = { navController.navigate(RestaurateurDestination) },
                     onLivreur = { navController.navigate(LivreurDestination) },
                     onEquipe = { navController.navigate(EquipeDestination) },
-                    onVisite = { navController.navigate(VisiteDestination) },
                 )
+            }
+            composable<ParametresDestination> {
+                ParametresScreen(onRetour = { navController.popBackStack() }, onVisite = { navController.navigate(VisiteDestination) })
+            }
+            composable<AideDestination> {
+                AideScreen(onRetour = { navController.popBackStack() })
             }
             composable<RestaurantsDestination> {
                 RestaurantsScreen(
+                    racine = true,
                     onRetour = { navController.popBackStack() },
                     onOuvrir = { id -> navController.navigate(RestaurantDestination(id)) },
                     onPanier = { navController.navigate(PanierDestination) },
@@ -157,6 +243,7 @@ private fun Application(config: SpeedfoodConfig) {
             }
             composable<PanierDestination> {
                 PanierScreen(
+                    racine = true,
                     onRetour = { navController.popBackStack() },
                     onCommander = { navController.navigate(CommandeDestination) },
                     onVoirRestaurant = { id -> navController.navigate(RestaurantDestination(id)) },
@@ -178,6 +265,7 @@ private fun Application(config: SpeedfoodConfig) {
             }
             composable<MesCommandesDestination> {
                 MesCommandesScreen(
+                    racine = true,
                     onRetour = { navController.popBackStack() },
                     onOuvrir = { jeton -> navController.navigate(SuiviDestination(jeton)) },
                     onConnexion = { navController.navigate(ConnexionDestination) },
@@ -202,6 +290,7 @@ private fun Application(config: SpeedfoodConfig) {
                     onSupport = { navController.navigate(SupportDestination) },
                     onLivraisons = { navController.navigate(LivraisonsEquipeDestination) },
                     onLivreurs = { navController.navigate(LivreursEquipeDestination) },
+                    onParametres = { navController.navigate(ParametresDestination) },
                 )
             }
             composable<LivraisonsEquipeDestination> {
@@ -231,4 +320,9 @@ private fun Application(config: SpeedfoodConfig) {
                 MenuRestaurateurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
         }
+        }
+        }
 }
+
+/** Un onglet de la barre du bas : libellé, icône et destination. */
+private class Onglet(val libelle: String, val icone: androidx.compose.ui.graphics.vector.ImageVector, val route: Any)

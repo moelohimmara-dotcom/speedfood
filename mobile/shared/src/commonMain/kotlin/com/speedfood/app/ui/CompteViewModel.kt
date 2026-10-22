@@ -1,0 +1,93 @@
+package com.speedfood.app.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.speedfood.app.data.AideApi
+import com.speedfood.app.data.CommandesLocales
+import com.speedfood.app.data.EnregistrementPush
+import com.speedfood.app.data.InfosApplication
+import com.speedfood.app.data.SessionService
+import com.speedfood.app.data.SuiviMiseAJour
+import com.speedfood.app.data.miseAJourDisponible
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/**
+ * Compte, Paramètres et Aide : session, test des notifications, vérification de version, oubli des données de l'appareil, contact d'assistance. Chaque action reste en
+ * meilleur effort et se termine par un message lisible (jamais de détail technique).
+ */
+class CompteViewModel(
+    private val session: SessionService,
+    private val enregistrementPush: EnregistrementPush,
+    private val locales: CommandesLocales,
+    private val miseAJour: SuiviMiseAJour,
+    private val aide: AideApi,
+    val infos: InfosApplication,
+) : ViewModel() {
+    val connexion = session.session
+
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
+
+    private val _versionDisponible = MutableStateFlow<String?>(null)
+
+    /** Adresse de téléchargement quand une version plus récente existe, sinon null. */
+    val versionDisponible: StateFlow<String?> = _versionDisponible.asStateFlow()
+
+    private val _whatsapp = MutableStateFlow<String?>(null)
+    val whatsapp: StateFlow<String?> = _whatsapp.asStateFlow()
+
+    val urlTelechargement: String get() = miseAJour.urlTelechargement
+
+    fun chargerContact() {
+        viewModelScope.launch { _whatsapp.value = aide.whatsapp() }
+    }
+
+    fun essaiNotification() {
+        _message.value = "Essai en cours…"
+        viewModelScope.launch {
+            _message.value = try {
+                enregistrementPush.essai()
+            } catch (_: Exception) {
+                "L'essai n'a pas pu être lancé. Réessayez dans un instant."
+            }
+        }
+    }
+
+    fun verifierMiseAJour() {
+        _message.value = "Vérification en cours…"
+        _versionDisponible.value = null
+        viewModelScope.launch {
+            val publiee = miseAJour.derniereVersion()
+            _message.value = when {
+                publiee == null -> "Impossible de vérifier pour l'instant. Vérifiez votre connexion puis réessayez."
+                miseAJourDisponible(infos.codeVersion, publiee) -> {
+                    _versionDisponible.value = miseAJour.urlTelechargement
+                    "La version ${publiee.nom} est disponible."
+                }
+                else -> "Vous avez la dernière version (${infos.versionNom})."
+            }
+        }
+    }
+
+    /** Déconnexion : l'appareil est d'abord retiré du compte (il ne doit plus recevoir ses alertes), puis la session est fermée et l'historique local oublié. */
+    fun deconnecter() {
+        viewModelScope.launch {
+            try {
+                enregistrementPush.retirer()
+            } catch (_: Exception) {
+                // Meilleur effort : on se déconnecte quoi qu'il arrive.
+            }
+            session.deconnecter()
+            locales.oublier()
+            _message.value = "Vous êtes déconnecté."
+        }
+    }
+
+    fun oublierCommandesDeCetAppareil() {
+        locales.oublier()
+        _message.value = "Les commandes enregistrées sur cet appareil ont été oubliées."
+    }
+}
