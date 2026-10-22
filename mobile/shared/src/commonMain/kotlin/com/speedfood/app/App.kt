@@ -320,6 +320,7 @@ private fun ApplicationClient(config: SpeedfoodConfig) {
                     restaurantId = entree.toRoute<RestaurantDestination>().id,
                     onRetour = { navController.popBackStack() },
                     onPanier = { navController.navigate(PanierDestination) },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
                 )
             }
             composable<PanierDestination> {

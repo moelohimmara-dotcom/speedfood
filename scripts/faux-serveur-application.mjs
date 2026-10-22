@@ -27,6 +27,7 @@ const parJeton = (req) => {
   return email && COMPTES[email] ? { email, ...COMPTES[email] } : null;
 };
 
+const favorisEssai = new Set();
 const maintenant = () => new Date().toISOString();
 let commandes = [
   { id: "c1", reference: "SF-1001", statut: "en_attente", etatDerive: "en_attente", mode: "livraison", clientNom: "Aminata Diallo", clientTelephone: "+224622000001", clientAdresse: "Kaporo Centre, rue KA-012", sousTotal: 60000, fraisLivraisonEstime: 9500, creeLe: maintenant(), estTest: false, lignes: [{ nom: "Poulet braisé", prix: 30000, quantite: 2, options: [{ nom: "Piment", prix: 0 }] }], propositionActive: null, propositions: [], paiementStatut: "non_declare" },
@@ -107,7 +108,13 @@ createServer(async (req, res) => {
 
   if (chemin === "/api/v1/moi") return ok(res, { ok: true, roles: { restaurateur: compte.roles.restaurateur ?? null, livreur: Boolean(compte.roles.livreur), equipe: compte.roles.equipe ?? null } });
 
-  if (chemin === "/api/v1/client/espace") return ok(res, { ok: true, profil: { pseudo: "Client Essai", avatar: "assiette", modePrefere: "livraison", notificationsCommande: true }, adresses: [{ id: "a1", libelle: "Maison", adresse: "Kaporo Centre", parDefaut: true }], favoris: [{ restaurantId: "r1", nom: "Chez Awa (essai)", ouvert: true }], avis: [] });
+  if (chemin === "/api/v1/client/espace") return ok(res, { ok: true, profil: { pseudo: "Client Essai", avatar: "assiette", modePrefere: "livraison", notificationsCommande: true }, adresses: [{ id: "a1", libelle: "Maison", adresse: "Kaporo Centre", parDefaut: true }], favoris: [...favorisEssai].map((id) => ({ restaurantId: id, nom: "Restaurant", ouvert: true })), avis: [] });
+  if (chemin === "/api/v1/client/favoris") {
+    const c = await lireCorps(req);
+    const present = favorisEssai.has(c.restaurantId);
+    if (present) favorisEssai.delete(c.restaurantId); else favorisEssai.add(c.restaurantId);
+    return ok(res, { ok: true, message: present ? "Favori retiré." : "Favori enregistré.", favori: !present });
+  }
   if (chemin.startsWith("/api/v1/client/")) { await lireCorps(req); return ok(res, { ok: true, message: "Enregistré." }); }
 
   // Espace restaurateur

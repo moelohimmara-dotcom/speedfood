@@ -164,6 +164,7 @@ fun modulesApplication(
         single { CommandesLocales(get()) }
         factoryOf(::RestaurantsViewModel)
         factory { parametres -> RestaurantViewModel(get(), parametres.get()) }
+        factory { parametres -> com.speedfood.app.ui.FavoriRestaurantViewModel(get(), get(), parametres.get()) }
         factoryOf(::ConnexionViewModel)
         factoryOf(::CommandeViewModel)
         factoryOf(::MesCommandesViewModel)

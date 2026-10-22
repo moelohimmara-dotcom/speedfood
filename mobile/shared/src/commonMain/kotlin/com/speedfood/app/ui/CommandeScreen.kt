@@ -16,6 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,6 +75,7 @@ fun CommandeScreen(
 ) {
     val etat by viewModel.etat.collectAsState()
     val quartiers by viewModel.quartiers.collectAsState()
+    val adresses by viewModel.adresses.collectAsState()
     val panier by panierService.panier.collectAsState()
     val session by sessionService.session.collectAsState()
 
@@ -97,6 +101,7 @@ fun CommandeScreen(
                 connecte = session != null,
                 etat = etat,
                 quartiers = quartiers,
+                adressesEnregistrees = adresses,
                 onConnexion = onConnexion,
                 onMode = viewModel::choisirMode,
                 onQuartier = viewModel::choisirQuartier,
@@ -117,6 +122,7 @@ internal fun FormulaireCommande(
     onMode: (Boolean) -> Unit,
     onQuartier: (String) -> Unit,
     onEnvoyer: (String, String, String, Boolean) -> Unit,
+    adressesEnregistrees: List<com.speedfood.app.data.AdresseClient> = emptyList(),
 ) {
     // rememberSaveable : le brouillon survit à l'aller-retour vers l'écran de connexion (et à une rotation).
     var nom by rememberSaveable { mutableStateOf("") }
@@ -179,6 +185,18 @@ internal fun FormulaireCommande(
                 val quartierNom = quartiers.firstOrNull { it.id == etat.quartierId }?.nom
                 OutlinedButton(onClick = { choixQuartier = true }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Bordure)) {
                     Text(quartierNom?.let { "Quartier : $it" } ?: "Choisir mon quartier", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                }
+                // Carnet d'adresses du compte : un appui remplit le champ (modifiable) ; l'adresse par défaut est proposée d'office si rien n'est saisi.
+                LaunchedEffect(adressesEnregistrees) {
+                    if (adresse.isBlank()) adressesEnregistrees.firstOrNull { it.parDefaut }?.let { adresse = it.adresse }
+                }
+                if (adressesEnregistrees.isNotEmpty()) {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        adressesEnregistrees.forEach { a ->
+                            FilterChip(selected = adresse == a.adresse, onClick = { adresse = a.adresse }, label = { Text(a.libelle.ifBlank { "Adresse" }) })
+                        }
+                    }
                 }
                 ChampTexte(adresse, { adresse = it }, "Adresse de livraison", aide = "Rue, repère connu, bâtiment, étage")
                 val estimation = etat.estimation

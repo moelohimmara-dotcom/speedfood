@@ -69,6 +69,7 @@ fun RestaurantScreen(
     restaurantId: String,
     onRetour: () -> Unit,
     onPanier: () -> Unit,
+    onConnexion: () -> Unit = {},
     viewModel: RestaurantViewModel = koinViewModel(parameters = { parametersOf(restaurantId) }),
     panierService: PanierService = koinInject(),
 ) {
@@ -111,7 +112,10 @@ fun RestaurantScreen(
                 navigationIcon = {
                     IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
                 },
-                actions = { BoutonPanier(panier.nombreArticles, onPanier) },
+                actions = {
+                    BoutonFavoriFiche(restaurantId, onConnexion)
+                    BoutonPanier(panier.nombreArticles, onPanier)
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

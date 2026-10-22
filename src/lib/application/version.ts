@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 23,
-  nom: "2.21.0",
-  notes: "Visite guidée plus courte, invitation à activer les notifications de commande, suppression du compte dans l'application, verrouillage optionnel des espaces professionnels (empreinte ou code du téléphone).",
+  code: 24,
+  nom: "2.22.0",
+  notes: "Vos adresses enregistrées sont proposées à la commande en livraison ; cœur favori sur la fiche d'un restaurant.",
   obligatoire: false,
-  apkSha256: "8821983a1408f4aadb069587db7e63eb8f739fb6924489ff7d07abdeb601e65f",
+  apkSha256: "c78de6cf45d5d7d902cf1f2f9f23da5a4d08ddf9e3d3207b368d11a6b6df5a22",
   apkTaille: 14707742,
 };

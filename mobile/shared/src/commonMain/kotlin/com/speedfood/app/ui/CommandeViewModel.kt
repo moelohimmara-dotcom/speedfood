@@ -80,11 +80,16 @@ class CommandeViewModel(
     private val restaurants: RestaurantApi,
     private val livraisonApi: LivraisonApi,
     private val locales: CommandesLocales,
+    private val clientApi: com.speedfood.app.data.ClientApi,
 ) : ViewModel() {
     private val _etat = MutableStateFlow(EtatCommande())
     val etat: StateFlow<EtatCommande> = _etat.asStateFlow()
     private val _quartiers = MutableStateFlow<List<QuartierChoix>>(emptyList())
     val quartiers: StateFlow<List<QuartierChoix>> = _quartiers.asStateFlow()
+    private val _adresses = MutableStateFlow<List<com.speedfood.app.data.AdresseClient>>(emptyList())
+
+    /** Carnet d'adresses du compte connecté (vide sans compte ou hors ligne) : proposé dans le formulaire de livraison. */
+    val adresses: StateFlow<List<com.speedfood.app.data.AdresseClient>> = _adresses.asStateFlow()
     private var cle: String = nouvelleCleIdempotence()
     private var signaturePanier: String = ""
     private var calcul: Job? = null
@@ -107,10 +112,24 @@ class CommandeViewModel(
         }
     }
 
+    /** Le carnet d'adresses n'est lu qu'une fois, si la personne est connectée ; un échec ne gêne jamais la commande (elle saisit l'adresse à la main). */
+    private fun chargerAdresses() {
+        if (_adresses.value.isNotEmpty()) return
+        viewModelScope.launch {
+            val jeton = session.jetonValide() ?: return@launch
+            try {
+                _adresses.value = clientApi.espace(jeton).adresses
+            } catch (_: ErreurReseau) {
+                // Meilleur effort.
+            }
+        }
+    }
+
     fun choisirMode(livraison: Boolean) {
         _etat.value = _etat.value.copy(livraison = livraison, erreur = null, info = null)
         if (livraison) {
             chargerQuartiers()
+            chargerAdresses()
             estimer()
         } else {
             calcul?.cancel()

@@ -32,6 +32,8 @@ Corrige O1, O2, O3, S6, S8, S9.
 **Critère :** un nouvel utilisateur commande en moins de 2 minutes sans mot de passe ; suppression de compte vérifiée de bout en bout en base.
 
 ## Phase C : découverte et commande (2.22.0 à 2.24.0)
+**Lot C1 livré le 22 octobre 2026 (2.22.0) :** carnet d'adresses proposé dans la commande en livraison (puces, adresse par défaut préremplie), cœur « favori » sur la fiche restaurant (rempli selon le compte, connexion proposée sans compte). Vérifiés dans l'émulateur. **Constaté, pas fait :** la note au restaurant demande une colonne en base (la commande n'a pas ce champ côté serveur) ; le libellé « à confirmer » est la règle produit commune au site (à changer ensemble, décision de Malika) ; le stepper de quantité existe déjà dans le panier.
+
 Corrige C1, C2, C3. Dépend du **contenu** (photos et menus réels : tâche de Malika/équipe).
 - Accueil : sections « Ouverts maintenant », « Près de vous », « Les mieux notés », cuisines ; cartes avec photo, délai, frais, note ; libellé « Disponibilité à vérifier » à la place du jargon.
 - Fiche restaurant : photos, sections, recherche dans le menu, **fiche plat** (options, quantité), cœur favori.
