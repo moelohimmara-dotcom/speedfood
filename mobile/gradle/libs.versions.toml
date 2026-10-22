@@ -1,6 +1,7 @@
 [versions]
 agp = "9.1.1"
 firebase-bom = "34.4.0"
+androidx-fragment = "1.8.9"
 google-services = "4.4.4"
 firebase-crashlytics-plugin = "3.0.6"
 android-compileSdk = "37"
@@ -20,6 +21,7 @@ ktor = "3.5.1"
 
 [libraries]
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "androidx-fragment" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 /** Fichiers servis depuis `public/`. Voir docs/APPLICATION-ANDROID.md pour reconstruire l'application et mettre à jour l'empreinte. */
 const FICHIER_APK = "/speedfood.apk";
 const FICHIER_EMPREINTE = "/speedfood.apk.sha256";
-const VERSION = "2.6.0";
+const VERSION = "2.7.0";
 
 const ETAPES_ANDROID = [
   "Touchez « Télécharger l'application Android » ci-dessus.",
@@ -57,7 +57,7 @@ export default function InstallerPage() {
         <p className="installer-note">
           L&apos;application n&apos;est pas encore sur Google Play : Android affiche donc un avertissement standard avant d&apos;installer un fichier téléchargé.
           Cette version permet de parcourir les restaurants, de créer un compte, de commander (retrait ou livraison), de suivre votre commande et de retrouver votre historique.
-          Les livreurs ont leur espace (compte ouvert par l&apos;équipe Speedfood). Un logo animé et une visite guidée vous accueillent au premier lancement. Les livreurs peuvent poursuivre leur suivi écran éteint, avec leur accord. Les restaurateurs gèrent commandes, menu et paiements, et peuvent être alertés application fermée. Les notifications arrivent dans une prochaine version.
+          Les livreurs ont leur espace (compte ouvert par l&apos;équipe Speedfood). Un logo animé et une visite guidée vous accueillent au premier lancement. Les livreurs peuvent poursuivre leur suivi écran éteint, avec leur accord. Les restaurateurs gèrent commandes, menu et paiements, et peuvent être alertés application fermée. Des notifications préviennent des nouvelles commandes, des courses et de l&apos;avancement de votre commande (les téléphones sans services Google n&apos;en reçoivent pas). Les notifications arrivent dans une prochaine version.
         </p>
         <p className="installer-note">
           Pour vérifier le fichier, comparez son empreinte avec <a className="lien-texte" href={FICHIER_EMPREINTE}>l&apos;empreinte SHA-256 publiée</a>.
