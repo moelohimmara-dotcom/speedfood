@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Version de DÉBOGAGE seulement (jamais dans l'APK publiée) : permet d'atteindre le faux serveur d'essai local (scripts/faux-serveur-application.mjs) en HTTP. -->
+    <application android:usesCleartextTraffic="true" />
+</manifest>

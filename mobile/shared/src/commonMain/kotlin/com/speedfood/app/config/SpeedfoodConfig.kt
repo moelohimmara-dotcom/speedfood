@@ -11,5 +11,6 @@ data class SpeedfoodConfig(
     val supabaseAnonKey: String,
     val siteUrl: String,
 ) {
-    val estComplete: Boolean get() = supabaseUrl.startsWith("https://") && supabaseAnonKey.isNotBlank()
+    /** HTTPS exigé ; seule exception : le faux serveur d'essai de l'émulateur (`http://10.0.2.2`, voir scripts/faux-serveur-application.mjs). Android bloque de toute façon le HTTP en clair dans l'APK publiée. */
+    val estComplete: Boolean get() = (supabaseUrl.startsWith("https://") || supabaseUrl.startsWith("http://10.0.2.2")) && supabaseAnonKey.isNotBlank()
 }
