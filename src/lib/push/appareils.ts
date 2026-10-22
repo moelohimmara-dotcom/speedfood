@@ -69,6 +69,19 @@ export async function notifierUtilisateursFcm(utilisateurIds: string[], type: Ty
   return bilan;
 }
 
+/**
+ * Prévient l'équipe Speedfood (rôles « operations » et « super_admin », leurs applications natives) qu'une commande vient d'arriver dans un établissement TENU PAR
+ * L'ÉQUIPE (mode de vente « speedfood ») : personne d'autre ne la traitera. Sans effet pour un établissement autonome. Texte générique, aucune donnée de client.
+ */
+export async function notifierEquipeCommandeFcm(restaurantId: string): Promise<BilanFcm | null> {
+  if (!compteServiceConfigure()) return null;
+  const db = sansTypes();
+  const { data: restaurant } = await db.from("restaurants").select("mode_vente").eq("id", restaurantId).maybeSingle();
+  if ((restaurant as { mode_vente?: string } | null)?.mode_vente !== "speedfood") return null;
+  const { data } = await db.from("system_admin_memberships").select("utilisateur_id").in("role", ["operations", "super_admin"]).limit(50);
+  return notifierUtilisateursFcm(((data ?? []) as Array<{ utilisateur_id: string }>).map((m) => m.utilisateur_id), "equipe_commande");
+}
+
 /** Prévient les membres d'un restaurant (leurs applications natives) qu'une commande est arrivée. */
 export async function notifierRestaurantFcm(restaurantId: string, type: TypeNotification = "commande_nouvelle"): Promise<BilanFcm | null> {
   if (!compteServiceConfigure()) return null;

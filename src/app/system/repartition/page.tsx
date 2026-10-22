@@ -5,6 +5,7 @@ import { traiterCommandeEquipeAction } from "@/lib/system-admin/repartition";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { ActualisationAuto } from "./ActualisationAuto";
+import { AlerteEquipe } from "./AlerteEquipe";
 
 export const metadata = { title: "Poste de répartition (administration)" };
 export const dynamic = "force-dynamic";
@@ -105,6 +106,7 @@ export default async function RepartitionPage() {
   return (
     <div>
       <ActualisationAuto />
+      <AlerteEquipe aConfirmer={aConfirmer.map((c) => c.id)} />
       <PageHeader titre="Poste de répartition" description="Commandes des établissements tenus par l'équipe : joindre le restaurant, confirmer, suivre la préparation et la remise. La page se met à jour toute seule." />
       <div className="ad-pile">
         <section className="ad-cartes" aria-label="Chiffres clés de la répartition">

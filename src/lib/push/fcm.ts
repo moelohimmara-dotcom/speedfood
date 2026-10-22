@@ -22,7 +22,7 @@ export function lireCompteServiceFcm(brut: string | undefined): CompteServiceFcm
 }
 
 /** Type d'événement notifié : détermine le texte, le canal Android (créé par l'application) et la durée de validité. */
-export type TypeNotification = "commande_nouvelle" | "course_offre" | "commande_acceptee" | "commande_prete" | "commande_terminee" | "commande_refusee" | "commande_annulee" | "essai" | "mise_a_jour";
+export type TypeNotification = "commande_nouvelle" | "course_offre" | "commande_acceptee" | "commande_prete" | "commande_terminee" | "commande_refusee" | "commande_annulee" | "essai" | "mise_a_jour" | "equipe_commande";
 
 export interface ContenuNotification {
   titre: string;
@@ -42,6 +42,7 @@ const CONTENUS: Record<TypeNotification, ContenuNotification> = {
   commande_refusee: { titre: "Commande refusée", texte: "Le restaurant n'a pas pu accepter votre commande.", canal: "suivi_commande", validiteSecondes: 3600 },
   commande_annulee: { titre: "Commande annulée", texte: "Votre commande a été annulée.", canal: "suivi_commande", validiteSecondes: 3600 },
   mise_a_jour: { titre: "Mise à jour disponible", texte: "Une nouvelle version de Speedfood est disponible. Ouvrez l'application pour la télécharger.", canal: "mise_a_jour", validiteSecondes: 604800 },
+  equipe_commande: { titre: "Commande à confirmer", texte: "Un établissement tenu par Speedfood a une commande à confirmer. Ouvrez le poste de répartition.", canal: "alerte_commande", validiteSecondes: 1800 },
   essai: { titre: "Essai Speedfood", texte: "Les notifications fonctionnent sur cet appareil.", canal: "suivi_commande", validiteSecondes: 300 },
 };
 

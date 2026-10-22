@@ -51,7 +51,7 @@ verifier("message : appareil, canal d'alerte, priorité haute, validité 30 min"
 verifier("message : données = le type seulement", m.message.data, { type: "commande_nouvelle" });
 verifier("offre de course : canal dédié et validité de 60 s (l'offre expire)", [contenuPourType("course_offre").canal, contenuPourType("course_offre").validiteSecondes], ["offre_course", 60]);
 verifier("mode validation sans envoi", [("validate_only" in construireMessageFcm(jeton, "essai", true)), ("validate_only" in construireMessageFcm(jeton, "essai"))], [true, false]);
-const tous: TypeNotification[] = ["commande_nouvelle", "course_offre", "commande_acceptee", "commande_prete", "commande_terminee", "commande_refusee", "commande_annulee", "essai", "mise_a_jour"];
+const tous: TypeNotification[] = ["commande_nouvelle", "course_offre", "commande_acceptee", "commande_prete", "commande_terminee", "commande_refusee", "commande_annulee", "essai", "mise_a_jour", "equipe_commande"];
 verifier("aucun texte ne contient de donnée personnelle (téléphone, montant, référence, nom)", tous.some((t) => /\d|GNF|SF-|\+224/.test(contenuPourType(t).titre + contenuPourType(t).texte)), false);
 
 // Lecture de la réponse.

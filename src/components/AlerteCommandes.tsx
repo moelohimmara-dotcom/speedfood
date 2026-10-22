@@ -81,14 +81,14 @@ function permissionNotif(): string {
 
 type ContexteAudio = AudioContext;
 
-function creerContexteAudio(): ContexteAudio | null {
+export function creerContexteAudio(): ContexteAudio | null {
   const Constructeur =
     window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   return Constructeur ? new Constructeur() : null;
 }
 
 /** Deux notes montantes, deux fois : reconnaissable sans être agressif. */
-function jouerCarillon(ctx: ContexteAudio): void {
+export function jouerCarillon(ctx: ContexteAudio): void {
   const t = ctx.currentTime;
   const notes: Array<[number, number]> = [
     [880, 0],
