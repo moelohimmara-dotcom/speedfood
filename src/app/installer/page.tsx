@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { VERSION_APPLICATION } from "@/lib/application/version";
 
 export const metadata: Metadata = {
   title: "Télécharger l'application Speedfood",
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 /** Fichiers servis depuis `public/`. Voir docs/APPLICATION-ANDROID.md pour reconstruire l'application et mettre à jour l'empreinte. */
 const FICHIER_APK = "/speedfood.apk";
 const FICHIER_EMPREINTE = "/speedfood.apk.sha256";
-const VERSION = "2.7.0";
+const VERSION = VERSION_APPLICATION.nom;
 
 const ETAPES_ANDROID = [
   "Touchez « Télécharger l'application Android » ci-dessus.",

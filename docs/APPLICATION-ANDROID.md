@@ -20,10 +20,10 @@ Mise à jour du 21 octobre 2026. Page publique : `/installer`. Décision : ADR-0
    - définir `SPEEDFOOD_KEYSTORE` (chemin du fichier de clé) et `SPEEDFOOD_KEYSTORE_PASSWORD` (lu dans `mot-de-passe.txt`, **sans jamais l'afficher**) ;
    - `./gradlew :androidApp:assembleRelease`.
 3. Vérifier la signature : `apksigner verify --print-certs androidApp/build/outputs/apk/release/androidApp-release.apk` (l'empreinte SHA-256 doit être celle ci-dessus).
-4. Copier le fichier vers `public/speedfood.apk`, écrire son SHA-256 dans `public/speedfood.apk.sha256`, mettre à jour `VERSION` dans `src/app/installer/page.tsx`, puis déployer.
+4. Copier le fichier vers `public/speedfood.apk`, écrire son SHA-256 dans `public/speedfood.apk.sha256`, mettre à jour `src/lib/application/version.ts` (source unique : page `/installer`, route publique `/api/v1/version` et annonce ; un test vérifie qu'elle égale `versionCode`/`versionName`), puis déployer. Après le déploiement, bouton « Annoncer la version » dans `/system/mises-a-jour` : notification poussée « Mise à jour disponible » aux appareils enregistrés (une fois par version, tracée dans l'audit).
 Aucun secret n'est stocké dans le dépôt : la signature se lit dans l'environnement (`mobile/androidApp/build.gradle.kts`).
 
 ## Contraintes à connaître
 - Hors Google Play, Android affiche un avertissement « source inconnue » à l'installation. Publier sur Play exige un compte développeur payant (décision de Malika).
-- Mise à jour : sans Play, l'application ne se met pas à jour toute seule ; une nouvelle version se télécharge de nouveau depuis `/installer`. Une vérification de version intégrée est à prévoir dans un lot suivant.
+- Mise à jour : sans Play, l'application ne s'installe pas seule ; une nouvelle version se télécharge depuis `/installer`. Depuis la 2.8.0, l'application interroge `/api/v1/version` à l'ouverture : bandeau « Mise à jour disponible » (« Plus tard » masque la version, sauf si `obligatoire`) et notification dans le centre de notifications du téléphone (canal `mise_a_jour`, une fois par version). Les applications fermées sont prévenues par l'annonce poussée. Les versions antérieures à la 2.8.0 n'ont pas cette vérification : elles ne la reçoivent que par l'annonce poussée (2.7.0) ou en retournant sur `/installer`.
 - Non testée sur un vrai téléphone depuis le poste de développement : la signature et le contenu du paquet sont vérifiés, pas le lancement.

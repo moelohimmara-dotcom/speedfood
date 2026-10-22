@@ -72,5 +72,6 @@ fun creerCanauxNotification(contexte: Context) {
     val gestionnaire = contexte.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     gestionnaire.createNotificationChannel(NotificationChannel("alerte_commande", "Nouvelles commandes", NotificationManager.IMPORTANCE_HIGH).apply { description = "Alerte sonore quand une commande attend votre réponse." })
     gestionnaire.createNotificationChannel(NotificationChannel("offre_course", "Nouvelles courses", NotificationManager.IMPORTANCE_HIGH).apply { description = "Alerte quand une course vous est proposée." })
+    gestionnaire.createNotificationChannel(NotificationChannel("mise_a_jour", "Mises à jour", NotificationManager.IMPORTANCE_DEFAULT).apply { description = "Annonce d'une nouvelle version de Speedfood." })
     gestionnaire.createNotificationChannel(NotificationChannel("suivi_commande", "Suivi de commande", NotificationManager.IMPORTANCE_DEFAULT).apply { description = "Avancement de votre commande : acceptée, prête, terminée." })
 }

@@ -5,6 +5,11 @@ import com.speedfood.app.data.AuthApi
 import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.KtorAuthApi
+import com.speedfood.app.data.KtorVersionApi
+import com.speedfood.app.data.NotificateurMiseAJour
+import com.speedfood.app.data.NotificateurIndisponible
+import com.speedfood.app.data.SuiviMiseAJour
+import com.speedfood.app.data.VersionApi
 import com.speedfood.app.data.KtorCommandeApi
 import com.speedfood.app.data.AlerteCommande
 import com.speedfood.app.data.AppareilApi
@@ -57,6 +62,8 @@ fun modulesApplication(
     plateforme: String = "android",
     versionApp: String? = null,
     google: FournisseurGoogle = GoogleIndisponible(),
+    codeVersionApp: Int = 0,
+    notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
 ) = listOf(
     module {
         single { config }
@@ -65,6 +72,7 @@ fun modulesApplication(
         single { alerte }
         single { jetonPush }
         single { google }
+        single { notificateurMiseAJour }
         single {
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -83,6 +91,8 @@ fun modulesApplication(
         single<LivreurApi> { KtorLivreurApi(get(), get()) }
         single<RestaurateurApi> { KtorRestaurateurApi(get(), get()) }
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
+        single<VersionApi> { KtorVersionApi(get(), get()) }
+        single { SuiviMiseAJour(get(), get(), codeVersionApp, get(), get()) }
         single { EnregistrementPush(get(), get(), get(), get(), plateforme, versionApp) }
         single { PanierService() }
         single { CommandesLocales(get()) }
@@ -107,8 +117,10 @@ fun initKoin(
     plateforme: String = "android",
     versionApp: String? = null,
     google: FournisseurGoogle = GoogleIndisponible(),
+    codeVersionApp: Int = 0,
+    notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
 ) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google)) }
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour)) }
 }
 
 /**

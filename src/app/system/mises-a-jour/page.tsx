@@ -5,6 +5,9 @@ import { listerFonctionnalites } from "@/lib/system-admin/fonctionnalites";
 import { MISES_A_JOUR } from "@/lib/system-admin/misesAJourCatalogue";
 import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { InterrupteurFonctionnalite } from "./InterrupteurFonctionnalite";
+import { AnnonceVersion } from "./AnnonceVersion";
+import { VERSION_APPLICATION } from "@/lib/application/version";
+import { compterAppareils, derniereAnnonce } from "@/lib/push/annonce-version";
 
 export const metadata = { title: "Mises à jour (administration)" };
 
@@ -24,6 +27,7 @@ export default async function MisesAJourPage() {
   const fonctionnalites = await listerFonctionnalites();
   const parCle = new Map(fonctionnalites.map((f) => [f.cle, f]));
   const coupees = fonctionnalites.filter((f) => !f.active).length;
+  const [annonce, appareils] = await Promise.all([derniereAnnonce(), compterAppareils()]);
 
   return (
     <div>
@@ -33,6 +37,23 @@ export default async function MisesAJourPage() {
       />
 
       <SousNav entrees={sousSectionsAccessibles("Paramètres", contexte.role)} />
+
+      <Panneau titre="Application mobile">
+        <p className="u-m-0">
+          Version publiée sur <code>/installer</code> : <strong>{VERSION_APPLICATION.nom}</strong> (numéro {VERSION_APPLICATION.code}). {appareils} appareil(s) enregistré(s) pour les notifications.
+        </p>
+        <p className="u-m-0">
+          {annonce ? (
+            <>
+              Dernière annonce : version {annonce.versionNom}, le {jour(annonce.annonceeLe)} ({annonce.envoyes} notifié(s) sur {annonce.appareils}).
+            </>
+          ) : (
+            "Aucune version n'a encore été annoncée."
+          )}{" "}
+          Les applications déjà ouvertes détectent seules la nouvelle version ; l&apos;annonce prévient aussi celles qui sont fermées, dans le centre de notifications du téléphone.
+        </p>
+        <AnnonceVersion version={VERSION_APPLICATION.nom} dejaAnnoncee={annonce?.versionCode === VERSION_APPLICATION.code} />
+      </Panneau>
 
       <Panneau titre="État général">
         <p className="u-m-0">

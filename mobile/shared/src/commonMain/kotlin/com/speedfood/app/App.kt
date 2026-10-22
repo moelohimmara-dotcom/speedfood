@@ -2,6 +2,7 @@ package com.speedfood.app
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -10,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -19,6 +21,7 @@ import androidx.navigation.toRoute
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.design.SpeedfoodTheme
+import com.speedfood.app.ui.BandeauMiseAJour
 import com.speedfood.app.ui.CommandeScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.CLE_VISITE_VUE
@@ -90,7 +93,10 @@ fun App(config: SpeedfoodConfig) {
                         stockage.ecrire(CLE_VISITE_VUE, "1")
                         phase = Phase.Application
                     }
-                    Phase.Application -> Application(config)
+                    Phase.Application -> Box {
+                        Application(config)
+                        BandeauMiseAJour(Modifier.align(Alignment.TopCenter))
+                    }
                 }
             }
         }

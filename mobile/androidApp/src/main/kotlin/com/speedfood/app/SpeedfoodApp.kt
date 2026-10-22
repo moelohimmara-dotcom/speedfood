@@ -34,7 +34,7 @@ class SpeedfoodApp : Application() {
         alerte = AlerteAndroid(this)
         creerCanauxNotification(this)
         google = GoogleAndroid(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-        initKoin(config, StockagePreferences(this), position, alerte, JetonFirebase(this), "android", BuildConfig.VERSION_NAME, google)
+        initKoin(config, StockagePreferences(this), position, alerte, JetonFirebase(this), "android", BuildConfig.VERSION_NAME, google, BuildConfig.VERSION_CODE, NotificateurMiseAJourAndroid(this))
         // Lie l'appareil au compte connecté pour les notifications poussées (dès le démarrage si une session existe, puis à chaque connexion).
         lancerEnregistrementPush(CoroutineScope(SupervisorJob() + Dispatchers.IO))
     }
