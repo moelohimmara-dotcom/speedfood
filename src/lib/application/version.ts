@@ -17,8 +17,8 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 14,
-  nom: "2.12.0",
-  notes: "Espace équipe : support des commandes (recherche, détail, changement de statut motivé, coordonnées sur motif) et poste de répartition.",
+  code: 15,
+  nom: "2.13.0",
+  notes: "Espace équipe : livraisons (affecter, relancer, faire avancer) et livreurs (approuver, mettre en ligne, suspendre), support des commandes, répartition.",
   obligatoire: false,
 };

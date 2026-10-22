@@ -41,6 +41,7 @@ import com.speedfood.app.ui.CommandeViewModel
 import com.speedfood.app.ui.EquipeViewModel
 import com.speedfood.app.ui.RepartitionViewModel
 import com.speedfood.app.ui.SupportViewModel
+import com.speedfood.app.ui.ExploitationViewModel
 import com.speedfood.app.ui.DetailSupportViewModel
 import com.speedfood.app.ui.ConnexionViewModel
 import com.speedfood.app.ui.LivreurViewModel
@@ -118,6 +119,7 @@ fun modulesApplication(
         factoryOf(::EquipeViewModel)
         factoryOf(::RepartitionViewModel)
         factoryOf(::SupportViewModel)
+        factoryOf(::ExploitationViewModel)
         factory { parametres -> DetailSupportViewModel(get(), get(), parametres.get()) }
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }
     },

@@ -26,6 +26,8 @@ import com.speedfood.app.ui.CommandeScreen
 import com.speedfood.app.ui.EquipeScreen
 import com.speedfood.app.ui.RepartitionScreen
 import com.speedfood.app.ui.SupportCommandesScreen
+import com.speedfood.app.ui.LivraisonsEquipeScreen
+import com.speedfood.app.ui.LivreursEquipeScreen
 import com.speedfood.app.ui.DetailSupportScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.CLE_VISITE_VUE
@@ -87,6 +89,12 @@ object RepartitionDestination
 
 @Serializable
 object SupportDestination
+
+@Serializable
+object LivraisonsEquipeDestination
+
+@Serializable
+object LivreursEquipeDestination
 
 @Serializable
 data class DetailSupportDestination(val id: String)
@@ -192,7 +200,15 @@ private fun Application(config: SpeedfoodConfig) {
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onRepartition = { navController.navigate(RepartitionDestination) },
                     onSupport = { navController.navigate(SupportDestination) },
+                    onLivraisons = { navController.navigate(LivraisonsEquipeDestination) },
+                    onLivreurs = { navController.navigate(LivreursEquipeDestination) },
                 )
+            }
+            composable<LivraisonsEquipeDestination> {
+                LivraisonsEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+            }
+            composable<LivreursEquipeDestination> {
+                LivreursEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<SupportDestination> {
                 SupportCommandesScreen(

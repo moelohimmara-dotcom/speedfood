@@ -13,6 +13,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /** Une section de l'espace admin (même chemin que sur le site) ; [natif] : elle a son écran dans l'application, sinon elle s'ouvre sur le site. */
 @Serializable
@@ -141,6 +143,90 @@ private data class CorpsStatutSupport(val vers: String, val motif: String)
 private data class CorpsMotif(val motif: String)
 
 @Serializable
+data class OffreEquipe(val livreurNom: String = "", val expireLe: String = "")
+
+/** Une livraison vue par l'exploitation : course en cours, livreur sollicité ou affecté. */
+@Serializable
+data class LivraisonEquipe(
+    val id: String,
+    val commandeReference: String = "",
+    val restaurantNom: String = "",
+    val mode: String = "",
+    val statut: String = "",
+    val libelle: String = "",
+    val livreurId: String? = null,
+    val livreurNom: String? = null,
+    val fraisGnf: Int = 0,
+    val distanceKm: Double? = null,
+    val creeLe: String = "",
+    val offreEnCours: OffreEquipe? = null,
+    val raison: String? = null,
+)
+
+/** Fiche d'un livreur (jamais son dossier d'identité : il reste réservé au super administrateur, sur le site). */
+@Serializable
+data class LivreurEquipe(
+    val id: String,
+    val nom: String = "",
+    val telephone: String? = null,
+    val cycle: String = "",
+    val motifCycle: String? = null,
+    val vehicule: String = "",
+    val statut: String = "",
+    val simule: Boolean = false,
+    val aPosition: Boolean = false,
+)
+
+@Serializable
+data class ExploitationLivraison(val livraisons: List<LivraisonEquipe> = emptyList(), val livreurs: List<LivreurEquipe> = emptyList())
+
+/** Retour d'une action d'exploitation : le message du serveur (succès ou refus). */
+data class RetourEquipe(val ok: Boolean, val message: String)
+
+private val STATUTS_LIVRAISON_FINAUX = setOf("livree", "echec", "annulee")
+
+/** Prochaine étape d'une livraison (mêmes libellés que le site), ou null si elle est terminée ou sans étape manuelle. */
+fun etapeSuivanteLivraison(l: LivraisonEquipe): Pair<String, String>? = when {
+    l.statut in STATUTS_LIVRAISON_FINAUX -> null
+    l.mode == "speedfood" -> when (l.statut) {
+        "assignee" -> "vers_restaurant" to "Le livreur part au restaurant"
+        "vers_restaurant" -> "recuperee" to "Commande récupérée"
+        "recuperee" -> "vers_client" to "Parti chez le client"
+        "vers_client" -> "livree" to "Marquer livrée"
+        else -> null
+    }
+    else -> when (l.statut) {
+        "assignee" -> "vers_client" to "Parti livrer"
+        "vers_client" -> "livree" to "Marquer livrée"
+        else -> null
+    }
+}
+
+/** Une course est « en recherche de livreur » quand c'est un livreur Speedfood et qu'aucun n'est encore affecté. */
+fun enRechercheDeLivreur(l: LivraisonEquipe): Boolean = l.mode == "speedfood" && (l.statut == "a_assigner" || l.statut == "offre_envoyee")
+
+fun livraisonTerminee(l: LivraisonEquipe): Boolean = l.statut in STATUTS_LIVRAISON_FINAUX
+
+/** Actions possibles sur un livreur selon son cycle de vie : (code, libellé, motif obligatoire). */
+fun actionsLivreur(l: LivreurEquipe): List<Triple<String, String, Boolean>> = when (l.cycle) {
+    "candidat" -> listOf(Triple("approuver", "Approuver", false), Triple("refuser", "Refuser la candidature", true))
+    "actif" -> buildList {
+        if (l.statut != "en_course") add(if (l.statut == "disponible") Triple("hors_ligne", "Mettre hors ligne", false) else Triple("en_ligne", "Mettre en ligne", false))
+        add(Triple("suspendre", "Suspendre", true))
+        add(Triple("archiver", "Archiver", true))
+    }
+    "suspendu" -> listOf(Triple("reactiver", "Réactiver", false), Triple("archiver", "Archiver", true))
+    "cree", "invite" -> listOf(Triple("archiver", "Archiver", true))
+    else -> emptyList()
+}
+
+@Serializable
+private data class ReponseExploitation(val ok: Boolean = false, val livraisons: List<LivraisonEquipe> = emptyList(), val livreurs: List<LivreurEquipe> = emptyList(), val erreur: ErreurServeurEquipe? = null)
+
+@Serializable
+private data class ReponseMessage(val ok: Boolean = false, val message: String = "", val erreur: ErreurServeurEquipe? = null)
+
+@Serializable
 private data class ErreurServeurEquipe(val code: String = "", val message: String = "")
 
 @Serializable
@@ -176,6 +262,15 @@ interface EquipeApi {
 
     /** Révèle téléphone et adresse (motif obligatoire, tracé avant affichage). Lève [ErreurReseau]/[ErreurAcces] avec le message du serveur en cas de refus. */
     suspend fun reveler(jetonAcces: String, commandeId: String, motif: String): CoordonneesClient
+
+    /** Livraisons récentes et fiches des livreurs (exploitation). */
+    suspend fun exploitation(jetonAcces: String): ExploitationLivraison
+
+    /** Action sur une livraison : « assigner » (+ livreurId), « relancer », « avancer » (+ vers), « annuler » (+ raison). */
+    suspend fun actionLivraison(jetonAcces: String, livraisonId: String, action: String, parametres: Map<String, String>): RetourEquipe
+
+    /** Action sur un livreur : « en_ligne », « hors_ligne », « approuver », « refuser », « suspendre », « reactiver », « archiver » (+ motif). */
+    suspend fun actionLivreur(jetonAcces: String, livreurId: String, action: String, motif: String?): RetourEquipe
 }
 
 class KtorEquipeApi(private val client: HttpClient, private val config: SpeedfoodConfig) : EquipeApi {
@@ -268,6 +363,48 @@ class KtorEquipeApi(private val client: HttpClient, private val config: Speedfoo
             return@appeler "La réponse de Speedfood est illisible. Actualisez pour voir l'état de la commande."
         }
         if (lu.ok) null else lu.erreur?.message ?: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant."
+    }
+
+    override suspend fun exploitation(jetonAcces: String): ExploitationLivraison = appeler {
+        val r = try {
+            client.get(url("livraisons")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }.body<ReponseExploitation>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!r.ok) refus(r.erreur, "Les livraisons n'ont pas pu être chargées. Réessayez dans un instant.")
+        ExploitationLivraison(r.livraisons, r.livreurs)
+    }
+
+    private suspend fun envoyerAction(chemin: String, jetonAcces: String, corps: String): RetourEquipe = appeler {
+        val reponse = client.post(url(chemin)) {
+            header(HttpHeaders.Authorization, "Bearer $jetonAcces")
+            contentType(ContentType.Application.Json)
+            setBody(corps)
+        }
+        val lu = try {
+            reponse.body<ReponseMessage>()
+        } catch (e: Exception) {
+            return@appeler RetourEquipe(false, "La réponse de Speedfood est illisible. Actualisez pour voir l'état réel.")
+        }
+        if (lu.ok) RetourEquipe(true, lu.message) else RetourEquipe(false, lu.erreur?.message ?: "Votre demande n'a pas pu être enregistrée. Réessayez dans un instant.")
+    }
+
+    override suspend fun actionLivraison(jetonAcces: String, livraisonId: String, action: String, parametres: Map<String, String>): RetourEquipe {
+        val corps = buildJsonObject {
+            put("action", action)
+            put("livraisonId", livraisonId)
+            parametres.forEach { (cle, valeur) -> put(cle, valeur) }
+        }
+        return envoyerAction("livraisons/action", jetonAcces, corps.toString())
+    }
+
+    override suspend fun actionLivreur(jetonAcces: String, livreurId: String, action: String, motif: String?): RetourEquipe {
+        val corps = buildJsonObject {
+            put("action", action)
+            put("livreurId", livreurId)
+            if (motif != null) put("motif", motif)
+        }
+        return envoyerAction("livreurs/action", jetonAcces, corps.toString())
     }
 
     override suspend fun reveler(jetonAcces: String, commandeId: String, motif: String): CoordonneesClient = appeler {

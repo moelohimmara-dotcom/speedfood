@@ -220,7 +220,7 @@ internal fun ContenuDetailSupport(e: EtatDetailSupport.Pret, surStatut: (String,
 
 /** Saisie d'un motif obligatoire (500 caractères au plus) avant une action sensible ; le serveur le revérifie et le journalise. */
 @Composable
-private fun DialogueMotif(titre: String, surAnnuler: () -> Unit, surConfirmer: (String) -> Unit) {
+internal fun DialogueMotif(titre: String, surAnnuler: () -> Unit, surConfirmer: (String) -> Unit) {
     var motif by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = surAnnuler,
