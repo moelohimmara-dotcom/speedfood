@@ -25,6 +25,8 @@ import com.speedfood.app.ui.BandeauMiseAJour
 import com.speedfood.app.ui.CommandeScreen
 import com.speedfood.app.ui.EquipeScreen
 import com.speedfood.app.ui.RepartitionScreen
+import com.speedfood.app.ui.SupportCommandesScreen
+import com.speedfood.app.ui.DetailSupportScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.CLE_VISITE_VUE
 import com.speedfood.app.ui.EcranOuverture
@@ -82,6 +84,12 @@ object EquipeDestination
 
 @Serializable
 object RepartitionDestination
+
+@Serializable
+object SupportDestination
+
+@Serializable
+data class DetailSupportDestination(val id: String)
 
 /** Les trois temps du lancement : le logo s'anime, la visite guidée (une seule fois, au premier lancement), puis l'application. */
 private enum class Phase { Ouverture, Visite, Application }
@@ -183,6 +191,21 @@ private fun Application(config: SpeedfoodConfig) {
                     onRetour = { navController.popBackStack() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onRepartition = { navController.navigate(RepartitionDestination) },
+                    onSupport = { navController.navigate(SupportDestination) },
+                )
+            }
+            composable<SupportDestination> {
+                SupportCommandesScreen(
+                    onRetour = { navController.popBackStack() },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
+                    onOuvrir = { id -> navController.navigate(DetailSupportDestination(id)) },
+                )
+            }
+            composable<DetailSupportDestination> { entree ->
+                DetailSupportScreen(
+                    commandeId = entree.toRoute<DetailSupportDestination>().id,
+                    onRetour = { navController.popBackStack() },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
                 )
             }
             composable<RepartitionDestination> {
