@@ -152,3 +152,23 @@ export async function basculerFavoriClient(utilisateurId: string, restaurantId: 
   }
   return { ok: true, message: "Favori enregistré.", favori: true };
 }
+
+/**
+ * Suppression par le client de son propre compte depuis l'application (droit à l'effacement), mêmes règles que le site (`supprimerMonCompteAction`) : réservée aux comptes
+ * clients (un compte qui gère un restaurant, un livreur ou un administrateur passe par l'équipe, qui vérifie d'abord les commandes et les membres). L'identité vient du
+ * jeton ; la confirmation écrite « SUPPRIMER » évite une suppression par erreur ou par un appel automatique. Irréversible.
+ */
+export async function supprimerCompteClient(utilisateurId: string, confirmation: unknown): Promise<ResultatEspace> {
+  if (typeof confirmation !== "string" || confirmation.trim().toUpperCase() !== "SUPPRIMER") return echec("Écrivez SUPPRIMER pour confirmer la suppression.");
+  const base = db();
+  const [{ data: membre }, { data: livreur }, { data: roleSysteme }] = await Promise.all([
+    base.from("restaurant_memberships").select("restaurant_id").eq("utilisateur_id", utilisateurId).limit(1).maybeSingle(),
+    base.from("livreurs").select("id").eq("utilisateur_id", utilisateurId).limit(1).maybeSingle(),
+    base.from("system_admin_memberships").select("utilisateur_id").eq("utilisateur_id", utilisateurId).limit(1).maybeSingle(),
+  ]);
+  if (membre || livreur || roleSysteme) return echec("Ce compte a un espace professionnel (restaurant, livreur ou équipe) : écrivez-nous pour le fermer en toute sécurité.");
+  const { error } = await creerClientAdmin().auth.admin.deleteUser(utilisateurId);
+  if (error) return echec("Impossible de supprimer le compte pour le moment. Réessayez dans un instant.");
+  console.log("compte_client_supprime_application");
+  return { ok: true, message: "Votre compte a été supprimé." };
+}

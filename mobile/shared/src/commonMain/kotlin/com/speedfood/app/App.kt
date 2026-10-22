@@ -23,6 +23,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import com.speedfood.app.data.Espace
 import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.PanierService
+import com.speedfood.app.data.VerrouEspacesPro
 import com.speedfood.app.ui.AccesProScreen
 import com.speedfood.app.ui.BandeauAvisAcces
 import com.speedfood.app.ui.ChoixEspaceDialogue
@@ -197,7 +198,12 @@ private fun Application(config: SpeedfoodConfig) {
     val espaces: EspaceService = koinInject()
     val espace by espaces.espace.collectAsState()
     // À la reprise de l'application, les droits du compte sont relus (un droit ajouté ou retiré se voit tout de suite).
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { espaces.actualiser() }
+    val verrou: VerrouEspacesPro = koinInject()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        espaces.actualiser()
+        verrou.reprise()
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { verrou.quitte() }
     Box {
         // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
         if (espace == Espace.Client) ApplicationClient(config) else EspacePro(espace, config)

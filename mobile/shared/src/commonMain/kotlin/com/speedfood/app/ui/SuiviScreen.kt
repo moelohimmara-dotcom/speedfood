@@ -60,7 +60,10 @@ fun SuiviScreen(jeton: String, onRetour: () -> Unit, viewModel: SuiviViewModel =
                 EtatSuivi.Chargement -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = Couleurs.RougeFonce)
                 EtatSuivi.Introuvable -> MessageEtat("Cette commande est introuvable.", "Retour", onRetour)
                 is EtatSuivi.Erreur -> MessageEtat(e.message, "Retour", onRetour)
-                is EtatSuivi.Pret -> ContenuSuivi(e, viewModel::repondre)
+                is EtatSuivi.Pret -> Column(Modifier.fillMaxSize()) {
+                    PrimerNotifications()
+                    Box(Modifier.weight(1f)) { ContenuSuivi(e, viewModel::repondre) }
+                }
             }
         }
     }

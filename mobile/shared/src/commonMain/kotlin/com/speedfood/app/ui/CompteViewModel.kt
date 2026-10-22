@@ -23,6 +23,7 @@ class CompteViewModel(
     private val enregistrementPush: EnregistrementPush,
     private val locales: CommandesLocales,
     private val deconnexion: com.speedfood.app.data.DeconnexionService,
+    private val clientApi: com.speedfood.app.data.ClientApi,
     private val miseAJour: SuiviMiseAJour,
     val installation: com.speedfood.app.data.InstallationMiseAJour,
     private val aide: AideApi,
@@ -79,6 +80,23 @@ class CompteViewModel(
                 }
                 else -> "Vous avez la dernière version (${infos.versionNom})."
             }
+        }
+    }
+
+    /** Supprime le compte (irréversible) ; en cas de refus, le message du serveur s'affiche et rien n'est effacé. */
+    fun supprimerCompte(confirmation: String) {
+        viewModelScope.launch {
+            val jeton = session.jetonValide()
+            if (jeton == null) {
+                _message.value = "Connectez-vous pour supprimer votre compte."
+                return@launch
+            }
+            val retour = try {
+                clientApi.supprimerCompte(jeton, confirmation)
+            } catch (e: com.speedfood.app.data.ErreurReseau) {
+                com.speedfood.app.data.RetourClient(false, e.message ?: "Impossible de joindre Speedfood. Réessayez.")
+            }
+            if (retour.ok) deconnexion.apresSuppression() else _message.value = retour.message
         }
     }
 

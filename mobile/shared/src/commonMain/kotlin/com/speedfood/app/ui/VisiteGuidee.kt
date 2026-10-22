@@ -60,14 +60,25 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /** Une page de la visite : ce qu'elle dit, et le dessin qui l'accompagne (une pure fonction de l'avancement d'entrée et d'une boucle continue). */
-private class Diapo(val titre: String, val texte: String)
+private class Diapo(val titre: String, val texte: String, val dessin: Int)
 
+/** Trois écrans, pas plus : ce qu'on trouve, comment on commande, qui peut ouvrir un autre espace. [dessin] : l'illustration (0 à 4 de [IllustrationVisite]). */
 private val DIAPOS = listOf(
-    Diapo("Tous les restaurants de Conakry", "Parcourez les restaurants publiés, cherchez par nom, quartier ou plat, et repérez ceux qui sont ouverts en ce moment."),
-    Diapo("Une disponibilité qui dit vrai", "Chaque plat et chaque restaurant indique quand il a été confirmé. Sans confirmation récente, on vous le dit : « à confirmer »."),
-    Diapo("Retrait ou livraison", "Choisissez votre quartier, voyez les frais de livraison avant d'envoyer, et réglez directement le restaurant. Aucun paiement dans l'application."),
-    Diapo("Suivez votre commande", "Envoyée, acceptée, prête, terminée : l'écran se met à jour tout seul. Si le restaurant propose un changement, c'est vous qui décidez."),
-    Diapo("Chacun son espace", "Pour commander, vous n'avez rien à choisir. Restaurateurs, livreurs et équipe Speedfood ouvrent leur espace depuis Compte, avec leur propre compte."),
+    Diapo(
+        "Les restaurants près de chez vous",
+        "Parcourez sans compte, cherchez par nom, quartier ou plat. Chaque plat dit quand il a été confirmé : sans confirmation récente, vous le voyez (« à confirmer »).",
+        0,
+    ),
+    Diapo(
+        "Commandez, puis suivez",
+        "Retrait ou livraison : les frais sont affichés avant l'envoi et vous réglez directement le restaurant (aucun paiement dans l'application). L'avancement se met à jour tout seul.",
+        2,
+    ),
+    Diapo(
+        "Chacun son espace",
+        "Pour commander, rien à choisir. Restaurateurs, livreurs et équipe Speedfood ouvrent leur espace depuis Compte, avec leur propre compte.",
+        4,
+    ),
 )
 
 val NOMBRE_DIAPOS = DIAPOS.size
@@ -140,7 +151,7 @@ private fun PageVisite(page: Int, pager: PagerState, boucle: Float) {
             },
             contentAlignment = Alignment.Center,
         ) {
-            IllustrationVisite(page, if (active) entree.value else 1f, boucle)
+            IllustrationVisite(DIAPOS[page].dessin, if (active) entree.value else 1f, boucle)
         }
         Column(
             Modifier.graphicsLayer {

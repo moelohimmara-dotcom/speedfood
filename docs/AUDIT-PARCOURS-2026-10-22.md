@@ -15,6 +15,9 @@
 ## Phase A livrée le 22 octobre 2026 (2.20.0)
 Corrigés et vérifiés dans l'émulateur avec le faux serveur : **S1** (un 401 ferme la session proprement : bandeau « Votre session a expiré » avec « Me reconnecter », retour au client, rien d'effacé), **S2** (la déconnexion garde les commandes en cours ; case « Effacer aussi… »), **S3** (droits relus à la reprise et toutes les 10 min ; un 403 dans un espace relit les droits ; « Votre accès … a été retiré »), **S4** (connexion depuis « Espace professionnel » : espace ouvert directement, ou choix « Quel espace ouvrir ? » s'il y en a plusieurs ; espaces pro en tête de Compte), **S5** (message après déconnexion), **S7** (libellés), **O1** (visite guidée page 5). Tests natifs : `AccesSessionTest`.
 
+## Phase B livrée le 22 octobre 2026 (2.21.0)
+Corrigés : **S8** (suppression de compte dans l'application), **O1/O2** (visite en 3 écrans ; invitation aux notifications au moment du suivi), **S9** (verrou optionnel des espaces pro). Nouveau constat corrigé au passage : les clients ne recevaient aucune notification de commande sur Android 13+ faute d'autorisation demandée. Reportés : choix de localité, code SMS, profil de référence (voir la feuille de route).
+
 ## Constats, par gravité
 **P0 : à corriger avant d'ouvrir au public**
 

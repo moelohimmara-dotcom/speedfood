@@ -33,6 +33,8 @@ import androidx.navigation.toRoute
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.Espace
 import com.speedfood.app.data.EspaceService
+import com.speedfood.app.data.VerrouEspacesPro
+import com.speedfood.app.ui.EcranVerrou
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.ui.AideScreen
 import com.speedfood.app.ui.CompteProScreen
@@ -89,7 +91,15 @@ private fun racineDe(espace: Espace): Any = ongletsDe(espace).first().route
  * propres onglets, et aucune flèche « retour » à la racine d'un onglet. On en sort par Compte, « Espace client ».
  */
 @Composable
-fun EspacePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceService = koinInject()) {
+fun EspacePro(espace: Espace, config: SpeedfoodConfig, verrou: VerrouEspacesPro = koinInject()) {
+    // Verrou optionnel (Paramètres) : jamais actif sans verrouillage d'écran sur le téléphone, pour ne pas bloquer un restaurateur devant une commande.
+    val actif by verrou.actif.collectAsState()
+    val deverrouille by verrou.deverrouille.collectAsState()
+    if (actif && !deverrouille && verrou.disponible()) EcranVerrou(espace) else CoquePro(espace, config)
+}
+
+@Composable
+private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceService = koinInject()) {
     val navController = rememberNavController()
     val entree by navController.currentBackStackEntryAsState()
     val destination = entree?.destination

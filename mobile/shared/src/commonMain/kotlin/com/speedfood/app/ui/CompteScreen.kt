@@ -105,6 +105,7 @@ fun CompteScreen(
     val message by viewModel.message.collectAsState()
     val ouvreur = LocalUriHandler.current
     var deconnexion by remember { mutableStateOf(false) }
+    var suppression by remember { mutableStateOf(false) }
     val droits by espaces.roles.collectAsState()
     val pro = droits?.takeIf { it.aUnEspacePro }
     Scaffold(
@@ -166,12 +167,19 @@ fun CompteScreen(
                 OutlinedButton(onClick = { deconnexion = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), border = BorderStroke(2.dp, Couleurs.Encre)) {
                     Text("Me déconnecter", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
                 }
+                // Droit à l'effacement : un compte professionnel passe par l'équipe (le serveur le refuse et l'explique).
+                TextButton(onClick = { suppression = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Supprimer mon compte", style = MaterialTheme.typography.labelLarge, color = Couleurs.Danger)
+                }
             }
             Text("Speedfood ${viewModel.infos.versionNom}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
         }
     }
     if (deconnexion) {
         DialogueDeconnexion(surAnnuler = { deconnexion = false }, surConfirmer = { effacer -> deconnexion = false; viewModel.deconnecter(effacer) })
+    }
+    if (suppression) {
+        DialogueSuppressionCompte(surAnnuler = { suppression = false }, surConfirmer = { mot -> suppression = false; viewModel.supprimerCompte(mot) })
     }
 }
 
@@ -230,6 +238,8 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
             OutlinedButton(onClick = onVisite, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) {
                 Text("Revoir la visite guidée", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
             }
+
+            SectionSecurite()
 
             TitreRubrique("Cet appareil")
             Text("Les commandes que vous passez sont gardées sur ce téléphone pour que vous les retrouviez même sans compte.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

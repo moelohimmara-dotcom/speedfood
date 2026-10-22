@@ -21,6 +21,16 @@ class DeconnexionService(
         portee.launch { executer(effacerCommandes) }
     }
 
+    /** Après la suppression du compte : plus rien du compte ne reste sur l'appareil (session, commandes enregistrées) ; le panier est conservé. */
+    fun apresSuppression() {
+        portee.launch {
+            session.deconnecter()
+            locales.oublier()
+            espaces.quitter()
+            espaces.annoncer("Votre compte a été supprimé.")
+        }
+    }
+
     internal suspend fun executer(effacerCommandes: Boolean) {
         try {
             enregistrementPush.retirer()

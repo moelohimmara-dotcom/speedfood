@@ -19,7 +19,12 @@ import com.speedfood.app.data.ReactionAcces
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.plugin
 import io.ktor.http.HttpHeaders
+import com.speedfood.app.data.DemandeNotifications
 import com.speedfood.app.data.InstallateurApk
+import com.speedfood.app.data.NotificationsIndisponibles
+import com.speedfood.app.data.VerrouAppareil
+import com.speedfood.app.data.VerrouEspacesPro
+import com.speedfood.app.data.VerrouIndisponible
 import com.speedfood.app.data.KtorMoiApi
 import com.speedfood.app.data.MoiApi
 import com.speedfood.app.data.InstallateurIndisponible
@@ -98,6 +103,8 @@ fun modulesApplication(
     notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
     selecteurPhoto: SelecteurPhoto = PhotoIndisponible(),
     installateurApk: InstallateurApk = InstallateurIndisponible(),
+    demandeNotifications: DemandeNotifications = NotificationsIndisponibles(),
+    verrouAppareil: VerrouAppareil = VerrouIndisponible(),
 ) = listOf(
     module {
         single { config }
@@ -109,6 +116,8 @@ fun modulesApplication(
         single { notificateurMiseAJour }
         single { selecteurPhoto }
         single { installateurApk }
+        single { demandeNotifications }
+        single { VerrouEspacesPro(get(), verrouAppareil) }
         single { InstallationMiseAJour(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), config.siteUrl) }
         single { ReactionAcces() }
         single {
@@ -186,8 +195,10 @@ fun initKoin(
     notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
     selecteurPhoto: SelecteurPhoto = PhotoIndisponible(),
     installateurApk: InstallateurApk = InstallateurIndisponible(),
+    demandeNotifications: DemandeNotifications = NotificationsIndisponibles(),
+    verrouAppareil: VerrouAppareil = VerrouIndisponible(),
 ) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto, installateurApk)) }
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto, installateurApk, demandeNotifications, verrouAppareil)) }
 }
 
 /**

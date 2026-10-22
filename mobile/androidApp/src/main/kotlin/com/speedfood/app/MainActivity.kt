@@ -3,13 +3,13 @@ package com.speedfood.app
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     // Réponse du système à la demande d'autorisations : l'espace livreur relit l'autorisation à son prochain rafraîchissement (toutes les 5 s).
     private val demandeAutorisations = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
@@ -27,6 +27,8 @@ class MainActivity : ComponentActivity() {
             demandeAutorisations.launch(autorisations.toTypedArray())
         }
         SpeedfoodApp.google.lier(this)
+        SpeedfoodApp.verrou.lier(this)
+        SpeedfoodApp.notifications.lier { if (Build.VERSION.SDK_INT >= 33) demandeAutorisations.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) }
         SpeedfoodApp.alerte.lier(this) {
             if (Build.VERSION.SDK_INT >= 33) demandeAutorisations.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
         }

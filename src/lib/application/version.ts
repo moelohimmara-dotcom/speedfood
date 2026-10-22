@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 22,
-  nom: "2.20.0",
-  notes: "Session plus fiable : session expirée annoncée avec « Me reconnecter », droits relus automatiquement, commandes en cours conservées à la déconnexion, ouverture directe de votre espace professionnel.",
+  code: 23,
+  nom: "2.21.0",
+  notes: "Visite guidée plus courte, invitation à activer les notifications de commande, suppression du compte dans l'application, verrouillage optionnel des espaces professionnels (empreinte ou code du téléphone).",
   obligatoire: false,
-  apkSha256: "f7bff91c3545d13c4e9804343beb1d9fa0c67dfd8698988ac1a13ad0a1942072",
-  apkTaille: 14691362,
+  apkSha256: "8821983a1408f4aadb069587db7e63eb8f739fb6924489ff7d07abdeb601e65f",
+  apkTaille: 14707742,
 };

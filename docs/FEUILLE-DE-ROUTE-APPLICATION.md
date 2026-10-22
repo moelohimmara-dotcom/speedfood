@@ -20,7 +20,10 @@ Objectif : appliquer la machine d'états de l'audit. Corrige S1, S2, S3, S4, S5,
 - Tests natifs + scénarios faux serveur (`__revoquer`).
 **Critère d'acceptation :** session révoquée, droit retiré et déconnexion volontaire, jouées dans l'émulateur, donnent exactement les comportements du tableau d'états.
 
-## Phase B : premier lancement et compte (2.21.0)
+## Phase B : premier lancement et compte (2.21.0, livrée le 22 octobre 2026 sauf ce qui est noté « reporté »)
+**Livré et vérifié dans l'émulateur :** visite guidée en 3 écrans ; invitation à activer les notifications sur le suivi d'une commande (le moment où elles servent : sans l'autorisation, Android 13+ ne montre aucune notification de commande aux clients, ce qui était un manque réel) ; suppression de compte dans l'application (`POST /api/v1/client/compte`, confirmation écrite « SUPPRIMER », refusée pour un compte professionnel) ; verrouillage optionnel des espaces pro par empreinte, visage ou code du téléphone (Paramètres → Sécurité ; ne bloque jamais sans verrouillage d'écran). **Reporté :** choix de la localité au premier lancement (un seul restaurant publié : le filtre n'aurait aucun effet, à faire quand il y aura plusieurs zones) ; code SMS (décision de coût de Malika) ; profil de référence de démarrage (outil de mesure à installer, à faire avec un vrai téléphone). Google : déjà dans l'application, il apparaît dès que l'interrupteur de `/system/parametres` est coché. Le fond crème dès la première image existe déjà (aucun éclair blanc) : le point O3 de l'audit se résume à la lenteur de l'émulateur.
+
+Plan d'origine :
 Corrige O1, O2, O3, S6, S8, S9.
 - Visite guidée en 3 écrans (parcourir, commander et suivre, espaces professionnels), sautable ; choix de la **localité** avant la liste ; écrans « pourquoi on demande » juste avant la position et les notifications.
 - Écran de démarrage système (Android 12+) et profil de référence (Baseline Profile) pour un démarrage rapide.

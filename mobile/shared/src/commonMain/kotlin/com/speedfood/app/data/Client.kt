@@ -94,6 +94,9 @@ interface ClientApi {
     suspend fun adresse(jetonAcces: String, action: String, champs: Map<String, String>): RetourClient
 
     suspend fun basculerFavori(jetonAcces: String, restaurantId: String): RetourClient
+
+    /** Supprime le compte (droit à l'effacement) : [confirmation] est le mot « SUPPRIMER » écrit par la personne. Irréversible ; refusé pour un compte professionnel. */
+    suspend fun supprimerCompte(jetonAcces: String, confirmation: String): RetourClient
 }
 
 class KtorClientApi(private val client: HttpClient, private val config: SpeedfoodConfig) : ClientApi {
@@ -160,4 +163,7 @@ class KtorClientApi(private val client: HttpClient, private val config: Speedfoo
 
     override suspend fun basculerFavori(jetonAcces: String, restaurantId: String): RetourClient =
         ecrire("favoris", jetonAcces, JsonObject(mapOf("restaurantId" to JsonPrimitive(restaurantId))))
+
+    override suspend fun supprimerCompte(jetonAcces: String, confirmation: String): RetourClient =
+        ecrire("compte", jetonAcces, JsonObject(mapOf("confirmation" to JsonPrimitive(confirmation))))
 }
