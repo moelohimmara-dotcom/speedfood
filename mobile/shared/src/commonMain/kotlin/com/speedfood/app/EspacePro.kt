@@ -1,11 +1,18 @@
 package com.speedfood.app
 
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -36,7 +43,9 @@ import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.VerrouEspacesPro
 import com.speedfood.app.ui.EcranVerrou
 import com.speedfood.app.design.Couleurs
+import com.speedfood.app.ui.ActiviteRestaurantScreen
 import com.speedfood.app.ui.AideScreen
+import com.speedfood.app.ui.GainsLivreurScreen
 import com.speedfood.app.ui.CompteProScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.DetailSupportScreen
@@ -58,16 +67,24 @@ import org.koin.compose.koinInject
 @Serializable
 object CompteProDestination
 
+@Serializable
+object ActiviteDestination
+
+@Serializable
+object GainsDestination
+
 private class OngletPro(val libelle: String, val icone: ImageVector, val route: Any)
 
 private fun ongletsDe(espace: Espace): List<OngletPro> = when (espace) {
     Espace.Restaurateur -> listOf(
         OngletPro("Commandes", Icons.Default.Notifications, RestaurateurDestination),
         OngletPro("Menu", Icons.Default.List, MenuRestaurateurDestination),
+        OngletPro("Activité", Icons.Default.Info, ActiviteDestination),
         OngletPro("Compte", Icons.Default.Person, CompteProDestination),
     )
     Espace.Livreur -> listOf(
         OngletPro("Courses", Icons.Default.Notifications, LivreurDestination),
+        OngletPro("Gains", Icons.Default.Info, GainsDestination),
         OngletPro("Compte", Icons.Default.Person, CompteProDestination),
     )
     Espace.Equipe -> listOf(
@@ -141,7 +158,9 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
             }
         },
     ) { interieur ->
-        Box(Modifier.padding(interieur).consumeWindowInsets(interieur)) {
+        Column(Modifier.padding(interieur).consumeWindowInsets(interieur)) {
+            BandeauEspace(espace)
+            Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) {
             NavHost(navController = navController, startDestination = racine) {
                 composable<RestaurateurDestination> {
                     sansFleche { RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { espaces.quitter() }, onConnexion = connexion, onMenu = { versOnglet(MenuRestaurateurDestination) }) }
@@ -179,6 +198,8 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<RepartitionDestination> { RepartitionScreen(onRetour = retour, onConnexion = connexion) }
                 composable<LivreursEquipeDestination> { LivreursEquipeScreen(onRetour = retour, onConnexion = connexion) }
                 composable<MenusEquipeDestination> { MenusEquipeScreen(onRetour = retour, onConnexion = connexion) }
+                composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
+                composable<GainsDestination> { sansFleche { GainsLivreurScreen(onConnexion = connexion) } }
                 composable<CompteProDestination> {
                     CompteProScreen(espace = espace, onParametres = { vers(ParametresDestination) }, onAide = { vers(AideDestination) })
                 }
@@ -187,6 +208,26 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<VisiteDestination> { VisiteGuidee { navController.popBackStack() } }
                 composable<ConnexionDestination> { ConnexionScreen(onRetour = retour, onConnecte = retour) }
             }
+            }
         }
+    }
+}
+
+/** Bande d'identité en haut d'un espace professionnel : on sait toujours dans quel espace (et pour quel restaurant) on agit. */
+@Composable
+private fun BandeauEspace(espace: Espace, espaces: EspaceService = koinInject()) {
+    val roles by espaces.roles.collectAsState()
+    val detail = when (espace) {
+        Espace.Restaurateur -> roles?.restaurateur?.restaurant
+        else -> null
+    }
+    Surface(Modifier.fillMaxWidth(), color = Couleurs.Encre) {
+        Text(
+            espace.libelle + (detail?.let { " · $it" } ?: ""),
+            style = MaterialTheme.typography.labelLarge,
+            color = Couleurs.Mangue,
+            maxLines = 1,
+            modifier = Modifier.statusBarsPadding().padding(horizontal = 16.dp, vertical = 6.dp),
+        )
     }
 }

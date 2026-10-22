@@ -42,6 +42,8 @@ Corrige C1, C2, C3. Dépend du **contenu** (photos et menus réels : tâche de M
 - Paiement mobile (Chap Chap Pay : dépend du KYC de Malika, aujourd'hui à 0 %).
 
 ## Phase D : outils des professionnels (2.25.0 et suivantes)
+**Lot D1 livré le 22 octobre 2026 (2.23.0), vérifié dans l'émulateur :** onglet **Activité** du restaurateur (commandes et chiffre d'aujourd'hui et des 7 jours, issue des commandes, dernières commandes terminées ; route `/api/v1/restaurant/activite`), onglet **Gains** du livreur (courses livrées et frais de course ; route `/api/v1/livreur/gains` ; ce n'est pas une paie, la règle de rémunération reste à définir), bande d'identité en haut des espaces pro (X1), bouton « Mon menu » en double retiré (R1), tableau de l'équipe en deux niveaux « À traiter maintenant » / « En un coup d'œil » (E1). Calculs de bilan testés (`scripts/tests/bilans.test.mts`). **Reste en D :** horaires et réglage du son du restaurateur, historique complet paginé, règle de rémunération et gains réels du livreur, assistance livreur, pages de l'équipe encore sur le site (finances, restaurants, partenariats, avis, comptes, audit).
+
 - **Restaurateur** : historique et statistiques du jour/semaine, horaires, « pause » rapide, réglage du son, retrait du bouton en double, mode « poste fixe » (écran allumé, alerte continue).
 - **Livreur** : onglets Courses · Gains · Compte, gains en direct, historique, assistance, rappel des documents.
 - **Équipe** : tableau priorisé (file de tâches, pas seulement des chiffres), finances, restaurants/référencements, partenariats, avis, comptes, audit (voir `FEUILLE-DE-ROUTE-ADMIN.md`) ; statuts avec couleurs justes.

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -113,49 +114,47 @@ internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: (
     }
 }
 
-/** Tableau de bord de l'équipe : les chiffres à surveiller, un bloc par domaine selon le rôle. Une carte rouge demande une action ; toucher une carte ouvre la section. */
+/**
+ * Tableau de bord de l'équipe, par priorité : « À traiter maintenant » (seulement ce qui demande une action, en rouge, le plus urgent d'abord), puis « En un coup d'œil »
+ * (le reste, sobre). Toucher une carte ouvre la section. Avant, tout ce qui n'était pas à zéro s'affichait en rouge : rien ne ressortait.
+ */
 @Composable
 internal fun TableauDeBord(t: com.speedfood.app.data.TableauEquipe, onRepartition: () -> Unit, onSupport: () -> Unit, onLivraisons: () -> Unit, onLivreurs: () -> Unit, onMenus: () -> Unit = {}) {
     val alertes = com.speedfood.app.data.alertesEquipe(t)
-    Text("Tableau de bord", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
+    // Ordre d'urgence : un client qui attend, une course sans livreur, puis la préparation du catalogue.
+    val toutes = buildList {
+        t.exploitation?.let { x ->
+            add(Chiffre("Courses sans livreur", x.coursesSansLivreur, x.coursesSansLivreur > 0, onLivraisons))
+            add(Chiffre("À confirmer", x.aConfirmer, x.aConfirmer > 0, onRepartition))
+        }
+        t.commandes?.let { c -> add(Chiffre("Propositions en attente", c.propositionsEnAttente, c.propositionsEnAttente > 0, onSupport)) }
+        t.exploitation?.let { x -> add(Chiffre("Candidats livreurs", x.candidatsLivreurs, x.candidatsLivreurs > 0, onLivreurs)) }
+        t.catalogue?.let { k ->
+            add(Chiffre("À valider ou corriger", k.enAttenteValidation + k.aCorriger, k.enAttenteValidation + k.aCorriger > 0, {}))
+            add(Chiffre("Plats à reconfirmer", k.platsAReconfirmer, k.platsAReconfirmer > 0, onMenus))
+        }
+        t.exploitation?.let { x -> add(Chiffre("Livreurs en ligne", x.livreursEnLigne, x.livreursEnLigne == 0, onLivreurs)) }
+        t.catalogue?.let { k -> add(Chiffre("Restaurants publiés", k.publies, k.publies == 0, {})) }
+        t.commandes?.let { c -> add(Chiffre("Commandes actives aujourd'hui", c.activesDuJour, false, onSupport)) }
+    }
+    val aTraiter = toutes.filter { it.alerte }
+    val reste = toutes.filter { !it.alerte }
     Text(
         if (alertes == 0) "Rien n'attend l'équipe pour le moment." else "$alertes point(s) attendent l'équipe.",
         style = MaterialTheme.typography.bodyMedium,
         color = if (alertes == 0) Couleurs.Succes else Couleurs.Danger,
+        modifier = Modifier.padding(top = 4.dp),
     )
-    t.exploitation?.let { x ->
-        LigneChiffres(
-            listOf(
-                Chiffre("À confirmer", x.aConfirmer, x.aConfirmer > 0, onRepartition),
-                Chiffre("Courses sans livreur", x.coursesSansLivreur, x.coursesSansLivreur > 0, onLivraisons),
-            ),
-        )
-        LigneChiffres(
-            listOf(
-                Chiffre("Livreurs en ligne", x.livreursEnLigne, x.livreursEnLigne == 0, onLivreurs),
-                Chiffre("Candidats livreurs", x.candidatsLivreurs, x.candidatsLivreurs > 0, onLivreurs),
-            ),
-        )
-        if (x.etablissementsSansTelephone > 0) {
-            Text("${x.etablissementsSansTelephone} établissement(s) sans numéro à joindre : ajoutez-le sur leur fiche (site).", style = MaterialTheme.typography.bodySmall, color = Couleurs.Danger)
-        }
+    if (aTraiter.isNotEmpty()) {
+        Text("À traiter maintenant", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
+        aTraiter.chunked(2).forEach { LigneChiffres(it) }
     }
-    t.commandes?.let { c ->
-        LigneChiffres(
-            listOf(
-                Chiffre("Commandes actives aujourd'hui", c.activesDuJour, false, onSupport),
-                Chiffre("Propositions en attente", c.propositionsEnAttente, c.propositionsEnAttente > 0, onSupport),
-            ),
-        )
+    if (reste.isNotEmpty()) {
+        Text("En un coup d'œil", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
+        reste.chunked(2).forEach { LigneChiffres(it) }
     }
-    t.catalogue?.let { k ->
-        LigneChiffres(
-            listOf(
-                Chiffre("Restaurants publiés", k.publies, k.publies == 0, {}),
-                Chiffre("À valider ou corriger", k.enAttenteValidation + k.aCorriger, k.enAttenteValidation + k.aCorriger > 0, {}),
-            ),
-        )
-        LigneChiffres(listOf(Chiffre("Plats à reconfirmer", k.platsAReconfirmer, k.platsAReconfirmer > 0, onMenus)))
+    t.exploitation?.takeIf { it.etablissementsSansTelephone > 0 }?.let { x ->
+        Text("${x.etablissementsSansTelephone} établissement(s) sans numéro à joindre : ajoutez-le sur leur fiche (site).", style = MaterialTheme.typography.bodySmall, color = Couleurs.Danger)
     }
 }
 
@@ -177,6 +176,7 @@ private fun LigneChiffres(chiffres: List<Chiffre>) {
                 }
             }
         }
+        if (chiffres.size == 1) Spacer(Modifier.weight(1f))
     }
 }
 

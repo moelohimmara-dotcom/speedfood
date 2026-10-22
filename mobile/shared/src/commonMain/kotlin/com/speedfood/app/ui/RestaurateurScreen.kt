@@ -131,9 +131,6 @@ internal fun ContenuConsole(
                 TextButton(onClick = { surChoixAlerte(!e.alerteArrierePlan) }) { Text(if (e.alerteArrierePlan) "Désactiver" else "Activer", color = Couleurs.Encre) }
             }
         }
-        OutlinedButton(onClick = surMenu, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
-            Text("Mon menu et mes disponibilités", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
-        }
         e.message?.let { BlocMessage(it, erreur = false) }
 
         Text("À traiter (${classees.aTraiter.size})", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))

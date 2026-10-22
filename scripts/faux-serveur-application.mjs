@@ -122,6 +122,7 @@ createServer(async (req, res) => {
     if (!compte.roles.restaurateur) return refus(res, 403, "NON_AUTORISE", "Ce compte n'est rattaché à aucun restaurant.");
     if (chemin === "/api/v1/restaurant/commandes" && req.method === "GET") return ok(res, { ok: true, restaurant: { id: "r1", nom: compte.roles.restaurateur.restaurant, ouvert: true, accepteCommandes: true }, commandes });
     if (chemin === "/api/v1/restaurant/menu" && req.method === "GET") return ok(res, { ok: true, sections: [{ id: "s1", nom: "Plats" }, { id: "s2", nom: "Boissons" }], plats });
+    if (chemin === "/api/v1/restaurant/activite") return ok(res, { ok: true, aujourdhui: { recues: 4, terminees: 3, chiffreGnf: 120000 }, semaine: { recues: 21, terminees: 17, chiffreGnf: 655000 }, repartition: { recues: 21, terminees: 17, refusees: 2, annulees: 1, enCours: 1 }, recentes: [{ reference: "SF-1002", mode: "retrait", totalGnf: 35000, creeLe: maintenant() }, { reference: "SF-0998", mode: "livraison", totalGnf: 60000, creeLe: "2026-10-21T18:20:00Z" }] });
     if (chemin === "/api/v1/restaurant/commandes/action") {
       const c = await lireCorps(req);
       const cible = commandes.find((x) => x.id === c.commandeId);
@@ -135,6 +136,7 @@ createServer(async (req, res) => {
   // Espace livreur
   if (chemin.startsWith("/api/v1/livreur/")) {
     if (!compte.roles.livreur) return ok(res, { ok: true, etat: null });
+    if (chemin === "/api/v1/livreur/gains") return ok(res, { ok: true, gains: { aujourdhui: { courses: 3, fraisGnf: 28500 }, semaine: { courses: 14, fraisGnf: 131000 }, recentes: [{ id: "l9", reference: "SF-1002", restaurantNom: "Chez Awa (essai)", fraisGnf: 9500, livreeLe: maintenant() }, { id: "l8", reference: "SF-0998", restaurantNom: "Chez Awa (essai)", fraisGnf: 9500, livreeLe: "2026-10-21T18:40:00Z" }] } });
     if (chemin === "/api/v1/livreur/etat") return ok(res, { ok: true, etat: { livreur: { id: "lv1", nom: "Mamadou Barry", statut: "disponible", vehicule: "Moto", cycle: "actif", motifCycle: null, restaurantNom: null }, offre: null, course: null, aNoter: null, positionConnue: true } });
     await lireCorps(req);
     return ok(res);

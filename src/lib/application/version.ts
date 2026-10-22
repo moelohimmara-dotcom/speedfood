@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 24,
-  nom: "2.22.0",
-  notes: "Vos adresses enregistrées sont proposées à la commande en livraison ; cœur favori sur la fiche d'un restaurant.",
+  code: 25,
+  nom: "2.23.0",
+  notes: "Restaurateur : onglet Activité (commandes et chiffre du jour et de la semaine). Livreur : onglet Gains. Tableau de l'équipe classé par priorité, bandeau d'identité dans chaque espace pro.",
   obligatoire: false,
-  apkSha256: "c78de6cf45d5d7d902cf1f2f9f23da5a4d08ddf9e3d3207b368d11a6b6df5a22",
-  apkTaille: 14707742,
+  apkSha256: "a69c9ff6eae48f19390e69962d10bbc34af9b7d40653060fcde26300e48f74f2",
+  apkTaille: 14756898,
 };
