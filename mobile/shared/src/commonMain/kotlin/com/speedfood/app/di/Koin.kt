@@ -13,7 +13,10 @@ import com.speedfood.app.data.EquipeApi
 import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorEquipeApi
 import com.speedfood.app.data.KtorVersionApi
+import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.InstallateurApk
+import com.speedfood.app.data.KtorMoiApi
+import com.speedfood.app.data.MoiApi
 import com.speedfood.app.data.InstallateurIndisponible
 import com.speedfood.app.data.InstallationMiseAJour
 import com.speedfood.app.data.NotificateurMiseAJour
@@ -122,6 +125,8 @@ fun modulesApplication(
         single<EquipeApi> { KtorEquipeApi(get(), get()) }
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
         single<VersionApi> { KtorVersionApi(get(), get()) }
+        single<MoiApi> { KtorMoiApi(get(), get()) }
+        single { EspaceService(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
         single<AideApi> { KtorAideApi(get(), get()) }
         single<ClientApi> { KtorClientApi(get(), get()) }
         single { InfosApplication(versionApp ?: "", codeVersionApp) }

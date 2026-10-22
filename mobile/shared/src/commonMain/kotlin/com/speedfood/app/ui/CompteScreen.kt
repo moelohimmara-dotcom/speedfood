@@ -96,10 +96,9 @@ fun CompteScreen(
     onAdresses: () -> Unit = {},
     onFavoris: () -> Unit = {},
     onAvis: () -> Unit = {},
-    onRestaurateur: () -> Unit,
-    onLivreur: () -> Unit,
-    onEquipe: () -> Unit,
+    onAccesPro: () -> Unit,
     config: SpeedfoodConfig = koinInject(),
+    espaces: com.speedfood.app.data.EspaceService = koinInject(),
     viewModel: CompteViewModel = koinViewModel(),
 ) {
     val session by viewModel.connexion.collectAsState()
@@ -148,10 +147,15 @@ fun CompteScreen(
             LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres)
             LigneMenu("Aide et contact", Icons.Default.Phone, "Questions fréquentes, assistance, à propos", onAide)
 
-            TitreRubrique("Autres espaces")
-            LigneMenu("Espace restaurateur", Icons.Default.Person, "Commandes et menu de mon restaurant", onRestaurateur)
-            LigneMenu("Espace livreur", Icons.Default.Notifications, "Courses et gains", onLivreur)
-            LigneMenu("Équipe Speedfood", Icons.Default.Lock, "Réservé à l'équipe de gestion", onEquipe)
+            // Un client ordinaire ne voit AUCUN espace professionnel : seuls les comptes qui y ont droit les voient, avec un accès discret pour les autres.
+            val droits by espaces.roles.collectAsState()
+            val pro = droits?.takeIf { it.aUnEspacePro }
+            if (pro != null) {
+                TitreRubrique("Mes espaces professionnels")
+                pro.espacesPro.forEach { e -> LigneMenu("Espace ${e.titre.lowercase()}", e.icone(), e.sousTitre(pro)) { espaces.entrer(e) } }
+            } else {
+                LigneMenu("Espace professionnel", Icons.Default.Lock, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
+            }
 
             TitreRubrique("Informations")
             LigneMenu("Conditions d'utilisation", Icons.Default.Info) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/conditions") }

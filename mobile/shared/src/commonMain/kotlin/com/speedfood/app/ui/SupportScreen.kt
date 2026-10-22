@@ -63,7 +63,7 @@ fun SupportCommandesScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onOuvr
         topBar = {
             TopAppBar(
                 title = { Text("Support commandes", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -149,7 +149,7 @@ fun DetailSupportScreen(commandeId: String, onRetour: () -> Unit, onConnexion: (
         topBar = {
             TopAppBar(
                 title = { Text("Commande", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

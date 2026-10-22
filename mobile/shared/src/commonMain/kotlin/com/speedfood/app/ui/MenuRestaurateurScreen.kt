@@ -69,7 +69,7 @@ fun MenuRestaurateurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewMo
         topBar = {
             TopAppBar(
                 title = { Text("Mon menu", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

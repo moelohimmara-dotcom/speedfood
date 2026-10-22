@@ -62,7 +62,7 @@ fun LivreurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: Livr
         topBar = {
             TopAppBar(
                 title = { Text("Espace livreur", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

@@ -20,7 +20,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
+import com.speedfood.app.data.Espace
+import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.PanierService
+import com.speedfood.app.ui.AccesProScreen
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.ui.CompteScreen
 import com.speedfood.app.ui.ParametresScreen
@@ -124,6 +127,9 @@ object SupportDestination
 object CompteDestination
 
 @Serializable
+object AccesProDestination
+
+@Serializable
 object ParametresDestination
 
 @Serializable
@@ -183,6 +189,14 @@ fun App(config: SpeedfoodConfig) {
 
 @Composable
 private fun Application(config: SpeedfoodConfig) {
+    val espaces: EspaceService = koinInject()
+    val espace by espaces.espace.collectAsState()
+    // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
+    if (espace == Espace.Client) ApplicationClient(config) else EspacePro(espace, config)
+}
+
+@Composable
+private fun ApplicationClient(config: SpeedfoodConfig) {
         val navController: NavHostController = rememberNavController()
         val panierService: PanierService = koinInject()
         val panier by panierService.panier.collectAsState()
@@ -238,13 +252,14 @@ private fun Application(config: SpeedfoodConfig) {
                     onAdresses = { navController.navigate(AdressesDestination) },
                     onFavoris = { navController.navigate(FavorisDestination) },
                     onAvis = { navController.navigate(AvisDestination) },
-                    onRestaurateur = { navController.navigate(RestaurateurDestination) },
-                    onLivreur = { navController.navigate(LivreurDestination) },
-                    onEquipe = { navController.navigate(EquipeDestination) },
+                    onAccesPro = { navController.navigate(AccesProDestination) },
                 )
             }
             composable<ParametresDestination> {
                 ParametresScreen(onRetour = { navController.popBackStack() }, onVisite = { navController.navigate(VisiteDestination) })
+            }
+            composable<AccesProDestination> {
+                AccesProScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) }, onAide = { navController.navigate(AideDestination) })
             }
             composable<ProfilDestination> {
                 ProfilClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })

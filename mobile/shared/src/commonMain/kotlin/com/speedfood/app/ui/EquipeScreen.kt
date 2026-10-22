@@ -63,7 +63,7 @@ fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit,
         topBar = {
             TopAppBar(
                 title = { Text("Équipe Speedfood", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -214,7 +214,7 @@ fun RepartitionScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: 
         topBar = {
             TopAppBar(
                 title = { Text("Répartition", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 actions = { TextButton(onClick = viewModel::actualiser) { Text("Actualiser", color = Couleurs.Encre) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )

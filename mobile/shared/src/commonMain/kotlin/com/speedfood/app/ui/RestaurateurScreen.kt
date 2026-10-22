@@ -68,7 +68,7 @@ fun RestaurateurScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () ->
         topBar = {
             TopAppBar(
                 title = { Text("Console restaurateur", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { BoutonRetour(onRetour) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
