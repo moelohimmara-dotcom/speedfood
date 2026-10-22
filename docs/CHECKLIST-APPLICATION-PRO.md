@@ -37,7 +37,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Catégories de cuisine en puces (grillades, poulet, riz...) (P0) | ❌ |
 | Tri : proximité, note, délai de livraison, frais (P1) | ❌ |
 | Frais de livraison et délai estimé sur chaque carte (P1) | ❌ |
-| Restaurants favoris (P1) | 🌐 |
+| Restaurants favoris (P1) | 🟡 2.15.0 (liste dans Compte ; ajout depuis la fiche à faire) |
 | Recherches récentes et suggestions (P2) | ❌ |
 | Carte des restaurants autour de soi (P2) | ❌ |
 | Bandeaux de promotions et offres (P1) | ❌ |
@@ -52,7 +52,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Fiche détaillée d'un plat : suppléments à cocher, quantité, note pour la cuisine, allergènes (P0) | ❌ (ajout direct en un toucher, suppléments non choisissables) |
 | Barre de panier fixe en bas (P0) | ✅ |
 | Appeler le restaurant, partager le restaurant (P1) | ❌ |
-| Avis des clients visibles (P1) | 🌐 |
+| Avis des clients visibles (P1) | 🟡 2.15.0 (Mes avis ; avis des autres sur la fiche à faire) |
 
 ### A4. Panier et commande
 | Élément | État |
@@ -97,10 +97,10 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Connexion par numéro de téléphone (code SMS) (P1, norme locale) | ❌ |
 | Mot de passe oublié (P0) | ❌ dans l'application (🌐 sur le site) |
 | Afficher/masquer le mot de passe (P0) | ❌ |
-| Profil : nom, pseudo, avatar, téléphone, e-mail (P0) | 🌐 |
-| Adresses enregistrées (domicile, travail) (P0) | 🌐 |
+| Profil : pseudo, avatar, préférences de commande (P0) | ✅ 2.15.0 (le nom et le téléphone ne sont volontairement pas affichés : confidentialité) |
+| Adresses enregistrées (domicile, travail) (P0) | 🟡 2.15.0 (carnet de 5 adresses avec principale ; pas encore proposé dans le formulaire de commande) |
 | Historique des commandes avec filtres et détail (P0) | 🟡 (liste simple) |
-| Favoris (P1) | 🌐 |
+| Favoris (P1) | 🟡 2.15.0 (liste et retrait ; le cœur sur la fiche d'un restaurant reste à ajouter) |
 | Déconnexion visible (P0) | ✅ 2.14.0 (page Compte, avec confirmation) |
 | Suppression du compte et des données (obligatoire, P0) | 🌐 |
 
@@ -253,7 +253,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 
 ## E. Ce qu'il faut construire en premier (ordre proposé)
 1. ~~**Charpente de navigation**~~ **(fait en 2.14.0)** : barre basse (Accueil, Recherche, Commandes, Panier, Compte), page **Compte** avec menu complet, **Paramètres**, déconnexion, aide, légal, à propos. Même principe côté équipe : **tableau de bord** en page d'accueil de l'espace équipe, puis menu par familles, puis paramètres de l'équipe.
-2. **Compte client** dans l'application : profil, adresses, favoris, historique, mot de passe oublié, suppression du compte.
+2. **Compte client** dans l'application : ~~profil, adresses, favoris, avis~~ **(faits en 2.15.0)** ; reste : mot de passe oublié, suppression du compte, cœur favori sur la fiche, adresses dans le formulaire de commande.
 3. **Les quatre correctifs de l'audit** : catalogue rempli, commande sans friction, panier conservé, cache hors ligne.
 4. **Tableau de bord de l'équipe** (chiffres du jour et alertes) dans l'application.
 5. **Suivi avec carte et appels**, notifications réglables, liens profonds.

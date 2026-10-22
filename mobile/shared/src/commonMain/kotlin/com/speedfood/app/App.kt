@@ -25,6 +25,10 @@ import com.speedfood.app.design.Couleurs
 import com.speedfood.app.ui.CompteScreen
 import com.speedfood.app.ui.ParametresScreen
 import com.speedfood.app.ui.AideScreen
+import com.speedfood.app.ui.ProfilClientScreen
+import com.speedfood.app.ui.AdressesClientScreen
+import com.speedfood.app.ui.FavorisClientScreen
+import com.speedfood.app.ui.AvisClientScreen
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -125,6 +129,18 @@ object ParametresDestination
 object AideDestination
 
 @Serializable
+object ProfilDestination
+
+@Serializable
+object AdressesDestination
+
+@Serializable
+object FavorisDestination
+
+@Serializable
+object AvisDestination
+
+@Serializable
 object LivraisonsEquipeDestination
 
 @Serializable
@@ -214,6 +230,10 @@ private fun Application(config: SpeedfoodConfig) {
                     onCommandes = { versOnglet(MesCommandesDestination) },
                     onParametres = { navController.navigate(ParametresDestination) },
                     onAide = { navController.navigate(AideDestination) },
+                    onProfil = { navController.navigate(ProfilDestination) },
+                    onAdresses = { navController.navigate(AdressesDestination) },
+                    onFavoris = { navController.navigate(FavorisDestination) },
+                    onAvis = { navController.navigate(AvisDestination) },
                     onRestaurateur = { navController.navigate(RestaurateurDestination) },
                     onLivreur = { navController.navigate(LivreurDestination) },
                     onEquipe = { navController.navigate(EquipeDestination) },
@@ -221,6 +241,22 @@ private fun Application(config: SpeedfoodConfig) {
             }
             composable<ParametresDestination> {
                 ParametresScreen(onRetour = { navController.popBackStack() }, onVisite = { navController.navigate(VisiteDestination) })
+            }
+            composable<ProfilDestination> {
+                ProfilClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+            }
+            composable<AdressesDestination> {
+                AdressesClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+            }
+            composable<FavorisDestination> {
+                FavorisClientScreen(
+                    onRetour = { navController.popBackStack() },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
+                    onOuvrir = { id -> navController.navigate(RestaurantDestination(id)) },
+                )
+            }
+            composable<AvisDestination> {
+                AvisClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<AideDestination> {
                 AideScreen(onRetour = { navController.popBackStack() })

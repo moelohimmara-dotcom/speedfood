@@ -94,6 +94,9 @@ export const LIMITE_LIVREUR_PAR_COMPTE: RegleLimite = { nom: "livreur-compte", m
 export const LIMITE_RESTAURANT_APP_PAR_COMPTE: RegleLimite = { nom: "restaurant-app-compte", max: 600, fenetreSecondes: 300 };
 
 // Espace équipe Speedfood de l'application : même plafond que la console restaurateur (rafraîchissement toutes les 20 s + actions).
+// Espace client de l'application (profil, adresses, favoris) : lectures à l'ouverture des écrans et quelques écritures.
+export const LIMITE_CLIENT_APP_PAR_COMPTE: RegleLimite = { nom: "client-app-compte", max: 300, fenetreSecondes: 300 };
+
 export const LIMITE_EQUIPE_APP_PAR_COMPTE: RegleLimite = { nom: "equipe-app-compte", max: 600, fenetreSecondes: 300 };
 
 // Enregistrement et retrait de l'appareil pour les notifications poussées : quelques fois par jour suffisent (connexion, changement de jeton, déconnexion).
@@ -227,6 +230,10 @@ export async function limiterAppareil(utilisateurId: string): Promise<void> {
 
 export async function limiterRestaurantApplication(utilisateurId: string): Promise<void> {
   await appliquerLimite(LIMITE_RESTAURANT_APP_PAR_COMPTE, utilisateurId);
+}
+
+export async function limiterClientApplication(utilisateurId: string): Promise<void> {
+  await appliquerLimite(LIMITE_CLIENT_APP_PAR_COMPTE, utilisateurId);
 }
 
 export async function limiterEquipeApplication(utilisateurId: string): Promise<void> {

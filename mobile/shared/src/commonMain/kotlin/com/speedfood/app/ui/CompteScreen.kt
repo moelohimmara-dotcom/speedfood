@@ -18,7 +18,10 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -89,6 +92,10 @@ fun CompteScreen(
     onCommandes: () -> Unit,
     onParametres: () -> Unit,
     onAide: () -> Unit,
+    onProfil: () -> Unit = {},
+    onAdresses: () -> Unit = {},
+    onFavoris: () -> Unit = {},
+    onAvis: () -> Unit = {},
     onRestaurateur: () -> Unit,
     onLivreur: () -> Unit,
     onEquipe: () -> Unit,
@@ -131,6 +138,12 @@ fun CompteScreen(
             message?.let { BlocMessage(it, erreur = false) }
 
             TitreRubrique("Mon espace")
+            if (session != null) {
+                LigneMenu("Mon profil", Icons.Default.Person, "Pseudo, avatar, préférences de commande", onProfil)
+                LigneMenu("Mes adresses", Icons.Default.LocationOn, "Maison, travail...", onAdresses)
+                LigneMenu("Mes favoris", Icons.Default.Favorite, "Restaurants enregistrés", onFavoris)
+                LigneMenu("Mes avis", Icons.Default.Star, "Notes laissées aux restaurants", onAvis)
+            }
             LigneMenu("Mes commandes", Icons.Default.List, "Suivi et historique", onCommandes)
             LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres)
             LigneMenu("Aide et contact", Icons.Default.Phone, "Questions fréquentes, assistance, à propos", onAide)

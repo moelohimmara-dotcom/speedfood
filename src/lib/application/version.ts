@@ -17,8 +17,8 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 16,
-  nom: "2.14.0",
-  notes: "Nouvelle navigation : barre du bas (Accueil, Commandes, Panier, Compte), page Compte, Paramètres, Aide et à propos ; tableau de bord de l'équipe.",
+  code: 17,
+  nom: "2.15.0",
+  notes: "Espace client : profil (pseudo, avatar, préférences), adresses, favoris et avis ; navigation par onglets, Paramètres, Aide, tableau de bord de l'équipe.",
   obligatoire: false,
 };
