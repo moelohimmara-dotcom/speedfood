@@ -2,6 +2,8 @@
 agp = "9.1.1"
 firebase-bom = "34.4.0"
 androidx-fragment = "1.8.9"
+androidx-credentials = "1.5.0"
+googleid = "1.1.1"
 google-services = "4.4.4"
 firebase-crashlytics-plugin = "3.0.6"
 android-compileSdk = "37"
@@ -21,6 +23,9 @@ ktor = "3.5.1"
 
 [libraries]
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "androidx-fragment" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }

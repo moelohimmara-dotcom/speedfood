@@ -5,3 +5,5 @@ supabase.url=
 supabase.anonKey=
 # Adresse du site, pour les routes /api/v1 (lots suivants)
 site.url=https://speedfood-app.moelohimmara.workers.dev
+# Connexion avec Google : identifiant du client OAuth « Web » du projet Google (valeur publique, jamais le secret). Vide = pas de bouton.
+google.webClientId=

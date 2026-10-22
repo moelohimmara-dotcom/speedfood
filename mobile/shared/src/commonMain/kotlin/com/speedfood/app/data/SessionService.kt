@@ -39,6 +39,10 @@ class SessionService(
         poser(auth.connecter(email, motDePasse))
     }
 
+    suspend fun connecterAvecGoogle(jetonIdentite: String, nonce: String?) {
+        poser(auth.connecterAvecGoogle(jetonIdentite, nonce))
+    }
+
     suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String) {
         auth.inscrire(nom, telephone, email, motDePasse)
     }

@@ -2,7 +2,10 @@ package com.speedfood.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.speedfood.app.data.AuthApi
 import com.speedfood.app.data.ErreurAuth
+import com.speedfood.app.data.FournisseurGoogle
+import com.speedfood.app.data.ResultatGoogle
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.normaliserTelephone
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,9 +32,36 @@ fun verifierInscription(nom: String, telephone: String, email: String, motDePass
     else -> null
 }
 
-class ConnexionViewModel(private val session: SessionService) : ViewModel() {
+class ConnexionViewModel(private val session: SessionService, private val google: FournisseurGoogle, private val auth: AuthApi) : ViewModel() {
     private val _etat = MutableStateFlow(EtatConnexion())
     val etat: StateFlow<EtatConnexion> = _etat.asStateFlow()
+    private val _googleActif = MutableStateFlow(false)
+
+    /** Le bouton « Continuer avec Google » n'apparaît que si le téléphone sait le faire ET si le service d'authentification a activé Google. */
+    val googleActif: StateFlow<Boolean> = _googleActif.asStateFlow()
+
+    init {
+        if (google.disponible) viewModelScope.launch { _googleActif.value = "google" in auth.fournisseursActifs() }
+    }
+
+    fun continuerAvecGoogle(surReussite: () -> Unit) {
+        _etat.value = EtatConnexion(enCours = true)
+        viewModelScope.launch {
+            when (val r = google.jetonIdentite()) {
+                ResultatGoogle.Annule -> _etat.value = EtatConnexion()
+                is ResultatGoogle.Erreur -> _etat.value = EtatConnexion(erreur = r.message)
+                is ResultatGoogle.Jeton -> try {
+                    session.connecterAvecGoogle(r.jetonIdentite, r.nonce)
+                    _etat.value = EtatConnexion()
+                    surReussite()
+                } catch (e: ErreurAuth) {
+                    _etat.value = EtatConnexion(erreur = e.message)
+                } catch (e: Exception) {
+                    _etat.value = EtatConnexion(erreur = "Une erreur est survenue. Réessayez dans un instant.")
+                }
+            }
+        }
+    }
 
     fun connecter(email: String, motDePasse: String, surReussite: () -> Unit) {
         verifierConnexion(email, motDePasse)?.let { _etat.value = EtatConnexion(erreur = it); return }

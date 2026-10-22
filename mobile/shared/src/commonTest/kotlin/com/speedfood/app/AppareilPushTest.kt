@@ -2,6 +2,8 @@ package com.speedfood.app
 
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.AppareilApi
+import com.speedfood.app.data.BilanEssai
+import com.speedfood.app.data.messageEssai
 import com.speedfood.app.data.EnregistrementPush
 import com.speedfood.app.data.FournisseurJetonPush
 import com.speedfood.app.data.JetonPushIndisponible
@@ -46,6 +48,12 @@ class AppareilPushTest {
         override suspend fun retirer(jetonAcces: String, jetonAppareil: String): Boolean {
             retires += jetonAppareil
             return true
+        }
+        var bilan: BilanEssai? = BilanEssai(configure = true, appareils = 1, envoyes = 1)
+        var essais = 0
+        override suspend fun essai(jetonAcces: String): BilanEssai? {
+            essais++
+            return bilan
         }
     }
 
@@ -131,5 +139,50 @@ class AppareilPushTest {
         // Réseau coupé : jamais d'exception.
         val coupe = KtorAppareilApi(client(MockEngine { throw RuntimeException("réseau coupé") }), config)
         assertEquals(false, coupe.enregistrer("acces", jetonA, "android", null))
+    }
+
+    @Test
+    fun lesMessagesDEssaiDisentQuoiVerifier() {
+        assertTrue(messageEssai(null).contains("connexion"))
+        assertTrue(messageEssai(BilanEssai(configure = false)).contains("pas encore activées"))
+        assertTrue(messageEssai(BilanEssai(configure = true, appareils = 0)).contains("Aucun appareil"))
+        assertTrue(messageEssai(BilanEssai(configure = true, appareils = 2, envoyes = 2)).contains("envoyée à 2"))
+        assertTrue(messageEssai(BilanEssai(configure = true, appareils = 1, envoyes = 0, echecs = 1)).contains("échoué"))
+    }
+
+    @Test
+    fun lEssaiEnregistreLAppareilAvantDeDemanderLEnvoi() = runTest {
+        val api = FausseApi()
+        val stockage = StockageMemoire()
+        val e = EnregistrementPush(session(stockage, connecte = true), api, FauxJeton(jetonA), stockage, "android", null)
+        val message = e.essai()
+        assertEquals(1, api.enregistres.size, "l'appareil est enregistré d'abord : sinon le serveur ne saurait pas à qui écrire")
+        assertEquals(1, api.essais)
+        assertTrue(message.contains("envoyée à 1"))
+    }
+
+    @Test
+    fun lEssaiExpliqueQuandIlEstImpossible() = runTest {
+        val api = FausseApi()
+        val s1 = StockageMemoire()
+        assertTrue(EnregistrementPush(session(s1, connecte = true), api, JetonPushIndisponible(), s1, "android", null).essai().contains("services Google"))
+        val s2 = StockageMemoire()
+        assertTrue(EnregistrementPush(session(s2, connecte = false), api, FauxJeton(jetonA), s2, "android", null).essai().contains("Connectez-vous"))
+        assertEquals(0, api.essais, "aucun appel au serveur dans ces deux cas")
+    }
+
+    @Test
+    fun laRequeteDEssaiVisePeLaBonneRouteEtLitLeBilan() = runTest {
+        val api = KtorAppareilApi(
+            client(MockEngine { r ->
+                assertEquals("/api/v1/appareils/essai", r.url.encodedPath)
+                assertEquals("Bearer acces", r.headers[HttpHeaders.Authorization])
+                respond("""{"ok":true,"configure":true,"appareils":2,"envoyes":1,"expires":0,"echecs":1}""", HttpStatusCode.OK, json)
+            }),
+            config,
+        )
+        assertEquals(BilanEssai(true, 2, 1, 0, 1), api.essai("acces"))
+        val refus = KtorAppareilApi(client(MockEngine { respond("""{"ok":false,"erreur":{"code":"TROP_DE_REQUETES","message":"Trop"}}""", HttpStatusCode.TooManyRequests, json) }), config)
+        assertEquals(null, refus.essai("acces"))
     }
 }

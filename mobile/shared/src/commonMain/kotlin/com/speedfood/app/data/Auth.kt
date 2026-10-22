@@ -3,6 +3,7 @@ package com.speedfood.app.data
 import com.speedfood.app.config.SpeedfoodConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -15,7 +16,10 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -37,6 +41,15 @@ interface AuthApi {
     suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String)
 
     suspend fun rafraichir(refreshToken: String): Session
+
+    /**
+     * Connexion avec un jeton d'identité Google obtenu sur le téléphone : le service d'authentification le vérifie (signature, destinataire, [nonce]) et ouvre la session
+     * du compte Google, créé s'il n'existe pas ; une adresse déjà inscrite avec le même e-mail confirmé est rattachée au même compte.
+     */
+    suspend fun connecterAvecGoogle(jetonIdentite: String, nonce: String?): Session
+
+    /** Méthodes de connexion activées côté serveur (par exemple « google »), lues sur le point public du service d'authentification ; vide si indisponible. */
+    suspend fun fournisseursActifs(): Set<String>
 }
 
 @Serializable
@@ -124,6 +137,28 @@ class KtorAuthApi(
         if (!reponse.status.isSuccess()) throw erreurDe(reponse)
     }
 
+    override suspend fun connecterAvecGoogle(jetonIdentite: String, nonce: String?): Session {
+        val reponse = poster("token", mapOf("grant_type" to "id_token"), buildJsonObject {
+            put("provider", "google")
+            put("id_token", jetonIdentite)
+            if (nonce != null) put("nonce", nonce)
+        })
+        if (!reponse.status.isSuccess()) throw erreurDe(reponse)
+        return sessionDe(reponse)
+    }
+
+    override suspend fun fournisseursActifs(): Set<String> = try {
+        if (!config.estComplete) emptySet()
+        else {
+            val texte = client.get("${base()}/settings") { header("apikey", config.supabaseAnonKey) }.bodyAsText()
+            (Json.parseToJsonElement(texte).jsonObject["external"]?.jsonObject ?: JsonObject(emptyMap()))
+                .filter { (_, v) -> (v as? JsonPrimitive)?.booleanOrNull == true }
+                .keys
+        }
+    } catch (_: Exception) {
+        emptySet()
+    }
+
     override suspend fun rafraichir(refreshToken: String): Session {
         val reponse = poster("token", mapOf("grant_type" to "refresh_token"), buildJsonObject { put("refresh_token", refreshToken) })
         if (!reponse.status.isSuccess()) throw erreurDe(reponse)
@@ -141,6 +176,8 @@ internal fun traduireErreurAuth(statut: Int, corps: String): String {
         "pwned" in t || "compromised" in t || "weak" in t -> "Ce mot de passe est trop faible ou connu dans des fuites de données. Choisissez-en un autre."
         "at least" in t && "password" in t -> "Le mot de passe doit contenir au moins 12 caractères."
         "already registered" in t || "already exists" in t -> "Un compte existe déjà avec cet e-mail."
+        "provider is not enabled" in t || "unsupported provider" in t -> "La connexion avec Google n'est pas encore activée."
+        "nonce" in t || "id token" in t || "id_token" in t -> "La connexion avec Google a échoué : recommencez. Si cela se répète, utilisez votre e-mail et votre mot de passe."
         statut in 500..599 -> "Speedfood est momentanément indisponible. Réessayez dans un instant."
         else -> "Une erreur est survenue. Réessayez dans un instant."
     }

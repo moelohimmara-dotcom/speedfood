@@ -9,7 +9,9 @@ import com.speedfood.app.data.KtorCommandeApi
 import com.speedfood.app.data.AlerteCommande
 import com.speedfood.app.data.AppareilApi
 import com.speedfood.app.data.EnregistrementPush
+import com.speedfood.app.data.FournisseurGoogle
 import com.speedfood.app.data.FournisseurJetonPush
+import com.speedfood.app.data.GoogleIndisponible
 import com.speedfood.app.data.JetonPushIndisponible
 import com.speedfood.app.data.KtorAppareilApi
 import com.speedfood.app.data.AlerteIndisponible
@@ -54,6 +56,7 @@ fun modulesApplication(
     jetonPush: FournisseurJetonPush = JetonPushIndisponible(),
     plateforme: String = "android",
     versionApp: String? = null,
+    google: FournisseurGoogle = GoogleIndisponible(),
 ) = listOf(
     module {
         single { config }
@@ -61,6 +64,7 @@ fun modulesApplication(
         single { position }
         single { alerte }
         single { jetonPush }
+        single { google }
         single {
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -102,8 +106,9 @@ fun initKoin(
     jetonPush: FournisseurJetonPush = JetonPushIndisponible(),
     plateforme: String = "android",
     versionApp: String? = null,
+    google: FournisseurGoogle = GoogleIndisponible(),
 ) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp)) }
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google)) }
 }
 
 /**

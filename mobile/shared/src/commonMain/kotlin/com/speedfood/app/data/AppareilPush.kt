@@ -36,6 +36,22 @@ interface AppareilApi {
     suspend fun enregistrer(jetonAcces: String, jetonAppareil: String, plateforme: String, versionApp: String?): Boolean
 
     suspend fun retirer(jetonAcces: String, jetonAppareil: String): Boolean
+
+    /** Notification d'essai vers les appareils du compte ; null si le serveur n'a pas pu répondre (réseau, refus). */
+    suspend fun essai(jetonAcces: String): BilanEssai?
+}
+
+/** Résultat d'une notification d'essai, tel que le serveur le rapporte (compteurs seulement). */
+@Serializable
+data class BilanEssai(val configure: Boolean = false, val appareils: Int = 0, val envoyes: Int = 0, val expires: Int = 0, val echecs: Int = 0)
+
+/** Message lisible pour la personne, d'après le bilan de l'essai : ce qu'il faut vérifier si rien n'arrive. */
+fun messageEssai(bilan: BilanEssai?): String = when {
+    bilan == null -> "L'essai n'a pas pu être lancé. Vérifiez votre connexion puis réessayez."
+    !bilan.configure -> "Les notifications ne sont pas encore activées sur le serveur de Speedfood."
+    bilan.appareils == 0 -> "Aucun appareil n'est enregistré pour ce compte. Vérifiez que les notifications sont autorisées pour Speedfood, puis réessayez."
+    bilan.envoyes > 0 -> "Notification envoyée à ${bilan.envoyes} appareil(s). Elle doit arriver dans quelques secondes ; sinon, regardez les réglages de notifications du téléphone."
+    else -> "L'envoi a échoué pour ${bilan.appareils} appareil(s). Réessayez dans un instant."
 }
 
 class KtorAppareilApi(private val client: HttpClient, private val config: SpeedfoodConfig) : AppareilApi {
@@ -57,10 +73,25 @@ class KtorAppareilApi(private val client: HttpClient, private val config: Speedf
 
     override suspend fun retirer(jetonAcces: String, jetonAppareil: String) =
         poster("/retirer", jetonAcces, json.encodeToString(CorpsRetraitAppareil.serializer(), CorpsRetraitAppareil(jetonAppareil)))
+
+    override suspend fun essai(jetonAcces: String): BilanEssai? = try {
+        val reponse = client.post("${config.siteUrl.trimEnd('/')}/api/v1/appareils/essai") {
+            header(HttpHeaders.Authorization, "Bearer $jetonAcces")
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+        val r = reponse.body<ReponseEssai>()
+        if (r.ok) BilanEssai(r.configure, r.appareils, r.envoyes, r.expires, r.echecs) else null
+    } catch (_: Exception) {
+        null
+    }
 }
 
 @Serializable
 private data class ReponseSimpleAppareil(val ok: Boolean = false)
+
+@Serializable
+private data class ReponseEssai(val ok: Boolean = false, val configure: Boolean = false, val appareils: Int = 0, val envoyes: Int = 0, val expires: Int = 0, val echecs: Int = 0)
 
 /**
  * Lien entre le compte connecté et l'appareil pour les notifications poussées : le serveur sait à quel téléphone envoyer les alertes de CE compte. L'enregistrement
@@ -84,6 +115,17 @@ class EnregistrementPush(
         if (stockage.lire(CLE) == signature) return
         val jetonAcces = session.jetonValide() ?: return
         if (api.enregistrer(jetonAcces, jetonAppareil, plateforme, versionApp)) stockage.ecrire(CLE, signature)
+    }
+
+    /**
+     * Essai de bout en bout : s'assure que l'appareil est enregistré, puis demande au serveur d'envoyer une notification d'essai à ce compte. Renvoie le message
+     * à montrer (ce qui s'est passé, ou ce qu'il faut vérifier).
+     */
+    suspend fun essai(): String {
+        if (!fournisseur.disponible) return "Ce téléphone ne reçoit pas les notifications poussées (services Google absents ou non configurés)."
+        val jetonAcces = session.jetonValide() ?: return "Connectez-vous pour tester les notifications."
+        enregistrer()
+        return messageEssai(api.essai(jetonAcces))
     }
 
     /** Retire l'appareil du compte connecté (à appeler AVANT la déconnexion : il faut encore une session valide). */

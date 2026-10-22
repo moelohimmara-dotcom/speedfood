@@ -23,6 +23,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -83,6 +84,7 @@ internal fun BlocMessage(texte: String, erreur: Boolean) {
 @Composable
 fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: ConnexionViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
+    val googleActif by viewModel.googleActif.collectAsState()
     var inscription by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var motDePasse by remember { mutableStateOf("") }
@@ -131,6 +133,14 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                 ChampTexte(email, { email = it }, "Adresse e-mail", KeyboardType.Email)
                 ChampTexte(motDePasse, { motDePasse = it }, "Mot de passe", KeyboardType.Password, secret = true, aide = if (inscription) "12 caractères au moins" else null)
                 etat.erreur?.let { BlocMessage(it, erreur = true) }
+                if (googleActif) {
+                    OutlinedButton(
+                        onClick = { viewModel.continuerAvecGoogle(onConnecte) },
+                        enabled = !etat.enCours,
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(2.dp, Couleurs.Encre),
+                    ) { Text("Continuer avec Google", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
+                }
                 BoutonPrincipal(
                     texte = if (etat.enCours) "Veuillez patienter…" else if (inscription) "Créer mon compte" else "Se connecter",
                     actif = !etat.enCours,

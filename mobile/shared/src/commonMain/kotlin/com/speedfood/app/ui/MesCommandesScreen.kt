@@ -65,6 +65,9 @@ fun MesCommandesScreen(
         Column(Modifier.fillMaxSize().padding(marges).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (session != null) {
                 Text(session?.email ?: "Compte connecté", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = viewModel::essaiNotification, border = BorderStroke(1.dp, Couleurs.Bordure)) {
+                    Text("Tester les notifications", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                }
                 OutlinedButton(
                     onClick = viewModel::deconnecter,
                     border = BorderStroke(2.dp, Couleurs.Encre),

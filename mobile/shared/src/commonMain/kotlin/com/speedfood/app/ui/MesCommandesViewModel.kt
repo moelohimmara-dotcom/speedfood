@@ -115,6 +115,19 @@ class MesCommandesViewModel(
         }
     }
 
+    /** Essai des notifications poussées : le résultat s'affiche dans le message de l'écran. */
+    fun essaiNotification() {
+        _etat.value = _etat.value.copy(message = "Essai en cours…")
+        viewModelScope.launch {
+            val message = try {
+                enregistrementPush.essai()
+            } catch (_: Exception) {
+                "L'essai n'a pas pu être lancé. Réessayez dans un instant."
+            }
+            _etat.value = _etat.value.copy(message = message)
+        }
+    }
+
     /** Déconnexion : l'appareil est d'abord retiré du compte (il ne doit plus recevoir ses alertes), puis la session est fermée et ce que l'appareil gardait est oublié. */
     fun deconnecter() {
         viewModelScope.launch {

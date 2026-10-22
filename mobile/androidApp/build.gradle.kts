@@ -22,6 +22,10 @@ dependencies {
     // Notifications poussées (Firebase Cloud Messaging) et rapports de plantage (Crashlytics). Google Analytics n'est pas activé sur le projet Firebase.
     // Firebase apporte une ancienne version de Fragment que la vérification de qualité Android refuse pour les demandes d'autorisation (registerForActivityResult).
     implementation(libs.androidx.fragment)
+    // Connexion avec Google : fenêtre native de choix du compte (gestionnaire d'identifiants du système).
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play)
+    implementation(libs.googleid)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.crashlytics)
@@ -48,6 +52,8 @@ android {
         versionName = "2.7.0"
         buildConfigField("String", "SUPABASE_URL", "\"${reglage("supabase.url")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${reglage("supabase.anonKey")}\"")
+        // Identifiant du client OAuth « Web » du projet Google (valeur publique) : vide = pas de bouton « Continuer avec Google ».
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${reglage("google.webClientId")}\"")
         buildConfigField("String", "SITE_URL", "\"${reglage("site.url", "https://speedfood-app.moelohimmara.workers.dev")}\"")
     }
     buildFeatures {
