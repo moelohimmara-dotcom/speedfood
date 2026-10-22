@@ -1,8 +1,27 @@
 # Audit visuel et fonctionnel de l'application Android Speedfood (22 octobre 2026, APK 2.13.0)
 
+## Complément : essai sur un vrai Android 14 émulé (même jour)
+Un émulateur Android 14 avec les services Google (profil Pixel 6, 1080 × 2400) a été installé sur ce poste (SDK dans `C:\Users\moelo\.bubblewrap\android_sdk`, téléphone virtuel `speedfood_pixel`) et l'APK 2.13.0 de production y a été installée et parcourue avec les vraies données de production (lecture seule : aucune commande envoyée, aucun compte créé). Captures : `docs/audit-2026-10-22/emulateur/`.
+
+**Constats réels (ils corrigent ou complètent la suite de ce rapport) :**
+| # | Constat sur l'émulateur | Gravité |
+|---|---|---|
+| E1 | **Un seul restaurant est publié en production** (« barbie food », sans photo), avec 3 plats. Le catalogue est quasi vide : c'est le premier frein à l'adoption | Critique (contenu) |
+| E2 | **Tous les plats affichent « À confirmer · dernière confirmation il y a 10 jours »** et le restaurant « statut à confirmer (19 jours) » : personne ne reconfirme, donc la plateforme a l'air abandonnée. Il faut le rappel de confirmation (lot L5) ou une règle moins punitive | Critique |
+| E3 | **Pas de commande sans compte** : « Commander » mène à « Connectez-vous (ou créez un compte) pour envoyer votre commande ». Les documents du projet parlaient d'une commande invité ; l'application l'impose. Chaque étape de plus fait perdre des clients | Élevée |
+| E4 | **Le panier est perdu quand l'application est redémarrée** (le badge « 1 » disparaît après relance) | Élevée |
+| E5 | **Aucun cache hors ligne** : au démarrage sans réseau, seul « Impossible de joindre Speedfood… » et un bouton « Réessayer » s'affichent, sans aucune donnée | Élevée |
+| E6 | Connexion : pas de « Mot de passe oublié », pas d'œil pour afficher le mot de passe, pas de connexion par téléphone (la norme locale). Le bouton Google est présent et son message de repli (« Aucun compte Google n'est connecté… ») fonctionne ; la connexion Google complète n'a pas pu être essayée (il faut un compte Google réel sur l'émulateur) | Moyenne |
+| E7 | Section de menu affichée « Autres plats » : les plats n'ont pas de section, l'en-tête n'apporte rien | Faible |
+| E8 | Grande police (1,6×) : tout reste lisible, mais les horaires sont coupés (« 9h00–2… »), le champ de recherche passe sur deux lignes et la rangée de filtres déborde à droite | Faible |
+| E9 | « 1 article(s) » : pluriel mal géré dans la barre de panier | Faible |
+| **Bon point** | **Démarrage à froid d'environ 1 seconde, 61 Mo de mémoire, aucun plantage de l'application, clavier qui ne masque rien, barre de panier fixe et bouton « Commander » bien présents** | — |
+
+**Correction de mon rapport précédent :** les lignes V10 (« panier sans bouton ») et « barre de panier fixe à ajouter » (C3) étaient FAUSSES : mes captures de test ne montraient pas la barre du bas. Sur l'émulateur, la barre « Voir mon panier · 1 article(s) · 25 000 GNF » et le bouton « Commander » existent. Ne pas en tenir compte.
+
 ## Méthode et limites (à lire d'abord)
 - **Ce qui a été fait :** les 34 écrans de l'application ont été dessinés par le moteur de captures du projet (`mobile/shared/.../CapturesTest.kt`, vrai code Compose, 412 px de large comme un téléphone, densité 2), du lancement au suivi de commande, à la console restaurateur, au menu, à l'espace livreur et à l'espace équipe, puis relus. Variantes testées : police du système agrandie 1,5 fois. Planches de relecture : `docs/audit-2026-10-22/planche-A.png` à `planche-J.png`.
-- **Ce qui n'a PAS pu être fait :** il n'y a pas d'émulateur Android sur ce poste (ni image système). Les captures utilisent des données d'exemple et ne montrent ni le clavier, ni les fenêtres d'autorisation, ni les notifications, ni les animations réelles, ni la performance, ni le comportement réseau (lenteur, coupures). Un émulateur réel (téléchargement d'environ 2 Go, accélération matérielle à vérifier) ou un vrai téléphone complèterait cet audit : **le test sur téléphone reste l'étape qui manque le plus**.
+- **Limites restantes :** les captures du moteur utilisent des données d'exemple. L'émulateur n'a pas de compte Google (connexion Google non testée de bout en bout), pas de vraies notifications poussées, et les comptes restaurateur, livreur et équipe n'ont pas été essayés (ils demandent des identifiants). Un vrai téléphone sur le réseau mobile de Conakry reste nécessaire pour la fluidité réelle.
 - Les écarts « sur site seulement » sont notés quand une fonction existe sur la plateforme web mais pas dans l'application.
 
 ## 1. Défauts visuels constatés
@@ -17,7 +36,7 @@
 | V7 | Messages d'erreur du formulaire de commande affichés au milieu de la page, loin du champ fautif | À faire |
 | V8 | Le détail « statut à confirmer (dernière confirmation il y a 2486 jours) » est bavard pour un client | À simplifier |
 | V9 | Aucune photo dans les captures : les vignettes montrent une lettre. L'affichage des images existe (Coil), mais les restaurants et plats n'ont pas encore de photos en base | Contenu à produire |
-| V10 | Panier : la capture ne montre aucun bouton clair pour valider ni le total | À vérifier sur un appareil, probablement une barre basse hors capture |
+| V10 | ~~Panier sans bouton de validation~~ | **Faux** : voir la correction en tête de rapport (barre et bouton présents) |
 | V11 | Aucun thème sombre ; pas de squelettes de chargement (un simple cercle qui tourne) | À faire |
 
 ## 2. Parcours client : ce qu'il faut ajouter pour atteindre le niveau des applis pro
@@ -33,7 +52,6 @@
 
 **C3. Fiche restaurant et plats**
 - Photo en tête, plats avec photos (dès que le restaurant en met), fiche détaillée d'un plat (suppléments à cocher, quantité, note pour la cuisine), allergènes.
-- Barre de panier fixe en bas (« 2 plats · 66 000 GNF · Voir mon panier »).
 - Partage d'un restaurant par WhatsApp (lien profond).
 
 **C4. Panier et commande**
@@ -86,7 +104,7 @@
 | Performance | APK de 14 Mo (correct) ; démarrage et défilement à mesurer sur un téléphone d'entrée de gamme (cible de la clientèle) |
 
 ## 5. Priorités proposées
-**P0, avant d'ouvrir à de vrais clients :** test sur téléphone réel de tout le parcours ; ouvrir sur les restaurants (C1) ; compte et profil (C6) ; barre de panier et valider la commande (C3, V10) ; suivi avec appel du restaurant et du livreur (C5) ; mode hors ligne minimal ; liens profonds ; étiquettes de champs et erreurs au bon endroit (V6, V7).
+**P0, avant d'ouvrir à de vrais clients :** remplir le catalogue (restaurants, photos, plats confirmés : E1, E2) ; commande sans compte ou compte en deux gestes (E3) ; panier conservé après redémarrage (E4) ; cache hors ligne (E5) ; test sur téléphone réel de tout le parcours ; ouvrir sur les restaurants (C1) ; compte et profil (C6) ; suivi avec appel du restaurant et du livreur (C5) ; mode hors ligne minimal ; liens profonds ; étiquettes de champs et erreurs au bon endroit (V6, V7).
 **P1 :** paiement dans l'application (C4), carte et position du livreur (C5, section 4), photos des restaurants et des plats (contenu), tableau du jour restaurateur, navigation du livreur, gains du livreur, poursuite de la parité équipe.
 **P2 :** thème sombre, langues, tablettes, mesures de parcours, publication sur Google Play, tri et favoris avancés, codes promo.
 
