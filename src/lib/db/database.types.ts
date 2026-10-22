@@ -1339,6 +1339,7 @@ export type Database = {
         Row: {
           commande_proposition_delai_minutes: number
           connexion_facebook_active: boolean
+          connexion_google_active: boolean
           conservation_audit_mois: number
           conservation_coordonnees_jours: number
           conservation_non_cloturee_jours: number
@@ -1357,6 +1358,7 @@ export type Database = {
         Insert: {
           commande_proposition_delai_minutes?: number
           connexion_facebook_active?: boolean
+          connexion_google_active?: boolean
           conservation_audit_mois?: number
           conservation_coordonnees_jours?: number
           conservation_non_cloturee_jours?: number
@@ -1375,6 +1377,7 @@ export type Database = {
         Update: {
           commande_proposition_delai_minutes?: number
           connexion_facebook_active?: boolean
+          connexion_google_active?: boolean
           conservation_audit_mois?: number
           conservation_coordonnees_jours?: number
           conservation_non_cloturee_jours?: number

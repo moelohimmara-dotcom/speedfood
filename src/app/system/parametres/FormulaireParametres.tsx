@@ -59,6 +59,15 @@ export function FormulaireParametres({ parametres }: { parametres: ParametresAff
               indique que la création de compte arrive bientôt et aucun bouton Facebook n&apos;est proposé.
             </Aide>
           </div>
+          <div className="field">
+            <label className="case-parametre">
+              <input type="checkbox" name="connexion_google_active" defaultChecked={parametres.connexionGoogleActive} />
+              Activer la connexion Google des clients
+            </label>
+            <Aide>
+              Le client Google est déjà configuré. Tant que c&apos;est décoché, aucun bouton Google n&apos;est proposé sur la page « Rejoindre Speedfood ».
+            </Aide>
+          </div>
         </Panneau>
       </div>
 

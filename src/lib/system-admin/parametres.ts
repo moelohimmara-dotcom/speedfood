@@ -40,6 +40,7 @@ export interface ParametresAffiches {
   promesseSousTitre: string;
   promessePartage: string;
   connexionFacebookActive: boolean;
+  connexionGoogleActive: boolean;
 }
 
 export async function listerParametresApplication(): Promise<ParametresAffiches> {
@@ -48,7 +49,7 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
   const { data } = await supabase
     .from("parametres_application")
     .select(
-      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois, whatsapp_assistance, delai_validation_heures, position_carte_active, promesse_signature, promesse_sous_titre, promesse_partage, connexion_facebook_active"
+      "commande_proposition_delai_minutes, prix_plat_max_gnf, disponibilite_fraicheur_heures, conservation_coordonnees_jours, conservation_non_cloturee_jours, conservation_audit_mois, whatsapp_assistance, delai_validation_heures, position_carte_active, promesse_signature, promesse_sous_titre, promesse_partage, connexion_facebook_active, connexion_google_active"
     )
     .eq("id", true)
     .single();
@@ -67,6 +68,7 @@ export async function listerParametresApplication(): Promise<ParametresAffiches>
     promesseSousTitre: data?.promesse_sous_titre ?? "",
     promessePartage: data?.promesse_partage ?? "",
     connexionFacebookActive: data?.connexion_facebook_active ?? false,
+    connexionGoogleActive: data?.connexion_google_active ?? false,
   };
 }
 
@@ -98,6 +100,7 @@ export async function modifierParametresAction(
   }
   const positionCarteActive = formData.get("position_carte_active") === "on";
   const connexionFacebookActive = formData.get("connexion_facebook_active") === "on";
+  const connexionGoogleActive = formData.get("connexion_google_active") === "on";
 
   // Textes de promesse : une ligne chacun, bornés comme la base ; vide = texte par défaut.
   const texteLigne = (cle: string) => String(formData.get(cle) ?? "").replace(/\s+/g, " ").trim();
@@ -147,6 +150,7 @@ export async function modifierParametresAction(
       delai_validation_heures: delaiValidation,
       position_carte_active: positionCarteActive,
       connexion_facebook_active: connexionFacebookActive,
+      connexion_google_active: connexionGoogleActive,
       promesse_signature: promesseSignature || null,
       promesse_sous_titre: promesseSousTitre || null,
       promesse_partage: promessePartage || null,

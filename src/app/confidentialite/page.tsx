@@ -74,8 +74,8 @@ export default async function ConfidentialitePage() {
 
       <h2>Si vous créez un compte (facultatif)</h2>
       <p>
-        Vous pouvez créer un compte avec Facebook. Facebook nous transmet votre nom et votre adresse e-mail, jamais vos amis, vos
-        publications ni vos pages. Speedfood garde l&apos;identifiant de votre compte, votre pseudo et l&apos;avatar que vous avez
+        Vous pouvez créer un compte avec Facebook ou avec Google. Facebook ou Google nous transmet votre nom et votre adresse e-mail, jamais vos amis,
+        vos contacts, vos publications, vos pages ni vos messages. Speedfood garde l&apos;identifiant de votre compte, votre pseudo et l&apos;avatar que vous avez
         choisis, pour vous reconnaître d&apos;une visite à l&apos;autre. Ces informations ne sont vues que par vous et par l&apos;équipe
         Speedfood en cas d&apos;aide, et elles sont conservées tant que votre compte existe. Vous pouvez supprimer votre compte
         vous-même depuis la page « Mon compte » : le pseudo, l&apos;avatar et l&apos;accès sont alors effacés. Les commandes passées

@@ -1312,6 +1312,16 @@
   background: #1260c9;
   border-color: #1260c9;
 }
+.btn-google {
+  background: #fff;
+  border-color: #dadce0;
+  color: #3c4043;
+  background-image: none;
+}
+.btn-google:hover {
+  background: #f1f3f4;
+  border-color: #c6c9cc;
+}
 .entrer-formulaire {
   display: grid;
   gap: var(--space-3);

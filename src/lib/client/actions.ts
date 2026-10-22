@@ -8,7 +8,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { origineDuSite } from "@/lib/partage/origine";
 import { estCheminInterneSur } from "@/lib/auth/redirection";
-import { connexionClientActive } from "./reglage";
+import { connexionClientActive, connexionGoogleActive } from "./reglage";
 import { estAvatarValide, validerPseudo } from "./profil";
 import { validerCoordonnees } from "./coordonnees";
 
@@ -36,6 +36,30 @@ export async function continuerAvecFacebookAction(formData: FormData): Promise<v
     options: {
       redirectTo: `${origine}/auth/client?suite=${encodeURIComponent(suite)}`,
       scopes: "email public_profile",
+    },
+  });
+  if (error || !data.url) {
+    redirect("/entrer?erreur=depart");
+  }
+  redirect(data.url);
+}
+
+/**
+ * Départ de la connexion Google. Ne démarre que si l'administrateur l'a activée. On ne demande à Google que l'identité de base
+ * (nom, adresse e-mail) : jamais l'accès aux contacts, au calendrier ni à la messagerie. Le retour passe par la même route que Facebook.
+ */
+export async function continuerAvecGoogleAction(formData: FormData): Promise<void> {
+  const suite = suiteSure(String(formData.get("suite") ?? ""), "/compte");
+  if (!(await connexionGoogleActive())) {
+    redirect("/entrer?indisponible=1");
+  }
+  const supabase = await creerClientServeur();
+  const origine = await origineDuSite();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origine}/auth/client?suite=${encodeURIComponent(suite)}`,
+      scopes: "openid email profile",
     },
   });
   if (error || !data.url) {

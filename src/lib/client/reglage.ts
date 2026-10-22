@@ -13,3 +13,13 @@ export async function connexionClientActive(): Promise<boolean> {
     .maybeSingle();
   return !error && data?.connexion_facebook_active === true;
 }
+
+/** Interrupteur de la connexion Google des clients (même principe que Facebook, réglé depuis `/system/parametres`). */
+export async function connexionGoogleActive(): Promise<boolean> {
+  const { data, error } = await creerClientAdmin()
+    .from("parametres_application")
+    .select("connexion_google_active")
+    .eq("id", true)
+    .maybeSingle();
+  return !error && data?.connexion_google_active === true;
+}

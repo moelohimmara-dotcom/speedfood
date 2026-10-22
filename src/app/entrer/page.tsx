@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { PageCompte } from "@/components/PageCompte";
 import { Alert, Card } from "@/components/ui";
 import { estCheminInterneSur } from "@/lib/auth/redirection";
-import { continuerAvecFacebookAction } from "@/lib/client/actions";
-import { connexionClientActive } from "@/lib/client/reglage";
+import { continuerAvecFacebookAction, continuerAvecGoogleAction } from "@/lib/client/actions";
+import { connexionClientActive, connexionGoogleActive } from "@/lib/client/reglage";
 import { creerClientServeur } from "@/lib/db/server";
 import { InscriptionCompleteForm } from "./InscriptionCompleteForm";
 
@@ -39,7 +39,7 @@ export default async function EntrerPage({
     redirect(suiteSure);
   }
 
-  const actif = await connexionClientActive();
+  const [actif, googleActif] = await Promise.all([connexionClientActive(), connexionGoogleActive()]);
   const message = erreur ? MESSAGES_ERREUR[erreur] : undefined;
 
   return (
@@ -83,6 +83,32 @@ export default async function EntrerPage({
           </p>
           <InscriptionCompleteForm suite={suiteSure} />
         </Card>
+
+        {googleActif ? (
+          <Card className="inscription-carte">
+            <h3 className="inscription-carte-titre">
+              <span aria-hidden="true">🔵</span> Continuer avec Google
+            </h3>
+            <p className="aide-champ inscription-carte-resume">
+              Un clic, pas de mot de passe &agrave; retenir. Speedfood re&ccedil;oit votre nom et votre adresse e-mail Google &mdash;
+              jamais vos contacts ni vos messages.
+            </p>
+            <form action={continuerAvecGoogleAction} className="entrer-formulaire">
+              <input type="hidden" name="suite" value={suiteSure} />
+              <button type="submit" className="btn btn-google btn-block">
+                Continuer avec Google
+              </button>
+              <p className="aide-champ inscription-mention">
+                En continuant, vous acceptez que Speedfood garde votre pseudo, votre avatar et l&apos;identifiant de votre compte
+                Google. Détails sur la page{" "}
+                <Link href="/confidentialite" className="lien-texte">
+                  Confidentialité
+                </Link>
+                .
+              </p>
+            </form>
+          </Card>
+        ) : null}
 
         {actif ? (
           <Card className="inscription-carte">
