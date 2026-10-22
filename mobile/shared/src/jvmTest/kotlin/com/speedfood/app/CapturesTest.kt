@@ -291,4 +291,86 @@ class CapturesTest {
         )
         ContenuMenuGere(EtatMenuGere.Pret(menu), { _, _ -> }, {}, {}, {}, { _, _, _, _, _ -> }, { _, _, _, _, _, _ -> }, { _, _, _ -> }, {})
     }
+
+    // ---- Espace équipe Speedfood (APK 2.11 à 2.13) et variantes d'accessibilité ----
+    private val accesEquipe = com.speedfood.app.data.AccesEquipe(
+        role = "super_admin",
+        groupes = listOf(
+            com.speedfood.app.data.GroupeMenuEquipe("Commandes", listOf(
+                com.speedfood.app.data.EntreeMenuEquipe("/system/repartition", "Répartition", true),
+                com.speedfood.app.data.EntreeMenuEquipe("/system/commandes", "Support commandes", true),
+                com.speedfood.app.data.EntreeMenuEquipe("/system/paiements", "Paiements", false),
+            )),
+            com.speedfood.app.data.GroupeMenuEquipe("Catalogue", listOf(
+                com.speedfood.app.data.EntreeMenuEquipe("/system/catalogue/restaurants", "Restaurants", false),
+                com.speedfood.app.data.EntreeMenuEquipe("/system/catalogue/referencements", "Référencements", false),
+            )),
+        ),
+    )
+
+    @Test
+    fun equipeHub() = capturer("equipe-hub", hauteur = 900) { com.speedfood.app.ui.ContenuEquipe(com.speedfood.app.ui.EtatEquipe.Pret(accesEquipe), "https://exemple.test", {}) }
+
+    private fun commandeEquipe(id: String, ref: String, statut: String, tel: String? = "+224620000000") = com.speedfood.app.data.CommandeEquipe(
+        id, ref, statut, "livraison", 40000, 5000, "2026-10-22T10:00:00Z", false, "r1", "Chez Aïssatou", tel,
+        listOf(com.speedfood.app.data.LigneEquipe("Poulet braisé", 2), com.speedfood.app.data.LigneEquipe("Jus de bissap", 1)),
+    )
+
+    @Test
+    fun repartitionEquipe() = capturer("equipe-repartition", hauteur = 1300) {
+        com.speedfood.app.ui.ContenuRepartition(
+            com.speedfood.app.ui.EtatRepartition.Pret(listOf(commandeEquipe("c1", "SF-4KVB9", "en_attente"), commandeEquipe("c2", "SF-7RTM2", "acceptee", tel = null), commandeEquipe("c3", "SF-2HXN8", "prete"))),
+            { _, _ -> },
+        )
+    }
+
+    @Test
+    fun supportListe() = capturer("equipe-support", hauteur = 900) {
+        val c = com.speedfood.app.data.CommandeSupport("c1", "SF-4KVB9", "Chez Aïssatou", "r1", "acceptee", "livraison", "Mamadou D.", "+224 6** ** ** 78", "Kaloum, ***", 40000, 5000, "2026-10-22T10:00:00Z")
+        com.speedfood.app.ui.ContenuSupport(com.speedfood.app.ui.EtatSupport.Pret(listOf(c, c.copy(id = "c2", reference = "SF-7RTM2", statut = "prete"))), {}, {}, {}, {}, {})
+    }
+
+    @Test
+    fun supportDetail() = capturer("equipe-support-detail", hauteur = 1300) {
+        val c = com.speedfood.app.data.CommandeSupport(
+            "c1", "SF-4KVB9", "Chez Aïssatou", "r1", "acceptee", "livraison", "Mamadou D.", "+224 6** ** ** 78", "Kaloum, ***", 40000, 5000, "2026-10-22T10:00:00Z",
+            historique = listOf(com.speedfood.app.data.EvenementSupport("en_attente", "acceptee", "equipe:u1", "2026-10-22T10:05:00Z")),
+        )
+        com.speedfood.app.ui.ContenuDetailSupport(com.speedfood.app.ui.EtatDetailSupport.Pret(com.speedfood.app.data.DetailSupport(c, listOf("prete", "annulee"), true)), { _, _ -> }, {})
+    }
+
+    private val exploitation = com.speedfood.app.data.ExploitationLivraison(
+        livraisons = listOf(
+            com.speedfood.app.data.LivraisonEquipe("l1", "SF-4KVB9", "Chez Aïssatou", "speedfood", "offre_envoyee", "Offre envoyée", fraisGnf = 5000, distanceKm = 2.4, offreEnCours = com.speedfood.app.data.OffreEquipe("Sékou", "")),
+            com.speedfood.app.data.LivraisonEquipe("l2", "SF-7RTM2", "Chez Awa", "speedfood", "vers_client", "En route chez le client", livreurNom = "Fatoumata", fraisGnf = 7000, distanceKm = 4.1),
+        ),
+        livreurs = listOf(
+            com.speedfood.app.data.LivreurEquipe("v1", "Sékou", "+224620000001", "actif", null, "moto", "disponible", false, true),
+            com.speedfood.app.data.LivreurEquipe("v2", "Ibrahima", null, "candidat", null, "velo", "hors_ligne"),
+        ),
+    )
+
+    @Test
+    fun livraisonsEquipe() = capturer("equipe-livraisons", hauteur = 1100) { com.speedfood.app.ui.ContenuLivraisons(com.speedfood.app.ui.EtatExploitation.Pret(exploitation), { _, _ -> }, {}, { _, _ -> }, { _, _ -> }) }
+
+    @Test
+    fun livreursEquipe() = capturer("equipe-livreurs", hauteur = 900) { com.speedfood.app.ui.ContenuLivreurs(com.speedfood.app.ui.EtatExploitation.Pret(exploitation)) { _, _, _ -> } }
+
+    // Grande police (réglage d'accessibilité du téléphone, 1,5 fois) : rien ne doit être coupé ni se chevaucher.
+    private fun capturerGrandeFont(nom: String, hauteur: Int, contenu: @androidx.compose.runtime.Composable () -> Unit) {
+        val scene = ImageComposeScene(width = 412 * 2, height = hauteur * 2, density = Density(2f, fontScale = 1.5f)) {
+            SpeedfoodTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { contenu() } }
+        }
+        var image = scene.render(0L)
+        for (i in 1..12) image = scene.render(i * 100_000_000L)
+        File("build/captures").apply { mkdirs() }.let { File(it, "$nom.png").writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes) }
+        scene.close()
+    }
+
+    @Test fun entreeGrandeFont() = capturerGrandeFont("a11y-entree-1_5x", 1200) { EntreeScreen(onClient = {}, onRestaurateur = {}, onLivreur = {}, onVisite = {}) }
+
+    @Test
+    fun repartitionGrandeFont() = capturerGrandeFont("a11y-repartition-1_5x", 1600) {
+        com.speedfood.app.ui.ContenuRepartition(com.speedfood.app.ui.EtatRepartition.Pret(listOf(commandeEquipe("c1", "SF-4KVB9", "en_attente"))), { _, _ -> })
+    }
 }

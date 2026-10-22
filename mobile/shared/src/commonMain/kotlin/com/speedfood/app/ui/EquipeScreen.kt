@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -196,9 +198,10 @@ private fun CarteCommandeEquipe(c: CommandeEquipe, occupe: Boolean, surAction: (
             Text("${c.reference} · ${formaterGnf(c.total)}", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
             c.lignes.forEach { Text("${it.quantite} × ${it.nom}", style = MaterialTheme.typography.bodyMedium) }
             if (numero != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { ouvreur.openUri("tel:$numero") }) { Text("Appeler le restaurant", color = Couleurs.RougeFonce) }
-                    TextButton(onClick = { ouvreur.openUri("https://wa.me/${numero.filter { it.isDigit() }}") }) { Text("WhatsApp", color = Couleurs.Encre) }
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { ouvreur.openUri("tel:$numero") }) { Text("Appeler le restaurant", color = Couleurs.RougeFonce, maxLines = 1) }
+                    TextButton(onClick = { ouvreur.openUri("https://wa.me/${numero.filter { it.isDigit() }}") }) { Text("WhatsApp", color = Couleurs.Encre, maxLines = 1) }
                 }
             } else {
                 Text("Aucun numéro à joindre pour cet établissement : ajoutez-le sur sa fiche (site).", style = MaterialTheme.typography.bodySmall, color = Couleurs.Danger)

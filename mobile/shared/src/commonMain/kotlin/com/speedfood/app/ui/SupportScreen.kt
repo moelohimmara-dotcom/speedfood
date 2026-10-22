@@ -23,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -99,12 +100,17 @@ internal fun ContenuSupport(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = surRecherche, enabled = !e.enCours, colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce)) { Text(if (e.enCours) "Recherche…" else "Rechercher") }
-            FilterChip(selected = e.jour, onClick = surJour, label = { Text("Du jour") })
+            FilterChip(selected = e.jour, onClick = surJour, label = { Text("Du jour", style = MaterialTheme.typography.labelMedium) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Couleurs.Mangue, selectedLabelColor = Couleurs.Encre))
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             STATUTS_RECHERCHE.chunked(4).forEach { ligne ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ligne.forEach { s -> FilterChip(selected = e.statut == s, onClick = { surStatut(s) }, label = { Text(if (s == "tous") "Tous" else libelleStatutCommande(s)) }) }
+                    ligne.forEach { s -> FilterChip(
+                        selected = e.statut == s,
+                        onClick = { surStatut(s) },
+                        label = { Text(if (s == "tous") "Tous" else libelleStatutCommande(s), style = MaterialTheme.typography.labelMedium) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Couleurs.Mangue, selectedLabelColor = Couleurs.Encre),
+                    ) }
                 }
             }
         }
@@ -165,7 +171,7 @@ internal fun ContenuDetailSupport(e: EtatDetailSupport.Pret, surStatut: (String,
     var motifPour by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         e.message?.let { BlocMessage(it, erreur = false) }
-        Text(c.reference, style = MaterialTheme.typography.headlineSmall)
+        Text(c.reference, style = MaterialTheme.typography.headlineMedium)
         Text("${libelleStatutCommande(c.statut)} · ${c.restaurantNom}", style = MaterialTheme.typography.titleMedium, color = Couleurs.RougeFonce)
         Text("Plats ${formaterGnf(c.sousTotal)} + livraison ${formaterGnf(c.fraisLivraisonEstime)} = ${formaterGnf(c.total)}", style = MaterialTheme.typography.bodyMedium)
 
