@@ -58,7 +58,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Élément | État |
 |---|---|
 | Panier : quantités, retrait d'un plat, total (P0) | ✅ |
-| Panier conservé après fermeture de l'application (P0) | ❌ |
+| Panier conservé après fermeture de l'application (P0) | ✅ 2.16.0 (48 h) |
 | Choix retrait ou livraison, frais et délai estimés (P0) | ✅ |
 | Commande sans compte ou compte créé en deux gestes (P0) | ❌ (connexion obligatoire) |
 | Adresse choisie sur carte avec position GPS, adresses enregistrées (P0) | ❌ (quartier + texte libre) |
@@ -137,7 +137,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 | Élément | État |
 |---|---|
 | Fonctionnement en connexion lente, nouvel essai automatique (P0) | 🟡 |
-| Cache hors ligne des restaurants et menus avec bandeau « hors ligne » (P0) | ❌ |
+| Cache hors ligne des restaurants et menus avec bandeau « hors ligne » (P0) | ✅ 2.16.0 (liste, fiches, menus, quartiers ; 7 jours ; bandeau sur la liste) |
 | États vides illustrés et messages d'erreur utiles (P1) | 🟡 |
 | Squelettes de chargement, tirer pour actualiser (P1) | ❌ |
 | Accessibilité : lecteur d'écran, cibles tactiles, contrastes (P0) | 🟡 |
@@ -254,7 +254,7 @@ Une application pro est organisée autour d'une **barre de navigation basse à 4
 ## E. Ce qu'il faut construire en premier (ordre proposé)
 1. ~~**Charpente de navigation**~~ **(fait en 2.14.0)** : barre basse (Accueil, Recherche, Commandes, Panier, Compte), page **Compte** avec menu complet, **Paramètres**, déconnexion, aide, légal, à propos. Même principe côté équipe : **tableau de bord** en page d'accueil de l'espace équipe, puis menu par familles, puis paramètres de l'équipe.
 2. **Compte client** dans l'application : ~~profil, adresses, favoris, avis~~ **(faits en 2.15.0)** ; reste : mot de passe oublié, suppression du compte, cœur favori sur la fiche, adresses dans le formulaire de commande.
-3. **Les quatre correctifs de l'audit** : catalogue rempli, commande sans friction, panier conservé, cache hors ligne.
+3. **Les quatre correctifs de l'audit** : ~~panier conservé, cache hors ligne~~ **(faits en 2.16.0)** ; reste : catalogue rempli (contenu), commande sans friction (décision sur la commande invité).
 4. **Tableau de bord de l'équipe** (chiffres du jour et alertes) dans l'application.
 5. **Suivi avec carte et appels**, notifications réglables, liens profonds.
 6. **Finances** (relevés, commissions, versements) avant le paiement en ligne.

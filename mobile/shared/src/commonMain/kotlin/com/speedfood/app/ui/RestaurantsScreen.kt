@@ -100,7 +100,14 @@ fun RestaurantsScreen(
                 is EtatListe.Pret -> if (e.restaurants.isEmpty()) {
                     MessageEtat("Aucun restaurant n'est publié pour l'instant. Revenez bientôt.", null, null)
                 } else {
-                    RechercheEtListe(e.restaurants, onOuvrir)
+                    Column {
+                        e.horsLigneDepuisMs?.let { age ->
+                            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            BlocMessage("Hors ligne : liste enregistrée ${ancienneteLisible(age)}. Les commandes demandent une connexion.", erreur = false)
+                            }
+                        }
+                        RechercheEtListe(e.restaurants, onOuvrir)
+                    }
                 }
             }
         }

@@ -38,6 +38,7 @@ import com.speedfood.app.data.LivreurApi
 import com.speedfood.app.data.PositionIndisponible
 import com.speedfood.app.data.LivraisonApi
 import com.speedfood.app.data.KtorRestaurantApi
+import com.speedfood.app.data.RestaurantApiAvecCache
 import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.RestaurantApi
 import com.speedfood.app.data.SessionService
@@ -101,7 +102,7 @@ fun modulesApplication(
                 }
             }
         }
-        single<RestaurantApi> { KtorRestaurantApi(get(), get()) }
+        single<RestaurantApi> { RestaurantApiAvecCache(KtorRestaurantApi(get(), get()), get()) }
         single<AuthApi> { KtorAuthApi(get(), get()) { Clock.System.now().epochSeconds } }
         single { SessionService(get(), get()) { Clock.System.now().epochSeconds } }
         single<CommandeApi> { KtorCommandeApi(get(), get()) }
@@ -116,7 +117,7 @@ fun modulesApplication(
         single { InfosApplication(versionApp ?: "", codeVersionApp) }
         single { SuiviMiseAJour(get(), get(), codeVersionApp, get(), get()) }
         single { EnregistrementPush(get(), get(), get(), get(), plateforme, versionApp) }
-        single { PanierService() }
+        single { PanierService(get()) }
         single { CommandesLocales(get()) }
         factoryOf(::RestaurantsViewModel)
         factory { parametres -> RestaurantViewModel(get(), parametres.get()) }

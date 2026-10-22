@@ -17,6 +17,9 @@ open class ErreurReseau(message: String, cause: Throwable? = null) : Exception(m
 class ErreurAcces(message: String) : ErreurReseau(message)
 
 interface RestaurantApi {
+    /** Ancienneté (ms) des données de la dernière lecture si elles viennent du cache hors ligne, sinon null (données fraîches). */
+    val ageCache: Long? get() = null
+
     /** Restaurants publiés (hors données de démonstration), de A à Z. Au plus [LIMITE] lignes. */
     suspend fun lister(): List<Restaurant>
 

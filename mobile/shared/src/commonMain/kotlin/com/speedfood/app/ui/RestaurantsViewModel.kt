@@ -12,7 +12,8 @@ import kotlinx.coroutines.launch
 
 sealed interface EtatListe {
     data object Chargement : EtatListe
-    data class Pret(val restaurants: List<Restaurant>) : EtatListe
+    /** [horsLigneDepuisMs] : non null quand la liste vient du cache (réseau coupé), avec son ancienneté. */
+    data class Pret(val restaurants: List<Restaurant>, val horsLigneDepuisMs: Long? = null) : EtatListe
     data class Erreur(val message: String) : EtatListe
 }
 
@@ -28,7 +29,8 @@ class RestaurantsViewModel(private val api: RestaurantApi) : ViewModel() {
         _etat.value = EtatListe.Chargement
         viewModelScope.launch {
             _etat.value = try {
-                EtatListe.Pret(api.lister())
+                val liste = api.lister()
+                EtatListe.Pret(liste, api.ageCache)
             } catch (e: ErreurReseau) {
                 EtatListe.Erreur(e.message ?: "Une erreur est survenue.")
             } catch (e: Exception) {

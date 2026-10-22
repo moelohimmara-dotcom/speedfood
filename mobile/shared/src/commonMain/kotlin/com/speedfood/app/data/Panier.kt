@@ -4,11 +4,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 const val QUANTITE_MAX_LIGNE = 30
 const val LIGNES_MAX_PANIER = 50
 
 /** Ligne de panier : un plat, ses suppléments choisis, une quantité. Deux mêmes plats avec des suppléments différents sont deux lignes distinctes. */
+@Serializable
 data class LignePanier(val plat: Plat, val options: List<OptionPlat>, val quantite: Int) {
     /** Prix d'une unité : prix payé du plat (promo comprise) plus les suppléments. Affichage seulement : le serveur recalcule tout. */
     val prixUnitaire: Int get() = plat.prixEffectif + options.sumOf { it.prix }
@@ -16,6 +20,7 @@ data class LignePanier(val plat: Plat, val options: List<OptionPlat>, val quanti
     val cle: String get() = plat.id + "|" + options.map { it.id }.sorted().joinToString(",")
 }
 
+@Serializable
 data class Panier(val restaurantId: String? = null, val restaurantNom: String? = null, val lignes: List<LignePanier> = emptyList()) {
     val sousTotal: Int get() = lignes.sumOf { it.total }
     val nombreArticles: Int get() = lignes.sumOf { it.quantite }
@@ -28,9 +33,40 @@ enum class ResultatAjout { Ajoute, AutreRestaurant, QuantiteMax, PanierPlein }
  * Panier de l'application : UN seul restaurant à la fois (une commande = un restaurant). Ajouter un plat d'un autre restaurant ne remplace rien sans
  * confirmation ([remplacerEtAjouter]). Les montants affichés ne servent qu'à informer : le serveur recalcule chaque prix et refuse si le total vu diffère.
  */
-class PanierService {
-    private val _panier = MutableStateFlow(Panier())
+class PanierService(private val stockage: StockageLocal? = null) {
+    private val _panier = MutableStateFlow(restaurer())
     val panier: StateFlow<Panier> = _panier.asStateFlow()
+
+    @Serializable
+    private class PanierConserve(val panier: Panier, val le: Long)
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    /** Le panier de la veille est rendu tel quel (le serveur recalcule les prix à l'envoi) ; au-delà de 48 h, il est oublié. */
+    private fun restaurer(): Panier {
+        val brut = stockage?.lire(CLE_PANIER) ?: return Panier()
+        return try {
+            val garde = Json { ignoreUnknownKeys = true }.decodeFromString(PanierConserve.serializer(), brut)
+            if (Clock.System.now().toEpochMilliseconds() - garde.le > VALIDITE_MS) Panier() else garde.panier
+        } catch (_: Exception) {
+            Panier()
+        }
+    }
+
+    private fun conserver() {
+        val s = stockage ?: return
+        try {
+            val courant = _panier.value
+            if (courant.estVide) s.effacer(CLE_PANIER) else s.ecrire(CLE_PANIER, json.encodeToString(PanierConserve.serializer(), PanierConserve(courant, Clock.System.now().toEpochMilliseconds())))
+        } catch (_: Exception) {
+            // Confort seulement : un échec d'écriture ne doit jamais empêcher d'ajouter un plat.
+        }
+    }
+
+    private companion object {
+        const val CLE_PANIER = "panier_v1"
+        const val VALIDITE_MS = 48L * 3600 * 1000
+    }
 
     fun ajouter(restaurantId: String, restaurantNom: String, plat: Plat, options: List<OptionPlat>, quantite: Int = 1): ResultatAjout {
         val courant = _panier.value
@@ -69,6 +105,7 @@ class PanierService {
                 else -> p.copy(restaurantId = restaurantId, restaurantNom = restaurantNom, lignes = p.lignes + nouvelle)
             }
         }
+        conserver()
         return resultat
     }
 
@@ -79,6 +116,7 @@ class PanierService {
             else p.lignes.map { if (it.cle == cle) it.copy(quantite = quantite.coerceAtMost(QUANTITE_MAX_LIGNE)) else it }
             if (lignes.isEmpty()) Panier() else p.copy(lignes = lignes)
         }
+        conserver()
     }
 
     /**
@@ -100,10 +138,12 @@ class PanierService {
             }
             if (lignes.isEmpty()) Panier() else p.copy(lignes = lignes)
         }
+        conserver()
         return retirees
     }
 
     fun vider() {
         _panier.value = Panier()
+        conserver()
     }
 }

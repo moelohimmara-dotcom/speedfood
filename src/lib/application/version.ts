@@ -17,8 +17,8 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 17,
-  nom: "2.15.0",
-  notes: "Espace client : profil (pseudo, avatar, préférences), adresses, favoris et avis ; navigation par onglets, Paramètres, Aide, tableau de bord de l'équipe.",
+  code: 18,
+  nom: "2.16.0",
+  notes: "Panier conservé après redémarrage, restaurants et menus consultables hors ligne, espace client (profil, adresses, favoris, avis), navigation par onglets.",
   obligatoire: false,
 };
