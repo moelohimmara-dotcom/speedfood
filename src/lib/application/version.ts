@@ -17,8 +17,8 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 10,
-  nom: "2.8.0",
-  notes: "Notifications poussées pour les commandes et les courses, bouton pour tester les notifications, alerte quand une nouvelle version est disponible.",
+  code: 11,
+  nom: "2.9.0",
+  notes: "Connexion avec Google, notifications poussées pour les commandes et les courses, alerte quand une nouvelle version est disponible.",
   obligatoire: false,
 };
