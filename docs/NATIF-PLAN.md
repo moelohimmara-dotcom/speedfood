@@ -94,3 +94,8 @@ Voir la fin de ce fichier, mise à jour au fil des lots.
 - Source unique de la version publiée : `src/lib/application/version.ts` → `/installer`, `GET /api/v1/version` (publique, cache 5 min), annonce poussée. Test `version-app` : égalité avec `versionCode`/`versionName`, APK et empreinte présentes.
 - Application : `SuiviMiseAJour` (au démarrage) → bandeau `BandeauMiseAJour` (« Plus tard » par version, jamais pour une version obligatoire) + notification du système `NotificateurMiseAJourAndroid` (canal `mise_a_jour`, une fois par version, ouvre `/installer`).
 - Annonce aux applications fermées : bouton dans `/system/mises-a-jour` (`parametres.editer`) → FCM type `mise_a_jour` à tous les appareils enregistrés ; table `annonces_versions` (une annonce par version), journal d'audit `application.annonce_version`.
+
+## Photos des plats (APK 2.10.0)
+- Application : bouton « Ajouter / Changer la photo » et « Retirer la photo » sur chaque plat (écran Mon menu), miniature de la photo. Sélecteur de photos du système (aucune autorisation d'accès aux photos), réduction sur le téléphone (côté 1 280 px, JPEG 82, orientation EXIF respectée).
+- Serveur : `POST /api/v1/restaurant/menu/photo` (multipart `platId` + `photo`, ou `retirer=1`) → `src/lib/menu/photo-plat.ts` : mêmes contrôles que le site (type, 5 Mo, signature des octets, quota d'envois par restaurant), plat du restaurant du compte, écriture sous RLS, ancien fichier retiré après coup, pas d'orphelin si l'écriture échoue. `GET .../menu` renvoie `photoUrl`.
+- Non testé sur téléphone ni en production avec un vrai compte restaurateur (écriture réelle laissée au test de Malika).

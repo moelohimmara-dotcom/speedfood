@@ -6,7 +6,7 @@ import { validerOption, validerPlat } from "./regles-plat";
 
 /**
  * Menu d'un restaurant : lecture et modifications, UN seul chemin pour l'application native (`/api/v1/restaurant/menu`). Le client `db` est lié à l'identité du
- * membre (RLS) ; chaque écriture filtre en plus sur `restaurant_id` (défense en profondeur). Les photos ne passent pas par ici (console du site).
+ * membre (RLS) ; chaque écriture filtre en plus sur `restaurant_id` (défense en profondeur). Les photos passent par `photo-plat.ts` (`/api/v1/restaurant/menu/photo`).
  */
 
 export interface OptionMenu {
@@ -26,6 +26,8 @@ export interface PlatMenu {
   /** Dernière confirmation de disponibilité (posée par la base) ; null = jamais confirmé. */
   confirmeLe: string | null;
   sectionId: string | null;
+  /** Adresse publique de la photo ; null = pas de photo. */
+  photoUrl: string | null;
   options: OptionMenu[];
 }
 
@@ -46,7 +48,7 @@ export async function lireMenu(db: SupabaseClient, restaurantId: string): Promis
     db.from("menu_sections").select("id, nom, position").eq("restaurant_id", restaurantId).order("position", { ascending: true }).limit(PLAFOND_SECTIONS),
     db
       .from("menu_items")
-      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, section_id, menu_item_options(id, nom, prix, disponible)")
+      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, section_id, photo_url, menu_item_options(id, nom, prix, disponible)")
       .eq("restaurant_id", restaurantId)
       .is("archive_le", null)
       .order("cree_le", { ascending: true })
@@ -66,6 +68,7 @@ export async function lireMenu(db: SupabaseClient, restaurantId: string): Promis
         disponible: p.disponible as boolean,
         confirmeLe: (p.disponibilite_confirmee_le as string | null) ?? null,
         sectionId: (p.section_id as string | null) ?? null,
+        photoUrl: (p.photo_url as string | null) ?? null,
         options: options.map((o) => ({ id: o.id, nom: o.nom, prix: o.prix, disponible: o.disponible })),
       };
     }),

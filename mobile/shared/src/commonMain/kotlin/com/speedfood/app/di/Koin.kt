@@ -8,6 +8,8 @@ import com.speedfood.app.data.KtorAuthApi
 import com.speedfood.app.data.KtorVersionApi
 import com.speedfood.app.data.NotificateurMiseAJour
 import com.speedfood.app.data.NotificateurIndisponible
+import com.speedfood.app.data.PhotoIndisponible
+import com.speedfood.app.data.SelecteurPhoto
 import com.speedfood.app.data.SuiviMiseAJour
 import com.speedfood.app.data.VersionApi
 import com.speedfood.app.data.KtorCommandeApi
@@ -64,6 +66,7 @@ fun modulesApplication(
     google: FournisseurGoogle = GoogleIndisponible(),
     codeVersionApp: Int = 0,
     notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
+    selecteurPhoto: SelecteurPhoto = PhotoIndisponible(),
 ) = listOf(
     module {
         single { config }
@@ -73,6 +76,7 @@ fun modulesApplication(
         single { jetonPush }
         single { google }
         single { notificateurMiseAJour }
+        single { selecteurPhoto }
         single {
             HttpClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -119,8 +123,9 @@ fun initKoin(
     google: FournisseurGoogle = GoogleIndisponible(),
     codeVersionApp: Int = 0,
     notificateurMiseAJour: NotificateurMiseAJour = NotificateurIndisponible(),
+    selecteurPhoto: SelecteurPhoto = PhotoIndisponible(),
 ) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour)) }
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto)) }
 }
 
 /**

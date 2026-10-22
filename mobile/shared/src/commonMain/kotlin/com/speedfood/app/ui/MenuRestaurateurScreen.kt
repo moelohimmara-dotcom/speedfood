@@ -39,6 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
+import coil3.compose.AsyncImage
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -85,6 +89,8 @@ fun MenuRestaurateurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewMo
                     surModifier = viewModel::modifier,
                     surAjoutOption = viewModel::ajouterOption,
                     surRetraitOption = viewModel::retirerOption,
+                    surPhoto = viewModel::changerPhoto,
+                    surRetraitPhoto = viewModel::retirerPhoto,
                 )
             }
         }
@@ -102,6 +108,8 @@ internal fun ContenuMenuGere(
     surModifier: (String, String, String, Int, Int?, String?) -> Unit,
     surAjoutOption: (String, String, Int) -> Unit,
     surRetraitOption: (String) -> Unit,
+    surPhoto: (String) -> Unit = {},
+    surRetraitPhoto: (String) -> Unit = {},
 ) {
     var creation by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -122,7 +130,7 @@ internal fun ContenuMenuGere(
         if (e.menu.plats.isEmpty()) Text("Votre menu est vide : ajoutez votre premier plat.", style = MaterialTheme.typography.bodyLarge)
         e.menu.groupes().forEach { (titre, plats) ->
             Text(titre, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
-            plats.forEach { CartePlatGere(it, e.menu, e.actionEnCours, surDisponibilite, surConfirmer, surArchiver, surModifier, surAjoutOption, surRetraitOption) }
+            plats.forEach { CartePlatGere(it, e.menu, e.actionEnCours, surDisponibilite, surConfirmer, surArchiver, surModifier, surAjoutOption, surRetraitOption, surPhoto, surRetraitPhoto) }
         }
     }
     if (creation) {
@@ -144,6 +152,8 @@ internal fun CartePlatGere(
     surModifier: (String, String, String, Int, Int?, String?) -> Unit,
     surAjoutOption: (String, String, Int) -> Unit,
     surRetraitOption: (String) -> Unit,
+    surPhoto: (String) -> Unit = {},
+    surRetraitPhoto: (String) -> Unit = {},
 ) {
     var edition by remember { mutableStateOf(false) }
     var archivage by remember { mutableStateOf(false) }
@@ -163,6 +173,14 @@ internal fun CartePlatGere(
         border = BorderStroke(1.dp, Couleurs.Bordure),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            plat.photoUrl?.let { adresse ->
+                AsyncImage(
+                    model = adresse,
+                    contentDescription = "Photo de « ${plat.nom} »",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(140.dp).clip(MaterialTheme.shapes.small),
+                )
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(plat.nom, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Switch(
@@ -199,6 +217,10 @@ internal fun CartePlatGere(
                 TextButton(onClick = { edition = true }, enabled = !occupe) { Text("Modifier", color = Couleurs.Encre) }
                 TextButton(onClick = { ajoutOption = true }, enabled = !occupe) { Text("+ Supplément", color = Couleurs.Encre) }
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = { surPhoto(plat.id) }, enabled = !occupe) { Text(if (plat.photoUrl == null) "Ajouter une photo" else "Changer la photo", color = Couleurs.Encre) }
+                if (plat.photoUrl != null) TextButton(onClick = { surRetraitPhoto(plat.id) }, enabled = !occupe) { Text("Retirer la photo", color = Couleurs.Danger) }
+            }
             // Sur sa propre ligne : quatre boutons de front ne tiennent pas sur un téléphone étroit.
             TextButton(onClick = { archivage = true }, enabled = !occupe) { Text("Archiver ce plat", color = Couleurs.Danger) }
         }
@@ -226,7 +248,7 @@ internal fun CartePlatGere(
     }
 }
 
-/** Création ou modification d'un plat : nom, description, prix, prix promo facultatif, section. Les photos se gèrent sur le site. */
+/** Création ou modification d'un plat : nom, description, prix, prix promo facultatif, section. Les photos se gèrent depuis la fiche du plat. */
 @Composable
 private fun DialoguePlat(plat: PlatGere?, sections: List<SectionGeree>, surAnnuler: () -> Unit, surEnvoi: (String, String, Int, Int?, String?) -> Unit) {
     var nom by remember { mutableStateOf(plat?.nom ?: "") }

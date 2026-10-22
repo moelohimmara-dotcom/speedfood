@@ -6,7 +6,11 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.setBody
+import io.ktor.http.Headers
+import io.ktor.http.content.PartData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
@@ -112,6 +116,8 @@ data class PlatGere(
     val confirmeLe: String? = null,
     val sectionId: String? = null,
     val options: List<OptionGeree> = emptyList(),
+    /** Adresse publique de la photo du plat ; null = pas de photo. */
+    val photoUrl: String? = null,
 ) {
     /** Le même plat sous la forme du menu client : sert à calculer son état (disponible, à confirmer, épuisé) avec la règle commune. */
     fun commeMenuClient(): Plat = Plat(id = id, nom = nom, description = description, prix = prix, prixPromo = prixPromo, disponible = disponible, confirmeLe = confirmeLe, sectionId = sectionId)
@@ -224,6 +230,12 @@ interface RestaurateurApi {
      * « option_retirer » ; [champs] porte ses paramètres (texte, nombres ou booléens). Renvoie un message d'erreur lisible, ou null si c'est enregistré.
      */
     suspend fun modifierMenu(jetonAcces: String, action: String, champs: Map<String, Any?>): String?
+
+    /** Envoie la photo d'un plat (JPEG déjà réduit). Renvoie un message d'erreur lisible, ou null si elle est enregistrée. */
+    suspend fun envoyerPhoto(jetonAcces: String, platId: String, photo: PhotoChoisie): String? = "L'envoi de photo n'est pas disponible."
+
+    /** Retire la photo d'un plat. Renvoie un message d'erreur lisible, ou null si c'est fait. */
+    suspend fun retirerPhoto(jetonAcces: String, platId: String): String? = "Le retrait de photo n'est pas disponible."
 }
 
 class KtorRestaurateurApi(private val client: HttpClient, private val config: SpeedfoodConfig) : RestaurateurApi {
@@ -309,6 +321,37 @@ class KtorRestaurateurApi(private val client: HttpClient, private val config: Sp
         }
         return action("menu/action", jetonAcces, objet.toString())
     }
+
+    private suspend fun photo(jetonAcces: String, donnees: List<PartData>): String? = appeler {
+        val reponse = client.submitFormWithBinaryData(url("menu/photo"), donnees) {
+            header(HttpHeaders.Authorization, "Bearer $jetonAcces")
+        }
+        val lu = try {
+            reponse.body<ReponseActionResto>()
+        } catch (e: Exception) {
+            return@appeler "La réponse de Speedfood est illisible. Vérifiez le plat puis réessayez."
+        }
+        if (lu.ok) null else lu.erreur?.message ?: "La photo n'a pas pu être enregistrée. Réessayez dans un instant."
+    }
+
+    override suspend fun envoyerPhoto(jetonAcces: String, platId: String, photo: PhotoChoisie): String? = photo(
+        jetonAcces,
+        formData {
+            append("platId", platId)
+            append("photo", photo.octets, Headers.build {
+                append(HttpHeaders.ContentType, photo.type)
+                append(HttpHeaders.ContentDisposition, "filename=\"plat.jpg\"")
+            })
+        },
+    )
+
+    override suspend fun retirerPhoto(jetonAcces: String, platId: String): String? = photo(
+        jetonAcces,
+        formData {
+            append("platId", platId)
+            append("retirer", "1")
+        },
+    )
 }
 
 /** Alerte de nouvelle commande : sonnerie du téléphone tant que la console est ouverte (alerte application fermée : lot N5, notifications poussées). */
