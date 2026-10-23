@@ -86,6 +86,43 @@ const bannieresEssai = [
   { id: "ban2", titre: "Rentrée des prix", texte: "Les restaurateurs mettent à jour leurs plats pour la rentrée.", lien: null, statut: "publie", ordre: 2, imageUrl: null, creeLe: "2026-10-19T09:00:00Z", misAJourLe: "2026-10-19T09:00:00Z" },
   { id: "ban3", titre: "Menu de fin d'année", texte: "Un menu de fin d'année proposé par trois chefs de quartier.", lien: "/restaurants", statut: "brouillon", ordre: 3, imageUrl: "https://images.exemple.test/banniere-menu.png", creeLe: "2026-10-22T09:00:00Z", misAJourLe: "2026-10-22T09:00:00Z" },
 ];
+const journalAuditEssai = [
+  { id: "au1", horodatage: "2026-10-23T08:15:00Z", action: "restaurant.approbation", acteurEmail: "equipe@test.sf", cibleType: "restaurant", cibleId: "r1f0c2d4e5a6b7c8d", motif: "Dossier complet, photos conformes." },
+  { id: "au2", horodatage: "2026-10-22T14:40:00Z", action: "restaurant.suspension", acteurEmail: "operations@speedfood.gn", cibleType: "restaurant", cibleId: "r2a1b2c3d4e5f6a7b", motif: "Retard répété des livraisons signalé par les clients." },
+  { id: "au3", horodatage: "2026-10-21T09:05:00Z", action: "coordonnees.revelation", acteurEmail: "support@speedfood.gn", cibleType: "commande", cibleId: "c1d2e3f4a5b6c7d8e", motif: "Procédure support, dossier 4412 : le client a demandé le numéro du livreur." },
+  { id: "au4", horodatage: "2026-10-18T16:30:00Z", action: "compte.invitation", acteurEmail: "equipe@test.sf", cibleType: "utilisateur", cibleId: "u-nouveau-membre", motif: null },
+  { id: "au5", horodatage: "2026-10-02T11:00:00Z", action: "restaurant.horaires_modifies", acteurEmail: "operations@speedfood.gn", cibleType: "restaurant", cibleId: "r3b4c5d6e7f8a9b0c", motif: "Ouverture le dimanche à partir de novembre." },
+  { id: "au6", horodatage: "2026-09-20T10:00:00Z", action: "livraison.reglages_modifies", acteurEmail: null, cibleType: "parametres_application", cibleId: "livraison", motif: null },
+];
+const actionsAuditEssai = [
+  { code: "restaurant.approbation", libelle: "Restaurant approuvé" },
+  { code: "restaurant.demande_correction", libelle: "Correction demandée à un restaurant" },
+  { code: "restaurant.suspension", libelle: "Restaurant suspendu" },
+  { code: "restaurant.reactivation", libelle: "Restaurant réactivé" },
+  { code: "restaurant.horaires_modifies", libelle: "Horaires du restaurant modifiés" },
+  { code: "restaurant.profil_modifie", libelle: "Profil du restaurant modifié" },
+  { code: "restaurant.quartier_modifie", libelle: "Quartier du restaurant modifié" },
+  { code: "coordonnees.revelation", libelle: "Coordonnées d'un client révélées" },
+  { code: "compte.invitation", libelle: "Membre ajouté à une équipe" },
+  { code: "compte.revocation", libelle: "Membre retiré d'une équipe" },
+  { code: "livraison.reglages_modifies", libelle: "Réglages de livraison modifiés" },
+  { code: "avis.masquer_commentaire", libelle: "Commentaire d'avis masqué" },
+];
+const periodesAuditEssai = [
+  { valeur: null, libelle: "Tout l'historique" },
+  { valeur: 1, libelle: "24 heures" },
+  { valeur: 7, libelle: "7 jours" },
+  { valeur: 30, libelle: "30 jours" },
+];
+const ciblesAuditEssai = {
+  restaurant: { libelle: "Restaurant", section: "/system/catalogue/restaurants" },
+  commande: { libelle: "Commande", section: "/system/commandes" },
+  utilisateur: { libelle: "Compte", section: "/system/acces/comptes" },
+  content_page: { libelle: "Page d'aide", section: "/system/contenu/pages" },
+  content_banner: { libelle: "Bannière", section: "/system/contenu/bannieres" },
+  parametres_application: { libelle: "Paramètres", section: "/system/parametres" },
+  menu_categories: { libelle: "Catégories", section: "/system/catalogue/taxonomie" },
+};
 const comptesEssai = [
   { utilisateurId: "u-equipe", email: "equipe@test.sf", creeLe: "2026-09-01T08:00:00Z", roleSysteme: "super_admin", restaurants: [], test: false },
   { utilisateurId: "u-resto", email: "resto@test.sf", creeLe: "2026-09-12T08:00:00Z", roleSysteme: null, restaurants: [{ restaurantId: "r1", nom: "Chez Awa (essai)", role: "owner" }], test: false },
@@ -193,7 +230,7 @@ createServer(async (req, res) => {
   if (chemin.startsWith("/api/v1/equipe/")) {
     if (!compte.roles.equipe) return refus(res, 403, "NON_AUTORISE", "Cet espace est réservé à l'équipe Speedfood.");
     const sous = chemin.replace("/api/v1/equipe/", "");
-    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer", "compte.consulter", "contenu.editer", "parametres.editer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }, { libelle: "Accès", entrees: [{ chemin: "/system/acces/comptes", libelle: "Comptes utilisateurs", natif: true }, { chemin: "/system/acces/roles", libelle: "Rôles système", natif: false }] }, { libelle: "Contenu", entrees: [{ chemin: "/system/contenu/pages", libelle: "Pages", natif: false }, { chemin: "/system/contenu/bannieres", libelle: "Bannières", natif: true }, { chemin: "/system/contenu/medias", libelle: "Médias", natif: true }, { chemin: "/system/contenu/textes", libelle: "Textes du site", natif: false }] }, { libelle: "Paramètres", entrees: [{ chemin: "/system/parametres", libelle: "Paramètres", natif: true }, { chemin: "/system/design", libelle: "Design", natif: false }, { chemin: "/system/mises-a-jour", libelle: "Mises à jour", natif: true }] }] });
+    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer", "compte.consulter", "contenu.editer", "parametres.editer", "systeme.audit"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }, { libelle: "Accès", entrees: [{ chemin: "/system/acces/comptes", libelle: "Comptes utilisateurs", natif: true }, { chemin: "/system/acces/roles", libelle: "Rôles système", natif: false }] }, { libelle: "Contenu", entrees: [{ chemin: "/system/contenu/pages", libelle: "Pages", natif: false }, { chemin: "/system/contenu/bannieres", libelle: "Bannières", natif: true }, { chemin: "/system/contenu/medias", libelle: "Médias", natif: true }, { chemin: "/system/contenu/textes", libelle: "Textes du site", natif: false }] }, { libelle: "Paramètres", entrees: [{ chemin: "/system/parametres", libelle: "Paramètres", natif: true }, { chemin: "/system/design", libelle: "Design", natif: false }, { chemin: "/system/mises-a-jour", libelle: "Mises à jour", natif: true }] }, { libelle: "Audit", entrees: [{ chemin: "/system/audit", libelle: "Journal d'audit", natif: true }] }] });
     if (sous === "tableau") return ok(res, { ok: true, commandes: { activesDuJour: 7, enAttente: 2, propositionsEnAttente: 1 }, exploitation: { aConfirmer: 3, etablissementsSansTelephone: 1, coursesSansLivreur: 1, livreursEnLigne: 4, candidatsLivreurs: 2 }, catalogue: { enAttenteValidation: 2, publies: 1, suspendus: 0, aCorriger: 1, platsAReconfirmer: 12 } });
     if (sous === "repartition") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, statut: c.statut, mode: c.mode, sousTotal: c.sousTotal, fraisLivraison: c.fraisLivraisonEstime, creeLe: c.creeLe, estTest: false, restaurantId: "r1", restaurantNom: "Chez Awa (essai)", telephoneRestaurant: "+224622999999", lignes: c.lignes.map((l) => ({ nom: l.nom, quantite: l.quantite })) })) });
     if (sous === "commandes") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", restaurantId: "r1", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] })) });
@@ -316,6 +353,44 @@ createServer(async (req, res) => {
     }
     if (sous === "paiements") return ok(res, { ok: true, reglages: { actif: false, fournisseur: "simulation", valeursValidees: false }, compteurs: { enAttente: 1, versementsATraiter: 2, litigesAHumain: 1 }, paiements: [{ id: "p1", commandeReference: "SF-1002", restaurantNom: "Chez Awa (essai)", etat: "libere", operateur: "orange_money", fournisseur: "simulation", totalGnf: 44500, restaurantGnf: 35000, livreurGnf: 5000, speedfoodBrutGnf: 4500, fraisMobileGnf: 890, rembourseGnf: 0, creeLe: "2026-10-22T09:00:00Z", versements: [{ beneficiaire: "restaurant", etat: "echoue", montantGnf: 35000, erreurCode: "versement_manuel_requis" }, { beneficiaire: "livreur", etat: "confirme", montantGnf: 5000, erreurCode: null }], litiges: [{ situation: "commande_non_livree", etat: "a_humain", regle: null }] }, { id: "p2", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", etat: "en_attente", operateur: "mtn_momo", fournisseur: "simulation", totalGnf: 69500, restaurantGnf: 60000, livreurGnf: 0, speedfoodBrutGnf: 9500, fraisMobileGnf: 1390, rembourseGnf: 0, creeLe: "2026-10-22T10:30:00Z", versements: [], litiges: [] }] });
     if (sous === "avis") return ok(res, { ok: true, signalements: signalementsEssai, alertes: [{ type: "restaurant_sous_seuil", cible: "Chez Awa (essai)", detail: "3,2 sur 6 avis" }] });
+    if (sous === "audit") {
+      const action = url.searchParams.get("action");
+      const depuis = Number.parseInt(url.searchParams.get("depuis") ?? "", 10);
+      const actionConnue = actionsAuditEssai.some((a) => a.code === action) ? action : null;
+      const depuisMs = Number.isFinite(depuis) && [1, 7, 30].includes(depuis) ? Date.now() - depuis * 24 * 60 * 60 * 1000 : null;
+      const journal = journalAuditEssai
+        .filter((e) => (!actionConnue || e.action === actionConnue) && (!depuisMs || new Date(e.horodatage).getTime() >= depuisMs))
+        .map((e) => {
+          const cible = ciblesAuditEssai[e.cibleType];
+          const section = cible ? cible.section : null;
+          return {
+            id: e.id,
+            horodatage: e.horodatage,
+            action: e.action,
+            libelle: actionsAuditEssai.find((a) => a.code === e.action)?.libelle ?? e.action,
+            acteurEmail: e.acteurEmail,
+            auteur: e.acteurEmail && e.acteurEmail.trim() ? e.acteurEmail : "acteur inconnu",
+            cibleType: e.cibleType,
+            cibleId: e.cibleId,
+            cible: `${cible ? cible.libelle : e.cibleType} ${e.cibleId.slice(0, 8)}`,
+            cibleUrl: section ? (e.cibleType === "restaurant" || e.cibleType === "commande" ? `${section}/${e.cibleId}` : section) : null,
+            motif: e.motif,
+          };
+        });
+      return ok(res, {
+        ok: true,
+        indicateurs: [
+          { cle: "restaurants_en_attente", libelle: "Restaurants en attente de validation", definition: "Restaurants créés mais ni publiés, ni suspendus, ni en attente d'une correction demandée (jamais examinés).", valeur: 2 },
+          { cle: "restaurants_suspendus", libelle: "Restaurants suspendus", definition: "Restaurants avec une date de suspension active (suspendu_le non nul).", valeur: 1 },
+          { cle: "commandes_actives", libelle: "Commandes actives", definition: "Commandes dont le statut est « en attente », « acceptée » ou « prête » (ni terminale, ni refusée, ni annulée), tous restaurants confondus.", valeur: 7 },
+          { cle: "revelations_coordonnees_7j", libelle: "Révélations de coordonnées (7 derniers jours)", definition: "Nombre d'accès exceptionnels aux coordonnées d'un client (téléphone/adresse en clair) via le support, sur les 7 derniers jours glissants.", valeur: 1 },
+        ],
+        actions: actionsAuditEssai,
+        periodes: periodesAuditEssai,
+        journal,
+        tronque: false,
+      });
+    }
     if (sous === "avis/moderation") {
       const c = await lireCorps(req);
       if ((c.action === "masquer_commentaire" || c.action === "annuler_note") && String(c.motif ?? "").trim().length < 5) return refus(res, 400, "VALIDATION", "Indiquez le motif (5 caractères au moins).");

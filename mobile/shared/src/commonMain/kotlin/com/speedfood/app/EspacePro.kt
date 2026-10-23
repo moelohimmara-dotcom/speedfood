@@ -55,6 +55,7 @@ import com.speedfood.app.ui.ComptesEquipeScreen
 import com.speedfood.app.ui.BannieresEquipeScreen
 import com.speedfood.app.ui.MediasEquipeScreen
 import com.speedfood.app.ui.MisesAJourEquipeScreen
+import com.speedfood.app.ui.AuditEquipeScreen
 import com.speedfood.app.ui.ParametresEquipeScreen
 import com.speedfood.app.ui.GainsLivreurScreen
 import com.speedfood.app.ui.CompteProScreen
@@ -113,6 +114,9 @@ object ParametresEquipeDestination
 
 @Serializable
 object MisesAJourEquipeDestination
+
+@Serializable
+object AuditEquipeDestination
 
 @Serializable
 object GainsDestination
@@ -238,6 +242,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                             onMedias = { vers(MediasEquipeDestination) },
                             onParametresSysteme = { vers(ParametresEquipeDestination) },
                             onMisesAJour = { vers(MisesAJourEquipeDestination) },
+                            onAudit = { vers(AuditEquipeDestination) },
                         )
                     }
                 }
@@ -263,6 +268,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<MediasEquipeDestination> { MediasEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ParametresEquipeDestination> { ParametresEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<MisesAJourEquipeDestination> { MisesAJourEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<AuditEquipeDestination> { AuditEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<PaiementsEquipeDestination> { PaiementsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
                 composable<GainsDestination> { sansFleche { GainsLivreurScreen(onConnexion = connexion) } }
