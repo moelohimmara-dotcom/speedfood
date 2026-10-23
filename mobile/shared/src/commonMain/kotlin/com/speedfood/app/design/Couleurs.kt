@@ -18,6 +18,8 @@ object Couleurs {
     /** Texte secondaire conforme AA (#75695F) ; ne jamais revenir à #80736C. */
     val Secondaire = Color(0xFF75695F)
     val Bordure = Color(0xFFE9DCD2)
+    /** Texte d'un bouton désactivé (jeton « --desactive-texte » du site) : gris lisible (7:1), jamais la couleur d'origine à demi transparente. */
+    val DesactiveTexte = Color(0xFF4A4039)
     val Succes = Color(0xFF2E7D32)
     val SuccesFond = Color(0xFFE7F4E8)
     val Danger = Color(0xFFC62828)

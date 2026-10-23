@@ -13,6 +13,10 @@ import com.speedfood.app.data.KtorReferencementsEquipeApi
 import com.speedfood.app.data.ReferencementsEquipeApi
 import com.speedfood.app.data.KtorRestaurantsEquipeApi
 import com.speedfood.app.data.RestaurantsEquipeApi
+import com.speedfood.app.data.KtorPartenariatsEquipeApi
+import com.speedfood.app.data.PartenariatsEquipeApi
+import com.speedfood.app.data.KtorListeAttenteEquipeApi
+import com.speedfood.app.data.ListeAttenteEquipeApi
 import com.speedfood.app.data.KtorAvisEquipeApi
 import com.speedfood.app.data.KtorActiviteApi
 import com.speedfood.app.data.ClientApi
@@ -81,6 +85,8 @@ import com.speedfood.app.ui.AvisEquipeViewModel
 import com.speedfood.app.ui.PaiementsEquipeViewModel
 import com.speedfood.app.ui.ReferencementsEquipeViewModel
 import com.speedfood.app.ui.RestaurantsEquipeViewModel
+import com.speedfood.app.ui.PartenariatsEquipeViewModel
+import com.speedfood.app.ui.ListeAttenteEquipeViewModel
 import com.speedfood.app.ui.GainsLivreurViewModel
 import com.speedfood.app.ui.MenusEquipeViewModel
 import com.speedfood.app.ui.DetailSupportViewModel
@@ -171,6 +177,8 @@ fun modulesApplication(
         single<PaiementsEquipeApi> { KtorPaiementsEquipeApi(get(), get()) }
         single<ReferencementsEquipeApi> { KtorReferencementsEquipeApi(get(), get()) }
         single<RestaurantsEquipeApi> { KtorRestaurantsEquipeApi(get(), get()) }
+        single<PartenariatsEquipeApi> { KtorPartenariatsEquipeApi(get(), get()) }
+        single<ListeAttenteEquipeApi> { KtorListeAttenteEquipeApi(get(), get()) }
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
         single<VersionApi> { KtorVersionApi(get(), get()) }
         single<MoiApi> { KtorMoiApi(get(), get()) }
@@ -204,6 +212,8 @@ fun modulesApplication(
         factoryOf(::PaiementsEquipeViewModel)
         factoryOf(::ReferencementsEquipeViewModel)
         factoryOf(::RestaurantsEquipeViewModel)
+        factoryOf(::PartenariatsEquipeViewModel)
+        factoryOf(::ListeAttenteEquipeViewModel)
         factoryOf(::GainsLivreurViewModel)
         factory { parametres -> DetailSupportViewModel(get(), get(), parametres.get()) }
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }

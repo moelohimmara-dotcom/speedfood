@@ -3,7 +3,7 @@ import { equipeAuthentifiee } from "@/lib/api/v1-equipe";
 import { groupesNavPourRole, permissionsDuRole } from "@/lib/system-admin/permissions";
 
 /** Sections de l'espace admin qui ont déjà leur écran natif dans l'application ; les autres s'ouvrent sur le site (`/system/...`). */
-const SECTIONS_NATIVES = ["/system/repartition", "/system/commandes", "/system/livraisons", "/system/livraisons/livreurs", "/system/avis", "/system/paiements", "/system/catalogue/referencements", "/system/catalogue/restaurants"];
+const SECTIONS_NATIVES = ["/system/repartition", "/system/commandes", "/system/livraisons", "/system/livraisons/livreurs", "/system/avis", "/system/paiements", "/system/catalogue/referencements", "/system/catalogue/restaurants", "/system/catalogue/partenariats", "/system/catalogue/liste-attente"];
 
 /**
  * Qui suis-je dans l'équipe Speedfood : rôle, permissions et menu du compte connecté (les mêmes familles et sections que le site `/system`, déjà filtrées par

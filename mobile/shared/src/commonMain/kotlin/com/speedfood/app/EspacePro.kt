@@ -49,6 +49,8 @@ import com.speedfood.app.ui.AvisEquipeScreen
 import com.speedfood.app.ui.PaiementsEquipeScreen
 import com.speedfood.app.ui.ReferencementsEquipeScreen
 import com.speedfood.app.ui.RestaurantsEquipeScreen
+import com.speedfood.app.ui.PartenariatsEquipeScreen
+import com.speedfood.app.ui.ListeAttenteEquipeScreen
 import com.speedfood.app.ui.GainsLivreurScreen
 import com.speedfood.app.ui.CompteProScreen
 import com.speedfood.app.ui.ConnexionScreen
@@ -85,6 +87,12 @@ object ReferencementsEquipeDestination
 
 @Serializable
 object RestaurantsEquipeDestination
+
+@Serializable
+object PartenariatsEquipeDestination
+
+@Serializable
+object ListeAttenteEquipeDestination
 
 @Serializable
 object GainsDestination
@@ -203,6 +211,8 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                             onPaiements = { vers(PaiementsEquipeDestination) },
                             onReferencements = { vers(ReferencementsEquipeDestination) },
                             onRestaurants = { vers(RestaurantsEquipeDestination) },
+                            onPartenariats = { vers(PartenariatsEquipeDestination) },
+                            onListeAttente = { vers(ListeAttenteEquipeDestination) },
                         )
                     }
                 }
@@ -221,6 +231,8 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<AvisEquipeDestination> { AvisEquipeScreen(onRetour = retour, onConnexion = connexion) }
                 composable<ReferencementsEquipeDestination> { ReferencementsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<RestaurantsEquipeDestination> { RestaurantsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<PartenariatsEquipeDestination> { PartenariatsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<ListeAttenteEquipeDestination> { ListeAttenteEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<PaiementsEquipeDestination> { PaiementsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
                 composable<GainsDestination> { sansFleche { GainsLivreurScreen(onConnexion = connexion) } }

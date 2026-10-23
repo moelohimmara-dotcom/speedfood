@@ -64,6 +64,16 @@ const restaurantsEquipe = [
     telephoneCommandes: null, plats: 0, platsDisponibles: 0, platsDetail: [],
   },
 ];
+const partenariatsEssai = [
+  { id: "pa1", forme: "soutenir", organisation: "Association Kaloum Solidarité", nomContact: "Fatou Camara", contactType: "email", contact: "contact@kaloum-solidarite.gn", message: "Nous souhaitons soutenir Speedfood en diffusant ses plats dans nos antennes de quartier.", statut: "nouvelle", creeLe: "2026-10-22T08:00:00Z" },
+  { id: "pa2", forme: "moyens", organisation: "Guinée Froid Logistique", nomContact: "Ibrahima Sylla", contactType: "telephone", contact: "+224622334455", message: "Nous voulons fournir la livraison à froid pour les plats Speedfood, sur tout Conakry.", statut: "en_cours", creeLe: "2026-10-20T15:00:00Z" },
+  { id: "pa3", forme: "investir", organisation: "Fonds Jeune Guinée", nomContact: "Mamadou Bah", contactType: "email", contact: "contact@fonds-jeune-guinee.gn", message: "Nous étudions un investissement dans le réseau Speedfood en Guinée.", statut: "traitee", creeLe: "2026-10-10T12:00:00Z" },
+];
+const zonesAttenteEssai = [
+  { niveau: "quartier", id: "z1", nom: "Kipé", contexte: "Matam", personnes: 12, prevenues: 4, derniere: "2026-10-22T10:00:00Z" },
+  { niveau: "commune", id: "z2", nom: "Ratoma", contexte: "Conakry", personnes: 7, prevenues: 0, derniere: "2026-10-21T18:30:00Z" },
+  { niveau: "prefecture", id: "z3", nom: "Boké", contexte: "Boké", personnes: 3, prevenues: 3, derniere: "2026-10-15T09:00:00Z" },
+];
 const livraisonsEquipe = [
   { id: "l1", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", mode: "speedfood", statut: "a_assigner", libelle: "En recherche d'un livreur", livreurId: null, livreurNom: null, fraisGnf: 9500, distanceKm: 3.2, creeLe: maintenant(), offreEnCours: null, raison: null },
 ];
@@ -172,7 +182,7 @@ createServer(async (req, res) => {
   if (chemin.startsWith("/api/v1/equipe/")) {
     if (!compte.roles.equipe) return refus(res, 403, "NON_AUTORISE", "Cet espace est réservé à l'équipe Speedfood.");
     const sous = chemin.replace("/api/v1/equipe/", "");
-    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
+    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
     if (sous === "tableau") return ok(res, { ok: true, commandes: { activesDuJour: 7, enAttente: 2, propositionsEnAttente: 1 }, exploitation: { aConfirmer: 3, etablissementsSansTelephone: 1, coursesSansLivreur: 1, livreursEnLigne: 4, candidatsLivreurs: 2 }, catalogue: { enAttenteValidation: 2, publies: 1, suspendus: 0, aCorriger: 1, platsAReconfirmer: 12 } });
     if (sous === "repartition") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, statut: c.statut, mode: c.mode, sousTotal: c.sousTotal, fraisLivraison: c.fraisLivraisonEstime, creeLe: c.creeLe, estTest: false, restaurantId: "r1", restaurantNom: "Chez Awa (essai)", telephoneRestaurant: "+224622999999", lignes: c.lignes.map((l) => ({ nom: l.nom, quantite: l.quantite })) })) });
     if (sous === "commandes") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", restaurantId: "r1", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] })) });
@@ -211,6 +221,25 @@ createServer(async (req, res) => {
       const r = restaurantsEquipe.find((x) => x.id === id);
       if (!r) return refus(res, 404, "INTROUVABLE", "Établissement introuvable.");
       return ok(res, { ok: true, restaurant: r });
+    }
+    if (sous === "partenariats") return ok(res, { ok: true, partenariats: partenariatsEssai });
+    if (sous === "partenariats/statut") {
+      const c = await lireCorps(req);
+      const d = partenariatsEssai.find((x) => x.id === c.id);
+      if (!d) return refus(res, 404, "INTROUVABLE", "Demande introuvable.");
+      const statuts = ["nouvelle", "en_cours", "traitee", "classee"];
+      if (!statuts.includes(c.statut)) return refus(res, 400, "VALIDATION", "Statut inconnu.");
+      d.statut = c.statut;
+      return ok(res, { ok: true, message: "Statut enregistré." });
+    }
+    if (sous === "liste-attente") return ok(res, { ok: true, zones: zonesAttenteEssai });
+    if (sous === "liste-attente/prevenue") {
+      const c = await lireCorps(req);
+      const z = zonesAttenteEssai.find((x) => x.niveau === c.niveau && x.id === c.id);
+      if (!z) return refus(res, 404, "INTROUVABLE", "Zone introuvable.");
+      const restantes = Math.max(0, z.personnes - z.prevenues);
+      z.prevenues = z.personnes;
+      return ok(res, { ok: true, message: `${restantes} personne(s) marquée(s) comme prévenue(s).` });
     }
     if (sous === "paiements") return ok(res, { ok: true, reglages: { actif: false, fournisseur: "simulation", valeursValidees: false }, compteurs: { enAttente: 1, versementsATraiter: 2, litigesAHumain: 1 }, paiements: [{ id: "p1", commandeReference: "SF-1002", restaurantNom: "Chez Awa (essai)", etat: "libere", operateur: "orange_money", fournisseur: "simulation", totalGnf: 44500, restaurantGnf: 35000, livreurGnf: 5000, speedfoodBrutGnf: 4500, fraisMobileGnf: 890, rembourseGnf: 0, creeLe: "2026-10-22T09:00:00Z", versements: [{ beneficiaire: "restaurant", etat: "echoue", montantGnf: 35000, erreurCode: "versement_manuel_requis" }, { beneficiaire: "livreur", etat: "confirme", montantGnf: 5000, erreurCode: null }], litiges: [{ situation: "commande_non_livree", etat: "a_humain", regle: null }] }, { id: "p2", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", etat: "en_attente", operateur: "mtn_momo", fournisseur: "simulation", totalGnf: 69500, restaurantGnf: 60000, livreurGnf: 0, speedfoodBrutGnf: 9500, fraisMobileGnf: 1390, rembourseGnf: 0, creeLe: "2026-10-22T10:30:00Z", versements: [], litiges: [] }] });
     if (sous === "avis") return ok(res, { ok: true, signalements: signalementsEssai, alertes: [{ type: "restaurant_sous_seuil", cible: "Chez Awa (essai)", detail: "3,2 sur 6 avis" }] });
