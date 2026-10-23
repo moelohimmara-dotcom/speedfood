@@ -1,4 +1,4 @@
-import { bilansJourEtSemaine, debutDuJour, repartitionStatuts } from "../../src/lib/api/bilans";
+import { bilansJourEtSemaine, compteursPaiements, debutDuJour, repartitionStatuts } from "../../src/lib/api/bilans";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -33,6 +33,16 @@ verifier(
   "répartition des commandes par issue",
   repartitionStatuts(["terminee", "terminee", "refusee", "annulee", "en_attente", "acceptee", "prete"]),
   { recues: 7, terminees: 2, refusees: 1, annulees: 1, enCours: 3 }
+);
+
+verifier(
+  "compteurs des paiements",
+  compteursPaiements([
+    { etat: "en_attente", versements: [], litiges: [] },
+    { etat: "libere", versements: [{ etat: "a_verser" }, { etat: "confirme" }], litiges: [] },
+    { etat: "libere", versements: [{ etat: "echoue" }], litiges: [{ etat: "a_humain" }, { etat: "clos" }] },
+  ]),
+  { enAttente: 1, versementsATraiter: 2, litigesAHumain: 1 }
 );
 
 if (ko > 0) process.exit(1);

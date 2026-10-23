@@ -62,3 +62,18 @@ export function repartitionStatuts(statuts: string[]): RepartitionStatuts {
   }
   return r;
 }
+
+export interface PaiementPourCompteurs {
+  etat: string;
+  versements: Array<{ etat: string }>;
+  litiges: Array<{ etat: string }>;
+}
+
+/** Les trois chiffres de tête de l'écran des paiements : en attente du client, versements à traiter (à verser ou échoués), litiges confiés à l'exploitation. */
+export function compteursPaiements(paiements: PaiementPourCompteurs[]): { enAttente: number; versementsATraiter: number; litigesAHumain: number } {
+  return {
+    enAttente: paiements.filter((p) => p.etat === "en_attente").length,
+    versementsATraiter: paiements.flatMap((p) => p.versements).filter((v) => v.etat === "a_verser" || v.etat === "echoue").length,
+    litigesAHumain: paiements.flatMap((p) => p.litiges).filter((l) => l.etat === "a_humain").length,
+  };
+}

@@ -1,6 +1,6 @@
 # Passation : reprendre Speedfood et continuer le travail
 
-Document de référence pour qu'une équipe de développement reprenne le projet **sans l'auteur ni l'historique des conversations**. État au **22 octobre 2026** (application Android **2.24.0**, code de version 26). Il ne contient **aucune valeur secrète**, seulement des noms et des emplacements.
+Document de référence pour qu'une équipe de développement reprenne le projet **sans l'auteur ni l'historique des conversations**. État au **22 octobre 2026** (application Android **2.25.0**, code de version 27). Il ne contient **aucune valeur secrète**, seulement des noms et des emplacements.
 
 > Il complète `docs/REPRISE-SESSION.md` (10-16 octobre, surtout le site web) et remplace ses parties sur l'application mobile. Le journal détaillé reste `docs/STATUT-PROJET.md` ; les règles de sécurité restent dans `CLAUDE.md`. En cas de divergence entre un document et le code, **le code fait foi**.
 
@@ -111,7 +111,7 @@ Authentification : `Authorization: Bearer <jeton Supabase>` sauf mention « publ
 | Compte | `moi`, `appareils` (+ `/essai`, `/retirer`), `client/espace`, `client/profil`, `client/adresses`, `client/favoris`, `client/compte` (suppression) | jeton |
 | Restaurateur | `restaurant/commandes` (+ `/action`, `/document`, `/paiement`, `/proposition`), `restaurant/menu` (+ `/action`, `/photo`), `restaurant/statut`, `restaurant/activite` | membre d'un restaurant (+ second facteur si activé) |
 | Livreur | `livreur/etat`, `livreur/en-ligne`, `livreur/position`, `livreur/offre`, `livreur/course`, `livreur/gains` | fiche livreur |
-| Équipe | `equipe/moi`, `equipe/tableau`, `equipe/repartition` (+ `/action`), `equipe/commandes` (+ `/[id]`, `/statut`, `/coordonnees`), `equipe/livraisons` (+ `/action`), `equipe/livreurs/action`, `equipe/menus` (+ `/[id]`, `/confirmer`, `/disponibilite`), `equipe/avis` (+ `/moderation`) | rôle système + permission (`commande.support`, `restaurant.moderer`…), second facteur, audit |
+| Équipe | `equipe/moi`, `equipe/tableau`, `equipe/repartition` (+ `/action`), `equipe/commandes` (+ `/[id]`, `/statut`, `/coordonnees`), `equipe/livraisons` (+ `/action`), `equipe/livreurs/action`, `equipe/menus` (+ `/[id]`, `/confirmer`, `/disponibilite`), `equipe/avis` (+ `/moderation`), `equipe/paiements` (lecture seule) | rôle système + permission (`commande.support`, `restaurant.moderer`…), second facteur, audit |
 
 Matrice des permissions : `docs/MATRICE-PERMISSIONS.md` et `src/lib/system-admin/permissions.ts`.
 
@@ -192,6 +192,7 @@ Garde-fous du dépôt : `scripts/verifier-requetes.mjs` signale les lectures non
 | 2.22 | **lot C1** : carnet d'adresses dans la commande, cœur favori sur la fiche |
 | 2.23 | **lot D1** : onglet Activité (restaurateur), Gains (livreur), bande d'identité, tableau d'équipe par priorité |
 | 2.24 | **parité équipe** : modération des avis dans l'application |
+| 2.25 | **parité équipe** : paiements en ligne en lecture seule (les décisions qui déplacent de l'argent restent sur le site) |
 
 ---
 
@@ -201,7 +202,7 @@ Source de vérité : `docs/FEUILLE-DE-ROUTE-APPLICATION.md` (phases, critères d
 
 **Phase C — découverte et commande** (le lot C1 est livré) : photos de plats (dépend du contenu), sections d'accueil (« Ouverts maintenant », « Les mieux notés »), cartes avec délai/frais/note, fiche plat avec options et quantité, frise de suivi enrichie, notification qui ouvre le bon écran, appel livreur/restaurant, carte, **note au restaurant** (demande une colonne en base : `orders` n'a pas ce champ), paiement mobile (Chap Chap Pay).
 **Phase D — outils pro** (lot D1 livré) : horaires et réglage du son du restaurateur, historique complet paginé, **règle de rémunération** et gains réels du livreur (les « gains » actuels sont les frais de course, pas une paie), assistance livreur.
-**Parité équipe** (ordre) : avis (fait), puis paiements, restaurants et référencements, partenariats et liste d'attente, comptes, contenu et paramètres, audit.
+**Parité équipe** (ordre) : avis et paiements en lecture seule (faits), puis restaurants et référencements, partenariats et liste d'attente, comptes, contenu et paramètres, audit.
 **Phase B — reportés** : choix de la localité au premier lancement (utile dès qu'il y a plusieurs zones), connexion par code SMS (fournisseur et coût à décider), profil de référence de démarrage.
 **Phase E — distribution** : **trois applications** (Speedfood, Speedfood Pro, Speedfood Livreur) sur le même module `shared/` pour éviter un refus de Google Play lié aux autorisations sensibles, dépôt sur **Google Play** (compte payant), mesure d'usage, configuration à distance. **Phase F** : iPhone (compte Apple Developer, exécuteur macOS).
 **Site** : tenue en charge (limite CPU du Worker), voir § 3.1.
