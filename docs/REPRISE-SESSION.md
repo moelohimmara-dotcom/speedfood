@@ -4,6 +4,8 @@ Document de référence pour reprendre le projet à froid. Rédigé le 10 octobr
 **Il ne contient aucune valeur secrète**, seulement des noms. Sources de vérité complémentaires :
 `CLAUDE.md` (règles), `docs/cadrage/` (mandat, architecture, sécurité), `docs/STATUT-PROJET.md` (journal chronologique).
 
+> **Mis à jour pour l'application mobile et les derniers chantiers : voir `docs/PASSATION.md` (22 octobre 2026), qui fait foi pour l'état actuel.**
+>
 > Ce document remplace celui du 4 octobre. En cas de divergence, c'est lui qui fait foi pour l'état actuel ;
 > le journal `docs/STATUT-PROJET.md` reste la mémoire détaillée de ce qui a été fait, lot par lot.
 

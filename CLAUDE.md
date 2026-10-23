@@ -9,7 +9,7 @@ dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 
-Pour reprendre le projet sans historique de conversation : **`docs/REPRISE-SESSION.md`** (état actuel,
+Pour reprendre le projet sans historique de conversation : **`docs/PASSATION.md`** (à jour au 22 octobre 2026, application mobile comprise), puis **`docs/REPRISE-SESSION.md`** (état actuel,
 commandes, pièges déjà payés, reste à faire) — à lire avant `docs/cadrage/`.
 
 Avant toute tâche, lire ensuite dans cet ordre :

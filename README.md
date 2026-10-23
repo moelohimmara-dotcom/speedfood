@@ -6,6 +6,7 @@ de démonstration utilisé pour la validation terrain.
 
 ## Lire avant de coder
 
+0. **`docs/PASSATION.md` — le point d'entrée pour reprendre le projet** (architecture, application mobile, comptes et secrets par nom, publication d'une version, tests, ce qui reste à faire)
 1. `docs/STATUT-PROJET.md` — où en est le projet, ce qui est vérifié, ce qui reste à faire
 2. `docs/cadrage/TDR.md` — ce que le produit doit faire, et ne pas faire
 3. `docs/cadrage/ADR.md` — pourquoi la pile technique est ce qu'elle est
