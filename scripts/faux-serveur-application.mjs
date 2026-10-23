@@ -81,6 +81,12 @@ const livreursEquipe = [
   { id: "lv1", nom: "Mamadou Barry", telephone: "+224622111111", cycle: "actif", motifCycle: null, vehicule: "Moto", statut: "disponible", simule: false, aPosition: true },
   { id: "lv2", nom: "Fatoumata Sow", telephone: "+224622222222", cycle: "candidat", motifCycle: null, vehicule: "Vélo", statut: "hors_ligne", simule: false, aPosition: false },
 ];
+const comptesEssai = [
+  { utilisateurId: "u-equipe", email: "equipe@test.sf", creeLe: "2026-09-01T08:00:00Z", roleSysteme: "super_admin", restaurants: [], test: false },
+  { utilisateurId: "u-resto", email: "resto@test.sf", creeLe: "2026-09-12T08:00:00Z", roleSysteme: null, restaurants: [{ restaurantId: "r1", nom: "Chez Awa (essai)", role: "owner" }], test: false },
+  { utilisateurId: "u-livreur", email: "livreur@test.sf", creeLe: "2026-10-05T08:00:00Z", roleSysteme: null, restaurants: [{ restaurantId: "r2", nom: "Maquis du Port", role: "manager" }], test: false },
+  { utilisateurId: "u-test", email: "bloc8b-essai@example.com", creeLe: "2026-10-02T08:00:00Z", roleSysteme: null, restaurants: [], test: true },
+];
 
 const ok = (res, corps = { ok: true }, statut = 200) => {
   res.writeHead(statut, { "Content-Type": "application/json", "Cache-Control": "no-store" });
@@ -93,7 +99,7 @@ const session = (email) => ({ access_token: `tok-${email}`, refresh_token: `ref-
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const chemin = url.pathname;
-  console.log(req.method, chemin);
+  console.log(req.method, chemin + url.search);
 
   if (chemin === "/__revoquer") { revoque = true; return ok(res, { revoque }); }
   if (chemin === "/__restaurer") { revoque = false; return ok(res, { revoque }); }
@@ -182,7 +188,7 @@ createServer(async (req, res) => {
   if (chemin.startsWith("/api/v1/equipe/")) {
     if (!compte.roles.equipe) return refus(res, 403, "NON_AUTORISE", "Cet espace est réservé à l'équipe Speedfood.");
     const sous = chemin.replace("/api/v1/equipe/", "");
-    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
+    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer", "compte.consulter"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }, { libelle: "Accès", entrees: [{ chemin: "/system/acces/comptes", libelle: "Comptes utilisateurs", natif: true }, { chemin: "/system/acces/roles", libelle: "Rôles système", natif: false }] }] });
     if (sous === "tableau") return ok(res, { ok: true, commandes: { activesDuJour: 7, enAttente: 2, propositionsEnAttente: 1 }, exploitation: { aConfirmer: 3, etablissementsSansTelephone: 1, coursesSansLivreur: 1, livreursEnLigne: 4, candidatsLivreurs: 2 }, catalogue: { enAttenteValidation: 2, publies: 1, suspendus: 0, aCorriger: 1, platsAReconfirmer: 12 } });
     if (sous === "repartition") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, statut: c.statut, mode: c.mode, sousTotal: c.sousTotal, fraisLivraison: c.fraisLivraisonEstime, creeLe: c.creeLe, estTest: false, restaurantId: "r1", restaurantNom: "Chez Awa (essai)", telephoneRestaurant: "+224622999999", lignes: c.lignes.map((l) => ({ nom: l.nom, quantite: l.quantite })) })) });
     if (sous === "commandes") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", restaurantId: "r1", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] })) });
@@ -240,6 +246,19 @@ createServer(async (req, res) => {
       const restantes = Math.max(0, z.personnes - z.prevenues);
       z.prevenues = z.personnes;
       return ok(res, { ok: true, message: `${restantes} personne(s) marquée(s) comme prévenue(s).` });
+    }
+    if (sous === "comptes") {
+      const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+      const type = url.searchParams.get("type") ?? "tous";
+      const comptes = comptesEssai.filter((c) => {
+        if (q && !c.email.toLowerCase().includes(q)) return false;
+        if (type === "restaurateur") return c.restaurants.length > 0;
+        if (type === "systeme") return c.roleSysteme !== null;
+        if (type === "sans_affiliation") return c.restaurants.length === 0 && !c.roleSysteme;
+        if (type === "test") return c.test;
+        return true;
+      });
+      return ok(res, { ok: true, comptes, tronque: false });
     }
     if (sous === "paiements") return ok(res, { ok: true, reglages: { actif: false, fournisseur: "simulation", valeursValidees: false }, compteurs: { enAttente: 1, versementsATraiter: 2, litigesAHumain: 1 }, paiements: [{ id: "p1", commandeReference: "SF-1002", restaurantNom: "Chez Awa (essai)", etat: "libere", operateur: "orange_money", fournisseur: "simulation", totalGnf: 44500, restaurantGnf: 35000, livreurGnf: 5000, speedfoodBrutGnf: 4500, fraisMobileGnf: 890, rembourseGnf: 0, creeLe: "2026-10-22T09:00:00Z", versements: [{ beneficiaire: "restaurant", etat: "echoue", montantGnf: 35000, erreurCode: "versement_manuel_requis" }, { beneficiaire: "livreur", etat: "confirme", montantGnf: 5000, erreurCode: null }], litiges: [{ situation: "commande_non_livree", etat: "a_humain", regle: null }] }, { id: "p2", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", etat: "en_attente", operateur: "mtn_momo", fournisseur: "simulation", totalGnf: 69500, restaurantGnf: 60000, livreurGnf: 0, speedfoodBrutGnf: 9500, fraisMobileGnf: 1390, rembourseGnf: 0, creeLe: "2026-10-22T10:30:00Z", versements: [], litiges: [] }] });
     if (sous === "avis") return ok(res, { ok: true, signalements: signalementsEssai, alertes: [{ type: "restaurant_sous_seuil", cible: "Chez Awa (essai)", detail: "3,2 sur 6 avis" }] });

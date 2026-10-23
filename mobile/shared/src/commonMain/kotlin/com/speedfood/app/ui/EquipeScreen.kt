@@ -56,7 +56,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Espace équipe Speedfood : le menu du compte, comme sur le site `/system`. Une section native s'ouvre dans l'application, les autres sur le site. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, onMenus: () -> Unit = {}, onAvis: () -> Unit = {}, onPaiements: () -> Unit = {}, onReferencements: () -> Unit = {}, onRestaurants: () -> Unit = {}, onPartenariats: () -> Unit = {}, onListeAttente: () -> Unit = {}, viewModel: EquipeViewModel = koinViewModel()) {
+fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, onMenus: () -> Unit = {}, onAvis: () -> Unit = {}, onPaiements: () -> Unit = {}, onReferencements: () -> Unit = {}, onRestaurants: () -> Unit = {}, onPartenariats: () -> Unit = {}, onListeAttente: () -> Unit = {}, onComptes: () -> Unit = {}, viewModel: EquipeViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -74,14 +74,14 @@ fun EquipeScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit,
                 EtatEquipe.Chargement -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = Couleurs.RougeFonce)
                 EtatEquipe.NonConnecte -> MessageEtat("Connectez-vous avec votre compte de l'équipe.", "Me connecter", onConnexion)
                 is EtatEquipe.Refuse -> MessageEtat(e.message, "Réessayer", viewModel::charger)
-                is EtatEquipe.Pret -> ContenuEquipe(e, siteUrl, onRepartition, onSupport, onLivraisons, onLivreurs, onParametres, onMenus, onAvis, onPaiements, onReferencements, onRestaurants, onPartenariats, onListeAttente)
+                is EtatEquipe.Pret -> ContenuEquipe(e, siteUrl, onRepartition, onSupport, onLivraisons, onLivreurs, onParametres, onMenus, onAvis, onPaiements, onReferencements, onRestaurants, onPartenariats, onListeAttente, onComptes)
             }
         }
     }
 }
 
 @Composable
-internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, onMenus: () -> Unit = {}, onAvis: () -> Unit = {}, onPaiements: () -> Unit = {}, onReferencements: () -> Unit = {}, onRestaurants: () -> Unit = {}, onPartenariats: () -> Unit = {}, onListeAttente: () -> Unit = {}) {
+internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: () -> Unit, onSupport: () -> Unit = {}, onLivraisons: () -> Unit = {}, onLivreurs: () -> Unit = {}, onParametres: () -> Unit = {}, onMenus: () -> Unit = {}, onAvis: () -> Unit = {}, onPaiements: () -> Unit = {}, onReferencements: () -> Unit = {}, onRestaurants: () -> Unit = {}, onPartenariats: () -> Unit = {}, onListeAttente: () -> Unit = {}, onComptes: () -> Unit = {}) {
     val ouvreur = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Rôle : ${libelleRole(e.acces.role)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -104,6 +104,7 @@ internal fun ContenuEquipe(e: EtatEquipe.Pret, siteUrl: String, onRepartition: (
                         "/system/catalogue/restaurants" -> onRestaurants()
                         "/system/catalogue/partenariats" -> onPartenariats()
                         "/system/catalogue/liste-attente" -> onListeAttente()
+                        "/system/acces/comptes" -> onComptes()
                         else -> ouvreur.openUri("${siteUrl.trimEnd('/')}${entree.chemin}")
                     }
                 }
