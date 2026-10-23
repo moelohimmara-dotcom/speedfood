@@ -19,6 +19,12 @@ import com.speedfood.app.data.KtorListeAttenteEquipeApi
 import com.speedfood.app.data.ListeAttenteEquipeApi
 import com.speedfood.app.data.KtorComptesEquipeApi
 import com.speedfood.app.data.ComptesEquipeApi
+import com.speedfood.app.data.KtorBannieresEquipeApi
+import com.speedfood.app.data.BannieresEquipeApi
+import com.speedfood.app.data.KtorMisesAJourEquipeApi
+import com.speedfood.app.data.MisesAJourEquipeApi
+import com.speedfood.app.data.KtorParametresEquipeApi
+import com.speedfood.app.data.ParametresEquipeApi
 import com.speedfood.app.data.KtorAvisEquipeApi
 import com.speedfood.app.data.KtorActiviteApi
 import com.speedfood.app.data.ClientApi
@@ -90,6 +96,10 @@ import com.speedfood.app.ui.RestaurantsEquipeViewModel
 import com.speedfood.app.ui.PartenariatsEquipeViewModel
 import com.speedfood.app.ui.ListeAttenteEquipeViewModel
 import com.speedfood.app.ui.ComptesEquipeViewModel
+import com.speedfood.app.ui.BannieresEquipeViewModel
+import com.speedfood.app.ui.MediasEquipeViewModel
+import com.speedfood.app.ui.MisesAJourEquipeViewModel
+import com.speedfood.app.ui.ParametresEquipeViewModel
 import com.speedfood.app.ui.GainsLivreurViewModel
 import com.speedfood.app.ui.MenusEquipeViewModel
 import com.speedfood.app.ui.DetailSupportViewModel
@@ -183,6 +193,9 @@ fun modulesApplication(
         single<PartenariatsEquipeApi> { KtorPartenariatsEquipeApi(get(), get()) }
         single<ListeAttenteEquipeApi> { KtorListeAttenteEquipeApi(get(), get()) }
         single<ComptesEquipeApi> { KtorComptesEquipeApi(get(), get()) }
+        single<BannieresEquipeApi> { KtorBannieresEquipeApi(get(), get()) }
+        single<MisesAJourEquipeApi> { KtorMisesAJourEquipeApi(get(), get()) }
+        single<ParametresEquipeApi> { KtorParametresEquipeApi(get(), get()) }
         single<AppareilApi> { KtorAppareilApi(get(), get()) }
         single<VersionApi> { KtorVersionApi(get(), get()) }
         single<MoiApi> { KtorMoiApi(get(), get()) }
@@ -219,6 +232,10 @@ fun modulesApplication(
         factoryOf(::PartenariatsEquipeViewModel)
         factoryOf(::ListeAttenteEquipeViewModel)
         factoryOf(::ComptesEquipeViewModel)
+        factoryOf(::BannieresEquipeViewModel)
+        factoryOf(::MediasEquipeViewModel)
+        factoryOf(::MisesAJourEquipeViewModel)
+        factoryOf(::ParametresEquipeViewModel)
         factoryOf(::GainsLivreurViewModel)
         factory { parametres -> DetailSupportViewModel(get(), get(), parametres.get()) }
         factory { parametres -> SuiviViewModel(get(), parametres.get()) }

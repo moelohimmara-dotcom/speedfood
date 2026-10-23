@@ -6,6 +6,7 @@ import { creerClientAdmin } from "@/lib/db/admin";
 import { creerClientJeton } from "@/lib/db/jeton";
 import { limiterEquipeApplication } from "@/lib/securite/limitation-debit";
 import { estRoleSysteme, roleAPermission, type Permission, type RoleSysteme } from "@/lib/system-admin/permissions";
+import type { ContexteSysteme } from "@/lib/system-admin/contexte";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { repondreErreur } from "./v1";
 import { lireBearer } from "./v1-regles";
@@ -71,4 +72,17 @@ export async function equipeAuthentifiee(
   }
 
   return { ok: true, contexte: { supabase, utilisateurId, role } };
+}
+
+/**
+ * Le contexte de l'API transposé au contexte « console » : mêmes clés, donc le contrôle de palier (`verifierPalier`) s'applique à
+ * l'application exactement comme sur le site. Les habilitations sont lues avec le client lié au jeton : la RLS (`acces_paliers` : ses
+ * propres lignes) limite donc la lecture aux habilitations de la personne, comme dans la console.
+ */
+export function contexteSystemeDepuisApi(contexte: ContexteEquipeApi): ContexteSysteme {
+  return {
+    supabase: contexte.supabase as unknown as ContexteSysteme["supabase"],
+    utilisateurId: contexte.utilisateurId,
+    role: contexte.role,
+  };
 }

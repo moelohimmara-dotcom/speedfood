@@ -3,6 +3,8 @@ package com.speedfood.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +19,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.disponibilite.Ton
 
@@ -30,6 +35,44 @@ internal fun Pastille(texte: String, ton: Ton) {
     }
     Box(Modifier.clip(CircleShape).background(fond).padding(horizontal = 10.dp, vertical = 3.dp)) {
         Text(texte, style = MaterialTheme.typography.labelMedium, color = encre)
+    }
+}
+
+/**
+ * Image d'une bannière. Une image qui ne se charge pas ne laisse pas un grand rectangle vide : elle est remplacée par un cadre crème qui
+ * dit ce qui s'est passé. Une image qui manque est un problème visible, pas un détail.
+ */
+@Composable
+internal fun ImageBanniere(url: String?, hauteur: Dp) {
+    Box(
+        Modifier.fillMaxWidth().height(hauteur).background(Couleurs.Creme),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (url.isNullOrBlank()) {
+            Text("Sans image", style = MaterialTheme.typography.bodySmall, color = Couleurs.Secondaire)
+        } else {
+            SubcomposeAsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize(),
+            ) portee@{
+                // Dans Coil 3.5, l'état du peintre est un flux : `painter.state.value` est l'état courant, et son changement recompose l'écran.
+                // Le cadre est centré explicitement (et le receiver nommé rend l'accès au peintre explicite) : un message d'image en haut à gauche se lit comme un défaut d'affichage.
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    when (this@portee.painter.state.value) {
+                        is AsyncImagePainter.State.Success -> this@portee.SubcomposeAsyncImageContent()
+                        is AsyncImagePainter.State.Error -> Text(
+                            "Image indisponible",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Couleurs.Secondaire,
+                        )
+                        else -> Text("Chargement de l'image…", style = MaterialTheme.typography.bodySmall, color = Couleurs.Secondaire)
+                    }
+                }
+            }
+        }
     }
 }
 

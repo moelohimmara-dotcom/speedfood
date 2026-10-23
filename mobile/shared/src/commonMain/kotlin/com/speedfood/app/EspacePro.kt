@@ -52,6 +52,10 @@ import com.speedfood.app.ui.RestaurantsEquipeScreen
 import com.speedfood.app.ui.PartenariatsEquipeScreen
 import com.speedfood.app.ui.ListeAttenteEquipeScreen
 import com.speedfood.app.ui.ComptesEquipeScreen
+import com.speedfood.app.ui.BannieresEquipeScreen
+import com.speedfood.app.ui.MediasEquipeScreen
+import com.speedfood.app.ui.MisesAJourEquipeScreen
+import com.speedfood.app.ui.ParametresEquipeScreen
 import com.speedfood.app.ui.GainsLivreurScreen
 import com.speedfood.app.ui.CompteProScreen
 import com.speedfood.app.ui.ConnexionScreen
@@ -97,6 +101,18 @@ object ListeAttenteEquipeDestination
 
 @Serializable
 object ComptesEquipeDestination
+
+@Serializable
+object BannieresEquipeDestination
+
+@Serializable
+object MediasEquipeDestination
+
+@Serializable
+object ParametresEquipeDestination
+
+@Serializable
+object MisesAJourEquipeDestination
 
 @Serializable
 object GainsDestination
@@ -218,6 +234,10 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                             onPartenariats = { vers(PartenariatsEquipeDestination) },
                             onListeAttente = { vers(ListeAttenteEquipeDestination) },
                             onComptes = { vers(ComptesEquipeDestination) },
+                            onBannieres = { vers(BannieresEquipeDestination) },
+                            onMedias = { vers(MediasEquipeDestination) },
+                            onParametresSysteme = { vers(ParametresEquipeDestination) },
+                            onMisesAJour = { vers(MisesAJourEquipeDestination) },
                         )
                     }
                 }
@@ -239,6 +259,10 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<PartenariatsEquipeDestination> { PartenariatsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ListeAttenteEquipeDestination> { ListeAttenteEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ComptesEquipeDestination> { ComptesEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<BannieresEquipeDestination> { BannieresEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<MediasEquipeDestination> { MediasEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<ParametresEquipeDestination> { ParametresEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<MisesAJourEquipeDestination> { MisesAJourEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<PaiementsEquipeDestination> { PaiementsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
                 composable<GainsDestination> { sansFleche { GainsLivreurScreen(onConnexion = connexion) } }

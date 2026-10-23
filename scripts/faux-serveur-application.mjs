@@ -81,6 +81,11 @@ const livreursEquipe = [
   { id: "lv1", nom: "Mamadou Barry", telephone: "+224622111111", cycle: "actif", motifCycle: null, vehicule: "Moto", statut: "disponible", simule: false, aPosition: true },
   { id: "lv2", nom: "Fatoumata Sow", telephone: "+224622222222", cycle: "candidat", motifCycle: null, vehicule: "Vélo", statut: "hors_ligne", simule: false, aPosition: false },
 ];
+const bannieresEssai = [
+  { id: "ban1", titre: "Livraison offerte ce week-end", texte: "La livraison est offerte sur toutes les commandes au-dessus de 20 000 GNF.", lien: "/restaurants", statut: "publie", ordre: 1, imageUrl: "https://images.exemple.test/banniere-offre.png", creeLe: "2026-10-18T09:00:00Z", misAJourLe: "2026-10-20T11:00:00Z" },
+  { id: "ban2", titre: "Rentrée des prix", texte: "Les restaurateurs mettent à jour leurs plats pour la rentrée.", lien: null, statut: "publie", ordre: 2, imageUrl: null, creeLe: "2026-10-19T09:00:00Z", misAJourLe: "2026-10-19T09:00:00Z" },
+  { id: "ban3", titre: "Menu de fin d'année", texte: "Un menu de fin d'année proposé par trois chefs de quartier.", lien: "/restaurants", statut: "brouillon", ordre: 3, imageUrl: "https://images.exemple.test/banniere-menu.png", creeLe: "2026-10-22T09:00:00Z", misAJourLe: "2026-10-22T09:00:00Z" },
+];
 const comptesEssai = [
   { utilisateurId: "u-equipe", email: "equipe@test.sf", creeLe: "2026-09-01T08:00:00Z", roleSysteme: "super_admin", restaurants: [], test: false },
   { utilisateurId: "u-resto", email: "resto@test.sf", creeLe: "2026-09-12T08:00:00Z", roleSysteme: null, restaurants: [{ restaurantId: "r1", nom: "Chez Awa (essai)", role: "owner" }], test: false },
@@ -188,7 +193,7 @@ createServer(async (req, res) => {
   if (chemin.startsWith("/api/v1/equipe/")) {
     if (!compte.roles.equipe) return refus(res, 403, "NON_AUTORISE", "Cet espace est réservé à l'équipe Speedfood.");
     const sous = chemin.replace("/api/v1/equipe/", "");
-    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer", "compte.consulter"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }, { libelle: "Accès", entrees: [{ chemin: "/system/acces/comptes", libelle: "Comptes utilisateurs", natif: true }, { chemin: "/system/acces/roles", libelle: "Rôles système", natif: false }] }] });
+    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer", "attente.gerer", "compte.consulter", "contenu.editer", "parametres.editer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/catalogue/partenariats", libelle: "Partenariats", natif: true }, { chemin: "/system/catalogue/liste-attente", libelle: "Liste d'attente", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }, { libelle: "Accès", entrees: [{ chemin: "/system/acces/comptes", libelle: "Comptes utilisateurs", natif: true }, { chemin: "/system/acces/roles", libelle: "Rôles système", natif: false }] }, { libelle: "Contenu", entrees: [{ chemin: "/system/contenu/pages", libelle: "Pages", natif: false }, { chemin: "/system/contenu/bannieres", libelle: "Bannières", natif: true }, { chemin: "/system/contenu/medias", libelle: "Médias", natif: true }, { chemin: "/system/contenu/textes", libelle: "Textes du site", natif: false }] }, { libelle: "Paramètres", entrees: [{ chemin: "/system/parametres", libelle: "Paramètres", natif: true }, { chemin: "/system/design", libelle: "Design", natif: false }, { chemin: "/system/mises-a-jour", libelle: "Mises à jour", natif: true }] }] });
     if (sous === "tableau") return ok(res, { ok: true, commandes: { activesDuJour: 7, enAttente: 2, propositionsEnAttente: 1 }, exploitation: { aConfirmer: 3, etablissementsSansTelephone: 1, coursesSansLivreur: 1, livreursEnLigne: 4, candidatsLivreurs: 2 }, catalogue: { enAttenteValidation: 2, publies: 1, suspendus: 0, aCorriger: 1, platsAReconfirmer: 12 } });
     if (sous === "repartition") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, statut: c.statut, mode: c.mode, sousTotal: c.sousTotal, fraisLivraison: c.fraisLivraisonEstime, creeLe: c.creeLe, estTest: false, restaurantId: "r1", restaurantNom: "Chez Awa (essai)", telephoneRestaurant: "+224622999999", lignes: c.lignes.map((l) => ({ nom: l.nom, quantite: l.quantite })) })) });
     if (sous === "commandes") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", restaurantId: "r1", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] })) });
@@ -259,6 +264,55 @@ createServer(async (req, res) => {
         return true;
       });
       return ok(res, { ok: true, comptes, tronque: false });
+    }
+    if (sous === "bannieres" || sous === "medias") {
+      const statut = sous === "medias" ? "tous" : (url.searchParams.get("statut") ?? "tous");
+      const bannieres = bannieresEssai.filter((b) => {
+        if (sous === "medias" && !b.imageUrl) return false;
+        if (statut === "publie") return b.statut === "publie";
+        if (statut === "brouillon") return b.statut === "brouillon";
+        return true;
+      });
+      return ok(res, { ok: true, bannieres, tronque: false });
+    }
+    if (sous === "mises-a-jour") {
+      return ok(res, {
+        ok: true,
+        version: { code: 32, nom: "2.30.0", notes: "Équipe Speedfood : contenu et paramètres dans l'application." },
+        appareils: 6,
+        annonce: { versionCode: 31, versionNom: "2.29.0", annonceeLe: "2026-10-23T11:20:00Z", appareils: 4, envoyes: 4 },
+        fonctionnalites: [
+          { cle: "zones_livraison", libelle: "Zones de livraison", description: "Affiche les zones desservies par chaque restaurant.", groupe: "public", active: true, miseAJourLe: "2026-10-14T09:00:00Z" },
+          { cle: "animations", libelle: "Animations d'accueil", description: "Animations de l'écran d'accueil du site.", groupe: "public", active: false, miseAJourLe: "2026-10-05T09:00:00Z" },
+          { cle: "suivi_direct", libelle: "Suivi direct", description: "Position du livreur vue par le client pendant la course.", groupe: "commande", active: true, miseAJourLe: "2026-10-18T09:00:00Z" },
+        ],
+        misesAJour: [
+          { id: "zones", date: "2026-10-14", titre: "Zones desservies", resume: "Les zones de livraison s'affichent maintenant sur la fiche du restaurant.", verification: "Ouvrir un restaurant depuis l'accueil.", cle: "zones_livraison", active: true, raisonSansInterrupteur: null, groupe: "public" },
+          { id: "animations", date: "2026-10-05", titre: "Animations d'accueil", resume: "Animations de l'écran d'accueil, désactivables à chaud.", verification: "Accueil de l'application.", cle: "animations", active: false, raisonSansInterrupteur: null, groupe: "public" },
+          { id: "paiement", date: "2026-10-04", titre: "Paiement", resume: "Refonte du parcours de paiement.", verification: "Passer une commande de test.", cle: null, active: null, raisonSansInterrupteur: "Le parcours de l'argent ne peut pas être coupé à chaud : il est piloté par le prestataire de paiement.", groupe: null },
+        ],
+      });
+    }
+    if (sous === "parametres") {
+      return ok(res, {
+        ok: true,
+        parametres: {
+          commandePropositionDelaiMinutes: 30,
+          prixPlatMaxGnf: 5000000,
+          disponibiliteFraicheurHeures: 6,
+          conservationCoordonneesJours: 90,
+          conservationNonClotureeJours: 30,
+          conservationAuditMois: 12,
+          whatsappAssistance: "+224622000000",
+          delaiValidationHeures: null,
+          positionCarteActive: true,
+          promesseSignature: "La commande juste et rapide",
+          promesseSousTitre: "Chefs de quartier, livrés chez vous",
+          promessePartage: "Commandez chez Speedfood",
+          connexionFacebookActive: false,
+          connexionGoogleActive: true,
+        },
+      });
     }
     if (sous === "paiements") return ok(res, { ok: true, reglages: { actif: false, fournisseur: "simulation", valeursValidees: false }, compteurs: { enAttente: 1, versementsATraiter: 2, litigesAHumain: 1 }, paiements: [{ id: "p1", commandeReference: "SF-1002", restaurantNom: "Chez Awa (essai)", etat: "libere", operateur: "orange_money", fournisseur: "simulation", totalGnf: 44500, restaurantGnf: 35000, livreurGnf: 5000, speedfoodBrutGnf: 4500, fraisMobileGnf: 890, rembourseGnf: 0, creeLe: "2026-10-22T09:00:00Z", versements: [{ beneficiaire: "restaurant", etat: "echoue", montantGnf: 35000, erreurCode: "versement_manuel_requis" }, { beneficiaire: "livreur", etat: "confirme", montantGnf: 5000, erreurCode: null }], litiges: [{ situation: "commande_non_livree", etat: "a_humain", regle: null }] }, { id: "p2", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", etat: "en_attente", operateur: "mtn_momo", fournisseur: "simulation", totalGnf: 69500, restaurantGnf: 60000, livreurGnf: 0, speedfoodBrutGnf: 9500, fraisMobileGnf: 1390, rembourseGnf: 0, creeLe: "2026-10-22T10:30:00Z", versements: [], litiges: [] }] });
     if (sous === "avis") return ok(res, { ok: true, signalements: signalementsEssai, alertes: [{ type: "restaurant_sous_seuil", cible: "Chez Awa (essai)", detail: "3,2 sur 6 avis" }] });
