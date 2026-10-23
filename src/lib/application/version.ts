@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 28,
-  nom: "2.26.0",
-  notes: "Équipe Speedfood : demandes de référencement dans l'application (rappeler, suivre le statut).",
+  code: 29,
+  nom: "2.27.0",
+  notes: "Équipe Speedfood : restaurants dans l'application (fiche, publication, menu, horaires, numéro à joindre).",
   obligatoire: false,
-  apkSha256: "02b4e5f18e4309bca83ef996556b2358d4cd128c4e5e429aa11a9947e62b18c1",
-  apkTaille: 14822430,
+  apkSha256: "45ecd8e80b86766b05fbbd03d837eee641e56da03b84ee62252800a51c1393d8",
+  apkTaille: 14855198,
 };

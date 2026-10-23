@@ -47,6 +47,23 @@ const plats = [
   { id: "p2", nom: "Riz gras", description: "", prix: 35000, prixPromo: 32000, disponible: true, confirmeLe: "2026-10-03T10:00:00Z", sectionId: "s1", options: [] },
   { id: "p3", nom: "Jus de bissap", description: "", prix: 5000, prixPromo: null, disponible: false, confirmeLe: null, sectionId: "s2", options: [] },
 ];
+const restaurantsEquipe = [
+  {
+    id: "r1", nom: "Chez Awa (essai)", categorie: "Grillades", quartier: "Kipé", publie: true, ouvert: true, suspendu: false,
+    motifCorrection: null, modeVente: "speedfood", horaires: "08h00 - 22h00", consignes: "Appeler avant de préparer la commande.",
+    telephoneCommandes: "+224622999999", plats: 3, platsDisponibles: 2,
+    platsDetail: [
+      { id: "p1", nom: "Poulet braisé", prix: 30000, disponible: true, etat: "disponible" },
+      { id: "p2", nom: "Riz gras", prix: 35000, disponible: true, etat: "a_confirmer" },
+      { id: "p3", nom: "Jus de bissap", prix: 5000, disponible: false, etat: "epuise" },
+    ],
+  },
+  {
+    id: "r2", nom: "Maquis du Port", categorie: "Poissons", quartier: "Boulbinet", publie: false, ouvert: false, suspendu: false,
+    motifCorrection: "Coordonnées à corriger", modeVente: "autonome", horaires: "10h00 - 21h00", consignes: "",
+    telephoneCommandes: null, plats: 0, platsDisponibles: 0, platsDetail: [],
+  },
+];
 const livraisonsEquipe = [
   { id: "l1", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", mode: "speedfood", statut: "a_assigner", libelle: "En recherche d'un livreur", livreurId: null, livreurNom: null, fraisGnf: 9500, distanceKm: 3.2, creeLe: maintenant(), offreEnCours: null, raison: null },
 ];
@@ -155,7 +172,7 @@ createServer(async (req, res) => {
   if (chemin.startsWith("/api/v1/equipe/")) {
     if (!compte.roles.equipe) return refus(res, 403, "NON_AUTORISE", "Cet espace est réservé à l'équipe Speedfood.");
     const sous = chemin.replace("/api/v1/equipe/", "");
-    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
+    if (sous === "moi") return ok(res, { ok: true, role: compte.roles.equipe, permissions: ["commande.support", "restaurant.moderer"], groupes: [{ libelle: "Exploitation", entrees: [{ chemin: "/system/repartition", libelle: "Poste de répartition", natif: true }, { chemin: "/system/avis", libelle: "Avis", natif: true }, { chemin: "/system/paiements", libelle: "Paiements", natif: true }, { chemin: "/system/catalogue/referencements", libelle: "Référencements", natif: true }, { chemin: "/system/catalogue/restaurants", libelle: "Restaurants", natif: true }, { chemin: "/system/finances", libelle: "Finances", natif: false }] }] });
     if (sous === "tableau") return ok(res, { ok: true, commandes: { activesDuJour: 7, enAttente: 2, propositionsEnAttente: 1 }, exploitation: { aConfirmer: 3, etablissementsSansTelephone: 1, coursesSansLivreur: 1, livreursEnLigne: 4, candidatsLivreurs: 2 }, catalogue: { enAttenteValidation: 2, publies: 1, suspendus: 0, aCorriger: 1, platsAReconfirmer: 12 } });
     if (sous === "repartition") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, statut: c.statut, mode: c.mode, sousTotal: c.sousTotal, fraisLivraison: c.fraisLivraisonEstime, creeLe: c.creeLe, estTest: false, restaurantId: "r1", restaurantNom: "Chez Awa (essai)", telephoneRestaurant: "+224622999999", lignes: c.lignes.map((l) => ({ nom: l.nom, quantite: l.quantite })) })) });
     if (sous === "commandes") return ok(res, { ok: true, commandes: commandes.map((c) => ({ id: c.id, reference: c.reference, restaurantNom: "Chez Awa (essai)", restaurantId: "r1", statut: c.statut, mode: c.mode, clientNom: c.clientNom, telephoneAffiche: "+224 6** ** **", adresseAffichee: "Adresse masquée", sousTotal: c.sousTotal, fraisLivraisonEstime: c.fraisLivraisonEstime, creeLe: c.creeLe, historique: [], propositions: [] })) });
@@ -167,6 +184,33 @@ createServer(async (req, res) => {
       if (!d || d.etablissementCree) return refus(res, 400, "VALIDATION", "Cette demande n'existe plus ou son établissement est déjà créé.");
       d.statut = c.statut;
       return ok(res, { ok: true, message: "Statut enregistré." });
+    }
+    if (sous === "restaurants") return ok(res, { ok: true, restaurants: restaurantsEquipe.map(({ platsDetail, ...reste }) => reste) });
+    if (sous.startsWith("restaurants/") && sous.endsWith("/profil")) {
+      const id = sous.slice("restaurants/".length, -"/profil".length);
+      const r = restaurantsEquipe.find((x) => x.id === id);
+      if (!r) return refus(res, 404, "INTROUVABLE", "Établissement introuvable.");
+      const c = await lireCorps(req);
+      const horaires = String(c.horaires ?? "").trim();
+      if (!horaires) return refus(res, 400, "VALIDATION", "Renseignez les horaires avant d'enregistrer.");
+      if (horaires.length > 500) return refus(res, 400, "VALIDATION", "Les horaires ne peuvent pas dépasser 500 caractères.");
+      const brut = String(c.telephone ?? "").trim();
+      let telephone = null;
+      if (brut !== "") {
+        const chiffres = brut.replace(/[\s.\-()]/g, "");
+        const m = chiffres.match(/^(?:\+|00)?224(?:0)?([67]\d{8})$/) ?? chiffres.match(/^0?([67]\d{8})$/);
+        if (!m) return refus(res, 400, "VALIDATION", "Ce numéro n'est pas un numéro guinéen valide.");
+        telephone = `+224${m[1]}`;
+      }
+      r.horaires = horaires;
+      r.telephoneCommandes = telephone;
+      return ok(res, { ok: true, message: "Horaires et numéro à joindre enregistrés." });
+    }
+    if (sous.startsWith("restaurants/")) {
+      const id = sous.slice("restaurants/".length);
+      const r = restaurantsEquipe.find((x) => x.id === id);
+      if (!r) return refus(res, 404, "INTROUVABLE", "Établissement introuvable.");
+      return ok(res, { ok: true, restaurant: r });
     }
     if (sous === "paiements") return ok(res, { ok: true, reglages: { actif: false, fournisseur: "simulation", valeursValidees: false }, compteurs: { enAttente: 1, versementsATraiter: 2, litigesAHumain: 1 }, paiements: [{ id: "p1", commandeReference: "SF-1002", restaurantNom: "Chez Awa (essai)", etat: "libere", operateur: "orange_money", fournisseur: "simulation", totalGnf: 44500, restaurantGnf: 35000, livreurGnf: 5000, speedfoodBrutGnf: 4500, fraisMobileGnf: 890, rembourseGnf: 0, creeLe: "2026-10-22T09:00:00Z", versements: [{ beneficiaire: "restaurant", etat: "echoue", montantGnf: 35000, erreurCode: "versement_manuel_requis" }, { beneficiaire: "livreur", etat: "confirme", montantGnf: 5000, erreurCode: null }], litiges: [{ situation: "commande_non_livree", etat: "a_humain", regle: null }] }, { id: "p2", commandeReference: "SF-1001", restaurantNom: "Chez Awa (essai)", etat: "en_attente", operateur: "mtn_momo", fournisseur: "simulation", totalGnf: 69500, restaurantGnf: 60000, livreurGnf: 0, speedfoodBrutGnf: 9500, fraisMobileGnf: 1390, rembourseGnf: 0, creeLe: "2026-10-22T10:30:00Z", versements: [], litiges: [] }] });
     if (sous === "avis") return ok(res, { ok: true, signalements: signalementsEssai, alertes: [{ type: "restaurant_sous_seuil", cible: "Chez Awa (essai)", detail: "3,2 sur 6 avis" }] });
