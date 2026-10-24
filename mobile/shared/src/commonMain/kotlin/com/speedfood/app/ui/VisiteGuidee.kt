@@ -84,7 +84,8 @@ const val CLE_VISITE_VUE = "visite_vue"
 private fun doux(x: Float): Float = x * x * (3f - 2f * x)
 private fun segment(t: Float, debut: Float, duree: Float): Float = ((t - debut) / duree).coerceIn(0f, 1f)
 private fun ressort(x: Float): Float {
-    val c1 = 1.70158f
+    // Rebond très court : lisible sans effet « jouet » ni déplacement excessif.
+    val c1 = 1.2f
     val c3 = c1 + 1f
     val y = x - 1f
     return 1f + c3 * y * y * y + c1 * y * y
@@ -98,7 +99,8 @@ private fun ressort(x: Float): Float {
 fun VisiteGuidee(surTermine: () -> Unit) {
     val pager = rememberPagerState(pageCount = { NOMBRE_DIAPOS })
     val portee = rememberCoroutineScope()
-    val boucle by rememberInfiniteTransition().animateFloat(0f, 1f, infiniteRepeatable(tween(3_200, easing = LinearEasing), RepeatMode.Restart))
+    // Une seule respiration lente : elle garde la page vivante sans solliciter constamment le GPU.
+    val boucle by rememberInfiniteTransition(label = "respiration-visite").animateFloat(0f, 1f, infiniteRepeatable(tween(5_000, easing = LinearEasing), RepeatMode.Restart), label = "phase-respiration")
     val derniere = pager.currentPage == NOMBRE_DIAPOS - 1
 
     Column(Modifier.fillMaxSize().background(Couleurs.Creme).safeDrawingPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
@@ -109,7 +111,9 @@ fun VisiteGuidee(surTermine: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = surTermine) { Text("Passer", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
+            TextButton(onClick = surTermine) {
+                Text("Passer la visite", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+            }
         }
         HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth()) { page ->
             PageVisite(page, pager, boucle)

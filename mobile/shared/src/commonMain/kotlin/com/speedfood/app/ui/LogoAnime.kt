@@ -52,7 +52,8 @@ private val Bordeaux = Color(0xFF7E1A1A)
 private val Ocre = Color(0xFFC9922B)
 
 /** Durée totale de la séquence d'ouverture, en millisecondes. */
-const val DUREE_OUVERTURE_MS = 2_800
+/** Une ouverture courte : la marque est animée sans retenir la personne près de trois secondes. */
+const val DUREE_OUVERTURE_MS = 1_600
 
 private fun segment(t: Float, debut: Float, duree: Float): Float = ((t - debut) / duree).coerceIn(0f, 1f)
 
