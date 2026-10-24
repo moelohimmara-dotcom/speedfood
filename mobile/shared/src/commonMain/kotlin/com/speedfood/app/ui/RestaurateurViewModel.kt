@@ -6,6 +6,7 @@ import com.speedfood.app.data.AlerteCommande
 import com.speedfood.app.data.CommandeRestaurateur
 import com.speedfood.app.data.ErreurReseau
 import com.speedfood.app.data.EtatRestaurateur
+import com.speedfood.app.data.PreferencesRestaurateur
 import com.speedfood.app.data.RestaurateurApi
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageLocal
@@ -35,6 +36,11 @@ sealed interface EtatConsole {
         /** Choix du restaurateur d'être alerté application fermée (null = pas encore demandé) ; [arrierePlanPossible] : la plateforme le permet. */
         val alerteArrierePlan: Boolean? = null,
         val arrierePlanPossible: Boolean = false,
+        /**
+         * Pause du service demandée par le restaurateur. Tant que le serveur ne l'a pas confirmée, c'est elle qui fait foi : une pause demandée
+         * ne doit pas disparaître de l'écran pendant la relecture. Dès que le serveur la confirme, l'état du serveur reprend la main.
+         */
+        val enPause: Boolean? = null,
     ) : EtatConsole
 }
 
@@ -68,7 +74,8 @@ class RestaurateurViewModel(
     private var dernierRappel = 0L
 
     init {
-        alerte.garderEcranAllume(true)
+        // L'écran ne reste allumé qu'en mode « poste fixe » ; le réglage est relu à chaque relecture (il peut changer depuis l'écran des réglages).
+        alerte.garderEcranAllume(PreferencesRestaurateur.posteFixe(stockage))
         viewModelScope.launch {
             while (true) {
                 rafraichir()
@@ -87,9 +94,16 @@ class RestaurateurViewModel(
             val etat = api.etat(jeton)
             val avant = _etat.value as? EtatConsole.Pret
             val choix = choixArrierePlan()
-            _etat.value = EtatConsole.Pret(etat, avant?.message, avant?.actionEnCours ?: false, choix, alerte.arrierePlanPossible)
+            val ouvert = etat.restaurant?.ouvert ?: false
+            val serveurEnPause = !(etat.restaurant?.accepteCommandes ?: true)
+            // La pause demandée reste affichée jusqu'à ce que le serveur la confirme : ensuite, l'état du serveur fait foi.
+            val enPause = avant?.enPause?.takeIf { it != serveurEnPause } ?: serveurEnPause
+            // Le poste fixe garde l'écran allumé tant que le restaurant est ouvert ; le rappel sonore suit la même règle.
+            val posteFixe = PreferencesRestaurateur.posteFixe(stockage)
+            alerte.garderEcranAllume(posteFixe && ouvert)
+            _etat.value = EtatConsole.Pret(etat, avant?.message, avant?.actionEnCours ?: false, choix, alerte.arrierePlanPossible, enPause)
             if (alerte.arrierePlanPossible && choix == true) alerte.demarrerArrierePlan()
-            signalerNouvelles(etat.commandes)
+            signalerNouvelles(etat.commandes, ouvert)
         } catch (e: ErreurReseau) {
             val avant = _etat.value as? EtatConsole.Pret
             _etat.value = if (avant != null) avant.copy(message = "Connexion perdue : nouvelle tentative en cours.") else EtatConsole.Erreur(e.message ?: "Une erreur est survenue.")
@@ -97,7 +111,9 @@ class RestaurateurViewModel(
     }
 
     /** La première lecture ne sonne pas (les commandes déjà là ne sont pas nouvelles) ; ensuite, une sonnerie par commande arrivée, puis un rappel périodique. */
-    private fun signalerNouvelles(commandes: List<CommandeRestaurateur>) {
+    private fun signalerNouvelles(commandes: List<CommandeRestaurateur>, ouvert: Boolean) {
+        // Son coupé : les commandes restent affichées, le téléphone se tait.
+        if (!PreferencesRestaurateur.sonActif(stockage)) return
         val aTraiter = classerCommandes(commandes).aTraiter.map { it.id }.toSet()
         val maintenant = Clock.System.now().toEpochMilliseconds()
         val avant = connues
@@ -111,7 +127,8 @@ class RestaurateurViewModel(
         if ((aTraiter - avant).isNotEmpty()) {
             alerte.sonner()
             dernierRappel = maintenant
-        } else if (aTraiter.isNotEmpty() && maintenant - dernierRappel >= RAPPEL_MS) {
+        } else if (aTraiter.isNotEmpty() && ouvert && PreferencesRestaurateur.posteFixe(stockage) && maintenant - dernierRappel >= RAPPEL_MS) {
+            // Le rappel fait partie du poste fixe : l'alerte continue tant que le restaurant est ouvert.
             alerte.sonner()
             dernierRappel = maintenant
         }
@@ -155,6 +172,37 @@ class RestaurateurViewModel(
     fun proposer(commandeId: String, sousTotal: Int, frais: Int, conditions: String) = agir { api.proposer(it, commandeId, sousTotal, frais, conditions) }
 
     fun definirStatut(champ: String, valeur: Boolean) = agir { api.definirStatut(it, champ, valeur) }
+
+    /**
+     * Pause rapide du service : le restaurant reste ouvert, mais il ne prend plus de commandes. Le message dit ce que ça change pour les
+     * clients ; le serveur reste maître de l'état (c'est lui qui décide si la pause est acceptée).
+     */
+    fun mettreEnPause(actif: Boolean) {
+        val courant = _etat.value as? EtatConsole.Pret ?: return
+        if (courant.actionEnCours) return
+        _etat.value = courant.copy(actionEnCours = true, message = null)
+        viewModelScope.launch {
+            val jeton = session.jetonValide()
+            if (jeton == null) {
+                _etat.value = EtatConsole.NonConnecte
+                return@launch
+            }
+            var succes: Boolean? = null
+            val message = try {
+                val refus = api.definirStatut(jeton, "accepte_commandes", !actif)
+                if (refus != null) {
+                    refus
+                } else {
+                    succes = actif
+                    if (actif) "Service en pause : vos clients ne peuvent plus commander jusqu'à la reprise." else "Service repris : vos clients peuvent commander à nouveau."
+                }
+            } catch (e: ErreurReseau) {
+                e.message ?: "Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez."
+            }
+            rafraichir()
+            (_etat.value as? EtatConsole.Pret)?.let { _etat.value = it.copy(actionEnCours = false, message = message, enPause = succes ?: it.enPause) }
+        }
+    }
 
     fun confirmerPaiement(commandeId: String, decision: String) = agir { api.confirmerPaiement(it, commandeId, decision) }
 
