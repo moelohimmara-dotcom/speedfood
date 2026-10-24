@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 35,
-  nom: "2.33.0",
-  notes: "Finances d'équipe en lecture seule : relevés, commissions, remboursements et nets à reverser.",
+  code: 36,
+  nom: "2.34.0",
+  notes: "Support client par commande : fil, modèles de réponse et résolution auditée.",
   obligatoire: false,
-  apkSha256: "55bc166c7c54a77228d6695c3f2c2ffe7ba332e5f4b0ddb76c330c358b037454",
+  apkSha256: "1fd011262cf38f8dc9f0a441782262acbf68ff5d670ff233af92c5dd963de378",
   apkTaille: 15199514,
 };
