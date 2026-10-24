@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 38,
-  nom: "2.36.0",
-  notes: "Paie des livreurs : gains par course, relevés de période et versement simulé.",
+  code: 39,
+  nom: "2.37.0",
+  notes: "Incidents de livraison : retards, colis perdus, litiges et résolutions manuelles.",
   obligatoire: false,
-  apkSha256: "0df13180238b4c41e0a01c20434d8b877f56b62af782a539b8f36a6b7c5c7f9e",
+  apkSha256: "235dcd986f587616c986b3b4b065c2d3921935076cbcdeaf3a36c8a5b9eee555",
   apkTaille: 15199514,
 };
