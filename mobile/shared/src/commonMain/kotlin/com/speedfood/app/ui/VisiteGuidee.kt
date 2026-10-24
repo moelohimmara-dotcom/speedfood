@@ -50,6 +50,8 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.design.Couleurs
@@ -65,13 +67,13 @@ private class Diapo(val titre: String, val texte: String, val dessin: Int)
 /** Deux écrans : la promesse de découverte, puis le choix de zone sans permission au lancement. */
 private val DIAPOS = listOf(
     Diapo(
-        "Les restaurants près de chez vous",
-        "Parcourez sans compte, cherchez par nom, quartier ou plat. Nous vous proposerons une zone par défaut, modifiable en un geste.",
+        "Découvrez avant de commander",
+        "Parcourez les restaurants et les plats sans créer de compte. Choisissez votre zone quand vous êtes prêt.",
         0,
     ),
     Diapo(
-        "Choisissez votre zone de livraison",
-        "Choisissez une zone maintenant. La position ne sera demandée que si vous appuyez explicitement sur « près de moi ». Vous pourrez commander sans compte.",
+        "Choisissez où vous livrer",
+        "Sélectionnez une zone maintenant. La position ne sera demandée que si vous choisissez « près de moi ». Vous pourrez commander sans compte.",
         2,
     ),
 )
@@ -103,13 +105,20 @@ fun VisiteGuidee(surTermine: () -> Unit) {
     val boucle by rememberInfiniteTransition(label = "respiration-visite").animateFloat(0f, 1f, infiniteRepeatable(tween(5_000, easing = LinearEasing), RepeatMode.Restart), label = "phase-respiration")
     val derniere = pager.currentPage == NOMBRE_DIAPOS - 1
 
-    Column(Modifier.fillMaxSize().background(Couleurs.Creme).safeDrawingPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Couleurs.Creme)
+            .safeDrawingPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .semantics { contentDescription = "Visite guidée, écran ${pager.currentPage + 1} sur $NOMBRE_DIAPOS" },
+    ) {
         Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "${pager.currentPage + 1} / $NOMBRE_DIAPOS",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).semantics { contentDescription = "Progression : écran ${pager.currentPage + 1} sur $NOMBRE_DIAPOS" },
             )
             TextButton(onClick = surTermine) {
                 Text("Passer la visite", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
