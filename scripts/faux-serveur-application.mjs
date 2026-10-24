@@ -138,6 +138,26 @@ const refus = (res, statut, code, message) => ok(res, { ok: false, erreur: { cod
 const lireCorps = (req) => new Promise((r) => { let t = ""; req.on("data", (d) => (t += d)); req.on("end", () => { try { r(t ? JSON.parse(t) : {}); } catch { r({}); } }); });
 const session = (email) => ({ access_token: `tok-${email}`, refresh_token: `ref-${email}`, expires_in: 3600, token_type: "bearer", user: { id: COMPTES[email].id, email } });
 
+// Routes factices ajoutées par les lots : un fichier par domaine, nommé scripts/faux-serveur-<espace>-<domaine>.mjs.
+// Chaque module exporte { espace, routes } ; routes associe un sous-chemin à un gestionnaire asynchrone.
+// Ce point d'extension existe pour que plusieurs agents travaillent en parallèle sans éditer le même fichier.
+const dossierFauxServeur = new URL(".", import.meta.url);
+const modulesFactices = [];
+for (const nom of (await import("node:fs")).readdirSync(dossierFauxServeur)) {
+  const reconnu = /^faux-serveur-(equipe|restaurant|livreur|client)-[a-z0-9-]+\.mjs$/.exec(nom);
+  if (!reconnu) continue;
+  const module = await import(new URL(nom, dossierFauxServeur).href);
+  const espace = module.espace ?? reconnu[1];
+  modulesFactices[espace] = Object.assign(modulesFactices[espace] ?? {}, module.routes ?? {});
+}
+const executerRouteFactice = async (res, route, ctx) => {
+  const resultat = await route(ctx);
+  if (resultat && typeof resultat.statut === "number") {
+    return refus(res, resultat.statut, resultat.code ?? "ERREUR_SERVEUR", resultat.message ?? "La demande n'a pas pu être traitée.");
+  }
+  return ok(res, { ok: true, ...(resultat ?? {}) });
+};
+
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const chemin = url.pathname;
@@ -174,7 +194,7 @@ createServer(async (req, res) => {
   if (chemin === "/auth/v1/logout") { res.writeHead(204); return res.end(); }
   if (chemin.startsWith("/auth/v1/")) return ok(res, {});
 
-  if (chemin === "/api/v1/version") return ok(res, { ok: true, version: { code: 21, nom: "2.19.0", notes: "", obligatoire: false } });
+  if (chemin === "/api/v1/version") return ok(res, { ok: true, version: { code: 33, nom: "2.31.0", notes: "", obligatoire: false } });
   if (chemin === "/api/v1/aide") return ok(res, { ok: true, whatsapp: "+224620000000" });
   if (chemin.startsWith("/api/v1/appareils")) return ok(res);
   if (chemin === "/api/v1/livraison/estimation") { await lireCorps(req); return ok(res, { ok: true, estimation: null }); }
@@ -213,6 +233,9 @@ createServer(async (req, res) => {
       if (cible) cible.statut = cible.etatDerive = { accepter: "acceptee", refuser: "refusee", prete: "prete", terminer: "terminee" }[c.action] ?? cible.statut;
       return ok(res);
     }
+    const sousR = chemin.replace("/api/v1/restaurant/", "");
+    const routeR = modulesFactices.restaurant?.[sousR];
+    if (routeR) return executerRouteFactice(res, routeR, { corps: await lireCorps(req), compte, sous: sousR, methode: req.method });
     await lireCorps(req);
     return ok(res);
   }
@@ -222,6 +245,9 @@ createServer(async (req, res) => {
     if (!compte.roles.livreur) return ok(res, { ok: true, etat: null });
     if (chemin === "/api/v1/livreur/gains") return ok(res, { ok: true, gains: { aujourdhui: { courses: 3, fraisGnf: 28500 }, semaine: { courses: 14, fraisGnf: 131000 }, recentes: [{ id: "l9", reference: "SF-1002", restaurantNom: "Chez Awa (essai)", fraisGnf: 9500, livreeLe: maintenant() }, { id: "l8", reference: "SF-0998", restaurantNom: "Chez Awa (essai)", fraisGnf: 9500, livreeLe: "2026-10-21T18:40:00Z" }] } });
     if (chemin === "/api/v1/livreur/etat") return ok(res, { ok: true, etat: { livreur: { id: "lv1", nom: "Mamadou Barry", statut: "disponible", vehicule: "Moto", cycle: "actif", motifCycle: null, restaurantNom: null }, offre: null, course: null, aNoter: null, positionConnue: true } });
+    const sousL = chemin.replace("/api/v1/livreur/", "");
+    const routeL = modulesFactices.livreur?.[sousL];
+    if (routeL) return executerRouteFactice(res, routeL, { corps: await lireCorps(req), compte, sous: sousL, methode: req.method });
     await lireCorps(req);
     return ok(res);
   }
@@ -315,7 +341,7 @@ createServer(async (req, res) => {
     if (sous === "mises-a-jour") {
       return ok(res, {
         ok: true,
-        version: { code: 32, nom: "2.30.0", notes: "Équipe Speedfood : contenu et paramètres dans l'application." },
+        version: { code: 33, nom: "2.31.0", notes: "Équipe Speedfood : journal d'audit dans l'application." },
         appareils: 6,
         annonce: { versionCode: 31, versionNom: "2.29.0", annonceeLe: "2026-10-23T11:20:00Z", appareils: 4, envoyes: 4 },
         fonctionnalites: [
@@ -401,6 +427,8 @@ createServer(async (req, res) => {
     if (sous === "livraisons") return ok(res, { ok: true, livraisons: livraisonsEquipe, livreurs: livreursEquipe });
     if (sous === "menus") return ok(res, { ok: true, fraicheurHeures: 6, menus: [{ restaurantId: "r1", nom: "Chez Awa (essai)", plats: 3, aReconfirmer: 1, epuises: 1, derniereConfirmation: null }] });
     if (sous.startsWith("menus/") && !sous.endsWith("confirmer") && !sous.endsWith("disponibilite")) return ok(res, { ok: true, nom: "Chez Awa (essai)", plats: plats.map((p) => ({ id: p.id, nom: p.nom, prix: p.prix, disponible: p.disponible, confirmeLe: p.confirmeLe, etat: !p.disponible ? "epuise" : p.confirmeLe && p.confirmeLe > "2026-10-22" ? "disponible" : "a_confirmer" })) });
+    const routeE = modulesFactices.equipe?.[sous];
+    if (routeE) return executerRouteFactice(res, routeE, { corps: await lireCorps(req), compte, sous, methode: req.method });
     await lireCorps(req);
     return ok(res, { ok: true, message: "Action enregistrée (simulation)." });
   }
