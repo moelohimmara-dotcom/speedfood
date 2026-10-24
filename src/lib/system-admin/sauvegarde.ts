@@ -35,6 +35,7 @@ import { creerClientAdmin } from "@/lib/db/admin";
  */
 export const TABLES_SAUVEGARDE = [
   "affectations_operateurs",
+  "etablissement_menu_confirmations", "etablissement_fermetures", "etablissement_contacts",
   "audit_events", "client_profils", "content_banners", "content_pages", "content_pages_versions", "documents_commande",
   "featured_placements", "menu_categories", "menu_item_options", "menu_items", "menu_sections", "neighborhoods",
   "order_item_options", "order_items", "order_proposals", "order_status_events", "orders", "parametres_application",

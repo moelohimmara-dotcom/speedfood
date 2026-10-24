@@ -21,7 +21,8 @@ export async function GET(request: Request) {
         .select("id, nom, disponible, disponibilite_confirmee_le")
         .eq("restaurant_id", restaurantId)
         .is("archive_le", null)
-        .eq("disponible", true),
+        .eq("disponible", true)
+        .limit(500),
       obtenirParametresApplication(),
     ]);
     if (restaurant.error || !restaurant.data) {
