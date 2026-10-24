@@ -58,6 +58,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.StockageLocal
+import com.speedfood.app.data.LienProfond
+import com.speedfood.app.data.lireLienProfond
 import com.speedfood.app.design.SpeedfoodTheme
 import com.speedfood.app.ui.BandeauMiseAJour
 import com.speedfood.app.ui.CommandeScreen
@@ -169,11 +171,12 @@ data class DetailSupportDestination(val id: String)
 private enum class Phase { Ouverture, Visite, Application }
 
 @Composable
-fun App(config: SpeedfoodConfig) {
+fun App(config: SpeedfoodConfig, lienInitial: String? = null) {
     SpeedfoodTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val stockage: StockageLocal = koinInject()
-            var phase by remember { mutableStateOf(Phase.Ouverture) }
+            val lienProfond = remember(lienInitial) { lienInitial?.let(::lireLienProfond) }
+            var phase by remember { mutableStateOf(if (lienProfond != null) Phase.Application else Phase.Ouverture) }
             Crossfade(phase, animationSpec = tween(450)) { courante ->
                 when (courante) {
                     Phase.Ouverture -> EcranOuverture {
@@ -184,7 +187,7 @@ fun App(config: SpeedfoodConfig) {
                         phase = Phase.Application
                     }
                     Phase.Application -> Box {
-                        Application(config)
+                        Application(config, lienProfond)
                         BandeauMiseAJour(Modifier.align(Alignment.TopCenter))
                     }
                 }
@@ -194,7 +197,7 @@ fun App(config: SpeedfoodConfig) {
 }
 
 @Composable
-private fun Application(config: SpeedfoodConfig) {
+private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null) {
     val espaces: EspaceService = koinInject()
     val espace by espaces.espace.collectAsState()
     // À la reprise de l'application, les droits du compte sont relus (un droit ajouté ou retiré se voit tout de suite).
@@ -206,13 +209,13 @@ private fun Application(config: SpeedfoodConfig) {
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { verrou.quitte() }
     Box {
         // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
-        if (espace == Espace.Client) ApplicationClient(config) else EspacePro(espace, config)
+        if (espace == Espace.Client) ApplicationClient(config, lienProfond) else EspacePro(espace, config)
         BandeauAvisAcces(Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
-private fun ApplicationClient(config: SpeedfoodConfig) {
+private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond? = null) {
         val espaces: EspaceService = koinInject()
         val connexionDemandee by espaces.connexionDemandee.collectAsState()
         ChoixEspaceDialogue()
@@ -221,6 +224,11 @@ private fun ApplicationClient(config: SpeedfoodConfig) {
         val panier by panierService.panier.collectAsState()
         val entree by navController.currentBackStackEntryAsState()
         val destination = entree?.destination
+        val destinationInitiale: Any = when (lienProfond) {
+            is LienProfond.Restaurant -> RestaurantDestination(lienProfond.id)
+            is LienProfond.Commande -> SuiviDestination(lienProfond.jeton)
+            null -> RestaurantsDestination
+        }
         val onglets = listOf(
             Onglet("Accueil", Icons.Default.Home, RestaurantsDestination),
             Onglet("Commandes", Icons.Default.List, MesCommandesDestination),
@@ -267,7 +275,7 @@ private fun ApplicationClient(config: SpeedfoodConfig) {
             },
         ) { interieur ->
         Box(Modifier.padding(interieur).consumeWindowInsets(interieur)) {
-        NavHost(navController = navController, startDestination = RestaurantsDestination) {
+        NavHost(navController = navController, startDestination = destinationInitiale) {
             composable<CompteDestination> {
                 CompteScreen(
                     onConnexion = { navController.navigate(ConnexionDestination) },

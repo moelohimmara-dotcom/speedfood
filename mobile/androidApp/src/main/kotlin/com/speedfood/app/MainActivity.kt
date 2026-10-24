@@ -3,6 +3,7 @@ package com.speedfood.app
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.content.Intent
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,8 +34,13 @@ class MainActivity : FragmentActivity() {
             if (Build.VERSION.SDK_INT >= 33) demandeAutorisations.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
         }
         setContent {
-            App(SpeedfoodApp.config)
+            App(SpeedfoodApp.config, lienInitial = intent?.dataString)
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onDestroy() {
