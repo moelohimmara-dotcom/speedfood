@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { calculerCommission, calculerReleve, exporterReleveCsv } from "../../src/lib/system-admin/finances-regles.ts";
+import { calculerCommission, calculerReleve, exporterReleveCsv } from "../../src/lib/system-admin/finances-regles";
 
 assert.equal(calculerCommission(10001, 0.1), 1000, "commission arrondie au franc entier");
 assert.equal(calculerCommission(10005, 0.1), 1001, "arrondi franc CFA");
