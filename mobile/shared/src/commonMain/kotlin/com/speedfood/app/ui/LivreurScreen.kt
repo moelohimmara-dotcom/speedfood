@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,8 +43,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.data.CourseLivreur
 import com.speedfood.app.data.OffreLivreur
+import com.speedfood.app.data.cleCourseFile
+import com.speedfood.app.data.courseEnCours
+import com.speedfood.app.data.coursesSuivantes
 import com.speedfood.app.data.etapeSuivante
 import com.speedfood.app.data.formaterGnf
+import com.speedfood.app.data.libelleStatutLivreur
 import com.speedfood.app.data.peutDeclarerEchec
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.disponibilite.Ton
@@ -51,11 +56,16 @@ import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 
-/** Espace livreur : se mettre en ligne, répondre à une offre, suivre sa course étape par étape, remettre la commande avec le code du client. */
+/**
+ * Espace livreur, onglet « Courses » : la file se lit de haut en bas — la course en cours d'abord, puis celles qui viennent.
+ * L'écran montre aussi l'état du dossier d'activation (jamais le document : seulement ce qui manque) et l'accès à l'assistance.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LivreurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: LivreurViewModel = koinViewModel()) {
+fun LivreurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: LivreurViewModel = koinViewModel(), aide: LivreurAideViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
+    val whatsapp by aide.whatsapp.collectAsState()
+    var assistance by remember { mutableStateOf(false) }
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -93,10 +103,19 @@ fun LivreurScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: Livr
                         surEtape = viewModel::avancer,
                         surDemandePosition = viewModel::demanderPosition,
                         surChoixArrierePlan = viewModel::choisirSuiviArrierePlan,
+                        surPosteFixe = viewModel::definirPosteFixe,
+                        onAssistance = { assistance = true },
                     )
                 }
             }
         }
+    }
+    if (assistance) {
+        DialogueAssistanceLivreur(
+            whatsapp = whatsapp,
+            courseEnCours = (etat as? EtatEspaceLivreur.Pret)?.etat?.course?.commandeReference,
+            onFermer = { assistance = false },
+        )
     }
 }
 
@@ -109,77 +128,129 @@ internal fun ContenuLivreur(
     surEtape: (String, String?, String?) -> Unit,
     surDemandePosition: () -> Unit,
     surChoixArrierePlan: (Boolean) -> Unit = {},
+    surPosteFixe: (Boolean) -> Unit = {},
+    onAssistance: () -> Unit = {},
 ) {
     var consentement by remember { mutableStateOf(false) }
     val fiche = e.etat.livreur
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(fiche.nom, style = MaterialTheme.typography.headlineMedium)
-            val detail = listOfNotNull(fiche.vehicule.takeIf { it.isNotBlank() }, fiche.restaurantNom?.let { "Livreur de $it" } ?: "Groupe Speedfood").joinToString(" · ")
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    // La course en cours vient de l'état, de la file en repli : les deux disent la même chose.
+    val enCours = courseEnCours(e.etat, e.file)
+    val suivantes = coursesSuivantes(e.etat, e.file)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item(key = "entete") {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(fiche.nom, style = MaterialTheme.typography.headlineMedium)
+                val detail = listOfNotNull(fiche.vehicule.takeIf { it.isNotBlank() }, fiche.restaurantNom?.let { "Livreur de $it" } ?: "Groupe Speedfood").joinToString(" · ")
+                Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
 
         if (fiche.cycle != "actif") {
-            when (fiche.cycle) {
-                "candidat" -> BlocMessage("Votre fiche est en cours d'examen par l'équipe Speedfood. Vous pourrez recevoir des courses dès qu'elle sera approuvée.", erreur = false)
-                "suspendu" -> BlocMessage("Votre fiche est suspendue." + (fiche.motifCycle?.let { " Motif : $it" } ?: "") + " Contactez l'équipe Speedfood.", erreur = true)
-                else -> BlocMessage("Votre fiche n'est plus active. Contactez l'équipe Speedfood.", erreur = true)
+            item(key = "cycle") {
+                when (fiche.cycle) {
+                    "candidat" -> BlocMessage("Votre fiche est en cours d'examen par l'équipe Speedfood. Vous pourrez recevoir des courses dès qu'elle sera approuvée.", erreur = false)
+                    "suspendu" -> BlocMessage("Votre fiche est suspendue." + (fiche.motifCycle?.let { " Motif : $it" } ?: "") + " Contactez l'équipe Speedfood.", erreur = true)
+                    else -> BlocMessage("Votre fiche n'est plus active. Contactez l'équipe Speedfood.", erreur = true)
+                }
             }
-            return@Column
+            return@LazyColumn
         }
 
-        val statut = when (fiche.statut) {
-            "disponible" -> "En ligne" to Ton.Succes
-            "en_course" -> "En course" to Ton.Succes
-            else -> "Hors ligne" to Ton.Neutre
+        item(key = "statut") {
+            val statut = when (fiche.statut) {
+                "disponible" -> libelleStatutLivreur(fiche.statut) to Ton.Succes
+                "en_course" -> libelleStatutLivreur(fiche.statut) to Ton.Succes
+                else -> libelleStatutLivreur(fiche.statut) to Ton.Neutre
+            }
+            Pastille(statut.first, statut.second)
         }
-        Pastille(statut.first, statut.second)
-        e.message?.let { BlocMessage(it, erreur = false) }
+
+        e.message?.let { message -> item(key = "message") { BlocMessage(message, erreur = false) } }
+
+        e.dossier?.takeIf { it.manquantes.isNotEmpty() }?.let { dossier ->
+            item(key = "dossier") {
+                BlocMessage(
+                    dossier.resume() + " Déposez la pièce sur le site Speedfood : l'équipe Speedfood la vérifie, vous n'avez rien à envoyer ici.",
+                    erreur = false,
+                )
+            }
+        }
 
         if (e.positionDisponible && !e.positionAutorisee) {
-            BlocMessage("Autorisez la position de votre téléphone : sans elle, Speedfood ne peut pas vous proposer les courses proches de vous.", erreur = false)
-            BoutonPrincipal("Autoriser la position", surClic = surDemandePosition)
+            item(key = "position") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BlocMessage("Autorisez la position de votre téléphone : sans elle, Speedfood ne peut pas vous proposer les courses proches de vous.", erreur = false)
+                    BoutonPrincipal("Autoriser la position", surClic = surDemandePosition)
+                }
+            }
         } else if (!e.positionDisponible) {
-            Text("La position n'est pas disponible sur cet appareil.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            item(key = "position-absente") {
+                Text("La position n'est pas disponible sur cet appareil.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else if (fiche.statut != "hors_ligne" && !e.etat.positionConnue) {
-            Text("Position en cours de recherche…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            item(key = "position-attente") {
+                Text("Position en cours de recherche…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
 
         if (fiche.statut != "en_course") {
-            if (fiche.statut == "hors_ligne") {
-                BoutonPrincipal("Me mettre en ligne", actif = !e.actionEnCours) {
-                    // Première mise en ligne : on explique le suivi application fermée et on demande le choix, une seule fois.
-                    if (e.arrierePlanPossible && e.suiviArrierePlan == null && e.positionAutorisee) consentement = true else surBascule(true)
-                }
-            } else {
-                OutlinedButton(onClick = { surBascule(false) }, enabled = !e.actionEnCours, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
-                    Text("Me mettre hors ligne", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+            item(key = "en-ligne") {
+                if (fiche.statut == "hors_ligne") {
+                    BoutonPrincipal("Me mettre en ligne", actif = !e.actionEnCours) {
+                        // Première mise en ligne : on explique le suivi application fermée et on demande le choix, une seule fois.
+                        if (e.arrierePlanPossible && e.suiviArrierePlan == null && e.positionAutorisee) consentement = true else surBascule(true)
+                    }
+                } else {
+                    OutlinedButton(onClick = { surBascule(false) }, enabled = !e.actionEnCours, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+                        Text("Me mettre hors ligne", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                    }
                 }
             }
         }
 
         if (e.arrierePlanPossible && e.suiviArrierePlan != null) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (e.suiviArrierePlan) "Suivi application fermée : activé" else "Suivi application fermée : désactivé",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { surChoixArrierePlan(!e.suiviArrierePlan) }) { Text(if (e.suiviArrierePlan) "Désactiver" else "Activer", color = Couleurs.Encre) }
+            item(key = "arriere-plan") {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (e.suiviArrierePlan) "Suivi application fermée : activé" else "Suivi application fermée : désactivé",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { surChoixArrierePlan(!e.suiviArrierePlan) }) { Text(if (e.suiviArrierePlan) "Désactiver" else "Activer", color = Couleurs.Encre) }
+                }
             }
         }
 
-        e.etat.offre?.let { CarteOffre(it, maintenantMillis, e.actionEnCours, surOffre) }
-        e.etat.course?.let { CarteCourse(it, e.actionEnCours, surEtape) }
+        item(key = "poste-fixe") {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Mode poste fixe", style = MaterialTheme.typography.titleSmall)
+                    Text("L'écran reste allumé pendant la livraison.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = e.posteFixe, onCheckedChange = surPosteFixe)
+            }
+        }
 
-        if (fiche.statut == "disponible" && e.etat.offre == null && e.etat.course == null) {
-            Text(
-                if (e.arrierePlanPossible && e.suiviArrierePlan == true) "En attente d'une course… Vous pouvez fermer l'écran : vous serez prévenu par une notification."
-                else "En attente d'une course… Gardez l'application ouverte : l'écran reste allumé.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        e.etat.offre?.let { offre -> item(key = "offre") { CarteOffre(offre, maintenantMillis, e.actionEnCours, surOffre) } }
+        enCours?.let { course -> item(key = "course") { CarteCourse(course, e.actionEnCours, surEtape) } }
+
+        if (suivantes.isNotEmpty()) {
+            item(key = "file-titre") {
+                Text("Courses à venir", style = MaterialTheme.typography.titleLarge)
+            }
+            items(suivantes.size, key = { index -> cleCourseFile(suivantes[index].livraisonId, index) }) { index ->
+                LigneCourseFile(suivantes[index])
+            }
+        }
+
+        item(key = "aide") {
+            OutlinedButton(onClick = onAssistance, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+                Text("Assistance conducteur", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+            }
         }
     }
     if (consentement) {
@@ -200,6 +271,28 @@ internal fun ContenuLivreur(
                 TextButton(onClick = { consentement = false; surChoixArrierePlan(false); surBascule(true) }) { Text("Seulement application ouverte", color = Couleurs.Encre) }
             },
         )
+    }
+}
+
+/** Une course de la file : l'ordre, le restaurant, le quartier et le gain. */
+@Composable
+private fun LigneCourseFile(course: CourseLivreur) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
+        border = BorderStroke(1.dp, Couleurs.Bordure),
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(course.commandeReference.ifBlank { "Course" }, style = MaterialTheme.typography.titleMedium)
+            Text(course.restaurantNom, style = MaterialTheme.typography.bodyLarge)
+            val details = listOfNotNull(
+                course.quartier.takeIf { it.isNotBlank() },
+                course.heurePrevue?.takeIf { it.isNotBlank() }?.let { "vers $it" },
+            )
+            if (details.isNotEmpty()) Text(details.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Gain : ${formaterGnf(course.fraisGnf)}", style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 

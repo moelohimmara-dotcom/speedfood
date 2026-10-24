@@ -69,6 +69,10 @@ data class CourseLivreur(
     val fraisGnf: Int = 0,
     /** Seulement après la récupération de la commande : avant, le livreur n'a besoin que du restaurant. */
     val client: ClientCourse? = null,
+    /** Quartier de la course (aide à la lecture de la file, sans adresse du client). */
+    val quartier: String = "",
+    /** Heure de passage prévue, quand le restaurant ou le client en a une. */
+    val heurePrevue: String? = null,
 )
 
 @Serializable
@@ -118,6 +122,18 @@ private data class CorpsOffre(val offreId: String, val reponse: String)
 @Serializable
 private data class CorpsCourse(val vers: String, val code: String? = null, val raison: String? = null)
 
+@Serializable
+private data class ReponseFile(val ok: Boolean = false, val file: FileLivreur? = null, val erreur: ErreurServeur? = null)
+
+@Serializable
+private data class ReponseDossier(val ok: Boolean = false, val dossier: DossierLivreur? = null, val erreur: ErreurServeur? = null)
+
+@Serializable
+private data class ReponseHistorique(val ok: Boolean = false, val historique: PageHistoriqueLivreur? = null, val erreur: ErreurServeur? = null)
+
+@Serializable
+private data class CorpsHistorique(val page: Int)
+
 interface LivreurApi {
     /** État du livreur ; null si ce compte n'est pas un compte livreur. */
     suspend fun etat(jetonAcces: String): EtatLivreur?
@@ -127,6 +143,18 @@ interface LivreurApi {
     suspend fun position(jetonAcces: String, latitude: Double, longitude: Double): String?
     suspend fun repondreOffre(jetonAcces: String, offreId: String, accepter: Boolean): String?
     suspend fun avancer(jetonAcces: String, vers: String, code: String? = null, raison: String? = null): String?
+
+    /** La file des courses : la course en cours, puis celles qui viennent. Null si ce compte n'est pas un compte livreur. */
+    suspend fun file(jetonAcces: String): FileLivreur?
+
+    /** Une page de courses livrées (1 = la plus récente). */
+    suspend fun historique(jetonAcces: String, page: Int): PageHistoriqueLivreur?
+
+    /**
+     * L'état des pièces du dossier d'activation : à jour ou manquante. Jamais le document, son numéro ni le dossier — le dossier
+     * d'identité reste réservé au super administrateur, sur le site.
+     */
+    suspend fun dossier(jetonAcces: String): DossierLivreur?
 }
 
 class KtorLivreurApi(private val client: HttpClient, private val config: SpeedfoodConfig) : LivreurApi {
@@ -176,6 +204,43 @@ class KtorLivreurApi(private val client: HttpClient, private val config: Speedfo
 
     override suspend fun avancer(jetonAcces: String, vers: String, code: String?, raison: String?) =
         action("course", jetonAcces, json.encodeToString(CorpsCourse.serializer(), CorpsCourse(vers, code, raison)))
+
+    override suspend fun file(jetonAcces: String): FileLivreur? = appeler {
+        val reponse = client.get(url("file")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }
+        val corps = try {
+            reponse.body<ReponseFile>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!corps.ok) throw ErreurReseau(corps.erreur?.message ?: "Votre file de courses n'a pas pu être chargée. Réessayez dans un instant.")
+        corps.file
+    }
+
+    override suspend fun historique(jetonAcces: String, page: Int): PageHistoriqueLivreur? = appeler {
+        val reponse = client.post(url("historique")) {
+            header(HttpHeaders.Authorization, "Bearer $jetonAcces")
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(CorpsHistorique.serializer(), CorpsHistorique(page.coerceAtLeast(1))))
+        }
+        val corps = try {
+            reponse.body<ReponseHistorique>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!corps.ok) throw ErreurReseau(corps.erreur?.message ?: "Votre historique n'a pas pu être chargé. Réessayez dans un instant.")
+        corps.historique
+    }
+
+    override suspend fun dossier(jetonAcces: String): DossierLivreur? = appeler {
+        val reponse = client.get(url("dossier")) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }
+        val corps = try {
+            reponse.body<ReponseDossier>()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (!corps.ok) throw ErreurReseau(corps.erreur?.message ?: "L'état de votre dossier n'a pas pu être vérifié. Réessayez dans un instant.")
+        corps.dossier
+    }
 }
 
 /**
