@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 36,
-  nom: "2.34.0",
-  notes: "Support client par commande : fil, modèles de réponse et résolution auditée.",
+  code: 37,
+  nom: "2.35.0",
+  notes: "Menus en masse : prix groupés, copie de menu et import CSV contrôlé.",
   obligatoire: false,
-  apkSha256: "1fd011262cf38f8dc9f0a441782262acbf68ff5d670ff233af92c5dd963de378",
+  apkSha256: "27e72c97b424bd232699e39ea77329d239c5d9daada0002c2ba639563ed08ba0",
   apkTaille: 15199514,
 };
