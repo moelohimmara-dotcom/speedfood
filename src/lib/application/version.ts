@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 37,
-  nom: "2.35.0",
-  notes: "Menus en masse : prix groupés, copie de menu et import CSV contrôlé.",
+  code: 38,
+  nom: "2.36.0",
+  notes: "Paie des livreurs : gains par course, relevés de période et versement simulé.",
   obligatoire: false,
-  apkSha256: "27e72c97b424bd232699e39ea77329d239c5d9daada0002c2ba639563ed08ba0",
+  apkSha256: "0df13180238b4c41e0a01c20434d8b877f56b62af782a539b8f36a6b7c5c7f9e",
   apkTaille: 15199514,
 };
