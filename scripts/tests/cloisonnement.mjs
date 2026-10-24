@@ -621,6 +621,7 @@ const definerConnu = new Set([
   "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_est_ce_mon_livreur", "fn_mon_restaurant_a_ce_livreur",
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
+  "fn_quarts_prendre", "fn_quarts_liberer",
 ]);
 const definerAuth = (await db.query(`
   select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -967,5 +968,46 @@ await interdit("contact interne : pas d'écriture par l'API", ID.user_a, `update
 await serveur("contact interne : un numéro trop court est refusé", `update restaurant_contacts_internes set telephone_commandes = '123'`, true);
 await serveur("contact interne : un seul numéro par établissement", `insert into restaurant_contacts_internes (restaurant_id, telephone_commandes) values (${U(ID.resto_a)}, '+224622000001')`, true);
 
-console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs} contrôles.`);
+// ---------------------------------------------------------------- L2 : quarts et affectation des opérateurs
+console.log("--- Quarts et affectation des opérateurs");
+const rlsQuarts = (await db.query(`select relrowsecurity from pg_class where oid = 'public.affectations_operateurs'::regclass`)).rows[0]?.relrowsecurity;
+verifier("affectations : la table existe et la RLS est active", rlsQuarts === true);
+await db.exec(`update restaurants set mode_vente = 'speedfood' where id = ${U(ID.resto_a)}`);
+await interdit("affectations : un restaurateur ne lit aucune affectation", ID.user_a, `select * from affectations_operateurs`);
+await interdit("affectations : un client ne lit aucune affectation", ID.client, `select * from affectations_operateurs`);
+await interdit("affectations : un anonyme ne lit aucune affectation", null, `select * from affectations_operateurs`);
+await interdit("affectations : pas d'écriture par l'API (compte connecté)", ID.support, `insert into affectations_operateurs (restaurant_id, operateur_id) values (${U(ID.resto_a)}, ${U(ID.support)})`);
+await interdit("affectations : pas d'écriture par l'API (anonyme)", null, `insert into affectations_operateurs (restaurant_id, operateur_id) values (${U(ID.resto_a)}, ${U(ID.support)})`);
+await interdit("affectations : pas de modification par l'API", ID.admin, `update affectations_operateurs set operateur_id = ${U(ID.admin)}`);
+await interdit("affectations : pas de suppression par l'API", ID.admin, `delete from affectations_operateurs`);
+const appelQuarts = async (qui, sql) => {
+  const r = await en_tant_que(qui, async () => {
+    try { await db.query(sql); return null; } catch (e) { return e.message; }
+  });
+  return r;
+};
+verifier("affectations : le support prend un établissement", (await appelQuarts(ID.support, `select fn_quarts_prendre(${U(ID.resto_a)}, null, ${U(ID.support)})`)) === null);
+verifier("affectations : la prise est enregistrée", (await db.query(`select count(*)::int n from affectations_operateurs where restaurant_id = ${U(ID.resto_a)} and operateur_id = ${U(ID.support)} and libere_le is null`)).rows[0].n === 1);
+verifier("affectations : le support lit les affectations", (await nb(ID.support, "affectations_operateurs")) === 1);
+verifier("affectations : le super administrateur lit les affectations", (await nb(ID.admin, "affectations_operateurs")) === 1);
+verifier("affectations : un restaurateur ne lit aucune affectation", VIDE(await nb(ID.user_a, "affectations_operateurs")));
+verifier("affectations : un client ne lit aucune affectation", VIDE(await nb(ID.client, "affectations_operateurs")));
+verifier("affectations : un anonyme ne lit aucune affectation", VIDE(await nb(null, "affectations_operateurs")));
+verifier("affectations : un restaurateur ne peut pas prendre un établissement", (await appelQuarts(ID.user_a, `select fn_quarts_prendre(${U(ID.resto_a)}, null, ${U(ID.user_a)})`)) !== null);
+verifier("affectations : un établissement déjà pris par un autre est refusé", (await appelQuarts(ID.admin, `select fn_quarts_prendre(${U(ID.resto_a)}, null, ${U(ID.admin)})`)) !== null);
+verifier("affectations : un établissement qui n'est pas tenu par l'équipe est refusé", (await appelQuarts(ID.support, `select fn_quarts_prendre(${U(ID.resto_b)}, null, ${U(ID.support)})`)) !== null);
+verifier("affectations : le support libère un établissement", (await appelQuarts(ID.support, `select fn_quarts_liberer(${U(ID.resto_a)}, ${U(ID.support)})`)) === null);
+verifier("affectations : l'établissement libéré n'a plus de titulaire", (await db.query(`select count(*)::int n from affectations_operateurs where restaurant_id = ${U(ID.resto_a)} and libere_le is null`)).rows[0].n === 0);
+const liberationSansTitre = await en_tant_que(ID.support, async () => {
+  const r = await db.query(`select fn_quarts_liberer(${U(ID.resto_a)}, ${U(ID.support)})`);
+  return r.rows[0].fn_quarts_liberer;
+});
+verifier("affectations : libérer un établissement qu'on ne tient pas renvoie false", liberationSansTitre === false);
+await db.exec(`insert into affectations_operateurs (restaurant_id, operateur_id) values (${U(ID.resto_a)}, ${U(ID.support)})`);
+verifier("affectations : un établissement ne peut avoir qu'un seul titulaire actif", (await (async () => {
+  try { await db.exec(`insert into affectations_operateurs (restaurant_id, operateur_id) values (${U(ID.resto_a)}, ${U(ID.admin)})`); return false; }
+  catch { return true; }
+})()));
+
+console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);

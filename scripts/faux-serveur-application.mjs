@@ -146,9 +146,9 @@ const modulesFactices = [];
 for (const nom of (await import("node:fs")).readdirSync(dossierFauxServeur)) {
   const reconnu = /^faux-serveur-(equipe|restaurant|livreur|client)-[a-z0-9-]+\.mjs$/.exec(nom);
   if (!reconnu) continue;
-  const module = await import(new URL(nom, dossierFauxServeur).href);
-  const espace = module.espace ?? reconnu[1];
-  modulesFactices[espace] = Object.assign(modulesFactices[espace] ?? {}, module.routes ?? {});
+  const moduleFactice = await import(new URL(nom, dossierFauxServeur).href);
+  const espace = moduleFactice.espace ?? reconnu[1];
+  modulesFactices[espace] = Object.assign(modulesFactices[espace] ?? {}, moduleFactice.routes ?? {});
 }
 const executerRouteFactice = async (res, route, ctx) => {
   const resultat = await route(ctx);

@@ -34,6 +34,7 @@ import { creerClientAdmin } from "@/lib/db/admin";
  * elle aussi, mais on la conserve pour garder la trace de ce que la réinitialisation a détruit.
  */
 export const TABLES_SAUVEGARDE = [
+  "affectations_operateurs",
   "audit_events", "client_profils", "content_banners", "content_pages", "content_pages_versions", "documents_commande",
   "featured_placements", "menu_categories", "menu_item_options", "menu_items", "menu_sections", "neighborhoods",
   "order_item_options", "order_items", "order_proposals", "order_status_events", "orders", "parametres_application",
