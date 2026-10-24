@@ -62,22 +62,17 @@ import kotlin.math.sin
 /** Une page de la visite : ce qu'elle dit, et le dessin qui l'accompagne (une pure fonction de l'avancement d'entrée et d'une boucle continue). */
 private class Diapo(val titre: String, val texte: String, val dessin: Int)
 
-/** Trois écrans, pas plus : ce qu'on trouve, comment on commande, qui peut ouvrir un autre espace. [dessin] : l'illustration (0 à 4 de [IllustrationVisite]). */
+/** Deux écrans : la promesse de découverte, puis le choix de zone sans permission au lancement. */
 private val DIAPOS = listOf(
     Diapo(
         "Les restaurants près de chez vous",
-        "Parcourez sans compte, cherchez par nom, quartier ou plat. Chaque plat dit quand il a été confirmé : sans confirmation récente, vous le voyez (« à confirmer »).",
+        "Parcourez sans compte, cherchez par nom, quartier ou plat. Nous vous proposerons une zone par défaut, modifiable en un geste.",
         0,
     ),
     Diapo(
-        "Commandez, puis suivez",
-        "Retrait ou livraison : les frais sont affichés avant l'envoi et vous réglez directement le restaurant (aucun paiement dans l'application). L'avancement se met à jour tout seul.",
+        "Choisissez votre zone de livraison",
+        "Choisissez une zone maintenant. La position ne sera demandée que si vous appuyez explicitement sur « près de moi ». Vous pourrez commander sans compte.",
         2,
-    ),
-    Diapo(
-        "Chacun son espace",
-        "Pour commander, rien à choisir. Restaurateurs, livreurs et équipe Speedfood ouvrent leur espace depuis Compte, avec leur propre compte.",
-        4,
     ),
 )
 
