@@ -97,3 +97,38 @@ que ces en-têtes n'empêchaient pas davantage auparavant.
 - Landing/prototype : `wrangler pages deploy dist --project-name speedfood`
   depuis un dossier `dist/` construit à partir de `demo/` (voir `demo/README.md`).
 - Tout déploiement est consigné dans `docs/STATUT-PROJET.md`.
+
+## 7. Campagne d'agents (depuis le 24 octobre 2026)
+
+Pour livrer les lots L2 à L14 et les phases C à F en parallèle, l'orchestrateur recrute des
+agents spécialisés (`C:\Users\moelo\.minimax\agents\`), chacun doté d'une fiche de rôle
+(`agent.md`) et de compétences partagées (`speedfood-protocole`, `speedfood-lot-console`,
+`speedfood-lot-mobile`).
+
+**Copies de travail isolées.** Chaque agent travaille dans un *worktree* Git dédié
+(`C:\Users\moelo\dev\wt\<agent>`, branche `lot/<agent>`), jamais dans le dépôt principal. Les
+dépendances (`node_modules`) y sont un lien vers celles du dépôt principal ; `mobile/local.properties`
+et `mobile/speedfood.properties` y sont recopiés (ils ne sont pas versionnés). Chaque agent
+commite sur sa branche ; l'orchestrateur fusionne, publie et pousse.
+
+**Fichiers réservés.** Ces fichiers sont la propriété de l'orchestrateur : aucun agent ne les
+modifie, il fournit la ligne exacte à insérer dans sa note d'intégration.
+
+| Fichier | Raison |
+|---|---|
+| `src/lib/system-admin/permissions.ts` + `docs/MATRICE-PERMISSIONS.md` | matrice de permissions : les deux fichiers doivent évoluer ensemble, version comprise |
+| `scripts/tests/lancer.mjs` | registre en dur des tests et des sources copiées |
+| `src/app/api/v1/equipe/moi/route.ts` | `SECTIONS_NATIVES` (une seule ligne) |
+| `src/lib/application/version.ts` + `mobile/androidApp/build.gradle.kts` | version unique de l'application |
+| `public/speedfood.apk` (+ `.sha256`) | binaire et empreinte de la publication |
+| `mobile/shared/.../di/Koin.kt`, `EspacePro.kt`, `ui/EquipeScreen.kt` | graphe DI et navigation partagés |
+| `scripts/requetes-non-bornees.json` | registre des lectures non bornées |
+| `src/lib/system-admin/actionsAuditConnues.ts` | catalogue des actions d'audit |
+| `src/lib/system-admin/sauvegarde.ts` | liste des tables sauvegardées |
+| `docs/FEUILLE-DE-ROUTE-*.md`, `docs/STATUT-PROJET.md` | feuilles de route et journal du projet |
+
+**Données factices.** Aucune donnée réelle n'est nécessaire : les seuils et barèmes non tranchés
+deviennent des valeurs par défaut explicites, documentées et modifiables en un seul endroit. Le
+faux serveur charge automatiquement les modules `scripts/faux-serveur-<espace>-<domaine>.mjs` :
+chaque agent écrit le sien, et personne n'édite `scripts/faux-serveur-application.mjs`.
+
