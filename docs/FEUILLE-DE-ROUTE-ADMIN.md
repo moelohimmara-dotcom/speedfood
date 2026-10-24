@@ -24,7 +24,7 @@ Demandes de partenariat et référencement, fiche et publication d'un établisse
 | L7 | Journal de contacts avec l'établissement | Appels, visites, relances, prochaine action | S |
 | L8 | Mises à jour de menu en masse | Prix en lot, copie d'un menu, import CSV | **Livré en mode démonstration (24 oct.)** |
 | L9 | Paie des livreurs | Gains par course, période, versement | **Livré en mode démonstration (24 oct.)** — forfait 15 000 GNF/course + 500 GNF/km, plafond 50 km, versement manuel simulé |
-| L10 | Incidents de livraison | Retard, colis perdu, litige, compensation | S |
+| L10 | Incidents de livraison | Retard, colis perdu, litige, compensation | **Livré en mode démonstration (24 oct.)** — statuts, gravité, responsable, résolution manuelle et audit |
 | L11 | Codes promo et campagnes | Codes, plafonds, durée, notification aux clients | M |
 | L12 | Remboursements | Dépend du prestataire de paiement (l'API Chap Chap Pay n'en propose pas) : procédure manuelle tracée d'abord | M |
 | L13 | Supervision | Alertes d'erreurs, tenue en charge, état des services (Supabase, Firebase, paiement) | M |

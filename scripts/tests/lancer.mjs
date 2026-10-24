@@ -235,6 +235,8 @@ copier("src/lib/system-admin/menus-regles.ts");
 copier("scripts/tests/menus-en-masse.test.mts");
 copier("src/lib/system-admin/paie-livreurs-regles.ts");
 copier("scripts/tests/paie-livreurs.test.mts");
+copier("src/lib/system-admin/incidents-regles.ts");
+copier("scripts/tests/incidents.test.mts");
 copier("src/lib/system-admin/menus-confirmation-regles.ts");
 copier("scripts/tests/menus-confirmation.test.mts");
 copier("src/lib/system-admin/etablissements-regles.ts");
