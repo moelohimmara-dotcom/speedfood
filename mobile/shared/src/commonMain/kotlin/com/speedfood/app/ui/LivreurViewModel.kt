@@ -2,10 +2,13 @@ package com.speedfood.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.speedfood.app.data.DossierLivreur
 import com.speedfood.app.data.ErreurReseau
 import com.speedfood.app.data.EtatLivreur
+import com.speedfood.app.data.FileLivreur
 import com.speedfood.app.data.FournisseurPosition
 import com.speedfood.app.data.LivreurApi
+import com.speedfood.app.data.PosteFixe
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.data.SuiviLivreur
@@ -26,6 +29,8 @@ sealed interface EtatEspaceLivreur {
     /**
      * [message] : retour de la dernière action (refus du serveur, par exemple « commande pas encore prête ») ou alerte réseau ; [actionEnCours] : un envoi est en route.
      * [suiviArrierePlan] : choix du livreur de continuer le suivi application fermée (null = pas encore demandé) ; [arrierePlanPossible] : la plateforme le permet.
+     * [file] : la file des courses (la course en cours, puis les suivantes) ; [dossier] : l'état des pièces du dossier d'activation (jamais le document) ;
+     * [posteFixe] : le livreur a choisi que l'écran reste allumé pendant la livraison.
      */
     data class Pret(
         val etat: EtatLivreur,
@@ -35,6 +40,9 @@ sealed interface EtatEspaceLivreur {
         val positionDisponible: Boolean = false,
         val suiviArrierePlan: Boolean? = null,
         val arrierePlanPossible: Boolean = false,
+        val file: FileLivreur? = null,
+        val dossier: DossierLivreur? = null,
+        val posteFixe: Boolean = false,
     ) : EtatEspaceLivreur
 
     data class Erreur(val message: String) : EtatEspaceLivreur
@@ -50,6 +58,9 @@ const val CLE_SUIVI_ARRIERE_PLAN = "livreur_suivi_arriere_plan"
  * Espace livreur : relit l'état toutes les 5 secondes (2,5 s tant qu'une offre attend une réponse), envoie la position toutes les 8 secondes tant que le livreur
  * est en ligne ou en course, et laisse le serveur décider de tout (machine à états, code de remise, commande prête).
  *
+ * La file des courses est relue au même rythme (une course qui s'ajoute doit apparaître sans rechargement) ; l'état du dossier d'activation, lui, change
+ * rarement : il est relu toutes les minutes.
+ *
  * Suivi en arrière-plan : si le livreur l'a accepté ET que la plateforme le permet, c'est le service de la plateforme qui lit la position, l'envoie et signale
  * les offres, application ouverte ou non ; ce modèle s'efface alors devant lui (il ne lit ni n'envoie la position). Sinon, suivi application ouverte seulement.
  */
@@ -58,6 +69,7 @@ class LivreurViewModel(
     private val api: LivreurApi,
     private val position: FournisseurPosition,
     private val stockage: StockageLocal,
+    private val posteFixe: PosteFixe,
 ) : ViewModel() {
     private val _etat = MutableStateFlow<EtatEspaceLivreur>(EtatEspaceLivreur.Chargement)
     val etat: StateFlow<EtatEspaceLivreur> = _etat.asStateFlow()
@@ -66,6 +78,8 @@ class LivreurViewModel(
     private var dernierEnvoi = 0L
     private var suivi = false
     private var enArrierePlan = false
+    private var enCourse = false
+    private var tours = 0
 
     private fun choixArrierePlan(): Boolean? = when (stockage.lire(CLE_SUIVI_ARRIERE_PLAN)) {
         "oui" -> true
@@ -98,8 +112,14 @@ class LivreurViewModel(
                 return
             }
             val avant = _etat.value as? EtatEspaceLivreur.Pret
+            val file = lireFile(jeton, avant?.file)
+            val dossier = lireDossier(jeton, avant?.dossier)
+            enCourse = etat.course != null || etat.livreur.statut == "en_course"
             _etat.value = EtatEspaceLivreur.Pret(
                 etat = etat,
+                file = file,
+                dossier = dossier,
+                posteFixe = posteFixe.actif.value,
                 message = avant?.message,
                 actionEnCours = avant?.actionEnCours ?: false,
                 positionAutorisee = position.autorisee(),
@@ -109,9 +129,31 @@ class LivreurViewModel(
             )
             ajusterSuivi(etat)
             envoyerPositionSiBesoin(jeton, etat)
+            tours++
         } catch (e: ErreurReseau) {
             val avant = _etat.value as? EtatEspaceLivreur.Pret
             _etat.value = if (avant != null) avant.copy(message = "Connexion perdue : nouvelle tentative en cours.") else EtatEspaceLivreur.Erreur(e.message ?: "Une erreur est survenue.")
+        }
+    }
+
+    /**
+     * La file des courses. Une panne ici n'efface pas la file déjà affichée : on garde la dernière connue, l'écran reste utile.
+     */
+    private suspend fun lireFile(jeton: String, avant: FileLivreur?): FileLivreur? = try {
+        api.file(jeton)
+    } catch (_: ErreurReseau) {
+        avant
+    }
+
+    /**
+     * L'état du dossier d'activation. Relu toutes les minutes (le dossier change peu) ; une panne garde le dernier état connu.
+     */
+    private suspend fun lireDossier(jeton: String, avant: DossierLivreur?): DossierLivreur? {
+        if (avant != null && tours % TOURS_ENTRE_DOSSIERS != 0) return avant
+        return try {
+            api.dossier(jeton)
+        } catch (_: ErreurReseau) {
+            avant
         }
     }
 
@@ -127,7 +169,6 @@ class LivreurViewModel(
             if (suivi) {
                 suivi = false
                 position.arreter()
-                position.garderEcranAllume(false)
             }
             enArrierePlan = true
             position.demarrerArrierePlan()
@@ -138,22 +179,23 @@ class LivreurViewModel(
             }
             if (!suivi) {
                 suivi = true
-                position.garderEcranAllume(true)
                 position.demarrer { lat, lon -> derniere = lat to lon }
             }
         }
+        // Le mode poste fixe et le suivi partagent le même drapeau « écran allumé » : c'est le service poste fixe qui l'applique.
+        posteFixe.majuter(suivi, enCourse)
     }
 
     private fun arreterSuivi() {
         if (suivi) {
             suivi = false
             position.arreter()
-            position.garderEcranAllume(false)
         }
         if (enArrierePlan) {
             enArrierePlan = false
             position.arreterArrierePlan()
         }
+        posteFixe.majuter(false, enCourse)
     }
 
     private suspend fun envoyerPositionSiBesoin(jeton: String, etat: EtatLivreur) {
@@ -180,6 +222,12 @@ class LivreurViewModel(
             enArrierePlan = false
             position.arreterArrierePlan()
         }
+    }
+
+    /** Le livreur active ou coupe le mode poste fixe : l'écran reste allumé pendant la livraison. */
+    fun definirPosteFixe(actif: Boolean) {
+        posteFixe.definir(actif)
+        (_etat.value as? EtatEspaceLivreur.Pret)?.let { _etat.value = it.copy(posteFixe = actif) }
     }
 
     /** Lance une action, affiche le refus éventuel du serveur, puis relit l'état pour montrer ce qui a vraiment changé. */
@@ -214,12 +262,15 @@ class LivreurViewModel(
         if (suivi) {
             suivi = false
             position.arreter()
-            position.garderEcranAllume(false)
         }
+        posteFixe.majuter(false, false)
         super.onCleared()
     }
 
     companion object {
         const val DELAI_OFFRE_MS = 2_500L
+
+        /** Nombre de tours entre deux relis de l'état du dossier (5 s par tour : environ une minute). */
+        const val TOURS_ENTRE_DOSSIERS = 12
     }
 }
