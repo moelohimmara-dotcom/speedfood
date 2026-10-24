@@ -58,6 +58,10 @@ import com.speedfood.app.ui.MisesAJourEquipeScreen
 import com.speedfood.app.ui.AuditEquipeScreen
 import com.speedfood.app.ui.ParametresEquipeScreen
 import com.speedfood.app.ui.GainsLivreurScreen
+import com.speedfood.app.ui.LivreurGainsScreen
+import com.speedfood.app.ui.LivreurCompteScreen
+import com.speedfood.app.ui.RestaurateurHistoriqueScreen
+import com.speedfood.app.ui.RestaurateurReglagesScreen
 import com.speedfood.app.ui.CompteProScreen
 import com.speedfood.app.ui.ConnexionScreen
 import com.speedfood.app.ui.DetailSupportScreen
@@ -120,6 +124,12 @@ object AuditEquipeDestination
 
 @Serializable
 object GainsDestination
+
+@Serializable
+object RestaurateurReglagesDestination
+
+@Serializable
+object RestaurateurHistoriqueDestination
 
 private class OngletPro(val libelle: String, val icone: ImageVector, val route: Any)
 
@@ -211,7 +221,16 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
             Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) {
             NavHost(navController = navController, startDestination = racine) {
                 composable<RestaurateurDestination> {
-                    sansFleche { RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { espaces.quitter() }, onConnexion = connexion, onMenu = { versOnglet(MenuRestaurateurDestination) }) }
+                    sansFleche {
+                        RestaurateurScreen(
+                            siteUrl = config.siteUrl,
+                            onRetour = { espaces.quitter() },
+                            onConnexion = connexion,
+                            onMenu = { versOnglet(MenuRestaurateurDestination) },
+                            onReglages = { vers(RestaurateurReglagesDestination) },
+                            onHistorique = { vers(RestaurateurHistoriqueDestination) },
+                        )
+                    }
                 }
                 composable<MenuRestaurateurDestination> {
                     sansFleche { MenuRestaurateurScreen(onRetour = { versOnglet(RestaurateurDestination) }, onConnexion = connexion) }
@@ -271,9 +290,27 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<AuditEquipeDestination> { AuditEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<PaiementsEquipeDestination> { PaiementsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
-                composable<GainsDestination> { sansFleche { GainsLivreurScreen(onConnexion = connexion) } }
+                composable<GainsDestination> {
+                    sansFleche {
+                        if (espace == Espace.Livreur) LivreurGainsScreen(onConnexion = connexion)
+                        else GainsLivreurScreen(onConnexion = connexion)
+                    }
+                }
+                composable<RestaurateurReglagesDestination> {
+                    RestaurateurReglagesScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion)
+                }
+                composable<RestaurateurHistoriqueDestination> {
+                    RestaurateurHistoriqueScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion)
+                }
                 composable<CompteProDestination> {
-                    CompteProScreen(espace = espace, onParametres = { vers(ParametresDestination) }, onAide = { vers(AideDestination) })
+                    if (espace == Espace.Livreur) {
+                        LivreurCompteScreen(
+                            onParametres = { vers(ParametresDestination) },
+                            onAide = { vers(AideDestination) },
+                        )
+                    } else {
+                        CompteProScreen(espace = espace, onParametres = { vers(ParametresDestination) }, onAide = { vers(AideDestination) })
+                    }
                 }
                 composable<ParametresDestination> { ParametresScreen(onRetour = retour, onVisite = { vers(VisiteDestination) }) }
                 composable<AideDestination> { AideScreen(onRetour = retour) }

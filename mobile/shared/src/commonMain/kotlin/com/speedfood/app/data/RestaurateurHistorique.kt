@@ -64,7 +64,7 @@ fun resumeHistorique(chargees: Int, total: Int): String = "$chargees commandes s
 fun libelleMode(mode: String): String = if (mode == "livraison") "Livraison" else "Retrait"
 
 @Serializable
-private data class ReponseHistorique(
+private data class ReponseHistoriqueRestaurateur(
     val ok: Boolean = false,
     val commandes: List<CommandeHistorique> = emptyList(),
     val page: Int = 1,
@@ -74,7 +74,7 @@ private data class ReponseHistorique(
 )
 
 @Serializable
-private data class CorpsHistorique(val page: Int, val taille: Int)
+private data class CorpsHistoriqueRestaurateur(val page: Int, val taille: Int)
 
 interface HistoriqueRestaurateurApi {
     /** Une page de l'historique, la plus récente d'abord. [page] commence à 1. */
@@ -99,8 +99,8 @@ class KtorHistoriqueRestaurateurApi(private val client: HttpClient, private val 
                 header(HttpHeaders.Authorization, "Bearer $jetonAcces")
                 contentType(ContentType.Application.Json)
                 // La page demandée est dans le corps de la requête : le serveur ne dépend d'aucun état de session pour la fenêtre demandée.
-                setBody(json.encodeToString(CorpsHistorique.serializer(), CorpsHistorique(page, taille)))
-            }.body<ReponseHistorique>()
+                setBody(json.encodeToString(CorpsHistoriqueRestaurateur.serializer(), CorpsHistoriqueRestaurateur(page, taille)))
+            }.body<ReponseHistoriqueRestaurateur>()
         } catch (e: JsonConvertException) {
             throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
         }

@@ -72,6 +72,11 @@ import com.speedfood.app.data.AlerteIndisponible
 import com.speedfood.app.data.FournisseurPosition
 import com.speedfood.app.data.KtorRestaurateurApi
 import com.speedfood.app.data.RestaurateurApi
+import com.speedfood.app.data.HistoriqueRestaurateurApi
+import com.speedfood.app.data.KtorHistoriqueRestaurateurApi
+import com.speedfood.app.data.ReglagesRestaurateurApi
+import com.speedfood.app.data.KtorReglagesRestaurateurApi
+import com.speedfood.app.data.PosteFixe
 import com.speedfood.app.data.KtorLivraisonApi
 import com.speedfood.app.data.KtorLivreurApi
 import com.speedfood.app.data.LivreurApi
@@ -113,6 +118,11 @@ import com.speedfood.app.ui.MesCommandesViewModel
 import com.speedfood.app.ui.RestaurantViewModel
 import com.speedfood.app.ui.RestaurantsViewModel
 import com.speedfood.app.ui.RestaurateurViewModel
+import com.speedfood.app.ui.RestaurateurHistoriqueViewModel
+import com.speedfood.app.ui.RestaurateurReglagesViewModel
+import com.speedfood.app.ui.LivreurAideViewModel
+import com.speedfood.app.ui.LivreurCompteViewModel
+import com.speedfood.app.ui.LivreurGainsViewModel
 import com.speedfood.app.ui.SuiviViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
@@ -187,6 +197,9 @@ fun modulesApplication(
         single<LivraisonApi> { KtorLivraisonApi(get(), get()) }
         single<LivreurApi> { KtorLivreurApi(get(), get()) }
         single<RestaurateurApi> { KtorRestaurateurApi(get(), get()) }
+        single<HistoriqueRestaurateurApi> { KtorHistoriqueRestaurateurApi(get(), get()) }
+        single<ReglagesRestaurateurApi> { KtorReglagesRestaurateurApi(get(), get()) }
+        single { PosteFixe(get(), get()) }
         single<EquipeApi> { KtorEquipeApi(get(), get()) }
         single<ActiviteApi> { KtorActiviteApi(get(), get()) }
         single<AvisEquipeApi> { KtorAvisEquipeApi(get(), get()) }
@@ -219,7 +232,12 @@ fun modulesApplication(
         factoryOf(::CommandeViewModel)
         factoryOf(::MesCommandesViewModel)
         factoryOf(::LivreurViewModel)
+        factoryOf(::LivreurGainsViewModel)
+        factoryOf(::LivreurCompteViewModel)
+        factoryOf(::LivreurAideViewModel)
         factoryOf(::RestaurateurViewModel)
+        factoryOf(::RestaurateurReglagesViewModel)
+        factoryOf(::RestaurateurHistoriqueViewModel)
         factoryOf(::MenuRestaurateurViewModel)
         factoryOf(::EquipeViewModel)
         factoryOf(::RepartitionViewModel)
