@@ -7,6 +7,8 @@ import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.ActiviteApi
 import com.speedfood.app.data.AideApi
 import com.speedfood.app.data.AvisEquipeApi
+import com.speedfood.app.data.FinancesEquipeApi
+import com.speedfood.app.data.KtorFinancesEquipeApi
 import com.speedfood.app.data.KtorPaiementsEquipeApi
 import com.speedfood.app.data.PaiementsEquipeApi
 import com.speedfood.app.data.KtorReferencementsEquipeApi
@@ -89,6 +91,7 @@ import com.speedfood.app.data.RestaurantApi
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.ui.CommandeViewModel
+import com.speedfood.app.ui.EquipeFinancesViewModel
 import com.speedfood.app.ui.EquipeViewModel
 import com.speedfood.app.ui.RepartitionViewModel
 import com.speedfood.app.ui.SupportViewModel
@@ -203,6 +206,7 @@ fun modulesApplication(
         single<EquipeApi> { KtorEquipeApi(get(), get()) }
         single<ActiviteApi> { KtorActiviteApi(get(), get()) }
         single<AvisEquipeApi> { KtorAvisEquipeApi(get(), get()) }
+        single<FinancesEquipeApi> { KtorFinancesEquipeApi(get(), get()) }
         single<PaiementsEquipeApi> { KtorPaiementsEquipeApi(get(), get()) }
         single<ReferencementsEquipeApi> { KtorReferencementsEquipeApi(get(), get()) }
         single<RestaurantsEquipeApi> { KtorRestaurantsEquipeApi(get(), get()) }
@@ -240,6 +244,7 @@ fun modulesApplication(
         factoryOf(::RestaurateurHistoriqueViewModel)
         factoryOf(::MenuRestaurateurViewModel)
         factoryOf(::EquipeViewModel)
+        factoryOf(::EquipeFinancesViewModel)
         factoryOf(::RepartitionViewModel)
         factoryOf(::SupportViewModel)
         factoryOf(::CompteViewModel)

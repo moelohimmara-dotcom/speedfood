@@ -56,6 +56,7 @@ import com.speedfood.app.ui.BannieresEquipeScreen
 import com.speedfood.app.ui.MediasEquipeScreen
 import com.speedfood.app.ui.MisesAJourEquipeScreen
 import com.speedfood.app.ui.AuditEquipeScreen
+import com.speedfood.app.ui.EquipeFinancesScreen
 import com.speedfood.app.ui.ParametresEquipeScreen
 import com.speedfood.app.ui.GainsLivreurScreen
 import com.speedfood.app.ui.LivreurGainsScreen
@@ -91,6 +92,9 @@ object AvisEquipeDestination
 
 @Serializable
 object PaiementsEquipeDestination
+
+@Serializable
+object EquipeFinancesDestination
 
 @Serializable
 object ReferencementsEquipeDestination
@@ -252,6 +256,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                             onMenus = { vers(MenusEquipeDestination) },
                             onAvis = { vers(AvisEquipeDestination) },
                             onPaiements = { vers(PaiementsEquipeDestination) },
+                            onFinances = { vers(EquipeFinancesDestination) },
                             onReferencements = { vers(ReferencementsEquipeDestination) },
                             onRestaurants = { vers(RestaurantsEquipeDestination) },
                             onPartenariats = { vers(PartenariatsEquipeDestination) },
@@ -289,6 +294,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                 composable<MisesAJourEquipeDestination> { MisesAJourEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<AuditEquipeDestination> { AuditEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<PaiementsEquipeDestination> { PaiementsEquipeScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
+                composable<EquipeFinancesDestination> { EquipeFinancesScreen(siteUrl = config.siteUrl, onRetour = retour, onConnexion = connexion) }
                 composable<ActiviteDestination> { sansFleche { ActiviteRestaurantScreen(onConnexion = connexion) } }
                 composable<GainsDestination> {
                     sansFleche {
