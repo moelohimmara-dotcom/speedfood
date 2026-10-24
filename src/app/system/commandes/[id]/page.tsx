@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirCommandeAdmin, type PropositionRevisseeAdmin } from "@/lib/system-admin/commandes";
+import { lireFilSupport } from "@/lib/system-admin/support-service";
 import type { StatutProposition } from "@/lib/contracts/commande";
 import { Badge } from "@/components/ui";
 import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { formaterDateCourte, formaterEcheance } from "../../formatage";
 import { RevelerCoordonnees } from "./RevelerCoordonnees";
 import { ActionSupportStatut } from "./ActionSupportStatut";
+import { FilSupportCommande } from "./FilSupport";
 
 export const metadata = { title: "Commande (administration)" };
 
@@ -45,6 +47,8 @@ export default async function CommandeDetailSystemePage({
   if (!commande) {
     notFound();
   }
+  const contexte = await exigerPermissionPage("commande.consulter");
+  const filSupport = await lireFilSupport(contexte.supabase, id);
 
   return (
     <div>
@@ -113,6 +117,10 @@ export default async function CommandeDetailSystemePage({
                 ))}
               </ol>
             )}
+          </Panneau>
+
+          <Panneau titre="Fil de support">
+            <FilSupportCommande fil={filSupport} telephoneMasque={commande.telephoneAffiche} />
           </Panneau>
 
           <Panneau titre="Action de support">
