@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { analyserCsvMenu, creerEmpreinte, validerLigneMenu, validerPrixLot } from "../../src/lib/system-admin/menus-regles.ts";
+import { analyserCsvMenu, creerEmpreinte, validerLigneMenu, validerPrixLot } from "../../src/lib/system-admin/menus-regles";
 
 test("CSV accepte le point-virgule, les accents et les guillemets", () => {
   const r = analyserCsvMenu('nom;description;prix;prix_promo\n"Poulet rôti";"Très bon; épicé";25.000;20.000');

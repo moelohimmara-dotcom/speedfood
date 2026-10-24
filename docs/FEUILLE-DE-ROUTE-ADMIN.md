@@ -22,7 +22,7 @@ Demandes de partenariat et référencement, fiche et publication d'un établisse
 |---|---|---|---|
 | L6 | Fermeture et suspension d'un établissement | Motif, durée, message affiché aux clients, reprise planifiée | S |
 | L7 | Journal de contacts avec l'établissement | Appels, visites, relances, prochaine action | S |
-| L8 | Mises à jour de menu en masse | Prix en lot, copie d'un menu, import CSV | M |
+| L8 | Mises à jour de menu en masse | Prix en lot, copie d'un menu, import CSV | **Livré en mode démonstration (24 oct.)** |
 | L9 | Paie des livreurs | Gains par course, période, versement | M |
 | L10 | Incidents de livraison | Retard, colis perdu, litige, compensation | S |
 | L11 | Codes promo et campagnes | Codes, plafonds, durée, notification aux clients | M |
