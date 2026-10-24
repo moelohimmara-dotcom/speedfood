@@ -57,10 +57,18 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-/** Console du restaurateur : commandes en direct (à traiter, en cours, historique), accepter / refuser / préparer / remettre, proposer un changement, ouvrir ou mettre en pause. */
+/** Console du restaurateur : commandes en direct (à traiter, en cours, historique), accepter / refuser / préparer / remettre, proposer un changement, mettre en pause. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RestaurateurScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () -> Unit, onMenu: () -> Unit, viewModel: RestaurateurViewModel = koinViewModel()) {
+fun RestaurateurScreen(
+    siteUrl: String,
+    onRetour: () -> Unit,
+    onConnexion: () -> Unit,
+    onMenu: () -> Unit,
+    onReglages: () -> Unit = {},
+    onHistorique: () -> Unit = {},
+    viewModel: RestaurateurViewModel = koinViewModel(),
+) {
     val etat by viewModel.etat.collectAsState()
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -92,6 +100,9 @@ fun RestaurateurScreen(siteUrl: String, onRetour: () -> Unit, onConnexion: () ->
                     surPaiement = viewModel::confirmerPaiement,
                     surDocument = viewModel::emettreDocument,
                     surChoixAlerte = viewModel::choisirAlerteArrierePlan,
+                    surPause = viewModel::mettreEnPause,
+                    surReglages = onReglages,
+                    surHistorique = onHistorique,
                 )
             }
         }
@@ -109,6 +120,9 @@ internal fun ContenuConsole(
     surPaiement: (String, String) -> Unit = { _, _ -> },
     surDocument: (String, String) -> Unit = { _, _ -> },
     surChoixAlerte: (Boolean) -> Unit = {},
+    surPause: (Boolean) -> Unit = {},
+    surReglages: () -> Unit = {},
+    surHistorique: () -> Unit = {},
 ) {
     val classees = classerCommandes(e.etat.commandes)
     // Première ouverture : on explique l'alerte application fermée et on demande le choix, une seule fois.
@@ -118,7 +132,19 @@ internal fun ContenuConsole(
         e.etat.restaurant?.let { r ->
             Text(r.nom, style = MaterialTheme.typography.headlineMedium)
             InterrupteurStatut("Ouvert", r.ouvert, !e.actionEnCours) { surStatut("ouvert", it) }
-            InterrupteurStatut("Prend des commandes en ce moment", r.accepteCommandes, !e.actionEnCours) { surStatut("accepte_commandes", it) }
+            // La pause est une action, pas un réglage : le bouton dit ce que ça change aux clients, et l'état reste visible.
+            LignePause(enPause = e.enPause == true, modifiable = !e.actionEnCours, surPause = surPause)
+        }
+        if (e.enPause == true) {
+            BlocMessage("Service en pause : vos clients ne peuvent pas commander. Reprenez le service dès que vous êtes prêt.", erreur = false)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = surReglages, modifier = Modifier.weight(1f), border = BorderStroke(1.dp, Couleurs.Encre)) {
+                Text("Horaires et poste de travail", color = Couleurs.Encre)
+            }
+            OutlinedButton(onClick = surHistorique, modifier = Modifier.weight(1f), border = BorderStroke(1.dp, Couleurs.Encre)) {
+                Text("Historique", color = Couleurs.Encre)
+            }
         }
         if (e.arrierePlanPossible && e.alerteArrierePlan != null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -176,6 +202,35 @@ private fun InterrupteurStatut(libelle: String, actif: Boolean, modifiable: Bool
             enabled = modifiable,
             colors = SwitchDefaults.colors(checkedTrackColor = Couleurs.Succes, checkedThumbColor = Couleurs.Surface),
         )
+    }
+}
+
+/**
+ * La pause du service : un seul bouton, dont le libellé dit ce qu'il va faire, et un état visible en permanence. Un bouton désactivé doit
+ * le paraître : pendant l'envoi, il est atténué.
+ */
+@Composable
+private fun LignePause(enPause: Boolean, modifiable: Boolean, surPause: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(if (enPause) "Commandes en pause" else "Prend les commandes", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                if (enPause) "Vos clients ne peuvent pas commander." else "Vos clients peuvent commander.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (enPause) {
+            OutlinedButton(onClick = { surPause(false) }, enabled = modifiable, border = BorderStroke(2.dp, Couleurs.Succes)) {
+                Text("Reprendre le service", color = if (modifiable) Couleurs.Succes else Couleurs.DesactiveTexte)
+            }
+        } else {
+            Button(
+                onClick = { surPause(true) },
+                enabled = modifiable,
+                colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme),
+            ) { Text("Mettre en pause") }
+        }
     }
 }
 
