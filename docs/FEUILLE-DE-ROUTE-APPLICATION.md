@@ -41,20 +41,15 @@ Corrige C1, C2, C3. Dépend du **contenu** (photos et menus réels : tâche de M
 - Suivi : frise d'étapes, notification qui ouvre le bon écran, appel du livreur/restaurant, carte.
 - Paiement mobile (Chap Chap Pay : dépend du KYC de Malika, aujourd'hui à 0 %).
 
-**Lot C0 à faire (cadrage écrit le 24 octobre 2026, `docs/PARCOURS-PREMIER-LANCEMENT.md`) :** le
-**parcours de premier lancement** de l'application. Le parcours réel a été joué dans l'émulateur :
-visite guidée de 3 écrans, puis liste des restaurants sans authentification. Deux décisions sont
-conservées (parcourir avant de s'inscrire, ne pas choisir de rôle) ; trois frictions sont à corriger :
-la promesse « les restaurants près de chez vous » n'est pas tenue (aucune localisation demandée, un
-seul établissement affiché avec la mention « statut à confirmer »), le démarrage bloque sur le réseau
-(Android Vitals : moins d'une seconde, depuis un cache local), et les liens profonds de restaurant ne
-sont pas exploités (alors que `/r/…` et `/p/…` existent sur le site et que WhatsApp est le premier
-canal d'acquisition probable). Le lot ramène la visite guidée à 2 écrans, ajoute le **choix de zone**
-au premier lancement (point jusque-là reporté, et c'est le premier écran utile), fait passer la
-position en permission demandée sur action, déplace la création du compte **au moment de commander**
-en un seul écran, et donne aux états « liste vide » et « plats périmés » une issue utile au lieu d'une
-promesse non tenue. Critères d'acceptation : neuf points joués dans l'émulateur, listés dans le
-cadrage.
+**Lot C0 en cours (cadrage écrit le 24 octobre 2026, `docs/PARCOURS-PREMIER-LANCEMENT.md`) :** le
+**parcours de premier lancement** de l'application. Le cadrage et les règles pures sont intégrés :
+visite guidée ramenée à 2 écrans, filtrage par zone, libellé honnête « Disponibilité à vérifier »,
+calcul pur du prix d'une fiche plat avec options et quantité, et progression de la frise de suivi.
+Les 4 nouveaux tests Kotlin passent (`:shared:jvmTest`, 14 tâches, build réussi). Le lot n'est pas
+encore complet : les liens profonds `/r/…`, `/p/…` et `/commande/…`, les App Links du manifeste, le
+faux serveur client dédié, le cache de démarrage mesuré et le parcours complet n'ont pas été joués
+dans l'émulateur ; les critères d'acceptation 1, 2 et 7 restent non vérifiés. Le code est intégré
+sans déclaration de publication : reprendre ces points avant de clore C0.
 
 ## Phase D : outils des professionnels (2.25.0 et suivantes)
 **Lot D1 livré le 22 octobre 2026 (2.23.0), vérifié dans l'émulateur :** onglet **Activité** du restaurateur (commandes et chiffre d'aujourd'hui et des 7 jours, issue des commandes, dernières commandes terminées ; route `/api/v1/restaurant/activite`), onglet **Gains** du livreur (courses livrées et frais de course ; route `/api/v1/livreur/gains` ; ce n'est pas une paie, la règle de rémunération reste à définir), bande d'identité en haut des espaces pro (X1), bouton « Mon menu » en double retiré (R1), tableau de l'équipe en deux niveaux « À traiter maintenant » / « En un coup d'œil » (E1). Calculs de bilan testés (`scripts/tests/bilans.test.mts`). **Reste en D :** horaires et réglage du son du restaurateur, historique complet paginé, règle de rémunération et gains réels du livreur, assistance livreur, pages de l'équipe encore sur le site (finances — les avis, paiements, référencements, restaurants, partenariats, liste d'attente, comptes, bannières, médias, mises à jour, paramètres et le journal d'audit sont passés dans l'application).
