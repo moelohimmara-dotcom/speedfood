@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 34,
-  nom: "2.32.0",
-  notes: "Parité équipe : espaces restaurateur et livreur, onboarding client, cache hors ligne et liens profonds.",
+  code: 35,
+  nom: "2.33.0",
+  notes: "Finances d'équipe en lecture seule : relevés, commissions, remboursements et nets à reverser.",
   obligatoire: false,
-  apkSha256: "fe3628117832b25abe092c646ca48ceb74f5916dade168bc2d77b8df0ea2822e",
-  apkTaille: 15166746,
+  apkSha256: "55bc166c7c54a77228d6695c3f2c2ffe7ba332e5f4b0ddb76c330c358b037454",
+  apkTaille: 15199514,
 };
