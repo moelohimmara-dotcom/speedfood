@@ -122,6 +122,7 @@ modifie, il fournit la ligne exacte à insérer dans sa note d'intégration.
 | `src/lib/application/version.ts` + `mobile/androidApp/build.gradle.kts` | version unique de l'application |
 | `public/speedfood.apk` (+ `.sha256`) | binaire et empreinte de la publication |
 | `mobile/shared/.../di/Koin.kt`, `EspacePro.kt`, `ui/EquipeScreen.kt` | graphe DI et navigation partagés |
+| `mobile/shared/.../App.kt`, `mobile/androidApp/src/main/AndroidManifest.xml` | coquille de navigation client et App Links : un seul agent les modifie à la fois |
 | `scripts/requetes-non-bornees.json` | registre des lectures non bornées |
 | `src/lib/system-admin/actionsAuditConnues.ts` | catalogue des actions d'audit |
 | `src/lib/system-admin/sauvegarde.ts` | liste des tables sauvegardées |
