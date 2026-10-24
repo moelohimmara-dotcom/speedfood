@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import { BAREME_PAIE_DEVELOPPEMENT, calculerGainCourse, calculerRelevePaie, validerPeriode } from "../../src/lib/system-admin/paie-livreurs-regles";
+const course = (id: string, livreurId: string, nom: string, date: string, distanceKm: number | null) => ({ id, livreurId, livreurNom: nom, creeLe: date, distanceKm, statut: "livree" as const, versementId: null, versementEtat: null });
+assert.equal(calculerGainCourse(10), 20000, "forfait + variable kilométrique");
+assert.equal(calculerGainCourse(100), 15000 + 50 * 500, "plafond kilométrique appliqué");
+const lignes = calculerRelevePaie([course("1", "l1", "Awa", "2026-10-02T12:00:00Z", 10), course("2", "l1", "Awa", "2026-10-03T12:00:00Z", null), course("3", "l2", "Boubacar", "2026-09-30T12:00:00Z", 3)], new Date("2026-10-01"), new Date("2026-11-01"));
+assert.equal(lignes.length, 1, "filtre de période");
+assert.equal(lignes[0].nombreCourses, 2);
+assert.equal(lignes[0].totalGnf, calculerGainCourse(10) + BAREME_PAIE_DEVELOPPEMENT.forfaitParCourseGnf);
+assert.equal(calculerRelevePaie([course("1", "l1", "Awa", "2026-10-02T12:00:00Z", 10)], new Date("2026-10-01"), new Date("2026-11-01"), "l2").length, 0, "filtre livreur");
+assert.throws(() => validerPeriode(new Date("2026-11-01"), new Date("2026-10-01")), /période/i);
+console.log("paie-livreurs.test.mts : 6 contrôles réussis");
