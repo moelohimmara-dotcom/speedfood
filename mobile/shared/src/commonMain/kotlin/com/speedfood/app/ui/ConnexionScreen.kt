@@ -93,6 +93,7 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
     val googleActif by viewModel.googleActif.collectAsState()
     val config: com.speedfood.app.config.SpeedfoodConfig = org.koin.compose.koinInject()
     val ouvreur = androidx.compose.ui.platform.LocalUriHandler.current
+    val modeLocal = config.supabaseUrl == "http://10.0.2.2:8787"
     var inscription by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var motDePasse by remember { mutableStateOf("") }
@@ -143,12 +144,25 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                     ) { Text("Continuer avec Google", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
                     Text("ou avec votre adresse e-mail", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
-                if (inscription) {
+                if (modeLocal && !inscription) {
+                BlocMessage("Mode expérimentation local : ces comptes sont factices et ne touchent aucune donnée réelle.", erreur = false)
+                Text("Ouvrir directement un espace", style = MaterialTheme.typography.titleMedium, color = Couleurs.Encre)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf("resto@test.sf" to "Restaurateur", "livreur@test.sf" to "Livreur", "equipe@test.sf" to "Équipe").forEach { (compte, libelle) ->
+                        OutlinedButton(onClick = { viewModel.connecterCompteEssai(compte, onConnecte) }, enabled = !etat.enCours, modifier = Modifier.weight(1f)) {
+                            Text(libelle, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+            if (inscription) {
                     ChampTexte(nom, { nom = it }, "Nom")
                     ChampTexte(telephone, { telephone = it }, "Téléphone", KeyboardType.Phone, aide = "Numéro guinéen, par exemple 622 12 34 56")
                 }
-                ChampTexte(email, { email = it }, "Adresse e-mail", KeyboardType.Email)
-                ChampTexte(motDePasse, { motDePasse = it }, "Mot de passe", KeyboardType.Password, secret = true, aide = if (inscription) "12 caractères au moins" else null)
+                if (!modeLocal || inscription) {
+                    ChampTexte(email, { email = it }, "Adresse e-mail", KeyboardType.Email)
+                    ChampTexte(motDePasse, { motDePasse = it }, "Mot de passe", KeyboardType.Password, secret = true, aide = if (inscription) "12 caractères au moins" else null)
+                }
                 etat.erreur?.let { BlocMessage(it, erreur = true) }
                 if (!inscription) {
                     TextButton(onClick = { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/connexion/oubli") }) { Text("Mot de passe oublié ?", color = Couleurs.RougeFonce) }

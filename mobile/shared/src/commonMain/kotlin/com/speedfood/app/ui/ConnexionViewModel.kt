@@ -63,6 +63,22 @@ class ConnexionViewModel(private val session: SessionService, private val google
         }
     }
 
+    /** Connexion courte réservée au faux serveur de l'émulateur : elle appelle le même SessionService que le formulaire réel. */
+    fun connecterCompteEssai(email: String, surReussite: () -> Unit) {
+        _etat.value = EtatConnexion(enCours = true)
+        viewModelScope.launch {
+            try {
+                session.connecter(email, "essai-local")
+                _etat.value = EtatConnexion()
+                surReussite()
+            } catch (e: ErreurAuth) {
+                _etat.value = EtatConnexion(erreur = e.message)
+            } catch (e: Exception) {
+                _etat.value = EtatConnexion(erreur = "Impossible de joindre le faux serveur. Réessayez dans un instant.")
+            }
+        }
+    }
+
     fun connecter(email: String, motDePasse: String, surReussite: () -> Unit) {
         verifierConnexion(email, motDePasse)?.let { _etat.value = EtatConnexion(erreur = it); return }
         _etat.value = EtatConnexion(enCours = true)
