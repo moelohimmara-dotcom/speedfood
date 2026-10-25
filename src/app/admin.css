@@ -3089,6 +3089,20 @@ a.ad-carte-lien:hover {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+/* Remboursement fait à la main (lot L12) : moyen, référence, et pour les espèces le nom du receveur. */
+.paiement-admin-remboursement {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2);
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.paiement-admin-remboursement legend {
+  padding: 0 var(--space-1);
+  font-weight: 700;
+}
 .paiement-numero {
   margin: 0;
   padding: var(--space-2);

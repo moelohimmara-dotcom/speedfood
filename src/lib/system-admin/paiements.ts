@@ -6,6 +6,8 @@ import { estUuid } from "@/lib/commande/commun";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { obtenirServicePaiement } from "@/lib/paiement/en-ligne/fabrique";
 import { estOperateur } from "@/lib/paiement/en-ligne/types";
+import { LIBELLE_MOYEN, validerRemboursementManuel, type SaisieRemboursementManuel } from "@/lib/paiement/en-ligne/remboursement-manuel";
+import { roleAPermission } from "./permissions";
 import { journaliserActionSysteme } from "./audit";
 import { verifierPermission } from "./contexte";
 
@@ -64,6 +66,62 @@ export async function trancherLitigeAction(paiementId: string, litigeId: string,
   await journaliserActionSysteme(contexte, { action: "paiement.litige_tranche", cibleType: "litige_paiement", cibleId: litigeId, motif: `${decision} : ${motifNet.slice(0, 200)}` });
   revalidatePath("/system/paiements");
   return { succes: decision === "liberer" ? "Paiement libéré, litige clos." : "Client remboursé, litige clos." };
+}
+
+/**
+ * Remboursement du client fait À LA MAIN (le prestataire ne sait pas rembourser) : Orange Money ou MTN MoMo (référence de la transaction obligatoire),
+ * ou espèces en dernier recours (réservées au super administrateur, avec le nom de la personne qui a reçu l'argent et un motif détaillé).
+ * Le paiement passe à « remboursé » et le litige est clos par le service ; la trace du moyen est gardée à part et le tout est journalisé.
+ */
+export async function rembourserALaMainAction(paiementId: string, litigeId: string, saisie: SaisieRemboursementManuel): Promise<EtatActionPaiementAdmin> {
+  const contexte = await verifierPermission("commande.support");
+  if (!estUuid(paiementId) || !estUuid(litigeId)) return { erreur: "Demande invalide." };
+  const v = validerRemboursementManuel(saisie);
+  if (!v.ok) return { erreur: v.erreur };
+  const { moyen, reference, recuPar, motif } = v.valeur;
+  if (moyen === "especes" && !roleAPermission(contexte.role, "parametres.editer")) {
+    return { erreur: "Un remboursement en espèces engage de l'argent : il est réservé au propriétaire. Utilisez Orange Money ou MTN MoMo, ou demandez-lui." };
+  }
+  const { data: paiement } = await db().from("paiements").select("total_gnf").eq("id", paiementId).maybeSingle();
+  const montant = Number((paiement as { total_gnf?: number } | null)?.total_gnf ?? 0);
+  if (!paiement || !(montant > 0)) return { erreur: "Paiement introuvable." };
+  try {
+    const service = await obtenirServicePaiement();
+    const r = await service.trancherLitige({ paiementId, litigeId, decision: "rembourser_manuel", motif });
+    if (!r.ok) {
+      const messages = {
+        introuvable: "Paiement introuvable.",
+        litige_clos: "Ce litige est déjà clos.",
+        deja_verse: "L'argent est déjà versé aux bénéficiaires : le remboursement du client se traite avec eux, hors de cet écran.",
+        echec: "Le remboursement n'a pas pu être enregistré (état du paiement). Rien n'a été modifié.",
+      } as const;
+      return { erreur: messages[r.raison] };
+    }
+  } catch {
+    return { erreur: "Le service de paiement n'est pas disponible. Rien n'a été modifié." };
+  }
+  const { error } = await db().from("remboursements_manuels").insert({
+    paiement_id: paiementId,
+    litige_id: litigeId,
+    moyen,
+    montant_gnf: montant,
+    reference,
+    recu_par: recuPar,
+    motif,
+    effectue_par: contexte.utilisateurId,
+  });
+  // Le journal d'audit garde le moyen et la référence (jamais le nom du receveur) même si la table de trace est indisponible.
+  await journaliserActionSysteme(contexte, {
+    action: "paiement.rembourse_a_la_main",
+    cibleType: "litige_paiement",
+    cibleId: litigeId,
+    motif: `${LIBELLE_MOYEN[moyen]}${reference ? ` · réf. ${reference}` : ""} : ${motif.slice(0, 160)}`,
+  });
+  revalidatePath("/system/paiements");
+  if (error) {
+    return { erreur: `Le client est marqué remboursé, mais le détail n'a pas pu être conservé. Notez-le : ${LIBELLE_MOYEN[moyen]}${reference ? `, référence ${reference}` : ""}.` };
+  }
+  return { succes: `Remboursement enregistré (${LIBELLE_MOYEN[moyen]}). Le litige est clos.` };
 }
 
 /**

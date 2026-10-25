@@ -8,6 +8,7 @@ import { CarteChiffre, EtatVide, PageHeader, Pastille } from "@/components/admin
 import { SousNav } from "../SousNav";
 import { formaterDateCourte } from "../formatage";
 import { ActionsPaiement } from "./ActionsPaiement";
+import { LIBELLE_MOYEN, type MoyenRemboursement } from "@/lib/paiement/en-ligne/remboursement-manuel";
 import { VersementManuel } from "./VersementManuel";
 import type { Metadata } from "next";
 
@@ -135,8 +136,14 @@ export default async function PaiementsAdminPage() {
                       )}
                     </td>
                     <td data-label="Litige">
+                      {p.remboursementManuel ? (
+                        <span className="u-d-block-fs-0-8rem">
+                          Remboursé à la main : {LIBELLE_MOYEN[p.remboursementManuel.moyen as MoyenRemboursement] ?? p.remboursementManuel.moyen}
+                          {p.remboursementManuel.reference ? ` · réf. ${p.remboursementManuel.reference}` : ""}
+                        </span>
+                      ) : null}
                       {p.litiges.length === 0 ? (
-                        "—"
+                        p.remboursementManuel ? null : "—"
                       ) : (
                         p.litiges.map((l) => (
                           <span key={l.id} className="u-d-block-fs-0-8rem">
@@ -160,6 +167,7 @@ export default async function PaiementsAdminPage() {
                         etat={p.etat}
                         versementsEnAttente={p.versements.some((v) => v.etat === "a_verser" || v.etat === "echoue")}
                         litigeAHumain={litige?.id ?? null}
+                        peutEspeces={contexte.role === "super_admin"}
                       />
                     </td>
                   </tr>

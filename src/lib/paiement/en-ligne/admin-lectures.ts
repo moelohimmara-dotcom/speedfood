@@ -41,6 +41,8 @@ export interface PaiementAdmin {
   creeLe: string;
   versements: VersementAdmin[];
   litiges: LitigeAdmin[];
+  /** Trace du remboursement fait à la main (moyen et référence), s'il y en a un. */
+  remboursementManuel?: { moyen: string; reference: string | null } | null;
 }
 
 export interface ReglagesAdmin {
@@ -106,9 +108,10 @@ export async function listerPaiementsAdmin(): Promise<PaiementAdmin[]> {
   const lignes = (data ?? []) as Ligne[];
   if (lignes.length === 0) return [];
   const ids = lignes.map((l) => String(l.id));
-  const [{ data: versements }, { data: litiges }] = await Promise.all([
+  const [{ data: versements }, { data: litiges }, { data: manuels }] = await Promise.all([
     db.from("paiement_versements").select("id, paiement_id, beneficiaire_type, etat, montant_gnf, numero_masque, tentatives, erreur_code").in("paiement_id", ids).limit(200),
     db.from("litiges_paiement").select("id, paiement_id, situation, etat, regle, decision").in("paiement_id", ids).limit(200),
+    db.from("remboursements_manuels").select("paiement_id, moyen, reference").in("paiement_id", ids).limit(200),
   ]);
   return lignes.map((l) => {
     const id = String(l.id);
@@ -126,6 +129,10 @@ export async function listerPaiementsAdmin(): Promise<PaiementAdmin[]> {
       fraisMobileGnf: Number(l.frais_mobile_gnf),
       rembourseGnf: Number(l.rembourse_gnf),
       creeLe: String(l.cree_le),
+      remboursementManuel: (() => {
+        const m = ((manuels ?? []) as Ligne[]).find((x) => x.paiement_id === id);
+        return m ? { moyen: String(m.moyen), reference: typeof m.reference === "string" ? m.reference : null } : null;
+      })(),
       versements: ((versements ?? []) as Ligne[])
         .filter((v) => v.paiement_id === id)
         .map((v) => ({
