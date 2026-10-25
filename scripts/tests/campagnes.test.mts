@@ -1,0 +1,11 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { calculerRemise, etatCalcule, normaliserCode, validerCode, validerPeriode, validerRegle } from "../../src/lib/system-admin/campagnes-regles.ts";
+const base = { etat: "active" as const, debut: "2026-01-01T00:00:00Z", fin: "2026-12-31T00:00:00Z", plafondMontantGnf: 100_000, plafondUtilisations: 2, utilisations: 0 };
+test("normalise et valide un code promotionnel", () => { assert.equal(normaliserCode(" bienvenue-10 "), "BIENVENUE10"); assert.equal(validerCode("ab").ok, false); });
+test("valide remise pourcentage et montant fixe", () => { assert.equal(validerRegle({ type: "pourcentage", valeur: 10, minimumAchatGnf: 50_000 }).ok, true); assert.equal(validerRegle({ type: "montant", valeur: 500_001, minimumAchatGnf: 0 }).ok, false); });
+test("refuse période inversée", () => assert.equal(validerPeriode(base.fin, base.debut).ok, false));
+test("minimum d'achat non atteint explique l'action", () => { const r = calculerRemise({ ...base, regle: { type: "pourcentage", valeur: 10, minimumAchatGnf: 50_000 } }, 49_999); assert.equal(r.ok, false); if (!r.ok) assert.match(r.erreur, /Minimum/); });
+test("remise ne dépasse jamais le panier ni le plafond", () => { const r = calculerRemise({ ...base, plafondMontantGnf: 10_000, regle: { type: "montant", valeur: 50_000, minimumAchatGnf: 0 } }, 20_000); assert.deepEqual(r, { ok: true, remiseGnf: 10_000, totalGnf: 10_000 }); });
+test("code expiré et plafond d'utilisations", () => { assert.equal(etatCalcule({ ...base, fin: "2025-01-01T00:00:00Z" }, new Date("2026-01-01T00:00:00Z")), "expirée"); assert.equal(etatCalcule({ ...base, utilisations: 2 }), "expirée"); });
+test("montant non entier refusé", () => { const r = calculerRemise({ ...base, regle: { type: "montant", valeur: 1000, minimumAchatGnf: 0 } }, 1000.5); assert.equal(r.ok, false); });
