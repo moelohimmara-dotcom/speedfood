@@ -38,7 +38,8 @@ interface AuthApi {
     suspend fun connecter(email: String, motDePasse: String): Session
 
     /** Crée le compte. La confirmation par e-mail est exigée : aucune session n'existe tant que le lien reçu n'a pas été ouvert. */
-    suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String)
+    /** Crée le compte. Rend la session ouverte si le service n'exige pas de confirmation d'e-mail ; null si un e-mail de confirmation a été envoyé. */
+    suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String): Session?
 
     suspend fun rafraichir(refreshToken: String): Session
 
@@ -119,7 +120,7 @@ class KtorAuthApi(
         return sessionDe(reponse)
     }
 
-    override suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String) {
+    override suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String): Session? {
         val reponse = poster(
             "signup",
             // Le lien reçu par e-mail ouvre la confirmation du site, puis le compte client (même chemin que l'inscription web).
@@ -135,6 +136,8 @@ class KtorAuthApi(
         )
         // Une adresse déjà inscrite reçoit la même réponse qu'une nouvelle : on ne révèle pas qui a un compte (comme le site).
         if (!reponse.status.isSuccess()) throw erreurDe(reponse)
+        // Sans confirmation d'e-mail, le service renvoie tout de suite une session ; avec, la réponse n'en contient pas.
+        return try { sessionDe(reponse) } catch (_: ErreurAuth) { null }
     }
 
     override suspend fun connecterAvecGoogle(jetonIdentite: String, nonce: String?): Session {

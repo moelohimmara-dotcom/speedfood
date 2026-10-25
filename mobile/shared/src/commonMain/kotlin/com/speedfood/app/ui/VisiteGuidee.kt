@@ -73,7 +73,7 @@ private val DIAPOS = listOf(
     ),
     Diapo(
         "Choisissez où vous livrer",
-        "Sélectionnez une zone maintenant. La position ne sera demandée que si vous choisissez « près de moi ». Vous pourrez commander sans compte.",
+        "Votre zone se change en un geste depuis l'accueil. Aucune position n'est demandée sans votre accord. Vous pouvez commander sans compte jusqu'à l'envoi.",
         2,
     ),
 )

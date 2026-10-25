@@ -137,6 +137,16 @@ class CommandeTest {
         assertTrue(redirection!!.startsWith("https://exemple.test/auth/confirmation"))
     }
 
+    @Test
+    fun inscriptionSansConfirmationRendLaSessionEtAvecConfirmationRienDuTout() = runTest {
+        val ouverte = KtorAuthApi(client(MockEngine { respond("""{"access_token":"a","refresh_token":"r","expires_in":3600,"user":{"id":"u1","email":"aminata@exemple.test"}}""", HttpStatusCode.OK, json) }), config) { 0L }
+            .inscrire("Aminata Diallo", "+224622123456", "aminata@exemple.test", "un-mot-de-passe-long")
+        assertEquals("u1", ouverte?.userId)
+        val enAttente = KtorAuthApi(client(MockEngine { respond("{}", HttpStatusCode.OK, json) }), config) { 0L }
+            .inscrire("Aminata Diallo", "+224622123456", "aminata@exemple.test", "un-mot-de-passe-long")
+        assertEquals(null, enAttente)
+    }
+
     // ---------- session ----------
 
     @Test

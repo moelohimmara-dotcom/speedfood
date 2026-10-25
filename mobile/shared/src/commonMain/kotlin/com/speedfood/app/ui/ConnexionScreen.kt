@@ -97,8 +97,8 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
     var inscription by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var motDePasse by remember { mutableStateOf("") }
-    var nom by remember { mutableStateOf("") }
-    var telephone by remember { mutableStateOf("") }
+    var nom by remember { mutableStateOf(com.speedfood.app.data.BrouillonContact.nom) }
+    var telephone by remember { mutableStateOf(com.speedfood.app.data.BrouillonContact.telephone) }
 
     Scaffold(
         modifier = Modifier.safeDrawingPadding(),
@@ -134,6 +134,10 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                         "Si cette adresse a déjà un compte, aucun e-mail n'est envoyé : connectez-vous. Une fois l'adresse confirmée, revenez vous connecter ici.",
                     erreur = false,
                 )
+                Text("Votre panier et les informations de votre commande sont conservés : vous les retrouverez en revenant.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = onRetour, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+                    Text("Retour à ma commande", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                }
             } else {
                 if (googleActif) {
                     OutlinedButton(
@@ -171,7 +175,7 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                     texte = if (etat.enCours) "Veuillez patienter…" else if (inscription) "Créer mon compte" else "Se connecter",
                     actif = !etat.enCours,
                 ) {
-                    if (inscription) viewModel.inscrire(nom, telephone, email, motDePasse) else viewModel.connecter(email, motDePasse, onConnecte)
+                    if (inscription) viewModel.inscrire(nom, telephone, email, motDePasse, onConnecte) else viewModel.connecter(email, motDePasse, onConnecte)
                 }
             }
         }

@@ -237,7 +237,7 @@ internal fun FormulaireCommande(
                     else -> "Envoyer ma commande · ${formaterGnf(panier.sousTotal + etat.fraisLivraison)}"
                 },
                 actif = !etat.enCours,
-            ) { if (connecte) onEnvoyer(nom, telephone, adresse, consentement) else onConnexion() }
+            ) { if (connecte) onEnvoyer(nom, telephone, adresse, consentement) else { com.speedfood.app.data.BrouillonContact.garder(nom, telephone); onConnexion() } }
         }
     }
 

@@ -95,13 +95,19 @@ class ConnexionViewModel(private val session: SessionService, private val google
         }
     }
 
-    fun inscrire(nom: String, telephone: String, email: String, motDePasse: String) {
+    fun inscrire(nom: String, telephone: String, email: String, motDePasse: String, surReussite: () -> Unit = {}) {
         verifierInscription(nom, telephone, email, motDePasse)?.let { _etat.value = EtatConnexion(erreur = it); return }
         _etat.value = EtatConnexion(enCours = true)
         viewModelScope.launch {
             try {
-                session.inscrire(nom, normaliserTelephone(telephone) ?: telephone, email, motDePasse)
-                _etat.value = EtatConnexion(inscriptionEnvoyee = email.trim())
+                if (session.inscrire(nom, normaliserTelephone(telephone) ?: telephone, email, motDePasse)) {
+                    // Compte ouvert tout de suite : on retourne là où l'on était (la commande), sans passer par la boîte mail.
+                    com.speedfood.app.data.BrouillonContact.vider()
+                    _etat.value = EtatConnexion()
+                    surReussite()
+                } else {
+                    _etat.value = EtatConnexion(inscriptionEnvoyee = email.trim())
+                }
             } catch (e: ErreurAuth) {
                 _etat.value = EtatConnexion(erreur = e.message)
             } catch (e: Exception) {

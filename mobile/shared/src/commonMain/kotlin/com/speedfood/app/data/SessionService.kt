@@ -43,8 +43,11 @@ class SessionService(
         poser(auth.connecterAvecGoogle(jetonIdentite, nonce))
     }
 
-    suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String) {
-        auth.inscrire(nom, telephone, email, motDePasse)
+    /** Vrai si le compte est déjà connecté (pas de confirmation d'e-mail exigée) ; faux si un e-mail de confirmation a été envoyé. */
+    suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String): Boolean {
+        val ouverte = auth.inscrire(nom, telephone, email, motDePasse) ?: return false
+        poser(ouverte)
+        return true
     }
 
     fun deconnecter() {

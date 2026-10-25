@@ -131,6 +131,7 @@ fun RestaurantScreen(
                         e.fiche,
                         e.menu,
                         surPlat = if (commandable) { plat -> if (plat.options.any { it.disponible }) platEnChoix = plat else ajouter(plat, emptyList()) } else null,
+                        surAutresRestaurants = onRetour,
                     )
                 }
             }
@@ -202,13 +203,16 @@ internal fun ChoixOptionsDialogue(plat: Plat, surAnnuler: () -> Unit, surConfirm
 }
 
 @Composable
-internal fun ContenuRestaurant(fiche: RestaurantFiche, menu: Menu, surPlat: ((Plat) -> Unit)? = null) {
+internal fun ContenuRestaurant(fiche: RestaurantFiche, menu: Menu, surPlat: ((Plat) -> Unit)? = null, surAutresRestaurants: (() -> Unit)? = null) {
     val groupes = menu.groupes()
     LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item(key = "entete") { EnteteRestaurant(fiche) }
         if (groupes.isEmpty()) {
             item(key = "vide") {
-                Text("Le menu de ce restaurant n'est pas encore disponible.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Le menu de ce restaurant n'est pas encore disponible. Revenez bientôt, ou choisissez un autre restaurant.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    surAutresRestaurants?.let { OutlinedButton(onClick = it, border = BorderStroke(2.dp, Couleurs.Encre)) { Text("Voir d'autres restaurants", color = Couleurs.Encre) } }
+                }
             }
         }
         groupes.forEach { (titre, plats) ->
