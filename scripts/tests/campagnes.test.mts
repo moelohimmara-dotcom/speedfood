@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculerRemise, etatCalcule, normaliserCode, validerCode, validerPeriode, validerRegle } from "../../src/lib/system-admin/campagnes-regles.ts";
+import { calculerRemise, etatCalcule, normaliserCode, validerCode, validerPeriode, validerRegle } from "../../src/lib/system-admin/campagnes-regles";
 const base = { etat: "active" as const, debut: "2026-01-01T00:00:00Z", fin: "2026-12-31T00:00:00Z", plafondMontantGnf: 100_000, plafondUtilisations: 2, utilisations: 0 };
 test("normalise et valide un code promotionnel", () => { assert.equal(normaliserCode(" bienvenue-10 "), "BIENVENUE10"); assert.equal(validerCode("ab").ok, false); });
 test("valide remise pourcentage et montant fixe", () => { assert.equal(validerRegle({ type: "pourcentage", valeur: 10, minimumAchatGnf: 50_000 }).ok, true); assert.equal(validerRegle({ type: "montant", valeur: 500_001, minimumAchatGnf: 0 }).ok, false); });

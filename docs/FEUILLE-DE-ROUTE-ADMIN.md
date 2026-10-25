@@ -25,7 +25,7 @@ Demandes de partenariat et référencement, fiche et publication d'un établisse
 | L8 | Mises à jour de menu en masse | Prix en lot, copie d'un menu, import CSV | M | **Livré en mode démonstration (24 oct.)** |
 | L9 | Paie des livreurs | Gains par course, période, versement | M | **Livré en mode démonstration (24 oct.)** — forfait 15 000 GNF/course + 500 GNF/km, plafond 50 km, versement manuel simulé |
 | L10 | Incidents de livraison | Retard, colis perdu, litige, compensation | S | **Livré en mode démonstration (24 oct.)** — statuts, gravité, responsable, résolution manuelle et audit |
-| L11 | Codes promo et campagnes | Codes, plafonds, durée, notification aux clients | M | À faire |
+| L11 | Codes promo et campagnes | Codes, plafonds, durée, notification aux clients | **Livré en mode démonstration (25 oct.)** — aperçu, plafonds, périodes, ciblage factice, notification préparée sans envoi |
 | L12 | Remboursements | Procédure manuelle tracée d'abord | M | À faire |
 | L13 | Supervision | Alertes d'erreurs, tenue en charge, état des services | M | À faire |
 | L14 | Sauvegarde et restauration | Contrôle et procédure testée | S | À faire |

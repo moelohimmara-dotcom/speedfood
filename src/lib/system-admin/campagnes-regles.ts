@@ -11,7 +11,7 @@ export type TypeRemise = "pourcentage" | "montant";
 export type EtatCampagne = "brouillon" | "active" | "expirée" | "suspendue";
 export interface RegleRemise { type: TypeRemise; valeur: number; minimumAchatGnf: number; }
 export interface Campagne { id: string; code: string; nom: string; regle: RegleRemise; plafondMontantGnf: number; plafondUtilisations: number; utilisations: number; debut: string; fin: string; etat: EtatCampagne; ciblage: string; }
-export interface ResultatRemise { ok: true; remiseGnf: number; totalGnf: number } | { ok: false; erreur: string; action: string };
+export type ResultatRemise = { ok: true; remiseGnf: number; totalGnf: number } | { ok: false; erreur: string; action: string };
 
 export function normaliserCode(brut: unknown): string { return String(brut ?? "").normalize("NFKC").trim().toUpperCase().replace(/[\s-]+/g, ""); }
 export function validerCode(brut: unknown): { ok: true; code: string } | { ok: false; erreur: string; action: string } {
