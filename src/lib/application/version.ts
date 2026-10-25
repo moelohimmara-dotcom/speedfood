@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 42,
-  nom: "2.40.0",
-  notes: "Amélioration du site public : en-tête responsive et navigation accessible.",
+  code: 43,
+  nom: "2.41.0",
+  notes: "Connexion avec Facebook, accueil par zone, un lien reçu s'ouvre à chaque fois, création de compte plus simple et menus vides plus clairs.",
   obligatoire: false,
-  apkSha256: "70fd354bacdfa77bc40273813d4b8e151c0422be61f1aca9a8317b8cedbd8845",
-  apkTaille: 15215898,
+  apkSha256: "3cf7bd8fe4da43d69bfbd9a086d92c513fd545da452099cc9724a770324f9fb6",
+  apkTaille: 15215958,
 };

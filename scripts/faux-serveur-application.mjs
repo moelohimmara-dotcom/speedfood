@@ -211,6 +211,8 @@ createServer(async (req, res) => {
     return ok(res, { ok: true, suivi: { reference: "SF-2001", statut: "acceptee", etatDerive: "acceptee", mode: "retrait", creeLe: maintenant(), restaurant: { id: "r1", nom: "Chez Awa (essai)" }, lignes: [{ nom: "Poulet braisé", quantite: 1, prix: 30000, options: [] }], sousTotal: 30000, fraisLivraisonEstime: 0, propositionActive: null, historiqueStatuts: [] } });
   }
 
+  if (chemin === "/api/v1/connexion/fournisseurs") return ok(res, { ok: true, facebook: true });
+
   const compte = parJeton(req);
   if (chemin.startsWith("/api/v1/") && !compte) return refus(res, 401, "NON_AUTHENTIFIE", "Connectez-vous avec votre compte.");
 

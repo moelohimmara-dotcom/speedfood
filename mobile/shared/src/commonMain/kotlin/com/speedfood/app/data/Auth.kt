@@ -173,12 +173,21 @@ class KtorAuthApi(
         if (!config.estComplete) emptySet()
         else {
             val texte = client.get("${base()}/settings") { header("apikey", config.supabaseAnonKey) }.bodyAsText()
-            (Json.parseToJsonElement(texte).jsonObject["external"]?.jsonObject ?: JsonObject(emptyMap()))
+            val actifs = (Json.parseToJsonElement(texte).jsonObject["external"]?.jsonObject ?: JsonObject(emptyMap()))
                 .filter { (_, v) -> (v as? JsonPrimitive)?.booleanOrNull == true }
                 .keys
+            // Facebook demande en plus l'accord de l'équipe (interrupteur de /system/parametres) : l'application Meta peut ne pas être encore publique.
+            if ("facebook" in actifs && !facebookOuvertParLEquipe()) actifs - "facebook" else actifs
         }
     } catch (_: Exception) {
         emptySet()
+    }
+
+    private suspend fun facebookOuvertParLEquipe(): Boolean = try {
+        val texte = client.get("${config.siteUrl.trimEnd('/')}/api/v1/connexion/fournisseurs").bodyAsText()
+        (Json.parseToJsonElement(texte).jsonObject["facebook"] as? JsonPrimitive)?.booleanOrNull == true
+    } catch (_: Exception) {
+        false
     }
 
     override suspend fun rafraichir(refreshToken: String): Session {

@@ -83,6 +83,21 @@ class GoogleTest {
     }
 
     @Test
+    fun facebookNAppraitQueSiLEquipeLAOuvert() = runTest {
+        fun auth(ouvert: String?) = KtorAuthApi(client(MockEngine { r ->
+            when (r.url.encodedPath) {
+                "/auth/v1/settings" -> respond("""{"external":{"google":true,"facebook":true,"email":true}}""", HttpStatusCode.OK, json)
+                "/api/v1/connexion/fournisseurs" -> if (ouvert == null) throw RuntimeException("site injoignable") else respond(ouvert, HttpStatusCode.OK, json)
+                else -> respond("{}", HttpStatusCode.NotFound, json)
+            }
+        }), config) { 0L }
+        assertEquals(setOf("google", "facebook", "email"), auth("""{"ok":true,"facebook":true}""").fournisseursActifs())
+        assertEquals(setOf("google", "email"), auth("""{"ok":true,"facebook":false}""").fournisseursActifs(), "interrupteur décoché : pas de bouton")
+        assertEquals(setOf("google", "email"), auth("pas du json").fournisseursActifs(), "réponse illisible : pas de bouton")
+        assertEquals(setOf("google", "email"), auth(null).fournisseursActifs(), "site injoignable : pas de bouton")
+    }
+
+    @Test
     fun sansFournisseurGoogleOnExpliqueSansPlanter() = runTest {
         val g = GoogleIndisponible()
         assertEquals(false, g.disponible)
