@@ -226,6 +226,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
       { href: "/system/parametres", libelle: "Paramètres", permission: "parametres.editer" },
       { href: "/system/design", libelle: "Design", permission: "parametres.editer" },
       { href: "/system/mises-a-jour", libelle: "Mises à jour", permission: "parametres.editer" },
+      { href: "/system/supervision", libelle: "Supervision", permission: "parametres.editer" },
     ],
   },
   {
