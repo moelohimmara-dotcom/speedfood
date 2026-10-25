@@ -65,6 +65,8 @@ import com.speedfood.app.data.KtorCommandeApi
 import com.speedfood.app.data.AlerteCommande
 import com.speedfood.app.data.AppareilApi
 import com.speedfood.app.data.EnregistrementPush
+import com.speedfood.app.data.FacebookIndisponible
+import com.speedfood.app.data.FournisseurFacebook
 import com.speedfood.app.data.FournisseurGoogle
 import com.speedfood.app.data.FournisseurJetonPush
 import com.speedfood.app.data.GoogleIndisponible
@@ -156,6 +158,7 @@ fun modulesApplication(
     installateurApk: InstallateurApk = InstallateurIndisponible(),
     demandeNotifications: DemandeNotifications = NotificationsIndisponibles(),
     verrouAppareil: VerrouAppareil = VerrouIndisponible(),
+    facebook: FournisseurFacebook = FacebookIndisponible(),
 ) = listOf(
     module {
         single { config }
@@ -164,6 +167,7 @@ fun modulesApplication(
         single { alerte }
         single { jetonPush }
         single { google }
+        single { facebook }
         single { notificateurMiseAJour }
         single { selecteurPhoto }
         single { installateurApk }
@@ -285,8 +289,9 @@ fun initKoin(
     installateurApk: InstallateurApk = InstallateurIndisponible(),
     demandeNotifications: DemandeNotifications = NotificationsIndisponibles(),
     verrouAppareil: VerrouAppareil = VerrouIndisponible(),
+    facebook: FournisseurFacebook = FacebookIndisponible(),
 ) {
-    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto, installateurApk, demandeNotifications, verrouAppareil)) }
+    startKoin { modules(modulesApplication(config, stockage, position, alerte, jetonPush, plateforme, versionApp, google, codeVersionApp, notificateurMiseAJour, selecteurPhoto, installateurApk, demandeNotifications, verrouAppareil, facebook)) }
 }
 
 /**

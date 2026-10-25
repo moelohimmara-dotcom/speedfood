@@ -13,6 +13,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.http.encodeURLParameter
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -37,11 +38,16 @@ class ErreurAuth(message: String, val temporaire: Boolean = false, cause: Throwa
 interface AuthApi {
     suspend fun connecter(email: String, motDePasse: String): Session
 
-    /** Crée le compte. La confirmation par e-mail est exigée : aucune session n'existe tant que le lien reçu n'a pas été ouvert. */
     /** Crée le compte. Rend la session ouverte si le service n'exige pas de confirmation d'e-mail ; null si un e-mail de confirmation a été envoyé. */
     suspend fun inscrire(nom: String, telephone: String, email: String, motDePasse: String): Session?
 
     suspend fun rafraichir(refreshToken: String): Session
+
+    /** Adresse de départ de la connexion Facebook (navigateur) : le retour se fait sur le site, qui rend la main à l'application avec un code à usage unique. */
+    fun urlConnexionFacebook(codeChallenge: String): String
+
+    /** Échange le code reçu au retour de Facebook (avec le secret PKCE) contre la session du compte, créé s'il n'existe pas. */
+    suspend fun connecterAvecCode(code: String, verificateur: String): Session
 
     /**
      * Connexion avec un jeton d'identité Google obtenu sur le téléphone : le service d'authentification le vérifie (signature, destinataire, [nonce]) et ouvre la session
@@ -138,6 +144,19 @@ class KtorAuthApi(
         if (!reponse.status.isSuccess()) throw erreurDe(reponse)
         // Sans confirmation d'e-mail, le service renvoie tout de suite une session ; avec, la réponse n'en contient pas.
         return try { sessionDe(reponse) } catch (_: ErreurAuth) { null }
+    }
+
+    override fun urlConnexionFacebook(codeChallenge: String): String =
+        "${base()}/authorize?provider=facebook&scopes=email%20public_profile&code_challenge=$codeChallenge&code_challenge_method=s256" +
+            "&redirect_to=${(config.siteUrl.trimEnd('/') + CHEMIN_RETOUR_FACEBOOK).encodeURLParameter()}"
+
+    override suspend fun connecterAvecCode(code: String, verificateur: String): Session {
+        val reponse = poster("token", mapOf("grant_type" to "pkce"), buildJsonObject {
+            put("auth_code", code)
+            put("code_verifier", verificateur)
+        })
+        if (!reponse.status.isSuccess()) throw erreurDe(reponse)
+        return sessionDe(reponse)
     }
 
     override suspend fun connecterAvecGoogle(jetonIdentite: String, nonce: String?): Session {

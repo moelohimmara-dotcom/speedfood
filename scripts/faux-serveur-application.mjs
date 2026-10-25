@@ -180,7 +180,7 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (chemin === "/auth/v1/settings") return ok(res, { external: { email: true, google: false } });
+  if (chemin === "/auth/v1/settings") return ok(res, { external: { email: true, google: false, facebook: true } });
   if (chemin === "/auth/v1/token") {
     const corps = await lireCorps(req);
     const grant = url.searchParams.get("grant_type");
@@ -189,6 +189,8 @@ createServer(async (req, res) => {
       const email = String(corps.refresh_token ?? "").replace(/^ref-/, "");
       return COMPTES[email] ? ok(res, session(email)) : ok(res, { error: "invalid_grant", error_description: "Refresh Token Not Found" }, 400);
     }
+    // Retour de la connexion Facebook (PKCE) : tout code non vide ouvre le compte client factice.
+    if (grant === "pkce") return corps.auth_code && corps.code_verifier ? ok(res, session("client@test.sf")) : ok(res, { error: "invalid_grant", error_description: "invalid flow state" }, 400);
     const email = String(corps.email ?? "").toLowerCase();
     if (!COMPTES[email]) return ok(res, { error: "invalid_grant", error_description: "Invalid login credentials", code: "invalid_credentials" }, 400);
     return ok(res, session(email));

@@ -64,6 +64,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="speedfood-app.moelohimmara.workers.dev" android:pathPrefix="/r/" />
                 <data android:scheme="https" android:host="speedfood-app.moelohimmara.workers.dev" android:pathPrefix="/commande/" />
+                <data android:scheme="https" android:host="speedfood-app.moelohimmara.workers.dev" android:path="/auth/application" />
             </intent-filter>
         </activity>
     </application>

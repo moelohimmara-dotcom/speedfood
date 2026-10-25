@@ -33,14 +33,21 @@ class MainActivity : FragmentActivity() {
         SpeedfoodApp.alerte.lier(this) {
             if (Build.VERSION.SDK_INT >= 33) demandeAutorisations.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
         }
+        SpeedfoodApp.facebook.retour(intent?.data)
         setContent {
-            App(SpeedfoodApp.config, lienInitial = intent?.dataString)
+            App(SpeedfoodApp.config, lienInitial = intent?.dataString?.takeUnless { intent?.data?.path == com.speedfood.app.data.CHEMIN_RETOUR_FACEBOOK })
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        SpeedfoodApp.facebook.reprise()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        SpeedfoodApp.facebook.retour(intent.data)
     }
 
     override fun onDestroy() {

@@ -147,6 +147,25 @@ class CommandeTest {
         assertEquals(null, enAttente)
     }
 
+    @Test
+    fun connexionFacebookEchangeLeCodeAvecLeSecretPkce() = runTest {
+        var chemin = ""
+        var corps = ""
+        var grant: String? = null
+        val auth = KtorAuthApi(client(MockEngine { r -> chemin = r.url.encodedPath; grant = r.url.parameters["grant_type"]; corps = r.body.toByteArray().decodeToString(); respond("""{"access_token":"a","refresh_token":"r","expires_in":3600,"user":{"id":"u9","email":"f@exemple.test"}}""", HttpStatusCode.OK, json) }), config) { 0L }
+        val depart = auth.urlConnexionFacebook("EMPREINTE")
+        assertTrue(depart.contains("/auth/v1/authorize?provider=facebook"))
+        assertTrue(depart.contains("code_challenge=EMPREINTE&code_challenge_method=s256"))
+        assertTrue(depart.contains("redirect_to=https%3A%2F%2Fexemple.test%2Fauth%2Fapplication"), depart)
+        val session = auth.connecterAvecCode("CODE", "SECRET")
+        assertEquals("u9", session.userId)
+        assertEquals("pkce", grant)
+        assertTrue(chemin.endsWith("/auth/v1/token"))
+        val racine = Json.parseToJsonElement(corps).jsonObject
+        assertEquals("CODE", racine["auth_code"]!!.jsonPrimitive.content)
+        assertEquals("SECRET", racine["code_verifier"]!!.jsonPrimitive.content)
+    }
+
     // ---------- session ----------
 
     @Test

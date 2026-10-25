@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.speedfood.app.data.AuthApi
 import com.speedfood.app.data.ErreurAuth
+import com.speedfood.app.data.FournisseurFacebook
 import com.speedfood.app.data.FournisseurGoogle
+import com.speedfood.app.data.ResultatFacebook
 import com.speedfood.app.data.ResultatGoogle
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.normaliserTelephone
@@ -32,7 +34,12 @@ fun verifierInscription(nom: String, telephone: String, email: String, motDePass
     else -> null
 }
 
-class ConnexionViewModel(private val session: SessionService, private val google: FournisseurGoogle, private val auth: AuthApi) : ViewModel() {
+class ConnexionViewModel(
+    private val session: SessionService,
+    private val google: FournisseurGoogle,
+    private val auth: AuthApi,
+    private val facebook: FournisseurFacebook,
+) : ViewModel() {
     private val _etat = MutableStateFlow(EtatConnexion())
     val etat: StateFlow<EtatConnexion> = _etat.asStateFlow()
     private val _googleActif = MutableStateFlow(false)
@@ -40,8 +47,36 @@ class ConnexionViewModel(private val session: SessionService, private val google
     /** Le bouton « Continuer avec Google » n'apparaît que si le téléphone sait le faire ET si le service d'authentification a activé Google. */
     val googleActif: StateFlow<Boolean> = _googleActif.asStateFlow()
 
+    private val _facebookActif = MutableStateFlow(false)
+
+    /** Même règle que Google : le bouton n'apparaît que si le téléphone sait le faire ET si le service d'authentification a activé Facebook. */
+    val facebookActif: StateFlow<Boolean> = _facebookActif.asStateFlow()
+
     init {
-        if (google.disponible) viewModelScope.launch { _googleActif.value = "google" in auth.fournisseursActifs() }
+        if (google.disponible || facebook.disponible) viewModelScope.launch {
+            val actifs = auth.fournisseursActifs()
+            _googleActif.value = google.disponible && "google" in actifs
+            _facebookActif.value = facebook.disponible && "facebook" in actifs
+        }
+    }
+
+    fun continuerAvecFacebook(surReussite: () -> Unit) {
+        _etat.value = EtatConnexion(enCours = true)
+        viewModelScope.launch {
+            when (val r = facebook.obtenirCode { auth.urlConnexionFacebook(it) }) {
+                ResultatFacebook.Annule -> _etat.value = EtatConnexion()
+                is ResultatFacebook.Erreur -> _etat.value = EtatConnexion(erreur = r.message)
+                is ResultatFacebook.Code -> try {
+                    session.connecterAvecCode(r.code, r.verificateur)
+                    _etat.value = EtatConnexion()
+                    surReussite()
+                } catch (e: ErreurAuth) {
+                    _etat.value = EtatConnexion(erreur = e.message)
+                } catch (e: Exception) {
+                    _etat.value = EtatConnexion(erreur = "Une erreur est survenue. Réessayez dans un instant.")
+                }
+            }
+        }
     }
 
     fun continuerAvecGoogle(surReussite: () -> Unit) {

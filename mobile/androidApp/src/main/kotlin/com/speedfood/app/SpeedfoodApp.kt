@@ -34,10 +34,11 @@ class SpeedfoodApp : Application() {
         alerte = AlerteAndroid(this)
         creerCanauxNotification(this)
         google = GoogleAndroid(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+        facebook = FacebookAndroid(this)
         photo = PhotoAndroid(this)
         notifications = NotificationsAndroid(this)
         verrou = VerrouAndroid(this)
-        initKoin(config, StockagePreferences(this), position, alerte, JetonFirebase(this), "android", BuildConfig.VERSION_NAME, google, BuildConfig.VERSION_CODE, NotificateurMiseAJourAndroid(this), photo, InstallateurApkAndroid(this), notifications, verrou)
+        initKoin(config, StockagePreferences(this), position, alerte, JetonFirebase(this), "android", BuildConfig.VERSION_NAME, google, BuildConfig.VERSION_CODE, NotificateurMiseAJourAndroid(this), photo, InstallateurApkAndroid(this), notifications, verrou, facebook)
         // Lie l'appareil au compte connecté pour les notifications poussées (dès le démarrage si une session existe, puis à chaque connexion).
         lancerEnregistrementPush(CoroutineScope(SupervisorJob() + Dispatchers.IO))
     }
@@ -50,6 +51,8 @@ class SpeedfoodApp : Application() {
         lateinit var alerte: AlerteAndroid
             private set
         lateinit var google: GoogleAndroid
+            private set
+        lateinit var facebook: FacebookAndroid
             private set
         lateinit var photo: PhotoAndroid
             private set

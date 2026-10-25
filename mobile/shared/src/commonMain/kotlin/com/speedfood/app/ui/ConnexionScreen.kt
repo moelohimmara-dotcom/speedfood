@@ -91,6 +91,7 @@ internal fun BlocMessage(texte: String, erreur: Boolean) {
 fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: ConnexionViewModel = koinViewModel()) {
     val etat by viewModel.etat.collectAsState()
     val googleActif by viewModel.googleActif.collectAsState()
+    val facebookActif by viewModel.facebookActif.collectAsState()
     val config: com.speedfood.app.config.SpeedfoodConfig = org.koin.compose.koinInject()
     val ouvreur = androidx.compose.ui.platform.LocalUriHandler.current
     val modeLocal = config.supabaseUrl == "http://10.0.2.2:8787"
@@ -146,6 +147,16 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(2.dp, Couleurs.Encre),
                     ) { Text("Continuer avec Google", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
+                }
+                if (facebookActif) {
+                    OutlinedButton(
+                        onClick = { viewModel.continuerAvecFacebook(onConnecte) },
+                        enabled = !etat.enCours,
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(2.dp, Couleurs.Encre),
+                    ) { Text("Continuer avec Facebook", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre) }
+                }
+                if (googleActif || facebookActif) {
                     Text("ou avec votre adresse e-mail", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
                 if (modeLocal && !inscription) {
