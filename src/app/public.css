@@ -20,8 +20,8 @@
   border-bottom: var(--pub-trait) solid var(--encre);
 }
 .pub-entete-interieur {
-  width: min(100%, 1240px);
-  max-width: 1240px;
+  width: min(100%, 1480px);
+  max-width: 1480px;
   margin: 0 auto;
   padding: 10px var(--space-4);
   min-height: 68px;
@@ -73,6 +73,9 @@
 .pub-pilule {
   display: none;
   min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   margin: 0 auto;
   padding: 4px;
   gap: 2px;
@@ -83,7 +86,7 @@
 }
 .pub-pilule a {
   display: inline-flex;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-items: center;
   min-height: 44px;
   padding: 0 14px;
@@ -259,13 +262,19 @@
     margin-left: 0;
   }
 }
-@media (min-width: 1180px) {
+@media (min-width: 1480px) {
   .pub-seulement-large {
     display: inline-flex;
   }
 }
-/* Grand écran compact : la barre se resserre avant de déborder. */
-@media (min-width: 900px) and (max-width: 1240px) {
+/* Écran moyen et compact : la barre se resserre, les liens secondaires passent au menu (bouton visible), rien ne déborde. */
+@media (min-width: 900px) and (max-width: 1479px) {
+  .pub-burger {
+    display: grid;
+  }
+  .pub-seulement-large {
+    display: none;
+  }
   .pub-entete-interieur {
     gap: var(--space-2);
     padding-inline: var(--space-3);
