@@ -20,13 +20,21 @@
   border-bottom: var(--pub-trait) solid var(--encre);
 }
 .pub-entete-interieur {
+  width: min(100%, 1240px);
   max-width: 1240px;
   margin: 0 auto;
   padding: 10px var(--space-4);
   min-height: 68px;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
+}
+.pub-entete-interieur > * {
+  min-width: 0;
+}
+.pub-marque {
+  flex-shrink: 0;
 }
 .pub-marque {
   display: inline-flex;
@@ -64,6 +72,7 @@
 }
 .pub-pilule {
   display: none;
+  min-width: 0;
   margin: 0 auto;
   padding: 4px;
   gap: 2px;
@@ -74,6 +83,7 @@
 }
 .pub-pilule a {
   display: inline-flex;
+  flex: 0 1 auto;
   align-items: center;
   min-height: 44px;
   padding: 0 14px;
@@ -87,6 +97,19 @@
 }
 .pub-pilule a:hover {
   background: var(--mangue);
+}
+.pub-pilule a:focus-visible,
+.pub-lien-simple:focus-visible,
+.pub-panier:focus-visible,
+.pub-burger:focus-visible {
+  outline: 3px solid var(--rouge-fonce);
+  outline-offset: 3px;
+}
+.pub-pilule a:active,
+.pub-lien-simple:active,
+.pub-panier:active,
+.pub-burger:active {
+  transform: translateY(1px);
 }
 .pub-pilule a.actif {
   background: var(--encre);
@@ -241,6 +264,35 @@
     display: inline-flex;
   }
 }
+/* Grand écran compact : la barre se resserre avant de déborder. */
+@media (min-width: 900px) and (max-width: 1240px) {
+  .pub-entete-interieur {
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+  }
+  .pub-pilule a {
+    padding-inline: 10px;
+    font-size: 0.84rem;
+  }
+  .pub-marque {
+    font-size: 1.25rem;
+  }
+  .pub-panier {
+    padding-inline: 10px;
+  }
+}
+/* Navigation longue : les liens secondaires passent au menu, jamais hors écran. */
+@media (min-width: 900px) and (max-width: 1080px) {
+  .pub-pilule a:nth-child(n + 4) {
+    display: none;
+  }
+  .pub-burger {
+    display: grid;
+  }
+  .pub-seulement-large {
+    display: none;
+  }
+}
 /* Téléphone : l'en-tête reste court, la navigation basse prend le relais */
 @media (max-width: 899px) {
   .pub-entete-interieur {
@@ -270,6 +322,14 @@
 @media (max-width: 349px) {
   .pub-marque > span:last-child {
     display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-marque-pastille,
+  .pub-panier,
+  .pub-pilule a,
+  .pub-burger {
+    transition: none;
   }
 }
 
