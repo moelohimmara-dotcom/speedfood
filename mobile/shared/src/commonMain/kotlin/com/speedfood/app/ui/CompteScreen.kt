@@ -54,8 +54,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.config.SpeedfoodConfig
+import com.speedfood.app.data.StockageLocal
 import com.speedfood.app.data.QUESTIONS_AIDE
 import com.speedfood.app.design.Couleurs
+import com.speedfood.app.ui.CLE_VISITE_VUE
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -186,7 +188,7 @@ fun CompteScreen(
 /** Paramètres : notifications (essai), version et mise à jour, données de cet appareil, visite guidée. Rien n'est affiché qui ne fonctionne pas. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: CompteViewModel = koinViewModel()) {
+fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: CompteViewModel = koinViewModel(), stockage: StockageLocal = koinInject()) {
     val session by viewModel.connexion.collectAsState()
     val message by viewModel.message.collectAsState()
     val versionDisponible by viewModel.versionDisponible.collectAsState()
@@ -235,7 +237,7 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
                     BoutonPrincipal("Télécharger la nouvelle version", surClic = { ouvreur.openUri(url) })
                 }
             }
-            OutlinedButton(onClick = onVisite, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) {
+            OutlinedButton(onClick = { stockage.effacer(CLE_VISITE_VUE); onVisite() }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) {
                 Text("Revoir la visite guidée", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
             }
 
