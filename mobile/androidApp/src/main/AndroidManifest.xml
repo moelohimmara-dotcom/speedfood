@@ -51,6 +51,7 @@
             android:foregroundServiceType="location" />
         <activity
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:name=".MainActivity">
             <intent-filter>

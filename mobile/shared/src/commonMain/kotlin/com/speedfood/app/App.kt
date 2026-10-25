@@ -171,7 +171,7 @@ data class DetailSupportDestination(val id: String)
 private enum class Phase { Ouverture, Visite, Application }
 
 @Composable
-fun App(config: SpeedfoodConfig, lienInitial: String? = null) {
+fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 0) {
     SpeedfoodTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val stockage: StockageLocal = koinInject()
@@ -187,7 +187,7 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null) {
                         phase = Phase.Application
                     }
                     Phase.Application -> Box {
-                        Application(config, lienProfond)
+                        Application(config, lienProfond, numeroLien)
                         BandeauMiseAJour(Modifier.align(Alignment.TopCenter))
                     }
                 }
@@ -197,7 +197,7 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null) {
 }
 
 @Composable
-private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null) {
+private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0) {
     val espaces: EspaceService = koinInject()
     val espace by espaces.espace.collectAsState()
     // À la reprise de l'application, les droits du compte sont relus (un droit ajouté ou retiré se voit tout de suite).
@@ -209,13 +209,13 @@ private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = nul
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { verrou.quitte() }
     Box {
         // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
-        if (espace == Espace.Client) ApplicationClient(config, lienProfond) else EspacePro(espace, config)
+        if (espace == Espace.Client) ApplicationClient(config, lienProfond, numeroLien) else EspacePro(espace, config)
         BandeauAvisAcces(Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
-private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond? = null) {
+private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0) {
         val espaces: EspaceService = koinInject()
         val connexionDemandee by espaces.connexionDemandee.collectAsState()
         ChoixEspaceDialogue()
@@ -228,6 +228,14 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             is LienProfond.Restaurant -> RestaurantDestination(lienProfond.id)
             is LienProfond.Commande -> SuiviDestination(lienProfond.jeton)
             null -> RestaurantsDestination
+        }
+        // Un lien reçu pendant que l'application tourne (WhatsApp, navigateur) ouvre sa destination ; le lien de lancement est déjà la destination de départ.
+        var numeroTraite by remember { mutableStateOf(numeroLien) }
+        LaunchedEffect(numeroLien) {
+            if (numeroLien != numeroTraite && lienProfond != null) {
+                navController.navigate(destinationInitiale)
+                numeroTraite = numeroLien
+            }
         }
         val onglets = listOf(
             Onglet("Accueil", Icons.Default.Home, RestaurantsDestination),
