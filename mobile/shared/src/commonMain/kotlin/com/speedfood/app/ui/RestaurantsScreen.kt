@@ -48,7 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.speedfood.app.data.AccueilSections
 import com.speedfood.app.data.FiltreRestaurants
+import com.speedfood.app.data.cleCarteAccueil
+import com.speedfood.app.data.construireAccueil
 import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.Restaurant
 import com.speedfood.app.data.filtrerRestaurants
@@ -106,7 +109,7 @@ fun RestaurantsScreen(
                             BlocMessage("Hors ligne : liste enregistrée ${ancienneteLisible(age)}. Les commandes demandent une connexion.", erreur = false)
                             }
                         }
-                        RechercheEtListe(e.restaurants, onOuvrir)
+                        AccueilRestaurants(e.restaurants, onOuvrir)
                     }
                 }
             }
@@ -142,7 +145,7 @@ internal fun MessageEtat(message: String, libelleBouton: String?, action: (() ->
 
 /** Recherche (nom, quartier, catégorie, sans casse ni accents) et filtre, sur la liste déjà chargée. */
 @Composable
-internal fun RechercheEtListe(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit, requeteInitiale: String = "", filtreInitial: FiltreRestaurants = FiltreRestaurants.Tous) {
+internal fun RechercheEtListe(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit, requeteInitiale: String = "", filtreInitial: FiltreRestaurants = FiltreRestaurants.Tous, avecSections: Boolean = false) {
     var requete by remember { mutableStateOf(requeteInitiale) }
     var filtre by remember { mutableStateOf(filtreInitial) }
     val visibles = filtrerRestaurants(restaurants, requete, filtre)
@@ -170,19 +173,44 @@ internal fun RechercheEtListe(restaurants: List<Restaurant>, onOuvrir: (String) 
         if (visibles.isEmpty()) {
             MessageEtat("Aucun restaurant ne correspond à votre recherche.", null, null)
         } else {
-            ListeRestaurants(visibles, onOuvrir)
+            // Les sections n'apparaissent que sans recherche ni filtre, et quand la liste est assez longue pour qu'elles aident à choisir.
+            val sections = if (avecSections && requete.isBlank() && filtre == FiltreRestaurants.Tous && visibles.size >= SEUIL_SECTIONS) construireAccueil(visibles, null) else null
+            ListeRestaurants(visibles, onOuvrir, sections)
+        }
+    }
+}
+
+/** En dessous de ce nombre de restaurants, une liste simple vaut mieux que des sections qui répéteraient les mêmes cartes. */
+private const val SEUIL_SECTIONS = 4
+
+@Composable
+internal fun ListeRestaurants(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit = {}, sections: AccueilSections? = null) {
+    LazyColumn(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (sections == null) {
+            items(restaurants, key = { it.id }) { CarteRestaurant(it, onOuvrir) }
+        } else {
+            val ouverts = sections.ouverts
+            val notes = sections.mieuxNotes.filter { it.noteMoyenne != null }.take(3)
+            if (ouverts.isNotEmpty()) {
+                item(key = "titre-ouverts") { TitreSection("Ouverts maintenant") }
+                items(ouverts, key = { cleCarteAccueil("ouverts", it.id) }) { CarteRestaurant(it, onOuvrir) }
+            }
+            if (notes.isNotEmpty()) {
+                item(key = "titre-notes") { TitreSection("Les mieux notés") }
+                items(notes, key = { cleCarteAccueil("notes", it.id) }) { CarteRestaurant(it, onOuvrir) }
+            }
+            item(key = "titre-tous") { TitreSection("Tous les restaurants") }
+            items(restaurants, key = { cleCarteAccueil("tous", it.id) }) { CarteRestaurant(it, onOuvrir) }
         }
     }
 }
 
 @Composable
-internal fun ListeRestaurants(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit = {}) {
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        items(restaurants, key = { it.id }) { CarteRestaurant(it, onOuvrir) }
-    }
+private fun TitreSection(titre: String) {
+    Text(titre, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 6.dp))
 }
 
 @Composable
