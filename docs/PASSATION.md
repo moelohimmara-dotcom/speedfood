@@ -1,6 +1,6 @@
 # Passation : reprendre Speedfood et continuer le travail
 
-Document de référence pour qu'une équipe de développement reprenne le projet **sans l'auteur ni l'historique des conversations**. État au **22 octobre 2026** (application Android **2.26.0**, code de version 28). Il ne contient **aucune valeur secrète**, seulement des noms et des emplacements.
+Document de référence pour qu'une équipe de développement reprenne le projet **sans l'auteur ni l'historique des conversations**. État au **25 octobre 2026** (application Android **2.38.0**, code de version 40 ; production = dépôt, vérifié). Il ne contient **aucune valeur secrète**, seulement des noms et des emplacements.
 
 > Il complète `docs/REPRISE-SESSION.md` (10-16 octobre, surtout le site web) et remplace ses parties sur l'application mobile. Le journal détaillé reste `docs/STATUT-PROJET.md` ; les règles de sécurité restent dans `CLAUDE.md`. En cas de divergence entre un document et le code, **le code fait foi**.
 
@@ -109,9 +109,9 @@ Authentification : `Authorization: Bearer <jeton Supabase>` sauf mention « publ
 |---|---|---|
 | Public | `version`, `aide`, `livraison/estimation` (POST), `commandes` (POST/GET), `suivi` (POST), `suivi/proposition` | aucun (commande : compte exigé à l'envoi) |
 | Compte | `moi`, `appareils` (+ `/essai`, `/retirer`), `client/espace`, `client/profil`, `client/adresses`, `client/favoris`, `client/compte` (suppression) | jeton |
-| Restaurateur | `restaurant/commandes` (+ `/action`, `/document`, `/paiement`, `/proposition`), `restaurant/menu` (+ `/action`, `/photo`), `restaurant/statut`, `restaurant/activite` | membre d'un restaurant (+ second facteur si activé) |
+| Restaurateur | `restaurant/commandes` (+ `/action`, `/document`, `/paiement`, `/proposition`), `restaurant/menu` (+ `/action`, `/photo`), `restaurant/statut`, `restaurant/activite`, `restaurant/historique`, `restaurant/reglages` | membre d'un restaurant (+ second facteur si activé) |
 | Livreur | `livreur/etat`, `livreur/en-ligne`, `livreur/position`, `livreur/offre`, `livreur/course`, `livreur/gains` | fiche livreur |
-| Équipe | `equipe/moi`, `equipe/tableau`, `equipe/repartition` (+ `/action`), `equipe/commandes` (+ `/[id]`, `/statut`, `/coordonnees`), `equipe/livraisons` (+ `/action`), `equipe/livreurs/action`, `equipe/menus` (+ `/[id]`, `/confirmer`, `/disponibilite`), `equipe/avis` (+ `/moderation`), `equipe/paiements` (lecture seule), `equipe/referencements` (+ `/statut`) | rôle système + permission (`commande.support`, `restaurant.moderer`…), second facteur, audit |
+| Équipe | `equipe/moi`, `equipe/tableau`, `equipe/repartition` (+ `/action`), `equipe/commandes` (+ `/[id]`, `/statut`, `/coordonnees`), `equipe/livraisons` (+ `/action`), `equipe/livreurs/action`, `equipe/menus` (+ `/[id]`, `/confirmer`, `/disponibilite`), `equipe/avis` (+ `/moderation`), `equipe/paiements` (lecture seule), `equipe/referencements` (+ `/statut`), `equipe/restaurants` (+ `/[id]`, `/[id]/profil`), `equipe/partenariats` (+ `/statut`), `equipe/liste-attente` (+ `/prevenue`), `equipe/comptes`, `equipe/bannieres`, `equipe/medias`, `equipe/mises-a-jour`, `equipe/parametres`, `equipe/audit`, `equipe/finances` (lecture seule) | rôle système + permission (`commande.support`, `restaurant.moderer`…), second facteur, audit |
 
 Matrice des permissions : `docs/MATRICE-PERMISSIONS.md` et `src/lib/system-admin/permissions.ts`.
 
@@ -176,7 +176,7 @@ Garde-fous du dépôt : `scripts/verifier-requetes.mjs` signale les lectures non
 
 ---
 
-## 9. Ce qui a été livré (application, 21 → 22 octobre 2026)
+## 9. Ce qui a été livré (application, 21 → 25 octobre 2026)
 
 | Version | Contenu |
 |---|---|
@@ -194,6 +194,11 @@ Garde-fous du dépôt : `scripts/verifier-requetes.mjs` signale les lectures non
 | 2.24 | **parité équipe** : modération des avis dans l'application |
 | 2.25 | **parité équipe** : paiements en ligne en lecture seule (les décisions qui déplacent de l'argent restent sur le site) |
 | 2.26 | **parité équipe** : demandes de référencement (lire, appeler, changer le statut ; la création de fiche reste sur le site) |
+| 2.27 à 2.31 | **parité équipe (lots P5b à P5f)** : établissements (fiche, publication, menu, horaires, numéro à joindre), partenariats et liste d'attente, annuaire des comptes, bannières/médias/mises à jour/paramètres (lecture seule), journal d'audit |
+| 2.32 | parité équipe terminée ; espaces restaurateur (réglages, pause, historique) et livreur complétés ; onboarding client, cache hors ligne, **liens profonds** (`/r/…`, `/commande/…`) |
+| 2.33 | finances d'équipe en lecture seule (relevés, commissions, nets à reverser — données factices tant que le barème n'est pas validé) |
+| 2.34 à 2.37 | consoles web livrées en mode démonstration : support client par commande (L4), menus en masse et import CSV (L8), paie des livreurs (L9), incidents de livraison (L10) |
+| 2.38 | visite guidée améliorée (démarrage plus court, relecture locale) |
 
 ---
 
@@ -203,7 +208,7 @@ Source de vérité : `docs/FEUILLE-DE-ROUTE-APPLICATION.md` (phases, critères d
 
 **Phase C — découverte et commande** (le lot C1 est livré) : photos de plats (dépend du contenu), sections d'accueil (« Ouverts maintenant », « Les mieux notés »), cartes avec délai/frais/note, fiche plat avec options et quantité, frise de suivi enrichie, notification qui ouvre le bon écran, appel livreur/restaurant, carte, **note au restaurant** (demande une colonne en base : `orders` n'a pas ce champ), paiement mobile (Chap Chap Pay).
 **Phase D — outils pro** (lot D1 livré) : horaires et réglage du son du restaurateur, historique complet paginé, **règle de rémunération** et gains réels du livreur (les « gains » actuels sont les frais de course, pas une paie), assistance livreur.
-**Parité équipe** (ordre) : avis, paiements (lecture) et demandes de référencement (faits), puis restaurants et référencements, partenariats et liste d'attente, comptes, contenu et paramètres, audit.
+**Parité équipe** : terminée dans l'application (2.24 à 2.33). **Lots de la console web** (`docs/FEUILLE-DE-ROUTE-ADMIN.md`) : L1 à L10 livrés (L8 à L10 en mode démonstration) ; restent **L11 codes promo, L12 remboursements, L13 supervision, L14 sauvegarde et restauration**.
 **Phase B — reportés** : choix de la localité au premier lancement (utile dès qu'il y a plusieurs zones), connexion par code SMS (fournisseur et coût à décider), profil de référence de démarrage.
 **Phase E — distribution** : **trois applications** (Speedfood, Speedfood Pro, Speedfood Livreur) sur le même module `shared/` pour éviter un refus de Google Play lié aux autorisations sensibles, dépôt sur **Google Play** (compte payant), mesure d'usage, configuration à distance. **Phase F** : iPhone (compte Apple Developer, exécuteur macOS).
 **Site** : tenue en charge (limite CPU du Worker), voir § 3.1.
@@ -259,3 +264,15 @@ Source de vérité : `docs/FEUILLE-DE-ROUTE-APPLICATION.md` (phases, critères d
 5. **Faux serveur** : ajouter la route simulée dans `scripts/faux-serveur-application.mjs`, jouer le parcours dans l'émulateur.
 6. **Documentation** : mettre à jour la feuille de route et cette passation si l'état change.
 7. **Publication** : § 7 (avec le feu vert de Malika).
+
+---
+
+## 14. Campagne d'agents et travail en parallèle (depuis le 24 octobre 2026)
+
+Le projet est désormais construit par une **campagne d'agents** pilotée par un orchestrateur (`docs/PROTOCOLE-COLLABORATION.md` § 7, à lire avant de modifier quoi que ce soit) :
+- chaque agent travaille dans un **worktree Git** dédié (`C:\Users\moelo\dev\wt\<agent>`, branche `lot/<agent>`), jamais dans le dépôt principal ; `git worktree list` montre ceux qui existent (`app-decouverte`, `app-equipe`, `app-livreur`, `app-restaurateur`, `console-argent`, `console-catalogue`, `console-etablissement`, `console-exploitation`, `console-quarts`, `console-support`) ;
+- **fichiers réservés à l'orchestrateur** (un seul auteur à la fois) : matrice de permissions, `scripts/tests/lancer.mjs`, `SECTIONS_NATIVES` de `equipe/moi`, version (`version.ts`, `build.gradle.kts`), APK, `Koin.kt`, `EspacePro.kt`, `EquipeScreen.kt`, `App.kt`, manifeste Android, catalogue d'audit, `sauvegarde.ts`, feuilles de route et `STATUT-PROJET.md` : un agent livre la ligne exacte à insérer dans sa **note d'intégration** ;
+- **faux serveur modulaire** : chaque lot écrit `scripts/faux-serveur-<espace>-<domaine>.mjs` (espaces `equipe`, `restaurant`, `livreur`, `client`) ; `scripts/faux-serveur-application.mjs` les charge tout seul. Pour les lectures publiques `/rest/v1/<table>`, un module `client` peut exporter la clé `rest/<table>` (voir `faux-serveur-client-decouverte.mjs`) ;
+- publication et `git push` : par l'orchestrateur. Un intervenant isolé qui publie lui-même doit d'abord vérifier qu'aucune autre version n'est en cours (`git log origin/master`, `/api/v1/version`) pour ne pas entrer en collision sur le numéro de version.
+
+**Intervention du 25 octobre 2026 (hors campagne, sans publication) : accueil par zone.** Lot C0, critères 3 et 4 : l'accueil des restaurants propose maintenant une pastille « Zone : Kipé · Changer » (zones = quartiers où il y a des restaurants, avec leur nombre, plus « Toutes les zones » ; zone par défaut = la plus fournie, seulement s'il y a au moins deux zones ; choix mémorisé ; aucune position demandée) et, sans recherche ni filtre et à partir de 4 restaurants, les sections « Ouverts maintenant », « Les mieux notés » et « Tous les restaurants ». Fichiers : `data/Zone.kt` (règles pures), `ui/AccueilRestaurants.kt` (nouveau), `ui/RestaurantsScreen.kt` (branchement), `ZoneAccueilTest.kt` (tests), `scripts/faux-serveur-client-decouverte.mjs` (six restaurants d'essai dans trois quartiers) et un crochet de six lignes dans `scripts/faux-serveur-application.mjs`. Joué dans l'émulateur : zone par défaut, changement de zone, « Toutes les zones », sections. **Aucun fichier réservé modifié ; version et APK inchangées : à publier par l'orchestrateur** (version suivante 2.39.0). Reste à jouer sur C0 : critères 1 (démarrage à froid mesuré), 5, 6, 7, 8, 9.

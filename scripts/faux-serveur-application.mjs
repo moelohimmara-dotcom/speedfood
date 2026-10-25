@@ -166,8 +166,10 @@ createServer(async (req, res) => {
   if (chemin === "/__revoquer") { revoque = true; return ok(res, { revoque }); }
   if (chemin === "/__restaurer") { revoque = false; return ok(res, { revoque }); }
 
-  // Lectures publiques : relais lecture seule vers la vraie base.
+  // Lectures publiques : un module client peut fournir ses propres données (clé « rest/<table> ») ; sinon relais lecture seule vers la vraie base.
   if (chemin.startsWith("/rest/v1/") && req.method === "GET") {
+    const donneesFactices = modulesFactices.client?.["rest/" + chemin.slice("/rest/v1/".length)];
+    if (donneesFactices) return ok(res, await donneesFactices({ url }));
     try {
       const r = await fetch(REEL + chemin + url.search, { headers: { apikey: req.headers.apikey ?? "", authorization: `Bearer ${req.headers.apikey ?? ""}` } });
       res.writeHead(r.status, { "Content-Type": r.headers.get("content-type") ?? "application/json" });
