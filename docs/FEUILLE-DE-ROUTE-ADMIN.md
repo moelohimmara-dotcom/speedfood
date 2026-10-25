@@ -15,16 +15,20 @@ Demandes de partenariat et référencement, fiche et publication d'un établisse
 | L2 | **Quarts et affectation** | Qui tient quel établissement : table d'affectation opérateur ↔ établissements, « je prends » / « je libère » sur une commande, file « à moi » et « non pris », indicateur de commande non reprise depuis N minutes, alerte de relance | M | L1 | **Fait (24 oct.)** — `/system/quarts`, délai factice 10 min, prise/libération/relance tracées ; transfert en cours et suppression de trace hors écran |
 | L3 | **Relevés, commissions, versements** | Taux de commission par établissement (contrat), relevé par période (ventes, commission, frais de livraison, net à reverser), export CSV, statut « versé » avec date et référence | M à L | Décision : barème de commission et rythme de versement | **Fait en mode démonstration (24 oct.)** — taux factice 10 %, rythme hebdomadaire, GNF ; aucun versement réel |
 | L4 | **Support client** | Fil de conversation par commande (client ↔ équipe), modèles de réponses, statut ouvert/résolu, lien depuis la fiche commande, messages WhatsApp préremplis | M | Décision : canal (WhatsApp seul ou aussi dans l'application) | **Fait en mode démonstration (24 oct.)** — fil console, modèles, résolution auditée, WhatsApp prérempli sans envoi automatique |
-| L5 | **Rappel de confirmation du menu** | Avant le service : liste des établissements aux plats à reconfirmer, rappel (notification interne + appel), confirmation en un geste de tout le menu du jour | S | — | à faire |
+| L5 | **Rappel de confirmation du menu** | Avant le service : liste des établissements aux plats à reconfirmer, rappel (notification interne + appel), confirmation en un geste de tout le menu du jour | S | — | **Fait en mode démonstration (24 oct.)** |
+| L6 | **Fermeture et suspension d'un établissement** | Motif, durée, message affiché aux clients, reprise planifiée | S | — | **Fait en mode démonstration (24 oct.)** |
+| L7 | **Journal de contacts avec l'établissement** | Appels, visites, relances, prochaine action | S | — | **Fait en mode démonstration (24 oct.)** |
 
-## Lots suivants (après les cinq premiers)
-| # | Lot | Contenu | Taille |
-|---|---|---|---|
-| L6 | Fermeture et suspension d'un établissement | Motif, durée, message affiché aux clients, reprise planifiée | S |
-| L7 | Journal de contacts avec l'établissement | Appels, visites, relances, prochaine action | S |
-| L8 | Mises à jour de menu en masse | Prix en lot, copie d'un menu, import CSV | **Livré en mode démonstration (24 oct.)** |
-| L9 | Paie des livreurs | Gains par course, période, versement | **Livré en mode démonstration (24 oct.)** — forfait 15 000 GNF/course + 500 GNF/km, plafond 50 km, versement manuel simulé |
-| L10 | Incidents de livraison | Retard, colis perdu, litige, compensation | **Livré en mode démonstration (24 oct.)** — statuts, gravité, responsable, résolution manuelle et audit |
+## Lots suivants
+| # | Lot | Contenu | Taille | État |
+|---|---|---|---|---|
+| L8 | Mises à jour de menu en masse | Prix en lot, copie d'un menu, import CSV | M | **Livré en mode démonstration (24 oct.)** |
+| L9 | Paie des livreurs | Gains par course, période, versement | M | **Livré en mode démonstration (24 oct.)** — forfait 15 000 GNF/course + 500 GNF/km, plafond 50 km, versement manuel simulé |
+| L10 | Incidents de livraison | Retard, colis perdu, litige, compensation | S | **Livré en mode démonstration (24 oct.)** — statuts, gravité, responsable, résolution manuelle et audit |
+| L11 | Codes promo et campagnes | Codes, plafonds, durée, notification aux clients | M | À faire |
+| L12 | Remboursements | Procédure manuelle tracée d'abord | M | À faire |
+| L13 | Supervision | Alertes d'erreurs, tenue en charge, état des services | M | À faire |
+| L14 | Sauvegarde et restauration | Contrôle et procédure testée | S | À faire |
 | L11 | Codes promo et campagnes | Codes, plafonds, durée, notification aux clients | M |
 | L12 | Remboursements | Dépend du prestataire de paiement (l'API Chap Chap Pay n'en propose pas) : procédure manuelle tracée d'abord | M |
 | L13 | Supervision | Alertes d'erreurs, tenue en charge, état des services (Supabase, Firebase, paiement) | M |
