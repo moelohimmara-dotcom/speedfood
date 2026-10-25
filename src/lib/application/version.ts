@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 40,
-  nom: "2.38.0",
-  notes: "Visite guidée améliorée : démarrage plus court, animation plus douce et relecture locale.",
+  code: 41,
+  nom: "2.39.0",
+  notes: "Codes promo et campagnes : aperçu, plafonds, périodes et ciblage factice.",
   obligatoire: false,
-  apkSha256: "c46d02ad599e643a067d31090c03c3f7551a145c7ae41ff637e5e32592802368",
-  apkTaille: 15199514,
+  apkSha256: "d34a88662e50a2907789bf3bcc98902cf01958788fb35165989d4007aaacd9c8",
+  apkTaille: 15215898,
 };
