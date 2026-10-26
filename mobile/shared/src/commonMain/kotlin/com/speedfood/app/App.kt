@@ -30,6 +30,7 @@ import com.speedfood.app.data.debutApplication
 import com.speedfood.app.data.cleVisiteVue
 import com.speedfood.app.data.ecranApresOuverture
 import com.speedfood.app.data.visiteAProposer
+import com.speedfood.app.ui.CandidatureScreen
 import com.speedfood.app.ui.EcranChoixProfil
 import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.PanierService
@@ -110,6 +111,10 @@ object RestaurateurDestination
 
 @Serializable
 object ConnexionDestination
+
+/** Formulaire d'inscription du restaurant (demande de référencement) puis suivi de la demande. */
+@Serializable
+object CandidatureDestination
 
 /** Visite guidée du profil, proposée une fois après la création du compte (ou « Voir d'abord »). */
 @Serializable
@@ -346,7 +351,19 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 ParametresScreen(onRetour = { navController.popBackStack() }, onVisite = { navController.navigate(VisiteDestination) })
             }
             composable<AccesProDestination> {
-                AccesProScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) }, onAide = { navController.navigate(AideDestination) })
+                AccesProScreen(
+                    onRetour = { navController.popBackStack() },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
+                    onAide = { navController.navigate(AideDestination) },
+                    onInscrireRestaurant = { navController.navigate(CandidatureDestination) },
+                )
+            }
+            composable<CandidatureDestination> {
+                CandidatureScreen(
+                    onRetour = { if (!navController.popBackStack()) navController.navigate(RestaurantsDestination) },
+                    onConnexion = { navController.navigate(ConnexionDestination) },
+                    onAide = { navController.navigate(AideDestination) },
+                )
             }
             composable<ProfilDestination> {
                 ProfilClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
@@ -406,7 +423,9 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             composable<CreationCompteDestination> { entree ->
                 val restaurateur = entree.toRoute<CreationCompteDestination>().restaurateur
                 val stockage: StockageLocal = koinInject()
-                val finale: Any = if (restaurateur) AccesProDestination else RestaurantsDestination
+                val finale: Any = if (restaurateur) CandidatureDestination else RestaurantsDestination
+                // Un restaurateur déjà référencé qui se connecte ici arrive directement dans son espace (même mécanisme que « Me connecter à mon espace »).
+                if (restaurateur) LaunchedEffect(Unit) { espaces.intentionPro = true }
                 // Après le compte (ou « Voir d'abord ») : la visite du profil, une seule fois ; sinon directement la destination.
                 fun suite() {
                     val vues = listOf("visite_vue", cleVisiteVue(false), cleVisiteVue(true)).filter { stockage.lire(it) != null }.toSet()
@@ -447,7 +466,7 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 val stockage: StockageLocal = koinInject()
                 VisiteGuidee(restaurateur = restaurateur) {
                     stockage.ecrire(cleVisiteVue(restaurateur), "1")
-                    navController.navigate(if (restaurateur) AccesProDestination else RestaurantsDestination) { popUpTo<VisiteProfilDestination> { inclusive = true } }
+                    navController.navigate(if (restaurateur) CandidatureDestination else RestaurantsDestination) { popUpTo<VisiteProfilDestination> { inclusive = true } }
                 }
             }
             composable<LivreurDestination> {

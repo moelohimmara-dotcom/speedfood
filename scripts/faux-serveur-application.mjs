@@ -28,6 +28,7 @@ const parJeton = (req) => {
 };
 
 const favorisEssai = new Set();
+const candidatures = new Map();
 const demandesEssai = [
   { id: "d1", type: "restaurant", organisation: "Chez Fatou", commune: "Ratoma", quartier: "Kipé", indications: "Près du rond-point", categories: "Grillades", specialites: "Poulet braisé", responsable: "Fatou Camara", telephone: "+224 622 10 20 30", statut: "nouvelle", etablissementCree: false, creeLe: "2026-10-22T08:00:00Z" },
   { id: "d2", type: "maquis", organisation: "Maquis du Port", commune: "Kaloum", quartier: "Boulbinet", indications: null, categories: "Poissons", specialites: null, responsable: "Ibrahima Sylla", telephone: "+224 664 00 11 22", statut: "visite_prevue", etablissementCree: false, creeLe: "2026-10-20T15:00:00Z" },
@@ -195,6 +196,16 @@ createServer(async (req, res) => {
     if (!COMPTES[email]) return ok(res, { error: "invalid_grant", error_description: "Invalid login credentials", code: "invalid_credentials" }, 400);
     return ok(res, session(email));
   }
+  // Inscription sans confirmation d'e-mail pour les adresses « auto… » (simule le réglage « Confirm email » désactivé) : le compte client est créé et une session est rendue.
+  if (chemin === "/auth/v1/signup" && req.method === "POST") {
+    const corps = await lireCorps(req);
+    const email = String(corps.email ?? "").toLowerCase();
+    if (email.startsWith("auto")) {
+      COMPTES[email] ??= { id: "u-" + email, roles: {} };
+      return ok(res, session(email));
+    }
+    return ok(res, {});
+  }
   if (chemin === "/auth/v1/logout") { res.writeHead(204); return res.end(); }
   if (chemin.startsWith("/auth/v1/")) return ok(res, {});
 
@@ -215,6 +226,27 @@ createServer(async (req, res) => {
 
   const compte = parJeton(req);
   if (chemin.startsWith("/api/v1/") && !compte) return refus(res, 401, "NON_AUTHENTIFIE", "Connectez-vous avec votre compte.");
+
+  // Candidature « J'ai un restaurant » (lot R1/R2) : une demande par compte, en mémoire.
+  if (chemin === "/api/v1/candidature" || chemin === "/api/v1/candidature/image") {
+    const existante = candidatures.get(compte.email);
+    if (chemin === "/api/v1/candidature" && req.method === "GET") return ok(res, { ok: true, candidature: existante ?? null });
+    if (chemin === "/api/v1/candidature" && req.method === "POST") {
+      const c = await lireCorps(req);
+      if (existante) return ok(res, { ok: false, erreur: { code: "CONFLIT_ETAT", message: "Vous avez déjà une demande en cours : suivez-la depuis votre espace." } }, 409);
+      if (!c.nom || !c.quartierId || !c.telephone) return ok(res, { ok: false, erreur: { code: "VALIDATION", message: "Demande incomplète." } }, 400);
+      const vue = { id: "cand-" + candidatures.size, etat: "recue", libelleEtat: "Demande reçue", nom: c.nom, deposeeLe: maintenant(), delaiHeures: 48, reponseAttendueLe: new Date(Date.now() + 48 * 3600_000).toISOString(), motifRefus: null, aLogo: false, aPhoto: false, nombrePlats: Array.isArray(c.plats) ? c.plats.length : 0 };
+      candidatures.set(compte.email, vue);
+      return ok(res, { ok: true, candidature: vue }, 201);
+    }
+    if (chemin === "/api/v1/candidature/image" && req.method === "POST" && existante) {
+      const morceaux = []; for await (const m of req) morceaux.push(m);
+      const brut = Buffer.concat(morceaux).toString("latin1");
+      if (brut.includes('name="type"') && brut.includes("logo")) existante.aLogo = true; else existante.aPhoto = true;
+      return ok(res, { ok: true, candidature: existante });
+    }
+    return ok(res, { ok: false, erreur: { code: "INTROUVABLE", message: "Aucune demande." } }, 404);
+  }
 
   if (chemin === "/api/v1/moi") return ok(res, { ok: true, roles: { restaurateur: compte.roles.restaurateur ?? null, livreur: Boolean(compte.roles.livreur), equipe: compte.roles.equipe ?? null } });
 

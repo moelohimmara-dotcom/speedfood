@@ -52,6 +52,11 @@ const PLATS = [
 ];
 export const routes = {
   "rest/restaurants": async () => RESTAURANTS,
+  "rest/neighborhoods": async () => [
+    { id: "22222222-0000-4000-8000-000000000001", nom: "Kipé" },
+    { id: "22222222-0000-4000-8000-000000000002", nom: "Kaloum" },
+    { id: "22222222-0000-4000-8000-000000000003", nom: "Matam" },
+  ],
   "rest/menu_sections": async () => [],
   "rest/menu_items": async ({ url }) => {
     const id = (url.searchParams.get("restaurant_id") ?? "").replace("eq.", "");

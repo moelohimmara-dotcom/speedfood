@@ -83,7 +83,7 @@ internal fun Espace.icone() = when (this) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> Unit, config: SpeedfoodConfig = koinInject(), espaces: EspaceService = koinInject(), viewModel: CompteViewModel = koinViewModel()) {
+fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> Unit, onInscrireRestaurant: (() -> Unit)? = null, config: SpeedfoodConfig = koinInject(), espaces: EspaceService = koinInject(), viewModel: CompteViewModel = koinViewModel()) {
     val session by viewModel.connexion.collectAsState()
     val roles by espaces.roles.collectAsState()
     val ouvreur = LocalUriHandler.current
@@ -128,7 +128,7 @@ fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> 
 
             if (droits?.aUnEspacePro != true) {
                 TitreRubrique("Rejoindre Speedfood")
-                LigneMenu("Je suis restaurateur", Icons.Default.Person, "Demander à être référencé sur Speedfood") { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/restaurateurs") }
+                LigneMenu("Je suis restaurateur", Icons.Default.Person, "Inscrire mon restaurant sur Speedfood") { if (onInscrireRestaurant != null) onInscrireRestaurant() else ouvreur.openUri("${config.siteUrl.trimEnd('/')}/restaurateurs") }
                 LigneMenu("Je suis livreur", Icons.Default.Notifications, "Le compte est ouvert par l'équipe Speedfood : contactez-nous", onAide)
             }
         }
