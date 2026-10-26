@@ -20,7 +20,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
+import com.speedfood.app.data.CLE_PROFIL_CHOISI
+import com.speedfood.app.data.DebutApplication
+import com.speedfood.app.data.EcranEntree
 import com.speedfood.app.data.Espace
+import com.speedfood.app.data.ProfilEntree
+import com.speedfood.app.data.SessionService
+import com.speedfood.app.data.debutApplication
+import com.speedfood.app.data.ecranApresOuverture
+import com.speedfood.app.ui.EcranChoixProfil
 import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.VerrouEspacesPro
@@ -101,6 +109,10 @@ object RestaurateurDestination
 @Serializable
 object ConnexionDestination
 
+/** Création de compte à l'entrée : consommateur (avec « Voir d'abord les restaurants ») ou restaurateur (avant d'inscrire son restaurant). */
+@Serializable
+data class CreationCompteDestination(val restaurateur: Boolean)
+
 @Serializable
 object PanierDestination
 
@@ -167,8 +179,8 @@ object LivreursEquipeDestination
 @Serializable
 data class DetailSupportDestination(val id: String)
 
-/** Les trois temps du lancement : le logo s'anime, la visite guidée (une seule fois, au premier lancement), puis l'application. */
-private enum class Phase { Ouverture, Visite, Application }
+/** Les temps du lancement : le logo s'anime, l'écran de choix du profil (premier lancement ou après une déconnexion), la visite guidée, puis l'application. */
+private enum class Phase { Ouverture, Choix, Visite, Application }
 
 @Composable
 fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 0) {
@@ -176,18 +188,40 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val stockage: StockageLocal = koinInject()
             val lienProfond = remember(lienInitial) { lienInitial?.let(::lireLienProfond) }
+            val sessionService: SessionService = koinInject()
             var phase by remember { mutableStateOf(if (lienProfond != null) Phase.Application else Phase.Ouverture) }
+            var debut by remember { mutableStateOf(DebutApplication.Normal) }
             Crossfade(phase, animationSpec = tween(450)) { courante ->
                 when (courante) {
                     Phase.Ouverture -> EcranOuverture {
-                        phase = if (stockage.lire(CLE_VISITE_VUE) == null) Phase.Visite else Phase.Application
+                        val profil = ProfilEntree.depuis(stockage.lire(CLE_PROFIL_CHOISI))
+                        val connecte = sessionService.session.value != null
+                        when (ecranApresOuverture(lienProfond != null, connecte, profil)) {
+                            EcranEntree.Choix -> phase = Phase.Choix
+                            EcranEntree.Application -> {
+                                debut = debutApplication(profil, connecte)
+                                phase = Phase.Application
+                            }
+                        }
+                    }
+                    Phase.Choix -> {
+                        fun choisir(profil: ProfilEntree) {
+                            stockage.ecrire(CLE_PROFIL_CHOISI, profil.cle)
+                            debut = debutApplication(profil, connecte = false, apresChoix = true)
+                            phase = Phase.Application
+                        }
+                        EcranChoixProfil(
+                            surConsommateur = { choisir(ProfilEntree.Consommateur) },
+                            surRestaurateur = { choisir(ProfilEntree.Restaurateur) },
+                            surProfessionnel = { choisir(ProfilEntree.Professionnel) },
+                        )
                     }
                     Phase.Visite -> VisiteGuidee {
                         stockage.ecrire(CLE_VISITE_VUE, "1")
                         phase = Phase.Application
                     }
                     Phase.Application -> Box {
-                        Application(config, lienProfond, numeroLien)
+                        Application(config, lienProfond, numeroLien, debut)
                         BandeauMiseAJour(Modifier.align(Alignment.TopCenter))
                     }
                 }
@@ -197,7 +231,7 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 
 }
 
 @Composable
-private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0) {
+private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0, debut: DebutApplication = DebutApplication.Normal) {
     val espaces: EspaceService = koinInject()
     val espace by espaces.espace.collectAsState()
     // À la reprise de l'application, les droits du compte sont relus (un droit ajouté ou retiré se voit tout de suite).
@@ -209,13 +243,13 @@ private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = nul
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { verrou.quitte() }
     Box {
         // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
-        if (espace == Espace.Client) ApplicationClient(config, lienProfond, numeroLien) else EspacePro(espace, config)
+        if (espace == Espace.Client) ApplicationClient(config, lienProfond, numeroLien, debut) else EspacePro(espace, config)
         BandeauAvisAcces(Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
-private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0) {
+private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0, debut: DebutApplication = DebutApplication.Normal) {
         val espaces: EspaceService = koinInject()
         val connexionDemandee by espaces.connexionDemandee.collectAsState()
         ChoixEspaceDialogue()
@@ -227,7 +261,12 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
         val destinationInitiale: Any = when (lienProfond) {
             is LienProfond.Restaurant -> RestaurantDestination(lienProfond.id)
             is LienProfond.Commande -> SuiviDestination(lienProfond.jeton)
-            null -> RestaurantsDestination
+            null -> when (debut) {
+                DebutApplication.Normal -> RestaurantsDestination
+                DebutApplication.CreationCompte -> CreationCompteDestination(restaurateur = false)
+                DebutApplication.CreationCompteRestaurateur -> CreationCompteDestination(restaurateur = true)
+                DebutApplication.AccesPro -> AccesProDestination
+            }
         }
         // Un lien reçu pendant que l'application tourne (WhatsApp, navigateur) ouvre sa destination ; le lien de lancement est déjà la destination de départ.
         var numeroTraite by remember { mutableStateOf(numeroLien) }
@@ -357,6 +396,20 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             }
             composable<ConnexionDestination> {
                 ConnexionScreen(onRetour = { navController.popBackStack() }, onConnecte = { navController.popBackStack() })
+            }
+            composable<CreationCompteDestination> { entree ->
+                val restaurateur = entree.toRoute<CreationCompteDestination>().restaurateur
+                fun versAccueil() = navController.navigate(RestaurantsDestination) { popUpTo<CreationCompteDestination> { inclusive = true } }
+                ConnexionScreen(
+                    onRetour = { if (!navController.popBackStack()) versAccueil() },
+                    // Compte créé ou connecté : le consommateur arrive à l'accueil ; le restaurateur à l'espace professionnel (le formulaire d'inscription du restaurant arrive au lot R2).
+                    onConnecte = {
+                        navController.navigate(if (restaurateur) AccesProDestination else RestaurantsDestination) { popUpTo<CreationCompteDestination> { inclusive = true } }
+                    },
+                    inscriptionInitiale = true,
+                    onVoirDabord = if (restaurateur) null else ({ versAccueil() }),
+                    libelleRetourApresEnvoi = "Voir les restaurants",
+                )
             }
             composable<SuiviDestination> { entree ->
                 SuiviScreen(jeton = entree.toRoute<SuiviDestination>().jeton, onRetour = { navController.popBackStack() })

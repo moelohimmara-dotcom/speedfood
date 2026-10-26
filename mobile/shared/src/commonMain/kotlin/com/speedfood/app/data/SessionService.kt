@@ -56,6 +56,7 @@ class SessionService(
 
     fun deconnecter() {
         poser(null)
+        stockage.effacer(CLE_PROFIL_CHOISI)
     }
 
     /**

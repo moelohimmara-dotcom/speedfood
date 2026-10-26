@@ -88,14 +88,21 @@ internal fun BlocMessage(texte: String, erreur: Boolean) {
 /** Connexion et création de compte client (même compte que le site). Un compte est nécessaire pour envoyer une commande. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: ConnexionViewModel = koinViewModel()) {
+fun ConnexionScreen(
+    onRetour: () -> Unit,
+    onConnecte: () -> Unit,
+    inscriptionInitiale: Boolean = false,
+    onVoirDabord: (() -> Unit)? = null,
+    libelleRetourApresEnvoi: String = "Retour à ma commande",
+    viewModel: ConnexionViewModel = koinViewModel(),
+) {
     val etat by viewModel.etat.collectAsState()
     val googleActif by viewModel.googleActif.collectAsState()
     val facebookActif by viewModel.facebookActif.collectAsState()
     val config: com.speedfood.app.config.SpeedfoodConfig = org.koin.compose.koinInject()
     val ouvreur = androidx.compose.ui.platform.LocalUriHandler.current
     val modeLocal = config.supabaseUrl == "http://10.0.2.2:8787"
-    var inscription by remember { mutableStateOf(false) }
+    var inscription by remember { mutableStateOf(inscriptionInitiale) }
     var email by remember { mutableStateOf("") }
     var motDePasse by remember { mutableStateOf("") }
     var nom by remember { mutableStateOf(com.speedfood.app.data.BrouillonContact.nom) }
@@ -137,7 +144,7 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                 )
                 Text("Votre panier et les informations de votre commande sont conservés : vous les retrouverez en revenant.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = onRetour, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
-                    Text("Retour à ma commande", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+                    Text(libelleRetourApresEnvoi, style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
                 }
             } else {
                 if (googleActif) {
@@ -187,6 +194,11 @@ fun ConnexionScreen(onRetour: () -> Unit, onConnecte: () -> Unit, viewModel: Con
                     actif = !etat.enCours,
                 ) {
                     if (inscription) viewModel.inscrire(nom, telephone, email, motDePasse, onConnecte) else viewModel.connecter(email, motDePasse, onConnecte)
+                }
+                if (onVoirDabord != null) {
+                    TextButton(onClick = onVoirDabord, modifier = Modifier.fillMaxWidth()) {
+                        Text("Voir d'abord les restaurants", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
