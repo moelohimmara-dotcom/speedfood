@@ -30,6 +30,16 @@ class ProfilEntreeTest {
     }
 
     @Test
+    fun laVisiteDuProfilEstProposeeUneSeuleFois() {
+        assertEquals(true, com.speedfood.app.data.visiteAProposer(restaurateur = false, vues = emptySet()))
+        assertEquals(true, com.speedfood.app.data.visiteAProposer(restaurateur = true, vues = emptySet()))
+        assertEquals(false, com.speedfood.app.data.visiteAProposer(restaurateur = false, vues = setOf("visite_vue_consommateur")))
+        assertEquals(false, com.speedfood.app.data.visiteAProposer(restaurateur = false, vues = setOf("visite_vue")), "l'ancienne visite compte pour le consommateur")
+        assertEquals(true, com.speedfood.app.data.visiteAProposer(restaurateur = true, vues = setOf("visite_vue")), "mais pas pour un restaurateur")
+        assertEquals(false, com.speedfood.app.data.visiteAProposer(restaurateur = true, vues = setOf("visite_vue_restaurateur")))
+    }
+
+    @Test
     fun leProfilSeRelitParSaCle() {
         assertEquals(ProfilEntree.Restaurateur, ProfilEntree.depuis("restaurateur"))
         assertNull(ProfilEntree.depuis("inconnu"))

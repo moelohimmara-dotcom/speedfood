@@ -94,6 +94,10 @@ fun ConnexionScreen(
     inscriptionInitiale: Boolean = false,
     onVoirDabord: (() -> Unit)? = null,
     libelleRetourApresEnvoi: String = "Retour à ma commande",
+    intro: String = "Un compte client est nécessaire pour envoyer une commande. Le même compte fonctionne sur le site Speedfood.",
+    introConnexion: String? = null,
+    avecContact: Boolean = true,
+    messageConservation: String? = "Votre panier et les informations de votre commande sont conservés : vous les retrouverez en revenant.",
     viewModel: ConnexionViewModel = koinViewModel(),
 ) {
     val etat by viewModel.etat.collectAsState()
@@ -131,7 +135,7 @@ fun ConnexionScreen(
                 }
             }
             Text(
-                "Un compte client est nécessaire pour envoyer une commande. Le même compte fonctionne sur le site Speedfood.",
+                if (inscription) intro else (introConnexion ?: intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -142,7 +146,11 @@ fun ConnexionScreen(
                         "Si cette adresse a déjà un compte, aucun e-mail n'est envoyé : connectez-vous. Une fois l'adresse confirmée, revenez vous connecter ici.",
                     erreur = false,
                 )
-                Text("Votre panier et les informations de votre commande sont conservés : vous les retrouverez en revenant.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                messageConservation?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                BoutonPrincipal(texte = "J'ai confirmé mon adresse : me connecter", actif = true) {
+                    inscription = false
+                    viewModel.reprendreConnexion()
+                }
                 OutlinedButton(onClick = onRetour, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
                     Text(libelleRetourApresEnvoi, style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
                 }
@@ -177,7 +185,7 @@ fun ConnexionScreen(
                     }
                 }
             }
-            if (inscription) {
+            if (inscription && avecContact) {
                     ChampTexte(nom, { nom = it }, "Nom")
                     ChampTexte(telephone, { telephone = it }, "Téléphone", KeyboardType.Phone, aide = "Numéro guinéen, par exemple 622 12 34 56")
                 }
@@ -193,7 +201,10 @@ fun ConnexionScreen(
                     texte = if (etat.enCours) "Veuillez patienter…" else if (inscription) "Créer mon compte" else "Se connecter",
                     actif = !etat.enCours,
                 ) {
-                    if (inscription) viewModel.inscrire(nom, telephone, email, motDePasse, onConnecte) else viewModel.connecter(email, motDePasse, onConnecte)
+                    if (inscription) viewModel.inscrire(nom, telephone, email, motDePasse, onConnecte, avecContact) else viewModel.connecter(email, motDePasse, onConnecte)
+                }
+                if (inscription) {
+                    Text("Un e-mail de confirmation vous sera envoyé : ouvrez le lien qu'il contient, puis revenez vous connecter ici.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (onVoirDabord != null) {
                     TextButton(onClick = onVoirDabord, modifier = Modifier.fillMaxWidth()) {

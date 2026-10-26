@@ -26,6 +26,13 @@ fun verifierConnexion(email: String, motDePasse: String): String? = when {
     else -> null
 }
 
+/** Création de compte à l'entrée de l'application : l'adresse et le mot de passe suffisent (le nom et le téléphone sont demandés à la première commande). */
+fun verifierInscriptionEntree(email: String, motDePasse: String): String? = when {
+    !email.contains("@") || email.trim().length < 6 -> "Indiquez une adresse e-mail valide."
+    motDePasse.length < LONGUEUR_MIN_MOT_DE_PASSE -> "Le mot de passe doit contenir au moins $LONGUEUR_MIN_MOT_DE_PASSE caractères."
+    else -> null
+}
+
 fun verifierInscription(nom: String, telephone: String, email: String, motDePasse: String): String? = when {
     nom.trim().length < 2 -> "Indiquez votre nom (2 caractères au moins)."
     normaliserTelephone(telephone) == null -> "Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (par exemple 622 12 34 56)."
@@ -130,12 +137,13 @@ class ConnexionViewModel(
         }
     }
 
-    fun inscrire(nom: String, telephone: String, email: String, motDePasse: String, surReussite: () -> Unit = {}) {
-        verifierInscription(nom, telephone, email, motDePasse)?.let { _etat.value = EtatConnexion(erreur = it); return }
+    fun inscrire(nom: String, telephone: String, email: String, motDePasse: String, surReussite: () -> Unit = {}, avecContact: Boolean = true) {
+        val probleme = if (avecContact) verifierInscription(nom, telephone, email, motDePasse) else verifierInscriptionEntree(email, motDePasse)
+        probleme?.let { _etat.value = EtatConnexion(erreur = it); return }
         _etat.value = EtatConnexion(enCours = true)
         viewModelScope.launch {
             try {
-                if (session.inscrire(nom, normaliserTelephone(telephone) ?: telephone, email, motDePasse)) {
+                if (session.inscrire(nom, if (avecContact) normaliserTelephone(telephone) ?: telephone else telephone, email, motDePasse)) {
                     // Compte ouvert tout de suite : on retourne là où l'on était (la commande), sans passer par la boîte mail.
                     com.speedfood.app.data.BrouillonContact.vider()
                     _etat.value = EtatConnexion()
@@ -149,6 +157,11 @@ class ConnexionViewModel(
                 _etat.value = EtatConnexion(erreur = "Une erreur est survenue. Réessayez dans un instant.")
             }
         }
+    }
+
+    /** Après la confirmation de l'adresse : on repart sur l'écran de connexion, adresse conservée par l'écran. */
+    fun reprendreConnexion() {
+        _etat.value = EtatConnexion()
     }
 
     fun effacerErreur() {

@@ -29,6 +29,16 @@ enum class EcranEntree { Choix, Application }
 fun ecranApresOuverture(lienProfond: Boolean, connecte: Boolean, profil: ProfilEntree?): EcranEntree =
     if (lienProfond || connecte || profil != null) EcranEntree.Application else EcranEntree.Choix
 
+/** Clé de stockage de la visite déjà vue, par profil (la clé historique `visite_vue` vaut pour le consommateur : ceux qui l'avaient vue ne la revoient pas). */
+fun cleVisiteVue(restaurateur: Boolean): String = if (restaurateur) "visite_vue_restaurateur" else "visite_vue_consommateur"
+
+/** La visite du profil doit-elle être proposée ? Une seule fois par profil ; le consommateur qui avait déjà vu l'ancienne visite ne la revoit pas. */
+fun visiteAProposer(restaurateur: Boolean, vues: Set<String>): Boolean {
+    if (cleVisiteVue(restaurateur) in vues) return false
+    if (!restaurateur && "visite_vue" in vues) return false
+    return true
+}
+
 /** Par quel écran commence l'application une fois passé l'écran de choix. */
 enum class DebutApplication {
     /** L'accueil des restaurants. */

@@ -138,6 +138,18 @@ class CommandeTest {
     }
 
     @Test
+    fun inscriptionALEntreeNEnvoiePasDeCoordonneesVides() = runTest {
+        var corps = ""
+        val auth = KtorAuthApi(client(MockEngine { r -> corps = r.body.toByteArray().decodeToString(); respond("{}", HttpStatusCode.OK, json) }), config) { 0L }
+        auth.inscrire("", "", "aminata@exemple.test", "un-mot-de-passe-long")
+        val data = Json.parseToJsonElement(corps).jsonObject["data"]!!.jsonObject
+        assertTrue("nom_commande" !in data && "telephone" !in data, "aucune coordonnée vide : le profil se crée à la première commande")
+        assertEquals(null, com.speedfood.app.ui.verifierInscriptionEntree("aminata@exemple.test", "un-mot-de-passe-long"))
+        assertTrue(com.speedfood.app.ui.verifierInscriptionEntree("pas-un-mail", "un-mot-de-passe-long") != null)
+        assertTrue(com.speedfood.app.ui.verifierInscriptionEntree("aminata@exemple.test", "court") != null)
+    }
+
+    @Test
     fun inscriptionSansConfirmationRendLaSessionEtAvecConfirmationRienDuTout() = runTest {
         val ouverte = KtorAuthApi(client(MockEngine { respond("""{"access_token":"a","refresh_token":"r","expires_in":3600,"user":{"id":"u1","email":"aminata@exemple.test"}}""", HttpStatusCode.OK, json) }), config) { 0L }
             .inscrire("Aminata Diallo", "+224622123456", "aminata@exemple.test", "un-mot-de-passe-long")

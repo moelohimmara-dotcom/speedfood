@@ -64,21 +64,36 @@ import kotlin.math.sin
 /** Une page de la visite : ce qu'elle dit, et le dessin qui l'accompagne (une pure fonction de l'avancement d'entrée et d'une boucle continue). */
 private class Diapo(val titre: String, val texte: String, val dessin: Int)
 
-/** Deux écrans : la promesse de découverte, puis le choix de zone sans permission au lancement. */
-private val DIAPOS = listOf(
+/** Consommateur, deux écrans : la zone sans permission au lancement, puis la commande et son suivi. */
+private val DIAPOS_CONSOMMATEUR = listOf(
     Diapo(
-        "Découvrez avant de commander",
-        "Parcourez les restaurants et les plats sans créer de compte. Choisissez votre zone quand vous êtes prêt.",
+        "Les restaurants de votre zone",
+        "Changez de zone en un geste depuis l'accueil. Aucune position n'est demandée sans votre accord.",
         0,
     ),
     Diapo(
-        "Choisissez où vous livrer",
-        "Votre zone se change en un geste depuis l'accueil. Aucune position n'est demandée sans votre accord. Vous pouvez commander sans compte jusqu'à l'envoi.",
+        "Commandez, puis suivez",
+        "Le restaurant confirme votre plat. Vous suivez la préparation et la livraison.",
         2,
     ),
 )
 
-val NOMBRE_DIAPOS = DIAPOS.size
+/** Restaurateur, deux écrans : qui tient la fiche, puis la confirmation quotidienne des plats. */
+private val DIAPOS_RESTAURATEUR = listOf(
+    Diapo(
+        "Speedfood tient votre fiche avec vous",
+        "Vous donnez vos plats et vos horaires. L'équipe les met en ligne et les garde à jour.",
+        0,
+    ),
+    Diapo(
+        "Des plats toujours à jour",
+        "Chaque jour, confirmez en un geste ce qui est disponible : les clients voient un menu fiable.",
+        1,
+    ),
+)
+
+/** Les deux séries ont le même nombre d'écrans : le consommateur et le restaurateur ont chacun une visite courte. */
+val NOMBRE_DIAPOS = DIAPOS_CONSOMMATEUR.size
 
 /** Clé de stockage : la visite guidée n'est proposée automatiquement qu'au premier lancement ; elle reste accessible depuis l'écran d'accueil. */
 const val CLE_VISITE_VUE = "visite_vue"
@@ -98,7 +113,8 @@ private fun ressort(x: Float): Float {
  * [surTermine] est appelé en passant, ou en arrivant au bout.
  */
 @Composable
-fun VisiteGuidee(surTermine: () -> Unit) {
+fun VisiteGuidee(restaurateur: Boolean = false, surTermine: () -> Unit) {
+    val diapos = if (restaurateur) DIAPOS_RESTAURATEUR else DIAPOS_CONSOMMATEUR
     val pager = rememberPagerState(pageCount = { NOMBRE_DIAPOS })
     val portee = rememberCoroutineScope()
     // Une seule respiration lente : elle garde la page vivante sans solliciter constamment le GPU.
@@ -125,7 +141,7 @@ fun VisiteGuidee(surTermine: () -> Unit) {
             }
         }
         HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth()) { page ->
-            PageVisite(page, pager, boucle)
+            PageVisite(diapos, page, pager, boucle)
         }
         Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Points(pager.currentPage, NOMBRE_DIAPOS)
@@ -137,7 +153,7 @@ fun VisiteGuidee(surTermine: () -> Unit) {
 }
 
 @Composable
-private fun PageVisite(page: Int, pager: PagerState, boucle: Float) {
+private fun PageVisite(diapos: List<Diapo>, page: Int, pager: PagerState, boucle: Float) {
     val active = pager.currentPage == page
     val entree = remember(page) { Animatable(0f) }
     LaunchedEffect(active) {
@@ -159,7 +175,7 @@ private fun PageVisite(page: Int, pager: PagerState, boucle: Float) {
             },
             contentAlignment = Alignment.Center,
         ) {
-            IllustrationVisite(DIAPOS[page].dessin, if (active) entree.value else 1f, boucle)
+            IllustrationVisite(diapos[page].dessin, if (active) entree.value else 1f, boucle)
         }
         Column(
             Modifier.graphicsLayer {
@@ -169,8 +185,8 @@ private fun PageVisite(page: Int, pager: PagerState, boucle: Float) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(DIAPOS[page].titre, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-            Text(DIAPOS[page].texte, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Text(diapos[page].titre, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+            Text(diapos[page].texte, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
 }

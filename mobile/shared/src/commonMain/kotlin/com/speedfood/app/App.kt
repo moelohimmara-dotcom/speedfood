@@ -27,7 +27,9 @@ import com.speedfood.app.data.Espace
 import com.speedfood.app.data.ProfilEntree
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.debutApplication
+import com.speedfood.app.data.cleVisiteVue
 import com.speedfood.app.data.ecranApresOuverture
+import com.speedfood.app.data.visiteAProposer
 import com.speedfood.app.ui.EcranChoixProfil
 import com.speedfood.app.data.EspaceService
 import com.speedfood.app.data.PanierService
@@ -108,6 +110,10 @@ object RestaurateurDestination
 
 @Serializable
 object ConnexionDestination
+
+/** Visite guidée du profil, proposée une fois après la création du compte (ou « Voir d'abord »). */
+@Serializable
+data class VisiteProfilDestination(val restaurateur: Boolean)
 
 /** Création de compte à l'entrée : consommateur (avec « Voir d'abord les restaurants ») ou restaurateur (avant d'inscrire son restaurant). */
 @Serializable
@@ -399,16 +405,26 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             }
             composable<CreationCompteDestination> { entree ->
                 val restaurateur = entree.toRoute<CreationCompteDestination>().restaurateur
-                fun versAccueil() = navController.navigate(RestaurantsDestination) { popUpTo<CreationCompteDestination> { inclusive = true } }
+                val stockage: StockageLocal = koinInject()
+                val finale: Any = if (restaurateur) AccesProDestination else RestaurantsDestination
+                // Après le compte (ou « Voir d'abord ») : la visite du profil, une seule fois ; sinon directement la destination.
+                fun suite() {
+                    val vues = listOf("visite_vue", cleVisiteVue(false), cleVisiteVue(true)).filter { stockage.lire(it) != null }.toSet()
+                    val cible: Any = if (visiteAProposer(restaurateur, vues)) VisiteProfilDestination(restaurateur) else finale
+                    navController.navigate(cible) { popUpTo<CreationCompteDestination> { inclusive = true } }
+                }
+                fun versAccueil() = suite()
                 ConnexionScreen(
                     onRetour = { if (!navController.popBackStack()) versAccueil() },
                     // Compte créé ou connecté : le consommateur arrive à l'accueil ; le restaurateur à l'espace professionnel (le formulaire d'inscription du restaurant arrive au lot R2).
-                    onConnecte = {
-                        navController.navigate(if (restaurateur) AccesProDestination else RestaurantsDestination) { popUpTo<CreationCompteDestination> { inclusive = true } }
-                    },
+                    onConnecte = { suite() },
                     inscriptionInitiale = true,
                     onVoirDabord = if (restaurateur) null else ({ versAccueil() }),
-                    libelleRetourApresEnvoi = "Voir les restaurants",
+                    libelleRetourApresEnvoi = if (restaurateur) "Retour" else "Voir les restaurants",
+                    intro = if (restaurateur) "Créez votre compte pour inscrire votre restaurant. L'équipe Speedfood vous répond sous 48 h." else "Créez votre compte pour commander. Le même compte fonctionne sur le site Speedfood.",
+                    avecContact = false,
+                    introConnexion = "Connectez-vous avec votre compte Speedfood.",
+                    messageConservation = null,
                 )
             }
             composable<SuiviDestination> { entree ->
@@ -425,6 +441,14 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             }
             composable<VisiteDestination> {
                 VisiteGuidee { navController.popBackStack() }
+            }
+            composable<VisiteProfilDestination> { entree ->
+                val restaurateur = entree.toRoute<VisiteProfilDestination>().restaurateur
+                val stockage: StockageLocal = koinInject()
+                VisiteGuidee(restaurateur = restaurateur) {
+                    stockage.ecrire(cleVisiteVue(restaurateur), "1")
+                    navController.navigate(if (restaurateur) AccesProDestination else RestaurantsDestination) { popUpTo<VisiteProfilDestination> { inclusive = true } }
+                }
             }
             composable<LivreurDestination> {
                 LivreurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })

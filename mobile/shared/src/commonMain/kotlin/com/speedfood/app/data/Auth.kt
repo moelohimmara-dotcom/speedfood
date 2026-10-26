@@ -135,8 +135,8 @@ class KtorAuthApi(
                 put("email", email.trim())
                 put("password", motDePasse)
                 put("data", buildJsonObject {
-                    put("nom_commande", JsonPrimitive(nom.trim()))
-                    put("telephone", JsonPrimitive(telephone))
+                    if (nom.isNotBlank()) put("nom_commande", JsonPrimitive(nom.trim()))
+                    if (telephone.isNotBlank()) put("telephone", JsonPrimitive(telephone))
                 })
             },
         )
