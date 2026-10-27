@@ -98,7 +98,6 @@ fun CompteScreen(
     onAdresses: () -> Unit = {},
     onFavoris: () -> Unit = {},
     onAvis: () -> Unit = {},
-    onAccesPro: () -> Unit,
     config: SpeedfoodConfig = koinInject(),
     espaces: com.speedfood.app.data.EspaceService = koinInject(),
     viewModel: CompteViewModel = koinViewModel(),
@@ -141,12 +140,7 @@ fun CompteScreen(
             if (session == null) BoutonPrincipal("Me connecter", surClic = onConnexion)
             message?.let { BlocMessage(it, erreur = false) }
 
-            // Un client ordinaire ne voit AUCUN espace professionnel ; un compte qui y a droit les trouve ici, en premier.
-            if (pro != null) {
-                TitreRubrique("Mes espaces professionnels")
-                pro.espacesPro.forEach { e -> LigneMenu(e.libelle, e.icone(), e.sousTitre(pro)) { espaces.entrer(e) } }
-            }
-
+            // La coque du consommateur ne montre AUCUN espace professionnel, même à un compte qui y a droit : on y va par « Changer de profil » (confirmation puis choix), jamais par une porte directe.
             TitreRubrique("Mon espace")
             if (session != null) {
                 LigneMenu("Mon profil", IconesApp.Compte, "Pseudo, avatar, préférences de commande", onProfil)
@@ -158,8 +152,8 @@ fun CompteScreen(
             LigneMenu("Paramètres", IconesApp.Reglages, "Notifications, mises à jour, cet appareil", onParametres)
             LigneMenu("Aide et contact", IconesApp.Telephone, "Questions fréquentes, assistance, à propos", onAide)
 
-            // Pas d'espace professionnel : un accès discret ; les comptes qui en ont un le voient tout en haut de cette page.
-            if (pro == null) LigneMenu("Espace professionnel", IconesApp.Mallette, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
+            // Passer à un autre profil (restaurateur, professionnel) se fait ici, par une confirmation : plus de porte directe vers un autre monde.
+            LigneChangerProfil()
 
             TitreRubrique("Informations")
             LigneMenu("Conditions d'utilisation", IconesApp.Info) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/conditions") }
@@ -264,7 +258,7 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
 /** Aide : contact d'assistance (WhatsApp si l'administration en a renseigné un), questions fréquentes, à propos, liens légaux. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AideScreen(onRetour: () -> Unit, config: SpeedfoodConfig = koinInject(), viewModel: CompteViewModel = koinViewModel()) {
+fun AideScreen(onRetour: () -> Unit, avecRetour: Boolean = true, config: SpeedfoodConfig = koinInject(), viewModel: CompteViewModel = koinViewModel()) {
     val whatsapp by viewModel.whatsapp.collectAsState()
     val ouvreur = LocalUriHandler.current
     LaunchedEffect(Unit) { viewModel.chargerContact() }
@@ -275,7 +269,7 @@ fun AideScreen(onRetour: () -> Unit, config: SpeedfoodConfig = koinInject(), vie
         topBar = {
             TopAppBar(
                 title = { Text("Aide et contact", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
+                navigationIcon = { if (avecRetour) IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

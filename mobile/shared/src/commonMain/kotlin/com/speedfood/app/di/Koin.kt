@@ -205,6 +205,7 @@ fun modulesApplication(
         single<RestaurantApi> { RestaurantApiAvecCache(KtorRestaurantApi(get(), get()), get()) }
         single<AuthApi> { KtorAuthApi(get(), get()) { Clock.System.now().epochSeconds } }
         single { SessionService(get(), get()) { Clock.System.now().epochSeconds } }
+        single { com.speedfood.app.data.ProfilService(get()) }
         single<CommandeApi> { KtorCommandeApi(get(), get()) }
         single<LivraisonApi> { KtorLivraisonApi(get(), get()) }
         single<LivreurApi> { KtorLivreurApi(get(), get()) }

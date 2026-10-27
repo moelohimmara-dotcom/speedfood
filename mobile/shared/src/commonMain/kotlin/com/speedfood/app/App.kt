@@ -28,6 +28,7 @@ import com.speedfood.app.data.DebutApplication
 import com.speedfood.app.data.EcranEntree
 import com.speedfood.app.data.Espace
 import com.speedfood.app.data.ProfilEntree
+import com.speedfood.app.data.ProfilService
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.debutApplication
 import com.speedfood.app.data.cleVisiteVue
@@ -207,8 +208,32 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 
             val stockage: StockageLocal = koinInject()
             val lienProfond = remember(lienInitial) { lienInitial?.let(::lireLienProfond) }
             val sessionService: SessionService = koinInject()
+            val profils: ProfilService = koinInject()
+            val espacesService: EspaceService = koinInject()
             var phase by remember { mutableStateOf(if (lienProfond != null) Phase.Application else Phase.Ouverture) }
             var debut by remember { mutableStateOf(DebutApplication.Normal) }
+            // « Changer de profil » (dans le Compte de n'importe quelle coque) ramène à l'écran de choix.
+            val choixDemande by profils.choixDemande.collectAsState()
+            LaunchedEffect(choixDemande) {
+                if (choixDemande) {
+                    phase = Phase.Choix
+                    profils.choixTraite()
+                }
+            }
+            // Session fermée (déconnexion, expiration) pendant qu'on est dans la coque du restaurateur ou du professionnel : plus rien à y faire, on repart de l'écran de choix.
+            // Le consommateur, lui, reste sur l'accueil (il peut parcourir sans compte).
+            LaunchedEffect(Unit) {
+                var connecteAvant = sessionService.session.value != null
+                sessionService.session.collect { s ->
+                    val connecte = s != null
+                    if (connecteAvant && !connecte) {
+                        val avant = profils.profil.value
+                        profils.relire()
+                        if (avant == ProfilEntree.Restaurateur || avant == ProfilEntree.Professionnel) phase = Phase.Choix
+                    }
+                    connecteAvant = connecte
+                }
+            }
             Crossfade(phase, animationSpec = tween(450)) { courante ->
                 when (courante) {
                     Phase.Ouverture -> EcranOuverture {
@@ -224,8 +249,23 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 
                     }
                     Phase.Choix -> {
                         fun choisir(profil: ProfilEntree) {
-                            stockage.ecrire(CLE_PROFIL_CHOISI, profil.cle)
-                            debut = debutApplication(profil, connecte = false, apresChoix = true)
+                            profils.choisir(profil)
+                            val connecte = sessionService.session.value != null
+                            when (profil) {
+                                // Le consommateur arrive à l'accueil ; hors espace professionnel d'abord (un compte pro qui choisit « consommateur » commande comme un client).
+                                ProfilEntree.Consommateur -> {
+                                    espacesService.quitter()
+                                    debut = if (connecte) DebutApplication.Normal else DebutApplication.CreationCompte
+                                }
+                                // Restaurateur et professionnel : un compte qui a déjà un espace y entre ; sinon la coque du profil prend le relais.
+                                else -> {
+                                    if (connecte && espacesService.roles.value?.aUnEspacePro == true) {
+                                        espacesService.intentionPro = true
+                                        espacesService.actualiser()
+                                    }
+                                    debut = DebutApplication.Normal
+                                }
+                            }
                             phase = Phase.Application
                         }
                         EcranChoixProfil(
@@ -260,6 +300,8 @@ internal fun NavHostController.retour(repli: Any = RestaurantsDestination) {
 private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0, debut: DebutApplication = DebutApplication.Normal) {
     val espaces: EspaceService = koinInject()
     val espace by espaces.espace.collectAsState()
+    val profils: ProfilService = koinInject()
+    val profil by profils.profil.collectAsState()
     // À la reprise de l'application, les droits du compte sont relus (un droit ajouté ou retiré se voit tout de suite).
     val verrou: VerrouEspacesPro = koinInject()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -269,7 +311,13 @@ private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = nul
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { verrou.quitte() }
     Box {
         // Chaque espace a sa propre coque : le client n'a jamais la navigation d'un espace professionnel, et inversement.
-        if (espace == Espace.Client) ApplicationClient(config, lienProfond, numeroLien, debut) else EspacePro(espace, config)
+        // Une coque par profil. Un lien reçu (restaurant, commande) est un contenu de client : il ouvre toujours la coque du consommateur.
+        when {
+            espace != Espace.Client -> EspacePro(espace, config)
+            lienProfond == null && profil == ProfilEntree.Restaurateur -> CoqueRestaurateur(config)
+            lienProfond == null && profil == ProfilEntree.Professionnel -> CoqueProfessionnel(config)
+            else -> ApplicationClient(config, lienProfond, numeroLien, debut)
+        }
         BandeauAvisAcces(Modifier.align(Alignment.BottomCenter))
     }
 }
@@ -368,7 +416,6 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                     onAdresses = { navController.navigate(AdressesDestination) },
                     onFavoris = { navController.navigate(FavorisDestination) },
                     onAvis = { navController.navigate(AvisDestination) },
-                    onAccesPro = { navController.navigate(AccesProDestination) },
                 )
             }
             composable<ParametresDestination> {

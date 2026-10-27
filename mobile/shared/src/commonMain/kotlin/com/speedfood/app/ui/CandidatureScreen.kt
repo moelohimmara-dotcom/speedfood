@@ -58,7 +58,7 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CandidatureScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> Unit, viewModel: CandidatureViewModel = koinViewModel()) {
+fun CandidatureScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> Unit, avecRetour: Boolean = true, viewModel: CandidatureViewModel = koinViewModel()) {
     val ecran by viewModel.ecran.collectAsState()
     var choixQuartier by remember { mutableStateOf(false) }
 
@@ -69,8 +69,12 @@ fun CandidatureScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () 
             TopAppBar(
                 title = { Text(if (ecran.phase == PhaseCandidature.Suivi) "Ma demande" else "Inscrire mon restaurant", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
-                    IconButton(onClick = { if (ecran.phase == PhaseCandidature.Formulaire && ecran.brouillon.etape > 0) viewModel.precedente() else onRetour() }) {
-                        Icon(IconesApp.Retour, contentDescription = "Retour")
+                    // Comme onglet de la coque restaurateur, il n'y a pas de « retour » vers un autre écran ; la flèche ne sert qu'à reculer d'une étape du formulaire.
+                    val etapeRecul = ecran.phase == PhaseCandidature.Formulaire && ecran.brouillon.etape > 0
+                    if (avecRetour || etapeRecul) {
+                        IconButton(onClick = { if (etapeRecul) viewModel.precedente() else onRetour() }) {
+                            Icon(IconesApp.Retour, contentDescription = "Retour")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),

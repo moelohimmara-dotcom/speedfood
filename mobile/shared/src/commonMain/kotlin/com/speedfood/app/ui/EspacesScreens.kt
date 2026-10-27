@@ -159,8 +159,9 @@ fun CompteProScreen(espace: Espace, onParametres: () -> Unit, onAide: () -> Unit
                     Text(session?.email ?: "", style = MaterialTheme.typography.bodySmall, color = Couleurs.Creme)
                 }
             }
+            // Pas de porte directe vers le monde du client : on passe par « Changer de profil » (confirmation, puis écran de choix). Les autres espaces professionnels du compte restent à portée.
             TitreRubrique("Changer d'espace")
-            LigneMenu("Espace client", IconesApp.Restaurants, "Retourner commander comme un client") { espaces.quitter() }
+            LigneChangerProfil()
             roles?.espacesPro?.filter { it != espace }?.forEach { e -> LigneMenu(e.libelle, e.icone(), e.sousTitre(roles)) { espaces.entrer(e) } }
 
             TitreRubrique("Application")

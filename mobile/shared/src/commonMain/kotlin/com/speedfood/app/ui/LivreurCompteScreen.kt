@@ -204,7 +204,7 @@ fun LivreurCompteScreen(
 
                         item(key = "rubrique-espace") { TitreRubrique("Changer d'espace") }
                         item(key = "espace-client") {
-                            LigneMenu("Espace client", IconesApp.Restaurants, "Retourner commander comme un client") { espaces.quitter() }
+                            LigneChangerProfil()
                         }
                         roles?.espacesPro?.filter { it != Espace.Livreur }?.forEach { autre ->
                             item(key = "espace-${autre.name}") {

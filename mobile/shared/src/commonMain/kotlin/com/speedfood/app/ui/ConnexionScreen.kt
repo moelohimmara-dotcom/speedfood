@@ -96,6 +96,7 @@ fun ConnexionScreen(
     onConnecte: () -> Unit,
     inscriptionInitiale: Boolean = false,
     onVoirDabord: (() -> Unit)? = null,
+    libelleVoirDabord: String = "Voir d'abord les restaurants",
     libelleRetourApresEnvoi: String = "Retour à ma commande",
     intro: String = "Un compte client est nécessaire pour envoyer une commande. Le même compte fonctionne sur le site Speedfood.",
     introConnexion: String? = null,
@@ -211,7 +212,7 @@ fun ConnexionScreen(
                 }
                 if (onVoirDabord != null) {
                     TextButton(onClick = onVoirDabord, modifier = Modifier.fillMaxWidth()) {
-                        Text("Voir d'abord les restaurants", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(libelleVoirDabord, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
