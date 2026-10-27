@@ -22,7 +22,7 @@ export function lireCompteServiceFcm(brut: string | undefined): CompteServiceFcm
 }
 
 /** Type d'événement notifié : détermine le texte, le canal Android (créé par l'application) et la durée de validité. */
-export type TypeNotification = "commande_nouvelle" | "course_offre" | "commande_acceptee" | "commande_prete" | "commande_terminee" | "commande_refusee" | "commande_annulee" | "essai" | "mise_a_jour" | "equipe_commande";
+export type TypeNotification = "commande_nouvelle" | "course_offre" | "commande_acceptee" | "commande_prete" | "commande_terminee" | "commande_refusee" | "commande_annulee" | "essai" | "mise_a_jour" | "equipe_commande" | "candidature_acceptee" | "candidature_refusee" | "candidature_creee";
 
 export interface ContenuNotification {
   titre: string;
@@ -43,6 +43,9 @@ const CONTENUS: Record<TypeNotification, ContenuNotification> = {
   commande_annulee: { titre: "Commande annulée", texte: "Votre commande a été annulée.", canal: "suivi_commande", validiteSecondes: 3600 },
   mise_a_jour: { titre: "Mise à jour disponible", texte: "Une nouvelle version de Speedfood est disponible. Ouvrez l'application pour la télécharger.", canal: "mise_a_jour", validiteSecondes: 604800 },
   equipe_commande: { titre: "Commande à confirmer", texte: "Un établissement tenu par Speedfood a une commande à confirmer. Ouvrez le poste de répartition.", canal: "alerte_commande", validiteSecondes: 1800 },
+  candidature_acceptee: { titre: "Demande acceptée", texte: "Votre demande d'inscription est acceptée. L'équipe prépare la mise en ligne de votre restaurant.", canal: "suivi_commande", validiteSecondes: 604800 },
+  candidature_refusee: { titre: "Demande examinée", texte: "L'équipe Speedfood a examiné votre demande. Ouvrez l'application pour voir la réponse.", canal: "suivi_commande", validiteSecondes: 604800 },
+  candidature_creee: { titre: "Votre restaurant est créé", texte: "Votre fiche est créée sur Speedfood. L'équipe finalise sa mise en ligne.", canal: "suivi_commande", validiteSecondes: 604800 },
   essai: { titre: "Essai Speedfood", texte: "Les notifications fonctionnent sur cet appareil.", canal: "suivi_commande", validiteSecondes: 300 },
 };
 

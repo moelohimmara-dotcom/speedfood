@@ -2,7 +2,8 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerDemandesReferencement } from "@/lib/system-admin/referencements-lecture";
-import { changerStatutReferencementAction, supprimerReferencementAction } from "@/lib/system-admin/referencements";
+import { changerStatutReferencementAction, rattacherCompteCandidatAction, supprimerReferencementAction } from "@/lib/system-admin/referencements";
+import { LIBELLE_MOYEN } from "@/lib/paiement/en-ligne/remboursement-manuel";
 import { LIBELLES_STATUTS_REFERENCEMENT, LIBELLES_TYPES, STATUTS_REFERENCEMENT } from "@/lib/site/referencement";
 import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 import { creerClientAdmin } from "@/lib/db/admin";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 function jour(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
+
+const LIBELLE_SERVICE: Record<string, string> = { livraison: "livraison", retrait: "retrait", sur_place: "sur place" };
 
 function normaliser(texte: string): string {
   return texte.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
@@ -35,6 +38,13 @@ export default async function ReferencementsPage() {
     admin.from("menu_categories").select("id, nom").order("ordre").limit(200),
   ]);
   const groupes = grouperParCommune(quartiers);
+  // Images des candidatures de l'application : dépôt PRIVÉ, lien signé valable 10 minutes (jamais d'adresse publique avant l'accord).
+  const images = new Map<string, { logo: string | null; photo: string | null }>();
+  for (const d of demandes) {
+    if (!d.candidature || (!d.candidature.logoChemin && !d.candidature.photoChemin)) continue;
+    const signer = async (chemin: string | null) => (chemin ? ((await admin.storage.from("candidatures").createSignedUrl(chemin, 600)).data?.signedUrl ?? null) : null);
+    images.set(d.id, { logo: await signer(d.candidature.logoChemin), photo: await signer(d.candidature.photoChemin) });
+  }
   const listeCategories = categories ?? [];
   const nouvelles = demandes.filter((d) => d.statut === "nouvelle").length;
   const enCours = demandes.filter((d) => d.statut === "rappelee" || d.statut === "visite_prevue" || d.statut === "accord").length;
@@ -76,6 +86,30 @@ export default async function ReferencementsPage() {
                           <span className="ad-aide-champ"> · {jour(d.creeLe)}</span>
                           {d.categories || d.specialites ? (
                             <span className="ad-aide-champ referencement-admin-ligne">{[d.categories, d.specialites].filter(Boolean).join(" · ")}</span>
+                          ) : null}
+                          {d.candidature ? (
+                            <span className="ad-aide-champ referencement-admin-ligne">
+                              <Pastille ton="attention">Application</Pastille> {d.candidature.horaires ?? "horaires non précisés"}
+                              {d.candidature.moyensPaiement.length > 0 ? ` · paiement : ${d.candidature.moyensPaiement.map((m) => LIBELLE_MOYEN[m as keyof typeof LIBELLE_MOYEN] ?? m).join(", ")}` : ""}
+                              {d.candidature.services.length > 0 ? ` · ${d.candidature.services.map((s) => LIBELLE_SERVICE[s] ?? s).join(", ")}` : ""}
+                              {` · ${d.candidature.nombrePlats} plat(s) proposé(s)`}
+                              {images.get(d.id)?.logo ? (
+                                <>
+                                  {" · "}
+                                  <a className="lien-texte" href={images.get(d.id)?.logo ?? "#"} target="_blank" rel="noopener noreferrer">
+                                    Logo
+                                  </a>
+                                </>
+                              ) : null}
+                              {images.get(d.id)?.photo ? (
+                                <>
+                                  {" · "}
+                                  <a className="lien-texte" href={images.get(d.id)?.photo ?? "#"} target="_blank" rel="noopener noreferrer">
+                                    Photo
+                                  </a>
+                                </>
+                              ) : null}
+                            </span>
                           ) : null}
                         </td>
                         <td data-label="Où">
@@ -119,6 +153,9 @@ export default async function ReferencementsPage() {
                                   </option>
                                 ))}
                               </select>
+                              {d.candidature ? (
+                                <input type="text" name="motif" maxLength={300} defaultValue={d.candidature.motifRefus ?? ""} placeholder="Motif du refus (vu par le candidat)" aria-label={`Motif du refus pour ${d.organisation}`} />
+                              ) : null}
                               <button type="submit" className="btn btn-secondary btn-compact">
                                 Enregistrer
                               </button>
@@ -138,6 +175,19 @@ export default async function ReferencementsPage() {
                               <CreationEtablissement demandeId={d.id} categories={listeCategories} groupes={groupes} categorieProposee={proposee} />
                             </details>
                           )}
+                          {d.restaurantId && d.candidature?.utilisateurId ? (
+                            d.candidature.compteRattache ? (
+                              <span className="ad-aide-champ referencement-admin-ligne">Compte du candidat rattaché : son espace restaurateur est ouvert.</span>
+                            ) : (
+                              <form action={rattacherCompteCandidatAction} className="referencement-admin-ligne">
+                                <input type="hidden" name="id" value={d.id} />
+                                <span className="ad-aide-champ">Le compte de {d.email} a déposé cette demande.</span>
+                                <button type="submit" className="btn btn-secondary btn-compact">
+                                  Rattacher ce compte comme propriétaire
+                                </button>
+                              </form>
+                            )
+                          ) : null}
                           {d.restaurantId ? null : (
                             <form action={supprimerReferencementAction} className="referencement-admin-ligne">
                               <input type="hidden" name="id" value={d.id} />

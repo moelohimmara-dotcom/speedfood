@@ -3,6 +3,9 @@ import {
   MAX_PLATS,
   cheminImageCandidature,
   etatPourCandidat,
+  ficheDepuisCandidature,
+  platsPourCatalogue,
+  purgeDue,
   lireQuartierId,
   platsDepuisLecture,
   reponseAttendueLe,
@@ -101,6 +104,21 @@ verifier("une carte vide reste vide", platsDepuisLecture({ plats: [], refuses: [
 const beaucoup = platsDepuisLecture({ plats: Array.from({ length: MAX_PLATS + 3 }, (_, i) => ({ nom: `Plat ${i}`, prix: 5000 })), refuses: [], etat: "plats" });
 verifier("au plus 80 plats gardés", beaucoup.plats.length, MAX_PLATS);
 verifier("les 3 en trop sont signalés", beaucoup.refuses.length, 3);
+
+// Fiche et plats d'un établissement créé depuis une candidature
+verifier("fiche : livraison propre et sur place", ficheDepuisCandidature({ horaires: " Tous les jours 9h-22h ", moyens_paiement: ["especes", "orange_money", "especes", "bitcoin"], services: ["livraison", "sur_place", "drone"] }), { horaires: "Tous les jours 9h-22h", moyens_paiement: ["especes", "orange_money"], accepte_sur_place: true, livraison_mode: "propre" });
+verifier("fiche : retrait seul = aucune livraison", ficheDepuisCandidature({ horaires: "9h-22h", moyens_paiement: [], services: ["retrait"] }).livraison_mode, "aucune");
+verifier("fiche : données illisibles ne cassent rien", ficheDepuisCandidature({ horaires: null, moyens_paiement: "x", services: undefined }), { horaires: "", moyens_paiement: [], accepte_sur_place: false, livraison_mode: "aucune" });
+verifier("plats du catalogue revalidés", platsPourCatalogue([{ nom: "Riz", prix: 25000 }]), [{ nom: "Riz", prix: 25000 }]);
+verifier("un brouillon corrompu donne un catalogue vide, pas une erreur", platsPourCatalogue([{ nom: "Riz", prix: -5 }]), []);
+verifier("brouillon absent", platsPourCatalogue(null), []);
+
+// Conservation des images d'une candidature refusée : 30 jours
+const maintenantPurge = Date.parse("2026-11-30T12:00:00Z");
+verifier("refus il y a 30 jours pile : à effacer", purgeDue("2026-10-31T12:00:00Z", maintenantPurge), true);
+verifier("refus il y a 29 jours : on garde", purgeDue("2026-11-01T12:00:00Z", maintenantPurge), false);
+verifier("jamais traitée : on garde", purgeDue(null, maintenantPurge), false);
+verifier("date illisible : on garde (jamais d'effacement sur une donnée douteuse)", purgeDue("hier", maintenantPurge), false);
 
 if (ko > 0) {
   console.log(`ECHEC candidature : ${ko} verification(s) en echec`);

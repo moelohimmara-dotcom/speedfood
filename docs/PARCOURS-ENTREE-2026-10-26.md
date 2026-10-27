@@ -36,7 +36,7 @@ Décidé avec Malika le 26 octobre 2026 (maquettes validées en conversation). I
 | R3 | Menu par photo : le moteur du Chef IA (route `/api/v1/candidature/menu-photo`, quota 6 par compte et par jour, photo non conservée), relecture ligne par ligne dans l'application, lignes écartées expliquées | Livré (27 octobre) ; la lecture par le modèle n'est testable qu'une fois le site déployé (binding Workers AI) |
 
 **Correctif découvert en jouant R3 :** `PhotoAndroid` refusait TOUTE photo (la lecture des dimensions avec `inJustDecodeBounds` renvoie toujours `null`, traité à tort comme une erreur). Corrigé le 27 octobre ; la photo de plat du restaurateur et le logo du candidat en dépendaient.
-| R4 | Suivi de la demande (48 h), dossier complet côté équipe, création de l'établissement avec reprise des plats, rattachement semi-automatique du compte, notification, effacement à 30 jours après refus | À faire |
+| R4 | Dossier complet côté équipe (`/system/catalogue/referencements`), refus avec motif (vu par le candidat), création de l'établissement avec reprise des horaires, paiements, services, plats (non confirmés) et images (copiées du dépôt privé vers le public), rattachement du compte comme propriétaire **en un clic confirmé par l'équipe**, notifications au candidat (acceptée, refusée, créée), purge à 30 jours des images et menus d'une demande refusée (`/api/application/purge-candidatures`, tâche planifiée à 03 h UTC) | Livré (27 octobre) côté serveur ; page d'administration non vue dans un navigateur (derrière la connexion) |
 | R5 | Menu par photo pour l'équipe, dans l'application (fiche d'un établissement) | À faire |
 
 ## Fichiers

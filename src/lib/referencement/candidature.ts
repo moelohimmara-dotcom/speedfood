@@ -146,6 +146,33 @@ export function platsDepuisLecture(lecture: LectureMenu): LectureMenu {
   return { plats, refuses, etat: plats.length > 0 ? "plats" : lecture.etat === "plats" ? "indetermine" : lecture.etat };
 }
 
+export interface FicheDepuisCandidature {
+  horaires: string;
+  moyens_paiement: string[];
+  accepte_sur_place: boolean;
+  livraison_mode: "aucune" | "propre";
+}
+
+/**
+ * Ce que la candidature apporte à la fiche d'un établissement créé par l'équipe : horaires, moyens de paiement, sur place, et la livraison PROPRE seulement si le candidat
+ * l'a demandée (le mode « speedfood » de livraison reste une décision de l'équipe). Valeurs revérifiées : la base les contraint aussi.
+ */
+export function ficheDepuisCandidature(l: { horaires: unknown; moyens_paiement: unknown; services: unknown }): FicheDepuisCandidature {
+  const liste = (v: unknown, autorisees: readonly string[]): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && autorisees.includes(x)) : []);
+  const services = liste(l.services, SERVICES);
+  return {
+    horaires: texte(l.horaires, 200),
+    moyens_paiement: [...new Set(liste(l.moyens_paiement, MOYENS_PAIEMENT))],
+    accepte_sur_place: services.includes("sur_place"),
+    livraison_mode: services.includes("livraison") ? "propre" : "aucune",
+  };
+}
+
+/** Plats du brouillon à insérer au catalogue : seulement ceux qui passent encore la validation (le brouillon est lu en base, donc revérifié). */
+export function platsPourCatalogue(brouillon: unknown): PlatBrouillon[] {
+  return validerPlats(brouillon) ?? [];
+}
+
 /** Ce que le candidat voit : cinq états simples plutôt que les six statuts internes de l'équipe. */
 export type EtatCandidat = "recue" | "en_cours" | "acceptee" | "creee" | "refusee";
 
@@ -177,6 +204,16 @@ export const LIBELLE_ETAT_CANDIDAT: Record<EtatCandidat, string> = {
 export function reponseAttendueLe(deposeeLe: string): string | null {
   const t = Date.parse(deposeeLe);
   return Number.isNaN(t) ? null : new Date(t + DELAI_REPONSE_HEURES * 3600_000).toISOString();
+}
+
+/** Durée de conservation des images et du menu d'une candidature REFUSÉE (décision du 26 octobre 2026). */
+export const JOURS_CONSERVATION_REFUS = 30;
+
+/** Vrai quand la demande a été refusée depuis au moins `JOURS_CONSERVATION_REFUS` jours : ses images et son brouillon de menu doivent être effacés. */
+export function purgeDue(traiteeLe: string | null, maintenant: number): boolean {
+  if (!traiteeLe) return false;
+  const t = Date.parse(traiteeLe);
+  return !Number.isNaN(t) && maintenant - t >= JOURS_CONSERVATION_REFUS * 86_400_000;
 }
 
 /** Chemin d'une image de candidature dans le dépôt privé : toujours sous l'identifiant du compte, avec un nom généré (jamais celui du client). */

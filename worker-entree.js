@@ -68,6 +68,15 @@ const worker = {
       headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
     });
     ctx.waitUntil(handler.fetch(annonce, env, ctx).then(() => undefined, () => undefined));
+    // Purge des images et menus des candidatures refusées depuis 30 jours : une fois par jour (entre 03 h 00 et 03 h 05 UTC), la route est sans effet si elle est rejouée.
+    const maintenant = new Date(_evenement.scheduledTime ?? Date.now());
+    if (maintenant.getUTCHours() === 3 && maintenant.getUTCMinutes() < 5) {
+      const purge = new Request("https://entretien.interne/api/application/purge-candidatures", {
+        method: "POST",
+        headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
+      });
+      ctx.waitUntil(handler.fetch(purge, env, ctx).then(() => undefined, () => undefined));
+    }
   },
 
   async fetch(request, env, ctx) {
