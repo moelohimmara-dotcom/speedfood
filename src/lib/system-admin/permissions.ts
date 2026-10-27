@@ -216,6 +216,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
     libelle: "Accès",
     sousSections: [
       { href: "/system/acces/comptes", libelle: "Comptes utilisateurs", permission: "compte.consulter" },
+      { href: "/system/acces/doublons", libelle: "Doublons d'inscription", permission: "compte.consulter" },
       { href: "/system/acces/roles", libelle: "Rôles système", permission: "systeme.roles" },
       { href: "/system/acces/paliers", libelle: "Habilitations", permission: "systeme.roles" },
     ],

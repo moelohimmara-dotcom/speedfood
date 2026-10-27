@@ -191,6 +191,10 @@ function traduireErreurAuth(message: string): string {
     // Confirmation d'e-mail activée : le compte existe mais le lien n'a pas été suivi.
     return "Confirmez d'abord votre adresse : ouvrez le lien reçu par e-mail (regardez aussi les courriers indésirables).";
   }
+  if (message.toLowerCase().includes("banned")) {
+    // Inscription suspendue : l'adresse ressemble à celle d'un compte existant, l'équipe l'examine (voir /system/acces/doublons).
+    return "Votre inscription est en cours de vérification par l'équipe Speedfood (adresse proche d'un compte existant). Connectez-vous avec votre première adresse, ou attendez la réponse sous 48 h.";
+  }
   if (message.includes("Invalid login credentials")) {
     return "Email ou mot de passe incorrect.";
   }

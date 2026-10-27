@@ -202,6 +202,8 @@ internal fun traduireErreurAuth(statut: Int, corps: String): String {
     val t = corps.lowercase()
     return when {
         statut == 429 || "rate limit" in t || "too many" in t -> "Trop de tentatives. Patientez quelques minutes puis réessayez."
+        // Compte suspendu (inscription dont l'adresse ressemble à celle d'un compte existant) : l'équipe l'examine ; ce n'est ni un mauvais mot de passe ni une panne.
+        "user_banned" in t || "user is banned" in t || "banned" in t -> "Votre inscription est en cours de vérification par l'équipe Speedfood (adresse proche d'un compte existant). Connectez-vous avec votre première adresse, ou attendez la réponse sous 48 h."
         "invalid login credentials" in t -> "E-mail ou mot de passe incorrect."
         "email not confirmed" in t -> "Confirmez d'abord votre adresse : ouvrez le lien reçu par e-mail (regardez aussi les courriers indésirables)."
         "pwned" in t || "compromised" in t || "weak" in t -> "Ce mot de passe est trop faible ou connu dans des fuites de données. Choisissez-en un autre."

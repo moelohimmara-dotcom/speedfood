@@ -113,6 +113,8 @@ class CommandeTest {
     @Test
     fun erreursDAuthentificationLisibles() = runTest {
         fun auth(statut: HttpStatusCode, corps: String) = KtorAuthApi(client(MockEngine { respond(corps, statut, json) }), config) { 0L }
+        val suspendu = assertFailsWith<ErreurAuth> { auth(HttpStatusCode.BadRequest, """{"code":"user_banned","msg":"User is banned"}""").connecter("a@b.test", "x") }
+        assertTrue(suspendu.message!!.contains("en cours de vérification"), "un compte suspendu n'est ni un mauvais mot de passe ni une panne : ${suspendu.message}")
         val mauvais = assertFailsWith<ErreurAuth> { auth(HttpStatusCode.BadRequest, """{"msg":"Invalid login credentials"}""").connecter("a@b.test", "x") }
         assertEquals("E-mail ou mot de passe incorrect.", mauvais.message)
         assertEquals(false, mauvais.temporaire)
