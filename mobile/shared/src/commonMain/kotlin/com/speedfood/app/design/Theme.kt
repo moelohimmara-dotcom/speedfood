@@ -23,6 +23,8 @@ private val schemaClair = lightColorScheme(
     surface = Couleurs.Surface,
     onSurface = Couleurs.Encre,
     surfaceVariant = Couleurs.SurfaceAlt,
+    // Fond des boîtes de dialogue (AlertDialog, menus déroulants hauts) : sans cela Material les peint en lavande, hors charte.
+    surfaceContainerHigh = Couleurs.Surface,
     onSurfaceVariant = Couleurs.Secondaire,
     outline = Couleurs.Bordure,
     error = Couleurs.Danger,

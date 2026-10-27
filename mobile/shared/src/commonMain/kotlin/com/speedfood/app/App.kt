@@ -1,5 +1,6 @@
 package com.speedfood.app
 
+import com.speedfood.app.ui.LibelleOnglet
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -297,7 +298,7 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             }
         }
         val onglets = listOf(
-            Onglet("Accueil", Icons.Default.Home, RestaurantsDestination),
+            Onglet("Restaurants", Icons.Default.Home, RestaurantsDestination),
             Onglet("Commandes", Icons.Default.List, MesCommandesDestination),
             Onglet("Panier", Icons.Default.ShoppingCart, PanierDestination),
             Onglet("Compte", Icons.Default.Person, CompteDestination),
@@ -333,7 +334,7 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                                         Icon(o.icone, contentDescription = null)
                                     }
                                 },
-                                label = { Text(o.libelle, style = MaterialTheme.typography.labelMedium) },
+                                label = { LibelleOnglet(o.libelle) },
                                 colors = NavigationBarItemDefaults.colors(selectedIconColor = Couleurs.Encre, selectedTextColor = Couleurs.Encre, indicatorColor = Couleurs.Mangue, unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant),
                             )
                         }

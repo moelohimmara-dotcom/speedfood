@@ -73,7 +73,7 @@ internal fun Espace.sousTitre(roles: RolesCompte?): String = when (this) {
 internal fun Espace.icone() = when (this) {
     Espace.Client -> Icons.Default.Home
     Espace.Restaurateur -> Icons.Default.Person
-    Espace.Livreur -> Icons.Default.Notifications
+    Espace.Livreur -> IconesApp.Epingle
     Espace.Equipe -> Icons.Default.Lock
 }
 
@@ -129,7 +129,7 @@ fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> 
             if (droits?.aUnEspacePro != true) {
                 TitreRubrique("Rejoindre Speedfood")
                 LigneMenu("Je suis restaurateur", Icons.Default.Person, "Inscrire mon restaurant sur Speedfood") { if (onInscrireRestaurant != null) onInscrireRestaurant() else ouvreur.openUri("${config.siteUrl.trimEnd('/')}/restaurateurs") }
-                LigneMenu("Je suis livreur", Icons.Default.Notifications, "Le compte est ouvert par l'équipe Speedfood : contactez-nous", onAide)
+                LigneMenu("Je suis livreur", IconesApp.Epingle, "Le compte est ouvert par l'équipe Speedfood : contactez-nous", onAide)
             }
         }
     }

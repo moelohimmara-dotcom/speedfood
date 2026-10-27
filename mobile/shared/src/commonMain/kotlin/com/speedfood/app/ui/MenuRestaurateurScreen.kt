@@ -1,5 +1,9 @@
 package com.speedfood.app.ui
 
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -141,6 +145,7 @@ internal fun ContenuMenuGere(
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun CartePlatGere(
     plat: PlatGere,
@@ -207,22 +212,23 @@ internal fun CartePlatGere(
             plat.options.forEach { o ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("+ ${o.nom}" + if (o.prix > 0) " (${formaterGnf(o.prix)})" else "", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { surRetraitOption(o.id) }, enabled = !occupe) { Text("Retirer", color = Couleurs.Danger) }
+                    BoutonAction("Retirer ce supplément", Couleurs.Danger, !occupe) { surRetraitOption(o.id) }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Actions courantes : de vrais boutons (contour), qui passent à la ligne ensemble sur un téléphone étroit.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (plat.disponible && etat == EtatPlat.AConfirmer) {
-                    TextButton(onClick = { surConfirmer(plat.id) }, enabled = !occupe) { Text("Confirmer", color = Couleurs.RougeFonce) }
+                    Button(onClick = { surConfirmer(plat.id) }, enabled = !occupe, colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)) { Text("Confirmer", style = MaterialTheme.typography.labelLarge) }
                 }
-                TextButton(onClick = { edition = true }, enabled = !occupe) { Text("Modifier", color = Couleurs.Encre) }
-                TextButton(onClick = { ajoutOption = true }, enabled = !occupe) { Text("+ Supplément", color = Couleurs.Encre) }
+                BoutonAction("Modifier", Couleurs.Encre, !occupe) { edition = true }
+                BoutonAction("+ Supplément", Couleurs.Encre, !occupe) { ajoutOption = true }
+                BoutonAction(if (plat.photoUrl == null) "Ajouter une photo" else "Changer la photo", Couleurs.Encre, !occupe) { surPhoto(plat.id) }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = { surPhoto(plat.id) }, enabled = !occupe) { Text(if (plat.photoUrl == null) "Ajouter une photo" else "Changer la photo", color = Couleurs.Encre) }
-                if (plat.photoUrl != null) TextButton(onClick = { surRetraitPhoto(plat.id) }, enabled = !occupe) { Text("Retirer la photo", color = Couleurs.Danger) }
+            // Actions qui retirent quelque chose : à part, en rouge, jamais mélangées aux actions courantes.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (plat.photoUrl != null) BoutonAction("Retirer la photo", Couleurs.Danger, !occupe) { surRetraitPhoto(plat.id) }
+                BoutonAction("Archiver ce plat", Couleurs.Danger, !occupe) { archivage = true }
             }
-            // Sur sa propre ligne : quatre boutons de front ne tiennent pas sur un téléphone étroit.
-            TextButton(onClick = { archivage = true }, enabled = !occupe) { Text("Archiver ce plat", color = Couleurs.Danger) }
         }
     }
     if (edition) {
@@ -321,4 +327,15 @@ private fun DialogueSupplement(surAnnuler: () -> Unit, surEnvoi: (String, Int) -
         },
         dismissButton = { TextButton(onClick = surAnnuler) { Text("Annuler", color = Couleurs.Encre) } },
     )
+}
+
+/** Bouton d'action d'une carte : contour de la couleur de l'action, petit gabarit (plusieurs tiennent sur une ligne). */
+@Composable
+private fun BoutonAction(texte: String, couleur: androidx.compose.ui.graphics.Color, actif: Boolean, surClic: () -> Unit) {
+    OutlinedButton(
+        onClick = surClic,
+        enabled = actif,
+        border = BorderStroke(1.5.dp, if (actif) couleur else MaterialTheme.colorScheme.outline),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+    ) { Text(texte, style = MaterialTheme.typography.labelLarge, color = couleur) }
 }

@@ -1,5 +1,7 @@
 package com.speedfood.app
 
+import com.speedfood.app.ui.LibelleOnglet
+import com.speedfood.app.ui.IconesApp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.unit.dp
@@ -141,18 +143,18 @@ private fun ongletsDe(espace: Espace): List<OngletPro> = when (espace) {
     Espace.Restaurateur -> listOf(
         OngletPro("Commandes", Icons.Default.Notifications, RestaurateurDestination),
         OngletPro("Menu", Icons.Default.List, MenuRestaurateurDestination),
-        OngletPro("Activité", Icons.Default.Info, ActiviteDestination),
+        OngletPro("Activité", IconesApp.Histogramme, ActiviteDestination),
         OngletPro("Compte", Icons.Default.Person, CompteProDestination),
     )
     Espace.Livreur -> listOf(
-        OngletPro("Courses", Icons.Default.Notifications, LivreurDestination),
-        OngletPro("Gains", Icons.Default.Info, GainsDestination),
+        OngletPro("Courses", IconesApp.Epingle, LivreurDestination),
+        OngletPro("Gains", IconesApp.Piece, GainsDestination),
         OngletPro("Compte", Icons.Default.Person, CompteProDestination),
     )
     Espace.Equipe -> listOf(
         OngletPro("Tableau", Icons.Default.Home, EquipeDestination),
         OngletPro("Commandes", Icons.Default.List, SupportDestination),
-        OngletPro("Livraisons", Icons.Default.Notifications, LivraisonsEquipeDestination),
+        OngletPro("Livraisons", IconesApp.Epingle, LivraisonsEquipeDestination),
         OngletPro("Compte", Icons.Default.Person, CompteProDestination),
     )
     Espace.Client -> emptyList()
@@ -206,7 +208,7 @@ private fun CoquePro(espace: Espace, config: SpeedfoodConfig, espaces: EspaceSer
                             selected = choisi,
                             onClick = { if (!choisi) versOnglet(o.route) },
                             icon = { Icon(o.icone, contentDescription = null) },
-                            label = { Text(o.libelle, style = MaterialTheme.typography.labelMedium) },
+                            label = { LibelleOnglet(o.libelle) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Couleurs.Encre,
                                 selectedTextColor = Couleurs.Mangue,

@@ -136,7 +136,7 @@ data class MenuGere(val sections: List<SectionGeree> = emptyList(), val plats: L
         val parSection = plats.groupBy { it.sectionId }
         val groupes = sections.mapNotNull { s -> parSection[s.id]?.takeIf { it.isNotEmpty() }?.let { s.nom to it } }
         val orphelins = plats.filter { p -> p.sectionId == null || sections.none { it.id == p.sectionId } }
-        return if (orphelins.isEmpty()) groupes else groupes + ("Autres plats" to orphelins)
+        return if (orphelins.isEmpty()) groupes else groupes + ((if (groupes.isEmpty()) "Plats" else "Autres plats") to orphelins)
     }
 }
 

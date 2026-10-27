@@ -144,7 +144,7 @@ private fun CarteCommandeHistorique(commande: CommandeHistorique) {
             }
             Text(dateHeureCommande(commande.creeLe), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                if (commande.nbLignes > 0) "${commande.nbLignes} article(s)" else "",
+                if (commande.nbLignes > 0) libelleArticles(commande.nbLignes) else "",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

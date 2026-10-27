@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 45,
-  nom: "2.43.0",
-  notes: "L'équipe Speedfood peut ajouter des plats au menu d'un établissement en photographiant la carte, après relecture.",
+  code: 46,
+  nom: "2.44.0",
+  notes: "Retour qui fonctionne partout, cases à cocher plus faciles à toucher, boutons du menu restaurateur plus clairs, nouvelles icônes, et correction de la reconnexion après une session expirée.",
   obligatoire: false,
-  apkSha256: "27c0323cc088624bdcf632bd063989c1572005dd7734755127b05d9f41f2178e",
-  apkTaille: 15297878,
+  apkSha256: "6df92fc7d014fe09fd71a9b6ab8be749ec9fd2545b85aa7ecb935d61efa49de5",
+  apkTaille: 15314262,
 };

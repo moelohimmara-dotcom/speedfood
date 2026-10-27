@@ -19,6 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +51,21 @@ internal fun LigneACocher(coche: Boolean, surChangement: (Boolean) -> Unit, modi
         Box(Modifier.weight(1f)) { contenu() }
     }
 }
+
+/**
+ * Libellé d'un onglet de la barre du bas : une seule ligne, et le réglage « grande police » du téléphone est plafonné à 1,2× ici seulement (4 onglets sur ~360 dp ne laissent pas la place
+ * d'un mot comme « Commandes » à 1,6× : il se coupait en « Command / es »). Le reste de l'application suit le réglage complet.
+ */
+@Composable
+internal fun LibelleOnglet(texte: String) {
+    val d = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(d.density, minOf(d.fontScale, 1.2f))) {
+        Text(texte, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** « 1 article », « 3 articles » : le pluriel s'accorde (plus de « article(s) »). */
+internal fun libelleArticles(n: Int): String = if (n > 1) "$n articles" else "$n article"
 
 /** Pastille d'état : fond clair et texte foncé du ton (succès, neutre, danger), toujours avec un texte (la couleur seule ne dit rien). */
 @Composable

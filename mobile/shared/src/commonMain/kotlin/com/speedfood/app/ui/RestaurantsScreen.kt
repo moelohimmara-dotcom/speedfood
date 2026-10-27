@@ -122,7 +122,7 @@ fun RestaurantsScreen(
 internal fun BoutonPanier(nombreArticles: Int, onPanier: () -> Unit) {
     IconButton(onClick = onPanier) {
         BadgedBox(badge = { if (nombreArticles > 0) Badge(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme) { Text("$nombreArticles") } }) {
-            Icon(Icons.Default.ShoppingCart, contentDescription = if (nombreArticles > 0) "Mon panier, $nombreArticles article(s)" else "Mon panier")
+            Icon(Icons.Default.ShoppingCart, contentDescription = if (nombreArticles > 0) "Mon panier, ${libelleArticles(nombreArticles)}" else "Mon panier")
         }
     }
 }

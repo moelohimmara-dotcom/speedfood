@@ -66,7 +66,8 @@ data class Menu(val sections: List<Section>, val plats: List<Plat>) {
         val parSection = plats.groupBy { it.sectionId }
         val groupes = sections.sortedBy { it.position }.mapNotNull { s -> parSection[s.id]?.takeIf { it.isNotEmpty() }?.let { s.nom to it } }
         val orphelins = plats.filter { p -> p.sectionId == null || sections.none { it.id == p.sectionId } }
-        return if (orphelins.isEmpty()) groupes else groupes + ("Autres plats" to orphelins)
+        // Sans aucune section nommée, « Autres plats » n'a pas de sens (autres que quoi ?) : le titre est simplement « Plats ».
+        return if (orphelins.isEmpty()) groupes else groupes + ((if (groupes.isEmpty()) "Plats" else "Autres plats") to orphelins)
     }
 }
 

@@ -159,7 +159,7 @@ fun CompteScreen(
             LigneMenu("Aide et contact", Icons.Default.Phone, "Questions fréquentes, assistance, à propos", onAide)
 
             // Pas d'espace professionnel : un accès discret ; les comptes qui en ont un le voient tout en haut de cette page.
-            if (pro == null) LigneMenu("Espace professionnel", Icons.Default.Lock, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
+            if (pro == null) LigneMenu("Espace professionnel", IconesApp.Mallette, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
 
             TitreRubrique("Informations")
             LigneMenu("Conditions d'utilisation", Icons.Default.Info) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/conditions") }

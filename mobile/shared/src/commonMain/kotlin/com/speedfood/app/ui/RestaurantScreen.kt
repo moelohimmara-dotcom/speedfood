@@ -97,7 +97,7 @@ fun RestaurantScreen(
             if (pret != null && panier.restaurantId == pret.fiche.id && !panier.estVide) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     message?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    BoutonPrincipal("Voir mon panier · ${panier.nombreArticles} article(s) · ${formaterGnf(panier.sousTotal)}", surClic = onPanier)
+                    BoutonPrincipal("Voir mon panier · ${libelleArticles(panier.nombreArticles)} · ${formaterGnf(panier.sousTotal)}", surClic = onPanier)
                 }
             } else if (message != null) {
                 Text(message ?: "", Modifier.padding(16.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
