@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { reserverNumero } from "@/lib/identite/numeros";
 import { validerImage } from "@/lib/storage/images";
 import {
   DELAI_REPONSE_HEURES,
@@ -86,6 +87,10 @@ export async function deposerCandidature(utilisateurId: string, corps: unknown):
   const verifiee = validerCandidature(corps, { commune, quartier: q.nom, email });
   if (!verifiee.ok) return { ok: false, code: "VALIDATION", message: verifiee.erreur };
   const { demande: d, horaires, moyensPaiement, services, plats } = verifiee.candidature;
+
+  // Un numéro, un titulaire : si un AUTRE compte détient ce numéro, la demande n'est pas déposée (le conflit est consigné pour l'équipe, qui vérifiera par un appel).
+  const numero = await reserverNumero(utilisateurId, d.telephone, "candidature");
+  if (!numero.ok) return { ok: false, code: "VALIDATION", message: numero.message };
 
   const { data, error } = await admin
     .from("referencement_demandes")

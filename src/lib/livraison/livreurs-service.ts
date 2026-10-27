@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reserverNumero } from "@/lib/identite/numeros";
 import { clientLivraison } from "./lecture";
 import {
   expirationLien,
@@ -138,7 +139,7 @@ export async function activerCompte(jeton: string, utilisateurId: string, dossie
   const { data: deja } = await db.from("livreurs").select("id").eq("utilisateur_id", utilisateurId).maybeSingle();
   if (deja) return refuser("Ce compte est déjà lié à une fiche livreur.");
 
-  const { data: fiche } = await db.from("livreurs").select("id, cycle, utilisateur_id, restaurant_id").eq("id", invitation.livreur_id).maybeSingle();
+  const { data: fiche } = await db.from("livreurs").select("id, cycle, utilisateur_id, restaurant_id, telephone").eq("id", invitation.livreur_id).maybeSingle();
   const pour = fiche ? { cycle: fiche.cycle as string, utilisateurId: (fiche.utilisateur_id as string | null) ?? null, restaurantId: (fiche.restaurant_id as string | null) ?? null } : null;
   if (!fiche || !pour || !ficheActivable(pour)) return refuser(invalide);
 
@@ -146,6 +147,13 @@ export async function activerCompte(jeton: string, utilisateurId: string, dossie
   // Le dossier d'identité n'est exigé que des livreurs du groupe Speedfood.
   const controle = validerDossier(dossier, dossierExigible(pour) ? { pieceRequise: reglages.pieceRequise, urgenceRequise: reglages.urgenceRequise } : { pieceRequise: false, urgenceRequise: false });
   if (!controle.ok) return refuser(controle.erreur);
+
+  // Un numéro, un titulaire : le numéro de la fiche est réservé pour CE compte avant de consommer le lien (un lien n'est pas brûlé par un conflit). Si un autre compte le détient,
+  // le conflit est consigné pour l'équipe, qui vérifiera par un appel.
+  if (fiche.telephone) {
+    const numero = await reserverNumero(utilisateurId, fiche.telephone as string, "livreur");
+    if (!numero.ok) return refuser(numero.message);
+  }
 
   // Le lien est consommé D'ABORD (conditionnel) : deux ouvertures simultanées ne lient pas deux comptes.
   const { data: consomme } = await db.from("livreur_invitations").update({ utilise_le: maintenantIso }).eq("id", invitation.id).is("utilise_le", null).select("id");

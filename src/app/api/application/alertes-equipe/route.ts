@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { conflitsAEnvoyer, marquerConflitsEnvoyes } from "@/lib/identite/numeros";
 import { marquerEnvoyes, signalementsAEnvoyer } from "@/lib/system-admin/doublons";
 
 /**
@@ -27,10 +28,22 @@ export async function POST(request: Request) {
   const action = new URL(request.url).searchParams.get("action");
   try {
     if (action === "lister") {
-      const signalements = await signalementsAEnvoyer();
+      const [signalements, conflits] = await Promise.all([signalementsAEnvoyer(), conflitsAEnvoyer()]);
+      const messagesNumeros = conflits.map((c) => ({
+        id: `num:${c.id}`,
+        sujet: "Speedfood : numéro de téléphone réclamé par deux comptes",
+        texte:
+          `Un numéro de téléphone est réclamé par deux comptes professionnels (un numéro, un titulaire).\n\n` +
+          `Numéro : ${c.telephone}\n` +
+          `Titulaire actuel : ${c.titulaireEmail ?? "(inconnu)"}\n` +
+          `Demandeur : ${c.demandeurEmail ?? "(inconnu)"} (${c.source === "livreur" ? "livreur" : "candidature de restaurateur"})\n` +
+          `Reçu le : ${c.creeLe}\n\n` +
+          `Appelez avant de décider : le titulaire doit être d'accord ou ne plus être l'usager du numéro.\n` +
+          `Décision : ${lien("/system/acces/numeros")}\n`,
+      }));
       return NextResponse.json({
-        messages: signalements.map((s) => ({
-          id: s.id,
+        messages: [...messagesNumeros, ...signalements.map((s) => ({
+          id: `dbl:${s.id}`,
           sujet: "Speedfood : inscription suspendue (adresse déjà connue)",
           texte:
             `Une inscription vient d'être suspendue : son adresse correspond à celle d'un compte existant.\n\n` +
@@ -40,13 +53,14 @@ export async function POST(request: Request) {
             `Reçue le : ${s.creeLe}\n\n` +
             `La personne ne peut pas se connecter tant que vous n'avez pas décidé (autoriser si ce sont deux personnes différentes, refuser si c'est la même).\n` +
             `Décision : ${lien("/system/acces/doublons")}\n`,
-        })),
+        }))],
       });
     }
     if (action === "confirmer") {
       const corps = (await request.json().catch(() => ({}))) as { ids?: unknown };
       const ids = Array.isArray(corps.ids) ? corps.ids.filter((i): i is string => typeof i === "string") : [];
-      await marquerEnvoyes(ids);
+      await marquerEnvoyes(ids.filter((i) => i.startsWith("dbl:")).map((i) => i.slice(4)));
+      await marquerConflitsEnvoyes(ids.filter((i) => i.startsWith("num:")).map((i) => i.slice(4)));
       return NextResponse.json({ ok: true, confirmes: ids.length });
     }
     return NextResponse.json({ erreur: "Action inconnue." }, { status: 400 });

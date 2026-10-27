@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estUuid } from "@/lib/commande/commun";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { libererNumero } from "@/lib/identite/numeros";
 import { lireQuartiersActifs } from "@/lib/geographie/quartiers";
 import { ficheDepuisCandidature, platsPourCatalogue } from "@/lib/referencement/candidature";
 import { notifierUtilisateursFcm } from "@/lib/push/appareils";
@@ -25,7 +26,7 @@ export async function changerStatutReferencement(
   const motif = typeof motifBrut === "string" ? motifBrut.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 300) : "";
   const motifRefus = statut === "refusee" ? motif || "L'équipe vous a expliqué la raison par téléphone." : null;
   const admin = creerClientAdmin() as unknown as SupabaseClient;
-  const { data: avant } = await admin.from("referencement_demandes").select("statut, utilisateur_id").eq("id", id).maybeSingle();
+  const { data: avant } = await admin.from("referencement_demandes").select("statut, utilisateur_id, contact_telephone").eq("id", id).maybeSingle();
   const { data, error } = await admin
     .from("referencement_demandes")
     .update({ statut, traitee_le: statut === "accord" || statut === "refusee" ? new Date().toISOString() : null, motif_refus: motifRefus })
@@ -34,6 +35,8 @@ export async function changerStatutReferencement(
     .select("id");
   if (error) return { ok: false, message: "Le statut n'a pas pu être changé. Réessayez dans un instant." };
   if (!data || data.length === 0) return { ok: false, message: "Cette demande n'existe plus ou son établissement est déjà créé." };
+  // Une candidature refusée ne retient plus le numéro (le candidat peut le déposer à nouveau, ou une autre personne l'utiliser légitimement).
+  if (statut === "refusee" && avant?.utilisateur_id) await libererNumero(avant.utilisateur_id, avant.contact_telephone, "candidature");
   // Le candidat est prévenu une fois par changement vers « accord » ou « refusée » (meilleur effort : un échec d'envoi n'annule rien).
   if (avant?.utilisateur_id && avant.statut !== statut && (statut === "accord" || statut === "refusee")) {
     await notifierUtilisateursFcm([avant.utilisateur_id], statut === "accord" ? "candidature_acceptee" : "candidature_refusee").catch(() => null);

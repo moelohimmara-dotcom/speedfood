@@ -50,3 +50,8 @@ Pas encore protégé :
 ## 6. Choix à faire
 1. **G1 : bloquer ou avertir ?** Recommandation : bloquer l'inscription quand la forme canonique existe déjà. C'est la même boîte aux lettres ; en laisser créer un second compte, c'est créer un doublon certain.
 2. **G3 : le téléphone n'est qu'un indice**, pas un blocage : deux personnes peuvent partager un numéro (famille, gérant et employé). La décision reste humaine.
+
+## 7. État d'avancement (27 octobre 2026)
+- **Lot I1 livré** (G1, G2 partiel) : adresse canonique, suspension 30 jours + signalement, console `/system/acces/doublons`, alerte e-mail par le SMTP de Google (Worker, secrets `GOOGLE_SMTP_USER`, `GOOGLE_SMTP_APP_PASSWORD`, `EQUIPE_ALERTE_EMAIL`), message clair à la personne suspendue.
+- **Lot I2 livré** (G3, G4 partiel) : **un numéro, un titulaire** pour les profils professionnels (candidature de restaurateur, livreur). Réservation à la candidature, à l'activation du compte livreur et à la création d'un livreur par l'équipe ; un conflit est consigné, la demande n'est pas déposée ; `/system/acces/numeros` permet de **céder** (motif obligatoire, après appel) ou de **garder au titulaire** ; une candidature refusée libère le numéro ; le formulaire anonyme du site refuse un numéro déjà détenu. Hors périmètre volontaire : les numéros de consommateurs (en attendant la vérification par code).
+- Reste : tuile « à examiner » dans le tableau de l'application équipe, relance à 48 h, rattachement à un établissement existant (G4), fusion de comptes (G7), vérification Supabase des connexions sociales (G6).

@@ -2,6 +2,7 @@
 
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { MESSAGE_NUMERO_PRIS, numeroEstPris } from "@/lib/identite/numeros";
 import { limiterReferencement } from "@/lib/securite/limitation-debit";
 import { validerDemandeReferencement } from "./referencement";
 
@@ -44,6 +45,8 @@ export async function envoyerDemandeReferencementAction(_etat: EtatReferencement
   }
 
   const { demande: d } = verifiee;
+  // Un numéro déjà détenu par un compte Speedfood ne sert pas à une demande anonyme : la personne se connecte avec son compte (ou l'équipe le lui attribue après vérification).
+  if (await numeroEstPris(d.telephone)) return { erreur: MESSAGE_NUMERO_PRIS };
   const { error } = await creerClientAdmin().from("referencement_demandes").insert({
     type_etablissement: d.type,
     organisation: d.organisation,

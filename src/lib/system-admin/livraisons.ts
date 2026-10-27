@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { estUuid } from "@/lib/commande/commun";
+import { reserverNumero } from "@/lib/identite/numeros";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { assignerManuellement, avancerLivraison, repartir, traiterOffres } from "@/lib/livraison/service";
 import { estStatutLivraison, type StatutLivraison } from "@/lib/livraison/statuts";
@@ -146,6 +147,11 @@ export async function creerLivreurPourCompteAction(_prec: EtatActionLivraisonAdm
   const compte = Array.isArray(trouve) ? trouve[0] : null;
   if (!compte?.id) return { erreur: "Aucun compte ne correspond à cette adresse : la personne doit d'abord créer son compte." };
 
+  // Un numéro, un titulaire : réservé pour ce compte avant de créer la fiche ; si un autre compte le détient, rien n'est créé (l'équipe le voit dans « Numéros à arbitrer »).
+  if (telephone !== "") {
+    const numero = await reserverNumero(compte.id, telephone, "livreur");
+    if (!numero.ok) return { erreur: numero.message };
+  }
   const { error } = await clientLivraison().from("livreurs").insert({ utilisateur_id: compte.id, nom, telephone: telephone || null, vehicule: "moto", statut: "hors_ligne", cycle: "actif", approuve_le: new Date().toISOString(), approuve_par: contexte.utilisateurId });
   if (error) return { erreur: error.code === "23505" ? "Ce compte est déjà un compte livreur." : "Impossible de créer le livreur. Réessayez." };
 
