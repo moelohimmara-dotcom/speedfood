@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 47,
-  nom: "2.45.0",
-  notes: "Nouveau design : polices, icônes, cartes colorées et animations, accueil repensé. L'équipe traite les candidatures dans l'application, et les messages d'erreur sont plus justes.",
+  code: 48,
+  nom: "2.46.0",
+  notes: "Chaque profil a maintenant son propre parcours (consommateur, restaurateur, professionnel) avec « Changer de profil ». Un compte ne peut plus être doublé par une adresse ou un numéro déjà connus. Design et animations étendus à tout le parcours client.",
   obligatoire: false,
-  apkSha256: "3665437ad07d7e249e43c173661400195e979883a3a79b888fe2c887f976a997",
-  apkTaille: 15684810,
+  apkSha256: "333827d42735ebbb83a614ffe3b78f552f221a1a4d14221abc61603c54794561",
+  apkTaille: 15717578,
 };
