@@ -52,6 +52,9 @@ enum class DebutApplication {
 
     /** Connexion à l'espace professionnel (livreur, équipe, restaurateur déjà référencé). */
     AccesPro,
+
+    /** Restaurateur connecté qui n'a pas (encore) d'espace : sa demande d'inscription (formulaire ou suivi). Un restaurateur déjà référencé arrive, lui, dans son espace. */
+    Candidature,
 }
 
 /**
@@ -59,7 +62,7 @@ enum class DebutApplication {
  * « restaurateur » ou « professionnel » sans finir sa connexion retrouve son écran de compte au lancement suivant ; le consommateur retrouve l'accueil.
  */
 fun debutApplication(profil: ProfilEntree?, connecte: Boolean, apresChoix: Boolean = false): DebutApplication = when {
-    connecte -> DebutApplication.Normal
+    connecte -> if (profil == ProfilEntree.Restaurateur) DebutApplication.Candidature else DebutApplication.Normal
     profil == ProfilEntree.Consommateur -> if (apresChoix) DebutApplication.CreationCompte else DebutApplication.Normal
     profil == ProfilEntree.Restaurateur -> DebutApplication.CreationCompteRestaurateur
     profil == ProfilEntree.Professionnel -> DebutApplication.AccesPro

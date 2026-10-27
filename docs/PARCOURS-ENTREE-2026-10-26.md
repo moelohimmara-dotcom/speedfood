@@ -31,8 +31,8 @@ Décidé avec Malika le 26 octobre 2026 (maquettes validées en conversation). I
 | E1 | Écran de choix, début selon le profil, profil mémorisé (effacé à la déconnexion volontaire) | Livré (26 octobre) |
 | E2 | Compte à l'entrée : e-mail et mot de passe seulement, confirmation annoncée, « J'ai confirmé mon adresse : me connecter » | Livré |
 | E3 | Visites par profil, une fois, après le compte | Livré |
-| R1 | Demandes de référencement liées au compte (migration : adresse précise, horaires, paiements, logo, photo, brouillon de menu ; routes ; stockage ; limites) | À faire |
-| R2 | Formulaire en 5 étapes dans l'application, brouillon gardé | À faire |
+| R1 | Demandes de référencement liées au compte (migration `20261026081154`, routes `/api/v1/candidature` et `/image`, dépôt privé `candidatures`, règles pures testées) | Livré (26 octobre) |
+| R2 | Formulaire en 5 étapes dans l'application, brouillon gardé, suivi de la demande ; un restaurateur connecté rouvre l'application sur sa demande | Livré, joué dans l'émulateur de bout en bout (27 octobre) |
 | R3 | Menu par photo : variante de Chef IA pour un candidat, relecture dans l'application, quota par compte | À faire |
 | R4 | Suivi de la demande (48 h), dossier complet côté équipe, création de l'établissement avec reprise des plats, rattachement semi-automatique du compte, notification, effacement à 30 jours après refus | À faire |
 | R5 | Menu par photo pour l'équipe, dans l'application (fiche d'un établissement) | À faire |
@@ -41,6 +41,6 @@ Décidé avec Malika le 26 octobre 2026 (maquettes validées en conversation). I
 
 `data/ProfilEntree.kt` (règles pures : écran après le logo, début, visite à proposer), `ui/ChoixProfil.kt`, `ui/ConnexionScreen.kt` (`inscriptionInitiale`, `onVoirDabord`, `avecContact`, `intro`), `ui/VisiteGuidee.kt` (deux séries), `App.kt` (phase `Choix`, routes `CreationCompteDestination` et `VisiteProfilDestination`), `SessionService.deconnecter` (efface le profil choisi). Tests : `ProfilEntreeTest`, `CommandeTest`.
 
-## Restaurateur : état provisoire
+## Restaurateur : état provisoire (R3 et R4 restent à faire)
 
 Tant que R1 à R4 ne sont pas livrés, le restaurateur arrive après son compte sur l'espace professionnel existant (`AccesProScreen`) ; un restaurant pas encore référencé y est renvoyé vers la demande de référencement du site (`/restaurateurs`).

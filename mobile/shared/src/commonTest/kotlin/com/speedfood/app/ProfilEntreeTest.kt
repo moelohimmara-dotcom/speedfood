@@ -25,7 +25,8 @@ class ProfilEntreeTest {
         assertEquals(DebutApplication.CreationCompteRestaurateur, debutApplication(ProfilEntree.Restaurateur, connecte = false, apresChoix = true))
         assertEquals(DebutApplication.CreationCompteRestaurateur, debutApplication(ProfilEntree.Restaurateur, connecte = false), "compte pas fini : on le reprend")
         assertEquals(DebutApplication.AccesPro, debutApplication(ProfilEntree.Professionnel, connecte = false))
-        assertEquals(DebutApplication.Normal, debutApplication(ProfilEntree.Restaurateur, connecte = true), "connecté : l'accueil, l'espace est géré ailleurs")
+        assertEquals(DebutApplication.Candidature, debutApplication(ProfilEntree.Restaurateur, connecte = true), "restaurateur connecté : sa demande (un restaurateur référencé arrive dans son espace, géré ailleurs)")
+        assertEquals(DebutApplication.Normal, debutApplication(ProfilEntree.Consommateur, connecte = true))
         assertEquals(DebutApplication.Normal, debutApplication(null, connecte = false))
     }
 

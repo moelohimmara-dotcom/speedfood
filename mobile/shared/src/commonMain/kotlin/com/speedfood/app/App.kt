@@ -277,6 +277,7 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 DebutApplication.CreationCompte -> CreationCompteDestination(restaurateur = false)
                 DebutApplication.CreationCompteRestaurateur -> CreationCompteDestination(restaurateur = true)
                 DebutApplication.AccesPro -> AccesProDestination
+                DebutApplication.Candidature -> CandidatureDestination
             }
         }
         // Un lien reçu pendant que l'application tourne (WhatsApp, navigateur) ouvre sa destination ; le lien de lancement est déjà la destination de départ.
