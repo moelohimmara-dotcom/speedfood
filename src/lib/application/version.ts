@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 43,
-  nom: "2.41.0",
-  notes: "Connexion avec Facebook, accueil par zone, un lien reçu s'ouvre à chaque fois, création de compte plus simple et menus vides plus clairs.",
+  code: 44,
+  nom: "2.42.0",
+  notes: "Nouvelle entrée : choisissez consommateur ou restaurateur. Les restaurateurs inscrivent leur restaurant en 5 étapes, avec leur menu lu depuis une photo. Les photos choisies dans l'application fonctionnent enfin.",
   obligatoire: false,
-  apkSha256: "3cf7bd8fe4da43d69bfbd9a086d92c513fd545da452099cc9724a770324f9fb6",
-  apkTaille: 15215958,
+  apkSha256: "6b43277ac46ab235bbfb9b4398c8f7d9fc8ea01b19f749bf48a7153597d7b624",
+  apkTaille: 15297878,
 };
