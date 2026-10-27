@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 46,
-  nom: "2.44.0",
-  notes: "Retour qui fonctionne partout, cases à cocher plus faciles à toucher, boutons du menu restaurateur plus clairs, nouvelles icônes, et correction de la reconnexion après une session expirée.",
+  code: 47,
+  nom: "2.45.0",
+  notes: "Nouveau design : polices, icônes, cartes colorées et animations, accueil repensé. L'équipe traite les candidatures dans l'application, et les messages d'erreur sont plus justes.",
   obligatoire: false,
-  apkSha256: "6df92fc7d014fe09fd71a9b6ab8be749ec9fd2545b85aa7ecb935d61efa49de5",
-  apkTaille: 15314262,
+  apkSha256: "3665437ad07d7e249e43c173661400195e979883a3a79b888fe2c887f976a997",
+  apkTaille: 15684810,
 };
