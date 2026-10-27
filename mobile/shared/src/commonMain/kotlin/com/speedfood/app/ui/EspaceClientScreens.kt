@@ -169,12 +169,7 @@ fun AdressesClientScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewMode
             Text("Enregistrez vos adresses de livraison : « Maison », « Travail »... Écrivez-les comme vous les dicteriez à un livreur (quartier, rue, point de repère).", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (e.espace.adresses.isEmpty()) Text("Aucune adresse enregistrée.", style = MaterialTheme.typography.bodyLarge)
             e.espace.adresses.forEach { a ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-                    border = BorderStroke(1.dp, if (a.parDefaut) Couleurs.Mangue else Couleurs.Bordure),
-                ) {
+                CarteMarche(modifier = Modifier.fillMaxWidth(), rayon = 14.dp, fond = if (a.parDefaut) Couleurs.AvertissementFond else Couleurs.Surface) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(a.libelle, style = MaterialTheme.typography.titleMedium)
@@ -234,12 +229,7 @@ fun FavorisClientScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onOuvrir:
 
 @Composable
 private fun CarteFavori(f: FavoriClient, occupe: Boolean, onOuvrir: (String) -> Unit, onRetirer: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onOuvrir(f.restaurantId) },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth().clickable { onOuvrir(f.restaurantId) }, rayon = 14.dp) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(f.nom, style = MaterialTheme.typography.titleMedium)
@@ -263,12 +253,7 @@ fun AvisClientScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: E
 
 @Composable
 private fun CarteAvis(a: AvisClient) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth(), rayon = 14.dp) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(a.restaurantNom, style = MaterialTheme.typography.titleMedium)

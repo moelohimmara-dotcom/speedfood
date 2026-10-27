@@ -55,7 +55,10 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.StockageLocal
+import com.speedfood.app.data.ProfilEntree
+import com.speedfood.app.data.ProfilService
 import com.speedfood.app.data.QUESTIONS_AIDE
+import com.speedfood.app.data.QUESTIONS_AIDE_RESTAURATEUR
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.ui.CLE_VISITE_VUE
 import org.koin.compose.koinInject
@@ -64,12 +67,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Une ligne de menu : icône, titre, sous-titre facultatif, flèche. Même aspect partout (Compte, Paramètres). */
 @Composable
 internal fun LigneMenu(titre: String, icone: ImageVector, sousTitre: String? = null, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth(), surClic = onClick, rayon = 14.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Icon(icone, contentDescription = null, tint = Couleurs.RougeFonce)
             Column(Modifier.weight(1f)) {
@@ -115,12 +113,7 @@ fun CompteScreen(
         topBar = { TopAppBar(title = { Text("Compte", style = MaterialTheme.typography.titleLarge) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
     ) { marges ->
         Column(Modifier.fillMaxSize().padding(marges).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-                border = BorderStroke(1.dp, Couleurs.Bordure),
-            ) {
+            CarteMarche(modifier = Modifier.fillMaxWidth(), rayon = 18.dp) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Box(Modifier.size(52.dp).background(Couleurs.Mangue, CircleShape), contentAlignment = Alignment.Center) {
                         val initiale = session?.email?.take(1)?.uppercase()
@@ -258,7 +251,7 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
 /** Aide : contact d'assistance (WhatsApp si l'administration en a renseigné un), questions fréquentes, à propos, liens légaux. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AideScreen(onRetour: () -> Unit, avecRetour: Boolean = true, config: SpeedfoodConfig = koinInject(), viewModel: CompteViewModel = koinViewModel()) {
+fun AideScreen(onRetour: () -> Unit, avecRetour: Boolean = true, config: SpeedfoodConfig = koinInject(), profils: ProfilService = koinInject(), viewModel: CompteViewModel = koinViewModel()) {
     val whatsapp by viewModel.whatsapp.collectAsState()
     val ouvreur = LocalUriHandler.current
     LaunchedEffect(Unit) { viewModel.chargerContact() }
@@ -290,14 +283,11 @@ fun AideScreen(onRetour: () -> Unit, avecRetour: Boolean = true, config: Speedfo
             }
 
             TitreRubrique("Questions fréquentes")
-            QUESTIONS_AIDE.forEach { q ->
+            // Les questions suivent le profil : le restaurateur n'a pas à lire comment commander un repas.
+            val profil by profils.profil.collectAsState()
+            (if (profil == ProfilEntree.Restaurateur) QUESTIONS_AIDE_RESTAURATEUR else QUESTIONS_AIDE).forEach { q ->
                 var ouverte by remember { mutableStateOf(false) }
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable { ouverte = !ouverte },
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-                    border = BorderStroke(1.dp, Couleurs.Bordure),
-                ) {
+                CarteMarche(modifier = Modifier.fillMaxWidth(), surClic = { ouverte = !ouverte }, rayon = 14.dp) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(q.question, style = MaterialTheme.typography.titleSmall)
                         if (ouverte) Text(q.reponse, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -310,7 +300,9 @@ fun AideScreen(onRetour: () -> Unit, avecRetour: Boolean = true, config: Speedfo
                 "Speedfood est le portail de commande de repas de Conakry : vous parcourez les restaurants, commandez, puis suivez votre commande jusqu'à la remise. Version ${viewModel.infos.versionNom}.",
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Sur un écran étroit ou en grande police, les liens passent à la ligne ensemble au lieu de couper un mot en deux.
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = { ouvreur.openUri("$site/a-propos") }) { Text("Qui sommes-nous", color = Couleurs.RougeFonce) }
                 TextButton(onClick = { ouvreur.openUri("$site/conditions") }) { Text("Conditions", color = Couleurs.Encre) }
                 TextButton(onClick = { ouvreur.openUri("$site/confidentialite") }) { Text("Confidentialité", color = Couleurs.Encre) }

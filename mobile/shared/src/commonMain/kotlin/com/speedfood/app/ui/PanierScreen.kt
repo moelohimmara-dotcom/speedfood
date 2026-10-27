@@ -106,13 +106,9 @@ private fun LigneDuPanier(ligne: LignePanier, service: PanierService?) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(formaterGnf(ligne.total), style = MaterialTheme.typography.labelLarge)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OutlinedButton(onClick = { service?.definirQuantite(ligne.cle, ligne.quantite - 1) }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(0.dp)) {
-                        Text("−", style = MaterialTheme.typography.titleMedium, color = Couleurs.Encre)
-                    }
-                    Text("${ligne.quantite}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 6.dp))
-                    OutlinedButton(onClick = { service?.definirQuantite(ligne.cle, ligne.quantite + 1) }, contentPadding = PaddingValues(0.dp)) {
-                        Text("+", style = MaterialTheme.typography.titleMedium, color = Couleurs.Encre)
-                    }
+                    BoutonQuantite("−", "Retirer un exemplaire de ${ligne.plat.nom}", plein = false) { service?.definirQuantite(ligne.cle, ligne.quantite - 1) }
+                    Text("${ligne.quantite}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 8.dp).rebond(ligne.quantite))
+                    BoutonQuantite("+", "Ajouter un exemplaire de ${ligne.plat.nom}", plein = true) { service?.definirQuantite(ligne.cle, ligne.quantite + 1) }
                 }
             }
         }

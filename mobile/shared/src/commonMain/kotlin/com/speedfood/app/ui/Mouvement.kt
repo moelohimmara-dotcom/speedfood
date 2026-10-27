@@ -1,5 +1,7 @@
 package com.speedfood.app.ui
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -253,4 +255,21 @@ internal fun PastilleChoix(choisie: Boolean, surClic: () -> Unit, texte: String)
             borderColor = Couleurs.Encre, selectedBorderColor = Couleurs.Encre, borderWidth = 1.5.dp, selectedBorderWidth = 2.dp,
         ),
     )
+}
+
+/** Bouton rond « − » ou « + » d'une quantité : contour encre, « + » plein mangue (l'action qui ajoute), cible tactile de 44 dp, lu comme un bouton par le lecteur d'écran. */
+@Composable
+internal fun BoutonQuantite(signe: String, description: String, plein: Boolean, surClic: () -> Unit) {
+    Box(
+        Modifier
+            .size(44.dp)
+            .padding(4.dp)
+            .background(if (plein) Couleurs.Mangue else Couleurs.Surface, androidx.compose.foundation.shape.CircleShape)
+            .border(2.dp, Couleurs.Encre, androidx.compose.foundation.shape.CircleShape)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = description, onClick = surClic),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.material3.Text(signe, style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = Couleurs.Encre)
+    }
 }

@@ -55,3 +55,31 @@ val QUESTIONS_AIDE = listOf(
         "Depuis le site de Speedfood, page « Mon compte ». Les règles de conservation des données sont expliquées dans la page Confidentialité.",
     ),
 )
+
+/** Questions du restaurateur qui n'a pas encore d'espace : sa demande d'inscription, pas la commande d'un repas. */
+val QUESTIONS_AIDE_RESTAURATEUR = listOf(
+    QuestionAide(
+        "Combien de temps pour avoir une réponse ?",
+        "L'équipe Speedfood répond sous 48 heures. Vous êtes prévenu par une notification dans l'application dès que la demande est acceptée, refusée ou que votre restaurant est créé.",
+    ),
+    QuestionAide(
+        "Que se passe-t-il si ma demande est refusée ?",
+        "Le motif s'affiche dans « Ma demande ». Vous pouvez corriger ce qui manque et déposer une nouvelle demande. Les images et le menu envoyés sont effacés 30 jours après un refus.",
+    ),
+    QuestionAide(
+        "Comment ajouter mon menu ?",
+        "Pendant la demande, photographiez votre carte : Speedfood lit les plats et les prix, et vous relisez chaque ligne avant de valider. Vous pouvez aussi les saisir à la main. L'équipe vérifie avant la mise en ligne.",
+    ),
+    QuestionAide(
+        "Quand mon restaurant apparaît-il pour les clients ?",
+        "Une fois la demande acceptée, l'équipe crée votre établissement, le vérifie puis le publie. Votre compte est alors rattaché à votre restaurant et vous y accédez depuis cette application.",
+    ),
+    QuestionAide(
+        "Mon numéro de téléphone est refusé : pourquoi ?",
+        "Un numéro ne peut appartenir qu'à un seul compte. S'il est déjà utilisé, connectez-vous avec ce compte, ou contactez l'équipe : elle vous appellera pour vérifier, puis vous l'attribuera si c'est bien le vôtre.",
+    ),
+    QuestionAide(
+        "Comment supprimer mon compte et mes données ?",
+        "Ouvrez l'onglet Compte, puis « Supprimer mon compte », et confirmez. Vos données personnelles et votre demande sont effacées.",
+    ),
+)
