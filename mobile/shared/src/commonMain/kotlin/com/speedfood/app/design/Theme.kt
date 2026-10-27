@@ -6,6 +6,12 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import org.jetbrains.compose.resources.Font
+import speedfood.shared.generated.resources.Res
+import speedfood.shared.generated.resources.bricolage
+import speedfood.shared.generated.resources.manrope
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,17 +37,29 @@ private val schemaClair = lightColorScheme(
     onError = Couleurs.Surface,
 )
 
-/** Échelle typographique : titres lourds, texte lisible (la police maison sera embarquée au lot suivant). */
-private val typographie = Typography(
-    headlineLarge = TextStyle(fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold),
-    headlineMedium = TextStyle(fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.ExtraBold),
-    titleLarge = TextStyle(fontSize = 20.sp, lineHeight = 24.sp, fontWeight = FontWeight.ExtraBold),
-    titleMedium = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
-    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 22.sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
-    labelLarge = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.ExtraBold),
-    labelMedium = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold),
-)
+/**
+ * Échelle typographique de la direction « Marché » : Bricolage Grotesque pour les titres (comme le site public), Manrope pour le texte, les libellés et les prix. Polices libres (OFL),
+ * embarquées dans l'application (aucune requête vers un fournisseur). Ce sont des polices variables : chaque graisse est une instance de leur axe de graisse.
+ */
+@Composable
+private fun typographie(): Typography {
+    @Composable fun titre(poids: Int) = Font(Res.font.bricolage, FontWeight(poids), variationSettings = FontVariation.Settings(FontVariation.weight(poids)))
+    @Composable fun texte(poids: Int) = Font(Res.font.manrope, FontWeight(poids), variationSettings = FontVariation.Settings(FontVariation.weight(poids)))
+    val titres = FontFamily(titre(700), titre(800))
+    val corps = FontFamily(texte(400), texte(500), texte(600), texte(700), texte(800))
+    return Typography(
+        headlineLarge = TextStyle(fontFamily = titres, fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold),
+        headlineMedium = TextStyle(fontFamily = titres, fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.ExtraBold),
+        titleLarge = TextStyle(fontFamily = titres, fontSize = 21.sp, lineHeight = 25.sp, fontWeight = FontWeight.ExtraBold),
+        titleMedium = TextStyle(fontFamily = titres, fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
+        bodyLarge = TextStyle(fontFamily = corps, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.Normal),
+        bodyMedium = TextStyle(fontFamily = corps, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal),
+        bodySmall = TextStyle(fontFamily = corps, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.Normal),
+        labelLarge = TextStyle(fontFamily = corps, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.ExtraBold),
+        labelMedium = TextStyle(fontFamily = corps, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold),
+        labelSmall = TextStyle(fontFamily = corps, fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold),
+    )
+}
 
 private val formes = Shapes(
     small = RoundedCornerShape(8.dp),
@@ -51,5 +69,5 @@ private val formes = Shapes(
 
 @Composable
 fun SpeedfoodTheme(contenu: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = schemaClair, typography = typographie, shapes = formes, content = contenu)
+    MaterialTheme(colorScheme = schemaClair, typography = typographie(), shapes = formes, content = contenu)
 }
