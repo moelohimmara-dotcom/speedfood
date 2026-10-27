@@ -5,14 +5,14 @@ import { journaliserActionSysteme } from "@/lib/system-admin/audit";
 import type { ContexteSysteme } from "@/lib/system-admin/contexte";
 import { changerStatutReferencement } from "@/lib/system-admin/referencements-service";
 
-/** Change le statut d'une demande de référencement (nouvelle, rappelée, visite prévue, accord signé, refusée) : permission `restaurant.moderer`, tracé dans l'audit. */
+/** Change le statut (avec un motif facultatif pour un refus : le candidat le lit dans l'application) d'une demande de référencement (nouvelle, rappelée, visite prévue, accord signé, refusée) : permission `restaurant.moderer`, tracé dans l'audit. */
 export async function POST(request: Request) {
   const auth = await equipeAuthentifiee(request, "restaurant.moderer");
   if (!auth.ok) return auth.reponse;
   const lu = await lireCorpsJson(request);
   if (!lu.ok) return lu.reponse;
   const c = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as Record<string, unknown>;
-  const r = await changerStatutReferencement(c.id, c.statut);
+  const r = await changerStatutReferencement(c.id, c.statut, c.motif);
   if (!r.ok) return repondreErreur({ code: "VALIDATION", message: r.message });
   try {
     await journaliserActionSysteme(auth.contexte as unknown as ContexteSysteme, r.trace);

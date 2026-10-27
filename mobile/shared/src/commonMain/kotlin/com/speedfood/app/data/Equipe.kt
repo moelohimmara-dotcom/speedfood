@@ -343,7 +343,7 @@ class KtorEquipeApi(private val client: HttpClient, private val config: Speedfoo
     } catch (e: ErreurReseau) {
         throw e
     } catch (e: Exception) {
-        throw ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+        throw erreurTechnique(e)
     }
 
     private fun refus(erreur: ErreurServeurEquipe?, defaut: String): Nothing {

@@ -109,7 +109,7 @@ class KtorComptesEquipeApi(private val client: HttpClient, private val config: S
     } catch (e: ErreurReseau) {
         throw e
     } catch (e: Exception) {
-        throw ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+        throw erreurTechnique(e)
     }
 
     override suspend fun comptes(jetonAcces: String, recherche: String, type: TypeCompteEquipe): ResultatComptesEquipe = appeler {

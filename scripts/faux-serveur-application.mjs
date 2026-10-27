@@ -34,6 +34,9 @@ const demandesEssai = [
   { id: "d2", type: "maquis", organisation: "Maquis du Port", commune: "Kaloum", quartier: "Boulbinet", indications: null, categories: "Poissons", specialites: null, responsable: "Ibrahima Sylla", telephone: "+224 664 00 11 22", statut: "visite_prevue", etablissementCree: false, creeLe: "2026-10-20T15:00:00Z" },
   { id: "d3", type: "restaurant", organisation: "Awa Délices", commune: "Matam", quartier: "Hamdallaye", indications: null, categories: null, specialites: null, responsable: "Awa Bah", telephone: "+224 620 55 44 33", statut: "creee", etablissementCree: true, creeLe: "2026-10-10T12:00:00Z" },
 ];
+// Candidature déposée dans l'application (dossier visible, compte à rattacher une fois l'établissement créé).
+demandesEssai.push({ id: "d4", type: "restaurant", organisation: "Chez Mariama", commune: "Ratoma", quartier: "Kipé", indications: null, categories: null, specialites: null, responsable: "Mariama Diallo", telephone: "+224 621 33 44 55", statut: "accord", etablissementCree: false, creeLe: "2026-10-26T09:00:00Z",
+  candidature: { horaires: "Tous les jours 9h-22h", moyensPaiement: ["especes", "orange_money"], services: ["livraison", "sur_place"], nombrePlats: 12, avecLogo: true, avecPhoto: false, motifRefus: null, compteRattachable: false, compteRattache: false } });
 const signalementsEssai = [
   { id: "s1", avisId: "a1", motif: "Insultes envers le personnel", date: "2026-10-22T09:00:00Z", restaurantNom: "Chez Awa (essai)", note: 1, commentaire: "Nul, personnel désagréable et plat froid", statutAvis: "publie" },
   { id: "s2", avisId: "a2", motif: "Avis d'un concurrent", date: "2026-10-21T16:30:00Z", restaurantNom: "Chez Awa (essai)", note: 2, commentaire: null, statutAvis: "publie" },
@@ -310,7 +313,24 @@ createServer(async (req, res) => {
       const d = demandesEssai.find((x) => x.id === c.id);
       if (!d || d.etablissementCree) return refus(res, 400, "VALIDATION", "Cette demande n'existe plus ou son établissement est déjà créé.");
       d.statut = c.statut;
+      if (d.candidature) d.candidature.motifRefus = c.statut === "refusee" ? (c.motif || "L'équipe vous a expliqué la raison par téléphone.") : null;
       return ok(res, { ok: true, message: "Statut enregistré." });
+    }
+    if (sous === "referencements/options") return ok(res, { ok: true, categories: [{ id: "c1", nom: "Grillades" }, { id: "c2", nom: "Cuisine guinéenne" }, { id: "c3", nom: "Pizzas" }], quartiers: [{ id: "q1", nom: "Kipé", commune: "Ratoma" }, { id: "q2", nom: "Boulbinet", commune: "Kaloum" }, { id: "q3", nom: "Hamdallaye", commune: "Matam" }] });
+    if (sous === "referencements/creer-etablissement") {
+      const c = await lireCorps(req);
+      const d = demandesEssai.find((x) => x.id === c.id);
+      if (!d || d.etablissementCree) return refus(res, 400, "VALIDATION", "Un établissement a déjà été créé pour cette demande.");
+      d.etablissementCree = true; d.statut = "creee";
+      if (d.candidature) d.candidature.compteRattachable = true;
+      return ok(res, { ok: true, restaurantId: "r-essai", message: "Établissement créé (non publié)." });
+    }
+    if (sous === "referencements/rattacher") {
+      const c = await lireCorps(req);
+      const d = demandesEssai.find((x) => x.id === c.id);
+      if (!d || !d.candidature || !d.candidature.compteRattachable) return refus(res, 400, "VALIDATION", "Cette demande n'a pas de compte à rattacher.");
+      d.candidature.compteRattachable = false; d.candidature.compteRattache = true;
+      return ok(res, { ok: true, message: "Compte rattaché à l'établissement." });
     }
     if (sous === "restaurants") return ok(res, { ok: true, restaurants: restaurantsEquipe.map(({ platsDetail, ...reste }) => reste) });
     if (sous.startsWith("restaurants/") && sous.endsWith("/profil")) {

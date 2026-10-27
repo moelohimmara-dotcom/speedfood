@@ -1,5 +1,10 @@
 package com.speedfood.app.data
 
+import io.ktor.client.call.NoTransformationFoundException
+import io.ktor.client.plugins.ResponseException
+import io.ktor.serialization.ContentConvertException
+import kotlinx.serialization.SerializationException
+import kotlin.coroutines.cancellation.CancellationException
 import com.speedfood.app.config.SpeedfoodConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -12,6 +17,20 @@ import io.ktor.http.isSuccess
 
 /** Erreur lisible par l'utilisateur ; jamais de détail technique ni de clé dans le message. */
 open class ErreurReseau(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Message juste pour une exception levée pendant un appel : une vraie coupure (réseau, délai) dit « Vérifiez votre connexion » ; une réponse arrivée mais inutilisable (page d'erreur
+ * du serveur, JSON inattendu, 404/500) ne dit PAS de vérifier la connexion, qui n'est pas en cause. Une annulation de la coroutine (écran quitté) n'est jamais une erreur : elle est relancée.
+ */
+fun erreurTechnique(e: Throwable): ErreurReseau {
+    if (e is CancellationException) throw e
+    val reponseInattendue = e is SerializationException || e is ContentConvertException || e is ResponseException || e is NoTransformationFoundException
+    return if (reponseInattendue) {
+        ErreurReseau("Speedfood a répondu de façon inattendue. Réessayez dans un instant ; si cela continue, contactez l'assistance.", e)
+    } else {
+        ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+    }
+}
 
 /** Accès refusé par le serveur (session absente ou expirée, compte non autorisé) : inutile de réessayer tel quel, contrairement à une coupure réseau. */
 class ErreurAcces(message: String) : ErreurReseau(message)
@@ -58,7 +77,7 @@ class KtorRestaurantApi(
                 parametres.forEach { (cle, valeur) -> parameter(cle, valeur) }
             }
         } catch (e: Exception) {
-            throw ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+            throw erreurTechnique(e)
         }
         if (!reponse.status.isSuccess()) {
             throw ErreurReseau("Speedfood ne répond pas comme prévu (code ${reponse.status.value}). Réessayez dans un instant.")

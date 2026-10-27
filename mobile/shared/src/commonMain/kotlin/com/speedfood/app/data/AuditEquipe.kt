@@ -174,7 +174,7 @@ class KtorAuditEquipeApi(private val client: HttpClient, private val config: Spe
     } catch (e: ErreurReseau) {
         throw e
     } catch (e: Exception) {
-        throw ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+        throw erreurTechnique(e)
     }
 
     override suspend fun audit(jetonAcces: String, action: String?, depuis: Int?): AuditEquipe = appeler {

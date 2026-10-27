@@ -4,7 +4,7 @@ import { listerDemandesReferencement } from "@/lib/system-admin/referencements-l
 
 /**
  * Demandes de référencement dans l'application de l'équipe (comme `/system/catalogue/referencements`) : permission `restaurant.moderer`. Le numéro de téléphone du
- * responsable est envoyé parce que l'équipe doit le rappeler ; son e-mail ne l'est pas (inutile sur un téléphone). Création de la fiche et suppression : sur le site.
+ * responsable est envoyé parce que l'équipe doit le rappeler ; son e-mail ne l'est pas (inutile sur un téléphone). La création de la fiche et le rattachement du compte du candidat se font aussi ici (routes voisines) ; la suppression reste sur le site.
  */
 export async function GET(request: Request) {
   const auth = await equipeAuthentifiee(request, "restaurant.moderer");
@@ -27,6 +27,20 @@ export async function GET(request: Request) {
         statut: d.statut,
         etablissementCree: d.restaurantId !== null,
         creeLe: d.creeLe,
+        // Dossier déposé depuis l'application : jamais de chemin de fichier ni d'identifiant de compte, seulement ce qu'il faut pour décider.
+        candidature: d.candidature
+          ? {
+              horaires: d.candidature.horaires,
+              moyensPaiement: d.candidature.moyensPaiement,
+              services: d.candidature.services,
+              nombrePlats: d.candidature.nombrePlats,
+              avecLogo: d.candidature.logoChemin !== null,
+              avecPhoto: d.candidature.photoChemin !== null,
+              motifRefus: d.candidature.motifRefus,
+              compteRattachable: d.candidature.utilisateurId !== null && d.restaurantId !== null && !d.candidature.compteRattache,
+              compteRattache: d.candidature.compteRattache,
+            }
+          : null,
       })),
     });
   } catch {

@@ -62,7 +62,7 @@ class KtorLivraisonApi(private val client: HttpClient, private val config: Speed
                 setBody(Json.encodeToString(CorpsEstimation.serializer(), CorpsEstimation(restaurantId, DestinationQuartier(quartierId), sousTotal)))
             }
         } catch (e: Exception) {
-            throw ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+            throw erreurTechnique(e)
         }
         val corps = try {
             reponse.body<ReponseEstimation>()

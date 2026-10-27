@@ -166,7 +166,7 @@ class KtorLivreurApi(private val client: HttpClient, private val config: Speedfo
     } catch (e: ErreurReseau) {
         throw e
     } catch (e: Exception) {
-        throw ErreurReseau("Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.", e)
+        throw erreurTechnique(e)
     }
 
     override suspend fun etat(jetonAcces: String): EtatLivreur? = appeler {
