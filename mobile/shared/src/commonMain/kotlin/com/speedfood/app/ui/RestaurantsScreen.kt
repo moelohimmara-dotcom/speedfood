@@ -1,5 +1,7 @@
 package com.speedfood.app.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,7 +84,8 @@ fun RestaurantsScreen(
         modifier = Modifier.safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
+            // À la racine, l'en-tête de l'accueil (marque, question, zone) tient lieu de barre de titre.
+            if (!racine) TopAppBar(
                 title = { Text("Restaurants", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     if (!racine) IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") }
@@ -110,7 +113,7 @@ fun RestaurantsScreen(
                             BlocMessage("Hors ligne : liste enregistrée ${ancienneteLisible(age)}. Les commandes demandent une connexion.", erreur = false)
                             }
                         }
-                        AccueilRestaurants(e.restaurants, onOuvrir)
+                        AccueilRestaurants(e.restaurants, onOuvrir, avecEntete = racine)
                     }
                 }
             }
@@ -158,9 +161,16 @@ internal fun RechercheEtListe(restaurants: List<Restaurant>, onOuvrir: (String) 
             onValueChange = { requete = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             singleLine = true,
-            leadingIcon = { Icon(IconesApp.Recherche, contentDescription = null) },
+            leadingIcon = { Icon(IconesApp.Recherche, contentDescription = null, tint = Couleurs.Encre) },
             placeholder = { Text("Un restaurant, un quartier, un plat…") },
-            shape = MaterialTheme.shapes.large,
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Couleurs.Surface,
+                unfocusedContainerColor = Couleurs.Surface,
+                focusedBorderColor = Couleurs.RougeFonce,
+                unfocusedBorderColor = Couleurs.Encre,
+                cursorColor = Couleurs.RougeFonce,
+            ),
         )
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FiltreRestaurants.entries.forEach { f ->
@@ -168,7 +178,11 @@ internal fun RechercheEtListe(restaurants: List<Restaurant>, onOuvrir: (String) 
                     selected = filtre == f,
                     onClick = { filtre = f },
                     label = { Text(f.libelle, style = MaterialTheme.typography.labelMedium) },
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Couleurs.Mangue, selectedLabelColor = Couleurs.Encre),
+                    colors = FilterChipDefaults.filterChipColors(containerColor = Couleurs.Surface, selectedContainerColor = Couleurs.Mangue, selectedLabelColor = Couleurs.Encre),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true, selected = filtre == f,
+                        borderColor = Couleurs.Encre, selectedBorderColor = Couleurs.Encre, borderWidth = 1.5.dp, selectedBorderWidth = 2.dp,
+                    ),
                 )
             }
         }

@@ -50,6 +50,8 @@ private fun typographie(): Typography {
     return Typography(
         headlineLarge = TextStyle(fontFamily = titres, fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold),
         headlineMedium = TextStyle(fontFamily = titres, fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.ExtraBold),
+        headlineSmall = TextStyle(fontFamily = titres, fontSize = 22.sp, lineHeight = 27.sp, fontWeight = FontWeight.ExtraBold),
+        titleSmall = TextStyle(fontFamily = titres, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Bold),
         titleLarge = TextStyle(fontFamily = titres, fontSize = 21.sp, lineHeight = 25.sp, fontWeight = FontWeight.ExtraBold),
         titleMedium = TextStyle(fontFamily = titres, fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
         bodyLarge = TextStyle(fontFamily = corps, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.Normal),

@@ -106,6 +106,14 @@ class CapturesTest {
     )
 
     @Test
+    fun accueilAvecEntete() = capturer("accueil-entete", hauteur = 760) {
+        androidx.compose.foundation.layout.Column {
+            com.speedfood.app.ui.EnteteAccueil(zone = "Kipé", surZone = {})
+            RechercheEtListe(restaurantsExemple, onOuvrir = {})
+        }
+    }
+
+    @Test
     fun rechercheEtFiltre() = capturer("recherche") {
         RechercheEtListe(restaurantsExemple, onOuvrir = {}, requeteInitiale = "cafe", filtreInitial = FiltreRestaurants.Tous)
     }

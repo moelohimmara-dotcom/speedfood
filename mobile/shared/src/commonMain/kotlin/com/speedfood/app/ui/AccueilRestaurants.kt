@@ -37,7 +37,7 @@ import org.koin.compose.koinInject
  * restaurants, avec leur nombre) et « Toutes les zones ». Aucune position n'est demandée. Le choix est mémorisé ; avec une seule zone, rien n'est affiché.
  */
 @Composable
-internal fun AccueilRestaurants(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit, stockage: StockageLocal = koinInject()) {
+internal fun AccueilRestaurants(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit, avecEntete: Boolean = false, stockage: StockageLocal = koinInject()) {
     val zones = remember(restaurants) { zonesDisponibles(restaurants) }
     var choix by remember { mutableStateOf(stockage.lire(CLE_ZONE_ACCUEIL)) }
     var ouvert by remember { mutableStateOf(false) }
@@ -45,7 +45,10 @@ internal fun AccueilRestaurants(restaurants: List<Restaurant>, onOuvrir: (String
     val visibles = restaurantsDansZone(restaurants, zone)
 
     Column {
-        if (zones.size >= 2) {
+        if (avecEntete) {
+            // Zone seulement s'il y en a au moins deux à choisir (avec une seule, rien à changer).
+            EnteteAccueil(zone = if (zones.size >= 2) zone?.nom ?: "toutes" else null, surZone = if (zones.size >= 2) ({ ouvert = true }) else null)
+        } else if (zones.size >= 2) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 AssistChip(onClick = { ouvert = true }, label = { Text("Zone : ${zone?.nom ?: "toutes"} · Changer") })
             }
