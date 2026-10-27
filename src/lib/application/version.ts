@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 44,
-  nom: "2.42.0",
-  notes: "Nouvelle entrée : choisissez consommateur ou restaurateur. Les restaurateurs inscrivent leur restaurant en 5 étapes, avec leur menu lu depuis une photo. Les photos choisies dans l'application fonctionnent enfin.",
+  code: 45,
+  nom: "2.43.0",
+  notes: "L'équipe Speedfood peut ajouter des plats au menu d'un établissement en photographiant la carte, après relecture.",
   obligatoire: false,
-  apkSha256: "6b43277ac46ab235bbfb9b4398c8f7d9fc8ea01b19f749bf48a7153597d7b624",
+  apkSha256: "27c0323cc088624bdcf632bd063989c1572005dd7734755127b05d9f41f2178e",
   apkTaille: 15297878,
 };
