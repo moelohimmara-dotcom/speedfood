@@ -173,6 +173,23 @@ export function platsPourCatalogue(brouillon: unknown): PlatBrouillon[] {
   return validerPlats(brouillon) ?? [];
 }
 
+const sansAccents = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Menu d'un établissement existant : écarte les plats lus que le menu contient déjà (même nom, sans tenir compte des accents ni de la casse). Un plat déjà au menu n'est jamais
+ * ajouté en double ; il est signalé, avec sa raison, pour que l'équipe le corrige à la main si le prix a changé.
+ */
+export function ecarterPlatsExistants(lecture: LectureMenu, nomsExistants: readonly string[]): LectureMenu {
+  const connus = new Set(nomsExistants.map(sansAccents));
+  const plats: LectureMenu["plats"] = [];
+  const refuses = [...lecture.refuses];
+  for (const p of lecture.plats) {
+    if (connus.has(sansAccents(p.nom))) refuses.push({ brut: p.nom, raison: "déjà au menu : à corriger à la main si le prix a changé" });
+    else plats.push(p);
+  }
+  return { plats, refuses, etat: plats.length > 0 ? "plats" : lecture.etat === "plats" ? "indetermine" : lecture.etat };
+}
+
 /** Ce que le candidat voit : cinq états simples plutôt que les six statuts internes de l'équipe. */
 export type EtatCandidat = "recue" | "en_cours" | "acceptee" | "creee" | "refusee";
 

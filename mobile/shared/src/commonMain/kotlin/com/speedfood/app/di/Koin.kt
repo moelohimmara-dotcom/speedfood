@@ -6,6 +6,8 @@ import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.ActiviteApi
 import com.speedfood.app.data.CandidatureApi
+import com.speedfood.app.data.KtorMenuPhotoEquipeApi
+import com.speedfood.app.data.MenuPhotoEquipeApi
 import com.speedfood.app.data.KtorCandidatureApi
 import com.speedfood.app.data.AideApi
 import com.speedfood.app.data.AvisEquipeApi
@@ -213,6 +215,7 @@ fun modulesApplication(
         single<EquipeApi> { KtorEquipeApi(get(), get()) }
         single<ActiviteApi> { KtorActiviteApi(get(), get()) }
         single<CandidatureApi> { KtorCandidatureApi(get(), get()) }
+        single<MenuPhotoEquipeApi> { KtorMenuPhotoEquipeApi(get(), get()) }
         single<AvisEquipeApi> { KtorAvisEquipeApi(get(), get()) }
         single<FinancesEquipeApi> { KtorFinancesEquipeApi(get(), get()) }
         single<PaiementsEquipeApi> { KtorPaiementsEquipeApi(get(), get()) }

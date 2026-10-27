@@ -200,7 +200,7 @@ private fun EtapeMenu(ecran: EcranCandidature, vm: CandidatureViewModel) {
         }
         Text("La photo est lue puis aussitôt oubliée : seule la liste des plats est gardée, et vous la relisez avant de l'ajouter.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    ecran.lecture?.let { RelectureMenu(it, vm) }
+    ecran.lecture?.let { RelectureMenu(it, surLigne = vm::modifierLigne, surAjouter = vm::ajouterLecture, surAnnuler = vm::annulerLecture) }
     ChampTexte(nom, { nom = it }, "Nom du plat")
     ChampTexte(prix, { prix = it }, "Prix en GNF", KeyboardType.Number, aide = "Par exemple : 25 000")
     OutlinedButton(onClick = { if (vm.ajouterPlat(nom, prix)) { nom = ""; prix = "" } }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
@@ -222,17 +222,17 @@ private fun EtapeMenu(ecran: EcranCandidature, vm: CandidatureViewModel) {
 
 /** Les lignes lues sur la photo : chacune se corrige ou se décoche avant l'ajout. Un modèle se trompe parfois de chiffre : c'est cette relecture qui garantit le menu. */
 @Composable
-private fun RelectureMenu(lecture: LectureEnAttente, vm: CandidatureViewModel) {
+internal fun RelectureMenu(lecture: LectureEnAttente, surLigne: (Int, String?, String?, Boolean?) -> Unit, surAjouter: () -> Unit, surAnnuler: () -> Unit) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, colors = CardDefaults.cardColors(containerColor = Couleurs.Surface), border = BorderStroke(2.dp, Couleurs.Mangue)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Relisez ce que la photo a donné", style = MaterialTheme.typography.titleMedium)
             Text("Vérifiez chaque nom et chaque prix : la lecture peut se tromper d'un chiffre. Décochez ce que vous ne voulez pas ajouter.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             lecture.lignes.forEachIndexed { i, l ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Checkbox(checked = l.coche, onCheckedChange = { vm.modifierLigne(i, coche = it) })
+                    Checkbox(checked = l.coche, onCheckedChange = { surLigne(i, null, null, it) })
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ChampTexte(l.nom, { vm.modifierLigne(i, nom = it) }, "Nom du plat")
-                        ChampTexte(l.prix, { vm.modifierLigne(i, prix = it) }, "Prix en GNF", KeyboardType.Number)
+                        ChampTexte(l.nom, { surLigne(i, it, null, null) }, "Nom du plat")
+                        ChampTexte(l.prix, { surLigne(i, null, it, null) }, "Prix en GNF", KeyboardType.Number)
                     }
                 }
             }
@@ -240,8 +240,8 @@ private fun RelectureMenu(lecture: LectureEnAttente, vm: CandidatureViewModel) {
                 Text("Lignes non reprises : à saisir à la main", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
                 lecture.refuses.forEach { Text("• ${it.brut} : ${it.raison}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            BoutonPrincipal("Ajouter les plats cochés", surClic = vm::ajouterLecture)
-            TextButton(onClick = vm::annulerLecture, modifier = Modifier.fillMaxWidth()) { Text("Annuler", color = Couleurs.Encre) }
+            BoutonPrincipal("Ajouter les plats cochés", surClic = surAjouter)
+            TextButton(onClick = surAnnuler, modifier = Modifier.fillMaxWidth()) { Text("Annuler", color = Couleurs.Encre) }
         }
     }
 }

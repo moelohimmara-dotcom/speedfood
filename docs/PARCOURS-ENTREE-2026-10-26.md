@@ -37,7 +37,7 @@ Décidé avec Malika le 26 octobre 2026 (maquettes validées en conversation). I
 
 **Correctif découvert en jouant R3 :** `PhotoAndroid` refusait TOUTE photo (la lecture des dimensions avec `inJustDecodeBounds` renvoie toujours `null`, traité à tort comme une erreur). Corrigé le 27 octobre ; la photo de plat du restaurateur et le logo du candidat en dépendaient.
 | R4 | Dossier complet côté équipe (`/system/catalogue/referencements`), refus avec motif (vu par le candidat), création de l'établissement avec reprise des horaires, paiements, services, plats (non confirmés) et images (copiées du dépôt privé vers le public), rattachement du compte comme propriétaire **en un clic confirmé par l'équipe**, notifications au candidat (acceptée, refusée, créée), purge à 30 jours des images et menus d'une demande refusée (`/api/application/purge-candidatures`, tâche planifiée à 03 h UTC) | Livré (27 octobre) côté serveur ; page d'administration non vue dans un navigateur (derrière la connexion) |
-| R5 | Menu par photo pour l'équipe, dans l'application (fiche d'un établissement) | À faire |
+| R5 | Menu par photo pour l'équipe, dans l'application (écran « Menus » d'un établissement tenu par l'équipe) : routes `/api/v1/equipe/menus/[id]/photo` et `/import` (permission `restaurant.moderer`, audit `menu.import_photo`), plats déjà au menu écartés, plats ajoutés « à confirmer » | Livré, joué dans l'émulateur (27 octobre) ; lecture réelle par le modèle à essayer en production |
 
 ## Fichiers
 

@@ -2,6 +2,7 @@ import {
   DELAI_REPONSE_HEURES,
   MAX_PLATS,
   cheminImageCandidature,
+  ecarterPlatsExistants,
   etatPourCandidat,
   ficheDepuisCandidature,
   platsPourCatalogue,
@@ -119,6 +120,14 @@ verifier("refus il y a 30 jours pile : à effacer", purgeDue("2026-10-31T12:00:0
 verifier("refus il y a 29 jours : on garde", purgeDue("2026-11-01T12:00:00Z", maintenantPurge), false);
 verifier("jamais traitée : on garde", purgeDue(null, maintenantPurge), false);
 verifier("date illisible : on garde (jamais d'effacement sur une donnée douteuse)", purgeDue("hier", maintenantPurge), false);
+
+// Menu d'un établissement existant : pas de doublons
+const lu = { plats: [{ nom: "Poulet braisé", prix: 40000 }, { nom: "Brochettes", prix: 30000 }], refuses: [], etat: "plats" as const };
+const sansDoublon = ecarterPlatsExistants(lu, ["POULET BRAISE", "Riz"]);
+verifier("le plat déjà au menu n'est pas ajouté (accents et casse ignorés)", sansDoublon.plats, [{ nom: "Brochettes", prix: 30000 }]);
+verifier("il est signalé avec sa raison", sansDoublon.refuses.map((r) => [r.brut, r.raison.startsWith("déjà au menu")]), [["Poulet braisé", true]]);
+verifier("tout déjà présent : état indéterminé, pas « plats »", ecarterPlatsExistants(lu, ["Poulet braisé", "brochettes"]).etat, "indetermine");
+verifier("menu vide : rien n'est écarté", ecarterPlatsExistants(lu, []).plats.length, 2);
 
 if (ko > 0) {
   console.log(`ECHEC candidature : ${ko} verification(s) en echec`);

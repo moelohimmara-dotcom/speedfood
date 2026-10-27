@@ -469,6 +469,17 @@ createServer(async (req, res) => {
     }
     if (sous === "livraisons") return ok(res, { ok: true, livraisons: livraisonsEquipe, livreurs: livreursEquipe });
     if (sous === "menus") return ok(res, { ok: true, fraicheurHeures: 6, menus: [{ restaurantId: "r1", nom: "Chez Awa (essai)", plats: 3, aReconfirmer: 1, epuises: 1, derniereConfirmation: null }] });
+    // Menu par photo, côté équipe (lot R5) : lecture fixe (qui présente « Riz sauce feuille » comme déjà au menu, pour montrer ce cas) puis import en mémoire.
+    if (sous.startsWith("menus/") && sous.endsWith("/photo") && req.method === "POST") {
+      for await (const _ of req);
+      return ok(res, { ok: true, lecture: { plats: [{ nom: "Brochettes de bœuf", prix: 30000 }, { nom: "Jus de gingembre", prix: 6000 }], refuses: [{ brut: "Riz sauce feuille", raison: "déjà au menu : à corriger à la main si le prix a changé" }, { brut: "Poisson braisé", raison: "prix illisible — à saisir à la main" }], etat: "plats" } });
+    }
+    if (sous.startsWith("menus/") && sous.endsWith("/import") && req.method === "POST") {
+      const c = await lireCorps(req);
+      const liste = Array.isArray(c.plats) ? c.plats : [];
+      for (const p of liste) plats.push({ id: "p-photo-" + plats.length, nom: p.nom, description: "", prix: p.prix, disponible: true, confirmeLe: null });
+      return ok(res, { ok: true, message: `${liste.length} plat(s) ajouté(s) au menu de Chez Awa (essai). Ils sont à confirmer avant la vente.`, ajoutes: liste.length });
+    }
     if (sous.startsWith("menus/") && !sous.endsWith("confirmer") && !sous.endsWith("disponibilite")) return ok(res, { ok: true, nom: "Chez Awa (essai)", plats: plats.map((p) => ({ id: p.id, nom: p.nom, prix: p.prix, disponible: p.disponible, confirmeLe: p.confirmeLe, etat: !p.disponible ? "epuise" : p.confirmeLe && p.confirmeLe > "2026-10-22" ? "disponible" : "a_confirmer" })) });
     const routeE = modulesFactices.equipe?.[sous];
     if (routeE) return executerRouteFactice(res, routeE, { corps: await lireCorps(req), compte, sous, methode: req.method });

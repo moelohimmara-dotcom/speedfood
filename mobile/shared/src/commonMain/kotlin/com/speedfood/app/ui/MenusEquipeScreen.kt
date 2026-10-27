@@ -45,6 +45,14 @@ import com.speedfood.app.data.formaterGnf
 import com.speedfood.app.design.Couleurs
 import org.koin.compose.viewmodel.koinViewModel
 
+/** Ce que l'écran d'un menu appelle pour lire une photo (lot R5) : choisir la photo, corriger une ligne, ajouter les plats cochés, annuler. */
+class ActionsPhotoMenu(
+    val surPhotographier: (String) -> Unit,
+    val surLigne: (Int, String?, String?, Boolean?) -> Unit,
+    val surAjouter: (String) -> Unit,
+    val surAnnuler: () -> Unit,
+)
+
 /** Menus à reconfirmer : un menu dont les plats ne sont plus « frais » s'affiche « à confirmer » chez les clients ; l'équipe les reconfirme ici en un geste. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +76,10 @@ fun MenusEquipeScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: 
                 EtatMenusEquipe.Chargement -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = Couleurs.RougeFonce)
                 EtatMenusEquipe.NonConnecte -> MessageEtat("Connectez-vous avec votre compte de l'équipe.", "Me connecter", onConnexion)
                 is EtatMenusEquipe.Erreur -> MessageEtat(e.message, "Réessayer", viewModel::charger)
-                is EtatMenusEquipe.Pret -> ContenuMenusEquipe(e, viewModel::ouvrir, viewModel::reconfirmerTout, viewModel::reconfirmerPlat, viewModel::definirDisponibilite)
+                is EtatMenusEquipe.Pret -> ContenuMenusEquipe(
+                    e, viewModel::ouvrir, viewModel::reconfirmerTout, viewModel::reconfirmerPlat, viewModel::definirDisponibilite,
+                    photo = ActionsPhotoMenu(viewModel::photographier, viewModel::modifierLigne, viewModel::ajouterLecture, viewModel::annulerLecture),
+                )
             }
         }
     }
@@ -81,6 +92,7 @@ internal fun ContenuMenusEquipe(
     surToutReconfirmer: (String) -> Unit,
     surPlatReconfirmer: (String, String) -> Unit,
     surDisponibilite: (String, String, Boolean) -> Unit,
+    photo: ActionsPhotoMenu? = null,
 ) {
     var confirmation by remember { mutableStateOf<MenuEquipeResume?>(null) }
     val total = e.menus.sumOf { it.aReconfirmer }
@@ -88,7 +100,7 @@ internal fun ContenuMenusEquipe(
         e.message?.let { BlocMessage(it, erreur = false) }
         val ouvert = e.menus.firstOrNull { it.restaurantId == e.ouvert }
         if (ouvert != null) {
-            DetailMenu(ouvert, e, surPlatReconfirmer, surDisponibilite) { confirmation = ouvert }
+            DetailMenu(ouvert, e, surPlatReconfirmer, surDisponibilite, photo) { confirmation = ouvert }
         } else {
             Text(
                 "Un plat non reconfirmé depuis ${e.fraicheurHeures} h s'affiche « à confirmer » chez les clients. Appelez le restaurant, puis reconfirmez ses plats ici. $total plat(s) à reconfirmer au total.",
@@ -135,11 +147,18 @@ private fun CarteMenu(m: MenuEquipeResume, occupe: Boolean, onOuvrir: () -> Unit
 }
 
 @Composable
-private fun DetailMenu(m: MenuEquipeResume, e: EtatMenusEquipe.Pret, surPlatReconfirmer: (String, String) -> Unit, surDisponibilite: (String, String, Boolean) -> Unit, onToutReconfirmer: () -> Unit) {
+private fun DetailMenu(m: MenuEquipeResume, e: EtatMenusEquipe.Pret, surPlatReconfirmer: (String, String) -> Unit, surDisponibilite: (String, String, Boolean) -> Unit, photo: ActionsPhotoMenu?, onToutReconfirmer: () -> Unit) {
     Text(m.nom, style = MaterialTheme.typography.headlineSmall)
     if (m.aReconfirmer > 0) {
         Button(onClick = onToutReconfirmer, enabled = !e.actionEnCours, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce)) { Text("Tout reconfirmer (${m.aReconfirmer})") }
     }
+    if (photo != null && e.photoDisponible) {
+        OutlinedButton(onClick = { photo.surPhotographier(m.restaurantId) }, enabled = !e.lectureEnCours && !e.actionEnCours, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+            Text(if (e.lectureEnCours) "Lecture de la photo en cours…" else "Ajouter des plats depuis une photo", color = Couleurs.Encre)
+        }
+        Text("La photo est lue puis oubliée. Vous relisez chaque plat avant de l'ajouter ; les plats ajoutés sont à confirmer avant la vente.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    e.lecture?.let { RelectureMenu(it, surLigne = photo?.surLigne ?: { _, _, _, _ -> }, surAjouter = { photo?.surAjouter?.invoke(m.restaurantId) }, surAnnuler = { photo?.surAnnuler?.invoke() }) }
     val plats = e.detail?.plats
     if (plats == null) {
         CircularProgressIndicator(color = Couleurs.RougeFonce)
