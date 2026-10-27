@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -135,7 +136,7 @@ private fun CarteMenu(m: MenuEquipeResume, occupe: Boolean, onOuvrir: () -> Unit
             Text(m.nom, style = MaterialTheme.typography.titleMedium)
             Text("${m.plats} plat(s) · ${m.aReconfirmer} à reconfirmer · ${m.epuises} épuisé(s)", style = MaterialTheme.typography.bodyMedium)
             Text(
-                m.derniereConfirmation?.let { "Dernière confirmation : ${it.take(16).replace('T', ' ')}" } ?: "Jamais confirmé",
+                m.derniereConfirmation?.let { "Dernière confirmation : ${dateLisible(it)}" } ?: "Jamais confirmé",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -185,7 +186,7 @@ private fun LignePlat(p: PlatMenuEquipe, occupe: Boolean, onReconfirmer: () -> U
                 Text(p.nom, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Text(formaterGnf(p.prix), style = MaterialTheme.typography.labelLarge)
             }
-            Text(libelle + (p.confirmeLe?.let { " · ${it.take(16).replace('T', ' ')}" } ?: ""), style = MaterialTheme.typography.labelMedium, color = couleur)
+            Text(libelle + (p.confirmeLe?.let { " · ${dateLisible(it)}" } ?: ""), style = MaterialTheme.typography.labelMedium, color = couleur)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (p.disponible && p.etat == "a_confirmer") OutlinedButton(onClick = onReconfirmer, enabled = !occupe, border = BorderStroke(1.dp, Couleurs.Encre)) { Text("Reconfirmer", color = Couleurs.Encre) }
                 OutlinedButton(onClick = { onDisponibilite(!p.disponible) }, enabled = !occupe, border = BorderStroke(1.dp, if (p.disponible) Couleurs.Danger else Couleurs.Encre)) {

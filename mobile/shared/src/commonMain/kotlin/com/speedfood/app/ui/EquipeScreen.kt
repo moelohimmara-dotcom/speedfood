@@ -177,11 +177,11 @@ internal class Chiffre(val libelle: String, val valeur: Int, val alerte: Boolean
 private fun LigneChiffres(chiffres: List<Chiffre>) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         chiffres.forEach { c ->
-            Card(
-                modifier = Modifier.weight(1f).clickable(onClick = c.onClick),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = if (c.alerte) Couleurs.DangerFond else Couleurs.Surface),
-                border = BorderStroke(1.dp, if (c.alerte) Couleurs.Danger else Couleurs.Bordure),
+            CarteMarche(
+                modifier = Modifier.weight(1f),
+                surClic = c.onClick,
+                rayon = 14.dp,
+                fond = if (c.alerte) Couleurs.DangerFond else Couleurs.Surface,
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(c.valeur.toString(), style = MaterialTheme.typography.headlineMedium, color = if (c.alerte) Couleurs.Danger else Couleurs.Encre)

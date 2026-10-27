@@ -94,12 +94,7 @@ internal fun ContenuPanier(panier: Panier, service: PanierService?, onVoirRestau
 
 @Composable
 private fun LigneDuPanier(ligne: LignePanier, service: PanierService?) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(ligne.plat.nom, style = MaterialTheme.typography.titleMedium)

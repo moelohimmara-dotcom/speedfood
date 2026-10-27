@@ -100,12 +100,7 @@ fun MesCommandesScreen(
 @Composable
 internal fun CarteCommande(c: CommandeAffichee, onOuvrir: (String) -> Unit, onRecommander: () -> Unit = {}, actif: Boolean = true) {
     val age = c.creeLeMillis?.let { Clock.System.now().toEpochMilliseconds() - it }
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onOuvrir(c.jeton) },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth(), surClic = { onOuvrir(c.jeton) }) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {

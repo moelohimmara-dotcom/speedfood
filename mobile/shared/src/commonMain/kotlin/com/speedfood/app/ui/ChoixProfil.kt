@@ -58,12 +58,7 @@ fun EcranChoixProfil(surConsommateur: () -> Unit, surRestaurateur: () -> Unit, s
 
 @Composable
 private fun CarteProfil(icone: ImageVector, titre: String, soustitre: String, surChoix: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = surChoix).semantics { role = Role.Button },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.5.dp, Couleurs.Encre),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth().semantics { role = Role.Button }, surClic = surChoix) {
         Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Icon(icone, contentDescription = null, tint = Couleurs.RougeFonce, modifier = Modifier.size(32.dp))
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -118,7 +119,7 @@ private fun CartePartenariat(d: DemandePartenariatEquipe, occupe: Boolean, ouvri
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(d.organisation, style = MaterialTheme.typography.titleMedium)
             Text(
-                listOf(d.nomContact, d.creeLe.take(10)).filter { it.isNotBlank() }.joinToString(" · "),
+                listOf(d.nomContact, dateLisible(d.creeLe)).filter { it.isNotBlank() }.joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -141,7 +142,7 @@ private fun CartePartenariat(d: DemandePartenariatEquipe, occupe: Boolean, ouvri
                 }
             }
             Text(
-                "${libelleStatutPartenariatEquipe(d.statut)} · reçue le ${d.creeLe.take(10)}",
+                "${libelleStatutPartenariatEquipe(d.statut)} · reçue : ${dateLisible(d.creeLe)}",
                 style = MaterialTheme.typography.labelLarge,
                 color = if (alerte) Couleurs.Danger else Couleurs.Encre,
             )

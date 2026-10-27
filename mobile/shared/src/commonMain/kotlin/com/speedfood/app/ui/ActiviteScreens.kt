@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,7 +69,7 @@ private fun LigneHistorique(gauche: String, detail: String, droite: String) {
     }
 }
 
-private fun jourHeure(iso: String?): String = iso?.take(16)?.replace('T', ' ') ?: ""
+private fun jourHeure(iso: String?): String = dateLisible(iso)
 
 /** Cadre commun : barre de titre avec « Actualiser », corps selon l'état. */
 @OptIn(ExperimentalMaterial3Api::class)

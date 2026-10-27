@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -135,7 +136,7 @@ private fun CartePaiement(p: PaiementVu) {
             }
             p.litiges.forEach { l -> Text("Litige : ${l.situation.replace('_', ' ')} · " + (if (l.etat == "a_humain") "à décider" else l.etat), style = MaterialTheme.typography.bodySmall, color = Couleurs.Danger) }
             if (p.rembourseGnf > 0) Text("Remboursé : ${formaterGnf(p.rembourseGnf)}", style = MaterialTheme.typography.bodySmall)
-            Text("Créé le ${p.creeLe.take(16).replace('T', ' ')}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Créé : ${dateLisible(p.creeLe)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

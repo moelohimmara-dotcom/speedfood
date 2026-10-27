@@ -170,6 +170,10 @@ internal fun ContenuLivreur(
 
         e.message?.let { message -> item(key = "message") { BlocMessage(message, erreur = false) } }
 
+        // Ce qui demande une action immédiate (une offre à accepter, la course en cours) passe avant les rappels de dossier et de position : un livreur en route n'a pas à les chercher.
+        e.etat.offre?.let { offre -> item(key = "offre") { CarteOffre(offre, maintenantMillis, e.actionEnCours, surOffre) } }
+        enCours?.let { course -> item(key = "course") { CarteCourse(course, e.actionEnCours, surEtape) } }
+
         e.dossier?.takeIf { it.manquantes.isNotEmpty() }?.let { dossier ->
             item(key = "dossier") {
                 BlocMessage(
@@ -234,9 +238,6 @@ internal fun ContenuLivreur(
                 Switch(checked = e.posteFixe, onCheckedChange = surPosteFixe)
             }
         }
-
-        e.etat.offre?.let { offre -> item(key = "offre") { CarteOffre(offre, maintenantMillis, e.actionEnCours, surOffre) } }
-        enCours?.let { course -> item(key = "course") { CarteCourse(course, e.actionEnCours, surEtape) } }
 
         if (suivantes.isNotEmpty()) {
             item(key = "file-titre") {

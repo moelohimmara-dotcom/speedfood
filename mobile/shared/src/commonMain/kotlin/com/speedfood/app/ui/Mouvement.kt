@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +61,8 @@ internal fun CarteMarche(
     val ombre = 4.dp
     Box(
         modifier
+            // Une carte prend la hauteur de son contenu, même dans un parent qui impose une hauteur minimale.
+            .wrapContentHeight(androidx.compose.ui.Alignment.Top)
             .padding(end = ombre, bottom = ombre)
             .drawBehind {
                 // L'ombre ne bouge pas ; la carte glisse dessus.
@@ -198,4 +201,56 @@ internal fun FriseSuivi(etapes: List<String>, indexActuel: Int, modifier: Modifi
             }
         }
     }
+}
+
+/**
+ * Bouton d'action principale « Marché » : aplat rouge de la marque, contour encre, ombre décalée qui s'écrase à l'appui. Le texte reste blanc cassé sur rouge (contraste AA) ;
+ * désactivé, il passe en gris lisible. C'est le seul bouton à dégradé/plein de l'écran (règle du design system : une seule action principale).
+ */
+@Composable
+internal fun BoutonMarche(texte: String, actif: Boolean = true, surClic: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    val enfonce by source.collectIsPressedAsState()
+    val decalage by animateDpAsState(if (enfonce && actif) 3.dp else 0.dp, spring(dampingRatio = 0.6f, stiffness = 900f), label = "appui")
+    val forme = RoundedCornerShape(14.dp)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(end = 4.dp, bottom = 4.dp)
+            .drawBehind { if (actif) drawRoundRect(Couleurs.Encre, Offset(4.dp.toPx(), 4.dp.toPx()), size, CornerRadius(14.dp.toPx())) },
+    ) {
+        androidx.compose.material3.Button(
+            onClick = surClic,
+            enabled = actif,
+            interactionSource = source,
+            modifier = Modifier.offset(decalage, decalage).fillMaxWidth().height(50.dp),
+            shape = forme,
+            border = BorderStroke(2.dp, if (actif) Couleurs.Encre else Couleurs.Bordure),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = Couleurs.RougeFonce,
+                contentColor = Couleurs.Creme,
+                disabledContainerColor = Couleurs.Bordure,
+                disabledContentColor = Couleurs.DesactiveTexte,
+            ),
+        ) { androidx.compose.material3.Text(texte, style = androidx.compose.material3.MaterialTheme.typography.labelLarge) }
+    }
+}
+
+/** Pastille de choix « Marché » (filtre, mode de commande, adresse) : contour encre, mangue quand elle est choisie. Même rendu partout où l'on choisit parmi quelques options. */
+@Composable
+internal fun PastilleChoix(choisie: Boolean, surClic: () -> Unit, texte: String) {
+    androidx.compose.material3.FilterChip(
+        selected = choisie,
+        onClick = surClic,
+        label = { androidx.compose.material3.Text(texte, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) },
+        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+            containerColor = Couleurs.Surface,
+            selectedContainerColor = Couleurs.Mangue,
+            selectedLabelColor = Couleurs.Encre,
+        ),
+        border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
+            enabled = true, selected = choisie,
+            borderColor = Couleurs.Encre, selectedBorderColor = Couleurs.Encre, borderWidth = 1.5.dp, selectedBorderWidth = 2.dp,
+        ),
+    )
 }

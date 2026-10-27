@@ -117,12 +117,7 @@ internal fun ContenuSuivi(e: EtatSuivi.Pret, surReponse: (Boolean) -> Unit) {
         }
         e.reponse?.let { BlocMessage(it, erreur = false) }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-            border = BorderStroke(1.dp, Couleurs.Bordure),
-        ) {
+        CarteMarche(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Votre commande", style = MaterialTheme.typography.titleMedium)
                 s.lignes.forEach { l ->

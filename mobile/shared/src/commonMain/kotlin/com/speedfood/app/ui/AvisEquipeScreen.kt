@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,7 +116,7 @@ private fun CarteSignalement(s: SignalementAvis, occupe: Boolean, surDecision: (
             Text("${s.restaurantNom} · ${s.note} sur 5", style = MaterialTheme.typography.titleMedium)
             if (s.statutAvis != "publie") Text(if (s.statutAvis == "annule") "Note annulée" else "Commentaire masqué", style = MaterialTheme.typography.labelLarge, color = Couleurs.Danger)
             Text(s.commentaire ?: "(pas de commentaire)", style = MaterialTheme.typography.bodyMedium)
-            Text("Signalé le ${s.date.take(10)} · motif : ${s.motif}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Signalé : ${dateLisible(s.date)} · motif : ${s.motif}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = motif,
                 onValueChange = { motif = it.take(300); erreur = null },

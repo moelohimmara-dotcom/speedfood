@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -121,7 +122,7 @@ private fun CarteZone(z: ZoneAttenteEquipe, occupe: Boolean, surPrevenue: (Strin
                 Text("${z.personnes} personne(s) en attente", style = MaterialTheme.typography.bodyMedium)
                 Text("${z.prevenues} prévenue(s)", style = MaterialTheme.typography.labelMedium, color = Couleurs.Encre)
             }
-            Text("Dernière inscription le ${z.derniere.take(10)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Dernière inscription : ${dateLisible(z.derniere)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 resumeZoneAttenteEquipe(z.personnes, z.prevenues),
                 style = MaterialTheme.typography.bodySmall,

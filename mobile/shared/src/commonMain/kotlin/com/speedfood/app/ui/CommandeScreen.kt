@@ -132,12 +132,7 @@ internal fun FormulaireCommande(
     var consentement by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-            border = BorderStroke(1.dp, Couleurs.Bordure),
-        ) {
+        CarteMarche(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(panier.restaurantNom ?: "Restaurant", style = MaterialTheme.typography.titleMedium)
                 panier.lignes.forEach { l ->
@@ -166,12 +161,7 @@ internal fun FormulaireCommande(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(false to "Retrait au restaurant", true to "Livraison").forEach { (livraison, texte) ->
-                FilterChip(
-                    selected = etat.livraison == livraison,
-                    onClick = { onMode(livraison) },
-                    label = { Text(texte, style = MaterialTheme.typography.labelMedium) },
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Couleurs.Mangue, selectedLabelColor = Couleurs.Encre),
-                )
+                PastilleChoix(etat.livraison == livraison, { onMode(livraison) }, texte)
             }
         }
 
@@ -194,7 +184,7 @@ internal fun FormulaireCommande(
                     @OptIn(ExperimentalLayoutApi::class)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         adressesEnregistrees.forEach { a ->
-                            FilterChip(selected = adresse == a.adresse, onClick = { adresse = a.adresse }, label = { Text(a.libelle.ifBlank { "Adresse" }) })
+                            PastilleChoix(adresse == a.adresse, { adresse = a.adresse }, a.libelle.ifBlank { "Adresse" })
                         }
                     }
                 }

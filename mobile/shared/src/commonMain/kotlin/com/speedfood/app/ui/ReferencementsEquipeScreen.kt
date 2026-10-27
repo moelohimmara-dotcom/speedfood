@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -148,7 +149,7 @@ private fun CarteDemande(
             d.indications?.takeIf { it.isNotBlank() }?.let { Text("Indications : $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Text("Responsable : ${d.responsable}", style = MaterialTheme.typography.bodyMedium)
             d.candidature?.let { DossierDepose(it) }
-            Text("${libelleStatutDemande(d.statut)} · reçue le ${d.creeLe.take(10)}", style = MaterialTheme.typography.labelLarge, color = if (alerte) Couleurs.Danger else Couleurs.Encre)
+            Text("${libelleStatutDemande(d.statut)} · reçue : ${dateLisible(d.creeLe)}", style = MaterialTheme.typography.labelLarge, color = if (alerte) Couleurs.Danger else Couleurs.Encre)
             numeroAppel(d.telephone)?.let { numero ->
                 OutlinedButton(onClick = { ouvrir("tel:$numero") }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) { Text("Appeler ${d.telephone}", color = Couleurs.Encre) }
             }

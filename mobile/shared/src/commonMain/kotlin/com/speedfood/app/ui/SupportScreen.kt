@@ -1,5 +1,6 @@
 package com.speedfood.app.ui
 
+import com.speedfood.app.data.dateLisible
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -213,7 +214,7 @@ internal fun ContenuDetailSupport(e: EtatDetailSupport.Pret, surStatut: (String,
         Text("Historique", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
         c.historique.forEach { h ->
             Text(
-                "${h.horodatage.take(16).replace('T', ' ')} · ${h.statutPrecedent?.let { libelleStatutCommande(it) + " → " } ?: ""}${libelleStatutCommande(h.statutSuivant)} · ${h.acteur}",
+                "${dateLisible(h.horodatage)} · ${h.statutPrecedent?.let { libelleStatutCommande(it) + " → " } ?: ""}${libelleStatutCommande(h.statutSuivant)} · ${h.acteur}",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

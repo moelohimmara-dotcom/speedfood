@@ -1,5 +1,7 @@
 package com.speedfood.app.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -59,19 +61,20 @@ internal fun ChampTexte(valeur: String, surChangement: (String) -> Unit, libelle
         trailingIcon = if (secret) {
             { TextButton(onClick = { visible = !visible }) { Text(if (visible) "Masquer" else "Afficher", style = MaterialTheme.typography.labelMedium, color = Couleurs.Encre) } }
         } else null,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Couleurs.Surface,
+            unfocusedContainerColor = Couleurs.Surface,
+            focusedBorderColor = Couleurs.RougeFonce,
+            unfocusedBorderColor = Couleurs.Encre,
+            cursorColor = Couleurs.RougeFonce,
+            focusedLabelColor = Couleurs.RougeFonce,
+        ),
     )
 }
 
 @Composable
-internal fun BoutonPrincipal(texte: String, actif: Boolean = true, surClic: () -> Unit) {
-    Button(
-        onClick = surClic,
-        enabled = actif,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme),
-    ) { Text(texte, style = MaterialTheme.typography.labelLarge) }
-}
+internal fun BoutonPrincipal(texte: String, actif: Boolean = true, surClic: () -> Unit) = BoutonMarche(texte, actif, surClic)
 
 @Composable
 internal fun BlocMessage(texte: String, erreur: Boolean) {
