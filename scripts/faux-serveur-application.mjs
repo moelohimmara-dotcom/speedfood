@@ -227,6 +227,11 @@ createServer(async (req, res) => {
   const compte = parJeton(req);
   if (chemin.startsWith("/api/v1/") && !compte) return refus(res, 401, "NON_AUTHENTIFIE", "Connectez-vous avec votre compte.");
 
+  // Lecture d'une photo de menu (lot R3) : réponse fixe, comme le ferait le Chef IA (un plat sans prix lisible et un prix hors limites passent en « refusés »).
+  if (chemin === "/api/v1/candidature/menu-photo" && req.method === "POST") {
+    for await (const _ of req);
+    return ok(res, { ok: true, lecture: { plats: [{ nom: "Poulet braisé", prix: 40000 }, { nom: "Riz sauce feuille", prix: 25000 }, { nom: "Jus de bissap", prix: 8000 }], refuses: [{ brut: "Brochettes de bœuf", raison: "prix illisible — à saisir à la main" }], etat: "plats" } });
+  }
   // Candidature « J'ai un restaurant » (lot R1/R2) : une demande par compte, en mémoire.
   if (chemin === "/api/v1/candidature" || chemin === "/api/v1/candidature/image") {
     const existante = candidatures.get(compte.email);

@@ -5,6 +5,10 @@ import com.speedfood.app.data.BrouillonCandidature
 import com.speedfood.app.data.BrouillonCandidatureStockage
 import com.speedfood.app.data.ErreurAcces
 import com.speedfood.app.data.KtorCandidatureApi
+import com.speedfood.app.data.LectureMenu
+import com.speedfood.app.data.LignePropose
+import com.speedfood.app.data.ajouterLignesCochees
+import com.speedfood.app.data.lignesProposees
 import com.speedfood.app.data.PhotoChoisie
 import com.speedfood.app.data.PlatCandidature
 import com.speedfood.app.data.StockageMemoire
@@ -121,6 +125,39 @@ class CandidatureTest {
         val avecImage = api.envoyerImage("tok", "logo", PhotoChoisie(byteArrayOf(1, 2, 3)))
         assertTrue(chemin.endsWith("/api/v1/candidature/image"))
         assertTrue(avecImage.aLogo)
+    }
+
+    @Test
+    fun lesLignesLuesSeRelisentAvantDEtreAjoutees() {
+        val lecture = LectureMenu(plats = listOf(PlatCandidature("Poulet braisé", 40000), PlatCandidature("Riz", 25000)))
+        val lignes = lignesProposees(lecture)
+        assertEquals(listOf("40000", "25000"), lignes.map { it.prix })
+        val (b, e) = ajouterLignesCochees(BrouillonCandidature(), lignes)
+        assertNull(e)
+        assertEquals(2, b!!.plats.size)
+        // Une ligne décochée n'est pas ajoutée
+        assertEquals(1, ajouterLignesCochees(BrouillonCandidature(), listOf(lignes[0], lignes[1].copy(coche = false))).first!!.plats.size)
+        // Une ligne corrigée est prise telle que corrigée
+        assertEquals(26000, ajouterLignesCochees(BrouillonCandidature(), listOf(LignePropose("Riz", "26 000"))).first!!.plats.single().prix)
+        // Une seule ligne invalide : rien n'est ajouté, la ligne est nommée
+        val (rien, probleme) = ajouterLignesCochees(BrouillonCandidature(), listOf(lignes[0], LignePropose("Festin", "25000000")))
+        assertNull(rien)
+        assertTrue(probleme!!.startsWith("Ligne 2 (Festin)"), probleme)
+    }
+
+    @Test
+    fun lApiRendLaLectureDUnePhotoDeMenu() = runTest {
+        var chemin = ""
+        val api = KtorCandidatureApi(client(MockEngine { r ->
+            chemin = r.url.encodedPath
+            respond("""{"ok":true,"lecture":{"plats":[{"nom":"Poulet","prix":40000}],"refuses":[{"brut":"Brochettes","raison":"prix illisible"}],"etat":"plats"}}""", HttpStatusCode.OK, json)
+        }), config)
+        val l = api.lireMenu("tok", PhotoChoisie(byteArrayOf(1, 2, 3)))
+        assertTrue(chemin.endsWith("/api/v1/candidature/menu-photo"))
+        assertEquals(40000, l.plats.single().prix)
+        assertEquals("Brochettes", l.refuses.single().brut)
+        val trop = KtorCandidatureApi(client(MockEngine { respond("""{"ok":false,"erreur":{"code":"TROP_DE_REQUETES","message":"Vous avez déjà analysé plusieurs photos aujourd'hui."}}""", HttpStatusCode.TooManyRequests, json) }), config)
+        assertEquals("Vous avez déjà analysé plusieurs photos aujourd'hui.", runCatching { trop.lireMenu("tok", PhotoChoisie(byteArrayOf(1))) }.exceptionOrNull()?.message)
     }
 
     @Test

@@ -7,6 +7,10 @@ import com.speedfood.app.data.BrouillonCandidatureStockage
 import com.speedfood.app.data.CandidatureApi
 import com.speedfood.app.data.ErreurAcces
 import com.speedfood.app.data.ErreurReseau
+import com.speedfood.app.data.LignePropose
+import com.speedfood.app.data.PlatRefuseLu
+import com.speedfood.app.data.ajouterLignesCochees
+import com.speedfood.app.data.lignesProposees
 import com.speedfood.app.data.NOMBRE_ETAPES_CANDIDATURE
 import com.speedfood.app.data.PhotoChoisie
 import com.speedfood.app.data.QuartierChoix
@@ -23,6 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/** Ce que la lecture d'une photo de menu a trouvé, en attente de relecture. */
+data class LectureEnAttente(val lignes: List<LignePropose>, val refuses: List<PlatRefuseLu>, val etat: String)
+
 enum class PhaseCandidature { Chargement, NonConnecte, Formulaire, Suivi, Erreur }
 
 data class EcranCandidature(
@@ -37,6 +44,9 @@ data class EcranCandidature(
     val quartiers: List<QuartierChoix> = emptyList(),
     /** Information qui n'empêche pas l'envoi (par exemple une image qui n'a pas pu partir). */
     val avertissement: String? = null,
+    val photoDisponible: Boolean = false,
+    val lectureEnCours: Boolean = false,
+    val lecture: LectureEnAttente? = null,
 )
 
 /**
@@ -61,7 +71,7 @@ class CandidatureViewModel(
     }
 
     fun charger() {
-        _ecran.value = EcranCandidature(brouillon = brouillons.lire())
+        _ecran.value = EcranCandidature(brouillon = brouillons.lire(), photoDisponible = selecteur.disponible)
         viewModelScope.launch {
             val jeton = session.jetonValide()
             if (jeton == null) {
@@ -140,6 +150,61 @@ class CandidatureViewModel(
                 is ResultatPhoto.Erreur -> _ecran.value = _ecran.value.copy(erreur = r.message)
             }
         }
+    }
+
+    /** « Photographier le menu » : la photo est lue par le serveur, puis la liste est montrée pour relecture. Rien n'entre dans le brouillon sans accord. */
+    fun photographierMenu() {
+        if (_ecran.value.lectureEnCours) return
+        viewModelScope.launch {
+            val choisie = when (val r = selecteur.choisir()) {
+                is ResultatPhoto.Choisie -> r.photo
+                ResultatPhoto.Annule -> return@launch
+                is ResultatPhoto.Erreur -> {
+                    _ecran.value = _ecran.value.copy(erreur = r.message)
+                    return@launch
+                }
+            }
+            val jeton = session.jetonValide()
+            if (jeton == null) {
+                _ecran.value = _ecran.value.copy(phase = PhaseCandidature.NonConnecte)
+                return@launch
+            }
+            _ecran.value = _ecran.value.copy(lectureEnCours = true, erreur = null)
+            try {
+                val lue = api.lireMenu(jeton, choisie)
+                val trouve = lue.plats.isNotEmpty()
+                _ecran.value = _ecran.value.copy(
+                    lectureEnCours = false,
+                    lecture = if (trouve || lue.refuses.isNotEmpty()) LectureEnAttente(lignesProposees(lue), lue.refuses, lue.etat) else null,
+                    erreur = if (trouve || lue.refuses.isNotEmpty()) null else "Aucun plat lisible sur cette photo. Essayez avec plus de lumière, ou saisissez les plats à la main.",
+                )
+            } catch (e: ErreurAcces) {
+                _ecran.value = _ecran.value.copy(lectureEnCours = false, phase = PhaseCandidature.NonConnecte)
+            } catch (e: ErreurReseau) {
+                _ecran.value = _ecran.value.copy(lectureEnCours = false, erreur = e.message)
+            }
+        }
+    }
+
+    fun modifierLigne(index: Int, nom: String? = null, prix: String? = null, coche: Boolean? = null) {
+        val l = _ecran.value.lecture ?: return
+        val lignes = l.lignes.mapIndexed { i, ligne -> if (i == index) ligne.copy(nom = nom ?: ligne.nom, prix = prix ?: ligne.prix, coche = coche ?: ligne.coche) else ligne }
+        _ecran.value = _ecran.value.copy(lecture = l.copy(lignes = lignes), erreur = null)
+    }
+
+    fun annulerLecture() {
+        _ecran.value = _ecran.value.copy(lecture = null, erreur = null)
+    }
+
+    fun ajouterLecture() {
+        val l = _ecran.value.lecture ?: return
+        val (b, probleme) = ajouterLignesCochees(_ecran.value.brouillon, l.lignes)
+        if (b == null) {
+            _ecran.value = _ecran.value.copy(erreur = probleme)
+            return
+        }
+        modifier { b }
+        _ecran.value = _ecran.value.copy(lecture = null)
     }
 
     fun retirerImage(type: String) {

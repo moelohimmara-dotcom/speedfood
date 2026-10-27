@@ -81,6 +81,9 @@ export const LIMITE_ZONE_ALERTE_PAR_IP: RegleLimite = { nom: "zone-alerte-ip", m
 // ressources rares (téléversements, tentatives de connexion).
 export const LIMITE_CHEF_IA_PAR_RESTAURANT: RegleLimite = { nom: "chef-ia-resto", max: 20, fenetreSecondes: 3600 };
 
+// Même budget partagé, côté candidat : une personne qui prépare sa demande n'a pas encore de restaurant, donc le plafond est par COMPTE, par jour, et bas (une carte se photographie en une ou deux fois).
+export const LIMITE_CHEF_IA_PAR_CANDIDAT: RegleLimite = { nom: "chef-ia-candidat", max: 6, fenetreSecondes: 86_400 };
+
 // Demandes de partenariat : une personne réelle en envoie une ou deux ; le plafond protège la boîte de l'équipe et la base.
 export const LIMITE_PARTENARIAT_PAR_IP: RegleLimite = { nom: "partenariat-ip", max: 3, fenetreSecondes: 3600 };
 
@@ -186,6 +189,10 @@ export async function limiterTeleversement(restaurantId: string): Promise<void> 
 
 export async function limiterChefIa(restaurantId: string): Promise<void> {
   await appliquerLimite(LIMITE_CHEF_IA_PAR_RESTAURANT, restaurantId);
+}
+
+export async function limiterChefIaCandidat(utilisateurId: string): Promise<void> {
+  await appliquerLimite(LIMITE_CHEF_IA_PAR_CANDIDAT, utilisateurId);
 }
 
 export async function limiterEssaiPush(utilisateurId: string): Promise<void> {

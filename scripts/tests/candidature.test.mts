@@ -4,6 +4,7 @@ import {
   cheminImageCandidature,
   etatPourCandidat,
   lireQuartierId,
+  platsDepuisLecture,
   reponseAttendueLe,
   validerCandidature,
   validerPlats,
@@ -84,6 +85,22 @@ verifier("statut inconnu = reçue (jamais un faux « accepté »)", etatPourCand
 verifier("réponse attendue 48 h plus tard", reponseAttendueLe("2026-10-26T10:00:00.000Z"), "2026-10-28T10:00:00.000Z");
 verifier("date illisible", reponseAttendueLe("hier"), null);
 verifier("chemin d'image sous le compte", cheminImageCandidature("u1", "logo", "png", "abc"), "u1/logo-abc.png");
+
+// Lecture d'une photo de menu
+const lecture = platsDepuisLecture({
+  plats: [{ nom: "Poulet braisé", prix: 40000 }, { nom: "Eau", prix: 50 }, { nom: "Festin", prix: 25_000_000 }, { nom: "Riz", prix: 25000.5 }],
+  refuses: [{ brut: "Brochettes", raison: "prix illisible — à saisir à la main" }],
+  etat: "plats",
+});
+verifier("seul le plat dans les bornes est gardé", lecture.plats, [{ nom: "Poulet braisé", prix: 40000 }]);
+verifier("les plats hors bornes passent dans les refusés, avec leur raison", lecture.refuses.map((r) => r.brut), ["Brochettes", "Eau (50 GNF)", "Festin (25000000 GNF)", "Riz (25000.5 GNF)"]);
+verifier("la raison est dite", lecture.refuses[1].raison.startsWith("prix hors limites"), true);
+verifier("état « plats » conservé", lecture.etat, "plats");
+verifier("plus aucun plat valable : état indéterminé, jamais « plats »", platsDepuisLecture({ plats: [{ nom: "Festin", prix: 99_999_999 }], refuses: [], etat: "plats" }).etat, "indetermine");
+verifier("une carte vide reste vide", platsDepuisLecture({ plats: [], refuses: [], etat: "vide" }).etat, "vide");
+const beaucoup = platsDepuisLecture({ plats: Array.from({ length: MAX_PLATS + 3 }, (_, i) => ({ nom: `Plat ${i}`, prix: 5000 })), refuses: [], etat: "plats" });
+verifier("au plus 80 plats gardés", beaucoup.plats.length, MAX_PLATS);
+verifier("les 3 en trop sont signalés", beaucoup.refuses.length, 3);
 
 if (ko > 0) {
   console.log(`ECHEC candidature : ${ko} verification(s) en echec`);

@@ -61,7 +61,9 @@ class PhotoAndroid(private val contexte: Context) : SelecteurPhoto {
                 ResultatPhoto.Choisie(PhotoChoisie(octets))
             } catch (_: OutOfMemoryError) {
                 ResultatPhoto.Erreur("Cette photo est trop grande pour ce téléphone. Choisissez-en une autre.")
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                // Trace technique (jamais de contenu de photo) : sans elle, une photo refusée par le téléphone reste inexplicable.
+                android.util.Log.w("PhotoAndroid", "lecture de la photo impossible : ${e.javaClass.simpleName}: ${e.message}")
                 ResultatPhoto.Erreur("Cette photo n'a pas pu être lue. Choisissez-en une autre.")
             }
         }
@@ -70,7 +72,9 @@ class PhotoAndroid(private val contexte: Context) : SelecteurPhoto {
     private fun reduire(uri: Uri): ByteArray? {
         val resolveur = contexte.contentResolver
         val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolveur.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, limites) } ?: return null
+        // Avec `inJustDecodeBounds`, decodeStream renvoie TOUJOURS null (il ne remplit que les dimensions) : on ne teste donc pas son résultat, seulement que le flux s'ouvre.
+        val flux = resolveur.openInputStream(uri) ?: return null
+        flux.use { BitmapFactory.decodeStream(it, null, limites) }
         if (limites.outWidth <= 0 || limites.outHeight <= 0) return null
 
         var echantillon = 1

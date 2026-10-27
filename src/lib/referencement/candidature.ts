@@ -118,6 +118,34 @@ export function validerCandidature(corps: unknown, contexte: { commune: string; 
   return { ok: true, candidature: { demande: base.demande, horaires, moyensPaiement: moyens, services, plats } };
 }
 
+/** Ce que renvoie la lecture d'une photo de menu (même forme que `AnalyseMenu` du Chef IA, réduite à ce dont le candidat a besoin). */
+export interface LectureMenu {
+  plats: { nom: string; prix: number }[];
+  refuses: { brut: string; raison: string }[];
+  etat: "plats" | "indetermine" | "vide";
+}
+
+/**
+ * Réduit l'analyse du Chef IA aux plats d'un brouillon de candidature : nom et prix entier dans les bornes de la candidature, au plus `MAX_PLATS`. Un plat hors bornes (par
+ * exemple un prix de 25 000 000 lu à la place de 25 000) n'est jamais gardé en silence : il passe dans `refuses` avec sa raison, que l'écran montre.
+ */
+export function platsDepuisLecture(lecture: LectureMenu): LectureMenu {
+  const plats: { nom: string; prix: number }[] = [];
+  const refuses = [...lecture.refuses];
+  for (const p of lecture.plats) {
+    if (!Number.isInteger(p.prix) || p.prix < PRIX_PLAT_MIN_GNF || p.prix > PRIX_PLAT_MAX_GNF) {
+      refuses.push({ brut: `${p.nom} (${p.prix} GNF)`, raison: `prix hors limites (${PRIX_PLAT_MIN_GNF} à ${PRIX_PLAT_MAX_GNF} GNF)` });
+      continue;
+    }
+    if (plats.length >= MAX_PLATS) {
+      refuses.push({ brut: p.nom, raison: `au-delà de ${MAX_PLATS} plats : l'équipe complétera le reste avec vous` });
+      continue;
+    }
+    plats.push({ nom: p.nom, prix: p.prix });
+  }
+  return { plats, refuses, etat: plats.length > 0 ? "plats" : lecture.etat === "plats" ? "indetermine" : lecture.etat };
+}
+
 /** Ce que le candidat voit : cinq états simples plutôt que les six statuts internes de l'équipe. */
 export type EtatCandidat = "recue" | "en_cours" | "acceptee" | "creee" | "refusee";
 

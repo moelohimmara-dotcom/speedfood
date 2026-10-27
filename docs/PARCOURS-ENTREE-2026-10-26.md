@@ -33,7 +33,9 @@ Décidé avec Malika le 26 octobre 2026 (maquettes validées en conversation). I
 | E3 | Visites par profil, une fois, après le compte | Livré |
 | R1 | Demandes de référencement liées au compte (migration `20261026081154`, routes `/api/v1/candidature` et `/image`, dépôt privé `candidatures`, règles pures testées) | Livré (26 octobre) |
 | R2 | Formulaire en 5 étapes dans l'application, brouillon gardé, suivi de la demande ; un restaurateur connecté rouvre l'application sur sa demande | Livré, joué dans l'émulateur de bout en bout (27 octobre) |
-| R3 | Menu par photo : variante de Chef IA pour un candidat, relecture dans l'application, quota par compte | À faire |
+| R3 | Menu par photo : le moteur du Chef IA (route `/api/v1/candidature/menu-photo`, quota 6 par compte et par jour, photo non conservée), relecture ligne par ligne dans l'application, lignes écartées expliquées | Livré (27 octobre) ; la lecture par le modèle n'est testable qu'une fois le site déployé (binding Workers AI) |
+
+**Correctif découvert en jouant R3 :** `PhotoAndroid` refusait TOUTE photo (la lecture des dimensions avec `inJustDecodeBounds` renvoie toujours `null`, traité à tort comme une erreur). Corrigé le 27 octobre ; la photo de plat du restaurateur et le logo du candidat en dépendaient.
 | R4 | Suivi de la demande (48 h), dossier complet côté équipe, création de l'établissement avec reprise des plats, rattachement semi-automatique du compte, notification, effacement à 30 jours après refus | À faire |
 | R5 | Menu par photo pour l'équipe, dans l'application (fiche d'un établissement) | À faire |
 

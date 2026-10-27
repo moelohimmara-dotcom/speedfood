@@ -88,6 +88,29 @@ fun ajouterPlatCandidature(b: BrouillonCandidature, nom: String, prixTexte: Stri
     }
 }
 
+/** Une ligne lue sur la photo du menu, que la personne relit avant de l'ajouter (le prix reste un texte tant qu'elle peut le corriger). */
+data class LignePropose(val nom: String, val prix: String, val coche: Boolean = true)
+
+@Serializable
+data class PlatRefuseLu(val brut: String = "", val raison: String = "")
+
+/** Ce que le serveur a lu sur la photo : les plats valides, les lignes écartées avec leur raison, et `etat` (`plats`, `vide` ou `indetermine`). */
+@Serializable
+data class LectureMenu(val plats: List<PlatCandidature> = emptyList(), val refuses: List<PlatRefuseLu> = emptyList(), val etat: String = "plats")
+
+fun lignesProposees(lecture: LectureMenu): List<LignePropose> = lecture.plats.map { LignePropose(it.nom, it.prix.toString()) }
+
+/** Ajoute au brouillon les lignes cochées, après les mêmes contrôles qu'une saisie à la main. Une seule ligne invalide : rien n'est ajouté et la ligne est nommée. */
+fun ajouterLignesCochees(b: BrouillonCandidature, lignes: List<LignePropose>): Pair<BrouillonCandidature?, String?> {
+    var courant = b
+    lignes.filter { it.coche }.forEachIndexed { i, l ->
+        val (suivant, erreur) = ajouterPlatCandidature(courant, l.nom, l.prix)
+        if (suivant == null) return null to "Ligne ${i + 1} (${l.nom.ifBlank { "sans nom" }}) : $erreur"
+        courant = suivant
+    }
+    return courant to null
+}
+
 /** Corps envoyé au serveur : jamais l'e-mail, la commune ni le nom du quartier (le serveur les retrouve par l'identifiant). */
 fun corpsCandidature(b: BrouillonCandidature): JsonObject = buildJsonObject {
     put("nom", b.nom.trim())
@@ -125,6 +148,9 @@ data class VueCandidature(
 private data class ErreurCandidature(val code: String = "", val message: String = "")
 
 @Serializable
+private data class ReponseLecture(val ok: Boolean = false, val lecture: LectureMenu? = null, val erreur: ErreurCandidature? = null)
+
+@Serializable
 private data class ReponseCandidature(val ok: Boolean = false, val candidature: VueCandidature? = null, val erreur: ErreurCandidature? = null)
 
 interface CandidatureApi {
@@ -134,6 +160,9 @@ interface CandidatureApi {
     suspend fun deposer(jetonAcces: String, brouillon: BrouillonCandidature): VueCandidature
 
     suspend fun envoyerImage(jetonAcces: String, type: String, photo: PhotoChoisie): VueCandidature
+
+    /** Fait lire une photo de menu par le serveur (rien n'est conservé) ; la liste revient pour relecture. */
+    suspend fun lireMenu(jetonAcces: String, photo: PhotoChoisie): LectureMenu
 }
 
 class KtorCandidatureApi(private val client: HttpClient, private val config: SpeedfoodConfig) : CandidatureApi {
@@ -188,6 +217,27 @@ class KtorCandidatureApi(private val client: HttpClient, private val config: Spe
             },
         ) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }
         lu(corps(reponse), "L'image n'a pas pu être envoyée. Réessayez dans un instant.")
+    }
+
+    override suspend fun lireMenu(jetonAcces: String, photo: PhotoChoisie): LectureMenu = appeler {
+        val reponse = client.submitFormWithBinaryData(
+            url("candidature/menu-photo"),
+            formData {
+                append("fichier", photo.octets, Headers.build {
+                    append(HttpHeaders.ContentType, photo.type)
+                    append(HttpHeaders.ContentDisposition, "filename=\"menu.jpg\"")
+                })
+            },
+        ) { header(HttpHeaders.Authorization, "Bearer $jetonAcces") }
+        val r: ReponseLecture = try {
+            reponse.body()
+        } catch (e: Exception) {
+            throw ErreurReseau("La réponse de Speedfood est illisible. Réessayez dans un instant.", e)
+        }
+        if (r.ok && r.lecture != null) return@appeler r.lecture
+        val message = r.erreur?.message ?: "La photo n'a pas pu être lue. Saisissez les plats à la main."
+        if (r.erreur?.code == "NON_AUTHENTIFIE" || r.erreur?.code == "NON_AUTORISE") throw ErreurAcces(message)
+        throw ErreurReseau(message)
     }
 }
 
