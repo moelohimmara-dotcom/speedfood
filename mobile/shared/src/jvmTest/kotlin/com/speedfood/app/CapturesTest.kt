@@ -1,6 +1,8 @@
 package com.speedfood.app
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.ImageComposeScene
@@ -392,4 +394,34 @@ class CapturesTest {
         )
         com.speedfood.app.ui.ContenuMenusEquipe(com.speedfood.app.ui.EtatMenusEquipe.Pret(menus, 6), {}, {}, { _, _ -> }, { _, _, _ -> })
     }
+
+    @Test
+    fun illustrationsDEtat() = capturer("illustrations-etat", hauteur = 360) {
+        androidx.compose.foundation.layout.Row(Modifier.fillMaxSize().androidx_padding(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            com.speedfood.app.ui.GenreIllustration.entries.forEach { com.speedfood.app.ui.Illustration(it, taille = androidx.compose.ui.unit.Dp(84f)) }
+        }
+    }
+
+    @Test
+    fun friseDeSuivi() = capturer("frise-suivi", hauteur = 360) {
+        androidx.compose.foundation.layout.Column(Modifier.fillMaxSize().androidx_padding(), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(androidx.compose.ui.unit.Dp(28f))) {
+            listOf(0, 1, 2).forEach { com.speedfood.app.ui.FriseSuivi(listOf("Envoyée", "Acceptée", "Prête", "Terminée"), it) }
+        }
+    }
+
+    @Test
+    fun cartesMarcheEtTeintes() = capturer("cartes-marche", hauteur = 520) {
+        androidx.compose.foundation.layout.Column(Modifier.fillMaxSize().androidx_padding(), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(androidx.compose.ui.unit.Dp(16f))) {
+            listOf("Riz & sauces", "Grillades", "Fast-food", "Petit-déjeuner").forEach { cat ->
+                com.speedfood.app.ui.CarteMarche(Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.layout.Row(Modifier.androidx_padding(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(androidx.compose.ui.unit.Dp(12f))) {
+                        com.speedfood.app.ui.Vignette(null, cat, categorie = cat)
+                        androidx.compose.material3.Text(cat, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun Modifier.androidx_padding(): Modifier = this.then(androidx.compose.foundation.layout.PaddingValues(androidx.compose.ui.unit.Dp(16f)).let { Modifier.padding(it) })
 }

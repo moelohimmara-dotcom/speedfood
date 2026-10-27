@@ -199,12 +199,12 @@ fun LivreurCompteScreen(
                         }
 
                         item(key = "assistance") {
-                            LigneMenu("Assistance conducteur", Icons.Default.Info, "Règles de la plateforme, appel, incident") { assistance = true }
+                            LigneMenu("Assistance conducteur", IconesApp.Info, "Règles de la plateforme, appel, incident") { assistance = true }
                         }
 
                         item(key = "rubrique-espace") { TitreRubrique("Changer d'espace") }
                         item(key = "espace-client") {
-                            LigneMenu("Espace client", Icons.Default.Home, "Retourner commander comme un client") { espaces.quitter() }
+                            LigneMenu("Espace client", IconesApp.Restaurants, "Retourner commander comme un client") { espaces.quitter() }
                         }
                         roles?.espacesPro?.filter { it != Espace.Livreur }?.forEach { autre ->
                             item(key = "espace-${autre.name}") {
@@ -213,8 +213,8 @@ fun LivreurCompteScreen(
                         }
 
                         item(key = "rubrique-application") { TitreRubrique("Application") }
-                        item(key = "parametres") { LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres) }
-                        item(key = "aide") { LigneMenu("Aide et contact", Icons.Default.Phone, "Assistance Speedfood", onAide) }
+                        item(key = "parametres") { LigneMenu("Paramètres", IconesApp.Reglages, "Notifications, mises à jour, cet appareil", onParametres) }
+                        item(key = "aide") { LigneMenu("Aide et contact", IconesApp.Telephone, "Assistance Speedfood", onAide) }
 
                         item(key = "deconnexion") {
                             OutlinedButton(onClick = { deconnexion = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), border = BorderStroke(2.dp, Couleurs.Encre)) {

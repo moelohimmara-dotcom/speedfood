@@ -110,7 +110,7 @@ fun RestaurantScreen(
                     Text(titre, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 },
                 navigationIcon = {
-                    IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
+                    IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") }
                 },
                 actions = {
                     BoutonFavoriFiche(restaurantId, onConnexion)
@@ -222,14 +222,9 @@ private fun EnteteRestaurant(fiche: RestaurantFiche) {
     val etat = etatRestaurant(fiche.ouvert, fiche.accepteCommandes)
     val libelle = libelleEtat(etat)
     val age = fiche.ageStatutMillis()
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth(), rayon = 18.dp) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
-            Vignette(fiche.logoUrl?.takeIf { it.isNotBlank() } ?: fiche.photoUrl, fiche.nom, taille = 84.dp)
+            Vignette(fiche.logoUrl?.takeIf { it.isNotBlank() } ?: fiche.photoUrl, fiche.nom, taille = 84.dp, categorie = fiche.nomCategorie)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(fiche.nom, style = MaterialTheme.typography.titleLarge)
                 fiche.nomQuartier?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -268,12 +263,7 @@ private fun CartePlat(plat: Plat, surPlat: ((Plat) -> Unit)?) {
         EtatPlat.AConfirmer -> age?.let { "dernière confirmation ${ancienneteLisible(it)}" } ?: "pas encore confirmé"
         EtatPlat.Epuise -> null
     }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth(), rayon = 14.dp) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Vignette(plat.photoUrl, plat.nom, taille = 64.dp)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

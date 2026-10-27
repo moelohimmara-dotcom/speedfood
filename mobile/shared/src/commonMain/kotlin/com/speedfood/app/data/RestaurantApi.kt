@@ -111,7 +111,7 @@ class KtorRestaurantApi(
                 "restaurants",
                 mapOf(
                     "select" to "id,nom,horaires,consignes,ouvert,accepte_commandes,statut_mis_a_jour_le,photo_url,logo_url,moyens_paiement,accepte_sur_place," +
-                        "livraison_mode,avis_somme,avis_total,quartier:neighborhoods!quartier_id(nom)",
+                        "livraison_mode,avis_somme,avis_total,quartier:neighborhoods!quartier_id(nom),categorie:menu_categories!categorie_id(nom)",
                     "id" to "eq.$id",
                     "limit" to 1,
                 ),

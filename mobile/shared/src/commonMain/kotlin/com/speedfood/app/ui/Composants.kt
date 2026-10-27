@@ -1,6 +1,8 @@
 package com.speedfood.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.speedfood.app.design.teinteCategorie
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -118,15 +120,19 @@ internal fun ImageBanniere(url: String?, hauteur: Dp) {
     }
 }
 
-/** Vignette carrée : l'image si elle existe, sinon l'initiale du nom sur fond crème. */
+/**
+ * Vignette carrée : l'image si elle existe, sinon l'initiale du nom sur l'aplat de la catégorie (rouge, orange, mangue ou encre, voir [teinteCategorie]), cerclée d'encre comme
+ * les autres éléments « Marché ». Sans photo, la liste reste colorée et chaque restaurant garde sa couleur.
+ */
 @Composable
-internal fun Vignette(url: String?, nom: String, taille: Dp = 72.dp) {
+internal fun Vignette(url: String?, nom: String, taille: Dp = 72.dp, categorie: String? = null) {
     val forme = RoundedCornerShape(14.dp)
-    Box(Modifier.size(taille).clip(forme).background(Couleurs.Creme), contentAlignment = Alignment.Center) {
+    val teinte = teinteCategorie(categorie, nom)
+    Box(Modifier.size(taille).clip(forme).background(if (url.isNullOrBlank()) teinte.fond else Couleurs.Creme).border(2.dp, Couleurs.Encre, forme), contentAlignment = Alignment.Center) {
         if (!url.isNullOrBlank()) {
             AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
-            Text(nom.take(1).uppercase(), style = MaterialTheme.typography.headlineMedium, color = Couleurs.RougeFonce)
+            Text(nom.take(1).uppercase(), style = MaterialTheme.typography.headlineMedium, color = teinte.texte)
         }
     }
 }

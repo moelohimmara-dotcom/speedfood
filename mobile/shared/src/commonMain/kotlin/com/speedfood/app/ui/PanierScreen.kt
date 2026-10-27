@@ -48,7 +48,7 @@ fun PanierScreen(onRetour: () -> Unit, onCommander: () -> Unit, onVoirRestaurant
         topBar = {
             TopAppBar(
                 title = { Text("Mon panier", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { if (!racine) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { if (!racine) IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

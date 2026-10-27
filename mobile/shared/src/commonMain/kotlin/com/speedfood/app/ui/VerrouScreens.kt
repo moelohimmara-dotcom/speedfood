@@ -49,7 +49,7 @@ internal fun EcranVerrou(espace: Espace, verrou: VerrouEspacesPro = koinInject()
         verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(Icons.Default.Lock, contentDescription = null, tint = Couleurs.RougeFonce)
+        Icon(IconesApp.Cadenas, contentDescription = null, tint = Couleurs.RougeFonce)
         Text("${espace.libelle} verrouillé", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Text(
             if (echec) "La vérification n'a pas abouti. Réessayez." else "Utilisez votre empreinte, votre visage ou le code de votre téléphone.",

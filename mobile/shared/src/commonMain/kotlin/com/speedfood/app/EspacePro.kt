@@ -141,21 +141,21 @@ private class OngletPro(val libelle: String, val icone: ImageVector, val route: 
 
 private fun ongletsDe(espace: Espace): List<OngletPro> = when (espace) {
     Espace.Restaurateur -> listOf(
-        OngletPro("Commandes", Icons.Default.Notifications, RestaurateurDestination),
-        OngletPro("Menu", Icons.Default.List, MenuRestaurateurDestination),
+        OngletPro("Commandes", IconesApp.Cloche, RestaurateurDestination),
+        OngletPro("Menu", IconesApp.Commandes, MenuRestaurateurDestination),
         OngletPro("Activité", IconesApp.Histogramme, ActiviteDestination),
-        OngletPro("Compte", Icons.Default.Person, CompteProDestination),
+        OngletPro("Compte", IconesApp.Compte, CompteProDestination),
     )
     Espace.Livreur -> listOf(
         OngletPro("Courses", IconesApp.Epingle, LivreurDestination),
         OngletPro("Gains", IconesApp.Piece, GainsDestination),
-        OngletPro("Compte", Icons.Default.Person, CompteProDestination),
+        OngletPro("Compte", IconesApp.Compte, CompteProDestination),
     )
     Espace.Equipe -> listOf(
-        OngletPro("Tableau", Icons.Default.Home, EquipeDestination),
-        OngletPro("Commandes", Icons.Default.List, SupportDestination),
+        OngletPro("Tableau", IconesApp.Tableau, EquipeDestination),
+        OngletPro("Commandes", IconesApp.Commandes, SupportDestination),
         OngletPro("Livraisons", IconesApp.Epingle, LivraisonsEquipeDestination),
-        OngletPro("Compte", Icons.Default.Person, CompteProDestination),
+        OngletPro("Compte", IconesApp.Compte, CompteProDestination),
     )
     Espace.Client -> emptyList()
 }

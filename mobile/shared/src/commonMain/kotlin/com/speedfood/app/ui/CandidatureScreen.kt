@@ -70,7 +70,7 @@ fun CandidatureScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () 
                 title = { Text(if (ecran.phase == PhaseCandidature.Suivi) "Ma demande" else "Inscrire mon restaurant", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = { if (ecran.phase == PhaseCandidature.Formulaire && ecran.brouillon.etape > 0) viewModel.precedente() else onRetour() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        Icon(IconesApp.Retour, contentDescription = "Retour")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),

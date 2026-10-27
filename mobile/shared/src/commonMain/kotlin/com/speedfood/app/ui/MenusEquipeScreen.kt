@@ -65,7 +65,7 @@ fun MenusEquipeScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewModel: 
         topBar = {
             TopAppBar(
                 title = { Text("Menus à reconfirmer", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = { if (ouvert != null) viewModel.ouvrir(null) else onRetour() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { IconButton(onClick = { if (ouvert != null) viewModel.ouvrir(null) else onRetour() }) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 actions = { TextButton(onClick = viewModel::charger) { Text("Actualiser", color = Couleurs.Encre) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )

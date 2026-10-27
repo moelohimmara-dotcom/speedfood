@@ -60,7 +60,7 @@ internal val LocalRetourVisible = compositionLocalOf { true }
 
 @Composable
 internal fun BoutonRetour(onRetour: () -> Unit) {
-    if (LocalRetourVisible.current) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
+    if (LocalRetourVisible.current) IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") }
 }
 
 internal fun Espace.sousTitre(roles: RolesCompte?): String = when (this) {
@@ -71,10 +71,10 @@ internal fun Espace.sousTitre(roles: RolesCompte?): String = when (this) {
 }
 
 internal fun Espace.icone() = when (this) {
-    Espace.Client -> Icons.Default.Home
-    Espace.Restaurateur -> Icons.Default.Person
+    Espace.Client -> IconesApp.Restaurants
+    Espace.Restaurateur -> IconesApp.Compte
     Espace.Livreur -> IconesApp.Epingle
-    Espace.Equipe -> Icons.Default.Lock
+    Espace.Equipe -> IconesApp.Cadenas
 }
 
 /**
@@ -93,7 +93,7 @@ fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> 
         topBar = {
             TopAppBar(
                 title = { Text("Espace professionnel", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -128,7 +128,7 @@ fun AccesProScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onAide: () -> 
 
             if (droits?.aUnEspacePro != true) {
                 TitreRubrique("Rejoindre Speedfood")
-                LigneMenu("Je suis restaurateur", Icons.Default.Person, "Inscrire mon restaurant sur Speedfood") { if (onInscrireRestaurant != null) onInscrireRestaurant() else ouvreur.openUri("${config.siteUrl.trimEnd('/')}/restaurateurs") }
+                LigneMenu("Je suis restaurateur", IconesApp.Compte, "Inscrire mon restaurant sur Speedfood") { if (onInscrireRestaurant != null) onInscrireRestaurant() else ouvreur.openUri("${config.siteUrl.trimEnd('/')}/restaurateurs") }
                 LigneMenu("Je suis livreur", IconesApp.Epingle, "Le compte est ouvert par l'équipe Speedfood : contactez-nous", onAide)
             }
         }
@@ -160,12 +160,12 @@ fun CompteProScreen(espace: Espace, onParametres: () -> Unit, onAide: () -> Unit
                 }
             }
             TitreRubrique("Changer d'espace")
-            LigneMenu("Espace client", Icons.Default.Home, "Retourner commander comme un client") { espaces.quitter() }
+            LigneMenu("Espace client", IconesApp.Restaurants, "Retourner commander comme un client") { espaces.quitter() }
             roles?.espacesPro?.filter { it != espace }?.forEach { e -> LigneMenu(e.libelle, e.icone(), e.sousTitre(roles)) { espaces.entrer(e) } }
 
             TitreRubrique("Application")
-            LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres)
-            LigneMenu("Aide et contact", Icons.Default.Phone, "Assistance Speedfood", onAide)
+            LigneMenu("Paramètres", IconesApp.Reglages, "Notifications, mises à jour, cet appareil", onParametres)
+            LigneMenu("Aide et contact", IconesApp.Telephone, "Assistance Speedfood", onAide)
 
             OutlinedButton(onClick = { deconnexion = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), border = BorderStroke(2.dp, Couleurs.Encre)) {
                 Text("Me déconnecter", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)

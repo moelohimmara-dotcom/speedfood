@@ -50,7 +50,7 @@ fun SuiviScreen(jeton: String, onRetour: () -> Unit, viewModel: SuiviViewModel =
         topBar = {
             TopAppBar(
                 title = { Text("Suivi de commande", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -86,18 +86,7 @@ internal fun ContenuSuivi(e: EtatSuivi.Pret, surReponse: (Boolean) -> Unit) {
 
         if (s.statut !in setOf("refusee", "annulee")) {
             val indexActuel = ETAPES.indexOfFirst { it.first == s.statut }.coerceAtLeast(0)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                ETAPES.forEachIndexed { i, (_, nom) ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                        Box(
-                            Modifier.padding(bottom = 4.dp),
-                        ) {
-                            Text(if (i <= indexActuel) "●" else "○", color = if (i <= indexActuel) Couleurs.Succes else Couleurs.Secondaire, style = MaterialTheme.typography.titleMedium)
-                        }
-                        Text(nom, style = MaterialTheme.typography.labelMedium, color = if (i <= indexActuel) Couleurs.Encre else Couleurs.Secondaire)
-                    }
-                }
-            }
+            FriseSuivi(ETAPES.map { it.second }, indexActuel)
         }
 
         s.propositionActive?.let { p ->

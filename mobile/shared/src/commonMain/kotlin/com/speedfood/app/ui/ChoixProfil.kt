@@ -47,8 +47,8 @@ fun EcranChoixProfil(surConsommateur: () -> Unit, surRestaurateur: () -> Unit, s
         Text("Bienvenue sur Speedfood", style = MaterialTheme.typography.headlineMedium, color = Couleurs.Encre)
         Text("Que souhaitez-vous faire ?", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(6.dp))
-        CarteProfil(Icons.Default.ShoppingCart, "Je veux commander", "Les restaurants de ma zone", surConsommateur)
-        CarteProfil(Icons.Default.Home, "J'ai un restaurant", "Le faire référencer sur Speedfood", surRestaurateur)
+        CarteProfil(IconesApp.Panier, "Je veux commander", "Les restaurants de ma zone", surConsommateur)
+        CarteProfil(IconesApp.Restaurants, "J'ai un restaurant", "Le faire référencer sur Speedfood", surRestaurateur)
         Spacer(Modifier.height(32.dp))
         TextButton(onClick = surProfessionnel, modifier = Modifier.fillMaxWidth()) {
             Text("Livreur ou équipe Speedfood ?", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)

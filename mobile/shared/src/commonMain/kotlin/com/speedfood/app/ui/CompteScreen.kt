@@ -76,7 +76,7 @@ internal fun LigneMenu(titre: String, icone: ImageVector, sousTitre: String? = n
                 Text(titre, style = MaterialTheme.typography.titleMedium)
                 sousTitre?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(IconesApp.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -125,7 +125,7 @@ fun CompteScreen(
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Box(Modifier.size(52.dp).background(Couleurs.Mangue, CircleShape), contentAlignment = Alignment.Center) {
                         val initiale = session?.email?.take(1)?.uppercase()
-                        if (initiale != null) Text(initiale, style = MaterialTheme.typography.titleLarge, color = Couleurs.Encre) else Icon(Icons.Default.Person, contentDescription = null, tint = Couleurs.Encre)
+                        if (initiale != null) Text(initiale, style = MaterialTheme.typography.titleLarge, color = Couleurs.Encre) else Icon(IconesApp.Compte, contentDescription = null, tint = Couleurs.Encre)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         if (session != null) {
@@ -149,21 +149,21 @@ fun CompteScreen(
 
             TitreRubrique("Mon espace")
             if (session != null) {
-                LigneMenu("Mon profil", Icons.Default.Person, "Pseudo, avatar, préférences de commande", onProfil)
-                LigneMenu("Mes adresses", Icons.Default.LocationOn, "Maison, travail...", onAdresses)
-                LigneMenu("Mes favoris", Icons.Default.Favorite, "Restaurants enregistrés", onFavoris)
-                LigneMenu("Mes avis", Icons.Default.Star, "Notes laissées aux restaurants", onAvis)
+                LigneMenu("Mon profil", IconesApp.Compte, "Pseudo, avatar, préférences de commande", onProfil)
+                LigneMenu("Mes adresses", IconesApp.Epingle, "Maison, travail...", onAdresses)
+                LigneMenu("Mes favoris", IconesApp.Coeur, "Restaurants enregistrés", onFavoris)
+                LigneMenu("Mes avis", IconesApp.Etoile, "Notes laissées aux restaurants", onAvis)
             }
-            LigneMenu("Mes commandes", Icons.Default.List, "Suivi et historique", onCommandes)
-            LigneMenu("Paramètres", Icons.Default.Settings, "Notifications, mises à jour, cet appareil", onParametres)
-            LigneMenu("Aide et contact", Icons.Default.Phone, "Questions fréquentes, assistance, à propos", onAide)
+            LigneMenu("Mes commandes", IconesApp.Commandes, "Suivi et historique", onCommandes)
+            LigneMenu("Paramètres", IconesApp.Reglages, "Notifications, mises à jour, cet appareil", onParametres)
+            LigneMenu("Aide et contact", IconesApp.Telephone, "Questions fréquentes, assistance, à propos", onAide)
 
             // Pas d'espace professionnel : un accès discret ; les comptes qui en ont un le voient tout en haut de cette page.
             if (pro == null) LigneMenu("Espace professionnel", IconesApp.Mallette, "Restaurateurs, livreurs, équipe Speedfood", onAccesPro)
 
             TitreRubrique("Informations")
-            LigneMenu("Conditions d'utilisation", Icons.Default.Info) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/conditions") }
-            LigneMenu("Confidentialité", Icons.Default.Lock) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/confidentialite") }
+            LigneMenu("Conditions d'utilisation", IconesApp.Info) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/conditions") }
+            LigneMenu("Confidentialité", IconesApp.Cadenas) { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/confidentialite") }
 
             if (session != null) {
                 OutlinedButton(onClick = { deconnexion = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), border = BorderStroke(2.dp, Couleurs.Encre)) {
@@ -200,7 +200,7 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
         topBar = {
             TopAppBar(
                 title = { Text("Paramètres", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -275,7 +275,7 @@ fun AideScreen(onRetour: () -> Unit, config: SpeedfoodConfig = koinInject(), vie
         topBar = {
             TopAppBar(
                 title = { Text("Aide et contact", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

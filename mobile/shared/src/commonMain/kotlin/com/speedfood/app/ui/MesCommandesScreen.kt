@@ -58,7 +58,7 @@ fun MesCommandesScreen(
         topBar = {
             TopAppBar(
                 title = { Text(if (racine) "Mes commandes" else "Mon compte", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { if (!racine) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") } },
+                navigationIcon = { if (!racine) IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },

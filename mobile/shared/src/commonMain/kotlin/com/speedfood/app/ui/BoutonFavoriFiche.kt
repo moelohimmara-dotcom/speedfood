@@ -24,7 +24,7 @@ internal fun BoutonFavoriFiche(restaurantId: String, onConnexion: () -> Unit) {
     val plein = favori == true
     IconButton(onClick = { portee.launch { if (!viewModel.basculer()) onConnexion() } }) {
         Icon(
-            if (plein) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+            if (plein) IconesApp.Coeur else IconesApp.CoeurTrait,
             contentDescription = if (plein) "Retirer des favoris" else "Ajouter aux favoris",
             tint = if (plein) Couleurs.RougeFonce else MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -24,8 +24,10 @@ data class RestaurantFiche(
     @SerialName("avis_somme") val avisSomme: Int = 0,
     @SerialName("avis_total") val avisTotal: Int = 0,
     val quartier: QuartierRef? = null,
+    val categorie: CategorieRef? = null,
 ) {
     val nomQuartier: String? get() = quartier?.nom?.takeIf { it.isNotBlank() }
+    val nomCategorie: String? get() = categorie?.nom?.takeIf { it.isNotBlank() }
 
     val noteMoyenne: Double?
         get() = if (avisTotal > 0) (avisSomme * 10 / avisTotal) / 10.0 else null

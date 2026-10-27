@@ -1,5 +1,7 @@
 package com.speedfood.app
 
+import com.speedfood.app.ui.IconesApp
+import com.speedfood.app.ui.rebond
 import com.speedfood.app.ui.LibelleOnglet
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -51,6 +53,10 @@ import com.speedfood.app.ui.AdressesClientScreen
 import com.speedfood.app.ui.FavorisClientScreen
 import com.speedfood.app.ui.AvisClientScreen
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -298,10 +304,10 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             }
         }
         val onglets = listOf(
-            Onglet("Restaurants", Icons.Default.Home, RestaurantsDestination),
-            Onglet("Commandes", Icons.Default.List, MesCommandesDestination),
-            Onglet("Panier", Icons.Default.ShoppingCart, PanierDestination),
-            Onglet("Compte", Icons.Default.Person, CompteDestination),
+            Onglet("Restaurants", IconesApp.Restaurants, RestaurantsDestination),
+            Onglet("Commandes", IconesApp.Commandes, MesCommandesDestination),
+            Onglet("Panier", IconesApp.Panier, PanierDestination),
+            Onglet("Compte", IconesApp.Compte, CompteDestination),
         )
         // « Me reconnecter » (session expirée) ouvre l'écran de connexion ; la demande est consommée une seule fois.
         LaunchedEffect(connexionDemandee) {
@@ -329,7 +335,7 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                                 onClick = { if (!choisi) versOnglet(o.route) },
                                 icon = {
                                     if (o.route == PanierDestination && panier.nombreArticles > 0) {
-                                        BadgedBox(badge = { Badge(containerColor = Couleurs.RougeFonce) { Text(panier.nombreArticles.toString()) } }) { Icon(o.icone, contentDescription = null) }
+                                        BadgedBox(badge = { Badge(containerColor = Couleurs.RougeFonce, modifier = Modifier.rebond(panier.nombreArticles)) { Text(panier.nombreArticles.toString()) } }) { Icon(o.icone, contentDescription = null) }
                                     } else {
                                         Icon(o.icone, contentDescription = null)
                                     }
@@ -343,7 +349,15 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             },
         ) { interieur ->
         Box(Modifier.padding(interieur).consumeWindowInsets(interieur)) {
-        NavHost(navController = navController, startDestination = destinationInitiale) {
+        // Transitions : un fondu court avec un léger glissement vers la gauche à l'arrivée, un fondu au retour. Discrètes : l'écran suit le doigt, il ne fait pas de spectacle.
+        NavHost(
+            navController = navController,
+            startDestination = destinationInitiale,
+            enterTransition = { fadeIn(tween(220)) + slideInHorizontally(tween(260)) { it / 12 } },
+            exitTransition = { fadeOut(tween(140)) },
+            popEnterTransition = { fadeIn(tween(220)) },
+            popExitTransition = { fadeOut(tween(160)) + slideOutHorizontally(tween(220)) { it / 12 } },
+        ) {
             composable<CompteDestination> {
                 CompteScreen(
                     onConnexion = { navController.navigate(ConnexionDestination) },

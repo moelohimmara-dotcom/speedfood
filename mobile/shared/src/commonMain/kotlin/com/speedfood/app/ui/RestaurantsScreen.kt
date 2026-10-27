@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
@@ -84,11 +85,11 @@ fun RestaurantsScreen(
             TopAppBar(
                 title = { Text("Restaurants", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
-                    if (!racine) IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
+                    if (!racine) IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") }
                 },
                 actions = {
                     if (!racine) {
-                        IconButton(onClick = onCompte) { Icon(Icons.Default.Person, contentDescription = "Mon compte et mes commandes") }
+                        IconButton(onClick = onCompte) { Icon(IconesApp.Compte, contentDescription = "Mon compte et mes commandes") }
                         BoutonPanier(panier.nombreArticles, onPanier)
                     }
                 },
@@ -98,7 +99,7 @@ fun RestaurantsScreen(
     ) { marges ->
         Box(Modifier.fillMaxSize().padding(marges)) {
             when (val e = etat) {
-                EtatListe.Chargement -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = Couleurs.RougeFonce)
+                EtatListe.Chargement -> SquelettesCartes()
                 is EtatListe.Erreur -> MessageEtat(e.message, "Réessayer", viewModel::charger)
                 is EtatListe.Pret -> if (e.restaurants.isEmpty()) {
                     MessageEtat("Aucun restaurant n'est publié pour l'instant. Revenez bientôt.", null, null)
@@ -121,8 +122,8 @@ fun RestaurantsScreen(
 @Composable
 internal fun BoutonPanier(nombreArticles: Int, onPanier: () -> Unit) {
     IconButton(onClick = onPanier) {
-        BadgedBox(badge = { if (nombreArticles > 0) Badge(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme) { Text("$nombreArticles") } }) {
-            Icon(Icons.Default.ShoppingCart, contentDescription = if (nombreArticles > 0) "Mon panier, ${libelleArticles(nombreArticles)}" else "Mon panier")
+        BadgedBox(badge = { if (nombreArticles > 0) Badge(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme, modifier = Modifier.rebond(nombreArticles)) { Text("$nombreArticles") } }) {
+            Icon(IconesApp.Panier, contentDescription = if (nombreArticles > 0) "Mon panier, ${libelleArticles(nombreArticles)}" else "Mon panier")
         }
     }
 }
@@ -134,7 +135,8 @@ internal fun MessageEtat(message: String, libelleBouton: String?, action: (() ->
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Illustration(genreIllustration(message, libelleBouton))
+        Text(message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         if (libelleBouton != null && action != null) {
             Button(onClick = action, colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme)) {
                 Text(libelleBouton, style = MaterialTheme.typography.labelLarge)
@@ -156,7 +158,7 @@ internal fun RechercheEtListe(restaurants: List<Restaurant>, onOuvrir: (String) 
             onValueChange = { requete = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             singleLine = true,
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(IconesApp.Recherche, contentDescription = null) },
             placeholder = { Text("Un restaurant, un quartier, un plat…") },
             shape = MaterialTheme.shapes.large,
         )
@@ -187,10 +189,10 @@ private const val SEUIL_SECTIONS = 4
 internal fun ListeRestaurants(restaurants: List<Restaurant>, onOuvrir: (String) -> Unit = {}, sections: AccueilSections? = null) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (sections == null) {
-            items(restaurants, key = { it.id }) { CarteRestaurant(it, onOuvrir) }
+            itemsIndexed(restaurants, key = { _, r -> r.id }) { i, r -> CarteRestaurant(r, onOuvrir, i) }
         } else {
             val ouverts = sections.ouverts
             val notes = sections.mieuxNotes.filter { it.noteMoyenne != null }.take(3)
@@ -214,18 +216,13 @@ private fun TitreSection(titre: String) {
 }
 
 @Composable
-private fun CarteRestaurant(restaurant: Restaurant, onOuvrir: (String) -> Unit) {
+private fun CarteRestaurant(restaurant: Restaurant, onOuvrir: (String) -> Unit, rang: Int = 99) {
     val etat = etatRestaurant(restaurant.ouvert, restaurant.accepteCommandes)
     val libelle = libelleEtat(etat)
     val age = restaurant.ageStatutMillis()
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onOuvrir(restaurant.id) },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = Couleurs.Surface),
-        border = BorderStroke(1.dp, Couleurs.Bordure),
-    ) {
+    CarteMarche(modifier = Modifier.fillMaxWidth().apparition(rang), surClic = { onOuvrir(restaurant.id) }) {
         Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Vignette(restaurant.logoUrl?.takeIf { it.isNotBlank() } ?: restaurant.photoUrl, restaurant.nom)
+            Vignette(restaurant.logoUrl?.takeIf { it.isNotBlank() } ?: restaurant.photoUrl, restaurant.nom, categorie = restaurant.nomCategorie)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(restaurant.nom, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 val ligne = listOfNotNull(restaurant.nomQuartier, restaurant.nomCategorie, restaurant.horaires?.takeIf { it.isNotBlank() }).joinToString(" · ")
