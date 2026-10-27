@@ -226,7 +226,7 @@ fun AdressesClientScreen(onRetour: () -> Unit, onConnexion: () -> Unit, viewMode
 fun FavorisClientScreen(onRetour: () -> Unit, onConnexion: () -> Unit, onOuvrir: (String) -> Unit, viewModel: EspaceClientViewModel = koinViewModel()) {
     CadreEspaceClient("Mes favoris", onRetour, onConnexion, viewModel) { e ->
         Corps(e) {
-            if (e.espace.favoris.isEmpty()) Text("Aucun favori pour l'instant. Ajoutez un restaurant à vos favoris depuis sa fiche sur le site.", style = MaterialTheme.typography.bodyLarge)
+            if (e.espace.favoris.isEmpty()) Text("Aucun favori pour l'instant. Touchez le cœur sur la fiche d'un restaurant pour l'ajouter à vos favoris.", style = MaterialTheme.typography.bodyLarge)
             e.espace.favoris.forEach { f -> CarteFavori(f, e.actionEnCours, onOuvrir) { viewModel.retirerFavori(f.restaurantId) } }
         }
     }

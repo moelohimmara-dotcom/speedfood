@@ -31,7 +31,12 @@ class SessionService(
         }
 
     private fun poser(s: Session?) {
-        if (s == null) stockage.effacer(CLE) else stockage.ecrire(CLE, Json.encodeToString(Session.serializer(), s))
+        if (s == null) {
+            stockage.effacer(CLE)
+            // Session fermée (volontairement, expirée ou révoquée) : le profil choisi à l'entrée ne vaut plus ; l'écran de choix revient. Sinon un compte pro dont la session a expiré
+            // rouvrait l'application sur le formulaire d'inscription d'un restaurateur, sans accès aux restaurants.
+            stockage.effacer(CLE_PROFIL_CHOISI)
+        } else stockage.ecrire(CLE, Json.encodeToString(Session.serializer(), s))
         _session.value = s
     }
 

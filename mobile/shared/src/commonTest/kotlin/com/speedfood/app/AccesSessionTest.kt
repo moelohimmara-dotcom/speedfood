@@ -4,6 +4,7 @@ import com.speedfood.app.config.SpeedfoodConfig
 import com.speedfood.app.data.AppareilApi
 import com.speedfood.app.data.AvisAcces
 import com.speedfood.app.data.BilanEssai
+import com.speedfood.app.data.CLE_PROFIL_CHOISI
 import com.speedfood.app.data.CommandeLocale
 import com.speedfood.app.data.CommandesLocales
 import com.speedfood.app.data.DeconnexionService
@@ -83,6 +84,7 @@ class AccesSessionTest {
         val stockage = StockageMemoire()
         val reaction = ReactionAcces()
         val s = session(stockage, refusDefinitif)
+        stockage.ecrire(CLE_PROFIL_CHOISI, "restaurateur")
         val espaces = EspaceService(s, FausseApi(RolesCompte()), stockage, portee(), reaction)
         val avis = mutableListOf<AvisAcces>()
         val collecte = launch(UnconfinedTestDispatcher(testScheduler)) { espaces.avis.collect { avis += it } }
@@ -92,6 +94,7 @@ class AccesSessionTest {
         withContext(Dispatchers.Default) { withTimeout(5_000) { while (avis.isEmpty()) delay(10) } }
 
         assertNull(s.session.value, "le serveur refuse le renouvellement : la session est fermée")
+        assertNull(stockage.lire(CLE_PROFIL_CHOISI), "session expirée : le profil choisi à l'entrée ne doit pas rester (sinon retour sur l'inscription d'un restaurateur)")
         assertEquals(Espace.Client, espaces.espace.value)
         val a = avis.single()
         assertTrue(a.reconnexion && a.message.contains("expiré"), "message clair avec « Me reconnecter »")

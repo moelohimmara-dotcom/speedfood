@@ -241,6 +241,14 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 
     }
 }
 
+/**
+ * « Retour » d'un écran. Sur un écran de départ (lien reçu, accès pro, candidature, création de compte) il n'y a rien avant : retirer le dernier écran laisserait une page blanche
+ * et le bouton paraîtrait inactif. On va alors à la liste des restaurants.
+ */
+internal fun NavHostController.retour(repli: Any = RestaurantsDestination) {
+    if (previousBackStackEntry == null) navigate(repli) { popUpTo(0) } else popBackStack()
+}
+
 @Composable
 private fun Application(config: SpeedfoodConfig, lienProfond: LienProfond? = null, numeroLien: Int = 0, debut: DebutApplication = DebutApplication.Normal) {
     val espaces: EspaceService = koinInject()
@@ -349,11 +357,11 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 )
             }
             composable<ParametresDestination> {
-                ParametresScreen(onRetour = { navController.popBackStack() }, onVisite = { navController.navigate(VisiteDestination) })
+                ParametresScreen(onRetour = { navController.retour() }, onVisite = { navController.navigate(VisiteDestination) })
             }
             composable<AccesProDestination> {
                 AccesProScreen(
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onAide = { navController.navigate(AideDestination) },
                     onInscrireRestaurant = { navController.navigate(CandidatureDestination) },
@@ -361,34 +369,34 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             }
             composable<CandidatureDestination> {
                 CandidatureScreen(
-                    onRetour = { if (!navController.popBackStack()) navController.navigate(RestaurantsDestination) },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onAide = { navController.navigate(AideDestination) },
                 )
             }
             composable<ProfilDestination> {
-                ProfilClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                ProfilClientScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<AdressesDestination> {
-                AdressesClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                AdressesClientScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<FavorisDestination> {
                 FavorisClientScreen(
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onOuvrir = { id -> navController.navigate(RestaurantDestination(id)) },
                 )
             }
             composable<AvisDestination> {
-                AvisClientScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                AvisClientScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<AideDestination> {
-                AideScreen(onRetour = { navController.popBackStack() })
+                AideScreen(onRetour = { navController.retour() })
             }
             composable<RestaurantsDestination> {
                 RestaurantsScreen(
                     racine = true,
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onOuvrir = { id -> navController.navigate(RestaurantDestination(id)) },
                     onPanier = { navController.navigate(PanierDestination) },
                     onCompte = { navController.navigate(MesCommandesDestination) },
@@ -397,7 +405,7 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             composable<RestaurantDestination> { entree ->
                 RestaurantScreen(
                     restaurantId = entree.toRoute<RestaurantDestination>().id,
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onPanier = { navController.navigate(PanierDestination) },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                 )
@@ -405,21 +413,21 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             composable<PanierDestination> {
                 PanierScreen(
                     racine = true,
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onCommander = { navController.navigate(CommandeDestination) },
                     onVoirRestaurant = { id -> navController.navigate(RestaurantDestination(id)) },
                 )
             }
             composable<CommandeDestination> {
                 CommandeScreen(
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     // Après l'envoi, on arrive sur le suivi ; « retour » ramène à la liste des restaurants, pas au panier vidé.
                     onEnvoyee = { jeton -> navController.navigate(SuiviDestination(jeton)) { popUpTo<RestaurantsDestination>() } },
                 )
             }
             composable<ConnexionDestination> {
-                ConnexionScreen(onRetour = { navController.popBackStack() }, onConnecte = { navController.popBackStack() })
+                ConnexionScreen(onRetour = { navController.retour() }, onConnecte = { navController.retour() })
             }
             composable<CreationCompteDestination> { entree ->
                 val restaurateur = entree.toRoute<CreationCompteDestination>().restaurateur
@@ -433,13 +441,14 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                     val cible: Any = if (visiteAProposer(restaurateur, vues)) VisiteProfilDestination(restaurateur) else finale
                     navController.navigate(cible) { popUpTo<CreationCompteDestination> { inclusive = true } }
                 }
-                fun versAccueil() = suite()
+                // Retour à l'accueil sans compte : pour un restaurateur, ce n'est pas la candidature (qui exige un compte) mais la liste des restaurants.
+                fun versAccueil() = if (restaurateur) navController.navigate(RestaurantsDestination) { popUpTo<CreationCompteDestination> { inclusive = true } } else suite()
                 ConnexionScreen(
-                    onRetour = { if (!navController.popBackStack()) versAccueil() },
+                    onRetour = { navController.retour() },
                     // Compte créé ou connecté : le consommateur arrive à l'accueil ; le restaurateur à l'espace professionnel (le formulaire d'inscription du restaurant arrive au lot R2).
                     onConnecte = { suite() },
                     inscriptionInitiale = true,
-                    onVoirDabord = if (restaurateur) null else ({ versAccueil() }),
+                    onVoirDabord = { versAccueil() },
                     libelleRetourApresEnvoi = if (restaurateur) "Retour" else "Voir les restaurants",
                     intro = if (restaurateur) "Créez votre compte pour inscrire votre restaurant. L'équipe Speedfood vous répond sous 48 h." else "Créez votre compte pour commander. Le même compte fonctionne sur le site Speedfood.",
                     avecContact = false,
@@ -448,19 +457,19 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 )
             }
             composable<SuiviDestination> { entree ->
-                SuiviScreen(jeton = entree.toRoute<SuiviDestination>().jeton, onRetour = { navController.popBackStack() })
+                SuiviScreen(jeton = entree.toRoute<SuiviDestination>().jeton, onRetour = { navController.retour() })
             }
             composable<MesCommandesDestination> {
                 MesCommandesScreen(
                     racine = true,
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onOuvrir = { jeton -> navController.navigate(SuiviDestination(jeton)) },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onPanier = { navController.navigate(PanierDestination) },
                 )
             }
             composable<VisiteDestination> {
-                VisiteGuidee { navController.popBackStack() }
+                VisiteGuidee { navController.retour() }
             }
             composable<VisiteProfilDestination> { entree ->
                 val restaurateur = entree.toRoute<VisiteProfilDestination>().restaurateur
@@ -471,15 +480,15 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 }
             }
             composable<LivreurDestination> {
-                LivreurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                LivreurScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<RestaurateurDestination> {
-                RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) }, onMenu = { navController.navigate(MenuRestaurateurDestination) })
+                RestaurateurScreen(siteUrl = config.siteUrl, onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) }, onMenu = { navController.navigate(MenuRestaurateurDestination) })
             }
             composable<EquipeDestination> {
                 EquipeScreen(
                     siteUrl = config.siteUrl,
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onRepartition = { navController.navigate(RepartitionDestination) },
                     onSupport = { navController.navigate(SupportDestination) },
@@ -490,17 +499,17 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
                 )
             }
             composable<MenusEquipeDestination> {
-                MenusEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                MenusEquipeScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<LivraisonsEquipeDestination> {
-                LivraisonsEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                LivraisonsEquipeScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<LivreursEquipeDestination> {
-                LivreursEquipeScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                LivreursEquipeScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<SupportDestination> {
                 SupportCommandesScreen(
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                     onOuvrir = { id -> navController.navigate(DetailSupportDestination(id)) },
                 )
@@ -508,15 +517,15 @@ private fun ApplicationClient(config: SpeedfoodConfig, lienProfond: LienProfond?
             composable<DetailSupportDestination> { entree ->
                 DetailSupportScreen(
                     commandeId = entree.toRoute<DetailSupportDestination>().id,
-                    onRetour = { navController.popBackStack() },
+                    onRetour = { navController.retour() },
                     onConnexion = { navController.navigate(ConnexionDestination) },
                 )
             }
             composable<RepartitionDestination> {
-                RepartitionScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                RepartitionScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
             composable<MenuRestaurateurDestination> {
-                MenuRestaurateurScreen(onRetour = { navController.popBackStack() }, onConnexion = { navController.navigate(ConnexionDestination) })
+                MenuRestaurateurScreen(onRetour = { navController.retour() }, onConnexion = { navController.navigate(ConnexionDestination) })
             }
         }
         }

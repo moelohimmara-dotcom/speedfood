@@ -2,6 +2,13 @@ package com.speedfood.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +31,22 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.disponibilite.Ton
+
+/**
+ * Case à cocher dont toute la ligne réagit (la case ET le texte), avec une cible tactile d'au moins 48 dp : sur un téléphone, on tape sur la phrase, pas sur un carré de 24 dp.
+ * La ligne porte le rôle « case à cocher » pour le lecteur d'écran ; la case elle-même n'est qu'un dessin.
+ */
+@Composable
+internal fun LigneACocher(coche: Boolean, surChangement: (Boolean) -> Unit, modifier: Modifier = Modifier, contenu: @Composable () -> Unit) {
+    Row(
+        modifier.heightIn(min = 48.dp).toggleable(value = coche, role = Role.Checkbox, onValueChange = surChangement),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Checkbox(checked = coche, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = Couleurs.RougeFonce))
+        Box(Modifier.weight(1f)) { contenu() }
+    }
+}
 
 /** Pastille d'état : fond clair et texte foncé du ton (succès, neutre, danger), toujours avec un texte (la couleur seule ne dit rien). */
 @Composable

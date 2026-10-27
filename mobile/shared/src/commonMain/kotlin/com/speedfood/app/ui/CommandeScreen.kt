@@ -216,16 +216,10 @@ internal fun FormulaireCommande(
                     estimation is EstimationLivraison.Erreur -> BlocMessage(estimation.message, erreur = true)
                 }
             }
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Checkbox(
-                    checked = consentement,
-                    onCheckedChange = { consentement = it },
-                    colors = CheckboxDefaults.colors(checkedColor = Couleurs.RougeFonce),
-                )
+            LigneACocher(consentement, { consentement = it }, Modifier.fillMaxWidth()) {
                 Text(
                     "Je comprends que je règle directement le restaurant (Speedfood n'encaisse rien dans l'application) et que ma commande n'est ferme qu'une fois confirmée par le restaurant.",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 12.dp),
                 )
             }
             etat.info?.let { BlocMessage(it, erreur = false) }

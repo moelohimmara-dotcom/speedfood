@@ -181,12 +181,7 @@ internal fun ChoixOptionsDialogue(plat: Plat, surAnnuler: () -> Unit, surConfirm
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Suppléments (facultatifs)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 disponibles.forEach { o ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = o.id in choisis,
-                            onCheckedChange = { coche -> choisis = if (coche) choisis + o.id else choisis - o.id },
-                            colors = CheckboxDefaults.colors(checkedColor = Couleurs.RougeFonce),
-                        )
+                    LigneACocher(o.id in choisis, { coche -> choisis = if (coche) choisis + o.id else choisis - o.id }, Modifier.fillMaxWidth()) {
                         Text(if (o.prix > 0) "${o.nom} (+${formaterGnf(o.prix)})" else o.nom, style = MaterialTheme.typography.bodyMedium)
                     }
                 }

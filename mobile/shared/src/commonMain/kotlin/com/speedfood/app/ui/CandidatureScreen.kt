@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -229,7 +230,7 @@ internal fun RelectureMenu(lecture: LectureEnAttente, surLigne: (Int, String?, S
             Text("Vérifiez chaque nom et chaque prix : la lecture peut se tromper d'un chiffre. Décochez ce que vous ne voulez pas ajouter.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             lecture.lignes.forEachIndexed { i, l ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Checkbox(checked = l.coche, onCheckedChange = { surLigne(i, null, null, it) })
+                    Checkbox(checked = l.coche, onCheckedChange = { surLigne(i, null, null, it) }, modifier = Modifier.minimumInteractiveComponentSize())
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         ChampTexte(l.nom, { surLigne(i, it, null, null) }, "Nom du plat")
                         ChampTexte(l.prix, { surLigne(i, null, it, null) }, "Prix en GNF", KeyboardType.Number)

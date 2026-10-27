@@ -191,8 +191,7 @@ internal fun DialogueDeconnexion(surAnnuler: () -> Unit, surConfirmer: (effacerC
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Cet appareil ne recevra plus les notifications de votre compte. Vos commandes en cours restent suivies ici, et votre panier est conservé.")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = effacer, onCheckedChange = { effacer = it })
+                LigneACocher(effacer, { effacer = it }, Modifier.fillMaxWidth()) {
                     Text("Effacer aussi les commandes enregistrées sur cet appareil", style = MaterialTheme.typography.bodyMedium)
                 }
             }
