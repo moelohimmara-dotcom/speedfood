@@ -15,7 +15,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class EtatConnexion(val enCours: Boolean = false, val erreur: String? = null, val inscriptionEnvoyee: String? = null)
+data class EtatConnexion(
+    val enCours: Boolean = false,
+    val erreur: String? = null,
+    val inscriptionEnvoyee: String? = null,
+    /** Adresse pour laquelle l'e-mail de réinitialisation vient d'être demandé (affichée dans la confirmation, jamais pour dire si le compte existe). */
+    val reinitialisationEnvoyee: String? = null,
+)
 
 const val LONGUEUR_MIN_MOT_DE_PASSE = 12
 
@@ -151,6 +157,24 @@ class ConnexionViewModel(
                 } else {
                     _etat.value = EtatConnexion(inscriptionEnvoyee = email.trim())
                 }
+            } catch (e: ErreurAuth) {
+                _etat.value = EtatConnexion(erreur = e.message)
+            } catch (e: Exception) {
+                _etat.value = EtatConnexion(erreur = "Une erreur est survenue. Réessayez dans un instant.")
+            }
+        }
+    }
+
+    fun demanderReinitialisation(email: String) {
+        if (!email.contains("@") || email.trim().length < 6) {
+            _etat.value = EtatConnexion(erreur = "Indiquez l'adresse e-mail de votre compte.")
+            return
+        }
+        _etat.value = EtatConnexion(enCours = true)
+        viewModelScope.launch {
+            try {
+                auth.demanderReinitialisation(email)
+                _etat.value = EtatConnexion(reinitialisationEnvoyee = email.trim())
             } catch (e: ErreurAuth) {
                 _etat.value = EtatConnexion(erreur = e.message)
             } catch (e: Exception) {

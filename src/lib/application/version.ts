@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 49,
-  nom: "2.46.1",
-  notes: "Si votre compte a été supprimé, suspendu ou si votre connexion a expiré, l'application vous l'explique au lieu de vous déconnecter en silence.",
+  code: 50,
+  nom: "2.46.2",
+  notes: "« Mot de passe oublié » se demande maintenant dans l'application, sans passer par le navigateur. Si votre compte a été supprimé, suspendu ou si votre connexion a expiré, l'application vous l'explique au lieu de vous déconnecter en silence.",
   obligatoire: false,
-  apkSha256: "54630d220ed91f7a81f16bf2c704ec3490ad7d2a56d65c1d2ae0813cfd07be72",
+  apkSha256: "a0643656ae91ed25f3e0ac9b5918c19b36287345dbf51edf08d55e8b8b74173b",
   apkTaille: 15717578,
 };

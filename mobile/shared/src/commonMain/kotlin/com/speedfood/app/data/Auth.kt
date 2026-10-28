@@ -56,6 +56,12 @@ interface AuthApi {
 
     suspend fun rafraichir(refreshToken: String): Session
 
+    /**
+     * Demande l'e-mail de réinitialisation du mot de passe. Même réponse que le compte existe ou non (on ne révèle pas qui a un compte) ; le lien reçu s'ouvre dans le navigateur,
+     * sur la page du site où l'on choisit le nouveau mot de passe.
+     */
+    suspend fun demanderReinitialisation(email: String)
+
     /** Adresse de départ de la connexion Facebook (navigateur) : le retour se fait sur le site, qui rend la main à l'application avec un code à usage unique. */
     fun urlConnexionFacebook(codeChallenge: String): String
 
@@ -207,6 +213,20 @@ class KtorAuthApi(
         (Json.parseToJsonElement(texte).jsonObject["facebook"] as? JsonPrimitive)?.booleanOrNull == true
     } catch (_: Exception) {
         false
+    }
+
+    override suspend fun demanderReinitialisation(email: String) {
+        val reponse = poster(
+            "recover",
+            // Même destination que le site : la confirmation, puis la page « nouveau mot de passe ».
+            mapOf("redirect_to" to "${config.siteUrl.trimEnd('/')}/auth/confirmation?suite=%2Fconnexion%2Fnouveau-mot-de-passe"),
+            buildJsonObject { put("email", email.trim()) },
+        )
+        if (!reponse.status.isSuccess()) {
+            val erreur = erreurDe(reponse)
+            // Trop de demandes ou panne : message précis ; sinon l'envoi a échoué, sans détail technique.
+            throw if (erreur.temporaire) erreur else ErreurAuth("L'e-mail n'a pas pu être envoyé pour le moment. Réessayez dans quelques minutes.")
+        }
     }
 
     override suspend fun rafraichir(refreshToken: String): Session {

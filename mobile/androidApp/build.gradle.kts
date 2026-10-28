@@ -50,8 +50,8 @@ android {
         applicationId = "com.speedfood.app"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 49
-        versionName = "2.46.1"
+        versionCode = 50
+        versionName = "2.46.2"
         buildConfigField("String", "SUPABASE_URL", "\"${reglage("supabase.url")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${reglage("supabase.anonKey")}\"")
         // Identifiant du client OAuth « Web » du projet Google (valeur publique) : vide = pas de bouton « Continuer avec Google ».

@@ -88,6 +88,48 @@ internal fun BlocMessage(texte: String, erreur: Boolean) {
     }
 }
 
+/** « Mot de passe oublié » : on demande l'adresse du compte, on envoie le lien, et l'on explique la suite (le lien s'ouvre dans le navigateur, puis on revient se connecter). */
+@Composable
+private fun RecuperationMotDePasse(
+    marges: androidx.compose.foundation.layout.PaddingValues,
+    etat: EtatConnexion,
+    email: String,
+    surEmail: (String) -> Unit,
+    surEnvoi: () -> Unit,
+    surAutreAdresse: () -> Unit,
+    surRetourConnexion: () -> Unit,
+) {
+    Column(Modifier.fillMaxSize().padding(marges).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (etat.reinitialisationEnvoyee != null) {
+            BlocMessage(
+                "Vérifiez votre boîte de réception : si un compte existe avec ${etat.reinitialisationEnvoyee}, un e-mail vient d'être envoyé avec un lien pour choisir un nouveau mot de passe.",
+                erreur = false,
+            )
+            Text(
+                "Regardez aussi les courriers indésirables. Le lien est valable une heure et s'ouvre dans votre navigateur : choisissez-y votre nouveau mot de passe, puis revenez vous connecter ici.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            BoutonPrincipal(texte = "Retour à la connexion", actif = true, surClic = surRetourConnexion)
+            OutlinedButton(onClick = surAutreAdresse, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+                Text("Utiliser une autre adresse", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+            }
+        } else {
+            Text(
+                "Indiquez l'adresse e-mail de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ChampTexte(email, surEmail, "Adresse e-mail", KeyboardType.Email)
+            etat.erreur?.let { BlocMessage(it, erreur = true) }
+            BoutonPrincipal(texte = if (etat.enCours) "Envoi…" else "Envoyer le lien", actif = !etat.enCours, surClic = surEnvoi)
+            TextButton(onClick = surRetourConnexion, modifier = Modifier.fillMaxWidth()) {
+                Text("Retour à la connexion", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
 /** Connexion et création de compte client (même compte que le site). Un compte est nécessaire pour envoyer une commande. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,9 +150,9 @@ fun ConnexionScreen(
     val googleActif by viewModel.googleActif.collectAsState()
     val facebookActif by viewModel.facebookActif.collectAsState()
     val config: com.speedfood.app.config.SpeedfoodConfig = org.koin.compose.koinInject()
-    val ouvreur = androidx.compose.ui.platform.LocalUriHandler.current
     val modeLocal = config.supabaseUrl == "http://10.0.2.2:8787"
     var inscription by remember { mutableStateOf(inscriptionInitiale) }
+    var oubli by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var motDePasse by remember { mutableStateOf("") }
     var nom by remember { mutableStateOf(com.speedfood.app.data.BrouillonContact.nom) }
@@ -121,13 +163,23 @@ fun ConnexionScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(if (inscription) "Créer mon compte" else "Connexion", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = onRetour) { Icon(IconesApp.Retour, contentDescription = "Retour") } },
+                title = { Text(if (oubli) "Mot de passe oublié" else if (inscription) "Créer mon compte" else "Connexion", style = MaterialTheme.typography.titleLarge) },
+                navigationIcon = {
+                    IconButton(onClick = { if (oubli) { oubli = false; viewModel.reprendreConnexion() } else onRetour() }) { Icon(IconesApp.Retour, contentDescription = "Retour") }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
     ) { marges ->
-        Column(Modifier.fillMaxSize().padding(marges).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (oubli) RecuperationMotDePasse(
+            marges = marges,
+            etat = etat,
+            email = email,
+            surEmail = { email = it },
+            surEnvoi = { viewModel.demanderReinitialisation(email) },
+            surAutreAdresse = viewModel::reprendreConnexion,
+            surRetourConnexion = { oubli = false; viewModel.reprendreConnexion() },
+        ) else Column(Modifier.fillMaxSize().padding(marges).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(false to "Se connecter", true to "Créer un compte").forEach { (valeur, texte) ->
                     FilterChip(
@@ -199,7 +251,7 @@ fun ConnexionScreen(
                 }
                 etat.erreur?.let { BlocMessage(it, erreur = true) }
                 if (!inscription) {
-                    TextButton(onClick = { ouvreur.openUri("${config.siteUrl.trimEnd('/')}/connexion/oubli") }) { Text("Mot de passe oublié ?", color = Couleurs.RougeFonce) }
+                    TextButton(onClick = { viewModel.effacerErreur(); oubli = true }) { Text("Mot de passe oublié ?", color = Couleurs.RougeFonce) }
                 }
                 BoutonPrincipal(
                     texte = if (etat.enCours) "Veuillez patienter…" else if (inscription) "Créer mon compte" else "Se connecter",

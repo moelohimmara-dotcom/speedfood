@@ -228,6 +228,28 @@ class CommandeTest {
     }
 
     @Test
+    fun reinitialisationDemandeLEmailAuServiceAvecLaDestinationDuSite() = runTest {
+        var chemin = ""
+        var redirection: String? = null
+        var corps = ""
+        val auth = KtorAuthApi(client(MockEngine { r -> chemin = r.url.encodedPath; redirection = r.url.parameters["redirect_to"]; corps = r.body.toByteArray().decodeToString(); respond("{}", HttpStatusCode.OK, json) }), config) { 0L }
+        auth.demanderReinitialisation("  a@b.test ")
+        assertTrue(chemin.endsWith("/auth/v1/recover"))
+        assertTrue(redirection!!.endsWith("/auth/confirmation?suite=%2Fconnexion%2Fnouveau-mot-de-passe") || redirection!!.endsWith("/auth/confirmation?suite=/connexion/nouveau-mot-de-passe"), "destination : $redirection")
+        assertTrue(corps.contains("\"a@b.test\""), "l'adresse est nettoyée : $corps")
+    }
+
+    @Test
+    fun reinitialisationRefuseDitCeQuiSePasseSansDetailTechnique() = runTest {
+        val limite = KtorAuthApi(client(MockEngine { respond("""{"msg":"rate limit"}""", HttpStatusCode.TooManyRequests, json) }), config) { 0L }
+        val e1 = assertFailsWith<ErreurAuth> { limite.demanderReinitialisation("a@b.test") }
+        assertTrue(e1.message!!.contains("Trop de tentatives"))
+        val autre = KtorAuthApi(client(MockEngine { respond("""{"msg":"x"}""", HttpStatusCode.BadRequest, json) }), config) { 0L }
+        val e2 = assertFailsWith<ErreurAuth> { autre.demanderReinitialisation("a@b.test") }
+        assertTrue(e2.message!!.contains("n'a pas pu être envoyé"))
+    }
+
+    @Test
     fun compteSuspenduEstDistingueDuCompteSupprime() = runTest {
         val stockage = StockageMemoire()
         stockage.ecrire(SessionService.CLE, Json.encodeToString(Session.serializer(), Session("acces-1", "renouv-1", 100L, "u1", "a@b.test")))
