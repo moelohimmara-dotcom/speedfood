@@ -20,6 +20,14 @@ class SessionService(
     val session: StateFlow<Session?> = _session.asStateFlow()
     private val verrou = Mutex()
 
+    /** Motif de la dernière fin de session décidée par le serveur (jamais pour une déconnexion voulue) : l'écran l'affiche une fois, puis appelle [finVue]. */
+    private val _finDeSession = MutableStateFlow<MotifFinSession?>(null)
+    val finDeSession: StateFlow<MotifFinSession?> = _finDeSession.asStateFlow()
+
+    fun finVue() {
+        _finDeSession.value = null
+    }
+
     private fun lireStockee(): Session? =
         stockage.lire(CLE)?.let { brut ->
             try {
@@ -79,6 +87,7 @@ class SessionService(
         } catch (e: ErreurAuth) {
             // Réseau coupé ou service indisponible : on garde la session (elle servira au prochain essai). Refus définitif du serveur : la session est morte.
             if (e.temporaire) null else {
+                _finDeSession.value = e.finDeSession ?: MotifFinSession.Fermee
                 poser(null)
                 null
             }
@@ -96,6 +105,7 @@ class SessionService(
         val courante = _session.value ?: return false
         if (courante.accessToken != jeton) return false
         if (maintenantSecondes() - renouveleLe < 60) {
+            _finDeSession.value = MotifFinSession.Fermee
             poser(null)
             return true
         }
@@ -105,6 +115,7 @@ class SessionService(
             false
         } catch (e: ErreurAuth) {
             if (e.temporaire) false else {
+                _finDeSession.value = e.finDeSession ?: MotifFinSession.Fermee
                 poser(null)
                 true
             }

@@ -19,6 +19,7 @@ import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.Plat
 import com.speedfood.app.data.ResultatAjout
 import com.speedfood.app.data.ResultatCommande
+import com.speedfood.app.data.MotifFinSession
 import com.speedfood.app.data.Session
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageMemoire
@@ -220,6 +221,28 @@ class CommandeTest {
         assertNull(revoquee.jetonValide())
         assertNull(revoquee.session.value, "un refus définitif ferme la session")
         assertNull(stockage.lire(SessionService.CLE))
+        assertEquals(MotifFinSession.Fermee, revoquee.finDeSession.value, "la personne doit savoir pourquoi elle est déconnectée")
+        revoquee.finVue()
+        assertNull(revoquee.finDeSession.value)
+        assertNull(enPanne.finDeSession.value, "une simple coupure ne dit rien")
+    }
+
+    @Test
+    fun compteSuspenduEstDistingueDuCompteSupprime() = runTest {
+        val stockage = StockageMemoire()
+        stockage.ecrire(SessionService.CLE, Json.encodeToString(Session.serializer(), Session("acces-1", "renouv-1", 100L, "u1", "a@b.test")))
+        val suspendu = SessionService(KtorAuthApi(client(MockEngine { respond("""{"error_code":"user_banned","msg":"User is banned"}""", HttpStatusCode.BadRequest, json) }), config) { 500L }, stockage) { 500L }
+        assertNull(suspendu.jetonValide())
+        assertEquals(MotifFinSession.Suspendue, suspendu.finDeSession.value)
+    }
+
+    @Test
+    fun deconnexionVoulueNAfficheAucunMessage() = runTest {
+        val stockage = StockageMemoire()
+        stockage.ecrire(SessionService.CLE, Json.encodeToString(Session.serializer(), Session("acces-1", "renouv-1", 9_999L, "u1", "a@b.test")))
+        val service = SessionService(KtorAuthApi(client(MockEngine { respond("{}", HttpStatusCode.OK, json) }), config) { 500L }, stockage) { 500L }
+        service.deconnecter()
+        assertNull(service.finDeSession.value)
     }
 
     @Test

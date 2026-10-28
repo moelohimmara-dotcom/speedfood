@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.NavigationBar
@@ -283,6 +285,16 @@ fun App(config: SpeedfoodConfig, lienInitial: String? = null, numeroLien: Int = 
                         BandeauMiseAJour(Modifier.align(Alignment.TopCenter))
                     }
                 }
+            }
+            // Le serveur a fermé la session (compte supprimé, expirée, suspendue) : on le dit, au lieu de renvoyer la personne à l'écran de choix sans explication.
+            val finDeSession by sessionService.finDeSession.collectAsState()
+            finDeSession?.let { motif ->
+                AlertDialog(
+                    onDismissRequest = sessionService::finVue,
+                    title = { Text(motif.titre) },
+                    text = { Text(motif.message) },
+                    confirmButton = { TextButton(onClick = sessionService::finVue) { Text("Compris") } },
+                )
             }
         }
     }

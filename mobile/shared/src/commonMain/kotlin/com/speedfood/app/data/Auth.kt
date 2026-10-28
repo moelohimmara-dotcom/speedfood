@@ -33,7 +33,20 @@ data class Session(val accessToken: String, val refreshToken: String, val expire
  * Erreur d'authentification lisible par la personne (jamais de détail technique). [temporaire] : réseau coupé, service indisponible ou trop de demandes ;
  * la session existante reste alors valable pour un prochain essai (seul un refus définitif du serveur la ferme).
  */
-class ErreurAuth(message: String, val temporaire: Boolean = false, cause: Throwable? = null) : Exception(message, cause)
+class ErreurAuth(message: String, val temporaire: Boolean = false, cause: Throwable? = null, val finDeSession: MotifFinSession? = null) : Exception(message, cause)
+
+/** Pourquoi le serveur a mis fin à une session ouverte : la personne doit le savoir, pas seulement se retrouver déconnectée. */
+enum class MotifFinSession(val titre: String, val message: String) {
+    /** Renouvellement refusé définitivement : compte supprimé, jeton révoqué ou session trop ancienne (le serveur ne distingue pas ces cas). */
+    Fermee(
+        "Votre session a pris fin",
+        "Ce compte n'existe plus (il a été supprimé) ou la connexion a expiré. Reconnectez-vous ; si le compte n'existe plus, vous pouvez en créer un nouveau.",
+    ),
+    Suspendue(
+        "Votre compte est suspendu",
+        "Votre inscription est en cours de vérification par l'équipe Speedfood (adresse proche d'un compte existant). Vous serez prévenu sous 48 h ; en attendant, connectez-vous avec votre première adresse.",
+    ),
+}
 
 interface AuthApi {
     suspend fun connecter(email: String, motDePasse: String): Session
@@ -97,14 +110,20 @@ class KtorAuthApi(
         }
     }
 
-    private suspend fun erreurDe(reponse: HttpResponse): ErreurAuth {
+    private suspend fun erreurDe(reponse: HttpResponse, renouvellement: Boolean = false): ErreurAuth {
         val texte = try {
             reponse.bodyAsText()
         } catch (_: Exception) {
             ""
         }
         val statut = reponse.status.value
-        return ErreurAuth(traduireErreurAuth(statut, texte), temporaire = statut == 429 || statut >= 500)
+        val temporaire = statut == 429 || statut >= 500
+        val fin = when {
+            !renouvellement || temporaire -> null
+            "banned" in texte.lowercase() -> MotifFinSession.Suspendue
+            else -> MotifFinSession.Fermee
+        }
+        return ErreurAuth(traduireErreurAuth(statut, texte), temporaire = temporaire, finDeSession = fin)
     }
 
     private suspend fun sessionDe(reponse: HttpResponse): Session {
@@ -192,7 +211,7 @@ class KtorAuthApi(
 
     override suspend fun rafraichir(refreshToken: String): Session {
         val reponse = poster("token", mapOf("grant_type" to "refresh_token"), buildJsonObject { put("refresh_token", refreshToken) })
-        if (!reponse.status.isSuccess()) throw erreurDe(reponse)
+        if (!reponse.status.isSuccess()) throw erreurDe(reponse, renouvellement = true)
         return sessionDe(reponse)
     }
 }

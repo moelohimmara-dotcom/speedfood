@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 48,
-  nom: "2.46.0",
-  notes: "Chaque profil a maintenant son propre parcours (consommateur, restaurateur, professionnel) avec « Changer de profil ». Un compte ne peut plus être doublé par une adresse ou un numéro déjà connus. Design et animations étendus à tout le parcours client.",
+  code: 49,
+  nom: "2.46.1",
+  notes: "Si votre compte a été supprimé, suspendu ou si votre connexion a expiré, l'application vous l'explique au lieu de vous déconnecter en silence.",
   obligatoire: false,
-  apkSha256: "333827d42735ebbb83a614ffe3b78f552f221a1a4d14221abc61603c54794561",
+  apkSha256: "54630d220ed91f7a81f16bf2c704ec3490ad7d2a56d65c1d2ae0813cfd07be72",
   apkTaille: 15717578,
 };
