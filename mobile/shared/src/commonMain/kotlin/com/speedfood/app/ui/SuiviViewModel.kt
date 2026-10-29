@@ -2,6 +2,7 @@ package com.speedfood.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.speedfood.app.data.AideApi
 import com.speedfood.app.data.CommandeApi
 import com.speedfood.app.data.ErreurReseau
 import com.speedfood.app.data.SuiviCommande
@@ -37,11 +38,17 @@ fun libelleStatut(statut: String, etatDerive: String = statut): String = when {
 }
 
 /** Relit le statut toutes les [DELAI_MS] millisecondes tant que l'écran est ouvert et que la commande n'est pas terminée. */
-class SuiviViewModel(private val api: CommandeApi, private val jeton: String) : ViewModel() {
+class SuiviViewModel(private val api: CommandeApi, private val jeton: String, private val aide: AideApi? = null) : ViewModel() {
     private val _etat = MutableStateFlow<EtatSuivi>(EtatSuivi.Chargement)
     val etat: StateFlow<EtatSuivi> = _etat.asStateFlow()
 
+    private val _whatsapp = MutableStateFlow<String?>(null)
+
+    /** Numéro de l'assistance Speedfood (chiffres seuls, indicatif inclus), pour « Appeler » et « WhatsApp » ; null tant qu'il n'est pas connu. */
+    val whatsapp: StateFlow<String?> = _whatsapp.asStateFlow()
+
     init {
+        viewModelScope.launch { _whatsapp.value = aide?.whatsapp() }
         viewModelScope.launch {
             while (true) {
                 relire()
@@ -83,6 +90,25 @@ class SuiviViewModel(private val api: CommandeApi, private val jeton: String) : 
                     envoiReponse = false,
                     reponse = erreur ?: if (accepter) "Vous avez accepté : le restaurant peut préparer votre commande." else "Vous avez refusé la proposition.",
                 )
+            }
+        }
+    }
+
+    /** Annule la commande tant que le restaurant n'a pas répondu ; le message du serveur (déjà accepté, réseau…) s'affiche tel quel. */
+    fun annuler() {
+        val courant = _etat.value as? EtatSuivi.Pret ?: return
+        if (courant.suivi.statut != "en_attente") return
+        _etat.value = courant.copy(envoiReponse = true, reponse = null)
+        viewModelScope.launch {
+            val erreur = try {
+                api.annuler(jeton)
+            } catch (e: ErreurReseau) {
+                e.message
+            }
+            relire()
+            val apres = _etat.value as? EtatSuivi.Pret
+            if (apres != null) {
+                _etat.value = apres.copy(envoiReponse = false, reponse = erreur ?: "Votre commande est annulée. Le restaurant en est informé.")
             }
         }
     }

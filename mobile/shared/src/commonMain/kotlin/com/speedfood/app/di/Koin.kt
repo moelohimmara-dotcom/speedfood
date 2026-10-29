@@ -279,7 +279,7 @@ fun modulesApplication(
         factoryOf(::ParametresEquipeViewModel)
         factoryOf(::GainsLivreurViewModel)
         factory { parametres -> DetailSupportViewModel(get(), get(), parametres.get()) }
-        factory { parametres -> SuiviViewModel(get(), parametres.get()) }
+        factory { parametres -> SuiviViewModel(get(), parametres.get(), get()) }
     },
 )
 

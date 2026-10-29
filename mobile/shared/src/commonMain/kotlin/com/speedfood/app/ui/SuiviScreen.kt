@@ -28,6 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,8 @@ fun SuiviScreen(jeton: String, onRetour: () -> Unit, viewModel: SuiviViewModel =
                 is EtatSuivi.Erreur -> MessageEtat(e.message, "Retour", onRetour)
                 is EtatSuivi.Pret -> Column(Modifier.fillMaxSize()) {
                     PrimerNotifications()
-                    Box(Modifier.weight(1f)) { ContenuSuivi(e, viewModel::repondre) }
+                    val assistance by viewModel.whatsapp.collectAsState()
+                    Box(Modifier.weight(1f)) { ContenuSuivi(e, viewModel::repondre, surAnnuler = viewModel::annuler, assistance = assistance) }
                 }
             }
         }
@@ -70,8 +72,10 @@ fun SuiviScreen(jeton: String, onRetour: () -> Unit, viewModel: SuiviViewModel =
 }
 
 @Composable
-internal fun ContenuSuivi(e: EtatSuivi.Pret, surReponse: (Boolean) -> Unit) {
+internal fun ContenuSuivi(e: EtatSuivi.Pret, surReponse: (Boolean) -> Unit, surAnnuler: () -> Unit = {}, assistance: String? = null) {
     val s: SuiviCommande = e.suivi
+    val ouvreur = androidx.compose.ui.platform.LocalUriHandler.current
+    var confirmerAnnulation by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(s.reference, style = MaterialTheme.typography.headlineMedium)
         Text(s.restaurant.nom, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -131,6 +135,40 @@ internal fun ContenuSuivi(e: EtatSuivi.Pret, surReponse: (Boolean) -> Unit) {
                 Text("Vous réglez directement le restaurant.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        // Annulation : seulement tant que le restaurant n'a pas répondu (rien n'est préparé). Ensuite, l'assistance prend le relais.
+        if (s.statut == "en_attente") {
+            OutlinedButton(
+                onClick = { confirmerAnnulation = true },
+                enabled = !e.envoiReponse,
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(2.dp, Couleurs.Danger),
+            ) { Text("Annuler ma commande", style = MaterialTheme.typography.labelLarge, color = Couleurs.Danger) }
+        } else if (!termine) {
+            Text(
+                "Le restaurant a répondu : pour modifier ou annuler cette commande, appelez l'assistance Speedfood.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (!termine && assistance != null) {
+            BoutonPrincipal("Appeler l'assistance Speedfood", surClic = { ouvreur.openUri("tel:+$assistance") })
+            OutlinedButton(onClick = { ouvreur.openUri("https://wa.me/$assistance") }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, Couleurs.Encre)) {
+                Text("Écrire sur WhatsApp", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
+            }
+        }
         if (!termine) Text("Cet écran se met à jour tout seul.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (confirmerAnnulation) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmerAnnulation = false },
+            title = { Text("Annuler cette commande ?") },
+            text = { Text("Le restaurant n'a pas encore répondu : rien n'est préparé. L'annulation est définitive.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmerAnnulation = false; surAnnuler() }) { Text("Oui, annuler", color = Couleurs.Danger) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmerAnnulation = false }) { Text("Non, la garder") }
+            },
+        )
     }
 }

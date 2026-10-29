@@ -15,6 +15,9 @@ import com.speedfood.app.data.PanierService
 import com.speedfood.app.data.Plat
 import com.speedfood.app.data.RestaurantApi
 import com.speedfood.app.data.SessionService
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -76,6 +79,10 @@ fun fusionnerCommandes(serveur: List<CommandeServeur>, locales: List<CommandeLoc
     return (duServeur + seulementLocales).filter { it.jeton.isNotBlank() }.sortedByDescending { it.creeLeMillis ?: 0L }.take(CommandesLocales.MAX)
 }
 
+/** Ajoute le statut lu (par référence) aux commandes qui n'en ont pas ; celles qui en ont déjà un (le serveur fait foi) ne changent pas. */
+fun avecStatuts(commandes: List<CommandeAffichee>, statuts: Map<String, String>): List<CommandeAffichee> =
+    commandes.map { c -> if (c.statut == null) statuts[c.reference]?.let { c.copy(statut = it) } ?: c else c }
+
 /** Lignes à remettre dans le panier d'après le menu d'aujourd'hui : plat existant et disponible, suppléments encore disponibles. Le reste est ignoré. */
 fun lignesRecommandees(menu: Menu, lignes: List<LigneEnvoyee>): List<Triple<Plat, List<OptionPlat>, Int>> =
     lignes.mapNotNull { l ->
@@ -103,17 +110,37 @@ class MesCommandesViewModel(
         _etat.value = _etat.value.copy(chargement = true, alerte = null)
         viewModelScope.launch {
             val jeton = session.jetonValide()
-            if (jeton == null) {
-                _etat.value = _etat.value.copy(chargement = false)
-                return@launch
+            if (jeton != null) {
+                try {
+                    val serveur = api.lister(jeton)
+                    _etat.value = _etat.value.copy(commandes = fusionnerCommandes(serveur, locales.lister()))
+                } catch (e: ErreurReseau) {
+                    _etat.value = _etat.value.copy(alerte = "Votre historique complet n'a pas pu être chargé (${e.message}) Les commandes de cet appareil restent affichées.")
+                }
             }
-            try {
-                val serveur = api.lister(jeton)
-                _etat.value = _etat.value.copy(commandes = fusionnerCommandes(serveur, locales.lister()), chargement = false)
-            } catch (e: ErreurReseau) {
-                _etat.value = _etat.value.copy(chargement = false, alerte = "Votre historique complet n'a pas pu être chargé (${e.message}) Les commandes de cet appareil restent affichées.")
-            }
+            // Commandes passées sans compte (ou absentes de l'historique) : le serveur ne les liste pas, on lit leur statut une par une avec leur jeton de suivi.
+            completerStatuts()
+            _etat.value = _etat.value.copy(chargement = false)
         }
+    }
+
+    /** Lit le statut en direct des commandes de l'appareil dont on ne le connaît pas encore (les plus récentes d'abord, [MAX_RELECTURES] au plus). Une panne réseau laisse simplement le statut absent. */
+    private suspend fun completerStatuts() {
+        val inconnues = _etat.value.commandes.filter { it.statut == null }.take(MAX_RELECTURES)
+        if (inconnues.isEmpty()) return
+        val lus = coroutineScope {
+            inconnues.map { c ->
+                async {
+                    val statut = try {
+                        api.suivi(c.jeton)?.statut
+                    } catch (_: ErreurReseau) {
+                        null
+                    }
+                    c.reference to statut
+                }
+            }.awaitAll()
+        }.mapNotNull { (reference, statut) -> statut?.let { reference to it } }.toMap()
+        _etat.value = _etat.value.copy(commandes = avecStatuts(_etat.value.commandes, lus))
     }
 
     /** Essai des notifications poussées : le résultat s'affiche dans le message de l'écran. */
@@ -164,5 +191,10 @@ class MesCommandesViewModel(
                 _etat.value = _etat.value.copy(recommandeEnCours = false, message = e.message)
             }
         }
+    }
+
+    private companion object {
+        /** Statuts relus au plus pour les commandes de l'appareil : borne le nombre de requêtes à l'ouverture de l'écran. */
+        const val MAX_RELECTURES = 8
     }
 }

@@ -138,6 +138,12 @@ interface CommandeApi {
 
     /** Réponse à la proposition révisée du restaurant (accepter ou refuser). Renvoie un message d'erreur lisible, ou null si la réponse est enregistrée. */
     suspend fun repondreProposition(jeton: String, propositionId: String, accepter: Boolean): String?
+
+    /**
+     * Annule la commande (possible seulement tant que le restaurant n'a pas répondu ; le serveur refuse sinon, avec un message à afficher tel quel). Renvoie un message d'erreur
+     * lisible, ou null si la commande est annulée (une commande déjà annulée répond aussi « ok »).
+     */
+    suspend fun annuler(jeton: String): String?
 }
 
 /** Les champs absents (adresse, destination, frais en retrait) ne sont pas envoyés : le serveur refuse un `null` là où il attend un nombre. */
@@ -209,7 +215,23 @@ class KtorCommandeApi(private val client: HttpClient, private val config: Speedf
         }
         if (corps.ok) null else corps.erreur?.message ?: "Votre réponse n'a pas pu être enregistrée. Réessayez dans un instant."
     }
+
+    override suspend fun annuler(jeton: String): String? = appeler {
+        val reponse = client.post(url("suivi/annuler")) {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CorpsAnnulation.serializer(), CorpsAnnulation(jeton)))
+        }
+        val corps = try {
+            reponse.body<ReponseSimple>()
+        } catch (e: Exception) {
+            return@appeler "La réponse de Speedfood est illisible. Réessayez dans un instant."
+        }
+        if (corps.ok) null else corps.erreur?.message ?: "L'annulation n'a pas pu être enregistrée. Réessayez dans un instant."
+    }
 }
+
+@Serializable
+private data class CorpsAnnulation(val jeton: String)
 
 @Serializable
 private data class CorpsProposition(val jeton: String, val propositionId: String, val reponse: String)

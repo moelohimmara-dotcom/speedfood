@@ -49,6 +49,12 @@ export const LIMITE_REPONSE_PROPOSITION_PAR_IP: RegleLimite = {
   max: 30,
   fenetreSecondes: 600,
 };
+// Annulation d'une commande par son client : une personne annule rarement plus de quelques commandes par heure.
+export const LIMITE_ANNULATION_CLIENT_PAR_IP: RegleLimite = {
+  nom: "annulation-client-ip",
+  max: 20,
+  fenetreSecondes: 3600,
+};
 
 // Récupération de mot de passe : protège la boîte d'un tiers (par adresse) et le quota d'envoi
 // d'e-mails du projet (par IP).
@@ -209,6 +215,10 @@ export async function limiterEchangeSuivi(): Promise<void> {
 
 export async function limiterReponseProposition(): Promise<void> {
   await appliquerLimite(LIMITE_REPONSE_PROPOSITION_PAR_IP, await adresseClient());
+}
+
+export async function limiterAnnulationClient(): Promise<void> {
+  await appliquerLimite(LIMITE_ANNULATION_CLIENT_PAR_IP, await adresseClient());
 }
 
 export async function limiterZonePosition(): Promise<void> {
