@@ -62,7 +62,8 @@ jobs:
           tail -n 40 "$RUNNER_TEMP/xcodebuild.log"
           if [ "$statut" -ne 0 ]; then
             # Les journaux ne se lisent qu'une fois connecté à GitHub : les erreurs sont aussi publiées comme annotations, visibles de tous.
-            { grep -vE "^[[:space:]]+(export|setenv) " "$RUNNER_TEMP/xcodebuild.log" > "$RUNNER_TEMP/propre.log"; grep -iE "error|^e: |FAILURE|went wrong|Could not|not found|unresolved|cannot|fatal" "$RUNNER_TEMP/propre.log" | head -30; echo "--- fin du journal ---"; tail -n 30 "$RUNNER_TEMP/propre.log"; } | sed 's/%/%25/g' | cut -c1-400 | awk 'NF && !vu[$0]++' | head -50 | while IFS= read -r ligne; do echo "::error::$ligne"; done
+            grep -vE "^[[:space:]]+(export|setenv|write-file|cd|builtin|/Applications|/usr|/bin) " "$RUNNER_TEMP/xcodebuild.log" | grep -vE "^(WriteAuxiliaryFile|MkDir|ProcessInfoPlistFile|CpResource|Create)" | tail -n 70 | cut -c1-300 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > "$RUNNER_TEMP/message.txt"
+            echo "::error title=Fin du journal Xcode::$(cat $RUNNER_TEMP/message.txt)"
           fi
           exit $statut
 
