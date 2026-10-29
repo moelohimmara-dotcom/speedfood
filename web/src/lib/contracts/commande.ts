@@ -189,6 +189,8 @@ export interface RestaurantSuivi {
   horaires: string;
   consignes: string | null;
   ouvert: boolean;
+  /** Délai habituel de préparation déclaré par le restaurateur (minutes), ou null. */
+  delaiPreparationMinutes: number | null;
 }
 
 /**
@@ -234,6 +236,8 @@ export interface SuiviCommande {
   propositionActive: PropositionRevisee | null;
   historiqueStatuts: EvenementStatutCommande[];
   paiement: PaiementSuivi;
+  /** Heure estimée à laquelle la commande sera prête (ISO, UTC) : acceptation + délai du restaurant. null avant l'acceptation, sans délai déclaré, ou une fois la commande prête ou close. */
+  pretEstimeeLe: string | null;
 }
 
 /** Vue d'une commande dans la console restaurant (données client nécessaires à la livraison). */

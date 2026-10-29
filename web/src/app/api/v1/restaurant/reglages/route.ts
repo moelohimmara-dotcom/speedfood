@@ -1,5 +1,6 @@
 import { lireCorpsJson, repondre, repondreErreur } from "@/lib/api/v1";
 import { restaurantAuthentifie } from "@/lib/api/v1-restaurant";
+import { lireDelaiPreparation } from "@/lib/commande/estimation";
 import { etatDisponibilite } from "@/lib/disponibilite/etat";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   const { supabase, restaurantId } = auth.contexte;
   try {
     const [restaurant, plats, parametres] = await Promise.all([
-      supabase.from("restaurants").select("horaires, ouvert, accepte_commandes").eq("id", restaurantId).maybeSingle(),
+      supabase.from("restaurants").select("horaires, ouvert, accepte_commandes, delai_preparation_minutes").eq("id", restaurantId).maybeSingle(),
       supabase
         .from("menu_items")
         .select("id, nom, disponible, disponibilite_confirmee_le")
@@ -53,6 +54,7 @@ export async function GET(request: Request) {
       horaires: (restaurant.data.horaires as string | null) ?? "",
       ouvert: Boolean(restaurant.data.ouvert),
       accepteCommandes: Boolean(restaurant.data.accepte_commandes),
+      delaiPreparationMinutes: (restaurant.data.delai_preparation_minutes as number | null) ?? null,
       platsAReconfirmer: aReconfirmer,
     });
   } catch {
@@ -60,23 +62,32 @@ export async function GET(request: Request) {
   }
 }
 
-/** Enregistre les horaires déclarés par le restaurateur (texte libre, comme sur la console du site). */
+/**
+ * Enregistre les réglages déclarés par le restaurateur : les horaires (texte libre, comme sur la console du site) et/ou le délai habituel de préparation (minutes, 5 à 240,
+ * ou vide pour ne rien annoncer au client). Chaque champ est facultatif ; au moins un est attendu. Les anciennes versions de l'application n'envoient que les horaires.
+ */
 export async function POST(request: Request) {
   const auth = await restaurantAuthentifie(request);
   if (!auth.ok) return auth.reponse;
   const lu = await lireCorpsJson(request);
   if (!lu.ok) return lu.reponse;
-  const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { horaires?: unknown };
-  if (typeof corps.horaires !== "string") {
-    return repondreErreur({ code: "VALIDATION", message: "Horaires invalides." });
+  const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { horaires?: unknown; delaiPreparationMinutes?: unknown };
+  const maj: { horaires?: string; delai_preparation_minutes?: number | null } = {};
+  if (corps.horaires !== undefined) {
+    if (typeof corps.horaires !== "string") return repondreErreur({ code: "VALIDATION", message: "Horaires invalides." });
+    if (corps.horaires.length > 500) return repondreErreur({ code: "VALIDATION", message: "Les horaires ne peuvent pas dépasser 500 caractères." });
+    maj.horaires = corps.horaires;
   }
-  if (corps.horaires.length > 500) {
-    return repondreErreur({ code: "VALIDATION", message: "Les horaires ne peuvent pas dépasser 500 caractères." });
+  if ("delaiPreparationMinutes" in corps) {
+    const delai = lireDelaiPreparation(corps.delaiPreparationMinutes);
+    if (!delai.ok) return repondreErreur({ code: "VALIDATION", message: delai.message });
+    maj.delai_preparation_minutes = delai.valeur;
   }
+  if (Object.keys(maj).length === 0) return repondreErreur({ code: "VALIDATION", message: "Horaires invalides." });
   const { supabase, restaurantId } = auth.contexte;
-  const { data, error } = await supabase.from("restaurants").update({ horaires: corps.horaires }).eq("id", restaurantId).select("id");
+  const { data, error } = await supabase.from("restaurants").update(maj).eq("id", restaurantId).select("id");
   if (error || !data || data.length === 0) {
-    return repondreErreur({ code: "ERREUR_SERVEUR", message: "Impossible d'enregistrer vos horaires. Réessayez dans un instant." });
+    return repondreErreur({ code: "ERREUR_SERVEUR", message: "Impossible d'enregistrer vos réglages. Réessayez dans un instant." });
   }
   return repondre({ ok: true });
 }

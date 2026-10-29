@@ -21,6 +21,7 @@ import {
   traiterPropositionEchue,
 } from "./propositions";
 import { calculerEtatDerive } from "./transitions";
+import { calculerPretEstimeeLe } from "./estimation";
 import { optionsPaiement, paiementOuvert, type ModePaiement, type OptionPaiement, type StatutPaiement } from "@/lib/paiement/regles";
 
 /**
@@ -88,7 +89,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
   const { data: commande, error } = await db
     .from("orders")
     .select(
-      "id, reference, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, est_test, restaurants(id, nom, horaires, consignes, ouvert, moyens_paiement)"
+      "id, reference, mode, table_numero, sous_total, frais_livraison_estime, statut, cree_le, est_test, restaurants(id, nom, horaires, consignes, ouvert, moyens_paiement, delai_preparation_minutes)"
     )
     .eq("jeton_suivi", jeton)
     .maybeSingle();
@@ -139,6 +140,16 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
     options = optionsPaiement(restaurant.moyens_paiement ?? [], { orange: codes?.orange ?? null, mtn: codes?.mtn ?? null });
   }
 
+  const historique = (evenements ?? []).map(
+    (e): EvenementStatutCommande => ({
+      commandeId: commande.id,
+      statutPrecedent: e.statut_precedent ? versStatutCommande(e.statut_precedent) : null,
+      statutSuivant: versStatutCommande(e.statut_suivant),
+      acteur: e.acteur,
+      horodatage: e.horodatage,
+    })
+  );
+
   const enLigne = await lirePaiementEnLigneSuivi(db as unknown as SupabaseClient, commande.id, statutPaiement !== "recu" && paiementOuvert(statut, propositionActive !== null));
 
   return {
@@ -155,6 +166,7 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
       horaires: restaurant?.horaires ?? "",
       consignes: restaurant?.consignes ?? null,
       ouvert: restaurant?.ouvert ?? true,
+      delaiPreparationMinutes: restaurant?.delai_preparation_minutes ?? null,
     },
     lignes: (lignes ?? []).map(
       (l): LigneCommandeApercu => ({
@@ -176,15 +188,8 @@ export async function chargerSuiviParJeton(jeton: string): Promise<SuiviCommande
       options,
       enLigne,
     },
-    historiqueStatuts: (evenements ?? []).map(
-      (e): EvenementStatutCommande => ({
-        commandeId: commande.id,
-        statutPrecedent: e.statut_precedent ? versStatutCommande(e.statut_precedent) : null,
-        statutSuivant: versStatutCommande(e.statut_suivant),
-        acteur: e.acteur,
-        horodatage: e.horodatage,
-      })
-    ),
+    historiqueStatuts: historique,
+    pretEstimeeLe: calculerPretEstimeeLe(statut, restaurant?.delai_preparation_minutes ?? null, historique),
   };
 }
 

@@ -1655,6 +1655,7 @@ export type Database = {
           code_court: string
           consignes: string | null
           couleur_accent: string | null
+          delai_preparation_minutes: number | null
           couverture_illustration: Json | null
           cree_le: string
           donnees_demo: boolean
@@ -1685,6 +1686,7 @@ export type Database = {
           code_court?: string
           consignes?: string | null
           couleur_accent?: string | null
+          delai_preparation_minutes?: number | null
           couverture_illustration?: Json | null
           cree_le?: string
           donnees_demo?: boolean
@@ -1715,6 +1717,7 @@ export type Database = {
           code_court?: string
           consignes?: string | null
           couleur_accent?: string | null
+          delai_preparation_minutes?: number | null
           couverture_illustration?: Json | null
           cree_le?: string
           donnees_demo?: boolean

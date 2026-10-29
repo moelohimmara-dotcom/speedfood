@@ -64,7 +64,15 @@ data class OptionSuivie(val nom: String, val prix: Int = 0)
 data class LigneSuivie(val nom: String, val prix: Int = 0, val quantite: Int = 1, val options: List<OptionSuivie> = emptyList())
 
 @Serializable
-data class RestaurantSuivi(val id: String = "", val nom: String = "", val horaires: String = "", val consignes: String? = null, val ouvert: Boolean = false)
+data class RestaurantSuivi(
+    val id: String = "",
+    val nom: String = "",
+    val horaires: String = "",
+    val consignes: String? = null,
+    val ouvert: Boolean = false,
+    /** Délai habituel de préparation déclaré par le restaurant (minutes), ou null. */
+    val delaiPreparationMinutes: Int? = null,
+)
 
 @Serializable
 data class PropositionSuivie(
@@ -92,6 +100,8 @@ data class SuiviCommande(
     val fraisLivraisonEstime: Int = 0,
     val propositionActive: PropositionSuivie? = null,
     val historiqueStatuts: List<EvenementSuivi> = emptyList(),
+    /** Heure estimée à laquelle la commande sera prête (ISO, UTC), calculée par le serveur : acceptation + délai du restaurant ; null sinon. */
+    val pretEstimeeLe: String? = null,
 ) {
     val total: Int get() = sousTotal + fraisLivraisonEstime
 }

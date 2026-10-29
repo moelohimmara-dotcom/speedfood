@@ -32,7 +32,22 @@ data class ReglagesRestaurateur(
     val ouvert: Boolean = false,
     val accepteCommandes: Boolean = false,
     val platsAReconfirmer: List<PlatAReconfirmer> = emptyList(),
+    /** Délai habituel de préparation déclaré (minutes), montré au client une fois la commande acceptée ; null = aucune estimation. */
+    val delaiPreparationMinutes: Int? = null,
 )
+
+/** Bornes du délai de préparation : les mêmes que le serveur et la base (5 à 240 minutes). */
+const val DELAI_PREPARATION_MIN = 5
+const val DELAI_PREPARATION_MAX = 240
+
+/** Contrôle du délai saisi : vide (aucune estimation) ou un entier de 5 à 240. Renvoie un message, ou null si la saisie est utilisable. */
+fun verifierDelaiPreparation(texte: String): String? {
+    val t = texte.trim()
+    if (t.isEmpty()) return null
+    if (t.length > 4 || !t.all { it in '0'..'9' }) return "Indiquez le délai en minutes, en chiffres seulement."
+    val valeur = t.toInt()
+    return if (valeur < DELAI_PREPARATION_MIN || valeur > DELAI_PREPARATION_MAX) "Le délai de préparation doit être compris entre $DELAI_PREPARATION_MIN et $DELAI_PREPARATION_MAX minutes." else null
+}
 
 /** Les sept jours, du lundi au dimanche : c'est l'ordre d'affichage des horaires. */
 val JOURS_SEMAINE = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
@@ -155,11 +170,16 @@ private data class ReponseReglages(
     val ouvert: Boolean = false,
     val accepteCommandes: Boolean = false,
     val platsAReconfirmer: List<PlatAReconfirmer> = emptyList(),
+    val delaiPreparationMinutes: Int? = null,
     val erreur: ErreurServeur? = null,
 )
 
 @Serializable
 private data class CorpsHoraires(val horaires: String)
+
+/** Le délai voyage en texte : vide = aucune estimation (un null serait omis de la requête, et le serveur le prendrait pour un oubli). */
+@Serializable
+private data class CorpsDelai(val delaiPreparationMinutes: String)
 
 interface ReglagesRestaurateurApi {
     /** Les réglages du restaurant : horaires, service ouvert ou en pause, plats à reconfirmer. */
@@ -167,6 +187,9 @@ interface ReglagesRestaurateurApi {
 
     /** Enregistre les horaires déclarés. Renvoie un message d'erreur lisible, ou null si c'est enregistré. */
     suspend fun enregistrerHoraires(jetonAcces: String, horaires: String): String?
+
+    /** Enregistre le délai habituel de préparation (texte : vide = aucune estimation). Renvoie un message d'erreur lisible, ou null si c'est enregistré. */
+    suspend fun enregistrerDelai(jetonAcces: String, delai: String): String?
 }
 
 class KtorReglagesRestaurateurApi(private val client: HttpClient, private val config: SpeedfoodConfig) : ReglagesRestaurateurApi {
@@ -193,7 +216,7 @@ class KtorReglagesRestaurateurApi(private val client: HttpClient, private val co
             if (reponse.erreur?.code == "NON_AUTHENTIFIE" || reponse.erreur?.code == "NON_AUTORISE") throw ErreurAcces(message)
             throw ErreurReseau(message)
         }
-        ReglagesRestaurateur(reponse.horaires, reponse.ouvert, reponse.accepteCommandes, reponse.platsAReconfirmer)
+        ReglagesRestaurateur(reponse.horaires, reponse.ouvert, reponse.accepteCommandes, reponse.platsAReconfirmer, reponse.delaiPreparationMinutes)
     }
 
     override suspend fun enregistrerHoraires(jetonAcces: String, horaires: String): String? = appeler {
@@ -208,5 +231,19 @@ class KtorReglagesRestaurateurApi(private val client: HttpClient, private val co
             return@appeler "La réponse de Speedfood est illisible. Réessayez dans un instant."
         }
         if (lu.ok) null else lu.erreur?.message ?: "Vos horaires n'ont pas pu être enregistrés. Réessayez dans un instant."
+    }
+
+    override suspend fun enregistrerDelai(jetonAcces: String, delai: String): String? = appeler {
+        val reponse = client.post(url("reglages")) {
+            header(HttpHeaders.Authorization, "Bearer $jetonAcces")
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(CorpsDelai.serializer(), CorpsDelai(delai.trim())))
+        }
+        val lu = try {
+            reponse.body<ReponseReglages>()
+        } catch (e: Exception) {
+            return@appeler "La réponse de Speedfood est illisible. Réessayez dans un instant."
+        }
+        if (lu.ok) null else lu.erreur?.message ?: "Votre délai de préparation n'a pas pu être enregistré. Réessayez dans un instant."
     }
 }

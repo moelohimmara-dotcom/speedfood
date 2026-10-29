@@ -885,3 +885,17 @@ Mode développement : tout paiement reste simulé, aucune société ni aucun com
 - **Lot L10 livré en mode démonstration (24 octobre 2026) :** page `/system/livraisons/incidents`, incidents de retard/colis perdu/litige, gravité, statut, responsable, résolution manuelle et audit ; migration `incidents_livraison` appliquée avec RLS ; typecheck, lint, suite serveur, requêtes bornées et cloisonnement (**489 contrôles**) verts ; paiements réels et remboursements automatiques hors périmètre.
 - **Lot L11 livré en mode démonstration (25 octobre 2026) :** page `/system/campagnes`, codes promo pourcentage/montant, minimum d'achat, plafonds, validité, brouillon/actif/expiré/suspendu, aperçu avec empreinte, ciblage factice et notification préparée sans envoi ; aucune migration ; typecheck, lint, suite serveur, requêtes bornées et cloisonnement (**489 contrôles**) verts.
 - **À faire ensuite (docs/cadrage/REFONTE-SPEEDFOOD.md §7) :** livreurs Speedfood et encaissement des espèces avec rapprochement quotidien ; frais de livraison selon la distance ; application cliente native (N1, N2) ; textes publics et conditions au lancement, avec avis juridique.
+
+## Suivi de commande enrichi (29 octobre 2026) : code prêt, NON déployé
+
+Décisions de Malika : annulation par le client **tant que le restaurant n'a pas répondu** ; « Appeler » = **numéro d'assistance Speedfood** (le contact interne d'un restaurant reste privé, ADR-020) ; heure estimée de préparation ; statut en direct dans « Mes commandes ».
+
+**Fait (testé en local, rien en production côté code)** :
+- Annulation : `POST /api/v1/suivi/annuler` (`web/src/lib/commande/annulation-client.ts`) : écriture conditionnelle sur `statut = 'en_attente'` (jamais d'annulation d'une commande acceptée entre-temps), acteur `client:<référence>`, livraison annulée, remboursement du paiement en ligne et notification via `apresTransitionCommande`, limitée par IP. Bouton « Annuler ma commande » (avec confirmation) dans l'application.
+- Assistance : « Appeler l'assistance Speedfood » et « Écrire sur WhatsApp » sur l'écran de suivi.
+- « Mes commandes » : statut relu (jeton de suivi) pour les commandes de l'appareil sans statut serveur (8 au plus).
+- Heure estimée : migration **appliquée en base** `20261029084602_delai_preparation.sql` (`restaurants.delai_preparation_minutes`, 5 à 240, facultatif, lecture publique voulue). Le serveur calcule `pretEstimeeLe` = heure d'acceptation + délai (`web/src/lib/commande/estimation.ts`) ; affichée sur le site (`/suivi/<jeton>`) et dans l'application ; le restaurateur saisit le délai dans la console du site (Ma page publique) et dans l'application (Réglages).
+
+**Reste à faire** : déploiement du site (feu vert de Malika requis) puis nouvelle version de l'application ; bouton d'annulation sur la page de suivi du site (seule l'application l'a) ; « autres aspects essentiels » que Malika n'a pas encore nommés.
+
+**Ordre de déploiement** : la base est déjà prête ; déployer le site AVANT de publier l'application (l'application appelle `/api/v1/suivi/annuler`, absente de la production actuelle).

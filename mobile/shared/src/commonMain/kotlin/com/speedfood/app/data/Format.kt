@@ -60,6 +60,18 @@ private fun dateCivile(jours: Long): Triple<Int, Int, Int> {
     return Triple(annee, mois, jour)
 }
 
+/** « 14:35 » : l'heure d'un horodatage ISO, à l'heure de Conakry (UTC+0, sans changement d'heure) ; chaîne vide si l'horodatage est illisible. */
+fun heureLisible(iso: String?): String {
+    val brut = iso?.takeIf { it.isNotBlank() } ?: return ""
+    val instant = try {
+        kotlin.time.Instant.parse(brut)
+    } catch (_: IllegalArgumentException) {
+        return ""
+    }
+    val reste = instant.epochSeconds.mod(86_400L)
+    return "${(reste / 3600).toString().padStart(2, '0')}:${((reste % 3600) / 60).toString().padStart(2, '0')}"
+}
+
 /**
  * Date et heure lisibles d'un horodatage ISO : « aujourd'hui 02:34 », « hier 18:20 », « 26 oct. 09:00 » (avec l'année si ce n'est pas l'année en cours). Heure de Conakry, qui est l'heure
  * universelle (UTC+0, sans changement d'heure). Remplace « 2026-10-27 02:34 » qui se lisait comme une donnée brute. Un horodatage illisible est rendu tel quel, tronqué.

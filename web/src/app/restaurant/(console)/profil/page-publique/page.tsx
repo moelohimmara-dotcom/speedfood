@@ -24,7 +24,7 @@ export default async function PagePubliquePage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("nom, horaires, consignes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, logo_illustration, couverture_illustration, menu_categories(nom)")
+    .select("nom, horaires, consignes, delai_preparation_minutes, ouvert, publie, photo_url, logo_url, couleur_accent, moyens_paiement, latitude, longitude, logo_illustration, couverture_illustration, menu_categories(nom)")
     .eq("id", membership.restaurant_id)
     .maybeSingle();
 
@@ -57,6 +57,7 @@ export default async function PagePubliquePage() {
         <FormulaireProfil
           horaires={restaurant.horaires}
           consignes={restaurant.consignes ?? ""}
+          delaiPreparation={restaurant.delai_preparation_minutes}
           photoUrl={restaurant.photo_url}
           logoUrl={restaurant.logo_url}
           couleurAccent={restaurant.couleur_accent}

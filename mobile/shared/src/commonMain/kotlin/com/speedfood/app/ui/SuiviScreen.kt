@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.data.SuiviCommande
 import com.speedfood.app.data.formaterGnf
+import com.speedfood.app.data.heureLisible
 import com.speedfood.app.design.Couleurs
 import com.speedfood.app.disponibilite.Ton
 import org.koin.compose.viewmodel.koinViewModel
@@ -86,6 +87,13 @@ internal fun ContenuSuivi(e: EtatSuivi.Pret, surReponse: (Boolean) -> Unit, surA
             else -> Ton.Neutre
         }
         Pastille(libelleStatut(s.statut, s.etatDerive), ton)
+        // Estimation du restaurant : « prête vers » une fois la commande acceptée ; avant, son délai habituel s'il en déclare un.
+        val heurePrete = heureLisible(s.pretEstimeeLe)
+        if (heurePrete.isNotEmpty()) {
+            Text("Prête vers $heurePrete (estimation du restaurant)", style = MaterialTheme.typography.titleMedium)
+        } else if (s.statut == "en_attente") {
+            s.restaurant.delaiPreparationMinutes?.let { Text("Délai habituel de préparation : environ $it min", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
         e.alerte?.let { BlocMessage(it, erreur = false) }
 
         if (s.statut !in setOf("refusee", "annulee")) {

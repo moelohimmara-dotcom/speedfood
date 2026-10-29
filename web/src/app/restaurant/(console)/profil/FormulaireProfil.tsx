@@ -16,6 +16,7 @@ const etatInitial: EtatFormulaireProfil = {};
 export function FormulaireProfil({
   horaires,
   consignes,
+  delaiPreparation,
   photoUrl,
   logoUrl,
   couleurAccent,
@@ -28,6 +29,7 @@ export function FormulaireProfil({
 }: {
   horaires: string;
   consignes: string;
+  delaiPreparation: number | null;
   photoUrl: string | null;
   logoUrl: string | null;
   couleurAccent: string | null;
@@ -128,6 +130,23 @@ export function FormulaireProfil({
             defaultValue={consignes}
             placeholder="Ex. Livraison uniquement dans un rayon de 5 km"
           />
+        </div>
+        <div className="field">
+          <label htmlFor="delai_preparation_minutes">Délai habituel de préparation (minutes)</label>
+          <input
+            id="delai_preparation_minutes"
+            name="delai_preparation_minutes"
+            type="number"
+            inputMode="numeric"
+            min={5}
+            max={240}
+            step={1}
+            defaultValue={delaiPreparation ?? ""}
+            placeholder="Ex. 25"
+          />
+          <p className="aide-champ">
+            Facultatif. Une fois la commande acceptée, vos clients voient « prête vers HH:MM » (heure d&apos;acceptation + ce délai). Laissez vide pour ne rien annoncer.
+          </p>
         </div>
       </Card>
 

@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.speedfood.app.data.JOURS_SEMAINE
 import com.speedfood.app.data.JourHoraire
@@ -138,6 +139,26 @@ private fun ContenuReglages(e: EtatReglages.Pret, siteUrl: String, viewModel: Re
                 }
                 if (e.enregistrementEnCours) {
                     Text("Enregistrement en cours.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        item(key = "delai-preparation") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Délai de préparation", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Facultatif. Une fois une commande acceptée, vos clients voient « prête vers HH:MM » (l'heure d'acceptation + ce délai). Laissez vide pour ne rien annoncer.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ChampTexte(e.delaiSaisi, viewModel::modifierDelai, "Délai en minutes", KeyboardType.Number, aide = "De 5 à 240 minutes")
+                Button(
+                    onClick = viewModel::enregistrerDelai,
+                    enabled = !e.delaiEnCours,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Couleurs.RougeFonce, contentColor = Couleurs.Creme),
+                ) {
+                    Text(if (e.delaiEnCours) "Enregistrement…" else "Enregistrer le délai")
                 }
             }
         }

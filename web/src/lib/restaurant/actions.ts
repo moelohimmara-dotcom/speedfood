@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { lireDelaiPreparation } from "@/lib/commande/estimation";
 import { creerClientServeur } from "@/lib/db/server";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { televerserImage, supprimerImage, supprimerTeleversementOrphelin } from "@/lib/storage/images";
@@ -33,6 +34,10 @@ export async function modifierProfilAction(
   }
   if (consignes.length > 1000) {
     return { erreur: "Les consignes ne peuvent pas dépasser 1000 caractères." };
+  }
+  const delai = lireDelaiPreparation(formData.get("delai_preparation_minutes"));
+  if (!delai.ok) {
+    return { erreur: delai.message };
   }
 
   // Moyens de paiement déclarés : liste fermée, jamais une valeur libre.
@@ -80,6 +85,7 @@ export async function modifierProfilAction(
   const payload: MiseAJourRestaurant = {
     horaires,
     consignes,
+    delai_preparation_minutes: delai.valeur,
     couleur_accent: couleurAccent,
     moyens_paiement: moyensPaiement,
   };

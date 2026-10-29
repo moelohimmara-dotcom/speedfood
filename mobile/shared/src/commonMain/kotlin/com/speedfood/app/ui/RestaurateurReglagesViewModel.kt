@@ -9,6 +9,7 @@ import com.speedfood.app.data.JourHoraire
 import com.speedfood.app.data.PreferencesRestaurateur
 import com.speedfood.app.data.ReglagesRestaurateur
 import com.speedfood.app.data.ReglagesRestaurateurApi
+import com.speedfood.app.data.verifierDelaiPreparation
 import com.speedfood.app.data.RestaurateurApi
 import com.speedfood.app.data.SessionService
 import com.speedfood.app.data.StockageLocal
@@ -38,6 +39,9 @@ sealed interface EtatReglages {
         val message: String? = null,
         val enregistrementEnCours: Boolean = false,
         val actionEnCours: Boolean = false,
+        /** Le délai de préparation tel que saisi (texte : vide = aucune estimation), enregistré à la demande. */
+        val delaiSaisi: String = "",
+        val delaiEnCours: Boolean = false,
     ) : EtatReglages
 }
 
@@ -82,6 +86,7 @@ class RestaurateurReglagesViewModel(
                 sonActif = PreferencesRestaurateur.sonActif(stockage),
                 posteFixe = PreferencesRestaurateur.posteFixe(stockage),
                 message = message,
+                delaiSaisi = reglages.delaiPreparationMinutes?.toString() ?: "",
             )
         } catch (e: ErreurAcces) {
             _etat.value = EtatReglages.Erreur(e.message ?: "Accès refusé.")
@@ -126,6 +131,40 @@ class RestaurateurReglagesViewModel(
             }
             val avant = _etat.value as? EtatReglages.Pret
             _etat.value = avant?.copy(enregistrementEnCours = false, message = message) ?: EtatReglages.Erreur(message)
+        }
+    }
+
+    /** Met à jour le délai saisi (chiffres seulement, 3 au plus) ; rien n'est enregistré avant la demande du restaurateur. */
+    fun modifierDelai(texte: String) {
+        val courant = _etat.value as? EtatReglages.Pret ?: return
+        _etat.value = courant.copy(delaiSaisi = texte.filter { it in '0'..'9' }.take(3), message = null)
+    }
+
+    /** Enregistre le délai habituel de préparation (vide = ne rien annoncer au client) ; le serveur refuse tout ce qui n'est pas de 5 à 240 minutes. */
+    fun enregistrerDelai() {
+        val courant = _etat.value as? EtatReglages.Pret ?: return
+        if (courant.delaiEnCours) return
+        val probleme = verifierDelaiPreparation(courant.delaiSaisi)
+        if (probleme != null) {
+            _etat.value = courant.copy(message = probleme)
+            return
+        }
+        _etat.value = courant.copy(delaiEnCours = true, message = null)
+        viewModelScope.launch {
+            val jeton = session.jetonValide()
+            if (jeton == null) {
+                _etat.value = EtatReglages.NonConnecte
+                return@launch
+            }
+            val message = try {
+                api.enregistrerDelai(jeton, courant.delaiSaisi) ?: if (courant.delaiSaisi.isBlank()) "Aucune estimation ne sera annoncée à vos clients." else "Délai enregistré : vos clients verront « prête vers » l'heure d'acceptation + ${courant.delaiSaisi.trim()} min."
+            } catch (e: ErreurAcces) {
+                e.message ?: "Accès refusé."
+            } catch (e: ErreurReseau) {
+                e.message ?: "Impossible de joindre Speedfood."
+            }
+            val avant = _etat.value as? EtatReglages.Pret
+            _etat.value = avant?.copy(delaiEnCours = false, message = message) ?: EtatReglages.Erreur(message)
         }
     }
 

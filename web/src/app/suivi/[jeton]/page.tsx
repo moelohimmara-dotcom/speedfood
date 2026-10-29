@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import "../../suivi.css";
+import { heureDepuisIso } from "@/lib/commande/estimation";
 import type { EtatDeriveCommande, LigneCommandeApercu } from "@/lib/contracts/commande";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
@@ -167,6 +168,11 @@ export async function renderSuiviPage(jeton: string, session = false) {
           <div>
             <Badge ton={TONS_BADGE[suivi.etatDerive]}>{LIBELLES_ETAT[suivi.etatDerive]}</Badge>
             <p className="suivi-etat-description">{DESCRIPTIONS_ETAT[suivi.etatDerive]}</p>
+            {suivi.pretEstimeeLe && heureDepuisIso(suivi.pretEstimeeLe) ? (
+              <p className="suivi-etat-description">
+                <strong>Prête vers {heureDepuisIso(suivi.pretEstimeeLe)}</strong> (estimation du restaurant)
+              </p>
+            ) : null}
           </div>
         </div>
       </Card>
