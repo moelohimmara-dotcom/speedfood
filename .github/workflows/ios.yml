@@ -46,6 +46,14 @@ jobs:
             echo "Aucun réglage public défini : compilation sans configuration."
           fi
 
+      # Compose Multiplatform référence des classes UIKit récentes (UIViewLayoutRegion) : il faut le SDK d'un Xcode 26. L'image macOS en propose plusieurs ; on prend le plus récent.
+      - name: Choisir Xcode 26
+        run: |
+          ls -d /Applications/Xcode*.app
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC/Contents/Developer"; else echo "Aucun Xcode 26 sur cette image : on garde celui par défaut."; fi
+          xcodebuild -version
+
       - name: Compiler pour le simulateur iPhone
         working-directory: mobile/iosApp
         run: |
