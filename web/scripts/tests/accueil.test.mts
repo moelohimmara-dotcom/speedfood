@@ -172,10 +172,10 @@ verifier("création de l'accueil : permission, palier 1 (brouillon), brouillon s
 const routePage = lire("src/app/p/[slug]/page.tsx");
 verifier("/p/accueil : redirection permanente vers « / » (aperçu conservé), jamais de doublon", [/permanentRedirect\(/.test(routePage), /slug === SLUG_ACCUEIL/.test(routePage)], [true, true]);
 verifier("interrupteur : clé typée, catalogue des mises à jour", [/"accueil_en_blocs"/.test(lire("src/lib/fonctionnalites/lire.ts")), /cle: "accueil_en_blocs"/.test(lire("src/lib/system-admin/misesAJourCatalogue.ts"))], [true, true]);
-const migrations = readdirSync(join(racine, "supabase/migrations")).filter((f) => f.endsWith("fonctionnalite_accueil_en_blocs.sql"));
+const migrations = readdirSync(join(racine, "../supabase/migrations")).filter((f) => f.endsWith("fonctionnalite_accueil_en_blocs.sql"));
 verifier("migration de l'interrupteur : un fichier, une seule ligne d'insertion, active par défaut", [
   migrations.length,
-  existsSync(join(racine, "supabase/migrations", migrations[0] ?? "x")) && /insert into fonctionnalites/.test(lire(`supabase/migrations/${migrations[0]}`)) && !/\bfalse\b/i.test(lire(`supabase/migrations/${migrations[0]}`)) && !/\b(update|delete|drop|alter)\b/i.test(lire(`supabase/migrations/${migrations[0]}`)),
+  existsSync(join(racine, "../supabase/migrations", migrations[0] ?? "x")) && /insert into fonctionnalites/.test(lire(`../supabase/migrations/${migrations[0]}`)) && !/\bfalse\b/i.test(lire(`../supabase/migrations/${migrations[0]}`)) && !/\b(update|delete|drop|alter)\b/i.test(lire(`../supabase/migrations/${migrations[0]}`)),
 ], [1, true]);
 const rendu = lire("src/components/studio/RenduBlocs.tsx");
 verifier("rendu : sections sans conteneur sb-page ni sb-bloc, classe propre", [/sb-accueil-bloc/.test(rendu), /options\.accueil/.test(rendu)], [true, true]);

@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const racine = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { PGlite } = await import(
-  pathToFileURL(path.join(racine, "supabase", "rejeu", "node_modules", "@electric-sql", "pglite", "dist", "index.js")).href
+  pathToFileURL(path.join(racine, "..", "supabase", "rejeu", "node_modules", "@electric-sql", "pglite", "dist", "index.js")).href
 ).catch(() => {
   console.error("PGlite absent : lancez d'abord  cd supabase/rejeu && npm ci");
   process.exit(1);
@@ -48,7 +48,7 @@ await db.exec(`
   alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
   alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
 `);
-const dossierMigrations = path.join(racine, "supabase", "migrations");
+const dossierMigrations = path.join(racine, "..", "supabase", "migrations");
 const fichiers = fs.readdirSync(dossierMigrations).filter((n) => n.endsWith(".sql")).sort();
 for (const f of fichiers) {
   try {

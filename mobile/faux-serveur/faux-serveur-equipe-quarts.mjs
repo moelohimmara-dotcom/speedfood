@@ -1,11 +1,11 @@
 // Faux serveur — module « équipe » : quarts et affectation (lot L2).
 //
-// Le faux serveur charge automatiquement les fichiers `scripts/faux-serveur-<espace>-<domaine>.mjs` :
-// ce module ne touche pas `scripts/faux-serveur-application.mjs`. Il ne simule que les quarts
+// Le faux serveur charge automatiquement les fichiers `mobile/faux-serveur/faux-serveur-<espace>-<domaine>.mjs` :
+// ce module ne touche pas `mobile/faux-serveur/faux-serveur-application.mjs`. Il ne simule que les quarts
 // (prise, libération, relance) : rien n'est écrit en base, tout reste en mémoire.
 //
 // DONNÉES FACTICES. Le barème de relance ci-dessous est la SIMULATION de la valeur par défaut
-// de l'application (`DELAI_RELANCE_MINUTES_PAR_DEFAUT` dans `src/lib/system-admin/quarts-regles.ts`) :
+// de l'application (`DELAI_RELANCE_MINUTES_PAR_DEFAUT` dans `web/src/lib/system-admin/quarts-regles.ts`) :
 // les deux doivent être changés ensemble quand la propriétaire arrête le délai.
 
 export const espace = "equipe";

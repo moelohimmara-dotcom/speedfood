@@ -1,5 +1,7 @@
 # Application Android (native) et téléchargement depuis le site
 
+> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `web/src/`, `web/public/`, `web/scripts/`, et les commandes `npm run …` se lancent depuis `web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
+
 Mise à jour du 21 octobre 2026. Page publique : `/installer`. Décision : ADR-019 ; plan : `docs/NATIF-PLAN.md`.
 
 ## Ce qui existe

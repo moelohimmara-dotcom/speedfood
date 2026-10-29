@@ -1,9 +1,9 @@
 // Faux serveur LOCAL — espace restaurateur : horaires d'ouverture, pause du service, plats à reconfirmer et historique paginé.
 //
-// Ce fichier est un module de routes simulées, chargé automatiquement par scripts/faux-serveur-application.mjs
-// (un fichier par domaine : scripts/faux-serveur-<espace>-<domaine>.mjs). Il ne touche aucune base : tout est en mémoire, dans ce processus.
+// Ce fichier est un module de routes simulées, chargé automatiquement par mobile/faux-serveur/faux-serveur-application.mjs
+// (un fichier par domaine : mobile/faux-serveur/faux-serveur-<espace>-<domaine>.mjs). Il ne touche aucune base : tout est en mémoire, dans ce processus.
 //
-// Données 100 % factices. La règle « plat à reconfirmer » reproduite ici est celle du serveur (src/lib/disponibilite/etat.ts) :
+// Données 100 % factices. La règle « plat à reconfirmer » reproduite ici est celle du serveur (web/src/lib/disponibilite/etat.ts) :
 // l'application ne la recalcule pas, elle affiche ce que cette route renvoie.
 // Les plats de ce module ne sont pas ceux de la route « menu » du faux serveur (celle-ci a ses propres plats d'essai) : c'est un faux,
 // les deux listes n'ont pas à se ressemble.

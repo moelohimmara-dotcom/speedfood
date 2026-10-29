@@ -1,6 +1,6 @@
 // Faux serveur LOCAL pour auditer l'application dans l'émulateur avec des comptes et des données factices, sans toucher à la base de production.
 //
-// Usage : node scripts/faux-serveur-application.mjs   (écoute sur le port 8787 ; l'émulateur y accède par http://10.0.2.2:8787)
+// Usage : node mobile/faux-serveur/faux-serveur-application.mjs   (écoute sur le port 8787 ; l'émulateur y accède par http://10.0.2.2:8787)
 // L'application de test est construite avec site.url = supabase.url = http://10.0.2.2:8787 (voir docs/AUDIT-PARCOURS-2026-10-22.md).
 //
 // Comptes factices (mot de passe quelconque) : client@test.sf, resto@test.sf, livreur@test.sf, equipe@test.sf, multi@test.sf (restaurateur + livreur).
@@ -142,7 +142,7 @@ const refus = (res, statut, code, message) => ok(res, { ok: false, erreur: { cod
 const lireCorps = (req) => new Promise((r) => { let t = ""; req.on("data", (d) => (t += d)); req.on("end", () => { try { r(t ? JSON.parse(t) : {}); } catch { r({}); } }); });
 const session = (email) => ({ access_token: `tok-${email}`, refresh_token: `ref-${email}`, expires_in: 3600, token_type: "bearer", user: { id: COMPTES[email].id, email } });
 
-// Routes factices ajoutées par les lots : un fichier par domaine, nommé scripts/faux-serveur-<espace>-<domaine>.mjs.
+// Routes factices ajoutées par les lots : un fichier par domaine, nommé mobile/faux-serveur/faux-serveur-<espace>-<domaine>.mjs.
 // Chaque module exporte { espace, routes } ; routes associe un sous-chemin à un gestionnaire asynchrone.
 // Ce point d'extension existe pour que plusieurs agents travaillent en parallèle sans éditer le même fichier.
 const dossierFauxServeur = new URL(".", import.meta.url);

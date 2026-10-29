@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const racine = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { PGlite } = await import(
-  pathToFileURL(path.join(racine, "supabase", "rejeu", "node_modules", "@electric-sql", "pglite", "dist", "index.js")).href
+  pathToFileURL(path.join(racine, "..", "supabase", "rejeu", "node_modules", "@electric-sql", "pglite", "dist", "index.js")).href
 ).catch(() => {
   console.error("PGlite absent : lancez d'abord  cd supabase/rejeu && npm install");
   process.exit(1);
@@ -60,7 +60,7 @@ await db.exec(`
   create schema storage;
   create table storage.buckets (id text primary key, name text not null, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
 `);
-const dossierMigrations = path.join(racine, "supabase", "migrations");
+const dossierMigrations = path.join(racine, "..", "supabase", "migrations");
 for (const f of fs.readdirSync(dossierMigrations).filter((n) => n.endsWith(".sql")).sort()) {
   await db.exec(fs.readFileSync(path.join(dossierMigrations, f), "utf8").replace(/create extension if not exists pgcrypto;?/gi, ""));
 }

@@ -1,4 +1,4 @@
-@AGENTS.md
+@web/AGENTS.md
 
 # Speedfood — MVP réel
 
@@ -6,6 +6,10 @@ Ce dépôt est le code de production du portail Speedfood (Conakry), distinct du
 prototype de démonstration (`docs/cadrage` en parle, le prototype lui-même vit
 dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
 `docs/PROTOCOLE-COLLABORATION.md` pour la répartition exacte).
+
+## Organisation du dépôt (depuis le 29 octobre 2026)
+
+Deux codes séparés : **`web/`** (le site Next.js, son serveur, les scripts et tests, le Worker Cloudflare) et **`mobile/`** (l'application Android/iPhone, avec `mobile/faux-serveur/`). Sont partagés, à la racine : `supabase/` (la base), `docs/`, `demo/`, `.github/`. Les commandes `npm run …` se lancent **depuis `web/`** (`npm --prefix web run …` depuis la racine), les commandes `./gradlew …` depuis `mobile/`. Les chemins cités dans les anciens documents (`src/…`, `public/…`, `scripts/…`) se lisent `web/src/…`, `web/public/…`, `web/scripts/…` : voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 

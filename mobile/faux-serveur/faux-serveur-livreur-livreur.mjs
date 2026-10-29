@@ -3,7 +3,7 @@
 // Données entièrement fictives : des restaurants d'essai, des quartiers, des montants. Aucun document, aucun numéro de pièce, aucune identité réelle :
 // le dossier ne renvoie qu'un état (« à jour » ou « manquant »), jamais son contenu.
 //
-// Le faux serveur principal charge automatiquement ce fichier (scripts/faux-serveur-application.mjs) : il ne faut pas le modifier.
+// Le faux serveur principal charge automatiquement ce fichier (mobile/faux-serveur/faux-serveur-application.mjs) : il ne faut pas le modifier.
 
 const maintenant = () => new Date().toISOString();
 

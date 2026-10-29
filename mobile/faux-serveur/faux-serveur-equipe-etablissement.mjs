@@ -1,11 +1,11 @@
 // Module de routes factices du lot « Établissement » (L5, L6, L7) pour le faux serveur d'essai.
-// Le faux serveur charge automatiquement les fichiers scripts/faux-serveur-<espace>-<domaine>.mjs :
+// Le faux serveur charge automatiquement les fichiers mobile/faux-serveur/faux-serveur-<espace>-<domaine>.mjs :
 // ce fichier n'a donc pas besoin d'être déclaré ailleurs.
 //
 // Les données sont FICTIVES et sans coordonnée personnelle réaliste : les numéros à joindre sont
 // masqués comme le reste du dépôt (« +224 6** ** ** »). Rien n'est écrit dans une vraie base.
 //
-// Les règles appliquées ici sont les mêmes que celles de la console (src/lib/system-admin/*-regles.ts) :
+// Les règles appliquées ici sont les mêmes que celles de la console (web/src/lib/system-admin/*-regles.ts) :
 // motif obligatoire, confirmation explicite, message clients obligatoire, échéance dans le futur.
 
 export const espace = "equipe";

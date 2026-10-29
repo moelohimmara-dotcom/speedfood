@@ -14,7 +14,7 @@ function verifier(nom: string, obtenu: unknown, attendu: unknown) {
 }
 
 const racine = process.env.SPEEDFOOD_RACINE ?? process.cwd();
-const gradle = readFileSync(join(racine, "mobile/androidApp/build.gradle.kts"), "utf8");
+const gradle = readFileSync(join(racine, "../mobile/androidApp/build.gradle.kts"), "utf8");
 const code = Number(/versionCode\s*=\s*(\d+)/.exec(gradle)?.[1]);
 const nom = /versionName\s*=\s*"([^"]+)"/.exec(gradle)?.[1];
 
