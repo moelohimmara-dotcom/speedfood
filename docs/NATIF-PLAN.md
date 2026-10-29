@@ -99,3 +99,13 @@ Voir la fin de ce fichier, mise à jour au fil des lots.
 - Application : bouton « Ajouter / Changer la photo » et « Retirer la photo » sur chaque plat (écran Mon menu), miniature de la photo. Sélecteur de photos du système (aucune autorisation d'accès aux photos), réduction sur le téléphone (côté 1 280 px, JPEG 82, orientation EXIF respectée).
 - Serveur : `POST /api/v1/restaurant/menu/photo` (multipart `platId` + `photo`, ou `retirer=1`) → `src/lib/menu/photo-plat.ts` : mêmes contrôles que le site (type, 5 Mo, signature des octets, quota d'envois par restaurant), plat du restaurant du compte, écriture sous RLS, ancien fichier retiré après coup, pas d'orphelin si l'écriture échoue. `GET .../menu` renvoie `photoUrl`.
 - Non testé sur téléphone ni en production avec un vrai compte restaurateur (écriture réelle laissée au test de Malika).
+
+## iPhone : compilation et simulateur vérifiés (29 octobre 2026)
+
+**Ce qui est fait.** L'application iPhone compile et se lie, sans compte Apple, sur un exécuteur macOS de GitHub (workflow `.github/workflows/ios.yml`, Xcode 26 sur l'image `macos-15`). Elle démarre dans le simulateur iPhone et affiche les vrais écrans : choix du profil, accueil des restaurants avec le catalogue réel (lecture seule), création de compte restaurateur, espace professionnel. Le contrôle publie des captures (artefact `captures-iphone`, 14 jours).
+
+**Ce qui a dû être corrigé pour y arriver** : dossier `Preview Content` et catalogues d'images absents de Git, `gradlew` sans droit d'exécution, `Math.floorDiv/floorMod` et `String.format` (JVM seulement) dans le code commun, appel `KoinKt.doInitKoin()` obsolète côté Swift, version et réglages publics non transmis (maintenant via `Config.xcconfig` et `Secrets.xcconfig`, repris de `web/wrangler.jsonc` par le contrôle), Xcode 16.4 trop ancien pour Compose Multiplatform (classe `UIViewLayoutRegion`).
+
+**Ce qui n'est PAS fait ni vérifié.** Aucun essai sur un vrai iPhone ni toucher/navigation dans le simulateur (simctl ne sait pas toucher l'écran) ; TestFlight, App Store et notifications natives (APNs) exigent un compte Apple Developer (exclu pour l'instant, décision de Malika) ; connexion Google, sélecteur de photo, position et installation par APK sont indisponibles sur iPhone (le code utilise les implémentations « indisponible »). Le Trousseau iOS doit remplacer le stockage `NSUserDefaults` avant toute publication.
+
+**Lire les journaux d'un essai** : sans jeton GitHub, l'API est limitée à 60 requêtes par heure ; la page de l'essai s'ouvre dans le Chrome connecté de Malika (journal complet), et les erreurs sont aussi publiées en annotations.
