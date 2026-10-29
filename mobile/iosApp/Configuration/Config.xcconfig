@@ -1,3 +1,15 @@
 TEAM_ID=
 BUNDLE_ID=com.speedfood.app
 APP_NAME=Speedfood
+
+// Version de l'application iPhone : même numéro que l'APK Android au moment de la publication (voir docs/NATIF-PLAN.md).
+MARKETING_VERSION=2.46.2
+CURRENT_PROJECT_VERSION=50
+
+// Valeurs publiques du site (jamais de secret ici). Dans un fichier .xcconfig, « // » commence un commentaire : « https:/$()/ » écrit une adresse complète.
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SITE_URL=https:/$()/speedfood-app.moelohimmara.workers.dev
+
+// Réglages locaux ou de l'intégration continue (ignoré par Git) : adresse Supabase et clé PUBLIQUE, à la manière de speedfood.properties côté Android.
+#include? "Secrets.xcconfig"

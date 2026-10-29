@@ -1,0 +1,67 @@
+name: iPhone (compilation de contrôle)
+
+# Compile l'application iPhone pour le SIMULATEUR sur un exécuteur macOS (Xcode n'existe pas sous Windows). Aucun compte Apple Developer n'est nécessaire :
+# pas de signature, pas de publication. Le dépôt étant public, les minutes macOS de GitHub sont gratuites.
+# Pour envoyer sur TestFlight ou l'App Store il faudra, plus tard, un compte Apple Developer (voir docs/NATIF-PLAN.md).
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/ios.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulateur:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Valeurs PUBLIQUES du site (adresse Supabase, clé publique), si elles sont définies comme « variables » du dépôt. Sans elles, l'application se compile quand même
+      # (elle dira qu'elle n'est pas configurée) : l'objet de ce contrôle est que le code iPhone compile et se lie.
+      - name: Réglages publics (facultatifs)
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$(printf '%s' "$SUPABASE_URL" | sed 's#//#/$()/#')" "$SUPABASE_ANON_KEY" > mobile/iosApp/Configuration/Secrets.xcconfig
+            echo "Réglages publics écrits."
+          else
+            echo "Aucun réglage public défini : compilation sans configuration."
+          fi
+
+      - name: Compiler pour le simulateur iPhone
+        working-directory: mobile/iosApp
+        run: |
+          xcodebuild \
+            -project iosApp.xcodeproj \
+            -target iosApp \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Conserver l'application compilée
+        uses: actions/upload-artifact@v4
+        with:
+          name: speedfood-simulateur-iphone
+          path: mobile/iosApp/build/Debug-iphonesimulator/*.app
+          if-no-files-found: error
+          retention-days: 14

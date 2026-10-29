@@ -237,7 +237,7 @@ fun modulesApplication(
         single<AideApi> { KtorAideApi(get(), get()) }
         single<ClientApi> { KtorClientApi(get(), get()) }
         single { InfosApplication(versionApp ?: "", codeVersionApp) }
-        single { SuiviMiseAJour(get(), get(), codeVersionApp, get(), get()) }
+        single { SuiviMiseAJour(get(), get(), codeVersionApp, get(), get(), actif = plateforme == "android") }
         single { EnregistrementPush(get(), get(), get(), get(), plateforme, versionApp) }
         single { PanierService(get()) }
         single { CommandesLocales(get()) }

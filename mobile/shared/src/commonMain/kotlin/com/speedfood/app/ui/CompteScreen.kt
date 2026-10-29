@@ -211,7 +211,7 @@ fun ParametresScreen(onRetour: () -> Unit, onVisite: () -> Unit, viewModel: Comp
 
             TitreRubrique("Application")
             Text("Version installée : ${viewModel.infos.versionNom}", style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = viewModel::verifierMiseAJour, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) {
+            if (viewModel.verificationMiseAJourPossible) OutlinedButton(onClick = viewModel::verifierMiseAJour, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Couleurs.Encre)) {
                 Text("Vérifier les mises à jour", style = MaterialTheme.typography.labelLarge, color = Couleurs.Encre)
             }
             versionDisponible?.let { url ->

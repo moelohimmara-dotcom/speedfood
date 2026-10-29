@@ -92,7 +92,8 @@ fun normaliserHeure(texte: String): String {
     val m = HEURE_SIMPLE.matchEntire(t) ?: return t
     val h = m.groupValues[1].toIntOrNull() ?: return t
     if (h > 23) return t
-    return "%02d:%s".format(h, m.groupValues[2])
+    // padStart plutôt que String.format : format n'existe pas dans le code commun compilé pour l'iPhone.
+    return h.toString().padStart(2, '0') + ":" + m.groupValues[2]
 }
 
 /** Contrôle d'un jour d'ouverture : renvoie un message lisible, ou null si tout va bien. */

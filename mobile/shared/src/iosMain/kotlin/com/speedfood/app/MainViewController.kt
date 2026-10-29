@@ -23,7 +23,16 @@ private val config: SpeedfoodConfig by lazy {
         supabaseUrl = cleInfo("SUPABASE_URL"),
         supabaseAnonKey = cleInfo("SUPABASE_ANON_KEY"),
         siteUrl = cleInfo("SITE_URL").ifBlank { "https://speedfood-app.moelohimmara.workers.dev" },
-    ).also { initKoin(it, StockagePreferencesIos()) }
+    ).also {
+        initKoin(
+            it,
+            StockagePreferencesIos(),
+            // « ios » : le serveur le connaît (notifications, plus tard) et l'application n'y propose jamais de télécharger un APK.
+            plateforme = "ios",
+            versionApp = cleInfo("CFBundleShortVersionString").ifBlank { null },
+            codeVersionApp = cleInfo("CFBundleVersion").toIntOrNull() ?: 0,
+        )
+    }
 }
 
 fun MainViewController() = ComposeUIViewController { App(config) }

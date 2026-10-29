@@ -57,11 +57,14 @@ class SuiviMiseAJour(
     private val codeInstalle: Int,
     private val notificateur: NotificateurMiseAJour,
     private val config: SpeedfoodConfig,
+    /** Faux sur iPhone : une application iPhone se met à jour par TestFlight ou l'App Store, jamais par un fichier APK téléchargé. */
+    val actif: Boolean = true,
 ) {
     val urlTelechargement: String get() = "${config.siteUrl.trimEnd('/')}/installer"
 
     /** Version à proposer maintenant, ou null (à jour, hors ligne, ou reportée par la personne). */
     suspend fun verifier(): VersionPubliee? {
+        if (!actif) return null
         val publiee = api.derniere()
         if (publiee == null || !miseAJourDisponible(codeInstalle, publiee)) return null
         if (stockage.lire(CLE_NOTIFIEE) != publiee.code.toString()) {

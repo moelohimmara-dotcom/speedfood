@@ -49,6 +49,9 @@ class CompteViewModel(
 
     val urlTelechargement: String get() = miseAJour.urlTelechargement
 
+    /** Faux sur iPhone : pas de « Vérifier les mises à jour » par APK (TestFlight ou l'App Store s'en chargent). */
+    val verificationMiseAJourPossible: Boolean get() = miseAJour.actif
+
     fun chargerContact() {
         viewModelScope.launch { _whatsapp.value = aide.whatsapp() }
     }
