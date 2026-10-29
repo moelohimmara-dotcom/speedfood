@@ -88,11 +88,26 @@ jobs:
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
-          xcrun simctl launch "$UDID" com.speedfood.app
-          for n in 1 2 3 4 5 6; do
-            sleep 8
-            xcrun simctl io "$UDID" screenshot "captures/0${n}-apres-$((n*8))s.png"
-          done
+          # Scénarios de départ : l'application lit ses préférences (NSUserDefaults, clés « speedfood.<clé> ») au démarrage. On les écrit avant le lancement pour choisir le profil
+          # sans toucher l'écran, puis on photographie deux fois (chargement, puis écran installé).
+          scenario() {
+            nom="$1"; profil="$2"
+            xcrun simctl terminate "$UDID" com.speedfood.app 2>/dev/null || true
+            xcrun simctl spawn "$UDID" defaults delete com.speedfood.app 2>/dev/null || true
+            if [ -n "$profil" ]; then
+              xcrun simctl spawn "$UDID" defaults write com.speedfood.app "speedfood.profil_choisi" -string "$profil"
+              for cle in visite_vue visite_vue_consommateur visite_vue_restaurateur; do
+                xcrun simctl spawn "$UDID" defaults write com.speedfood.app "speedfood.$cle" -string 1
+              done
+            fi
+            xcrun simctl launch "$UDID" com.speedfood.app
+            sleep 10; xcrun simctl io "$UDID" screenshot "captures/$nom-a.png"
+            sleep 15; xcrun simctl io "$UDID" screenshot "captures/$nom-b.png"
+          }
+          scenario 01-choix ""
+          scenario 02-consommateur consommateur
+          scenario 03-restaurateur restaurateur
+          scenario 04-professionnel professionnel
           ls -l captures
 
       - name: Conserver les captures
