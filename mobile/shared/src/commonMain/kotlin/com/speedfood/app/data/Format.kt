@@ -49,7 +49,7 @@ private val MOIS_ABREGES = listOf("janv.", "févr.", "mars", "avr.", "mai", "jui
 /** Date civile (année, mois 1-12, jour 1-31) d'un nombre de jours depuis le 1er janvier 1970 (calendrier grégorien, algorithme de Howard Hinnant). */
 private fun dateCivile(jours: Long): Triple<Int, Int, Int> {
     val z = jours + 719468
-    val ere = Math.floorDiv(z, 146097L)
+    val ere = z.floorDiv(146097L)
     val jourDeLEre = z - ere * 146097
     val anneeDeLEre = (jourDeLEre - jourDeLEre / 1460 + jourDeLEre / 36524 - jourDeLEre / 146096) / 365
     val jourDeLAnnee = jourDeLEre - (365 * anneeDeLEre + anneeDeLEre / 4 - anneeDeLEre / 100)
@@ -72,10 +72,11 @@ fun dateLisible(iso: String?, maintenant: kotlin.time.Instant = kotlin.time.Cloc
         return brut.take(16).replace('T', ' ')
     }
     val secondes = instant.epochSeconds
-    val jours = Math.floorDiv(secondes, 86_400L)
-    val reste = Math.floorMod(secondes, 86_400L)
+    // floorDiv et mod (Kotlin commun) plutôt que Math.* : la classe Math n'existe pas dans le code compilé pour l'iPhone.
+    val jours = secondes.floorDiv(86_400L)
+    val reste = secondes.mod(86_400L)
     val heure = "${(reste / 3600).toString().padStart(2, '0')}:${((reste % 3600) / 60).toString().padStart(2, '0')}"
-    val aujourdhui = Math.floorDiv(maintenant.epochSeconds, 86_400L)
+    val aujourdhui = maintenant.epochSeconds.floorDiv(86_400L)
     return when (jours) {
         aujourdhui -> "aujourd'hui $heure"
         aujourdhui - 1 -> "hier $heure"
