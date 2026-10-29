@@ -49,6 +49,7 @@ jobs:
       - name: Compiler pour le simulateur iPhone
         working-directory: mobile/iosApp
         run: |
+          set +e
           xcodebuild \
             -project iosApp.xcodeproj \
             -target iosApp \
@@ -56,7 +57,14 @@ jobs:
             -sdk iphonesimulator \
             ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            build
+            build > "$RUNNER_TEMP/xcodebuild.log" 2>&1
+          statut=$?
+          tail -n 40 "$RUNNER_TEMP/xcodebuild.log"
+          if [ "$statut" -ne 0 ]; then
+            # Les journaux ne se lisent qu'une fois connecté à GitHub : les erreurs sont aussi publiées comme annotations, visibles de tous.
+            grep -E "(^e: |error:|FAILURE|What went wrong|Could not|not found|unresolved|BUILD FAILED)" "$RUNNER_TEMP/xcodebuild.log" | sed 's/%/%25/g' | cut -c1-400 | awk '!vu[$0]++' | head -25 | while IFS= read -r ligne; do echo "::error::$ligne"; done
+          fi
+          exit $statut
 
       - name: Conserver l'application compilée
         uses: actions/upload-artifact@v4
