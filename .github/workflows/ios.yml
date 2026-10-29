@@ -75,6 +75,35 @@ jobs:
           fi
           exit $statut
 
+      # Lance l'application dans le simulateur iPhone de l'exécuteur et prend des captures (le contrôle de compilation ci-dessus reste le juge : cette étape est un bonus).
+      # simctl ne sait pas toucher l'écran : on voit donc les écrans qui s'affichent seuls (ouverture, choix du profil, visite guidée).
+      - name: Lancer dans le simulateur et prendre des captures
+        continue-on-error: true
+        run: |
+          mkdir -p captures
+          APP=$(ls -d mobile/iosApp/build/Debug-iphonesimulator/*.app | head -1)
+          xcrun simctl list devices available | grep -i iphone | head -8
+          UDID=$(xcrun simctl list devices available | grep -i "iPhone" | head -1 | grep -oE '[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}')
+          echo "Simulateur : $UDID"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" com.speedfood.app
+          for n in 1 2 3 4 5 6; do
+            sleep 8
+            xcrun simctl io "$UDID" screenshot "captures/0${n}-apres-$((n*8))s.png"
+          done
+          ls -l captures
+
+      - name: Conserver les captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-iphone
+          path: captures/*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Conserver l'application compilée
         uses: actions/upload-artifact@v4
         with:
