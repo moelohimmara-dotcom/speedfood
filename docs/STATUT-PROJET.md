@@ -899,3 +899,13 @@ Décisions de Malika : annulation par le client **tant que le restaurant n'a pas
 **Reste à faire** : déploiement du site (feu vert de Malika requis) puis nouvelle version de l'application ; bouton d'annulation sur la page de suivi du site (seule l'application l'a) ; « autres aspects essentiels » que Malika n'a pas encore nommés.
 
 **Ordre de déploiement** : la base est déjà prête ; déployer le site AVANT de publier l'application (l'application appelle `/api/v1/suivi/annuler`, absente de la production actuelle).
+
+## Redis (Upstash, offre gratuite) : limitation de débit (30 octobre 2026) : code prêt, NON déployé, NON activé
+
+Décision de Malika : insérer Upstash Redis dans l'architecture avant la migration vers React Native ; elle compte monter en gamme plus tard. Guide complet : `docs/REDIS-UPSTASH.md`.
+
+**Fait (testé en local)** : `web/src/lib/securite/{redis-client,redis-limites,limitation-debit}.ts`. Toutes les limites d'une action (ex. création de commande : 3 ou 4) partent en **une seule requête groupée** vers Redis ; compteur de consommation du mois avec alertes à 70 % et 90 % dans les journaux. **Sans les deux secrets, comportement strictement identique à avant** (limitation dans la base). Repli automatique sur la base si Redis est absent, lent (500 ms), en erreur ou à la limite de l'offre. Interrupteur de secours `LIMITEUR_REDIS=non`. Tests : `web/scripts/tests/redis.test.mts`.
+
+**Pas fait, volontairement** : cache Redis des lectures publiques (déjà en cache HTTP, ou lues directement par l'application : aucun gain aujourd'hui ; il entrera avec l'API du catalogue) ; anti-doublon d'envoi (option).
+
+**À faire par Malika** : créer le compte et la base Upstash (région Irlande, `eu-west-1`, comme Supabase), puis poser `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` comme secrets du Worker (étapes dans `docs/REDIS-UPSTASH.md`). **Non vérifié** : le comportement d'Upstash à la limite de l'offre gratuite ; le fonctionnement réel avec une vraie base (aucun essai possible sans compte).

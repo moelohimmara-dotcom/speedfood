@@ -4,12 +4,14 @@ import { headers } from "next/headers";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { regrouperIpv6 } from "./ip";
+import { executerPipeline, type ConfigRedis } from "./redis-client";
+import { cleCompteur, commandesLimites, decider, franchitSeuil, QUOTA_MENSUEL_PAR_DEFAUT } from "./redis-limites";
 
 /**
  * Limitation de débit des actions publiques (PROCEDURE-SECURITE.md §7, ADR-011).
  *
- * Compteur à fenêtre fixe dans la base (`fn_limiter_debit`, service-role
- * uniquement) : fiable entre plusieurs isolats Workers, sans service externe.
+ * Compteur à fenêtre fixe, sur Redis (Upstash, offre gratuite, s'il est configuré : un seul aller-retour pour toutes les limites d'une action) ou, sinon et
+ * en cas de panne, dans la base (`fn_limiter_debit`, service-role uniquement) : fiable entre plusieurs isolats Workers.
  * Aucune IP ni aucun téléphone n'est stocké en clair : seule une empreinte HMAC
  * (clé serveur) sert de clé de compteur.
  *
@@ -148,7 +150,51 @@ function empreinte(valeur: string): string {
     .slice(0, 32);
 }
 
+type PaireLimite = readonly [RegleLimite, string];
+
+/**
+ * Redis (Upstash) : actif seulement si l'adresse et le jeton sont des secrets du Worker, et si `LIMITEUR_REDIS` n'est pas « non » (interrupteur de secours).
+ * Sinon, ou en cas de panne, la limitation retombe sur la base, exactement comme avant : Redis n'est jamais indispensable.
+ */
+function configRedis(): ConfigRedis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const jeton = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !jeton || process.env.LIMITEUR_REDIS === "non") return null;
+  return { url, jeton };
+}
+
+/** Prévient (journal du Worker) quand la consommation du mois franchit 70 % puis 90 % de l'offre gratuite. Une seule alerte par seuil. */
+function surveillerQuota(consommationMois: number | null, commandesDuLot: number): void {
+  if (consommationMois === null) return;
+  const quota = Number(process.env.UPSTASH_QUOTA_MENSUEL) || QUOTA_MENSUEL_PAR_DEFAUT;
+  for (const part of [0.7, 0.9]) {
+    if (franchitSeuil(consommationMois, commandesDuLot, quota, part)) console.warn("redis_quota_atteint", Math.round(part * 100));
+  }
+}
+
+/** Applique plusieurs limites d'un seul aller-retour (Redis), ou une par une (base) si Redis est absent ou en panne. Lève `TROP_DE_REQUETES`. */
+async function appliquerLimites(paires: readonly PaireLimite[]): Promise<void> {
+  if (paires.length === 0) return;
+  const redis = configRedis();
+  if (redis) {
+    const limites = paires.map(([regle, identifiant]) => ({ cle: cleCompteur(regle.nom, empreinte(identifiant)), max: regle.max, fenetreSecondes: regle.fenetreSecondes }));
+    const valeurs = await executerPipeline(redis, commandesLimites(limites, new Date()));
+    const decision = valeurs ? decider(limites, valeurs) : null;
+    if (decision) {
+      surveillerQuota(decision.consommationMois, decision.commandesDuLot);
+      if (!decision.autorise) throw new ErreurMetier("TROP_DE_REQUETES", MESSAGE_TROP_DE_REQUETES);
+      return;
+    }
+    console.error("redis_indisponible_repli_base");
+  }
+  await Promise.all(paires.map(([regle, identifiant]) => appliquerLimiteBase(regle, identifiant)));
+}
+
 async function appliquerLimite(regle: RegleLimite, identifiant: string): Promise<void> {
+  await appliquerLimites([[regle, identifiant]]);
+}
+
+async function appliquerLimiteBase(regle: RegleLimite, identifiant: string): Promise<void> {
   const { data, error } = await creerClientAdmin().rpc("fn_limiter_debit", {
     p_cle: `${regle.nom}:${empreinte(identifiant)}`,
     p_fenetre_secondes: regle.fenetreSecondes,
@@ -173,19 +219,20 @@ export async function limiterCreationCommande(
   const ip = await adresseClient();
   // `table` n'est renseignée que si la clé du QR de la table a été vérifiée : sinon, le plafond d'adresse ordinaire s'applique.
   const table = options.table ?? null;
-  await Promise.all([
-    table ? appliquerLimite(LIMITE_COMMANDE_PAR_IP_TABLE, ip) : appliquerLimite(LIMITE_COMMANDE_PAR_IP, ip),
-    table ? appliquerLimite(LIMITE_COMMANDE_PAR_TABLE, `${restaurantId}:${table.toLowerCase()}`) : Promise.resolve(),
-    // Convive sans numéro (commande à table) : pas de plafond par téléphone, les plafonds par adresse et par restaurant restent.
-    telephone.replace(/\D/g, "") === "" ? Promise.resolve() : appliquerLimite(LIMITE_COMMANDE_PAR_TELEPHONE, telephone.replace(/\D/g, "")),
-    appliquerLimite(LIMITE_COMMANDE_PAR_RESTAURANT, restaurantId),
-  ]);
+  const paires: PaireLimite[] = [table ? [LIMITE_COMMANDE_PAR_IP_TABLE, ip] : [LIMITE_COMMANDE_PAR_IP, ip]];
+  if (table) paires.push([LIMITE_COMMANDE_PAR_TABLE, `${restaurantId}:${table.toLowerCase()}`]);
+  // Convive sans numéro (commande à table) : pas de plafond par téléphone, les plafonds par adresse et par restaurant restent.
+  const chiffres = telephone.replace(/\D/g, "");
+  if (chiffres !== "") paires.push([LIMITE_COMMANDE_PAR_TELEPHONE, chiffres]);
+  paires.push([LIMITE_COMMANDE_PAR_RESTAURANT, restaurantId]);
+  // Un seul aller-retour vers Redis pour toutes les limites (au lieu de trois ou quatre appels à la base).
+  await appliquerLimites(paires);
 }
 
 export async function limiterRecuperationMotDePasse(email: string): Promise<void> {
-  await Promise.all([
-    appliquerLimite(LIMITE_RECUPERATION_PAR_IP, await adresseClient()),
-    appliquerLimite(LIMITE_RECUPERATION_PAR_EMAIL, email.trim().toLowerCase()),
+  await appliquerLimites([
+    [LIMITE_RECUPERATION_PAR_IP, await adresseClient()],
+    [LIMITE_RECUPERATION_PAR_EMAIL, email.trim().toLowerCase()],
   ]);
 }
 
