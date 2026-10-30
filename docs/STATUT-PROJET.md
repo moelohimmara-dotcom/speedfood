@@ -900,7 +900,7 @@ Décisions de Malika : annulation par le client **tant que le restaurant n'a pas
 
 **Ordre de déploiement** : la base est déjà prête ; déployer le site AVANT de publier l'application (l'application appelle `/api/v1/suivi/annuler`, absente de la production actuelle).
 
-## Redis (Upstash, offre gratuite) : limitation de débit (30 octobre 2026) : code prêt, NON déployé, NON activé
+## Redis (Upstash, offre gratuite) : limitation de débit (30 octobre 2026) : ACTIF en production, vérifié
 
 Décision de Malika : insérer Upstash Redis dans l'architecture avant la migration vers React Native ; elle compte monter en gamme plus tard. Guide complet : `docs/REDIS-UPSTASH.md`.
 
@@ -909,3 +909,5 @@ Décision de Malika : insérer Upstash Redis dans l'architecture avant la migrat
 **Pas fait, volontairement** : cache Redis des lectures publiques (déjà en cache HTTP, ou lues directement par l'application : aucun gain aujourd'hui ; il entrera avec l'API du catalogue) ; anti-doublon d'envoi (option).
 
 **À faire par Malika** : créer le compte et la base Upstash (région Irlande, `eu-west-1`, comme Supabase), puis poser `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` comme secrets du Worker (étapes dans `docs/REDIS-UPSTASH.md`). **Non vérifié** : le comportement d'Upstash à la limite de l'offre gratuite ; le fonctionnement réel avec une vraie base (aucun essai possible sans compte).
+
+**Mise en service (30 octobre 2026, soir)** : Malika a créé la base Upstash (Irlande, `eu-west-1`, offre Free) et posé `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` comme secrets ; version avec les clés puis nouveau code déployés avec son feu vert. **Vérifié** : la console Upstash (Data Browser) montre `sf:v1:conso:2026-10` et `sf:v1:rl:suivi-lecture-jeton:…` ; la table `rate_limits` de la base ne reçoit plus de ligne pour cette règle. **Non vérifié** : les journaux du Worker (la lecture en direct n'a rien capturé) et le comportement d'Upstash à la limite de l'offre gratuite. **À vérifier par Malika** : la base est étiquetée « Global » dans la console (et non « Regional » comme conseillé) : contrôler dans l'onglet Details qu'aucune région de lecture supplémentaire n'est active (sinon chaque écriture est répliquée et consomme plus de commandes).
