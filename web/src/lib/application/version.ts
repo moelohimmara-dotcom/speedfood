@@ -21,10 +21,10 @@ export interface VersionApplication {
 }
 
 export const VERSION_APPLICATION: VersionApplication = {
-  code: 50,
-  nom: "2.46.2",
-  notes: "« Mot de passe oublié » se demande maintenant dans l'application, sans passer par le navigateur. Si votre compte a été supprimé, suspendu ou si votre connexion a expiré, l'application vous l'explique au lieu de vous déconnecter en silence.",
+  code: 51,
+  nom: "2.47.0",
+  notes: "Suivi de commande plus complet : annulez votre commande tant que le restaurant n'a pas répondu, voyez l'heure à laquelle elle sera prête, joignez l'assistance en un geste, et retrouvez le statut de toutes vos commandes dans la liste.",
   obligatoire: false,
-  apkSha256: "a0643656ae91ed25f3e0ac9b5918c19b36287345dbf51edf08d55e8b8b74173b",
-  apkTaille: 15717578,
+  apkSha256: "d44b55a85bc48c0060ec8fd26e894d3823ffd2125bc7f4a3dbaa2b7135070e9c",
+  apkTaille: 15733962,
 };
