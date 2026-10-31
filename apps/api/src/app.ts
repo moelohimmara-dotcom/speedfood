@@ -5,6 +5,7 @@ import { reponseErreur } from "./http.ts";
 import { enteteRelaisDeConfiance } from "./identite/relais.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeClient } from "./routes/client.ts";
+import { routeCommandes } from "./routes/commandes.ts";
 import { routeEstimation } from "./routes/estimation.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
 import { routeMoi } from "./routes/moi.ts";
@@ -33,6 +34,7 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/client", routeClient(deps));
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));
   app.route("/api/v1/suivi", routeSuivi(deps));
+  app.route("/api/v1/commandes", routeCommandes(deps));
 
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {
