@@ -5,7 +5,7 @@
 // Les données sont FICTIVES et sans coordonnée personnelle réaliste : les numéros à joindre sont
 // masqués comme le reste du dépôt (« +224 6** ** ** »). Rien n'est écrit dans une vraie base.
 //
-// Les règles appliquées ici sont les mêmes que celles de la console (web/src/lib/system-admin/*-regles.ts) :
+// Les règles appliquées ici sont les mêmes que celles de la console (apps/web/src/lib/system-admin/*-regles.ts) :
 // motif obligatoire, confirmation explicite, message clients obligatoire, échéance dans le futur.
 
 export const espace = "equipe";

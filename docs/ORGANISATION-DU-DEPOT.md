@@ -50,5 +50,12 @@ Le faux serveur de l'émulateur se lance depuis la racine du dépôt : `node mob
 - `.claude/launch.json` lance `npm --prefix apps/web run dev` (avant le 31 octobre 2026 : `--prefix web`).
 - Rien ne change en production : le Worker `speedfood-app` et la base sont les mêmes.
 
+## Paquets partagés (étape 0 de la refonte)
+
+Depuis l'étape 0 de la refonte d'architecture (30 octobre 2026), le dépôt est un espace de travail npm : le site est dans `apps/web/`, `npm install` se lance à la racine, et les règles pures partagées vivent dans `packages/shared/` (paquet `@speedfood/shared`, avec des raccords d'une ligne à leur ancienne place dans le site). Détails, règle de pureté et outil de déplacement : `packages/shared/README.md`. Cible d'ensemble : `docs/specs/2026-10-30-architecture-cible-design.md`.
+
+- `mobile/` n'a **pas** été déplacé : il reste en place jusqu'au gel de Kotlin.
+- L'ancien dossier `web/` peut subsister, vide, sur le disque : un verrou externe empêche sa suppression. À supprimer à la main quand l'application qui le tient sera fermée (Git ne le suit pas).
+
 ## Vérifié le 29 octobre 2026 (sur la branche de séparation)
 `tsc`, `eslint`, `npm run test:unit`, `npm run test:cloisonnement`, `node scripts/verifier-base.mjs` (84 tables lues), `next build` et `npm run cf:build`, tous depuis `apps/web/`, sans erreur. **Aucun déploiement n'a été fait pour cette séparation.**

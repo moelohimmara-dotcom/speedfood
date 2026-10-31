@@ -5,7 +5,7 @@
 // (prise, libération, relance) : rien n'est écrit en base, tout reste en mémoire.
 //
 // DONNÉES FACTICES. Le barème de relance ci-dessous est la SIMULATION de la valeur par défaut
-// de l'application (`DELAI_RELANCE_MINUTES_PAR_DEFAUT` dans `web/src/lib/system-admin/quarts-regles.ts`) :
+// de l'application (`DELAI_RELANCE_MINUTES_PAR_DEFAUT` dans `apps/web/src/lib/system-admin/quarts-regles.ts`) :
 // les deux doivent être changés ensemble quand la propriétaire arrête le délai.
 
 export const espace = "equipe";
