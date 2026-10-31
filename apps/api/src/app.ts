@@ -8,6 +8,7 @@ import { routeClient } from "./routes/client.ts";
 import { routeEstimation } from "./routes/estimation.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
 import { routeMoi } from "./routes/moi.ts";
+import { routeSuivi } from "./routes/suivi.ts";
 import { routeVersion } from "./routes/version.ts";
 import type { Deps } from "./types.ts";
 
@@ -31,6 +32,7 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/moi", routeMoi(deps));
   app.route("/api/v1/client", routeClient(deps));
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));
+  app.route("/api/v1/suivi", routeSuivi(deps));
 
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {
