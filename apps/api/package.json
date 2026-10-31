@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --import ./scripts/enregistrer-resolveur.mjs --test \"tests/**/*.test.ts\"",
     "build": "node build.mjs",
+    "predev": "node build.mjs",
     "dev": "wrangler dev",
     "preparer-dev-vars": "node scripts/preparer-dev-vars.mjs",
     "comparer": "node scripts/comparer-routes.mjs"

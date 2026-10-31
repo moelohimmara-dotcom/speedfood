@@ -1,6 +1,6 @@
 name: Contrôles
 
-# Vérifie le site à chaque modification : types, qualité du code, tests purs et tests de cloisonnement des règles de la base.
+# Vérifie le site et l'API à chaque modification : types, qualité, tests purs, cloisonnement, tests et construction de l'API.
 # Ne déploie JAMAIS rien : la mise en production reste un geste manuel avec le feu vert de Malika.
 on:
   push:

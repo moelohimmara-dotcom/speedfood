@@ -8,13 +8,15 @@ const tolererNon2xx = arguments_.includes("--tolerer-non-2xx");
 const [reference, candidate, ...chemins] = arguments_.filter((a) => a !== "--tolerer-non-2xx");
 if (!reference || !candidate || chemins.length === 0) {
   console.error("Usage : npm run comparer -- [--tolerer-non-2xx] <urlReference> <urlCandidate> <chemin> [<chemin>…]");
-  process.exit(2);
-}
-const ecarts = await comparerRoutes(reference, candidate, chemins, fetch, { tolererNon2xx });
-if (ecarts.length === 0) {
-  console.log(`${chemins.length} route(s) identiques : 0 écart`);
+  // Pas de process.exit : sous Windows il plante (0xC0000409) au lieu de rendre le code voulu.
+  process.exitCode = 2;
 } else {
-  console.error(`ECHEC : ${ecarts.length} écart(s)`);
-  for (const ecart of ecarts) console.error(`  ${ecart}`);
-  process.exit(1);
+  const ecarts = await comparerRoutes(reference, candidate, chemins, fetch, { tolererNon2xx });
+  if (ecarts.length === 0) {
+    console.log(`${chemins.length} route(s) identiques : 0 écart`);
+  } else {
+    console.error(`ECHEC : ${ecarts.length} écart(s)`);
+    for (const ecart of ecarts) console.error(`  ${ecart}`);
+    process.exitCode = 1;
+  }
 }

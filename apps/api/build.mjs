@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const racine = dirname(fileURLToPath(import.meta.url));
 
 /** Chemins d'entrées qui trahissent Next.js (ou son adaptateur Cloudflare) dans le paquet. */
-const INTERDITS = [/node_modules[\\/]next[\\/]/, /node_modules[\\/]@opennextjs[\\/]/, /node_modules[\\/]react-dom[\\/]/];
+const INTERDITS = [/node_modules[\\/]next[\\/]/, /node_modules[\\/]@opennextjs[\\/]/, /node_modules[\\/]react-dom[\\/]/, /node_modules[\\/]@next[\\/]/, /node_modules[\\/]styled-jsx[\\/]/];
 
 export async function construire({ entree = join(racine, "src", "worker.ts"), sortie = join(racine, "dist", "worker.js") } = {}) {
   const resultat = await build({

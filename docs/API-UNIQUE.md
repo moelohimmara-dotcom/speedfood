@@ -89,6 +89,12 @@ Résultat : **2 routes identiques, 0 écart** (code de sortie 0). Contrôle manu
 - **`COMMANDE_JETON_SECRET`** : absent de `apps/web/.env.local`, donc jamais vérifié ni préparé dans `.dev.vars`. Aucune route livrée n'en a besoin ; les routes de commande du plan 1b en auront besoin.
 - Seules deux routes publiques en GET ont été comparées ; aucune écriture, aucun test de charge.
 
+## À faire au plan 1b
+
+1. **Distinguer la panne JWKS/réseau du jeton invalide dans `verifierJetonLocal`, avant de le câbler.** Aujourd'hui toute erreur (jeton invalide, mais aussi clés Supabase injoignables) rend `null`, donc un 401. Une panne de Supabase donnerait des 401 en masse que l'application pourrait prendre pour une session expirée. La panne doit sortir en 500/503 (la chaîne répond déjà 500 sans fuite quand le vérificateur lève, test de non-régression dans `chaine.test.ts`), le jeton invalide rester `null`.
+2. **Politique CORS.** L'API n'en a aucune (valeur sûre : l'application native n'en a pas besoin). À trancher si le navigateur du site appelle l'API.
+3. **Construire (`npm run build`) juste avant tout `wrangler dev` ou déploiement** : `no_bundle` sert `dist` tel quel, un `dist` périmé serait publié sans erreur. `npm run dev` le fait seul (script `predev`) ; un déploiement manuel doit le faire explicitement.
+
 ## Ce qui reste
 
 - **Plan 1b** : routes par modules, relais du site vers l'API, câblage du vérificateur de jetons, droits, validation, audit.
