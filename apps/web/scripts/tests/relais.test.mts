@@ -214,6 +214,7 @@ verifier("décision : { lecture: true } n'allume rien (éteint reste éteint, ma
   type(decisionRelais({ ...ENV_OK, API_RELAIS: "commandes" }, "suivi", req("POST"), { lecture: true })),
   type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "court" }, "suivi", req("POST"), { lecture: true })),
 ], ["eteint", "eteint", "mal-configure"]);
+verifier("décision : { lecture: true } ne vaut que pour POST : PUT, PATCH, DELETE ne retombent jamais sur le site", ["POST", "PUT", "PATCH", "DELETE"].map((m) => { const d = decisionRelais(ENV_OK, "suivi", req(m), { lecture: true }); return d.type === "relayer" && d.repliPossible; }), [true, false, false, false]);
 verifier("décision : GET et HEAD gardent le repli même avec { lecture: false }", ["GET", "HEAD"].map((m) => { const d = decisionRelais(ENV_OK, "client", req(m), { lecture: false }); return d.type === "relayer" && d.repliPossible; }), [true, true]);
 
 {
@@ -252,6 +253,12 @@ verifier("décision : GET et HEAD gardent le repli même avec { lecture: false }
   const r = await essaiSuivi(requete, true, cinqCents);
   verifier("POST en lecture : une réponse 5xx de l'API n'est PAS un repli (rendue telle quelle)", [r === null, r?.status, await r?.text()], [false, 503, '{"ok":false,"erreur":{"code":"ERREUR_SERVEUR","message":"x"}}']);
 }
+for (const statut of [401, 404]) {
+  const corpsApi = `{"ok":false,"erreur":{"code":"C${statut}","message":"m${statut}"}}`;
+  const quatreCents = (async () => new Response(corpsApi, { status: statut, headers: { "content-type": "application/json", "cache-control": "no-store" } })) as unknown as typeof fetch;
+  const r = await essaiSuivi(suiviPost(), true, quatreCents);
+  verifier(`POST en lecture : une réponse ${statut} de l'API n'est PAS un repli (statut et corps rendus tels quels)`, [r === null, r?.status, await r?.text()], [false, statut, corpsApi]);
+}
 {
   // Délai par route : on lit la durée réellement confiée au minuteur.
   const original = globalThis.setTimeout;
@@ -263,10 +270,11 @@ verifier("décision : GET et HEAD gardent le repli même avec { lecture: false }
     await essaiSuivi(suiviPost(), true, rapide);
     await essaiSuivi(suiviPost(), true, rapide, 9000);
     for (const invalide of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) await essaiSuivi(suiviPost(), true, rapide, invalide);
+    for (const grand of [60_000, 60_001, 3_000_000_000]) await essaiSuivi(suiviPost(), true, rapide, grand);
   } finally {
     globalThis.setTimeout = original;
   }
-  verifier("délai : delaiMs confié au minuteur ; absent → 2 500 ms ; 0, négatif, NaN, infini → 2 500 ms", durees, [50, 2500, 9000, 2500, 2500, 2500, 2500]);
+  verifier("délai : delaiMs confié au minuteur ; absent → 2 500 ms ; 0, négatif, NaN, infini → 2 500 ms ; au-delà de 60 000 ms → ramené à 60 000 ms", durees, [50, 2500, 9000, 2500, 2500, 2500, 2500, 60000, 60000, 60000]);
 }
 {
   const debut = Date.now();

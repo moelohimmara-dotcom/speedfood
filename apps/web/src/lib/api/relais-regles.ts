@@ -61,7 +61,8 @@ export function decisionRelais(env: ReglagesRelais, module: string, request: { m
   if (!moduleRelaye(env.API_RELAIS, module)) return { type: "eteint" };
   const secret = env.RELAIS_SECRET;
   if (!baseApiAcceptable(env.API_URL) || !secret || !SECRET_RELAIS_VALIDE.test(secret)) return { type: "mal-configure" };
-  const repliPossible = options?.lecture === true || request.method === "GET" || request.method === "HEAD";
+  // `lecture` ne vaut que pour POST : un PUT, PATCH ou DELETE est toujours une écriture, jamais rejouée.
+  const repliPossible = (options?.lecture === true && request.method === "POST") || request.method === "GET" || request.method === "HEAD";
   return { type: "relayer", baseApi: env.API_URL, secret, repliPossible };
 }
 
@@ -84,9 +85,12 @@ const ERREUR_SERVEUR = { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "
 
 /** Délai par défaut de l'appel à l'API (étape 1b). Un `delaiMs` absent, nul, négatif ou non fini retombe dessus (jamais un minuteur à 0 qui couperait tout). */
 export const DELAI_RELAIS_DEFAUT_MS = 2500;
+/** Plafond du délai : au-delà, `delaiMs` est RAMENÉ à 60 s (et non rejeté vers 2 500 ms : une route qui demande un long délai en obtient le plus long permis). Évite le débordement de `setTimeout` (au-delà de 2^31-1 ms, le minuteur part aussitôt). */
+export const DELAI_RELAIS_MAX_MS = 60_000;
 
 function delaiEffectif(delaiMs: number | undefined): number {
-  return typeof delaiMs === "number" && Number.isFinite(delaiMs) && delaiMs > 0 ? delaiMs : DELAI_RELAIS_DEFAUT_MS;
+  if (typeof delaiMs !== "number" || !Number.isFinite(delaiMs) || delaiMs <= 0) return DELAI_RELAIS_DEFAUT_MS;
+  return Math.min(delaiMs, DELAI_RELAIS_MAX_MS);
 }
 
 /**
