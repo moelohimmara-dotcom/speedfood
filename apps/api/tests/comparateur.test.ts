@@ -214,6 +214,24 @@ test("CLI : méthode refusée par fetch avec jeton présent : code 2, aucune val
   assert.ok(!r.sortie.includes("PAS UNE"));
 });
 
+test("CLI : un chemin qui change l'hôte appelé est refusé (code 2), aucun jeton ni chemin affiché, aucune requête", async () => {
+  let requetes = 0;
+  const http = createServer((_q, r) => { requetes++; r.writeHead(200, { "content-type": "application/json" }).end("{}"); });
+  await new Promise<void>((ok) => http.listen(0, "127.0.0.1", ok));
+  const base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
+  try {
+    for (const chemin of [".evil.invalid", "//evil.invalid/x", "@evil.invalid/x", "x", "/\\evil.invalid/x"]) {
+      for (const jeton of ["SECRET-ABC", ""]) {
+        const r = lancer([...(jeton ? ["--jeton-env", "JETON_ESSAI"] : []), "http://localhost", base, chemin], { JETON_ESSAI: jeton });
+        verifierSansFuite(r, "SECRET-ABC");
+        assert.ok(!r.sortie.includes("evil.invalid"), "le chemin refusé n'est pas répété");
+        assert.ok(!r.sortie.includes("Jeton envoyé à"));
+      }
+    }
+    assert.equal(requetes, 0);
+  } finally { await new Promise<void>((ok) => http.close(() => ok())); }
+});
+
 test("CLI : --corps sans --methode : code 2 et message propre", () => {
   const r = lancer(["--corps", '{"a":1}', LOCAL, LOCAL, "/x"], {});
   assert.equal(r.code, 2);

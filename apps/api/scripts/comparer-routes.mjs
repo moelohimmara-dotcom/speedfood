@@ -42,12 +42,25 @@ function lireAdresse(texte) {
   }
 }
 
+// Vrai si base + chemin (tel que le comparateur le construit) et le chemin résolu contre la base restent sur l'hôte de la base.
+function memeHote(base, chemin) {
+  try {
+    const hote = new URL(base).host;
+    return new URL(base.replace(/\/+$/, "") + chemin).host === hote && new URL(chemin, base).host === hote;
+  } catch {
+    return false;
+  }
+}
+
 const lus = lireArguments(process.argv.slice(2));
 const [reference, candidate, ...chemins] = lus ? lus.positionnels : [];
 if (!lus || !reference || !candidate || chemins.length === 0) {
   erreur(USAGE);
 } else if (lus.corps !== undefined && lus.methode === undefined) {
   erreur("--corps exige --methode (par exemple --methode POST)");
+} else if (chemins.some((c) => !c.startsWith("/") || c.startsWith("//") || c.includes("\\"))) {
+  // Un chemin est relatif à la base : "/x" seulement. ".evil", "//hote/x" ou "@hote/x" changeraient l'hôte réellement appelé.
+  erreur("Chaque chemin doit commencer par un seul « / » (ni « // » ni antislash) : valeur refusée, non affichée");
 } else {
   const options = { tolererNon2xx: lus.tolererNon2xx };
   if (lus.methode !== undefined) options.methode = lus.methode;
@@ -67,6 +80,9 @@ if (!lus || !reference || !candidate || chemins.length === 0) {
       pret = false;
     } else if (adresses.some((a) => a === null || (a.protocole !== "https:" && !(a.protocole === "http:" && HOTES_LOCAUX.includes(a.nomHote))))) {
       erreur("Avec un jeton, chaque adresse doit être en https:// (ou http:// vers localhost, 127.0.0.1, [::1]) : envoi refusé, adresses non affichées");
+      pret = false;
+    } else if (adresses.some((a, i) => chemins.some((c) => !memeHote([reference, candidate][i], c)))) {
+      erreur("Avec un jeton, l'adresse réellement appelée (base + chemin) doit rester sur l'hôte de la base : envoi refusé, valeurs non affichées");
       pret = false;
     } else {
       options.entetes = { authorization: "Bearer " + process.env[lus.jetonEnv] };
