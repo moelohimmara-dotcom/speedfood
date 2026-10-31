@@ -134,7 +134,7 @@ Fichiers probablement concernés :
 **Réservés à l'orchestrateur** (l'agent fournit la ligne exacte dans sa note d'intégration) :
 `mobile/shared/.../App.kt` (routage du lien profond), `mobile/shared/.../di/Koin.kt`,
 `mobile/androidApp/src/main/AndroidManifest.xml` (App Links), `mobile/shared/.../EspacePro.kt`,
-`src/lib/application/version.ts`, `mobile/androidApp/build.gradle.kts`, `public/speedfood.apk*`,
+`packages/shared/src/application/version.ts`, `mobile/androidApp/build.gradle.kts`, `public/speedfood.apk*`,
 `scripts/tests/lancer.mjs`, `docs/**`, `package.json`.
 
 ## 10. Hors périmètre

@@ -148,11 +148,11 @@ Règles : aucune valeur secrète dans le code, les commits, les journaux ni les 
 
 **Aucun déploiement en production sans feu vert explicite de Malika** (`CLAUDE.md`, `docs/cadrage/PROCEDURE-SECURITE.md`). Procédure :
 
-1. Augmenter `versionCode` et `versionName` dans `mobile/androidApp/build.gradle.kts` **et** `code`, `nom`, `notes` dans `src/lib/application/version.ts` (un test vérifie qu'ils sont identiques).
+1. Augmenter `versionCode` et `versionName` dans `mobile/androidApp/build.gradle.kts` **et** `code`, `nom`, `notes` dans `packages/shared/src/application/version.ts` (un test vérifie qu'ils sont identiques).
 2. Contrôles : `npx tsc --noEmit`, `npx eslint src`, `npm run test:unit`, `npm run test:cloisonnement`, `cd mobile && ./gradlew :shared:jvmTest :androidApp:assembleDebug`.
 3. Construire l'APK signée (variables d'environnement `JAVA_HOME`, `ANDROID_HOME`, `SPEEDFOOD_KEYSTORE`, `SPEEDFOOD_KEYSTORE_PASSWORD` lue dans le fichier **sans l'afficher**) : `./gradlew :androidApp:assembleRelease`.
 4. Vérifier avec `aapt dump badging` (version) et `apksigner verify --print-certs` (le SHA-256 du certificat doit être celui du § 6).
-5. Copier `androidApp/build/outputs/apk/release/androidApp-release.apk` vers `public/speedfood.apk`, puis `node scripts/empreinte-apk.mjs` (écrit `public/speedfood.apk.sha256` **et** l'empreinte et la taille dans `src/lib/application/version.ts`).
+5. Copier `androidApp/build/outputs/apk/release/androidApp-release.apk` vers `public/speedfood.apk`, puis `node scripts/empreinte-apk.mjs` (écrit `public/speedfood.apk.sha256` **et** l'empreinte et la taille dans `packages/shared/src/application/version.ts`).
 6. Commit (voir § 11 pour le format), puis `npm run cf:deploy` en tâche de fond (environ 8 à 10 minutes ; une erreur 503 de l'API Cloudflare est transitoire : relancer).
 7. Vérifier la production : `/api/v1/version` (nouveau code), `sha256sum` de `/speedfood.apk` = `public/speedfood.apk.sha256`, nouvelles routes qui répondent **401** sans jeton. Puis `git push origin master` (si « cannot lock ref » : réessayer).
 8. L'annonce aux téléphones part **toute seule** dans les 5 minutes (tâche planifiée) ; le bouton « Annoncer la version » de `/system/mises-a-jour` reste disponible.

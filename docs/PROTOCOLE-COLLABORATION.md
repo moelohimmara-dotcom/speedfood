@@ -119,7 +119,7 @@ modifie, il fournit la ligne exacte à insérer dans sa note d'intégration.
 | `src/lib/system-admin/permissions.ts` + `docs/MATRICE-PERMISSIONS.md` | matrice de permissions : les deux fichiers doivent évoluer ensemble, version comprise |
 | `scripts/tests/lancer.mjs` | registre en dur des tests et des sources copiées |
 | `src/app/api/v1/equipe/moi/route.ts` | `SECTIONS_NATIVES` (une seule ligne) |
-| `src/lib/application/version.ts` + `mobile/androidApp/build.gradle.kts` | version unique de l'application |
+| `packages/shared/src/application/version.ts` + `mobile/androidApp/build.gradle.kts` | version unique de l'application |
 | `public/speedfood.apk` (+ `.sha256`) | binaire et empreinte de la publication |
 | `mobile/shared/.../di/Koin.kt`, `EspacePro.kt`, `ui/EquipeScreen.kt` | graphe DI et navigation partagés |
 | `mobile/shared/.../App.kt`, `mobile/androidApp/src/main/AndroidManifest.xml` | coquille de navigation client et App Links : un seul agent les modifie à la fois |
