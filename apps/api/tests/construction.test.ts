@@ -29,6 +29,12 @@ test("les services du site utilisés par l'API se construisent sans Next.js (son
   assert.deepEqual(resultat.interdits, []);
 });
 
+test("les services de suivi et de commande se construisent sans Next.js (sonde 1c)", async () => {
+  const resultat = await construireDans("sondes/services.ts");
+  assert.deepEqual(resultat.interdits, [], "le cœur de création ne doit importer ni next/server ni next/headers directs");
+  assert.ok(resultat.octets < 1_200_000, `paquet de la sonde trop gros : ${resultat.octets} octets`);
+});
+
 test("la garde mord : un import de next/server dans un paquet est détecté", async () => {
   const resultat = await construireDans("sondes/interdit.ts");
   assert.ok(resultat.interdits.length > 0, "next/server aurait dû être détecté");
