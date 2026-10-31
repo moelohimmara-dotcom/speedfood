@@ -75,3 +75,89 @@ test("200 des deux côtés : inchangé, aucun écart par défaut", async () => {
     assert.deepEqual(await comparerRoutes(s1.base, s2.base, ["/x"]), []);
   } finally { await s1.fermer(); await s2.fermer(); }
 });
+
+test("les options entetes, methode et corps sont envoyés aux DEUX adresses", async () => {
+  const vus: { methode: string; auth: string; corps: string; contentType: string }[] = [];
+  const faux = async (_url: string, init?: RequestInit) => {
+    const h = new Headers(init?.headers);
+    vus.push({ methode: init?.method ?? "GET", auth: h.get("authorization") ?? "", corps: String(init?.body ?? ""), contentType: h.get("content-type") ?? "" });
+    return new Response('{"ok":true}', { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const ecarts = await comparerRoutes("http://a", "http://b", ["/x"], faux, { entetes: { authorization: "Bearer SECRET" }, methode: "POST", corps: '{"k":1}' });
+  assert.deepEqual(ecarts, []);
+  assert.equal(vus.length, 2);
+  for (const v of vus) assert.deepEqual(v, { methode: "POST", auth: "Bearer SECRET", corps: '{"k":1}', contentType: "application/json" });
+});
+
+test("sans options, la requête reste un GET sans corps ni en-tête ajouté", async () => {
+  const vus: { methode: string; corps: unknown; contentType: string | null }[] = [];
+  const faux = async (_url: string, init?: RequestInit) => {
+    vus.push({ methode: init?.method ?? "", corps: init?.body, contentType: new Headers(init?.headers).get("content-type") });
+    return new Response('{"ok":true}', { status: 200, headers: { "content-type": "application/json" } });
+  };
+  assert.deepEqual(await comparerRoutes("http://a", "http://b", ["/x"], faux), []);
+  for (const v of vus) assert.deepEqual(v, { methode: "GET", corps: undefined, contentType: null });
+});
+
+test("un écart ne contient JAMAIS la valeur du jeton, même si le serveur la renvoie dans le corps", async () => {
+  const reponses = [new Response('{"echo":"Bearer SECRET"}', { status: 200, headers: { "content-type": "application/json" } }), new Response('{"echo":"autre"}', { status: 200, headers: { "content-type": "application/json" } })];
+  let i = 0;
+  const ecarts: string[] = await comparerRoutes("http://a", "http://b", ["/x"], async () => reponses[i++], { entetes: { authorization: "Bearer SECRET" } });
+  assert.ok(ecarts.length > 0);
+  assert.ok(!JSON.stringify(ecarts).includes("SECRET"));
+});
+
+// --- Ligne de commande (serveurs locaux uniquement) ---
+import { spawnSync, spawn as spawnAsync } from "node:child_process";
+const SCRIPT = new URL("../scripts/comparer-routes.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+
+function lancer(args: string[], env: Record<string, string>) {
+  const r = spawnSync(process.execPath, [SCRIPT, ...args], { env: { ...process.env, ...env }, encoding: "utf8" });
+  return { code: r.status, sortie: `${r.stdout}${r.stderr}` };
+}
+
+test("CLI : --jeton-env sur une variable absente sort en 2, « variable absente », sans aucune valeur", () => {
+  const r = lancer(["--jeton-env", "VARIABLE_QUI_NEXISTE_PAS", "http://127.0.0.1:1", "http://127.0.0.1:1", "/x"], {});
+  assert.equal(r.code, 2);
+  assert.ok(r.sortie.includes("variable absente"));
+});
+
+test("CLI : --jeton-env sur une variable vide sort en 2", () => {
+  const r = lancer(["--jeton-env", "JETON_VIDE", "http://127.0.0.1:1", "http://127.0.0.1:1", "/x"], { JETON_VIDE: "" });
+  assert.equal(r.code, 2);
+  assert.ok(r.sortie.includes("variable absente"));
+});
+
+test("CLI : le jeton est envoyé aux deux adresses avec méthode et corps, et n'apparaît jamais dans la sortie", async () => {
+  const JETON = "JETON-CLI-SECRET-123";
+  const recus: { methode: string; auth: string; corps: string }[] = [];
+  const http = createServer((q, r) => {
+    let corps = "";
+    q.on("data", (d) => (corps += d));
+    q.on("end", () => {
+      recus.push({ methode: q.method ?? "", auth: String(q.headers.authorization ?? ""), corps });
+      // Le serveur renvoie le jeton dans son corps, différemment des deux côtés : il ne doit pas fuiter dans les écarts.
+      r.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ echo: recus.length === 1 ? q.headers.authorization : "autre" }));
+    });
+  });
+  await new Promise<void>((ok) => http.listen(0, "127.0.0.1", ok));
+  const base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
+  try {
+    const r = await new Promise<{ code: number | null; sortie: string }>((ok) => {
+
+      const enfant = spawnAsync(process.execPath, [SCRIPT, "--jeton-env", "JETON_ESSAI", "--methode", "POST", "--corps", '{"a":1}', base, base, "/x"], { env: { ...process.env, JETON_ESSAI: JETON } });
+      let sortie = "";
+      enfant.stdout.on("data", (d: Buffer) => (sortie += d));
+      enfant.stderr.on("data", (d: Buffer) => (sortie += d));
+      enfant.on("close", (code: number | null) => ok({ code, sortie }));
+    });
+    assert.equal(r.code, 1);
+    assert.ok(r.sortie.includes("corps différent"));
+    assert.ok(!r.sortie.includes(JETON));
+    assert.equal(recus.length, 2);
+    for (const v of recus) assert.deepEqual(v, { methode: "POST", auth: `Bearer ${JETON}`, corps: '{"a":1}' });
+  } finally { await new Promise<void>((ok) => http.close(() => ok())); }
+});
+
+
+

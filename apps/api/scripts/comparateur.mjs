@@ -1,8 +1,13 @@
 // Compare ce que répondent deux adresses (par exemple l'ancienne route du site et la nouvelle de l'API) : statut, type de contenu, cache et corps JSON.
 // Le corps est comparé indépendamment de l'ordre des clés.
 
-async function lire(base, chemin, envoyer) {
-  const reponse = await envoyer(base.replace(/\/+$/, "") + chemin, { redirect: "manual" });
+async function lire(base, chemin, envoyer, options) {
+  const reponse = await envoyer(base.replace(/\/+$/, "") + chemin, {
+    redirect: "manual",
+    method: options.methode ?? "GET",
+    headers: { ...(options.corps !== undefined ? { "content-type": "application/json" } : {}), ...(options.entetes ?? {}) },
+    body: options.corps,
+  });
   const texte = await reponse.text();
   let corps;
   try {
@@ -27,10 +32,12 @@ function trier(valeur) {
 /** Liste des écarts entre les deux adresses, pour chaque chemin. Vide si tout est identique. */
 // Par défaut, une réponse hors 2xx (d'un côté ou des deux) est un écart : deux erreurs identiques ne doivent pas passer pour « 0 écart ».
 // `options.tolererNon2xx` permet de comparer volontairement des erreurs.
+// `options.entetes` (par exemple un jeton porteur), `options.methode` et `options.corps` sont envoyés tels quels aux deux adresses.
+// Les messages d'écart ne contiennent que des statuts, types, en-têtes de cache et « corps différent » : jamais un corps ni un en-tête d'identité.
 export async function comparerRoutes(base1, base2, chemins, envoyer = fetch, options = {}) {
   const ecarts = [];
   for (const chemin of chemins) {
-    const [a, b] = await Promise.all([lire(base1, chemin, envoyer), lire(base2, chemin, envoyer)]);
+    const [a, b] = await Promise.all([lire(base1, chemin, envoyer, options), lire(base2, chemin, envoyer, options)]);
     if (!options.tolererNon2xx) {
       if (a.statut < 200 || a.statut > 299) ecarts.push(`${chemin} : statut ${a.statut} hors 2xx (référence)`);
       if (b.statut < 200 || b.statut > 299) ecarts.push(`${chemin} : statut ${b.statut} hors 2xx (candidate)`);
