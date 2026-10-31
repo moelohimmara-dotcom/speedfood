@@ -49,7 +49,7 @@ const ECRITURES: { chemin: string; corps: Record<string, unknown>; appel: string
   { chemin: "/api/v1/client/favoris", corps: { restaurantId: "r1" }, appel: "favori", attendu: ["compte-1", "r1"], reponse: { ok: true, message: "Favori mis à jour.", favori: true } },
   { chemin: "/api/v1/client/profil", corps: { pseudo: "Fatou" }, appel: "profil", attendu: ["compte-1", { pseudo: "Fatou" }], reponse: { ok: true, message: "Profil enregistré." } },
   { chemin: "/api/v1/client/adresses", corps: { action: "ajouter" }, appel: "adresse", attendu: ["compte-1", { action: "ajouter" }], reponse: { ok: true, message: "Adresse ajoutée." } },
-  { chemin: "/api/v1/client/compte", corps: { confirmation: "SUPPRIMER" }, appel: "compte", attendu: ["compte-1", "SUPPRIMER"], reponse: { ok: true, message: "Compte supprimé." } },
+  { chemin: "/api/v1/client/compte", corps: { confirmation: "confirmation-essai" }, appel: "compte", attendu: ["compte-1", "confirmation-essai"], reponse: { ok: true, message: "Compte supprimé." } },
 ];
 
 for (const e of ECRITURES) {
@@ -69,13 +69,39 @@ for (const e of ECRITURES) {
     const { chemin, init } = post(e.chemin, e.corps, { "content-type": "application/json" });
     const reponse = await app(journal).request(chemin, init);
     assert.equal(reponse.status, 401);
+    assert.deepEqual((await reponse.json() as { ok: boolean; erreur: unknown }), { ok: false, erreur: { code: "NON_AUTHENTIFIE", message: "Connectez-vous avec votre compte." } });
     assert.deepEqual(journal.appels, []);
+  });
+
+  test(`${e.chemin} : le service reçoit exactement l'identité du jeton et la donnée du corps`, async () => {
+    const journal: Journal = { appels: [] };
+    const { chemin, init } = post(e.chemin, e.corps);
+    const reponse = await app(journal).request(chemin, init);
+    assert.equal(reponse.status, 200);
+    assert.deepEqual(journal.appels, [[e.appel, e.attendu]]);
+  });
+
+  test(`${e.chemin} : plafond dépassé et corps non JSON : 429 (le plafond passe avant la lecture du corps)`, async () => {
+    const journal: Journal = { appels: [] };
+    const reponse = await app(journal, {}, async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); }).request(e.chemin, { method: "POST", headers: AUTH, body: "pas du json" });
+    assert.equal(reponse.status, 429);
+    assert.deepEqual(journal.appels, []);
+  });
+
+  test(`${e.chemin} : sans jeton, le plafond n'est jamais consulté`, async () => {
+    const journal: Journal = { appels: [] };
+    let consultations = 0;
+    const { chemin, init } = post(e.chemin, e.corps, { "content-type": "application/json" });
+    const reponse = await app(journal, {}, async () => { consultations++; }).request(chemin, init);
+    assert.equal(reponse.status, 401);
+    assert.equal(consultations, 0);
   });
 
   test(`${e.chemin} : corps non JSON, 400 VALIDATION, rien n'est écrit`, async () => {
     const journal: Journal = { appels: [] };
     const reponse = await app(journal).request(e.chemin, { method: "POST", headers: AUTH, body: "pas du json" });
     assert.equal(reponse.status, 400);
+    assert.deepEqual(await reponse.json(), { ok: false, erreur: { code: "VALIDATION", message: "Requête invalide : JSON illisible." } });
     assert.deepEqual(journal.appels, []);
   });
 
@@ -84,6 +110,7 @@ for (const e of ECRITURES) {
     const { chemin, init } = post(e.chemin, e.corps);
     const reponse = await app(journal, {}, async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); }).request(chemin, init);
     assert.equal(reponse.status, 429);
+    assert.deepEqual(await reponse.json(), { ok: false, erreur: { code: "TROP_DE_REQUETES", message: "Trop de demandes." } });
     assert.deepEqual(journal.appels, []);
   });
 }
@@ -124,7 +151,7 @@ test("un tableau est transmis tel quel (le site ne l'écarte pas) : un seul appe
   assert.equal(journal.appels.length, 1);
 });
 
-test("le favori n'est pas ajouté d'un GET ; les écritures refusent GET", async () => {
+test("GET sur une route d'écriture : route inconnue (404), le service n'est pas appelé", async () => {
   const journal: Journal = { appels: [] };
   const reponse = await app(journal).request("/api/v1/client/favoris", { headers: AUTH });
   assert.equal(reponse.status, 404);
