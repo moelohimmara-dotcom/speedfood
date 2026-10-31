@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // API unique de Speedfood. Worker SÉPARÉ du site (speedfood-app) : on le déploie sans toucher au site.
+  // Il n'existe pas encore chez Cloudflare : il n'est créé qu'avec le feu vert de Malika (plan 1a, tâche 8).
+  "name": "speedfood-api",
+  "main": "dist/worker.js",
+  // Le paquet est assemblé par build.mjs (esbuild) puis contrôlé : wrangler ne le ré-assemble pas.
+  "no_bundle": true,
+  "compatibility_date": "2026-09-27",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Valeur publique uniquement. Les secrets (clé service-role, clé de dérivation des jetons, Redis) se posent avec `wrangler secret put`, jamais ici.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ggldjdizqrtpetdiohxy.supabase.co"
+  },
+  "observability": { "enabled": true }
+}
