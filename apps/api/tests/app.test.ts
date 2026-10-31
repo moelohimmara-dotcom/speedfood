@@ -2,12 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { creerApp } from "../src/app.ts";
 import { headers } from "../src/cales/next-headers.ts";
-import type { Deps } from "../src/types.ts";
+import { depsEssai } from "./deps-essai.ts";
 
-const deps: Deps = {
-  version: { code: 51, nom: "2.47.0", notes: "essai", obligatoire: false, apkSha256: "a".repeat(64), apkTaille: 1 },
-  lireAssistance: async () => ({ whatsapp: null }),
-};
+const deps = depsEssai();
 
 test("/sante répond ok sans cache", async () => {
   const reponse = await creerApp(deps).request("/sante");

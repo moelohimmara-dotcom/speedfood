@@ -2,11 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { creerApp } from "../src/app.ts";
 import type { Deps } from "../src/types.ts";
+import { depsEssai } from "./deps-essai.ts";
 
 const version = { code: 51, nom: "2.47.0", notes: "essai", obligatoire: false, apkSha256: "a".repeat(64), apkTaille: 15733962 };
 
 function app(surcharge: Partial<Deps> = {}) {
-  return creerApp({ version, lireAssistance: async () => ({ whatsapp: "224620000000" }), ...surcharge });
+  return creerApp(depsEssai({ version, lireAssistance: async () => ({ whatsapp: "224620000000" }), ...surcharge }));
 }
 
 test("GET /api/v1/version : même corps et même cache que la route du site", async () => {

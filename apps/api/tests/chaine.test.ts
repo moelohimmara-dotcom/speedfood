@@ -5,9 +5,9 @@ import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { creerApp } from "../src/app.ts";
 import { identifier, limiterParCompte, limiterParRequete } from "../src/controles/chaine.ts";
 import type { Variables } from "../src/controles/chaine.ts";
-import type { Deps } from "../src/types.ts";
+import { depsEssai } from "./deps-essai.ts";
 
-const deps: Deps = { version: { code: 1, nom: "1", notes: "", obligatoire: false, apkSha256: "a".repeat(64), apkTaille: 1 }, lireAssistance: async () => ({ whatsapp: null }) };
+const deps = depsEssai();
 const JETON = "aaaaaaaa.bbbbbbbb.cccccccc";
 
 /** Application d'essai : la chaîne complète devant une route qui renvoie l'identifiant du compte. */
