@@ -15,6 +15,8 @@ Deux codes séparés : **`apps/web/`** (le site Next.js, son serveur, les script
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 
+**Reprise de la refonte (API unique, relais, mise en service en cours) : lire d'abord `docs/PASSATION-REFONTE.md`** (état exact au 31 octobre 2026, reste à faire dans l'ordre, ce qui n'est pas vérifié), puis les cartes du code `docs/CARTE-DU-CODE-WEB.md` et `docs/CARTE-DU-CODE-API-MOBILE-BASE.md`.
+
 Pour reprendre le projet sans historique de conversation : **`docs/PASSATION.md`** (à jour au 22 octobre 2026, application mobile comprise), puis **`docs/REPRISE-SESSION.md`** (état actuel,
 commandes, pièges déjà payés, reste à faire) — à lire avant `docs/cadrage/`.
 
