@@ -37,7 +37,7 @@ L'outil refuse un fichier impur ou dont une dépendance n'est pas déjà dans le
 
 ## Contenu actuel
 
-11 fichiers : `contracts/{statuts,erreurs,menu,restaurant,commande,index}`, `paiement/regles`, `commande/{estimation,mode,telephone}`, `disponibilite/etat`.
+13 fichiers : `contracts/{statuts,erreurs,menu,restaurant,commande,index}`, `paiement/regles`, `commande/{estimation,mode,telephone}`, `disponibilite/etat`, `application/version`, `api/v1-regles`.
 
 ## Hors du paquet
 
