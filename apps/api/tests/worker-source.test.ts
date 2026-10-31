@@ -40,6 +40,17 @@ test("worker.ts : le secret de relais est fourni par une fonction (lue à chaque
   assert.ok(sansCommentaires.some((l) => /secretRelais:\s*\(\)\s*=>\s*process\.env\.RELAIS_SECRET/.test(l)));
 });
 
+test("worker.ts : la création de commande est câblée avec antiRobot: false (décision de sécurité figée : l'application native n'a pas de jeton Turnstile)", () => {
+  const code = sansCommentaires.join("\n");
+  assert.ok(/antiRobot:\s*false/.test(code), "antiRobot: false absent du câblage");
+  assert.ok(!/antiRobot:\s*true/.test(code));
+  assert.ok(/executerCreationCoeur\(\s*valeurs\s*,\s*utilisateurId\s*,\s*\{\s*antiRobot:\s*false\s*,\s*apres\s*\}\s*\)/.test(code), "le cœur de création ne reçoit pas apres (waitUntil)");
+});
+
+test("worker.ts : plus aucune dépendance provisoire « non câblé »", () => {
+  assert.ok(!/non câblé|nonCable/.test(source));
+});
+
 test("worker.ts : le contexte d'exécution (ctx) est transmis à app.fetch, sinon c.executionCtx.waitUntil lèverait en production", () => {
   const code = sansCommentaires.join("\n");
   assert.ok(/fetch:\s*\(\s*requete\s*:\s*Request\s*,\s*env\s*:\s*unknown\s*,\s*ctx\s*:\s*ExecutionContext\s*\)\s*=>\s*app\.fetch\(\s*requete\s*,\s*env\s*,\s*ctx\s*\)/.test(code));

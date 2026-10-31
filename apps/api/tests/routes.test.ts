@@ -30,6 +30,23 @@ test("GET /api/v1/aide : sans numéro, whatsapp vaut null", async () => {
   assert.deepEqual(await reponse.json(), { ok: true, whatsapp: null });
 });
 
+test("les cinq gestionnaires du suivi et des commandes sont montés (aucun ne répond « Route inconnue. »)", async () => {
+  const json = { "content-type": "application/json" };
+  const cas: Array<[string, RequestInit]> = [
+    ["/api/v1/suivi", { method: "POST", body: "{}", headers: json }],
+    ["/api/v1/suivi/annuler", { method: "POST", body: "{}", headers: json }],
+    ["/api/v1/suivi/proposition", { method: "POST", body: "{}", headers: json }],
+    ["/api/v1/commandes", { method: "GET" }],
+    ["/api/v1/commandes", { method: "POST", body: "{}", headers: json }],
+  ];
+  for (const [chemin, init] of cas) {
+    const reponse = await app().request(chemin, init);
+    const corps = (await reponse.json()) as { erreur?: { message?: string } };
+    assert.notEqual(reponse.status, 404, `${init.method} ${chemin} répond 404`);
+    assert.notEqual(corps.erreur?.message, "Route inconnue.", `${init.method} ${chemin} n'est pas monté`);
+  }
+});
+
 test("seul GET est accepté sur ces routes publiques", async () => {
   for (const chemin of ["/api/v1/version", "/api/v1/aide", "/api/v1/connexion/fournisseurs"]) {
     const reponse = await app().request(chemin, { method: "POST", body: "{}", headers: { "content-type": "application/json" } });

@@ -4,14 +4,20 @@ import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { connexionClientActive } from "@/lib/client/reglage";
 import { lireRolesCompte } from "@/lib/api/moi-service";
 import { creerClientAdmin } from "@/lib/db/admin";
-import { limiterClientApplication } from "@/lib/securite/limitation-debit";
+import { limiterAnnulationClient, limiterClientApplication, limiterLectureSuivi, limiterReponseProposition } from "@/lib/securite/limitation-debit";
+import { estJetonValide } from "@/lib/commande/jetons";
+import { chargerSuiviParJeton } from "@/lib/commande/requetes";
+import { annulerParClient } from "@/lib/commande/annulation-client";
+import { repondreProposition } from "@/lib/commande/propositions";
+import { validerCreationCommande } from "@/lib/commande/validation";
+import { executerCreationCoeur } from "@/lib/commande/creation-coeur";
+import { listerMesCommandes } from "@/lib/client/mes-commandes";
 import { actionAdresseClient, basculerFavoriClient, enregistrerProfilClient, lireEspaceClient, supprimerCompteClient } from "@/lib/client/espace-service";
 import { estimerPourClient } from "@/lib/livraison/estimation-service";
 import { creerApp } from "./app.ts";
 import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } from "./identite/jeton.ts";
 
 // Câblage de PRODUCTION : les routes reçoivent les services du site, jamais une copie de leurs règles. Les secrets sont lus à l'APPEL (jamais au chargement du module).
-const nonCable = async (): Promise<never> => { throw new Error("non câblé"); };
 let local: ReturnType<typeof creerVerificateurLocal> | undefined;
 
 const app = creerApp({
@@ -40,17 +46,23 @@ const app = creerApp({
   },
   estimerPourClient,
   secretRelais: () => process.env.RELAIS_SECRET,
-  // Provisoire (Tâche 2) : aucune route n'est encore montée, le câblage réel vient avec les routes.
+  // Suivi : le jeton de suivi (dans le corps) est la clé d'accès ; aucun jeton porteur.
   suivi: {
-    jetonValide: (jeton: unknown): jeton is string => typeof jeton === "string" && /^[A-Za-z0-9_-]{40}$/.test(jeton),
-    limiterLecture: nonCable,
-    lire: nonCable,
-    limiterAnnulation: nonCable,
-    annuler: nonCable,
-    limiterReponseProposition: nonCable,
-    repondreProposition: nonCable,
+    jetonValide: estJetonValide,
+    limiterLecture: limiterLectureSuivi,
+    lire: chargerSuiviParJeton,
+    limiterAnnulation: limiterAnnulationClient,
+    annuler: annulerParClient,
+    limiterReponseProposition,
+    repondreProposition,
   },
-  commandes: { valider: () => { throw new Error("non câblé"); }, creer: nonCable, lister: nonCable },
+  commandes: {
+    valider: validerCreationCommande,
+    // antiRobot: false : l'application native ne produit pas de jeton Turnstile ; la protection est le jeton porteur strict + les plafonds.
+    // apres = ctx.waitUntil (fourni par la route) : l'alerte du restaurant part après la réponse, seulement pour une commande nouvelle.
+    creer: (valeurs, utilisateurId, apres) => executerCreationCoeur(valeurs, utilisateurId, { antiRobot: false, apres }),
+    lister: (utilisateurId) => listerMesCommandes(utilisateurId, { avecJeton: true }),
+  },
 });
 
 // Le troisième argument (contexte d'exécution) est transmis explicitement : `c.executionCtx` en dépend (`waitUntil`).
