@@ -20,11 +20,11 @@ export function limiterParRequete(limiter: () => Promise<void>): MiddlewareHandl
 }
 
 /** Identité : jeton porteur UNIQUEMENT (les cookies du site ne sont jamais lus, pas de requête intersite à protéger). */
-export function identifier(verifier: VerificateurJeton): MiddlewareHandler<{ Variables: Variables }> {
+export function identifier(verifier: VerificateurJeton, message = "Connectez-vous avec votre compte."): MiddlewareHandler<{ Variables: Variables }> {
   return async (c, suivant) => {
     const jeton = lireBearer(c.req.header("authorization"));
     const utilisateur = jeton ? await verifier(jeton) : null;
-    if (!utilisateur) throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous avec votre compte.");
+    if (!utilisateur) throw new ErreurMetier("NON_AUTHENTIFIE", message);
     c.set("utilisateurId", utilisateur.id);
     await suivant();
   };

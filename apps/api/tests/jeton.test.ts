@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from "jose";
-import { verifierJetonLocal } from "../src/identite/jeton.ts";
+import { SignJWT, createLocalJWKSet, errors, exportJWK, generateKeyPair } from "jose";
+import { creerVerificateurLocal, creerVerificateurStrict, verifierJetonLocal } from "../src/identite/jeton.ts";
 
 const ISSUER = "https://exemple.supabase.co/auth/v1";
 
@@ -94,4 +94,55 @@ test("le paramètre « maintenant » décide de l'expiration : valide à l'insta
 test("un jeton dont le compte (sub) est une chaîne vide est refusé", async () => {
   const { config, signer } = await fabrique();
   assert.equal(await verifierJetonLocal(await signer({ sub: "" }), config), null);
+});
+
+test("panne de lecture des clés (délai dépassé) : l'exception remonte, ce n'est PAS un jeton invalide", async () => {
+  const { signer } = await fabrique();
+  const jeton = await signer();
+  const cles = async () => { throw new errors.JWKSTimeout(); };
+  await assert.rejects(() => verifierJetonLocal(jeton, { cles, issuer: ISSUER }), errors.JWKSTimeout);
+});
+
+test("panne réseau (TypeError) pendant la lecture des clés : l'exception remonte", async () => {
+  const { signer } = await fabrique();
+  const jeton = await signer();
+  const cles = async () => { throw new TypeError("fetch failed"); };
+  await assert.rejects(() => verifierJetonLocal(jeton, { cles, issuer: ISSUER }), TypeError);
+});
+
+test("clé inconnue (kid absent du jeu) : jeton invalide, null", async () => {
+  const { config } = await fabrique();
+  const etrangere = await generateKeyPair("ES256");
+  const jeton = await new SignJWT({})
+    .setProtectedHeader({ alg: "ES256", kid: "inconnue" })
+    .setIssuer(ISSUER)
+    .setAudience("authenticated")
+    .setSubject("x")
+    .setExpirationTime("1h")
+    .sign(etrangere.privateKey);
+  assert.equal(await verifierJetonLocal(jeton, config), null);
+});
+
+test("vérificateur local : même résultat que la fonction", async () => {
+  const { config, signer } = await fabrique();
+  assert.deepEqual(await creerVerificateurLocal(config)(await signer()), { id: "11111111-1111-1111-1111-111111111111" });
+});
+
+type Reponse = { data: { user: { id: string } | null }; error: { status?: number; name?: string } | null };
+const strict = (reponse: Reponse | Error) => creerVerificateurStrict(() => ({ auth: { getUser: async () => { if (reponse instanceof Error) throw reponse; return reponse; } } }));
+
+test("strict : compte existant, identifiant rendu", async () => {
+  assert.deepEqual(await strict({ data: { user: { id: "u1" } }, error: null })("jeton"), { id: "u1" });
+});
+
+test("strict : jeton refusé par le service (statut 401 ou 403) ou compte absent : null", async () => {
+  assert.equal(await strict({ data: { user: null }, error: { status: 401 } })("jeton"), null);
+  assert.equal(await strict({ data: { user: null }, error: { status: 403 } })("jeton"), null);
+  assert.equal(await strict({ data: { user: null }, error: null })("jeton"), null);
+});
+
+test("strict : panne du service (statut 500, erreur sans statut, exception réseau) : l'exception remonte, jamais null", async () => {
+  await assert.rejects(() => strict({ data: { user: null }, error: { status: 500 } })("jeton"));
+  await assert.rejects(() => strict({ data: { user: null }, error: { name: "AuthRetryableFetchError" } })("jeton"));
+  await assert.rejects(() => strict(new TypeError("fetch failed"))("jeton"));
 });

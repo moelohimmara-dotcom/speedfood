@@ -101,3 +101,14 @@ test("une panne de la limite par compte (erreur non métier) répond ERREUR_SERV
   assert.equal(reponse.status, 500);
   assert.ok(!JSON.stringify(await reponse.json()).includes("redis"));
 });
+
+test("le message de NON_AUTHENTIFIE se règle par route", async () => {
+  const app = creerApp(deps);
+  const protege = new Hono<{ Variables: Variables }>();
+  protege.use("*", identifier(async () => null, "Connectez-vous pour calculer la livraison."));
+  protege.get("/", (c) => c.json({ ok: true }));
+  app.route("/api/v1/essai", protege);
+  const reponse = await app.request("/api/v1/essai", { headers: { authorization: `Bearer ${JETON}` } });
+  assert.equal(reponse.status, 401);
+  assert.equal(((await reponse.json()) as { erreur: { message: string } }).erreur.message, "Connectez-vous pour calculer la livraison.");
+});
