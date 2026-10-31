@@ -72,7 +72,7 @@ Livrée, sous forme de briques testées (`src/controles/chaine.ts`), dans cet or
 - **Local (livré, `verifierJetonLocal`)** : signature ES256, émetteur `<url Supabase>/auth/v1`, audience `authenticated`, expiration, `sub` non vide. Clés publiques lues une fois chez Supabase et gardées en mémoire de l'isolat (renouvellement au plus toutes les 10 minutes). Rapide, aucun appel au service d'authentification. Testés : jeton expiré, mauvaise clé, mauvais émetteur, mauvaise audience, `alg: none`.
 - **Strict (non écrit)** : interroger le service d'authentification à chaque appel. Plus lent et plus coûteux en requêtes, mais un compte supprimé ou banni est refusé tout de suite.
 
-**Compromis** : en mode local, un compte supprimé ou banni reste accepté jusqu'à l'expiration de son jeton (environ une heure). **Décision en attente de Malika** : tout en local, tout en strict, ou local par défaut et strict pour les actions sensibles. À trancher avant le plan 1b.
+**Compromis** : en mode local, un compte supprimé ou banni reste accepté jusqu'à l'expiration de son jeton (environ une heure). **Décision de Malika (31 octobre 2026) : mode mixte.** Local pour les lectures très fréquentes (position du livreur, relecture de commandes en cours) ; strict (compte vérifié chez Supabase à chaque requête) pour tout le reste, y compris commandes et paiements. Chaque route du plan 1b déclare son mode, strict par défaut.
 
 ## Essai local face à la production (31 octobre 2026)
 
@@ -98,6 +98,6 @@ Résultat : **2 routes identiques, 0 écart** (code de sortie 0). Contrôle manu
 ## Ce qui reste
 
 - **Plan 1b** : routes par modules, relais du site vers l'API, câblage du vérificateur de jetons, droits, validation, audit.
-- **Décision de Malika** : mode des jetons (ci-dessus).
+- Mode des jetons : tranché (mixte, voir ci-dessus).
 - **Tâche 8** : création du Worker `speedfood-api` chez Cloudflare, secrets, déploiement et vérification en réel. Uniquement avec le feu vert explicite de Malika, conduite avec elle.
 - Contrôle GitHub vert sur la branche puis fusion en avance rapide dans `master` (rien n'est déployé par la fusion).
