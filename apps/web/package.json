@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@puckeditor/core": "^0.23.0",
+    "@speedfood/shared": "*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "canvas-confetti": "^1.9.3",

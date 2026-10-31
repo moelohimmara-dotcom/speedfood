@@ -12,18 +12,43 @@ const tmp = mkdtempSync(join(tmpdir(), "speedfood-tests-"));
 // Les copies vivent hors du dépôt : un paquet (zod/mini) y est importé par son URL résolue depuis le dépôt.
 const paquets = { "zod/mini": import.meta.resolve("zod/mini") };
 
-function copier(rel) {
-  const dest = join(tmp, rel);
-  mkdirSync(dirname(dest), { recursive: true });
-  const contenu = readFileSync(join(racine, rel), "utf8")
+const racinePartage = join(racine, "..", "..", "packages", "shared", "src");
+const dejaCopies = new Set();
+
+function versRelatif(depuis, vers) {
+  const r = relative(dirname(depuis), vers).split("\\").join("/");
+  return r.startsWith(".") ? r : "./" + r;
+}
+
+// Réécrit les imports pour qu'ils tiennent dans le dossier temporaire : suffixe « .ts » exigé par Node, alias « @/ » du site, et paquet partagé
+// « @speedfood/shared/<chemin> » (dont le fichier est copié au passage, avec ses propres imports).
+function transformer(contenu, dest) {
+  return contenu
     .replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"')
     .replace(/from\s+"(zod\/mini)"/g, (_, nom) => `from "${paquets[nom]}"`)
     // Alias `@/` du projet : réécrit en chemin relatif vers la copie (les imports de types disparaissent de toute façon à l'exécution).
     .replace(/from\s+"@\/([^"]+?)(?<!\.ts)"/g, (_, chemin) => {
       const relatif = relative(dirname(dest), join(tmp, "src")).split("\\").join("/");
       return `from "${relatif.startsWith(".") ? relatif : "./" + relatif}/${chemin}.ts"`;
+    })
+    .replace(/from\s+"@speedfood\/shared\/([^"]+?)"/g, (_, chemin) => {
+      copierPartage(chemin);
+      return `from "${versRelatif(dest, join(tmp, "packages", "shared", "src", `${chemin}.ts`))}"`;
     });
-  writeFileSync(dest, contenu);
+}
+
+function copierPartage(chemin) {
+  const dest = join(tmp, "packages", "shared", "src", `${chemin}.ts`);
+  if (dejaCopies.has(dest)) return;
+  dejaCopies.add(dest);
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, transformer(readFileSync(join(racinePartage, `${chemin}.ts`), "utf8"), dest));
+}
+
+function copier(rel) {
+  const dest = join(tmp, rel);
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, transformer(readFileSync(join(racine, rel), "utf8"), dest));
 }
 
 copier("src/lib/disponibilite/etat.ts");
@@ -192,6 +217,7 @@ copier("scripts/tests/fcm.test.mts");
 copier("src/lib/application/version.ts");
 copier("scripts/tests/version-app.test.mts");
 copier("scripts/tests/annulation-client.test.mts");
+copier("scripts/tests/paquet-partage.test.mts");
 copier("src/lib/securite/redis-client.ts");
 copier("src/lib/securite/redis-limites.ts");
 copier("scripts/tests/redis.test.mts");
@@ -259,7 +285,7 @@ copier("src/lib/system-admin/contacts-regles.ts");
 copier("scripts/tests/contacts.test.mts");
 
 let statut = 0;
-for (const fichier of ["bilans", "decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne", "paiement-service", "garde-fou-speedfood", "espace-client", "recommander", "notifications-client", "acces", "partenariat", "referencement", "plat-regles", "api-v1", "restaurants-equipe", "attente-equipe", "comptes-equipe", "contenus-equipe", "audit-equipe", "menu-plat", "fcm", "version-app", "annulation-client", "redis", "estimation", "quarts", "supervision", "remboursement-manuel", "candidature"]) {
+for (const fichier of ["bilans", "decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne", "paiement-service", "garde-fou-speedfood", "espace-client", "recommander", "notifications-client", "acces", "partenariat", "referencement", "plat-regles", "api-v1", "restaurants-equipe", "attente-equipe", "comptes-equipe", "contenus-equipe", "audit-equipe", "menu-plat", "fcm", "version-app", "annulation-client", "paquet-partage", "redis", "estimation", "quarts", "supervision", "remboursement-manuel", "candidature"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

@@ -1,0 +1,16 @@
+{
+  "name": "@speedfood/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Règles pures de Speedfood (statuts, prix, disponibilité, formats), partagées entre le site, l'API et l'application. Aucune dépendance au site, à Next, à Supabase, à React ni à Node.",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

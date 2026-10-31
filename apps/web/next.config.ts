@@ -80,6 +80,8 @@ const enTetesSecurite = [
 const nextConfig: NextConfig = {
   // Ne pas annoncer « X-Powered-By: Next.js » à chaque réponse.
   poweredByHeader: false,
+  // Le paquet partagé est livré en TypeScript source (jamais compilé à part) : Next le transpile avec le site.
+  transpilePackages: ["@speedfood/shared"],
   // Les actions serveur sont limitées à 1 Mo par défaut ; une photo peut aller jusqu'à 5 Mo (storage/images.ts).
   // `cpus` : nombre de processus de la construction. Par défaut Next en lance autant que de cœurs (63 sur l'hébergement mutualisé Hostinger), ce qui
   // dépasse sa limite de threads (« OS can't spawn worker thread », construction du 19 octobre 2026). Réglable avec NEXT_BUILD_CPUS.
