@@ -163,6 +163,7 @@ copier("src/lib/api/v1-regles.ts");
 copier("scripts/tests/api-v1.test.mts");
 copier("src/lib/api/relais-regles.ts");
 copier("scripts/tests/relais.test.mts");
+copier("scripts/tests/gardes-relais.test.mts");
 copier("src/lib/commande/telephone.ts");
 copier("src/lib/system-admin/restaurants-equipe-regles.ts");
 copier("scripts/tests/restaurants-equipe.test.mts");
@@ -251,7 +252,7 @@ copier("src/lib/system-admin/contacts-regles.ts");
 copier("scripts/tests/contacts.test.mts");
 
 let statut = 0;
-for (const fichier of ["bilans", "decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne", "paiement-service", "garde-fou-speedfood", "espace-client", "recommander", "notifications-client", "acces", "partenariat", "referencement", "plat-regles", "api-v1", "relais", "restaurants-equipe", "attente-equipe", "comptes-equipe", "contenus-equipe", "audit-equipe", "menu-plat", "fcm", "version-app", "annulation-client", "paquet-partage", "redis", "estimation", "quarts", "supervision", "remboursement-manuel", "candidature"]) {
+for (const fichier of ["bilans", "decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne", "paiement-service", "garde-fou-speedfood", "espace-client", "recommander", "notifications-client", "acces", "partenariat", "referencement", "plat-regles", "api-v1", "relais", "gardes-relais", "restaurants-equipe", "attente-equipe", "comptes-equipe", "contenus-equipe", "audit-equipe", "menu-plat", "fcm", "version-app", "annulation-client", "paquet-partage", "redis", "estimation", "quarts", "supervision", "remboursement-manuel", "candidature"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

@@ -3,12 +3,15 @@ import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { limiterLectureSuivi } from "@/lib/securite/limitation-debit";
 import { lireCorpsJson, repondre, repondreErreur } from "@/lib/api/v1";
+import { relaisSiActif } from "@/lib/api/relais";
 
 /**
  * Suivi d'une commande par l'application native : le jeton de suivi (reçu à la création) est la clé d'accès, comme sur le site. Il voyage dans le corps de la
  * requête (jamais dans l'adresse, qui finit dans des journaux). Vue publique : AUCUN téléphone ni adresse de client. Plafonné par jeton (relectures de statut).
  */
 export async function POST(request: Request) {
+  const relais = await relaisSiActif(request, "suivi", { lecture: true });
+  if (relais) return relais;
   const lu = await lireCorpsJson(request);
   if (!lu.ok) return lu.reponse;
 

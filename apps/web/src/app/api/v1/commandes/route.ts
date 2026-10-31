@@ -2,6 +2,7 @@ import { executerCreationCommande } from "@/lib/commande/creation-service";
 import { validerCreationCommande } from "@/lib/commande/validation";
 import { listerMesCommandes } from "@/lib/client/mes-commandes";
 import { lireCorpsJson, repondre, repondreErreur, utilisateurDuJeton } from "@/lib/api/v1";
+import { relaisSiActif } from "@/lib/api/relais";
 
 /**
  * Commandes de l'application native (ADR-019). Authentification : jeton porteur uniquement ; sans compte identifié, aucune commande ne se crée (TDR v0.2 §5.1).
@@ -11,6 +12,8 @@ import { lireCorpsJson, repondre, repondreErreur, utilisateurDuJeton } from "@/l
  *  - GET : les commandes du compte, AVEC le jeton de suivi de chacune (réservé au titulaire du compte, réponse jamais mise en cache) : l’application rouvre ainsi le suivi même après une réinstallation.
  */
 export async function POST(request: Request) {
+  const relais = await relaisSiActif(request, "commandes", { delaiMs: 15000 });
+  if (relais) return relais;
   const utilisateur = await utilisateurDuJeton(request);
   if (!utilisateur) return repondreErreur({ code: "NON_AUTHENTIFIE", message: "Connectez-vous pour envoyer votre commande." });
 
@@ -32,6 +35,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const relais = await relaisSiActif(request, "commandes");
+  if (relais) return relais;
   const utilisateur = await utilisateurDuJeton(request);
   if (!utilisateur) return repondreErreur({ code: "NON_AUTHENTIFIE", message: "Connectez-vous pour voir vos commandes." });
   const commandes = await listerMesCommandes(utilisateur.id, { avecJeton: true });
