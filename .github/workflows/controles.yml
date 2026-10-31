@@ -1,0 +1,54 @@
+name: Contrôles
+
+# Vérifie le site à chaque modification : types, qualité du code, tests purs et tests de cloisonnement des règles de la base.
+# Ne déploie JAMAIS rien : la mise en production reste un geste manuel avec le feu vert de Malika.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controles-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            supabase/rejeu/package-lock.json
+
+      - name: Installer le site
+        working-directory: web
+        run: npm ci
+
+      - name: Installer l'outil de rejeu des migrations
+        working-directory: supabase/rejeu
+        run: npm ci
+
+      - name: Types
+        working-directory: web
+        run: npx tsc --noEmit
+
+      - name: Qualité du code
+        working-directory: web
+        run: npx eslint
+
+      - name: Tests purs
+        working-directory: web
+        run: npm run test:unit
+
+      - name: Tests de cloisonnement
+        working-directory: web
+        run: npm run test:cloisonnement
