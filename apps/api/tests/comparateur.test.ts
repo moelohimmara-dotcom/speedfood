@@ -338,3 +338,150 @@ test("CLI : une lecture SANS jeton (GET, HEAD, get) n'exige pas le drapeau", asy
     assert.equal(s.recus.length, 8);
   } finally { await s.fermer(); }
 });
+
+// --- Tâche 9 : --corps-env NOM (corps secret lu dans l'environnement, jamais affiché) ---
+const CORPS_SECRET = '{"jeton":"CLE-ACCES-SECRETE-XYZ"}';
+
+async function serveurEcho() {
+  const recus: { methode: string; corps: string; contentType: string; auth: string }[] = [];
+  const http = createServer((q, r) => {
+    let corps = "";
+    q.on("data", (d) => (corps += d));
+    q.on("end", () => {
+      recus.push({ methode: q.method ?? "", corps, contentType: String(q.headers["content-type"] ?? ""), auth: String(q.headers.authorization ?? "") });
+      // Le serveur renvoie le corps reçu, différemment des deux côtés : l'écart ne doit jamais le citer.
+      r.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ echo: recus.length % 2 === 1 ? corps : "autre" }));
+    });
+  });
+  await new Promise<void>((ok) => http.listen(0, "127.0.0.1", ok));
+  return { base: `http://127.0.0.1:${(http.address() as AddressInfo).port}`, recus, fermer: () => new Promise<void>((ok) => http.close(() => ok())) };
+}
+
+test("CLI : --corps-env envoie le corps aux DEUX serveurs et ne l'affiche nulle part (même renvoyé par le serveur)", async () => {
+  const s = await serveurEcho();
+  try {
+    const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+    assert.equal(r.code, 1, r.sortie);
+    assert.ok(r.sortie.includes("corps différent"));
+    assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"), "le corps ne doit jamais apparaître");
+    assert.equal(s.recus.length, 2);
+    for (const v of s.recus) assert.deepEqual(v, { methode: "POST", corps: CORPS_SECRET, contentType: "application/json", auth: "" });
+    assert.ok(r.sortie.includes(`Corps secret envoyé à : ${new URL(s.base).host}, ${new URL(s.base).host}`));
+  } finally { await s.fermer(); }
+});
+
+test("CLI : --corps-env sans écart : code 0 et corps absent de la sortie", async () => {
+  const s = await serveurCompteur();
+  try {
+    const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+    assert.equal(r.code, 0, r.sortie);
+    assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"));
+    assert.equal(s.recus.length, 2);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : --corps-env avec une variable absente ou vide : code 2, aucune requête, message sans valeur", async () => {
+  const s = await serveurCompteur();
+  try {
+    for (const env of [{}, { CORPS_ESSAI: "" }] as Record<string, string>[]) {
+      const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], env);
+      assert.equal(r.code, 2, r.sortie);
+      assert.ok(r.sortie.includes("variable absente"));
+    }
+    assert.equal(s.recus.length, 0);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : --corps-env contenant un JSON illisible : code 2, aucune requête, la valeur n'est jamais affichée", async () => {
+  const s = await serveurCompteur();
+  try {
+    for (const valeur of ["{CLE-ACCES-SECRETE-XYZ", "CLE-ACCES-SECRETE-XYZ", '{"jeton":"CLE-ACCES-SECRETE-XYZ"', "{'jeton':'CLE-ACCES-SECRETE-XYZ'}"]) {
+      const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], { CORPS_ESSAI: valeur });
+      assert.equal(r.code, 2, r.sortie);
+      assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"), "la valeur ne doit jamais apparaître");
+      assert.ok(!/SyntaxError|Unexpected|at .*\.mjs|node:internal/.test(r.sortie), "ni le message ni la trace de JSON.parse");
+      assert.ok(r.sortie.includes("JSON"));
+    }
+    assert.equal(s.recus.length, 0);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : --corps et --corps-env ensemble : refusé (code 2), aucune requête, aucune des deux valeurs affichée", async () => {
+  const s = await serveurCompteur();
+  try {
+    const r = await lancerAsync(["--corps", '{"visible":"CORPS-ARGUMENT"}', "--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+    assert.equal(r.code, 2, r.sortie);
+    assert.ok(r.sortie.includes("--corps-env"));
+    assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE") && !r.sortie.includes("CORPS-ARGUMENT"));
+    // Même refus dans l'autre ordre.
+    const r2 = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--corps", "{}", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+    assert.equal(r2.code, 2, r2.sortie);
+    assert.equal(s.recus.length, 0);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : la garde d'écriture reste appliquée avec --corps-env (sans --autoriser-ecriture : refus, aucune requête)", async () => {
+  const s = await serveurCompteur();
+  try {
+    for (const methode of ["POST", "post", "PUT", "DELETE"]) {
+      const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--methode", methode, s.base, s.base, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+      assert.equal(r.code, 2, r.sortie);
+      assert.ok(r.sortie.includes("--autoriser-ecriture"));
+      assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"));
+    }
+    assert.equal(s.recus.length, 0);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : --corps-env exige --methode (code 2, valeur non affichée)", () => {
+  const r = lancer(["--corps-env", "CORPS_ESSAI", LOCAL, LOCAL, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+  assert.equal(r.code, 2);
+  assert.ok(r.sortie.includes("--corps-env exige --methode"));
+  assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"));
+});
+
+test("CLI : --corps-env reçoit la valeur au lieu du NOM : refusé, jamais répétée", () => {
+  const r = lancer(["--corps-env", '{"jeton":"CLE-ACCES-SECRETE-XYZ"}', "--autoriser-ecriture", "--methode", "POST", LOCAL, LOCAL, "/x"], {});
+  assert.equal(r.code, 2);
+  assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"));
+  assert.ok(!r.sortie.includes("jeton"));
+});
+
+test("CLI : --corps-env sans valeur après l'option : usage, code 2", () => {
+  const r = lancer(["--autoriser-ecriture", "--methode", "POST", LOCAL, LOCAL, "/x", "--corps-env"], {});
+  assert.equal(r.code, 2);
+  assert.ok(r.sortie.includes("Usage"));
+});
+
+test("CLI : un corps secret n'est envoyé qu'en https (ou boucle locale) et sur l'hôte de la base : sinon refus, adresses non affichées", async () => {
+  const s = await serveurCompteur();
+  try {
+    const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", "http://exemple.invalid", LOCAL, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+    assert.equal(r.code, 2, r.sortie);
+    assert.ok(!r.sortie.includes("exemple.invalid") && !r.sortie.includes("CLE-ACCES-SECRETE"));
+    for (const chemin of [".evil.invalid", "//evil.invalid/x", "@evil.invalid/x"]) {
+      const r2 = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", "http://localhost", s.base, chemin], { CORPS_ESSAI: CORPS_SECRET });
+      assert.equal(r2.code, 2, r2.sortie);
+      assert.ok(!r2.sortie.includes("evil.invalid") && !r2.sortie.includes("CLE-ACCES-SECRETE"));
+    }
+    assert.equal(s.recus.length, 0);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : rejet réseau avec --corps-env : code 2, message propre, corps jamais affiché", () => {
+  const r = lancer(["--corps-env", "CORPS_ESSAI", "--autoriser-ecriture", "--methode", "POST", LOCAL, LOCAL, "/x"], { CORPS_ESSAI: CORPS_SECRET });
+  assert.equal(r.code, 2);
+  assert.ok(r.sortie.includes("Requête impossible"));
+  assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE"));
+  assert.ok(!/TypeError|at .*\.mjs|node:internal/.test(r.sortie));
+});
+
+test("CLI : --corps-env et --jeton-env ensemble : les deux sont envoyés, aucun n'est affiché", async () => {
+  const s = await serveurEcho();
+  try {
+    const r = await lancerAsync(["--corps-env", "CORPS_ESSAI", "--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "POST", s.base, s.base, "/x"], { CORPS_ESSAI: CORPS_SECRET, JETON_ESSAI: "JETON-PORTEUR-QRS" });
+    assert.ok(!r.sortie.includes("CLE-ACCES-SECRETE") && !r.sortie.includes("JETON-PORTEUR-QRS"));
+    for (const v of s.recus) assert.deepEqual(v, { methode: "POST", corps: CORPS_SECRET, contentType: "application/json", auth: "Bearer JETON-PORTEUR-QRS" });
+    assert.equal(s.recus.length, 2);
+  } finally { await s.fermer(); }
+});
