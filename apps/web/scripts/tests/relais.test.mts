@@ -192,6 +192,106 @@ verifier("chaque statut sans corps se reconstruit sans exception", STATUTS_SANS_
   verifier("signal unique : chaque signal a son propre drapeau (réinitialisable en recréant le signal)", ecritures, 2);
 }
 
+// --- Étape 1c-1 (Tâche 7) : lecture par POST avec repli, délai par route, corps conservé ---
+// Jeton de suivi FACTICE (40 caractères de la bonne forme, ne correspond à aucune commande) et jeton porteur factice.
+const JETON_SUIVI = "FacticeFactice_0123456789abcdefghijklmno";
+const PORTEUR = "Bearer porteur.factice.zz";
+const CORPS_SUIVI = JSON.stringify({ jeton: JETON_SUIVI });
+const suiviPost = () => new Request("https://site.test/api/v1/suivi", { method: "POST", headers: { authorization: PORTEUR, "content-type": "application/json" }, body: CORPS_SUIVI });
+const panneReseau = (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch;
+const fetchLent = (async (_u: string, init: RequestInit) => new Promise<Response>((_ok, ko2) => init.signal?.addEventListener("abort", () => ko2(new DOMException("abort", "AbortError"))))) as unknown as typeof fetch;
+const essaiSuivi = (requete: Request, repli: boolean, envoyer: typeof fetch, delaiMs?: number) =>
+  relayer(requete, "/api/v1/suivi", { baseApi: OPTIONS.baseApi, secret: OPTIONS.secret, ipVisiteur: OPTIONS.ipVisiteur, envoyer, ...(delaiMs === undefined ? {} : { delaiMs }) }, repli);
+
+verifier("décision : { lecture: true } sur POST → repli possible ; sans option, { lecture: false } ou { delaiMs } seul → pas de repli", [
+  decisionRelais(ENV_OK, "suivi", req("POST"), { lecture: true }),
+  decisionRelais(ENV_OK, "suivi", req("POST")),
+  decisionRelais(ENV_OK, "suivi", req("POST"), { lecture: false }),
+  decisionRelais(ENV_OK, "suivi", req("POST"), { delaiMs: 9000 }),
+].map((d) => d.type === "relayer" && d.repliPossible), [true, false, false, false]);
+verifier("décision : { lecture: true } n'allume rien (éteint reste éteint, mal configuré reste mal configuré)", [
+  type(decisionRelais({ ...ENV_OK, API_RELAIS: "non" }, "suivi", req("POST"), { lecture: true })),
+  type(decisionRelais({ ...ENV_OK, API_RELAIS: "commandes" }, "suivi", req("POST"), { lecture: true })),
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "court" }, "suivi", req("POST"), { lecture: true })),
+], ["eteint", "eteint", "mal-configure"]);
+verifier("décision : GET et HEAD gardent le repli même avec { lecture: false }", ["GET", "HEAD"].map((m) => { const d = decisionRelais(ENV_OK, "client", req(m), { lecture: false }); return d.type === "relayer" && d.repliPossible; }), [true, true]);
+
+{
+  const requete = suiviPost();
+  const r = await essaiSuivi(requete, true, panneReseau);
+  let corps: unknown = "illisible";
+  try { corps = await requete.json(); } catch { /* corps consommé : échec attendu sans le clone */ }
+  verifier("POST en lecture : panne réseau → repli (null) ET corps d'origine encore lisible par la route du site", [r, corps], [null, { jeton: JETON_SUIVI }]);
+}
+{
+  const requete = suiviPost();
+  const r = await essaiSuivi(requete, true, fetchLent, 50);
+  let corps: unknown = "illisible";
+  try { corps = await requete.json(); } catch { /* idem */ }
+  verifier("POST en lecture : délai dépassé → repli (null) ET corps d'origine encore lisible", [r, corps], [null, { jeton: JETON_SUIVI }]);
+}
+{
+  const appels: Appel[] = [];
+  const envoyer = (async (url: string, init: RequestInit) => { appels.push({ url, init }); return new Response('{"ok":true,"suivi":{}}', { status: 200, headers: { "content-type": "application/json", "cache-control": "no-store" } }); }) as unknown as typeof fetch;
+  const requete = suiviPost();
+  const r = await essaiSuivi(requete, true, envoyer);
+  const h = new Headers(appels[0]?.init.headers);
+  verifier("POST en lecture relayé : corps transmis tel quel, réponse de l'API rendue, requête d'origine intacte", [String(appels[0]?.init.body ?? ""), appels[0]?.init.method, h.get("authorization"), r?.status, await r?.text(), requete.bodyUsed], [CORPS_SUIVI, "POST", PORTEUR, 200, '{"ok":true,"suivi":{}}', false]);
+}
+{
+  const requete = suiviPost();
+  const r = await essaiSuivi(requete, false, panneReseau);
+  verifier("POST SANS lecture : panne réseau → toujours ERREUR_SERVEUR 500 (règle 5 de 1b), corps lu sur l'original (aucun clone)", [r?.status, await r?.json(), requete.bodyUsed], [500, { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." } }, true]);
+  const lente = suiviPost();
+  const r2 = await essaiSuivi(lente, false, fetchLent, 50);
+  verifier("POST SANS lecture : délai dépassé → ERREUR_SERVEUR 500, jamais rejoué", r2?.status, 500);
+}
+{
+  const cinqCents = (async () => new Response('{"ok":false,"erreur":{"code":"ERREUR_SERVEUR","message":"x"}}', { status: 503, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
+  const requete = suiviPost();
+  const r = await essaiSuivi(requete, true, cinqCents);
+  verifier("POST en lecture : une réponse 5xx de l'API n'est PAS un repli (rendue telle quelle)", [r === null, r?.status, await r?.text()], [false, 503, '{"ok":false,"erreur":{"code":"ERREUR_SERVEUR","message":"x"}}']);
+}
+{
+  // Délai par route : on lit la durée réellement confiée au minuteur.
+  const original = globalThis.setTimeout;
+  const durees: unknown[] = [];
+  globalThis.setTimeout = ((f: () => void, ms?: number) => { durees.push(ms); return original(f, ms); }) as typeof setTimeout;
+  const rapide = (async () => new Response("{}", { status: 200 })) as unknown as typeof fetch;
+  try {
+    await essaiSuivi(suiviPost(), true, rapide, 50);
+    await essaiSuivi(suiviPost(), true, rapide);
+    await essaiSuivi(suiviPost(), true, rapide, 9000);
+    for (const invalide of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) await essaiSuivi(suiviPost(), true, rapide, invalide);
+  } finally {
+    globalThis.setTimeout = original;
+  }
+  verifier("délai : delaiMs confié au minuteur ; absent → 2 500 ms ; 0, négatif, NaN, infini → 2 500 ms", durees, [50, 2500, 9000, 2500, 2500, 2500, 2500]);
+}
+{
+  const debut = Date.now();
+  const r = await essaiSuivi(suiviPost(), true, fetchLent, 50);
+  const ecoule = Date.now() - debut;
+  verifier("délai : delaiMs 50 coupe réellement un fetch lent (repli, bien avant 2 500 ms)", [r, ecoule < 1000], [null, true]);
+}
+{
+  // Journaux : ni le jeton de suivi ni le jeton porteur, quel que soit le chemin (réussite, panne, délai, 5xx, écriture en panne).
+  const ecrits: string[] = [];
+  const noms = ["log", "info", "warn", "error", "debug"] as const;
+  const originaux = noms.map((n) => console[n]);
+  for (const n of noms) console[n] = (...args: unknown[]) => { ecrits.push(args.map((a) => (a instanceof Error ? `${a.message} ${a.stack}` : typeof a === "string" ? a : JSON.stringify(a))).join(" ")); };
+  try {
+    await essaiSuivi(suiviPost(), true, (async () => new Response("{}", { status: 200 })) as unknown as typeof fetch);
+    await essaiSuivi(suiviPost(), true, panneReseau);
+    await essaiSuivi(suiviPost(), true, fetchLent, 30);
+    await essaiSuivi(suiviPost(), true, (async () => new Response("{}", { status: 500 })) as unknown as typeof fetch);
+    await essaiSuivi(suiviPost(), false, panneReseau);
+  } finally {
+    noms.forEach((n, i) => { console[n] = originaux[i]; });
+  }
+  verifier("journaux : ni le jeton de suivi, ni le jeton porteur, ni le corps (aucune ligne écrite par le relais)", [ecrits.some((l) => l.includes(JETON_SUIVI)), ecrits.some((l) => l.includes("porteur.factice")), ecrits.length], [false, false, 0]);
+}
+
 if (ko > 0) {
   console.log(`\n${ko} échec(s).`);
   process.exit(1);

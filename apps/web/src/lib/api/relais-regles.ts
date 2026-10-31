@@ -48,14 +48,21 @@ export type DecisionRelais =
   | { type: "relayer"; baseApi: string; secret: string; repliPossible: boolean };
 
 /**
- * Décision pure du garde de relais. « eteint » : aucun effet (aucun appel, aucune lecture du corps, aucun journal). « mal-configure » : le site traite lui-même (et journalise une fois) ;
- * la décision ne porte ni le secret ni l'adresse. « relayer » : le repli est permis pour une lecture (GET, HEAD), jamais pour une écriture.
+ * Réglages propres à une route (étape 1c-1). `lecture: true` déclare qu'une route en POST est une LECTURE (aucun effet en base, ex. `POST /suivi` qui porte le jeton de suivi dans le corps) :
+ * le repli vers le site est alors permis sur panne ou délai. À ne JAMAIS poser sur une écriture (règle 5 : une écriture n'est jamais rejouée). `delaiMs` remplace le délai par défaut.
  */
-export function decisionRelais(env: ReglagesRelais, module: string, request: { method: string }): DecisionRelais {
+export type OptionsRoute = { lecture?: boolean; delaiMs?: number };
+
+/**
+ * Décision pure du garde de relais. « eteint » : aucun effet (aucun appel, aucune lecture du corps, aucun journal). « mal-configure » : le site traite lui-même (et journalise une fois) ;
+ * la décision ne porte ni le secret ni l'adresse. « relayer » : le repli est permis pour une lecture (GET, HEAD, ou route déclarée `lecture: true`), jamais pour une écriture.
+ */
+export function decisionRelais(env: ReglagesRelais, module: string, request: { method: string }, options?: OptionsRoute): DecisionRelais {
   if (!moduleRelaye(env.API_RELAIS, module)) return { type: "eteint" };
   const secret = env.RELAIS_SECRET;
   if (!baseApiAcceptable(env.API_URL) || !secret || !SECRET_RELAIS_VALIDE.test(secret)) return { type: "mal-configure" };
-  return { type: "relayer", baseApi: env.API_URL, secret, repliPossible: request.method === "GET" || request.method === "HEAD" };
+  const repliPossible = options?.lecture === true || request.method === "GET" || request.method === "HEAD";
+  return { type: "relayer", baseApi: env.API_URL, secret, repliPossible };
 }
 
 /** Rend une fonction qui n'exécute `ecrire` qu'à son premier appel (un drapeau par signal : l'isolat en crée un au chargement du module, un test en recrée un pour repartir de zéro). */
@@ -75,10 +82,19 @@ export type OptionsRelais = { baseApi: string; secret: string; ipVisiteur: strin
 
 const ERREUR_SERVEUR = { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." } };
 
+/** Délai par défaut de l'appel à l'API (étape 1b). Un `delaiMs` absent, nul, négatif ou non fini retombe dessus (jamais un minuteur à 0 qui couperait tout). */
+export const DELAI_RELAIS_DEFAUT_MS = 2500;
+
+function delaiEffectif(delaiMs: number | undefined): number {
+  return typeof delaiMs === "number" && Number.isFinite(delaiMs) && delaiMs > 0 ? delaiMs : DELAI_RELAIS_DEFAUT_MS;
+}
+
 /**
  * Transmet la requête à l'API. Rend la réponse de l'API, ou `null` pour dire « traite-la toi-même » (panne réseau ou délai dépassé, et SEULEMENT pour une lecture :
  * une écriture dont on ne sait pas si elle est partie ne se rejoue jamais, elle répond ERREUR_SERVEUR). Une réponse 5xx de l'API n'est jamais un repli.
  * Seuls le jeton, le type de contenu et le corps traversent, plus le secret et l'adresse du visiteur ; les cookies ne traversent jamais.
+ * Corps conservé : quand le repli est possible et que la requête a un corps (POST déclaré en lecture), le corps est lu sur une COPIE (`request.clone()`) pour que la route du site
+ * le retrouve intact en cas de repli ; sans repli possible, le corps est lu sur l'original, comme en 1b (aucune copie).
  */
 export async function relayer(request: Request, chemin: string, options: OptionsRelais, repliPossible: boolean): Promise<Response | null> {
   const envoyer = options.envoyer ?? fetch;
@@ -93,10 +109,11 @@ export async function relayer(request: Request, chemin: string, options: Options
   if (adresseIpPlausible(options.ipVisiteur)) entetes.set("x-relais-ip", options.ipVisiteur);
 
   const arret = new AbortController();
-  const minuteur = setTimeout(() => arret.abort(), options.delaiMs ?? 2500);
+  const minuteur = setTimeout(() => arret.abort(), delaiEffectif(options.delaiMs));
   try {
     const avecCorps = request.method !== "GET" && request.method !== "HEAD";
-    const reponse = await envoyer(url, { method: request.method, headers: entetes, body: avecCorps ? await request.text() : undefined, redirect: "manual", signal: arret.signal });
+    const corps = avecCorps ? await (repliPossible ? request.clone() : request).text() : undefined;
+    const reponse = await envoyer(url, { method: request.method, headers: entetes, body: corps, redirect: "manual", signal: arret.signal });
     const sortie = new Headers();
     for (const nom of ["content-type", "cache-control"]) {
       const valeur = reponse.headers.get(nom);
