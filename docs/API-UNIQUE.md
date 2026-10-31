@@ -143,7 +143,7 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 
 ## Mise en production (31 octobre 2026)
 
-Worker `speedfood-api` créé par Malika (version 5385f34c), site redéployé (f3975d7d). Relais allumé pour `public,moi,client`. Parité face à la production : `version`, `aide`, `connexion/fournisseurs` (0 écart) ; `moi` et `client/espace` avec un vrai jeton, via `apps/api/scripts/test-jeton-reel.mjs` (le mot de passe est saisi par la personne, masqué, le jeton reste en mémoire) : identiques. Reste éteint : `livraison`. Retour arrière : `API_RELAIS=non`.
+Worker `speedfood-api` créé par Malika (version 5385f34c), site redéployé (f3975d7d). Relais allumé pour `public,moi,client,livraison` (livraison vérifié seulement sans jeton). Parité face à la production : `version`, `aide`, `connexion/fournisseurs` (0 écart) ; `moi` et `client/espace` avec un vrai jeton, via `apps/api/scripts/test-jeton-reel.mjs` (le mot de passe est saisi par la personne, masqué, le jeton reste en mémoire) : identiques. Retour arrière : `API_RELAIS=non`.
 
 ## Ce qui n'est PAS vérifié
 
