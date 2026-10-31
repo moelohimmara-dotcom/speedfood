@@ -146,7 +146,7 @@ test("CLI : le jeton est envoyé aux deux adresses avec méthode et corps, et n'
   try {
     const r = await new Promise<{ code: number | null; sortie: string }>((ok) => {
 
-      const enfant = spawnAsync(process.execPath, [SCRIPT, "--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "POST", "--corps", '{"a":1}', base, base, "/x"], { env: { ...process.env, JETON_ESSAI: JETON } });
+      const enfant = spawnAsync(process.execPath, [SCRIPT, "--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "POST", "--corps", '{"a":1}', base, base, "/x"], { env: { ...process.env, JETON_ESSAI: JETON }, timeout: 15000 });
       let sortie = "";
       enfant.stdout.on("data", (d: Buffer) => (sortie += d));
       enfant.stderr.on("data", (d: Buffer) => (sortie += d));
@@ -209,7 +209,7 @@ test("CLI : rejet réseau avec jeton présent : code 2 (pas 1), message propre, 
 });
 
 test("CLI : méthode refusée par fetch avec jeton présent : code 2, aucune valeur ni trace", () => {
-  const r = lancer(["--jeton-env", "JETON_ESSAI", "--methode", "PAS UNE METHODE", LOCAL, LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+  const r = lancer(["--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "PAS UNE METHODE", LOCAL, LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" });
   verifierSansFuite(r, "SECRET-ABC");
   // Le message de l'exception de fetch cite la méthode fautive : il ne doit pas être réimprimé.
   assert.ok(!r.sortie.includes("PAS UNE"));
@@ -242,7 +242,8 @@ test("CLI : --corps sans --methode : code 2 et message propre", () => {
 // Version asynchrone de `lancer` : indispensable quand le serveur de l'essai tourne dans CE processus (spawnSync bloquerait sa boucle d'événements).
 function lancerAsync(args: string[], env: Record<string, string>) {
   return new Promise<{ code: number | null; sortie: string }>((ok) => {
-    const enfant = spawnAsync(process.execPath, [SCRIPT, ...args], { env: { ...process.env, ...env } });
+    // Délai maximal : une régression (processus qui ne rend jamais la main) fait échouer le test au lieu de le faire pendre.
+    const enfant = spawnAsync(process.execPath, [SCRIPT, ...args], { env: { ...process.env, ...env }, timeout: 15000 });
     let sortie = "";
     enfant.stdout.on("data", (d: Buffer) => (sortie += d));
     enfant.stderr.on("data", (d: Buffer) => (sortie += d));
@@ -305,11 +306,35 @@ test("CLI : lecture (GET, HEAD ou méthode absente) avec jeton : inchangé, sans
   } finally { await s.fermer(); }
 });
 
-test("CLI : une écriture SANS jeton n'exige pas le drapeau (rien d'identifiant n'est envoyé)", async () => {
+test("CLI : une écriture SANS jeton exige aussi le drapeau (refus code 2, aucune requête, casse indifférente)", async () => {
   const s = await serveurCompteur();
   try {
-    const r = await lancerAsync(["--methode", "POST", "--corps", "{}", s.base, s.base, "/x"], {});
+    for (const methode of ["POST", "post", "Post", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
+      const r = await lancerAsync(["--methode", methode, "--corps", "{}", s.base, s.base, "/x"], {});
+      assert.equal(r.code, 2, r.sortie);
+      assert.ok(r.sortie.includes("--autoriser-ecriture"));
+      assert.ok(!r.sortie.includes(s.base), "les adresses ne sont pas répétées");
+    }
+    assert.equal(s.recus.length, 0, "aucune requête n'est partie");
+  } finally { await s.fermer(); }
+});
+
+test("CLI : une écriture SANS jeton avec --autoriser-ecriture est envoyée (boucle locale)", async () => {
+  const s = await serveurCompteur();
+  try {
+    const r = await lancerAsync(["--autoriser-ecriture", "--methode", "Post", "--corps", "{}", s.base, s.base, "/x"], {});
     assert.equal(r.code, 0, r.sortie);
-    assert.equal(s.recus.length, 2);
+    assert.deepEqual(s.recus, [{ methode: "POST", auth: "" }, { methode: "POST", auth: "" }]);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : une lecture SANS jeton (GET, HEAD, get) n'exige pas le drapeau", async () => {
+  const s = await serveurCompteur();
+  try {
+    for (const args of [[], ["--methode", "GET"], ["--methode", "get"], ["--methode", "HEAD"]]) {
+      const r = await lancerAsync([...args, s.base, s.base, "/x"], {});
+      assert.equal(r.code, 0, r.sortie);
+    }
+    assert.equal(s.recus.length, 8);
   } finally { await s.fermer(); }
 });

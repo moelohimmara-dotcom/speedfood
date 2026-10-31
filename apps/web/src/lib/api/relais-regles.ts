@@ -22,17 +22,19 @@ export function ipVisiteurDepuisEntetes(cfConnectingIp: string | null, xForwarde
 /** Réglages lus dans l'environnement par la colle (`relais.ts`) et injectés ici : aucune lecture de `process.env` dans ce fichier. */
 export type ReglagesRelais = { API_RELAIS?: string; API_URL?: string; RELAIS_SECRET?: string };
 
-/** Longueur minimale du secret partagé (même seuil que côté API) : en dessous, le relais est considéré mal configuré. */
-export const LONGUEUR_MIN_SECRET = 32;
+/** Forme d'un secret de relais acceptable (même règle que côté API) : 32 caractères au moins, ASCII visible seulement (ni espace, ni retour à la ligne, ni accent). Sinon le relais est mal configuré : une valeur hors de cette forme ferait planter l'en-tête ou serait modifiée en route (espaces de bord retirés), et l'API refuserait la confiance en silence. */
+export const SECRET_RELAIS_VALIDE = /^[\x21-\x7E]{32,}$/;
 
 const HOTES_LOCAUX = ["localhost", "127.0.0.1", "[::1]"];
 
-/** Adresse de base de l'API acceptable : https://, ou http:// seulement vers la boucle locale ; sans identifiants ; lisible. Le secret ne part jamais en clair hors de la machine. */
+/** Adresse de base de l'API acceptable : https://, ou http:// seulement vers la boucle locale ; sans identifiants, sans chemin (hors « / »), sans requête ni fragment ; lisible. Le secret ne part jamais en clair hors de la machine. */
 export function baseApiAcceptable(texte: string | undefined): texte is string {
   if (!texte) return false;
   try {
     const url = new URL(texte);
     if (url.username !== "" || url.password !== "") return false;
+    // Ni chaîne de requête, ni fragment, ni chemin : `relayer` colle le chemin de la requête à cette base, un préfixe de chemin serait gardé sans que personne l'ait voulu.
+    if (url.search !== "" || url.hash !== "" || url.pathname !== "/") return false;
     if (url.protocol === "https:") return true;
     return url.protocol === "http:" && HOTES_LOCAUX.includes(url.hostname);
   } catch {
@@ -52,7 +54,7 @@ export type DecisionRelais =
 export function decisionRelais(env: ReglagesRelais, module: string, request: { method: string }): DecisionRelais {
   if (!moduleRelaye(env.API_RELAIS, module)) return { type: "eteint" };
   const secret = env.RELAIS_SECRET;
-  if (!baseApiAcceptable(env.API_URL) || !secret || secret.length < LONGUEUR_MIN_SECRET) return { type: "mal-configure" };
+  if (!baseApiAcceptable(env.API_URL) || !secret || !SECRET_RELAIS_VALIDE.test(secret)) return { type: "mal-configure" };
   return { type: "relayer", baseApi: env.API_URL, secret, repliPossible: request.method === "GET" || request.method === "HEAD" };
 }
 
@@ -66,8 +68,8 @@ export function creerSignalUnique(ecrire: () => void): () => void {
   };
 }
 
-/** Statuts qui n'ont jamais de corps : `new Response(texte, …)` lèverait une exception. */
-const STATUTS_SANS_CORPS = [101, 103, 204, 205, 304];
+/** Statuts sans corps constructibles par `new Response` (101 et 103 ne le sont pas : `fetch` ne les rend pas à l'appelant) : `new Response(texte, …)` lèverait une exception avec un corps. */
+export const STATUTS_SANS_CORPS = [204, 205, 304];
 
 export type OptionsRelais = { baseApi: string; secret: string; ipVisiteur: string | null; envoyer?: typeof fetch; delaiMs?: number };
 

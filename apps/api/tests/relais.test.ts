@@ -111,3 +111,22 @@ test("forme de l'adresse (fonction directe) : limites 45/46, texte libre, retour
     assert.equal(adresseRelaisPlausible(mauvais), false, JSON.stringify(mauvais));
   }
 });
+
+test("secret attendu de forme invalide (retour à la ligne, accent, espaces, caractère de contrôle, DEL) : jamais de confiance", async () => {
+  const base = "c".repeat(40);
+  const invalides = [base + "\n", base.slice(0, 20) + "\n" + base.slice(20), base + "é", " " + base, base + " ", base.slice(0, 20) + " " + base.slice(20), base + "\x7f", base + "\t"];
+  for (const attendu of invalides) {
+    // L'appelant envoie la même valeur autant qu'un en-tête HTTP le permet (sans retour à la ligne ni espaces de bord).
+    const recu = attendu.replace(/[\r\n]/g, "").trim();
+    const sortie = await enteteRelaisDeConfiance(new Headers({ "cf-connecting-ip": "198.51.100.1", "x-relais-secret": recu, "x-relais-ip": "203.0.113.9" }), attendu);
+    assert.equal(sortie.get("cf-connecting-ip"), "198.51.100.1", JSON.stringify(attendu));
+    assert.equal(sortie.get("x-relais-ip"), null);
+  }
+});
+
+test("secret attendu : ASCII visible de 32 caractères accepté (bornes ! et ~), 31 refusé", async () => {
+  for (const [secret, confiance] of [["!".repeat(32), true], ["~".repeat(32), true], ["!".repeat(31), false]] as const) {
+    const sortie = await enteteRelaisDeConfiance(new Headers({ "cf-connecting-ip": "198.51.100.1", "x-relais-secret": secret, "x-relais-ip": "203.0.113.9" }), secret);
+    assert.equal(sortie.get("cf-connecting-ip"), confiance ? "203.0.113.9" : "198.51.100.1", secret.length + secret[0]);
+  }
+});

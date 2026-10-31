@@ -1,4 +1,4 @@
-import { adresseIpPlausible, creerSignalUnique, decisionRelais, ipVisiteurDepuisEntetes, moduleRelaye, relayer } from "../../src/lib/api/relais-regles";
+import { STATUTS_SANS_CORPS, adresseIpPlausible, creerSignalUnique, decisionRelais, ipVisiteurDepuisEntetes, moduleRelaye, relayer } from "../../src/lib/api/relais-regles";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -162,6 +162,24 @@ verifier("décision : API_URL avec identifiants (user:pass@) refusée, en https 
   "https://user:pass@api.exemple.test", "https://user@api.exemple.test", "http://u:p@localhost:8788",
 ].map((u) => type(decisionRelais({ ...ENV_OK, API_URL: u }, "client", req("GET")))), Array(3).fill("mal-configure"));
 verifier("décision : la décision mal configurée ne contient ni le secret ni l'adresse", JSON.stringify(decisionRelais({ ...ENV_OK, API_URL: "http://api.exemple.test" }, "client", req("GET"))), '{"type":"mal-configure"}');
+
+verifier("décision : secret de forme invalide (retour à la ligne, accent, espace, tabulation, DEL) = mal configuré, sans plantage", [
+  SECRET32 + "\n", SECRET32.slice(0, 10) + "\n" + SECRET32.slice(10), SECRET32 + "\r\n", SECRET32 + "é", " " + SECRET32, SECRET32 + " ", SECRET32.slice(0, 10) + " " + SECRET32.slice(10), SECRET32 + "\t", SECRET32 + "\x7f",
+].map((secret) => type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: secret }, "client", req("GET")))), Array(9).fill("mal-configure"));
+verifier("décision : secret en ASCII visible (bornes ! et ~), 32 caractères = relayer ; 31 = mal configuré", [
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "!".repeat(32) }, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "~".repeat(32) }, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "~".repeat(31) }, "client", req("GET"))),
+], ["relayer", "relayer", "mal-configure"]);
+verifier("décision : API_URL avec chaîne de requête, fragment ou chemin = mal configuré", [
+  "https://api.exemple.test?x=1", "https://api.exemple.test/?x=1", "https://api.exemple.test/#f", "https://api.exemple.test#f", "https://api.exemple.test/v1", "https://api.exemple.test/v1/", "http://localhost:8788/api",
+].map((u) => type(decisionRelais({ ...ENV_OK, API_URL: u }, "client", req("GET")))), Array(7).fill("mal-configure"));
+verifier("décision : API_URL avec barre finale seule ou sans chemin = relayer", [
+  type(decisionRelais({ ...ENV_OK, API_URL: "https://api.exemple.test/" }, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, API_URL: "http://localhost:8788/" }, "client", req("GET"))),
+], ["relayer", "relayer"]);
+verifier("statuts sans corps : 204, 205, 304 seulement (101 et 103 ne peuvent pas être construits)", STATUTS_SANS_CORPS, [204, 205, 304]);
+verifier("chaque statut sans corps se reconstruit sans exception", STATUTS_SANS_CORPS.map((st) => new Response(null, { status: st }).status), [204, 205, 304]);
 
 // --- Réserve 5 : journal une seule fois par isolat ---
 {

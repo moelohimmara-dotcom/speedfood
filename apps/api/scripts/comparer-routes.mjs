@@ -1,11 +1,11 @@
 // Usage : npm run comparer -- [--tolerer-non-2xx] [--jeton-env NOM] [--methode POST] [--autoriser-ecriture] [--corps '{"a":1}'] <urlReference> <urlCandidate> <chemin> [<chemin>…]
 // Exemple : npm run comparer -- https://speedfood-app.moelohimmara.workers.dev http://localhost:8788 /api/v1/version /api/v1/aide
 // --jeton-env NOM : NOM est une variable d'environnement qui contient un jeton porteur ; il est envoyé aux deux adresses et jamais affiché.
-// --autoriser-ecriture : OBLIGATOIRE pour envoyer une écriture (méthode autre que GET ou HEAD) avec un jeton ; sans ce drapeau l'envoi est refusé (code 2) avant toute requête.
+// --autoriser-ecriture : OBLIGATOIRE pour envoyer une écriture (méthode autre que GET ou HEAD), avec ou sans jeton ; sans ce drapeau l'envoi est refusé (code 2) avant toute requête.
 // Codes de sortie : 0 = aucun écart, 1 = écarts, 2 = usage ou erreur (aucune valeur sensible n'est jamais affichée).
 import { comparerRoutes } from "./comparateur.mjs";
 
-const USAGE = "Usage : npm run comparer -- [--tolerer-non-2xx] [--jeton-env NOM] [--methode POST] [--autoriser-ecriture] [--corps JSON] <urlReference> <urlCandidate> <chemin> [<chemin>…]\n  --autoriser-ecriture : requis pour envoyer une écriture (méthode autre que GET ou HEAD) avec un jeton ; refusé sinon.";
+const USAGE = "Usage : npm run comparer -- [--tolerer-non-2xx] [--jeton-env NOM] [--methode POST] [--autoriser-ecriture] [--corps JSON] <urlReference> <urlCandidate> <chemin> [<chemin>…]\n  --autoriser-ecriture : requis pour envoyer une écriture (méthode autre que GET ou HEAD), avec ou sans jeton ; refusé sinon.";
 const NOM_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const JETON_VALIDE = /^[\x21-\x7E]+$/; // ASCII visible seulement : ni espace, ni retour à la ligne, ni accent
 const HOTES_LOCAUX = ["localhost", "127.0.0.1", "[::1]"];
@@ -60,6 +60,9 @@ if (!lus || !reference || !candidate || chemins.length === 0) {
   erreur(USAGE);
 } else if (lus.corps !== undefined && lus.methode === undefined) {
   erreur("--corps exige --methode (par exemple --methode POST)");
+} else if (lus.methode !== undefined && !lus.autoriserEcriture && !["GET", "HEAD"].includes(lus.methode.toUpperCase())) {
+  // Toute écriture (avec OU sans jeton) peut modifier des données, production comprise : elle exige un drapeau explicite. La méthode n'est pas répétée.
+  erreur("Une écriture (méthode autre que GET ou HEAD) exige --autoriser-ecriture : envoi refusé, valeurs non affichées");
 } else if (chemins.some((c) => !c.startsWith("/") || c.startsWith("//") || c.includes("\\"))) {
   // Un chemin est relatif à la base : "/x" seulement. ".evil", "//hote/x" ou "@hote/x" changeraient l'hôte réellement appelé.
   erreur("Chaque chemin doit commencer par un seul « / » (ni « // » ni antislash) : valeur refusée, non affichée");
@@ -79,10 +82,6 @@ if (!lus || !reference || !candidate || chemins.length === 0) {
       pret = false;
     } else if (!JETON_VALIDE.test(process.env[lus.jetonEnv])) {
       erreur(`Variable d'environnement ${lus.jetonEnv} : jeton invalide (ASCII visible seulement, sans espace ni retour à la ligne) ; valeur non affichée`);
-      pret = false;
-    } else if (!lus.autoriserEcriture && lus.methode !== undefined && !["GET", "HEAD"].includes(lus.methode.toUpperCase())) {
-      // Une écriture avec un jeton réel peut modifier des données (production comprise) : elle exige un drapeau explicite. La méthode n'est pas répétée.
-      erreur("Une écriture (méthode autre que GET ou HEAD) avec un jeton exige --autoriser-ecriture : envoi refusé, valeurs non affichées");
       pret = false;
     } else if (adresses.some((a) => a === null || (a.protocole !== "https:" && !(a.protocole === "http:" && HOTES_LOCAUX.includes(a.nomHote))))) {
       erreur("Avec un jeton, chaque adresse doit être en https:// (ou http:// vers localhost, 127.0.0.1, [::1]) : envoi refusé, adresses non affichées");

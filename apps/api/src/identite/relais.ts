@@ -12,8 +12,8 @@ async function memeSecret(a: string, b: string): Promise<boolean> {
   return ecart === 0;
 }
 
-/** Longueur minimale du secret de relais attendu : en dessous, l'API ne fait jamais confiance au relais (même si l'appelant envoie le même secret). */
-export const LONGUEUR_MIN_SECRET_RELAIS = 32;
+/** Forme du secret de relais attendu : 32 caractères au moins, ASCII visible seulement (ni espace, ni retour à la ligne, ni accent). Hors de cette forme, l'API ne fait jamais confiance au relais, même si l'appelant envoie la même valeur. */
+export const SECRET_RELAIS_VALIDE = /^[\x21-\x7E]{32,}$/;
 
 /** L'adresse transmise a l'allure d'une adresse IP : 45 caractères au plus, `[0-9a-fA-F:.]` seulement (ni espace, ni retour à la ligne, ni texte libre). Ne prouve pas la validité. */
 export function adresseRelaisPlausible(valeur: string | null | undefined): valeur is string {
@@ -23,7 +23,7 @@ export function adresseRelaisPlausible(valeur: string | null | undefined): valeu
 /**
  * Le site relaie des requêtes vers l'API : l'adresse vue par l'API serait celle du Worker du site, pas celle du visiteur. Le site transmet donc l'adresse d'origine dans
  * `x-relais-ip`, accompagnée du secret partagé `x-relais-secret`. L'API ne croit cette adresse QUE si le secret est exact ; sinon (appel direct, secret faux, secret non posé)
- * elle l'ignore ; elle l'ignore aussi si le secret attendu fait moins de 32 caractères ou si l'adresse n'a pas l'allure d'une IP. Dans tous les cas, les deux en-têtes de relais sont retirés de ce que voit le code du site (jamais journalisés, jamais rendus).
+ * elle l'ignore ; elle l'ignore aussi si le secret attendu n'a pas la forme requise (32 caractères ASCII visibles au moins) ou si l'adresse n'a pas l'allure d'une IP. Dans tous les cas, les deux en-têtes de relais sont retirés de ce que voit le code du site (jamais journalisés, jamais rendus).
  */
 export async function enteteRelaisDeConfiance(entetes: Headers, secretAttendu: string | undefined): Promise<Headers> {
   const copie = new Headers(entetes);
@@ -31,7 +31,7 @@ export async function enteteRelaisDeConfiance(entetes: Headers, secretAttendu: s
   const adresse = entetes.get("x-relais-ip");
   copie.delete("x-relais-secret");
   copie.delete("x-relais-ip");
-  if (secretAttendu && secretAttendu.length >= LONGUEUR_MIN_SECRET_RELAIS && secretRecu && adresseRelaisPlausible(adresse) && (await memeSecret(secretRecu, secretAttendu))) {
+  if (secretAttendu && SECRET_RELAIS_VALIDE.test(secretAttendu) && secretRecu && adresseRelaisPlausible(adresse) && (await memeSecret(secretRecu, secretAttendu))) {
     copie.set("cf-connecting-ip", adresse);
   }
   return copie;

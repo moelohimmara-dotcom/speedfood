@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 // Test STATIQUE sur le source de worker.ts (aucun test n'exécute ce fichier : il importe les services du site, donc Next et Supabase).
 // Il prouve seulement que les secrets et variables sont lus À L'APPEL (dans une fonction fléchée) et jamais au chargement du module.
 // Il ne prouve pas que le Worker démarre ni que `process.env` est rempli sous workerd (voir « Ce qui n'est PAS vérifié »).
-const source = readFileSync(fileURLToPath(new URL("../src/worker.ts", import.meta.url)), "utf8");
+const source = readFileSync(fileURLToPath(new URL("../src/worker.ts", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
 const sansCommentaires = source.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/\/\/.*$/, ""));
 
 /** Pour chaque `process.env` du source : vrai s'il est dans le corps d'une fonction fléchée (accolades) ou juste après `=>` (corps en expression). */
@@ -38,10 +38,4 @@ test("l'analyseur de lecture à l'appel distingue bien une lecture au chargement
 
 test("worker.ts : le secret de relais est fourni par une fonction (lue à chaque requête)", () => {
   assert.ok(sansCommentaires.some((l) => /secretRelais:\s*\(\)\s*=>\s*process\.env\.RELAIS_SECRET/.test(l)));
-});
-
-test("worker.ts : aucune lecture de process.env au niveau du module (ligne commençant par const, let, var ou export)", () => {
-  for (const ligne of sansCommentaires) {
-    if (/^(const|let|var|export)\b/.test(ligne)) assert.ok(!ligne.includes("process.env") || ligne.includes("=>"), ligne);
-  }
 });
