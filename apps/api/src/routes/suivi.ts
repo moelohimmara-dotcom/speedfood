@@ -30,5 +30,44 @@ export function routeSuivi(deps: Pick<Deps, "suivi">) {
     return repondre(c, { ok: true, suivi });
   });
 
+  /** Annulation par le client. Idempotent côté service. Mêmes contrôles que `suivi/annuler/route.ts` : corps, jeton, puis plafond et service dans un même `try`. */
+  route.post("/annuler", async (c) => {
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    const jeton = typeof lu.corps === "object" && lu.corps !== null && "jeton" in lu.corps ? (lu.corps as { jeton: unknown }).jeton : null;
+    if (!deps.suivi.jetonValide(jeton)) return reponseErreur(c, { code: "VALIDATION", message: "Lien de suivi invalide." });
+
+    try {
+      await deps.suivi.limiterAnnulation();
+      const { reference } = await deps.suivi.annuler(jeton);
+      return repondre(c, { ok: true, reference });
+    } catch (erreur) {
+      if (erreur instanceof ErreurMetier) return reponseErreur(c, erreur.toApi());
+      return reponseErreur(c, { code: "ERREUR_SERVEUR", message: "Une erreur est survenue. Réessayez dans un instant." });
+    }
+  });
+
+  /** Réponse du client à une proposition révisée. Ordre des contrôles du site : jeton, réponse, identifiant, puis plafond et service. */
+  route.post("/proposition", async (c) => {
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { jeton?: unknown; propositionId?: unknown; reponse?: unknown };
+
+    if (!deps.suivi.jetonValide(corps.jeton)) return reponseErreur(c, { code: "VALIDATION", message: "Lien de suivi invalide." });
+    if (corps.reponse !== "acceptee" && corps.reponse !== "refusee") return reponseErreur(c, { code: "VALIDATION", message: "Réponse invalide." });
+    if (typeof corps.propositionId !== "string" || corps.propositionId.length === 0 || corps.propositionId.length > 64) {
+      return reponseErreur(c, { code: "VALIDATION", message: "Proposition invalide." });
+    }
+
+    try {
+      await deps.suivi.limiterReponseProposition();
+      await deps.suivi.repondreProposition(corps.jeton, corps.propositionId, corps.reponse);
+      return repondre(c, { ok: true });
+    } catch (erreur) {
+      if (erreur instanceof ErreurMetier) return reponseErreur(c, erreur.toApi());
+      return reponseErreur(c, { code: "ERREUR_SERVEUR", message: "Une erreur est survenue. Réessayez dans un instant." });
+    }
+  });
+
   return route;
 }
