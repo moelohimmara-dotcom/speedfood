@@ -68,13 +68,14 @@ export type ClientAuthStrict = {
 
 /**
  * Vérificateur STRICT : le service d'authentification confirme aussi que le compte existe encore (un compte supprimé ou banni est refusé tout de suite).
- * Comportement du site : jeton refusé ou compte absent → null ; panne du service → exception (500), jamais un faux « non connecté » qui déconnecterait tout le monde.
+ * Jeton refusé (4xx) ou compte absent → null ; panne du service → exception (500), jamais un faux « non connecté » qui déconnecterait tout le monde.
+ * Exceptions parmi les 4xx : 408 (délai) et 429 (limitation de débit du service) ne disent rien du jeton, ce sont des pannes : elles lèvent. On ne reprend pas ce défaut du site.
  */
 export function creerVerificateurStrict(obtenirClient: () => ClientAuthStrict): VerificateurJeton {
   return async (jeton) => {
     const { data, error } = await obtenirClient().auth.getUser(jeton);
     if (error) {
-      if (typeof error.status === "number" && error.status >= 400 && error.status < 500) return null;
+      if (typeof error.status === "number" && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) return null;
       throw new Error(`verification du jeton impossible (${error.name ?? "sans nom"})`);
     }
     return data.user ? { id: data.user.id } : null;

@@ -146,3 +146,19 @@ test("strict : panne du service (statut 500, erreur sans statut, exception rése
   await assert.rejects(() => strict({ data: { user: null }, error: { name: "AuthRetryableFetchError" } })("jeton"));
   await assert.rejects(() => strict(new TypeError("fetch failed"))("jeton"));
 });
+
+test("strict : 401, 403, 404 et les bornes 400 et 499 sont des jetons refusés (null)", async () => {
+  for (const status of [400, 401, 403, 404, 499]) {
+    assert.equal(await strict({ data: { user: null }, error: { status } })("jeton"), null, `statut ${status}`);
+  }
+});
+
+test("strict : 408 (délai) et 429 (limitation de débit) sont des pannes : l'exception remonte, jamais un faux 401", async () => {
+  await assert.rejects(() => strict({ data: { user: null }, error: { status: 408 } })("jeton"));
+  await assert.rejects(() => strict({ data: { user: null }, error: { status: 429 } })("jeton"));
+});
+
+test("strict : les bornes 399 et 500 ne sont pas des refus de jeton : l'exception remonte", async () => {
+  await assert.rejects(() => strict({ data: { user: null }, error: { status: 399 } })("jeton"));
+  await assert.rejects(() => strict({ data: { user: null }, error: { status: 500 } })("jeton"));
+});
