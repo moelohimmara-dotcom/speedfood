@@ -8,7 +8,7 @@ Les futures applications (React Native) et le site parleront à une seule API, a
 
 ## Ce qui existe
 
-Hono sur Workers : `GET /sante` et **dix routes `/api/v1/*`** (tableau ci-dessous). Toute route ou méthode inconnue répond 404 `INTROUVABLE`. Une erreur non prévue répond 500 sans détail (rien ne fuit).
+Hono sur Workers : `GET /sante` et **dix routes `/api/v1/*`** (tableau ci-dessous). Une route inconnue hors des préfixes protégés répond 404 `INTROUVABLE`. **Sous `/api/v1/moi`, `/api/v1/client` et `/api/v1/livraison/estimation`, l'identité passe d'abord** (middleware `"*"` de chaque sous-routeur) : une route ou méthode inconnue y répond 401 sans jeton ; avec un jeton bien formé, l'API fait l'appel `getUser`, consomme le plafond du compte, puis répond 404 (observé par une sonde ; correctif de code reporté au plan 1c). Une erreur non prévue répond 500 sans détail (rien ne fuit).
 
 ```
 apps/api/
@@ -32,7 +32,7 @@ Les règles pures partagées (version de l'application, règles de l'API v1) viv
 
 ## Les dix routes servies par l'API
 
-Parité exacte avec les routes du site : même statut, même corps JSON, mêmes en-têtes de cache, mêmes messages d'erreur. Toutes les routes avec compte sont en **mode de jeton strict** (voir plus bas).
+Parité avec les routes du site sur les réponses nominales et les erreurs du contrat (même statut, même corps JSON, mêmes en-têtes de cache, mêmes messages d'erreur) ; les écarts connus sont listés dans « Observations sur le site ». Toutes les routes avec compte sont en **mode de jeton strict** (voir plus bas).
 
 | Route | Méthode | Jeton | Cache | Service du site |
 |---|---|---|---|---|
@@ -60,7 +60,7 @@ Les routes d'écriture répondent `{ ok: true, message[, favori] }` ou une erreu
 | `npm run typecheck` | racine | types de tous les paquets, API comprise |
 | `npm run preparer-dev-vars` | `apps/api` | écrit `.dev.vars` (ignoré par Git) depuis `apps/web/.env.local`, sans jamais afficher un secret |
 | `npm run dev` | `apps/api` | `wrangler dev` (workerd local ; construire d'abord) |
-| `npm run comparer -- <réf> <candidate> <chemins…>` | `apps/api` | compare des routes entre deux serveurs (statut, cache, corps), avec jeton (`--jeton-env`), méthode et corps |
+| `npm run comparer -- <réf> <candidate> <chemins…>` | `apps/api` | compare des routes entre deux serveurs (statut, cache, corps ; **l'ordre des clés JSON est ignoré**, donc « 0 écart » ne prouve pas l'égalité octet pour octet), avec jeton (`--jeton-env`), méthode et corps |
 
 Deux pièges du comparateur :
 - Sous **Git Bash**, un argument comme `/api/v1/version` est converti en chemin Windows : préfixer par `MSYS_NO_PATHCONV=1` (`MSYS_NO_PATHCONV=1 npm run comparer -- … /api/v1/version`).
@@ -73,7 +73,7 @@ Les services du site importent `server-only` et `next/headers`. L'API les réuti
 1. **Alias `server-only`** : `build.mjs` le remplace par un module vide (`src/cales/vide.ts`).
 2. **Cale `next/headers`** (`src/cales/next-headers.ts`) : `headers()` rend les en-têtes de la requête en cours, tenus dans un `AsyncLocalStorage` posé par le premier maillon de l'application. Deux requêtes concurrentes ne voient jamais les en-têtes l'une de l'autre (test avec délai croisé).
 3. **Garde de construction** : après l'assemblage, `build.mjs` liste les fichiers entrés dans le paquet et échoue si l'un vient de `node_modules/next/`, `@opennextjs/` ou `react-dom/`. La sonde `sondes/interdit.ts` (importe `next/server`) prouve, dans un test, que la garde se déclenche vraiment.
-4. **Sonde des services** : `sondes/services.ts` importe `creerClientAdmin`, `limiterClientApplication` et l'espace client du site ; elle a passé la construction du premier coup, sans modifier le site (alias `@/*` résolu par le tsconfig de l'API vers `apps/web/src`).
+4. **Sonde des services** : `sondes/services.ts` importe `creerClientAdmin`, `limiterClientApplication`, `lireRolesCompte`, `estimerPourClient`, `connexionClientActive` et l'espace client du site ; elle a passé la construction du premier coup, sans modifier le site (alias `@/*` résolu par le tsconfig de l'API vers `apps/web/src`).
 
 Cela prouve que ces services **s'assemblent** sans Next.js, pas qu'ils **fonctionnent** sur Cloudflare (voir « Ce qui n'est PAS vérifié »).
 
@@ -130,7 +130,10 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 ## Observations sur le site (comportements portés tels quels, non corrigés)
 
 - **Estimation de livraison sans plafond de compte** : `/api/v1/livraison/estimation` n'applique que le jeton (identité), pas `limiterClientApplication`. L'API reproduit ce comportement.
-- **Méthode non gérée** : le site répond 405 (Next), l'API répond 404 `INTROUVABLE`. Sans conséquence pour le relais (le garde est dans le gestionnaire de la bonne méthode).
+- **Méthode non gérée ou route inconnue** : le site répond 405 ou 404 (Next) ; l'API répond 404 `INTROUVABLE`, sauf sous `moi`, `client` et `livraison/estimation` où elle répond 401 sans jeton, ou 404 après `getUser` et plafond du compte avec un jeton. Sans conséquence pour le relais (le garde est dans le gestionnaire de la bonne méthode).
+- **Panne du service d'authentification** (réseau, 5xx, 408, 429) : 401 sur le site (l'erreur devient `null`), 500 `ERREUR_SERVEUR` sur l'API (voulu : voir « Vérification des jetons »).
+- **Exception levée par un service** (`lireRolesCompte`, `lireEspaceClient`, `estimerPourClient`…) : 500 par défaut de Next sans corps JSON sur le site ; 500 JSON au contrat sur l'API.
+- **Barre finale dans l'adresse** (`/api/v1/moi/`) : redirection 308 de Next sur le site (non vérifié) ; 401 sans jeton, sinon 404 après `getUser` et plafond, sur l'API.
 - **Plafond de taille du corps** : il ne se fonde que sur l'en-tête `content-length` **annoncé**. Une requête sans cet en-tête n'est pas plafonnée. Même comportement sur le site et sur l'API.
 - **Erreur levée par le plafond autre que `TROP_DE_REQUETES`** : l'API restitue le code propre de l'erreur ; le site répond 500. Écart de comportement connu, non corrigé.
 
@@ -163,6 +166,9 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 7. `x-relais-ip` : la forme doit aussi être contrôlée côté API (longueur <= 45, caractères `[0-9a-fA-F:.]`).
 8. `worker.ts` : le `?? ""` sur l'URL Supabase du mode local (à traiter au plan 1c).
 9. Aucun test n'exécute `worker.ts` pour prouver que les secrets sont lus à l'appel.
+10. `identite/relais.ts` fait confiance à tout secret non vide : ne faire confiance qu'à un secret de relais d'au moins 32 caractères.
+11. Le comparateur accepte `--methode POST` avec un jeton vers n'importe quel hôte https, production comprise : l'empêcher d'envoyer une écriture vers la production sans drapeau explicite (`--autoriser-ecriture`).
+12. `relais-regles.ts` plante sur les réponses 204, 205 et 304 (confirmé par sonde) ; la réserve 4 en est la même cause.
 
 ## À faire au plan 1b / 1c
 
@@ -175,6 +181,6 @@ Reste :
 
 ## Ce qui reste
 
-- **Tâche 10** (mise en service, uniquement sur le feu vert de Malika, conduite avec elle, **trois feux verts distincts**) : (1) créer le Worker `speedfood-api` et poser ses secrets (dont `RELAIS_SECRET`), vérifier avec le comparateur et, si Malika le veut, un vrai jeton ; (2) déployer le site avec `API_URL` et `RELAIS_SECRET`, `API_RELAIS` absent ; (3) allumer le relais module par module. Voir le plan, Tâche 10.
+- **Tâche 10** (mise en service, uniquement sur le feu vert de Malika, conduite avec elle, **trois feux verts distincts**) : (1) créer le Worker `speedfood-api` et poser ses secrets (dont `RELAIS_SECRET`, et **le même `COMMANDE_JETON_SECRET` que sur le site**, ou l'absence des deux : la clé des compteurs de limitation en dépend, sinon les compteurs du site et de l'API se séparent et les plafonds doublent pendant les replis et l'allumage progressif), vérifier avec le comparateur et, si Malika le veut, un vrai jeton ; (2) déployer le site avec `API_URL` et `RELAIS_SECRET`, `API_RELAIS` absent ; (3) allumer le relais module par module. Vérifications à y ajouter : les journaux du Worker de l'API (observabilité activée) ne gardent ni `x-relais-secret` ni `authorization` ; un appel direct du Worker du site vers `speedfood-api.*.workers.dev` fonctionne (sinon, liaison de service). Voir le plan, Tâche 10.
 - **Plan 1c** : routes du livreur, du restaurateur, de l'équipe, des commandes et du suivi ; mode local pour la position du livreur ; droits, validation, audit.
 - Contrôle GitHub vert sur la branche puis fusion en avance rapide dans `master` (rien n'est déployé par la fusion).

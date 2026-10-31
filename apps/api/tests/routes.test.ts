@@ -31,7 +31,7 @@ test("GET /api/v1/aide : sans numéro, whatsapp vaut null", async () => {
 });
 
 test("seul GET est accepté sur ces routes publiques", async () => {
-  for (const chemin of ["/api/v1/version", "/api/v1/aide"]) {
+  for (const chemin of ["/api/v1/version", "/api/v1/aide", "/api/v1/connexion/fournisseurs"]) {
     const reponse = await app().request(chemin, { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
     assert.equal(reponse.status, 404);
   }

@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 // @ts-expect-error : module JavaScript sans déclaration de types
@@ -109,7 +110,7 @@ test("un écart ne contient JAMAIS la valeur du jeton, même si le serveur la re
 
 // --- Ligne de commande (serveurs locaux uniquement) ---
 import { spawnSync, spawn as spawnAsync } from "node:child_process";
-const SCRIPT = new URL("../scripts/comparer-routes.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const SCRIPT = fileURLToPath(new URL("../scripts/comparer-routes.mjs", import.meta.url));
 
 function lancer(args: string[], env: Record<string, string>) {
   const r = spawnSync(process.execPath, [SCRIPT, ...args], { env: { ...process.env, ...env }, encoding: "utf8" });
