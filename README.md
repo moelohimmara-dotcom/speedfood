@@ -1,6 +1,6 @@
 # Speedfood — MVP
 
-> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `web/src/`, `web/public/`, `web/scripts/`, et les commandes `npm run …` se lancent depuis `web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
+> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `apps/web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/`, et les commandes `npm run …` se lancent depuis `apps/web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 Portail web de découverte et de commande auprès de restaurants, pour un pilote à
 Conakry (Guinée). Ce dépôt est le **code de production**, distinct du prototype

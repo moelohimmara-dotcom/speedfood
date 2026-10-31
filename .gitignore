@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/web/node_modules
+/apps/web/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,14 +11,14 @@
 !.yarn/versions
 
 # testing
-/web/coverage
+/apps/web/coverage
 
 # next.js
-/web/.next/
-/web/out/
+/apps/web/.next/
+/apps/web/out/
 
 # production
-/web/build
+/apps/web/build
 
 # misc
 .DS_Store
@@ -38,8 +38,8 @@ yarn-error.log*
 .vercel
 
 # cloudflare (déploiement via @opennextjs/cloudflare, voir docs/DEPLOIEMENT-CLOUDFLARE.md)
-/web/.open-next/
-/web/.wrangler/
+/apps/web/.open-next/
+/apps/web/.wrangler/
 .dev.vars
 !.dev.vars.example
 
@@ -61,10 +61,13 @@ android/*.apks
 android/.idea/
 
 # Résultat intermédiaire de la collecte ponctuelle des coordonnées
-web/scripts/.geocodage-quartiers.json
+apps/web/scripts/.geocodage-quartiers.json
 
 # Configuration Firebase (identifiants propres au projet Speedfood) : jamais dans le dépôt public.
 mobile/androidApp/google-services.json
 
 # iPhone : réglages locaux (adresse Supabase et clé publique), jamais dans Git
 mobile/iosApp/Configuration/Secrets.xcconfig
+
+# Dépendances de l espace de travail (racine)
+/node_modules

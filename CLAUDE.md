@@ -1,4 +1,4 @@
-@web/AGENTS.md
+@apps/web/AGENTS.md
 
 # Speedfood — MVP réel
 
@@ -9,7 +9,7 @@ dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
 
 ## Organisation du dépôt (depuis le 29 octobre 2026)
 
-Deux codes séparés : **`web/`** (le site Next.js, son serveur, les scripts et tests, le Worker Cloudflare) et **`mobile/`** (l'application Android/iPhone, avec `mobile/faux-serveur/`). Sont partagés, à la racine : `supabase/` (la base), `docs/`, `demo/`, `.github/`. Les commandes `npm run …` se lancent **depuis `web/`** (`npm --prefix web run …` depuis la racine), les commandes `./gradlew …` depuis `mobile/`. Les chemins cités dans les anciens documents (`src/…`, `public/…`, `scripts/…`) se lisent `web/src/…`, `web/public/…`, `web/scripts/…` : voir `docs/ORGANISATION-DU-DEPOT.md`.
+Deux codes séparés : **`apps/web/`** (le site Next.js, son serveur, les scripts et tests, le Worker Cloudflare) et **`mobile/`** (l'application Android/iPhone, avec `mobile/faux-serveur/`). Sont partagés, à la racine : `supabase/` (la base), `docs/`, `demo/`, `.github/`. Les commandes `npm run …` se lancent depuis `apps/web` ; `npm install` se lance **à la racine** (espaces de travail npm, verrou unique `package-lock.json` à la racine ; `typecheck`, `test:unit` et `test:cloisonnement` existent aussi à la racine). Les commandes `./gradlew …` depuis `mobile/`. Les chemins cités dans les anciens documents (`src/…`, `public/…`, `scripts/…`) se lisent `apps/web/src/…`, `apps/web/public/…`, `apps/web/scripts/…` : voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 

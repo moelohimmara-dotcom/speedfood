@@ -229,7 +229,7 @@ try {
 
   // ------------------------------------------------------------ phase 5 : une salle pleine derrière UNE adresse (Wi-Fi du restaurant, ou réseau mobile partagé)
   console.log("\n--- Phase 5 : limites de débit réelles (fn_limiter_debit) pour une salle pleine derrière une seule adresse IP");
-  const source = fs.readFileSync(path.join(RACINE, "web", "src", "lib", "securite", "limitation-debit.ts"), "utf8");
+  const source = fs.readFileSync(path.join(RACINE, "apps", "web", "src", "lib", "securite", "limitation-debit.ts"), "utf8");
   const regle = (nom) => { const m = source.match(new RegExp(`nom: "${nom}",\\s*max: (\\d+),\\s*fenetreSecondes: (\\d+)`)); if (!m) throw new Error("règle introuvable : " + nom); return { max: Number(m[1]), fenetre: Number(m[2]) }; };
   const passe = async (nom, cle, n) => { const r = regle(nom); let ok_ = 0; for (let i = 0; i < n; i += 1) if ((await q(`select fn_limiter_debit($1,$2,$3) as ok`, [`${nom}:${cle}`, r.fenetre, r.max])).rows[0].ok === true) ok_ += 1; return { ok: ok_, max: r.max, fenetre: r.fenetre }; };
   const convives = 40;

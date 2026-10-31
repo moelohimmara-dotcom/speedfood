@@ -891,10 +891,10 @@ Mode développement : tout paiement reste simulé, aucune société ni aucun com
 Décisions de Malika : annulation par le client **tant que le restaurant n'a pas répondu** ; « Appeler » = **numéro d'assistance Speedfood** (le contact interne d'un restaurant reste privé, ADR-020) ; heure estimée de préparation ; statut en direct dans « Mes commandes ».
 
 **Fait (testé en local, rien en production côté code)** :
-- Annulation : `POST /api/v1/suivi/annuler` (`web/src/lib/commande/annulation-client.ts`) : écriture conditionnelle sur `statut = 'en_attente'` (jamais d'annulation d'une commande acceptée entre-temps), acteur `client:<référence>`, livraison annulée, remboursement du paiement en ligne et notification via `apresTransitionCommande`, limitée par IP. Bouton « Annuler ma commande » (avec confirmation) dans l'application.
+- Annulation : `POST /api/v1/suivi/annuler` (`apps/web/src/lib/commande/annulation-client.ts`) : écriture conditionnelle sur `statut = 'en_attente'` (jamais d'annulation d'une commande acceptée entre-temps), acteur `client:<référence>`, livraison annulée, remboursement du paiement en ligne et notification via `apresTransitionCommande`, limitée par IP. Bouton « Annuler ma commande » (avec confirmation) dans l'application.
 - Assistance : « Appeler l'assistance Speedfood » et « Écrire sur WhatsApp » sur l'écran de suivi.
 - « Mes commandes » : statut relu (jeton de suivi) pour les commandes de l'appareil sans statut serveur (8 au plus).
-- Heure estimée : migration **appliquée en base** `20261029084602_delai_preparation.sql` (`restaurants.delai_preparation_minutes`, 5 à 240, facultatif, lecture publique voulue). Le serveur calcule `pretEstimeeLe` = heure d'acceptation + délai (`web/src/lib/commande/estimation.ts`) ; affichée sur le site (`/suivi/<jeton>`) et dans l'application ; le restaurateur saisit le délai dans la console du site (Ma page publique) et dans l'application (Réglages).
+- Heure estimée : migration **appliquée en base** `20261029084602_delai_preparation.sql` (`restaurants.delai_preparation_minutes`, 5 à 240, facultatif, lecture publique voulue). Le serveur calcule `pretEstimeeLe` = heure d'acceptation + délai (`apps/web/src/lib/commande/estimation.ts`) ; affichée sur le site (`/suivi/<jeton>`) et dans l'application ; le restaurateur saisit le délai dans la console du site (Ma page publique) et dans l'application (Réglages).
 
 **Reste à faire** : déploiement du site (feu vert de Malika requis) puis nouvelle version de l'application ; bouton d'annulation sur la page de suivi du site (seule l'application l'a) ; « autres aspects essentiels » que Malika n'a pas encore nommés.
 
@@ -904,7 +904,7 @@ Décisions de Malika : annulation par le client **tant que le restaurant n'a pas
 
 Décision de Malika : insérer Upstash Redis dans l'architecture avant la migration vers React Native ; elle compte monter en gamme plus tard. Guide complet : `docs/REDIS-UPSTASH.md`.
 
-**Fait (testé en local)** : `web/src/lib/securite/{redis-client,redis-limites,limitation-debit}.ts`. Toutes les limites d'une action (ex. création de commande : 3 ou 4) partent en **une seule requête groupée** vers Redis ; compteur de consommation du mois avec alertes à 70 % et 90 % dans les journaux. **Sans les deux secrets, comportement strictement identique à avant** (limitation dans la base). Repli automatique sur la base si Redis est absent, lent (500 ms), en erreur ou à la limite de l'offre. Interrupteur de secours `LIMITEUR_REDIS=non`. Tests : `web/scripts/tests/redis.test.mts`.
+**Fait (testé en local)** : `apps/web/src/lib/securite/{redis-client,redis-limites,limitation-debit}.ts`. Toutes les limites d'une action (ex. création de commande : 3 ou 4) partent en **une seule requête groupée** vers Redis ; compteur de consommation du mois avec alertes à 70 % et 90 % dans les journaux. **Sans les deux secrets, comportement strictement identique à avant** (limitation dans la base). Repli automatique sur la base si Redis est absent, lent (500 ms), en erreur ou à la limite de l'offre. Interrupteur de secours `LIMITEUR_REDIS=non`. Tests : `apps/web/scripts/tests/redis.test.mts`.
 
 **Pas fait, volontairement** : cache Redis des lectures publiques (déjà en cache HTTP, ou lues directement par l'application : aucun gain aujourd'hui ; il entrera avec l'API du catalogue) ; anti-doublon d'envoi (option).
 

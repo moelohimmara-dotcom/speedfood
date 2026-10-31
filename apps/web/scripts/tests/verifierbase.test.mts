@@ -43,7 +43,7 @@ verifier("état : exception = inconnu", etatTable({ code: "EXCEPTION" }), "incon
 // Sur les vraies migrations du dépôt.
 const racine = process.env.SPEEDFOOD_RACINE;
 if (racine) {
-  const dossier = join(racine, "..", "supabase", "migrations");
+  const dossier = join(racine, "..", "..", "supabase", "migrations");
   const fichiers = readdirSync(dossier).filter((n) => n.endsWith(".sql")).map((nom) => ({ nom, sql: readFileSync(join(dossier, nom), "utf8") }));
   const tables = tablesAttendues(fichiers);
   for (const t of ["restaurants", "orders", "fonctionnalites", "contenu_emplacements", "content_pages", "reinitialisation_jetons", "client_profils"]) {

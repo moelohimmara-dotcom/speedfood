@@ -1,10 +1,10 @@
-# Organisation du dépôt : le site (`web/`) et l'application (`mobile/`) (29 octobre 2026)
+# Organisation du dépôt : le site (`apps/web/`) et l'application (`mobile/`) (29 octobre 2026)
 
 Le dépôt contient **deux codes distincts**, chacun dans son dossier, plus ce qu'ils partagent.
 
 | Dossier | Contenu | Où l'on travaille |
 |---|---|---|
-| **`web/`** | Le site et son serveur : Next.js (`src/`), fichiers publics dont l'APK (`public/`), scripts et tests (`scripts/`), `package.json`, configuration Next.js, Cloudflare et OpenNext, Worker (`worker-entree.js`, `worker-smtp.js`), `.env.example` | `cd web` puis `npm run …` |
+| **`apps/web/`** | Le site et son serveur : Next.js (`src/`), fichiers publics dont l'APK (`public/`), scripts et tests (`scripts/`), `package.json`, configuration Next.js, Cloudflare et OpenNext, Worker (`worker-entree.js`, `worker-smtp.js`), `.env.example` | `cd apps/web` puis `npm run …` ; `npm install` à la racine |
 | **`mobile/`** | L'application Android et iPhone (Kotlin Multiplatform) : `shared/`, `androidApp/`, `iosApp/`, `desktopApp/`, plus **`faux-serveur/`** (serveur factice pour l'émulateur) | `cd mobile` puis `./gradlew …` |
 | **`supabase/`** | La base de données, partagée par les deux : migrations, essais de concurrence, rejeu | à la racine |
 | **`docs/`**, **`demo/`** | La documentation et le prototype de démonstration | à la racine |
@@ -14,20 +14,25 @@ Le dépôt contient **deux codes distincts**, chacun dans son dossier, plus ce q
 
 | Avant | Après |
 |---|---|
-| `src/`, `public/`, `scripts/` | `web/src/`, `web/public/`, `web/scripts/` |
-| `package.json`, `package-lock.json`, `tsconfig.json`, `next.config.ts`, `open-next.config.ts`, `eslint.config.mjs`, `wrangler.jsonc` | dans `web/` |
-| `worker-entree.js`, `worker-smtp.js`, `.env.example`, `.dev.vars.example`, `AGENTS.md` | dans `web/` |
-| `.env.local`, `node_modules/`, `.next/`, `.open-next/`, `.wrangler/` (non suivis par Git) | dans `web/` |
+| `src/`, `public/`, `scripts/` | `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/` |
+| `package.json` (nommé `@speedfood/web`), `tsconfig.json`, `next.config.ts`, `open-next.config.ts`, `eslint.config.mjs`, `wrangler.jsonc` | dans `apps/web/` |
+| `worker-entree.js`, `worker-smtp.js`, `.env.example`, `.dev.vars.example`, `AGENTS.md` | dans `apps/web/` |
+| `package-lock.json` | à la racine du dépôt (verrou unique de l'espace de travail npm) |
+| `.env.local`, `.next/`, `.open-next/`, `.wrangler/` (non suivis par Git) | dans `apps/web/` |
+| `node_modules/` (non suivi par Git) | à la racine (les paquets sont installés par l'espace de travail) |
 | `scripts/faux-serveur-*.mjs` | `mobile/faux-serveur/faux-serveur-*.mjs` |
 | `RAPPORT-L4-SUPPORT.md` | `docs/RAPPORT-L4-SUPPORT.md` |
 | `supabase/`, `docs/`, `demo/`, `mobile/` | inchangés |
 
-**Les documents plus anciens citent les anciens chemins** (`src/…`, `public/…`, `scripts/…`, `node scripts/faux-serveur-application.mjs`). Lisez-les avec cette table : `src/` signifie `web/src/`, et ainsi de suite. Ils ne sont pas tous réécrits, pour ne pas fausser leur historique.
+**Les documents plus anciens citent les anciens chemins** (`src/…`, `public/…`, `scripts/…`, `node scripts/faux-serveur-application.mjs`). Lisez-les avec cette table : `src/` signifie `apps/web/src/`, et ainsi de suite. Ils ne sont pas tous réécrits, pour ne pas fausser leur historique.
 
-## Commandes : à lancer depuis `web/`
+## Commandes : à lancer depuis `apps/web/`
+
+Les commandes `npm run …` se lancent depuis `apps/web` ; `npm install` se lance **à la racine** (espaces de travail). `typecheck`, `test:unit` et `test:cloisonnement` se lancent aussi depuis la racine.
 
 ```bash
-cd web
+npm install            # à la racine du dépôt
+cd apps/web
 npm run dev            # serveur local
 npm run typecheck      # types
 npm run test:unit      # tests purs
@@ -39,11 +44,11 @@ npm run cf:deploy      # construction + déploiement (feu vert explicite de Mali
 Le faux serveur de l'émulateur se lance depuis la racine du dépôt : `node mobile/faux-serveur/faux-serveur-application.mjs`.
 
 ## Ce qui a dû changer dans le code
-- Les scripts et tests de `web/` qui lisent `supabase/migrations` ou `mobile/androidApp/build.gradle.kts` remontent d'un niveau (`../supabase`, `../mobile`).
-- `supabase/concurrence/simulation-journee.mjs` lit `web/src/…`.
-- `.gitignore` : les règles `/node_modules`, `/.next/`, `/.open-next/`, `/.wrangler/` visent `web/`.
-- `.claude/launch.json` lance `npm --prefix web run dev`.
+- Les scripts et tests de `apps/web/` qui lisent `supabase/migrations` ou `mobile/androidApp/build.gradle.kts` remontent de deux niveaux depuis le passage à `apps/web` (`../../supabase`, `../../mobile`) ; avant, un seul (`../supabase`, `../mobile`).
+- `supabase/concurrence/simulation-journee.mjs` lit `apps/web/src/…`.
+- `.gitignore` : les règles `/apps/web/node_modules`, `/apps/web/.next/`, `/apps/web/.open-next/`, `/apps/web/.wrangler/` visent `apps/web/`, et `/node_modules` vise la racine.
+- `.claude/launch.json` lance `npm --prefix apps/web run dev` (avant le 31 octobre 2026 : `--prefix web`).
 - Rien ne change en production : le Worker `speedfood-app` et la base sont les mêmes.
 
 ## Vérifié le 29 octobre 2026 (sur la branche de séparation)
-`tsc`, `eslint`, `npm run test:unit`, `npm run test:cloisonnement`, `node scripts/verifier-base.mjs` (84 tables lues), `next build` et `npm run cf:build`, tous depuis `web/`, sans erreur. **Aucun déploiement n'a été fait pour cette séparation.**
+`tsc`, `eslint`, `npm run test:unit`, `npm run test:cloisonnement`, `node scripts/verifier-base.mjs` (84 tables lues), `next build` et `npm run cf:build`, tous depuis `apps/web/`, sans erreur. **Aucun déploiement n'a été fait pour cette séparation.**

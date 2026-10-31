@@ -39,9 +39,9 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
         run: |
-          # Sans variables du dépôt, on reprend les deux valeurs publiques que le site déclare déjà dans web/wrangler.jsonc (adresse Supabase et clé PUBLIQUE).
-          if [ -z "$SUPABASE_URL" ]; then SUPABASE_URL=$(grep -oE '"NEXT_PUBLIC_SUPABASE_URL"[[:space:]]*:[[:space:]]*"[^"]+"' web/wrangler.jsonc | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/'); fi
-          if [ -z "$SUPABASE_ANON_KEY" ]; then SUPABASE_ANON_KEY=$(grep -oE '"NEXT_PUBLIC_SUPABASE_ANON_KEY"[[:space:]]*:[[:space:]]*"[^"]+"' web/wrangler.jsonc | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/'); fi
+          # Sans variables du dépôt, on reprend les deux valeurs publiques que le site déclare déjà dans apps/web/wrangler.jsonc (adresse Supabase et clé PUBLIQUE).
+          if [ -z "$SUPABASE_URL" ]; then SUPABASE_URL=$(grep -oE '"NEXT_PUBLIC_SUPABASE_URL"[[:space:]]*:[[:space:]]*"[^"]+"' apps/web/wrangler.jsonc | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/'); fi
+          if [ -z "$SUPABASE_ANON_KEY" ]; then SUPABASE_ANON_KEY=$(grep -oE '"NEXT_PUBLIC_SUPABASE_ANON_KEY"[[:space:]]*:[[:space:]]*"[^"]+"' apps/web/wrangler.jsonc | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/'); fi
           if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
             printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$(printf '%s' "$SUPABASE_URL" | sed 's#//#/$()/#')" "$SUPABASE_ANON_KEY" > mobile/iosApp/Configuration/Secrets.xcconfig
             echo "Réglages publics écrits."

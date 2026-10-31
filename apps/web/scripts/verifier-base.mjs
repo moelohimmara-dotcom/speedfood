@@ -47,7 +47,7 @@ if (!url || !cle) {
   echouer("Vérification de la base impossible : NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY absente (.env.local).");
 }
 
-const dossier = path.join(racine, "..", "supabase", "migrations");
+const dossier = path.join(racine, "..", "..", "supabase", "migrations");
 const fichiers = fs
   .readdirSync(dossier)
   .filter((n) => n.endsWith(".sql"))

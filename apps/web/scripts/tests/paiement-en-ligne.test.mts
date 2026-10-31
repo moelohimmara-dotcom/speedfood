@@ -322,7 +322,7 @@ if (!racine) {
   console.log("SPEEDFOOD_RACINE absent : lancer par `npm run test:unit`.");
   process.exit(1);
 }
-const sql = fs.readFileSync(path.join(racine, "..", "supabase", "migrations", "20261021090000_paiement_en_ligne.sql"), "utf8");
+const sql = fs.readFileSync(path.join(racine, "..", "..", "supabase", "migrations", "20261021090000_paiement_en_ligne.sql"), "utf8");
 const debutPaires = sql.indexOf("(old.etat, new.etat) in (");
 const finPaires = sql.indexOf(")) then", debutPaires);
 const pairesSql = [...sql.slice(debutPaires, finPaires).matchAll(/\('([a-z_]+)',\s*'([a-z_]+)'\)/g)].map((m) => `${m[1]}>${m[2]}`).sort();

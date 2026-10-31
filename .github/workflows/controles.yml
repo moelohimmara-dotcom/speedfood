@@ -26,11 +26,10 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: |
-            web/package-lock.json
+            package-lock.json
             supabase/rejeu/package-lock.json
 
-      - name: Installer le site
-        working-directory: web
+      - name: Installer les paquets (site et paquets partagés)
         run: npm ci
 
       - name: Installer l'outil de rejeu des migrations
@@ -38,17 +37,14 @@ jobs:
         run: npm ci
 
       - name: Types
-        working-directory: web
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Qualité du code
-        working-directory: web
+        working-directory: apps/web
         run: npx eslint
 
       - name: Tests purs
-        working-directory: web
         run: npm run test:unit
 
       - name: Tests de cloisonnement
-        working-directory: web
         run: npm run test:cloisonnement

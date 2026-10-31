@@ -45,4 +45,4 @@ L'offre gratuite donne environ 500 000 commandes Redis par mois (à confirmer su
 
 ## Évolution prévue
 
-Le code est derrière un seul point d'entrée (`appliquerLimites`, `web/src/lib/securite/limitation-debit.ts`) : il suivra sans changement dans l'API unique de l'architecture cible. Monter en gamme chez Upstash ne demande que de changer d'offre, pas de code.
+Le code est derrière un seul point d'entrée (`appliquerLimites`, `apps/web/src/lib/securite/limitation-debit.ts`) : il suivra sans changement dans l'API unique de l'architecture cible. Monter en gamme chez Upstash ne demande que de changer d'offre, pas de code.

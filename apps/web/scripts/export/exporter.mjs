@@ -153,7 +153,7 @@ for (const chemin of fichiers) {
 console.log(`  stockage ${BUCKET}${" ".repeat(18)} ${String(manifeste.fichiers.nombre).padStart(6)} fichiers (${manifeste.fichiers.octets} octets)`);
 
 // 5. Manifeste.
-manifeste.migrations = fs.readdirSync(path.join(racine, "..", "supabase", "migrations")).filter((f) => f.endsWith(".sql")).sort();
+manifeste.migrations = fs.readdirSync(path.join(racine, "..", "..", "supabase", "migrations")).filter((f) => f.endsWith(".sql")).sort();
 fs.writeFileSync(path.join(sortie, "manifeste.json"), JSON.stringify(manifeste, null, 1));
 
 // 6. Rotation : on garde les derniers exports seulement (dossiers au format AAAA-MM-JJ-HH-MM).

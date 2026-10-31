@@ -333,7 +333,8 @@ verifier("extraits", [
 
 // --- Francisation -----------------------------------------------------------------------------------------------------
 {
-  const dist = join(racine, "node_modules/@puckeditor/core/dist");
+  // Espace de travail npm : les paquets sont installés à la racine du dépôt (repli : dans le site).
+  const dist = [join(racine, "..", "..", "node_modules/@puckeditor/core/dist"), join(racine, "node_modules/@puckeditor/core/dist")].find((d) => existsSync(d)) ?? join(racine, "node_modules/@puckeditor/core/dist");
   const fichier = readdirSync(dist).find((f) => /^index-.*\.d\.mts$/.test(f) && readFileSync(join(dist, f), "utf8").includes("defaultDictionary"));
   const source = fichier ? readFileSync(join(dist, fichier), "utf8") : "";
   const bloc = source.slice(source.indexOf("defaultDictionary"), source.indexOf("};", source.indexOf("defaultDictionary")));

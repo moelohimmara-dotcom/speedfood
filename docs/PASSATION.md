@@ -1,6 +1,6 @@
 # Passation : reprendre Speedfood et continuer le travail
 
-> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `web/src/`, `web/public/`, `web/scripts/`, et les commandes `npm run …` se lancent depuis `web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
+> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `apps/web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/`, et les commandes `npm run …` se lancent depuis `apps/web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 Document de référence pour qu'une équipe de développement reprenne le projet **sans l'auteur ni l'historique des conversations**. État au **25 octobre 2026** (application Android **2.40.0**, code de version 42 ; production = dépôt, vérifié). Il ne contient **aucune valeur secrète**, seulement des noms et des emplacements.
 

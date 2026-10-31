@@ -1,6 +1,6 @@
 # Reprise de projet : continuer Speedfood sans l'auteur
 
-> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `web/src/`, `web/public/`, `web/scripts/`, et les commandes `npm run …` se lancent depuis `web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
+> **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `apps/web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/`, et les commandes `npm run …` se lancent depuis `apps/web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 Document de référence pour reprendre le projet à froid. Rédigé le 10 octobre 2026, mis à jour le **16 octobre 2026**.
 **Il ne contient aucune valeur secrète**, seulement des noms. Sources de vérité complémentaires :

@@ -1,0 +1,10 @@
+{
+  "name": "speedfood",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspace @speedfood/web",
+    "test:cloisonnement": "npm run test:cloisonnement --workspace @speedfood/web"
+  }
+}

@@ -5,7 +5,7 @@
       "name": "speedfood-nextjs",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "--prefix", "web", "run",
+        "--prefix", "apps/web", "run",
         "dev"
       ],
       "port": 3000
@@ -14,7 +14,7 @@
       "name": "speedfood-prod",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "--prefix", "web", "run",
+        "--prefix", "apps/web", "run",
         "start"
       ],
       "port": 3000
