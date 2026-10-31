@@ -25,10 +25,16 @@ function trier(valeur) {
 }
 
 /** Liste des écarts entre les deux adresses, pour chaque chemin. Vide si tout est identique. */
-export async function comparerRoutes(base1, base2, chemins, envoyer = fetch) {
+// Par défaut, une réponse hors 2xx (d'un côté ou des deux) est un écart : deux erreurs identiques ne doivent pas passer pour « 0 écart ».
+// `options.tolererNon2xx` permet de comparer volontairement des erreurs.
+export async function comparerRoutes(base1, base2, chemins, envoyer = fetch, options = {}) {
   const ecarts = [];
   for (const chemin of chemins) {
     const [a, b] = await Promise.all([lire(base1, chemin, envoyer), lire(base2, chemin, envoyer)]);
+    if (!options.tolererNon2xx) {
+      if (a.statut < 200 || a.statut > 299) ecarts.push(`${chemin} : statut ${a.statut} hors 2xx (référence)`);
+      if (b.statut < 200 || b.statut > 299) ecarts.push(`${chemin} : statut ${b.statut} hors 2xx (candidate)`);
+    }
     const champs = [["statut", "statut"], ["typeContenu", "type de contenu"], ["cache", "cache"]];
     for (const [champ, nom] of champs) {
       if (a[champ] !== b[champ]) ecarts.push(`${chemin} : ${nom} ${JSON.stringify(a[champ])} ≠ ${JSON.stringify(b[champ])}`);
