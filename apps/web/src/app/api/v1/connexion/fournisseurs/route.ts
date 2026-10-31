@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { connexionClientActive } from "@/lib/client/reglage";
+import { relaisSiActif } from "@/lib/api/relais";
 
 /**
  * Connexions par réseau social que l'équipe a ouvertes aux clients (route PUBLIQUE, sans compte : l'application la lit avant la connexion). Ne contient que l'état de l'interrupteur
  * « Connexion Facebook » de `/system/parametres`, déjà visible par n'importe quel visiteur du site (le bouton Facebook de `/entrer`). Tant que Facebook n'est pas prêt côté Meta,
  * l'interrupteur reste décoché et l'application n'affiche pas le bouton. En cas d'erreur, l'état « fermé » est renvoyé : jamais un bouton qui échouerait.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const relais = await relaisSiActif(request, "public");
+  if (relais) return relais;
   let facebook = false;
   try {
     facebook = await connexionClientActive();

@@ -2,6 +2,7 @@ import { repondre, repondreErreur, utilisateurDuJeton } from "@/lib/api/v1";
 import { lireRolesCompte } from "@/lib/api/moi-service";
 import { limiterClientApplication } from "@/lib/securite/limitation-debit";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
+import { relaisSiActif } from "@/lib/api/relais";
 
 /**
  * Quels espaces ce compte peut-il ouvrir dans l'application ? Le client est l'espace de tout le monde ; les espaces professionnels (restaurateur, livreur, équipe
@@ -9,6 +10,8 @@ import { ErreurMetier } from "@/lib/contracts/erreurs";
  * d'un espace revérifie le droit elle-même. Un compte sans rôle reçoit trois valeurs vides, jamais une erreur (la route ne révèle rien sur l'existence des espaces).
  */
 export async function GET(request: Request) {
+  const relais = await relaisSiActif(request, "moi");
+  if (relais) return relais;
   const utilisateur = await utilisateurDuJeton(request);
   if (!utilisateur) return repondreErreur({ code: "NON_AUTHENTIFIE", message: "Connectez-vous avec votre compte." });
   try {

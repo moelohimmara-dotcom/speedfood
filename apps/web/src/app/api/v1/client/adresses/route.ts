@@ -1,9 +1,12 @@
 import { lireCorpsJson, repondre, repondreErreur } from "@/lib/api/v1";
 import { clientAuthentifie } from "@/lib/api/v1-client";
 import { actionAdresseClient } from "@/lib/client/espace-service";
+import { relaisSiActif } from "@/lib/api/relais";
 
 /** Écriture sur le compte connecté (adresses) : mêmes règles et mêmes limites que le site ; l'identité vient du jeton. */
 export async function POST(request: Request) {
+  const relais = await relaisSiActif(request, "client");
+  if (relais) return relais;
   const auth = await clientAuthentifie(request);
   if (!auth.ok) return auth.reponse;
   const lu = await lireCorpsJson(request);
