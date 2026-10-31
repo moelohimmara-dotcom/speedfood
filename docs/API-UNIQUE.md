@@ -141,10 +141,14 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 
 `wrangler dev --local` (workerd local, port 8788) comparé à la production du site, deux GET publics en lecture seule : **2 routes identiques, 0 écart** (`version`, `aide`). Les huit autres routes ne l'ont pas été (aucun essai réel avant la Tâche 10).
 
+## Mise en production (31 octobre 2026)
+
+Worker `speedfood-api` créé par Malika (version 5385f34c), site redéployé (f3975d7d). Relais allumé pour `public,moi,client`. Parité face à la production : `version`, `aide`, `connexion/fournisseurs` (0 écart) ; `moi` et `client/espace` avec un vrai jeton, via `apps/api/scripts/test-jeton-reel.mjs` (le mot de passe est saisi par la personne, masqué, le jeton reste en mémoire) : identiques. Reste éteint : `livraison`. Retour arrière : `API_RELAIS=non`.
+
 ## Ce qui n'est PAS vérifié
 
 - **L'adresse que Cloudflare met dans `cf-connecting-ip`** pour un appel entre deux Workers : le plan ne s'y fie pas (le secret de relais contourne la question).
-- **La parité de `lireRolesCompte` et de l'espace client avec la production, sans vrai jeton** : le service extrait n'est pas testé unitairement (requêtes de base) ; seul l'essai avec un vrai jeton (Tâche 10) la confirmera.
+- **La parité de `lireRolesCompte` et de l'espace client avec la production, sans vrai jeton** : le service extrait n'est pas testé unitairement (requêtes de base) ; l'essai avec un vrai jeton du 31 octobre 2026 a confirmé `moi` et `client/espace` (lectures) ; les écritures restent jamais comparées.
 - **Le coût du relais dans l'offre gratuite** : une sous-requête de plus par appel et deux invocations ; si le relais soulage réellement le Worker du site n'est pas mesuré.
 - **L'émetteur `iss` réel d'un vrai jeton Supabase du projet** : jamais lu ; seuls des jetons de test l'ont exercé.
 - **`process.env` sous workerd en production** : les services du site lisent leur configuration par `process.env` ; que les variables et secrets du Worker apparaissent bien dans `process.env` (drapeau `nodejs_compat`, date de compatibilité) est supposé.
