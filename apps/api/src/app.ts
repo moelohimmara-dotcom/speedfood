@@ -3,6 +3,8 @@ import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { entetesCourants } from "./cales/next-headers.ts";
 import { reponseErreur } from "./http.ts";
 import { routeAide } from "./routes/aide.ts";
+import { routeClient } from "./routes/client.ts";
+import { routeEstimation } from "./routes/estimation.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
 import { routeMoi } from "./routes/moi.ts";
 import { routeVersion } from "./routes/version.ts";
@@ -23,6 +25,8 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/aide", routeAide(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
   app.route("/api/v1/moi", routeMoi(deps));
+  app.route("/api/v1/client", routeClient(deps));
+  app.route("/api/v1/livraison/estimation", routeEstimation(deps));
 
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {
