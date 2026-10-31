@@ -1,9 +1,19 @@
 // Usage : npm run comparer -- [--tolerer-non-2xx] [--jeton-env NOM] [--methode POST] [--corps '{"a":1}'] <urlReference> <urlCandidate> <chemin> [<chemin>…]
 // Exemple : npm run comparer -- https://speedfood-app.moelohimmara.workers.dev http://localhost:8788 /api/v1/version /api/v1/aide
 // --jeton-env NOM : NOM est une variable d'environnement qui contient un jeton porteur ; il est envoyé aux deux adresses et jamais affiché.
+// Codes de sortie : 0 = aucun écart, 1 = écarts, 2 = usage ou erreur (aucune valeur sensible n'est jamais affichée).
 import { comparerRoutes } from "./comparateur.mjs";
 
 const USAGE = "Usage : npm run comparer -- [--tolerer-non-2xx] [--jeton-env NOM] [--methode POST] [--corps JSON] <urlReference> <urlCandidate> <chemin> [<chemin>…]";
+const NOM_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const JETON_VALIDE = /^[\x21-\x7E]+$/; // ASCII visible seulement : ni espace, ni retour à la ligne, ni accent
+const HOTES_LOCAUX = ["localhost", "127.0.0.1", "[::1]"];
+
+// Pas de process.exit : sous Windows il plante (0xC0000409) au lieu de rendre le code voulu.
+function erreur(message) {
+  console.error(message);
+  process.exitCode = 2;
+}
 
 // Lit les options ; les options à valeur consomment l'argument suivant. Renvoie null si une valeur manque.
 function lireArguments(brut) {
@@ -22,38 +32,63 @@ function lireArguments(brut) {
   return resultat;
 }
 
+// Hôte d'une adresse, ou null si elle est illisible. Les identifiants éventuels de l'adresse ne sont pas conservés.
+function lireAdresse(texte) {
+  try {
+    const url = new URL(texte);
+    return { protocole: url.protocol, hote: url.host, nomHote: url.hostname };
+  } catch {
+    return null;
+  }
+}
+
 const lus = lireArguments(process.argv.slice(2));
 const [reference, candidate, ...chemins] = lus ? lus.positionnels : [];
 if (!lus || !reference || !candidate || chemins.length === 0) {
-  console.error(USAGE);
-  // Pas de process.exit : sous Windows il plante (0xC0000409) au lieu de rendre le code voulu.
-  process.exitCode = 2;
+  erreur(USAGE);
+} else if (lus.corps !== undefined && lus.methode === undefined) {
+  erreur("--corps exige --methode (par exemple --methode POST)");
 } else {
   const options = { tolererNon2xx: lus.tolererNon2xx };
   if (lus.methode !== undefined) options.methode = lus.methode;
   if (lus.corps !== undefined) options.corps = lus.corps;
-  let jetonManquant = false;
+  let pret = true;
   if (lus.jetonEnv !== undefined) {
-    const jeton = process.env[lus.jetonEnv];
-    if (!jeton) {
-      // Le nom de la variable est affiché, jamais sa valeur.
-      console.error(`Variable d'environnement ${lus.jetonEnv} : variable absente ou vide`);
-      jetonManquant = true;
+    const adresses = [lireAdresse(reference), lireAdresse(candidate)];
+    if (!NOM_VALIDE.test(lus.jetonEnv)) {
+      // Peut-être le jeton lui-même au lieu du nom de la variable : rien n'est répété.
+      erreur("--jeton-env attend le NOM d'une variable d'environnement (lettres, chiffres, _) : valeur refusée, non affichée");
+      pret = false;
+    } else if (!process.env[lus.jetonEnv]) {
+      erreur(`Variable d'environnement ${lus.jetonEnv} : variable absente ou vide`);
+      pret = false;
+    } else if (!JETON_VALIDE.test(process.env[lus.jetonEnv])) {
+      erreur(`Variable d'environnement ${lus.jetonEnv} : jeton invalide (ASCII visible seulement, sans espace ni retour à la ligne) ; valeur non affichée`);
+      pret = false;
+    } else if (adresses.some((a) => a === null || (a.protocole !== "https:" && !(a.protocole === "http:" && HOTES_LOCAUX.includes(a.nomHote))))) {
+      erreur("Avec un jeton, chaque adresse doit être en https:// (ou http:// vers localhost, 127.0.0.1, [::1]) : envoi refusé, adresses non affichées");
+      pret = false;
     } else {
-      options.entetes = { authorization: "Bearer " + jeton };
+      options.entetes = { authorization: "Bearer " + process.env[lus.jetonEnv] };
+      console.error(`Jeton envoyé à : ${adresses[0].hote}, ${adresses[1].hote}`);
     }
   }
-  if (jetonManquant) {
-    process.exitCode = 2;
-  } else {
-    // Les options (qui portent le jeton) ne sont jamais journalisées.
-    const ecarts = await comparerRoutes(reference, candidate, chemins, fetch, options);
-    if (ecarts.length === 0) {
-      console.log(`${chemins.length} route(s) identiques : 0 écart`);
-    } else {
-      console.error(`ECHEC : ${ecarts.length} écart(s)`);
-      for (const ecart of ecarts) console.error(`  ${ecart}`);
-      process.exitCode = 1;
+  if (pret) {
+    // Les options (qui portent le jeton) ne sont jamais journalisées, ni le message ni la trace d'une exception.
+    let ecarts = null;
+    try {
+      ecarts = await comparerRoutes(reference, candidate, chemins, fetch, options);
+    } catch {
+      erreur("Requête impossible (adresse injoignable, méthode ou en-tête refusé) : détails non affichés");
+    }
+    if (ecarts !== null) {
+      if (ecarts.length === 0) {
+        console.log(`${chemins.length} route(s) identiques : 0 écart`);
+      } else {
+        console.error(`ECHEC : ${ecarts.length} écart(s)`);
+        for (const ecart of ecarts) console.error(`  ${ecart}`);
+        process.exitCode = 1;
+      }
     }
   }
 }

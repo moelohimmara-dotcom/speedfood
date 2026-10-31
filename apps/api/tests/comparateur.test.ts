@@ -156,7 +156,68 @@ test("CLI : le jeton est envoyé aux deux adresses avec méthode et corps, et n'
     assert.ok(!r.sortie.includes(JETON));
     assert.equal(recus.length, 2);
     for (const v of recus) assert.deepEqual(v, { methode: "POST", auth: `Bearer ${JETON}`, corps: '{"a":1}' });
+    // Le CLI signale où part le jeton : hôtes seulement.
+    assert.ok(r.sortie.includes(`Jeton envoyé à : ${new URL(base).host}, ${new URL(base).host}`));
   } finally { await new Promise<void>((ok) => http.close(() => ok())); }
+});
+
+// --- Chemins d'erreur : code 2 et la valeur du jeton n'apparaît jamais (stdout + stderr) ---
+const LOCAL = "http://127.0.0.1:1";
+
+function verifierSansFuite(r: { code: number | null; sortie: string }, valeur: string) {
+  assert.equal(r.code, 2);
+  assert.ok(!r.sortie.includes(valeur), "la valeur ne doit jamais apparaître");
+  assert.ok(!/TypeError|at .*\.mjs|node:internal/.test(r.sortie), "aucune trace d'exception");
+}
+
+test("CLI : jeton invalide (retour à la ligne interne) : code 2, aucune valeur ni trace", () => {
+  const r = lancer(["--jeton-env", "JETON_ESSAI", LOCAL, LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC\nDEUX" });
+  verifierSansFuite(r, "SECRET-ABC");
+  assert.ok(!r.sortie.includes("DEUX"));
+  assert.ok(r.sortie.includes("jeton invalide"));
+});
+
+test("CLI : jeton avec espace ou accent : code 2, valeur non affichée", () => {
+  for (const jeton of ["SECRET ABC", "SECRETé-ABC"]) {
+    verifierSansFuite(lancer(["--jeton-env", "JETON_ESSAI", LOCAL, LOCAL, "/x"], { JETON_ESSAI: jeton }), jeton);
+  }
+});
+
+test("CLI : le jeton passé à la place du NOM de la variable n'est jamais répété", () => {
+  const faux = "Bearer.SECRET-DIRECT=123";
+  const r = lancer(["--jeton-env", faux, LOCAL, LOCAL, "/x"], {});
+  verifierSansFuite(r, faux);
+  assert.ok(!r.sortie.includes("SECRET-DIRECT"));
+});
+
+test("CLI : avec un jeton, une adresse http:// hors boucle locale est refusée (code 2), adresses non affichées", () => {
+  const r = lancer(["--jeton-env", "JETON_ESSAI", "http://exemple.invalid", LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+  verifierSansFuite(r, "SECRET-ABC");
+  assert.ok(!r.sortie.includes("exemple.invalid"));
+  assert.ok(!r.sortie.includes("Jeton envoyé à"));
+});
+
+test("CLI : avec un jeton, une adresse illisible est refusée (code 2)", () => {
+  verifierSansFuite(lancer(["--jeton-env", "JETON_ESSAI", "pas-une-adresse", LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" }), "SECRET-ABC");
+});
+
+test("CLI : rejet réseau avec jeton présent : code 2 (pas 1), message propre, aucune valeur ni trace", () => {
+  const r = lancer(["--jeton-env", "JETON_ESSAI", LOCAL, LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+  verifierSansFuite(r, "SECRET-ABC");
+  assert.ok(r.sortie.includes("Requête impossible"));
+});
+
+test("CLI : méthode refusée par fetch avec jeton présent : code 2, aucune valeur ni trace", () => {
+  const r = lancer(["--jeton-env", "JETON_ESSAI", "--methode", "PAS UNE METHODE", LOCAL, LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+  verifierSansFuite(r, "SECRET-ABC");
+  // Le message de l'exception de fetch cite la méthode fautive : il ne doit pas être réimprimé.
+  assert.ok(!r.sortie.includes("PAS UNE"));
+});
+
+test("CLI : --corps sans --methode : code 2 et message propre", () => {
+  const r = lancer(["--corps", '{"a":1}', LOCAL, LOCAL, "/x"], {});
+  assert.equal(r.code, 2);
+  assert.ok(r.sortie.includes("--corps exige --methode"));
 });
 
 
