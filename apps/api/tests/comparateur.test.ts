@@ -146,7 +146,7 @@ test("CLI : le jeton est envoyé aux deux adresses avec méthode et corps, et n'
   try {
     const r = await new Promise<{ code: number | null; sortie: string }>((ok) => {
 
-      const enfant = spawnAsync(process.execPath, [SCRIPT, "--jeton-env", "JETON_ESSAI", "--methode", "POST", "--corps", '{"a":1}', base, base, "/x"], { env: { ...process.env, JETON_ESSAI: JETON } });
+      const enfant = spawnAsync(process.execPath, [SCRIPT, "--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "POST", "--corps", '{"a":1}', base, base, "/x"], { env: { ...process.env, JETON_ESSAI: JETON } });
       let sortie = "";
       enfant.stdout.on("data", (d: Buffer) => (sortie += d));
       enfant.stderr.on("data", (d: Buffer) => (sortie += d));
@@ -239,5 +239,77 @@ test("CLI : --corps sans --methode : code 2 et message propre", () => {
   assert.ok(r.sortie.includes("--corps exige --methode"));
 });
 
+// Version asynchrone de `lancer` : indispensable quand le serveur de l'essai tourne dans CE processus (spawnSync bloquerait sa boucle d'événements).
+function lancerAsync(args: string[], env: Record<string, string>) {
+  return new Promise<{ code: number | null; sortie: string }>((ok) => {
+    const enfant = spawnAsync(process.execPath, [SCRIPT, ...args], { env: { ...process.env, ...env } });
+    let sortie = "";
+    enfant.stdout.on("data", (d: Buffer) => (sortie += d));
+    enfant.stderr.on("data", (d: Buffer) => (sortie += d));
+    enfant.on("close", (code: number | null) => ok({ code, sortie }));
+  });
+}
 
+// --- Réserve 11 : une écriture avec jeton exige --autoriser-ecriture ---
+async function serveurCompteur() {
+  const recus: { methode: string; auth: string }[] = [];
+  const http = createServer((q, r) => {
+    recus.push({ methode: q.method ?? "", auth: String(q.headers.authorization ?? "") });
+    r.writeHead(200, { "content-type": "application/json" }).end("{}");
+    q.resume();
+  });
+  await new Promise<void>((ok) => http.listen(0, "127.0.0.1", ok));
+  return { base: `http://127.0.0.1:${(http.address() as AddressInfo).port}`, recus, fermer: () => new Promise<void>((ok) => http.close(() => ok())) };
+}
 
+test("CLI : une écriture avec jeton sans --autoriser-ecriture est refusée (code 2), aucune requête, aucune valeur affichée", async () => {
+  const s = await serveurCompteur();
+  try {
+    for (const methode of ["POST", "PUT", "PATCH", "DELETE", "post", "OPTIONS"]) {
+      const r = await lancerAsync(["--jeton-env", "JETON_ESSAI", "--methode", methode, "--corps", '{"a":1}', s.base, s.base, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+      verifierSansFuite(r, "SECRET-ABC");
+      assert.ok(r.sortie.includes("--autoriser-ecriture"), "le message nomme le drapeau");
+      assert.ok(!r.sortie.includes("Jeton envoyé à"));
+      assert.ok(!r.sortie.includes(s.base), "les adresses ne sont pas répétées");
+    }
+    assert.equal(s.recus.length, 0, "aucune requête n'est partie");
+  } finally { await s.fermer(); }
+});
+
+test("CLI : une écriture avec jeton et --autoriser-ecriture vers 127.0.0.1 est envoyée aux deux adresses", async () => {
+  const s = await serveurCompteur();
+  try {
+    const r = await lancerAsync(["--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "PUT", "--corps", "{}", s.base, s.base, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+    assert.equal(r.code, 0);
+    assert.ok(!r.sortie.includes("SECRET-ABC"));
+    assert.deepEqual(s.recus, [{ methode: "PUT", auth: "Bearer SECRET-ABC" }, { methode: "PUT", auth: "Bearer SECRET-ABC" }]);
+  } finally { await s.fermer(); }
+});
+
+test("CLI : --autoriser-ecriture ne desserre pas les autres gardes (http hors boucle locale toujours refusé)", () => {
+  const r = lancer(["--jeton-env", "JETON_ESSAI", "--autoriser-ecriture", "--methode", "POST", "http://exemple.invalid", LOCAL, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+  verifierSansFuite(r, "SECRET-ABC");
+  assert.ok(!r.sortie.includes("exemple.invalid"));
+});
+
+test("CLI : lecture (GET, HEAD ou méthode absente) avec jeton : inchangé, sans drapeau", async () => {
+  const s = await serveurCompteur();
+  try {
+    for (const args of [[], ["--methode", "GET"], ["--methode", "get"], ["--methode", "HEAD"]]) {
+      const r = await lancerAsync(["--jeton-env", "JETON_ESSAI", ...args, s.base, s.base, "/x"], { JETON_ESSAI: "SECRET-ABC" });
+      assert.equal(r.code, 0, r.sortie);
+      assert.ok(!r.sortie.includes("SECRET-ABC"));
+    }
+    assert.equal(s.recus.length, 8);
+    assert.ok(s.recus.every((v) => v.auth === "Bearer SECRET-ABC"));
+  } finally { await s.fermer(); }
+});
+
+test("CLI : une écriture SANS jeton n'exige pas le drapeau (rien d'identifiant n'est envoyé)", async () => {
+  const s = await serveurCompteur();
+  try {
+    const r = await lancerAsync(["--methode", "POST", "--corps", "{}", s.base, s.base, "/x"], {});
+    assert.equal(r.code, 0, r.sortie);
+    assert.equal(s.recus.length, 2);
+  } finally { await s.fermer(); }
+});

@@ -1,4 +1,4 @@
-import { adresseIpPlausible, ipVisiteurDepuisEntetes, moduleRelaye, relayer } from "../../src/lib/api/relais-regles";
+import { adresseIpPlausible, creerSignalUnique, decisionRelais, ipVisiteurDepuisEntetes, moduleRelaye, relayer } from "../../src/lib/api/relais-regles";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -93,6 +93,85 @@ async function essai(requete: Request, repli: boolean, envoyer: typeof fetch) {
   const r = await essai(ecriture, false, envoyer);
   const texte = (await r?.text()) ?? "";
   verifier("la réponse d'erreur ne contient ni le secret ni le jeton", [texte.includes("s3cret"), texte.includes("jeton.secret.x")], [false, false]);
+}
+
+// --- Réserves 4 et 12 : réponses de l'API sans corps (null body status) ---
+for (const statut of [204, 205, 304]) {
+  const envoyer = (async () => new Response(null, { status: statut, headers: { "cache-control": "no-store" } })) as unknown as typeof fetch;
+  const lecture = new Request("https://site.test/api/v1/client/espace", { method: "GET" });
+  let r: Response | null | undefined;
+  let leve = false;
+  try { r = await essai(lecture, true, envoyer); } catch { leve = true; }
+  verifier(`réponse ${statut} de l'API sans corps : rendue telle quelle, sans plantage ni repli`, [leve, r?.status, r?.body, r?.headers.get("cache-control")], [false, statut, null, "no-store"]);
+}
+{
+  const envoyer = (async () => new Response("", { status: 200, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
+  const r = await essai(new Request("https://site.test/api/v1/aide", { method: "GET" }), true, envoyer);
+  verifier("réponse 200 au corps vide : rendue (200, texte vide)", [r?.status, await r?.text()], [200, ""]);
+}
+{
+  // Une écriture suivie d'un 204 ne devient jamais une erreur 500.
+  const envoyer = (async () => new Response(null, { status: 204 })) as unknown as typeof fetch;
+  const r = await essai(new Request("https://site.test/api/v1/client/favoris", { method: "DELETE", body: "{}" }), false, envoyer);
+  verifier("écriture suivie d'un 204 : 204 rendu, pas ERREUR_SERVEUR", r?.status, 204);
+}
+
+// --- Réserve 3 : HEAD ---
+{
+  const appels: Appel[] = [];
+  const envoyer = (async (url: string, init: RequestInit) => { appels.push({ url, init }); return new Response(null, { status: 200, headers: { "content-type": "application/json" } }); }) as unknown as typeof fetch;
+  const r = await essai(new Request("https://site.test/api/v1/aide", { method: "HEAD" }), true, envoyer);
+  verifier("HEAD relayé sans corps", [r?.status, appels[0]?.init.method, appels[0]?.init.body], [200, "HEAD", undefined]);
+  const panne = (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch;
+  verifier("HEAD : panne réseau → repli (null)", await essai(new Request("https://site.test/api/v1/aide", { method: "HEAD" }), true, panne), null);
+}
+
+// --- Réserves 1, 2, 3, 10 : décision pure ---
+const SECRET32 = "0123456789abcdef0123456789abcdef";
+const ENV_OK = { API_RELAIS: "tout", API_URL: "https://api.exemple.test", RELAIS_SECRET: SECRET32 };
+const req = (methode: string) => ({ method: methode });
+const type = (d: { type: string }) => d.type;
+
+verifier("décision : éteint si API_RELAIS absent, vide, « non » (même mal configuré)", [
+  type(decisionRelais({}, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, API_RELAIS: "" }, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, API_RELAIS: "non" }, "client", req("GET"))),
+  type(decisionRelais({ API_RELAIS: "non", API_URL: "http://pirate.test", RELAIS_SECRET: "x" }, "client", req("GET"))),
+], ["eteint", "eteint", "eteint", "eteint"]);
+verifier("décision : éteint pour un module non listé", type(decisionRelais({ ...ENV_OK, API_RELAIS: "moi" }, "client", req("GET"))), "eteint");
+verifier("décision : relayer, avec base, secret et repli possible pour GET", decisionRelais(ENV_OK, "client", req("GET")), { type: "relayer", baseApi: "https://api.exemple.test", secret: SECRET32, repliPossible: true });
+verifier("décision : repli permis pour GET et HEAD seulement", ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"].map((m) => { const d = decisionRelais(ENV_OK, "client", req(m)); return d.type === "relayer" && d.repliPossible; }), [true, true, false, false, false, false, false]);
+verifier("décision : mal configuré si API_URL ou RELAIS_SECRET absent ou vide", [
+  type(decisionRelais({ API_RELAIS: "tout", RELAIS_SECRET: SECRET32 }, "client", req("GET"))),
+  type(decisionRelais({ API_RELAIS: "tout", API_URL: "", RELAIS_SECRET: SECRET32 }, "client", req("GET"))),
+  type(decisionRelais({ API_RELAIS: "tout", API_URL: "https://api.exemple.test" }, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "" }, "client", req("GET"))),
+], ["mal-configure", "mal-configure", "mal-configure", "mal-configure"]);
+verifier("décision : secret de moins de 32 caractères = mal configuré (31 refusé, 32 accepté)", [
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "a".repeat(31) }, "client", req("GET"))),
+  type(decisionRelais({ ...ENV_OK, RELAIS_SECRET: "a".repeat(32) }, "client", req("GET"))),
+], ["mal-configure", "relayer"]);
+verifier("décision : API_URL en http:// hors boucle locale = mal configuré (le secret ne part jamais en clair)", [
+  "http://api.exemple.test", "http://localhost.evil.test", "http://10.0.0.1", "ftp://api.exemple.test", "api.exemple.test", "//api.exemple.test", "https:/", "pas une adresse",
+].map((u) => type(decisionRelais({ ...ENV_OK, API_URL: u }, "client", req("GET")))), Array(8).fill("mal-configure"));
+verifier("décision : http:// toléré seulement vers localhost, 127.0.0.1 et [::1]", [
+  "http://localhost:8788", "http://127.0.0.1:8788", "http://[::1]:8788", "http://LOCALHOST",
+].map((u) => type(decisionRelais({ ...ENV_OK, API_URL: u }, "client", req("GET")))), Array(4).fill("relayer"));
+verifier("décision : https:// accepté, avec port", type(decisionRelais({ ...ENV_OK, API_URL: "https://api.exemple.test:8443" }, "client", req("GET"))), "relayer");
+verifier("décision : API_URL avec identifiants (user:pass@) refusée, en https comme en http local", [
+  "https://user:pass@api.exemple.test", "https://user@api.exemple.test", "http://u:p@localhost:8788",
+].map((u) => type(decisionRelais({ ...ENV_OK, API_URL: u }, "client", req("GET")))), Array(3).fill("mal-configure"));
+verifier("décision : la décision mal configurée ne contient ni le secret ni l'adresse", JSON.stringify(decisionRelais({ ...ENV_OK, API_URL: "http://api.exemple.test" }, "client", req("GET"))), '{"type":"mal-configure"}');
+
+// --- Réserve 5 : journal une seule fois par isolat ---
+{
+  let ecritures = 0;
+  const signaler = creerSignalUnique(() => { ecritures++; });
+  signaler(); signaler(); signaler();
+  verifier("signal unique : écrit une seule fois malgré trois appels", ecritures, 1);
+  const autre = creerSignalUnique(() => { ecritures++; });
+  autre();
+  verifier("signal unique : chaque signal a son propre drapeau (réinitialisable en recréant le signal)", ecritures, 2);
 }
 
 if (ko > 0) {

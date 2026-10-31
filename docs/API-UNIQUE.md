@@ -108,15 +108,15 @@ Le site peut transmettre à l'API les requêtes de dix routes (garde de deux lig
 
 Modules : `public` (`version`, `aide`, `connexion/fournisseurs`), `moi`, `client` (`espace`, `favoris`, `profil`, `adresses`, `compte`), `livraison` (`estimation`).
 
-**Pose du secret** : `RELAIS_SECRET` se pose avec `wrangler secret put` sur les **DEUX** Workers (site et API), avec la **même** valeur, **aléatoire d'au moins 32 octets**, générée et saisie par Malika. Jamais dans le chat, jamais dans un fichier du dépôt.
+**Pose du secret** : `RELAIS_SECRET` se pose avec `wrangler secret put` sur les **DEUX** Workers (site et API), avec la **même** valeur, **aléatoire d'au moins 32 caractères (en dessous, le site et l'API refusent de s'en servir)**, générée et saisie par Malika. Jamais dans le chat, jamais dans un fichier du dépôt.
 
 ### Règles (Tâche 8)
 
 1. Éteint par défaut : zéro appel réseau, zéro lecture de corps.
-2. Allumé mais mal configuré (`API_URL` ou `RELAIS_SECRET` absent) : le site traite lui-même, journal `relais_mal_configure` (nom seul).
+2. Allumé mais mal configuré (`API_URL` absente, illisible, avec identifiants, en `http://` hors boucle locale ; `RELAIS_SECRET` absent ou de moins de 32 caractères) : le site traite lui-même, journal `relais_mal_configure` (nom seul, une fois par isolat).
 3. Transmis : méthode, chemin et chaîne de requête, `authorization`, `content-type`, corps tel quel, `x-relais-secret` et `x-relais-ip` (`cf-connecting-ip` de la requête reçue, à défaut le premier `x-forwarded-for`, seulement si la valeur a l'allure d'une adresse IP). **Rien d'autre** : les cookies ne traversent jamais.
-4. Réponse : statut, corps, `content-type` et `cache-control` de l'API, rendus tels quels.
-5. Échec réseau ou délai dépassé (2 500 ms) : repli (le site traite lui-même) **seulement pour une lecture (GET)** ; pour une écriture, 500 `ERREUR_SERVEUR` : une écriture dont on ne sait pas si elle est partie ne se rejoue jamais. Une réponse 5xx de l'API n'est **jamais** un déclencheur de repli.
+4. Réponse : statut, corps, `content-type` et `cache-control` de l'API, rendus tels quels (sans corps pour 204, 205, 304).
+5. Échec réseau ou délai dépassé (2 500 ms) : repli (le site traite lui-même) **seulement pour une lecture (GET, HEAD)** ; pour une écriture, 500 `ERREUR_SERVEUR` : une écriture dont on ne sait pas si elle est partie ne se rejoue jamais. Une réponse 5xx de l'API n'est **jamais** un déclencheur de repli.
 6. Le secret et le jeton ne sont jamais journalisés ni rendus.
 
 ### Ce que fait l'API du secret (`src/identite/relais.ts`)
@@ -155,20 +155,25 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 - **`COMMANDE_JETON_SECRET`** : absent de `apps/web/.env.local`, donc jamais préparé dans `.dev.vars` ; les routes de commande du plan 1c en auront besoin.
 - Aucun essai de charge, aucune écriture réelle.
 
-## Réserves de relecture à traiter AVANT d'allumer le relais
+## Réserves traitées le 1er novembre 2026
 
-1. `relais.ts` (côté site) n'est couvert par aucun test : extraire une décision pure.
-2. `API_URL` en `http://` est accepté : exiger `https` sauf pour `localhost`.
-3. Une requête `HEAD` n'a pas de repli.
-4. Une réponse 204 ou 304 de l'API ferait planter la reconstruction de la réponse (`new Response` avec corps).
-5. Le journal `relais_mal_configure` s'écrit à chaque requête.
-6. Le délai de 2 500 ms couvre aussi la lecture du corps de la réponse : une écriture déjà traitée par l'API peut renvoyer 500 au client. À documenter côté application.
-7. `x-relais-ip` : la forme doit aussi être contrôlée côté API (longueur <= 45, caractères `[0-9a-fA-F:.]`).
-8. `worker.ts` : le `?? ""` sur l'URL Supabase du mode local (à traiter au plan 1c).
-9. Aucun test n'exécute `worker.ts` pour prouver que les secrets sont lus à l'appel.
-10. `identite/relais.ts` fait confiance à tout secret non vide : ne faire confiance qu'à un secret de relais d'au moins 32 caractères.
-11. Le comparateur accepte `--methode POST` avec un jeton vers n'importe quel hôte https, production comprise : l'empêcher d'envoyer une écriture vers la production sans drapeau explicite (`--autoriser-ecriture`).
-12. `relais-regles.ts` plante sur les réponses 204, 205 et 304 (confirmé par sonde) ; la réserve 4 en est la même cause.
+Lot « réserves avant allumage » (commit : `@@HASH@@`). Chaque ligne n'est marquée faite que si un test échoue quand on casse le code (mutation vérifiée ; détail dans `.sdd/etape-1b-reserves/rapport.md`).
+
+1. **Décision pure testée** (`decisionRelais` dans `relais-regles.ts`) : éteint / mal configuré / relayer ; `relais.ts` n'est plus qu'une colle de quelques lignes (lecture de `process.env`, journal, appel). Tests dans `apps/web/scripts/tests/relais.test.mts`. Non vérifié : l'exécution de la colle dans Next (aucun test ne lance Next).
+2. **`API_URL`** : `https://` exigé ; `http://` toléré seulement vers `localhost`, `127.0.0.1`, `[::1]` ; identifiants dans l'adresse (`user:pass@`) et adresse illisible refusés. Sinon : mal configuré (le site traite lui-même, aucune requête, le secret ne part jamais en clair).
+3. **HEAD** traité comme GET : relayé sans corps, repli permis.
+4 et 12. **Réponses sans corps** (204, 205, 304, et 101/103) : la réponse est reconstruite sans corps, plus de plantage. Testé pour 204, 205, 304, une écriture suivie d'un 204, et un 200 au corps vide.
+5. **Journal `relais_mal_configure`** écrit une seule fois par isolat (`creerSignalUnique`, drapeau de module), sans secret ni adresse.
+7. **`x-relais-ip` côté API** : acceptée seulement si 45 caractères au plus et `[0-9a-fA-F:.]` uniquement ; sinon `cf-connecting-ip` inchangé (les deux en-têtes de relais sont toujours retirés).
+9. **Secrets lus à l'appel** : test **statique** sur le source de `worker.ts` (`apps/api/tests/worker-source.test.ts`) qui échoue si `process.env` est lu hors d'une fonction fléchée. Il ne prouve PAS que `worker.ts` s'exécute ni que `process.env` est rempli sous workerd (reste dans « Ce qui n'est PAS vérifié »).
+10. **Secret de 32 caractères au moins** : côté API, un secret attendu plus court n'accorde jamais la confiance (même si l'appelant envoie le même secret) ; côté site, un `RELAIS_SECRET` de moins de 32 caractères = mal configuré.
+11. **Comparateur** : une écriture (méthode autre que GET/HEAD) avec jeton est refusée (code 2, message sans valeur, aucune requête) sauf avec `--autoriser-ecriture` ; les autres gardes (https ou boucle locale, hôte) restent appliquées.
+
+## Réserves restantes
+
+- **6 (documenté ici, non corrigé)** : le délai de 2 500 ms couvre aussi la lecture du corps de la réponse. Une écriture déjà traitée par l'API peut donc renvoyer 500 au client (la requête n'est jamais rejouée, mais le client ne sait pas qu'elle a abouti). Le comportement attendu côté application (vérifier l'état avant de réessayer une écriture) reste **à documenter dans le guide de l'application** ; ce guide n'existe pas encore.
+- **8** : `worker.ts`, le `?? ""` sur l'URL Supabase du mode local, à traiter au plan 1c (le mode local n'est utilisé par aucune route de ce plan).
+- **9 (partielle)** : la lecture à l'appel est gardée par un test statique ; aucun test n'exécute `worker.ts`.
 
 ## À faire au plan 1b / 1c
 
@@ -177,10 +182,10 @@ Fait au plan 1b : panne JWKS distinguée du jeton invalide (et 408/429 du servic
 Reste :
 1. **Politique CORS.** L'API n'en a aucune (valeur sûre : l'application native n'en a pas besoin). À trancher si le navigateur du site appelle l'API.
 2. **Construire (`npm run build`) juste avant tout `wrangler dev` ou déploiement** : `no_bundle` sert `dist` tel quel, un `dist` périmé serait publié sans erreur. `npm run dev` le fait seul ; un déploiement manuel doit le faire explicitement.
-3. Les réserves de relecture ci-dessus, avant d'allumer le relais.
+3. Les réserves restantes ci-dessus (6, 8, 9 partielle) ; les autres sont traitées (1er novembre 2026).
 
 ## Ce qui reste
 
-- **Tâche 10** (mise en service, uniquement sur le feu vert de Malika, conduite avec elle, **trois feux verts distincts**) : (1) créer le Worker `speedfood-api` et poser ses secrets (dont `RELAIS_SECRET`, et **le même `COMMANDE_JETON_SECRET` que sur le site**, ou l'absence des deux : la clé des compteurs de limitation en dépend, sinon les compteurs du site et de l'API se séparent et les plafonds doublent pendant les replis et l'allumage progressif), vérifier avec le comparateur et, si Malika le veut, un vrai jeton ; (2) déployer le site avec `API_URL` et `RELAIS_SECRET`, `API_RELAIS` absent ; (3) allumer le relais module par module. Vérifications à y ajouter : les journaux du Worker de l'API (observabilité activée) ne gardent ni `x-relais-secret` ni `authorization` ; un appel direct du Worker du site vers `speedfood-api.*.workers.dev` fonctionne (sinon, liaison de service). Voir le plan, Tâche 10.
+- **Tâche 10** (mise en service, uniquement sur le feu vert de Malika, conduite avec elle, **trois feux verts distincts**) : (1) créer le Worker `speedfood-api` et poser ses secrets (dont `RELAIS_SECRET`, et **le même `COMMANDE_JETON_SECRET` que sur le site**, ou l'absence des deux : la clé des compteurs de limitation en dépend, sinon les compteurs du site et de l'API se séparent et les plafonds doublent pendant les replis et l'allumage progressif), vérifier avec le comparateur et, si Malika le veut, un vrai jeton (une écriture exige `--autoriser-ecriture`, jamais vers la production sans décision explicite) ; (2) déployer le site avec `API_URL` et `RELAIS_SECRET`, `API_RELAIS` absent ; (3) allumer le relais module par module. **Avant le feu vert 3** : les réserves traitées le 1er novembre 2026 sont en place ; restent à accepter ou traiter la 6 (écriture déjà traitée mais 500 rendu : à documenter dans le guide de l'application), la 8 (plan 1c) et la 9 (aucun test n'exécute `worker.ts`), et le secret posé sur les deux Workers fait au moins 32 caractères. Vérifications à y ajouter : les journaux du Worker de l'API (observabilité activée) ne gardent ni `x-relais-secret` ni `authorization` ; un appel direct du Worker du site vers `speedfood-api.*.workers.dev` fonctionne (sinon, liaison de service). Voir le plan, Tâche 10.
 - **Plan 1c** : routes du livreur, du restaurateur, de l'équipe, des commandes et du suivi ; mode local pour la position du livreur ; droits, validation, audit.
 - Contrôle GitHub vert sur la branche puis fusion en avance rapide dans `master` (rien n'est déployé par la fusion).

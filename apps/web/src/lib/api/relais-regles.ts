@@ -19,6 +19,56 @@ export function ipVisiteurDepuisEntetes(cfConnectingIp: string | null, xForwarde
   return adresseIpPlausible(brute) ? brute : null;
 }
 
+/** Réglages lus dans l'environnement par la colle (`relais.ts`) et injectés ici : aucune lecture de `process.env` dans ce fichier. */
+export type ReglagesRelais = { API_RELAIS?: string; API_URL?: string; RELAIS_SECRET?: string };
+
+/** Longueur minimale du secret partagé (même seuil que côté API) : en dessous, le relais est considéré mal configuré. */
+export const LONGUEUR_MIN_SECRET = 32;
+
+const HOTES_LOCAUX = ["localhost", "127.0.0.1", "[::1]"];
+
+/** Adresse de base de l'API acceptable : https://, ou http:// seulement vers la boucle locale ; sans identifiants ; lisible. Le secret ne part jamais en clair hors de la machine. */
+export function baseApiAcceptable(texte: string | undefined): texte is string {
+  if (!texte) return false;
+  try {
+    const url = new URL(texte);
+    if (url.username !== "" || url.password !== "") return false;
+    if (url.protocol === "https:") return true;
+    return url.protocol === "http:" && HOTES_LOCAUX.includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export type DecisionRelais =
+  | { type: "eteint" }
+  | { type: "mal-configure" }
+  | { type: "relayer"; baseApi: string; secret: string; repliPossible: boolean };
+
+/**
+ * Décision pure du garde de relais. « eteint » : aucun effet (aucun appel, aucune lecture du corps, aucun journal). « mal-configure » : le site traite lui-même (et journalise une fois) ;
+ * la décision ne porte ni le secret ni l'adresse. « relayer » : le repli est permis pour une lecture (GET, HEAD), jamais pour une écriture.
+ */
+export function decisionRelais(env: ReglagesRelais, module: string, request: { method: string }): DecisionRelais {
+  if (!moduleRelaye(env.API_RELAIS, module)) return { type: "eteint" };
+  const secret = env.RELAIS_SECRET;
+  if (!baseApiAcceptable(env.API_URL) || !secret || secret.length < LONGUEUR_MIN_SECRET) return { type: "mal-configure" };
+  return { type: "relayer", baseApi: env.API_URL, secret, repliPossible: request.method === "GET" || request.method === "HEAD" };
+}
+
+/** Rend une fonction qui n'exécute `ecrire` qu'à son premier appel (un drapeau par signal : l'isolat en crée un au chargement du module, un test en recrée un pour repartir de zéro). */
+export function creerSignalUnique(ecrire: () => void): () => void {
+  let fait = false;
+  return () => {
+    if (fait) return;
+    fait = true;
+    ecrire();
+  };
+}
+
+/** Statuts qui n'ont jamais de corps : `new Response(texte, …)` lèverait une exception. */
+const STATUTS_SANS_CORPS = [101, 103, 204, 205, 304];
+
 export type OptionsRelais = { baseApi: string; secret: string; ipVisiteur: string | null; envoyer?: typeof fetch; delaiMs?: number };
 
 const ERREUR_SERVEUR = { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." } };
@@ -50,7 +100,8 @@ export async function relayer(request: Request, chemin: string, options: Options
       const valeur = reponse.headers.get(nom);
       if (valeur) sortie.set(nom, valeur);
     }
-    return new Response(await reponse.text(), { status: reponse.status, headers: sortie });
+    const sansCorps = STATUTS_SANS_CORPS.includes(reponse.status);
+    return new Response(sansCorps ? null : await reponse.text(), { status: reponse.status, headers: sortie });
   } catch {
     if (repliPossible) return null;
     return new Response(JSON.stringify(ERREUR_SERVEUR), { status: 500, headers: { "content-type": "application/json", "cache-control": "no-store" } });
