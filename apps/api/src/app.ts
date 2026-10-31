@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { entetesCourants } from "./cales/next-headers.ts";
 import { reponseErreur } from "./http.ts";
+import { enteteRelaisDeConfiance } from "./identite/relais.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeClient } from "./routes/client.ts";
 import { routeEstimation } from "./routes/estimation.ts";
@@ -18,7 +19,10 @@ export function creerApp(deps: Deps) {
   const app = new Hono();
 
   // Premier maillon : les en-têtes de la requête sont disponibles, partout et sans paramètre, pour le code du site qui appelle `headers()`.
-  app.use("*", (c, suivant) => entetesCourants.run(c.req.raw.headers, suivant));
+  app.use("*", async (c, suivant) => {
+    const entetes = await enteteRelaisDeConfiance(c.req.raw.headers, deps.secretRelais());
+    return entetesCourants.run(entetes, suivant);
+  });
 
   app.get("/sante", (c) => c.json({ ok: true }, 200, SANS_CACHE));
   app.route("/api/v1/version", routeVersion(deps));
