@@ -1,19 +1,14 @@
 import { Hono } from "hono";
-import type { Context } from "hono";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
-import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
-import { statutHttp } from "@speedfood/shared/api/v1-regles";
 import { entetesCourants } from "./cales/next-headers.ts";
+import { reponseErreur } from "./http.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeVersion } from "./routes/version.ts";
 import type { Deps } from "./types.ts";
 
-const SANS_CACHE = { "Cache-Control": "no-store" };
+export { reponseErreur };
 
-/** Réponse d'erreur au contrat uniforme du site : `{ ok: false, erreur: { code, message } }`. */
-export function reponseErreur(c: Context, erreur: ErreurApi): Response {
-  return c.json({ ok: false, erreur }, statutHttp(erreur.code) as 400, SANS_CACHE);
-}
+const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export function creerApp(deps: Deps) {
   const app = new Hono();
@@ -28,7 +23,7 @@ export function creerApp(deps: Deps) {
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {
     if (erreur instanceof ErreurMetier) return reponseErreur(c, erreur.toApi());
-    console.error("api_erreur_non_geree");
+    console.error("api_erreur_non_geree", erreur instanceof Error ? erreur.name : "inconnue");
     return reponseErreur(c, { code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." });
   });
 
