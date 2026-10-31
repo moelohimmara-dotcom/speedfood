@@ -9,17 +9,40 @@ import { fileURLToPath } from "node:url";
 const source = readFileSync(fileURLToPath(new URL("../src/worker.ts", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
 const sansCommentaires = source.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/\/\/.*$/, ""));
 
-/** Pour chaque `process.env` du source : vrai s'il est dans le corps d'une fonction fléchée (accolades) ou juste après `=>` (corps en expression). */
+/** Vrai si l'expression qui commence en `debut` se termine par `)` suivi aussitôt de `(` : fonction fléchée appelée sur-le-champ, `(() => x)()`. */
+function expressionAppeleeAussitot(texte: string, debut: number): boolean {
+  let profondeur = 0;
+  for (let i = debut; i < texte.length; i++) {
+    const c = texte[i];
+    if (c === "(" || c === "[" || c === "{") profondeur++;
+    else if (c === ")" || c === "]" || c === "}") {
+      if (profondeur === 0) return c === ")" && /^\s*\(/.test(texte.slice(i + 1));
+      profondeur--;
+    } else if ((c === "," || c === ";") && profondeur === 0) return false;
+  }
+  return false;
+}
+
+/**
+ * Pour chaque `process.env` du source : vrai s'il est dans le corps d'une fonction fléchée (accolades) ou juste après `=>` (corps en expression),
+ * À CONDITION que cette fonction ne soit pas appelée aussitôt (`(() => { … })()` lit au chargement du module).
+ */
 function lecturesALAppel(texte: string): boolean[] {
-  const pile: boolean[] = [];
-  const resultats: boolean[] = [];
+  type Cadre = { fleche: boolean; immediat: boolean };
+  const pile: Cadre[] = [];
+  const lectures: Array<{ cadres: Cadre[]; expressionDiffere: boolean }> = [];
   for (let i = 0; i < texte.length; i++) {
     const c = texte[i];
-    if (c === "{") pile.push(texte.slice(0, i).trimEnd().endsWith("=>"));
-    else if (c === "}") pile.pop();
-    else if (texte.startsWith("process.env", i)) resultats.push(pile.some(Boolean) || texte.slice(0, i).trimEnd().endsWith("=>"));
+    if (c === "{") pile.push({ fleche: texte.slice(0, i).trimEnd().endsWith("=>"), immediat: false });
+    else if (c === "}") {
+      const cadre = pile.pop();
+      if (cadre?.fleche && /^\s*\)\s*\(/.test(texte.slice(i + 1))) cadre.immediat = true;
+    } else if (texte.startsWith("process.env", i)) {
+      const expression = texte.slice(0, i).trimEnd().endsWith("=>");
+      lectures.push({ cadres: [...pile], expressionDiffere: expression && !expressionAppeleeAussitot(texte, i) });
+    }
   }
-  return resultats;
+  return lectures.map((l) => l.expressionDiffere || l.cadres.some((cadre) => cadre.fleche && !cadre.immediat));
 }
 
 test("worker.ts : chaque lecture de process.env se fait dans une fonction fléchée (à l'appel), jamais au chargement du module", () => {
@@ -35,6 +58,35 @@ test("l'analyseur de lecture à l'appel distingue bien une lecture au chargement
   assert.deepEqual(lecturesALAppel("const app = creer({ s: process.env.X });"), [false]);
   assert.deepEqual(lecturesALAppel("const app = creer({ s: () => process.env.X, t: process.env.Y });"), [true, false]);
 });
+
+test("l'analyseur refuse une fonction fléchée appelée aussitôt (lecture au chargement déguisée)", () => {
+  assert.deepEqual(lecturesALAppel("const s = (() => process.env.X)();"), [false]);
+  assert.deepEqual(lecturesALAppel("const s = (() => { return process.env.X; })();"), [false]);
+  assert.deepEqual(lecturesALAppel("const app = creer({ s: (() => process.env.X)() });"), [false]);
+  assert.deepEqual(lecturesALAppel("const s = (async () => {\n  const v = process.env.X;\n})();"), [false]);
+  // Une fonction fléchée définie DANS un bloc appelé aussitôt mais elle-même différée reste une lecture à l'appel.
+  assert.deepEqual(lecturesALAppel("(() => { const f = () => process.env.X; })();"), [true]);
+});
+
+// Chaque clé de Deps reçoit le BON service du site : deux services de même type (les limiteurs, par exemple) inversés ne casseraient aucun type.
+// Le motif est ancré sur la ligne entière (source sans commentaires) : `limiterAnnulation: limiterReponseProposition,` ne satisfait pas la clé voisine.
+const CORRESPONDANCES: Array<[string, RegExp]> = [
+  ["suivi.jetonValide", /^\s*jetonValide:\s*estJetonValide,\s*$/],
+  ["suivi.limiterLecture", /^\s*limiterLecture:\s*limiterLectureSuivi,\s*$/],
+  ["suivi.lire", /^\s*lire:\s*chargerSuiviParJeton,\s*$/],
+  ["suivi.limiterAnnulation", /^\s*limiterAnnulation:\s*limiterAnnulationClient,\s*$/],
+  ["suivi.annuler", /^\s*annuler:\s*annulerParClient,\s*$/],
+  ["suivi.limiterReponseProposition", /^\s*limiterReponseProposition(\s*:\s*limiterReponseProposition)?,\s*$/],
+  ["suivi.repondreProposition", /^\s*repondreProposition(\s*:\s*repondreProposition)?,\s*$/],
+  ["commandes.valider", /^\s*valider:\s*validerCreationCommande,\s*$/],
+  ["commandes.lister (avec les jetons de suivi)", /^\s*lister:\s*\(\s*utilisateurId\s*\)\s*=>\s*listerMesCommandes\(\s*utilisateurId\s*,\s*\{\s*avecJeton:\s*true\s*\}\s*\),\s*$/],
+];
+
+for (const [cle, motif] of CORRESPONDANCES) {
+  test(`worker.ts : ${cle} est câblé sur le bon service du site`, () => {
+    assert.equal(sansCommentaires.filter((l) => motif.test(l)).length, 1, `${cle} : correspondance absente ou en double`);
+  });
+}
 
 test("worker.ts : le secret de relais est fourni par une fonction (lue à chaque requête)", () => {
   assert.ok(sansCommentaires.some((l) => /secretRelais:\s*\(\)\s*=>\s*process\.env\.RELAIS_SECRET/.test(l)));
