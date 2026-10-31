@@ -157,7 +157,7 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 
 ## Réserves traitées le 1er novembre 2026
 
-Lot « réserves avant allumage » (commit : `@@HASH@@`). Chaque ligne n'est marquée faite que si un test échoue quand on casse le code (mutation vérifiée ; détail dans `.sdd/etape-1b-reserves/rapport.md`).
+Lot « réserves avant allumage » (commit : `bbb482e`). Chaque ligne n'est marquée faite que si un test échoue quand on casse le code (mutation vérifiée ; détail dans `.sdd/etape-1b-reserves/rapport.md`).
 
 1. **Décision pure testée** (`decisionRelais` dans `relais-regles.ts`) : éteint / mal configuré / relayer ; `relais.ts` n'est plus qu'une colle de quelques lignes (lecture de `process.env`, journal, appel). Tests dans `apps/web/scripts/tests/relais.test.mts`. Non vérifié : l'exécution de la colle dans Next (aucun test ne lance Next).
 2. **`API_URL`** : `https://` exigé ; `http://` toléré seulement vers `localhost`, `127.0.0.1`, `[::1]` ; identifiants dans l'adresse (`user:pass@`) et adresse illisible refusés. Sinon : mal configuré (le site traite lui-même, aucune requête, le secret ne part jamais en clair).
