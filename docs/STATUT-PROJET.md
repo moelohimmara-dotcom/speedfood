@@ -915,3 +915,13 @@ Décision de Malika : insérer Upstash Redis dans l'architecture avant la migrat
 ## Refonte d'architecture, étape 0 (fondations) : fait et DÉPLOYÉ (31 octobre 2026, version 6c20a096, comportement identique vérifié)
 
 Plan : `docs/plans/2026-10-30-etape-0-fondations.md`. **Fait, testé puis déployé le 31 octobre 2026 (rien de visible pour les utilisateurs)** : espace de travail npm, site déplacé de `web/` à `apps/web`, verrou à la racine, contrôle automatique GitHub (`.github/workflows/controles.yml`), paquet `packages/shared` avec 11 fichiers de règles pures (raccords d'une ligne à leur ancienne place), garde-fou de pureté dans les tests, outil `apps/web/scripts/deplacer-vers-partage.mjs`. **Reste** : déplacer les autres règles pures par lots ; étape 1 (API unique).
+
+## Étape 1a, socle de l'API unique : fait, NON déployé (31 octobre 2026)
+
+Plan : `docs/plans/2026-10-31-etape-1a-socle-api.md`. Documentation complète : `docs/API-UNIQUE.md`. **Fait et testé en local, rien de déployé, rien de visible pour les utilisateurs** : `apps/api` (Hono, Worker `speedfood-api` pas encore créé chez Cloudflare), deux routes publiques (`/api/v1/version`, `/api/v1/aide`) et `/sante`, assemblage esbuild avec garde « aucun fichier de Next.js dans le paquet », cale `next/headers` par `AsyncLocalStorage`, briques de la chaîne de contrôles (limite par adresse, identité par jeton porteur, limite par compte), vérification locale des jetons ES256, comparateur de routes. Contrôle GitHub : tests (`test:api`) et construction (`build:api`) de l'API ajoutés. 32 tests de l'API verts, paquet de 786 Kio.
+
+**Essai local (tâche 5, étape 6)** : `wrangler dev` local comparé à la production sur les deux routes publiques : 0 écart.
+
+**Pas vérifié** : l'émetteur réel d'un vrai jeton ; le comportement sur Cloudflare réel ; le quota partagé avec le site ; `process.env` sous workerd en production ; `COMMANDE_JETON_SECRET` (absent de `.env.local`). **Le vérificateur de jetons n'est pas câblé au Worker** (aucune route authentifiée).
+
+**Reste** : plan 1b (routes par modules, relais du site, droits, validation, audit) ; décision de Malika sur les jetons (tout local, tout strict, ou mixte : un compte supprimé reste accepté jusqu'à une heure en mode local) ; Tâche 8 (création et déploiement du Worker, uniquement avec son feu vert) ; contrôle GitHub vert puis fusion de la branche.

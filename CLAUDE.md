@@ -11,6 +11,8 @@ dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
 
 Deux codes séparés : **`apps/web/`** (le site Next.js, son serveur, les scripts et tests, le Worker Cloudflare) et **`mobile/`** (l'application Android/iPhone, avec `mobile/faux-serveur/`). Sont partagés, à la racine : `supabase/` (la base), `docs/`, `demo/`, `.github/`. Les commandes `npm run …` se lancent depuis `apps/web` ; `npm install` se lance **à la racine** (espaces de travail npm, verrou unique `package-lock.json` à la racine ; `typecheck`, `test:unit` et `test:cloisonnement` existent aussi à la racine). Les commandes `./gradlew …` depuis `mobile/`. Les chemins cités dans les anciens documents (`src/…`, `public/…`, `scripts/…`) se lisent `apps/web/src/…`, `apps/web/public/…`, `apps/web/scripts/…` : voir `docs/ORGANISATION-DU-DEPOT.md`. Depuis la migration en espace de travail npm, les paquets sont hissés à la racine : `node_modules/next/dist/docs/` se lit depuis la racine du dépôt (et non depuis `apps/web/`).
 
+**`apps/api/`** (31 octobre 2026) : l'API unique (Hono sur Cloudflare Workers), non déployée ; `npm run test:api` et `npm run build:api` se lancent depuis la racine. Voir `docs/API-UNIQUE.md`.
+
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 
 Pour reprendre le projet sans historique de conversation : **`docs/PASSATION.md`** (à jour au 22 octobre 2026, application mobile comprise), puis **`docs/REPRISE-SESSION.md`** (état actuel,

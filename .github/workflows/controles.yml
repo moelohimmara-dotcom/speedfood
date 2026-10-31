@@ -49,3 +49,9 @@ jobs:
 
       - name: Tests de cloisonnement
         run: npm run test:cloisonnement
+
+      - name: Tests de l'API
+        run: npm run test:api
+
+      - name: Construction de l'API (aucun fichier de Next.js dans le paquet)
+        run: npm run build:api

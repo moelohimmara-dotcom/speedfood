@@ -10,6 +10,10 @@ Le dépôt contient **deux codes distincts**, chacun dans son dossier, plus ce q
 | **`docs/`**, **`demo/`** | La documentation et le prototype de démonstration | à la racine |
 | **`.github/`** | L'intégration continue (compilation iPhone sur macOS) | à la racine |
 
+## L'API unique : `apps/api/` (étape 1a, 31 octobre 2026, non déployée)
+
+Nouveau dossier `apps/api/` : l'API de Speedfood (Hono sur Cloudflare Workers, Worker `speedfood-api`, pas encore créé chez Cloudflare). Elle réutilise les services de `apps/web/src` (alias `@/*`) sans Next.js. `npm install` à la racine ; `npm run test:api` et `npm run build:api` à la racine (ou `npm run test` et `npm run build` dans `apps/api`). Détails : `docs/API-UNIQUE.md`.
+
 ## Où est passé chaque fichier (avant → après)
 
 | Avant | Après |
