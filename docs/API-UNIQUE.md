@@ -1,6 +1,6 @@
-# API unique de Speedfood (`apps/api`) : étapes 1a (socle) et 1b (routes et relais), 31 octobre 2026
+# API unique de Speedfood (`apps/api`) : étapes 1a (socle), 1b (routes et relais) et 1c-1 (suivi et commandes), 31 octobre 2026
 
-**État : code écrit et testé en local, NON déployé, relais ÉTEINT.** Le Worker `speedfood-api` n'existe pas encore chez Cloudflare ; les utilisateurs ne voient rien. Plans : `docs/plans/2026-10-31-etape-1a-socle-api.md` et `docs/plans/2026-10-31-etape-1b-routes-et-relais.md`. Cible d'ensemble : `docs/specs/2026-10-30-architecture-cible-design.md` (section 5).
+**État : les étapes 1a et 1b sont en production (voir « Mise en production », relais allumé pour `public,moi,client,livraison`). L'étape 1c-1 (suivi et commandes du client) est écrite et testée en local, NON déployée, relais ÉTEINT pour `suivi` et `commandes`** : le Worker en ligne n'a pas ce code et le site en ligne n'a pas ces gardes ; les utilisateurs ne voient rien. Plans : `docs/plans/2026-10-31-etape-1a-socle-api.md`, `docs/plans/2026-10-31-etape-1b-routes-et-relais.md` et `docs/plans/2026-10-31-etape-1c1-suivi-et-commandes.md`. Cible d'ensemble : `docs/specs/2026-10-30-architecture-cible-design.md` (section 5).
 
 ## À quoi ça sert, et pourquoi un Worker séparé
 
@@ -18,7 +18,7 @@ apps/api/
   src/worker.ts             câblage de PRODUCTION : les routes reçoivent les services du site (secrets lus à l'appel)
   src/types.ts              dépendances injectées (testables sans réseau)
   src/http.ts               repondre, reponseErreur, lireCorpsJson (identiques au site)
-  src/routes/               version, aide, fournisseurs, moi, client, estimation
+  src/routes/               version, aide, fournisseurs, moi, client, estimation, suivi, commandes
   src/cales/                next-headers.ts (cale de headers()), vide.ts (module « server-only » vide)
   src/controles/chaine.ts   briques de la chaîne de contrôles
   src/identite/jeton.ts     vérification des jetons Supabase : local (ES256) et strict (service d'authentification)
@@ -49,23 +49,45 @@ Parité avec les routes du site sur les réponses nominales et les erreurs du co
 
 Les routes d'écriture répondent `{ ok: true, message[, favori] }` ou une erreur `VALIDATION` portant le message du service.
 
+### Les cinq gestionnaires de l'étape 1c-1 (suivi et commandes du client, NON déployés)
+
+Mêmes réponses que le site (statut, corps JSON, `no-store`, messages). Les cinq sont en **mode de jeton strict** (une commande est une écriture d'argent). Fichiers : `apps/api/src/routes/suivi.ts` et `commandes.ts`.
+
+| Route | Méthode | Identité | Cache | Service du site |
+|---|---|---|---|---|
+| `/api/v1/suivi` | POST | **aucune** : le jeton de suivi (40 caractères, dans le corps) est la clé d'accès ; plafond `limiterLectureSuivi` | `no-store` | `chargerSuiviParJeton` |
+| `/api/v1/suivi/annuler` | POST | aucune (jeton de suivi) ; plafond `limiterAnnulationClient` | `no-store` | `annulerParClient` (idempotent) |
+| `/api/v1/suivi/proposition` | POST | aucune (jeton de suivi) ; plafond `limiterReponseProposition` | `no-store` | `repondreProposition` (idempotent) |
+| `/api/v1/commandes` | GET | strict (jeton porteur), **pas de plafond de compte** | `no-store` | `listerMesCommandes(id, { avecJeton: true })` (la liste contient les jetons de suivi) |
+| `/api/v1/commandes` | POST | strict, **pas de plafond de compte** ; l'identité passe **avant** la lecture du corps (sur les routes de suivi, qui n'ont pas d'identité, le corps est lu en premier) | `no-store` | `validerCreationCommande` puis `executerCreationCoeur(…, { antiRobot: false, apres })` ; `201` (commande nouvelle) ou `200` (`idempotent: true`) |
+
+**Coupure `creation-coeur` / `creation-service`.** Le service de création appelait `after` de `next/server`, seul fichier qui tirait 54 fichiers de Next.js dans le paquet. `apps/web/src/lib/commande/creation-coeur.ts` (sans Next) exporte `executerCreationCoeur(valeurs, utilisateurId, { antiRobot, apres })` avec `type Planifier = (tache: () => Promise<void>) => void` ; `creation-service.ts` garde son nom, sa signature et ses appelants et ne fait plus que lui passer `after`. Côté API, `apres = (t) => c.executionCtx.waitUntil(t())`. L'alerte « page fermée » du restaurant n'est planifiée que pour une commande **nouvelle** (jamais pour un rejeu idempotent, jamais après un refus). La validation (`validerCreationCommande`) et `estJetonValide` restent dans le site et sont injectées par `Deps`.
+
+**`apres()` est appelé dans le `try` du cœur.** Si le contexte d'exécution manquait (`c.executionCtx` lève hors Workers, ou `app.fetch` appelé sans `ctx`), la commande serait **créée** mais la réponse serait un **500** : c'est la parité avec le site, où `after` hors contexte de requête fait de même. Garde-fou : `worker.ts` transmet `ctx` à `app.fetch` (test statique).
+
+**`antiRobot: false`.** L'application native ne produit pas de jeton Turnstile ; la protection est le jeton porteur strict et les plafonds de `limiterCreationCommande` (adresse, téléphone, restaurant). La route ne lit jamais `jetonVerification` du corps. Un test statique de `worker.ts` fige `antiRobot: false`.
+
+**Méthode inconnue sur `/api/v1/commandes` : 404, pas 405 (décision D6).** L'identité est posée **par méthode** (`route.get`, `route.post`), pas sur `"*"` : une méthode inconnue répond 404 `INTROUVABLE` **sans appel réseau** (le défaut observé en 1b, 401 sans jeton ou `getUser` avec jeton, n'est pas reproduit ici). Le site répond 405. Sans effet sur le relais.
+
 ## Commandes
 
 `npm install` se lance **à la racine**. Les commandes `npm run …` de l'API se lancent depuis `apps/api` ; `typecheck`, `test:api` et `build:api` existent aussi à la racine.
 
 | Commande | Où | Rôle |
 |---|---|---|
-| `npm run test` | `apps/api` (ou `npm run test:api` à la racine) | tests de l'API (143 au 31 octobre 2026, relevés en relançant la commande), Node avec `--experimental-strip-types` (Node 24 en local, 22 sur GitHub : non vérifié sur GitHub à ce jour) |
-| `npm run build` | `apps/api` (ou `npm run build:api` à la racine) | écrit `dist/worker.js` (857 Kio au 31 octobre 2026) et **échoue** si un fichier de Next.js est entré dans le paquet |
+| `npm run test` | `apps/api` (ou `npm run test:api` à la racine) | tests de l'API (224 au 31 octobre 2026 après l'étape 1c-1, relevés en relançant la commande), Node avec `--experimental-strip-types` (Node 24 en local, 22 sur GitHub : non vérifié sur GitHub à ce jour) |
+| `npm run build` | `apps/api` (ou `npm run build:api` à la racine) | écrit `dist/worker.js` (1 165 Kio, soit 1 193 032 octets, au 31 octobre 2026 après l'étape 1c-1 ; 857 Kio à l'étape 1b ; environ 238 Ko compressés en gzip) et **échoue** si un fichier de Next.js est entré dans le paquet |
 | `npm run typecheck` | racine | types de tous les paquets, API comprise |
 | `npm run preparer-dev-vars` | `apps/api` | écrit `.dev.vars` (ignoré par Git) depuis `apps/web/.env.local`, sans jamais afficher un secret |
 | `npm run dev` | `apps/api` | `wrangler dev` (workerd local ; construire d'abord) |
-| `npm run comparer -- <réf> <candidate> <chemins…>` | `apps/api` | compare des routes entre deux serveurs (statut, cache, corps ; **l'ordre des clés JSON est ignoré**, donc « 0 écart » ne prouve pas l'égalité octet pour octet), avec jeton (`--jeton-env`), méthode et corps |
+| `npm run comparer -- <réf> <candidate> <chemins…>` | `apps/api` | compare des routes entre deux serveurs (statut, cache, corps ; **l'ordre des clés JSON est ignoré**, donc « 0 écart » ne prouve pas l'égalité octet pour octet), avec jeton (`--jeton-env`), méthode, corps (`--corps`) ou corps secret lu dans l'environnement (`--corps-env NOM`) |
 
 Deux pièges du comparateur :
 - Sous **Git Bash**, un argument comme `/api/v1/version` est converti en chemin Windows : préfixer par `MSYS_NO_PATHCONV=1` (`MSYS_NO_PATHCONV=1 npm run comparer -- … /api/v1/version`).
 - Un côté hors 2xx est **un écart** (deux erreurs identiques ne passent pas pour « 0 écart »). `--tolerer-non-2xx` désactive ce contrôle quand on compare volontairement des erreurs.
-- Les routes d'écriture (`favoris`, `profil`, `adresses`, `compte`) ne se comparent **jamais** à la production (elles écriraient) : seule leur parité de code est testée, avec de faux services.
+- Les routes d'écriture (`favoris`, `profil`, `adresses`, `compte`, et, à l'étape 1c-1, `suivi/annuler`, `suivi/proposition` et `POST commandes`) ne se comparent **jamais** à la production (elles écriraient) : seule leur parité de code est testée, avec de faux services.
+- **`--corps-env NOM` (étape 1c-1)** : le corps JSON est lu dans la variable d'environnement `NOM` (même validation du nom que `--jeton-env`). **Pour un jeton de suivi (`POST /suivi`) on utilise toujours `--corps-env`, jamais `--corps`** : `--corps` met la valeur dans la ligne de commande (historique du shell, liste des processus). Variable absente ou vide, ou JSON illisible : code 2 avec un message fixe (ni la valeur ni le message de `JSON.parse`). `--corps` et `--corps-env` sont exclusifs ; `--corps-env` exige `--methode` ; les gardes d'adresse (https ou boucle locale, hôte de la base) s'appliquent au corps secret comme au jeton. `POST /suivi` est une lecture mais reste un POST : il exige `--autoriser-ecriture`.
+- **Écarts affichés tels quels** : quand `cache-control` ou `content-type` diffèrent entre les deux serveurs, l'écart montre les valeurs envoyées par les serveurs, telles quelles (ce sont des en-têtes, pas des secrets). Le corps n'est jamais affiché dans un écart.
 
 ## Mécanisme de réutilisation des services du site
 
@@ -95,18 +117,18 @@ Le vérificateur strict est maintenant câblé au Worker (`worker.ts`) ; le vér
 
 ## Le relais du site vers l'API (ÉTEINT par défaut)
 
-Le site peut transmettre à l'API les requêtes de dix routes (garde de deux lignes, première instruction de chaque gestionnaire : `const relais = await relaisSiActif(request, "<module>"); if (relais) return relais;`). Sans réglage, **rien ne change** : aucun appel réseau, aucune lecture du corps.
+Le site peut transmettre à l'API les requêtes de quinze gestionnaires (dix à l'étape 1b, cinq à l'étape 1c-1 ; garde de deux lignes, première instruction de chaque gestionnaire : `const relais = await relaisSiActif(request, "<module>"); if (relais) return relais;`). Sans réglage, **rien ne change** : aucun appel réseau, aucune lecture du corps.
 
 ### Variables
 
 | Variable | Où | Rôle |
 |---|---|---|
-| `API_RELAIS` | site | absent, vide ou `non` : éteint ; `tout` : tous les modules ; sinon liste de modules séparés par des virgules (casse et espaces indifférents) |
+| `API_RELAIS` | site | absent, vide ou `non` : éteint ; `tout` : tous les modules (**à BANNIR en production**, voir plus bas) ; sinon liste de modules séparés par des virgules (casse et espaces indifférents) |
 | `API_URL` | site | adresse de base de l'API (valeur publique) |
 | `RELAIS_SECRET` | site | secret partagé envoyé dans `x-relais-secret` |
 | `RELAIS_SECRET` | API | le même secret, lu à l'appel (`process.env.RELAIS_SECRET`) |
 
-Modules : `public` (`version`, `aide`, `connexion/fournisseurs`), `moi`, `client` (`espace`, `favoris`, `profil`, `adresses`, `compte`), `livraison` (`estimation`).
+Modules : `public` (`version`, `aide`, `connexion/fournisseurs`), `moi`, `client` (`espace`, `favoris`, `profil`, `adresses`, `compte`), `livraison` (`estimation`), et, à l'étape 1c-1, `suivi` (`POST suivi`, `suivi/annuler`, `suivi/proposition`) et `commandes` (`GET` et `POST`). Deux modules et non un seul : le module est le seul levier du relais, il faut pouvoir allumer la lecture avant l'écriture.
 
 **Pose du secret** : `RELAIS_SECRET` se pose avec `wrangler secret put` sur les **DEUX** Workers (site et API), avec la **même** valeur, **aléatoire d'au moins 32 caractères, ASCII visible seulement (sans espace, retour à la ligne ni accent) ; hors de cette forme, le site et l'API refusent de s'en servir**, générée et saisie par Malika. Jamais dans le chat, jamais dans un fichier du dépôt.
 
@@ -123,6 +145,27 @@ Modules : `public` (`version`, `aide`, `connexion/fournisseurs`), `moi`, `client
 
 Premier maillon de l'application : l'API ne croit l'adresse de `x-relais-ip` **que si** `x-relais-secret` est exact (comparaison à temps constant sur les empreintes SHA-256). Dans ce cas elle la pose comme `cf-connecting-ip` pour le code du site (limitation de débit par adresse). Sinon (appel direct, secret faux, secret non posé) elle l'ignore ; elle l'ignore aussi si le secret attendu n'a pas la forme requise (32 caractères ASCII visibles au moins : ni espace, ni retour à la ligne, ni accent), même si l'appelant envoie la même valeur, et si l'adresse transmise est mal formée (plus de 45 caractères, ou caractère hors `[0-9a-fA-F:.]`). Dans ce dernier cas `cf-connecting-ip` reste celui que Cloudflare donne. Dans tous les cas, les deux en-têtes de relais sont retirés de ce que voit le code des routes. Pourquoi : sans cela, tous les visiteurs relayés partageraient l'adresse du Worker du site, donc un seul plafond.
 
+### Les trois réglages par route (étape 1c-1)
+
+`relaisSiActif(request, module, options?)` accepte `options: { lecture?, delaiMs? }`, et le corps est conservé pour un repli éventuel :
+
+- **`lecture: true`** : la route est une lecture faite par POST (`POST /suivi`, que l'application relit toutes les quelques secondes) ; le repli sur le site est alors permis comme pour un GET. **Valable pour la méthode POST seulement** (sur PUT, PATCH, DELETE l'option est sans effet) : une écriture n'est jamais rejouée. Ne jamais la poser sur une écriture.
+- **`delaiMs`** : délai propre à la route, au lieu de 2 500 ms. Valeurs actuelles : `suivi/annuler` et `suivi/proposition` 8 000 ms, `POST /commandes` 15 000 ms (provisoires, à réévaluer à la mesure). Un `delaiMs` absent, nul, négatif, `NaN` ou infini retombe sur le **repli de 2 500 ms** ; au-delà de **60 000 ms** (plafond), la valeur est ramenée à 60 000 ms (le minuteur de `setTimeout` déborde au-delà de 2^31 ms et partirait aussitôt).
+- **Corps conservé** : quand un repli est possible et que la méthode porte un corps, le relais lit le corps sur une **copie** (`request.clone()`), pour que le site retrouve un corps intact (sinon « JSON illisible »). Sans repli possible, aucune copie.
+- **Un 4xx de l'API n'est jamais un repli**, pas plus qu'un 5xx : le statut et le corps de l'API sont rendus tels quels, même avec `lecture: true`.
+- **`GET /commandes` peut retomber sur le site** (repli d'un GET sur panne ou délai) : la liste, qui contient des **jetons de suivi**, est alors lue par le site. Comportement voulu (c'est une lecture), à garder en tête à l'allumage.
+
+Les gardes des cinq gestionnaires du site sont figées par un test statique (`apps/web/scripts/tests/gardes-relais.test.mts`) : première instruction du gestionnaire, bon module, bonnes options.
+
+### Réglage de `API_RELAIS` : bannir `tout`
+
+**La valeur `tout` est à BANNIR en production** : elle allumerait d'un coup `suivi` et `commandes`, donc la création de commande. Le réglage actuel est `public,moi,client,livraison`. Allumage progressif prévu, un feu vert de Malika par étape et une mesure entre deux :
+
+1. `API_RELAIS=public,moi,client,livraison,suivi` (lecture et annulations du suivi) ;
+2. puis `API_RELAIS=public,moi,client,livraison,suivi,commandes` (liste, puis création, après vérification de `COMMANDE_JETON_SECRET` ci-dessous).
+
+Retour arrière : retirer le module de la liste (ou `non`), sans redéployer.
+
 ### Allumer, mesurer, éteindre
 
 Allumage **module par module**, un feu vert de Malika par module, dans cet ordre : `API_RELAIS=public`, vérifier et mesurer (temps de réponse, erreurs 1102 dans le tableau Cloudflare, quota de sous-requêtes), puis `moi`, `livraison`, `client` (par exemple `API_RELAIS=public,moi`). **Retour arrière immédiat : `API_RELAIS=non`**, sans redéployer le code (changer la variable suffit). Retour complet : `npx wrangler delete --name speedfood-api` depuis `apps/api` supprime le Worker sans toucher au site.
@@ -136,6 +179,33 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 - **Barre finale dans l'adresse** (`/api/v1/moi/`) : redirection 308 de Next sur le site (non vérifié) ; 401 sans jeton, sinon 404 après `getUser` et plafond, sur l'API.
 - **Plafond de taille du corps** : il ne se fonde que sur l'en-tête `content-length` **annoncé**. Une requête sans cet en-tête n'est pas plafonnée. Même comportement sur le site et sur l'API.
 - **Erreur levée par le plafond autre que `TROP_DE_REQUETES`** : l'API restitue le code propre de l'erreur ; le site répond 500. Écart de comportement connu, non corrigé.
+- **Étape 1c-1, panne du service d'authentification sur `POST /commandes`** (risque 8 du plan) : site 401 (l'application se croit déconnectée), API 500. C'est un mieux voulu (pas de fausse déconnexion au moment d'envoyer la commande).
+- **Étape 1c-1, `listerMesCommandes` avale les erreurs de base** (`data ?? []`, risque 9) : une panne de lecture renvoie `{ ok: true, commandes: [] }` sur le site, donc sur l'API (parité). L'application affiche « aucune commande » pendant la panne. Non corrigé.
+- **Étape 1c-1, méthode inconnue** (risque 10, D6) : 405 sur le site, 404 sur l'API pour `/api/v1/commandes`.
+- **Étape 1c-1, pas de plafond de compte sur `commandes`** (D7) : le site n'en a pas ; le plafond de création est celui de `limiterCreationCommande` (adresse, téléphone, restaurant). Parité d'abord, non ajouté.
+- **Étape 1c-1, création non transactionnelle** : commande, lignes puis options sont insérées l'une après l'autre (suppression de compensation en cas d'échec rattrapé) ; une coupure entre deux insertions laisserait une commande sans lignes, et le rejeu rendrait `idempotent: true`. Portée telle quelle.
+
+## `COMMANDE_JETON_SECRET` : usage et vérification de parité (étape 1c-1)
+
+**Lu à trois endroits**, tous avec le même repli `process.env.COMMANDE_JETON_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY` : `lib/commande/jetons.ts` (jeton de suivi = HMAC-SHA256 de la clé d'idempotence), `lib/securite/limitation-debit.ts` (empreinte des clés de compteur) et `lib/table/cle.ts` (clé des QR de table).
+
+**Le piège silencieux est le repli** : si le site a `COMMANDE_JETON_SECRET` et que l'API non, l'API se rabat **sans erreur** sur la clé de service, donc sur un autre secret effectif. Deux Workers à secrets différents calculent deux jetons de suivi différents pour la même clé d'idempotence : un nouvel essai qui change de Worker (relais éteint entre-temps, repli) créerait **une seconde commande**. Les compteurs de limitation se séparent aussi (plafonds doublés pendant l'allumage ou un repli).
+
+**On aligne l'API sur le site, jamais l'inverse** : changer la valeur du site casserait les QR de table déjà imprimés et tous les compteurs.
+
+**Vérification (Tâche 12, avec Malika, aucun agent ne lit de secret)** : (1) noms seulement, `npx wrangler secret list` depuis `apps/web` et `apps/api` : `COMMANDE_JETON_SECRET` présent sur les **deux** ou absent des **deux**, `SUPABASE_SERVICE_ROLE_KEY` sur les deux ; sinon, rien ne s'allume ; (2) présent des deux côtés : Malika recopie elle-même la valeur du site sur l'API (`wrangler secret put`) ; (3) preuve par le comportement, si Malika l'accepte (décision du 31 octobre : commande `est_test` sur un restaurant d'essai, seulement avec les feux verts de la Tâche 12) : la **même clé d'idempotence** envoyée au site (relais éteint pour `commandes`) puis à l'API doit donner `200`, `idempotent: true` et **le même jeton de suivi** ; (4) sans cet essai, `commandes` ne s'allume pas ; `suivi` (qui ne dérive aucun jeton) peut s'allumer, au risque tolérable des compteurs séparés.
+
+## Essai local de l'étape 1c-1 sous workerd (31 octobre 2026)
+
+`wrangler dev` local (workerd), trois requêtes : `POST /suivi` avec un jeton bien formé mais inventé (404 `Commande introuvable.`, joué deux fois pour mesurer à froid et à chaud), `POST /suivi` avec un corps `{}` (400) et `GET /commandes` sans jeton (401). **Ce n'est pas « aucune écriture »** : les deux appels `POST /suivi` ont chacun écrit un **compteur de limitation** dans la base de **production** (Redis absent de `.dev.vars`, repli sur `fn_limiter_debit`). Il n'y a eu **aucune écriture métier** (rien dans `orders` ni dans une autre table métier, aucune commande créée). Le jeton inventé n'apparaît dans aucun journal.
+
+**Observé** : le chargement du Worker et les requêtes sans exception ; `createHmac` s'exécute sous workerd (l'empreinte des compteurs de limitation l'utilise, les deux appels ont abouti).
+
+**NON vérifié** : `randomInt` (référence `SF-XXXXX` de la commande, atteint seulement à une vraie création) ; `request.clone()` du relais sous OpenNext/workerd (le relais vit dans le site, éteint) ; `ctx.waitUntil` réel et la fin de la tâche d'alerte du restaurant (testé avec un faux contexte seulement) ; le CPU réel en production (limite de 10 ms du plan gratuit ; `wrangler dev` ne le mesure pas ; créer une commande est la plus lourde des routes, risque de 1102 jamais mesuré) ; que le Worker n'est pas coupé quand le site abandonne l'appel sur délai.
+
+**Taille du Worker** : 1 193 032 octets (1 165 Kio), environ 238 Ko compressés (offre gratuite : 3 Mio compressés), contre 857 Kio à l'étape 1b ; un test plafonne le Worker (brut sous 1 400 000 octets, gzip sous 3 Mio) en plus de la sonde des services. `react` entre dans le paquet par `fonctionnalites/lire.ts` (le garde ne cite que `react-dom`), donc `cache` de React n'y mémoïse pas : possiblement une lecture de plus de `fonctionnalites` par création.
+
+**À faire par Malika : supprimer `apps/api/.dev.vars` quand les essais sont finis.** Ce fichier (ignoré par Git, jamais lu ni affiché par un agent) contient la **clé de service de production**.
 
 ## Essai local face à la production (étape 1a, 31 octobre 2026)
 
@@ -158,6 +228,7 @@ Worker `speedfood-api` créé par Malika (version 5385f34c), site redéployé (f
 - **Le comportement sur Cloudflare réel en général** : l'essai tourne dans workerd local. Le Worker n'existe pas chez Cloudflare. Le quota partagé avec le site (Redis et base) et la charge combinée ne sont pas mesurés.
 - **`COMMANDE_JETON_SECRET`** : absent de `apps/web/.env.local`, donc jamais préparé dans `.dev.vars` ; les routes de commande du plan 1c en auront besoin.
 - Aucun essai de charge, aucune écriture réelle.
+- **Étape 1c-1** (voir aussi « Essai local de l'étape 1c-1 ») : le comportement de la création de commande relayée sur Cloudflare réel (durée, CPU, 1102) ; `randomInt` ; `clone()` ; `waitUntil` réel ; l'égalité des secrets de production (seule la présence des noms se voit, plus l'essai d'idempotence croisée si Malika l'accepte) ; le délai de l'application mobile (non relevé : les délais du relais valent 8 s et 15 s seulement si l'application attend au moins autant) ; les écritures (`annuler`, `proposition`, `POST commandes`) jamais comparées à la production ; la parité exacte de `listerMesCommandes`, `chargerSuiviParJeton`, `annulerParClient`, `repondreProposition` sous Workers sans vrai jeton (mêmes fonctions que le site, mais exécution observée seulement à la Tâche 12) ; l'ordre des clés JSON ; le coût du relais dans l'offre gratuite ; la mémoïsation de `fonctionnaliteActive`.
 
 ## Réserves traitées le 31 octobre 2026
 
@@ -190,6 +261,9 @@ Reste :
 
 ## Ce qui reste
 
-- **Tâche 10** (mise en service, uniquement sur le feu vert de Malika, conduite avec elle, **trois feux verts distincts**) : (1) créer le Worker `speedfood-api` et poser ses secrets (dont `RELAIS_SECRET`, et **le même `COMMANDE_JETON_SECRET` que sur le site**, ou l'absence des deux : la clé des compteurs de limitation en dépend, sinon les compteurs du site et de l'API se séparent et les plafonds doublent pendant les replis et l'allumage progressif), vérifier avec le comparateur et, si Malika le veut, un vrai jeton (toute écriture exige `--autoriser-ecriture`, jamais vers la production sans décision explicite) ; (2) déployer le site avec `API_URL` et `RELAIS_SECRET`, `API_RELAIS` absent ; (3) allumer le relais module par module. **Avant le feu vert 3** : les réserves traitées le 31 octobre 2026 sont en place ; restent à accepter ou traiter la 6 (écriture déjà traitée mais 500 rendu : à documenter dans le guide de l'application), la 8 (plan 1c) et la 9 (aucun test n'exécute `worker.ts`), et le secret posé sur les deux Workers fait au moins 32 caractères. Vérifications à y ajouter : les journaux du Worker de l'API (observabilité activée) ne gardent ni `x-relais-secret` ni `authorization` ; un appel direct du Worker du site vers `speedfood-api.*.workers.dev` fonctionne (sinon, liaison de service). Voir le plan, Tâche 10.
-- **Plan 1c** : routes du livreur, du restaurateur, de l'équipe, des commandes et du suivi ; mode local pour la position du livreur ; droits, validation, audit.
-- Contrôle GitHub vert sur la branche puis fusion en avance rapide dans `master` (rien n'est déployé par la fusion).
+- **Étapes 1a et 1b** : faites et en production (voir « Mise en production »). Restent à accepter ou traiter les réserves 6 (écriture déjà traitée mais 500 rendu : à documenter dans le guide de l'application), 8 (`?? ""` du mode local) et 9 en partie (aucun test n'exécute `worker.ts`).
+- **Tâche 12 de l'étape 1c-1** (mise en service, uniquement sur le feu vert de Malika, conduite avec elle) : déployer l'API puis le site avec `API_RELAIS` inchangé (`suivi` et `commandes` éteints), vérifier `COMMANDE_JETON_SECRET` (section ci-dessus), comparer `POST /suivi` avec un vrai jeton de suivi d'une commande d'essai (`--corps-env`), allumer `suivi`, mesurer, puis `GET /commandes`, puis `POST /commandes` (essai d'idempotence croisée si acceptée). Jamais `API_RELAIS=tout`.
+- **Plan 1c-2 et suivants** : routes du livreur, du restaurateur, de l'équipe ; mode local pour la position du livreur ; droits par rôle, validation, audit.
+- **Politique CORS** : l'API n'en a aucune (valeur sûre pour l'application native) ; à trancher si le navigateur du site appelle l'API.
+- **Construire (`npm run build`) juste avant tout `wrangler dev` ou déploiement** : `no_bundle` sert `dist` tel quel, un `dist` périmé serait publié sans erreur. `npm run dev` le fait seul.
+- Contrôle GitHub vert sur la branche puis fusion en avance rapide dans `master` (rien n'est déployé par la fusion) : sur accord de Malika, après la relecture finale.
