@@ -1,0 +1,26 @@
+{
+  "name": "@speedfood/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API unique de Speedfood (Hono sur Cloudflare Workers). Réutilise les services du site, sans Next.js.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --import ./scripts/enregistrer-resolveur.mjs --test \"tests/**/*.test.ts\"",
+    "build": "node build.mjs",
+    "dev": "wrangler dev",
+    "preparer-dev-vars": "node scripts/preparer-dev-vars.mjs",
+    "comparer": "node scripts/comparer-routes.mjs"
+  },
+  "dependencies": {
+    "@speedfood/shared": "*",
+    "hono": "4.13.14",
+    "jose": "6.2.14"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "esbuild": "0.25.4",
+    "typescript": "^5",
+    "wrangler": "^4.142.0"
+  }
+}

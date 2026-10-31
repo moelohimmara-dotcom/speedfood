@@ -73,3 +73,8 @@ node_modules/
 
 # Ancien dossier web/ (avant le passage à apps/web), parfois recréé par un terminal resté ouvert
 /web/
+
+# API unique
+/apps/api/dist/
+/apps/api/.dev.vars
+/apps/api/.wrangler/

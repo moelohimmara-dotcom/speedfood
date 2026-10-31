@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["esnext", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["../web/src/*"],
+      "server-only": ["./src/cales/vide.ts"],
+      "next/headers": ["./src/cales/next-headers.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "sondes/**/*.ts"]
+}
