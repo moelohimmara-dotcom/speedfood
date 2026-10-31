@@ -39,3 +39,8 @@ test("l'analyseur de lecture à l'appel distingue bien une lecture au chargement
 test("worker.ts : le secret de relais est fourni par une fonction (lue à chaque requête)", () => {
   assert.ok(sansCommentaires.some((l) => /secretRelais:\s*\(\)\s*=>\s*process\.env\.RELAIS_SECRET/.test(l)));
 });
+
+test("worker.ts : le contexte d'exécution (ctx) est transmis à app.fetch, sinon c.executionCtx.waitUntil lèverait en production", () => {
+  const code = sansCommentaires.join("\n");
+  assert.ok(/fetch:\s*\(\s*requete\s*:\s*Request\s*,\s*env\s*:\s*unknown\s*,\s*ctx\s*:\s*ExecutionContext\s*\)\s*=>\s*app\.fetch\(\s*requete\s*,\s*env\s*,\s*ctx\s*\)/.test(code));
+});

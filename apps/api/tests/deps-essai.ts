@@ -14,7 +14,11 @@ export function ctxEssai(): { ctx: ExecutionContext; attendre(): Promise<void>; 
   } as unknown as ExecutionContext;
   return {
     ctx,
-    attendre: async () => { await Promise.allSettled(promesses); },
+    attendre: async () => {
+      const bilan = await Promise.allSettled(promesses);
+      const echec = bilan.find((r): r is PromiseRejectedResult => r.status === "rejected");
+      if (echec) throw echec.reason;
+    },
     enregistrees: () => promesses.length,
   };
 }

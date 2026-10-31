@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { creerApp } from "../src/app.ts";
 import { headers } from "../src/cales/next-headers.ts";
-import { Hono } from "hono";
 import { ctxEssai, depsEssai } from "./deps-essai.ts";
 
 const deps = depsEssai();
@@ -63,11 +62,11 @@ test("la cale isole les en-têtes de deux requêtes concurrentes", async () => {
   assert.deepEqual(vus, { "203.0.113.1": "203.0.113.1", "203.0.113.2": "203.0.113.2" });
 });
 
-test("le contexte d'exécution de Workers est disponible pour les routes (waitUntil)", async () => {
+test("creerApp : une route atteint le contexte d'exécution passé à app.fetch (waitUntil)", async () => {
   const { ctx, attendre, enregistrees } = ctxEssai();
-  const app = new Hono();
-  app.get("/", (c) => { c.executionCtx.waitUntil(Promise.resolve()); return c.text("ok"); });
-  const reponse = await app.request("/", {}, {}, ctx);
+  const app = creerApp(deps);
+  app.get("/essai-ctx", (c) => { c.executionCtx.waitUntil(Promise.resolve()); return c.text("ok"); });
+  const reponse = await app.fetch(new Request("http://essai/essai-ctx"), {}, ctx);
   assert.equal(reponse.status, 200);
   await attendre();
   assert.equal(enregistrees(), 1);
