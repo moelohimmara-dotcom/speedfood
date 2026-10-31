@@ -51,7 +51,7 @@ Les routes d'écriture répondent `{ ok: true, message[, favori] }` ou une erreu
 
 ### Les cinq gestionnaires de l'étape 1c-1 (suivi et commandes du client, NON déployés)
 
-Mêmes réponses que le site (statut, corps JSON, `no-store`, messages). Les cinq sont en **mode de jeton strict** (une commande est une écriture d'argent). Fichiers : `apps/api/src/routes/suivi.ts` et `commandes.ts`.
+Mêmes réponses que le site (statut, corps JSON, `no-store`, messages). Commandes (GET, POST) : mode de jeton **strict** (une commande est une écriture d'argent) ; suivi (3 routes) : **aucune identité**, le jeton de suivi du corps suffit. Fichiers : `apps/api/src/routes/suivi.ts` et `commandes.ts`.
 
 | Route | Méthode | Identité | Cache | Service du site |
 |---|---|---|---|---|
@@ -76,7 +76,7 @@ Mêmes réponses que le site (statut, corps JSON, `no-store`, messages). Les cin
 | Commande | Où | Rôle |
 |---|---|---|
 | `npm run test` | `apps/api` (ou `npm run test:api` à la racine) | tests de l'API (224 au 31 octobre 2026 après l'étape 1c-1, relevés en relançant la commande), Node avec `--experimental-strip-types` (Node 24 en local, 22 sur GitHub : non vérifié sur GitHub à ce jour) |
-| `npm run build` | `apps/api` (ou `npm run build:api` à la racine) | écrit `dist/worker.js` (1 165 Kio, soit 1 193 032 octets, au 31 octobre 2026 après l'étape 1c-1 ; 857 Kio à l'étape 1b ; environ 238 Ko compressés en gzip) et **échoue** si un fichier de Next.js est entré dans le paquet |
+| `npm run build` | `apps/api` (ou `npm run build:api` à la racine) | écrit `dist/worker.js` (1 165 Kio, soit 1 193 032 octets, au 31 octobre 2026 après l'étape 1c-1 ; 857 Kio à l'étape 1b ; 237 802 octets compressés en gzip, soit 232,2 Kio) et **échoue** si un fichier de Next.js est entré dans le paquet |
 | `npm run typecheck` | racine | types de tous les paquets, API comprise |
 | `npm run preparer-dev-vars` | `apps/api` | écrit `.dev.vars` (ignoré par Git) depuis `apps/web/.env.local`, sans jamais afficher un secret |
 | `npm run dev` | `apps/api` | `wrangler dev` (workerd local ; construire d'abord) |
@@ -117,7 +117,7 @@ Le vérificateur strict est maintenant câblé au Worker (`worker.ts`) ; le vér
 
 ## Le relais du site vers l'API (ÉTEINT par défaut)
 
-Le site peut transmettre à l'API les requêtes de quinze gestionnaires (dix à l'étape 1b, cinq à l'étape 1c-1 ; garde de deux lignes, première instruction de chaque gestionnaire : `const relais = await relaisSiActif(request, "<module>"); if (relais) return relais;`). Sans réglage, **rien ne change** : aucun appel réseau, aucune lecture du corps.
+Le site peut transmettre à l'API les requêtes de quinze gestionnaires (dix à l'étape 1b, cinq à l'étape 1c-1 ; garde de deux lignes, première instruction de chaque gestionnaire : `const relais = await relaisSiActif(request, "<module>"); if (relais) return relais;`, avec en 3e argument facultatif `options` `{ lecture?, delaiMs? }` pour les routes de l'étape 1c-1 : `relaisSiActif(request, "suivi", { lecture: true, delaiMs: … })`, règles dans « Les trois réglages par route »). Sans réglage, **rien ne change** : aucun appel réseau, aucune lecture du corps.
 
 ### Variables
 
@@ -203,7 +203,7 @@ Allumage **module par module**, un feu vert de Malika par module, dans cet ordre
 
 **NON vérifié** : `randomInt` (référence `SF-XXXXX` de la commande, atteint seulement à une vraie création) ; `request.clone()` du relais sous OpenNext/workerd (le relais vit dans le site, éteint) ; `ctx.waitUntil` réel et la fin de la tâche d'alerte du restaurant (testé avec un faux contexte seulement) ; le CPU réel en production (limite de 10 ms du plan gratuit ; `wrangler dev` ne le mesure pas ; créer une commande est la plus lourde des routes, risque de 1102 jamais mesuré) ; que le Worker n'est pas coupé quand le site abandonne l'appel sur délai.
 
-**Taille du Worker** : 1 193 032 octets (1 165 Kio), environ 238 Ko compressés (offre gratuite : 3 Mio compressés), contre 857 Kio à l'étape 1b ; un test plafonne le Worker (brut sous 1 400 000 octets, gzip sous 3 Mio) en plus de la sonde des services. `react` entre dans le paquet par `fonctionnalites/lire.ts` (le garde ne cite que `react-dom`), donc `cache` de React n'y mémoïse pas : possiblement une lecture de plus de `fonctionnalites` par création.
+**Taille du Worker** : 1 193 032 octets (1 165 Kio), 237 802 octets compressés (gzip niveau 6, soit 232,2 Kio ; offre gratuite : 3 Mio compressés), contre 857 Kio à l'étape 1b ; un test plafonne le Worker (brut sous 1 400 000 octets, gzip sous 3 Mio) en plus de la sonde des services. `react` entre dans le paquet par `fonctionnalites/lire.ts` (le garde ne cite que `react-dom`), donc `cache` de React n'y mémoïse pas : possiblement une lecture de plus de `fonctionnalites` par création.
 
 **À faire par Malika : supprimer `apps/api/.dev.vars` quand les essais sont finis.** Ce fichier (ignoré par Git, jamais lu ni affiché par un agent) contient la **clé de service de production**.
 
@@ -228,7 +228,7 @@ Worker `speedfood-api` créé par Malika (version 5385f34c), site redéployé (f
 - **Le comportement sur Cloudflare réel en général** : l'essai tourne dans workerd local. Le Worker n'existe pas chez Cloudflare. Le quota partagé avec le site (Redis et base) et la charge combinée ne sont pas mesurés.
 - **`COMMANDE_JETON_SECRET`** : absent de `apps/web/.env.local`, donc jamais préparé dans `.dev.vars` ; les routes de commande du plan 1c en auront besoin.
 - Aucun essai de charge, aucune écriture réelle.
-- **Étape 1c-1** (voir aussi « Essai local de l'étape 1c-1 ») : le comportement de la création de commande relayée sur Cloudflare réel (durée, CPU, 1102) ; `randomInt` ; `clone()` ; `waitUntil` réel ; l'égalité des secrets de production (seule la présence des noms se voit, plus l'essai d'idempotence croisée si Malika l'accepte) ; le délai de l'application mobile (non relevé : les délais du relais valent 8 s et 15 s seulement si l'application attend au moins autant) ; les écritures (`annuler`, `proposition`, `POST commandes`) jamais comparées à la production ; la parité exacte de `listerMesCommandes`, `chargerSuiviParJeton`, `annulerParClient`, `repondreProposition` sous Workers sans vrai jeton (mêmes fonctions que le site, mais exécution observée seulement à la Tâche 12) ; l'ordre des clés JSON ; le coût du relais dans l'offre gratuite ; la mémoïsation de `fonctionnaliteActive`.
+- **Étape 1c-1** (voir aussi « Essai local de l'étape 1c-1 ») : le comportement de la création de commande relayée sur Cloudflare réel (durée, CPU, 1102) ; `randomInt` ; `clone()` ; `waitUntil` réel ; l'égalité des secrets de production (seule la présence des noms se voit, plus l'essai d'idempotence croisée si Malika l'accepte) ; le délai de l'application mobile : relevé dans le code, `requestTimeoutMillis = 20_000` (`mobile/shared/src/commonMain/kotlin/com/speedfood/app/di/Koin.kt`, l.189), donc plus que les délais du relais (8 000 et 15 000 ms) ; et `CommandeViewModel.kt` (l.176-178) garde la même clé d'idempotence tant que le panier, le mode ou la destination ne changent pas. Conséquence attendue (non essayée) : un 500 renvoyé par le site après 15 s, puis un nouvel essai, donne un rejeu idempotent 200 (pas de doublon), **à condition que `COMMANDE_JETON_SECRET` soit identique sur les deux Workers** (à vérifier en Tâche 12) ; à surveiller en Tâche 12 : si le relais de `POST /suivi` retombe sur le site après panne ou délai, le plafond `limiterLectureSuivi` peut être compté deux fois (API puis site), et si les secrets diffèrent les compteurs des deux Workers se séparent (effet faible : plafond par jeton) ; les écritures (`annuler`, `proposition`, `POST commandes`) jamais comparées à la production ; la parité exacte de `listerMesCommandes`, `chargerSuiviParJeton`, `annulerParClient`, `repondreProposition` sous Workers sans vrai jeton (mêmes fonctions que le site, mais exécution observée seulement à la Tâche 12) ; l'ordre des clés JSON ; le coût du relais dans l'offre gratuite ; la mémoïsation de `fonctionnaliteActive`.
 
 ## Réserves traitées le 31 octobre 2026
 

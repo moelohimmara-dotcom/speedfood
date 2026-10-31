@@ -1,6 +1,7 @@
 import type { VersionApplication } from "@speedfood/shared/application/version";
 import type { CreationCommandePayload, ResultatCreationCommande } from "@speedfood/shared/contracts/commande";
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
+import type { Planifier } from "@/lib/commande/creation-coeur";
 import type { VerificateurJeton } from "./identite/jeton.ts";
 
 export type ResultatEspace = { ok: true; message: string; favori?: boolean } | { ok: false; message: string };
@@ -11,8 +12,8 @@ export interface RolesCompte {
   equipe: string | null;
 }
 
-/** « Après la réponse » : sur Workers, `ctx.waitUntil`. La tâche ne retarde jamais la réponse et ne la fait jamais échouer. */
-export type Planifier = (tache: () => Promise<void>) => void;
+/** « Après la réponse » : sur Workers, `ctx.waitUntil`. Définition unique, celle du cœur de création (import de type seulement, effacé à la compilation). */
+export type { Planifier };
 
 /**
  * Tout ce que les routes ont le droit d'appeler : branché en production par `worker.ts` sur les services du site (jamais une copie de leurs règles),
