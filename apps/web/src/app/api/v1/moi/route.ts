@@ -1,9 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { creerClientAdmin } from "@/lib/db/admin";
 import { repondre, repondreErreur, utilisateurDuJeton } from "@/lib/api/v1";
+import { lireRolesCompte } from "@/lib/api/moi-service";
 import { limiterClientApplication } from "@/lib/securite/limitation-debit";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
-import { estRoleSysteme } from "@/lib/system-admin/permissions";
 
 /**
  * Quels espaces ce compte peut-il ouvrir dans l'application ? Le client est l'espace de tout le monde ; les espaces professionnels (restaurateur, livreur, équipe
@@ -20,25 +18,7 @@ export async function GET(request: Request) {
     return repondreErreur({ code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." });
   }
 
-  // Client sans types générés : la table `livreurs` n'en fait pas partie (même usage que src/lib/livraison/livreur.ts).
-  const admin = creerClientAdmin() as unknown as SupabaseClient;
-  const [restaurant, livreur, equipe] = await Promise.all([
-    admin.from("restaurant_memberships").select("restaurant_id, restaurants(nom)").eq("utilisateur_id", utilisateur.id).limit(1).maybeSingle(),
-    admin.from("livreurs").select("id").eq("utilisateur_id", utilisateur.id).limit(1).maybeSingle(),
-    admin.from("system_admin_memberships").select("role").eq("utilisateur_id", utilisateur.id).limit(1).maybeSingle(),
-  ]);
-  const jointure = restaurant.data?.restaurants as { nom?: string } | { nom?: string }[] | null | undefined;
-  const nomRestaurant = Array.isArray(jointure) ? jointure[0]?.nom : jointure?.nom;
-  const roleEquipe = typeof equipe.data?.role === "string" && estRoleSysteme(equipe.data.role) ? equipe.data.role : null;
-
-  return repondre({
-    ok: true,
-    roles: {
-      restaurateur: restaurant.data ? { restaurant: nomRestaurant ?? "Mon restaurant" } : null,
-      livreur: Boolean(livreur.data),
-      equipe: roleEquipe,
-    },
-  });
+  return repondre({ ok: true, roles: await lireRolesCompte(utilisateur.id) });
 }
 
 export const dynamic = "force-dynamic";

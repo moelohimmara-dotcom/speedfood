@@ -4,6 +4,7 @@ import { entetesCourants } from "./cales/next-headers.ts";
 import { reponseErreur } from "./http.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
+import { routeMoi } from "./routes/moi.ts";
 import { routeVersion } from "./routes/version.ts";
 import type { Deps } from "./types.ts";
 
@@ -21,6 +22,7 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/version", routeVersion(deps));
   app.route("/api/v1/aide", routeAide(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
+  app.route("/api/v1/moi", routeMoi(deps));
 
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {
