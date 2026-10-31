@@ -83,3 +83,21 @@ test("une panne du compteur (erreur non métier) répond ERREUR_SERVEUR, pas un 
   assert.ok(!JSON.stringify(await reponse.json()).includes("redis en panne"));
   assert.deepEqual(appels, []);
 });
+
+test("une panne du vérificateur de jeton (jwks indisponible) répond ERREUR_SERVEUR sans fuite, et la limite par compte n'est pas appelée", async () => {
+  const appels: string[] = [];
+  const app = montage(appels, { verifier: async () => { throw new Error("jwks indisponible"); } });
+  const reponse = await app.request("/api/v1/essai", { headers: { authorization: `Bearer ${JETON}` } });
+  assert.equal(reponse.status, 500);
+  assert.ok(!JSON.stringify(await reponse.json()).includes("jwks"));
+  assert.ok(!appels.includes("limite-compte"));
+  assert.ok(!appels.some((a) => a.startsWith("limite-compte")));
+});
+
+test("une panne de la limite par compte (erreur non métier) répond ERREUR_SERVEUR sans fuite", async () => {
+  const appels: string[] = [];
+  const app = montage(appels, { limiteCompte: async () => { throw new Error("redis en panne"); } });
+  const reponse = await app.request("/api/v1/essai", { headers: { authorization: `Bearer ${JETON}` } });
+  assert.equal(reponse.status, 500);
+  assert.ok(!JSON.stringify(await reponse.json()).includes("redis"));
+});

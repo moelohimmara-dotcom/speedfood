@@ -62,3 +62,36 @@ test("un jeton non signé (alg none) est refusé", async () => {
   const corps = Buffer.from(JSON.stringify({ iss: ISSUER, aud: "authenticated", sub: "x", exp: Math.floor(Date.now() / 1000) + 3600 })).toString("base64url");
   assert.equal(await verifierJetonLocal(`${enTete}.${corps}.`, config), null);
 });
+
+test("liste blanche d'algorithmes : un jeton ES384 d'une clé P-384 pourtant publiée dans le jeu de clés est refusé", async () => {
+  // Un test HS256 ne prouverait rien (jose le refuse de toute façon) : il faut une clé asymétrique valide mais hors liste blanche.
+  const es256 = await generateKeyPair("ES256");
+  const es384 = await generateKeyPair("ES384");
+  const cles = createLocalJWKSet({
+    keys: [
+      { ...(await exportJWK(es256.publicKey)), kid: "k1", alg: "ES256", use: "sig" },
+      { ...(await exportJWK(es384.publicKey)), kid: "k2", alg: "ES384", use: "sig" },
+    ],
+  });
+  const jeton = await new SignJWT({ role: "authenticated" })
+    .setProtectedHeader({ alg: "ES384", kid: "k2" })
+    .setIssuer(ISSUER)
+    .setAudience("authenticated")
+    .setSubject("11111111-1111-1111-1111-111111111111")
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(es384.privateKey);
+  assert.equal(await verifierJetonLocal(jeton, { cles, issuer: ISSUER }), null);
+});
+
+test("le paramètre « maintenant » décide de l'expiration : valide à l'instant, refusé deux heures plus tard", async () => {
+  const { config, signer } = await fabrique();
+  const jeton = await signer();
+  assert.deepEqual(await verifierJetonLocal(jeton, config, new Date()), { id: "11111111-1111-1111-1111-111111111111" });
+  assert.equal(await verifierJetonLocal(jeton, config, new Date(Date.now() + 2 * 3600_000)), null);
+});
+
+test("un jeton dont le compte (sub) est une chaîne vide est refusé", async () => {
+  const { config, signer } = await fabrique();
+  assert.equal(await verifierJetonLocal(await signer({ sub: "" }), config), null);
+});
