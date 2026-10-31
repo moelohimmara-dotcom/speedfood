@@ -9,6 +9,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync, existsSync
 import { tmpdir } from "node:os";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { creerCopieur } from "./outils/copie-tmp.mjs";
 import { randomBytes } from "node:crypto";
 
 const racine = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,20 +23,16 @@ if (existsSync(fichierEnv)) {
 
 const tmp = mkdtempSync(join(tmpdir(), "speedfood-repartition-"));
 const paquets = { "@supabase/supabase-js": import.meta.resolve("@supabase/supabase-js") };
-function copier(rel) {
-  const dest = join(tmp, rel);
-  mkdirSync(dirname(dest), { recursive: true });
-  const contenu = readFileSync(join(racine, rel), "utf8")
-    .replace(/import\s+"server-only";?/g, "")
-    .replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"')
-    .replace(/from\s+"(@supabase\/supabase-js)"/g, (_, nom) => `from "${paquets[nom]}"`)
-    .replace(/from\s+"@\/([^"]+?)(?<!\.ts)"/g, (_, chemin) => {
-      const relatif = relative(dirname(dest), join(tmp, "src")).split("\\").join("/");
-      return `from "${relatif.startsWith(".") ? relatif : "./" + relatif}/${chemin}.ts"`;
-    });
-  writeFileSync(dest, contenu);
-}
+const copier = creerCopieur({ tmp, racine, paquets, retirerServerOnly: true });
 for (const f of ["src/lib/system-admin/repartition-lecture.ts", "src/lib/commande/commun.ts", "src/lib/contracts/erreurs.ts", "src/lib/contracts/statuts.ts", "src/lib/contracts/commande.ts", "src/lib/db/admin.ts"]) copier(f);
+
+// Vérification à blanc (`--seche`) : importe les copies temporaires pour prouver que tous leurs imports se résolvent, sans toucher à la base.
+if (process.argv.includes("--seche")) {
+  for (const rel of ["src/lib/db/admin.ts", "src/lib/system-admin/repartition-lecture.ts"]) await import(pathToFileURL(join(tmp, rel)).href);
+  console.log("OK    copies temporaires résolues (vérification à blanc, aucune requête)");
+  rmSync(tmp, { recursive: true, force: true });
+  process.exit(0);
+}
 
 let ko = 0;
 function verifier(nom, ok, detail = "") {

@@ -1,7 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/apps/web/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -69,5 +68,8 @@ mobile/androidApp/google-services.json
 # iPhone : réglages locaux (adresse Supabase et clé publique), jamais dans Git
 mobile/iosApp/Configuration/Secrets.xcconfig
 
-# Dépendances de l espace de travail (racine)
-/node_modules
+# Dépendances de l espace de travail (racine, apps/*, packages/*)
+node_modules/
+
+# Ancien dossier web/ (avant le passage à apps/web), parfois recréé par un terminal resté ouvert
+/web/

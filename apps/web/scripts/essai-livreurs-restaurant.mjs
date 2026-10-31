@@ -10,6 +10,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync, existsSync
 import { tmpdir } from "node:os";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { creerCopieur } from "./outils/copie-tmp.mjs";
 
 const racine = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fichierEnv = join(racine, ".env.local");
@@ -20,29 +21,30 @@ if (existsSync(fichierEnv)) {
   }
 }
 const [RESTO_A, RESTO_B, LIV_A, LIV_B, LIV_GROUPE, LIV_ARCHIVE] = process.argv.slice(2);
-if (![RESTO_A, RESTO_B, LIV_A, LIV_B, LIV_GROUPE, LIV_ARCHIVE].every((x) => /^[0-9a-f-]{36}$/.test(x ?? ""))) {
+if (!process.argv.includes("--seche") && ![RESTO_A, RESTO_B, LIV_A, LIV_B, LIV_GROUPE, LIV_ARCHIVE].every((x) => /^[0-9a-f-]{36}$/.test(x ?? ""))) {
   console.error("Six identifiants attendus : restaurant A, restaurant B, livreur A, livreur B, livreur du groupe (créé), livreur archivé.");
   process.exit(1);
 }
 
 const tmp = mkdtempSync(join(tmpdir(), "speedfood-liv-"));
 const paquets = { "@supabase/supabase-js": import.meta.resolve("@supabase/supabase-js") };
-function copier(rel) {
-  const dest = join(tmp, rel);
-  mkdirSync(dirname(dest), { recursive: true });
-  const contenu = readFileSync(join(racine, rel), "utf8")
-    .replace(/import\s+"server-only";?/g, "")
-    .replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"')
-    .replace(/from\s+"(@supabase\/supabase-js)"/g, (_, nom) => `from "${paquets[nom]}"`)
-    .replace(/from\s+"@\/([^"]+?)(?<!\.ts)"/g, (_, chemin) => {
-      const relatif = relative(dirname(dest), join(tmp, "src")).split("\\").join("/");
-      return `from "${relatif.startsWith(".") ? relatif : "./" + relatif}/${chemin}.ts"`;
-    });
-  writeFileSync(dest, contenu);
-}
+const copier = creerCopieur({ tmp, racine, paquets, retirerServerOnly: true });
 for (const f of ["livreurs-service", "livreurs-regles", "lecture", "frais", "garde-fou-speedfood"]) copier(`src/lib/livraison/${f}.ts`);
 copier("src/lib/commande/telephone.ts");
+// Importés par livreurs-service.ts (réservation du numéro) : absents de la liste d'origine, l'essai ne pouvait pas démarrer.
+copier("src/lib/identite/numeros.ts");
+copier("src/lib/commande/commun.ts");
+copier("src/lib/contracts/erreurs.ts");
+copier("src/lib/contracts/statuts.ts");
 copier("src/lib/db/admin.ts");
+
+// Vérification à blanc (`--seche`) : importe les copies temporaires pour prouver que tous leurs imports se résolvent, sans toucher à la base.
+if (process.argv.includes("--seche")) {
+  for (const rel of ["src/lib/db/admin.ts", "src/lib/livraison/livreurs-service.ts", "src/lib/livraison/lecture.ts"]) await import(pathToFileURL(join(tmp, rel)).href);
+  console.log("OK    copies temporaires résolues (vérification à blanc, aucune requête)");
+  rmSync(tmp, { recursive: true, force: true });
+  process.exit(0);
+}
 
 let ko = 0;
 function verifier(nom, ok, detail = "") {

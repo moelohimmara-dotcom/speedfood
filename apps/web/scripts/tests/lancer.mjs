@@ -6,50 +6,14 @@ import { tmpdir } from "node:os";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { creerCopieur } from "../outils/copie-tmp.mjs";
 
 const racine = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const tmp = mkdtempSync(join(tmpdir(), "speedfood-tests-"));
 // Les copies vivent hors du dépôt : un paquet (zod/mini) y est importé par son URL résolue depuis le dépôt.
 const paquets = { "zod/mini": import.meta.resolve("zod/mini") };
 
-const racinePartage = join(racine, "..", "..", "packages", "shared", "src");
-const dejaCopies = new Set();
-
-function versRelatif(depuis, vers) {
-  const r = relative(dirname(depuis), vers).split("\\").join("/");
-  return r.startsWith(".") ? r : "./" + r;
-}
-
-// Réécrit les imports pour qu'ils tiennent dans le dossier temporaire : suffixe « .ts » exigé par Node, alias « @/ » du site, et paquet partagé
-// « @speedfood/shared/<chemin> » (dont le fichier est copié au passage, avec ses propres imports).
-function transformer(contenu, dest) {
-  return contenu
-    .replace(/(from\s+"\.{1,2}\/[^"]+?)(?<!\.ts)"/g, '$1.ts"')
-    .replace(/from\s+"(zod\/mini)"/g, (_, nom) => `from "${paquets[nom]}"`)
-    // Alias `@/` du projet : réécrit en chemin relatif vers la copie (les imports de types disparaissent de toute façon à l'exécution).
-    .replace(/from\s+"@\/([^"]+?)(?<!\.ts)"/g, (_, chemin) => {
-      const relatif = relative(dirname(dest), join(tmp, "src")).split("\\").join("/");
-      return `from "${relatif.startsWith(".") ? relatif : "./" + relatif}/${chemin}.ts"`;
-    })
-    .replace(/from\s+"@speedfood\/shared\/([^"]+?)"/g, (_, chemin) => {
-      copierPartage(chemin);
-      return `from "${versRelatif(dest, join(tmp, "packages", "shared", "src", `${chemin}.ts`))}"`;
-    });
-}
-
-function copierPartage(chemin) {
-  const dest = join(tmp, "packages", "shared", "src", `${chemin}.ts`);
-  if (dejaCopies.has(dest)) return;
-  dejaCopies.add(dest);
-  mkdirSync(dirname(dest), { recursive: true });
-  writeFileSync(dest, transformer(readFileSync(join(racinePartage, `${chemin}.ts`), "utf8"), dest));
-}
-
-function copier(rel) {
-  const dest = join(tmp, rel);
-  mkdirSync(dirname(dest), { recursive: true });
-  writeFileSync(dest, transformer(readFileSync(join(racine, rel), "utf8"), dest));
-}
+const copier = creerCopieur({ tmp, racine, paquets });
 
 copier("src/lib/disponibilite/etat.ts");
 copier("src/lib/decouverte/classement.ts");
