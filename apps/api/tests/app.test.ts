@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { creerApp } from "../src/app.ts";
 import { headers } from "../src/cales/next-headers.ts";
-import { depsEssai } from "./deps-essai.ts";
+import { Hono } from "hono";
+import { ctxEssai, depsEssai } from "./deps-essai.ts";
 
 const deps = depsEssai();
 
@@ -60,4 +61,14 @@ test("la cale isole les en-têtes de deux requêtes concurrentes", async () => {
     app.request("/api/v1/aide", { headers: { "cf-connecting-ip": "203.0.113.2" } }),
   ]);
   assert.deepEqual(vus, { "203.0.113.1": "203.0.113.1", "203.0.113.2": "203.0.113.2" });
+});
+
+test("le contexte d'exécution de Workers est disponible pour les routes (waitUntil)", async () => {
+  const { ctx, attendre, enregistrees } = ctxEssai();
+  const app = new Hono();
+  app.get("/", (c) => { c.executionCtx.waitUntil(Promise.resolve()); return c.text("ok"); });
+  const reponse = await app.request("/", {}, {}, ctx);
+  assert.equal(reponse.status, 200);
+  await attendre();
+  assert.equal(enregistrees(), 1);
 });
