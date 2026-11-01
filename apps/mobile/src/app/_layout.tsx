@@ -7,6 +7,7 @@ import { ApplicationProvider, useApplication } from '../etat/Application';
 import { couleurs as c } from '../design/tokens';
 import { Icone, type NomIcone } from '../design/Icone';
 import { Texte } from '../design/Composants';
+import { CatalogueReel } from '../catalogue/CatalogueReel';
 function Navigation() {
   const chemin = usePathname();
   const insets = useSafeAreaInsets();
@@ -28,6 +29,11 @@ function Navigation() {
 export default function Layout() {
   const [chargees, erreur] = useFonts({ Manrope: require('../../assets/fonts/manrope.ttf'), Bricolage: require('../../assets/fonts/bricolage.ttf') });
   if (!chargees && !erreur) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fond }}><Text>Speedfood</Text></View>;
+  // Premier branchement réel en lecture. Aucun écran démo ni stockage démo monté.
+  return <SafeAreaProvider><SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={{ flex: 1, backgroundColor: c.fond }}><StatusBar style="dark" /><CatalogueReel /></SafeAreaView></SafeAreaProvider>;
+}
+/** Conservé pour retour arrière du démonstrateur, non monté par le catalogue réel. */
+export function LayoutDemonstration() {
   return <SafeAreaProvider><ApplicationProvider><SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: c.fond }}>
     <StatusBar style="dark" /><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.fond } }} /><Navigation />
   </SafeAreaView></ApplicationProvider></SafeAreaProvider>;

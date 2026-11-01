@@ -1,0 +1,11 @@
+# Catalogue réel Expo — première lecture
+
+Demande de Malika : branchement réel et déploiements autorisés lorsqu’ils sont prêts. Cette autorisation remplace, pour ce lot, la restriction « Malika déploie elle-même ». Aucun secret, relais, paiement, compte ou ressource cloud supplémentaire à modifier.
+
+Première tranche de l’API catalogue prévue par l’architecture : lecture publique paginée sans cache, sans synchronisation incrémentale ni cache SQLite réel à ce stade. GET /api/v1/catalogue/restaurants?apres=UUID ; GET /api/v1/catalogue/restaurants/UUID/menu?apres=UUID. Tri stable par id ; curseur suivant explicite. Restaurant absent/dépublié/suspendu : même 404 ; menus archivés exclus, RLS publique, aucune clé privilégiée pour le catalogue. Prix entiers GNF ; disponibilité calculée avec la règle partagée et le seuil du site. Projection publique explicite, jamais coordonnées privées ni données de gestion. Une erreur ne devient jamais une liste vide réussie. Réponses no-store, CORS public GET sur ces seules routes.
+
+Expo ouvre désormais ce catalogue en lecture : recherche dans les pages chargées, pagination explicite, menus réels, chargement/erreur/vide, retour et actualisation volontaire. Aucun repli fictif. Les parcours démo, leur panier et leur SQLite restent isolés et ne sont pas accessibles depuis ce parcours réel. Pas de commande dans cette tranche ; affichage explicite. Aucun pays/quartier ou service de livraison déduit des données absentes. Pas de photo inventée.
+
+Tests rouge/vert et mutations : routes, curseurs, projection/RLS de la source, erreurs, prix/disponibilité et transport mobile. Contrôles types, suite API, exports Android/iOS/web ; parcours web réel après mise en ligne. Les essais sur téléphones restent distincts. Déploiement API seulement si la version préparée ne publie pas silencieusement les travaux ADR-021 non validés ; vérifier la version et la configuration effectivement en service. Aucun déploiement mobile magasin dans ce lot.
+
+Retour arrière : rétablir la version API précédente ; le site/Kotlin restent en service. Revenir au commit mobile antérieur restaure le démonstrateur sans toucher à sa base locale. Aucune migration SQL ni écriture métier.

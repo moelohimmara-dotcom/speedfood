@@ -20,6 +20,10 @@ export type { Planifier };
  * remplacé par de fausses valeurs dans les tests (`tests/deps-essai.ts`).
  */
 export interface Deps {
+  catalogue: {
+    restaurants(apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageRestaurants>;
+    menu(id: string, apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageMenu | null>;
+  };
   version: VersionApplication;
   lireAssistance(): Promise<{ whatsapp: string | null }>;
   connexionClientActive(): Promise<boolean>;

@@ -4,6 +4,7 @@ import { entetesCourants } from "./cales/next-headers.ts";
 import { reponseErreur } from "./http.ts";
 import { enteteRelaisDeConfiance } from "./identite/relais.ts";
 import { routeAide } from "./routes/aide.ts";
+import { routeCatalogue } from "./routes/catalogue.ts";
 import { routeClient } from "./routes/client.ts";
 import { routeCommandes } from "./routes/commandes.ts";
 import { routeEstimation } from "./routes/estimation.ts";
@@ -29,6 +30,7 @@ export function creerApp(deps: Deps) {
   app.get("/sante", (c) => c.json({ ok: true }, 200, SANS_CACHE));
   app.route("/api/v1/version", routeVersion(deps));
   app.route("/api/v1/aide", routeAide(deps));
+  app.route("/api/v1/catalogue", routeCatalogue(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
   app.route("/api/v1/moi", routeMoi(deps));
   app.route("/api/v1/client", routeClient(deps));

@@ -17,11 +17,13 @@ import { estimerPourClient } from "@/lib/livraison/estimation-service";
 import { creerApp } from "./app.ts";
 import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } from "./identite/jeton.ts";
 import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
+import { lireRestaurants, lireMenu } from './catalogue/service';
 
 // Câblage de PRODUCTION : les routes reçoivent les services du site, jamais une copie de leurs règles. Les secrets sont lus à l'APPEL (jamais au chargement du module).
 let local: ReturnType<typeof creerVerificateurLocal> | undefined;
 
 const app = creerApp({
+  catalogue: { restaurants: lireRestaurants, menu: lireMenu },
   version: VERSION_APPLICATION,
   lireAssistance: async () => {
     const { whatsapp } = await lireReglagesAssistance();
