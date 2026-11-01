@@ -9,6 +9,9 @@ import { initialiserBase, type BaseLocale } from '../src/stockage/migrations/000
 import { SessionLocale } from '../src/stockage/session.ts';
 import { creerDepotDrizzle } from '../src/stockage/depot-drizzle.ts';
 import { etatLocalVide } from '../src/stockage/codec.ts';
+import { initialiserPanierReel } from '../src/stockage/migrations/0001-panier-reel.ts';
+import { creerDepotPanier } from '../src/stockage/panier-reel-depot.ts';
+import { SessionPanierReel } from '../src/stockage/panier-reel-session.ts';
 interface BaseNode {
   exec(sql: string): void;
   prepare(sql: string): { get(...p: unknown[]): Record<string, unknown> | undefined; all(...p: unknown[]): Record<string, unknown>[]; run(...p: unknown[]): unknown };
@@ -57,5 +60,29 @@ test('SQLite réel sur disque : sauvegarde puis fermeture et réouverture', asyn
     db.close(); db = new DatabaseSync(chemin);
     await initialiserBase(port(db));
     assert.deepEqual((await new SessionLocale(depot()).charger()).favoris, ['marmite-demo']);
+  } finally { db.close(); unlinkSync(chemin); }
+});
+
+test('panier réel SQLite séparé : sauvegarde, réouverture et refus de version future sans perte', async () => {
+  const chemin = join(tmpdir(), `speedfood-panier-reel-test-${randomUUID()}.db`);
+  let db = new DatabaseSync(chemin);
+  const id = '00000000-0000-4000-8000-000000000001';
+  const panier = { restaurantId: id, lignes: [{ platId: id, quantite: 2 }] };
+  const depot = () => creerDepotPanier(async (sql, params, lecture) => {
+    const q = db.prepare(sql); if (lecture) return q.all(...params).map(v => Object.values(v));
+    q.run(...params); return [];
+  });
+  try {
+    await initialiserPanierReel(port(db)); await initialiserPanierReel(port(db));
+    const session = new SessionPanierReel(depot());
+    await assert.rejects(session.sauver(panier), /STOCKAGE_NON_CHARGE/);
+    await session.charger(); await session.sauver(panier);
+    assert.throws(() => db.prepare('INSERT INTO panier_client(id,contenu) VALUES (2,?)').run('{}'));
+    assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE name='etat_client_demo'").get(), undefined);
+    db.close(); db = new DatabaseSync(chemin);
+    assert.deepEqual(await new SessionPanierReel(depot()).charger(), panier);
+    db.exec('PRAGMA user_version=2');
+    await assert.rejects(initialiserPanierReel(port(db)), /VERSION/);
+    assert.deepEqual(await new SessionPanierReel(depot()).charger(), panier);
   } finally { db.close(); unlinkSync(chemin); }
 });

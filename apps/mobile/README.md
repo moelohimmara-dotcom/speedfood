@@ -28,4 +28,6 @@ Lot 2 : ../../docs/specs/2026-11-01-refonte-expo-client-lot2.md ; preuves et lim
 
 ## Catalogue réel actuel
 
-Routes publiques /api/v1/catalogue/restaurants et /api/v1/catalogue/restaurants/UUID/menu. Pagination explicite ; recherche limitée aux restaurants chargés. Menu et disponibilités réels, fraîcheur signalée ; aucun panier réel ni commande. Le fichier SQLite démo reste intact et inutilisé par cette entrée. Contrôle complet et versions déployées : ../../docs/CONTROLE-CATALOGUE-REEL-2026-11-01.md. Aperçu de reprise sur http://localhost:8091/ (8090 était occupé).
+Routes publiques /api/v1/catalogue/restaurants et /api/v1/catalogue/restaurants/UUID/menu. Pagination explicite ; recherche limitée aux restaurants chargés. Menu et disponibilités réels, fraîcheur signalée ; Panier réel local disponible, sans commande : seulement les identifiants et quantités dans une base distincte, prix relus à l’ouverture du panier. Le fichier SQLite démo reste intact et inutilisé par cette entrée. Contrôle complet et versions déployées : ../../docs/CONTROLE-CATALOGUE-REEL-2026-11-01.md. Aperçu de reprise sur http://localhost:8091/ (8090 était occupé).
+
+Panier réel : ../../docs/CONTROLE-PANIER-REEL-2026-11-01.md. Contrôle sur http://127.0.0.1:8091/ en un seul onglet ; le stockage web est propre à chaque origine. Pas de transfert automatique depuis localhost, ni depuis la base démo. Les essais sur Android/iPhone restent à réaliser.
