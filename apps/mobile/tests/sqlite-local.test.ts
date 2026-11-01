@@ -59,4 +59,3 @@ test('SQLite réel sur disque : sauvegarde puis fermeture et réouverture', asyn
     assert.deepEqual((await new SessionLocale(depot()).charger()).favoris, ['marmite-demo']);
   } finally { db.close(); unlinkSync(chemin); }
 });
-
