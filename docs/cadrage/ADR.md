@@ -162,3 +162,15 @@ Pour le détail fonctionnel et visuel applicable, voir `SPEC-PILOTE-DISCOVERY-ID
 - **Retour arrière :** bloquer POST commandes API, garder la création du site et son secret ; ne pas rétablir un chemin API divergent. Tous les changements en production exigent les feux verts distincts habituels et sont exécutés par Malika.
 - **Preuve actuelle :** banc workerd local avec wrapper réel et moteur OpenNext fictif, 239 tests API à code 0. Bundle OpenNext réel, création de bout en bout et alertes non vérifiés pour cette solution.
 - **Plan :** docs/plans/2026-11-01-idempotence-secret-site-conserve.md.
+
+
+### ADR-022 — Refonte Expo client en parallèle de la migration API
+
+- **Statut :** validé explicitement par Malika le 1er novembre 2026. Démarrage Android et iOS demandé sans attendre la fin de tous les modules API.
+- **Décision :** Expo/React Native et Expo Router dans apps/mobile, coexistence avec Kotlin, premier parcours à catalogue fictif et état en mémoire. Aucun branchement des commandes réelles tant que l’idempotence et les alertes ne sont pas validées. Les modules API vérifiés pourront être branchés par petits lots ultérieurs.
+- **Cohérence :** technologies cibles du design du 30 octobre conservées ; SQLite vient dans un lot ultérieur. Pas de compte Expo/EAS, de projet cloud ou de publication. Nom de paquet du démonstrateur distinct : com.speedfood.clientdemo. Aucun remplacement de l’application installée.
+- **Direction visuelle :** tokens verrouillés du site, Bricolage/Manrope et ressources locales déjà utilisées par Kotlin ; aucune nouvelle palette ni photo non autorisée.
+- **Contradiction notée :** la table de file d’envoi du design §6 contredit D4 sur les annulations ; D4 prévaut, pas de file d’actions urgentes et aucune file d’envoi dans ce premier lot.
+- **Limites :** aperçu web et exports Hermes ne remplacent pas les essais Android/iOS sur appareils, les APK/IPA signées ou la parité Kotlin. Le gel de Kotlin n’est pas déclenché.
+- **Retour arrière :** retirer le nouveau workspace et ses dépendances locales ; site, API, base et Kotlin restent inchangés. Aucun déploiement autorisé par cette décision.
+- **Références :** docs/specs/2026-11-01-refonte-expo-client-lot1.md et docs/plans/2026-11-01-refonte-expo-client-lot1.md.

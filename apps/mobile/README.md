@@ -1,0 +1,25 @@
+# Speedfood — nouveau client React Native
+
+Premier lot Expo Android/iOS à données fictives. Kotlin reste dans /mobile, inchangé. Aucun compte Expo/EAS ni service cloud utilisé. SDK 57.0.31, React Native 0.86.3, React 19.2.3, Expo Router 57.0.29 ; versions verrouillées dans le package-lock racine. Le SDK 57 est conseillé par la documentation Expo pour Expo Go durant la transition SDK 58 : https://docs.expo.dev/more/create-expo/
+
+## Aperçu local
+
+Depuis la racine, npm run web --workspace @speedfood/mobile. Le serveur écoute seulement localhost. Aucun appel API métier, authentification ni paiement. Pour les essais de l’agent, EXPO_NO_DOTENV=1 et EXPO_NO_TELEMETRY=1 sont posés dans le processus ; aucun fichier de secrets n’est nécessaire.
+
+## Vérifications
+
+- npm run typecheck --workspace @speedfood/mobile
+- npm test --workspace @speedfood/mobile
+- npm run export:all --workspace @speedfood/mobile
+
+export:all produit les paquets JavaScript web et Hermes Android/iOS dans dist/ (ignoré par Git). **Ce ne sont ni une APK ni une IPA.** Aucun compte Apple/Google ni signature n’est configuré. Sur Windows, le simulateur iOS et la construction iOS native ne sont pas disponibles. Les essais sur téléphones restent à organiser.
+
+## Choix du premier lot
+
+Découverte/recherche/zone, menu, favoris, panier d’un restaurant, suivi DEMO-001 volontaire. Données embarquées, prix entiers, aucun avis inventé ni délai garanti. Panier et favoris vivent en mémoire ; recharger les efface. La commande réelle n’existe pas ici et ne doit pas être branchée tant que les préconditions API ne sont pas levées. Pas de file d’envoi. SQLite est un lot ultérieur, pas simulé par une fausse persistance.
+
+Identifiant du démonstrateur : com.speedfood.clientdemo, distinct de l’application Kotlin installée. Aucun remplacement de clé ou de paquet de production. Bricolage et Manrope proviennent des ressources déjà versionnées de Kotlin ; logo repris du site ; illustrations SVG locales, pas de photos commerciales.
+
+La génération expérimentale typedRoutes a été désactivée après un échec de résolution de expo-router/_ctx-shared depuis @expo/router-server dans le monorepo npm. Ce contournement concerne la génération des routes seulement ; TypeScript strict reste obligatoire et les parcours sont vérifiés dans l’aperçu. Aucun correctif de node_modules.
+
+Spécification et limites : ../../docs/specs/2026-11-01-refonte-expo-client-lot1.md.

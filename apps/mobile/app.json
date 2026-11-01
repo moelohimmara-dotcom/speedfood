@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Speedfood Démo",
+    "slug": "speedfood-client-demo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/speedfood.png",
+    "scheme": "speedfood-demo",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.speedfood.clientdemo"
+    },
+    "android": {
+      "package": "com.speedfood.clientdemo",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/speedfood.png",
+        "backgroundColor": "#FFF6ED"
+      }
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/speedfood.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF6ED",
+          "image": "./assets/images/speedfood.png",
+          "imageWidth": 76
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
