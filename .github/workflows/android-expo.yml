@@ -1,0 +1,76 @@
+name: Android Expo (compilation de contrôle)
+
+# Compile l'APK DEBUG de contrôle du client Expo (com.speedfood.clientdemo) sur Linux : la compilation locale sous Windows échoue
+# (chemins C++ > 260 caractères, voir docs/PASSATION-EXPO-ANDROID-2026-11-01.md). Aucune signature de production, aucun secret,
+# aucune publication : l'APK est seulement déposée en artefact GitHub (conservée 7 jours). Ne remplace PAS l'application installée.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["etape-*"]
+    paths:
+      - "apps/mobile/**"
+      - "packages/shared/**"
+      - ".github/workflows/android-expo.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-expo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EXPO_NO_DOTENV: "1"
+      EXPO_NO_TELEMETRY: "1"
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Installer les paquets
+        run: npm ci
+
+      - name: Tests mobiles
+        working-directory: apps/mobile
+        run: npm test
+
+      # Le dossier android est généré (ignoré par Git) : on le recrée à chaque fois depuis app.json.
+      - name: Générer le projet natif Android
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Compiler l'APK debug (arm64 et x86_64)
+        working-directory: apps/mobile/android
+        run: ./gradlew :app:assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64
+
+      - name: Empreinte et manifeste public de l'APK
+        run: |
+          APK=$(ls apps/mobile/android/app/build/outputs/apk/debug/*.apk | head -1)
+          echo "APK : $APK"
+          sha256sum "$APK"
+          ls -l "$APK"
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          "$AAPT" dump badging "$APK" | grep -E "^(package|sdkVersion|targetSdkVersion)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: speedfood-expo-debug-apk
+          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
