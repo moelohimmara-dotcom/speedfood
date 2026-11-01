@@ -55,22 +55,26 @@ jobs:
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --no-install
 
-      - name: Compiler l'APK debug (arm64 et x86_64)
+      - name: Compiler les APK debug et release de contrôle (arm64 et x86_64)
         working-directory: apps/mobile/android
-        run: ./gradlew :app:assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64
+        run: ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64
 
-      - name: Empreinte et manifeste public de l'APK
+      - name: Empreinte et manifeste public des APK
         run: |
-          APK=$(ls apps/mobile/android/app/build/outputs/apk/debug/*.apk | head -1)
-          echo "APK : $APK"
-          sha256sum "$APK"
-          ls -l "$APK"
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
-          "$AAPT" dump badging "$APK" | grep -E "^(package|sdkVersion|targetSdkVersion)"
+          for APK in apps/mobile/android/app/build/outputs/apk/debug/*.apk apps/mobile/android/app/build/outputs/apk/release/*.apk; do
+            echo "APK : $APK"
+            sha256sum "$APK"
+            ls -l "$APK"
+            "$AAPT" dump badging "$APK" | grep -E "^(package|sdkVersion|targetSdkVersion)"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
           name: speedfood-expo-debug-apk
-          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          # La release est signée avec la clé de DEBUG du modèle Expo : contrôle uniquement, jamais une livraison de production.
+          path: |
+            apps/mobile/android/app/build/outputs/apk/debug/*.apk
+            apps/mobile/android/app/build/outputs/apk/release/*.apk
           retention-days: 7
           if-no-files-found: error
