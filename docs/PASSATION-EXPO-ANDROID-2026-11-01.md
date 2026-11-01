@@ -61,3 +61,20 @@ Aperçu de cette session : http://localhost:8093/ ; disponibilité à revérifie
 ## Résumé pour reprendre
 
 Le web réel catalogue → compte → historique → suivi initial a été contrôlé, sans nouvelle commande. Le prochain travail est un correctif local de compilation native Windows, avec essai de raccourcissement CMake reproductible dans Expo. L’APK Kotlin reste en production tant que la parité fonctionnelle et les essais Android/iOS ne sont pas terminés.
+
+## Essais du 1er novembre (après-midi) — correction toujours NON réalisée
+
+Chemin relatif de l'objet fautif mesuré : **289 caractères** (limite de Ninja : 260). Préfixe qui pèse : `C_/Users/moelo/dev/speedfood/apps/mobile/` (41 caractères) ; il faut retirer au moins 30 caractères.
+
+1. **`CMAKE_OBJECT_PATH_MAX` : ÉCARTÉ.** L'argument a bien atteint CMake (visible dans `CMakeCache.txt`, valeurs 240 puis 128), mais le chemin de l'objet est resté identique et Ninja a échoué pareil (`assembleDebug` x86_64, code 1, 2 min 47 s puis 1 min 53 s). Un plugin Expo local et ses tests avaient été écrits sur cette hypothèse ; ils ont été supprimés (rien de commité). Ne pas réessayer cette piste.
+2. **Lecteur virtuel `subst` : non concluant.**
+   - `X:` → `apps/mobile` : l'autolinking Expo ne trouve pas `package.json` depuis la racine d'un lecteur ; avec `NODE_PATH` vers le `node_modules` racine, Gradle avance jusqu'à `:expo-constants:createExpoConfig`, qui échoue (le plugin `expo-splash-screen` du `node_modules` racine n'est pas reconnu depuis ce chemin).
+   - `X:` → `apps` (projet dans `X:\mobile`) : économie de 31 caractères (258), mais les paquets hissés à la racine ne sont plus atteignables normalement : même échec.
+   - `X:` → racine du dépôt économiserait seulement 26 caractères (263 > 260) : insuffisant seul.
+   Le lecteur a été supprimé (`subst X: /d`). Aucun fichier déplacé, registre intact. Contrôle de référence : le même script de configuration Expo s'exécute correctement depuis le chemin réel.
+3. **Pistes restantes, à décider :**
+   - **Compiler sur GitHub Actions (Linux, aucune limite de 260)** : le dépôt utilise déjà Actions pour iOS ; produit l'APK de contrôle sans toucher au poste Windows. Recommandé.
+   - Raccourcir le chemin de dépôt à un niveau ≤ ~10 caractères avant `node_modules` ET hisser gesture-handler à la racine : lourd, touche aux dépendances.
+   - Activer les chemins longs de Windows (registre) : interdit par la présente passation sans accord explicite de Malika.
+
+Journaux locaux non versionnés : `C:/Users/moelo/dev/expo-apk-controle-build2.log` et `build3.log`.
