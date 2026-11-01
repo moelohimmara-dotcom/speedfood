@@ -1,0 +1,106 @@
+name: iPhone Expo (compilation de contrôle)
+
+# Compile le client Expo (com.speedfood.clientdemo) pour le SIMULATEUR iPhone sur un exécuteur macOS, en configuration Release (le code JavaScript est embarqué : pas de Metro).
+# Aucun compte Apple Developer, aucune signature, aucune publication : le dépôt étant public, les minutes macOS de GitHub sont gratuites.
+# Ne remplace rien : l'envoi sur TestFlight/App Store exigera plus tard un compte Apple Developer et des certificats que Malika possède.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["etape-*"]
+    paths:
+      - "apps/mobile/**"
+      - "packages/shared/**"
+      - ".github/workflows/ios-expo.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-expo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulateur:
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      EXPO_NO_DOTENV: "1"
+      EXPO_NO_TELEMETRY: "1"
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Installer les paquets
+        run: npm ci
+
+      - name: Tests mobiles
+        working-directory: apps/mobile
+        run: npm test
+
+      # Le dossier ios est généré (ignoré par Git) : on le recrée depuis app.json, CocoaPods compris.
+      - name: Générer le projet natif iOS
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios
+
+      # L'application a besoin du SDK d'un Xcode récent : on prend le plus récent installé sur l'image.
+      - name: Choisir Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC/Contents/Developer"; else echo "Aucun Xcode 26 : on garde celui par défaut."; fi
+          xcodebuild -version
+
+      - name: Compiler pour le simulateur (Release, sans signature)
+        working-directory: apps/mobile/ios
+        run: |
+          set +e
+          WS=$(ls -d *.xcworkspace | head -1)
+          SCHEME="${WS%.xcworkspace}"
+          echo "Espace de travail : $WS, schéma : $SCHEME"
+          xcodebuild -workspace "$WS" -scheme "$SCHEME" -configuration Release \
+            -sdk iphonesimulator -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build > "$RUNNER_TEMP/xcodebuild.log" 2>&1
+          statut=$?
+          tail -n 40 "$RUNNER_TEMP/xcodebuild.log"
+          if [ "$statut" -ne 0 ]; then
+            # Les journaux ne se lisent qu'une fois connecté à GitHub : la fin du journal est aussi publiée comme annotation.
+            grep -vE "^[[:space:]]+(export|setenv|write-file|cd|builtin|/Applications|/usr|/bin) " "$RUNNER_TEMP/xcodebuild.log" | tail -n 70 | cut -c1-300 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > "$RUNNER_TEMP/message.txt"
+            echo "::error title=Fin du journal Xcode::$(cat $RUNNER_TEMP/message.txt)"
+          fi
+          exit $statut
+
+      # Lance l'application dans le simulateur et photographie l'écran d'ouverture (le contrôle de compilation ci-dessus reste le juge).
+      - name: Lancer dans le simulateur et prendre une capture
+        continue-on-error: true
+        run: |
+          mkdir -p captures
+          APP=$(ls -d "$RUNNER_TEMP"/derived/Build/Products/Release-iphonesimulator/*.app | head -1)
+          echo "Application : $APP"
+          UDID=$(xcrun simctl list devices available | grep -i "iPhone" | head -1 | grep -oE '[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}')
+          echo "Simulateur : $UDID"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" com.speedfood.clientdemo
+          sleep 25; xcrun simctl io "$UDID" screenshot captures/01-ouverture.png
+          sleep 15; xcrun simctl io "$UDID" screenshot captures/02-apres-chargement.png
+          ls -l captures
+          (cd "$(dirname "$APP")" && zip -qr "$GITHUB_WORKSPACE/captures/app-simulateur.zip" "$(basename "$APP")")
+
+      - name: Conserver les captures et l'application du simulateur
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-iphone-expo
+          path: captures
+          retention-days: 7
+          if-no-files-found: ignore
