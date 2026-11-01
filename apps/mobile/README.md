@@ -16,10 +16,12 @@ export:all produit les paquets JavaScript web et Hermes Android/iOS dans dist/ (
 
 ## Choix du premier lot
 
-Découverte/recherche/zone, menu, favoris, panier d’un restaurant, suivi DEMO-001 volontaire. Données embarquées, prix entiers, aucun avis inventé ni délai garanti. Panier et favoris vivent en mémoire ; recharger les efface. La commande réelle n’existe pas ici et ne doit pas être branchée tant que les préconditions API ne sont pas levées. Pas de file d’envoi. SQLite est un lot ultérieur, pas simulé par une fausse persistance.
+Découverte/recherche/zone, menu, favoris, panier d’un restaurant, suivi DEMO-001 volontaire. Données embarquées, prix entiers, aucun avis inventé ni délai garanti. Depuis le lot 2, panier et favoris sont conservés dans SQLite local via Drizzle ; les données sont restaurées avant interaction et les échecs restent visibles. Seuls les identifiants et quantités sont enregistrés, les prix sont recalculés depuis le catalogue fictif. Le suivi simulé reste temporaire. La commande réelle n’existe pas ici et ne doit pas être branchée tant que les préconditions API ne sont pas levées. Pas de file d’envoi. Le pilote Drizzle asynchrone appelle Expo SQLite localement, sans HTTP ni repli localStorage. Le support SQLite web est alpha ; Metro ajoute WASM et les en-têtes COOP/COEP. Compte permet une remise à zéro explicite du démonstrateur. La restauration incompatible est refusée sans effacement automatique.
 
 Identifiant du démonstrateur : com.speedfood.clientdemo, distinct de l’application Kotlin installée. Aucun remplacement de clé ou de paquet de production. Bricolage et Manrope proviennent des ressources déjà versionnées de Kotlin ; logo repris du site ; illustrations SVG locales, pas de photos commerciales.
 
 La génération expérimentale typedRoutes a été désactivée après un échec de résolution de expo-router/_ctx-shared depuis @expo/router-server dans le monorepo npm. Ce contournement concerne la génération des routes seulement ; TypeScript strict reste obligatoire et les parcours sont vérifiés dans l’aperçu. Aucun correctif de node_modules.
 
 Spécification et limites : ../../docs/specs/2026-11-01-refonte-expo-client-lot1.md.
+
+Lot 2 : ../../docs/specs/2026-11-01-refonte-expo-client-lot2.md ; preuves et limites : ../../docs/CONTROLE-EXPO-STOCKAGE-2026-11-01.md.

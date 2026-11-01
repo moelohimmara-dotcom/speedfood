@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View, type TextProps, t
 import { router } from 'expo-router';
 import { couleurs as c, polices } from './tokens';
 import { Icone, type NomIcone } from './Icone';
+import { useApplication } from '../etat/Application';
 export function Texte({ style, ...props }: TextProps) { return <Text {...props} style={[s.texte, style]} />; }
 export function Titre({ children, petit = false }: PropsWithChildren<{ petit?: boolean }>) { return <Texte accessibilityRole="header" style={[s.titre, petit && { fontSize: 25 }]}>{children}</Texte>; }
 export function Bouton({ titre, onPress, secondaire = false, disabled = false, icone, testID }: { titre: string; onPress(): void; secondaire?: boolean; disabled?: boolean; icone?: NomIcone; testID?: string }) {
@@ -13,12 +14,19 @@ export function Bouton({ titre, onPress, secondaire = false, disabled = false, i
   </Pressable>;
 }
 export function Ecran({ children, retour = false, style }: PropsWithChildren<{ retour?: boolean; style?: ViewStyle }>) {
+  const { statutSauvegarde, reessayerSauvegarde } = useApplication();
   return <View style={s.ecran}>
     <View style={s.entete}>
       {retour && <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/')} accessibilityRole="button" accessibilityLabel="Retour" style={s.touche}><Icone nom="retour" /></Pressable>}
       <Image source={require('../../assets/images/speedfood.png')} style={{ width: 34, height: 34, borderRadius: 10 }} accessibilityIgnoresInvertColors />
       <Texte style={{ fontFamily: polices.titre, fontSize: 25, fontWeight: '800' }}>Speedfood</Texte>
       <View style={{ flex: 1 }} /><View style={s.badge}><Texte style={{ fontSize: 11, fontWeight: '700' }}>DÉMO</Texte></View>
+    </View>
+    <View style={{ paddingHorizontal: 22, paddingVertical: 5, backgroundColor: statutSauvegarde === 'erreur' ? c.avertissementFond : c.fond }}>
+      <Texte accessibilityLiveRegion="polite" style={{ color: statutSauvegarde === 'erreur' ? c.avertissement : c.secondaire, fontSize: 11, lineHeight: 17 }}>
+        {{ pret: 'Données locales prêtes', enregistrement: 'Enregistrement sur cet appareil…', enregistre: 'Enregistré sur cet appareil', erreur: 'Non enregistré : vos changements restent en mémoire.' }[statutSauvegarde]}
+      </Texte>
+      {statutSauvegarde === 'erreur' && <Pressable onPress={reessayerSauvegarde} accessibilityRole="button" accessibilityLabel="Réessayer la sauvegarde" style={{ minHeight: 44, justifyContent: 'center' }}><Texte style={{ color: c.action, fontWeight: '700' }}>Réessayer la sauvegarde</Texte></Pressable>}
     </View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.contenu, style]}>
       {children}
