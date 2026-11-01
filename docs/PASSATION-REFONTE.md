@@ -1,5 +1,8 @@
 # Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
 
+**Historique et suivi Expo, lecture préparée et API déployée (1er novembre 2026).** API 7d38bee0-09ce-48da-8a9b-7c36d71f3df2 à 100 %, livraison code 0. CORS limité à GET commandes et POST suivi exact (lecture) ; aucune sous-route de modification ouverte. Secrets, SITE_JETONS, garde et relais conservés. Application : 50 dernières commandes au maximum, clés de suivi uniquement dans la mémoire privée de session, projection sans clé vers les composants, état et montant du suivi avec actualisation manuelle. Aucun envoi/annulation/paiement activé. Tests mobiles 41/41, API 261/261, types API/mobile, build API, paquet workerd, dry-run et exports Android/iOS/web : codes 0 ; deux mutations détectées puis restaurées. Contrôles publics après livraison code 0. Malika confirme de nouveau la connexion personnelle sur localhost:8093 ; liste et suivi réels en attente de son retour. Première compilation native Android échouée (code 1), chemin C++ supérieur à 260 caractères ; aucun APK de remplacement validé. Compte rendu : docs/CONTROLE-HISTORIQUE-SUIVI-EXPO-2026-11-01.md.
+
+
 **Retour de Malika (1er novembre 2026).** Malika confirme que « Compte connecté » apparaît après sa connexion personnelle dans localhost:8092. Réussite rapportée par Malika ; historique, suivi et déconnexion réels restent à vérifier. Elle choisit de terminer les fonctions avant de remplacer l’APK Android du site. APK actuelle conservée (2.47.0/code 51). Contrôle de compatibilité préparé : identité, certificat public, version, débogage et niveaux Android. Compilation Android de contrôle en cours, sans signature de production. Plan : docs/plans/2026-11-01-remplacement-apk-expo.md.
 
 

@@ -19,5 +19,9 @@ try {
   assert.equal(pre.status,204);assert.equal(pre.headers.get('access-control-allow-methods'),'GET, OPTIONS');
   assert.equal((await w.fetch('https://essai.invalid/api/v1/client/espace')).status,401);
   assert.equal((await w.fetch('https://essai.invalid/api/v1/commandes',{method:'POST'})).status,401);
+  assert.equal((await w.fetch('https://essai.invalid/api/v1/commandes',{method:'OPTIONS'})).headers.get('access-control-allow-methods'),'GET, OPTIONS');
+  assert.equal((await w.fetch('https://essai.invalid/api/v1/commandes')).status,401);
+  assert.equal((await w.fetch('https://essai.invalid/api/v1/suivi',{method:'OPTIONS'})).headers.get('access-control-allow-methods'),'POST, OPTIONS');
+  for(const action of ['annuler','proposition'])assert.equal((await w.fetch('https://essai.invalid/api/v1/suivi/'+action,{method:'OPTIONS'})).headers.get('access-control-allow-origin'),null);
   console.log('Paquet exact : démarrage, configuration publique, prévol et accès privés refusés vérifiés ; code 0.');
 } finally {await mf.dispose();}

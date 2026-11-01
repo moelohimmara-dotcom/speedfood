@@ -21,11 +21,20 @@ test('configuration Auth : contrat public, sans cache, refus en cas de configura
 });
 test('lectures privées CORS : prévol sans identité, GET protégé, aucune écriture ouverte', async () => {
   const app = creerApp(depsEssai());
-  for (const chemin of ['/api/v1/moi', '/api/v1/client/espace']) {
+  for (const chemin of ['/api/v1/moi', '/api/v1/client/espace', '/api/v1/commandes']) {
     const pre = await app.request(chemin, { method: 'OPTIONS', headers: { Origin: 'http://127.0.0.1:8091', 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'authorization' } });
     assert.equal(pre.status, 204); assert.equal(pre.headers.get('access-control-allow-headers'), 'Authorization');
     assert.ok(!pre.headers.get('access-control-allow-methods')?.includes('POST'));
     const r = await app.request(chemin); assert.equal(r.status, 401); assert.equal(r.headers.get('access-control-allow-origin'), '*');
   }
   assert.equal((await app.request('/api/v1/client/profil', { method: 'OPTIONS' })).headers.get('access-control-allow-origin'), null);
+});
+
+test('suivi CORS : POST de lecture exact seulement, aucune sous-route de modification',async()=>{
+ const app=creerApp(depsEssai());
+ const p=await app.request('/api/v1/suivi',{method:'OPTIONS'});
+ assert.equal(p.status,204);assert.equal(p.headers.get('access-control-allow-methods'),'POST, OPTIONS');assert.equal(p.headers.get('access-control-allow-headers'),'Content-Type');
+ const r=await app.request('/api/v1/suivi',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+ assert.equal(r.status,400);assert.equal(r.headers.get('access-control-allow-origin'),'*');assert.equal(r.headers.get('cache-control'),'no-store');
+ for(const chemin of ['/api/v1/suivi/annuler','/api/v1/suivi/proposition'])assert.equal((await app.request(chemin,{method:'OPTIONS'})).headers.get('access-control-allow-origin'),null);
 });

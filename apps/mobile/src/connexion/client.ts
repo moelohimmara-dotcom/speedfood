@@ -1,4 +1,5 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
+import { lireCommandes, lireSuivi } from './commandes.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
 export interface ResumeCompte { pseudo: string | null; favoris: number; adresses: number }
@@ -48,6 +49,14 @@ export function creerAuth(fetcher: typeof fetch = fetch) {
       return jetons('password',{ email:email.trim(), password:motDePasse });
     },
     renouveler: (refreshToken: string) => jetons('refresh_token',{ refresh_token:refreshToken }),
+    async commandes(accessToken:string) {
+      const v=await requete(ORIGINE_CATALOGUE+'/api/v1/commandes',{method:'GET',headers:{Authorization:'Bearer '+accessToken}});
+      try{return lireCommandes(v);}catch{throw new ErreurConnexion('Impossible de lire vos commandes.');}
+    },
+    async suivi(jeton:string) {
+      const v=await requete(ORIGINE_CATALOGUE+'/api/v1/suivi',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jeton})});
+      try{return lireSuivi(v);}catch{throw new ErreurConnexion('Impossible de lire le suivi de cette commande.');}
+    },
     async espace(accessToken: string): Promise<ResumeCompte> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });
       if (v.ok !== true || !Array.isArray(v.favoris) || !Array.isArray(v.adresses) || v.favoris.length > 100 || v.adresses.length > 5) throw new ErreurConnexion('Impossible de lire votre espace client.');

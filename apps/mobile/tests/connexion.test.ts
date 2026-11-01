@@ -5,7 +5,7 @@ import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 const session = { accessToken: 'acces-factice', refreshToken: 'renouvellement-factice', expiresAt: 9999999999, userId: '00000000-0000-4000-8000-000000000001' };
 const resume = { pseudo: 'Essai', favoris: 0, adresses: 0 };
 function stockage() { let valeur: string | null = null; return { lire: async () => valeur, ecrire: async (v: string) => { valeur = v; }, effacer: async () => { valeur = null; } }; }
-const api = () => ({ connecter: async () => session, renouveler: async () => session, espace: async () => resume, deconnecter: async () => {} });
+const api = () => ({ connecter: async () => session, renouveler: async () => session, espace: async () => resume, deconnecter: async () => {}, commandes:async()=>[], suivi:async()=>{throw Error('non utilisé');} });
 test('connexion : seul le renouvellement est sauvegardé, lecture privée et effacement local', async () => {
   const coffre = stockage(); const g = new GestionSession(api(), coffre);
   await g.connecter('essai@example.invalid','mot-de-passe-factice'); assert.equal(await coffre.lire(), session.refreshToken);

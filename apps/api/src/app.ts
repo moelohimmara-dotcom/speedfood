@@ -21,13 +21,20 @@ const SANS_CACHE = { "Cache-Control": "no-store" };
 export function creerApp(deps: Deps) {
   const app = new Hono();
   // Ces lectures portent une identité explicite, sans cookie. Aucun CORS d'écriture.
-  for (const chemin of ['/api/v1/moi', '/api/v1/client/espace']) {
+  for (const chemin of ['/api/v1/moi', '/api/v1/client/espace', '/api/v1/commandes']) {
     app.use(chemin, async (c, suivant) => {
       c.header('Access-Control-Allow-Origin', '*');
       if (c.req.method === 'OPTIONS') return c.body(null, 204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization', 'Cache-Control': 'no-store' });
       await suivant();
     });
   }
+  // POST /suivi est une lecture : la clé reste dans le corps, jamais dans l'URL.
+  // Le chemin exact exclut annuler/proposition et toutes les écritures voisines.
+  app.use('/api/v1/suivi',async(c,suivant)=>{
+    if(c.req.method==='OPTIONS')return c.body(null,204,{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Cache-Control':'no-store'});
+    if(c.req.method==='POST')c.header('Access-Control-Allow-Origin','*');
+    await suivant();
+  });
   app.get('/api/v1/connexion/configuration', c => {
     c.header('Access-Control-Allow-Origin', '*');
     const configuration = deps.configurationConnexion();
