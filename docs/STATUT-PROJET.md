@@ -1,5 +1,7 @@
 # Statut du projet — pour reprise par un autre développeur
 
+**Préparation de l’étape 9, essai réel NON EXÉCUTÉ** : outil d’idempotence croisée écrit et testé, plan `docs/plans/2026-11-01-essai-idempotence-croisee.md`. Deux POST au maximum (site puis API, corps identique), rôle d’équipe et marquage TEST contrôlés, verrou local empêchant une relance accidentelle, aucune sortie de jeton. Quatorze nouveaux tests à code 0, quatre mutations détectées à code 1 puis restauration à code 0 ; suite API complète 238 tests à code 0, types à code 0, onze tests du lanceur local à code 0. Aucun relais, secret ou code métier modifié. L’écriture réelle attend son feu vert distinct ; si les secrets divergent, une seconde commande d’essai peut être créée et sera signalée sans annulation automatique. Le CPU et l’alerte d’une création neuve sur l’API ne sont pas prouvés par un rejeu.
+
 ## Point de reprise du 1er novembre 2026 — suivi comparé en production
 
 **Tâche 12, étape 7 VALIDÉE : comparaison GET /commandes en production.** Malika a exécuté le lanceur ponctuel hors dépôt avec `-Commandes` et transmis le résultat : `1 route(s) identiques : 0 ecart`, API **HTTP 200**, site **HTTP 200**, **code de sortie 0**. L'outil compare les deux listes complètes sans afficher les jetons et exige SF-G8V6H marquée TEST dans les deux réponses. Onze tests fictifs : code 0 ; mutation GET → POST détectée à code 1 ; source restauré puis onze tests à code 0. Exécution réelle rapportée par Malika, pas relancée par l'agent. Aucun relais, secret, déploiement ou code produit modifié.

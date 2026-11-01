@@ -1,5 +1,7 @@
 # Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
 
+**Préparation de l’étape 9, essai réel NON EXÉCUTÉ** : outil d’idempotence croisée écrit et testé, plan `docs/plans/2026-11-01-essai-idempotence-croisee.md`. Deux POST au maximum (site puis API, corps identique), rôle d’équipe et marquage TEST contrôlés, verrou local empêchant une relance accidentelle, aucune sortie de jeton. Quatorze nouveaux tests à code 0, quatre mutations détectées à code 1 puis restauration à code 0 ; suite API complète 238 tests à code 0, types à code 0, onze tests du lanceur local à code 0. Aucun relais, secret ou code métier modifié. L’écriture réelle attend son feu vert distinct ; si les secrets divergent, une seconde commande d’essai peut être créée et sera signalée sans annulation automatique. Le CPU et l’alerte d’une création neuve sur l’API ne sont pas prouvés par un rejeu.
+
 ## Point de reprise du 1er novembre 2026 : comparaison du suivi validée
 
 - **Tâche 12, étape 6 validée** : Malika a exécuté l'outil local de comparaison avec une connexion saisie sur son poste. Sortie transmise dans la conversation : `1 route(s) identiques : 0 ecart`, site **HTTP 200**, API **HTTP 200**, **code de sortie 0**. Il s'agit de `POST /api/v1/suivi`, une lecture avec un vrai jeton conservé en mémoire, sur la commande **SF-G8V6H**.
