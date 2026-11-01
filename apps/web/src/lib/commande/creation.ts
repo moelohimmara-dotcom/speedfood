@@ -4,7 +4,7 @@ import type { CreationCommandePayload } from "@/lib/contracts/commande";
 import { creerClientAdmin } from "@/lib/db/admin";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { recalculerLignes, verifierRestaurantCommandable } from "./calculs";
-import { genererJetonSuivi, genererReference } from "./jetons";
+import { genererJetonSuivi, genererReference, estJetonValide } from "./jetons";
 import { appliquerTransitionStatut, enregistrerEvenementStatut } from "./transitions";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { estReglageValidation, estServiceTable, prochainNumeroAppel, validationRequise } from "@/lib/table/regles";
@@ -108,6 +108,8 @@ function verifierMemeRestaurant(restaurantExistant: string, restaurantDemande: s
  * ne rend jamais la commande d'un autre compte.
  */
 export interface OptionsCreation {
+  /** Dépendance serveur uniquement ; jamais extraite du payload public. Sans fournisseur, chemin historique du site. */
+  fournirJeton?: (cle: string) => Promise<string>;
   /**
    * Commande saisie par un membre du restaurant (mode serveur) : `saisiePar` est son compte, DÉJÀ vérifié par l'appelant et revérifié ici.
    * Elle est toujours à table, jamais de test, et passe directement en cuisine (le personnel est la validation).
@@ -117,8 +119,9 @@ export interface OptionsCreation {
 
 export async function creerCommande(payload: CreationCommandePayload, utilisateurId: string | null, options: OptionsCreation = {}): Promise<CommandeCreee> {
   const saisiePar = options.saisiePar ?? null;
+  const jeton = options.fournirJeton ? await options.fournirJeton(payload.cleIdempotence) : genererJetonSuivi(payload.cleIdempotence);
+  if (!estJetonValide(jeton)) throw new Error("calcul_jeton_indisponible");
   const db = creerClientAdmin();
-  const jeton = genererJetonSuivi(payload.cleIdempotence);
   if (saisiePar !== null) {
     if (utilisateurId !== null || payload.mode !== "sur_place") {
       throw new ErreurMetier("VALIDATION", "Commande de salle invalide.");

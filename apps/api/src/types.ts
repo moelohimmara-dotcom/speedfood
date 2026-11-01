@@ -48,7 +48,7 @@ export interface Deps {
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };
-    creer(valeurs: CreationCommandePayload, utilisateurId: string, apres: Planifier): Promise<ResultatCreationCommande>;
+    creer(valeurs: CreationCommandePayload, utilisateurId: string, apres: Planifier, environnement?: unknown): Promise<ResultatCreationCommande>;
     /** Câblage de production : `listerMesCommandes(id, { avecJeton: true })`. */
     lister(utilisateurId: string): Promise<object[]>;
   };

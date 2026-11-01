@@ -7,6 +7,7 @@ import { envoyerEmail } from "./worker-smtp.js";
 
 // Les classes à état exigées par OpenNext (files, cache de balises) doivent rester exportées par le Worker.
 export { DOQueueHandler, DOShardedTagCache, BucketCachePurge } from "./.open-next/worker.js";
+export { JetonsCommande } from "./worker-jetons.js";
 
 const cache = new MicroCache();
 /** Rendus en cours, par clé : des visiteurs simultanés sur la même page se partagent UN seul rendu. */

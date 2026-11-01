@@ -37,7 +37,7 @@ export function routeCommandes(deps: Pick<Deps, "verificateurs" | "commandes">) 
 
     // « Après la réponse » (alerte du restaurant) : `waitUntil` du Worker, lu seulement quand le service planifie une tâche (commande nouvelle).
     const apres: Planifier = (tache) => c.executionCtx.waitUntil(tache());
-    const resultat = await deps.commandes.creer(validation.valeurs, c.get("utilisateurId"), apres);
+    const resultat = await deps.commandes.creer(validation.valeurs, c.get("utilisateurId"), apres, c.env);
     if (!resultat.ok) return reponseErreur(c, resultat.erreur);
     return repondre(c, resultat, resultat.idempotent ? 200 : 201);
   });

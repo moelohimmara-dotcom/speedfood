@@ -16,6 +16,7 @@ import { actionAdresseClient, basculerFavoriClient, enregistrerProfilClient, lir
 import { estimerPourClient } from "@/lib/livraison/estimation-service";
 import { creerApp } from "./app.ts";
 import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } from "./identite/jeton.ts";
+import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
 
 // Câblage de PRODUCTION : les routes reçoivent les services du site, jamais une copie de leurs règles. Les secrets sont lus à l'APPEL (jamais au chargement du module).
 let local: ReturnType<typeof creerVerificateurLocal> | undefined;
@@ -60,7 +61,10 @@ const app = creerApp({
     valider: validerCreationCommande,
     // antiRobot: false : l'application native ne produit pas de jeton Turnstile ; la protection est le jeton porteur strict + les plafonds.
     // apres = ctx.waitUntil (fourni par la route) : l'alerte du restaurant part après la réponse, seulement pour une commande nouvelle.
-    creer: (valeurs, utilisateurId, apres) => executerCreationCoeur(valeurs, utilisateurId, { antiRobot: false, apres }),
+    // La garde et la liaison proviennent de c.env, jamais du payload. Absence => refus avant insertion.
+    creer: (valeurs, utilisateurId, apres, environnement) => executerCreationCoeur(valeurs, utilisateurId, {
+      antiRobot: false, apres, fournirJeton: fournirJetonInterne(() => environnement ?? {}),
+    }),
     lister: (utilisateurId) => listerMesCommandes(utilisateurId, { avecJeton: true }),
   },
 });

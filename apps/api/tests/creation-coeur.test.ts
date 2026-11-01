@@ -20,7 +20,7 @@ const COEUR = join(racineApi, "..", "web", "src", "lib", "commande", "creation-c
 /** État partagé entre le test et les faux modules (ils délèguent tous à `globalThis.__fauxCoeur`). */
 interface Faux {
   appels: string[];
-  creerCommande(valeurs: unknown, utilisateurId: string | null, ErreurMetier: new (code: string, message: string) => Error): Promise<{ reference: string; jeton: string; idempotent: boolean }>;
+  creerCommande(valeurs: unknown, utilisateurId: string | null, ErreurMetier: new (code: string, message: string) => Error, options?: { fournirJeton?: (cle: string) => Promise<string> }): Promise<{ reference: string; jeton: string; idempotent: boolean }>;
   notifierRestaurant(restaurantId: string): Promise<void>;
 }
 const g = globalThis as unknown as { __fauxCoeur: Faux };
@@ -33,7 +33,7 @@ const FAUX: Record<string, string> = {
   "@/lib/table/cle": `export function cleDeTableValide() { return false; }`,
   "@/lib/push/envoi": `export async function notifierRestaurant(id) { globalThis.__fauxCoeur.appels.push("notifier"); return globalThis.__fauxCoeur.notifierRestaurant(id); }`,
   "./creation": `import { ErreurMetier } from "@/lib/contracts/erreurs";
-    export async function creerCommande(v, u) { globalThis.__fauxCoeur.appels.push("creer"); return globalThis.__fauxCoeur.creerCommande(v, u, ErreurMetier); }`,
+    export async function creerCommande(v, u, options) { globalThis.__fauxCoeur.appels.push("creer"); return globalThis.__fauxCoeur.creerCommande(v, u, ErreurMetier, options); }`,
 };
 
 const fauxModules: Plugin = {
@@ -45,7 +45,7 @@ const fauxModules: Plugin = {
   },
 };
 
-type Coeur = (valeurs: unknown, utilisateurId: string | null, options: { antiRobot: boolean; apres: (t: () => Promise<void>) => void }) => Promise<unknown>;
+type Coeur = (valeurs: unknown, utilisateurId: string | null, options: { antiRobot: boolean; apres: (t: () => Promise<void>) => void; fournirJeton?: (cle: string) => Promise<string> }) => Promise<unknown>;
 let executerCreationCoeur: Coeur;
 let dossier: string;
 
@@ -121,4 +121,18 @@ test("cœur : l'identifiant de compte reçu est transmis tel quel à creerComman
   const { apres } = preparer(async (_v, u) => { recu = u; return { reference: "SF-1", jeton: "J".repeat(40), idempotent: false }; });
   await executerCreationCoeur(VALEURS, "compte-1", { antiRobot: false, apres });
   assert.equal(recu, "compte-1");
+});
+
+test("cœur : fournisseur transmis par option serveur, jamais par le payload ; échec sans alerte", async () => {
+  const fournirJeton = async (_cle: string) => { throw new Error("detail-factice-confidentiel"); };
+  let fournisseurRecu: unknown;
+  const { apres, planifiees } = preparer(async (_v, _u, _e, options) => {
+    fournisseurRecu = options?.fournirJeton;
+    if (options?.fournirJeton) await options.fournirJeton("cle-factice");
+    throw new Error("inatteignable");
+  });
+  const r = await executerCreationCoeur({ ...VALEURS, fournirJeton: "champ-forge" }, "compte-1", { antiRobot: false, apres, fournirJeton });
+  assert.equal(fournisseurRecu, fournirJeton);
+  assert.deepEqual(r, { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Une erreur est survenue. Réessayez dans un instant." } });
+  assert.equal(planifiees.length, 0);
 });

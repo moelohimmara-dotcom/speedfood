@@ -21,7 +21,7 @@ export type Planifier = (tache: () => Promise<void>) => void;
 export async function executerCreationCoeur(
   valeurs: CreationCommandePayload,
   utilisateurId: string | null,
-  options: { antiRobot: boolean; apres: Planifier }
+  options: { antiRobot: boolean; apres: Planifier; fournirJeton?: (cle: string) => Promise<string> }
 ): Promise<ResultatCreationCommande> {
   try {
     // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
@@ -29,7 +29,7 @@ export async function executerCreationCoeur(
     // Commande à table avec la clé du QR de la table : plafond d'adresse large (salle pleine derrière un seul Wi-Fi) et plafond par table.
     const tableVerifiee = valeurs.mode === "sur_place" && cleDeTableValide(valeurs.restaurantId, valeurs.table, valeurs.cleTable) ? valeurs.table : null;
     await limiterCreationCommande(valeurs.restaurantId, valeurs.client.telephone, { table: tableVerifiee });
-    const cree = await creerCommande(valeurs, utilisateurId);
+    const cree = await creerCommande(valeurs, utilisateurId, { fournirJeton: options.fournirJeton });
     if (!cree.idempotent) {
       // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.
       const restaurantId = valeurs.restaurantId;

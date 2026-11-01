@@ -105,16 +105,25 @@ function appPost(options: { creer?: Creer; valider?: Deps["commandes"]["valider"
     commandes: {
       ...depsEssai().commandes,
       valider: options.valider ?? ((corps) => { appels.push("valider"); recu.valider = corps; return { ok: true, valeurs: VALEURS }; }),
-      creer: async (valeurs, utilisateurId, apres) => {
+      creer: async (valeurs, utilisateurId, apres, environnement) => {
         appels.push("creer");
         recu.creer = { valeurs, utilisateurId, apres };
-        return options.creer ? options.creer(valeurs, utilisateurId, apres) : CREEE;
+        return options.creer ? options.creer(valeurs, utilisateurId, apres, environnement) : CREEE;
       },
     },
     ...options.surcharge,
   }));
   return { application, recu };
 }
+
+test("commandes POST : liaison fournie par l'environnement serveur, jamais par le corps", async () => {
+  const environnement = { CREATION_COMMANDE_API: "oui", SITE_JETONS: { deriver() { return "factice"; } } };
+  let recu: unknown;
+  const { application } = appPost({ creer: async (_v, _u, _a, env) => { recu = env; return CREEE; } });
+  const r = await application.fetch(new Request("https://essai.invalid/api/v1/commandes", postCorps({ ...CORPS, SITE_JETONS: "forge" })), environnement, ctxEssai().ctx);
+  assert.equal(r.status, 201);
+  assert.equal(recu, environnement);
+});
 
 /** Capture de `console.*` pendant `f` (rendue même si `f` lève). */
 async function journaux<T>(f: () => Promise<T>): Promise<{ resultat: T; lignes: string }> {

@@ -96,7 +96,7 @@ test("worker.ts : la création de commande est câblée avec antiRobot: false (d
   const code = sansCommentaires.join("\n");
   assert.ok(/antiRobot:\s*false/.test(code), "antiRobot: false absent du câblage");
   assert.ok(!/antiRobot:\s*true/.test(code));
-  assert.ok(/executerCreationCoeur\(\s*valeurs\s*,\s*utilisateurId\s*,\s*\{\s*antiRobot:\s*false\s*,\s*apres\s*\}\s*\)/.test(code), "le cœur de création ne reçoit pas apres (waitUntil)");
+  assert.ok(/executerCreationCoeur\(\s*valeurs\s*,\s*utilisateurId\s*,\s*\{\s*antiRobot:\s*false\s*,\s*apres\s*(?:,|\})/.test(code), "le cœur de création ne reçoit pas apres (waitUntil)");
 });
 
 test("worker.ts : plus aucune dépendance provisoire « non câblé »", () => {

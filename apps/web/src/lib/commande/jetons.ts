@@ -1,5 +1,6 @@
 import "server-only";
-import { createHmac, randomInt } from "node:crypto";
+import { randomInt } from "node:crypto";
+import { calculerJetonSuivi } from "./jetons-calcul";
 
 /**
  * Génération des identifiants de commande (bloc 7).
@@ -42,10 +43,7 @@ export function genererJetonSuivi(cleIdempotence: string): string {
       "COMMANDE_JETON_SECRET ou SUPABASE_SERVICE_ROLE_KEY doit être définie pour générer les jetons de suivi."
     );
   }
-  return createHmac("sha256", secret)
-    .update(`speedfood-jeton-suivi-v1:${cleIdempotence}`)
-    .digest("base64url")
-    .slice(0, 40);
+  return calculerJetonSuivi(cleIdempotence, secret);
 }
 
 const REGEX_JETON = /^[A-Za-z0-9_-]{40}$/;

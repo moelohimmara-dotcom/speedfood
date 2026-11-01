@@ -8,6 +8,9 @@
   "no_bundle": true,
   "compatibility_date": "2026-09-27",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // ADR-021 : ne calcule jamais avec le secret API. Garde CREATION_COMMANDE_API absente => POST refusé.
+  // Liaison vers le Worker existant ; aucun changement en production sans feu vert de Malika.
+  "services": [{ "binding": "SITE_JETONS", "service": "speedfood-app", "entrypoint": "JetonsCommande" }],
   // Valeur publique uniquement. Les secrets (clé service-role, clé de dérivation des jetons, Redis) se posent avec `wrangler secret put`, jamais ici.
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://ggldjdizqrtpetdiohxy.supabase.co"
