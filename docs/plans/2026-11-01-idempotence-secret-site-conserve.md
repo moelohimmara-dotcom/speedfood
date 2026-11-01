@@ -1,0 +1,104 @@
+# Proposition — idempotence avec le secret conservé sur le site
+
+**Statut : PROPOSÉ, décision de Malika requise. Ni code fonctionnel écrit ni déploiement autorisé par ce document.**
+
+## Problème et preuves
+
+Deux commandes TEST, SF-WMQXU et SF-SC78P, ont été créées pour le même corps de requête ; jetons différents, deux HTTP 201, code 1. Le secret de dérivation est présent sur les deux Workers mais son égalité n’est pas vérifiable depuis les noms affichés. Malika a indiqué ne pas avoir conservé sa valeur originale. La divergence reste une hypothèse principale ; une différence de code réellement déployé n’est pas exclue.
+
+Le site conserve ses valeurs actuelles. Aucune lecture de fichier de secrets, récupération de valeur chiffrée, rotation, export de secret, nouvelle table ou migration n’est prévue. Le verrou de l’essai échoué reste conservé. Les deux commandes TEST ne sont ni supprimées ni annulées automatiquement.
+
+## Décision proposée
+
+Centraliser la dérivation du jeton sur speedfood-app, via un point d’entrée RPC nommé réservé à une liaison de service depuis speedfood-api. Le secret reste dans l’environnement du site ; seul le jeton dérivé nécessaire à la création revient à l’API, en mémoire. Ce jeton est une clé d’accès et reste exclu des journaux, adresses, arguments, captures et rapports.
+
+Parcours proposé : client identifié → API (identité stricte, validation, plafonds) → calcul interne sur le site → création et prix côté API → réponse habituelle. La route du site et le calcul interne utilisent exactement la même fonction pure de dérivation. Aucun appel à la route publique POST commandes du site : pas de rebond site → API → site sur cette route, ni de boucle de relais. Le site ne crée aucune commande pendant le calcul interne.
+
+Le point d’entrée RPC est distinct du fetch public. Aucun endpoint HTTP de signature, aucun paramètre permettant de choisir un secret, un préfixe HMAC ou une destination, aucun export de valeur secrète. Seule la liaison API vers cette méthode précise est prévue. L’accès à cette liaison est une capacité sensible et doit être explicitement autorisé au déploiement.
+
+Le code du site possède déjà un point d’entrée manuel apps/web/worker-entree.js qui délègue à OpenNext et réexporte ses classes. Cloudflare documente les exports nommés WorkerEntrypoint en plus du gestionnaire principal. **La compatibilité de notre emballage OpenNext avec cet ajout doit être prouvée localement ; elle n’est pas tenue pour acquise.**
+
+Sources primaires :
+- https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/rpc/
+- https://developers.cloudflare.com/workers/runtime-apis/rpc/visibility/
+
+## Sécurité et comportements imposés
+
+- L’API vérifie le jeton porteur via le vérificateur strict avant tout appel RPC. La méthode interne accepte seulement une clé d’idempotence de la forme existante, jamais un texte arbitraire à signer. Aucun identifiant de compte reçu du navigateur ne remplace l’identité vérifiée.
+- Le calcul pur conserve strictement le préfixe, l’encodage, la longueur et la priorité de secret actuels. Aucun changement du jeton pour une même clé traitée par le site. Utiliser le secret effectif du site au moment de l’appel, pas une valeur construite à la compilation. La sélection actuelle COMMANDE_JETON_SECRET sinon service-role est conservée, sans suppression silencieuse du repli historique.
+- Injecter le fournisseur asynchrone de jeton dans le service interne de création pour l’API ; le chemin site conserve son calcul actuel. Aucun champ du payload public n’accepte un jeton préfabriqué ni le choix du fournisseur.
+- Liaison absente, invalide, délai dépassé, réponse mal formée : refuser la création API AVANT insertion, avec une erreur fixe sans détail sensible. Aucun repli vers le secret API divergent, vers une deuxième création locale ou vers une autre cible. Aucun rejeu automatique d’écriture.
+- La méthode de calcul ne dispose d’aucune opération d’écriture métier. Un éventuel nouvel appel de calcul ne doit pas être confondu avec une nouvelle tentative de création ; le premier lot ne programme aucune relance automatique.
+- Après obtention du jeton, conserver les contrôles existants : commande existante appartenant au même compte et au même restaurant, prix serveur entiers GNF, droits serveur, TEST décidé côté serveur, contrainte d’unicité et gestion des accès concurrents.
+- Tests obligatoires sur deux utilisateurs et deux restaurants, sur les champs supplémentaires forgés, sur les appels HTTP externes à la méthode et sur l’absence de journalisation des clés d’accès. Ne pas créer un service général de signature utilisable par d’autres routes.
+- Ce lot ne centralise pas les empreintes de limitation, qui utilisent aussi ce secret. Les compteurs distribués entre les Workers restent un point à analyser lors du chantier limiterParRequete ; ne pas prétendre les avoir unifiés.
+
+## Alternatives et raisons
+
+| Option | Conséquence | Avis |
+| --- | --- | --- |
+| Conserver uniquement la création sur le site et suspendre son portage | Aucun changement immédiat, API de création toujours impropre au relais | Position sûre actuelle, ne termine pas 1c-1 |
+| Faire calculer le jeton par le site via RPC | Garde le secret et le schéma, ajoute une dépendance interne par création/rejeu | Recommandée sous réserve de preuve technique et validation |
+| Faire créer toutes les commandes par le site derrière l’API | Conserve aussi les notifications du site mais maintient le traitement métier/CPU dans Next | Repli à arbitrer si RPC de calcul impraticable ; pas implémenté silencieusement |
+| Introduire une clé d’idempotence persistée indépendamment du secret | Migration de schéma et reprise de l’historique, transaction et RLS à revoir | Hors petit lot et schéma gelé ; décision distincte |
+| Remplacer les secrets par une nouvelle valeur commune | Affecte les QR, compteurs et anciens rejeux ; rotation à organiser | Écartée pour ce lot |
+
+Un transfert automatisé du secret vers l’API demanderait des droits de gestion supplémentaires et un mécanisme manipulant sa valeur en production. Aucun endpoint d’export ni jeton Cloudflare privilégié n’est proposé.
+
+## Limites et risques à accepter
+
+1. L’API dépend du site pour le calcul : une panne du site bloque ses nouvelles créations. Les autres modules API ne dépendent pas de ce nouvel appel. La cible d’API entièrement autonome n’est donc pas atteinte ; cette exception doit être consignée dans la décision d’architecture si acceptée.
+2. Chaque création ou rejeu API ajoute une invocation interne. Mesurer latence, CPU et consommation de quotas ; aucun coût nul ni maintien certain dans le plan gratuit n’est promis. Aucun forfait ou service créé.
+3. Les commandes déjà créées via l’API avec son ancien secret ont une dérivation historique différente. La clé d’idempotence d’origine n’étant pas conservée dans le verrou d’essai, on ne peut pas annoncer une réparation rétroactive. Inventorier les créations API antérieures avant activation ; ne pas rejouer leurs clés. Les liens de suivi stockés restent inchangés. Pour SF-WMQXU/SF-SC78P, conserver les références et ne pas nettoyer automatiquement.
+4. Les alertes API restent un chantier séparé : la configuration visible ne contient pas FCM_SERVICE_ACCOUNT ni VAPID_PRIVATE_KEY. Le calcul délégué ne résout pas cette absence. La mise en service reste bloquée jusqu’au contrôle réel de l’alerte.
+
+## Petits lots, après validation d’architecture
+
+### Lot A — preuve locale sans secret réel
+
+Objectif : démontrer une liaison API → entrée nommée sur une copie d’essai locale, avec des valeurs fictives uniquement ; démontrer que le fetch public ne permet pas d’invoquer la méthode. Aucun nouvel environnement cloud. Vérifier empaquetage, appels RPC et délais sous le runtime Cloudflare local. S’il est impossible de prouver la compatibilité OpenNext, arrêter et présenter le résultat avant de coder la suite.
+
+Fichiers prévus : petit banc d’essai local versionné sous apps/api/tests/ ou apps/api/scripts/, tests de liaison dédiés. Le choix définitif est ajusté à la preuve, sans toucher au Worker de production à ce stade.
+
+### Lot B — calcul partagé et injection interne
+
+Objectif : même dérivation sur les deux portes, écriture API refusée si le calcul interne échoue.
+
+Fichiers envisagés : apps/web/src/lib/commande/jetons.ts ; un module pur de calcul voisin ; apps/web/src/lib/commande/creation.ts ; apps/web/src/lib/commande/creation-coeur.ts ; apps/api/src/types.ts ; apps/api/src/worker.ts ; apps/api/src/routes/commandes.ts si nécessaire pour un refus explicite ; tests associés. La signature exacte d’injection doit empêcher la construction d’un jeton depuis un champ du navigateur. Aucun accès à Next dans le bundle API.
+
+### Lot C — entrée interne et garde de mise en service
+
+Fichiers envisagés : apps/web/worker-entree.js ; module RPC dédié sans import Next ; apps/api/wrangler.jsonc pour une liaison nommée vers le Worker EXISTANT speedfood-app ; garde explicite de POST commandes API, éteinte par défaut ; tests et documentation.
+
+Préserver micro-cache, assets, exports OpenNext, email planifié et routes existantes. La liaison doit appeler le calcul pur, pas le moteur OpenNext. Elle reçoit uniquement les paramètres indispensables, validés.
+
+Cycle de chaque lot de code : test rouge → code → vert → mutation réelle détectée → restauration → relecture spécification/qualité → commit etape-*. Contrôles requis : types, tests unitaires, cloisonnement, API, build API ; ESLint et build Cloudflare du site pour les lots concernés. Les commandes de build qui lisent des fichiers interdits ne sont pas exécutées par l’agent : préparation ou exécution locale par Malika à organiser sans contourner le contrôle verifier-base. Aucun résultat annoncé avant exécution à code 0.
+
+## Cas d’acceptation à prouver
+
+- Même clé et même secret fictif : mêmes 40 caractères sur le chemin site et le chemin API ; des secrets fictifs API différents ne changent plus le résultat API lorsque la liaison est utilisée.
+- Rejeu site → API et API → site : une seule insertion, même référence, même jeton, second appel 200 idempotent true, sans nouvelle alerte. Tester aussi deux requêtes concurrentes, avec la contrainte réelle d’unicité dans un environnement local/test autorisé ; de simples faux services ne prouvent pas le comportement SQL.
+- Même clé avec compte ou restaurant différent : refus sans fuite de jeton.
+- API non autorisée, payload invalide, RPC absent/en panne/lent ou réponse mal formée : aucune insertion, aucun deuxième POST automatique, aucun calcul de repli avec le secret API.
+- Module relais éteint : site inchangé ; garde de création API éteinte : POST API refusé, GET et autres modules disponibles. Aucun appel circulaire.
+- Valeurs fictives distinctives absentes des sorties et erreurs ; pas de clé ni jeton dans URL, cache ou arguments.
+- Contrôler en bout en bout l’alerte après une création neuve, séparément du rejeu et seulement après autorisation d’un essai TEST réel.
+
+## Mise en service proposée — un feu vert par action
+
+0. Avant production, consigner les versions, l’état des bindings et un retour arrière répétable sans connaître les valeurs secrètes. Ne pas supposer qu’un ancien déploiement restaure correctement les bindings. Inventorier l’historique API et préparer l’arrêt de POST commandes API.
+1. Malika déploie l’entrée nommée sur le site après contrôles et feu vert distinct. La liaison API n’est pas activée ; aucun changement de secret ou de relais.
+2. Malika déploie le câblage API avec POST commandes bloqué par défaut, puis configure la liaison sur autorisation explicite. Contrôle sans insertion avec paramètres invalides et valeurs de test locales ; aucune méthode de diagnostic retournant un secret.
+3. Configuration des alertes et mesures : plan distinct, aucune copie ni génération automatique de credentials. Mise en service suspendue si les préconditions ne sont pas remplies.
+4. Autorisation distincte de la garde API, puis autorisation distincte d’un nouvel essai TEST borné, avec nouveau verrou séparé. Ne jamais effacer celui de l’échec. Tant que ce contrôle n’est pas passé, ne pas ouvrir un usage mobile réel de cette création API.
+5. Seulement après succès, alerte reçue et CPU contrôlé, Malika arbitre l’allumage de commandes. Aucune de ces actions n’est autorisée par l’acceptation du présent plan.
+
+## Retour arrière sûr
+
+Bloquer d’abord POST commandes API et retirer commandes du relais si ce module a été allumé, chaque action exécutée par Malika avec son feu vert. Le site continue ses créations avec son secret actuel ; les lectures restent disponibles selon les contrôles effectués. Ne jamais remettre en service la création API utilisant son ancien secret divergent comme solution de repli. Maintenir le calcul interne du site tant qu’un appelant API actif en dépend. Retirer la liaison et l’entrée nommée seulement une fois les appels arrêtés. Aucune commande, aucun jeton stocké et aucun secret n’est supprimé.
+
+Le retour arrière restaure une exploitation où la création passe par le site, pas l’autonomie complète de l’API. Il ne fusionne pas les deux commandes d’essai.
+
+## Décision attendue
+
+Malika valide ou refuse cette exception à l’autonomie API et la préparation locale des lots A à C. En cas d’accord, inscrire la décision dans le registre ADR avec les limites ci-dessus. Aucune mise en production n’est incluse. Le développement mobile conserve son ordre de feuille de route ; aucune date n’est promise par cette proposition.
