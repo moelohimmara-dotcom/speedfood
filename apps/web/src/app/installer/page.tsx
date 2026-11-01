@@ -20,6 +20,13 @@ const ETAPES_ANDROID = [
   "L'icône Speedfood apparaît sur votre écran d'accueil. Ouvrez-la : elle vous guide au premier lancement.",
 ];
 
+const ETAPES_IPHONE = [
+  "Ouvrez le site Speedfood dans Safari (et non dans le navigateur intégré d'une autre application, qui n'offre pas cette option).",
+  "Touchez le bouton Partager, le carré avec une flèche vers le haut.",
+  "Choisissez « Sur l'écran d'accueil », puis touchez « Ajouter ».",
+  "L'icône Speedfood apparaît sur votre écran d'accueil : touchez-la pour ouvrir le site en plein écran.",
+];
+
 function Etapes({ etapes }: { etapes: string[] }) {
   return (
     <ol className="installer-etapes">
@@ -94,9 +101,12 @@ export default function InstallerPage() {
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-iphone">
         <h2 id="installer-iphone" className="pub-titre pub-h3-page">iPhone et iPad</h2>
         <p>
-          L&apos;application iPhone est en préparation : elle sera disponible sur l&apos;App Store. En attendant, le site Speedfood fonctionne dans Safari
-          pour parcourir les restaurants et commander.
+          L&apos;application iPhone est en préparation : elle sera disponible sur l&apos;App Store (Apple n&apos;autorise pas le téléchargement direct d&apos;un
+          fichier comme sur Android). Ce bouton apparaîtra ici dès sa publication.
         </p>
+        <h3 className="pub-titre pub-h3-page">En attendant : Speedfood sur votre écran d&apos;accueil</h3>
+        <p>Le site Speedfood fonctionne dans Safari pour parcourir les restaurants et commander. Pour le retrouver en un geste, comme une application :</p>
+        <Etapes etapes={ETAPES_IPHONE} />
       </section>
     </main>
   );

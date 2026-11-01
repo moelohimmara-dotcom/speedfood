@@ -38,3 +38,22 @@ Aucun fichier public ni version de production modifié pendant la préparation. 
 ## Relais du blocage natif
 
 Compilation Android échouée, code 1 : Ninja refuse un chemin C++ supérieur à 260 caractères. Correction NON réalisée. Procédure de reprise détaillée : [passation Expo Android/iOS](../PASSATION-EXPO-ANDROID-2026-11-01.md).
+
+## Candidat de remplacement préparé (1er novembre 2026, nuit) — NON publié
+
+**Fait (code et CI, rien en production) :**
+- `apps/mobile/app.config.js` + `identite-candidat.cjs` : sans variable, la configuration de contrôle reste inchangée (`com.speedfood.clientdemo`) ; avec `SPEEDFOOD_IDENTITE=production`, paquet **`com.speedfood.app`**, `versionCode` et version lus dans `SPEEDFOOD_CODE`/`SPEEDFOOD_VERSION`, refus d'un code ≤ 51 (code publié). Vérifié par `expo config` (défaut, production, refus) ; 44 tests mobiles à code 0 ; mutation (suppression du refus) détectée puis restauration.
+- `apps/mobile/candidat-android.json` : code **52** et version **3.0.0** proposés (à confirmer par Malika).
+- Workflow `.github/workflows/android-candidat.yml` : ne tourne que sur une branche **`candidat-*`** (jamais `etape-*`/`master`) ; installe la plate-forme Android 37, compile en release avec `-Pandroid.compileSdkVersion=37 -Pandroid.targetSdkVersion=37`, puis **échoue** si `aapt` ne montre pas `com.speedfood.app`, le bon code et `targetSdkVersion 37`. Artefact `candidat-android-NON-SIGNE-PRODUCTION`. La compilation avec cible 37 n'a PAS encore été essayée (AGP/React Native peuvent l'avertir ou la refuser).
+- Section iPhone de `/installer` (`apps/web/src/app/installer/page.tsx`) : explique qu'Apple n'autorise pas le téléchargement direct d'un fichier, annonce l'App Store, et guide « Sur l'écran d'accueil » dans Safari en attendant. Types et tests purs à code 0 ; page vue en local, sans défilement horizontal à 375 px. **Non déployée.**
+
+**Reste à faire, dans l'ordre (aucune étape ne remplace le fichier public) :**
+1. Pousser une branche `candidat-…` pour lancer la compilation ; lire l'identité et la cible dans l'annotation/les journaux.
+2. **Signature par Malika** avec la clé existante (jamais lue par l'agent, jamais dans GitHub) : télécharger l'artefact, `zipalign` puis `apksigner sign --ks <keystore>` (invite masquée du mot de passe, saisie personnelle). Ne jamais générer une nouvelle clé.
+3. `node apps/mobile/scripts/controler-remplacement-apk.mjs <apk signée>` : doit répondre « Compatibilité technique vérifiée, code 0 » (même certificat `e81f0ac1…cb1f7c`, code > 51, pas de débogage, minSdk non relevé, cible non reculée).
+4. Installer par-dessus la Kotlin sur un appareil de contrôle (confirmation du propriétaire du téléphone) : données conservées ou reconnexion testée.
+5. **Fonctions à terminer avant publication** (choix de Malika) : création de commande, détail du suivi/annulation/paiement, notifications, espaces restaurateur/livreur/équipe. Dépend d'ADR-021 (feux verts de production distincts).
+6. **Mise à jour automatique des installations existantes** : la Kotlin interroge `/api/v1/version` (code, `apkSha256`, `apkTaille`) et installe l'APK publiée si le code est supérieur et l'empreinte conforme ; avec la même clé et un code supérieur, Android la remplacera. **L'application Expo n'a PAS encore de mécanisme de mise à jour interne** : après ce premier passage, les mises à jour suivantes seraient manuelles. À construire avant publication (lecture de `/api/v1/version`, téléchargement, contrôle SHA-256, installation via l'installateur Android), sans `expo-updates`/EAS (compte et coût à décider).
+7. Publication (feu vert de Malika) : sauvegarder l'ancienne APK, remplacer `public/speedfood.apk`, `scripts/empreinte-apk.mjs`, synchroniser `VERSION_APPLICATION` (le test de parité avec `mobile/androidApp/build.gradle.kts` est lié à Kotlin : à adapter), déployer le site (Malika), vérifier `/installer`, signature, empreinte et `/api/v1/version`.
+
+**iPhone :** Apple n'autorise pas le téléchargement direct. Sur le site : bouton vers l'App Store/TestFlight une fois un compte Apple Developer ouvert par Malika (coût et identité à sa décision) ; identifiant iOS de production `com.speedfood.app` à arrêter à ce moment.
