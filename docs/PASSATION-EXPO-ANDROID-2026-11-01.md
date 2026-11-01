@@ -78,3 +78,10 @@ Chemin relatif de l'objet fautif mesuré : **289 caractères** (limite de Ninja 
    - Activer les chemins longs de Windows (registre) : interdit par la présente passation sans accord explicite de Malika.
 
 Journaux locaux non versionnés : `C:/Users/moelo/dev/expo-apk-controle-build2.log` et `build3.log`.
+
+## Compilation GitHub Actions réussie (1er novembre 2026, soir)
+
+- Workflow `.github/workflows/android-expo.yml` (commit `d0fb4fd`), exécution https://github.com/moelohimmara-dotcom/speedfood/actions/runs/41345599009 : **toutes les étapes en succès** (installation, 41 tests mobiles, `expo prebuild`, `assembleDebug` arm64-v8a + x86_64, empreinte/manifeste, dépôt de l'artefact). Le contrôle général « Contrôles » de la même branche est aussi vert.
+- Artefact **`speedfood-expo-debug-apk`** : 54 009 493 octets, non expiré (conservé 7 jours). Le téléchargement exige une connexion GitHub de Malika ; l'agent n'a pas lu le journal de l'étape « Empreinte et manifeste » (API des journaux authentifiée) : SHA-256, paquet et versions SDK sont à lire dans l'interface de l'exécution.
+- **Reste NON vérifié :** installation sur émulateur/appareil, démarrage, catalogue réel, panier SQLite après réouverture, connexion personnelle, historique, suivi, déconnexion. APK debug (signature de debug, Metro requis), pas une livraison de production ni un remplacement de com.speedfood.app ; cible Android 36 toujours insuffisante pour le contrôle de remplacement.
+- Problème de chemins Windows : contourné par la compilation Linux, pas corrigé sur le poste local.
