@@ -1,5 +1,7 @@
 # Application Android (native) et téléchargement depuis le site
 
+> **Contrôle du 1er novembre 2026 :** l’APK actuellement publiée est **2.47.0, code 51**, paquet `com.speedfood.app`, minSdk 24/targetSdk 37, signature vérifiée et empreinte conforme au téléchargement public (code 0). Les mentions 2.0.0 ci-dessous sont historiques. Remplacement par Expo demandé par Malika, préparation dans `docs/plans/2026-11-01-remplacement-apk-expo.md` ; aucune nouvelle APK Expo publiée à ce stade. Ne pas confondre les exports Hermes avec un fichier installable ni un paquet d’essai avec une mise à jour compatible.
+
 > **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `apps/web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/`, et les commandes `npm run …` se lancent depuis `apps/web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 Mise à jour du 21 octobre 2026. Page publique : `/installer`. Décision : ADR-019 ; plan : `docs/NATIF-PLAN.md`.
