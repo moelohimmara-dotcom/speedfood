@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
@@ -22,7 +23,13 @@ function avecFetch(valeur: unknown) {
 
 test(`banc RPC local : OpenNext ${openNextReel ? "réel" : "factice"}, calcul interne`, { timeout: 60000 }, async () => {
   // En mode réel, charger le paquet produit par Wrangler --dry-run dans un dossier sans .env.
-  const sourceSite = openNextReel ? { scriptPath: paquetReel } : { script: (await build({
+// Le paquet réel importe des modules .wasm (resvg, yoga) : sans eux typés CompiledWasm, workerd échoue au démarrage.
+const modulesReels = () => [
+  { type: "ESModule" as const, path: "worker-entree.js", contents: readFileSync(paquetReel) },
+  ...readdirSync(dirname(paquetReel)).filter((f) => f.endsWith(".wasm"))
+    .map((f) => ({ type: "CompiledWasm" as const, path: f, contents: readFileSync(join(dirname(paquetReel), f)) })),
+];
+  const sourceSite = openNextReel ? { modules: modulesReels() } : { script: (await build({
     stdin: { contents: wrapper, resolveDir: dossierWeb },
     write: false, bundle: true, metafile: true, format: "esm", platform: "neutral", target: "es2022",
     external: ["node:*", "cloudflare:*"], logLevel: "silent",
@@ -52,8 +59,8 @@ test(`banc RPC local : OpenNext ${openNextReel ? "réel" : "factice"}, calcul in
   });
   const mf = new Miniflare(convertV4MiniflareOptions({
     workers: [
-      { name: "site-local", modules: true, ...sourceSite,
-        compatibilityDate: "2026-09-27", compatibilityFlags: ["nodejs_compat"],
+      { name: "site-local", ...(openNextReel ? {} : { modules: true }), ...sourceSite,
+        compatibilityDate: "2026-09-27", compatibilityFlags: openNextReel ? ["nodejs_compat", "global_fetch_strictly_public"] : ["nodejs_compat"],
         outboundService: () => new Response("reseau-externe-interdit", { status: 503 }),
         bindings: { COMMANDE_JETON_SECRET: "uniquement-factice-site" } },
       { name: "api-locale", modules: true, compatibilityDate: "2026-09-27", compatibilityFlags: ["nodejs_compat"],
