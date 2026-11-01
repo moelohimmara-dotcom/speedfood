@@ -55,7 +55,14 @@ jobs:
 
       # Cible Android 37 (celle de l'APK actuelle) : le contrôle de remplacement refuse tout recul. La plate-forme 37 est installée si elle manque.
       - name: Installer la plate-forme Android 37
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true; "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37"
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses >/dev/null || true
+          "$SDKM" --list 2>/dev/null | grep -i "platforms;android-37" || true
+          PAQUET=$("$SDKM" --list 2>/dev/null | grep -oE 'platforms;android-37[.0-9a-z-]*' | sort -u | head -1)
+          test -n "$PAQUET" || { echo "Aucune plate-forme Android 37 dans le catalogue"; exit 1; }
+          echo "Installation de $PAQUET"
+          "$SDKM" "$PAQUET"
 
       - name: Générer le projet natif Android (identité de production)
         working-directory: apps/mobile
