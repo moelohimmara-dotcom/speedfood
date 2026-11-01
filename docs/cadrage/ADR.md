@@ -151,3 +151,14 @@ Pour le détail fonctionnel et visuel applicable, voir `SPEC-PILOTE-DISCOVERY-ID
 - **Décision proposée :** Speedfood inscrit les restaurants, tient leur catalogue, vend au consommateur et livre. Introduire un réglage `mode_vente` par restaurant (« place de marché » ou « revente ») pour migrer sans casser le pilote ; remplacer l'inscription libre des restaurateurs par une demande de référencement traitée par l'équipe.
 - **Précision du 21/10 :** l'étude en sources ouvertes (`ETUDE-CONCURRENTS-OSINT.md`) conduit à recommander la posture « intermédiaire qui encaisse et livre » (celle de Madifood) plutôt que « vendeur de plein droit » ; voir `REFONTE-SPEEDFOOD.md`.
 - **Conséquences :** Speedfood devient le vendeur (conditions générales de vente, responsabilité, fiscalité, contrats avec les restaurants, encaissement) ; le paiement en ligne et la livraison Speedfood passent de l'option au cœur du produit ; les textes publics qui disent « Speedfood n'encaisse rien » et « ne livre pas » devront être réécrits au lancement, jamais avant.
+
+
+### ADR-021 — Dérivation des jetons de commande conservée sur le site
+
+- **Statut :** orientation acceptée par Malika le 1er novembre 2026 ; mise en œuvre et production non validées par cette acceptation.
+- **Contexte :** essai d’idempotence croisée en échec : deux commandes TEST et deux jetons. Le secret est chiffré dans chaque Worker, sa valeur d’origine n’est pas disponible auprès de Malika. La divergence de valeur effective reste suspectée, pas prouvée.
+- **Décision :** le site conserve son secret et fournit un calcul de jeton spécialisé via une entrée RPC nommée ; seule l’API reçoit la liaison nécessaire. La création reste dans l’API. Pas d’endpoint HTTP de signature, de secret transféré, de rotation ni de migration. Même algorithme et mêmes contrôles d’accès métier. Liaison indisponible : arrêt avant insertion, pas de repli sur le secret divergent.
+- **Conséquences acceptées :** exception à l’autonomie de l’API ; dépendance au site pour créer/rejouer une commande et invocation supplémentaire à mesurer. Ni les compteurs de limitation ni les alertes ne sont résolus par cette décision. Préserver l’historique API et ne pas annoncer de réparation rétroactive de ses clés.
+- **Retour arrière :** bloquer POST commandes API, garder la création du site et son secret ; ne pas rétablir un chemin API divergent. Tous les changements en production exigent les feux verts distincts habituels et sont exécutés par Malika.
+- **Preuve actuelle :** banc workerd local avec wrapper réel et moteur OpenNext fictif, 239 tests API à code 0. Bundle OpenNext réel, création de bout en bout et alertes non vérifiés pour cette solution.
+- **Plan :** docs/plans/2026-11-01-idempotence-secret-site-conserve.md.

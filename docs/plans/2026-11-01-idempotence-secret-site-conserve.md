@@ -1,6 +1,6 @@
 # Proposition — idempotence avec le secret conservé sur le site
 
-**Statut : PROPOSÉ, décision de Malika requise. Ni code fonctionnel écrit ni déploiement autorisé par ce document.**
+**Statut : orientation VALIDÉE par Malika le 1er novembre 2026 (message « Je valide »), essais locaux autorisés. Aucun déploiement, secret, binding ou essai TEST de production autorisé par cette validation.**
 
 ## Problème et preuves
 
@@ -102,3 +102,12 @@ Le retour arrière restaure une exploitation où la création passe par le site,
 ## Décision attendue
 
 Malika valide ou refuse cette exception à l’autonomie API et la préparation locale des lots A à C. En cas d’accord, inscrire la décision dans le registre ADR avec les limites ci-dessus. Aucune mise en production n’est incluse. Le développement mobile conserve son ordre de feuille de route ; aucune date n’est promise par cette proposition.
+
+## Lot A — première preuve locale obtenue le 1er novembre 2026
+
+- Banc versionné : apps/api/tests/rpc-site-local.test.ts et fixture apps/api/tests/fixtures/rpc-calcul-essai.mjs. Le test assemble en mémoire le vrai worker-entree.js, ses dépendances de micro-cache et SMTP, puis lui ajoute une entrée RPC fictive. Le module OpenNext généré est remplacé explicitement par un faux ; aucun .env, .dev.vars ou fichier de secrets lu. Aucun fichier de production modifié.
+- Deux Workers locaux tournent dans workerd via Miniflare 5.20260926.0-alpha déjà fourni par Wrangler ; l’adaptateur convertV4MiniflareOptions installé est utilisé. Une valeur fictive distincte existe de chaque côté. L’API appelle l’entrée nommée du site ; le jeton correspond au HMAC calculé indépendamment sous Node avec la valeur fictive du site. Même clé : même résultat ; autre clé : autre résultat ; clé invalide : refus 503 fixe ; appel HTTP direct au chemin de calcul : 404 du faux OpenNext. Aucun jeton imprimé lors du passage réussi.
+- Test rouge initial à code 1 (fixture absente), puis vert à code 0. Mutations : longueur 40 → 39 et suppression du refus des clés invalides, chacune détectée à code 1. Fixture restaurée, test vert à code 0. Relecture spécification : secret non exporté, cible de liaison fixée, aucune écriture. Relecture qualité : instance Miniflare toujours fermée dans finally, délai maximal de test de 30 secondes, vérification runtime du fetch (types Fetcher incorrects dans cette version alpha).
+- Suite API finale : **239 tests, 239 réussis, code 0** ; build API **code 0**, toujours 1 165 Kio. Types sur la version finale : **code 0**. Le bac à sable refusait les connexions localhost (EACCES) ; les tests de runtime ont été exécutés avec l’autorisation d’ouverture locale, pas en ignorant un test.
+- **Limite : preuve de coexistence du wrapper réel et d’une entrée nommée avec OpenNext FACTICE ; pas preuve du vrai bundle OpenNext ni de la production.** Le calcul de la fixture n’est pas le futur module métier partagé. Pas de test SQL ni de bout en bout de création, de panne RPC, de coût de production ou de notification. Aucune fonction RPC ajoutée au site déployable, aucune garde métier modifiée.
+- Retour arrière de ce lot : retirer seulement le banc et sa fixture ; aucun état métier créé, aucun réglage à restaurer. Prochaine étape : lots B/C avec intégration du calcul partagé, refus sûr, tests de sécurité et vérification de l’empaquetage réel avant toute proposition de déploiement.
