@@ -159,3 +159,16 @@ Commandes du test réel (PowerShell, uniquement après préparation du paquet is
 - **Résultat :** `SPEEDFOOD_ESSAI_OPENNEXT_REEL=oui`, test `rpc-site-local`, **code 0** : le paquet complet démarre dans workerd, l'API appelle l'entrée nommée `JetonsCommande`, le jeton est celui du secret factice du site, la clé invalide est refusée, et les liaisons absente ou éteinte refusent.
 - **Mutation :** le même test pointé sur le paquet sans l'export RPC (`worker-sans-rpc.js`) échoue à code 1 (démarrage impossible) ; restauration puis code 0. Suite API standard 257/257, types à code 0.
 - **Toujours NON vérifié :** création de bout en bout via l'API avec le calcul du site, SQL concurrent, panne RPC en production, coût CPU/invocation supplémentaire, alertes du restaurateur (FCM/VAPID absents de l'API), historique des clés de l'API. Aucun déploiement, secret ni relais modifié.
+
+## Reprise du 1er novembre 2026 (soir) — décision Malika : débloquer `commandes` via ADR-021
+
+- **Décision :** poursuivre OpenNext / ADR-021 avant tout autre chantier pour débloquer l’activation de `commandes`.
+- **Recontrôle local OpenNext réel :** `SPEEDFOOD_ESSAI_OPENNEXT_REEL=oui`, `tests/rpc-site-local.test.ts`, **code 0** (1 test, ~5 s). Cause `.wasm` / `CompiledWasm` toujours valable. Suite standard déjà à 257/257 plus tôt dans la session.
+- **État code :** lots A/B/C locaux prêts sur la branche ; `CREATION_COMMANDE_API` absente par défaut ; `commandes` hors `API_RELAIS` ; aucun secret ni relais modifié cette reprise.
+- **Prochaine mise en service (un feu vert Malika par pas), ordre du plan § « Mise en service proposée » :**
+  1. Compiler + déployer le **site** avec l’export `JetonsCommande` (pas de liaison API, pas de garde allumée, pas de changement de `API_RELAIS`).
+  2. Déployer l’**API** avec câblage ADR-021, garde `CREATION_COMMANDE_API` **éteinte** (POST création refusé).
+  3. Poser / confirmer la liaison `SITE_JETONS` (feu vert distinct).
+  4. Alertes FCM/VAPID côté API + inventaire des créations API antérieures (préconditions séparées).
+  5. Allumer la garde, nouvel essai TEST d’idempotence croisée (nouveau verrou), puis seulement après succès : `commandes` dans `API_RELAIS`.
+- **Retour arrière immédiat si le site casse après l’étape 1 :** redéployer la version site précédente (sans toucher aux secrets).
