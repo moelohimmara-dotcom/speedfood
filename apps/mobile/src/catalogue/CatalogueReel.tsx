@@ -5,6 +5,7 @@ import { creerLecteurCatalogue } from './client';
 import { couleurs as c, polices } from '../design/tokens';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
+import { CompteReel } from '../connexion/CompteReel';
 const lecteur = creerLecteurCatalogue();
 function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={({ pressed }) => [s.action, { opacity: disabled ? .5 : pressed ? .8 : 1 }]}><Text style={s.actionTexte}>{titre}</Text></Pressable>;
@@ -12,6 +13,7 @@ function Action({ titre, agir, disabled = false }: { titre: string; agir(): void
 export function CatalogueReel() {
   const panier = usePanierReel();
   const [panierOuvert, setPanierOuvert] = useState(false);
+  const [compteOuvert, setCompteOuvert] = useState(false);
   const [messagePanier, setMessagePanier] = useState('');
   function voirPanier() { setPanierOuvert(true); void panier.recharger(); }
   const [restaurants, setRestaurants] = useState<RestaurantPublic[]>([]);
@@ -61,6 +63,7 @@ export function CatalogueReel() {
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
       <View style={s.note}><Text style={s.texte}>Les menus sont réels. La commande dans cette nouvelle application sera disponible après sa validation.</Text></View>
       <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
+      <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
@@ -87,6 +90,7 @@ export function CatalogueReel() {
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} />
     </ScrollView>
     <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} />
+    <CompteReel ouvert={compteOuvert} fermer={() => setCompteOuvert(false)} />
   </View>;
 }
 const s = StyleSheet.create({

@@ -1,0 +1,15 @@
+# Connexion client Expo — premier lot
+
+Connexion e-mail/mot de passe d’un compte Speedfood existant, mêmes comptes Supabase Auth que Kotlin/site. Pas d’inscription, de connexion sociale ni de réinitialisation native dans ce lot ; lien explicite vers la création de compte sur le site. Aucun mot de passe sauvegardé, journalisé ou demandé dans le chat. Malika saisit elle-même ses identifiants dans le formulaire pour la validation réelle.
+
+Comme Kotlin, l’application appelle directement Supabase Auth avec sa clé publique. Pour ne pas placer cette clé dans le dépôt ou un fichier de secrets mobile, une lecture GET publique /api/v1/connexion/configuration la fournit en mémoire avec l’URL du projet. Le serveur refuse une configuration qui ressemble à une clé privilégiée. Ce n’est ni une nouvelle autorité d’identité ni un proxy de mots de passe ; aucun mot de passe ne passe par le Worker Speedfood. Pas de service ni de secret nouveau.
+
+Accès privé : jeton porteur en en-tête uniquement, vérification stricte existante par l’API. CORS GET/OPTIONS sans cookies sur les seules lectures moi et client/espace ; pas de CORS d’écriture ajouté. Réponses privées no-store. La configuration publique et les réponses Auth ne sont jamais journalisées. Erreurs expurgées et fixes.
+
+Android/iOS : seul le secret de renouvellement est gardé dans Expo SecureStore (coffre du système, non exportable sur un autre appareil quand le système le permet). Jeton d’accès en mémoire. Pas de session dans SQLite. Web : session et renouvellement en mémoire seulement, fermeture/rechargement déconnectent. Renouvellement avant une lecture privée si nécessaire, un seul renouvellement simultané ; refus définitif ferme la session, panne temporaire ne détruit pas le renouvellement. Déconnexion locale et demande de révocation de la session distante, sans déconnecter les autres appareils. Effacement privé en mémoire au changement de compte ; réponse tardive ne peut pas rétablir une session fermée.
+
+UI : formulaire masqué, champs vidés après soumission/fermeture, chargement, erreur lisible, lecture du profil et compteurs favoris/adresses par l’API. Aucun droit déduit du navigateur ou du profil local. Pas de création de commande, garde et relais inchangés. Le panier est un brouillon anonyme d’appareil et ne devient pas un historique privé.
+
+Tests : rouge/vert, mutations, refus de clé privilégiée, contrats et CORS, en-têtes sans cookies ni URL de jeton, conservation protégée/absence de mot de passe, course connexion-déconnexion, renouvellement et refus. Exports Android/iOS/web. L’essai réel avec compte exige la saisie personnelle de Malika ; ne pas annoncer la connexion réelle vérifiée avant cet essai. Les appareils et le coffre natif exigent une vérification distincte.
+
+Retour arrière : retirer la connexion Expo et la route de configuration/CORS ajoutés depuis le code courant, conserver catalogue, panier et ADR-021 ; aucun compte utilisateur ni donnée en base à supprimer. Déploiement API autorisé par le mandat explicite de Malika pour les lots prêts, sans configuration de secrets ni dépense.

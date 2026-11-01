@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { entetesCourants } from "./cales/next-headers.ts";
-import { reponseErreur } from "./http.ts";
+import { repondre, reponseErreur } from "./http.ts";
 import { enteteRelaisDeConfiance } from "./identite/relais.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeCatalogue } from "./routes/catalogue.ts";
@@ -20,6 +20,19 @@ const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export function creerApp(deps: Deps) {
   const app = new Hono();
+  // Ces lectures portent une identité explicite, sans cookie. Aucun CORS d'écriture.
+  for (const chemin of ['/api/v1/moi', '/api/v1/client/espace']) {
+    app.use(chemin, async (c, suivant) => {
+      c.header('Access-Control-Allow-Origin', '*');
+      if (c.req.method === 'OPTIONS') return c.body(null, 204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization', 'Cache-Control': 'no-store' });
+      await suivant();
+    });
+  }
+  app.get('/api/v1/connexion/configuration', c => {
+    c.header('Access-Control-Allow-Origin', '*');
+    const configuration = deps.configurationConnexion();
+    return configuration ? repondre(c, { ok: true, ...configuration }) : repondre(c, { ok: false, erreur: { code: 'ERREUR_SERVEUR', message: 'La connexion est momentanément indisponible.' } }, 503);
+  });
 
   // Premier maillon : les en-têtes de la requête sont disponibles, partout et sans paramètre, pour le code du site qui appelle `headers()`.
   app.use("*", async (c, suivant) => {
