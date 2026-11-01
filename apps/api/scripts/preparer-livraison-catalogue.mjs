@@ -8,6 +8,11 @@ import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
 const racine = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const base = '30f3ca3';
+// Depuis le déploiement ADR-021 ultérieur, cette base est uniquement historique.
+// Une future livraison courante doit partir du Worker courant, pas de cette archive.
+if (!process.argv.includes('--historique-30f3ca3')) {
+  throw new Error('LIVRAISON_HISTORIQUE_SEULEMENT : utiliser le build API courant pour une nouvelle livraison.');
+}
 const livraison = mkdtempSync(join(dirname(racine), 'speedfood-catalogue-livraison-'));
 const archive = join(livraison, 'base.zip');
 execFileSync('git', ['archive', '--format=zip', '--output', archive, base], { cwd: racine });

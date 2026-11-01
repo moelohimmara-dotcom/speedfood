@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PageMenu, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { creerLecteurCatalogue } from './client';
 import { couleurs as c, polices } from '../design/tokens';
@@ -39,7 +39,7 @@ export function CatalogueReel() {
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
   useEffect(() => {
-    if (!selection) return;
+    if (!selection || Platform.OS === 'web') return;
     const abonnement = BackHandler.addEventListener('hardwareBackPress', () => { retour(); return true; });
     return () => abonnement.remove();
   }, [selection]);
@@ -58,7 +58,7 @@ export function CatalogueReel() {
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {!selection && <>
         <TextInput accessibilityLabel="Rechercher dans les restaurants chargés" placeholder="Restaurant, cuisine, localité…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.recherche} />
-        <Text style={s.secondaire}>Recherche dans les {restaurants.length} restaurants chargés.</Text>
+        <Text style={s.secondaire}>Recherche dans {restaurants.length} restaurant{restaurants.length > 1 ? 's chargés' : ' chargé'}.</Text>
         {visibles.map(r => <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={s.carte}>
           <Text style={s.nom}>{r.nom}</Text><Text style={s.texte}>{[r.categorie, r.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</Text><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu →</Text>
         </Pressable>)}
