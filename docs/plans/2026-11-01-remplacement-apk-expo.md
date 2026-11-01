@@ -57,3 +57,10 @@ Compilation Android échouée, code 1 : Ninja refuse un chemin C++ supérieur à
 7. Publication (feu vert de Malika) : sauvegarder l'ancienne APK, remplacer `public/speedfood.apk`, `scripts/empreinte-apk.mjs`, synchroniser `VERSION_APPLICATION` (le test de parité avec `mobile/androidApp/build.gradle.kts` est lié à Kotlin : à adapter), déployer le site (Malika), vérifier `/installer`, signature, empreinte et `/api/v1/version`.
 
 **iPhone :** Apple n'autorise pas le téléchargement direct. Sur le site : bouton vers l'App Store/TestFlight une fois un compte Apple Developer ouvert par Malika (coût et identité à sa décision) ; identifiant iOS de production `com.speedfood.app` à arrêter à ce moment.
+
+## Résultat de la compilation du candidat (1er novembre 2026)
+
+- Premier essai (commit `c78f3b5`) : échec à l'étape « Installer la plate-forme Android 37 », le paquet `platforms;android-37` n'existant pas sous ce nom dans le catalogue du gestionnaire du SDK. Rien n'avait été compilé.
+- Correction (`0347cfb`) : l'étape cherche le nom exact dans le catalogue et échoue clairement s'il n'y en a pas. Second essai : **run réussi**. Le workflow contrôlant lui-même `com.speedfood.app`, `versionCode` 52 et `targetSdkVersion 37` (il échoue sinon), le succès les confirme ; journaux non relus ligne par ligne, APK non installée sur un appareil.
+- Étape 1 de la liste ci-dessus : faite. Étape 2 (signature) : marche à suivre et script prêts, voir [SIGNATURE-CANDIDAT-EXPO.md](../SIGNATURE-CANDIDAT-EXPO.md) ; à exécuter par Malika.
+- Bandeau de mise à jour (lot 1 de l'étape 6) : code, tests (49) et mutations OK, commit `0347cfb`. **Non vu à l'écran** : le `versionCode` est figé à la compilation, l'APK de contrôle n'en a pas, le bandeau y reste donc silencieux. Lot 2 (téléchargement, SHA-256, installation en un geste) non commencé.
