@@ -1,5 +1,8 @@
 # Reprise de projet : continuer Speedfood sans l'auteur
 
+**Relais Expo Android/iOS :** lire [PASSATION-EXPO-ANDROID-2026-11-01.md](PASSATION-EXPO-ANDROID-2026-11-01.md). Erreur native exacte, correction CMake à essayer (NON réalisée), commandes, critères de fermeture, état de production et limites y sont consignés. Première action : résoudre le chemin C++ supérieur à 260 caractères ; ne pas remplacer l’APK actuelle.
+
+
 > **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `apps/web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/`, et les commandes `npm run …` se lancent depuis `apps/web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.
 
 Document de référence pour reprendre le projet à froid. Rédigé le 10 octobre 2026, mis à jour le **16 octobre 2026**.

@@ -14,9 +14,9 @@ Malika demande installation, publication et remplacement de l’application en p
 
 ## Blocages fonctionnels du remplacement
 
-Expo possède catalogue, panier brouillon et connexion personnelle réussie selon le retour de Malika. Envoi de commande, suivi réel avec annulation, historique et notifications ne sont pas encore repris ; les espaces professionnels présents dans Kotlin ne sont pas remplacés par cet écran client. La parité client et les essais sur appareils demandés par l’architecture ne sont pas établis. Publier ce paquet à la place de la version actuelle retirerait des fonctions : ne pas le faire silencieusement.
+Expo possède catalogue, panier brouillon et connexion personnelle réussie selon le retour de Malika. Historique et suivi initial en lecture sont désormais vérifiés sur le web par les captures de Malika. Envoi de commande, détail complet du suivi avec annulation et notifications ne sont pas encore repris ; les espaces professionnels présents dans Kotlin ne sont pas remplacés par cet écran client. La parité client et les essais sur appareils demandés par l’architecture ne sont pas établis. Publier ce paquet à la place de la version actuelle retirerait des fonctions : ne pas le faire silencieusement.
 
-Préconditions serveur inchangées : alertes API et garde de création, essai TEST d’idempotence/concurrence autorisé séparément. Aucun nouvel essai d’écriture n’est autorisé implicitement par la préparation d’un fichier APK. Malika confirme « Compte connecté » après sa saisie personnelle. Historique, suivi, déconnexion et coffre natif restent à vérifier. Elle choisit explicitement de terminer les fonctions avant remplacement.
+Préconditions serveur inchangées : alertes API et garde de création, essai TEST d’idempotence/concurrence autorisé séparément. Aucun nouvel essai d’écriture n’est autorisé implicitement par la préparation d’un fichier APK. Malika confirme « Compte connecté » après sa saisie personnelle. Historique et suivi initial sont vérifiés sur le web ; actualisation, déconnexion et coffre natif restent à vérifier. Elle choisit explicitement de terminer les fonctions avant remplacement.
 
 ## Préparation et ordre de livraison
 
@@ -34,3 +34,7 @@ apps/mobile/scripts/controler-remplacement-apk.mjs lit uniquement les métadonn�
 ## Retour arrière
 
 Aucun fichier public ni version de production modifié pendant la préparation. Conserver l’APK actuelle et ses métadonnées. Après une future installation de version supérieure, remettre l’ancien fichier sur le site ne force pas Android à rétrograder : prévoir aussi une version corrigée de code supérieur. Ne pas promettre un retour arrière sur téléphones déjà mis à jour sans l’avoir essayé.
+
+## Relais du blocage natif
+
+Compilation Android échouée, code 1 : Ninja refuse un chemin C++ supérieur à 260 caractères. Correction NON réalisée. Procédure de reprise détaillée : [passation Expo Android/iOS](../PASSATION-EXPO-ANDROID-2026-11-01.md).

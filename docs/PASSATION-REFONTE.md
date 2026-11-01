@@ -1,5 +1,8 @@
 # Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
 
+**Relais Expo Android/iOS :** lire [PASSATION-EXPO-ANDROID-2026-11-01.md](PASSATION-EXPO-ANDROID-2026-11-01.md). Erreur native exacte, correction CMake à essayer (NON réalisée), commandes, critères de fermeture, état de production et limites y sont consignés. Première action : résoudre le chemin C++ supérieur à 260 caractères ; ne pas remplacer l’APK actuelle.
+
+
 **Validation personnelle historique/suivi (1er novembre 2026).** Captures fournies par Malika sur localhost:8093 : historique réel visible et suivi SF-SC78P TEST affiché, état « En attente du restaurant », 25 000 GNF, lecture à 19:46:51, bouton d’actualisation présent, aucune erreur visible. Lecture initiale web vérifiée ; clic d’actualisation, déconnexion et appareils Android/iOS NON vérifiés. Aucun nouvel envoi de commande pour ce contrôle. APK 2.47.0/code 51 conservée ; prochaine étape : corriger la longueur des chemins C++ de compilation Android. Commentaire et détails : docs/CONTROLE-HISTORIQUE-SUIVI-EXPO-2026-11-01.md.
 
 
