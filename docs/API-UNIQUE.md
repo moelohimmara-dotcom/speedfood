@@ -12,6 +12,8 @@ L'outil ponctuel `C:\Users\moelo\dev\verification-suivi-speedfood.mjs`, lancé p
 
 ## À quoi ça sert, et pourquoi un Worker séparé
 
+**Préparation de la Tâche 12, étape 7, le 1er novembre 2026** : Malika a autorisé la poursuite de la comparaison en lecture de `GET /commandes`. L'outil local ponctuel accepte `connexion-verification-suivi-speedfood.ps1 -Commandes` : deux GET authentifiés, comparaison complète des JSON (jetons compris mais jamais affichés), statuts et cache ; aucune création ni modification de commande. Il exige aussi la présence de SF-G8V6H, TEST, du restaurant attendu dans les deux réponses. Onze tests fictifs : code 0 ; mutation GET → POST : code 1 ; restauration : onze tests à code 0. **Exécution réelle encore NON EXÉCUTÉE** ; attendre la connexion locale et le résultat de Malika. Aucun relais activé.
+
 Les futures applications (React Native) et le site parleront à une seule API, au contrat uniforme `{ ok: false, erreur: { code, message } }` en cas d'erreur. Elle est un **Worker séparé** du site (`speedfood-app`) : on la déploie, la corrige ou la retire sans toucher au site, et sa limite de CPU est comptée à part. Elle **réutilise les services du site** (accès à la base, limitation de débit, règles) au lieu de les recopier, mais sans embarquer Next.js.
 
 ## Ce qui existe

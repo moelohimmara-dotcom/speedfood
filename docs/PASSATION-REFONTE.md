@@ -11,6 +11,8 @@
 
 Les sections ci-dessous conservent l'état et les preuves du 31 octobre, avec l'étape 6 mise à jour.
 
+**Étape 7 autorisée par Malika (« poursuis »), outil prêt, comparaison réelle encore NON EXÉCUTÉE.** Le lanceur local accepte maintenant `-Commandes` : il compare uniquement les deux `GET /api/v1/commandes` avec une identité réelle, sans afficher les corps ni les jetons. La présence de SF-G8V6H, TEST, du restaurant attendu, est contrôlée des deux côtés pour éviter de valider deux listes vides. Onze tests fictifs passent (code 0) ; mutation GET → POST détectée (code 1), source restauré et onze tests repassés (code 0). La connexion doit être saisie localement de nouveau ; aucun identifiant ni jeton de la session précédente n'est conservé par l'outil. Aucun relais, secret ou déploiement modifié. Attendre le résultat réel avant de valider l'étape 7.
+
 > À lire EN PREMIER par l'agent qui reprend. Complète `docs/PASSATION.md` (état du produit au 22 octobre) et
 > `docs/REPRISE-SESSION.md`. Ici : ce qui a été fait depuis le 29 octobre (monorepo, API unique, relais),
 > où l'on s'est arrêté exactement, et ce qu'il reste à faire, dans l'ordre.

@@ -2,6 +2,8 @@
 
 ## Point de reprise du 1er novembre 2026 — suivi comparé en production
 
+**Suite autorisée (« poursuis ») : comparaison GET /commandes préparée, NON EXÉCUTÉE en réel.** Le lanceur ponctuel hors dépôt accepte `-Commandes`, compare les deux listes complètes sans afficher les jetons et exige SF-G8V6H marquée TEST dans les deux réponses. Onze tests fictifs : code 0 ; mutation GET → POST détectée à code 1 ; source restauré puis onze tests à code 0. La saisie locale d'une nouvelle connexion reste nécessaire. Aucun relais, secret, déploiement ou code produit modifié ; l'étape 7 n'est pas encore validée.
+
 **Cette note complète les états historiques ci-dessous et remplace leurs mentions « 1c-1 non déployé » pour l'état actuel.** La passation du 31 octobre rapporte le déploiement du code 1c-1, avec les modules `suivi` et `commandes` non allumés. Aucun relais, secret ou déploiement modifié pendant cette vérification ; valeur effective du relais non relue.
 
 - **Tâche 12, étape 6 validée** : sortie de l'outil local transmise par Malika : comparaison de `POST /api/v1/suivi`, site **HTTP 200**, API **HTTP 200**, `1 route(s) identiques : 0 ecart`, **code de sortie 0**. Exécution réelle rapportée par Malika ; pas de relance par l'agent.
