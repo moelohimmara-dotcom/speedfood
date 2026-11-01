@@ -1,5 +1,16 @@
 # Statut du projet — pour reprise par un autre développeur
 
+## Point de reprise du 1er novembre 2026 — suivi comparé en production
+
+**Cette note complète les états historiques ci-dessous et remplace leurs mentions « 1c-1 non déployé » pour l'état actuel.** La passation du 31 octobre rapporte le déploiement du code 1c-1, avec les modules `suivi` et `commandes` non allumés. Aucun relais, secret ou déploiement modifié pendant cette vérification ; valeur effective du relais non relue.
+
+- **Tâche 12, étape 6 validée** : sortie de l'outil local transmise par Malika : comparaison de `POST /api/v1/suivi`, site **HTTP 200**, API **HTTP 200**, `1 route(s) identiques : 0 ecart`, **code de sortie 0**. Exécution réelle rapportée par Malika ; pas de relance par l'agent.
+- Commande **SF-G8V6H**, créée le 1er novembre à 09:03 chez barbie food : un article, retrait, total indicatif 25 000 GNF, **TEST**, en attente. Marquage constaté dans « Mes commandes » et sur le suivi. Création finalisée manuellement par Malika après un blocage Turnstile `300030` pendant l'automatisation. Aucun paiement ni changement de statut effectué par l'agent.
+- Le suivi initial restait sur « Ouverture du suivi… » ; l'action « Suivre ma commande » depuis la liste du compte a ensuite ouvert le bon suivi. Cause initiale **non déterminée**.
+- Outil ponctuel hors dépôt : `C:\Users\moelo\dev\connexion-verification-suivi-speedfood.ps1` et `verification-suivi-speedfood.mjs`. Connexion saisie localement, jetons non affichés, aucune lecture de fichier de secrets ; seule la configuration publique du Worker est lue. Six tests fictifs à code 0 ; mutation retirant le refus d'une commande non TEST détectée à code 1 ; source restauré et six tests repassés à code 0. Aucun code produit ni migration modifié.
+- **Reste non vérifié** : comparaison de `GET /commandes` entre site et API, idempotence croisée et égalité des secrets, CPU/1102, alerte restaurateur, comportement du relais sous panne. Les lectures du suivi peuvent consommer des compteurs de limitation ; elles ne prouvent pas l'absence de toute écriture technique.
+- **Suite** : étape 7 du plan 1c-1 (`GET /commandes`), puis allumage de `suivi`, avec un feu vert distinct par pas. Retour arrière inchangé : `API_RELAIS=non`, posé par Malika sur autorisation explicite. Détails : `PASSATION-REFONTE.md` et `API-UNIQUE.md`.
+
 **Dernière mise à jour : 11 octobre 2026 (réconciliation de la documentation du pilote et audit de la fiche restaurant super-admin).** Ce document existe pour qu'une
 personne qui n'a jamais touché ce projet puisse comprendre en 5 minutes où ça en
 est, ce qui est vérifié contre ce qui est juste supposé, et par où continuer.

@@ -1,4 +1,15 @@
-# Passation de la refonte d'architecture (état au 31 octobre 2026, soir)
+# Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
+
+## Point de reprise du 1er novembre 2026 : comparaison du suivi validée
+
+- **Tâche 12, étape 6 validée** : Malika a exécuté l'outil local de comparaison avec une connexion saisie sur son poste. Sortie transmise dans la conversation : `1 route(s) identiques : 0 ecart`, site **HTTP 200**, API **HTTP 200**, **code de sortie 0**. Il s'agit de `POST /api/v1/suivi`, une lecture avec un vrai jeton conservé en mémoire, sur la commande **SF-G8V6H**.
+- Commande créée le 1er novembre à 09:03, chez barbie food, en retrait, un article, total indicatif 25 000 GNF. **TEST** constaté dans « Mes commandes » puis sur le suivi. La création a été finalisée manuellement par Malika après un blocage Turnstile `300030` pendant l'automatisation. Aucun paiement ni changement de statut effectué par l'agent.
+- Le premier écran `/suivi` restait sur « Ouverture du suivi… ». L'action « Suivre ma commande » depuis `/compte/commandes` a ensuite ouvert le bon suivi. **Cause initiale non déterminée.**
+- Outil ponctuel hors dépôt : `C:\Users\moelo\dev\connexion-verification-suivi-speedfood.ps1` et `verification-suivi-speedfood.mjs`. Il lit uniquement les réglages publics de `apps/web/wrangler.jsonc`, retrouve SF-G8V6H dans la liste du compte et exige `estTest: true` et le restaurant attendu avant la comparaison. Aucun fichier de secrets lu. Six tests fictifs à code 0 ; mutation du refus des commandes non TEST détectée à code 1, puis restauration et retour à code 0. L'exécution réelle à code 0 est **rapportée par Malika**, pas relancée par l'agent.
+- **Aucun relais, secret ou déploiement modifié.** Dernier réglage rapporté : `public,moi,client,livraison` ; sa valeur effective n'a pas été relue. Ni la parité de `GET /commandes` entre les deux serveurs, ni l'idempotence croisée, ni les mesures CPU/1102, ni l'arrivée de l'alerte restaurateur ne sont validées par cet essai.
+- **Prochain pas du plan : étape 7**, comparaison de `GET /commandes` avec une identité réelle, sur feu vert distinct ; puis allumage de `suivi` sur un autre feu vert. La lecture du suivi ne prouve pas l'égalité de `COMMANDE_JETON_SECRET`. Retour arrière du relais inchangé : `API_RELAIS=non`, posé par Malika sur autorisation explicite.
+
+Les sections ci-dessous conservent l'état et les preuves du 31 octobre, avec l'étape 6 mise à jour.
 
 > À lire EN PREMIER par l'agent qui reprend. Complète `docs/PASSATION.md` (état du produit au 22 octobre) et
 > `docs/REPRISE-SESSION.md`. Ici : ce qui a été fait depuis le 29 octobre (monorepo, API unique, relais),
@@ -70,7 +81,7 @@ Fait le 31 octobre 2026 :
 - Parité du secret `COMMANDE_JETON_SECRET` : **les NOMS** sont présents sur les deux Workers (`npx wrangler secret list --name …`) ; **l'égalité des VALEURS n'est pas prouvée** (seule la Tâche 12, étape 9 la prouve).
 
 ### Reste à faire, dans l'ordre (chacun sur feu vert explicite de Malika)
-1. **Étape 6** : `POST /suivi` face à la production avec un VRAI jeton de suivi d'une commande d'essai de Malika. Elle met le jeton dans une variable de SON terminal, puis :
+1. **Étape 6 : VALIDÉE le 1er novembre 2026** (voir le point de reprise ci-dessus, SF-G8V6H, HTTP 200 des deux côtés, 0 écart, code 0). Ne pas la rejouer sans nécessité. Ancienne procédure, conservée comme référence : `POST /suivi` face à la production avec un VRAI jeton de suivi d'une commande d'essai de Malika. Elle met le jeton dans une variable de SON terminal, puis :
    `cd /d C:\Users\moelo\dev\speedfood && node apps\api\scripts\comparer-routes.mjs --methode POST --autoriser-ecriture --corps-env NOM_VARIABLE https://speedfood-app.moelohimmara.workers.dev https://speedfood-api.moelohimmara.workers.dev /api/v1/suivi`
    avec le corps de la variable au format `{"jeton":"…"}` (JSON). Attendu : « 1 route(s) identiques : 0 écart ». Si elle n'a pas de commande d'essai : sauter, risque faible (lecture).
 2. **Étape 7** : `GET /commandes` avec son jeton porteur (`--jeton-env`). Le script `test-jeton-reel.mjs` peut être étendu à ce chemin.
