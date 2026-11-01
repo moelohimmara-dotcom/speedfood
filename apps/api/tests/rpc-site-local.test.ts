@@ -6,10 +6,12 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 
-// Banc local uniquement : vrai wrapper du site, moteur OpenNext remplacé par un faux.
-// Aucun fichier généré OpenNext, .env, .dev.vars, réseau externe ou secret réel lu.
+// Banc local sans .env/.dev.vars. Par défaut OpenNext est factice ; mode réel explicite après cf:build par Malika.
+// Le mode réel assemble le code généré, avec valeurs fictives et réseau des Workers bloqué.
 const dossierWeb = fileURLToPath(new URL("../../web/", import.meta.url));
 const wrapper = readFileSync(new URL("../../web/worker-entree.js", import.meta.url), "utf8");
+const openNextReel = process.env.SPEEDFOOD_ESSAI_OPENNEXT_REEL === "oui";
+const paquetReel = fileURLToPath(new URL("../../../../diagnostic-workers-20261101/paquet-local/worker-entree.js", import.meta.url));
 
 // Miniflare 5 alpha expose un type Fetcher incorrect dans cette installation.
 // Vérifier la capacité réelle avant de typer l'adaptateur, sans masquer un échec runtime.
@@ -18,10 +20,11 @@ function avecFetch(valeur: unknown) {
   return valeur as { fetch(url: string, options?: { method: string; body: string }): Promise<Response> };
 }
 
-test("banc RPC local : wrapper du site avec OpenNext factice, sans accès HTTP au calcul", { timeout: 30000 }, async () => {
-  const resultat = await build({
+test(`banc RPC local : OpenNext ${openNextReel ? "réel" : "factice"}, calcul interne`, { timeout: 60000 }, async () => {
+  // En mode réel, charger le paquet produit par Wrangler --dry-run dans un dossier sans .env.
+  const sourceSite = openNextReel ? { scriptPath: paquetReel } : { script: (await build({
     stdin: { contents: wrapper, resolveDir: dossierWeb },
-    write: false, bundle: true, format: "esm", platform: "neutral", target: "es2022",
+    write: false, bundle: true, metafile: true, format: "esm", platform: "neutral", target: "es2022",
     external: ["node:*", "cloudflare:*"], logLevel: "silent",
     plugins: [{ name: "faux-opennext-sans-secrets", setup(b) {
       b.onResolve({ filter: /\.open-next\/worker\.js$/ }, () => ({ path: "opennext-factice", namespace: "essai" }));
@@ -33,7 +36,8 @@ test("banc RPC local : wrapper du site avec OpenNext factice, sans accès HTTP a
         export default { fetch() { return new Response('opennext-factice', {status:404}); } };
       ` }));
     } }],
-  });
+  })).outputFiles[0].text };
+  if (openNextReel) assert.equal(readFileSync(paquetReel, "utf8").includes("opennext-factice"), false, "le paquet réel ne doit pas contenir le faux moteur");
   const apiCompilee = await build({
     stdin: { contents: `import { fournirJetonInterne } from './commandes/jeton-interne.ts';
       export default { async fetch(request, env) {
@@ -48,8 +52,9 @@ test("banc RPC local : wrapper du site avec OpenNext factice, sans accès HTTP a
   });
   const mf = new Miniflare(convertV4MiniflareOptions({
     workers: [
-      { name: "site-local", modules: true, script: resultat.outputFiles[0].text,
+      { name: "site-local", modules: true, ...sourceSite,
         compatibilityDate: "2026-09-27", compatibilityFlags: ["nodejs_compat"],
+        outboundService: () => new Response("reseau-externe-interdit", { status: 503 }),
         bindings: { COMMANDE_JETON_SECRET: "uniquement-factice-site" } },
       { name: "api-locale", modules: true, compatibilityDate: "2026-09-27", compatibilityFlags: ["nodejs_compat"],
         bindings: { COMMANDE_JETON_SECRET: "autre-valeur-factice-api", CREATION_COMMANDE_API: "oui" },
@@ -80,9 +85,11 @@ test("banc RPC local : wrapper du site avec OpenNext factice, sans accès HTTP a
     assert.equal(refuse.status, 503);
     assert.equal(await refuse.text(), "calcul-refuse");
     // Le fetch public ne route pas vers l'entrée RPC, même en forgeant chemin et corps.
-    const publicHttp = await site.fetch("https://essai.invalid/JetonsCommande/deriver", { method: "POST", body: cle });
-    assert.equal(publicHttp.status, 404);
-    assert.equal(await publicHttp.text(), "opennext-factice");
+    if (!openNextReel) {
+      const publicHttp = await site.fetch("https://essai.invalid/JetonsCommande/deriver", { method: "POST", body: cle });
+      assert.equal(publicHttp.status, 404);
+      assert.equal(await publicHttp.text(), "opennext-factice");
+    }
     for (const nom of ["api-sans-liaison", "api-eteinte"]) {
       const rep = await avecFetch(await mf.getWorker(nom)).fetch("https://essai.invalid/", { method: "POST", body: cle });
       assert.equal(rep.status, 503);

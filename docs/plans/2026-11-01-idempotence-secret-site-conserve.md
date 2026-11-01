@@ -131,3 +131,24 @@ Relecture spécification : règle de dérivation inchangée pour les clés valid
 **Reste requis avant toute mise en ligne :** cf:build réel du site, essai avec le vrai moteur OpenNext, contrôle SQL/concurrence dans un environnement autorisé, historique API, stratégie de retour arrière de la configuration et alertes. Le script cf:build appelle verifier-base.mjs qui lit .env.local : l’agent ne l’a pas exécuté et n’a pas contourné ce contrôle. Malika peut lancer elle-même la compilation et le contrôle en lecture de la base, sans déployer. Aucun succès de fonctionnalité en production n’est annoncé.
 
 Retour arrière de préparation : revenir sur le lot local. Si une mise en service est ultérieurement autorisée, bloquer d’abord la création API (garde absente/non oui), retirer commandes du relais si allumé, conserver le site et son secret ; ne pas rétablir le chemin API divergent comme service de création. La liaison reste tant que des appels autorisés en dépendent. Aucun secret ni commande supprimé.
+
+## Contrôle après compilation réelle par Malika — 1er novembre 2026
+
+Malika a transmis la fin de cf:build : « Worker saved in .open-next\worker.js » et « OpenNext build complete ». Le code de sortie n’est pas explicitement présent dans cette sortie utilisateur. Les dates du BUILD_ID et du handler généré confirment une génération locale du 1er novembre vers 12 h 28–12 h 29. L’avertissement OpenNext sur le support expérimental du middleware Node reste visible ; ne pas le confondre avec un échec de compilation ni le déclarer résolu. Aucun fichier .env/.dev.vars lu par l’agent.
+
+Assemblage Wrangler 4.142.0 effectué par l’agent en **dry-run**, depuis C:/Users/moelo/dev/diagnostic-workers-20261101 avec configuration minimale publique, fichier d’environnement vide explicite et chargement dotenv désactivé. Pas d’upload de Worker : la sortie dit « --dry-run: exiting now. ». **Code 0**. Paquet local : 22 441,68 Kio / gzip 4 826,75 Kio selon Wrangler. Ces tailles ne prouvent ni le respect des limites du forfait actuel ni le démarrage en production ; forfait non contrôlé ici. Deux modules WebAssembly sont conservés par l’assembleur.
+
+Le test apps/api/tests/rpc-site-local.test.ts possède désormais un mode explicite SPEEDFOOD_ESSAI_OPENNEXT_REEL=oui. Il charge le vrai paquet Wrangler préparé dans le dossier isolé, refuse un paquet contenant le faux moteur, utilise des valeurs fictives et bloque le réseau sortant du Worker site. Sans ce mode, le test standard reste fondé sur OpenNext factice et ne peut pas être cité comme preuve de démarrage du site complet. Le mode réel n’appelle pas de page métier OpenNext par HTTP.
+
+**Résultat du mode réel : code 1**, ERR_RUNTIME_FAILURE au démarrage du service site-local, message workerd « internal error » sans cause déterminée. Avant Wrangler, un assemblage naïf par esbuild avait aussi échoué (adaptations Node et modules WASM non pris en charge par ce banc) ; cet échec du banc ne doit pas être attribué à cf:build.
+
+Contre-épreuve : une copie du même wrapper, avec seulement le nouvel export JetonsCommande retiré, a été assemblée séparément par Wrangler dry-run, **code 0**, puis chargée dans workerd avec valeurs fictives, mêmes date/indicateurs et réseau sortant bloqué. **Échec de démarrage également, code 1.** Ce contrôle retire l’export RPC, pas tous les autres changements du lot ni le code Next nouvellement généré : il montre que l’export seul n’explique pas l’échec, pas que le problème était présent avant ce lot. Aucun déploiement ni appel métier de production.
+
+Commandes du test réel (PowerShell, uniquement après préparation du paquet isolé) :
+
+    $env:SPEEDFOOD_ESSAI_OPENNEXT_REEL='oui'
+    node --experimental-strip-types --test tests/rpc-site-local.test.ts
+
+À exécuter depuis apps/api. Le mode échoue volontairement si le paquet préparé manque ou ne démarre pas ; aucun remplacement automatique par un faux. Pour revenir au mode standard dans ce même terminal, retirer cette variable avec Remove-Item Env:SPEEDFOOD_ESSAI_OPENNEXT_REEL. Aucun de ces réglages n’agit sur la production.
+
+**Conclusion : compilation rapportée terminée, assemblage sec vérifié ; démarrage du paquet complet NON validé.** Aucun feu vert de déploiement demandé. Prochain diagnostic : isoler les besoins d’initialisation et de simulation OpenNext/miniflare, sans ouvrir le réseau de production ni charger de secrets réels. Les validations métier (SQL concurrent, historique API, alertes, vrai essai TEST borné) restent nécessaires ensuite.
