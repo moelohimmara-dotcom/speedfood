@@ -1,6 +1,6 @@
 # Essai d'idempotence croisée — préparation du 1er novembre 2026
 
-**Statut : outil préparé, essai réel NON EXÉCUTÉ.** Le principe de l'essai est déjà accepté ; la préparation demandée par « Poursuis » ne vaut pas feu vert pour les deux envois réels. Aucun relais, secret ou déploiement modifié par ce lot.
+**Statut : feu vert réel reçu de Malika le 1er novembre 2026, exécution et résultat NON CONFIRMÉS.** Autorisation explicite des deux envois de test en production, après présentation du risque de seconde création et des alertes restaurateur. Le lanceur est prêt et le verrou réel est absent avant remise de la commande. Connexion à saisir localement par Malika. Aucun relais, secret ou déploiement modifié par ce lot ; le module `commandes` reste exclu du relais.
 
 ## Objectif et préconditions
 
