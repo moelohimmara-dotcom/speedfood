@@ -13,7 +13,9 @@ Lecture de GET commandes du compte authentifié puis POST suivi avec sa clé dan
 - Exports Hermes Android/iOS et web : code 0. Ces exports ne sont pas des APK/IPA.
 - API livrée : 7d38bee0-09ce-48da-8a9b-7c36d71f3df2, 100 % confirmé par métadonnées. SITE_JETONS et noms/types des secrets conservés. Aucun changement de secret, garde ou API_RELAIS.
 - Après livraison : santé/catalogue 200, historique sans identité 401, prévols historiques/suivi 204, suivi vide 400, réponses privées no-store, sous-routes annuler/proposition sans CORS ; code 0. Aucune commande créée.
-- Aperçu localhost:8093 : catalogue réel et formulaire personnel accessibles, bouton de connexion vide désactivé. Malika confirme « Compte connecté ». Liste et suivi privés attendent son retour ; aucune extraction de session ni saisie par l’agent.
+- Aperçu localhost:8093 : connexion personnelle confirmée par Malika. Ses captures vérifient ensuite l’historique réel (SF-SC78P et SF-WMQXU, mentions TEST, restaurant et montants) et la lecture initiale du suivi SF-SC78P : « En attente du restaurant », 25 000 GNF, état lu à 19:46:51 et bouton « Actualiser ce suivi », sans erreur visible. Aucune extraction de session ni saisie d’identifiants par l’agent. Le clic d’actualisation, la déconnexion, les appareils Android/iOS et le coffre natif restent NON vérifiés par ces captures.
+
+<!-- Commentaire de validation, 1er novembre 2026 : historique et lecture initiale du suivi vérifiés sur le vrai compte par les captures fournies par Malika. Aucune commande créée pour ce contrôle. Cette validation web ne vaut pas validation native ni autorisation de remplacer l’APK actuelle. Prochaine étape : corriger la compilation Android bloquée par un chemin C++ de plus de 260 caractères. -->
 
 ## Android natif et limites
 
