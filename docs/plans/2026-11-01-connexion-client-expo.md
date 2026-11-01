@@ -9,3 +9,5 @@ Fichiers : API configuration publique, CORS des seules lectures privées et câb
 Retour arrière : revenir à la version API 22542e7e-fdfe-4cd1-beb2-f978f9923aff, si toujours précédente et sans changement ultérieur à conserver, et retirer l’entrée connexion mobile. Ne pas supprimer de compte ni altérer catalogue/panier/ADR-021. Le coffre natif doit être effacé par une déconnexion normale avant retrait chez les testeurs. Aucun SQL à annuler.
 
 Suivi : docs/specs/2026-11-01-connexion-client-expo.md et documents de statut. La connexion d’un vrai compte ne doit pas être déclarée vérifiée sur la seule base des tests simulés.
+
+État : API cd5d0ef8-c2ea-4761-adcb-29349126087e déployée et contrôles publics à code 0 ; 260 tests API, 36 tests mobiles et exports à code 0. Saisie personnelle pour essai réel toujours attendue. Compte rendu : docs/CONTROLE-CONNEXION-CLIENT-2026-11-01.md.
