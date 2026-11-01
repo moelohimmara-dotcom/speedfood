@@ -11,11 +11,12 @@ function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'ob
 function secret(v: unknown, max: number): string { if (typeof v !== 'string' || !v.length || v.length > max || /[\s\x00-\x1f]/.test(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v; }
 export function creerAuth(fetcher: typeof fetch = fetch) {
   let configuration: Promise<string> | null = null;
-  async function requete(url: string, options: RequestInit, auth = false, renouvellement = false) {
+  async function requete(url: string, options: RequestInit, auth = false, renouvellement = false, refus: Record<number,string> = {}) {
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 15000);
     try {
       const r = await fetcher(url, { ...options, credentials: 'omit', signal: controle.signal });
       if (!r.ok) {
+        if (refus[r.status]) throw new ErreurConnexion(refus[r.status]);
         if (auth && (r.status === 401 || r.status === 403)) configuration = null;
         if (r.status === 429) throw new ErreurConnexion('Trop de tentatives. Patientez avant de réessayer.');
         if (auth && (r.status === 400 || r.status === 401 || r.status === 403)) throw new ErreurConnexion(renouvellement ? 'Votre session a expiré. Reconnectez-vous.' : 'Connexion refusée. Vérifiez vos identifiants et la confirmation de votre adresse.', true);
@@ -56,6 +57,12 @@ export function creerAuth(fetcher: typeof fetch = fetch) {
     async suivi(jeton:string) {
       const v=await requete(ORIGINE_CATALOGUE+'/api/v1/suivi',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jeton})});
       try{return lireSuivi(v);}catch{throw new ErreurConnexion('Impossible de lire le suivi de cette commande.');}
+    },
+    async annuler(jeton:string):Promise<{reference:string}> {
+      const v=await requete(ORIGINE_CATALOGUE+'/api/v1/suivi/annuler',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jeton})},false,false,{
+        409:'Le restaurant a déjà répondu à votre commande : elle ne peut plus être annulée ici. Appelez l’assistance Speedfood.',404:'Commande introuvable.',400:'Lien de suivi invalide. Actualisez vos commandes.'});
+      if(v.ok!==true||typeof v.reference!=='string'||!v.reference.length||v.reference.length>40)throw new ErreurConnexion('Réponse d’annulation invalide.');
+      return {reference:v.reference};
     },
     async espace(accessToken: string): Promise<ResumeCompte> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });

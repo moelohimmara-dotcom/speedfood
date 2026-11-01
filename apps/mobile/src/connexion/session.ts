@@ -72,6 +72,16 @@ export class GestionSession {
     if(r.reference!==cle.reference)throw new ErreurConnexion('Le suivi reçu ne correspond pas à cette commande.');
     return r;
   }
+  async annuler(id:string) {
+    const n=this.generation;
+    await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+    const cle=this.clesSuivi.get(id);if(!cle)throw new ErreurConnexion('Actualisez vos commandes pour annuler cette commande.');
+    const r=await this.api.annuler(cle.jeton);
+    if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+    if(r.reference!==cle.reference)throw new ErreurConnexion('La réponse reçue ne correspond pas à cette commande.');
+    return r.reference;
+  }
   async deconnecter() {
     this.clesSuivi.clear();
     const acces = this.session?.accessToken; ++this.generation; this.session = null;

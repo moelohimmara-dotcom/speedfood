@@ -18,9 +18,20 @@ export function CompteReel({ ouvert, fermer }: { ouvert:boolean; fermer():void }
   const revision=useRef(0);
   const [commandes,setCommandes]=useState<CommandeCompte[]|null>(null);
   const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string}|null>(null);
-  function effacerLectures(){setCommandes(null);setSuivi(null);}
+  const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
+  function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);}
-  async function lireSuivi(id:string){setSuivi(null);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR')});}
+  async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR')});}
+  const annulationEnCours=useRef(false);
+  async function annulerCommande(id:string){
+    if(annulationEnCours.current)return;annulationEnCours.current=true;
+    try{
+      const n=revision.current;let ref:string;
+      try{ref=await gestion.annuler(id);}catch(e){try{await lireSuivi(id);}catch{}throw e;}
+      if(n===revision.current)setMessage('Commande '+ref+' annulée.');
+      try{await lireCommandes();await lireSuivi(id);}catch{}
+    }finally{annulationEnCours.current=false;}
+  }
   function fermerFormulaire(){setEmail('');setMotDePasse('');fermer();}
   async function executer(f:()=>Promise<void>){
     const n=++revision.current; setAttente(true);setErreur(null);setMessage('');
@@ -51,7 +62,7 @@ export function CompteReel({ ouvert, fermer }: { ouvert:boolean; fermer():void }
       <Action titre="Actualiser mon espace" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
       <Action titre="Voir ou actualiser mes commandes" disabled={attente} agir={()=>{void executer(lireCommandes);}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
-      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&<Text style={s.texte}>Le restaurant a proposé une modification. Consultez-la sur le site avant de répondre.</Text>}<Text style={s.secondaire}>État lu à {suivi.luLe}. Ce premier écran affiche l’état et le montant ; détail des plats, paiement et actions restent à reprendre.</Text><Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
+      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&<Text style={s.texte}>Le restaurant a proposé une modification. Consultez-la sur le site avant de répondre.</Text>}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}. Le paiement reste à reprendre dans cette version.</Text>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
       <Action titre="Me déconnecter de cet appareil" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}
