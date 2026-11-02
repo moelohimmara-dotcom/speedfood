@@ -1,13 +1,17 @@
 import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
 import type {CommandeCompte} from './commandes.ts';
+import {ErreurCommande} from '../catalogue/commande-reelle.ts';
+import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
+/** `creerCommande` est facultatif ici : les doublures de test de la connexion n'en ont pas besoin. */
+export type ApiSession = Omit<ApiAuth,'creerCommande'> & Partial<Pick<ApiAuth,'creerCommande'>>;
 export class GestionSession {
-  private api: ApiAuth; private coffre: CoffreSession;
+  private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
   private generation = 0; private file: Promise<unknown> = Promise.resolve();
   private renouvellement: Promise<void> | null = null;
   private clesSuivi = new Map<string,{jeton:string;reference:string}>();
-  constructor(api: ApiAuth, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
+  constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
   get connectee() { return this.session !== null; }
   private ordonner(f: () => Promise<void>) { const p = this.file.catch(() => undefined).then(f); this.file = p; return p; }
   private async appliquer(s: SessionAuth, n: number) {
@@ -81,6 +85,14 @@ export class GestionSession {
     if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
     if(r.reference!==cle.reference)throw new ErreurConnexion('La réponse reçue ne correspond pas à cette commande.');
     return r.reference;
+  }
+  /** Envoie une commande (un seul essai). Le jeton de suivi reçu est jeté ici : il ne remonte jamais jusqu'à l'écran, le suivi le relit via `commandes()`. */
+  async creerCommande(payload:CreationCommandePayload):Promise<{reference:string;idempotent:boolean}> {
+    const n=this.generation;
+    const acces=await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+    try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);return {reference:r.reference,idempotent:r.idempotent};}
+    catch(e){if(e instanceof ErreurCommande&&e.genre==='session'&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
   }
   async deconnecter() {
     this.clesSuivi.clear();

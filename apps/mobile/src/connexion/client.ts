@@ -1,5 +1,7 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
+import { ErreurCommande, erreurReseau, lireReponseCreation, refusServeur } from '../catalogue/commande-reelle.ts';
+import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
 export interface ResumeCompte { pseudo: string | null; favoris: number; adresses: number }
@@ -44,7 +46,30 @@ export function creerAuth(fetcher: typeof fetch = fetch) {
     if (typeof user.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(user.id) || typeof v.expires_in !== 'number' || !Number.isSafeInteger(v.expires_in) || v.expires_in < 1 || v.expires_in > 86400) throw new ErreurConnexion('Réponse de connexion invalide.');
     return { accessToken:secret(v.access_token,16384), refreshToken:secret(v.refresh_token,1024), expiresAt:Math.floor(Date.now()/1000)+v.expires_in, userId:user.id };
   }
+  /** UN SEUL essai, jamais de relance automatique : un envoi incertain se rejoue à la main avec la même clé d'idempotence. */
+  async function postCommande(accessToken: string, payload: CreationCommandePayload): Promise<{ reference: string; jeton: string; idempotent: boolean }> {
+    if (payload.mode !== 'retrait') throw new ErreurCommande('validation', 'Cette application envoie seulement des commandes en retrait.');
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 20000);
+    let r: Response;
+    try {
+      r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/commandes', { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify(payload) });
+    } catch { clearTimeout(timer); throw erreurReseau(); }
+    try {
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      let corps: unknown = null;
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      if (!r.ok) {
+        const o = corps && typeof corps === 'object' ? corps as { erreur?: { code?: unknown; champs?: Record<string, unknown> } } : {};
+        const code = typeof o.erreur?.code === 'string' ? o.erreur.code : null;
+        const brut = o.erreur?.champs && typeof o.erreur.champs === 'object' ? o.erreur.champs.sousTotalServeur : undefined;
+        const total = typeof brut === 'string' && /^\d{1,12}$/.test(brut) ? Number(brut) : null;
+        throw refusServeur(r.status, code, total);
+      }
+      return lireReponseCreation(r.status, corps);
+    } finally { clearTimeout(timer); }
+  }
   return {
+    creerCommande: postCommande,
     async connecter(email: string, motDePasse: string) {
       if (!email.trim() || email.length > 254 || !motDePasse.length || motDePasse.length > 4096) throw new ErreurConnexion('Renseignez votre adresse e-mail et votre mot de passe.');
       return jetons('password',{ email:email.trim(), password:motDePasse });

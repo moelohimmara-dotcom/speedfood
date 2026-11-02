@@ -6,6 +6,7 @@ import { couleurs as c, polices } from '../design/tokens';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
+import { CommandeReelle } from './CommandeReelle';
 const lecteur = creerLecteurCatalogue();
 function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={({ pressed }) => [s.action, { opacity: disabled ? .5 : pressed ? .8 : 1 }]}><Text style={s.actionTexte}>{titre}</Text></Pressable>;
@@ -14,6 +15,8 @@ export function CatalogueReel() {
   const panier = usePanierReel();
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [compteOuvert, setCompteOuvert] = useState(false);
+  const [commandeOuverte, setCommandeOuverte] = useState(false);
+  const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null } | null>(null);
   const [messagePanier, setMessagePanier] = useState('');
   function voirPanier() { setPanierOuvert(true); void panier.recharger(); }
   const [restaurants, setRestaurants] = useState<RestaurantPublic[]>([]);
@@ -61,7 +64,7 @@ export function CatalogueReel() {
       <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
-      <View style={s.note}><Text style={s.texte}>Les menus sont réels. La commande dans cette nouvelle application sera disponible après sa validation.</Text></View>
+      <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait depuis le panier après connexion ; la livraison et le paiement en ligne ne sont pas encore disponibles ici.</Text></View>
       <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
       <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
@@ -89,8 +92,12 @@ export function CatalogueReel() {
       {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Dernière lecture : {new Date((selection ? menu!.luLe : lectureLe)!).toLocaleString('fr-FR')}. La disponibilité peut évoluer.</Text>}
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} />
     </ScrollView>
-    <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} />
-    <CompteReel ouvert={compteOuvert} fermer={() => setCompteOuvert(false)} />
+    <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
+    <CommandeReelle ouvert={commandeOuverte} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); }} etat={panier}
+      ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
+      verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
+      apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); }} />
+    <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} />
   </View>;
 }
 const s = StyleSheet.create({
