@@ -68,6 +68,12 @@ Allumer la garde (la valeur se saisit à l'invite, seule la valeur `oui` allume)
 cd apps/api && npx wrangler secret put CREATION_COMMANDE_API
 ```
 Essai TEST borné, avec un restaurant d'essai et une commande `est_test` : envoyer **la même clé d'idempotence** d'abord au site (relais éteint pour `commandes`), puis à l'API. Attendu : seconde réponse 200, `idempotent: true`, **même jeton de suivi** ; une seule commande en base ; alerte reçue par le restaurateur d'essai ; CPU de l'API relevé. Nouveau verrou d'essai séparé de celui de l'échec précédent (ne jamais effacer ce dernier).
+**Second essai, création NEUVE par l'API seule** (prouve l'alerte du restaurateur et mesure la durée ; un seul POST vers l'API, aucun vers le site, aucune relance ; commande `est_test` décidée par le serveur ; verrou dédié `etat-creation-api-speedfood.json`, jamais l'un des deux précédents). Commande de lancement exacte, depuis cmd (e-mail visible, mot de passe masqué, rien dans le chat) :
+```
+cd /d C:\Users\moelo\dev && powershell -ExecutionPolicy Bypass -File connexion-verification-suivi-speedfood.ps1 -CreationApi -AutoriserEcriture
+```
+Ensuite : constater l'alerte sur le téléphone du restaurateur d'essai et lire le CPU dans Cloudflare (`speedfood-api` → Metrics). En cas de panne ou de délai après l'envoi, la commande a peut-être été créée : ne pas relancer, auditer d'abord (le verrou est conservé).
+
 Retour arrière immédiat : bloquer la garde :
 ```bash
 cd apps/api && npx wrangler secret delete CREATION_COMMANDE_API
