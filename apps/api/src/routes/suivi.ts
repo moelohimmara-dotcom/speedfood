@@ -69,5 +69,25 @@ export function routeSuivi(deps: Pick<Deps, "suivi">) {
     }
   });
 
+  /**
+   * Déclaration du règlement par le client (modes et codes marchand fournis par le suivi). Le jeton de suivi, dans le corps, est la clé : aucune identité.
+   * Les contrôles (jeton, mode, référence, plafond, commande acceptée, mode proposé…) et l'écriture sont ceux de l'action du site, dans UN service commun ;
+   * la route ne fait que lire le corps et rendre le résultat. Rejouable : redéclarer le même état l'écrase sans effet de bord.
+   */
+  route.post("/paiement", async (c) => {
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { jeton?: unknown; mode?: unknown; reference?: unknown };
+
+    try {
+      const resultat = await deps.suivi.declarerPaiement(corps.jeton, corps.mode, corps.reference);
+      if (!resultat.ok) return reponseErreur(c, resultat.erreur);
+      return repondre(c, { ok: true });
+    } catch (erreur) {
+      if (erreur instanceof ErreurMetier) return reponseErreur(c, erreur.toApi());
+      return reponseErreur(c, { code: "ERREUR_SERVEUR", message: "Une erreur est survenue. Réessayez dans un instant." });
+    }
+  });
+
   return route;
 }

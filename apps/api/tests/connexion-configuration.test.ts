@@ -36,5 +36,5 @@ test('suivi CORS : POST de lecture exact seulement, aucune sous-route de modific
  assert.equal(p.status,204);assert.equal(p.headers.get('access-control-allow-methods'),'POST, OPTIONS');assert.equal(p.headers.get('access-control-allow-headers'),'Content-Type');
  const r=await app.request('/api/v1/suivi',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
  assert.equal(r.status,400);assert.equal(r.headers.get('access-control-allow-origin'),'*');assert.equal(r.headers.get('cache-control'),'no-store');
- for(const chemin of ['/api/v1/suivi/annuler','/api/v1/suivi/proposition'])assert.equal((await app.request(chemin,{method:'OPTIONS'})).headers.get('access-control-allow-origin'),null);
+ for(const chemin of ['/api/v1/suivi/annuler','/api/v1/suivi/proposition','/api/v1/suivi/paiement'])assert.equal((await app.request(chemin,{method:'OPTIONS'})).headers.get('access-control-allow-origin'),null);
 });

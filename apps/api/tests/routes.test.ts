@@ -30,12 +30,13 @@ test("GET /api/v1/aide : sans numéro, whatsapp vaut null", async () => {
   assert.deepEqual(await reponse.json(), { ok: true, whatsapp: null });
 });
 
-test("les cinq gestionnaires du suivi et des commandes sont montés (aucun ne répond « Route inconnue. »)", async () => {
+test("les six gestionnaires du suivi et des commandes sont montés (aucun ne répond « Route inconnue. »)", async () => {
   const json = { "content-type": "application/json" };
   const cas: Array<[string, RequestInit]> = [
     ["/api/v1/suivi", { method: "POST", body: "{}", headers: json }],
     ["/api/v1/suivi/annuler", { method: "POST", body: "{}", headers: json }],
     ["/api/v1/suivi/proposition", { method: "POST", body: "{}", headers: json }],
+    ["/api/v1/suivi/paiement", { method: "POST", body: "{}", headers: json }],
     ["/api/v1/commandes", { method: "GET" }],
     ["/api/v1/commandes", { method: "POST", body: "{}", headers: json }],
   ];

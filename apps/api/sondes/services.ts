@@ -12,4 +12,5 @@ export { estJetonValide } from "@/lib/commande/jetons";
 export { chargerSuiviParJeton } from "@/lib/commande/requetes";
 export { annulerParClient } from "@/lib/commande/annulation-client";
 export { repondreProposition } from "@/lib/commande/propositions";
+export { declarerPaiement } from "@/lib/commande/declaration-paiement";
 export { limiterLectureSuivi, limiterAnnulationClient, limiterReponseProposition } from "@/lib/securite/limitation-debit";

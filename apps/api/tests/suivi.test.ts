@@ -266,3 +266,89 @@ test("proposition : ni le jeton de suivi ni le message d'exception dans les jour
   assert.ok(!texte.includes(JETON), "le jeton de suivi a fuité dans un journal");
   assert.ok(!texte.includes("échec pour"), "le message d'exception a fuité dans un journal");
 });
+
+// ---------- POST /suivi/paiement ----------
+
+function appPaiement(surcharge: Partial<Deps["suivi"]> = {}, appels: unknown[] = []) {
+  return creerApp(depsEssai({
+    suivi: {
+      ...depsEssai().suivi,
+      declarerPaiement: async (j, m, r) => { appels.push(["declarer", j === JETON, m, r]); return { ok: true }; },
+      ...surcharge,
+    },
+  }));
+}
+
+test("paiement : le corps est transmis tel quel au service commun, réponse {ok:true}, no-store, aucune identité", async () => {
+  const appels: unknown[] = [];
+  const reponse = await appPaiement({}, appels).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "orange_money", reference: "OM-123456" }));
+  assert.equal(reponse.status, 200);
+  assert.equal(reponse.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await reponse.json(), { ok: true });
+  assert.deepEqual(appels, [["declarer", true, "orange_money", "OM-123456"]]);
+});
+
+test("paiement : sans référence, le service reçoit `undefined` (c'est lui qui décide : référence facultative)", async () => {
+  const appels: unknown[] = [];
+  await appPaiement({}, appels).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "especes" }));
+  assert.deepEqual(appels, [["declarer", true, "especes", undefined]]);
+});
+
+test("paiement : refus du service rendus tels quels, code HTTP dérivé du code (400, 404, 409)", async () => {
+  const cas: Array<[ "VALIDATION" | "INTROUVABLE" | "CONFLIT_ETAT", string, number ]> = [
+    ["VALIDATION", "Mode de paiement invalide.", 400],
+    ["INTROUVABLE", "Lien de suivi introuvable.", 404],
+    ["CONFLIT_ETAT", "Le paiement s'ouvre quand le restaurant a accepté la commande.", 409],
+  ];
+  for (const [code, message, statut] of cas) {
+    const reponse = await appPaiement({ declarerPaiement: async () => ({ ok: false, erreur: { code, message } }) }).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "especes" }));
+    assert.equal(reponse.status, statut);
+    assert.deepEqual(await reponse.json(), { ok: false, erreur: { code, message } });
+  }
+});
+
+test("paiement : plafond atteint (429) rendu tel quel", async () => {
+  const reponse = await appPaiement({ declarerPaiement: async () => ({ ok: false, erreur: { code: "TROP_DE_REQUETES", message: "Trop de demandes." } }) }).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "especes" }));
+  assert.equal(reponse.status, 429);
+});
+
+test("paiement : corps non JSON, illisible ou trop gros : refus avant tout, le service n'est pas appelé", async () => {
+  const appels: unknown[] = [];
+  const a = await appPaiement({}, appels).request("/api/v1/suivi/paiement", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" });
+  assert.deepEqual(await a.json(), { ok: false, erreur: { code: "VALIDATION", message: "Requête invalide : JSON attendu." } });
+  const b = await appPaiement({}, appels).request("/api/v1/suivi/paiement", { method: "POST", headers: JSON_TYPE, body: "{pas du json" });
+  assert.deepEqual(await b.json(), { ok: false, erreur: { code: "VALIDATION", message: "Requête invalide : JSON illisible." } });
+  assert.deepEqual(appels, []);
+});
+
+test("paiement : corps qui n'est pas un objet (null, texte, tableau) : le service reçoit des valeurs absentes et décide", async () => {
+  for (const corps of [null, "texte", [JETON]]) {
+    const appels: unknown[] = [];
+    await appPaiement({}, appels).request("/api/v1/suivi/paiement", post(corps));
+    assert.deepEqual(appels, [["declarer", false, undefined, undefined]]);
+  }
+});
+
+test("paiement : exception quelconque du service : 500 générique sans détail", async () => {
+  const reponse = await appPaiement({ declarerPaiement: async () => { throw new Error("secret interne"); } }).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "especes" }));
+  assert.equal(reponse.status, 500);
+  assert.deepEqual(await reponse.json(), MSG_GENERIQUE);
+});
+
+test("paiement : ErreurMetier levée par le service rendue au contrat", async () => {
+  const reponse = await appPaiement({ declarerPaiement: async () => { throw new ErreurMetier("CONFLIT_ETAT", "Déjà confirmé."); } }).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "especes" }));
+  assert.equal(reponse.status, 409);
+  assert.deepEqual(await reponse.json(), { ok: false, erreur: { code: "CONFLIT_ETAT", message: "Déjà confirmé." } });
+});
+
+test("paiement : ni le jeton de suivi ni la référence ni le message d'exception dans les journaux", async () => {
+  const texte = await journaux(async () => appPaiement({ declarerPaiement: async () => { throw new Error(`échec pour ${JETON} OM-123456`); } }).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "orange_money", reference: "OM-123456" })));
+  assert.ok(!texte.includes(JETON) && !texte.includes("OM-123456") && !texte.includes("échec pour"), "donnée sensible dans un journal");
+});
+
+test("paiement : GET refusé (écriture), pas d'en-tête CORS ouvert", async () => {
+  const lecture = await appPaiement().request("/api/v1/suivi/paiement");
+  assert.notEqual(lecture.status, 200);
+  const options = await appPaiement().request("/api/v1/suivi/paiement", { method: "OPTIONS" });
+  assert.equal(options.headers.get("access-control-allow-origin"), null);
+});

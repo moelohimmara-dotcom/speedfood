@@ -9,6 +9,7 @@ import { estJetonValide } from "@/lib/commande/jetons";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { annulerParClient } from "@/lib/commande/annulation-client";
 import { repondreProposition } from "@/lib/commande/propositions";
+import { declarerPaiement } from "@/lib/commande/declaration-paiement";
 import { validerCreationCommande } from "@/lib/commande/validation";
 import { executerCreationCoeur } from "@/lib/commande/creation-coeur";
 import { listerMesCommandes } from "@/lib/client/mes-commandes";
@@ -61,6 +62,7 @@ const app = creerApp({
     annuler: annulerParClient,
     limiterReponseProposition,
     repondreProposition,
+    declarerPaiement,
   },
   commandes: {
     valider: validerCreationCommande,

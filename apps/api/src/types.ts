@@ -1,5 +1,5 @@
 import type { VersionApplication } from "@speedfood/shared/application/version";
-import type { CreationCommandePayload, ResultatCreationCommande } from "@speedfood/shared/contracts/commande";
+import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationCommande } from "@speedfood/shared/contracts/commande";
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
 import type { Planifier } from "@/lib/commande/creation-coeur";
 import type { VerificateurJeton } from "./identite/jeton.ts";
@@ -51,6 +51,8 @@ export interface Deps {
     annuler(jeton: string): Promise<{ reference: string }>;
     limiterReponseProposition(): Promise<void>;
     repondreProposition(jeton: string, propositionId: string, reponse: "acceptee" | "refusee"): Promise<void>;
+    /** Déclaration du règlement : la même fonction que l'action du site (`declarerPaiement`), tous contrôles et plafond compris ; renvoie le contrat des actions. */
+    declarerPaiement(jeton: unknown, mode: unknown, reference: unknown): Promise<ResultatActionCommande>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };
