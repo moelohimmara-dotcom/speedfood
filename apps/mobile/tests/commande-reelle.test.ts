@@ -55,7 +55,7 @@ test('commande : 200 = rejeu idempotent, 201 = nouvelle ; contradiction entre st
   await assert.rejects(rep(201, true), ErreurCommande);
 });
 
-test('commande : mode sur_place et livraison refusés avant tout appel réseau', async () => {
+test('commande : mode sur_place refusé, et livraison sans destination ni adresse refusée, avant tout appel réseau (le lot B couvre la livraison complète)', async () => {
   let appels = 0; const a = creerAuth(async () => { appels++; return json({}, 201); });
   for (const mode of ['sur_place', 'livraison'] as const) await assert.rejects(a.creerCommande('t', { ...payloadValide(), mode }), (e: unknown) => e instanceof ErreurCommande && e.genre === 'validation');
   assert.equal(appels, 0);

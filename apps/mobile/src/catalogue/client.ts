@@ -1,4 +1,4 @@
-import type { PageRestaurants, PageMenu, RestaurantPublic, PlatCataloguePublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
+import type { PageRestaurants, PageMenu, RestaurantPublic, PlatCataloguePublic, ListeQuartiers, QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 export const ORIGINE_CATALOGUE = 'https://speedfood-api.moelohimmara.workers.dev';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function objet(x: unknown): Record<string, unknown> { if (!x || typeof x !== 'object' || Array.isArray(x)) throw Error('CATALOGUE_INVALIDE'); return x as Record<string, unknown>; }
@@ -15,6 +15,7 @@ function plat(x: unknown): PlatCataloguePublic {
   if (typeof p.prixGnf !== 'number' || !Number.isSafeInteger(p.prixGnf) || p.prixGnf < 0 || !['disponible', 'epuise', 'a_confirmer'].includes(p.disponibilite as string)) throw Error('CATALOGUE_INVALIDE');
   return { id: identifiant(p.id), nom: texte(p.nom, 256), description: texte(p.description), prixGnf: p.prixGnf, disponibilite: p.disponibilite as PlatCataloguePublic['disponibilite'], confirmeLe: p.confirmeLe === null ? null : date(p.confirmeLe) };
 }
+function quartier(x: unknown): QuartierPublic { const q = objet(x); return { id: identifiant(q.id), libelle: texte(q.libelle, 200) }; }
 function liste<T extends { id: string }>(x: unknown, max: number, lire: (v: unknown) => T): T[] {
   if (!Array.isArray(x) || x.length > max) throw Error('CATALOGUE_INVALIDE');
   const valeurs = x.map(lire); if (new Set(valeurs.map(v => v.id)).size !== valeurs.length) throw Error('CATALOGUE_INVALIDE'); return valeurs;
@@ -39,6 +40,11 @@ export function creerLecteurCatalogue(fetcher: typeof fetch = fetch, delai = 150
     async restaurants(apres: string | null = null): Promise<PageRestaurants> {
       const v = await lire('restaurants'+suite(apres));
       return { restaurants: liste(v.restaurants, 50, restaurant), suivant: curseur(v.suivant), luLe: date(v.luLe) };
+    },
+    /** Quartiers de livraison (« Quartier, Commune »), lecture publique complète. */
+    async listerQuartiers(): Promise<ListeQuartiers> {
+      const v = await lire('quartiers');
+      return { quartiers: liste(v.quartiers, 2000, quartier), luLe: date(v.luLe) };
     },
     async menu(id: string, apres: string | null = null): Promise<PageMenu> {
       const v = await lire('restaurants/'+identifiant(id)+'/menu'+suite(apres));

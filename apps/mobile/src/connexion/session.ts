@@ -1,10 +1,10 @@
 import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
 import type {CommandeCompte} from './commandes.ts';
-import {ErreurCommande} from '../catalogue/commande-reelle.ts';
+import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
-/** `creerCommande` est facultatif ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'creerCommande'> & Partial<Pick<ApiAuth,'creerCommande'>>;
+/** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
+export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -98,6 +98,18 @@ export class GestionSession {
     if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
     try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);return {reference:r.reference,idempotent:r.idempotent};}
     catch(e){if(e instanceof ErreurCommande&&e.genre==='session'&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
+  }
+  /** Frais et durée de livraison calculés par le serveur pour ce quartier et ce sous-total (lecture, jeton porteur du compte connecté). Une session terminée le dit, sans rien effacer d'autre. */
+  async estimerLivraison(restaurantId:string,quartierId:string,sousTotal:number):Promise<ResultatEstimation> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(n!==this.generation)throw new ErreurConnexion('Calcul annulé.');
+      if(!this.api.estimerLivraison)throw new ErreurConnexion('Calcul de livraison indisponible.');
+      const r=await this.api.estimerLivraison(acces,restaurantId,quartierId,sousTotal);
+      if(n!==this.generation)throw new ErreurConnexion('Calcul annulé.');
+      return r;
+    }catch(e){if(e instanceof ErreurConnexion&&e.definitive&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
   }
   async deconnecter() {
     this.nbDeconnexions++;

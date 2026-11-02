@@ -64,7 +64,7 @@ export function CatalogueReel() {
       <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
-      <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait depuis le panier après connexion ; la livraison et le paiement en ligne ne sont pas encore disponibles ici.</Text></View>
+      <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>
       <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
       <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>

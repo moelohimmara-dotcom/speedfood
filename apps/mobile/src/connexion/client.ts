@@ -1,6 +1,6 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
-import { ErreurCommande, erreurReseau, lireReponseCreation, refusServeur } from '../catalogue/commande-reelle.ts';
+import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -48,7 +48,11 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
   }
   /** UN SEUL essai, jamais de relance automatique : un envoi incertain se rejoue à la main avec la même clé d'idempotence. */
   async function postCommande(accessToken: string, payload: CreationCommandePayload): Promise<{ reference: string; jeton: string; idempotent: boolean }> {
-    if (payload.mode !== 'retrait') throw new ErreurCommande('validation', 'Cette application envoie seulement des commandes en retrait.');
+    // Refus AVANT tout appel réseau : `sur_place` n'est jamais envoyé ; la livraison exige adresse et quartier, le retrait n'en porte pas.
+    const modeOk = payload.mode === 'retrait' ? !payload.destination && payload.fraisAffiches === undefined
+      : payload.mode === 'livraison' && typeof payload.destination?.quartierId === 'string' && payload.destination.latitude === undefined && payload.destination.longitude === undefined
+        && typeof payload.client.adresse === 'string' && payload.client.adresse.trim().length >= ADRESSE_MIN && payload.client.adresse.length <= ADRESSE_MAX;
+    if (!modeOk) throw new ErreurCommande('validation', 'Cette application envoie des commandes en retrait, ou en livraison vers un quartier avec une adresse.');
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
@@ -63,13 +67,22 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
         const code = typeof o.erreur?.code === 'string' ? o.erreur.code : null;
         const brut = o.erreur?.champs && typeof o.erreur.champs === 'object' ? o.erreur.champs.sousTotalServeur : undefined;
         const total = typeof brut === 'string' && /^\d{1,12}$/.test(brut) ? Number(brut) : null;
-        throw refusServeur(r.status, code, total);
+        const fraisBrut = o.erreur?.champs && typeof o.erreur.champs === 'object' ? o.erreur.champs.fraisServeur : undefined;
+        const frais = typeof fraisBrut === 'string' && /^\d{1,12}$/.test(fraisBrut) ? Number(fraisBrut) : null;
+        throw refusServeur(r.status, code, total, frais, payload.mode === 'livraison');
       }
       return lireReponseCreation(r.status, corps);
     } finally { clearTimeout(timer); }
   }
+  /** Frais et durée de livraison calculés par le serveur (un seul essai, délai de `requete`, réponse bornée). Jeton porteur strict ; `non_calcule` = interrupteur éteint. */
+  async function postEstimation(accessToken: string, restaurantId: string, quartierId: string, sousTotal: number): Promise<ResultatEstimation> {
+    if (!Number.isSafeInteger(sousTotal) || sousTotal < 0) throw new ErreurConnexion('Le total doit être vérifié avant de calculer la livraison.');
+    const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livraison/estimation', { method:'POST', headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify({ restaurantId, destination:{ quartierId }, sousTotal }) });
+    try { return lireEstimation(v); } catch { throw new ErreurConnexion('Réponse du calcul de livraison illisible.'); }
+  }
   return {
     creerCommande: postCommande,
+    estimerLivraison: postEstimation,
     async connecter(email: string, motDePasse: string) {
       if (!email.trim() || email.length > 254 || !motDePasse.length || motDePasse.length > 4096) throw new ErreurConnexion('Renseignez votre adresse e-mail et votre mot de passe.');
       return jetons('password',{ email:email.trim(), password:motDePasse });

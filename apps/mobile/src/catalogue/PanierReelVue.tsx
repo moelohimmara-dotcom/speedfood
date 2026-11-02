@@ -11,7 +11,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander }: { ouvert: boo
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView contentContainerStyle={s.contenu}>
     <Pressable accessibilityRole="button" onPress={fermer} style={s.bouton}><Text style={s.boutonTexte}>Retour au catalogue</Text></Pressable>
     <Text accessibilityRole="header" style={s.titre}>Mon panier</Text><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
-    <Text style={s.texte}>Prix indicatifs hors options. Rien n’est envoyé tant que vous n’avez pas validé votre commande en retrait ; le serveur recalcule le montant à l’envoi.</Text>
+    <Text style={s.texte}>Prix indicatifs hors options. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text>
     <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>
     {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Pressable accessibilityRole="button" accessibilityLabel="Réessayer le stockage du panier" onPress={etat.reessayer} style={s.bouton}><Text style={s.boutonTexte}>Réessayer le stockage du panier</Text></Pressable></>}
     {etat.lecture && <><ActivityIndicator color={c.action} /><Text style={s.texte}>Vérification des prix et disponibilités…</Text></>}
@@ -32,7 +32,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander }: { ouvert: boo
     {!!etat.panier.lignes.length && <>
       <Text accessibilityRole="header" style={s.nom}>{etat.lecture || etat.erreurLecture || bilan.total === null ? 'Total à vérifier' : `Sous-total indicatif : ${gnf(bilan.total)}`}</Text>
       {etat.menu && <Text style={s.secondaire}>Menu relu le {new Date(etat.menu.luLe).toLocaleString('fr-FR')}.</Text>}
-      <Pressable accessibilityRole="button" accessibilityLabel="Commander en retrait" disabled={etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null} accessibilityState={{ disabled: etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null }} onPress={commander} style={[s.bouton, (etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null) && s.inactif]}><Text style={s.boutonTexte}>Commander en retrait</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Commander" disabled={etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null} accessibilityState={{ disabled: etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null }} onPress={commander} style={[s.bouton, (etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null) && s.inactif]}><Text style={s.boutonTexte}>Commander</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Actualiser le panier" disabled={etat.lecture} onPress={() => { void etat.recharger(); }} style={s.bouton}><Text style={s.boutonTexte}>Actualiser le panier</Text></Pressable>
       <Pressable accessibilityRole="button" onPress={() => setConfirmation(true)} style={s.bouton}><Text style={s.boutonTexte}>Vider le panier</Text></Pressable>
     </>}
