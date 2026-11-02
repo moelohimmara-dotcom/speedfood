@@ -24,6 +24,7 @@ export interface Deps {
   catalogue: {
     restaurants(apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageRestaurants>;
     menu(id: string, apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageMenu | null>;
+    quartiers(): Promise<import('@speedfood/shared/contracts/catalogue').ListeQuartiers>;
   };
   version: VersionApplication;
   lireAssistance(): Promise<{ whatsapp: string | null }>;

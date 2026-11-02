@@ -8,3 +8,6 @@ export interface PlatCataloguePublic {
 }
 export interface PageRestaurants { restaurants: RestaurantPublic[]; suivant: string | null; luLe: string }
 export interface PageMenu { restaurant: RestaurantPublic; plats: PlatCataloguePublic[]; suivant: string | null; luLe: string }
+/** Quartier proposé pour la livraison : `libelle` = « Quartier, Commune » ; `id` est le `quartierId` attendu par l'estimation et la création de commande. */
+export interface QuartierPublic { id: string; libelle: string }
+export interface ListeQuartiers { quartiers: QuartierPublic[]; luLe: string }

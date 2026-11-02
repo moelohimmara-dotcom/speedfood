@@ -27,7 +27,7 @@ export function ctxEssai(): { ctx: ExecutionContext; attendre(): Promise<void>; 
 export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
   return {
     configurationConnexion: () => null,
-    catalogue: { restaurants: ECHEC, menu: ECHEC },
+    catalogue: { restaurants: ECHEC, menu: ECHEC, quartiers: ECHEC },
     version: { code: 51, nom: "2.47.0", notes: "essai", obligatoire: false, apkSha256: "a".repeat(64), apkTaille: 1 },
     lireAssistance: async () => ({ whatsapp: null }),
     connexionClientActive: ECHEC,

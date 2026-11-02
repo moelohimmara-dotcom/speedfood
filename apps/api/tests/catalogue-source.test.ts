@@ -38,3 +38,46 @@ test('source catalogue : pas de menu pour un parent absent et pas de prix fracti
   assert.equal(await lireMenu(id, null, db(() => { appels++; return null; }), parametres), null); assert.equal(appels, 1);
   await assert.rejects(lireMenu(id, null, db(u => u.pathname.endsWith('/restaurants') ? r : [{ id, nom: 'Plat', prix: 1.5, prix_promo: null }]), parametres), /prix_catalogue_invalide/);
 });
+import { lireQuartiers } from '../src/catalogue/lectures.ts';
+const u = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const R1 = u(101), P1 = u(201), C1 = u(301), C2 = u(302), C3 = u(303);
+/** Une table par chemin ; le filtre `actif` est exigé dans la requête (la base le applique, le faux serveur vérifie qu'il est demandé). */
+function dbZones(tables: Record<string, unknown[]>, vus: string[] = []) {
+  return db(url => {
+    const table = url.pathname.split('/').pop()!; vus.push(table + '?' + url.searchParams.toString());
+    assert.equal(url.searchParams.get('actif'), 'eq.true');
+    if (table === 'neighborhoods') assert.equal(url.searchParams.get('generique'), 'eq.false');
+    assert.ok(!url.searchParams.get('select')?.includes('*'));
+    return tables[table] ?? [];
+  });
+}
+test('source quartiers : « Quartier, Commune », triés en français, génériques et zones inactives ou orphelines écartés', async () => {
+  const vus: string[] = [];
+  const liste = await lireQuartiers(dbZones({
+    regions: [{ id: R1 }],
+    prefectures: [{ id: P1, region_id: R1 }, { id: u(202), region_id: u(999) }], // région inactive : préfecture écartée
+    communes: [{ id: C1, nom: 'Ratoma', prefecture_id: P1 }, { id: C2, nom: 'Matam', prefecture_id: P1 }, { id: C3, nom: 'Orpheline', prefecture_id: u(202) }],
+    neighborhoods: [
+      { id: u(1), nom: 'Kipé', commune_id: C1 }, { id: u(2), nom: 'Hamdallaye', commune_id: C2 }, { id: u(3), nom: 'Élite', commune_id: C1 },
+      { id: u(4), nom: 'Perdu', commune_id: C3 }, { id: u(5), nom: 'Sans commune', commune_id: null }, { id: u(6), nom: 'Inconnu', commune_id: u(998) },
+    ],
+  }, vus));
+  assert.deepEqual(liste.quartiers, [{ id: u(3), libelle: 'Élite, Ratoma' }, { id: u(2), libelle: 'Hamdallaye, Matam' }, { id: u(1), libelle: 'Kipé, Ratoma' }]);
+  assert.ok(Number.isFinite(Date.parse(liste.luLe)));
+  assert.equal(vus.length, 4); assert.ok(vus.every(v => v.includes('order=') ));
+});
+test('source quartiers : lecture complète page par page (au-delà de 1000 lignes) et rien d’autre que id et libellé', async () => {
+  const quartiers = Array.from({ length: 1005 }, (_, i) => ({ id: u(1000 + i), nom: 'Q' + String(i).padStart(4, '0'), commune_id: C1, secret: 'ne-doit-pas-sortir' }));
+  const liste = await lireQuartiers(db(url => {
+    const table = url.pathname.split('/').pop()!;
+    if (table === 'regions') return [{ id: R1 }]; if (table === 'prefectures') return [{ id: P1, region_id: R1 }]; if (table === 'communes') return [{ id: C1, nom: 'Ratoma', prefecture_id: P1 }];
+    const decalage = Number(url.searchParams.get('offset') ?? 0);
+    return quartiers.slice(decalage, decalage + Number(url.searchParams.get('limit') ?? 1000));
+  }));
+  assert.equal(liste.quartiers.length, 1005);
+  assert.ok(!JSON.stringify(liste).includes('ne-doit-pas-sortir')); assert.deepEqual(Object.keys(liste.quartiers[0]).sort(), ['id', 'libelle']);
+});
+test('source quartiers : une erreur de la base lève, jamais une liste vide ou amputée présentée comme complète', async () => {
+  const panne = createClient<Database>('https://base-essai.invalid', 'anon-essai', { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: async url => String(url).includes('/neighborhoods') ? new Response('{}', { status: 500, headers: { 'content-type': 'application/json' } }) : new Response('[]', { headers: { 'content-type': 'application/json' } }) } });
+  await assert.rejects(lireQuartiers(panne), /catalogue_indisponible/);
+});

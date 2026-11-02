@@ -16,5 +16,6 @@ export function routeCatalogue(deps: Pick<Deps, 'catalogue'>) {
     const menu = await deps.catalogue.menu(id, apres);
     return menu ? repondre(c, { ok: true, ...menu }) : reponseErreur(c, { code: 'INTROUVABLE', message: 'Restaurant introuvable.' });
   });
+  route.get('/quartiers', async c => repondre(c, { ok: true, ...await deps.catalogue.quartiers() }));
   return route;
 }
