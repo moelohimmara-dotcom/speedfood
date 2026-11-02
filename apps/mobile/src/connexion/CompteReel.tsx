@@ -16,13 +16,13 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
-  const revision=useRef(0);
+  const revision=useRef(0);const lectures=useRef(0);
   const [commandes,setCommandes]=useState<CommandeCompte[]|null>(null);
-  const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string}|null>(null);
+  const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string;lecture:number}|null>(null);
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);return r;}
-  async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR')});}
+  async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
   const annulationEnCours=useRef(false);
   async function annulerCommande(id:string){
     if(annulationEnCours.current)return;annulationEnCours.current=true;
@@ -35,16 +35,20 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   }
   const declarationEnCours=useRef(false);
   /** Déclaration du règlement : UN seul essai. Ensuite le suivi est relu (sans l'effacer) pour savoir ce que le serveur a vraiment enregistré avant de proposer de réessayer. */
-  async function declarerReglement(id:string,mode:ModeReglement,reference:string|null):Promise<VerdictDeclaration|null>{
-    if(declarationEnCours.current)return null;declarationEnCours.current=true;
-    try{
+  function declarerReglement(id:string,mode:ModeReglement,reference:string|null):Promise<VerdictDeclaration|null>{
+    if(declarationEnCours.current)return Promise.resolve(null);declarationEnCours.current=true;
+    // Passe par `executer` comme les autres actions : `attente` bloque actualisation et déconnexion pendant l'envoi.
+    return new Promise(resolve=>{let verdict:VerdictDeclaration|null=null;void executer(async()=>{try{verdict=await declarerReglementUnEssai(id,mode,reference);}finally{declarationEnCours.current=false;resolve(verdict);}});});
+  }
+  async function declarerReglementUnEssai(id:string,mode:ModeReglement,reference:string|null):Promise<VerdictDeclaration>{
+    {
       const n=revision.current;let erreur:ErreurReglement|null=null;let session:string|null=null;
       try{await gestion.declarerPaiement(id,mode,reference);}
       catch(e){if(e instanceof ErreurReglement)erreur=e;else session=e instanceof ErreurConnexion?e.message:'Impossible de terminer cette opération. Réessayez.';}
       let relu:ResumeSuivi|undefined;
-      if(session===null){try{relu=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:relu,luLe:new Date().toLocaleTimeString('fr-FR')});}catch{relu=undefined;}}
+      if(session===null){try{relu=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:relu,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}catch{relu=undefined;}}
       return verdictDeclaration({erreur,sessionTerminee:session,mode,reference,relu:relu?relu.paiement:undefined});
-    }finally{declarationEnCours.current=false;}
+    }
   }
   function fermerFormulaire(){setEmail('');setMotDePasse('');fermer();}
   async function executer(f:()=>Promise<void>){
@@ -79,7 +83,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       <Action titre="Actualiser mon espace" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
       <Action titre="Voir ou actualiser mes commandes" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
-      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&<Text style={s.texte}>Le restaurant a proposé une modification. Consultez-la sur le site avant de répondre.</Text>}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
+      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&<Text style={s.texte}>Le restaurant a proposé une modification. Consultez-la sur le site avant de répondre.</Text>}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
       <Action titre="Me déconnecter de cet appareil" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}

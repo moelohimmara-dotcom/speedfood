@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { actionReglement, preparerDeclaration, type ModeReglement, type VerdictDeclaration } from './reglement';
+import { actionReglement, declarationVerrouillee, preparerDeclaration, reglementAffichable, type ModeReglement, type VerdictDeclaration } from './reglement';
 import type { ResumeSuivi } from './commandes';
 import { couleurs as c, polices } from '../design/tokens';
 
@@ -8,17 +8,20 @@ import { couleurs as c, polices } from '../design/tokens';
  * Bloc « Régler le restaurant » du suivi (lot C). Speedfood ne reçoit pas l'argent : le client règle le restaurant avec son code marchand (ou en espèces), puis le DÉCLARE ;
  * le restaurateur confirme. Rien n'est proposé avant l'acceptation. Aucun paiement en ligne. Le parent fournit `declarer` (un seul essai, relecture du suivi ensuite).
  */
-export function ReglementReel({ suivi, occupe, declarer }: { suivi: ResumeSuivi; occupe: boolean; declarer(mode: ModeReglement, reference: string | null): Promise<VerdictDeclaration | null> }) {
+export function ReglementReel({ suivi, lecture, occupe, declarer }: { suivi: ResumeSuivi; lecture: number; occupe: boolean; declarer(mode: ModeReglement, reference: string | null): Promise<VerdictDeclaration | null> }) {
   const action = actionReglement({ statutCommande: suivi.statut, propositionActive: suivi.propositionEnAttente, paiement: suivi.paiement });
   const [choix, setChoix] = useState<ModeReglement | null>(null);
   const [reference, setReference] = useState('');
   const [verdict, setVerdict] = useState<VerdictDeclaration | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  const [luLeVerdict, setLuLeVerdict] = useState<number | null>(null);
   const verrou = useRef(false);
 
-  if (action.genre === 'rien' && action.message === null) return null;
-  const bloque = occupe || envoi;
+  // Rien avant l'acceptation (ni titre, ni message, ni code), et rien non plus quand il n'y a rien à dire.
+  if (!reglementAffichable(suivi.statut, suivi.propositionEnAttente) || (action.genre === 'rien' && action.message === null)) return null;
+  const verrouille = declarationVerrouillee(verdict, luLeVerdict, lecture);
+  const bloque = occupe || envoi || verrouille;
   const mobile = choix !== null && choix !== 'especes';
   const options = action.genre === 'declarer' || action.genre === 'modifier' ? action.options : [];
 
@@ -27,7 +30,7 @@ export function ReglementReel({ suivi, occupe, declarer }: { suivi: ResumeSuivi;
     const prep = preparerDeclaration(choix, reference, options);
     if (!prep.ok) { setErreur(prep.message); return; }
     verrou.current = true; setEnvoi(true); setErreur(null); setVerdict(null);
-    try { const v = await declarer(prep.mode, prep.reference); if (v) setVerdict(v); }
+    try { const v = await declarer(prep.mode, prep.reference); if (v) { setVerdict(v); setLuLeVerdict(lecture); } }
     finally { verrou.current = false; setEnvoi(false); }
   }
 

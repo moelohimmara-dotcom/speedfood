@@ -267,15 +267,3 @@ export interface ApercuCommandeRestaurant {
   jetonRecu: string;
 }
 
-/**
- * Déclaration du règlement par le client (`POST /api/v1/suivi/paiement`). Le jeton de suivi est la clé d'accès (dans le corps, jamais dans l'adresse) ;
- * aucun montant n'est transmis : Speedfood ne reçoit jamais d'argent, le restaurateur confirme de son côté. `reference` : 4 à 40 caractères simples, facultative.
- */
-export type ModeDeclarable = "especes" | "orange_money" | "mtn_momo";
-export const MODES_DECLARABLES: readonly ModeDeclarable[] = ["especes", "orange_money", "mtn_momo"];
-export interface DeclarationPaiementPayload {
-  jeton: string;
-  mode: ModeDeclarable;
-  reference?: string | null;
-}
-export type ReponseDeclarationPaiement = { ok: true } | { ok: false; erreur: ErreurApi };

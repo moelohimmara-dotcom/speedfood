@@ -95,7 +95,7 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/suivi/paiement', { method:'POST', credentials:'omit', signal:controle.signal, headers:{ 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify(reference === null ? { jeton, mode } : { jeton, mode, reference }) });
     } catch { clearTimeout(timer); throw erreurReseauReglement(); }
     try {
-      if (!r.ok) throw refusDeclaration(r.status);
+      if (!r.ok) { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } throw refusDeclaration(r.status); }
       let corps: unknown = null;
       try {
         if (!(r.headers.get('content-type') ?? '').includes('application/json') || Number(r.headers.get('content-length')) > 262144) throw 0;

@@ -53,6 +53,17 @@ export function lireReglement(v: unknown): ReglementSuivi {
 /** Lecture tolérante pour le suivi : bloc absent ou illisible = `null` (le règlement n'est alors pas affiché, le reste du suivi l'est). */
 export function lireReglementOuNull(v: unknown): ReglementSuivi | null { if (v === undefined) return null; try { return lireReglement(v); } catch { return null; } }
 
+/** « Rien avant l'acceptation » : le bloc « Régler le restaurant » n'est rendu (titre, message, modes, codes) que lorsque le serveur ouvrirait le paiement. */
+export function reglementAffichable(statutCommande: string, propositionActive: boolean): boolean { return paiementOuvert(statutCommande, propositionActive); }
+
+/**
+ * Garde « pas de réessai à l'aveugle » : après un verdict incertain sans relecture réussie, le bouton reste verrouillé tant que le suivi n'a pas été relu avec succès
+ * (`lecture` est un compteur qui augmente à chaque relecture réussie). `lectureVerdict` : valeur du compteur au moment du verdict.
+ */
+export function declarationVerrouillee(verdict: VerdictDeclaration | null, lectureVerdict: number | null, lecture: number): boolean {
+  return verdict !== null && verdict.genre === 'incertain' && !verdict.reessayer && lectureVerdict === lecture;
+}
+
 export type ActionReglement =
   | { genre: 'rien'; message: string | null }
   | { genre: 'indisponible'; message: string }
@@ -60,11 +71,7 @@ export type ActionReglement =
 
 /** Que peut faire le client ? Mêmes conditions que le serveur : commande acceptée sans proposition en cours, pas déjà confirmé, pas de paiement en ligne actif, mode proposé. */
 export function actionReglement(e: { statutCommande: string; propositionActive: boolean; paiement: ReglementSuivi | null }): ActionReglement {
-  if (!paiementOuvert(e.statutCommande, e.propositionActive)) {
-    if (e.statutCommande === 'en_attente') return { genre: 'rien', message: 'Le règlement s’ouvre quand le restaurant a accepté votre commande. Ne payez rien avant.' };
-    if (e.propositionActive && ['acceptee', 'prete', 'terminee'].includes(e.statutCommande)) return { genre: 'rien', message: 'Le restaurant a proposé une modification : répondez-y avant de régler.' };
-    return { genre: 'rien', message: null };
-  }
+  if (!reglementAffichable(e.statutCommande, e.propositionActive)) return { genre: 'rien', message: null };
   const p = e.paiement;
   if (p === null) return { genre: 'indisponible', message: 'Le règlement ne peut pas être affiché dans cette version de l’application. Déclarez-le depuis le site.' };
   if (!peutDeclarer(p.statut)) return { genre: 'rien', message: libelleStatutPaiement(p.statut, p.mode) };

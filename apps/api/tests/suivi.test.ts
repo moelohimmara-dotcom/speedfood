@@ -352,3 +352,10 @@ test("paiement : GET refusé (écriture), pas d'en-tête CORS ouvert", async () 
   const options = await appPaiement().request("/api/v1/suivi/paiement", { method: "OPTIONS" });
   assert.equal(options.headers.get("access-control-allow-origin"), null);
 });
+
+test("paiement : champs parasites (montant, total, prix) ignorés, le service reçoit exactement trois arguments : jeton, mode, référence", async () => {
+  const recus: unknown[][] = [];
+  const reponse = await appPaiement({ declarerPaiement: async (...a: unknown[]) => { recus.push(a); return { ok: true }; } } as never).request("/api/v1/suivi/paiement", post({ jeton: JETON, mode: "orange_money", reference: "OM-123456", montant: 1, totalGnf: 999999, prix: 5, paiement_statut: "recu" }));
+  assert.equal(reponse.status, 200);
+  assert.deepEqual(recus, [[JETON, "orange_money", "OM-123456"]]);
+});

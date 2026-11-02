@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { creerAuth } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
-import { actionReglement, ErreurReglement, lireReglement, lireReglementOuNull, preparerDeclaration, refusDeclaration, verdictDeclaration, type ReglementSuivi } from '../src/connexion/reglement.ts';
+import { actionReglement, declarationVerrouillee, ErreurReglement, reglementAffichable, lireReglement, lireReglementOuNull, preparerDeclaration, refusDeclaration, verdictDeclaration, type ReglementSuivi } from '../src/connexion/reglement.ts';
 
 const JETON = 'suivi-factice-' + 'J'.repeat(26);
 const id = '00000000-0000-4000-8000-000000000001';
@@ -36,14 +36,22 @@ test('lecture : valeur inconnue = refus (statut, mode, mode d’option, état en
 
 // ---------- que peut faire le client ----------
 const ouvert = (paiement: ReglementSuivi | null, statutCommande = 'acceptee', propositionActive = false) => actionReglement({ statutCommande, propositionActive, paiement });
-test('action : rien avant l’acceptation, message « ne payez rien » en attente, silence si refusée/annulée/expirée', () => {
-  const a = ouvert(lu(), 'en_attente');
-  assert.equal(a.genre, 'rien'); assert.match(a.message ?? '', /Ne payez rien avant/);
-  for (const s of ['refusee', 'annulee', 'expiree']) assert.deepEqual(ouvert(lu(), s), { genre: 'rien', message: null });
+test('action : rien avant l’acceptation, aucun message (ni « ne payez rien »), pour toute commande non ouverte ou avec proposition en cours', () => {
+  for (const s of ['en_attente', 'refusee', 'annulee', 'expiree']) assert.deepEqual(ouvert(lu(), s), { genre: 'rien', message: null }, s);
+  assert.deepEqual(ouvert(lu(), 'acceptee', true), { genre: 'rien', message: null });
 });
-test('action : proposition de prix en cours = rien (répondre d’abord)', () => {
-  const a = ouvert(lu(), 'acceptee', true);
-  assert.equal(a.genre, 'rien'); assert.match(a.message ?? '', /répondez-y avant de régler/);
+test('affichable : le bloc n’existe que commande acceptée, prête ou terminée et sans proposition en cours', () => {
+  for (const s of ['acceptee', 'prete', 'terminee']) { assert.equal(reglementAffichable(s, false), true, s); assert.equal(reglementAffichable(s, true), false, s); }
+  for (const s of ['en_attente', 'refusee', 'annulee', 'expiree', 'inconnu']) assert.equal(reglementAffichable(s, false), false, s);
+});
+test('verrou : après un verdict incertain sans relecture réussie, déclaration verrouillée jusqu’à une relecture réussie (compteur différent)', () => {
+  const aveugle = verdictDeclaration({ erreur: refusDeclaration(503), mode: 'especes', reference: null, relu: undefined });
+  const relu = verdictDeclaration({ erreur: refusDeclaration(503), mode: 'especes', reference: null, relu: lu() });
+  assert.equal(declarationVerrouillee(aveugle, 4, 4), true);
+  assert.equal(declarationVerrouillee(aveugle, 4, 5), false, 'relecture réussie : déverrouillé');
+  assert.equal(declarationVerrouillee(relu, 4, 4), false, 'relecture réussie sans la déclaration : réessayer permis');
+  assert.equal(declarationVerrouillee(null, null, 0), false);
+  for (const v of [verdictDeclaration({ erreur: null, mode: 'especes', reference: null, relu: undefined }), verdictDeclaration({ erreur: refusDeclaration(409), mode: 'especes', reference: null, relu: undefined })]) assert.equal(declarationVerrouillee(v, 4, 4), false, v.genre);
 });
 test('action : acceptée, prête ou terminée, rien déclaré = déclarer avec les trois modes', () => {
   for (const s of ['acceptee', 'prete', 'terminee']) {
@@ -163,6 +171,13 @@ test('client : refus 400/404/409/429 = refus certain ; 500 = incertain ; jamais 
     await assert.rejects(a.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.incertain === incertain && !e.message.includes(JETON) && !e.message.includes('texte brut'), String(statut));
     assert.equal(appels, 1, 'un seul essai : ' + statut);
   }
+});
+test('client : le corps d’une réponse de refus est annulé (connexion libérée), jamais lu', async () => {
+  let annule = false;
+  const flux = new ReadableStream({ cancel() { annule = true; } });
+  const a = creerAuth(async () => new Response(flux, { status: 409, headers: { 'content-type': 'application/json' } }));
+  await assert.rejects(a.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.genre === 'refus');
+  assert.equal(annule, true);
 });
 test('client : réseau coupé = incertain ; délai dépassé = incertain', async () => {
   const a = creerAuth(async () => { throw new TypeError('network ' + JETON); });
