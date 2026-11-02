@@ -13,6 +13,8 @@ export class GestionSession {
   private clesSuivi = new Map<string,{jeton:string;reference:string}>();
   constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
   get connectee() { return this.session !== null; }
+  /** Identifiant du compte connecté (null si déconnecté) : sert à isoler formulaire et clé d'idempotence par compte. */
+  get identifiant(): string | null { return this.session?.userId ?? null; }
   private ordonner(f: () => Promise<void>) { const p = this.file.catch(() => undefined).then(f); this.file = p; return p; }
   private async appliquer(s: SessionAuth, n: number) {
     if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');

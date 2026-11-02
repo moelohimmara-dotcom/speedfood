@@ -96,14 +96,14 @@ export type PreparationEnvoi = { ok: true; payload: CreationCommandePayload } | 
  * Construit le corps de la commande (retrait) à partir du panier réel, des prix relus et de la saisie.
  * Aucune option n'est proposée dans l'application : `optionIds` reste vide (le catalogue public ne porte ni option ni supplément).
  */
-export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCataloguePublic[], saisie: SaisieCommande, tentative: Tentative): PreparationEnvoi {
+export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCataloguePublic[], saisie: SaisieCommande, tentative: Tentative, compteId = ''): PreparationEnvoi {
   const { erreurs, nom, telephone } = validerSaisie(saisie);
   const bilan = chiffrer(panier, plats);
   if (!panier.restaurantId || !panier.lignes.length) erreurs.panier = 'Votre panier est vide.';
   else if (bilan.total === null) erreurs.panier = 'Le total doit être vérifié : actualisez le panier.';
   if (erreurs.nom || erreurs.telephone || erreurs.consentement || erreurs.panier || telephone === null || bilan.total === null || !panier.restaurantId) return { ok: false, erreurs };
   const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [] as string[] }));
-  const empreinte = JSON.stringify([panier.restaurantId, lignes, nom, telephone, bilan.total]);
+  const empreinte = JSON.stringify([compteId, panier.restaurantId, lignes, nom, telephone, bilan.total]);
   return { ok: true, payload: {
     cleIdempotence: tentative.cle(empreinte), restaurantId: panier.restaurantId,
     client: { nom, telephone, adresse: null }, mode: 'retrait', lignes, sousTotalAffiche: bilan.total, consentementReglement: true,

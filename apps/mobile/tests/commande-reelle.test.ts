@@ -153,3 +153,45 @@ test('session : creerCommande ne renvoie jamais le jeton et efface la session su
   const avant = effaces; await assert.rejects(g.creerCommande(payloadValide()), (e: unknown) => e instanceof ErreurCommande && e.genre === 'session');
   assert.equal(g.connectee, false); assert.equal(effaces, avant + 1);
 });
+
+test('commande : la clé change si le nom seul, le téléphone seul ou le compte change', () => {
+  const t = creerTentative(generateur);
+  const cle = (s: Partial<typeof saisie>, compte = 'A') => (preparerEnvoi(panier, plats, { ...saisie, ...s }, t, compte) as { ok: true; payload: CreationCommandePayload }).payload.cleIdempotence;
+  const base = cle({});
+  assert.equal(cle({}), base);
+  const nomChange = cle({ nom: 'Autre Nom' }); assert.notEqual(nomChange, base);
+  const tel = cle({ nom: 'Autre Nom', telephone: '655 00 00 00' }); assert.notEqual(tel, nomChange);
+  const telSeul = cle({ telephone: '655 00 00 00' }); assert.notEqual(telSeul, base);
+  assert.notEqual(cle({ telephone: '655 00 00 00' }, 'B'), telSeul);
+});
+
+test('commande : sans générateur aléatoire sûr, la clé est refusée avec un message (jamais de clé faible)', () => {
+  const d = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
+  try { assert.throws(() => genererCleIdempotence(), (e: unknown) => e instanceof ErreurCommande && /sécuriser/.test(e.message)); }
+  finally { if (d) Object.defineProperty(globalThis, 'crypto', d); else delete (globalThis as { crypto?: unknown }).crypto; }
+});
+
+test('commande : délai de 20 s respecté (ni avant, ni après), envoi déclaré incertain', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setTimeout'] });
+  const p = payloadValide();
+  const a = creerAuth((_u, o) => new Promise<Response>((_res, rej) => { o!.signal!.addEventListener('abort', () => rej(new DOMException('abandon', 'AbortError'))); }));
+  const etat: { fini: unknown } = { fini: 'en cours' };
+  const prom = a.creerCommande('t', p).then(() => { etat.fini = 'ok'; }, (e: unknown) => { etat.fini = e; });
+  await new Promise<void>(r => setImmediate(r));
+  ctx.mock.timers.tick(19999); await new Promise<void>(r => setImmediate(r));
+  assert.equal(etat.fini, 'en cours');
+  ctx.mock.timers.tick(1); await prom;
+  const f: unknown = (() => etat.fini)(); assert.ok(f instanceof ErreurCommande && f.genre === 'reseau' && f.incertain);
+});
+
+test('session : déconnexion pendant la préparation de l’envoi, rien n’est envoyé', async () => {
+  let envois = 0;
+  const api = { connecter: async () => ({ accessToken: 'acces', refreshToken: 'r', userId: id1, expiresAt: 9999999999 }), renouveler: async () => { throw Error(); }, espace: async () => ({ pseudo: null, favoris: 0, adresses: 0 }), deconnecter: async () => {}, commandes: async () => [], annuler: async () => ({ reference: 'x' }), suivi: async () => { throw Error(); },
+    creerCommande: async () => { envois++; return { reference: 'SF-ABCDE', jeton: JETON, idempotent: false }; } };
+  const g = new GestionSession(api, { lire: async () => null, ecrire: async () => {}, effacer: async () => {} });
+  await g.connecter('a@example.invalid', 'x');
+  const p = g.creerCommande(payloadValide()); const d = g.deconnecter();
+  await assert.rejects(p); await d; assert.equal(envois, 0);
+  assert.equal(g.identifiant, null);
+});

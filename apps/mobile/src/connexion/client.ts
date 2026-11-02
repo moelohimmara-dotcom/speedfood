@@ -11,7 +11,7 @@ export class ErreurConnexion extends Error {
 }
 function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'object' || Array.isArray(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v as Record<string, unknown>; }
 function secret(v: unknown, max: number): string { if (typeof v !== 'string' || !v.length || v.length > max || /[\s\x00-\x1f]/.test(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v; }
-export function creerAuth(fetcher: typeof fetch = fetch) {
+export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000) {
   let configuration: Promise<string> | null = null;
   async function requete(url: string, options: RequestInit, auth = false, renouvellement = false, refus: Record<number,string> = {}) {
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 15000);
@@ -49,7 +49,7 @@ export function creerAuth(fetcher: typeof fetch = fetch) {
   /** UN SEUL essai, jamais de relance automatique : un envoi incertain se rejoue à la main avec la même clé d'idempotence. */
   async function postCommande(accessToken: string, payload: CreationCommandePayload): Promise<{ reference: string; jeton: string; idempotent: boolean }> {
     if (payload.mode !== 'retrait') throw new ErreurCommande('validation', 'Cette application envoie seulement des commandes en retrait.');
-    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 20000);
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
       r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/commandes', { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify(payload) });
