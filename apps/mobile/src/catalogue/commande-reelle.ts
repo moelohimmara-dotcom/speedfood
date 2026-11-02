@@ -20,20 +20,22 @@ export type GenreErreurCommande = 'validation' | 'session' | 'prix' | 'trop_de_r
 /** Erreur d'envoi de commande. `incertain` : la commande a pu être créée côté serveur (rejouer avec la MÊME clé, ou vérifier ses commandes). */
 export class ErreurCommande extends Error {
   genre: GenreErreurCommande; incertain: boolean; sousTotalServeur: number | null;
-  constructor(genre: GenreErreurCommande, message: string, incertain = false, sousTotalServeur: number | null = null) {
-    super(message); this.name = 'ErreurCommande'; this.genre = genre; this.incertain = incertain; this.sousTotalServeur = sousTotalServeur;
+  /** Vrai seulement si la réponse PROUVE qu'aucune commande n'a été créée (400 et 409 du serveur) : seul cas où un envoi incertain peut être abandonné d'office. */
+  absenceProuvee: boolean;
+  constructor(genre: GenreErreurCommande, message: string, incertain = false, sousTotalServeur: number | null = null, absenceProuvee = false) {
+    super(message); this.absenceProuvee = absenceProuvee; this.name = 'ErreurCommande'; this.genre = genre; this.incertain = incertain; this.sousTotalServeur = sousTotalServeur;
   }
 }
 
 /** Table des refus du serveur : statut HTTP (et code `erreur.code` pour distinguer 409) vers un message français fixe. Aucun texte brut du serveur n'est affiché. */
 export function refusServeur(statut: number, code: string | null, sousTotalServeur: number | null = null): ErreurCommande {
   const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
-  if (statut === 400) return new ErreurCommande('validation', 'Votre commande n’a pas été acceptée : vérifiez votre nom, votre téléphone et vos plats (un plat n’est peut-être plus disponible), puis actualisez le panier.');
+  if (statut === 400) return new ErreurCommande('validation', 'Votre commande n’a pas été acceptée : vérifiez votre nom, votre téléphone et vos plats (un plat n’est peut-être plus disponible), puis actualisez le panier.', false, null, true);
   if (statut === 401 || statut === 403) return new ErreurCommande('session', 'Votre session a expiré. Reconnectez-vous depuis « Mon compte », puis renvoyez votre commande.');
   if (statut === 409 || code === 'CONFLIT_ETAT') {
     return new ErreurCommande('prix', sousTotalServeur !== null
       ? `Les prix ont changé : le total est maintenant de ${gnf(sousTotalServeur)}. Actualisez le panier, vérifiez-le, puis confirmez de nouveau.`
-      : 'Les prix ont changé. Actualisez le panier, vérifiez le nouveau total, puis confirmez de nouveau.', false, sousTotalServeur);
+      : 'Les prix ont changé. Actualisez le panier, vérifiez le nouveau total, puis confirmez de nouveau.', false, sousTotalServeur, true);
   }
   if (statut === 429) return new ErreurCommande('trop_de_requetes', 'Trop de tentatives. Patientez un instant avant de renvoyer votre commande.');
   if (statut >= 500) return new ErreurCommande('serveur', 'Le service est indisponible. Votre commande a peut-être été enregistrée : vérifiez vos commandes ou réessayez.', true);

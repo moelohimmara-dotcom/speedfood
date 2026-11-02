@@ -13,6 +13,9 @@ export class GestionSession {
   private clesSuivi = new Map<string,{jeton:string;reference:string}>();
   constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
   get connectee() { return this.session !== null; }
+  /** Nombre de déconnexions VOLONTAIRES : distingue « Me déconnecter » d'une session expirée (la machine d'envoi n'efface rien à l'expiration). */
+  get deconnexions() { return this.nbDeconnexions; }
+  private nbDeconnexions = 0;
   /** Identifiant du compte connecté (null si déconnecté) : sert à isoler formulaire et clé d'idempotence par compte. */
   get identifiant(): string | null { return this.session?.userId ?? null; }
   private ordonner(f: () => Promise<void>) { const p = this.file.catch(() => undefined).then(f); this.file = p; return p; }
@@ -97,6 +100,7 @@ export class GestionSession {
     catch(e){if(e instanceof ErreurCommande&&e.genre==='session'&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
   }
   async deconnecter() {
+    this.nbDeconnexions++;
     this.clesSuivi.clear();
     const acces = this.session?.accessToken; ++this.generation; this.session = null;
     const local = this.ordonner(() => this.coffre.effacer());

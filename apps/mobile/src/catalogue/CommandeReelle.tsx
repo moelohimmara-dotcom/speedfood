@@ -23,7 +23,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const machine = useRef<EnvoiCommande | null>(null);
   if (!machine.current) { machine.current = new EnvoiCommande({ envoyer: p => gestion.creerCommande(p) }); machine.current.surChangement = redessiner; }
   const m = machine.current;
-  m.lierCompte(gestion.identifiant);
+  m.lierCompte(gestion.identifiant, gestion.deconnexions);
   const plats = etat.menu?.plats ?? [];
   const bilan = chiffrer(etat.panier, plats);
   const connectee = gestion.connectee;
@@ -33,7 +33,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const verrouille = m.verrouille;
   async function envoyer() {
     const r = await m.envoyer(etat.panier, plats, etat.vider, connectee, panierPret);
-    if (r.type === 'succes') { apresSucces(r.reference); m.acquitter(); }
+    if (r.type === 'succes') { apresSucces(r.reference); }
     else if (r.type === 'session_changee') verifierCommandes();
   }
   const fermerSiPossible = () => { if (m.peutFermer()) fermer(); };

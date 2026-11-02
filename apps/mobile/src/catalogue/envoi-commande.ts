@@ -18,6 +18,7 @@ export type ResultatEnvoi =
   | { type: 'echec'; incertain: boolean };
 export interface DependancesEnvoi { envoyer(payload: CreationCommandePayload): Promise<{ reference: string; idempotent: boolean }>; generer?: GenerateurCle }
 
+const MESSAGE_SESSION = 'Votre session a pris fin. Reconnectez-vous puis réessayez : votre commande n’est pas perdue.';
 const MESSAGE_INCERTAIN = 'Envoi incertain. Votre commande a peut-être été enregistrée : vérifiez vos commandes ou réessayez.';
 const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId === c.restaurantId && p.lignes.length === c.lignes.length && p.lignes.every((l, i) => l.platId === c.lignes[i].menuItemId && l.quantite === c.lignes[i].quantite);
 
@@ -47,13 +48,26 @@ export class EnvoiCommande {
     this.notifier();
   }
   private remettreAZero() { this.epoque++; this.phase = 'saisie'; this.message = null; this.nom = ''; this.telephone = ''; this.consentement = false; this.abandonDemande = false; this.memo = null; this.enCours = false; this.tentative.oublier(); }
-  /** À appeler avec l'identifiant du compte courant : tout changement A→B ou A→déconnecté efface formulaire, clé et envoi incertain. */
-  lierCompte(id: string | null) {
-    if (id === this.compte) return;
-    const avait = this.compte !== null; this.compte = id;
-    if (avait) { this.remettreAZero(); this.notifier(); }
+  private deconnexions: number | null = null;
+  /**
+   * À appeler avec l'identifiant du compte courant et le nombre de déconnexions volontaires.
+   * Efface formulaire, clé et envoi incertain si le compte change (A→B) ou après « Me déconnecter » (volontaire).
+   * Session simplement expirée (identifiant null, aucune déconnexion volontaire) : RIEN n'est effacé ; le même compte pourra rejouer le même corps avec la même clé.
+   */
+  lierCompte(id: string | null, deconnexions = 0) {
+    if (this.deconnexions === null) this.deconnexions = deconnexions;
+    if (deconnexions !== this.deconnexions) {
+      this.deconnexions = deconnexions;
+      const avait = this.compte !== null; this.compte = null;
+      if (avait || this.phase !== 'saisie') { this.remettreAZero(); this.notifier(); }
+    }
+    if (id === null) {
+      if (this.compte !== null && this.phase === 'incertain' && !this.enCours && this.message !== MESSAGE_SESSION) { this.message = MESSAGE_SESSION; this.notifier(); }
+      return;
+    }
+    if (this.compte !== null && id !== this.compte) { this.compte = id; this.remettreAZero(); this.notifier(); return; }
+    this.compte = id;
   }
-  acquitter() { if (this.phase === 'succes') { this.phase = 'saisie'; this.message = null; this.notifier(); } }
   demanderAbandon() { if (this.phase === 'incertain' && !this.enCours) { this.abandonDemande = true; this.notifier(); } }
   annulerAbandon() { this.abandonDemande = false; this.notifier(); }
   /** Renoncer à rejouer : seulement après confirmation explicite que la commande précédente n'existe pas. La clé suivante sera nouvelle si le contenu change. */
@@ -90,7 +104,8 @@ export class EnvoiCommande {
     } catch (e) {
       if (epoque !== this.epoque) return { type: 'echec', incertain: false };
       let incertain: boolean;
-      if (e instanceof ErreurCommande) { this.message = e.message; incertain = e.incertain; }
+      // Au rejeu, seuls 400 et 409 prouvent qu'aucune commande n'existe ; tout autre refus (429, 401/403, 404…) laisse l'incertitude entière.
+      if (e instanceof ErreurCommande) { this.message = rejeu && e.genre === 'session' ? MESSAGE_SESSION : e.message; incertain = e.incertain || (rejeu && !e.absenceProuvee); }
       else if (e instanceof ErreurConnexion) { this.message = e.message; incertain = rejeu; } // rien n'est parti : l'incertitude précédente reste entière
       else { this.message = MESSAGE_INCERTAIN; incertain = true; }
       if (incertain) { this.memo = payload; this.phase = 'incertain'; } else { this.memo = null; this.phase = 'refuse'; }

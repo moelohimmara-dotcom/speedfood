@@ -96,7 +96,7 @@ test('I4 : changement ou fin de compte = formulaire, envoi incertain et clé eff
   assert.equal((await go(m)).type, 'ignore'); // formulaire vide : rien n'est renvoyé
   remplir(m); await go(m);
   assert.equal(envoyes.length, 2); assert.notEqual(envoyes[1].cleIdempotence, envoyes[0].cleIdempotence); // la clé de A n'est jamais renvoyée sous B
-  remplir(m); m.lierCompte(null); assert.equal(m.nom, '');
+  remplir(m); m.lierCompte(null, 1); assert.equal(m.nom, ''); // déconnexion VOLONTAIRE : tout est effacé
 });
 
 test('compte changé PENDANT l’envoi : le panier n’est pas vidé et l’écran n’est pas touché', async () => {
@@ -120,4 +120,43 @@ test('envoi impossible : pas connecté, panier non prêt, consentement absent', 
   assert.equal((await m.envoyer(panier1, plats, vider, false, true)).type, 'ignore');
   assert.equal((await m.envoyer(panier1, plats, vider, true, false)).type, 'ignore');
   m.saisir('consentement', false); assert.equal((await go(m)).type, 'ignore');
+});
+
+const refus = (statut: number, code: string | null = null) => async () => { throw refusServeur(statut, code, statut === 409 ? 30000 : null); };
+
+test('N1 : au rejeu, 429, 401, 403 et 404 gardent l’incertitude (corps, clé, verrous) ; 400 et 409 seuls la lèvent', async () => {
+  for (const statut of [429, 401, 403, 404]) {
+    const { m, envoyes } = creer([incertain, refus(statut), ok()]);
+    await go(m); await go(m);
+    assert.equal(m.phase, 'incertain', 'statut ' + statut); assert.equal(m.peutFermer(), false);
+    m.saisir('nom', 'Autre'); assert.equal(m.nom, 'Mariama Diallo');
+    assert.equal((await go(m, panier2)).type, 'succes'); // le rejeu suivant repart du même corps
+    assert.deepEqual(envoyes[2], envoyes[0]);
+  }
+  for (const [statut, code] of [[400, 'VALIDATION'], [409, 'CONFLIT_ETAT']] as const) {
+    const { m } = creer([incertain, refus(statut, code)]);
+    await go(m); await go(m);
+    assert.equal(m.phase, 'refuse', 'statut ' + statut); assert.equal(m.peutFermer(), true);
+  }
+});
+
+test('N2 : session expirée puis même compte reconnecté = MÊME corps et MÊME clé, avec message ; autre compte ou déconnexion volontaire = remise à zéro', async () => {
+  const { m, envoyes } = creer([incertain, ok()]);
+  await go(m);
+  m.lierCompte(null); // expiration : rien n'est effacé
+  assert.equal(m.phase, 'incertain'); assert.match(m.message ?? '', /Reconnectez-vous/); assert.match(m.message ?? '', /n’est pas perdue/);
+  assert.equal(await m.envoyer(panier1, plats, vider, false, true).then(r => r.type), 'ignore'); // pas de session : rien ne part
+  m.lierCompte('A'); // même compte
+  assert.equal(m.phase, 'incertain');
+  assert.equal((await go(m, panier2)).type, 'succes'); assert.deepEqual(envoyes[1], envoyes[0]);
+  const b = creer([incertain]); await go(b.m); b.m.lierCompte(null); b.m.lierCompte('B');
+  assert.equal(b.m.phase, 'saisie'); assert.equal(b.m.nom, '');
+  const c = creer([incertain]); await go(c.m); c.m.lierCompte(null, 1);
+  assert.equal(c.m.phase, 'saisie'); assert.equal(c.m.nom, ''); assert.equal(c.m.message, null);
+});
+
+test('N3 : après un succès sans panier vidé, le message reste affiché (rien ne l’efface)', async () => {
+  const { m } = creer([ok()]);
+  await m.envoyer(panier1, plats, () => { throw Error('stockage'); }, true, true);
+  assert.equal(m.phase, 'succes'); assert.match(m.message ?? '', /vid/);
 });
