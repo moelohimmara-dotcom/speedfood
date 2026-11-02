@@ -81,3 +81,20 @@ test('source quartiers : une erreur de la base lève, jamais une liste vide ou a
   const panne = createClient<Database>('https://base-essai.invalid', 'anon-essai', { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: async url => String(url).includes('/neighborhoods') ? new Response('{}', { status: 500, headers: { 'content-type': 'application/json' } }) : new Response('[]', { headers: { 'content-type': 'application/json' } }) } });
   await assert.rejects(lireQuartiers(panne), /catalogue_indisponible/);
 });
+test('source quartiers : exactement 1000 lignes = une page pleine PUIS une page vide ; au-delà du plafond de pages, erreur franche', async () => {
+  let pagesQuartiers = 0;
+  const base = (url: URL, quartiers: (decalage: number) => unknown[]) => {
+    const table = url.pathname.split('/').pop()!;
+    if (table === 'regions') return [{ id: R1 }]; if (table === 'prefectures') return [{ id: P1, region_id: R1 }]; if (table === 'communes') return [{ id: C1, nom: 'Ratoma', prefecture_id: P1 }];
+    pagesQuartiers++; return quartiers(Number(url.searchParams.get('offset') ?? 0));
+  };
+  const plein = (de: number) => de === 0 ? Array.from({ length: 1000 }, (_, i) => ({ id: u(5000 + i), nom: 'Q' + i, commune_id: C1 })) : [];
+  const liste = await lireQuartiers(db(url => base(url, plein)));
+  assert.equal(liste.quartiers.length, 1000); assert.equal(pagesQuartiers, 2);
+  await assert.rejects(lireQuartiers(db(url => base(url, () => Array.from({ length: 1000 }, (_, i) => ({ id: u(i), nom: 'Q' + i, commune_id: C1 }))))), /catalogue_trop_volumineux/);
+});
+test('I1 : le tri des quartiers utilise un collateur créé une fois au niveau module (pas de localeCompare par comparaison)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/catalogue/lectures.ts', import.meta.url), 'utf8');
+  assert.match(src, /^const COLLATEUR_FR = new Intl\.Collator\('fr'\);/m); assert.match(src, /COLLATEUR_FR\.compare\(a\.libelle, b\.libelle\)/); assert.ok(!/localeCompare/.test(src));
+});

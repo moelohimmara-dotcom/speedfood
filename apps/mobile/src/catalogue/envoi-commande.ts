@@ -24,7 +24,7 @@ export interface DependancesEnvoi {
   /** Calcul des frais par le serveur (livraison) ; absent = livraison impossible. */
   estimer?(restaurantId: string, quartierId: string, sousTotal: number): Promise<ResultatEstimation>;
 }
-const MESSAGE_ESTIMATION_REFUSEE = 'La livraison n’est pas possible vers ce quartier pour le moment. Choisissez un autre quartier ou commandez en retrait.';
+const MESSAGE_ESTIMATION_REFUSEE = 'La livraison n’est pas possible vers ce quartier pour le moment (ou trop de calculs ont été demandés). Réessayez dans un instant, choisissez un autre quartier ou commandez en retrait.';
 const MESSAGE_ESTIMATION_ECHEC = 'Impossible de calculer les frais de livraison. Réessayez, ou commandez en retrait.';
 
 const MESSAGE_SESSION = 'Votre session a pris fin. Reconnectez-vous puis réessayez : votre commande n’est pas perdue.';

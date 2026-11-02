@@ -44,6 +44,8 @@ export function refusServeur(statut: number, code: string | null, sousTotalServe
   if (statut === 409 || code === 'CONFLIT_ETAT') {
     // Frais de livraison changés : aucune commande n'a été créée ; le client doit voir le nouveau montant et confirmer de nouveau.
     if (fraisServeur !== null) return new ErreurCommande('frais', `Les frais de livraison ont changé : ils sont maintenant de ${gnf(fraisServeur)}. Vérifiez le nouveau total, puis confirmez de nouveau.`, false, null, true, fraisServeur);
+    // Livraison : un 409 sans montant lisible (ni prix ni frais) reste un conflit de montant ; on invalide l'estimation (genre `frais`) par prudence.
+    if (livraison && sousTotalServeur === null) return new ErreurCommande('frais', 'Les prix ou les frais de livraison ont changé. Vérifiez le nouveau total, puis confirmez de nouveau.', false, null, true, null);
     return new ErreurCommande('prix', sousTotalServeur !== null
       ? `Les prix ont changé : le total est maintenant de ${gnf(sousTotalServeur)}. Actualisez le panier, vérifiez-le, puis confirmez de nouveau.`
       : 'Les prix ont changé. Actualisez le panier, vérifiez le nouveau total, puis confirmez de nouveau.', false, sousTotalServeur, true);
@@ -125,6 +127,8 @@ export function fraisDeLEstimation(e: EstimationLivraison | null): number | null
 export function estimationValable(e: EstimationObtenue | null | undefined, restaurantId: string | null, quartierId: string | null | undefined, sousTotal: number | null): e is EstimationObtenue {
   return !!e && restaurantId !== null && quartierId != null && sousTotal !== null && e.restaurantId === restaurantId && e.quartierId === quartierId && e.sousTotal === sousTotal;
 }
+/** La liste des quartiers n'est lue qu'au premier passage en LIVRAISON (jamais en retrait), et relue seulement après un échec. */
+export function doitChargerQuartiers(ouvert: boolean, mode: ModeCommande, etat: 'aucun' | 'chargement' | 'ok' | 'erreur'): boolean { return ouvert && mode === 'livraison' && etat === 'aucun'; }
 /** Montant total estimé à l'écran : sous-total + frais ; `null` tant que l'un des deux manque. */
 export function totalEstime(sousTotal: number | null, frais: number | null): number | null { return sousTotal === null || frais === null ? null : sousTotal + frais; }
 

@@ -147,7 +147,8 @@ test('client : livraison envoyée telle quelle (corps exact), un seul appel ; 40
   const conflit = creerAuth(async () => json({ ok: false, erreur: { code: 'CONFLIT_ETAT', message: 'brut', champs: { fraisServeur: '9500' } } }, 409));
   await assert.rejects(conflit.creerCommande('acces', p), (e: unknown) => e instanceof ErreurCommande && e.genre === 'frais' && e.fraisServeur === 9500 && e.absenceProuvee && !e.incertain);
   const inattendu = creerAuth(async () => json({ ok: false, erreur: { code: 'CONFLIT_ETAT', message: 'brut', champs: { fraisServeur: 'abc' } } }, 409));
-  await assert.rejects(inattendu.creerCommande('acces', p), (e: unknown) => e instanceof ErreurCommande && e.genre === 'prix' && e.fraisServeur === null);
+  await assert.rejects(inattendu.creerCommande('acces', p), (e: unknown) => e instanceof ErreurCommande && e.genre === 'frais' && e.fraisServeur === null && /prix ou les frais/.test(e.message));
+  assert.equal(refusServeur(409, 'CONFLIT_ETAT', null, null, false).genre, 'prix'); // retrait : inchangé
   const validation = creerAuth(async () => json({ ok: false, erreur: { code: 'VALIDATION', message: 'brut', champs: { livraison: 'hors zone' } } }, 400));
   await assert.rejects(validation.creerCommande('acces', p), (e: unknown) => e instanceof ErreurCommande && e.genre === 'validation' && /adresse/.test(e.message) && !/hors zone|brut/.test(e.message));
 });
@@ -317,6 +318,12 @@ test('machine : 409 « frais changés » = nouveau montant affiché, panier non 
   assert.deepEqual({ ...envoyes[1], cleIdempotence: '' }, { ...envoyes[0], cleIdempotence: '' }); assert.notEqual(envoyes[1].cleIdempotence, envoyes[0].cleIdempotence);
 });
 
+test('machine : 409 de montant illisible en livraison = estimation oubliée aussi (M2)', async () => {
+  const { m } = creer([async () => { throw refusServeur(409, 'CONFLIT_ETAT', null, null, true); }], [estOkP(8000)]);
+  livrer(m); await maj(m); await go(m);
+  assert.equal(m.phase, 'refuse'); assert.equal(m.estimation, null); assert.equal(m.etatEstimation, 'aucune');
+});
+
 test('machine : 409 « prix changés » = clé abandonnée aussi (contenu identique, nouvelle clé) ; rien d’autre ne change la clé', async () => {
   const { m, envoyes } = creer([async () => { throw refusServeur(409, 'CONFLIT_ETAT', 30000); }, ok()], [estOkP(8000)]);
   livrer(m); await maj(m);
@@ -373,4 +380,18 @@ test('machine : livraison sans fonction d’estimation (dépendance absente) = e
   const m = new EnvoiCommande({ generer, envoyer: async () => ({ reference: 'x', idempotent: false }) });
   m.lierCompte('A'); m.saisir('nom', 'Mariama Diallo'); m.saisir('telephone', '622123456'); m.saisir('consentement', true); livrer(m);
   await maj(m); assert.equal(peut(m), false);
+});
+
+test('I2 : la liste des quartiers n’est lue qu’en livraison, une seule fois, et jamais en retrait ou écran fermé', async () => {
+  const { doitChargerQuartiers: doit } = await import('../src/catalogue/commande-reelle.ts');
+  assert.equal(doit(true, 'retrait', 'aucun'), false); // retrait : aucune lecture
+  assert.equal(doit(false, 'livraison', 'aucun'), false); // écran fermé
+  assert.equal(doit(true, 'livraison', 'aucun'), true); // premier passage en livraison
+  for (const etat of ['chargement', 'ok', 'erreur'] as const) assert.equal(doit(true, 'livraison', etat), false); // déjà lue / en cours / en échec (relance explicite seulement)
+});
+
+test('M3 : l’écran n’affiche « offerts » que pour des frais nuls (jamais d’après le seul indicateur gratuite)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/catalogue/CommandeReelle.tsx', import.meta.url), 'utf8');
+  assert.ok(!/estimation\.gratuite/.test(src)); assert.match(src, /estimation\.fraisGnf === 0 \? 'offerts'/);
 });

@@ -109,6 +109,7 @@ Parité avec les routes du site sur les réponses nominales et les erreurs du co
 | `/api/v1/client/adresses` | POST | strict, puis limite par compte | `no-store` | `actionAdresseClient` |
 | `/api/v1/client/compte` | POST | strict, puis limite par compte | `no-store` | `supprimerCompteClient` |
 | `/api/v1/livraison/estimation` | POST | strict, jeton seul (message d'erreur différent), **pas de plafond de compte** | `no-store` | `estimerPourClient` |
+| `/api/v1/catalogue/quartiers` | GET | publique, CORS `*` (code seulement, **NON déployée**, lot B du 2 novembre 2026) | `no-store` | `lireQuartiers` (régions, préfectures, communes et quartiers actifs, non génériques ; « Quartier, Commune » trié ; lecture complète par pages ; panne = 500, jamais une liste vide). Plusieurs lectures de base par appel : mesurer le CPU à froid avant tout feu vert de déploiement. |
 
 Les routes d'écriture répondent `{ ok: true, message[, favori] }` ou une erreur `VALIDATION` portant le message du service.
 

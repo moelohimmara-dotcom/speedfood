@@ -34,6 +34,8 @@ export async function lireMenu(id: string, apres: string | null, db: SupabaseCli
   return { restaurant: projeter(restaurant), plats, suivant: data.length > 100 ? plats.at(-1)!.id : null, luLe: maintenant.toISOString() };
 }
 
+/** Collateur créé UNE fois : la comparaison locale par chaîne en recréerait un à chaque comparaison (limite CPU du Worker, erreur 1102). */
+const COLLATEUR_FR = new Intl.Collator('fr');
 const TAILLE_PAGE_ZONES = 1000;
 const PLAFOND_PAGES_ZONES = 20;
 /** Lit TOUTES les lignes d'une table de zones, page par page (la base plafonne chaque réponse) ; tri stable, `id` en dernier. Toute erreur ou dépassement du plafond lève : jamais une liste amputée présentée comme complète. */
@@ -64,6 +66,6 @@ export async function lireQuartiers(db: SupabaseClient<Database>): Promise<Liste
   const liste = quartiers
     .filter(q => q.commune_id !== null && communesActives.has(q.commune_id))
     .map(q => ({ id: q.id, libelle: `${q.nom}, ${communesActives.get(q.commune_id as string)}` }))
-    .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+    .sort((a, b) => COLLATEUR_FR.compare(a.libelle, b.libelle));
   return { quartiers: liste, luLe: new Date().toISOString() };
 }

@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { chiffrer } from './panier-reel';
-import { ADRESSE_MAX, estimationValable, filtrerQuartiers, fraisDeLEstimation, totalEstime, validerSaisie } from './commande-reelle';
+import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, totalEstime, validerSaisie } from './commande-reelle';
 import { EnvoiCommande } from './envoi-commande';
 import { creerLecteurCatalogue } from './client';
 import type { usePanierReel } from './usePanierReel';
@@ -11,13 +11,14 @@ import { gestion } from '../connexion/gestion';
 import { couleurs as c, polices } from '../design/tokens';
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
 const lecteur = creerLecteurCatalogue();
+const COLLATEUR_FR = new Intl.Collator('fr');
 function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={[s.bouton, disabled && s.inactif]}><Text style={s.boutonTexte}>{titre}</Text></Pressable>;
 }
 function Choix({ titre, actif, desactive, agir, moitie = false }: { titre: string; actif: boolean; desactive: boolean; agir(): void; moitie?: boolean }) {
   return <Pressable accessibilityRole="radio" accessibilityLabel={titre} accessibilityState={{ checked: actif, disabled: desactive }} disabled={desactive} onPress={agir} style={[s.choix, moitie && s.choixMoitie, actif && s.choixActif, desactive && s.inactif]}><Text style={[s.choixTexte, actif && s.choixTexteActif]}>{titre}</Text></Pressable>;
 }
-type Quartiers = { etat: 'chargement' | 'ok' | 'erreur'; liste: QuartierPublic[] };
+type Quartiers = { etat: 'aucun' | 'chargement' | 'ok' | 'erreur'; liste: QuartierPublic[] };
 /**
  * Validation d'une commande en RETRAIT (lot A) ou en LIVRAISON (lot B). Fenêtre du même type que le panier et le compte : l'application réelle ne monte pas de routeur.
  * Composant mince : toute la logique (clé d'idempotence, rejeu à l'identique, verrous, remise à zéro par compte, estimation de livraison) est dans `EnvoiCommande`.
@@ -31,7 +32,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   if (!machine.current) { machine.current = new EnvoiCommande({ envoyer: p => gestion.creerCommande(p), estimer: (r, q, t) => gestion.estimerLivraison(r, q, t) }); machine.current.surChangement = redessiner; }
   const m = machine.current;
   m.lierCompte(gestion.identifiant, gestion.deconnexions);
-  const [quartiers, setQuartiers] = useState<Quartiers>({ etat: 'chargement', liste: [] });
+  const [quartiers, setQuartiers] = useState<Quartiers>({ etat: 'aucun', liste: [] });
   const [recherche, setRecherche] = useState('');
   const [essaiQuartiers, setEssaiQuartiers] = useState(0);
   const plats = etat.menu?.plats ?? [];
@@ -46,13 +47,13 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const frais = fraisDeLEstimation(estimation);
   const total = totalEstime(bilan.total, livraison ? frais : 0);
   const quartierChoisi = quartiers.liste.find(q => q.id === m.quartierId) ?? null;
-  // Liste des quartiers : lue à l'ouverture de l'écran ; son échec n'empêche pas le retrait.
+  // Liste des quartiers : lue seulement au PREMIER passage en livraison (jamais en retrait) ; pas de cache entre deux ouvertures de l'écran la route étant `no-store` ; son échec n'empêche pas le retrait.
   useEffect(() => {
-    if (!ouvert || quartiers.etat === 'ok') return;
+    if (!doitChargerQuartiers(ouvert, m.mode, quartiers.etat)) return;
     let actif = true; setQuartiers(q => ({ ...q, etat: 'chargement' }));
-    lecteur.listerQuartiers().then(l => { if (actif) setQuartiers({ etat: 'ok', liste: [...l.quartiers].sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr')) }); }, () => { if (actif) setQuartiers({ etat: 'erreur', liste: [] }); });
-    return () => { actif = false; };
-  }, [ouvert, essaiQuartiers]);
+    lecteur.listerQuartiers().then(l => { if (actif) setQuartiers({ etat: 'ok', liste: [...l.quartiers].sort((a, b) => COLLATEUR_FR.compare(a.libelle, b.libelle)) }); }, () => { if (actif) setQuartiers({ etat: 'erreur', liste: [] }); });
+    return () => { actif = false; setQuartiers(q => q.etat === 'chargement' ? { etat: 'aucun', liste: [] } : q); }; // lecture interrompue (écran fermé, retour au retrait) : à refaire au prochain passage en livraison
+  }, [ouvert, livraison, essaiQuartiers]);
   // Frais de livraison : recalculés quand le quartier, le sous-total, le restaurant ou la connexion changent ; la dernière demande remplace les précédentes.
   useEffect(() => { if (ouvert) void m.actualiserEstimation(etat.panier, plats, connectee, panierPret); }, [ouvert, m.mode, m.quartierId, bilan.total, etat.panier.restaurantId, connectee, panierPret, m.etatEstimation, verrouille]);
   async function envoyer() {
@@ -75,7 +76,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       <Text accessibilityRole="header" style={s.nom}>{bilan.total === null ? 'Total à vérifier' : `Sous-total : ${gnf(bilan.total)}`}</Text>
       {livraison && bilan.total !== null && <>
         {m.etatEstimation === 'calcul' && <View accessibilityLiveRegion="polite" style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Calcul des frais de livraison…</Text></View>}
-        {estimation?.statut === 'ok' && <Text accessibilityLiveRegion="polite" style={s.texte}>Frais de livraison estimés : {estimation.gratuite || estimation.fraisGnf === 0 ? 'offerts' : gnf(estimation.fraisGnf)} · environ {estimation.dureeMinutes} min</Text>}
+        {estimation?.statut === 'ok' && <Text accessibilityLiveRegion="polite" style={s.texte}>Frais de livraison estimés : {estimation.fraisGnf === 0 ? 'offerts' : gnf(estimation.fraisGnf)} · environ {estimation.dureeMinutes} min</Text>}
         {estimation?.statut === 'non_calcule' && <Text accessibilityLiveRegion="polite" style={s.texte}>Frais de livraison : à convenir avec le restaurant (non calculés par l’application).</Text>}
         {total !== null && <Text accessibilityRole="header" style={s.nom}>Total estimé : {gnf(total)}</Text>}
       </>}
@@ -96,7 +97,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       <Text style={s.texte}>Quartier</Text>
       {quartierChoisi && <Text accessibilityLiveRegion="polite" style={s.nom}>{quartierChoisi.libelle}</Text>}
       {quartiers.etat === 'chargement' && <View style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement des quartiers…</Text></View>}
-      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander en retrait.</Text><Action titre="Réessayer la liste des quartiers" agir={() => setEssaiQuartiers(n => n + 1)} /></View>}
+      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander en retrait.</Text><Action titre="Réessayer la liste des quartiers" agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
       {quartiers.etat === 'ok' && <>
         <TextInput accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
         {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
