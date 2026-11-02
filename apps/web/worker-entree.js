@@ -3,6 +3,7 @@
 // `wrangler.jsonc` désigne ce fichier comme `main` ; `.open-next/worker.js` est produit par `opennextjs-cloudflare build`.
 import handler from "./.open-next/worker.js";
 import { MicroCache, decisionCache, reponseConservable } from "./src/lib/worker/microcache.ts";
+import { cheminInterneRefuse } from "./src/lib/worker/garde-interne.ts";
 import { envoyerEmail } from "./worker-smtp.js";
 
 // Les classes à état exigées par OpenNext (files, cache de balises) doivent rester exportées par le Worker.
@@ -120,6 +121,8 @@ const worker = {
   },
 
   async fetch(request, env, ctx) {
+    // `/api/v1/interne/*` n'est jamais joignable de l'extérieur : seule la RPC `JetonsCommande.alerter` y accède, en appelant le gestionnaire directement.
+    if (cheminInterneRefuse(request.url)) return new Response(null, { status: 404, headers: { "cache-control": "no-store" } });
     const decision = decisionCache({
       methode: request.method,
       url: request.url,

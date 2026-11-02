@@ -6,7 +6,7 @@ Règles de sécurité qui s'appliquent à chaque pas : aucune valeur de secret d
 
 ## Ce qui bloque encore, côté code (à lever avant les feux verts 5 et 6)
 
-1. **Alerte « nouvelle commande » du restaurateur sur l'API** : FCM/VAPID n'existent pas encore sur l'API (non vérifié, non construit). Une commande créée par l'API ne préviendrait pas le restaurateur. Condition (c) du feu vert final ; à construire ou à décider (l'alerte reste portée par le site).
+1. **Alerte « nouvelle commande » du restaurateur** : AUCUN secret d'envoi (FCM, VAPID) à copier sur l'API, aucune variable `SITE_URL`, aucun appel HTTP public. Les secrets restent sur le site ; l'API, après une création NOUVELLE (jamais sur rejeu idempotent), appelle la méthode RPC `alerter` de la liaison `SITE_JETONS` déjà prévue, et le site envoie l'alerte après le retour de la RPC. `worker-entree.js` refuse en 404 toute requête externe vers `/api/v1/interne/*`. Le feu vert 1 (site, qui porte `alerter` et la garde) doit être déployé AVANT le feu vert 2 (API). Code et tests locaux faits ; envoi réel FCM/VAPID sous Cloudflare, délai du saut et CPU non prouvés : vérification au feu vert 5 (alerte reçue par le restaurateur d'essai).
 2. **Temps de calcul (CPU) de la création sur l'API** : jamais mesuré sous Cloudflare réel. Plan gratuit : 10 ms de CPU par requête. Si la mesure s'en approche, ne pas allumer ; passer au plan Workers payant (5 $/mois) est une décision de coût qui vous appartient.
 3. **Égalité des VALEURS de `COMMANDE_JETON_SECRET`** : avec ADR-021 l'API ne calcule plus jamais le jeton elle-même, elle le demande au site (liaison `SITE_JETONS`). Le risque du secret divergent disparaît donc **si** la liaison est en place ; l'essai d'idempotence croisée (feu vert 5) le prouve par le comportement.
 4. Le code ADR-021 est sur la branche `etape-adr021-deblocage-commandes` (49 commits d'avance sur `master`) : il faut le fusionner avant de compiler ce qui part en production (feu vert 0).
@@ -55,7 +55,7 @@ Retour arrière : redéployer la version précédente de l'API.
 La liaison est déjà déclarée dans `apps/api/wrangler.jsonc` et se pose avec le déploiement du feu vert 2. Vérifier seulement (lecture) qu'elle apparaît dans le tableau de bord Cloudflare, Worker `speedfood-api` → Paramètres → Liaisons : service `speedfood-app`, entrée `JetonsCommande`. Rien d'autre à faire ; ce pas existe pour qu'une liaison absente soit constatée avant d'allumer.
 
 ## Feu vert 4 — préconditions : alertes, mesure CPU, inventaire
-- Alerte restaurateur sur l'API (voir « Ce qui bloque »).
+- Alerte restaurateur : passe par la RPC `SITE_JETONS.alerter` du site (voir « Ce qui bloque » 1) ; rien à poser de plus ; l'alerte elle-même se constate au feu vert 5.
 - Inventaire des commandes créées auparavant par l'API (historique) : à demander à l'agent en lecture seule sur la base ; ne rien supprimer.
 - Mesure CPU : lire dans Cloudflare → `speedfood-api` → Metrics (CPU time, p50/p99) pendant l'essai du feu vert 5.
 Mise en service **suspendue** tant que ces conditions ne sont pas remplies.
@@ -83,3 +83,8 @@ Retour arrière immédiat, sans redéployer : remettre la valeur précédente (s
 
 ## Après chaque feu vert
 Noter dans `docs/STATUT-PROJET.md`, `docs/API-UNIQUE.md` et la mémoire : ce qui est allumé, les mesures, ce qui est vérifié. Supprimer enfin `apps/api/.dev.vars` (contient une clé de production ; ne jamais l'ouvrir).
+
+## Alerte du restaurateur : état au 2 novembre 2026
+Construite (code, tests, relecture indépendante en trois tours, verdict « prêt » comme étape éteinte) : l'API appelle `SITE_JETONS.alerter(restaurantId)` ; le site envoie l'alerte après la réponse. Aucun secret d'envoi sur l'API, aucune route publique (`/api/v1/interne/*` répond 404 à l'extérieur).
+**À vérifier au feu vert 5 (non prouvé hors Cloudflare réel) :** `after` de Next rattaché au contexte de la RPC et envoi qui survit au retour ; CPU et démarrage à froid d'OpenNext dans l'invocation RPC (plan gratuit 10 ms ; l'échec apparaît dans les journaux du site sous `alerte_interne_statut` / `alerte_interne_echec`, sauf dépassement CPU pur) ; réception réelle par le restaurateur d'essai ; liaison `SITE_JETONS` présente.
+**Reporté (mineurs de relecture) :** la garde 404 refuse à tort quelques adresses contenant le mot « interne » avec un espace, un `%` ou un `;` (aucune route publique n'en utilise) ; elle laisse passer `%3F`/`%23` devant le motif, sans effet (OpenNext ne les fait pas correspondre et la route exige de toute façon le jeton d'isolat) ; la boucle de décodage est un doublon de la règle du reste ; le banc OpenNext réel n'a pas été relancé sur un paquet reconstruit.

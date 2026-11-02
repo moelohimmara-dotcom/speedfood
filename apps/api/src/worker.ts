@@ -17,6 +17,7 @@ import { estimerPourClient } from "@/lib/livraison/estimation-service";
 import { creerApp } from "./app.ts";
 import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } from "./identite/jeton.ts";
 import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
+import { fournirAlerteSite } from "./commandes/alerte-site.ts";
 import { lireRestaurants, lireMenu } from './catalogue/service';
 import { configurationPublique } from './identite/configuration-publique';
 
@@ -68,6 +69,8 @@ const app = creerApp({
     // La garde et la liaison proviennent de c.env, jamais du payload. Absence => refus avant insertion.
     creer: (valeurs, utilisateurId, apres, environnement) => executerCreationCoeur(valeurs, utilisateurId, {
       antiRobot: false, apres, fournirJeton: fournirJetonInterne(() => environnement ?? {}),
+      // L'alerte du restaurant est envoyée PAR LE SITE (secrets FCM/VAPID uniquement sur le site), par la liaison SITE_JETONS lue dans c.env, à l'appel.
+      alerter: fournirAlerteSite(() => environnement ?? {}),
     }),
     lister: (utilisateurId) => listerMesCommandes(utilisateurId, { avecJeton: true }),
   },

@@ -21,7 +21,7 @@ export type Planifier = (tache: () => Promise<void>) => void;
 export async function executerCreationCoeur(
   valeurs: CreationCommandePayload,
   utilisateurId: string | null,
-  options: { antiRobot: boolean; apres: Planifier; fournirJeton?: (cle: string) => Promise<string> }
+  options: { antiRobot: boolean; apres: Planifier; fournirJeton?: (cle: string) => Promise<string>; alerter?: (restaurantId: string) => Promise<void> }
 ): Promise<ResultatCreationCommande> {
   try {
     // Anti-robot d'abord (si actif) : un jeton invalide ne consomme aucun plafond.
@@ -35,7 +35,8 @@ export async function executerCreationCoeur(
       const restaurantId = valeurs.restaurantId;
       options.apres(async () => {
         try {
-          await notifierRestaurant(restaurantId);
+          // `alerter` (API) : demande au site d'envoyer l'alerte, les secrets d'envoi (FCM, VAPID) restent sur le site. Absent (site) : envoi direct, inchangé.
+          await (options.alerter ?? notifierRestaurant)(restaurantId);
         } catch {
           console.error("push_indisponible");
         }

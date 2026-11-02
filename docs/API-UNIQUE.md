@@ -190,6 +190,7 @@ Le site peut transmettre à l'API les requêtes de quinze gestionnaires (dix à 
 | `API_URL` | site | adresse de base de l'API (valeur publique) |
 | `RELAIS_SECRET` | site | secret partagé envoyé dans `x-relais-secret` |
 | `RELAIS_SECRET` | API | le même secret, lu à l'appel (`process.env.RELAIS_SECRET`) |
+| (aucune) | API | **Alerte « nouvelle commande »** (ADR-021) : pas de variable ni de secret. Après une commande NOUVELLE, l'API appelle la méthode RPC `alerter(restaurantId)` de la liaison de service `SITE_JETONS` (entrée `JetonsCommande` du site) ; le site envoie l'alerte FCM/VAPID, dont les secrets ne sont que sur le site, après le retour de la RPC. La route interne `/api/v1/interne/alerte-commande` n'est joignable que depuis le Worker du site : `worker-entree.js` répond 404 à toute requête externe vers `/api/v1/interne/*`. |
 
 Modules : `public` (`version`, `aide`, `connexion/fournisseurs`), `moi`, `client` (`espace`, `favoris`, `profil`, `adresses`, `compte`), `livraison` (`estimation`), et, à l'étape 1c-1, `suivi` (`POST suivi`, `suivi/annuler`, `suivi/proposition`) et `commandes` (`GET` et `POST`). Deux modules et non un seul : le module est le seul levier du relais, il faut pouvoir allumer la lecture avant l'écriture.
 

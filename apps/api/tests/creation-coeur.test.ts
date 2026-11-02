@@ -45,7 +45,7 @@ const fauxModules: Plugin = {
   },
 };
 
-type Coeur = (valeurs: unknown, utilisateurId: string | null, options: { antiRobot: boolean; apres: (t: () => Promise<void>) => void; fournirJeton?: (cle: string) => Promise<string> }) => Promise<unknown>;
+type Coeur = (valeurs: unknown, utilisateurId: string | null, options: { antiRobot: boolean; apres: (t: () => Promise<void>) => void; fournirJeton?: (cle: string) => Promise<string>; alerter?: (restaurantId: string) => Promise<void> }) => Promise<unknown>;
 let executerCreationCoeur: Coeur;
 let dossier: string;
 
@@ -121,6 +121,45 @@ test("cœur : l'identifiant de compte reçu est transmis tel quel à creerComman
   const { apres } = preparer(async (_v, u) => { recu = u; return { reference: "SF-1", jeton: "J".repeat(40), idempotent: false }; });
   await executerCreationCoeur(VALEURS, "compte-1", { antiRobot: false, apres });
   assert.equal(recu, "compte-1");
+});
+
+test("cœur : `alerter` fourni (API) remplace notifierRestaurant, appelé UNE fois avec le restaurant, après la réponse", async () => {
+  const alertes: string[] = [];
+  const { apres, planifiees } = preparer(async () => ({ reference: "SF-1", jeton: "J".repeat(40), idempotent: false }));
+  await executerCreationCoeur(VALEURS, "compte-1", { antiRobot: false, apres, alerter: async (id) => { alertes.push(id); } });
+  assert.equal(planifiees.length, 1);
+  assert.deepEqual(alertes, [], "rien avant l'exécution de la tâche planifiée");
+  await planifiees[0]();
+  assert.deepEqual(alertes, ["resto-1"]);
+  assert.ok(!g.__fauxCoeur.appels.includes("notifier"), "l'envoi direct du site n'est pas appelé");
+});
+
+test("cœur : `alerter` fourni, JAMAIS appelé sur un rejeu idempotent", async () => {
+  let appels = 0;
+  const { apres, planifiees } = preparer(async () => ({ reference: "SF-1", jeton: "J".repeat(40), idempotent: true }));
+  await executerCreationCoeur(VALEURS, "compte-1", { antiRobot: false, apres, alerter: async () => { appels++; } });
+  assert.equal(planifiees.length, 0);
+  assert.equal(appels, 0);
+});
+
+test("cœur : une exception de `alerter` n'échoue pas la création et ne journalise que « push_indisponible »", async () => {
+  const { apres, planifiees } = preparer(async () => ({ reference: "SF-1", jeton: "J".repeat(40), idempotent: false }));
+  const resultat = await executerCreationCoeur(VALEURS, "compte-1", { antiRobot: false, apres, alerter: async () => { throw new Error("site https://x.test secret +224620000777"); } });
+  assert.deepEqual(resultat, { ok: true, reference: "SF-1", jeton: "J".repeat(40), idempotent: false });
+  const lignes: string[] = [];
+  const origine = console.error;
+  console.error = (...a: unknown[]) => { lignes.push(a.map(String).join(" ")); };
+  try { await planifiees[0](); } finally { console.error = origine; }
+  assert.deepEqual(lignes, ["push_indisponible"]);
+});
+
+test("cœur : SANS `alerter`, comportement par défaut du site inchangé (notifierRestaurant appelé avec le restaurant)", async () => {
+  const notifies: string[] = [];
+  const { apres, planifiees } = preparer(async () => ({ reference: "SF-1", jeton: "J".repeat(40), idempotent: false }), async (id) => { notifies.push(id); });
+  await executerCreationCoeur(VALEURS, "compte-1", { antiRobot: false, apres });
+  await planifiees[0]();
+  assert.deepEqual(notifies, ["resto-1"]);
+  assert.ok(g.__fauxCoeur.appels.includes("notifier"));
 });
 
 test("cœur : fournisseur transmis par option serveur, jamais par le payload ; échec sans alerte", async () => {

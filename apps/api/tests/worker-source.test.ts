@@ -107,3 +107,10 @@ test("worker.ts : le contexte d'exécution (ctx) est transmis à app.fetch, sino
   const code = sansCommentaires.join("\n");
   assert.ok(/fetch:\s*\(\s*requete\s*:\s*Request\s*,\s*env\s*:\s*unknown\s*,\s*ctx\s*:\s*ExecutionContext\s*\)\s*=>\s*app\.fetch\(\s*requete\s*,\s*env\s*,\s*ctx\s*\)/.test(code));
 });
+
+test("worker.ts : la création passe `alerter: fournirAlerteSite(` à executerCreationCoeur, lu dans l'environnement (liaison), sans secret ni adresse", () => {
+  const code = sansCommentaires.join("\n");
+  assert.match(code, /executerCreationCoeur\([\s\S]*?alerter:\s*fournirAlerteSite\(\s*\(\)\s*=>\s*environnement\s*\?\?\s*\{\}\s*\)/);
+  assert.match(code, /import \{ fournirAlerteSite \} from/);
+  assert.ok(!/SITE_URL|alerte-commande|x-relais-secret/.test(code), "aucune adresse du site ni secret pour l'alerte");
+});
