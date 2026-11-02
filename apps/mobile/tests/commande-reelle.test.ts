@@ -195,3 +195,26 @@ test('session : déconnexion pendant la préparation de l’envoi, rien n’est 
   await assert.rejects(p); await d; assert.equal(envois, 0);
   assert.equal(g.identifiant, null);
 });
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const FIXE = '11111111-2222-4333-8444-555555555555';
+const MESSAGE_REFUS = /ne peut pas sécuriser l’envoi de la commande\. Mettez l’application à jour\./;
+
+test('clé : expo-crypto présent (seul, comme sous Hermes) = UUID v4 valide, et il est prioritaire', () => {
+  assert.equal(genererCleIdempotence({ expo: () => FIXE, web: null }), FIXE);
+  assert.equal(genererCleIdempotence({ expo: () => FIXE, web: { randomUUID: () => '99999999-2222-4333-8444-555555555555' } }), FIXE);
+  assert.match(genererCleIdempotence({ expo: () => FIXE }), UUID_V4);
+});
+
+test('clé : sans expo-crypto, repli sur crypto web (randomUUID puis getRandomValues) avec bits de version corrects', () => {
+  assert.equal(genererCleIdempotence({ expo: null, web: { randomUUID: () => FIXE } }), FIXE);
+  assert.match(genererCleIdempotence({ expo: null, web: { getRandomValues: (a: Uint8Array) => { a.fill(255); return a; } } }), UUID_V4);
+  assert.match(genererCleIdempotence({ expo: () => { throw Error('natif absent'); }, web: { randomUUID: () => FIXE } }), UUID_V4); // expo en panne : repli
+});
+
+test('clé : aucun générateur cryptographique (ou résultat qui n’est pas un UUID v4) = refus, jamais de clé faible', () => {
+  assert.throws(() => genererCleIdempotence({ expo: null, web: null }), (e: unknown) => e instanceof ErreurCommande && MESSAGE_REFUS.test(e.message));
+  assert.throws(() => genererCleIdempotence({}), (e: unknown) => e instanceof ErreurCommande && MESSAGE_REFUS.test(e.message));
+  assert.throws(() => genererCleIdempotence({ expo: () => String(Math.random()), web: null }), (e: unknown) => e instanceof ErreurCommande && MESSAGE_REFUS.test(e.message));
+  assert.throws(() => genererCleIdempotence({ expo: () => { throw Error('x'); }, web: {} }), (e: unknown) => e instanceof ErreurCommande && MESSAGE_REFUS.test(e.message));
+});

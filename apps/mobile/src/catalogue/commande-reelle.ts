@@ -55,18 +55,32 @@ export function lireReponseCreation(statut: number, v: unknown): { reference: st
 }
 
 export type GenerateurCle = () => string;
-/** UUID v4 aléatoire. Refuse de produire une clé faible : sans générateur cryptographique, l'envoi est bloqué plutôt que de deviner. */
-export function genererCleIdempotence(): string {
-  const c = (globalThis as { crypto?: { randomUUID?: () => string; getRandomValues?: (a: Uint8Array) => Uint8Array } }).crypto;
-  let cle: string | null = null;
-  if (c?.randomUUID) cle = c.randomUUID();
-  else if (c?.getRandomValues) {
-    const b = c.getRandomValues(new Uint8Array(16)); b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
-    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
-    cle = `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+type WebCrypto = { randomUUID?: () => string; getRandomValues?: (a: Uint8Array) => Uint8Array };
+/** Sources d'aléa cryptographique, par ordre de préférence. Injectables pour les tests (Node n'a pas le module natif). */
+export interface SourcesCle { expo?: (() => string) | null; web?: WebCrypto | null }
+/** `expo-crypto` est natif : chargé en protégé (absent sous Node, absent d'un binaire non reconstruit) ; jamais d'exception ici. */
+function sourceExpo(): (() => string) | null {
+  try { const m = require('expo-crypto') as { randomUUID?: () => string }; return typeof m.randomUUID === 'function' ? m.randomUUID : null; } catch { return null; }
+}
+export function sourcesParDefaut(): SourcesCle { return { expo: sourceExpo(), web: (globalThis as { crypto?: WebCrypto }).crypto ?? null }; }
+function uuidDepuisOctets(b: Uint8Array): string {
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+/** UUID v4 aléatoire (expo-crypto en priorité). Refuse de produire une clé faible : sans générateur cryptographique, l'envoi est bloqué, jamais de Math.random. */
+export function genererCleIdempotence(sources: SourcesCle = sourcesParDefaut()): string {
+  const essais: (() => string)[] = [];
+  if (sources.expo) { const g = sources.expo; essais.push(() => g()); }
+  const w = sources.web;
+  if (w?.randomUUID) essais.push(() => w.randomUUID!());
+  if (w?.getRandomValues) essais.push(() => uuidDepuisOctets(w.getRandomValues!(new Uint8Array(16))));
+  for (const essai of essais) {
+    let cle: string | null = null;
+    try { cle = essai(); } catch { cle = null; }
+    if (cle && CLE_IDEMPOTENCE.test(cle)) return cle;
   }
-  if (!cle || !CLE_IDEMPOTENCE.test(cle)) throw new ErreurCommande('validation', 'Cet appareil ne peut pas sécuriser l’envoi de la commande. Mettez l’application à jour.');
-  return cle;
+  throw new ErreurCommande('validation', 'Cet appareil ne peut pas sécuriser l’envoi de la commande. Mettez l’application à jour.');
 }
 
 export interface SaisieCommande { nom: string; telephone: string; consentement: boolean }
