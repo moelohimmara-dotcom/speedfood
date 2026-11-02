@@ -1,6 +1,7 @@
+import { lireReglementOuNull, type ReglementSuivi } from './reglement.ts';
 export interface CommandeCompte { id:string; reference:string; creeLe:string; restaurantNom:string; mode:string; statut:string; totalGnf:number; estTest:boolean }
 export interface CommandeAvecCle extends CommandeCompte { jeton:string|null }
-export interface ResumeSuivi { reference:string; statut:string; etatDerive:string; mode:string; estTest:boolean; restaurantNom:string; totalGnf:number; pretEstimeeLe:string|null; propositionEnAttente:boolean; lignes:LigneSuivi[] }
+export interface ResumeSuivi { reference:string; statut:string; etatDerive:string; mode:string; estTest:boolean; restaurantNom:string; totalGnf:number; pretEstimeeLe:string|null; propositionEnAttente:boolean; lignes:LigneSuivi[]; paiement:ReglementSuivi|null }
 export interface LigneSuivi { nom:string; quantite:number; prixGnf:number; options:string[] }
 function invalide():never { throw Error('LECTURE_COMMANDE_INVALIDE'); }
 function objet(v:unknown):Record<string,unknown>{if(!v||typeof v!=='object'||Array.isArray(v))return invalide();return v as Record<string,unknown>;}
@@ -23,5 +24,5 @@ export function lireCommandes(v:Record<string,unknown>):CommandeAvecCle[]{
 }
 export function lireSuivi(v:Record<string,unknown>):ResumeSuivi{
  if(v.ok!==true)return invalide();const o=objet(v.suivi);const total=montant(o.sousTotal)+montant(o.fraisLivraisonEstime);if(!Number.isSafeInteger(total))return invalide();
- return {reference:texte(o.reference,40),statut:texte(o.statut,40),etatDerive:texte(o.etatDerive,60),mode:texte(o.mode,40),estTest:booleen(o.estTest),restaurantNom:texte(objet(o.restaurant).nom),totalGnf:total,pretEstimeeLe:o.pretEstimeeLe===null?null:date(o.pretEstimeeLe),propositionEnAttente:o.propositionActive!=null,lignes:lignes(o.lignes)};
+ return {reference:texte(o.reference,40),statut:texte(o.statut,40),etatDerive:texte(o.etatDerive,60),mode:texte(o.mode,40),estTest:booleen(o.estTest),restaurantNom:texte(objet(o.restaurant).nom),totalGnf:total,pretEstimeeLe:o.pretEstimeeLe===null?null:date(o.pretEstimeeLe),propositionEnAttente:o.propositionActive!=null,lignes:lignes(o.lignes),paiement:lireReglementOuNull(o.paiement)};
 }

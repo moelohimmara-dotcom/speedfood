@@ -1,6 +1,8 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
+import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
+import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -80,8 +82,31 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livraison/estimation', { method:'POST', headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify({ restaurantId, destination:{ quartierId }, sousTotal }) });
     try { return lireEstimation(v); } catch { throw new ErreurConnexion('Réponse du calcul de livraison illisible.'); }
   }
+  /**
+   * Déclaration du règlement (`POST /api/v1/suivi/paiement`) : UN SEUL essai, jamais de relance automatique. Le jeton de suivi est la clé : dans le corps seulement, jamais dans
+   * l'adresse ni dans un message. Rejouable côté serveur, mais après une réponse inconnue l'appelant relit d'abord le suivi. Aucun montant n'est transmis.
+   */
+  async function postDeclaration(jeton: string, mode: string, reference: string | null): Promise<void> {
+    if (!jeton || !(MODES_REGLEMENT as readonly string[]).includes(mode)) throw new ErreurReglement('refus', 'Ce mode de règlement ne peut pas être déclaré depuis l’application.');
+    if (reference !== null && (mode === 'especes' || !lireReferencePaiement(reference).ok)) throw new ErreurReglement('refus', 'La référence contient 4 à 40 lettres, chiffres, points ou tirets.');
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/suivi/paiement', { method:'POST', credentials:'omit', signal:controle.signal, headers:{ 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify(reference === null ? { jeton, mode } : { jeton, mode, reference }) });
+    } catch { clearTimeout(timer); throw erreurReseauReglement(); }
+    try {
+      if (!r.ok) throw refusDeclaration(r.status);
+      let corps: unknown = null;
+      try {
+        if (!(r.headers.get('content-type') ?? '').includes('application/json') || Number(r.headers.get('content-length')) > 262144) throw 0;
+        const texte = await r.text(); if (texte.length > 262144) throw 0; corps = JSON.parse(texte);
+      } catch { throw erreurReponseReglement(); }
+      lireReponseDeclaration(corps);
+    } finally { clearTimeout(timer); }
+  }
   return {
     creerCommande: postCommande,
+    declarerPaiement: postDeclaration,
     estimerLivraison: postEstimation,
     async connecter(email: string, motDePasse: string) {
       if (!email.trim() || email.length > 254 || !motDePasse.length || motDePasse.length > 4096) throw new ErreurConnexion('Renseignez votre adresse e-mail et votre mot de passe.');

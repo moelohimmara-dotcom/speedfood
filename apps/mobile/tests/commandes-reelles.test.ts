@@ -21,7 +21,7 @@ test('commandes : montant fractionnaire et liste trop longue refusés',async()=>
 });
 test('session : clés de suivi privées, effacées à la déconnexion et lectures tardives refusées',async()=>{
  let finir!:(v:typeof ligne[])=>void;let lectures=0;
- const a={connecter:async()=>({accessToken:'acces-factice',refreshToken:'renouvellement-factice',userId:id,expiresAt:9999999999}),renouveler:async()=>{throw Error();},espace:async()=>({pseudo:null,favoris:0,adresses:0}),deconnecter:async()=>{},commandes:async()=>[ligne],annuler:async()=>({reference:'SF-ESSAI'}),suivi:async()=>{lectures++;return {reference:'SF-ESSAI',statut:'prete',etatDerive:'prete',mode:'retrait',estTest:true,restaurantNom:'Essai',totalGnf:25000,pretEstimeeLe:null,propositionEnAttente:false,lignes:[]};}};
+ const a={connecter:async()=>({accessToken:'acces-factice',refreshToken:'renouvellement-factice',userId:id,expiresAt:9999999999}),renouveler:async()=>{throw Error();},espace:async()=>({pseudo:null,favoris:0,adresses:0}),deconnecter:async()=>{},commandes:async()=>[ligne],annuler:async()=>({reference:'SF-ESSAI'}),suivi:async()=>{lectures++;return {reference:'SF-ESSAI',statut:'prete',etatDerive:'prete',mode:'retrait',estTest:true,restaurantNom:'Essai',totalGnf:25000,pretEstimeeLe:null,propositionEnAttente:false,lignes:[],paiement:null};}};
  const g=new GestionSession(a,{lire:async()=>null,ecrire:async()=>{},effacer:async()=>{}});
  await g.connecter('essai@example.invalid','factice');const liste=await g.commandes();assert.equal('jeton' in liste[0],false);assert.equal(JSON.stringify(liste).includes('suivi-factice'),false);
  await g.suivi(id);assert.equal(lectures,1);await g.deconnecter();await assert.rejects(g.suivi(id));assert.equal(lectures,1);

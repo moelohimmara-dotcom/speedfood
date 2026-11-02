@@ -4,7 +4,7 @@ import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-ree
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'>>;
+export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -90,6 +90,15 @@ export class GestionSession {
     if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
     if(r.reference!==cle.reference)throw new ErreurConnexion('La réponse reçue ne correspond pas à cette commande.');
     return r.reference;
+  }
+  /** Déclare le règlement de CETTE commande (un seul essai). Le jeton de suivi reste ici ; seule une session ouverte peut déclarer, comme pour l'annulation. */
+  async declarerPaiement(id:string,mode:string,reference:string|null):Promise<void> {
+    const n=this.generation;
+    await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+    const cle=this.clesSuivi.get(id);if(!cle)throw new ErreurConnexion('Actualisez vos commandes pour déclarer ce règlement.');
+    if(!this.api.declarerPaiement)throw new ErreurConnexion('Déclaration du règlement indisponible.');
+    await this.api.declarerPaiement(cle.jeton,mode,reference);
   }
   /** Envoie une commande (un seul essai). Le jeton de suivi reçu est jeté ici : il ne remonte jamais jusqu'à l'écran, le suivi le relit via `commandes()`. */
   async creerCommande(payload:CreationCommandePayload):Promise<{reference:string;idempotent:boolean}> {
