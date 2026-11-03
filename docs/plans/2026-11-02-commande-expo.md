@@ -69,3 +69,4 @@ Constats : Speedfood ne reçoit jamais d'argent ; le client règle le restaurant
 - Restent ouverts (décision de Malika) : M2/M3, commande sur place/table/ardoise en espèces, bouton « Marquer comme payée », remboursements manuels en espèces, formulaire de candidature, contraintes SQL qui acceptent encore `especes`, modes code marchand Orange Money/MTN.
 - Mineur : l'alerte `non_recu` sans option dit encore « déclarez-le à nouveau ».
 - À déployer par Malika, séparément : site (`cf:deploy`) puis API (`wrangler deploy`, car l'API embarque le service partagé).
+- Décision de Malika (3 novembre) : les modes code marchand Orange Money / MTN sont gardés jusqu'à l'ouverture de Chap Chap Pay.
