@@ -13,6 +13,24 @@ export type ActionRestaurateur = 'accepter' | 'refuser';
 function invalide(): never { throw Error('LECTURE_RESTAURATEUR_INVALIDE'); }
 function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'object' || Array.isArray(v)) return invalide(); return v as Record<string, unknown>; }
 function texte(v: unknown, max: number): string { if (typeof v !== 'string' || !v.length || v.length > max || /[\x00-\x1f]/.test(v)) return invalide(); return v; }
+/**
+ * Texte saisi par un client (nom, adresse, téléphone, noms de plats) : tolérant. Sauts de ligne, retours chariot et tabulations deviennent des espaces ; tout autre caractère de contrôle
+ * et les marques de direction du texte (qui peuvent faire lire un texte à l'envers) sont retirés. Une commande ne doit jamais devenir illisible pour un parcours client légitime.
+ */
+function libre(v: unknown, max: number, vide = false): string {
+  if (typeof v !== 'string' || v.length > max) return invalide();
+  let s = '';
+  for (const ch of v) {
+    const k = ch.codePointAt(0) ?? 0;
+    if (k === 9 || k === 10 || k === 13) s += ' ';
+    else if (k < 32 || (k >= 127 && k <= 159) || k === 0x200e || k === 0x200f || (k >= 0x202a && k <= 0x202e) || (k >= 0x2066 && k <= 0x2069)) continue;
+    else s += ch;
+  }
+  s = s.split(' ').filter(m => m.length > 0).join(' ');
+  if (!s.length && !vide) return invalide();
+  return s;
+}
+function libreOuNull(v: unknown, max: number): string | null { if (v === null || v === undefined) return null; const s = libre(v, max, true); return s.length ? s : null; }
 function texteOuNull(v: unknown, max: number): string | null { return v === null || v === undefined ? null : texte(v, max); }
 function montant(v: unknown): number { if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) return invalide(); return v; }
 function booleen(v: unknown): boolean { if (typeof v !== 'boolean') return invalide(); return v; }
@@ -37,17 +55,22 @@ export interface CommandeRestaurateur {
   clientNom: string; clientTelephone: string; clientAdresse: string | null; totalGnf: number; creeLe: string; estTest: boolean;
   lignes: LigneRestaurateur[]; propositionEnAttente: boolean;
 }
-export interface ListeRestaurateur { restaurant: { id: string; nom: string; ouvert: boolean; accepteCommandes: boolean } | null; commandes: CommandeRestaurateur[] }
+export interface ListeRestaurateur {
+  restaurant: { id: string; nom: string; ouvert: boolean; accepteCommandes: boolean } | null; commandes: CommandeRestaurateur[];
+  /** Nombre de commandes reçues mais illisibles (écartées une à une, jamais en silence : l'écran le signale et renvoie vers le site). */
+  illisibles: number;
+}
 
 /**
  * Lecture STRICTE de `GET /api/v1/restaurant/commandes` : valeur inconnue = refus. Seuls les champs affichés sont retenus : AUCUN jeton (reçu, suivi) n'est lu ni conservé,
  * même si le serveur en envoyait un.
  */
+/** Une ligne invalide n'écarte QUE cette ligne (comptée dans `illisibles`) ; une structure d'ensemble invalide refuse toute la liste. */
 export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaurateur {
   if (v.ok !== true || !Array.isArray(v.commandes) || v.commandes.length > 700) return invalide();
   const r = v.restaurant === null ? null : objet(v.restaurant);
   const ids = new Set<string>();
-  const commandes = v.commandes.map((x): CommandeRestaurateur => {
+  const lireCommande = (x: unknown): CommandeRestaurateur => {
     const o = objet(x);
     const id = texte(o.id, 36);
     if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id) || ids.has(id)) return invalide();
@@ -60,17 +83,19 @@ export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaura
       const quantite = p.quantite;
       if (typeof quantite !== 'number' || !Number.isSafeInteger(quantite) || quantite < 1 || quantite > 99) return invalide();
       if (!Array.isArray(p.options) || p.options.length > 20) return invalide();
-      return { nom: texte(p.nom, 120), quantite, prixGnf: montant(p.prix), options: p.options.map(q => texte(objet(q).nom, 120)) };
+      return { nom: libre(p.nom, 120), quantite, prixGnf: montant(p.prix), options: p.options.map(q => libre(objet(q).nom, 120)) };
     });
     const total = montant(o.sousTotal) + montant(o.fraisLivraisonEstime);
     if (!Number.isSafeInteger(total)) return invalide();
     return {
-      id, reference: texte(o.reference, 40), statut: o.statut as StatutRestaurateur, mode: o.mode, tableNumero: texteOuNull(o.tableNumero, 20), clientNom: texte(o.clientNom, 120),
-      clientTelephone: texte(o.clientTelephone, 40), clientAdresse: texteOuNull(o.clientAdresse, 300), totalGnf: total, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
+      id, reference: texte(o.reference, 40), statut: o.statut as StatutRestaurateur, mode: o.mode, tableNumero: texteOuNull(o.tableNumero, 20), clientNom: libre(o.clientNom, 120),
+      clientTelephone: libre(o.clientTelephone, 40, true), clientAdresse: libreOuNull(o.clientAdresse, 300), totalGnf: total, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
       propositionEnAttente: o.propositionActive !== null && o.propositionActive !== undefined,
     };
-  });
-  return { restaurant: r === null ? null : { id: texte(r.id, 36), nom: texte(r.nom, 200), ouvert: booleen(r.ouvert), accepteCommandes: booleen(r.accepteCommandes) }, commandes };
+  };
+  const commandes: CommandeRestaurateur[] = []; let illisibles = 0;
+  for (const x of v.commandes) { try { commandes.push(lireCommande(x)); } catch { illisibles++; } }
+  return { restaurant: r === null ? null : { id: texte(r.id, 36), nom: texte(r.nom, 200), ouvert: booleen(r.ouvert), accepteCommandes: booleen(r.accepteCommandes) }, commandes, illisibles };
 }
 
 export type GroupeCommandes = 'a_traiter' | 'en_cours' | 'historique';

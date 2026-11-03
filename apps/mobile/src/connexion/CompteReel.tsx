@@ -22,7 +22,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string;lecture:number}|null>(null);
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
-  const [restaurateur,setRestaurateur]=useState(false);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);
+  const [restaurateur,setRestaurateur]=useState(false);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
   function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);return r;}
   async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
@@ -76,8 +76,8 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     setProfil(await gestion.espace());});}},[ouvert]);
   if(restaurateurOuvert){
     // Au retour, l'état de la session est relu : une session terminée pendant l'espace restaurateur (401) renvoie au formulaire de connexion.
-    const retour=()=>{setRestaurateurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
-    return <Modal visible={ouvert} onRequestClose={retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><RestaurateurReel fermer={retour}/></SafeAreaView></Modal>;
+    const retour=()=>{setRestaurateurOccupe(false);setRestaurateurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
+    return <Modal visible={ouvert} onRequestClose={restaurateurOccupe?()=>{}:retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><RestaurateurReel fermer={retour} signalerOccupe={setRestaurateurOccupe}/></SafeAreaView></Modal>;
   }
   return <Modal visible={ouvert} onRequestClose={fermerFormulaire} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au catalogue" agir={fermerFormulaire}/><Text accessibilityRole="header" style={s.titre}>Mon compte</Text>

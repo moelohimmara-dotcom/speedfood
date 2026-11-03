@@ -122,7 +122,10 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
       if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
       if (!r.ok) {
-        const refus = refusRestaurateur(r.status, r.status === 403 ? lireRaisonSecurite(corps) : null);
+        const raison = r.status === 403 ? lireRaisonSecurite(corps) : null;
+        // Compte non membre qui LIT la liste : un message propre à la lecture (le texte « traiter cette commande » est celui des actions).
+        if (lecture && r.status === 403 && raison === null) throw new ErreurRestaurateur('refus', 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir ces commandes. Vérifiez votre accès sur le site.');
+        const refus = refusRestaurateur(r.status, raison);
         // Une lecture n'est jamais « incertaine » au sens d'une écriture : elle se rejoue à la main.
         if (lecture && refus.incertain) throw new ErreurRestaurateur(refus.genre, 'Le service est indisponible. Réessayez dans un instant.');
         throw refus;

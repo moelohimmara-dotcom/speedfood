@@ -141,13 +141,14 @@ test("restaurant : accepter et refuser sont transmis au service avec le contexte
   }
 });
 
-test("restaurant : liste blanche des actions : prete, terminee, annuler, inconnue ou absente = 400 VALIDATION, SANS appel (ni contexte ni service)", async () => {
+test("restaurant : liste blanche des actions : prete, terminee, annuler, inconnue ou absente = 400 VALIDATION, SANS appel au service (le contexte, lui, a consommé le plafond)", async () => {
   for (const action of ["prete", "terminee", "annuler", "ACCEPTER", "accepter ", "", "supprimer", null, 3, ["accepter"], { a: 1 }, undefined]) {
     const { app, journal } = monter();
     const reponse = await post(app, { commandeId: COMMANDE, action });
     assert.equal(reponse.status, 400, JSON.stringify(action));
     assert.equal(((await reponse.json()) as { erreur: { code: string } }).erreur.code, "VALIDATION");
-    assert.ok(!journal.appels.some((a) => a.startsWith("contexte") || a === "traiter"), `appel malgré l'action ${JSON.stringify(action)}`);
+    assert.ok(!journal.appels.includes("traiter"), `service appelé malgré l'action ${JSON.stringify(action)}`);
+    assert.equal(journal.appels.filter((a) => a.startsWith("contexte")).length, 1, "le plafond par compte est consommé avant la validation");
   }
 });
 
@@ -198,4 +199,16 @@ test("restaurant : méthode inconnue = 404 sans appeler l'authentification (iden
   assert.equal((await app.request("/api/v1/restaurant/commandes", { method: "DELETE", headers: AUTH })).status, 404);
   assert.equal((await app.request("/api/v1/restaurant/commandes/action", { method: "GET", headers: AUTH })).status, 404);
   assert.ok(!journal.appels.includes("identite"));
+});
+
+test("restaurant M-1 : le plafond par compte s'applique AUSSI aux requêtes invalides (429 avant la validation, corps non lu)", async () => {
+  const cas: Array<[string, unknown]> = [["action inconnue", { commandeId: COMMANDE, action: "prete" }], ["commandeId invalide", { commandeId: "x", action: "accepter" }]];
+  for (const [nom, corps] of cas) {
+    const { app, journal } = monter({ contexte: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); } });
+    const reponse = await post(app, corps);
+    assert.equal(reponse.status, 429, nom);
+    assert.ok(!journal.appels.includes("traiter"));
+  }
+  const { app } = monter({ contexte: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); } });
+  assert.equal((await app.request("/api/v1/restaurant/commandes/action", { method: "POST", headers: JSON_AUTH, body: "{pas du json" })).status, 429);
 });

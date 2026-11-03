@@ -32,6 +32,11 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
   });
 
   route.post("/commandes/action", identite, async (c) => {
+    // Le contexte (plafond par compte, second facteur, questions, appartenance) passe AVANT le corps et la validation : une requête invalide consomme le plafond du compte,
+    // comme sur le site et sur routes/client.ts. La liste blanche, elle, reste avant le SERVICE (aucun appel à `traiter` pour une action refusée).
+    const jeton = lireBearer(c.req.header("authorization"));
+    if (!jeton) throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous avec votre compte restaurateur.");
+    const ctx = await deps.restaurant.contexte(jeton, c.get("utilisateurId"));
     const lu = await lireCorpsJson(c);
     if (!lu.ok) return lu.reponse;
     const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { commandeId?: unknown; action?: unknown };
@@ -39,9 +44,6 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     const action = lireActionRestaurantApp(corps.action);
     if (action === null) return reponseErreur(c, { code: "VALIDATION", message: "Action invalide." });
     if (typeof corps.commandeId !== "string" || !REGEX_UUID.test(corps.commandeId)) return reponseErreur(c, { code: "VALIDATION", message: "Commande invalide." });
-    const jeton = lireBearer(c.req.header("authorization"));
-    if (!jeton) throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous avec votre compte restaurateur.");
-    const ctx = await deps.restaurant.contexte(jeton, c.get("utilisateurId"));
     const resultat = await deps.restaurant.traiter(ctx, corps.commandeId, action);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });

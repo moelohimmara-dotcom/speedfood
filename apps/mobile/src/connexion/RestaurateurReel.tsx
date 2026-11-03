@@ -17,7 +17,7 @@ function Action({ titre, agir, disabled = false, secondaire = false }: { titre: 
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={[s.bouton, secondaire && s.boutonSecondaire, disabled && { opacity: .5 }]}><Text style={[s.boutonTexte, secondaire && s.boutonTexteSecondaire]}>{titre}</Text></Pressable>;
 }
 
-export function RestaurateurReel({ fermer }: { fermer(): void }) {
+export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; signalerOccupe?(occupe: boolean): void }) {
   const [liste, setListe] = useState<ListeRestaurateur | null>(null);
   const [luLe, setLuLe] = useState<string | null>(null);
   const [lecture, setLecture] = useState(0);
@@ -67,6 +67,9 @@ export function RestaurateurReel({ fermer }: { fermer(): void }) {
 
   const verrou = actionVerrouillee(etat, lecture);
   const occupe = chargement || etat.phase === 'envoi' || etat.phase === 'relecture';
+  // Le parent ignore le retour Android pendant l'envoi : l'écran ne doit pas être démonté avant le verdict.
+  const envoiOuRelecture = etat.phase === 'envoi' || etat.phase === 'relecture';
+  useEffect(() => { signalerOccupe?.(envoiOuRelecture); return () => signalerOccupe?.(false); }, [envoiOuRelecture]);
   const verdict = etat.phase === 'verdict' ? etat : null;
 
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
@@ -75,6 +78,7 @@ export function RestaurateurReel({ fermer }: { fermer(): void }) {
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
+    {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
     <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}

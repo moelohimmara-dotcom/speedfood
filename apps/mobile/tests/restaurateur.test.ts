@@ -32,16 +32,58 @@ test('lecture : AUCUN jeton n’est retenu, même si le serveur en envoyait (re�
   const texte = JSON.stringify(l);
   assert.ok(!texte.includes('jeton') && !texte.includes('r'.repeat(64)) && !texte.includes('s'.repeat(40)) && !texte.includes('wa.me'));
 });
-test('lecture : valeur inconnue ou hors bornes = refus', () => {
+test('lecture : une ligne à valeur inconnue ou hors bornes est ÉCARTÉE et comptée (jamais toute la liste, jamais en silence)', () => {
   const cas: Array<unknown[]> = [
     [brute(A, { statut: 'attente_confirmation_client' })], [brute(A, { mode: 'drone' })], [brute(A, { sousTotal: 1.5 })], [brute(A, { sousTotal: -1 })], [brute(A, { id: 'pas-un-uuid' })],
     [brute(A), brute(A)], [brute(A, { creeLe: 'hier' })], [brute(A, { lignes: 'x' })], [brute(A, { lignes: [{ nom: 'x', prix: 1, quantite: 0, options: [] }] })], [brute(A, { estTest: 'non' })], [brute(A, { clientNom: '' })],
   ];
-  for (const commandes of cas) assert.throws(() => lireListeRestaurateur(reponse(commandes)), /LECTURE_RESTAURATEUR_INVALIDE/, JSON.stringify(commandes).slice(0, 80));
+  for (const commandes of cas) {
+    const l = lireListeRestaurateur(reponse([...commandes, brute(B)]));
+    assert.deepEqual(l.commandes.map(c => c.id), commandes.length === 2 ? [A, B] : [B], 'la ligne valide voisine reste lisible : ' + JSON.stringify(commandes).slice(0, 80));
+    assert.equal(l.illisibles, commandes.length === 2 ? 1 : commandes.length, 'chaque ligne écartée est comptée');
+  }
   assert.throws(() => lireListeRestaurateur({ ok: false, commandes: [] }));
+  assert.throws(() => lireListeRestaurateur({ ok: true, restaurant: null }));
   assert.throws(() => lireListeRestaurateur({ ok: true, commandes: 'x', restaurant: null }));
   assert.throws(() => lireListeRestaurateur(reponse([], { id: 'x', nom: 'N', ouvert: 'oui', accepteCommandes: true })));
   assert.equal(lireListeRestaurateur(reponse([], null)).restaurant, null);
+});
+// ---------- commandes atypiques (revue I-1) ----------
+const CONTROLES = String.fromCharCode(0, 7, 27, 127, 0x202e, 0x200f);
+test('lecture I-1 : commande à table sans numéro de téléphone (chaîne vide) : lue, téléphone vide', () => {
+  const l = lireListeRestaurateur(reponse([brute(A, { mode: 'sur_place', tableNumero: '4', clientTelephone: '' })]));
+  assert.equal(l.illisibles, 0);
+  assert.equal(l.commandes[0].clientTelephone, '');
+  assert.equal(l.commandes[0].mode, 'sur_place');
+});
+test('lecture I-1 : saut de ligne dans l’adresse : lue, saut de ligne devenu espace', () => {
+  const l = lireListeRestaurateur(reponse([brute(A, { mode: 'livraison', clientAdresse: 'Kaloum\nrue 12\r\nporte 3' })]));
+  assert.equal(l.illisibles, 0);
+  assert.equal(l.commandes[0].clientAdresse, 'Kaloum rue 12 porte 3');
+});
+test('lecture I-1 : tabulation dans le nom (et dans un plat) : lue, tabulation devenue espace', () => {
+  const l = lireListeRestaurateur(reponse([brute(A, { clientNom: 'Awa\tDiallo', lignes: [{ nom: 'Poulet\tbraisé', prix: 1000, quantite: 1, options: [{ nom: 'Sans\npiment', prix: 0 }] }] })]));
+  assert.equal(l.illisibles, 0);
+  assert.equal(l.commandes[0].clientNom, 'Awa Diallo');
+  assert.deepEqual(l.commandes[0].lignes[0], { nom: 'Poulet braisé', quantite: 1, prixGnf: 1000, options: ['Sans piment'] });
+});
+test('lecture I-1 : caractères de contrôle et marques de direction retirés (jamais affichés) ; adresse vide = aucune adresse', () => {
+  const l = lireListeRestaurateur(reponse([brute(A, { clientNom: 'A' + CONTROLES + 'wa', clientAdresse: '  \n ' })]));
+  assert.equal(l.commandes[0].clientNom, 'Awa');
+  assert.equal(l.commandes[0].clientAdresse, null);
+  assert.equal(JSON.stringify(l).split('').some(ch => { const k = ch.charCodeAt(0); return k < 32 || k === 127 || k === 0x202e || k === 0x200f; }), false);
+});
+test('lecture I-1 : liste mixte, une seule ligne invalide : les autres restent lisibles, la ligne écartée est comptée', () => {
+  const C = '00000000-0000-4000-8000-00000000000c';
+  const l = lireListeRestaurateur(reponse([brute(A), brute(B, { sousTotal: 1.5 }), brute(C, { clientTelephone: '' })]));
+  assert.deepEqual(l.commandes.map(c => c.id), [A, C]);
+  assert.equal(l.illisibles, 1);
+  assert.equal(lireListeRestaurateur(reponse([brute(A)])).illisibles, 0);
+});
+test('lecture I-1 : un élément qui n’est pas un objet, un doublon d’identifiant : écartés et comptés', () => {
+  const l = lireListeRestaurateur(reponse([brute(A), 'x', null, brute(A)]));
+  assert.equal(l.commandes.length, 1);
+  assert.equal(l.illisibles, 3);
 });
 test('rôles : lecture stricte de /moi', () => {
   assert.deepEqual(lireRoles({ ok: true, roles: { restaurateur: { restaurant: 'Chez Fatou' }, livreur: false, equipe: null } }), { restaurateur: { restaurant: 'Chez Fatou' }, livreur: false, equipe: null });
@@ -261,13 +303,18 @@ test('client : 403 avec champs.securite = erreur « sécurité » (message vers 
   const { a } = api(() => json({ ok: false, erreur: { code: 'NON_AUTORISE' } }, 403));
   await assert.rejects(a.commandesRestaurant(ACCES), (e: unknown) => e instanceof ErreurRestaurateur && e.genre === 'refus');
 });
+test('client M-4 : compte non membre qui LIT la liste : message propre à la lecture (pas « ne peut pas traiter cette commande »)', async () => {
+  const { a } = api(() => json({ ok: false, erreur: { code: 'NON_AUTORISE' } }, 403));
+  await assert.rejects(a.commandesRestaurant(ACCES), (e: unknown) => e instanceof ErreurRestaurateur && e.genre === 'refus' && /restaurant/.test(e.message) && !/traiter cette commande/.test(e.message));
+  await assert.rejects(a.actionRestaurateur(ACCES, A, 'accepter'), (e: unknown) => e instanceof ErreurRestaurateur && /traiter cette commande/.test(e.message));
+});
 test('client : 401 = session terminée (ErreurConnexion définitive), en lecture comme en action', async () => {
   const { a } = api(() => json({ ok: false }, 401));
   await assert.rejects(a.commandesRestaurant(ACCES), (e: unknown) => e instanceof ErreurConnexion && e.definitive);
   await assert.rejects(a.actionRestaurateur(ACCES, A, 'accepter'), (e: unknown) => e instanceof ErreurConnexion && e.definitive);
 });
 test('client : lecture en panne ou illisible : erreur de lecture (non incertaine), liste jamais acceptée à moitié', async () => {
-  for (const repondre of [() => json({}, 500), () => { throw new TypeError('réseau'); }, () => json(reponse([brute(A, { sousTotal: 1.5 })]))]) {
+  for (const repondre of [() => json({}, 500), () => { throw new TypeError('réseau'); }, () => json({ ok: true, restaurant: null, commandes: 'x' })]) {
     const { a } = api(repondre);
     await assert.rejects(a.commandesRestaurant(ACCES), (e: unknown) => e instanceof ErreurRestaurateur && !e.incertain);
   }
