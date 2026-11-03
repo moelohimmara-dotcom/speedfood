@@ -54,6 +54,14 @@ function monter(surcharge: Partial<DepsServiceRestaurant> = {}) {
       journal.propositions.push({ restaurantId, commandeId, valeurs });
       return { ok: true };
     },
+    fraicheurDisponibiliteHeures: async () => 6,
+    lireReglages: async () => { throw new Error("hors sujet"); },
+    ecrireStatut: async () => { throw new Error("hors sujet"); },
+    ecrireReglages: async () => { throw new Error("hors sujet"); },
+    lireMenu: async () => { throw new Error("hors sujet"); },
+    basculerDisponibilite: async () => { throw new Error("hors sujet"); },
+    confirmerDisponibilite: async () => { throw new Error("hors sujet"); },
+    confirmerToutesDisponibilites: async () => { throw new Error("hors sujet"); },
     ...surcharge,
   });
   return { service, journal };
@@ -168,4 +176,80 @@ test("service D3 : proposer transmet le client du jeton, le restaurant du CONTEX
   assert.deepEqual(journal.propositions, [{ restaurantId: RESTAURANT_A, commandeId: COMMANDE, valeurs }]);
   assert.deepEqual(journal.clientsCommandes, [CLIENT_JETON]);
   assert.notEqual(journal.clientsCommandes[0], CLIENT_ADMIN);
+});
+
+// ---------- lot D4a : statut, réglages, menu ----------
+test("D4a service : statut, réglages et menu reçoivent le client du JETON et le restaurant de l'appartenance (jamais l'administrateur)", async () => {
+  const recus: Array<{ appel: string; client: unknown; restaurantId: string }> = [];
+  const { service } = monter({
+    fraicheurDisponibiliteHeures: async () => 9,
+    lireReglages: async (client, restaurantId, fraicheur) => { recus.push({ appel: "lireReglages:" + fraicheur, client, restaurantId }); return { ok: true, horaires: "", ouvert: true, accepteCommandes: true, delaiPreparationMinutes: null, platsAReconfirmer: [] }; },
+    ecrireStatut: async (client, restaurantId, demande) => { recus.push({ appel: `statut:${demande.champ}:${demande.valeur}`, client, restaurantId }); return true; },
+    ecrireReglages: async (client, restaurantId, valeurs) => { recus.push({ appel: "reglages:" + Object.keys(valeurs).join(","), client, restaurantId }); return true; },
+    lireMenu: async (client, restaurantId) => { recus.push({ appel: "menu", client, restaurantId }); return { sections: [], plats: [] }; },
+    basculerDisponibilite: async (client, restaurantId, platId, disponible) => { recus.push({ appel: `dispo:${platId}:${disponible}`, client, restaurantId }); return { ok: true }; },
+    confirmerDisponibilite: async (client, restaurantId, platId) => { recus.push({ appel: "confirmer:" + platId, client, restaurantId }); return { ok: true }; },
+    confirmerToutesDisponibilites: async (client, restaurantId) => { recus.push({ appel: "confirmer_tout", client, restaurantId }); return { ok: true }; },
+  });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  assert.deepEqual(await service.modifierStatut(ctx, { champ: "ouvert", valeur: false }), { ok: true });
+  assert.deepEqual(await service.modifierStatut(ctx, { champ: "accepte_commandes", valeur: true }), { ok: true });
+  assert.deepEqual(await service.lireReglages(ctx), { ok: true, valeur: { ok: true, horaires: "", ouvert: true, accepteCommandes: true, delaiPreparationMinutes: null, platsAReconfirmer: [] } });
+  assert.deepEqual(await service.enregistrerReglages(ctx, { horaires: "8h", delaiPreparationMinutes: 20 }), { ok: true });
+  assert.deepEqual(await service.lireMenu(ctx), { ok: true, valeur: { ok: true, sections: [], plats: [] } });
+  const PLAT = "44444444-4444-4444-8444-444444444444";
+  assert.deepEqual(await service.actionMenu(ctx, { action: "disponibilite", platId: PLAT, disponible: false }), { ok: true });
+  assert.deepEqual(await service.actionMenu(ctx, { action: "confirmer", platId: PLAT }), { ok: true });
+  assert.deepEqual(await service.actionMenu(ctx, { action: "confirmer_tout" }), { ok: true });
+  assert.deepEqual(recus.map((r) => r.appel), ["statut:ouvert:false", "statut:accepte_commandes:true", "lireReglages:9", "reglages:horaires,delaiPreparationMinutes", "menu", `dispo:${PLAT}:false`, `confirmer:${PLAT}`, "confirmer_tout"]);
+  for (const r of recus) {
+    assert.equal(r.client, CLIENT_JETON, r.appel + " : client lié au jeton");
+    assert.notEqual(r.client, CLIENT_ADMIN);
+    assert.equal(r.restaurantId, RESTAURANT_A, r.appel + " : restaurant de l'appartenance");
+  }
+});
+
+test("D4a service : une écriture non confirmée par la base = ERREUR_SERVEUR (jamais { ok: true }) ; lecture en panne = ERREUR_SERVEUR sans détail", async () => {
+  const { service } = monter({
+    ecrireStatut: async () => false, ecrireReglages: async () => false,
+    lireReglages: async () => { throw new Error("secret interne SQL"); }, lireMenu: async () => { throw new Error("secret interne SQL"); },
+  });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  for (const r of [await service.modifierStatut(ctx, { champ: "ouvert", valeur: true }), await service.enregistrerReglages(ctx, { horaires: "x" }), await service.lireReglages(ctx), await service.lireMenu(ctx)]) {
+    assert.equal(r.ok, false);
+    assert.equal((r as { erreur: { code: string } }).erreur.code, "ERREUR_SERVEUR");
+    assert.ok(!JSON.stringify(r).includes("secret interne"));
+  }
+  const nul = monter({ lireReglages: async () => null });
+  assert.equal((await nul.service.lireReglages(await nul.service.contexte(JETON_AAL1, "compte-1"))).ok, false);
+});
+
+test("D4a service : le refus d'un service du menu (plat introuvable ou d'un autre restaurant) devient VALIDATION avec son message", async () => {
+  const { service } = monter({
+    basculerDisponibilite: async () => ({ ok: false, message: "Plat introuvable." }),
+    confirmerDisponibilite: async () => ({ ok: false, message: "Plat introuvable, ou retiré de la vente : remettez-le en vente avant de le confirmer." }),
+    confirmerToutesDisponibilites: async () => ({ ok: false, message: "Impossible d'enregistrer le changement. Réessayez dans un instant." }),
+  });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  const PLAT = "44444444-4444-4444-8444-444444444444";
+  assert.deepEqual(await service.actionMenu(ctx, { action: "disponibilite", platId: PLAT, disponible: true }), { ok: false, erreur: { code: "VALIDATION", message: "Plat introuvable." } });
+  assert.equal(((await service.actionMenu(ctx, { action: "confirmer", platId: PLAT })) as { erreur: { code: string } }).erreur.code, "VALIDATION");
+  assert.equal(((await service.actionMenu(ctx, { action: "confirmer_tout" })) as { erreur: { code: string } }).erreur.code, "VALIDATION");
+});
+
+test("D4a service : le statut n'appelle aucun service du menu et inversement (aucun croisement entre les deux interrupteurs ni entre les actions)", async () => {
+  const appels: string[] = [];
+  const { service } = monter({
+    ecrireStatut: async (_c, _r, d) => { appels.push("statut:" + d.champ); return true; },
+    basculerDisponibilite: async () => { appels.push("dispo"); return { ok: true }; },
+    confirmerDisponibilite: async () => { appels.push("confirmer"); return { ok: true }; },
+    confirmerToutesDisponibilites: async () => { appels.push("tout"); return { ok: true }; },
+  });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  const PLAT = "44444444-4444-4444-8444-444444444444";
+  await service.actionMenu(ctx, { action: "confirmer", platId: PLAT });
+  await service.actionMenu(ctx, { action: "confirmer_tout" });
+  await service.actionMenu(ctx, { action: "disponibilite", platId: PLAT, disponible: true });
+  await service.modifierStatut(ctx, { champ: "accepte_commandes", valeur: false });
+  assert.deepEqual(appels, ["confirmer", "tout", "dispo", "statut:accepte_commandes"]);
 });

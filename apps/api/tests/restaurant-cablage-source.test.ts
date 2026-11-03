@@ -32,6 +32,22 @@ test("cablage : lecture, écriture, questions et appartenance reçoivent leur pa
   unique(/^\s*proposerRevision:\s*\(client,\s*restaurantId,\s*commandeId,\s*valeurs\)\s*=>\s*proposerRevision\(client as ClientCommandeDb,\s*restaurantId,\s*commandeId,\s*valeurs\),\s*$/, "proposerRevision");
 });
 
+test("cablage D4a : statut, réglages, menu et disponibilité reçoivent le client du jeton (paramètre `client`), jamais un autre", () => {
+  unique(/^\s*lireReglages:\s*\(client,\s*restaurantId,\s*fraicheurHeures\)\s*=>\s*lireReglagesRestaurant\(client as SupabaseClient,\s*restaurantId,\s*fraicheurHeures\),\s*$/, "lireReglages");
+  unique(/^\s*ecrireStatut:\s*\(client,\s*restaurantId,\s*demande\)\s*=>\s*ecrireStatutRestaurant\(client as SupabaseClient,\s*restaurantId,\s*demande\),\s*$/, "ecrireStatut");
+  unique(/^\s*ecrireReglages:\s*\(client,\s*restaurantId,\s*valeurs\)\s*=>\s*ecrireReglagesRestaurant\(client as SupabaseClient,\s*restaurantId,\s*valeurs\),\s*$/, "ecrireReglages");
+  unique(/^\s*lireMenu:\s*\(client,\s*restaurantId\)\s*=>\s*lireMenuRestaurant\(client as SupabaseClient,\s*restaurantId\),\s*$/, "lireMenu");
+  unique(/^\s*basculerDisponibilite:\s*\(client,\s*restaurantId,\s*platId,\s*disponible\)\s*=>\s*basculerDisponibilite\(client as SupabaseClient,\s*restaurantId,\s*platId,\s*disponible\),\s*$/, "basculerDisponibilite");
+  unique(/^\s*confirmerDisponibilite:\s*\(client,\s*restaurantId,\s*platId\)\s*=>\s*confirmerDisponibilite\(client as SupabaseClient,\s*restaurantId,\s*platId\),\s*$/, "confirmerDisponibilite");
+  unique(/^\s*confirmerToutesDisponibilites:\s*\(client,\s*restaurantId\)\s*=>\s*confirmerToutesDisponibilites\(client as SupabaseClient,\s*restaurantId\),\s*$/, "confirmerToutesDisponibilites");
+});
+
+test("cablage D4a : la SEULE lecture système du lot est le seuil de fraîcheur global (paramètre non sensible, policy réservée aux administrateurs), jamais une donnée de restaurant", () => {
+  assert.equal((code.match(/obtenirParametresApplication\(/g) ?? []).length, 1, "obtenirParametresApplication appelé ailleurs que pour le seuil de fraîcheur");
+  unique(/^\s*fraicheurDisponibiliteHeures:\s*async\s*\(\)\s*=>\s*\(await obtenirParametresApplication\(\)\)\.disponibiliteFraicheurHeures,\s*$/, "fraicheurDisponibiliteHeures");
+  assert.ok(!/creerClientAdmin\(\)\s*as\s+SupabaseClient/.test(code), "le client administrateur ne sert jamais de client de restaurant");
+});
+
 test("cablage : second facteur = facteurs au statut « verified » lus avec le client administrateur reçu en paramètre, pour le compte du jeton", () => {
   unique(/^\s*aSecondFacteurConfirme:\s*async\s*\(admin,\s*utilisateurId\)\s*=>\s*\{\s*$/, "signature de aSecondFacteurConfirme");
   unique(/^\s*const \{ data \} = await \(admin as ReturnType<typeof creerClientAdmin>\)\.auth\.admin\.mfa\.listFactors\(\{ userId: utilisateurId \}\);\s*$/, "listFactors");
@@ -45,6 +61,13 @@ test("cablage : plafond par compte et origine du site câblés sur les bons serv
 
 test("cablage : aucune lecture d'environnement ni journal dans le câblage", () => {
   assert.ok(!/process\.env|console\./.test(code));
+});
+
+test("l'analyseur D4a : une variante qui passe le client administrateur au statut serait détectée", () => {
+  const faux = "ecrireStatut: (client, restaurantId, demande) => ecrireStatutRestaurant(creerClientAdmin() as SupabaseClient, restaurantId, demande),";
+  assert.ok(!/^\s*ecrireStatut:\s*\(client,\s*restaurantId,\s*demande\)\s*=>\s*ecrireStatutRestaurant\(client as SupabaseClient,/.test(faux));
+  assert.ok(/creerClientAdmin\(\)\s*as\s+SupabaseClient/.test(faux));
+  assert.equal(((faux + "\nclientAdmin: () => creerClientAdmin(),").match(/creerClientAdmin\(/g) ?? []).length, 2);
 });
 
 test("l'analyseur : une variante qui passe le client administrateur à un service serait détectée", () => {

@@ -8,7 +8,10 @@ import { confirmerPaiement } from "@/lib/commande/service-paiement";
 import { lireCommandesRestaurant } from "@/lib/api/restaurant-commandes";
 import { origineDuSite } from "@/lib/partage/origine";
 import type { ClientCommandeDb } from "@/lib/commande/commun";
+import { basculerDisponibilite, confirmerDisponibilite, confirmerToutesDisponibilites, lireMenu as lireMenuRestaurant } from "@/lib/menu/service-menu";
+import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { creerServiceRestaurant } from "./service.ts";
+import { ecrireReglagesRestaurant, ecrireStatutRestaurant, lireReglagesRestaurant } from "./reglages.ts";
 
 /** Câblage de PRODUCTION du service restaurateur : les services du site, jamais une copie de leurs règles. Aucun secret lu ici (les clients les lisent à l'appel). */
 export const serviceRestaurant = creerServiceRestaurant({
@@ -29,4 +32,12 @@ export const serviceRestaurant = creerServiceRestaurant({
   traiterCommande: (client, utilisateurId, restaurantId, commandeId, action) => traiterCommande(client as ClientCommandeDb, utilisateurId, restaurantId, commandeId, action),
   confirmerPaiement: (client, restaurantId, commandeId, decision) => confirmerPaiement(client as ClientCommandeDb, restaurantId, commandeId, decision),
   proposerRevision: (client, restaurantId, commandeId, valeurs) => proposerRevision(client as ClientCommandeDb, restaurantId, commandeId, valeurs),
+  fraicheurDisponibiliteHeures: async () => (await obtenirParametresApplication()).disponibiliteFraicheurHeures,
+  lireReglages: (client, restaurantId, fraicheurHeures) => lireReglagesRestaurant(client as SupabaseClient, restaurantId, fraicheurHeures),
+  ecrireStatut: (client, restaurantId, demande) => ecrireStatutRestaurant(client as SupabaseClient, restaurantId, demande),
+  ecrireReglages: (client, restaurantId, valeurs) => ecrireReglagesRestaurant(client as SupabaseClient, restaurantId, valeurs),
+  lireMenu: (client, restaurantId) => lireMenuRestaurant(client as SupabaseClient, restaurantId),
+  basculerDisponibilite: (client, restaurantId, platId, disponible) => basculerDisponibilite(client as SupabaseClient, restaurantId, platId, disponible),
+  confirmerDisponibilite: (client, restaurantId, platId) => confirmerDisponibilite(client as SupabaseClient, restaurantId, platId),
+  confirmerToutesDisponibilites: (client, restaurantId) => confirmerToutesDisponibilites(client as SupabaseClient, restaurantId),
 });

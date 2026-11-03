@@ -1,5 +1,6 @@
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
+import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type DecisionPaiementApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { ContexteRestaurant, Deps } from "../types.ts";
 
@@ -30,7 +31,26 @@ export interface DepsServiceRestaurant {
   confirmerPaiement(client: unknown, restaurantId: string, commandeId: string, decision: string): Promise<ResultatActionCommande>;
   /** Proposition de prix (`proposerRevision` du site) : le restaurant du contexte filtre la commande, le client est celui du jeton. */
   proposerRevision(client: unknown, restaurantId: string, commandeId: string, valeurs: ValeursProposition): Promise<ResultatActionCommande>;
+  /**
+   * Seuil de fraîcheur de la disponibilité (heures), paramètre GLOBAL de l'application (`parametres_application`), lu comme le fait la route du site (`obtenirParametresApplication`) :
+   * un restaurateur n'a pas le droit de lire cette table (policy réservée aux administrateurs), c'est la seule lecture système du lot, sans lien avec un restaurant.
+   */
+  fraicheurDisponibiliteHeures(): Promise<number>;
+  /** Réglages, état du service et plats à reconfirmer ; `null` = illisible. Le client est celui du jeton, le restaurant celui du contexte. */
+  lireReglages(client: unknown, restaurantId: string, fraicheurHeures: number): Promise<ReponseReglagesRestaurant | null>;
+  /** `true` seulement si la base a confirmé la modification d'une ligne de CE restaurant. */
+  ecrireStatut(client: unknown, restaurantId: string, demande: StatutDemande): Promise<boolean>;
+  ecrireReglages(client: unknown, restaurantId: string, valeurs: ReglagesAEcrire): Promise<boolean>;
+  /** `lireMenu` du site : lève une erreur si le menu est illisible. */
+  lireMenu(client: unknown, restaurantId: string): Promise<{ sections: ReponseMenuRestaurant["sections"]; plats: ReponseMenuRestaurant["plats"] }>;
+  /** Services du menu du site : le plat est filtré sur le restaurant du contexte (un plat d'un autre restaurant est « introuvable »). */
+  basculerDisponibilite(client: unknown, restaurantId: string, platId: string, disponible: boolean): Promise<ResultatMenuSite>;
+  confirmerDisponibilite(client: unknown, restaurantId: string, platId: string): Promise<ResultatMenuSite>;
+  confirmerToutesDisponibilites(client: unknown, restaurantId: string): Promise<ResultatMenuSite>;
 }
+
+/** Résultat des services du menu du site (`ResultatMenu`). */
+export type ResultatMenuSite = { ok: true } | { ok: false; message: string };
 
 /** Niveau d'assurance (« aal1 » mot de passe seul, « aal2 » avec second facteur) lu dans le jeton DÉJÀ vérifié par la route. */
 export function niveauDuJeton(jeton: string): string | null {
@@ -76,6 +96,36 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     },
     async proposer(ctx, commandeId: string, valeurs: ValeursProposition) {
       return d.proposerRevision(ctx.supabase, ctx.restaurantId, commandeId, valeurs);
+    },
+    async modifierStatut(ctx, demande: StatutDemande) {
+      return (await d.ecrireStatut(ctx.supabase, ctx.restaurantId, demande)) ? { ok: true } : { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Impossible d'enregistrer le changement. Réessayez dans un instant." } };
+    },
+    async lireReglages(ctx) {
+      const message = "Vos réglages n'ont pas pu être chargés. Réessayez dans un instant.";
+      try {
+        const reglages = await d.lireReglages(ctx.supabase, ctx.restaurantId, await d.fraicheurDisponibiliteHeures());
+        return reglages ? { ok: true, valeur: reglages } : { ok: false, erreur: { code: "ERREUR_SERVEUR", message } };
+      } catch {
+        return { ok: false, erreur: { code: "ERREUR_SERVEUR", message } };
+      }
+    },
+    async enregistrerReglages(ctx, valeurs: ReglagesAEcrire) {
+      return (await d.ecrireReglages(ctx.supabase, ctx.restaurantId, valeurs)) ? { ok: true } : { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Impossible d'enregistrer vos réglages. Réessayez dans un instant." } };
+    },
+    async lireMenu(ctx) {
+      try {
+        const menu = await d.lireMenu(ctx.supabase, ctx.restaurantId);
+        return { ok: true, valeur: { ok: true, sections: menu.sections, plats: menu.plats } };
+      } catch {
+        return { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Impossible de charger le menu. Réessayez dans un instant." } };
+      }
+    },
+    async actionMenu(ctx, action: ActionMenuApp) {
+      // Même correspondance que la route du site : une raison de refus du service est une erreur de validation (le plat n'existe pas ou n'est pas à ce restaurant).
+      const resultat = action.action === "disponibilite" ? await d.basculerDisponibilite(ctx.supabase, ctx.restaurantId, action.platId, action.disponible)
+        : action.action === "confirmer" ? await d.confirmerDisponibilite(ctx.supabase, ctx.restaurantId, action.platId)
+          : await d.confirmerToutesDisponibilites(ctx.supabase, ctx.restaurantId);
+      return resultat.ok ? { ok: true } : { ok: false, erreur: { code: "VALIDATION", message: resultat.message } };
     },
   };
 }

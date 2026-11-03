@@ -48,6 +48,12 @@ function monter(surcharge: Partial<Deps["restaurant"]> = {}, journal: Journal = 
         journal.propositions.push({ commandeId, valeurs });
         return { ok: true };
       },
+      // Lot D4a : testé dans restaurant-service-routes.test.ts ; ici elles échouent bruyamment si une route des lots D1 à D3 y touche.
+      modifierStatut: async () => { throw new Error("hors sujet"); },
+      lireReglages: async () => { throw new Error("hors sujet"); },
+      enregistrerReglages: async () => { throw new Error("hors sujet"); },
+      lireMenu: async () => { throw new Error("hors sujet"); },
+      actionMenu: async () => { throw new Error("hors sujet"); },
       ...surcharge,
     },
   }));

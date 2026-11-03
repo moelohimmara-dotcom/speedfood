@@ -1,9 +1,13 @@
 import type { VersionApplication } from "@speedfood/shared/application/version";
 import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
+import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { Planifier } from "@/lib/commande/creation-coeur";
 import type { VerificateurJeton } from "./identite/jeton.ts";
+
+/** Lecture d'une ressource du restaurateur : la valeur, ou l'erreur au contrat uniforme. */
+export type ResultatLecture<T> = { ok: true; valeur: T } | { ok: false; erreur: ErreurApi };
 
 export type ResultatEspace = { ok: true; message: string; favori?: boolean } | { ok: false; message: string };
 
@@ -74,6 +78,16 @@ export interface Deps {
     confirmerPaiement(ctx: ContexteRestaurant, commandeId: string, decision: DecisionPaiementApp): Promise<ResultatActionCommande>;
     /** Lot D3 : propose un autre prix au client pour une commande en attente ; même service que la route et la console du site (`proposerRevision`). */
     proposer(ctx: ContexteRestaurant, commandeId: string, valeurs: ValeursProposition): Promise<ResultatActionCommande>;
+    /** Lot D4a : un interrupteur du service (« ouvert » ou « accepte_commandes »), écrit avec le client du jeton sur le restaurant du compte ; enregistré seulement après confirmation de la base. */
+    modifierStatut(ctx: ContexteRestaurant, demande: StatutDemande): Promise<ResultatActionCommande>;
+    /** Lot D4a : horaires, état du service, délai de préparation et plats à reconfirmer (règle du serveur, seuil de fraîcheur global). */
+    lireReglages(ctx: ContexteRestaurant): Promise<ResultatLecture<ReponseReglagesRestaurant>>;
+    /** Lot D4a : horaires et/ou délai de préparation, et rien d'autre. */
+    enregistrerReglages(ctx: ContexteRestaurant, valeurs: ReglagesAEcrire): Promise<ResultatActionCommande>;
+    /** Lot D4a : le menu (plats non archivés) du restaurant du compte, lu avec le client du jeton. */
+    lireMenu(ctx: ContexteRestaurant): Promise<ResultatLecture<ReponseMenuRestaurant>>;
+    /** Lot D4a : disponibilité d'un plat, reconfirmation d'un plat ou de tous (services du menu du site ; le plat est toujours filtré sur le restaurant du compte). */
+    actionMenu(ctx: ContexteRestaurant, action: ActionMenuApp): Promise<ResultatActionCommande>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };

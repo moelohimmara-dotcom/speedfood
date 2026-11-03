@@ -1,6 +1,8 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { lireBearer } from "@speedfood/shared/api/v1-regles";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
+import { lireDelaiPreparation } from "@speedfood/shared/commande/estimation";
+import { lireActionMenuApp, lireReglagesApp, lireStatutApp } from "@speedfood/shared/contracts/restaurant-service";
 import { lireActionRestaurantApp, lireDecisionPaiementApp, lireValeursPropositionApp } from "@speedfood/shared/contracts/restaurant-commandes";
 import { identifier } from "../controles/chaine.ts";
 import type { Variables } from "../controles/chaine.ts";
@@ -10,7 +12,7 @@ import type { Deps } from "../types.ts";
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Espace restaurateur (lots D1, D2 et D3), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
+ * Espace restaurateur (lots D1, D2, D3 et D4a), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
  * les refuser, les passer prêtes puis terminées, les annuler, confirmer ou contester un paiement déclaré, et proposer un autre prix au client.
  *
  *  - Jeton porteur STRICT uniquement (jamais de cookie), puis `deps.restaurant.contexte` : plafond par compte, second facteur, questions de sécurité, appartenance. Le restaurant
@@ -80,6 +82,60 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     if (!valeurs.ok) return reponseErreur(c, { code: "VALIDATION", message: valeurs.message });
     if (typeof corps.commandeId !== "string" || !REGEX_UUID.test(corps.commandeId)) return reponseErreur(c, { code: "VALIDATION", message: "Commande invalide." });
     const resultat = await deps.restaurant.proposer(ctx, corps.commandeId, valeurs.valeurs);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
+  // ---------- lot D4a : service, réglages, disponibilité des plats ----------
+  // Même ordre partout : le contexte (plafond par compte, second facteur, questions, appartenance) AVANT le corps et la validation. Le restaurant vient de l'appartenance du compte ;
+  // un `restaurantId` du corps est ignoré. Les écritures n'envoient que des colonnes choisies une à une, avec le client du jeton.
+  const contexte = async (c: Context<{ Variables: Variables }>) => {
+    const jeton = lireBearer(c.req.header("authorization"));
+    if (!jeton) throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous avec votre compte restaurateur.");
+    return deps.restaurant.contexte(jeton, c.get("utilisateurId"));
+  };
+
+  route.post("/statut", identite, async (c) => {
+    const ctx = await contexte(c);
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    // Champ exactement « ouvert » ou « accepte_commandes », valeur exactement un booléen : tout le reste est refusé avant le service.
+    const demande = lireStatutApp(lu.corps);
+    if (demande === null) return reponseErreur(c, { code: "VALIDATION", message: "Statut inconnu." });
+    const resultat = await deps.restaurant.modifierStatut(ctx, demande);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
+  route.get("/reglages", identite, async (c) => {
+    const ctx = await contexte(c);
+    const lecture = await deps.restaurant.lireReglages(ctx);
+    return lecture.ok ? repondre(c, lecture.valeur) : reponseErreur(c, lecture.erreur);
+  });
+
+  route.post("/reglages", identite, async (c) => {
+    const ctx = await contexte(c);
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    // Horaires (texte, 500 caractères au plus) et délai (5 à 240 minutes ou null, même fonction que le site) : seuls ces deux champs existent ici.
+    const valeurs = lireReglagesApp(lu.corps, lireDelaiPreparation);
+    if (!valeurs.ok) return reponseErreur(c, { code: "VALIDATION", message: valeurs.message });
+    const resultat = await deps.restaurant.enregistrerReglages(ctx, valeurs.valeurs);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
+  route.get("/menu", identite, async (c) => {
+    const ctx = await contexte(c);
+    const lecture = await deps.restaurant.lireMenu(ctx);
+    return lecture.ok ? repondre(c, lecture.valeur) : reponseErreur(c, lecture.erreur);
+  });
+
+  route.post("/menu/action", identite, async (c) => {
+    const ctx = await contexte(c);
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    // LISTE BLANCHE (disponibilite, confirmer, confirmer_tout) avant tout appel au service : créer, modifier, archiver, les suppléments (lot D4b) et toute valeur inconnue sont refusés ici.
+    const action = lireActionMenuApp(lu.corps);
+    if (action === null) return reponseErreur(c, { code: "VALIDATION", message: "Action inconnue." });
+    const resultat = await deps.restaurant.actionMenu(ctx, action);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 
