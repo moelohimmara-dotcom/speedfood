@@ -1,19 +1,27 @@
 import type { ApercuCommandeRestaurant } from "./commande";
 
 /**
- * Contrat des routes `/api/v1/restaurant/commandes*` de l'application native (lot D1 : lire, accepter, refuser).
+ * Contrat des routes `/api/v1/restaurant/commandes*` de l'application native (lot D1 : lire, accepter, refuser ; lot D2 : prête, terminée, confirmation du paiement).
  * Pur : aucun import du site, de Next ni de Supabase.
  */
 
 /**
- * Actions que l'application peut demander dans ce lot : UNIQUEMENT accepter ou refuser. « prete », « terminee » et « annuler » existent dans le service du site
- * mais sont refusées ici (lots suivants). Toute autre valeur est une erreur de validation, sans appel au service.
+ * Actions que l'application peut demander : accepter, refuser, passer prête, terminer. « annuler » existe dans le service du site mais est refusée ici (lot suivant,
+ * avec les propositions de prix et la livraison). Toute autre valeur est une erreur de validation, sans appel au service.
  */
-export const ACTIONS_RESTAURANT_APP = ["accepter", "refuser"] as const;
+export const ACTIONS_RESTAURANT_APP = ["accepter", "refuser", "prete", "terminee"] as const;
 export type ActionRestaurantApp = (typeof ACTIONS_RESTAURANT_APP)[number];
 
 export function lireActionRestaurantApp(valeur: unknown): ActionRestaurantApp | null {
   return typeof valeur === "string" && (ACTIONS_RESTAURANT_APP as readonly string[]).includes(valeur) ? (valeur as ActionRestaurantApp) : null;
+}
+
+/** Décisions du restaurateur sur un paiement DÉCLARÉ par le client (code marchand) : « recu » le confirme, « non_recu » le conteste. Toute autre valeur est refusée. */
+export const DECISIONS_PAIEMENT_APP = ["recu", "non_recu"] as const;
+export type DecisionPaiementApp = (typeof DECISIONS_PAIEMENT_APP)[number];
+
+export function lireDecisionPaiementApp(valeur: unknown): DecisionPaiementApp | null {
+  return typeof valeur === "string" && (DECISIONS_PAIEMENT_APP as readonly string[]).includes(valeur) ? (valeur as DecisionPaiementApp) : null;
 }
 
 /** Pourquoi un compte restaurateur est renvoyé vers le site : la valeur est dans `erreur.champs.securite` d'une réponse 403. */

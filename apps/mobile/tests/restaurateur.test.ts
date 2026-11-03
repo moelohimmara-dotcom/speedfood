@@ -4,7 +4,7 @@ import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
 import {
   ETAT_REPOS, ErreurRestaurateur, MESSAGE_SECURITE, actionVerrouillee, actionsAffichees, actionsPossibles, erreurReponseRestaurateur, erreurReseauRestaurateur, evoluer, grouper, lireListeRestaurateur, lireRaisonSecurite,
-  lireReponseAction, lireRoles, peutEnvoyer, refusRestaurateur, verdictAction, type CommandeRestaurateur, type EtatAction,
+  libellePaiement, ligneClient, lireReponseAction, lireRoles, peutEnvoyer, refusRestaurateur, verdictAction, type CommandeRestaurateur, type EtatAction,
 } from '../src/connexion/restaurateur.ts';
 
 const A = '00000000-0000-4000-8000-00000000000a';
@@ -47,6 +47,16 @@ test('lecture : une ligne à valeur inconnue ou hors bornes est ÉCARTÉE et com
   assert.throws(() => lireListeRestaurateur({ ok: true, commandes: 'x', restaurant: null }));
   assert.throws(() => lireListeRestaurateur(reponse([], { id: 'x', nom: 'N', ouvert: 'oui', accepteCommandes: true })));
   assert.equal(lireListeRestaurateur(reponse([], null)).restaurant, null);
+});
+test('lecture D2 : statut et mode de paiement lus (valeurs du contrat), référence nettoyée ; valeur inconnue = ligne écartée et comptée', () => {
+  const c = lue({ statut: 'acceptee', paiementStatut: 'declare', paiementMode: 'orange_money', paiementReference: 'OM\n123456' });
+  assert.deepEqual([c.paiementStatut, c.paiementMode, c.paiementReference], ['declare', 'orange_money', 'OM 123456']);
+  assert.equal(lue({ paiementReference: '' }).paiementReference, null);
+  for (const surcharge of [{ paiementStatut: 'rembourse' }, { paiementStatut: null }, { paiementMode: 'cheque' }, { paiementMode: 3 }]) {
+    const l = lireListeRestaurateur(reponse([brute(A, surcharge), brute(B)]));
+    assert.deepEqual(l.commandes.map(x => x.id), [B], JSON.stringify(surcharge));
+    assert.equal(l.illisibles, 1);
+  }
 });
 // ---------- commandes atypiques (revue I-1) ----------
 const CONTROLES = String.fromCharCode(0, 7, 27, 127, 0x202e, 0x200f);
@@ -99,10 +109,72 @@ test('groupes : à traiter (en attente), en cours (acceptée, prête), historiqu
   assert.deepEqual(g.map(x => x.titre), ['À traiter', 'En cours', 'Historique récent']);
   assert.deepEqual(g.map(x => x.commandes.map(c => c.statut)), [['en_attente'], ['acceptee', 'prete'], ['terminee', 'refusee', 'annulee']]);
 });
-test('boutons : accepter et refuser seulement sur une commande en attente sans proposition en cours ; jamais « prête » ni autre', () => {
+const STATUTS_TOUS = ['en_attente', 'acceptee', 'prete', 'terminee', 'refusee', 'annulee'] as const;
+const PAIEMENTS_TOUS = ['non_demande', 'especes', 'declare', 'recu', 'non_recu'] as const;
+const MODES_TOUS = [null, 'especes', 'orange_money', 'mtn_momo', 'speedfood'] as const;
+test('boutons : accepter et refuser seulement sur une commande en attente sans proposition en cours', () => {
   assert.deepEqual(actionsPossibles(attente), ['accepter', 'refuser']);
   assert.deepEqual(actionsPossibles(lue({ propositionActive: { id: 'p' } })), []);
-  for (const statut of ['acceptee', 'prete', 'terminee', 'refusee', 'annulee']) assert.deepEqual(actionsPossibles(lue({ statut })), [], statut);
+});
+test('boutons D2 : « Marquer prête » sur une commande acceptée, « Marquer terminée » sur une commande prête, rien d’autre', () => {
+  assert.deepEqual(actionsPossibles(lue({ statut: 'acceptee' })), ['prete']);
+  assert.deepEqual(actionsPossibles(lue({ statut: 'prete' })), ['terminee']);
+  for (const statut of ['terminee', 'refusee', 'annulee']) assert.deepEqual(actionsPossibles(lue({ statut })), [], statut);
+});
+test('boutons D2 : « Marquer prête » JAMAIS sur une commande en attente (ni « terminée »), « terminée » jamais sur une commande acceptée', () => {
+  assert.ok(!actionsPossibles(attente).includes('prete') && !actionsPossibles(attente).includes('terminee'));
+  assert.ok(!actionsPossibles(lue({ statut: 'acceptee' })).includes('terminee'));
+  assert.ok(!actionsPossibles(lue({ statut: 'prete' })).includes('prete'));
+  assert.ok(!actionsPossibles(lue({ statut: 'prete' })).includes('accepter'));
+});
+test('boutons D2 : « Paiement reçu / non reçu » UNIQUEMENT pour un paiement déclaré par code marchand, sur une commande acceptée, prête ou terminée', () => {
+  for (const statut of ['acceptee', 'prete', 'terminee']) {
+    for (const mode of ['orange_money', 'mtn_momo']) {
+      const a = actionsPossibles(lue({ statut, paiementStatut: 'declare', paiementMode: mode }));
+      assert.ok(a.includes('paiement_recu') && a.includes('paiement_non_recu'), statut + ' ' + mode);
+    }
+  }
+});
+test('boutons D2 : toutes les combinaisons statut × paiement × mode — aucun bouton de paiement hors « déclaré par code marchand » (jamais d’espèces, jamais de paiement en ligne Speedfood)', () => {
+  for (const statut of STATUTS_TOUS) for (const paiementStatut of PAIEMENTS_TOUS) for (const paiementMode of MODES_TOUS) {
+    const a = actionsPossibles(lue({ statut, paiementStatut, paiementMode }));
+    const attendu = ['acceptee', 'prete', 'terminee'].includes(statut) && paiementStatut === 'declare' && (paiementMode === 'orange_money' || paiementMode === 'mtn_momo');
+    assert.equal(a.includes('paiement_recu'), attendu, [statut, paiementStatut, paiementMode].join(' '));
+    assert.equal(a.includes('paiement_non_recu'), attendu, [statut, paiementStatut, paiementMode].join(' '));
+    // Statut : exactement l’étape suivante, indépendamment du paiement.
+    const statutAttendu = statut === 'en_attente' ? ['accepter', 'refuser'] : statut === 'acceptee' ? ['prete'] : statut === 'prete' ? ['terminee'] : [];
+    assert.deepEqual(a.filter(x => !x.startsWith('paiement')), statutAttendu, [statut, paiementStatut, paiementMode].join(' '));
+  }
+});
+test('boutons D2 : aucun bouton du tout pour les états finaux sans paiement à trancher, ni pour une proposition en cours (hors paiement)', () => {
+  for (const statut of ['terminee', 'refusee', 'annulee']) assert.deepEqual(actionsPossibles(lue({ statut, paiementStatut: 'recu', paiementMode: 'orange_money' })), [], statut);
+  assert.deepEqual(actionsPossibles(lue({ statut: 'acceptee', propositionActive: { id: 'p' } })), []);
+});
+test('affichage D2 : libellés de paiement fixes, jamais « espèces » ; ligne client sans séparateur vide (T2-1)', () => {
+  const l = (surcharge: Record<string, unknown>) => libellePaiement(lue({ statut: 'acceptee', ...surcharge }));
+  assert.equal(l({ paiementStatut: 'declare', paiementMode: 'orange_money', paiementReference: 'ABC1234' }), 'Paiement déclaré par le client · Orange Money · réf. ABC1234');
+  assert.equal(l({ paiementStatut: 'recu', paiementMode: 'mtn_momo' }), 'Paiement reçu · MTN MoMo');
+  assert.equal(l({ paiementStatut: 'non_demande', paiementMode: null }), 'Paiement non demandé');
+  for (const paiementStatut of PAIEMENTS_TOUS) for (const paiementMode of MODES_TOUS) {
+    const texte = l({ paiementStatut, paiementMode }) ?? '';
+    assert.ok(!/esp[eè]ces/i.test(texte), texte);
+  }
+  assert.equal(l({ paiementStatut: 'especes', paiementMode: 'especes' }), null);
+  assert.equal(libellePaiement(attente), null, 'rien à montrer avant l’acceptation');
+  assert.equal(ligneClient(lue({ clientNom: 'Awa', clientTelephone: '' })), 'Awa');
+  assert.equal(ligneClient(lue({ clientNom: 'Awa', clientTelephone: '+224 622 00 00 00' })), 'Awa · +224 622 00 00 00');
+});
+test('boutons D2 : liste À JOUR après une acceptation confirmée : le bouton de l’étape suivante (« prête ») apparaît ; liste PÉRIMÉE : rien', () => {
+  const confirme: EtatAction = { phase: 'verdict', commandeId: A, action: 'accepter', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
+  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee' }), confirme), ['prete']);
+  assert.deepEqual(actionsAffichees(attente, confirme), []);
+  const pret: EtatAction = { phase: 'verdict', commandeId: A, action: 'prete', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
+  assert.deepEqual(actionsAffichees(lue({ statut: 'prete' }), pret), ['terminee']);
+  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee' }), pret), [], 'liste périmée : pas de second envoi');
+  const paye: EtatAction = { phase: 'verdict', commandeId: A, action: 'paiement_recu', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
+  const encoreDeclare = lue({ statut: 'acceptee', paiementStatut: 'declare', paiementMode: 'orange_money' });
+  assert.deepEqual(actionsAffichees(encoreDeclare, paye), ['prete'], 'le paiement n’est plus proposé, la préparation reste possible');
+  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee', paiementStatut: 'recu', paiementMode: 'orange_money' }), paye), ['prete']);
 });
 test('boutons : retirés pour la commande dont l’action vient d’être confirmée (liste relue absente ou périmée)', () => {
   const confirme: EtatAction = { phase: 'verdict', commandeId: A, action: 'accepter', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
@@ -158,25 +230,91 @@ test('verdict : réponse incertaine, la liste relue décide ; jamais « réessay
   assert.equal(verdictAction({ erreur: incertain, action: 'accepter', relue: null }).genre, 'refus');
 });
 
-// ---------- machine d'états : une transition par test ----------
-test('machine : repos → confirmation du refus (demander_refus)', () => {
-  assert.deepEqual(evoluer(ETAT_REPOS, { type: 'demander_refus', commandeId: A, lecture: 0 }), { phase: 'confirmation_refus', commandeId: A });
+test('verdict D2 : messages de succès fixes pour prête, terminée, paiement reçu, non reçu', () => {
+  const v = (action: never) => verdictAction({ erreur: null, action, relue: undefined }).message;
+  assert.equal(v('prete' as never), 'Commande marquée prête.');
+  assert.equal(v('terminee' as never), 'Commande marquée terminée.');
+  assert.equal(v('paiement_recu' as never), 'Paiement confirmé comme reçu.');
+  assert.equal(v('paiement_non_recu' as never), 'Paiement signalé comme non reçu.');
 });
-test('machine : confirmation → repos (annuler_refus) ; sans confirmation en cours, sans effet', () => {
-  assert.deepEqual(evoluer({ phase: 'confirmation_refus', commandeId: A }, { type: 'annuler_refus' }), ETAT_REPOS);
-  assert.equal(evoluer(ETAT_REPOS, { type: 'annuler_refus' }), ETAT_REPOS);
+test('verdict D2 : réponse incertaine, la liste relue décide pour prête, terminée et paiement', () => {
+  assert.equal(verdictAction({ erreur: incertain, action: 'prete', relue: lue({ statut: 'prete' }) }).genre, 'confirme');
+  assert.equal(verdictAction({ erreur: incertain, action: 'prete', relue: lue({ statut: 'terminee' }) }).genre, 'confirme');
+  const encore = verdictAction({ erreur: incertain, action: 'prete', relue: lue({ statut: 'acceptee' }) });
+  assert.deepEqual([encore.genre, (encore as { reessayer: boolean }).reessayer], ['incertain', true]);
+  assert.equal(verdictAction({ erreur: incertain, action: 'prete', relue: undefined }).genre, 'incertain');
+  assert.equal((verdictAction({ erreur: incertain, action: 'prete', relue: undefined }) as { reessayer: boolean }).reessayer, false);
+  assert.equal(verdictAction({ erreur: incertain, action: 'terminee', relue: lue({ statut: 'terminee' }) }).genre, 'confirme');
+  assert.equal(verdictAction({ erreur: incertain, action: 'terminee', relue: lue({ statut: 'prete' }) }).genre, 'incertain');
+  assert.equal(verdictAction({ erreur: incertain, action: 'terminee', relue: lue({ statut: 'annulee' }) }).genre, 'refus');
+  const declare = { statut: 'acceptee', paiementMode: 'orange_money' };
+  assert.equal(verdictAction({ erreur: incertain, action: 'paiement_recu', relue: lue({ ...declare, paiementStatut: 'recu' }) }).genre, 'confirme');
+  assert.equal(verdictAction({ erreur: incertain, action: 'paiement_non_recu', relue: lue({ ...declare, paiementStatut: 'non_recu' }) }).genre, 'confirme');
+  const encoreDeclare = verdictAction({ erreur: incertain, action: 'paiement_recu', relue: lue({ ...declare, paiementStatut: 'declare' }) });
+  assert.deepEqual([encoreDeclare.genre, (encoreDeclare as { reessayer: boolean }).reessayer], ['incertain', true]);
+  assert.equal(verdictAction({ erreur: incertain, action: 'paiement_recu', relue: lue({ ...declare, paiementStatut: 'non_recu' }) }).genre, 'refus', 'jamais converti en succès : l’autre décision a été prise');
+  assert.equal(verdictAction({ erreur: incertain, action: 'paiement_non_recu', relue: lue({ ...declare, paiementStatut: 'recu' }) }).genre, 'refus');
+  assert.equal(verdictAction({ erreur: incertain, action: 'paiement_recu', relue: null }).genre, 'refus');
+  assert.equal(verdictAction({ erreur: refusRestaurateur(409), action: 'paiement_recu', relue: lue({ ...declare, paiementStatut: 'declare' }) }).genre, 'refus', 'refus certain : jamais converti');
+  assert.deepEqual(verdictAction({ erreur: refusRestaurateur(403, 'mfa'), action: 'terminee', relue: undefined }), { genre: 'securite', message: MESSAGE_SECURITE });
+});
+
+// ---------- machine d'états : une transition par test ----------
+test('machine : repos → confirmation du refus (demander_confirmation)', () => {
+  assert.deepEqual(evoluer(ETAT_REPOS, { type: 'demander_confirmation', commandeId: A, action: 'refuser', lecture: 0 }), { phase: 'confirmation', commandeId: A, action: 'refuser' });
+});
+test('machine : confirmation → repos (annuler_confirmation) ; sans confirmation en cours, sans effet', () => {
+  assert.deepEqual(evoluer({ phase: 'confirmation', commandeId: A, action: 'refuser' }, { type: 'annuler_confirmation' }), ETAT_REPOS);
+  assert.equal(evoluer(ETAT_REPOS, { type: 'annuler_confirmation' }), ETAT_REPOS);
 });
 test('machine : accepter part directement de repos → envoi', () => {
   assert.deepEqual(evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'accepter', lecture: 0 }), { phase: 'envoi', commandeId: A, action: 'accepter' });
 });
 test('machine : un refus n’est JAMAIS envoyé sans sa confirmation (repos, ou confirmation d’une autre commande)', () => {
   assert.equal(evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 }), ETAT_REPOS);
-  const autre: EtatAction = { phase: 'confirmation_refus', commandeId: B };
+  const autre: EtatAction = { phase: 'confirmation', commandeId: B, action: 'refuser' };
   assert.equal(evoluer(autre, { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 }), autre);
   assert.equal(peutEnvoyer(ETAT_REPOS, A, 'refuser', 0), false);
 });
 test('machine : confirmation du refus → envoi', () => {
-  assert.deepEqual(evoluer({ phase: 'confirmation_refus', commandeId: A }, { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 }), { phase: 'envoi', commandeId: A, action: 'refuser' });
+  assert.deepEqual(evoluer({ phase: 'confirmation', commandeId: A, action: 'refuser' }, { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 }), { phase: 'envoi', commandeId: A, action: 'refuser' });
+});
+test('machine D2 : prête, terminée et « paiement reçu » partent directement de repos → envoi (sans confirmation)', () => {
+  for (const action of ['prete', 'terminee', 'paiement_recu'] as const) {
+    assert.deepEqual(evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action, lecture: 0 }), { phase: 'envoi', commandeId: A, action });
+  }
+});
+test('machine D2 : « paiement non reçu » demande d’abord sa confirmation (même commande, même action) ; jamais d’envoi sans elle', () => {
+  assert.deepEqual(evoluer(ETAT_REPOS, { type: 'demander_confirmation', commandeId: A, action: 'paiement_non_recu', lecture: 0 }), { phase: 'confirmation', commandeId: A, action: 'paiement_non_recu' });
+  assert.equal(evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'paiement_non_recu', lecture: 0 }), ETAT_REPOS);
+  const autreCommande: EtatAction = { phase: 'confirmation', commandeId: B, action: 'paiement_non_recu' };
+  assert.equal(evoluer(autreCommande, { type: 'envoyer', commandeId: A, action: 'paiement_non_recu', lecture: 0 }), autreCommande);
+  const confirmationRefus: EtatAction = { phase: 'confirmation', commandeId: A, action: 'refuser' };
+  assert.equal(evoluer(confirmationRefus, { type: 'envoyer', commandeId: A, action: 'paiement_non_recu', lecture: 0 }), confirmationRefus, 'la confirmation d’un refus ne vaut pas pour un paiement');
+  assert.equal(peutEnvoyer(ETAT_REPOS, A, 'paiement_non_recu', 0), false);
+  assert.deepEqual(evoluer({ phase: 'confirmation', commandeId: A, action: 'paiement_non_recu' }, { type: 'envoyer', commandeId: A, action: 'paiement_non_recu', lecture: 0 }), { phase: 'envoi', commandeId: A, action: 'paiement_non_recu' });
+});
+test('machine D2 : seules les actions à confirmer peuvent demander une confirmation ; une action inconnue ne s’envoie jamais', () => {
+  for (const action of ['accepter', 'prete', 'terminee', 'paiement_recu'] as const) assert.equal(evoluer(ETAT_REPOS, { type: 'demander_confirmation', commandeId: A, action, lecture: 0 }), ETAT_REPOS, action);
+  assert.equal(evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'annuler' as never, lecture: 0 }), ETAT_REPOS);
+  assert.equal(peutEnvoyer(ETAT_REPOS, A, 'annuler' as never, 0), false);
+});
+test('machine D2 : verrouillé pendant l’envoi d’une action de paiement ; réponse incertaine puis relecture échouée : verrouillé jusqu’à une relecture réussie', () => {
+  let e: EtatAction = evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'paiement_recu', lecture: 5 });
+  assert.equal(evoluer(e, { type: 'envoyer', commandeId: B, action: 'prete', lecture: 5 }), e);
+  e = evoluer(e, { type: 'repondre', erreur: incertain });
+  e = evoluer(e, { type: 'relire', relue: undefined, lecture: 5 });
+  assert.equal(actionVerrouillee(e, 5), true);
+  assert.equal(evoluer(e, { type: 'envoyer', commandeId: A, action: 'paiement_recu', lecture: 5 }), e);
+  assert.equal(evoluer(e, { type: 'envoyer', commandeId: B, action: 'prete', lecture: 5 }), e);
+  assert.equal(evoluer(e, { type: 'demander_confirmation', commandeId: A, action: 'paiement_non_recu', lecture: 5 }), e);
+  assert.equal(evoluer(e, { type: 'envoyer', commandeId: A, action: 'paiement_recu', lecture: 6 }).phase, 'envoi');
+});
+test('machine D2 : erreur MFA/questions sur « terminée » → verdict « sécurité » avec le message vers le site', () => {
+  let e: EtatAction = evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'terminee', lecture: 0 });
+  e = evoluer(e, { type: 'repondre', erreur: refusRestaurateur(403, 'questions') });
+  e = evoluer(e, { type: 'relire', relue: undefined, lecture: 0 });
+  assert.deepEqual((e as { verdict: unknown }).verdict, { genre: 'securite', message: MESSAGE_SECURITE });
 });
 test('machine : verrouillé PENDANT l’envoi et la relecture : ni nouvel envoi, ni nouvelle demande de refus', () => {
   const envoi: EtatAction = { phase: 'envoi', commandeId: A, action: 'accepter' };
@@ -184,7 +322,7 @@ test('machine : verrouillé PENDANT l’envoi et la relecture : ni nouvel envoi,
   for (const e of [envoi, relecture]) {
     assert.equal(actionVerrouillee(e, 0), true);
     assert.equal(evoluer(e, { type: 'envoyer', commandeId: B, action: 'accepter', lecture: 0 }), e);
-    assert.equal(evoluer(e, { type: 'demander_refus', commandeId: B, lecture: 0 }), e);
+    assert.equal(evoluer(e, { type: 'demander_confirmation', commandeId: B, action: 'refuser', lecture: 0 }), e);
   }
 });
 test('machine : envoi → relecture à la réponse (succès, refus, incertain, session) ; hors envoi, sans effet', () => {
@@ -208,7 +346,7 @@ test('machine : réponse incertaine puis relecture ÉCHOUÉE : boutons verrouill
   e = evoluer(e, { type: 'relire', relue: undefined, lecture: 5 });
   assert.equal(actionVerrouillee(e, 5), true, 'toujours verrouillé : aucune lecture réussie depuis');
   assert.equal(evoluer(e, { type: 'envoyer', commandeId: A, action: 'accepter', lecture: 5 }), e, 'un nouvel essai est refusé');
-  assert.equal(evoluer(e, { type: 'demander_refus', commandeId: A, lecture: 5 }), e);
+  assert.equal(evoluer(e, { type: 'demander_confirmation', commandeId: A, action: 'refuser', lecture: 5 }), e);
   assert.equal(actionVerrouillee(e, 6), false, 'une lecture réussie (compteur 6) déverrouille');
   assert.equal(evoluer(e, { type: 'envoyer', commandeId: A, action: 'accepter', lecture: 6 }).phase, 'envoi');
 });
@@ -231,7 +369,7 @@ test('machine : refus certain (conflit) ou sécurité : jamais verrouillé par l
 test('machine : erreur MFA/questions → verdict « sécurité » avec le message vers le site', () => {
   let e: EtatAction = evoluer(ETAT_REPOS, { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 });
   assert.equal(e.phase, 'repos', 'sans confirmation, pas d’envoi');
-  e = evoluer(evoluer(ETAT_REPOS, { type: 'demander_refus', commandeId: A, lecture: 0 }), { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 });
+  e = evoluer(evoluer(ETAT_REPOS, { type: 'demander_confirmation', commandeId: A, action: 'refuser', lecture: 0 }), { type: 'envoyer', commandeId: A, action: 'refuser', lecture: 0 });
   e = evoluer(e, { type: 'repondre', erreur: refusRestaurateur(403, 'mfa') });
   e = evoluer(e, { type: 'relire', relue: undefined, lecture: 0 });
   assert.deepEqual((e as { verdict: unknown }).verdict, { genre: 'securite', message: 'Ouvrez Speedfood sur le site pour terminer la sécurité du compte restaurateur.' });
@@ -262,8 +400,20 @@ test('client : liste des commandes = GET sur la route du restaurateur de l’API
   assert.equal(appels[0].options.credentials, 'omit');
   assert.equal((appels[0].options.headers as Record<string, string>).Authorization, 'Bearer ' + ACCES);
 });
+test('client D2 : paiement = POST {commandeId, decision} SEULEMENT sur la route paiement, jeton porteur, un seul appel', async () => {
+  for (const [action, decision] of [['paiement_recu', 'recu'], ['paiement_non_recu', 'non_recu']] as const) {
+    const { a, appels } = api(() => json({ ok: true }));
+    await a.actionRestaurateur(ACCES, A, action);
+    assert.equal(appels.length, 1);
+    assert.equal(appels[0].url, 'https://speedfood-api.moelohimmara.workers.dev/api/v1/restaurant/commandes/paiement');
+    assert.equal(appels[0].options.method, 'POST');
+    assert.deepEqual(JSON.parse(String(appels[0].options.body)), { commandeId: A, decision });
+    assert.equal(appels[0].options.credentials, 'omit');
+    assert.equal((appels[0].options.headers as Record<string, string>).Authorization, 'Bearer ' + ACCES);
+  }
+});
 test('client : action = POST {commandeId, action} SEULEMENT (jamais de restaurant), jeton porteur, un seul appel', async () => {
-  for (const action of ['accepter', 'refuser'] as const) {
+  for (const action of ['accepter', 'refuser', 'prete', 'terminee'] as const) {
     const { a, appels } = api(() => json({ ok: true }));
     await a.actionRestaurateur(ACCES, A, action);
     assert.equal(appels.length, 1);
@@ -273,24 +423,24 @@ test('client : action = POST {commandeId, action} SEULEMENT (jamais de restauran
     assert.equal((appels[0].options.headers as Record<string, string>).Authorization, 'Bearer ' + ACCES);
   }
 });
-test('client : toute autre action (prete, terminee, annuler…) ou identifiant invalide est refusé AVANT le réseau', async () => {
+test('client : toute autre action (annuler, livrer, valeur inconnue…) ou identifiant invalide est refusé AVANT le réseau', async () => {
   const { a, appels } = api(() => json({ ok: true }));
-  for (const action of ['prete', 'terminee', 'annuler', 'inconnue', '']) await assert.rejects(a.actionRestaurateur(ACCES, A, action as never), ErreurRestaurateur);
+  for (const action of ['annuler', 'livree', 'partir', 'recu', 'non_recu', 'especes', 'inconnue', '']) await assert.rejects(a.actionRestaurateur(ACCES, A, action as never), ErreurRestaurateur);
   await assert.rejects(a.actionRestaurateur(ACCES, 'pas-un-uuid', 'accepter'), ErreurRestaurateur);
   assert.equal(appels.length, 0);
 });
 test('client : UN SEUL essai, même après 500, coupure réseau ou réponse illisible (jamais de relance automatique) ; l’erreur est incertaine', async () => {
   const cas: Array<() => Response | Promise<Response>> = [() => json({ ok: false }, 503), () => { throw new TypeError('réseau'); }, () => new Response('pas du json', { status: 200, headers: { 'content-type': 'text/html' } }), () => json({ ok: 'oui' })];
-  for (const repondre of cas) {
+  for (const repondre of cas) for (const action of ['accepter', 'terminee', 'paiement_recu'] as const) {
     const { a, appels } = api(repondre);
-    await assert.rejects(a.actionRestaurateur(ACCES, A, 'accepter'), (e: unknown) => e instanceof ErreurRestaurateur && e.incertain === true);
+    await assert.rejects(a.actionRestaurateur(ACCES, A, action), (e: unknown) => e instanceof ErreurRestaurateur && e.incertain === true);
     assert.equal(appels.length, 1);
   }
 });
-test('client : refus certains (400, 404, 409, 429) non incertains, sans texte du serveur', async () => {
-  for (const statut of [400, 404, 409, 429]) {
+test('client : refus certains (400, 404, 409, 429) non incertains, sans texte du serveur (actions de statut et de paiement)', async () => {
+  for (const [statut, action] of [400, 404, 409, 429].flatMap(x => (['accepter', 'prete', 'paiement_recu'] as const).map(y => [x, y] as const))) {
     const { a } = api(() => json({ ok: false, erreur: { code: 'X', message: 'detail-confidentiel-serveur' } }, statut));
-    await assert.rejects(a.actionRestaurateur(ACCES, A, 'accepter'), (e: unknown) => e instanceof ErreurRestaurateur && !e.incertain && !e.message.includes('detail-confidentiel-serveur'));
+    await assert.rejects(a.actionRestaurateur(ACCES, A, action), (e: unknown) => e instanceof ErreurRestaurateur && !e.incertain && !e.message.includes('detail-confidentiel-serveur'));
   }
 });
 test('client : 403 avec champs.securite = erreur « sécurité » (message vers le site), en lecture comme en action', async () => {

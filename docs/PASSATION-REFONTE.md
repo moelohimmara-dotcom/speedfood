@@ -106,7 +106,8 @@ Monorepo npm : `apps/web`, `apps/api`, `packages/shared`, `mobile/`, `supabase/`
 - Dans `master`, **déployées dans l'API mais NON relayées** (modules `suivi` et `commandes` absents d'`API_RELAIS`) :
   `POST suivi`, `POST suivi/annuler`, `POST suivi/proposition`, `GET commandes`, `POST commandes`.
 - **Lot D1 (3 novembre 2026, code seulement, NON déployé, NON relayé)** : `GET /api/v1/restaurant/commandes` et `POST /api/v1/restaurant/commandes/action` (accepter ou refuser seulement) existent dans `apps/api` pour l'espace restaurateur de l'application Expo ; le site garde les siennes, sans relais (`restaurant` n'est pas un module de `API_RELAIS`). Voir `docs/API-UNIQUE.md`, section « Espace restaurateur (lot D1) ».
-- Tout le reste (livreur, autres routes restaurateur : statut, menu, réglages, historique, activité, paiement, proposition, documents ; équipe, appareils, candidature…) est encore servi uniquement par le site.
+- **Lot D2 (3 novembre 2026, code seulement, NON déployé, NON relayé)** : `POST /api/v1/restaurant/commandes/action` accepte aussi `prete` et `terminee` (`annuler` reste refusée) ; nouvelle route `POST /api/v1/restaurant/commandes/paiement` (`recu` / `non_recu`, service `confirmerPaiement` du site). Dans l'application, la confirmation n'est proposée que pour un paiement `declare` par code marchand (règle « pas d'espèces »). Voir `docs/API-UNIQUE.md`, section « Espace restaurateur (lot D2) ».
+- Tout le reste (livreur, autres routes restaurateur : statut, menu, réglages, historique, activité, proposition, documents ; équipe, appareils, candidature…) est encore servi uniquement par le site.
 
 ### Jetons (décision de Malika, mode « mixte »)
 - Strict (`auth.getUser` chez Supabase) : toutes les routes portées à ce jour. Local (ES256) : réservé au plan 1c-2 (position du livreur, très fréquente).
@@ -171,7 +172,7 @@ Fait le 31 octobre 2026 :
 ## 5. Plans suivants (pas commencés)
 
 - **1c-2 Livreur** (`livreur/*` 6 routes, appareils 3) : c'est ici que le jeton « local » (ES256) sert, pour la position du livreur (très fréquente). Corriger aussi le `?? ""` de `worker.ts` en mode local.
-- **1c-3 Restaurateur** (`restaurant/*`, 12 routes ; téléversements de photos et documents). **Commencé par le lot D1 (3 novembre 2026)** : 2 routes sur 12 portées dans l'API (`GET restaurant/commandes`, `POST restaurant/commandes/action` limitée à accepter/refuser), sans relais ; restent à porter : `commandes/{paiement,proposition,document}`, `statut`, `reglages`, `historique`, `activite`, `menu` (+ `menu/action`, `menu/photo`).
+- **1c-3 Restaurateur** (`restaurant/*`, 12 routes ; téléversements de photos et documents). **Commencé par le lot D1 (3 novembre 2026)** : **3 routes sur 12 portées** dans l'API (`GET restaurant/commandes`, `POST restaurant/commandes/action` limitée à accepter/refuser/prete/terminee depuis le lot D2, `POST restaurant/commandes/paiement` depuis le lot D2), sans relais ; restent à porter : `commandes/{proposition,document}`, `statut`, `reglages`, `historique`, `activite`, `menu` (+ `menu/action`, `menu/photo`).
 - **1c-4 Équipe** (`equipe/*`, ~35 routes ; usage interne).
 - Corriger la réponse des routes inconnues sous `/moi`, `/client`, `/livraison/estimation` : aujourd'hui 401 sans jeton, et avec jeton l'API fait `getUser` + consomme le plafond avant de répondre 404.
 - Refonte de l'application : Expo / React Native + SQLite locale (`expo-sqlite` + Drizzle), synchro « maison », remplace le Kotlin à terme ; le site Next.js sera allégé. Spec de design pas encore écrite

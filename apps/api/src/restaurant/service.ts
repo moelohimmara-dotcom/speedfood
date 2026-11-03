@@ -1,6 +1,6 @@
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import type { ResultatActionCommande } from "@speedfood/shared/contracts/commande";
-import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
+import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type DecisionPaiementApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { ContexteRestaurant, Deps } from "../types.ts";
 
 /**
@@ -26,6 +26,8 @@ export interface DepsServiceRestaurant {
   origineSite(): Promise<string>;
   lireCommandes(client: unknown, restaurantId: string, origine: string): Promise<ReponseCommandesRestaurant>;
   traiterCommande(client: unknown, utilisateurId: string, restaurantId: string, commandeId: string, action: string): Promise<ResultatActionCommande>;
+  /** Confirmation du paiement (`confirmerPaiement` du site) : le restaurant du contexte filtre la commande, le client est celui du jeton. */
+  confirmerPaiement(client: unknown, restaurantId: string, commandeId: string, decision: string): Promise<ResultatActionCommande>;
 }
 
 /** Niveau d'assurance (« aal1 » mot de passe seul, « aal2 » avec second facteur) lu dans le jeton DÉJÀ vérifié par la route. */
@@ -66,6 +68,9 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     },
     async traiter(ctx, commandeId: string, action: ActionRestaurantApp) {
       return d.traiterCommande(ctx.supabase, ctx.utilisateurId, ctx.restaurantId, commandeId, action);
+    },
+    async confirmerPaiement(ctx, commandeId: string, decision: DecisionPaiementApp) {
+      return d.confirmerPaiement(ctx.supabase, ctx.restaurantId, commandeId, decision);
     },
   };
 }

@@ -4,6 +4,7 @@ import { creerClientJeton } from "@/lib/db/jeton";
 import { lireEtatQuestions } from "@/lib/auth/questions-serveur";
 import { limiterRestaurantApplication } from "@/lib/securite/limitation-debit";
 import { traiterCommande } from "@/lib/commande/service-restaurant";
+import { confirmerPaiement } from "@/lib/commande/service-paiement";
 import { lireCommandesRestaurant } from "@/lib/api/restaurant-commandes";
 import { origineDuSite } from "@/lib/partage/origine";
 import type { ClientCommandeDb } from "@/lib/commande/commun";
@@ -26,4 +27,5 @@ export const serviceRestaurant = creerServiceRestaurant({
   origineSite: origineDuSite,
   lireCommandes: (client, restaurantId, origine) => lireCommandesRestaurant(client as SupabaseClient, restaurantId, origine),
   traiterCommande: (client, utilisateurId, restaurantId, commandeId, action) => traiterCommande(client as ClientCommandeDb, utilisateurId, restaurantId, commandeId, action),
+  confirmerPaiement: (client, restaurantId, commandeId, decision) => confirmerPaiement(client as ClientCommandeDb, restaurantId, commandeId, decision),
 });

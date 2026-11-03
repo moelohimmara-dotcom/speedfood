@@ -3,14 +3,15 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
-  ETAT_REPOS, ErreurRestaurateur, actionVerrouillee, actionsAffichees, evoluer, grouper, libelleStatut,
+  ETAT_REPOS, ErreurRestaurateur, actionVerrouillee, actionsAffichees, evoluer, grouper, libelleStatut, libellePaiement, ligneClient,
   type ActionRestaurateur, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur,
 } from './restaurateur';
 import { couleurs as c, polices } from '../design/tokens';
 
 /**
- * Espace restaurateur (lot D1) : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
- * automatique, aucune notification ici), boutons Accepter et Refuser (le refus demande une confirmation). Rien d'autre : pas de « prête », de paiement ni de menu.
+ * Espace restaurateur (lots D1 et D2) : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
+ * automatique, aucune notification ici), boutons Accepter, Refuser, Marquer prête, Marquer terminée, et Paiement reçu / non reçu pour un paiement DÉCLARÉ par code marchand
+ * (le refus et le « non reçu » demandent une confirmation). Aucun bouton « espèces » : Speedfood ne manipule jamais d'espèces. Rien d'autre : pas d'annulation ni de menu.
  * Toute règle (verrou, un seul essai, relecture après réponse incertaine) est dans `restaurateur.ts` ; cet écran n'envoie jamais le restaurant (le serveur le tire du compte).
  */
 function Action({ titre, agir, disabled = false, secondaire = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean }) {
@@ -87,24 +88,29 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
       {g.commandes.length === 0 && <Text style={s.secondaire}>Aucune commande.</Text>}
       {g.commandes.map(o => {
         const possibles = actionsAffichees(o, etat);
-        const confirmation = etat.phase === 'confirmation_refus' && etat.commandeId === o.id;
+        const confirmation = etat.phase === 'confirmation' && etat.commandeId === o.id && possibles.includes(etat.action) ? etat : null;
+        const paiement = libellePaiement(o);
         return <View key={o.id} style={s.carte}>
           <Text style={s.nom}>{o.reference}{o.estTest ? ' · TEST' : ''}</Text>
           <Text style={s.texte}>{libelleStatut(o)}</Text>
           <Text style={s.texte}>{o.mode === 'livraison' ? 'Livraison' : o.mode === 'retrait' ? 'Retrait' : 'Sur place' + (o.tableNumero ? ' · table ' + o.tableNumero : '')} · {new Date(o.creeLe).toLocaleString('fr-FR')}</Text>
-          <Text style={s.texte}>{o.clientNom} · <Text selectable>{o.clientTelephone}</Text></Text>
+          <Text selectable style={s.texte}>{ligneClient(o)}</Text>
           {o.clientAdresse && <Text style={s.texte}>{o.clientAdresse}</Text>}
           {o.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}
           <Text style={s.nom}>{o.totalGnf.toLocaleString('fr-FR')} GNF</Text>
-          {possibles.length > 0 && !confirmation && <>
-            <Action titre={'Accepter ' + o.reference} disabled={occupe || verrou} agir={() => { void envoyer(o, 'accepter'); }} />
-            <Action titre={'Refuser ' + o.reference} secondaire disabled={occupe || verrou} agir={() => appliquer({ type: 'demander_refus', commandeId: o.id, lecture })} />
+          {paiement && <Text style={s.texte}>{paiement}</Text>}
+          {paiement && possibles.includes('paiement_recu') && <Text style={s.secondaire}>Comparez avec le SMS de confirmation de votre opérateur avant de valider.</Text>}
+          {confirmation && <>
+            <Text accessibilityRole="alert" style={s.texte}>{confirmation.action === 'refuser' ? 'Refuser définitivement cette commande ? Le client sera prévenu.' : 'Le client sera prévenu que vous n’avez pas retrouvé son paiement. Continuer ?'}</Text>
+            <Action titre={confirmation.action === 'refuser' ? 'Oui, refuser' : 'Oui, paiement non reçu'} disabled={occupe || verrou} agir={() => { void envoyer(o, confirmation.action); }} />
+            <Action titre={confirmation.action === 'refuser' ? 'Non, garder' : 'Non, annuler'} secondaire disabled={occupe} agir={() => appliquer({ type: 'annuler_confirmation' })} />
           </>}
-          {possibles.length > 0 && confirmation && <>
-            <Text accessibilityRole="alert" style={s.texte}>Refuser définitivement cette commande ? Le client sera prévenu.</Text>
-            <Action titre="Oui, refuser" disabled={occupe || verrou} agir={() => { void envoyer(o, 'refuser'); }} />
-            <Action titre="Non, garder" secondaire disabled={occupe} agir={() => appliquer({ type: 'annuler_refus' })} />
-          </>}
+          {!confirmation && possibles.includes('accepter') && <Action titre={'Accepter ' + o.reference} disabled={occupe || verrou} agir={() => { void envoyer(o, 'accepter'); }} />}
+          {!confirmation && possibles.includes('refuser') && <Action titre={'Refuser ' + o.reference} secondaire disabled={occupe || verrou} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'refuser', lecture })} />}
+          {!confirmation && possibles.includes('prete') && <Action titre={'Marquer prête ' + o.reference} disabled={occupe || verrou} agir={() => { void envoyer(o, 'prete'); }} />}
+          {!confirmation && possibles.includes('terminee') && <Action titre={'Marquer terminée ' + o.reference} disabled={occupe || verrou} agir={() => { void envoyer(o, 'terminee'); }} />}
+          {!confirmation && possibles.includes('paiement_recu') && <Action titre={'Paiement reçu ' + o.reference} disabled={occupe || verrou} agir={() => { void envoyer(o, 'paiement_recu'); }} />}
+          {!confirmation && possibles.includes('paiement_non_recu') && <Action titre={'Paiement non reçu ' + o.reference} secondaire disabled={occupe || verrou} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'paiement_non_recu', lecture })} />}
         </View>;
       })}
     </View>)}

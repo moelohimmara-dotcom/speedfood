@@ -2,7 +2,7 @@ import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
-import { ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte } from './restaurateur.ts';
+import { ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte } from './restaurateur.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
@@ -146,11 +146,16 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes', { method:'GET' }, true);
       try { return lireListeRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Les commandes reçues sont illisibles. Réessayez dans un instant.'); }
     },
-    /** Accepter ou refuser (liste blanche vérifiée AVANT tout appel réseau). UN SEUL essai. */
+    /**
+     * Accepter, refuser, marquer prête ou terminée (route `/commandes/action`) ; confirmer ou contester un paiement déclaré (route `/commandes/paiement`). Liste blanche vérifiée AVANT tout
+     * appel réseau (jamais « annuler »). UN SEUL essai. Le corps ne porte que l'identifiant de la commande et l'action ou la décision.
+     */
     async actionRestaurateur(accessToken: string, commandeId: string, action: ActionRestaurateur): Promise<void> {
-      if (action !== 'accepter' && action !== 'refuser') throw new ErreurRestaurateur('refus', 'Cette action n’est pas disponible dans l’application.');
+      if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) throw new ErreurRestaurateur('refus', 'Cette action n’est pas disponible dans l’application.');
       if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(commandeId)) throw new ErreurRestaurateur('refus', 'Commande introuvable. Actualisez la liste.');
-      lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/action', { method:'POST', corps:{ commandeId, action } }, false));
+      const decision = decisionPaiementDe(action);
+      if (decision !== null) lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/paiement', { method:'POST', corps:{ commandeId, decision } }, false));
+      else lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/action', { method:'POST', corps:{ commandeId, action } }, false));
     },
     estimerLivraison: postEstimation,
     async connecter(email: string, motDePasse: string) {

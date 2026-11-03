@@ -165,3 +165,54 @@ test("transition impossible (commande déjà acceptée, refus demandé) : CONFLI
   assert.equal((r as { erreur: { code: string } }).erreur.code, "CONFLIT_ETAT");
   assert.deepEqual(ecrituresDuTest(), []);
 });
+
+// ---------- lot D2 : prête et terminée avec le VRAI service ----------
+test("D2 : acceptee -> prete -> terminee sur SA commande : statuts écrits et historisés par le client du jeton, rien en administrateur", async () => {
+  g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, "acceptee")];
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "prete"), { ok: true });
+  assert.equal(statutDe(COMMANDE_A), "prete");
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "terminee"), { ok: true });
+  assert.equal(statutDe(COMMANDE_A), "terminee");
+  const ecritures = ecrituresDuTest();
+  assert.deepEqual(ecritures.map((e) => [e.client, e.table, e.op]), [["jeton", "orders", "update"], ["jeton", "order_status_events", "insert"], ["jeton", "orders", "update"], ["jeton", "order_status_events", "insert"]]);
+  assert.deepEqual(ecritures.filter((e) => e.table === "order_status_events").map((e) => [e.valeurs.statut_precedent, e.valeurs.statut_suivant, e.valeurs.acteur]), [["acceptee", "prete", "restaurant:compte-A"], ["prete", "terminee", "restaurant:compte-A"]]);
+  assert.ok(!ecritures.some((e) => e.client === "admin"));
+});
+
+test("D2 CLOISONNEMENT : le compte du restaurant A ne peut ni passer prête ni terminer la commande du restaurant B (NON_AUTORISE), aucune écriture", async () => {
+  const PRETE_B = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, "acceptee"), commande(COMMANDE_B, RESTAURANT_B, "acceptee"), commande(PRETE_B, RESTAURANT_B, "prete")];
+  for (const [id, action] of [[COMMANDE_B, "prete"], [PRETE_B, "terminee"]] as const) {
+    const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, id, action);
+    assert.equal(r.ok, false, action);
+    assert.equal((r as { erreur: { code: string } }).erreur.code, "NON_AUTORISE", action);
+  }
+  assert.equal(statutDe(COMMANDE_B), "acceptee");
+  assert.equal(statutDe(PRETE_B), "prete");
+  assert.deepEqual(ecrituresDuTest(), []);
+});
+
+test("D2 transitions invalides refusées (CONFLIT_ETAT), rien d'écrit : prete depuis en_attente, terminee depuis acceptee, prete/terminee depuis un état final", async () => {
+  const cas: Array<[string, string]> = [["en_attente", "prete"], ["en_attente", "terminee"], ["acceptee", "terminee"], ["prete", "prete"], ["terminee", "prete"], ["refusee", "prete"], ["annulee", "terminee"], ["terminee", "terminee"]];
+  for (const [statut, action] of cas) {
+    g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, statut)];
+    const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, action);
+    assert.equal(r.ok, false, `${statut} -> ${action}`);
+    assert.equal((r as { erreur: { code: string } }).erreur.code, "CONFLIT_ETAT", `${statut} -> ${action}`);
+    assert.equal(statutDe(COMMANDE_A), statut);
+  }
+  assert.deepEqual(ecrituresDuTest(), []);
+});
+
+test("D2 verrou : une proposition active du client bloque aussi prete (et terminee)", async () => {
+  g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, "acceptee")];
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A)];
+  const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "prete");
+  assert.equal((r as { erreur: { code: string } }).erreur.code, "CONFLIT_ETAT");
+  assert.deepEqual(ecrituresDuTest(), []);
+});
+
+test("D2 : la liste blanche de l'API est exactement accepter, refuser, prete, terminee (jamais annuler)", async () => {
+  const { ACTIONS_RESTAURANT_APP } = await import("@speedfood/shared/contracts/restaurant-commandes");
+  assert.deepEqual([...ACTIONS_RESTAURANT_APP], ["accepter", "refuser", "prete", "terminee"]);
+});

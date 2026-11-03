@@ -19,10 +19,10 @@ function jwt(charge: object): string {
 const JETON_AAL1 = jwt({ sub: "compte-1", aal: "aal1" });
 const JETON_AAL2 = jwt({ sub: "compte-1", aal: "aal2" });
 
-interface Journal { appels: string[]; clientsCommandes: unknown[]; traitements: Array<{ utilisateurId: string; restaurantId: string; commandeId: string; action: string }> }
+interface Journal { appels: string[]; clientsCommandes: unknown[]; traitements: Array<{ utilisateurId: string; restaurantId: string; commandeId: string; action: string }>; paiements: Array<{ restaurantId: string; commandeId: string; decision: string }> }
 
 function monter(surcharge: Partial<DepsServiceRestaurant> = {}) {
-  const journal: Journal = { appels: [], clientsCommandes: [], traitements: [] };
+  const journal: Journal = { appels: [], clientsCommandes: [], traitements: [], paiements: [] };
   const service = creerServiceRestaurant({
     limiter: async (id) => { journal.appels.push(`limiter:${id}`); },
     clientJeton: (jeton) => { journal.appels.push(`clientJeton:${jeton === JETON_AAL2 || jeton === JETON_AAL1}`); return CLIENT_JETON; },
@@ -40,6 +40,12 @@ function monter(surcharge: Partial<DepsServiceRestaurant> = {}) {
       journal.appels.push("traiter");
       journal.clientsCommandes.push(client);
       journal.traitements.push({ utilisateurId, restaurantId, commandeId, action });
+      return { ok: true };
+    },
+    confirmerPaiement: async (client, restaurantId, commandeId, decision) => {
+      journal.appels.push("paiement");
+      journal.clientsCommandes.push(client);
+      journal.paiements.push({ restaurantId, commandeId, decision });
       return { ok: true };
     },
     ...surcharge,
@@ -108,7 +114,8 @@ test("service : le CLIENT LIÉ AU JETON (jamais l'administrateur) est le client 
   assert.notEqual(ctx.supabase, CLIENT_ADMIN);
   await service.lister(ctx);
   await service.traiter(ctx, COMMANDE, "accepter");
-  assert.equal(journal.clientsCommandes.length, 2);
+  await service.confirmerPaiement(ctx, COMMANDE, "recu");
+  assert.equal(journal.clientsCommandes.length, 3);
   for (const client of journal.clientsCommandes) {
     assert.equal(client, CLIENT_JETON);
     assert.notEqual(client, CLIENT_ADMIN);
@@ -125,9 +132,22 @@ test("service : la lecture reçoit l'origine du SITE (liens du reçu) et le rest
 test("service : traiter transmet l'identité du compte et le restaurant du contexte, avec l'action demandée", async () => {
   const { service, journal } = monter();
   const ctx = await service.contexte(JETON_AAL1, "compte-1");
-  for (const action of ["accepter", "refuser"] as const) await service.traiter(ctx, COMMANDE, action);
+  for (const action of ["accepter", "refuser", "prete", "terminee"] as const) await service.traiter(ctx, COMMANDE, action);
   assert.deepEqual(journal.traitements, [
     { utilisateurId: "compte-1", restaurantId: RESTAURANT_A, commandeId: COMMANDE, action: "accepter" },
     { utilisateurId: "compte-1", restaurantId: RESTAURANT_A, commandeId: COMMANDE, action: "refuser" },
+    { utilisateurId: "compte-1", restaurantId: RESTAURANT_A, commandeId: COMMANDE, action: "prete" },
+    { utilisateurId: "compte-1", restaurantId: RESTAURANT_A, commandeId: COMMANDE, action: "terminee" },
   ]);
+});
+
+test("service D2 : confirmerPaiement transmet le client du jeton et le restaurant du CONTEXTE (appartenance), jamais l'administrateur", async () => {
+  const { service, journal } = monter();
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  for (const decision of ["recu", "non_recu"] as const) await service.confirmerPaiement(ctx, COMMANDE, decision);
+  assert.deepEqual(journal.paiements, [
+    { restaurantId: RESTAURANT_A, commandeId: COMMANDE, decision: "recu" },
+    { restaurantId: RESTAURANT_A, commandeId: COMMANDE, decision: "non_recu" },
+  ]);
+  for (const client of journal.clientsCommandes) assert.equal(client, CLIENT_JETON);
 });

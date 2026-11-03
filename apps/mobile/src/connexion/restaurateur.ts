@@ -1,14 +1,19 @@
 import { MESSAGE_SECURITE_SUR_LE_SITE, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 
 /**
- * Domaine pur du lot D1 : l'espace restaurateur de l'application (lire les commandes, ACCEPTER ou REFUSER). Rien d'autre : ni « prête », ni « terminée », ni paiement,
- * ni proposition de prix (lots suivants). L'affichage de l'entrée « Espace restaurateur » n'est qu'un confort : le serveur revérifie tout (jeton, restaurant du compte,
+ * Domaine pur des lots D1 et D2 : l'espace restaurateur de l'application (lire les commandes, ACCEPTER, REFUSER, marquer PRÊTE puis TERMINÉE, confirmer ou contester un
+ * paiement DÉCLARÉ par code marchand). Rien d'autre : ni annulation, ni proposition de prix, ni livraison (lots suivants). L'affichage de l'entrée « Espace restaurateur » n'est qu'un confort : le serveur revérifie tout (jeton, restaurant du compte,
  * second facteur, questions de sécurité).
  *
  * Même discipline que `reglement.ts` : UN SEUL essai par action, jamais de relance automatique ; après une réponse incertaine, les boutons restent verrouillés tant que
  * la liste n'a pas été relue avec succès ; les messages sont fixes (aucun texte du serveur n'est affiché) ; aucun jeton n'est conservé.
  */
-export type ActionRestaurateur = 'accepter' | 'refuser';
+export type ActionRestaurateur = 'accepter' | 'refuser' | 'prete' | 'terminee' | 'paiement_recu' | 'paiement_non_recu';
+export const ACTIONS_RESTAURATEUR: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'paiement_recu', 'paiement_non_recu'];
+/** Actions qui demandent une confirmation avant l'envoi (décision difficile à défaire ou qui prévient le client). */
+export const ACTIONS_A_CONFIRMER: readonly ActionRestaurateur[] = ['refuser', 'paiement_non_recu'];
+/** Pour les routes de l'API : les quatre actions de statut vont à `/commandes/action`, les deux décisions de paiement à `/commandes/paiement`. */
+export function decisionPaiementDe(action: ActionRestaurateur): 'recu' | 'non_recu' | null { return action === 'paiement_recu' ? 'recu' : action === 'paiement_non_recu' ? 'non_recu' : null; }
 
 function invalide(): never { throw Error('LECTURE_RESTAURATEUR_INVALIDE'); }
 function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'object' || Array.isArray(v)) return invalide(); return v as Record<string, unknown>; }
@@ -49,11 +54,17 @@ export function lireRoles(v: Record<string, unknown>): RolesCompte {
 // ---------- commandes ----------
 export type StatutRestaurateur = 'en_attente' | 'acceptee' | 'prete' | 'terminee' | 'refusee' | 'annulee';
 const STATUTS: readonly StatutRestaurateur[] = ['en_attente', 'acceptee', 'prete', 'terminee', 'refusee', 'annulee'];
+/** Paiement : mêmes valeurs que le contrat du site. Les espèces restent LISIBLES (anciennes commandes) mais l'application ne les affiche ni ne les traite jamais (règle du 3 novembre 2026). */
+export type StatutPaiementRestaurateur = 'non_demande' | 'especes' | 'declare' | 'recu' | 'non_recu';
+export type ModePaiementRestaurateur = 'especes' | 'orange_money' | 'mtn_momo' | 'speedfood';
+const STATUTS_PAIEMENT: readonly StatutPaiementRestaurateur[] = ['non_demande', 'especes', 'declare', 'recu', 'non_recu'];
+const MODES_PAIEMENT: readonly ModePaiementRestaurateur[] = ['especes', 'orange_money', 'mtn_momo', 'speedfood'];
 export interface LigneRestaurateur { nom: string; quantite: number; prixGnf: number; options: string[] }
 export interface CommandeRestaurateur {
   id: string; reference: string; statut: StatutRestaurateur; mode: 'retrait' | 'livraison' | 'sur_place'; tableNumero: string | null;
   clientNom: string; clientTelephone: string; clientAdresse: string | null; totalGnf: number; creeLe: string; estTest: boolean;
   lignes: LigneRestaurateur[]; propositionEnAttente: boolean;
+  paiementStatut: StatutPaiementRestaurateur; paiementMode: ModePaiementRestaurateur | null; paiementReference: string | null;
 }
 export interface ListeRestaurateur {
   restaurant: { id: string; nom: string; ouvert: boolean; accepteCommandes: boolean } | null; commandes: CommandeRestaurateur[];
@@ -85,12 +96,15 @@ export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaura
       if (!Array.isArray(p.options) || p.options.length > 20) return invalide();
       return { nom: libre(p.nom, 120), quantite, prixGnf: montant(p.prix), options: p.options.map(q => libre(objet(q).nom, 120)) };
     });
+    if (typeof o.paiementStatut !== 'string' || !(STATUTS_PAIEMENT as readonly string[]).includes(o.paiementStatut)) return invalide();
+    if (o.paiementMode !== null && (typeof o.paiementMode !== 'string' || !(MODES_PAIEMENT as readonly string[]).includes(o.paiementMode))) return invalide();
     const total = montant(o.sousTotal) + montant(o.fraisLivraisonEstime);
     if (!Number.isSafeInteger(total)) return invalide();
     return {
       id, reference: texte(o.reference, 40), statut: o.statut as StatutRestaurateur, mode: o.mode, tableNumero: texteOuNull(o.tableNumero, 20), clientNom: libre(o.clientNom, 120),
       clientTelephone: libre(o.clientTelephone, 40, true), clientAdresse: libreOuNull(o.clientAdresse, 300), totalGnf: total, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
       propositionEnAttente: o.propositionActive !== null && o.propositionActive !== undefined,
+      paiementStatut: o.paiementStatut as StatutPaiementRestaurateur, paiementMode: o.paiementMode as ModePaiementRestaurateur | null, paiementReference: libreOuNull(o.paiementReference, 80),
     };
   };
   const commandes: CommandeRestaurateur[] = []; let illisibles = 0;
@@ -106,16 +120,77 @@ export function grouper(commandes: readonly CommandeRestaurateur[]): Array<{ gro
   return (['a_traiter', 'en_cours', 'historique'] as const).map(groupe => ({ groupe, titre: TITRES_GROUPES[groupe], commandes: commandes.filter(c => groupeDe(c.statut) === groupe) }));
 }
 
-/** Les deux seuls boutons de ce lot : sur une commande en attente, sauf si une proposition attend la réponse du client (le serveur refuserait). */
-export function actionsPossibles(c: Pick<CommandeRestaurateur, 'statut' | 'propositionEnAttente'>): ActionRestaurateur[] {
-  return c.statut === 'en_attente' && !c.propositionEnAttente ? ['accepter', 'refuser'] : [];
+type Concerne = Pick<CommandeRestaurateur, 'statut' | 'propositionEnAttente' | 'paiementStatut' | 'paiementMode'>;
+/**
+ * Paiement confirmable : UNIQUEMENT un paiement DÉCLARÉ par code marchand (Orange Money, MTN MoMo) sur une commande acceptée, prête ou terminée. Jamais les espèces (Speedfood ne
+ * manipule jamais d'espèces), jamais un paiement en ligne Speedfood (la confirmation vient du prestataire), jamais un paiement non déclaré ou déjà tranché. Le serveur revérifie.
+ */
+export function paiementConfirmable(c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut' | 'paiementMode'>): boolean {
+  return (c.statut === 'acceptee' || c.statut === 'prete' || c.statut === 'terminee') && c.paiementStatut === 'declare' && (c.paiementMode === 'orange_money' || c.paiementMode === 'mtn_momo');
+}
+/**
+ * Les boutons d'une commande, décidés par son statut puis son paiement : en attente → accepter / refuser (sauf proposition en cours : le serveur refuserait) ; acceptée → prête ;
+ * prête → terminée ; paiement déclaré → reçu / non reçu. Aucun bouton de statut pour une commande terminée, refusée ou annulée.
+ */
+export function actionsPossibles(c: Concerne): ActionRestaurateur[] {
+  const actions: ActionRestaurateur[] = [];
+  if (!c.propositionEnAttente) {
+    if (c.statut === 'en_attente') actions.push('accepter', 'refuser');
+    else if (c.statut === 'acceptee') actions.push('prete');
+    else if (c.statut === 'prete') actions.push('terminee');
+  }
+  if (paiementConfirmable(c)) actions.push('paiement_recu', 'paiement_non_recu');
+  return actions;
 }
 
-/** Les boutons réellement affichés : une commande dont l'acceptation ou le refus vient d'être confirmé n'en porte plus, même si la liste relue n'a pas pu la mettre à jour. */
-export function actionsAffichees(c: Pick<CommandeRestaurateur, 'id' | 'statut' | 'propositionEnAttente'>, etat: EtatAction): ActionRestaurateur[] {
-  if (etat.phase === 'verdict' && etat.commandeId === c.id && etat.verdict.genre === 'confirme') return [];
-  return actionsPossibles(c);
+/** La commande est-elle encore dans l'état d'AVANT l'action ? (liste périmée ou action non enregistrée) */
+function etatAvant(action: ActionRestaurateur, c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut'>): boolean {
+  switch (action) {
+    case 'accepter': case 'refuser': return c.statut === 'en_attente';
+    case 'prete': return c.statut === 'acceptee';
+    case 'terminee': return c.statut === 'prete';
+    case 'paiement_recu': case 'paiement_non_recu': return c.paiementStatut === 'declare';
+  }
 }
+/** La commande est-elle dans l'état que l'action devait produire ? */
+function etatApres(action: ActionRestaurateur, c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut'>): boolean {
+  switch (action) {
+    case 'accepter': return c.statut === 'acceptee' || c.statut === 'prete' || c.statut === 'terminee';
+    case 'refuser': return c.statut === 'refusee';
+    case 'prete': return c.statut === 'prete' || c.statut === 'terminee';
+    case 'terminee': return c.statut === 'terminee';
+    case 'paiement_recu': return c.paiementStatut === 'recu';
+    case 'paiement_non_recu': return c.paiementStatut === 'non_recu';
+  }
+}
+const estPaiement = (a: ActionRestaurateur) => decisionPaiementDe(a) !== null;
+
+/**
+ * Les boutons réellement affichés : une action dont la confirmation vient d'être reçue n'est plus proposée, même si la liste relue n'a pas pu mettre la commande à jour
+ * (liste périmée = commande encore dans l'état d'avant : on retire alors toute la famille, statut ou paiement). Liste à jour : les boutons de l'étape suivante apparaissent.
+ */
+export function actionsAffichees(c: Pick<CommandeRestaurateur, 'id' | 'statut' | 'propositionEnAttente' | 'paiementStatut' | 'paiementMode'>, etat: EtatAction): ActionRestaurateur[] {
+  const possibles = actionsPossibles(c);
+  if (etat.phase === 'verdict' && etat.commandeId === c.id && etat.verdict.genre === 'confirme' && etatAvant(etat.action, c)) return possibles.filter(a => estPaiement(a) !== estPaiement(etat.action));
+  return possibles;
+}
+
+/** Libellés fixes (aucun texte du serveur n'est affiché). Les espèces n'ont volontairement AUCUN libellé : l'application ne les montre pas. */
+export const LIBELLES_MODE_PAIEMENT: Record<ModePaiementRestaurateur, string | null> = { especes: null, orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', speedfood: 'Paiement en ligne Speedfood' };
+const LIBELLES_STATUT_PAIEMENT: Record<StatutPaiementRestaurateur, string | null> = {
+  non_demande: 'Paiement non demandé', especes: null, declare: 'Paiement déclaré par le client', recu: 'Paiement reçu', non_recu: 'Paiement non reçu',
+};
+/** Ligne « Paiement » d'une commande, ou null s'il n'y a rien à montrer (jamais d'espèces). */
+export function libellePaiement(c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut' | 'paiementMode' | 'paiementReference'>): string | null {
+  if (c.statut === 'en_attente' || c.statut === 'refusee' || c.statut === 'annulee') return null;
+  if (c.paiementMode === 'especes') return null;
+  const statut = LIBELLES_STATUT_PAIEMENT[c.paiementStatut];
+  if (statut === null) return null;
+  const mode = c.paiementMode ? LIBELLES_MODE_PAIEMENT[c.paiementMode] : null;
+  return statut + (mode ? ' · ' + mode : '') + (c.paiementReference ? ' · réf. ' + c.paiementReference : '');
+}
+/** Ligne du client : le séparateur n'apparaît que s'il y a un numéro (commande à table sans téléphone). */
+export function ligneClient(c: Pick<CommandeRestaurateur, 'clientNom' | 'clientTelephone'>): string { return c.clientTelephone.length > 0 ? c.clientNom + ' · ' + c.clientTelephone : c.clientNom; }
 
 export const LIBELLES_STATUT: Record<StatutRestaurateur, string> = {
   en_attente: 'En attente de votre réponse', acceptee: 'Acceptée', prete: 'Prête', terminee: 'Terminée', refusee: 'Refusée', annulee: 'Annulée',
@@ -165,7 +240,14 @@ export type VerdictAction =
   | { genre: 'incertain'; message: string; reessayer: boolean }
   | { genre: 'session'; message: string };
 
-const ATTENDUS: Record<ActionRestaurateur, readonly StatutRestaurateur[]> = { accepter: ['acceptee', 'prete', 'terminee'], refuser: ['refusee'] };
+const MESSAGES_SUCCES: Record<ActionRestaurateur, string> = {
+  accepter: 'Commande acceptée.', refuser: 'Commande refusée.', prete: 'Commande marquée prête.', terminee: 'Commande marquée terminée.',
+  paiement_recu: 'Paiement confirmé comme reçu.', paiement_non_recu: 'Paiement signalé comme non reçu.',
+};
+const MESSAGES_ENREGISTRE: Record<ActionRestaurateur, string> = {
+  accepter: 'Votre acceptation est bien enregistrée.', refuser: 'Votre refus est bien enregistré.', prete: 'La commande est bien enregistrée comme prête.', terminee: 'La commande est bien enregistrée comme terminée.',
+  paiement_recu: 'La confirmation du paiement est bien enregistrée.', paiement_non_recu: 'Le paiement est bien enregistré comme non reçu.',
+};
 
 /**
  * Issue d'une tentative. `erreur` null = le serveur a répondu {ok:true}. Après une réponse INCONNUE, la liste relue décide : si elle montre l'état attendu, l'action est enregistrée ;
@@ -174,28 +256,28 @@ const ATTENDUS: Record<ActionRestaurateur, readonly StatutRestaurateur[]> = { ac
  */
 export function verdictAction(e: { erreur: ErreurRestaurateur | null; sessionTerminee?: string | null; action: ActionRestaurateur; relue: CommandeRestaurateur | null | undefined }): VerdictAction {
   if (e.sessionTerminee) return { genre: 'session', message: e.sessionTerminee };
-  if (e.erreur === null) return { genre: 'confirme', message: e.action === 'accepter' ? 'Commande acceptée.' : 'Commande refusée.' };
+  if (e.erreur === null) return { genre: 'confirme', message: MESSAGES_SUCCES[e.action] };
   if (e.erreur.genre === 'securite') return { genre: 'securite', message: MESSAGE_SECURITE };
   if (!e.erreur.incertain) return { genre: 'refus', message: e.erreur.message, reessayer: false };
   if (e.relue === undefined) return { genre: 'incertain', message: e.erreur.message + ' La liste n’a pas pu être relue : actualisez-la avant de réessayer.', reessayer: false };
   if (e.relue === null) return { genre: 'refus', message: 'Cette commande n’apparaît plus dans la liste. Actualisez la liste.', reessayer: false };
-  if ((ATTENDUS[e.action] as readonly string[]).includes(e.relue.statut)) return { genre: 'confirme', message: e.action === 'accepter' ? 'Votre acceptation est bien enregistrée.' : 'Votre refus est bien enregistré.' };
-  if (e.relue.statut === 'en_attente') return { genre: 'incertain', message: 'La liste relue ne montre pas votre réponse : elle n’a pas été enregistrée. Vous pouvez réessayer.', reessayer: true };
-  return { genre: 'refus', message: 'La commande a changé d’état entre-temps : ' + LIBELLES_STATUT[e.relue.statut].toLowerCase() + '.', reessayer: false };
+  if (etatApres(e.action, e.relue)) return { genre: 'confirme', message: MESSAGES_ENREGISTRE[e.action] };
+  if (etatAvant(e.action, e.relue)) return { genre: 'incertain', message: 'La liste relue ne montre pas votre réponse : elle n’a pas été enregistrée. Vous pouvez réessayer.', reessayer: true };
+  return { genre: 'refus', message: 'La commande a changé d’état entre-temps : ' + LIBELLES_STATUT[e.relue.statut].toLowerCase() + (estPaiement(e.action) && e.relue.paiementStatut !== 'declare' ? ' (paiement déjà tranché ou modifié)' : '') + '.', reessayer: false };
 }
 
 // ---------- machine d'états de l'écran ----------
 export type EtatAction =
   | { phase: 'repos' }
-  | { phase: 'confirmation_refus'; commandeId: string }
+  | { phase: 'confirmation'; commandeId: string; action: ActionRestaurateur }
   | { phase: 'envoi'; commandeId: string; action: ActionRestaurateur }
   | { phase: 'relecture'; commandeId: string; action: ActionRestaurateur; erreur: ErreurRestaurateur | null; sessionTerminee: string | null }
   | { phase: 'verdict'; commandeId: string; action: ActionRestaurateur; verdict: VerdictAction; lectureVerdict: number };
 export const ETAT_REPOS: EtatAction = { phase: 'repos' };
 
 export type EvenementAction =
-  | { type: 'demander_refus'; commandeId: string; lecture: number }
-  | { type: 'annuler_refus' }
+  | { type: 'demander_confirmation'; commandeId: string; action: ActionRestaurateur; lecture: number }
+  | { type: 'annuler_confirmation' }
   | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number }
   | { type: 'repondre'; erreur: ErreurRestaurateur | null; sessionTerminee?: string | null }
   | { type: 'relire'; relue: CommandeRestaurateur | null | undefined; lecture: number }
@@ -209,19 +291,20 @@ export function actionVerrouillee(etat: EtatAction, lecture: number): boolean {
   if (etat.phase === 'envoi' || etat.phase === 'relecture') return true;
   return etat.phase === 'verdict' && etat.verdict.genre === 'incertain' && !etat.verdict.reessayer && etat.lectureVerdict === lecture;
 }
-/** Un refus n'est envoyé qu'après sa confirmation (même commande) ; une acceptation, jamais pendant un verrou. */
+/** Un refus ou un « paiement non reçu » n'est envoyé qu'après SA confirmation (même commande, même action) ; les autres actions, jamais pendant un verrou. */
 export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number): boolean {
+  if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) return false;
   if (actionVerrouillee(etat, lecture)) return false;
-  return action === 'refuser' ? etat.phase === 'confirmation_refus' && etat.commandeId === commandeId : true;
+  return (ACTIONS_A_CONFIRMER as readonly string[]).includes(action) ? etat.phase === 'confirmation' && etat.commandeId === commandeId && etat.action === action : true;
 }
 
 /** Transitions, une par événement. Un événement hors de son contexte (ou refusé par le verrou) laisse l'état inchangé : jamais d'envoi sans passage par `envoyer`. */
 export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
   switch (ev.type) {
-    case 'demander_refus':
-      return actionVerrouillee(etat, ev.lecture) ? etat : { phase: 'confirmation_refus', commandeId: ev.commandeId };
-    case 'annuler_refus':
-      return etat.phase === 'confirmation_refus' ? ETAT_REPOS : etat;
+    case 'demander_confirmation':
+      return actionVerrouillee(etat, ev.lecture) || !(ACTIONS_A_CONFIRMER as readonly string[]).includes(ev.action) ? etat : { phase: 'confirmation', commandeId: ev.commandeId, action: ev.action };
+    case 'annuler_confirmation':
+      return etat.phase === 'confirmation' ? ETAT_REPOS : etat;
     case 'envoyer':
       return peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture) ? { phase: 'envoi', commandeId: ev.commandeId, action: ev.action } : etat;
     case 'repondre':
