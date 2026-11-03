@@ -9,6 +9,12 @@ export const MOYENS_PAIEMENT = [
   { valeur: "mtn_momo", libelle: "MTN MoMo" },
 ] as const;
 
+/**
+ * Moyens que le restaurateur peut COCHER aujourd'hui : jamais les espèces (décision du 3 novembre 2026). `MOYENS_PAIEMENT` garde la liste complète pour lire,
+ * valider et conserver les réglages existants (la contrainte SQL accepte encore « especes »).
+ */
+export const MOYENS_SAISISSABLES = MOYENS_PAIEMENT.filter((m) => m.valeur !== "especes");
+
 export type MoyenPaiement = (typeof MOYENS_PAIEMENT)[number]["valeur"];
 
 const VALEURS: readonly string[] = MOYENS_PAIEMENT.map((m) => m.valeur);
@@ -24,5 +30,6 @@ export function moyensPaiementValides(brut: readonly unknown[]): boolean {
 }
 
 export function libellesMoyensPaiement(valeurs: readonly string[]): string[] {
-  return MOYENS_PAIEMENT.filter((m) => valeurs.includes(m.valeur)).map((m) => m.libelle);
+  // Les espèces ne sont plus affichées au public, même pour un restaurant qui les avait déclarées.
+  return MOYENS_SAISISSABLES.filter((m) => valeurs.includes(m.valeur)).map((m) => m.libelle);
 }

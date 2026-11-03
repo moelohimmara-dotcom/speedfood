@@ -5,7 +5,7 @@ import { modifierProfilAction, type EtatFormulaireProfil } from "@/lib/restauran
 import { Card } from "@/components/ui";
 import { BarreEnregistrement, useSuiviModifications } from "@/components/admin/BarreEnregistrement";
 import { SelecteurCouleur } from "./SelecteurCouleur";
-import { MOYENS_PAIEMENT } from "@/lib/restaurant/paiement";
+import { MOYENS_SAISISSABLES } from "@/lib/restaurant/paiement";
 
 const etatInitial: EtatFormulaireProfil = {};
 
@@ -156,7 +156,7 @@ export function FormulaireProfil({
           <legend className="aide-champ">
             Information affichée sur votre fiche. Speedfood n&apos;encaisse rien : le client règle directement avec vous.
           </legend>
-          {MOYENS_PAIEMENT.map((moyen) => (
+          {MOYENS_SAISISSABLES.map((moyen) => (
             <label key={moyen.valeur} className="moyen-paiement">
               <input type="checkbox" name="moyens_paiement" value={moyen.valeur} defaultChecked={moyensPaiement.includes(moyen.valeur)} />
               {moyen.libelle}

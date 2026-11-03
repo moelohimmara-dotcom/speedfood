@@ -5,6 +5,7 @@ import type { EtatDeriveCommande, LigneCommandeApercu } from "@/lib/contracts/co
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
+import { paiementOuvert } from "@/lib/paiement/regles";
 import { libelleMode } from "@/lib/commande/mode";
 import { PropositionCarte } from "./PropositionCarte";
 import { PanneauPaiement } from "./PanneauPaiement";
@@ -207,7 +208,7 @@ export async function renderSuiviPage(jeton: string, session = false) {
         />
       ) : null}
 
-      <PanneauPaiement jeton={session ? undefined : jeton} session={session} paiement={suivi.paiement} total={totalIndicatif} restaurant={suivi.restaurant.nom} />
+      <PanneauPaiement jeton={session ? undefined : jeton} session={session} paiement={suivi.paiement} total={totalIndicatif} restaurant={suivi.restaurant.nom} ouvert={paiementOuvert(suivi.statut, suivi.propositionActive !== null)} />
 
       <Card className="suivi-bloc">
         <p className="suivi-resto-nom">{suivi.restaurant.nom}</p>

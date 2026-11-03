@@ -40,11 +40,13 @@ verifier("espaces multiples ramenés à un", lireReferencePaiement("PP  1234  AB
 
 // Options proposées au client
 const codes = { orange: "123456", mtn: null };
-verifier("Orange déclaré avec code : proposé ; MTN sans code : non", optionsPaiement(["orange_money", "mtn_momo", "especes"], codes).map((o) => o.mode), ["orange_money", "especes"]);
+verifier("Orange déclaré avec code : proposé ; MTN sans code : non", optionsPaiement(["orange_money", "mtn_momo", "especes"], codes).map((o) => o.mode), ["orange_money"]);
 verifier("le code est transmis", optionsPaiement(["orange_money"], codes)[0].code, "123456");
 verifier("Orange déclaré mais sans code : non proposé", optionsPaiement(["orange_money"], { orange: null, mtn: null }).map((o) => o.mode), ["especes"].filter(() => false));
-verifier("rien de déclaré : espèces par défaut", optionsPaiement([], { orange: null, mtn: null }).map((o) => o.mode), ["especes"]);
-verifier("code renseigné mais mode non déclaré : non proposé", optionsPaiement(["especes"], codes).map((o) => o.mode), ["especes"]);
+verifier("rien de déclaré : aucun mode (jamais d'espèces par défaut)", optionsPaiement([], { orange: null, mtn: null }).map((o) => o.mode), []);
+verifier("code renseigné mais mode non déclaré : non proposé ; espèces déclarées : jamais proposées", optionsPaiement(["especes"], codes).map((o) => o.mode), []);
+verifier("tout déclaré avec les deux codes : mobile money seulement", optionsPaiement(["especes", "orange_money", "mtn_momo"], { orange: "123456", mtn: "654321" }).map((o) => o.mode), ["orange_money", "mtn_momo"]);
+verifier("aucune option ne porte le mode espèces, quoi qu'on déclare", ([[], ["especes"], ["especes", "orange_money", "mtn_momo"]] as string[][]).every((m) => optionsPaiement(m, { orange: "123456", mtn: "654321" }).every((o) => o.mode !== "especes")), true);
 
 // Ouverture du paiement : seulement après acceptation
 verifier("en attente : pas de paiement", paiementOuvert("en_attente", false), false);
@@ -56,7 +58,8 @@ verifier("proposition de prix en cours : pas de paiement", paiementOuvert("accep
 verifier("déclaration possible tant que non confirmé", [peutDeclarer("declare"), peutDeclarer("non_recu"), peutDeclarer("recu")], [true, true, false]);
 
 // Textes
-verifier("libellé espèces encaissées", libelleStatutPaiement("recu", "especes"), "Espèces encaissées");
+verifier("libellé espèces encaissées (anciennes commandes, lecture seule)", libelleStatutPaiement("recu", "especes"), "Espèces encaissées");
+verifier("ancien statut espèces toujours lisible", libelleStatutPaiement("especes", "especes"), "À régler en espèces au restaurant");
 verifier("libellé déclaré", libelleStatutPaiement("declare", "orange_money"), "Paiement déclaré, en attente de confirmation du restaurant");
 
 // WhatsApp

@@ -10,7 +10,7 @@ import { lireReferencePaiement, paiementOuvert, peutDeclarer, type ModePaiement 
 /**
  * Déclaration du règlement par le client : UN seul chemin pour le site (`declarerPaiementAction`) et l'application native (`POST /api/v1/suivi/paiement`).
  *
- * Le client déclare avoir réglé le restaurant (code marchand Orange Money ou MTN MoMo) ou choisit de payer en espèces. Speedfood ne vérifie aucun paiement :
+ * Le client déclare avoir réglé le restaurant (code marchand Orange Money ou MTN MoMo) (les espèces ne sont plus acceptées : refus VALIDATION). Speedfood ne vérifie aucun paiement :
  * cette déclaration est ensuite CONFIRMÉE (ou contestée) par le restaurateur. Garde-fous : jeton valide, paiement ouvert seulement après acceptation et sans
  * proposition de prix en cours, mode réellement proposé par ce restaurant (code renseigné), référence facultative de 4 à 40 caractères simples, jamais de
  * montant venu du navigateur, et rien n'est modifié si le restaurateur a déjà confirmé la réception.
@@ -26,7 +26,10 @@ export async function declarerPaiement(jeton: unknown, mode: unknown, referenceB
   if (!estJetonValide(jeton)) {
     return { ok: false, erreur: { code: "INTROUVABLE", message: "Lien de suivi introuvable." } };
   }
-  if (mode !== "especes" && mode !== "orange_money" && mode !== "mtn_momo") {
+  if (mode === "especes") {
+    return { ok: false, erreur: { code: "VALIDATION", message: "Le paiement en espèces n'est pas pris en charge par Speedfood. Le paiement en ligne Chap Chap Pay arrive bientôt." } };
+  }
+  if (mode !== "orange_money" && mode !== "mtn_momo") {
     return { ok: false, erreur: { code: "VALIDATION", message: "Mode de paiement invalide." } };
   }
   // Une référence qui n'est ni un texte ni vide est refusée comme une référence invalide (le site, lui, ne reçoit que des textes).
@@ -67,8 +70,8 @@ export async function declarerPaiement(jeton: unknown, mode: unknown, referenceB
       .from("orders")
       .update({
         paiement_mode: choisi,
-        paiement_statut: choisi === "especes" ? "especes" : "declare",
-        paiement_reference: choisi === "especes" ? null : reference.valeur,
+        paiement_statut: "declare",
+        paiement_reference: reference.valeur,
         paiement_declare_le: new Date().toISOString(),
       })
       .eq("jeton_suivi", jeton)

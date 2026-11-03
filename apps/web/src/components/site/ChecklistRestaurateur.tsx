@@ -8,7 +8,7 @@ const POINTS: { cle: string; titre: string; aide: string; obligatoire: boolean }
   { cle: "horaires", titre: "Vos horaires", aide: "Pour que vos clients sachent quand commander.", obligatoire: true },
   { cle: "photo", titre: "Une photo de couverture", aide: "Conseillé : une belle photo remplit la fiche.", obligatoire: false },
   { cle: "logo", titre: "Votre logo", aide: "Facultatif, il rassure vos clients.", obligatoire: false },
-  { cle: "paiement", titre: "Vos moyens de paiement", aide: "Espèces, Orange Money, MTN MoMo : ce que vous acceptez vraiment.", obligatoire: false },
+  { cle: "paiement", titre: "Vos moyens de paiement", aide: "Orange Money, MTN MoMo : ce que vous acceptez vraiment.", obligatoire: false },
 ];
 
 /**

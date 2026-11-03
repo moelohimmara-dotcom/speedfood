@@ -10,6 +10,9 @@ import { payerEnLigneAction, payerEnLigneSessionAction, simulerPaiementAction, s
 import { LIBELLES_MODE, formaterMontantGnf, libelleStatutPaiement, type ModePaiement, type OptionPaiement } from "@/lib/paiement/regles";
 import { Alert, Button, Card } from "@/components/ui";
 
+/** Message affiché quand le paiement est ouvert mais qu'aucun mode n'est proposé (les espèces ne le sont plus). Même texte que l'application. */
+export const MESSAGE_SANS_MODE_PAIEMENT = 'Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment.';
+
 function formaterDate(iso: string) {
   return new Date(iso).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 }
@@ -193,48 +196,12 @@ function OptionEnLigne({ jeton, session = false, enLigne, total }: { jeton?: str
   );
 }
 
-function OptionEspeces({ jeton, session = false, choisi }: { jeton?: string; session?: boolean; choisi: boolean }) {
-  const router = useRouter();
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [enCours, demarrer] = useTransition();
-  return (
-    <div className={`pay-option${choisi ? " pay-option-choisie" : ""}`}>
-      <h3 className="pay-option-titre">Payer en espèces</h3>
-      <p className="suivi-pay-texte">Vous réglez au restaurant à la remise de la commande.</p>
-      {erreur ? <Alert ton="danger">{erreur}</Alert> : null}
-      <Button
-        type="button"
-        variante="secondary"
-        pleineLargeur
-        disabled={enCours}
-        onClick={() => {
-          setErreur(null);
-          demarrer(async () => {
-            const r = session
-              ? await declarerPaiementSessionAction("especes", "")
-              : jeton
-                ? await declarerPaiementAction(jeton, "especes", "")
-                : { ok: false as const, erreur: { code: "INTROUVABLE" as const, message: "Lien de suivi introuvable." } };
-            if (!r.ok) {
-              setErreur(r.erreur.message);
-              return;
-            }
-            router.refresh();
-          });
-        }}
-      >
-        {enCours ? "Envoi…" : "Je paierai en espèces"}
-      </Button>
-    </div>
-  );
-}
-
 /**
  * Règlement de la commande vu par le client. Rien à payer tant que le restaurant n'a pas accepté (la commande peut encore être
  * refusée ou son prix modifié). Après acceptation : le code marchand du restaurant, le montant et les étapes ; le client DÉCLARE
  * son paiement, le restaurateur le CONFIRME. Speedfood ne reçoit, ne détient ni ne vérifie aucun argent.
  */
-export function PanneauPaiement({ jeton, session = false, paiement, total, restaurant }: { jeton?: string; session?: boolean; paiement: PaiementSuivi; total: number; restaurant: string }) {
+export function PanneauPaiement({ jeton, session = false, paiement, total, restaurant, ouvert = false }: { jeton?: string; session?: boolean; paiement: PaiementSuivi; total: number; restaurant: string; ouvert?: boolean }) {
   const { statut, mode, options, enLigne } = paiement;
   const enLigneEnCours = enLigne.etat === "cree" || enLigne.etat === "en_attente";
   const afficheEnLigne = enLigne.disponible || enLigne.etat !== null;
@@ -260,8 +227,9 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
       <Card className="suivi-bloc">
         <p className="suivi-resto-nom">Règlement</p>
         <p className="suivi-pay-sans-marge suivi-pay-secondaire">
-          Vous réglez directement avec le restaurant, selon ses modalités (espèces ou mobile money). Speedfood n&apos;encaisse rien. Quand le restaurant aura accepté
-          votre commande, ses moyens de paiement s&apos;afficheront ici.
+          {ouvert
+            ? MESSAGE_SANS_MODE_PAIEMENT
+            : "Speedfood n'encaisse rien. Quand le restaurant aura accepté votre commande, les moyens de paiement disponibles s'afficheront ici."}
         </p>
       </Card>
     );
@@ -279,6 +247,7 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
         </p>
       )}
 
+      {/* Ancien statut « especes » : reste lisible (lecture seule), mais plus aucune action en espèces n'est proposée. */}
       {statut === "declare" || statut === "especes" ? (
         <Alert ton="info" className="suivi-prop-erreur">
           {libelleStatutPaiement(statut, mode)}
@@ -293,13 +262,9 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
       ) : null}
 
       <div className="pay-options">
-        {(enLigneEnCours ? [] : options).map((o) =>
-          o.mode === "especes" ? (
-            <OptionEspeces key={o.mode} jeton={jeton} session={session} choisi={mode === "especes"} />
-          ) : (
-            <OptionMobileMoney key={o.mode} option={o} total={total} restaurant={restaurant} jeton={jeton} session={session} choisi={mode === (o.mode as ModePaiement)} />
-          )
-        )}
+        {(enLigneEnCours ? [] : options.filter((o) => o.mode !== "especes")).map((o) => (
+          <OptionMobileMoney key={o.mode} option={o} total={total} restaurant={restaurant} jeton={jeton} session={session} choisi={mode === (o.mode as ModePaiement)} />
+        ))}
       </div>
     </Card>
   );

@@ -63,7 +63,7 @@ const ETAPES = [
     titre: "Suivez et recevez votre commande",
     texte: "Les mises à jour du restaurant, puis retrait ou livraison.",
     detail:
-      "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord. Le restaurant précise les options de retrait ou de livraison ; vous le réglez directement, en espèces ou avec son code marchand Orange Money ou MTN MoMo. Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
+      "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord. Le restaurant précise les options de retrait ou de livraison ; vous le réglez avec son code marchand Orange Money ou MTN MoMo (le paiement en ligne Chap Chap Pay arrive bientôt). Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
     motif: "emporter",
   },
 ];

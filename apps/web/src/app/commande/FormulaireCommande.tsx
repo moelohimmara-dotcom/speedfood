@@ -349,7 +349,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
       <div className="bloc-reglement">
         <p className="bloc-reglement-cle">Vous payez le restaurant directement, pas Speedfood.</p>
         <p className="bloc-reglement-detail">
-          Espèces ou mobile money, selon ses modalités. La commande n&apos;est confirmée que lorsque le
+          Avec son code marchand mobile money (Orange Money, MTN MoMo) ; le paiement en ligne Chap Chap Pay arrive bientôt. La commande n&apos;est confirmée que lorsque le
           restaurant l&apos;accepte. Prix et disponibilité sont revérifiés à l&apos;envoi.
         </p>
       </div>

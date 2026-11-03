@@ -101,11 +101,19 @@ test("paiement : mobile money déclaré, écriture du mode, du statut « declare
   assert.deepEqual(g.__fauxPaiement.appels, ["limiter", "charger", "ecrire:orders"]);
 });
 
-test("paiement : espèces, statut « especes », aucune référence écrite même si le client en donne une", async () => {
+test("paiement : espèces REFUSÉES (VALIDATION, message clair), même si le restaurant les propose : ni plafond, ni lecture, ni écriture", async () => {
   const ecritures = preparer(suiviAccepte());
-  assert.deepEqual(await declarerPaiement(JETON, "especes", "REF-1234"), { ok: true });
-  assert.equal(ecritures[0].maj.paiement_statut, "especes");
-  assert.equal(ecritures[0].maj.paiement_reference, null);
+  assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("VALIDATION", "Le paiement en espèces n'est pas pris en charge par Speedfood. Le paiement en ligne Chap Chap Pay arrive bientôt."));
+  assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "REF-1234")).ok, false);
+  assert.deepEqual(g.__fauxPaiement.appels, []);
+  assert.equal(ecritures.length, 0, "aucune écriture espèces");
+});
+
+test("paiement : mobile money, statut « declare » écrit (jamais « especes »), référence enregistrée", async () => {
+  const ecritures = preparer(suiviAccepte());
+  assert.deepEqual(await declarerPaiement(JETON, "mtn_momo", "REF-1234"), { ok: true });
+  assert.equal(ecritures[0].maj.paiement_statut, "declare");
+  assert.equal(ecritures[0].maj.paiement_reference, "REF-1234");
 });
 
 test("paiement : référence absente, nulle ou vide : acceptée, écrite à null", async () => {
@@ -157,32 +165,32 @@ test("paiement : références aux bornes (4 et 40 caractères) acceptées", asyn
 
 test("paiement : plafond atteint : refus rendu tel quel (TROP_DE_REQUETES), la commande n'est ni lue ni modifiée", async () => {
   const ecritures = preparer(suiviAccepte(), undefined, async (E) => { throw new E("TROP_DE_REQUETES", "Trop de demandes."); });
-  assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("TROP_DE_REQUETES", "Trop de demandes."));
+  assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("TROP_DE_REQUETES", "Trop de demandes."));
   assert.deepEqual(g.__fauxPaiement.appels, ["limiter"]);
   assert.equal(ecritures.length, 0);
 });
 
 test("paiement : commande introuvable pour ce jeton : INTROUVABLE, aucune écriture", async () => {
   const ecritures = preparer(null);
-  assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("INTROUVABLE", "Lien de suivi introuvable."));
+  assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("INTROUVABLE", "Lien de suivi introuvable."));
   assert.equal(ecritures.length, 0);
 });
 
 test("paiement : paiement non ouvert (en attente, refusée, annulée, expirée) : CONFLIT_ETAT, aucune écriture", async () => {
   for (const statut of ["en_attente", "refusee", "annulee", "expiree"]) {
     const ecritures = preparer(suiviAccepte({ statut }));
-    assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("CONFLIT_ETAT", "Le paiement s'ouvre quand le restaurant a accepté la commande."), statut);
+    assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("CONFLIT_ETAT", "Le paiement s'ouvre quand le restaurant a accepté la commande."), statut);
     assert.equal(ecritures.length, 0);
   }
 });
 
 test("paiement : acceptée mais avec une proposition de prix en cours : CONFLIT_ETAT, aucune écriture ; prête et terminée restent ouvertes", async () => {
   const ecritures = preparer(suiviAccepte({ propositionActive: { id: "p1" } }));
-  assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("CONFLIT_ETAT", "Le paiement s'ouvre quand le restaurant a accepté la commande."));
+  assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("CONFLIT_ETAT", "Le paiement s'ouvre quand le restaurant a accepté la commande."));
   assert.equal(ecritures.length, 0);
   for (const statut of ["prete", "terminee"]) {
     preparer(suiviAccepte({ statut }));
-    assert.deepEqual(await declarerPaiement(JETON, "especes", ""), { ok: true });
+    assert.deepEqual(await declarerPaiement(JETON, "mtn_momo", ""), { ok: true });
   }
 });
 
@@ -195,12 +203,12 @@ test("paiement : déjà confirmé par le restaurant (« recu ») : CONFLIT_ETAT 
 test("paiement : paiement en ligne ouvert ou abouti : CONFLIT_ETAT, aucune écriture ; échoué, expiré, annulé ou remboursé ne bloque pas", async () => {
   for (const etat of ["cree", "en_attente", "confirme", "libere", "en_litige"]) {
     const ecritures = preparer(suiviAccepte({}, { enLigne: { ...ENLIGNE_AUCUN, etat } }));
-    assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("CONFLIT_ETAT", "Un paiement en ligne est déjà en cours pour cette commande."), etat);
+    assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("CONFLIT_ETAT", "Un paiement en ligne est déjà en cours pour cette commande."), etat);
     assert.equal(ecritures.length, 0);
   }
   for (const etat of ["echoue", "expire", "annule", "rembourse", null]) {
     preparer(suiviAccepte({}, { enLigne: { ...ENLIGNE_AUCUN, etat } }));
-    assert.deepEqual(await declarerPaiement(JETON, "especes", ""), { ok: true }, String(etat));
+    assert.deepEqual(await declarerPaiement(JETON, "mtn_momo", ""), { ok: true }, String(etat));
   }
 });
 
@@ -209,19 +217,19 @@ test("paiement : mode absent des options du restaurant : VALIDATION « n'accepte
   assert.deepEqual(nettoye(await declarerPaiement(JETON, "orange_money", "OM-123456")), refus("VALIDATION", "Ce restaurant n'accepte pas ce mode de paiement."));
   assert.equal(ecritures.length, 0);
   preparer(suiviAccepte({}, { options: [] }));
-  assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("VALIDATION", "Ce restaurant n'accepte pas ce mode de paiement."));
+  assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("VALIDATION", "Ce restaurant n'accepte pas ce mode de paiement."));
 });
 
 test("paiement : aucune ligne modifiée (confirmé entre-temps) ou erreur de base : CONFLIT_ETAT « n'a pas pu être enregistré »", async () => {
   for (const resultat of [{ data: [], error: null }, { data: null, error: null }, { data: [{ id: "o1" }], error: { message: "boom" } }]) {
     preparer(suiviAccepte(), () => resultat);
-    assert.deepEqual(nettoye(await declarerPaiement(JETON, "especes", "")), refus("CONFLIT_ETAT", "Le paiement n'a pas pu être enregistré. Actualisez la page."));
+    assert.deepEqual(nettoye(await declarerPaiement(JETON, "mtn_momo", "")), refus("CONFLIT_ETAT", "Le paiement n'a pas pu être enregistré. Actualisez la page."));
   }
 });
 
 test("paiement : panne imprévue (lecture ou base) : ERREUR_SERVEUR générique, sans le message de l'exception", async () => {
   g.__fauxPaiement = { appels: [], limiter: async () => {}, suivi: async () => { throw new Error("secret interne " + JETON); }, ecrire: () => ({ data: [], error: null }) };
-  const r = nettoye(await declarerPaiement(JETON, "especes", ""));
+  const r = nettoye(await declarerPaiement(JETON, "mtn_momo", ""));
   assert.deepEqual(r, refus("ERREUR_SERVEUR", "Une erreur est survenue. Réessayez dans un instant."));
   assert.ok(!JSON.stringify(r).includes("secret interne"));
 });
@@ -231,10 +239,10 @@ test("paiement : l'ordre des contrôles est celui du site : jeton, mode, référ
   preparer(suiviAccepte({ statut: "en_attente" }));
   assert.equal(message(await declarerPaiement("court", "carte", "x")), "Lien de suivi introuvable.");
   assert.equal(message(await declarerPaiement(JETON, "carte", "x")), "Mode de paiement invalide.");
-  assert.equal(message(await declarerPaiement(JETON, "especes", "x")), "La référence contient 4 à 40 lettres, chiffres, points ou tirets.");
-  assert.equal(message(await declarerPaiement(JETON, "especes", "")), "Le paiement s'ouvre quand le restaurant a accepté la commande.");
+  assert.equal(message(await declarerPaiement(JETON, "mtn_momo", "x")), "La référence contient 4 à 40 lettres, chiffres, points ou tirets.");
+  assert.equal(message(await declarerPaiement(JETON, "mtn_momo", "")), "Le paiement s'ouvre quand le restaurant a accepté la commande.");
   preparer(suiviAccepte({}, { statut: "recu", enLigne: { ...ENLIGNE_AUCUN, etat: "confirme" }, options: [] }));
-  assert.equal(message(await declarerPaiement(JETON, "especes", "")), "Le restaurant a déjà confirmé votre paiement.");
+  assert.equal(message(await declarerPaiement(JETON, "mtn_momo", "")), "Le restaurant a déjà confirmé votre paiement.");
   preparer(suiviAccepte({}, { enLigne: { ...ENLIGNE_AUCUN, etat: "confirme" }, options: [] }));
-  assert.equal(message(await declarerPaiement(JETON, "especes", "")), "Un paiement en ligne est déjà en cours pour cette commande.");
+  assert.equal(message(await declarerPaiement(JETON, "mtn_momo", "")), "Un paiement en ligne est déjà en cours pour cette commande.");
 });

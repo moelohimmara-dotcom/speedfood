@@ -47,14 +47,14 @@ export function lireReferencePaiement(brut: string): { ok: true; valeur: string 
 }
 
 /**
- * Modes proposés au client : espèces si le restaurant les accepte (ou n'a rien déclaré), et chaque mobile money
- * seulement s'il est déclaré ET que le code marchand correspondant est renseigné.
+ * Modes proposés au client : chaque mobile money seulement s'il est déclaré ET que le code marchand correspondant est renseigné.
+ * JAMAIS les espèces (décision du 3 novembre 2026 : Speedfood ne manipule jamais d'espèces, tout paiement passera par Chap Chap Pay), même si le restaurant
+ * a déclaré les espèces ou n'a rien déclaré. Les anciennes commandes en mode « especes » restent lisibles (libellés, reçus, console).
  */
 export function optionsPaiement(moyens: readonly string[], codes: CodesMarchand): OptionPaiement[] {
   const options: OptionPaiement[] = [];
   if (moyens.includes("orange_money") && codes.orange) options.push({ mode: "orange_money", libelle: LIBELLES_MODE.orange_money, code: codes.orange });
   if (moyens.includes("mtn_momo") && codes.mtn) options.push({ mode: "mtn_momo", libelle: LIBELLES_MODE.mtn_momo, code: codes.mtn });
-  if (moyens.length === 0 || moyens.includes("especes")) options.push({ mode: "especes", libelle: LIBELLES_MODE.especes, code: null });
   return options;
 }
 

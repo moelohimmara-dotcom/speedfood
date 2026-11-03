@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Alert, Button } from "@/components/ui";
-import { MOYENS_PAIEMENT } from "@/lib/restaurant/paiement";
+import { MOYENS_SAISISSABLES } from "@/lib/restaurant/paiement";
 import { modifierProfilRestaurantAdminAction, type EtatActionRestaurant } from "@/lib/system-admin/restaurants";
 import { MODELES_CONSIGNES, MODELES_HORAIRES, PROFILS_PAIEMENT, moyensDuProfil } from "@/lib/system-admin/profil-pre-remplissage";
 
@@ -64,7 +64,7 @@ export function EditeurProfilRestaurant({
           {PROFILS_PAIEMENT.map((profil) => <option key={profil.libelle} value={profil.valeur}>{profil.libelle}</option>)}
         </select>
         <div className="ad-profil-paiements-liste">
-          {MOYENS_PAIEMENT.map((moyen) => (
+          {MOYENS_SAISISSABLES.map((moyen) => (
             <label key={moyen.valeur}>
               <input type="checkbox" name="moyens_paiement" value={moyen.valeur} checked={moyensSelectionnes.includes(moyen.valeur)} onChange={(e) => setMoyensSelectionnes((actuels) => e.target.checked ? [...actuels, moyen.valeur] : actuels.filter((valeur) => valeur !== moyen.valeur))} />
               {moyen.libelle}

@@ -91,7 +91,7 @@ export async function repondrePropositionAction(
 }
 
 /**
- * Le client déclare avoir réglé le restaurant (code marchand Orange Money ou MTN MoMo) ou choisit de payer en espèces : toute la logique (contrôles, plafond,
+ * Le client déclare avoir réglé le restaurant (code marchand Orange Money ou MTN MoMo) (jamais en espèces) : toute la logique (contrôles, plafond,
  * écriture) vit dans `declaration-paiement.ts`, partagée avec l'application native (`POST /api/v1/suivi/paiement`). Aucune copie ici.
  */
 export async function declarerPaiementAction(

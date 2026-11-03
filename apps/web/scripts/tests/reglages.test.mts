@@ -4,7 +4,7 @@ import { MOTIFS } from "../../src/lib/illustrations/motifs";
 import { ICONES } from "../../src/lib/illustrations/icones.generated";
 import { contraste, initiales, validerIllustration } from "../../src/lib/illustrations/modele";
 import { analyserPosition } from "../../src/lib/restaurant/position";
-import { libellesMoyensPaiement, moyensPaiementValides, normaliserMoyensPaiement } from "../../src/lib/restaurant/paiement";
+import { MOYENS_SAISISSABLES, libellesMoyensPaiement, moyensPaiementValides, normaliserMoyensPaiement } from "../../src/lib/restaurant/paiement";
 import { formaterDelaiValidation, lienWhatsAppAssistance, liensCarte } from "../../src/lib/parametres/assistance-format";
 
 import { AVATARS, emojiAvatar, estAvatarValide, genererPseudo, validerPseudo } from "../../src/lib/client/profil";
@@ -60,6 +60,8 @@ verifier("moyen inconnu refusé", moyensPaiementValides(["especes", "bitcoin"]),
 verifier("valeur non texte refusée", moyensPaiementValides([1]), false);
 verifier("normalisation sans doublon, ordre fixe", normaliserMoyensPaiement(["mtn_momo", "especes", "especes"]), ["especes", "mtn_momo"]);
 verifier("libellés", libellesMoyensPaiement(["orange_money"]), ["Orange Money"]);
+verifier("libellés publics : jamais d'espèces, même déclarées", libellesMoyensPaiement(["especes", "orange_money"]), ["Orange Money"]);
+verifier("moyens saisissables : pas d'espèces, mais les anciennes valeurs restent valides et conservées", [MOYENS_SAISISSABLES.map((m) => m.valeur), moyensPaiementValides(["especes"]), normaliserMoyensPaiement(["especes", "mtn_momo"])], [["orange_money", "mtn_momo"], true, ["especes", "mtn_momo"]]);
 
 // Assistance
 verifier("délai en heures", formaterDelaiValidation(24), "24 h");
