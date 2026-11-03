@@ -2,7 +2,7 @@ import { LIBELLES_MODE, libelleStatutPaiement, lireReferencePaiement, paiementOu
 
 /**
  * Domaine pur du lot C : déclaration du règlement après acceptation par le restaurant.
- * Speedfood ne reçoit jamais l'argent : le client règle le restaurant (code marchand Orange Money / MTN MoMo, ou espèces), DÉCLARE, puis le restaurateur CONFIRME.
+ * Speedfood ne reçoit jamais l'argent : le client règle le restaurant (code marchand Orange Money / MTN MoMo; jamais d'espèces, décision du 3 novembre 2026), DÉCLARE, puis le restaurateur CONFIRME.
  * Les règles (ouverture, référence, libellés) sont celles du serveur, importées de `packages/shared` ; aucun paiement en ligne n'est géré ici.
  */
 export type ModeReglement = 'especes' | 'orange_money' | 'mtn_momo';
@@ -64,6 +64,10 @@ export function declarationVerrouillee(verdict: VerdictDeclaration | null, lectu
   return verdict !== null && verdict.genre === 'incertain' && !verdict.reessayer && lectureVerdict === lecture;
 }
 
+export const MESSAGE_SANS_MODE = 'Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment.';
+/** Modes que l'application propose : jamais les espèces (Speedfood ne manipule pas d'espèces). */
+export function optionsProposables(options: readonly OptionReglement[]): OptionReglement[] { return options.filter(o => o.mode !== 'especes'); }
+
 export type ActionReglement =
   | { genre: 'rien'; message: string | null }
   | { genre: 'indisponible'; message: string }
@@ -76,16 +80,18 @@ export function actionReglement(e: { statutCommande: string; propositionActive: 
   if (p === null) return { genre: 'indisponible', message: 'Le règlement ne peut pas être affiché dans cette version de l’application. Déclarez-le depuis le site.' };
   if (!peutDeclarer(p.statut)) return { genre: 'rien', message: libelleStatutPaiement(p.statut, p.mode) };
   if (p.mode === 'speedfood' || (p.enLigneEtat !== null && EN_LIGNE_ACTIF.includes(p.enLigneEtat))) return { genre: 'rien', message: 'Un paiement en ligne est en cours pour cette commande. Terminez-le depuis le site.' };
-  if (p.options.length === 0) return { genre: 'rien', message: 'Le restaurant n’a indiqué aucun mode de règlement. Contactez-le.' };
-  if (p.statut === 'non_demande') return { genre: 'declarer', message: 'Réglez le restaurant avec l’un des modes ci-dessous, puis déclarez-le ici.', options: p.options };
-  return { genre: 'modifier', message: libelleStatutPaiement(p.statut, p.mode) + '. Vous pouvez corriger votre déclaration tant que le restaurant n’a pas confirmé.', options: p.options };
+  // Décision du 3 novembre 2026 : Speedfood ne manipule jamais d'espèces. Le mode « especes » n'est ni proposé ni envoyé ; sans autre mode, rien à régler tant que Chap Chap Pay n'est pas ouvert.
+  const options = optionsProposables(p.options);
+  if (options.length === 0) return { genre: 'rien', message: MESSAGE_SANS_MODE };
+  if (p.statut === 'non_demande' || p.statut === 'especes') return { genre: 'declarer', message: 'Réglez le restaurant avec l’un des modes ci-dessous, puis déclarez-le ici.', options };
+  return { genre: 'modifier', message: libelleStatutPaiement(p.statut, p.mode) + '. Vous pouvez corriger votre déclaration tant que le restaurant n’a pas confirmé.', options };
 }
 
 export type PreparationDeclaration = { ok: true; mode: ModeReglement; reference: string | null } | { ok: false; message: string };
 /** Contrôle côté client avant envoi : mode proposé par ce restaurant, référence 4 à 40 caractères simples (mobile money seulement, jamais pour les espèces). */
 export function preparerDeclaration(mode: string, referenceBrute: string, options: readonly OptionReglement[]): PreparationDeclaration {
+  if (mode === 'especes') return { ok: false, message: 'Le règlement en espèces n’est pas pris en charge par Speedfood.' };
   if (!options.some(o => o.mode === mode)) return { ok: false, message: 'Ce mode de règlement n’est pas proposé par ce restaurant.' };
-  if (mode === 'especes') return { ok: true, mode, reference: null };
   const r = lireReferencePaiement(referenceBrute.slice(0, 80));
   if (!r.ok) return { ok: false, message: 'La référence contient 4 à 40 lettres, chiffres, points ou tirets.' };
   return { ok: true, mode: mode as ModeReglement, reference: r.valeur };

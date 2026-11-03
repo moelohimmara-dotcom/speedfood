@@ -87,8 +87,8 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
    * l'adresse ni dans un message. Rejouable côté serveur, mais après une réponse inconnue l'appelant relit d'abord le suivi. Aucun montant n'est transmis.
    */
   async function postDeclaration(jeton: string, mode: string, reference: string | null): Promise<void> {
-    if (!jeton || !(MODES_REGLEMENT as readonly string[]).includes(mode)) throw new ErreurReglement('refus', 'Ce mode de règlement ne peut pas être déclaré depuis l’application.');
-    if (reference !== null && (mode === 'especes' || !lireReferencePaiement(reference).ok)) throw new ErreurReglement('refus', 'La référence contient 4 à 40 lettres, chiffres, points ou tirets.');
+    if (!jeton || mode === 'especes' || !(MODES_REGLEMENT as readonly string[]).includes(mode)) throw new ErreurReglement('refus', 'Ce mode de règlement ne peut pas être déclaré depuis l’application.');
+    if (reference !== null && !lireReferencePaiement(reference).ok) throw new ErreurReglement('refus', 'La référence contient 4 à 40 lettres, chiffres, points ou tirets.');
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {

@@ -22,7 +22,7 @@ export function ReglementReel({ suivi, lecture, occupe, declarer }: { suivi: Res
   if (!reglementAffichable(suivi.statut, suivi.propositionEnAttente) || (action.genre === 'rien' && action.message === null)) return null;
   const verrouille = declarationVerrouillee(verdict, luLeVerdict, lecture);
   const bloque = occupe || envoi || verrouille;
-  const mobile = choix !== null && choix !== 'especes';
+  const mobile = choix !== null;
   const options = action.genre === 'declarer' || action.genre === 'modifier' ? action.options : [];
 
   async function envoyer() {
@@ -41,7 +41,7 @@ export function ReglementReel({ suivi, lecture, occupe, declarer }: { suivi: Res
       <Text style={s.secondaire}>Speedfood ne reçoit pas votre argent : vous réglez directement le restaurant, qui confirme ensuite l’avoir reçu. Le paiement en ligne n’est pas encore disponible.</Text>
       {options.map(o => <Pressable key={o.mode} accessibilityRole="radio" accessibilityLabel={o.libelle} accessibilityState={{ selected: choix === o.mode, disabled: bloque }} disabled={bloque} onPress={() => { setChoix(o.mode); setErreur(null); setVerdict(null); }} style={[s.option, choix === o.mode && s.optionChoisie]}>
         <Text style={s.nom}>{o.libelle}</Text>
-        {o.code !== null ? <Text selectable style={s.texte}>Code marchand : {o.code}</Text> : <Text style={s.texte}>Vous réglez en espèces au restaurant.</Text>}
+        <Text selectable style={s.texte}>Code marchand : {o.code}</Text>
       </Pressable>)}
       {mobile && <>
         <Text style={s.texte}>Référence de la transaction (facultatif)</Text>
@@ -49,8 +49,8 @@ export function ReglementReel({ suivi, lecture, occupe, declarer }: { suivi: Res
         <Text style={s.secondaire}>4 à 40 lettres, chiffres, points ou tirets.</Text>
       </>}
       {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-      <Pressable accessibilityRole="button" accessibilityLabel={choix === 'especes' ? 'Je paierai en espèces' : 'J’ai payé'} disabled={bloque || choix === null} accessibilityState={{ disabled: bloque || choix === null }} onPress={() => { void envoyer(); }} style={[s.bouton, (bloque || choix === null) && s.inactif]}>
-        <Text style={s.boutonTexte}>{envoi ? 'Envoi…' : choix === 'especes' ? 'Je paierai en espèces' : 'J’ai payé'}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel='J’ai payé' disabled={bloque || choix === null} accessibilityState={{ disabled: bloque || choix === null }} onPress={() => { void envoyer(); }} style={[s.bouton, (bloque || choix === null) && s.inactif]}>
+        <Text style={s.boutonTexte}>{envoi ? 'Envoi…' : 'J’ai payé'}</Text>
       </Pressable>
     </>}
     {verdict && <Text accessibilityRole={verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.message}</Text>}

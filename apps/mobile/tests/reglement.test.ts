@@ -53,15 +53,15 @@ test('verrou : après un verdict incertain sans relecture réussie, déclaration
   assert.equal(declarationVerrouillee(null, null, 0), false);
   for (const v of [verdictDeclaration({ erreur: null, mode: 'especes', reference: null, relu: undefined }), verdictDeclaration({ erreur: refusDeclaration(409), mode: 'especes', reference: null, relu: undefined })]) assert.equal(declarationVerrouillee(v, 4, 4), false, v.genre);
 });
-test('action : acceptée, prête ou terminée, rien déclaré = déclarer avec les trois modes', () => {
+test('action : acceptée, prête ou terminée, rien déclaré = déclarer, avec les seuls modes mobile money (jamais espèces)', () => {
   for (const s of ['acceptee', 'prete', 'terminee']) {
     const a = ouvert(lu(), s);
     assert.equal(a.genre, 'declarer');
-    assert.deepEqual((a as { options: { mode: string }[] }).options.map(o => o.mode), ['orange_money', 'mtn_momo', 'especes']);
+    assert.deepEqual((a as { options: { mode: string }[] }).options.map(o => o.mode), ['orange_money', 'mtn_momo']);
   }
 });
-test('action : déjà déclaré (déclaré, espèces, non retrouvé) = modifier avec le libellé du statut', () => {
-  for (const [statut, texte] of [['declare', /en attente de confirmation du restaurant/], ['especes', /espèces/], ['non_recu', /non retrouvé/]] as const) {
+test('action : déjà déclaré (déclaré, non retrouvé) = modifier avec le libellé du statut ; ancien statut espèces = déclarer à nouveau', () => {
+  for (const [statut, texte] of [['declare', /en attente de confirmation du restaurant/], ['non_recu', /non retrouvé/]] as const) {
     const a = ouvert(lu({ statut, mode: 'orange_money' }));
     assert.equal(a.genre, 'modifier'); assert.match(a.message, texte);
   }
@@ -79,6 +79,16 @@ test('action : `enLigne.disponible` vrai est ignoré (aucun paiement en ligne pr
   const a = ouvert(lu({ enLigne: { ...enLigne(), disponible: true } }));
   assert.equal(a.genre, 'declarer');
 });
+test('action : sans autre mode que les espèces (cas barbie food) = aucun choix ni bouton, message Chap Chap Pay ; espèces jamais proposées', () => {
+  const seulesEspeces = [{ mode: 'especes', libelle: 'x', code: null }];
+  for (const statut of ['non_demande', 'especes', 'declare']) {
+    const a = ouvert(lu({ statut, mode: statut === 'non_demande' ? null : 'especes', options: seulesEspeces }));
+    assert.deepEqual(a, { genre: 'rien', message: 'Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment.' }, statut);
+  }
+  for (const s of ['acceptee', 'prete', 'terminee']) assert.equal(ouvert(lu({ options: seulesEspeces }), s).genre, 'rien');
+  const mixte = ouvert(lu());
+  assert.ok(mixte.genre === 'declarer' && !mixte.options.some(o => o.mode === 'especes'));
+});
 test('action : sans option = rien ; bloc illisible (null) = indisponible seulement si la commande est acceptée', () => {
   assert.equal(ouvert(lu({ options: [] })).genre, 'rien');
   assert.equal(ouvert(null).genre, 'indisponible');
@@ -87,10 +97,10 @@ test('action : sans option = rien ; bloc illisible (null) = indisponible seuleme
 
 // ---------- préparation ----------
 const options = lu().options;
-test('préparation : mobile money, référence nettoyée ou vide ; espèces ne portent jamais de référence', () => {
+test('préparation : mobile money, référence nettoyée ou vide ; espèces refusées même si le restaurant les propose', () => {
   assert.deepEqual(preparerDeclaration('orange_money', '  OM-123456 ', options), { ok: true, mode: 'orange_money', reference: 'OM-123456' });
   assert.deepEqual(preparerDeclaration('mtn_momo', '', options), { ok: true, mode: 'mtn_momo', reference: null });
-  assert.deepEqual(preparerDeclaration('especes', 'REF-1234', options), { ok: true, mode: 'especes', reference: null });
+  assert.equal(preparerDeclaration('especes', '', options).ok, false);
 });
 test('préparation : référence de 3 ou 41 caractères, caractères spéciaux : refusée ; bornes 4 et 40 acceptées', () => {
   for (const ref of ['abc', 'a'.repeat(41), 'OM<1234>', 'OM#1234']) assert.equal(preparerDeclaration('orange_money', ref, options).ok, false, ref);
@@ -151,14 +161,15 @@ test('client : corps exact {jeton, mode, reference}, jeton absent de l’URL, cr
   assert.deepEqual(JSON.parse(String(vus[0].init?.body)), { jeton: JETON, mode: 'orange_money', reference: 'OM-123456' });
   assert.equal((vus[0].init?.headers as Record<string, string>).Authorization, undefined, 'aucune identité : le jeton de suivi est la clé');
 });
-test('client : sans référence, le corps ne porte pas de champ référence ; espèces refusées avec une référence avant tout réseau', async () => {
+test('client : sans référence, le corps ne porte pas de champ référence ; espèces, speedfood et références invalides refusés avant tout réseau', async () => {
   let corps = '';
   const a = creerAuth(async (_u, init) => { corps = String(init?.body); return Response.json({ ok: true }); });
-  await a.declarerPaiement(JETON, 'especes', null);
-  assert.deepEqual(JSON.parse(corps), { jeton: JETON, mode: 'especes' });
+  await a.declarerPaiement(JETON, 'mtn_momo', null);
+  assert.deepEqual(JSON.parse(corps), { jeton: JETON, mode: 'mtn_momo' });
   let appels = 0;
   const b = creerAuth(async () => { appels++; return Response.json({ ok: true }); });
   await assert.rejects(b.declarerPaiement(JETON, 'especes', 'REF-1234'), ErreurReglement);
+  await assert.rejects(b.declarerPaiement(JETON, 'especes', null), ErreurReglement, 'espèces jamais envoyées');
   await assert.rejects(b.declarerPaiement(JETON, 'speedfood', null), ErreurReglement);
   await assert.rejects(b.declarerPaiement(JETON, 'orange_money', 'ab'), ErreurReglement);
   await assert.rejects(b.declarerPaiement('', 'especes', null), ErreurReglement);
@@ -168,7 +179,7 @@ test('client : refus 400/404/409/429 = refus certain ; 500 = incertain ; jamais 
   for (const [statut, incertain] of [[400, false], [404, false], [409, false], [429, false], [500, true], [503, true]] as const) {
     let appels = 0;
     const a = creerAuth(async () => { appels++; return Response.json({ ok: false, erreur: { code: 'X', message: 'texte brut ' + JETON } }, { status: statut }); });
-    await assert.rejects(a.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.incertain === incertain && !e.message.includes(JETON) && !e.message.includes('texte brut'), String(statut));
+    await assert.rejects(a.declarerPaiement(JETON, 'mtn_momo', null), (e: unknown) => e instanceof ErreurReglement && e.incertain === incertain && !e.message.includes(JETON) && !e.message.includes('texte brut'), String(statut));
     assert.equal(appels, 1, 'un seul essai : ' + statut);
   }
 });
@@ -176,14 +187,14 @@ test('client : le corps d’une réponse de refus est annulé (connexion libér�
   let annule = false;
   const flux = new ReadableStream({ cancel() { annule = true; } });
   const a = creerAuth(async () => new Response(flux, { status: 409, headers: { 'content-type': 'application/json' } }));
-  await assert.rejects(a.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.genre === 'refus');
+  await assert.rejects(a.declarerPaiement(JETON, 'mtn_momo', null), (e: unknown) => e instanceof ErreurReglement && e.genre === 'refus');
   assert.equal(annule, true);
 });
 test('client : réseau coupé = incertain ; délai dépassé = incertain', async () => {
   const a = creerAuth(async () => { throw new TypeError('network ' + JETON); });
-  await assert.rejects(a.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.incertain && e.genre === 'reseau' && !e.message.includes(JETON));
+  await assert.rejects(a.declarerPaiement(JETON, 'mtn_momo', null), (e: unknown) => e instanceof ErreurReglement && e.incertain && e.genre === 'reseau' && !e.message.includes(JETON));
   const lent = creerAuth((_u, init) => new Promise<Response>((_r, rejet) => { init?.signal?.addEventListener('abort', () => rejet(new Error('abort'))); }), 30);
-  await assert.rejects(lent.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.incertain);
+  await assert.rejects(lent.declarerPaiement(JETON, 'mtn_momo', null), (e: unknown) => e instanceof ErreurReglement && e.incertain);
 });
 test('client : 200 sans {ok:true}, non JSON ou trop gros = incertain (la déclaration a pu passer)', async () => {
   const corps: Array<() => Response> = [
@@ -192,7 +203,7 @@ test('client : 200 sans {ok:true}, non JSON ou trop gros = incertain (la déclar
   ];
   for (const f of corps) {
     const a = creerAuth(async () => f());
-    await assert.rejects(a.declarerPaiement(JETON, 'especes', null), (e: unknown) => e instanceof ErreurReglement && e.incertain && e.genre === 'reponse_invalide');
+    await assert.rejects(a.declarerPaiement(JETON, 'mtn_momo', null), (e: unknown) => e instanceof ErreurReglement && e.incertain && e.genre === 'reponse_invalide');
   }
 });
 test('client : ni le jeton ni la référence dans les journaux', async () => {
