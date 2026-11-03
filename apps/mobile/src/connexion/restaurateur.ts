@@ -69,6 +69,8 @@ export interface CommandeRestaurateur {
   id: string; reference: string; statut: StatutRestaurateur; mode: 'retrait' | 'livraison' | 'sur_place'; tableNumero: string | null;
   clientNom: string; clientTelephone: string; clientAdresse: string | null; totalGnf: number; sousTotalGnf: number; fraisGnf: number; creeLe: string; estTest: boolean;
   lignes: LigneRestaurateur[]; propositionEnAttente: boolean;
+  /** Montants de la proposition active (null s'il n'y en a pas, ou si le serveur ne les a pas donnés lisiblement) : sert à reconnaître SA proposition après une réponse incertaine. */
+  propositionMontants: { sousTotal: number; frais: number } | null;
   paiementStatut: StatutPaiementRestaurateur; paiementMode: ModePaiementRestaurateur | null; paiementReference: string | null;
 }
 export interface ListeRestaurateur {
@@ -110,12 +112,20 @@ export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaura
       id, reference: texte(o.reference, 40), statut: o.statut as StatutRestaurateur, mode: o.mode, tableNumero: texteOuNull(o.tableNumero, 20), clientNom: libre(o.clientNom, 120),
       clientTelephone: libre(o.clientTelephone, 40, true), clientAdresse: libreOuNull(o.clientAdresse, 300), totalGnf: total, sousTotalGnf, fraisGnf, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
       propositionEnAttente: o.propositionActive !== null && o.propositionActive !== undefined,
+      propositionMontants: montantsProposition(o.propositionActive),
       paiementStatut: o.paiementStatut as StatutPaiementRestaurateur, paiementMode: o.paiementMode as ModePaiementRestaurateur | null, paiementReference: libreOuNull(o.paiementReference, 80),
     };
   };
   const commandes: CommandeRestaurateur[] = []; let illisibles = 0;
   for (const x of v.commandes) { try { commandes.push(lireCommande(x)); } catch { illisibles++; } }
   return { restaurant: r === null ? null : { id: texte(r.id, 36), nom: texte(r.nom, 200), ouvert: booleen(r.ouvert), accepteCommandes: booleen(r.accepteCommandes) }, commandes, illisibles };
+}
+
+/** Montants de la proposition active, ou null. Une valeur atypique ne rend jamais la ligne illisible : les montants sont alors simplement inconnus. */
+function montantsProposition(p: unknown): { sousTotal: number; frais: number } | null {
+  if (!p || typeof p !== 'object') return null;
+  const { nouveauSousTotal: a, nouveauxFraisLivraison: b } = p as { nouveauSousTotal?: unknown; nouveauxFraisLivraison?: unknown };
+  return typeof a === 'number' && Number.isSafeInteger(a) && a >= 0 && typeof b === 'number' && Number.isSafeInteger(b) && b >= 0 ? { sousTotal: a, frais: b } : null;
 }
 
 export type GroupeCommandes = 'a_traiter' | 'en_cours' | 'historique';
@@ -125,6 +135,15 @@ export function groupeDe(statut: StatutRestaurateur): GroupeCommandes { return s
 export function grouper(commandes: readonly CommandeRestaurateur[]): Array<{ groupe: GroupeCommandes; titre: string; commandes: CommandeRestaurateur[] }> {
   return (['a_traiter', 'en_cours', 'historique'] as const).map(groupe => ({ groupe, titre: TITRES_GROUPES[groupe], commandes: commandes.filter(c => groupeDe(c.statut) === groupe) }));
 }
+
+/**
+ * Option prudente (décision de Malika, 3 novembre 2026) : tant qu'aucun remboursement n'existe, l'application ne propose jamais d'annuler une commande dont le paiement est déclaré,
+ * reçu (ou enregistré d'un ancien mode). Seuls « non demandé » et « non reçu » (contesté par le restaurateur) laissent annuler. Le service du site, lui, ne distingue pas.
+ */
+export function commandePayee(paiementStatut: StatutPaiementRestaurateur | undefined): boolean { return paiementStatut !== 'non_demande' && paiementStatut !== 'non_recu'; }
+export const MESSAGE_DEJA_PAYEE = 'Cette commande est déjà payée : pour l’annuler, utilisez le site ou le support (le client doit être remboursé).';
+/** Une commande qu'on afficherait avec « Annuler » si elle n'était pas payée : l'écran montre alors MESSAGE_DEJA_PAYEE à la place. */
+export function annulationRefuseePourPaiement(c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut'>): boolean { return (c.statut === 'en_attente' || c.statut === 'acceptee') && commandePayee(c.paiementStatut); }
 
 type Concerne = Pick<CommandeRestaurateur, 'statut' | 'propositionEnAttente' | 'paiementStatut' | 'paiementMode'>;
 /**
@@ -143,8 +162,8 @@ export function actionsPossibles(c: Concerne): ActionRestaurateur[] {
   const actions: ActionRestaurateur[] = [];
   if (c.statut === 'en_attente') {
     if (!c.propositionEnAttente) actions.push('accepter', 'refuser', 'proposer');
-    actions.push('annuler');
-  } else if (c.statut === 'acceptee') actions.push('prete', 'annuler');
+    if (!commandePayee(c.paiementStatut)) actions.push('annuler');
+  } else if (c.statut === 'acceptee') { actions.push('prete'); if (!commandePayee(c.paiementStatut)) actions.push('annuler'); }
   else if (c.statut === 'prete') actions.push('terminee');
   if (paiementConfirmable(c)) actions.push('paiement_recu', 'paiement_non_recu');
   return actions;
@@ -267,13 +286,19 @@ const MESSAGES_ENREGISTRE: Record<ActionRestaurateur, string> = {
  * si la commande est encore en attente, « réessayer » est permis ; si la relecture a échoué (`relue` indéfinie), elle est interdite (jamais à l'aveugle). Un refus certain n'est jamais
  * converti en succès.
  */
-export function verdictAction(e: { erreur: ErreurRestaurateur | null; sessionTerminee?: string | null; action: ActionRestaurateur; relue: CommandeRestaurateur | null | undefined }): VerdictAction {
+export function verdictAction(e: { erreur: ErreurRestaurateur | null; sessionTerminee?: string | null; action: ActionRestaurateur; relue: CommandeRestaurateur | null | undefined; valeurs?: ValeursPropositionRestaurateur }): VerdictAction {
   if (e.sessionTerminee) return { genre: 'session', message: e.sessionTerminee };
   if (e.erreur === null) return { genre: 'confirme', message: MESSAGES_SUCCES[e.action] };
   if (e.erreur.genre === 'securite') return { genre: 'securite', message: MESSAGE_SECURITE };
   if (!e.erreur.incertain) return { genre: 'refus', message: e.erreur.message, reessayer: false };
   if (e.relue === undefined) return { genre: 'incertain', message: e.erreur.message + ' La liste n’a pas pu être relue : actualisez-la avant de réessayer.', reessayer: false };
   if (e.relue === null) return { genre: 'refus', message: 'Cette commande n’apparaît plus dans la liste. Actualisez la liste.', reessayer: false };
+  if (e.action === 'proposer' && e.relue.statut === 'en_attente' && e.relue.propositionEnAttente) {
+    // « Bien enregistrée » seulement si la proposition relue porte les MÊMES montants que celle envoyée ; sinon (créée depuis le site par un autre membre, ou montants illisibles) : message neutre, jamais de réessai.
+    const m = e.relue.propositionMontants;
+    if (e.valeurs && m && m.sousTotal === e.valeurs.nouveauSousTotal && m.frais === e.valeurs.nouveauxFraisLivraison) return { genre: 'confirme', message: MESSAGES_ENREGISTRE.proposer };
+    return { genre: 'incertain', message: 'Une proposition est en cours, mais rien ne prouve que ce soit la vôtre (montants différents, ou créée depuis le site). Actualisez la liste et vérifiez les montants avant d’en envoyer une autre.', reessayer: false };
+  }
   if (etatApres(e.action, e.relue)) return { genre: 'confirme', message: MESSAGES_ENREGISTRE[e.action] };
   if (etatAvant(e.action, e.relue)) {
     // Une proposition non retrouvée peut avoir été enregistrée puis déjà acceptée par le client : jamais de « réessayer », pour ne pas envoyer deux propositions.
@@ -360,18 +385,18 @@ export type EtatAction =
   | { phase: 'saisie'; commandeId: string; actuel: PrixActuels; brouillon: BrouillonProposition; erreurs: ErreursProposition }
   | { phase: 'recapitulatif'; commandeId: string; actuel: PrixActuels; brouillon: BrouillonProposition; valeurs: ValeursPropositionRestaurateur; recap: RecapProposition }
   | { phase: 'envoi'; commandeId: string; action: ActionRestaurateur; valeurs?: ValeursPropositionRestaurateur }
-  | { phase: 'relecture'; commandeId: string; action: ActionRestaurateur; erreur: ErreurRestaurateur | null; sessionTerminee: string | null }
+  | { phase: 'relecture'; commandeId: string; action: ActionRestaurateur; erreur: ErreurRestaurateur | null; sessionTerminee: string | null; valeurs?: ValeursPropositionRestaurateur }
   | { phase: 'verdict'; commandeId: string; action: ActionRestaurateur; verdict: VerdictAction; lectureVerdict: number };
 export const ETAT_REPOS: EtatAction = { phase: 'repos' };
 
 export type EvenementAction =
-  | { type: 'demander_confirmation'; commandeId: string; action: ActionRestaurateur; lecture: number }
+  | { type: 'demander_confirmation'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur }
   | { type: 'annuler_confirmation' }
   | { type: 'ouvrir_proposition'; commandeId: string; actuel: PrixActuels; lecture: number }
   | { type: 'saisir'; champ: ChampProposition; valeur: string }
   | { type: 'valider_saisie' }
   | { type: 'modifier_saisie' }
-  | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number }
+  | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur }
   | { type: 'repondre'; erreur: ErreurRestaurateur | null; sessionTerminee?: string | null }
   | { type: 'relire'; relue: CommandeRestaurateur | null | undefined; lecture: number }
   | { type: 'effacer' };
@@ -391,8 +416,10 @@ export function actionVerrouillee(etat: EtatAction, lecture: number): boolean {
  * Un refus, une annulation ou un « paiement non reçu » n'est envoyé qu'après SA confirmation (même commande, même action) ; une proposition de prix, qu'après son récapitulatif
  * (même commande) ; les autres actions, jamais pendant un verrou. Tant qu'un formulaire de proposition est ouvert, rien d'autre que cette proposition ne part.
  */
-export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number): boolean {
+export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number, paiementStatut?: StatutPaiementRestaurateur): boolean {
   if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) return false;
+  // Garde de la machine (écran contourné ou liste périmée) : « annuler » ne part jamais sans un statut de paiement connu ET non payé.
+  if (action === 'annuler' && (paiementStatut === undefined || commandePayee(paiementStatut))) return false;
   if (actionVerrouillee(etat, lecture)) return false;
   if (action === 'proposer') return etat.phase === 'recapitulatif' && etat.commandeId === commandeId;
   if (formulaireOuvert(etat)) return false;
@@ -403,6 +430,7 @@ export function peutEnvoyer(etat: EtatAction, commandeId: string, action: Action
 export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
   switch (ev.type) {
     case 'demander_confirmation':
+      if (ev.action === 'annuler' && (ev.paiementStatut === undefined || commandePayee(ev.paiementStatut))) return etat;
       return actionVerrouillee(etat, ev.lecture) || formulaireOuvert(etat) || !(ACTIONS_A_CONFIRMER as readonly string[]).includes(ev.action) ? etat : { phase: 'confirmation', commandeId: ev.commandeId, action: ev.action };
     case 'annuler_confirmation':
       return etat.phase === 'confirmation' || formulaireOuvert(etat) ? ETAT_REPOS : etat;
@@ -419,13 +447,13 @@ export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
     case 'modifier_saisie':
       return etat.phase === 'recapitulatif' ? { phase: 'saisie', commandeId: etat.commandeId, actuel: etat.actuel, brouillon: etat.brouillon, erreurs: {} } : etat;
     case 'envoyer':
-      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture)) return etat;
+      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture, ev.paiementStatut)) return etat;
       return etat.phase === 'recapitulatif' && ev.action === 'proposer' ? { phase: 'envoi', commandeId: ev.commandeId, action: 'proposer', valeurs: etat.valeurs } : { phase: 'envoi', commandeId: ev.commandeId, action: ev.action };
     case 'repondre':
-      return etat.phase === 'envoi' ? { phase: 'relecture', commandeId: etat.commandeId, action: etat.action, erreur: ev.erreur, sessionTerminee: ev.sessionTerminee ?? null } : etat;
+      return etat.phase === 'envoi' ? { phase: 'relecture', commandeId: etat.commandeId, action: etat.action, erreur: ev.erreur, sessionTerminee: ev.sessionTerminee ?? null, ...(etat.valeurs ? { valeurs: etat.valeurs } : {}) } : etat;
     case 'relire':
       return etat.phase === 'relecture'
-        ? { phase: 'verdict', commandeId: etat.commandeId, action: etat.action, verdict: verdictAction({ erreur: etat.erreur, sessionTerminee: etat.sessionTerminee, action: etat.action, relue: ev.relue }), lectureVerdict: ev.lecture }
+        ? { phase: 'verdict', commandeId: etat.commandeId, action: etat.action, verdict: verdictAction({ erreur: etat.erreur, sessionTerminee: etat.sessionTerminee, action: etat.action, relue: ev.relue, valeurs: etat.valeurs }), lectureVerdict: ev.lecture }
         : etat;
     case 'effacer':
       return ETAT_REPOS;

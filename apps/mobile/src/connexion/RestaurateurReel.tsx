@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
-  CONFIRMATIONS, ETAT_REPOS, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, lignesRecapProposition,
+  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, annulationRefuseePourPaiement, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, lignesRecapProposition,
   type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur,
 } from './restaurateur';
 import { couleurs as c, polices } from '../design/tokens';
@@ -57,7 +57,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur) {
     if (envoiEnCours.current || lectureEnCours.current) return;
     const avant = etatRef.current;
-    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current });
+    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut });
     if (etatRef.current === avant || etatRef.current.phase !== 'envoi') return;
     envoiEnCours.current = true;
     try {
@@ -157,7 +157,8 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {!confirmation && !formulaire && possibles.includes('terminee') && <Action titre={'Marquer terminée ' + o.reference} disabled={bloque} agir={() => { void envoyer(o, 'terminee'); }} />}
           {!confirmation && !formulaire && possibles.includes('paiement_recu') && <Action titre={'Paiement reçu ' + o.reference} disabled={bloque} agir={() => { void envoyer(o, 'paiement_recu'); }} />}
           {!confirmation && !formulaire && possibles.includes('paiement_non_recu') && <Action titre={'Paiement non reçu ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'paiement_non_recu', lecture })} />}
-          {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture })} />}
+          {!confirmation && !formulaire && annulationRefuseePourPaiement(o) && <Text accessibilityRole="alert" style={s.texte}>{MESSAGE_DEJA_PAYEE}</Text>}
+          {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture, paiementStatut: o.paiementStatut })} />}
         </View>;
       })}
     </View>)}
