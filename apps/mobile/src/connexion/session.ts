@@ -1,10 +1,11 @@
 import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
 import type {CommandeCompte} from './commandes.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
+import type {ActionRestaurateur, ListeRestaurateur, RolesCompte} from './restaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'>>;
+export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -119,6 +120,42 @@ export class GestionSession {
       if(n!==this.generation)throw new ErreurConnexion('Calcul annulé.');
       return r;
     }catch(e){if(e instanceof ErreurConnexion&&e.definitive&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
+  }
+  /** Efface la session si le serveur la dit terminée (401) ; sinon laisse l'erreur remonter telle quelle. */
+  private async sessionTerminee(e: unknown, n: number) {
+    if (e instanceof ErreurConnexion && e.definitive && n === this.generation) { this.session = null; this.clesSuivi.clear(); await this.ordonner(() => this.coffre.effacer()); }
+  }
+  /** Quels espaces ce compte peut-il ouvrir ? Affichage seulement (l'API revérifie chaque route). Une panne ne déconnecte pas : l'appelant masque simplement l'entrée. */
+  async moi():Promise<RolesCompte> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.moi)throw new ErreurConnexion('Lecture des espaces indisponible.');
+      const r=await this.api.moi(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Commandes du restaurant de ce compte (lecture, jeton porteur). Aucune clé de suivi ni jeton de reçu : la liste n'en porte pas. */
+  async commandesRestaurant():Promise<ListeRestaurateur> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.commandesRestaurant)throw new ErreurConnexion('Espace restaurateur indisponible.');
+      const r=await this.api.commandesRestaurant(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Accepte ou refuse UNE commande (un seul essai, jamais de relance). Le restaurant n'est pas envoyé : le serveur le tire du compte. */
+  async actionRestaurateur(commandeId:string,action:ActionRestaurateur):Promise<void> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+      if(!this.api.actionRestaurateur)throw new ErreurConnexion('Espace restaurateur indisponible.');
+      await this.api.actionRestaurateur(acces,commandeId,action);
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   async deconnecter() {
     this.nbDeconnexions++;

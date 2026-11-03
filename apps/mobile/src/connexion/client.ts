@@ -2,6 +2,7 @@ import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
+import { ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte } from './restaurateur.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
@@ -104,9 +105,50 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       lireReponseDeclaration(corps);
     } finally { clearTimeout(timer); }
   }
+  /**
+   * Espace restaurateur (lot D1), routes de l'API unique : jeton porteur strict, aucun cookie, restaurant désigné par le serveur (jamais envoyé d'ici). UN SEUL essai par appel,
+   * jamais de relance automatique. Le 401 termine la session (comme les autres lectures privées) ; un 403 « sécurité du compte » est rendu tel quel, sans texte du serveur.
+   */
+  async function appelRestaurateur(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object }, lecture: boolean): Promise<unknown> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps ? { 'Content-Type':'application/json' } : {}) }, ...(options.corps ? { body:JSON.stringify(options.corps) } : {}) });
+    } catch { clearTimeout(timer); throw lecture ? new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.') : erreurReseauRestaurateur(); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (!r.ok) {
+        const refus = refusRestaurateur(r.status, r.status === 403 ? lireRaisonSecurite(corps) : null);
+        // Une lecture n'est jamais « incertaine » au sens d'une écriture : elle se rejoue à la main.
+        if (lecture && refus.incertain) throw new ErreurRestaurateur(refus.genre, 'Le service est indisponible. Réessayez dans un instant.');
+        throw refus;
+      }
+      if (corps === null) throw lecture ? new ErreurRestaurateur('reponse_invalide', 'Les commandes reçues sont illisibles. Réessayez dans un instant.') : erreurReponseRestaurateur();
+      return corps;
+    } finally { clearTimeout(timer); }
+  }
   return {
     creerCommande: postCommande,
     declarerPaiement: postDeclaration,
+    /** Quels espaces ce compte peut-il ouvrir ? (affichage seulement). */
+    async moi(accessToken: string): Promise<RolesCompte> {
+      const v = await requete(ORIGINE_CATALOGUE+'/api/v1/moi', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });
+      try { return lireRoles(v); } catch { throw new ErreurConnexion('Impossible de lire les espaces de ce compte.'); }
+    },
+    async commandesRestaurant(accessToken: string): Promise<ListeRestaurateur> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes', { method:'GET' }, true);
+      try { return lireListeRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Les commandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Accepter ou refuser (liste blanche vérifiée AVANT tout appel réseau). UN SEUL essai. */
+    async actionRestaurateur(accessToken: string, commandeId: string, action: ActionRestaurateur): Promise<void> {
+      if (action !== 'accepter' && action !== 'refuser') throw new ErreurRestaurateur('refus', 'Cette action n’est pas disponible dans l’application.');
+      if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(commandeId)) throw new ErreurRestaurateur('refus', 'Commande introuvable. Actualisez la liste.');
+      lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/action', { method:'POST', corps:{ commandeId, action } }, false));
+    },
     estimerLivraison: postEstimation,
     async connecter(email: string, motDePasse: string) {
       if (!email.trim() || email.length > 254 || !motDePasse.length || motDePasse.length > 4096) throw new ErreurConnexion('Renseignez votre adresse e-mail et votre mot de passe.');

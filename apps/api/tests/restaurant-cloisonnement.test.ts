@@ -1,0 +1,167 @@
+import { test, before, after, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build, type Plugin } from "esbuild";
+
+/**
+ * Cloisonnement des restaurants, avec le VRAI service du site `traiterCommande` (apps/web/src/lib/commande/service-restaurant.ts) et ses vrais voisins
+ * (transitions, propositions, contrat d'erreur, machine à états). Seuls les accès lourds sont remplacés : le client administrateur (qui ENREGISTRE chaque écriture),
+ * les paramètres, la livraison et les tables. Le client de la base est un faux qui sert les lignes de `orders`, `order_proposals` et note chaque écriture avec le client
+ * qui l'a faite : « jeton » (le client lié au membre, seul autorisé à écrire commandes et historique) ou « admin ».
+ */
+const racineApi = fileURLToPath(new URL("..", import.meta.url));
+const SERVICE = join(racineApi, "..", "web", "src", "lib", "commande", "service-restaurant.ts");
+
+type Ligne = Record<string, unknown>;
+interface Ecriture { client: string; table: string; op: "update" | "insert"; valeurs: Ligne; filtres: unknown[] }
+interface Faux { tables: Record<string, Ligne[]>; ecritures: Ecriture[]; apres: Array<[string, string]> }
+const g = globalThis as unknown as { __fauxCloison: Faux; __creerDbCloison: (nom: string) => unknown };
+
+const FAUX: Record<string, string> = {
+  "server-only": "export {};",
+  "@/lib/parametres/lire": `export async function obtenirParametresApplication() { return { commandePropositionDelaiMinutes: 30 }; }`,
+  "@/lib/livraison/apres-commande": `export async function apresTransitionCommande(id, vers) { globalThis.__fauxCloison.apres.push([id, vers]); }`,
+  "@/lib/table/service": `export async function validerSessionApresAcceptation() {}`,
+  "@/lib/db/admin": `export function creerClientAdmin() { return globalThis.__creerDbCloison("admin"); }`,
+};
+
+const fauxModules: Plugin = {
+  name: "faux-modules",
+  setup(b) {
+    const filtre = new RegExp(`^(${Object.keys(FAUX).map((k) => k.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")).join("|")})$`);
+    b.onResolve({ filter: filtre }, (args) => ({ path: args.path, namespace: "faux" }));
+    b.onLoad({ filter: /.*/, namespace: "faux" }, (args) => ({ contents: FAUX[args.path], loader: "js", resolveDir: join(racineApi, "src") }));
+  },
+};
+
+type Resultat = { ok: true } | { ok: false; erreur: { code: string; message: string } };
+let traiterCommande: (db: unknown, utilisateurId: string, restaurantId: string, commandeId: string, action: string) => Promise<Resultat>;
+let dossier: string;
+
+/** Faux client de base : lit les lignes filtrées, note les écritures. Enchaînement `from().select().eq()…` attendable, comme le vrai client. */
+g.__creerDbCloison = (nom: string) => ({
+  from(table: string) {
+    const q: { op: "select" | "update" | "insert"; valeurs: Ligne; filtres: Array<[string, string, unknown]> } = { op: "select", valeurs: {}, filtres: [] };
+    const lignes = () => (g.__fauxCloison.tables[table] ?? []).filter((r) => q.filtres.every(([op, c, v]) => (op === "eq" ? r[c] === v : String(r[c]) <= String(v))));
+    const fin = (unique: boolean) => {
+      if (q.op !== "select") {
+        g.__fauxCloison.ecritures.push({ client: nom, table, op: q.op, valeurs: q.valeurs, filtres: q.filtres });
+        if (q.op === "update") for (const l of lignes()) Object.assign(l, q.valeurs);
+        return { data: null, error: null };
+      }
+      const l = lignes();
+      return { data: unique ? (l[0] ?? null) : l, error: null };
+    };
+    const chaine: Record<string, unknown> = {
+      select: () => chaine,
+      eq: (c: string, v: unknown) => { q.filtres.push(["eq", c, v]); return chaine; },
+      lte: (c: string, v: unknown) => { q.filtres.push(["lte", c, v]); return chaine; },
+      order: () => chaine,
+      limit: () => chaine,
+      update: (v: Ligne) => { q.op = "update"; q.valeurs = v; return chaine; },
+      insert: (v: Ligne) => { q.op = "insert"; q.valeurs = v; return chaine; },
+      maybeSingle: async () => fin(true),
+      then: (ok: (v: unknown) => unknown, ko: (e: unknown) => unknown) => Promise.resolve(fin(false)).then(ok, ko),
+    };
+    return chaine;
+  },
+});
+
+before(async () => {
+  dossier = mkdtempSync(join(tmpdir(), "speedfood-cloisonnement-"));
+  const sortie = join(dossier, "service.mjs");
+  await build({ entryPoints: [SERVICE], outfile: sortie, bundle: true, format: "esm", platform: "node", target: "es2022", tsconfig: join(racineApi, "tsconfig.json"), plugins: [fauxModules], logLevel: "error" });
+  ({ traiterCommande } = await import(pathToFileURL(sortie).href));
+});
+after(() => { rmSync(dossier, { recursive: true, force: true }); });
+
+const RESTAURANT_A = "11111111-1111-4111-8111-111111111111";
+const RESTAURANT_B = "22222222-2222-4222-8222-222222222222";
+const COMMANDE_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const COMMANDE_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const INCONNUE = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const CLIENT_JETON = () => g.__creerDbCloison("jeton");
+
+const commande = (id: string, restaurant: string, statut = "en_attente"): Ligne => ({ id, statut, restaurant_id: restaurant, sous_total: 10000, frais_livraison_estime: 0 });
+const proposition = (commandeId: string, surcharge: Ligne = {}): Ligne => ({
+  id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", order_id: commandeId, version: 1, nouveau_sous_total: 12000, nouveaux_frais_livraison: 0, conditions_modifiees: null,
+  statut: "en_attente", expire_le: new Date(Date.now() + 20 * 60_000).toISOString(), cree_le: new Date().toISOString(), repondu_le: null, ...surcharge,
+});
+
+beforeEach(() => {
+  g.__fauxCloison = { tables: { orders: [commande(COMMANDE_A, RESTAURANT_A), commande(COMMANDE_B, RESTAURANT_B)], order_proposals: [], order_status_events: [] }, ecritures: [], apres: [] };
+});
+
+const ecrituresDuTest = () => g.__fauxCloison.ecritures;
+const statutDe = (id: string) => g.__fauxCloison.tables.orders.find((o) => o.id === id)?.statut;
+
+test("accepter la commande de SON restaurant : ok, statut « acceptee » écrit et historisé par le client du jeton, rien écrit en administrateur", async () => {
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "accepter"), { ok: true });
+  assert.equal(statutDe(COMMANDE_A), "acceptee");
+  const ecritures = ecrituresDuTest();
+  assert.deepEqual(ecritures.map((e) => [e.client, e.table, e.op]), [["jeton", "orders", "update"], ["jeton", "order_status_events", "insert"]]);
+  assert.deepEqual(ecritures[0].valeurs, { statut: "acceptee" });
+  assert.equal(ecritures[1].valeurs.acteur, "restaurant:compte-A");
+  assert.equal(ecritures[1].valeurs.statut_precedent, "en_attente");
+  assert.equal(ecritures[1].valeurs.statut_suivant, "acceptee");
+  assert.ok(!ecritures.some((e) => e.client === "admin"), "aucune écriture en clé de service");
+  assert.deepEqual(g.__fauxCloison.apres, [[COMMANDE_A, "acceptee"]]);
+});
+
+test("refuser la commande de SON restaurant : ok, statut « refusee »", async () => {
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "refuser"), { ok: true });
+  assert.equal(statutDe(COMMANDE_A), "refusee");
+  assert.ok(!ecrituresDuTest().some((e) => e.client === "admin"));
+});
+
+test("CLOISONNEMENT : le compte du restaurant A ne peut ni accepter ni refuser la commande du restaurant B (NON_AUTORISE), aucune écriture", async () => {
+  for (const action of ["accepter", "refuser"]) {
+    const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_B, action);
+    assert.equal(r.ok, false, action);
+    assert.equal((r as { erreur: { code: string } }).erreur.code, "NON_AUTORISE", action);
+    assert.equal(statutDe(COMMANDE_B), "en_attente", "la commande de B n'a pas bougé");
+  }
+  assert.deepEqual(ecrituresDuTest(), [], "aucune écriture, ni commande ni historique ni proposition");
+  assert.deepEqual(g.__fauxCloison.apres, []);
+});
+
+test("CLOISONNEMENT : symétrique, le compte de B ne touche pas la commande de A", async () => {
+  const r = await traiterCommande(CLIENT_JETON(), "compte-B", RESTAURANT_B, COMMANDE_A, "accepter");
+  assert.equal((r as { erreur: { code: string } }).erreur.code, "NON_AUTORISE");
+  assert.deepEqual(ecrituresDuTest(), []);
+});
+
+test("commande inconnue (ou invisible par la RLS) : INTROUVABLE, aucune écriture ; identifiant mal formé : VALIDATION", async () => {
+  const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, INCONNUE, "accepter");
+  assert.equal((r as { erreur: { code: string } }).erreur.code, "INTROUVABLE");
+  const v = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, "pas-un-uuid", "accepter");
+  assert.equal((v as { erreur: { code: string } }).erreur.code, "VALIDATION");
+  assert.deepEqual(ecrituresDuTest(), []);
+});
+
+test("VERROU : tant qu'une proposition de modification attend la réponse du client, accepter et refuser sont refusés (CONFLIT_ETAT), rien n'est écrit", async () => {
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A)];
+  for (const action of ["accepter", "refuser"]) {
+    const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, action);
+    assert.equal(r.ok, false, action);
+    assert.equal((r as { erreur: { code: string } }).erreur.code, "CONFLIT_ETAT", action);
+    assert.match((r as { erreur: { message: string } }).erreur.message, /proposition/);
+  }
+  assert.equal(statutDe(COMMANDE_A), "en_attente");
+  assert.deepEqual(ecrituresDuTest(), []);
+});
+
+test("verrou : une proposition déjà répondue ou échue ne bloque pas (l'échéance est traitée par le système, hors client du membre)", async () => {
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A, { statut: "acceptee", repondu_le: new Date().toISOString() })];
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "accepter"), { ok: true });
+});
+
+test("transition impossible (commande déjà acceptée, refus demandé) : CONFLIT_ETAT, rien d'écrit", async () => {
+  g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, "refusee")];
+  const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "accepter");
+  assert.equal((r as { erreur: { code: string } }).erreur.code, "CONFLIT_ETAT");
+  assert.deepEqual(ecrituresDuTest(), []);
+});

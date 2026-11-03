@@ -9,6 +9,7 @@ import { routeClient } from "./routes/client.ts";
 import { routeCommandes } from "./routes/commandes.ts";
 import { routeEstimation } from "./routes/estimation.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
+import { routeRestaurant } from "./routes/restaurant.ts";
 import { routeMoi } from "./routes/moi.ts";
 import { routeSuivi } from "./routes/suivi.ts";
 import { routeVersion } from "./routes/version.ts";
@@ -57,6 +58,8 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));
   app.route("/api/v1/suivi", routeSuivi(deps));
   app.route("/api/v1/commandes", routeCommandes(deps));
+  // Espace restaurateur : natif seulement, donc AUCUN en-tête CORS (ni lecture ni écriture).
+  app.route("/api/v1/restaurant", routeRestaurant(deps));
 
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {

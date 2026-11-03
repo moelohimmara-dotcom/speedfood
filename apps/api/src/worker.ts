@@ -21,6 +21,7 @@ import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
 import { fournirAlerteSite } from "./commandes/alerte-site.ts";
 import { lireRestaurants, lireMenu, lireQuartiers } from './catalogue/service';
 import { configurationPublique } from './identite/configuration-publique';
+import { serviceRestaurant } from './restaurant/cablage.ts';
 
 // Câblage de PRODUCTION : les routes reçoivent les services du site, jamais une copie de leurs règles. Les secrets sont lus à l'APPEL (jamais au chargement du module).
 let local: ReturnType<typeof creerVerificateurLocal> | undefined;
@@ -64,6 +65,7 @@ const app = creerApp({
     repondreProposition,
     declarerPaiement,
   },
+  restaurant: serviceRestaurant,
   commandes: {
     valider: validerCreationCommande,
     // antiRobot: false : l'application native ne produit pas de jeton Turnstile ; la protection est le jeton porteur strict + les plafonds.

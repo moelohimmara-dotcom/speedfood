@@ -79,6 +79,7 @@ const CORRESPONDANCES: Array<[string, RegExp]> = [
   ["suivi.limiterReponseProposition", /^\s*limiterReponseProposition(\s*:\s*limiterReponseProposition)?,\s*$/],
   ["suivi.repondreProposition", /^\s*repondreProposition(\s*:\s*repondreProposition)?,\s*$/],
   ["suivi.declarerPaiement", /^\s*declarerPaiement,\s*$/],
+  ["restaurant (service restaurateur du lot D1)", /^\s*restaurant:\s*serviceRestaurant,\s*$/],
   ["commandes.valider", /^\s*valider:\s*validerCreationCommande,\s*$/],
   ["commandes.lister (avec les jetons de suivi)", /^\s*lister:\s*\(\s*utilisateurId\s*\)\s*=>\s*listerMesCommandes\(\s*utilisateurId\s*,\s*\{\s*avecJeton:\s*true\s*\}\s*\),\s*$/],
 ];

@@ -1,6 +1,7 @@
 import type { VersionApplication } from "@speedfood/shared/application/version";
 import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationCommande } from "@speedfood/shared/contracts/commande";
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
+import type { ActionRestaurantApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { Planifier } from "@/lib/commande/creation-coeur";
 import type { VerificateurJeton } from "./identite/jeton.ts";
 
@@ -10,6 +11,15 @@ export interface RolesCompte {
   restaurateur: { restaurant: string } | null;
   livreur: boolean;
   equipe: string | null;
+}
+
+/** Ce que les routes restaurateur reçoivent une fois le compte contrôlé : jamais construit à partir du corps ni de l'URL. */
+export interface ContexteRestaurant {
+  /** Client lié au jeton du membre (RLS appliquée). Jamais le client administrateur. */
+  supabase: unknown;
+  utilisateurId: string;
+  restaurantId: string;
+  role: string;
 }
 
 /** « Après la réponse » : sur Workers, `ctx.waitUntil`. Définition unique, celle du cœur de création (import de type seulement, effacé à la compilation). */
@@ -53,6 +63,13 @@ export interface Deps {
     repondreProposition(jeton: string, propositionId: string, reponse: "acceptee" | "refusee"): Promise<void>;
     /** Déclaration du règlement : la même fonction que l'action du site (`declarerPaiement`), tous contrôles et plafond compris ; renvoie le contrat des actions. */
     declarerPaiement(jeton: unknown, mode: unknown, reference: unknown): Promise<ResultatActionCommande>;
+  };
+  /** Espace restaurateur (lot D1). Câblage de production : `restaurant/cablage.ts` (services du site `chargerApercusCommandes` et `traiterCommande`). */
+  restaurant: {
+    /** Plafond par compte, second facteur, questions de sécurité, appartenance : lève `ErreurMetier` (NON_AUTORISE, `champs.securite` = « mfa » | « questions » pour la sécurité du compte). */
+    contexte(jeton: string, utilisateurId: string): Promise<ContexteRestaurant>;
+    lister(ctx: ContexteRestaurant): Promise<ReponseCommandesRestaurant>;
+    traiter(ctx: ContexteRestaurant, commandeId: string, action: ActionRestaurantApp): Promise<ResultatActionCommande>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };
