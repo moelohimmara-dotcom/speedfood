@@ -6,7 +6,7 @@ import type { ContexteRestaurant, Deps } from "../src/types.ts";
 import { depsEssai } from "./deps-essai.ts";
 
 /**
- * Routes `/api/v1/restaurant/commandes*` (lot D1) avec de fausses dépendances qui ENREGISTRENT ce qu'elles reçoivent : le service réel est testé à part
+ * Routes `/api/v1/restaurant/commandes*` (lots D1, D2, D3) avec de fausses dépendances qui ENREGISTRENT ce qu'elles reçoivent : le service réel est testé à part
  * (`restaurant-service.test.ts`, `restaurant-cloisonnement.test.ts`).
  */
 const JETON = "aaaaaaaa.bbbbbbbb.cccccccc";
@@ -18,9 +18,9 @@ const COMMANDE = "33333333-3333-4333-8333-333333333333";
 const CLIENT_JETON = { marqueur: "client-lie-au-jeton" };
 const CTX: ContexteRestaurant = { supabase: CLIENT_JETON, utilisateurId: "compte-1", restaurantId: RESTAURANT_A, role: "owner" };
 
-interface Journal { appels: string[]; contextes: ContexteRestaurant[]; traites: Array<{ commandeId: string; action: string }>; paiements: Array<{ commandeId: string; decision: string }> }
+interface Journal { appels: string[]; contextes: ContexteRestaurant[]; traites: Array<{ commandeId: string; action: string }>; paiements: Array<{ commandeId: string; decision: string }>; propositions: Array<{ commandeId: string; valeurs: unknown }> }
 
-function monter(surcharge: Partial<Deps["restaurant"]> = {}, journal: Journal = { appels: [], contextes: [], traites: [], paiements: [] }) {
+function monter(surcharge: Partial<Deps["restaurant"]> = {}, journal: Journal = { appels: [], contextes: [], traites: [], paiements: [], propositions: [] }) {
   const app = creerApp(depsEssai({
     verificateurs: { strict: async (j) => { journal.appels.push("identite"); return j === JETON ? { id: "compte-1" } : null; }, local: async () => null },
     restaurant: {
@@ -42,6 +42,12 @@ function monter(surcharge: Partial<Deps["restaurant"]> = {}, journal: Journal = 
         journal.paiements.push({ commandeId, decision });
         return { ok: true };
       },
+      proposer: async (ctx, commandeId, valeurs) => {
+        journal.appels.push("proposition");
+        journal.contextes.push(ctx);
+        journal.propositions.push({ commandeId, valeurs });
+        return { ok: true };
+      },
       ...surcharge,
     },
   }));
@@ -54,13 +60,17 @@ const post = (app: ReturnType<typeof monter>["app"], corps: unknown, entetes: Re
 const postPaiement = (app: ReturnType<typeof monter>["app"], corps: unknown, entetes: Record<string, string> = JSON_AUTH) =>
   app.request("/api/v1/restaurant/commandes/paiement", { method: "POST", headers: entetes, body: JSON.stringify(corps) });
 
+const postProposition = (app: ReturnType<typeof monter>["app"], corps: unknown, entetes: Record<string, string> = JSON_AUTH) =>
+  app.request("/api/v1/restaurant/commandes/proposition", { method: "POST", headers: entetes, body: JSON.stringify(corps) });
+const PROPOSITION = { commandeId: COMMANDE, nouveauSousTotal: 25000, nouveauxFraisLivraison: 5000, conditionsModifiees: "Un plat est remplacé." };
+
 // ---------- identité ----------
 test("restaurant : sans jeton porteur, 401 et ni le contexte ni le service ne sont appelés (lecture et action)", async () => {
-  for (const [methode, chemin] of [["GET", "/api/v1/restaurant/commandes"], ["POST", "/api/v1/restaurant/commandes/action"], ["POST", "/api/v1/restaurant/commandes/paiement"]] as const) {
+  for (const [methode, chemin] of [["GET", "/api/v1/restaurant/commandes"], ["POST", "/api/v1/restaurant/commandes/action"], ["POST", "/api/v1/restaurant/commandes/paiement"], ["POST", "/api/v1/restaurant/commandes/proposition"]] as const) {
     const { app, journal } = monter();
-    const reponse = await app.request(chemin, { method: methode, headers: { "content-type": "application/json" }, body: methode === "POST" ? JSON.stringify({ commandeId: COMMANDE, action: "accepter", decision: "recu" }) : undefined });
+    const reponse = await app.request(chemin, { method: methode, headers: { "content-type": "application/json" }, body: methode === "POST" ? JSON.stringify({ commandeId: COMMANDE, action: "accepter", decision: "recu", nouveauSousTotal: 1000, nouveauxFraisLivraison: 0 }) : undefined });
     assert.equal(reponse.status, 401, chemin);
-    assert.ok(!journal.appels.some((a) => a.startsWith("contexte") || a === "lister" || a === "traiter" || a === "paiement"), chemin);
+    assert.ok(!journal.appels.some((a) => a.startsWith("contexte") || a === "lister" || a === "traiter" || a === "paiement" || a === "proposition"), chemin);
   }
 });
 
@@ -81,13 +91,15 @@ test("restaurant : compte non membre d'un restaurant, 403 et le service n'est pa
   assert.equal(((await action.json()) as { erreur: { code: string } }).erreur.code, "NON_AUTORISE");
   const paiement = await postPaiement(app, { commandeId: COMMANDE, decision: "recu" });
   assert.equal(paiement.status, 403);
-  assert.ok(!journal.appels.includes("lister") && !journal.appels.includes("traiter") && !journal.appels.includes("paiement"));
+  const proposition = await postProposition(app, PROPOSITION);
+  assert.equal(proposition.status, 403);
+  assert.ok(!journal.appels.includes("lister") && !journal.appels.includes("traiter") && !journal.appels.includes("paiement") && !journal.appels.includes("proposition"));
 });
 
 test("restaurant : MFA ou questions de sécurité requises, 403 avec le code clair (champs.securite) et le message « Ouvrez Speedfood sur le site… »", async () => {
   for (const securite of ["mfa", "questions"]) {
     const { app, journal } = monter({ contexte: async () => { throw new ErreurMetier("NON_AUTORISE", "Ouvrez Speedfood sur le site pour terminer la sécurité du compte restaurateur.", { securite }); } });
-    for (const reponse of [await app.request("/api/v1/restaurant/commandes", { headers: AUTH }), await post(app, { commandeId: COMMANDE, action: "refuser" }), await postPaiement(app, { commandeId: COMMANDE, decision: "recu" })]) {
+    for (const reponse of [await app.request("/api/v1/restaurant/commandes", { headers: AUTH }), await post(app, { commandeId: COMMANDE, action: "refuser" }), await postPaiement(app, { commandeId: COMMANDE, decision: "recu" }), await postProposition(app, PROPOSITION)]) {
       assert.equal(reponse.status, 403);
       const corps = (await reponse.json()) as { ok: boolean; erreur: { code: string; message: string; champs: { securite: string } } };
       assert.equal(corps.ok, false);
@@ -95,7 +107,7 @@ test("restaurant : MFA ou questions de sécurité requises, 403 avec le code cla
       assert.equal(corps.erreur.champs.securite, securite);
       assert.equal(corps.erreur.message, "Ouvrez Speedfood sur le site pour terminer la sécurité du compte restaurateur.");
     }
-    assert.ok(!journal.appels.includes("lister") && !journal.appels.includes("traiter") && !journal.appels.includes("paiement"));
+    assert.ok(!journal.appels.includes("lister") && !journal.appels.includes("traiter") && !journal.appels.includes("paiement") && !journal.appels.includes("proposition"));
   }
 });
 
@@ -140,8 +152,8 @@ test("restaurant : pas de CORS (natif uniquement) : aucun en-tête Access-Contro
 });
 
 // ---------- action ----------
-test("restaurant : accepter, refuser, prete et terminee sont transmis au service avec le contexte (restaurant de l'appartenance)", async () => {
-  for (const action of ["accepter", "refuser", "prete", "terminee"]) {
+test("restaurant : accepter, refuser, prete, terminee et annuler (D3) sont transmis au service avec le contexte (restaurant de l'appartenance)", async () => {
+  for (const action of ["accepter", "refuser", "prete", "terminee", "annuler"]) {
     const { app, journal } = monter();
     const reponse = await post(app, { commandeId: COMMANDE, action });
     assert.equal(reponse.status, 200);
@@ -152,8 +164,8 @@ test("restaurant : accepter, refuser, prete et terminee sont transmis au service
   }
 });
 
-test("restaurant : liste blanche des actions : annuler, inconnue ou absente = 400 VALIDATION, SANS appel au service (le contexte, lui, a consommé le plafond)", async () => {
-  for (const action of ["annuler", "annulee", "PRETE", "Terminee", "livree", "partir", "ACCEPTER", "prete ", "terminee\n", "accepter ", "", "supprimer", null, 3, ["accepter"], { a: 1 }, undefined]) {
+test("restaurant : liste blanche des actions : valeur inconnue, variante de casse ou absente = 400 VALIDATION, SANS appel au service (le contexte, lui, a consommé le plafond)", async () => {
+  for (const action of ["ANNULER", "Annuler", "annuler ", "annulee", "annulé", "PRETE", "Terminee", "livree", "partir", "ACCEPTER", "prete ", "terminee\n", "accepter ", "", "supprimer", null, 3, ["accepter"], { a: 1 }, undefined]) {
     const { app, journal } = monter();
     const reponse = await post(app, { commandeId: COMMANDE, action });
     assert.equal(reponse.status, 400, JSON.stringify(action));
@@ -213,7 +225,7 @@ test("restaurant : méthode inconnue = 404 sans appeler l'authentification (iden
 });
 
 test("restaurant M-1 : le plafond par compte s'applique AUSSI aux requêtes invalides (429 avant la validation, corps non lu)", async () => {
-  const cas: Array<[string, unknown]> = [["action inconnue", { commandeId: COMMANDE, action: "annuler" }], ["commandeId invalide", { commandeId: "x", action: "accepter" }]];
+  const cas: Array<[string, unknown]> = [["action inconnue", { commandeId: COMMANDE, action: "livree" }], ["commandeId invalide", { commandeId: "x", action: "accepter" }]];
   for (const [nom, corps] of cas) {
     const { app, journal } = monter({ contexte: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); } });
     const reponse = await post(app, corps);
@@ -298,5 +310,117 @@ test("restaurant D2 : paiement, panne du service = 500 sans détail ; pas de COR
   assert.equal(pre.headers.get("access-control-allow-origin"), null);
   const avant = journal.appels.length;
   assert.equal((await app.request("/api/v1/restaurant/commandes/paiement", { method: "GET", headers: AUTH })).status, 404);
+  assert.equal(journal.appels.length, avant, "GET : aucune authentification ni service");
+});
+
+// ---------- proposition d'un autre prix (lot D3) ----------
+test("restaurant D3 : une proposition valide est transmise au service avec le contexte (restaurant de l'appartenance) ; réponse { ok: true } sans jeton, jamais en cache", async () => {
+  const { app, journal } = monter();
+  const reponse = await postProposition(app, PROPOSITION);
+  assert.equal(reponse.status, 200);
+  assert.equal(reponse.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await reponse.json(), { ok: true });
+  assert.deepEqual(journal.propositions, [{ commandeId: COMMANDE, valeurs: { nouveauSousTotal: 25000, nouveauxFraisLivraison: 5000, conditionsModifiees: "Un plat est remplacé." } }]);
+  assert.equal(journal.contextes[0], CTX);
+  assert.deepEqual(journal.appels, ["identite", "contexte:compte-1:true", "proposition"]);
+});
+
+test("restaurant D3 : montants limites 0 et 10 000 000 acceptés ; conditions absentes ou nulles = null ; 500 caractères acceptés", async () => {
+  for (const [corps, attendu] of [
+    [{ commandeId: COMMANDE, nouveauSousTotal: 0, nouveauxFraisLivraison: 10_000_000 }, { nouveauSousTotal: 0, nouveauxFraisLivraison: 10_000_000, conditionsModifiees: null }],
+    [{ commandeId: COMMANDE, nouveauSousTotal: 10_000_000, nouveauxFraisLivraison: 0, conditionsModifiees: null }, { nouveauSousTotal: 10_000_000, nouveauxFraisLivraison: 0, conditionsModifiees: null }],
+    [{ commandeId: COMMANDE, nouveauSousTotal: 1, nouveauxFraisLivraison: 1, conditionsModifiees: "x".repeat(500) }, { nouveauSousTotal: 1, nouveauxFraisLivraison: 1, conditionsModifiees: "x".repeat(500) }],
+  ] as const) {
+    const { app, journal } = monter();
+    assert.equal((await postProposition(app, corps)).status, 200);
+    assert.deepEqual(journal.propositions[0].valeurs, attendu);
+  }
+});
+
+// JSON.stringify écrit NaN et Infinity « null » : ces valeurs sont donc aussi essayées en texte brut (corps JSON invalide) dans le test suivant.
+test("restaurant D3 : montants invalides (négatif, décimal, énorme, chaîne, null, absent, booléen, tableau) = 400 VALIDATION SANS appel au service, plafond consommé", async () => {
+  const mauvais: unknown[] = [-1, -1000, 0.5, 1000.5, 10_000_001, 1e12, Number.MAX_SAFE_INTEGER + 2, "1000", "", " 1000", "mille", "NaN", "Infinity", NaN, Infinity, -Infinity, null, undefined, true, [1000], { v: 1 }];
+  for (const champ of ["nouveauSousTotal", "nouveauxFraisLivraison"] as const) {
+    for (const valeur of mauvais) {
+      const { app, journal } = monter();
+      const corps = { commandeId: COMMANDE, nouveauSousTotal: 25000, nouveauxFraisLivraison: 5000, [champ]: valeur };
+      const reponse = await postProposition(app, corps);
+      assert.equal(reponse.status, 400, `${champ} = ${String(valeur)}`);
+      assert.equal(((await reponse.json()) as { erreur: { code: string } }).erreur.code, "VALIDATION");
+      assert.ok(!journal.appels.includes("proposition"), `service appelé malgré ${champ} = ${String(valeur)}`);
+      assert.equal(journal.appels.filter((a) => a.startsWith("contexte")).length, 1);
+    }
+  }
+});
+
+test("restaurant D3 : NaN, Infinity et 1e999 écrits tels quels dans le corps (JSON invalide ou nombre non fini) = 400, jamais le service", async () => {
+  for (const brut of ['{"commandeId":"' + COMMANDE + '","nouveauSousTotal":NaN,"nouveauxFraisLivraison":0}', '{"commandeId":"' + COMMANDE + '","nouveauSousTotal":Infinity,"nouveauxFraisLivraison":0}', '{"commandeId":"' + COMMANDE + '","nouveauSousTotal":1e999,"nouveauxFraisLivraison":0}', '{"commandeId":"' + COMMANDE + '","nouveauSousTotal":0,"nouveauxFraisLivraison":-1e999}']) {
+    const { app, journal } = monter();
+    const reponse = await app.request("/api/v1/restaurant/commandes/proposition", { method: "POST", headers: JSON_AUTH, body: brut });
+    assert.equal(reponse.status, 400, brut);
+    assert.ok(!journal.appels.includes("proposition"), brut);
+  }
+});
+
+test("restaurant D3 : conditions trop longues (501 caractères) ou qui ne sont pas un texte = 400 sans appel au service", async () => {
+  for (const conditionsModifiees of ["x".repeat(501), `${" ".repeat(10)}${"x".repeat(501)}`, 5, true, ["a"], { a: 1 }]) {
+    const { app, journal } = monter();
+    assert.equal((await postProposition(app, { ...PROPOSITION, conditionsModifiees })).status, 400, JSON.stringify(conditionsModifiees));
+    assert.ok(!journal.appels.includes("proposition"));
+  }
+});
+
+test("restaurant D3 : proposition, commandeId invalide ou absent = 400 sans appel au service", async () => {
+  for (const commandeId of [undefined, null, 12, "", "abc", "33333333-3333-4333-8333-33333333333", ["x"]]) {
+    const { app, journal } = monter();
+    assert.equal((await postProposition(app, { ...PROPOSITION, commandeId })).status, 400);
+    assert.ok(!journal.appels.includes("proposition"));
+  }
+});
+
+test("restaurant D3 : proposition, un restaurantId (ou restaurant_id) du corps est IGNORÉ : le service reçoit le contexte du restaurant de l'appartenance", async () => {
+  const { app, journal } = monter();
+  const reponse = await postProposition(app, { ...PROPOSITION, restaurantId: RESTAURANT_B, restaurant_id: RESTAURANT_B, restaurant: { id: RESTAURANT_B } });
+  assert.equal(reponse.status, 200);
+  assert.equal(journal.contextes[0].restaurantId, RESTAURANT_A);
+  assert.equal(journal.contextes[0].utilisateurId, "compte-1");
+  assert.deepEqual(Object.keys(journal.propositions[0].valeurs as object).sort(), ["conditionsModifiees", "nouveauSousTotal", "nouveauxFraisLivraison"]);
+});
+
+test("restaurant D3 : proposition, plafond par compte consommé AVANT la validation (429 même pour des montants invalides ou un corps illisible)", async () => {
+  const limite = { contexte: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); } };
+  for (const corps of [{ ...PROPOSITION, nouveauSousTotal: -5 }, { ...PROPOSITION, commandeId: "x" }]) {
+    const { app, journal } = monter(limite);
+    assert.equal((await postProposition(app, corps)).status, 429);
+    assert.ok(!journal.appels.includes("proposition"));
+  }
+  const { app } = monter(limite);
+  assert.equal((await app.request("/api/v1/restaurant/commandes/proposition", { method: "POST", headers: JSON_AUTH, body: "{pas du json" })).status, 429);
+});
+
+test("restaurant D3 : proposition, refus du service restitués avec leur code (autre restaurant : 403 ; introuvable : 404 ; hors « en attente » ou proposition déjà active : 409 ; validation : 400)", async () => {
+  const cas: Array<[string, number]> = [["NON_AUTORISE", 403], ["INTROUVABLE", 404], ["CONFLIT_ETAT", 409], ["VALIDATION", 400]];
+  for (const [code, statut] of cas) {
+    const { app } = monter({ proposer: async () => ({ ok: false, erreur: { code: code as never, message: "refus" } }) });
+    const reponse = await postProposition(app, PROPOSITION);
+    assert.equal(reponse.status, statut);
+    assert.equal(((await reponse.json()) as { erreur: { code: string } }).erreur.code, code);
+  }
+});
+
+test("restaurant D3 : proposition, panne du service = 500 sans détail ; corps non JSON ou sans type JSON = 400 ; pas de CORS ; méthode GET = 404", async () => {
+  const panne = monter({ proposer: async () => { throw new Error("secret interne SQL"); } });
+  const reponse = await postProposition(panne.app, PROPOSITION);
+  assert.equal(reponse.status, 500);
+  assert.ok(!JSON.stringify(await reponse.json()).includes("secret interne"));
+  const { app, journal } = monter();
+  assert.equal((await app.request("/api/v1/restaurant/commandes/proposition", { method: "POST", headers: JSON_AUTH, body: "{pas du json" })).status, 400);
+  assert.equal((await app.request("/api/v1/restaurant/commandes/proposition", { method: "POST", headers: AUTH, body: JSON.stringify(PROPOSITION) })).status, 400);
+  const avecOrigine = await postProposition(app, PROPOSITION, { ...JSON_AUTH, origin: "https://exemple.test" });
+  assert.equal(avecOrigine.headers.get("access-control-allow-origin"), null);
+  const pre = await app.request("/api/v1/restaurant/commandes/proposition", { method: "OPTIONS", headers: { origin: "https://exemple.test", "access-control-request-method": "POST" } });
+  assert.equal(pre.headers.get("access-control-allow-origin"), null);
+  const avant = journal.appels.length;
+  assert.equal((await app.request("/api/v1/restaurant/commandes/proposition", { method: "GET", headers: AUTH })).status, 404);
   assert.equal(journal.appels.length, avant, "GET : aucune authentification ni service");
 });

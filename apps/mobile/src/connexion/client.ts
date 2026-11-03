@@ -2,7 +2,8 @@ import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
-import { ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte } from './restaurateur.ts';
+import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
+import { lireValeursPropositionApp } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
@@ -148,14 +149,24 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     },
     /**
      * Accepter, refuser, marquer prête ou terminée (route `/commandes/action`) ; confirmer ou contester un paiement déclaré (route `/commandes/paiement`). Liste blanche vérifiée AVANT tout
-     * appel réseau (jamais « annuler »). UN SEUL essai. Le corps ne porte que l'identifiant de la commande et l'action ou la décision.
+     * appel réseau (jamais la livraison ni une valeur inconnue ; la proposition de prix a sa propre fonction, avec ses montants). UN SEUL essai. Le corps ne porte que l'identifiant de la commande et l'action ou la décision.
      */
     async actionRestaurateur(accessToken: string, commandeId: string, action: ActionRestaurateur): Promise<void> {
-      if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) throw new ErreurRestaurateur('refus', 'Cette action n’est pas disponible dans l’application.');
+      if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action) || (action !== 'paiement_recu' && action !== 'paiement_non_recu' && !(ACTIONS_DE_STATUT as readonly string[]).includes(action))) throw new ErreurRestaurateur('refus', 'Cette action n’est pas disponible dans l’application.');
       if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(commandeId)) throw new ErreurRestaurateur('refus', 'Commande introuvable. Actualisez la liste.');
       const decision = decisionPaiementDe(action);
       if (decision !== null) lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/paiement', { method:'POST', corps:{ commandeId, decision } }, false));
       else lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/action', { method:'POST', corps:{ commandeId, action } }, false));
+    },
+    /**
+     * Propose un autre prix au client (route `/commandes/proposition`). Les montants (entiers en GNF, de 0 à 10 000 000) et les conditions (500 caractères au plus) sont revérifiés ICI,
+     * avant tout appel réseau : une saisie invalide ne part jamais. UN SEUL essai. Le corps ne porte que la commande, les montants et les conditions (jamais le restaurant).
+     */
+    async proposerRestaurateur(accessToken: string, commandeId: string, valeurs: ValeursPropositionRestaurateur): Promise<void> {
+      if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(commandeId)) throw new ErreurRestaurateur('refus', 'Commande introuvable. Actualisez la liste.');
+      const lu = lireValeursPropositionApp(valeurs ?? {});
+      if (!lu.ok) throw new ErreurRestaurateur('refus', 'Les montants de la proposition ne sont pas valides. Corrigez-les puis recommencez.');
+      lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/proposition', { method:'POST', corps:{ commandeId, nouveauSousTotal:lu.valeurs.nouveauSousTotal, nouveauxFraisLivraison:lu.valeurs.nouveauxFraisLivraison, conditionsModifiees:lu.valeurs.conditionsModifiees } }, false));
     },
     estimerLivraison: postEstimation,
     async connecter(email: string, motDePasse: string) {

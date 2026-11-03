@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { lireBearer } from "@speedfood/shared/api/v1-regles";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
-import { lireActionRestaurantApp, lireDecisionPaiementApp } from "@speedfood/shared/contracts/restaurant-commandes";
+import { lireActionRestaurantApp, lireDecisionPaiementApp, lireValeursPropositionApp } from "@speedfood/shared/contracts/restaurant-commandes";
 import { identifier } from "../controles/chaine.ts";
 import type { Variables } from "../controles/chaine.ts";
 import { lireCorpsJson, repondre, reponseErreur } from "../http.ts";
@@ -10,8 +10,8 @@ import type { Deps } from "../types.ts";
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Espace restaurateur (lots D1 et D2), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route}.ts` : lire les commandes de SON restaurant, les accepter, les refuser,
- * les passer prêtes puis terminées, et confirmer ou contester un paiement déclaré.
+ * Espace restaurateur (lots D1, D2 et D3), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
+ * les refuser, les passer prêtes puis terminées, les annuler, confirmer ou contester un paiement déclaré, et proposer un autre prix au client.
  *
  *  - Jeton porteur STRICT uniquement (jamais de cookie), puis `deps.restaurant.contexte` : plafond par compte, second facteur, questions de sécurité, appartenance. Le restaurant
  *    vient de l'appartenance du compte ; ni le corps ni l'URL ne le désignent (un `restaurantId` reçu est ignoré).
@@ -63,6 +63,23 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     if (decision === null) return reponseErreur(c, { code: "VALIDATION", message: "Décision invalide." });
     if (typeof corps.commandeId !== "string" || !REGEX_UUID.test(corps.commandeId)) return reponseErreur(c, { code: "VALIDATION", message: "Commande invalide." });
     const resultat = await deps.restaurant.confirmerPaiement(ctx, corps.commandeId, decision);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
+  route.post("/commandes/proposition", identite, async (c) => {
+    // Même ordre que l'action et le paiement : le contexte (plafond par compte, second facteur, questions, appartenance) AVANT le corps. Le restaurant vient de l'appartenance du compte ;
+    // un `restaurantId` du corps est ignoré, et le service du site filtre la commande sur ce restaurant (appartenance), exige l'état « en attente » et refuse une seconde proposition active.
+    const jeton = lireBearer(c.req.header("authorization"));
+    if (!jeton) throw new ErreurMetier("NON_AUTHENTIFIE", "Connectez-vous avec votre compte restaurateur.");
+    const ctx = await deps.restaurant.contexte(jeton, c.get("utilisateurId"));
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { commandeId?: unknown; nouveauSousTotal?: unknown; nouveauxFraisLivraison?: unknown; conditionsModifiees?: unknown };
+    // Montants entiers et bornés VÉRIFIÉS ICI, avant le service : un décimal, un négatif, un énorme, une chaîne, NaN ou Infinity n'atteignent jamais la base.
+    const valeurs = lireValeursPropositionApp(corps);
+    if (!valeurs.ok) return reponseErreur(c, { code: "VALIDATION", message: valeurs.message });
+    if (typeof corps.commandeId !== "string" || !REGEX_UUID.test(corps.commandeId)) return reponseErreur(c, { code: "VALIDATION", message: "Commande invalide." });
+    const resultat = await deps.restaurant.proposer(ctx, corps.commandeId, valeurs.valeurs);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 

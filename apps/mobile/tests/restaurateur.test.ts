@@ -5,6 +5,7 @@ import { GestionSession } from '../src/connexion/session.ts';
 import {
   ETAT_REPOS, ErreurRestaurateur, MESSAGE_SECURITE, actionVerrouillee, actionsAffichees, actionsPossibles, erreurReponseRestaurateur, erreurReseauRestaurateur, evoluer, grouper, lireListeRestaurateur, lireRaisonSecurite,
   libellePaiement, ligneClient, lireReponseAction, lireRoles, peutEnvoyer, refusRestaurateur, verdictAction, type CommandeRestaurateur, type EtatAction,
+  CONFIRMATIONS, analyserMontantGnf, formaterGnf, formulaireOuvert, libelleStatut, lignesRecapProposition, preparerProposition, recapProposition,
 } from '../src/connexion/restaurateur.ts';
 
 const A = '00000000-0000-4000-8000-00000000000a';
@@ -112,12 +113,12 @@ test('groupes : à traiter (en attente), en cours (acceptée, prête), historiqu
 const STATUTS_TOUS = ['en_attente', 'acceptee', 'prete', 'terminee', 'refusee', 'annulee'] as const;
 const PAIEMENTS_TOUS = ['non_demande', 'especes', 'declare', 'recu', 'non_recu'] as const;
 const MODES_TOUS = [null, 'especes', 'orange_money', 'mtn_momo', 'speedfood'] as const;
-test('boutons : accepter et refuser seulement sur une commande en attente sans proposition en cours', () => {
-  assert.deepEqual(actionsPossibles(attente), ['accepter', 'refuser']);
-  assert.deepEqual(actionsPossibles(lue({ propositionActive: { id: 'p' } })), []);
+test('boutons : accepter, refuser, proposer un autre prix et annuler sur une commande en attente sans proposition en cours ; seule l’annulation pendant une proposition', () => {
+  assert.deepEqual(actionsPossibles(attente), ['accepter', 'refuser', 'proposer', 'annuler']);
+  assert.deepEqual(actionsPossibles(lue({ propositionActive: { id: 'p' } })), ['annuler']);
 });
 test('boutons D2 : « Marquer prête » sur une commande acceptée, « Marquer terminée » sur une commande prête, rien d’autre', () => {
-  assert.deepEqual(actionsPossibles(lue({ statut: 'acceptee' })), ['prete']);
+  assert.deepEqual(actionsPossibles(lue({ statut: 'acceptee' })), ['prete', 'annuler']);
   assert.deepEqual(actionsPossibles(lue({ statut: 'prete' })), ['terminee']);
   for (const statut of ['terminee', 'refusee', 'annulee']) assert.deepEqual(actionsPossibles(lue({ statut })), [], statut);
 });
@@ -142,13 +143,13 @@ test('boutons D2 : toutes les combinaisons statut × paiement × mode — aucun 
     assert.equal(a.includes('paiement_recu'), attendu, [statut, paiementStatut, paiementMode].join(' '));
     assert.equal(a.includes('paiement_non_recu'), attendu, [statut, paiementStatut, paiementMode].join(' '));
     // Statut : exactement l’étape suivante, indépendamment du paiement.
-    const statutAttendu = statut === 'en_attente' ? ['accepter', 'refuser'] : statut === 'acceptee' ? ['prete'] : statut === 'prete' ? ['terminee'] : [];
+    const statutAttendu = statut === 'en_attente' ? ['accepter', 'refuser', 'proposer', 'annuler'] : statut === 'acceptee' ? ['prete', 'annuler'] : statut === 'prete' ? ['terminee'] : [];
     assert.deepEqual(a.filter(x => !x.startsWith('paiement')), statutAttendu, [statut, paiementStatut, paiementMode].join(' '));
   }
 });
 test('boutons D2 : aucun bouton du tout pour les états finaux sans paiement à trancher, ni pour une proposition en cours (hors paiement)', () => {
   for (const statut of ['terminee', 'refusee', 'annulee']) assert.deepEqual(actionsPossibles(lue({ statut, paiementStatut: 'recu', paiementMode: 'orange_money' })), [], statut);
-  assert.deepEqual(actionsPossibles(lue({ statut: 'acceptee', propositionActive: { id: 'p' } })), []);
+  assert.deepEqual(actionsPossibles(lue({ statut: 'acceptee', propositionActive: { id: 'p' } })), ['prete', 'annuler'], 'une proposition ne concerne que les commandes en attente');
 });
 test('affichage D2 : libellés de paiement fixes, jamais « espèces » ; ligne client sans séparateur vide (T2-1)', () => {
   const l = (surcharge: Record<string, unknown>) => libellePaiement(lue({ statut: 'acceptee', ...surcharge }));
@@ -166,21 +167,21 @@ test('affichage D2 : libellés de paiement fixes, jamais « espèces » ; ligne 
 });
 test('boutons D2 : liste À JOUR après une acceptation confirmée : le bouton de l’étape suivante (« prête ») apparaît ; liste PÉRIMÉE : rien', () => {
   const confirme: EtatAction = { phase: 'verdict', commandeId: A, action: 'accepter', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
-  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee' }), confirme), ['prete']);
+  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee' }), confirme), ['prete', 'annuler']);
   assert.deepEqual(actionsAffichees(attente, confirme), []);
   const pret: EtatAction = { phase: 'verdict', commandeId: A, action: 'prete', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
   assert.deepEqual(actionsAffichees(lue({ statut: 'prete' }), pret), ['terminee']);
   assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee' }), pret), [], 'liste périmée : pas de second envoi');
   const paye: EtatAction = { phase: 'verdict', commandeId: A, action: 'paiement_recu', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
   const encoreDeclare = lue({ statut: 'acceptee', paiementStatut: 'declare', paiementMode: 'orange_money' });
-  assert.deepEqual(actionsAffichees(encoreDeclare, paye), ['prete'], 'le paiement n’est plus proposé, la préparation reste possible');
-  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee', paiementStatut: 'recu', paiementMode: 'orange_money' }), paye), ['prete']);
+  assert.deepEqual(actionsAffichees(encoreDeclare, paye), ['prete', 'annuler'], 'le paiement n’est plus proposé, la préparation reste possible');
+  assert.deepEqual(actionsAffichees(lue({ statut: 'acceptee', paiementStatut: 'recu', paiementMode: 'orange_money' }), paye), ['prete', 'annuler']);
 });
 test('boutons : retirés pour la commande dont l’action vient d’être confirmée (liste relue absente ou périmée)', () => {
   const confirme: EtatAction = { phase: 'verdict', commandeId: A, action: 'accepter', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
   assert.deepEqual(actionsAffichees(attente, confirme), []);
-  assert.deepEqual(actionsAffichees({ ...attente, id: B }, confirme), ['accepter', 'refuser']);
-  assert.deepEqual(actionsAffichees(attente, ETAT_REPOS), ['accepter', 'refuser']);
+  assert.deepEqual(actionsAffichees({ ...attente, id: B }, confirme), ['accepter', 'refuser', 'proposer', 'annuler']);
+  assert.deepEqual(actionsAffichees(attente, ETAT_REPOS), ['accepter', 'refuser', 'proposer', 'annuler']);
 });
 
 // ---------- table des refus ----------
@@ -413,7 +414,7 @@ test('client D2 : paiement = POST {commandeId, decision} SEULEMENT sur la route 
   }
 });
 test('client : action = POST {commandeId, action} SEULEMENT (jamais de restaurant), jeton porteur, un seul appel', async () => {
-  for (const action of ['accepter', 'refuser', 'prete', 'terminee'] as const) {
+  for (const action of ['accepter', 'refuser', 'prete', 'terminee', 'annuler'] as const) {
     const { a, appels } = api(() => json({ ok: true }));
     await a.actionRestaurateur(ACCES, A, action);
     assert.equal(appels.length, 1);
@@ -423,9 +424,9 @@ test('client : action = POST {commandeId, action} SEULEMENT (jamais de restauran
     assert.equal((appels[0].options.headers as Record<string, string>).Authorization, 'Bearer ' + ACCES);
   }
 });
-test('client : toute autre action (annuler, livrer, valeur inconnue…) ou identifiant invalide est refusé AVANT le réseau', async () => {
+test('client : toute autre action (livrer, « proposer » sans montants, valeur inconnue…) ou identifiant invalide est refusé AVANT le réseau', async () => {
   const { a, appels } = api(() => json({ ok: true }));
-  for (const action of ['annuler', 'livree', 'partir', 'recu', 'non_recu', 'especes', 'inconnue', '']) await assert.rejects(a.actionRestaurateur(ACCES, A, action as never), ErreurRestaurateur);
+  for (const action of ['proposer', 'Annuler', 'livree', 'partir', 'recu', 'non_recu', 'especes', 'inconnue', '']) await assert.rejects(a.actionRestaurateur(ACCES, A, action as never), ErreurRestaurateur);
   await assert.rejects(a.actionRestaurateur(ACCES, 'pas-un-uuid', 'accepter'), ErreurRestaurateur);
   assert.equal(appels.length, 0);
 });
@@ -518,4 +519,332 @@ test('session : sans connexion, aucune lecture ni action restaurateur', async ()
   const { g } = gestion({ commandesRestaurant: async () => ({ restaurant: null, commandes: [] }) });
   await assert.rejects(g.commandesRestaurant(), ErreurConnexion);
   await assert.rejects(g.actionRestaurateur(A, 'accepter'), ErreurConnexion);
+});
+
+// ======================= lot D3 : annuler et proposer un autre prix =======================
+const PRIX = { sousTotalGnf: 45000, fraisGnf: 5000 };
+const brouillon = (surcharge: Partial<{ sousTotal: string; frais: string; conditions: string }> = {}) => ({ sousTotal: '45000', frais: '5000', conditions: '', ...surcharge });
+const repos = ETAT_REPOS;
+
+test('lecture D3 : sous-total et frais de livraison lus séparément (entiers) pour le récapitulatif, le total reste leur somme', () => {
+  assert.deepEqual([attente.sousTotalGnf, attente.fraisGnf, attente.totalGnf], [45000, 5000, 50000]);
+});
+
+// ---------- saisie des montants ----------
+test('montant D3 : chiffres seuls ou groupés par milliers (espace, insécable, fine), avec espaces autour', () => {
+  const ok: Array<[string, number]> = [['0', 0], ['7', 7], ['007', 7], ['25000', 25000], ['25 000', 25000], ['25\u00a0000', 25000], ['25\u202f000', 25000], [' 25 000 ', 25000], ['1 000 000', 1000000], ['10000000', 10000000], ['10 000 000', 10000000], ['999', 999]];
+  for (const [saisie, attendu] of ok) assert.equal(analyserMontantGnf(saisie), attendu, JSON.stringify(saisie));
+});
+test('montant D3 : virgule, point, lettres, signes, vide, groupement faux, hors bornes et non-textes sont REFUSÉS (jamais NaN ni Infinity)', () => {
+  const refus: unknown[] = ['', ' ', '25,5', '25.5', '1.000', '1,000', '1 000,00', '12a', 'abc', 'mille', '-5', '+5', '1e3', '0x10', 'NaN', 'Infinity', '-Infinity', '10000001', '10 000 001', '99999999', '2 5000', '25 00', '1 0000', '١٢٣', '１２３',
+    '5 \n', '5\t0', 'GNF 5000', '5000 GNF', '5000€', '1  000', '25 000 000 000', 'x'.repeat(41), '9'.repeat(30), null, undefined, 5000, NaN, Infinity, true, ['5000'], { v: 1 }];
+  for (const saisie of refus) assert.equal(analyserMontantGnf(saisie), null, JSON.stringify(saisie) ?? String(saisie));
+  for (const saisie of ['0', '1 000', '10000000']) { const n = analyserMontantGnf(saisie); assert.ok(Number.isSafeInteger(n)); }
+});
+test('affichage D3 : montants GNF groupés par milliers, sans décimale', () => {
+  assert.equal(formaterGnf(0), '0');
+  assert.equal(formaterGnf(999), '999');
+  assert.equal(formaterGnf(25000), '25\u00a0000');
+  assert.equal(formaterGnf(10000000), '10\u00a0000\u00a0000');
+});
+
+// ---------- préparation de la proposition ----------
+test('proposition D3 : saisie valide → valeurs entières et récapitulatif ancien → nouveau (l’ancien prix à gauche)', () => {
+  const p = preparerProposition(PRIX, brouillon({ sousTotal: '52 000', frais: '7000', conditions: '  Un plat est remplacé.  ' }));
+  assert.ok(p.ok);
+  if (!p.ok) return;
+  assert.deepEqual(p.valeurs, { nouveauSousTotal: 52000, nouveauxFraisLivraison: 7000, conditionsModifiees: 'Un plat est remplacé.' });
+  assert.deepEqual(p.recap, { ancienSousTotal: 45000, nouveauSousTotal: 52000, ancienFrais: 5000, nouveauxFrais: 7000, ancienTotal: 50000, nouveauTotal: 59000, conditions: 'Un plat est remplacé.' });
+  assert.deepEqual(lignesRecapProposition(p.recap), [
+    'Sous-total : 45\u00a0000 GNF → 52\u00a0000 GNF', 'Frais de livraison : 5\u00a0000 GNF → 7\u00a0000 GNF', 'Total : 50\u00a0000 GNF → 59\u00a0000 GNF',
+  ]);
+});
+test('récapitulatif D3 : l’ancien et le nouveau prix ne sont JAMAIS confondus (valeurs toutes différentes)', () => {
+  const r = recapProposition({ sousTotalGnf: 1000, fraisGnf: 200 }, { nouveauSousTotal: 3000, nouveauxFraisLivraison: 400, conditionsModifiees: null });
+  assert.deepEqual([r.ancienSousTotal, r.nouveauSousTotal, r.ancienFrais, r.nouveauxFrais, r.ancienTotal, r.nouveauTotal], [1000, 3000, 200, 400, 1200, 3400]);
+  const [sousTotal, frais, total] = lignesRecapProposition(r);
+  assert.equal(sousTotal, 'Sous-total : 1\u00a0000 GNF → 3\u00a0000 GNF');
+  assert.equal(frais, 'Frais de livraison : 200 GNF → 400 GNF');
+  assert.equal(total, 'Total : 1\u00a0200 GNF → 3\u00a0400 GNF');
+});
+test('proposition D3 : seules des conditions, ou un seul montant modifié, suffisent ; rien de modifié est refusé', () => {
+  assert.ok(preparerProposition(PRIX, brouillon({ conditions: 'Livraison possible vers Kaloum seulement.' })).ok);
+  assert.ok(preparerProposition(PRIX, brouillon({ sousTotal: '46000' })).ok);
+  assert.ok(preparerProposition(PRIX, brouillon({ frais: '0' })).ok);
+  for (const b of [brouillon(), brouillon({ conditions: '   \n  ' }), brouillon({ sousTotal: '45 000' })]) {
+    const p = preparerProposition(PRIX, b);
+    assert.ok(!p.ok, JSON.stringify(b));
+    if (!p.ok) assert.match(p.erreurs.general ?? '', /Changez le montant/);
+  }
+});
+test('proposition D3 : saisie invalide = erreur par champ, JAMAIS de valeurs (donc rien à envoyer) : virgule, lettre, négatif, énorme, vide, conditions trop longues', () => {
+  const cas: Array<[string, Partial<{ sousTotal: string; frais: string; conditions: string }>, 'sousTotal' | 'frais' | 'conditions']> = [
+    ['virgule', { sousTotal: '45000,50' }, 'sousTotal'], ['point', { sousTotal: '45.000' }, 'sousTotal'], ['lettre', { frais: '5000F' }, 'frais'], ['négatif', { frais: '-5000' }, 'frais'],
+    ['énorme', { sousTotal: '10000001' }, 'sousTotal'], ['vide', { sousTotal: '' }, 'sousTotal'], ['frais vide', { frais: ' ' }, 'frais'], ['NaN', { sousTotal: 'NaN' }, 'sousTotal'],
+    ['Infinity', { frais: 'Infinity' }, 'frais'], ['conditions 501', { conditions: 'x'.repeat(501) }, 'conditions'],
+  ];
+  for (const [nom, surcharge, champ] of cas) {
+    const p = preparerProposition(PRIX, brouillon(surcharge));
+    assert.equal(p.ok, false, nom);
+    if (!p.ok) assert.ok(typeof p.erreurs[champ] === 'string' && p.erreurs[champ]!.length > 0, nom);
+    assert.ok(!('valeurs' in p), nom);
+  }
+  assert.ok(preparerProposition(PRIX, brouillon({ conditions: 'x'.repeat(500), sousTotal: '46000' })).ok, '500 caractères acceptés');
+  const deux = preparerProposition(PRIX, brouillon({ sousTotal: 'a', frais: 'b' }));
+  assert.ok(!deux.ok && deux.erreurs.sousTotal && deux.erreurs.frais, 'les deux champs fautifs sont signalés ensemble');
+});
+
+// ---------- machine : proposition ----------
+test('machine D3 : « Proposer un autre prix » ouvre la saisie, préremplie avec les prix actuels (texte), sans rien envoyer', () => {
+  const e = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  assert.deepEqual(e, { phase: 'saisie', commandeId: A, actuel: PRIX, brouillon: { sousTotal: '45000', frais: '5000', conditions: '' }, erreurs: {} });
+  assert.ok(formulaireOuvert(e));
+  assert.equal(actionVerrouillee(e, 0), false);
+});
+test('machine D3 : la saisie évolue champ par champ ; hors saisie, « saisir » est sans effet ; une nouvelle frappe efface les erreurs', () => {
+  let e: EtatAction = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  e = evoluer(e, { type: 'saisir', champ: 'sousTotal', valeur: '52 000' });
+  e = evoluer(e, { type: 'saisir', champ: 'conditions', valeur: 'Un plat est remplacé.' });
+  assert.deepEqual(e.phase === 'saisie' && e.brouillon, { sousTotal: '52 000', frais: '5000', conditions: 'Un plat est remplacé.' });
+  assert.equal(evoluer(repos, { type: 'saisir', champ: 'frais', valeur: '1' }), repos);
+  const mauvais = evoluer(evoluer(e, { type: 'saisir', champ: 'frais', valeur: 'x' }), { type: 'valider_saisie' });
+  assert.ok(mauvais.phase === 'saisie' && mauvais.erreurs.frais);
+  assert.deepEqual(evoluer(mauvais, { type: 'saisir', champ: 'frais', valeur: '5000' }).phase === 'saisie' && (evoluer(mauvais, { type: 'saisir', champ: 'frais', valeur: '5000' }) as { erreurs: unknown }).erreurs, {});
+});
+test('machine D3 : « Continuer » avec une saisie invalide RESTE en saisie avec les erreurs ; valide → récapitulatif portant les valeurs ET l’ancien/nouveau prix', () => {
+  let e: EtatAction = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  const invalide = evoluer(evoluer(e, { type: 'saisir', champ: 'sousTotal', valeur: '45,5' }), { type: 'valider_saisie' });
+  assert.equal(invalide.phase, 'saisie');
+  assert.ok(invalide.phase === 'saisie' && invalide.erreurs.sousTotal);
+  assert.equal(evoluer(e, { type: 'valider_saisie' }).phase, 'saisie', 'rien de modifié : reste en saisie');
+  e = evoluer(evoluer(e, { type: 'saisir', champ: 'sousTotal', valeur: '52000' }), { type: 'valider_saisie' });
+  assert.equal(e.phase, 'recapitulatif');
+  if (e.phase !== 'recapitulatif') return;
+  assert.deepEqual(e.valeurs, { nouveauSousTotal: 52000, nouveauxFraisLivraison: 5000, conditionsModifiees: null });
+  assert.equal(e.recap.ancienSousTotal, 45000);
+  assert.equal(e.recap.nouveauSousTotal, 52000);
+  assert.equal(evoluer(repos, { type: 'valider_saisie' }), repos);
+});
+test('machine D3 : « Modifier » revient à la saisie en gardant le brouillon ; « Fermer » revient au repos depuis la saisie comme depuis le récapitulatif', () => {
+  const saisie = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  const recap = evoluer(evoluer(saisie, { type: 'saisir', champ: 'frais', valeur: '0' }), { type: 'valider_saisie' });
+  const retour = evoluer(recap, { type: 'modifier_saisie' });
+  assert.ok(retour.phase === 'saisie' && retour.brouillon.frais === '0');
+  assert.equal(evoluer(retour, { type: 'annuler_confirmation' }), repos);
+  assert.equal(evoluer(recap, { type: 'annuler_confirmation' }), repos);
+  assert.equal(evoluer(saisie, { type: 'modifier_saisie' }), saisie);
+});
+test('machine D3 : la proposition ne part JAMAIS sans son récapitulatif (repos, saisie, confirmation d’une autre action, autre commande)', () => {
+  const saisie = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  const recap = evoluer(evoluer(saisie, { type: 'saisir', champ: 'frais', valeur: '0' }), { type: 'valider_saisie' });
+  assert.equal(recap.phase, 'recapitulatif');
+  for (const etat of [repos, saisie, { phase: 'confirmation', commandeId: A, action: 'refuser' } as EtatAction, { phase: 'confirmation', commandeId: A, action: 'annuler' } as EtatAction]) {
+    assert.equal(peutEnvoyer(etat, A, 'proposer', 0), false, etat.phase);
+    assert.equal(evoluer(etat, { type: 'envoyer', commandeId: A, action: 'proposer', lecture: 0 }), etat, etat.phase);
+  }
+  assert.equal(peutEnvoyer(recap, B, 'proposer', 0), false, 'autre commande');
+  assert.equal(evoluer(recap, { type: 'envoyer', commandeId: B, action: 'proposer', lecture: 0 }), recap);
+  assert.equal(peutEnvoyer(recap, A, 'proposer', 0), true);
+});
+test('machine D3 : le récapitulatif confirmé → envoi qui PORTE exactement les valeurs du récapitulatif (celles qui partent au réseau)', () => {
+  const saisie = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  const recap = evoluer(evoluer(evoluer(saisie, { type: 'saisir', champ: 'sousTotal', valeur: '52 000' }), { type: 'saisir', champ: 'conditions', valeur: 'Un plat est remplacé.' }), { type: 'valider_saisie' });
+  const envoi = evoluer(recap, { type: 'envoyer', commandeId: A, action: 'proposer', lecture: 0 });
+  assert.deepEqual(envoi, { phase: 'envoi', commandeId: A, action: 'proposer', valeurs: { nouveauSousTotal: 52000, nouveauxFraisLivraison: 5000, conditionsModifiees: 'Un plat est remplacé.' } });
+  assert.equal(actionVerrouillee(envoi, 0), true);
+  assert.equal(evoluer(envoi, { type: 'envoyer', commandeId: A, action: 'proposer', lecture: 0 }), envoi, 'un seul envoi');
+});
+test('machine D3 : tant que le formulaire est ouvert, aucune AUTRE action ne part et aucune confirmation ne s’ouvre ; un formulaire ne s’ouvre pas pendant un verrou', () => {
+  const saisie = evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 });
+  for (const action of ['accepter', 'prete', 'terminee', 'paiement_recu'] as const) {
+    assert.equal(evoluer(saisie, { type: 'envoyer', commandeId: B, action, lecture: 0 }), saisie, action);
+    assert.equal(peutEnvoyer(saisie, B, action, 0), false, action);
+  }
+  for (const action of ['refuser', 'annuler', 'paiement_non_recu'] as const) assert.equal(evoluer(saisie, { type: 'demander_confirmation', commandeId: B, action, lecture: 0 }), saisie, action);
+  assert.equal(evoluer(saisie, { type: 'ouvrir_proposition', commandeId: B, actuel: PRIX, lecture: 0 }), saisie, 'un seul formulaire à la fois');
+  const envoi: EtatAction = { phase: 'envoi', commandeId: A, action: 'accepter' };
+  assert.equal(evoluer(envoi, { type: 'ouvrir_proposition', commandeId: B, actuel: PRIX, lecture: 0 }), envoi);
+  const incertain: EtatAction = { phase: 'verdict', commandeId: A, action: 'prete', verdict: { genre: 'incertain', message: 'x', reessayer: false }, lectureVerdict: 3 };
+  assert.equal(evoluer(incertain, { type: 'ouvrir_proposition', commandeId: B, actuel: PRIX, lecture: 3 }), incertain, 'verrouillé jusqu’à relecture réussie');
+  assert.equal(evoluer(incertain, { type: 'ouvrir_proposition', commandeId: B, actuel: PRIX, lecture: 4 }).phase, 'saisie');
+});
+test('machine D3 : réponse incertaine à une proposition, relecture échouée → verrouillé jusqu’à une relecture réussie ; jamais de nouvel envoi automatique', () => {
+  const recap = evoluer(evoluer(evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 }), { type: 'saisir', champ: 'frais', valeur: '0' }), { type: 'valider_saisie' });
+  let e = evoluer(recap, { type: 'envoyer', commandeId: A, action: 'proposer', lecture: 1 });
+  e = evoluer(e, { type: 'repondre', erreur: incertain });
+  assert.equal(e.phase, 'relecture');
+  e = evoluer(e, { type: 'relire', relue: undefined, lecture: 1 });
+  assert.equal(e.phase, 'verdict');
+  assert.equal(actionVerrouillee(e, 1), true);
+  assert.equal(actionVerrouillee(e, 2), false);
+});
+test('machine D3 : erreur MFA/questions sur une proposition → verdict « sécurité » avec le message vers le site', () => {
+  const recap = evoluer(evoluer(evoluer(repos, { type: 'ouvrir_proposition', commandeId: A, actuel: PRIX, lecture: 0 }), { type: 'saisir', champ: 'frais', valeur: '0' }), { type: 'valider_saisie' });
+  let e = evoluer(recap, { type: 'envoyer', commandeId: A, action: 'proposer', lecture: 0 });
+  e = evoluer(e, { type: 'repondre', erreur: refusRestaurateur(403, 'mfa') });
+  e = evoluer(e, { type: 'relire', relue: attente, lecture: 1 });
+  assert.deepEqual(e.phase === 'verdict' && e.verdict, { genre: 'securite', message: MESSAGE_SECURITE });
+});
+
+// ---------- machine : annuler (avec confirmation) ----------
+test('machine D3 : « Annuler la commande » demande d’abord sa confirmation (même commande, même action) ; jamais d’envoi sans elle', () => {
+  assert.equal(peutEnvoyer(repos, A, 'annuler', 0), false);
+  assert.equal(evoluer(repos, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0 }), repos);
+  const conf = evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'annuler', lecture: 0 });
+  assert.deepEqual(conf, { phase: 'confirmation', commandeId: A, action: 'annuler' });
+  assert.equal(peutEnvoyer(conf, B, 'annuler', 0), false, 'autre commande');
+  const refuserConf = evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'refuser', lecture: 0 });
+  assert.equal(peutEnvoyer(refuserConf, A, 'annuler', 0), false, 'la confirmation d’un refus ne vaut pas pour une annulation');
+  assert.equal(peutEnvoyer(conf, A, 'refuser', 0), false, 'ni l’inverse');
+  assert.deepEqual(evoluer(conf, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0 }), { phase: 'envoi', commandeId: A, action: 'annuler' });
+  assert.equal(evoluer(conf, { type: 'annuler_confirmation' }), repos);
+});
+test('machine D3 : les textes de confirmation sont fixes, sans « espèces », et chaque action à confirmer a la sienne', () => {
+  for (const action of ['refuser', 'annuler', 'paiement_non_recu'] as const) {
+    const c = CONFIRMATIONS[action];
+    assert.ok(c.question.length > 10 && c.oui.length > 0 && c.non.length > 0, action);
+    assert.ok(!/esp[eè]ces/i.test(c.question + c.oui + c.non), action);
+  }
+  assert.match(CONFIRMATIONS.annuler.oui, /annuler/i);
+});
+
+// ---------- boutons : annuler et proposer, statut × paiement × proposition ----------
+test('boutons D3 : « annuler » UNIQUEMENT pour une commande en attente ou acceptée (jamais prête, terminée, refusée, annulée), quel que soit le paiement ou la proposition', () => {
+  for (const statut of STATUTS_TOUS) for (const paiementStatut of PAIEMENTS_TOUS) for (const paiementMode of MODES_TOUS) for (const propositionActive of [null, { id: 'p' }]) {
+    const a = actionsPossibles(lue({ statut, paiementStatut, paiementMode, propositionActive }));
+    const nom = [statut, paiementStatut, paiementMode, propositionActive ? 'proposition' : 'sans'].join(' ');
+    assert.equal(a.includes('annuler'), statut === 'en_attente' || statut === 'acceptee', nom);
+  }
+});
+test('boutons D3 : « Proposer un autre prix » UNIQUEMENT pour une commande en attente sans proposition en cours', () => {
+  for (const statut of STATUTS_TOUS) for (const paiementStatut of PAIEMENTS_TOUS) for (const propositionActive of [null, { id: 'p' }]) {
+    const a = actionsPossibles(lue({ statut, paiementStatut, propositionActive }));
+    assert.equal(a.includes('proposer'), statut === 'en_attente' && propositionActive === null, [statut, paiementStatut, propositionActive ? 'proposition' : 'sans'].join(' '));
+  }
+});
+test('boutons D3 : une commande en attente de la réponse du client affiche « En attente de la réponse du client », sans accepter/refuser/proposer, seule l’annulation reste', () => {
+  const c = lue({ propositionActive: { id: 'p' } });
+  assert.equal(libelleStatut(c), 'En attente de la réponse du client');
+  assert.deepEqual(actionsPossibles(c), ['annuler']);
+  assert.equal(libelleStatut(attente), 'En attente de votre réponse');
+});
+test('boutons D3 : après une annulation ou une proposition confirmée et une liste PÉRIMÉE, plus aucun bouton de statut ; liste à jour : rien à annuler', () => {
+  const annule: EtatAction = { phase: 'verdict', commandeId: A, action: 'annuler', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
+  assert.deepEqual(actionsAffichees(attente, annule), [], 'liste périmée : pas de second envoi');
+  assert.deepEqual(actionsAffichees(lue({ statut: 'annulee' }), annule), []);
+  const propose: EtatAction = { phase: 'verdict', commandeId: A, action: 'proposer', verdict: { genre: 'confirme', message: 'x' }, lectureVerdict: 1 };
+  assert.deepEqual(actionsAffichees(attente, propose), [], 'liste périmée : pas de seconde proposition');
+  assert.deepEqual(actionsAffichees(lue({ propositionActive: { id: 'p' } }), propose), ['annuler'], 'liste à jour : seule l’annulation');
+});
+
+// ---------- verdict ----------
+test('verdict D3 : messages de succès fixes pour annuler et proposer', () => {
+  assert.equal(verdictAction({ erreur: null, action: 'annuler', relue: undefined }).message, 'Commande annulée.');
+  assert.equal(verdictAction({ erreur: null, action: 'proposer', relue: undefined }).message, 'Proposition envoyée au client.');
+});
+test('verdict D3 : annuler après réponse incertaine, la liste relue décide (jamais « réessayer » sans bouton)', () => {
+  assert.equal(verdictAction({ erreur: incertain, action: 'annuler', relue: lue({ statut: 'annulee' }) }).genre, 'confirme');
+  const encore = verdictAction({ erreur: incertain, action: 'annuler', relue: lue({ statut: 'acceptee' }) });
+  assert.deepEqual([encore.genre, (encore as { reessayer: boolean }).reessayer], ['incertain', true]);
+  const prete = verdictAction({ erreur: incertain, action: 'annuler', relue: lue({ statut: 'prete' }) });
+  assert.equal(prete.genre, 'refus', 'une commande prête ne s’annule plus : pas de bouton, donc pas de « réessayer »');
+  assert.ok(!/réessayer/i.test(prete.message));
+  assert.equal(verdictAction({ erreur: incertain, action: 'annuler', relue: lue({ statut: 'refusee' }) }).genre, 'refus');
+  assert.equal(verdictAction({ erreur: incertain, action: 'annuler', relue: undefined }).genre, 'incertain');
+  assert.equal((verdictAction({ erreur: incertain, action: 'annuler', relue: undefined }) as { reessayer: boolean }).reessayer, false);
+  assert.equal(verdictAction({ erreur: refusRestaurateur(409), action: 'annuler', relue: lue({ statut: 'acceptee' }) }).genre, 'refus', 'refus certain : jamais converti');
+});
+test('verdict D3 : proposer après réponse incertaine : proposition retrouvée = enregistrée ; sinon JAMAIS « réessayer » (une proposition a pu être enregistrée puis acceptée)', () => {
+  assert.equal(verdictAction({ erreur: incertain, action: 'proposer', relue: lue({ propositionActive: { id: 'p' } }) }).genre, 'confirme');
+  const aucune = verdictAction({ erreur: incertain, action: 'proposer', relue: attente });
+  assert.deepEqual([aucune.genre, (aucune as { reessayer: boolean }).reessayer], ['incertain', false]);
+  assert.ok(!/Vous pouvez réessayer/.test(aucune.message));
+  assert.equal(verdictAction({ erreur: incertain, action: 'proposer', relue: lue({ statut: 'annulee' }) }).genre, 'refus');
+  assert.equal(verdictAction({ erreur: incertain, action: 'proposer', relue: lue({ statut: 'acceptee' }) }).genre, 'refus');
+  assert.equal(verdictAction({ erreur: incertain, action: 'proposer', relue: null }).genre, 'refus');
+  assert.equal(verdictAction({ erreur: incertain, action: 'proposer', relue: undefined }).genre, 'incertain');
+  assert.equal(verdictAction({ erreur: refusRestaurateur(409), action: 'proposer', relue: lue({ propositionActive: { id: 'p' } }) }).genre, 'refus', 'refus certain (proposition déjà active) : jamais converti en succès');
+});
+test('verdict D2-4 corrigé : « Vous pouvez réessayer » seulement quand le bouton existe encore (paiement déclaré mais commande annulée = pas de bouton)', () => {
+  const annuleeDeclaree = lue({ statut: 'annulee', paiementStatut: 'declare', paiementMode: 'orange_money' });
+  const v = verdictAction({ erreur: incertain, action: 'paiement_recu', relue: annuleeDeclaree });
+  assert.equal(v.genre, 'refus');
+  assert.ok(!/réessayer/i.test(v.message), v.message);
+  const ok = verdictAction({ erreur: incertain, action: 'paiement_recu', relue: lue({ statut: 'acceptee', paiementStatut: 'declare', paiementMode: 'mtn_momo' }) });
+  assert.deepEqual([ok.genre, (ok as { reessayer: boolean }).reessayer], ['incertain', true], 'le bouton existe : réessayer permis');
+  const propositionEntreTemps = verdictAction({ erreur: incertain, action: 'accepter', relue: lue({ propositionActive: { id: 'p' } }) });
+  assert.equal(propositionEntreTemps.genre, 'refus', 'le client a une proposition à traiter : pas de bouton accepter');
+});
+
+// ---------- client : proposition ----------
+const VALEURS = { nouveauSousTotal: 52000, nouveauxFraisLivraison: 7000, conditionsModifiees: 'Un plat est remplacé.' };
+test('client D3 : proposition = POST {commandeId, nouveauSousTotal, nouveauxFraisLivraison, conditionsModifiees} SEULEMENT sur la route proposition, jeton porteur, un seul appel, jamais de restaurant', async () => {
+  const { a, appels } = api(() => json({ ok: true }));
+  await a.proposerRestaurateur(ACCES, A, VALEURS);
+  assert.equal(appels.length, 1);
+  assert.equal(appels[0].url, 'https://speedfood-api.moelohimmara.workers.dev/api/v1/restaurant/commandes/proposition');
+  assert.equal(appels[0].options.method, 'POST');
+  assert.deepEqual(JSON.parse(String(appels[0].options.body)), { commandeId: A, ...VALEURS });
+  assert.equal(appels[0].options.credentials, 'omit');
+  assert.equal((appels[0].options.headers as Record<string, string>).Authorization, 'Bearer ' + ACCES);
+  const sans = api(() => json({ ok: true }));
+  await sans.a.proposerRestaurateur(ACCES, A, { nouveauSousTotal: 0, nouveauxFraisLivraison: 10000000, conditionsModifiees: null });
+  assert.deepEqual(JSON.parse(String(sans.appels[0].options.body)), { commandeId: A, nouveauSousTotal: 0, nouveauxFraisLivraison: 10000000, conditionsModifiees: null });
+});
+test('client D3 : une valeur étrangère (restaurantId, jeton…) ajoutée aux montants n’est jamais envoyée', async () => {
+  const { a, appels } = api(() => json({ ok: true }));
+  await a.proposerRestaurateur(ACCES, A, { ...VALEURS, restaurantId: 'x', restaurant_id: 'x', jeton: 'y' } as never);
+  assert.deepEqual(Object.keys(JSON.parse(String(appels[0].options.body))).sort(), ['commandeId', 'conditionsModifiees', 'nouveauSousTotal', 'nouveauxFraisLivraison']);
+});
+test('client D3 : une saisie INVALIDE ne part JAMAIS au réseau (négatif, décimal, énorme, chaîne, NaN, Infinity, conditions trop longues, identifiant invalide)', async () => {
+  const { a, appels } = api(() => json({ ok: true }));
+  const mauvais: unknown[] = [-1, 0.5, 52000.5, 10000001, 1e12, '52000', '', NaN, Infinity, -Infinity, null, undefined, true, [1], { v: 1 }];
+  for (const champ of ['nouveauSousTotal', 'nouveauxFraisLivraison'] as const) for (const valeur of mauvais) {
+    await assert.rejects(a.proposerRestaurateur(ACCES, A, { ...VALEURS, [champ]: valeur } as never), ErreurRestaurateur, `${champ} = ${String(valeur)}`);
+  }
+  await assert.rejects(a.proposerRestaurateur(ACCES, A, { ...VALEURS, conditionsModifiees: 'x'.repeat(501) }), ErreurRestaurateur);
+  await assert.rejects(a.proposerRestaurateur(ACCES, A, { ...VALEURS, conditionsModifiees: 5 as never }), ErreurRestaurateur);
+  await assert.rejects(a.proposerRestaurateur(ACCES, A, null as never), ErreurRestaurateur);
+  await assert.rejects(a.proposerRestaurateur(ACCES, 'pas-un-uuid', VALEURS), ErreurRestaurateur);
+  assert.equal(appels.length, 0, 'aucun appel réseau');
+});
+test('client D3 : UN SEUL essai, même après 500, coupure réseau ou réponse illisible ; l’erreur est incertaine', async () => {
+  const cas: Array<() => Response | Promise<Response>> = [() => json({ ok: false }, 503), () => { throw new TypeError('réseau'); }, () => new Response('pas du json', { status: 200, headers: { 'content-type': 'text/html' } }), () => json({ ok: 'oui' })];
+  for (const repondre of cas) {
+    const { a, appels } = api(repondre);
+    await assert.rejects(a.proposerRestaurateur(ACCES, A, VALEURS), (e: unknown) => e instanceof ErreurRestaurateur && e.incertain === true);
+    assert.equal(appels.length, 1);
+  }
+});
+test('client D3 : refus certains de la proposition (400, 403, 404, 409, 429) non incertains, sans texte du serveur ; 403 sécurité → message vers le site ; 401 → session terminée', async () => {
+  for (const statut of [400, 403, 404, 409, 429]) {
+    const { a } = api(() => json({ ok: false, erreur: { code: 'X', message: 'TEXTE SECRET DU SERVEUR' } }, statut));
+    await assert.rejects(a.proposerRestaurateur(ACCES, A, VALEURS), (e: unknown) => e instanceof ErreurRestaurateur && !e.incertain && !e.message.includes('SECRET'), String(statut));
+  }
+  const securite = api(() => json({ ok: false, erreur: { code: 'NON_AUTORISE', message: 'x', champs: { securite: 'questions' } } }, 403));
+  await assert.rejects(securite.a.proposerRestaurateur(ACCES, A, VALEURS), (e: unknown) => e instanceof ErreurRestaurateur && e.genre === 'securite' && e.message === MESSAGE_SECURITE);
+  const session = api(() => json({ ok: false }, 401));
+  await assert.rejects(session.a.proposerRestaurateur(ACCES, A, VALEURS), (e: unknown) => e instanceof ErreurConnexion && e.message.includes('session'));
+});
+test('client D3 : l’annulation passe par la route action avec {commandeId, action:"annuler"} seulement', async () => {
+  const { a, appels } = api(() => json({ ok: true }));
+  await a.actionRestaurateur(ACCES, A, 'annuler');
+  assert.equal(appels[0].url, 'https://speedfood-api.moelohimmara.workers.dev/api/v1/restaurant/commandes/action');
+  assert.deepEqual(JSON.parse(String(appels[0].options.body)), { commandeId: A, action: 'annuler' });
+});
+
+// ---------- session ----------
+test('session D3 : la proposition passe le jeton d’accès, l’identifiant et les montants ; une session terminée (401) ferme et efface la session ; sans connexion, rien ne part', async () => {
+  const vus: unknown[][] = [];
+  const { g } = gestion({ proposerRestaurateur: async (...x: unknown[]) => { vus.push(x); } });
+  await assert.rejects(g.proposerRestaurateur(A, VALEURS), ErreurConnexion);
+  assert.deepEqual(vus, []);
+  await g.connecter('essai@example.invalid', 'factice');
+  await g.proposerRestaurateur(A, VALEURS);
+  assert.deepEqual(vus, [[ACCES, A, VALEURS]]);
+  const fin = gestion({ proposerRestaurateur: async () => { throw new ErreurConnexion('Fin', true); } });
+  await fin.g.connecter('essai@example.invalid', 'factice');
+  await assert.rejects(fin.g.proposerRestaurateur(A, VALEURS));
+  assert.equal(fin.g.connectee, false);
+  assert.equal(fin.coffre.v, null);
 });

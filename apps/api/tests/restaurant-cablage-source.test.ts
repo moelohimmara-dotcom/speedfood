@@ -29,6 +29,7 @@ test("cablage : lecture, écriture, questions et appartenance reçoivent leur pa
   unique(/^\s*lireCommandes:\s*\(client,\s*restaurantId,\s*origine\)\s*=>\s*lireCommandesRestaurant\(client as SupabaseClient,\s*restaurantId,\s*origine\),\s*$/, "lireCommandes");
   unique(/^\s*traiterCommande:\s*\(client,\s*utilisateurId,\s*restaurantId,\s*commandeId,\s*action\)\s*=>\s*traiterCommande\(client as ClientCommandeDb,\s*utilisateurId,\s*restaurantId,\s*commandeId,\s*action\),\s*$/, "traiterCommande");
   unique(/^\s*confirmerPaiement:\s*\(client,\s*restaurantId,\s*commandeId,\s*decision\)\s*=>\s*confirmerPaiement\(client as ClientCommandeDb,\s*restaurantId,\s*commandeId,\s*decision\),\s*$/, "confirmerPaiement");
+  unique(/^\s*proposerRevision:\s*\(client,\s*restaurantId,\s*commandeId,\s*valeurs\)\s*=>\s*proposerRevision\(client as ClientCommandeDb,\s*restaurantId,\s*commandeId,\s*valeurs\),\s*$/, "proposerRevision");
 });
 
 test("cablage : second facteur = facteurs au statut « verified » lus avec le client administrateur reçu en paramètre, pour le compte du jeton", () => {

@@ -1,18 +1,23 @@
-import { MESSAGE_SECURITE_SUR_LE_SITE, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
+import { CONDITIONS_PROPOSITION_MAX, MESSAGE_SECURITE_SUR_LE_SITE, MONTANT_PROPOSITION_MAX_GNF, lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 
 /**
- * Domaine pur des lots D1 et D2 : l'espace restaurateur de l'application (lire les commandes, ACCEPTER, REFUSER, marquer PRÊTE puis TERMINÉE, confirmer ou contester un
- * paiement DÉCLARÉ par code marchand). Rien d'autre : ni annulation, ni proposition de prix, ni livraison (lots suivants). L'affichage de l'entrée « Espace restaurateur » n'est qu'un confort : le serveur revérifie tout (jeton, restaurant du compte,
+ * Domaine pur des lots D1, D2 et D3 : l'espace restaurateur de l'application (lire les commandes, ACCEPTER, REFUSER, marquer PRÊTE puis TERMINÉE, confirmer ou contester un
+ * paiement DÉCLARÉ par code marchand, ANNULER, PROPOSER un autre prix). Rien d'autre : ni livraison par le restaurant, ni menu (lots suivants). L'affichage de l'entrée « Espace restaurateur » n'est qu'un confort : le serveur revérifie tout (jeton, restaurant du compte,
  * second facteur, questions de sécurité).
  *
  * Même discipline que `reglement.ts` : UN SEUL essai par action, jamais de relance automatique ; après une réponse incertaine, les boutons restent verrouillés tant que
  * la liste n'a pas été relue avec succès ; les messages sont fixes (aucun texte du serveur n'est affiché) ; aucun jeton n'est conservé.
  */
-export type ActionRestaurateur = 'accepter' | 'refuser' | 'prete' | 'terminee' | 'paiement_recu' | 'paiement_non_recu';
-export const ACTIONS_RESTAURATEUR: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'paiement_recu', 'paiement_non_recu'];
-/** Actions qui demandent une confirmation avant l'envoi (décision difficile à défaire ou qui prévient le client). */
-export const ACTIONS_A_CONFIRMER: readonly ActionRestaurateur[] = ['refuser', 'paiement_non_recu'];
-/** Pour les routes de l'API : les quatre actions de statut vont à `/commandes/action`, les deux décisions de paiement à `/commandes/paiement`. */
+export type ActionRestaurateur = 'accepter' | 'refuser' | 'prete' | 'terminee' | 'annuler' | 'proposer' | 'paiement_recu' | 'paiement_non_recu';
+export const ACTIONS_RESTAURATEUR: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'annuler', 'proposer', 'paiement_recu', 'paiement_non_recu'];
+/** Les actions de statut envoyées à `/commandes/action` (liste blanche cliente : « proposer » a sa propre route et ses montants). */
+export const ACTIONS_DE_STATUT: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'annuler'];
+/**
+ * Actions qui demandent une confirmation avant l'envoi (décision difficile à défaire ou qui prévient le client). « proposer » a la sienne : le récapitulatif ancien prix → nouveau
+ * prix (phase `recapitulatif`), jamais d'envoi sans lui.
+ */
+export const ACTIONS_A_CONFIRMER: readonly ActionRestaurateur[] = ['refuser', 'annuler', 'paiement_non_recu'];
+/** Pour les routes de l'API : les actions de statut vont à `/commandes/action`, les deux décisions de paiement à `/commandes/paiement`, la proposition à `/commandes/proposition`. */
 export function decisionPaiementDe(action: ActionRestaurateur): 'recu' | 'non_recu' | null { return action === 'paiement_recu' ? 'recu' : action === 'paiement_non_recu' ? 'non_recu' : null; }
 
 function invalide(): never { throw Error('LECTURE_RESTAURATEUR_INVALIDE'); }
@@ -62,7 +67,7 @@ const MODES_PAIEMENT: readonly ModePaiementRestaurateur[] = ['especes', 'orange_
 export interface LigneRestaurateur { nom: string; quantite: number; prixGnf: number; options: string[] }
 export interface CommandeRestaurateur {
   id: string; reference: string; statut: StatutRestaurateur; mode: 'retrait' | 'livraison' | 'sur_place'; tableNumero: string | null;
-  clientNom: string; clientTelephone: string; clientAdresse: string | null; totalGnf: number; creeLe: string; estTest: boolean;
+  clientNom: string; clientTelephone: string; clientAdresse: string | null; totalGnf: number; sousTotalGnf: number; fraisGnf: number; creeLe: string; estTest: boolean;
   lignes: LigneRestaurateur[]; propositionEnAttente: boolean;
   paiementStatut: StatutPaiementRestaurateur; paiementMode: ModePaiementRestaurateur | null; paiementReference: string | null;
 }
@@ -98,11 +103,12 @@ export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaura
     });
     if (typeof o.paiementStatut !== 'string' || !(STATUTS_PAIEMENT as readonly string[]).includes(o.paiementStatut)) return invalide();
     if (o.paiementMode !== null && (typeof o.paiementMode !== 'string' || !(MODES_PAIEMENT as readonly string[]).includes(o.paiementMode))) return invalide();
-    const total = montant(o.sousTotal) + montant(o.fraisLivraisonEstime);
+    const sousTotalGnf = montant(o.sousTotal); const fraisGnf = montant(o.fraisLivraisonEstime);
+    const total = sousTotalGnf + fraisGnf;
     if (!Number.isSafeInteger(total)) return invalide();
     return {
       id, reference: texte(o.reference, 40), statut: o.statut as StatutRestaurateur, mode: o.mode, tableNumero: texteOuNull(o.tableNumero, 20), clientNom: libre(o.clientNom, 120),
-      clientTelephone: libre(o.clientTelephone, 40, true), clientAdresse: libreOuNull(o.clientAdresse, 300), totalGnf: total, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
+      clientTelephone: libre(o.clientTelephone, 40, true), clientAdresse: libreOuNull(o.clientAdresse, 300), totalGnf: total, sousTotalGnf, fraisGnf, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
       propositionEnAttente: o.propositionActive !== null && o.propositionActive !== undefined,
       paiementStatut: o.paiementStatut as StatutPaiementRestaurateur, paiementMode: o.paiementMode as ModePaiementRestaurateur | null, paiementReference: libreOuNull(o.paiementReference, 80),
     };
@@ -129,32 +135,37 @@ export function paiementConfirmable(c: Pick<CommandeRestaurateur, 'statut' | 'pa
   return (c.statut === 'acceptee' || c.statut === 'prete' || c.statut === 'terminee') && c.paiementStatut === 'declare' && (c.paiementMode === 'orange_money' || c.paiementMode === 'mtn_momo');
 }
 /**
- * Les boutons d'une commande, décidés par son statut puis son paiement : en attente → accepter / refuser (sauf proposition en cours : le serveur refuserait) ; acceptée → prête ;
- * prête → terminée ; paiement déclaré → reçu / non reçu. Aucun bouton de statut pour une commande terminée, refusée ou annulée.
+ * Les boutons d'une commande, décidés par son statut puis son paiement, d'après les transitions du service (`transitionAutorisee`) : en attente → accepter / refuser / proposer un autre
+ * prix, sauf proposition en cours (le serveur refuserait : « en attente de la réponse du client », seule l'annulation reste possible) ; en attente ou acceptée → annuler ; acceptée → prête ;
+ * prête → terminée (une commande prête ne s'annule plus) ; paiement déclaré → reçu / non reçu. Aucun bouton de statut pour une commande terminée, refusée ou annulée.
  */
 export function actionsPossibles(c: Concerne): ActionRestaurateur[] {
   const actions: ActionRestaurateur[] = [];
-  if (!c.propositionEnAttente) {
-    if (c.statut === 'en_attente') actions.push('accepter', 'refuser');
-    else if (c.statut === 'acceptee') actions.push('prete');
-    else if (c.statut === 'prete') actions.push('terminee');
-  }
+  if (c.statut === 'en_attente') {
+    if (!c.propositionEnAttente) actions.push('accepter', 'refuser', 'proposer');
+    actions.push('annuler');
+  } else if (c.statut === 'acceptee') actions.push('prete', 'annuler');
+  else if (c.statut === 'prete') actions.push('terminee');
   if (paiementConfirmable(c)) actions.push('paiement_recu', 'paiement_non_recu');
   return actions;
 }
 
 /** La commande est-elle encore dans l'état d'AVANT l'action ? (liste périmée ou action non enregistrée) */
-function etatAvant(action: ActionRestaurateur, c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut'>): boolean {
+function etatAvant(action: ActionRestaurateur, c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut' | 'propositionEnAttente'>): boolean {
   switch (action) {
     case 'accepter': case 'refuser': return c.statut === 'en_attente';
+    case 'annuler': return c.statut === 'en_attente' || c.statut === 'acceptee';
+    case 'proposer': return c.statut === 'en_attente' && !c.propositionEnAttente;
     case 'prete': return c.statut === 'acceptee';
     case 'terminee': return c.statut === 'prete';
     case 'paiement_recu': case 'paiement_non_recu': return c.paiementStatut === 'declare';
   }
 }
 /** La commande est-elle dans l'état que l'action devait produire ? */
-function etatApres(action: ActionRestaurateur, c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut'>): boolean {
+function etatApres(action: ActionRestaurateur, c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut' | 'propositionEnAttente'>): boolean {
   switch (action) {
+    case 'annuler': return c.statut === 'annulee';
+    case 'proposer': return c.statut === 'en_attente' && c.propositionEnAttente;
     case 'accepter': return c.statut === 'acceptee' || c.statut === 'prete' || c.statut === 'terminee';
     case 'refuser': return c.statut === 'refusee';
     case 'prete': return c.statut === 'prete' || c.statut === 'terminee';
@@ -195,8 +206,9 @@ export function ligneClient(c: Pick<CommandeRestaurateur, 'clientNom' | 'clientT
 export const LIBELLES_STATUT: Record<StatutRestaurateur, string> = {
   en_attente: 'En attente de votre réponse', acceptee: 'Acceptée', prete: 'Prête', terminee: 'Terminée', refusee: 'Refusée', annulee: 'Annulée',
 };
+/** Une commande en attente dont le client doit répondre à une proposition de prix n'attend plus le restaurateur. */
 export function libelleStatut(c: Pick<CommandeRestaurateur, 'statut' | 'propositionEnAttente'>): string {
-  return c.statut === 'en_attente' && c.propositionEnAttente ? 'Proposition envoyée : attente de la réponse du client' : LIBELLES_STATUT[c.statut];
+  return c.statut === 'en_attente' && c.propositionEnAttente ? 'En attente de la réponse du client' : LIBELLES_STATUT[c.statut];
 }
 
 // ---------- erreurs ----------
@@ -241,11 +253,12 @@ export type VerdictAction =
   | { genre: 'session'; message: string };
 
 const MESSAGES_SUCCES: Record<ActionRestaurateur, string> = {
-  accepter: 'Commande acceptée.', refuser: 'Commande refusée.', prete: 'Commande marquée prête.', terminee: 'Commande marquée terminée.',
+  accepter: 'Commande acceptée.', refuser: 'Commande refusée.', prete: 'Commande marquée prête.', terminee: 'Commande marquée terminée.', annuler: 'Commande annulée.', proposer: 'Proposition envoyée au client.',
   paiement_recu: 'Paiement confirmé comme reçu.', paiement_non_recu: 'Paiement signalé comme non reçu.',
 };
 const MESSAGES_ENREGISTRE: Record<ActionRestaurateur, string> = {
   accepter: 'Votre acceptation est bien enregistrée.', refuser: 'Votre refus est bien enregistré.', prete: 'La commande est bien enregistrée comme prête.', terminee: 'La commande est bien enregistrée comme terminée.',
+  annuler: 'L’annulation est bien enregistrée.', proposer: 'Votre proposition est bien enregistrée.',
   paiement_recu: 'La confirmation du paiement est bien enregistrée.', paiement_non_recu: 'Le paiement est bien enregistré comme non reçu.',
 };
 
@@ -262,15 +275,91 @@ export function verdictAction(e: { erreur: ErreurRestaurateur | null; sessionTer
   if (e.relue === undefined) return { genre: 'incertain', message: e.erreur.message + ' La liste n’a pas pu être relue : actualisez-la avant de réessayer.', reessayer: false };
   if (e.relue === null) return { genre: 'refus', message: 'Cette commande n’apparaît plus dans la liste. Actualisez la liste.', reessayer: false };
   if (etatApres(e.action, e.relue)) return { genre: 'confirme', message: MESSAGES_ENREGISTRE[e.action] };
-  if (etatAvant(e.action, e.relue)) return { genre: 'incertain', message: 'La liste relue ne montre pas votre réponse : elle n’a pas été enregistrée. Vous pouvez réessayer.', reessayer: true };
-  return { genre: 'refus', message: 'La commande a changé d’état entre-temps : ' + LIBELLES_STATUT[e.relue.statut].toLowerCase() + (estPaiement(e.action) && e.relue.paiementStatut !== 'declare' ? ' (paiement déjà tranché ou modifié)' : '') + '.', reessayer: false };
+  if (etatAvant(e.action, e.relue)) {
+    // Une proposition non retrouvée peut avoir été enregistrée puis déjà acceptée par le client : jamais de « réessayer », pour ne pas envoyer deux propositions.
+    if (e.action === 'proposer') return { genre: 'incertain', message: 'La liste relue ne montre pas de proposition en cours : elle n’a peut-être pas été enregistrée, ou le client y a déjà répondu. Actualisez la liste et vérifiez avant d’en envoyer une autre.', reessayer: false };
+    // « Vous pouvez réessayer » seulement si le bouton existe encore (leçon D2-M4) : sinon la commande a changé.
+    if (actionsPossibles(e.relue).includes(e.action)) return { genre: 'incertain', message: 'La liste relue ne montre pas votre réponse : elle n’a pas été enregistrée. Vous pouvez réessayer.', reessayer: true };
+  }
+  return { genre: 'refus', message: 'La commande a changé d’état entre-temps : ' + libelleStatut(e.relue).toLowerCase() + (estPaiement(e.action) && e.relue.paiementStatut !== 'declare' ? ' (paiement déjà tranché ou modifié)' : '') + '.', reessayer: false };
+}
+
+/** Textes fixes des confirmations (question, bouton qui envoie, bouton qui renonce) des actions à confirmer. Aucun texte du serveur, aucun libellé d'espèces. */
+export const CONFIRMATIONS: Record<'refuser' | 'annuler' | 'paiement_non_recu', { question: string; oui: string; non: string }> = {
+  refuser: { question: 'Refuser définitivement cette commande ? Le client sera prévenu.', oui: 'Oui, refuser', non: 'Non, garder' },
+  annuler: { question: 'Annuler cette commande ? Le client sera prévenu et la commande ne pourra plus être traitée.', oui: 'Oui, annuler la commande', non: 'Non, garder' },
+  paiement_non_recu: { question: 'Le client sera prévenu que vous n’avez pas retrouvé son paiement. Continuer ?', oui: 'Oui, paiement non reçu', non: 'Non, annuler' },
+};
+
+// ---------- proposition d'un autre prix (lot D3) ----------
+/** Montants et conditions d'une proposition, tels que le serveur les reçoit (entiers en GNF, jamais de flottant). */
+export interface ValeursPropositionRestaurateur { nouveauSousTotal: number; nouveauxFraisLivraison: number; conditionsModifiees: string | null }
+/** Prix actuels de la commande, lus dans la liste : sous-total et frais de livraison, en GNF entiers. */
+export interface PrixActuels { sousTotalGnf: number; fraisGnf: number }
+/** Ce que le restaurateur tape : trois textes, validés seulement à « Continuer ». */
+export interface BrouillonProposition { sousTotal: string; frais: string; conditions: string }
+export type ChampProposition = keyof BrouillonProposition;
+export interface ErreursProposition { sousTotal?: string; frais?: string; conditions?: string; general?: string }
+/** Ancien prix → nouveau prix, pour la confirmation avant l'envoi. */
+export interface RecapProposition {
+  ancienSousTotal: number; nouveauSousTotal: number; ancienFrais: number; nouveauxFrais: number; ancienTotal: number; nouveauTotal: number; conditions: string | null;
+}
+
+/** 25000 → « 25 000 » (espace insécable) ; jamais de décimale. */
+export function formaterGnf(n: number): string { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0'); }
+
+export const MESSAGE_MONTANT_INVALIDE = 'Entrez un nombre entier en GNF, de 0 à ' + formaterGnf(MONTANT_PROPOSITION_MAX_GNF) + ' (sans virgule ni lettre).';
+/**
+ * Montant GNF tapé au clavier. Accepte des chiffres seuls (« 25000 ») ou groupés par milliers avec des espaces (« 25 000 », espace insécable ou fine comprise), avec des espaces
+ * autour. Refuse tout le reste : virgule, point, lettre, signe, vide, groupement faux (« 2 5000 »), plus de 10 000 000. Jamais NaN ni Infinity : le résultat est un entier sûr ou null.
+ */
+export function analyserMontantGnf(saisie: unknown): number | null {
+  if (typeof saisie !== 'string' || saisie.length > 40) return null;
+  const texte = saisie.replace(/^[ \u00a0\u202f\u2009]+|[ \u00a0\u202f\u2009]+$/g, '');
+  if (!/^[0-9]{1,8}$/.test(texte) && !/^[0-9]{1,3}([ \u00a0\u202f\u2009][0-9]{3}){1,2}$/.test(texte)) return null;
+  const n = Number(texte.replace(/[ \u00a0\u202f\u2009]/g, ''));
+  return Number.isSafeInteger(n) && n >= 0 && n <= MONTANT_PROPOSITION_MAX_GNF ? n : null;
+}
+
+export function recapProposition(actuel: PrixActuels, v: ValeursPropositionRestaurateur): RecapProposition {
+  return {
+    ancienSousTotal: actuel.sousTotalGnf, nouveauSousTotal: v.nouveauSousTotal, ancienFrais: actuel.fraisGnf, nouveauxFrais: v.nouveauxFraisLivraison,
+    ancienTotal: actuel.sousTotalGnf + actuel.fraisGnf, nouveauTotal: v.nouveauSousTotal + v.nouveauxFraisLivraison, conditions: v.conditionsModifiees,
+  };
+}
+/** Les lignes du récapitulatif, « ancien → nouveau » ; l'ancien prix est TOUJOURS à gauche. */
+export function lignesRecapProposition(r: RecapProposition): string[] {
+  const l = (titre: string, avant: number, apres: number) => titre + ' : ' + formaterGnf(avant) + ' GNF → ' + formaterGnf(apres) + ' GNF';
+  return [l('Sous-total', r.ancienSousTotal, r.nouveauSousTotal), l('Frais de livraison', r.ancienFrais, r.nouveauxFrais), l('Total', r.ancienTotal, r.nouveauTotal)];
+}
+
+/**
+ * Valide la saisie. Mêmes règles que le serveur et que le formulaire du site : sous-total et frais entiers de 0 à 10 000 000, conditions de 500 caractères au plus, et au moins un
+ * changement (montant, frais ou conditions). Une saisie invalide ne produit JAMAIS de valeurs : rien ne peut en être envoyé au réseau.
+ */
+export function preparerProposition(actuel: PrixActuels, b: BrouillonProposition): { ok: true; valeurs: ValeursPropositionRestaurateur; recap: RecapProposition } | { ok: false; erreurs: ErreursProposition } {
+  const erreurs: ErreursProposition = {};
+  const sousTotal = analyserMontantGnf(b.sousTotal);
+  const frais = analyserMontantGnf(b.frais);
+  if (sousTotal === null) erreurs.sousTotal = MESSAGE_MONTANT_INVALIDE;
+  if (frais === null) erreurs.frais = MESSAGE_MONTANT_INVALIDE;
+  const conditions = typeof b.conditions === 'string' ? b.conditions.trim() : '';
+  if (typeof b.conditions !== 'string' || conditions.length > CONDITIONS_PROPOSITION_MAX) erreurs.conditions = CONDITIONS_PROPOSITION_MAX + ' caractères au maximum.';
+  if (sousTotal === null || frais === null || erreurs.conditions) return { ok: false, erreurs };
+  if (sousTotal === actuel.sousTotalGnf && frais === actuel.fraisGnf && conditions.length === 0) return { ok: false, erreurs: { general: 'Changez le montant, les frais ou les conditions pour proposer quelque chose.' } };
+  // Dernier garde-fou : le contrôle partagé avec le serveur (mêmes bornes), pour que ce qui part soit exactement ce que le serveur accepte.
+  const lu = lireValeursPropositionApp({ nouveauSousTotal: sousTotal, nouveauxFraisLivraison: frais, conditionsModifiees: conditions.length > 0 ? conditions : null });
+  if (!lu.ok) return { ok: false, erreurs: { general: lu.message } };
+  return { ok: true, valeurs: lu.valeurs, recap: recapProposition(actuel, lu.valeurs) };
 }
 
 // ---------- machine d'états de l'écran ----------
 export type EtatAction =
   | { phase: 'repos' }
   | { phase: 'confirmation'; commandeId: string; action: ActionRestaurateur }
-  | { phase: 'envoi'; commandeId: string; action: ActionRestaurateur }
+  | { phase: 'saisie'; commandeId: string; actuel: PrixActuels; brouillon: BrouillonProposition; erreurs: ErreursProposition }
+  | { phase: 'recapitulatif'; commandeId: string; actuel: PrixActuels; brouillon: BrouillonProposition; valeurs: ValeursPropositionRestaurateur; recap: RecapProposition }
+  | { phase: 'envoi'; commandeId: string; action: ActionRestaurateur; valeurs?: ValeursPropositionRestaurateur }
   | { phase: 'relecture'; commandeId: string; action: ActionRestaurateur; erreur: ErreurRestaurateur | null; sessionTerminee: string | null }
   | { phase: 'verdict'; commandeId: string; action: ActionRestaurateur; verdict: VerdictAction; lectureVerdict: number };
 export const ETAT_REPOS: EtatAction = { phase: 'repos' };
@@ -278,10 +367,17 @@ export const ETAT_REPOS: EtatAction = { phase: 'repos' };
 export type EvenementAction =
   | { type: 'demander_confirmation'; commandeId: string; action: ActionRestaurateur; lecture: number }
   | { type: 'annuler_confirmation' }
+  | { type: 'ouvrir_proposition'; commandeId: string; actuel: PrixActuels; lecture: number }
+  | { type: 'saisir'; champ: ChampProposition; valeur: string }
+  | { type: 'valider_saisie' }
+  | { type: 'modifier_saisie' }
   | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number }
   | { type: 'repondre'; erreur: ErreurRestaurateur | null; sessionTerminee?: string | null }
   | { type: 'relire'; relue: CommandeRestaurateur | null | undefined; lecture: number }
   | { type: 'effacer' };
+
+/** Un formulaire de proposition est ouvert (saisie ou récapitulatif) : aucune autre action n'est envoyée tant qu'il n'est pas fermé. */
+export function formulaireOuvert(etat: EtatAction): boolean { return etat.phase === 'saisie' || etat.phase === 'recapitulatif'; }
 
 /**
  * Verrou des boutons. `lecture` est un compteur qui augmente à chaque lecture RÉUSSIE de la liste. Verrouillé : pendant l'envoi et la relecture qui suit ; et après un verdict
@@ -291,10 +387,15 @@ export function actionVerrouillee(etat: EtatAction, lecture: number): boolean {
   if (etat.phase === 'envoi' || etat.phase === 'relecture') return true;
   return etat.phase === 'verdict' && etat.verdict.genre === 'incertain' && !etat.verdict.reessayer && etat.lectureVerdict === lecture;
 }
-/** Un refus ou un « paiement non reçu » n'est envoyé qu'après SA confirmation (même commande, même action) ; les autres actions, jamais pendant un verrou. */
+/**
+ * Un refus, une annulation ou un « paiement non reçu » n'est envoyé qu'après SA confirmation (même commande, même action) ; une proposition de prix, qu'après son récapitulatif
+ * (même commande) ; les autres actions, jamais pendant un verrou. Tant qu'un formulaire de proposition est ouvert, rien d'autre que cette proposition ne part.
+ */
 export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number): boolean {
   if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) return false;
   if (actionVerrouillee(etat, lecture)) return false;
+  if (action === 'proposer') return etat.phase === 'recapitulatif' && etat.commandeId === commandeId;
+  if (formulaireOuvert(etat)) return false;
   return (ACTIONS_A_CONFIRMER as readonly string[]).includes(action) ? etat.phase === 'confirmation' && etat.commandeId === commandeId && etat.action === action : true;
 }
 
@@ -302,11 +403,24 @@ export function peutEnvoyer(etat: EtatAction, commandeId: string, action: Action
 export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
   switch (ev.type) {
     case 'demander_confirmation':
-      return actionVerrouillee(etat, ev.lecture) || !(ACTIONS_A_CONFIRMER as readonly string[]).includes(ev.action) ? etat : { phase: 'confirmation', commandeId: ev.commandeId, action: ev.action };
+      return actionVerrouillee(etat, ev.lecture) || formulaireOuvert(etat) || !(ACTIONS_A_CONFIRMER as readonly string[]).includes(ev.action) ? etat : { phase: 'confirmation', commandeId: ev.commandeId, action: ev.action };
     case 'annuler_confirmation':
-      return etat.phase === 'confirmation' ? ETAT_REPOS : etat;
+      return etat.phase === 'confirmation' || formulaireOuvert(etat) ? ETAT_REPOS : etat;
+    case 'ouvrir_proposition':
+      if (actionVerrouillee(etat, ev.lecture) || formulaireOuvert(etat)) return etat;
+      return { phase: 'saisie', commandeId: ev.commandeId, actuel: ev.actuel, brouillon: { sousTotal: String(ev.actuel.sousTotalGnf), frais: String(ev.actuel.fraisGnf), conditions: '' }, erreurs: {} };
+    case 'saisir':
+      return etat.phase === 'saisie' && typeof ev.valeur === 'string' ? { ...etat, brouillon: { ...etat.brouillon, [ev.champ]: ev.valeur }, erreurs: {} } : etat;
+    case 'valider_saisie': {
+      if (etat.phase !== 'saisie') return etat;
+      const p = preparerProposition(etat.actuel, etat.brouillon);
+      return p.ok ? { phase: 'recapitulatif', commandeId: etat.commandeId, actuel: etat.actuel, brouillon: etat.brouillon, valeurs: p.valeurs, recap: p.recap } : { ...etat, erreurs: p.erreurs };
+    }
+    case 'modifier_saisie':
+      return etat.phase === 'recapitulatif' ? { phase: 'saisie', commandeId: etat.commandeId, actuel: etat.actuel, brouillon: etat.brouillon, erreurs: {} } : etat;
     case 'envoyer':
-      return peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture) ? { phase: 'envoi', commandeId: ev.commandeId, action: ev.action } : etat;
+      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture)) return etat;
+      return etat.phase === 'recapitulatif' && ev.action === 'proposer' ? { phase: 'envoi', commandeId: ev.commandeId, action: 'proposer', valeurs: etat.valeurs } : { phase: 'envoi', commandeId: ev.commandeId, action: ev.action };
     case 'repondre':
       return etat.phase === 'envoi' ? { phase: 'relecture', commandeId: etat.commandeId, action: etat.action, erreur: ev.erreur, sessionTerminee: ev.sessionTerminee ?? null } : etat;
     case 'relire':

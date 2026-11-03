@@ -47,7 +47,7 @@ export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
       repondreProposition: ECHEC,
       declarerPaiement: ECHEC,
     },
-    restaurant: { contexte: ECHEC, lister: ECHEC, traiter: ECHEC, confirmerPaiement: ECHEC },
+    restaurant: { contexte: ECHEC, lister: ECHEC, traiter: ECHEC, confirmerPaiement: ECHEC, proposer: ECHEC },
     commandes: { valider: () => { throw new Error("ECHEC : dépendance non prévue dans ce test"); }, creer: ECHEC, lister: ECHEC },
     ...surcharge,
   };

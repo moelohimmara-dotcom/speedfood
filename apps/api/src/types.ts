@@ -1,5 +1,5 @@
 import type { VersionApplication } from "@speedfood/shared/application/version";
-import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationCommande } from "@speedfood/shared/contracts/commande";
+import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { Planifier } from "@/lib/commande/creation-coeur";
@@ -72,6 +72,8 @@ export interface Deps {
     traiter(ctx: ContexteRestaurant, commandeId: string, action: ActionRestaurantApp): Promise<ResultatActionCommande>;
     /** Lot D2 : confirme (« recu ») ou conteste (« non_recu ») un paiement DÉCLARÉ ; même service que la route et la console du site (`confirmerPaiement`). */
     confirmerPaiement(ctx: ContexteRestaurant, commandeId: string, decision: DecisionPaiementApp): Promise<ResultatActionCommande>;
+    /** Lot D3 : propose un autre prix au client pour une commande en attente ; même service que la route et la console du site (`proposerRevision`). */
+    proposer(ctx: ContexteRestaurant, commandeId: string, valeurs: ValeursProposition): Promise<ResultatActionCommande>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };
