@@ -69,7 +69,7 @@ export default async function ConnexionPage({
                 "Voyez arriver les commandes et répondez d'un geste.",
                 "Confirmez vos plats du jour : le client voit depuis quand.",
                 "Partagez votre page par WhatsApp ou avec un QR code.",
-                "Speedfood n'encaisse rien : vos clients vous paient avec votre code marchand ; le paiement en ligne Chap Chap Pay arrive bientôt.",
+                "Speedfood n'encaisse rien : le paiement en ligne via Chap Chap Pay arrive bientôt.",
               ],
             }
           : undefined

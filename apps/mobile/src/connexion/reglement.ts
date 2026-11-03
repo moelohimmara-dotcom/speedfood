@@ -82,7 +82,8 @@ export function actionReglement(e: { statutCommande: string; propositionActive: 
   if (p.mode === 'speedfood' || (p.enLigneEtat !== null && EN_LIGNE_ACTIF.includes(p.enLigneEtat))) return { genre: 'rien', message: 'Un paiement en ligne est en cours pour cette commande. Terminez-le depuis le site.' };
   // Décision du 3 novembre 2026 : Speedfood ne manipule jamais d'espèces. Le mode « especes » n'est ni proposé ni envoyé ; sans autre mode, rien à régler tant que Chap Chap Pay n'est pas ouvert.
   const options = optionsProposables(p.options);
-  if (options.length === 0) return { genre: 'rien', message: MESSAGE_SANS_MODE };
+  // Message « rien à régler » seulement si rien n'a été demandé ; une commande déjà en cours (espèces à régler, déclaré, non retrouvé) garde son libellé.
+  if (options.length === 0) return { genre: 'rien', message: p.statut === 'non_demande' ? MESSAGE_SANS_MODE : libelleStatutPaiement(p.statut, p.mode) };
   if (p.statut === 'non_demande' || p.statut === 'especes') return { genre: 'declarer', message: 'Réglez le restaurant avec l’un des modes ci-dessous, puis déclarez-le ici.', options };
   return { genre: 'modifier', message: libelleStatutPaiement(p.statut, p.mode) + '. Vous pouvez corriger votre déclaration tant que le restaurant n’a pas confirmé.', options };
 }

@@ -63,7 +63,7 @@ export default async function AffichePage() {
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG généré par notre propre route. */}
             <img src={`/restaurants/${id}/qr?s=affiche`} alt={`QR code de ${restaurant.nom}`} className="affiche-qr" width={360} height={360} />
             <p className="affiche-lien">{lien}</p>
-            <p className="affiche-pied">Commande directe auprès du restaurant. Paiement par code marchand mobile money, au restaurant.</p>
+            <p className="affiche-pied">Commande directe auprès du restaurant. Le paiement en ligne via Chap Chap Pay arrive bientôt.</p>
           </div>
         </div>
 

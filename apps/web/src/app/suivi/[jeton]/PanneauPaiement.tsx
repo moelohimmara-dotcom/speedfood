@@ -1,5 +1,6 @@
 "use client";
 
+import { decisionPanneau, optionsAffichables, texteSansMode } from "@/lib/paiement/affichage-suivi";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,9 +10,6 @@ import { declarerPaiementSessionAction } from "@/lib/commande/actions-session";
 import { payerEnLigneAction, payerEnLigneSessionAction, simulerPaiementAction, simulerPaiementSessionAction } from "@/lib/paiement/en-ligne/actions";
 import { LIBELLES_MODE, formaterMontantGnf, libelleStatutPaiement, type ModePaiement, type OptionPaiement } from "@/lib/paiement/regles";
 import { Alert, Button, Card } from "@/components/ui";
-
-/** Message affiché quand le paiement est ouvert mais qu'aucun mode n'est proposé (les espèces ne le sont plus). Même texte que l'application. */
-export const MESSAGE_SANS_MODE_PAIEMENT = 'Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment.';
 
 function formaterDate(iso: string) {
   return new Date(iso).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
@@ -222,14 +220,13 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
     );
   }
 
-  if (options.length === 0 && !afficheEnLigne) {
+  const proposees = optionsAffichables(options);
+  if (decisionPanneau(statut, proposees.length, afficheEnLigne) === "sans_mode") {
     return (
       <Card className="suivi-bloc">
         <p className="suivi-resto-nom">Règlement</p>
         <p className="suivi-pay-sans-marge suivi-pay-secondaire">
-          {ouvert
-            ? MESSAGE_SANS_MODE_PAIEMENT
-            : "Speedfood n'encaisse rien. Quand le restaurant aura accepté votre commande, les moyens de paiement disponibles s'afficheront ici."}
+          {texteSansMode(ouvert)}
         </p>
       </Card>
     );
@@ -262,7 +259,7 @@ export function PanneauPaiement({ jeton, session = false, paiement, total, resta
       ) : null}
 
       <div className="pay-options">
-        {(enLigneEnCours ? [] : options.filter((o) => o.mode !== "especes")).map((o) => (
+        {(enLigneEnCours ? [] : proposees).map((o) => (
           <OptionMobileMoney key={o.mode} option={o} total={total} restaurant={restaurant} jeton={jeton} session={session} choisi={mode === (o.mode as ModePaiement)} />
         ))}
       </div>

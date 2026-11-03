@@ -79,12 +79,15 @@ test('action : `enLigne.disponible` vrai est ignoré (aucun paiement en ligne pr
   const a = ouvert(lu({ enLigne: { ...enLigne(), disponible: true } }));
   assert.equal(a.genre, 'declarer');
 });
-test('action : sans autre mode que les espèces (cas barbie food) = aucun choix ni bouton, message Chap Chap Pay ; espèces jamais proposées', () => {
+test('action : sans autre mode que les espèces (cas barbie food) : message Chap Chap Pay SEULEMENT si rien n’a été demandé ; sinon le libellé du statut', () => {
   const seulesEspeces = [{ mode: 'especes', libelle: 'x', code: null }];
-  for (const statut of ['non_demande', 'especes', 'declare']) {
-    const a = ouvert(lu({ statut, mode: statut === 'non_demande' ? null : 'especes', options: seulesEspeces }));
-    assert.deepEqual(a, { genre: 'rien', message: 'Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment.' }, statut);
-  }
+  const msg = 'Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment.';
+  assert.deepEqual(ouvert(lu({ statut: 'non_demande', options: seulesEspeces })), { genre: 'rien', message: msg });
+  assert.deepEqual(ouvert(lu({ statut: 'especes', mode: 'especes', options: seulesEspeces })), { genre: 'rien', message: 'À régler en espèces au restaurant' });
+  assert.deepEqual(ouvert(lu({ statut: 'declare', mode: 'orange_money', options: seulesEspeces })), { genre: 'rien', message: 'Paiement déclaré, en attente de confirmation du restaurant' });
+  assert.deepEqual(ouvert(lu({ statut: 'non_recu', mode: 'orange_money', options: seulesEspeces })), { genre: 'rien', message: 'Paiement non retrouvé par le restaurant' });
+  assert.deepEqual(ouvert(lu({ statut: 'recu', mode: 'especes', options: seulesEspeces })), { genre: 'rien', message: 'Espèces encaissées' });
+  for (const st of ['non_demande', 'especes', 'declare', 'non_recu', 'recu']) assert.ok(!['declarer', 'modifier'].includes(ouvert(lu({ statut: st, options: seulesEspeces })).genre), st);
   for (const s of ['acceptee', 'prete', 'terminee']) assert.equal(ouvert(lu({ options: seulesEspeces }), s).genre, 'rien');
   const mixte = ouvert(lu());
   assert.ok(mixte.genre === 'declarer' && !mixte.options.some(o => o.mode === 'especes'));

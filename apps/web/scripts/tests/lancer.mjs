@@ -188,6 +188,7 @@ copier("scripts/tests/fcm.test.mts");
 copier("src/lib/application/version.ts");
 copier("scripts/tests/version-app.test.mts");
 copier("scripts/tests/annulation-client.test.mts");
+copier("src/lib/paiement/affichage-suivi.ts");
 copier("scripts/tests/retrait-especes.test.mts");
 copier("scripts/tests/paquet-partage.test.mts");
 copier("src/lib/securite/redis-client.ts");
