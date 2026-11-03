@@ -71,3 +71,10 @@ Constats : Speedfood ne reçoit jamais d'argent ; le client règle le restaurant
 - À déployer par Malika, séparément : site (`cf:deploy`) puis API (`wrangler deploy`, car l'API embarque le service partagé).
 - Décision de Malika (3 novembre) : les modes code marchand Orange Money / MTN sont gardés jusqu'à l'ouverture de Chap Chap Pay.
 - 3 novembre : API et site déployés par Malika (retrait des espèces). Vérifié sur l'émulateur avec la compilation #12 (release) et la vraie API : le suivi de SF-BNZ6B (acceptée) affiche « Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment. », sans espèces ni « J'ai payé ». Aucune nouvelle commande TEST n'a été créée (la commande via le site est bloquée par la vérification anti-robot dans le navigateur intégré ; non contournée). Le panneau du site sur une vraie commande n'a pas été vu.
+
+### Journal 3 novembre 2026 : lot D1 (espace restaurateur : lire, accepter, refuser)
+
+- Commits 0bdd890 et a67def1 (branche de travail, NON déployé, NON relayé). API : `GET /api/v1/restaurant/commandes` et `POST /api/v1/restaurant/commandes/action` (accepter/refuser seulement). Application : entrée « Espace restaurateur » (si `roles.restaurateur`), écran `RestaurateurReel.tsx`, machine d'états `connexion/restaurateur.ts`.
+- Sécurité : client lié au jeton (RLS), `restaurantId` pris des memberships, MFA/questions non affaiblies, plafond par compte avant validation, aucun jeton dans les réponses. Relecture indépendante : PAS PRÊT (I-1 liste illisible sur une ligne atypique, I-2 câblage non figé), corrigé, relecture ciblée PRÊT.
+- Mineurs restants : T2-1 (affichage « Awa · » sans téléphone), T2-2 (quelques caractères invisibles), T2-3 (test statique contournable par alias), T2-4 (doublon d'identifiant), M-2 (échec listFactors laisse l'accès ouvert, hérité du site), M-5, M-6 (écran jamais lancé).
+- Non vérifié : contre la vraie base, sous workerd (listFactors, fn_questions_etat, origine du site, CPU), sur émulateur. Compte restaurateur avec MFA : l'appli renverra vers le site.
