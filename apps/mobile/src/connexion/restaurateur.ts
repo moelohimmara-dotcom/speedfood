@@ -140,10 +140,14 @@ export function grouper(commandes: readonly CommandeRestaurateur[]): Array<{ gro
  * Option prudente (décision de Malika, 3 novembre 2026) : tant qu'aucun remboursement n'existe, l'application ne propose jamais d'annuler une commande dont le paiement est déclaré,
  * reçu (ou enregistré d'un ancien mode). Seuls « non demandé » et « non reçu » (contesté par le restaurateur) laissent annuler. Le service du site, lui, ne distingue pas.
  */
-export function commandePayee(paiementStatut: StatutPaiementRestaurateur | undefined): boolean { return paiementStatut !== 'non_demande' && paiementStatut !== 'non_recu'; }
+export function commandePayee(paiementStatut: StatutPaiementRestaurateur | undefined, paiementMode: ModePaiementRestaurateur | null | undefined): boolean {
+  // Paiement en ligne Speedfood (Chap Chap Pay) : il peut aboutir à tout instant alors que le statut reste « non demandé » ; mode inconnu (undefined) = prudence.
+  if (paiementMode === undefined || paiementMode === 'speedfood') return true;
+  return paiementStatut !== 'non_demande' && paiementStatut !== 'non_recu';
+}
 export const MESSAGE_DEJA_PAYEE = 'Cette commande est déjà payée : pour l’annuler, utilisez le site ou le support (le client doit être remboursé).';
 /** Une commande qu'on afficherait avec « Annuler » si elle n'était pas payée : l'écran montre alors MESSAGE_DEJA_PAYEE à la place. */
-export function annulationRefuseePourPaiement(c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut'>): boolean { return (c.statut === 'en_attente' || c.statut === 'acceptee') && commandePayee(c.paiementStatut); }
+export function annulationRefuseePourPaiement(c: Pick<CommandeRestaurateur, 'statut' | 'paiementStatut' | 'paiementMode'>): boolean { return (c.statut === 'en_attente' || c.statut === 'acceptee') && commandePayee(c.paiementStatut, c.paiementMode); }
 
 type Concerne = Pick<CommandeRestaurateur, 'statut' | 'propositionEnAttente' | 'paiementStatut' | 'paiementMode'>;
 /**
@@ -162,8 +166,8 @@ export function actionsPossibles(c: Concerne): ActionRestaurateur[] {
   const actions: ActionRestaurateur[] = [];
   if (c.statut === 'en_attente') {
     if (!c.propositionEnAttente) actions.push('accepter', 'refuser', 'proposer');
-    if (!commandePayee(c.paiementStatut)) actions.push('annuler');
-  } else if (c.statut === 'acceptee') { actions.push('prete'); if (!commandePayee(c.paiementStatut)) actions.push('annuler'); }
+    if (!commandePayee(c.paiementStatut, c.paiementMode)) actions.push('annuler');
+  } else if (c.statut === 'acceptee') { actions.push('prete'); if (!commandePayee(c.paiementStatut, c.paiementMode)) actions.push('annuler'); }
   else if (c.statut === 'prete') actions.push('terminee');
   if (paiementConfirmable(c)) actions.push('paiement_recu', 'paiement_non_recu');
   return actions;
@@ -390,13 +394,13 @@ export type EtatAction =
 export const ETAT_REPOS: EtatAction = { phase: 'repos' };
 
 export type EvenementAction =
-  | { type: 'demander_confirmation'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur }
+  | { type: 'demander_confirmation'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur; paiementMode?: ModePaiementRestaurateur | null }
   | { type: 'annuler_confirmation' }
   | { type: 'ouvrir_proposition'; commandeId: string; actuel: PrixActuels; lecture: number }
   | { type: 'saisir'; champ: ChampProposition; valeur: string }
   | { type: 'valider_saisie' }
   | { type: 'modifier_saisie' }
-  | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur }
+  | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur; paiementMode?: ModePaiementRestaurateur | null }
   | { type: 'repondre'; erreur: ErreurRestaurateur | null; sessionTerminee?: string | null }
   | { type: 'relire'; relue: CommandeRestaurateur | null | undefined; lecture: number }
   | { type: 'effacer' };
@@ -416,10 +420,10 @@ export function actionVerrouillee(etat: EtatAction, lecture: number): boolean {
  * Un refus, une annulation ou un « paiement non reçu » n'est envoyé qu'après SA confirmation (même commande, même action) ; une proposition de prix, qu'après son récapitulatif
  * (même commande) ; les autres actions, jamais pendant un verrou. Tant qu'un formulaire de proposition est ouvert, rien d'autre que cette proposition ne part.
  */
-export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number, paiementStatut?: StatutPaiementRestaurateur): boolean {
+export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number, paiementStatut?: StatutPaiementRestaurateur, paiementMode?: ModePaiementRestaurateur | null): boolean {
   if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) return false;
   // Garde de la machine (écran contourné ou liste périmée) : « annuler » ne part jamais sans un statut de paiement connu ET non payé.
-  if (action === 'annuler' && (paiementStatut === undefined || commandePayee(paiementStatut))) return false;
+  if (action === 'annuler' && (paiementStatut === undefined || commandePayee(paiementStatut, paiementMode))) return false;
   if (actionVerrouillee(etat, lecture)) return false;
   if (action === 'proposer') return etat.phase === 'recapitulatif' && etat.commandeId === commandeId;
   if (formulaireOuvert(etat)) return false;
@@ -430,7 +434,7 @@ export function peutEnvoyer(etat: EtatAction, commandeId: string, action: Action
 export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
   switch (ev.type) {
     case 'demander_confirmation':
-      if (ev.action === 'annuler' && (ev.paiementStatut === undefined || commandePayee(ev.paiementStatut))) return etat;
+      if (ev.action === 'annuler' && (ev.paiementStatut === undefined || commandePayee(ev.paiementStatut, ev.paiementMode))) return etat;
       return actionVerrouillee(etat, ev.lecture) || formulaireOuvert(etat) || !(ACTIONS_A_CONFIRMER as readonly string[]).includes(ev.action) ? etat : { phase: 'confirmation', commandeId: ev.commandeId, action: ev.action };
     case 'annuler_confirmation':
       return etat.phase === 'confirmation' || formulaireOuvert(etat) ? ETAT_REPOS : etat;
@@ -447,7 +451,7 @@ export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
     case 'modifier_saisie':
       return etat.phase === 'recapitulatif' ? { phase: 'saisie', commandeId: etat.commandeId, actuel: etat.actuel, brouillon: etat.brouillon, erreurs: {} } : etat;
     case 'envoyer':
-      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture, ev.paiementStatut)) return etat;
+      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture, ev.paiementStatut, ev.paiementMode)) return etat;
       return etat.phase === 'recapitulatif' && ev.action === 'proposer' ? { phase: 'envoi', commandeId: ev.commandeId, action: 'proposer', valeurs: etat.valeurs } : { phase: 'envoi', commandeId: ev.commandeId, action: ev.action };
     case 'repondre':
       return etat.phase === 'envoi' ? { phase: 'relecture', commandeId: etat.commandeId, action: etat.action, erreur: ev.erreur, sessionTerminee: ev.sessionTerminee ?? null, ...(etat.valeurs ? { valeurs: etat.valeurs } : {}) } : etat;

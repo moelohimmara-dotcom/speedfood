@@ -143,7 +143,7 @@ test('boutons D2 : toutes les combinaisons statut × paiement × mode — aucun 
     assert.equal(a.includes('paiement_recu'), attendu, [statut, paiementStatut, paiementMode].join(' '));
     assert.equal(a.includes('paiement_non_recu'), attendu, [statut, paiementStatut, paiementMode].join(' '));
     // Statut : exactement l’étape suivante, indépendamment du paiement.
-    const annulable = paiementStatut === 'non_demande' || paiementStatut === 'non_recu'; // option prudente : jamais d’annulation d’une commande payée
+    const annulable = (paiementStatut === 'non_demande' || paiementStatut === 'non_recu') && paiementMode !== 'speedfood'; // option prudente : jamais d’annulation d’une commande payée
     const statutAttendu = statut === 'en_attente' ? ['accepter', 'refuser', 'proposer', ...(annulable ? ['annuler'] : [])] : statut === 'acceptee' ? ['prete', ...(annulable ? ['annuler'] : [])] : statut === 'prete' ? ['terminee'] : [];
     assert.deepEqual(a.filter(x => !x.startsWith('paiement')), statutAttendu, [statut, paiementStatut, paiementMode].join(' '));
   }
@@ -691,13 +691,13 @@ test('machine D3 : erreur MFA/questions sur une proposition → verdict « sécu
 test('machine D3 : « Annuler la commande » demande d’abord sa confirmation (même commande, même action) ; jamais d’envoi sans elle', () => {
   assert.equal(peutEnvoyer(repos, A, 'annuler', 0), false);
   assert.equal(evoluer(repos, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0 }), repos);
-  const conf = evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'annuler', lecture: 0, paiementStatut: 'non_demande' });
+  const conf = evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'annuler', lecture: 0, paiementStatut: 'non_demande', paiementMode: null });
   assert.deepEqual(conf, { phase: 'confirmation', commandeId: A, action: 'annuler' });
-  assert.equal(peutEnvoyer(conf, B, 'annuler', 0, 'non_demande'), false, 'autre commande');
+  assert.equal(peutEnvoyer(conf, B, 'annuler', 0, 'non_demande', null), false, 'autre commande');
   const refuserConf = evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'refuser', lecture: 0 });
-  assert.equal(peutEnvoyer(refuserConf, A, 'annuler', 0, 'non_demande'), false, 'la confirmation d’un refus ne vaut pas pour une annulation');
+  assert.equal(peutEnvoyer(refuserConf, A, 'annuler', 0, 'non_demande', null), false, 'la confirmation d’un refus ne vaut pas pour une annulation');
   assert.equal(peutEnvoyer(conf, A, 'refuser', 0), false, 'ni l’inverse');
-  assert.deepEqual(evoluer(conf, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0, paiementStatut: 'non_demande' }), { phase: 'envoi', commandeId: A, action: 'annuler' });
+  assert.deepEqual(evoluer(conf, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0, paiementStatut: 'non_demande', paiementMode: null }), { phase: 'envoi', commandeId: A, action: 'annuler' });
   assert.equal(evoluer(conf, { type: 'annuler_confirmation' }), repos);
 });
 test('machine D3 : les textes de confirmation sont fixes, sans « espèces », et chaque action à confirmer a la sienne', () => {
@@ -714,7 +714,7 @@ test('boutons D3 : « annuler » UNIQUEMENT pour une commande en attente ou acce
   for (const statut of STATUTS_TOUS) for (const paiementStatut of PAIEMENTS_TOUS) for (const paiementMode of MODES_TOUS) for (const propositionActive of [null, { id: 'p' }]) {
     const a = actionsPossibles(lue({ statut, paiementStatut, paiementMode, propositionActive }));
     const nom = [statut, paiementStatut, paiementMode, propositionActive ? 'proposition' : 'sans'].join(' ');
-    const nonPaye = paiementStatut === 'non_demande' || paiementStatut === 'non_recu';
+    const nonPaye = (paiementStatut === 'non_demande' || paiementStatut === 'non_recu') && paiementMode !== 'speedfood';
     assert.equal(a.includes('annuler'), (statut === 'en_attente' || statut === 'acceptee') && nonPaye, nom);
   }
 });
@@ -724,7 +724,7 @@ test('boutons D3 (I-1, option prudente) : une commande dont le paiement est déc
   for (const statut of STATUTS_TOUS) for (const paiementStatut of PAIEMENTS_TOUS) {
     const c = lue({ statut, paiementStatut, paiementMode: paiementStatut === 'declare' || paiementStatut === 'recu' ? 'orange_money' : null });
     const payee = paiementStatut === 'declare' || paiementStatut === 'recu' || paiementStatut === 'especes';
-    assert.equal(commandePayee(paiementStatut), payee, paiementStatut);
+    assert.equal(commandePayee(paiementStatut, c.paiementMode), payee, paiementStatut);
     const nom = statut + ' ' + paiementStatut;
     assert.equal(actionsPossibles(c).includes('annuler'), (statut === 'en_attente' || statut === 'acceptee') && !payee, nom);
     assert.equal(annulationRefuseePourPaiement(c), (statut === 'en_attente' || statut === 'acceptee') && payee, nom);
@@ -743,7 +743,29 @@ test('machine D3 (I-1) : « annuler » ne part jamais pour une commande payée, 
   assert.equal(peutEnvoyer(conf, A, 'annuler', 0), false, 'statut de paiement inconnu : refusé');
   assert.equal(evoluer(conf, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0 }), conf);
   assert.equal(evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'annuler', lecture: 0 }), repos);
-  for (const paiementStatut of ['non_demande', 'non_recu'] as const) assert.equal(peutEnvoyer(conf, A, 'annuler', 0, paiementStatut), true, paiementStatut);
+  for (const paiementStatut of ['non_demande', 'non_recu'] as const) {
+    assert.equal(peutEnvoyer(conf, A, 'annuler', 0, paiementStatut, null), true, paiementStatut);
+    assert.equal(peutEnvoyer(conf, A, 'annuler', 0, paiementStatut), false, 'mode de paiement inconnu : prudence, refusé');
+    assert.equal(peutEnvoyer(conf, A, 'annuler', 0, paiementStatut, 'speedfood'), false, 'paiement en ligne Speedfood possible : refusé');
+  }
+});
+test('boutons D3 (R-1) : paiement en ligne Speedfood (Chap Chap Pay) = « déjà payée » pour le bouton ET la garde, même avec le statut « non demandé »', () => {
+  for (const statut of ['en_attente', 'acceptee'] as const) for (const paiementStatut of ['non_demande', 'non_recu'] as const) {
+    const c = lue({ statut, paiementStatut, paiementMode: 'speedfood' });
+    assert.ok(!actionsPossibles(c).includes('annuler'), statut + ' ' + paiementStatut);
+    assert.equal(annulationRefuseePourPaiement(c), true, statut + ' ' + paiementStatut);
+    const sans = lue({ statut, paiementStatut, paiementMode: null });
+    assert.ok(actionsPossibles(sans).includes('annuler'), 'sans mode : annulable');
+    assert.equal(annulationRefuseePourPaiement(sans), false);
+  }
+  assert.equal(commandePayee('non_demande', 'speedfood'), true);
+  assert.equal(commandePayee('non_demande', undefined), true, 'mode inconnu : prudence');
+  assert.equal(commandePayee('non_demande', null), false);
+  assert.equal(evoluer(repos, { type: 'demander_confirmation', commandeId: A, action: 'annuler', lecture: 0, paiementStatut: 'non_demande', paiementMode: 'speedfood' }), repos);
+  const conf: EtatAction = { phase: 'confirmation', commandeId: A, action: 'annuler' };
+  assert.equal(evoluer(conf, { type: 'envoyer', commandeId: A, action: 'annuler', lecture: 0, paiementStatut: 'non_demande', paiementMode: 'speedfood' }), conf);
+  // Le mode arrive bien de la liste du serveur.
+  assert.equal(lireListeRestaurateur(reponse([brute('00000000-0000-4000-8000-0000000000ac', { statut: 'acceptee', paiementStatut: 'non_demande', paiementMode: 'speedfood' })])).commandes[0].paiementMode, 'speedfood');
 });
 test('boutons D3 : « Proposer un autre prix » UNIQUEMENT pour une commande en attente sans proposition en cours', () => {
   for (const statut of STATUTS_TOUS) for (const paiementStatut of PAIEMENTS_TOUS) for (const propositionActive of [null, { id: 'p' }]) {

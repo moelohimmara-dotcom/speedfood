@@ -57,7 +57,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur) {
     if (envoiEnCours.current || lectureEnCours.current) return;
     const avant = etatRef.current;
-    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut });
+    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode });
     if (etatRef.current === avant || etatRef.current.phase !== 'envoi') return;
     envoiEnCours.current = true;
     try {
@@ -158,7 +158,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {!confirmation && !formulaire && possibles.includes('paiement_recu') && <Action titre={'Paiement reçu ' + o.reference} disabled={bloque} agir={() => { void envoyer(o, 'paiement_recu'); }} />}
           {!confirmation && !formulaire && possibles.includes('paiement_non_recu') && <Action titre={'Paiement non reçu ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'paiement_non_recu', lecture })} />}
           {!confirmation && !formulaire && annulationRefuseePourPaiement(o) && <Text accessibilityRole="alert" style={s.texte}>{MESSAGE_DEJA_PAYEE}</Text>}
-          {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture, paiementStatut: o.paiementStatut })} />}
+          {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture, paiementStatut: o.paiementStatut, paiementMode: o.paiementMode })} />}
         </View>;
       })}
     </View>)}
