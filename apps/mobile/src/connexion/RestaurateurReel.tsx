@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Action } from './BoutonAction';
+import { ServiceMenuReel } from './ServiceMenuReel';
+import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
@@ -10,16 +13,12 @@ import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
 
 /**
- * Espace restaurateur (lots D1, D2 et D3) : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
+ * Espace restaurateur (lots D1 à D4a), trois sections en haut de l'écran : « Commandes » (ci-dessous), « Service » et « Menu » (voir ServiceMenuReel.tsx). Commandes : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
  * automatique, aucune notification ici), boutons Accepter, Refuser, Marquer prête, Marquer terminée, et Paiement reçu / non reçu pour un paiement DÉCLARÉ par code marchand
  * Annuler la commande, et Proposer un autre prix (formulaire à trois champs, récapitulatif « ancien prix → nouveau prix », confirmation avant l'envoi). Le refus, l'annulation et le
  * « non reçu » demandent une confirmation. Aucun bouton « espèces » : Speedfood ne manipule jamais d'espèces. Rien d'autre : pas de livraison ni de menu.
  * Toute règle (verrou, un seul essai, relecture après réponse incertaine) est dans `restaurateur.ts` ; cet écran n'envoie jamais le restaurant (le serveur le tire du compte).
  */
-function Action({ titre, agir, disabled = false, secondaire = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={[s.bouton, secondaire && s.boutonSecondaire, disabled && { opacity: .5 }]}><Text style={[s.boutonTexte, secondaire && s.boutonTexteSecondaire]}>{titre}</Text></Pressable>;
-}
-
 export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; signalerOccupe?(occupe: boolean): void }) {
   const [liste, setListe] = useState<ListeRestaurateur | null>(null);
   const [luLe, setLuLe] = useState<string | null>(null);
@@ -27,6 +26,9 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [etat, setEtat] = useState<EtatAction>(ETAT_REPOS);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
+  const [section, setSection] = useState<SectionRestaurateur>('commandes');
+  const [serviceOuvert, setServiceOuvert] = useState(false);
+  const [serviceOccupe, setServiceOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
   const lectureRef = useRef(0);
   const actif = useRef(true);
@@ -48,9 +50,9 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     return () => { montre.remove(); cache.remove(); };
   }, []);
   const champs = useRef<Record<string, TextInput | null>>({});
-  const auFocus = (nom: ChampProposition) => () => { champActif.current = champs.current[nom] ?? null; setTimeout(defilerVersChampActif, 80); };
+  const auFocus = (nom: string) => () => { champActif.current = champs.current[nom] ?? null; setTimeout(defilerVersChampActif, 80); };
   const auBlur = () => { champActif.current = null; };
-  const reference = (nom: ChampProposition) => (t: TextInput | null) => { champs.current[nom] = t; };
+  const reference = (nom: string) => (t: TextInput | null) => { champs.current[nom] = t; };
 
   function appliquer(ev: EvenementAction) { const suivant = evoluer(etatRef.current, ev); etatRef.current = suivant; if (actif.current) setEtat(suivant); }
   /** Une liste relue qui montre la commande déjà proposée, traitée ou disparue ferme le formulaire de proposition : il ne reste jamais ouvert, invisible, à bloquer l'écran. */
@@ -105,7 +107,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const occupe = chargement || etat.phase === 'envoi' || etat.phase === 'relecture';
   // Le parent ignore le retour Android pendant l'envoi : l'écran ne doit pas être démonté avant le verdict.
   const envoiOuRelecture = etat.phase === 'envoi' || etat.phase === 'relecture';
-  useEffect(() => { signalerOccupe?.(envoiOuRelecture); return () => signalerOccupe?.(false); }, [envoiOuRelecture]);
+  useEffect(() => { signalerOccupe?.(envoiOuRelecture || serviceOccupe); return () => signalerOccupe?.(false); }, [envoiOuRelecture, serviceOccupe]);
   const verdict = etat.phase === 'verdict' ? etat : null;
 
   const bloque = occupe || verrou || formulaireOuvert(etat);
@@ -113,8 +115,11 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture'} />
+    <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
+    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x !== 'commandes') setServiceOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
+    {serviceOuvert && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    {section === 'commandes' && <>
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
@@ -182,11 +187,18 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
         </View>;
       })}
     </View>)}
+    </>}
   </ScrollView>
   </KeyboardAvoidingView>;
 }
 
 const s = StyleSheet.create({
+  sections: { flexDirection: 'row', gap: 8 },
+  onglet: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.action, borderRadius: 22, backgroundColor: c.surface },
+  ongletActif: { backgroundColor: c.action },
+  ongletTexte: { fontFamily: polices.texte, fontWeight: '700', color: c.action },
+  ongletTexteActif: { color: c.surface },
+  masque: { display: 'none' },
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 90, textAlignVertical: 'top' },
@@ -197,8 +209,4 @@ const s = StyleSheet.create({
   nom: { fontFamily: polices.titre, fontSize: 20, color: c.encre },
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },
   secondaire: { fontFamily: polices.texte, fontSize: 12, lineHeight: 19, color: c.secondaire },
-  bouton: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  boutonSecondaire: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.action },
-  boutonTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700' },
-  boutonTexteSecondaire: { color: c.action },
 });

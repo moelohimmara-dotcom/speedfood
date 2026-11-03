@@ -3,6 +3,7 @@ import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
 import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
+import { corpsDeAction, erreurReponseService, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
 import { lireValeursPropositionApp } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
@@ -15,6 +16,10 @@ export class ErreurConnexion extends Error {
 }
 function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'object' || Array.isArray(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v as Record<string, unknown>; }
 function secret(v: unknown, max: number): string { if (typeof v !== 'string' || !v.length || v.length > max || /[\s\x00-\x1f]/.test(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v; }
+/** Textes et table de refus d'une famille de routes du restaurateur (commandes, ou service et menu). */
+interface TextesRestaurateur { nonMembre: string; lectureIllisible: string; refus: typeof refusRestaurateur; reseau: () => ErreurRestaurateur; reponse: () => ErreurRestaurateur }
+const TEXTES_COMMANDES: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir ces commandes. Vérifiez votre accès sur le site.', lectureIllisible: 'Les commandes reçues sont illisibles. Réessayez dans un instant.', refus: refusRestaurateur, reseau: erreurReseauRestaurateur, reponse: erreurReponseRestaurateur };
+const TEXTES_SERVICE: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir son service. Vérifiez votre accès sur le site.', lectureIllisible: 'Les informations reçues sont illisibles. Réessayez dans un instant.', refus: refusService, reseau: erreurReseauService, reponse: erreurReponseService };
 export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000) {
   let configuration: Promise<string> | null = null;
   async function requete(url: string, options: RequestInit, auth = false, renouvellement = false, refus: Record<number,string> = {}) {
@@ -110,12 +115,12 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
    * Espace restaurateur (lot D1), routes de l'API unique : jeton porteur strict, aucun cookie, restaurant désigné par le serveur (jamais envoyé d'ici). UN SEUL essai par appel,
    * jamais de relance automatique. Le 401 termine la session (comme les autres lectures privées) ; un 403 « sécurité du compte » est rendu tel quel, sans texte du serveur.
    */
-  async function appelRestaurateur(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object }, lecture: boolean): Promise<unknown> {
+  async function appelRestaurateur(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object }, lecture: boolean, textes: TextesRestaurateur = TEXTES_COMMANDES): Promise<unknown> {
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
       r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps ? { 'Content-Type':'application/json' } : {}) }, ...(options.corps ? { body:JSON.stringify(options.corps) } : {}) });
-    } catch { clearTimeout(timer); throw lecture ? new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.') : erreurReseauRestaurateur(); }
+    } catch { clearTimeout(timer); throw lecture ? new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.') : textes.reseau(); }
     try {
       let corps: unknown = null;
       const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
@@ -125,13 +130,13 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if (!r.ok) {
         const raison = r.status === 403 ? lireRaisonSecurite(corps) : null;
         // Compte non membre qui LIT la liste : un message propre à la lecture (le texte « traiter cette commande » est celui des actions).
-        if (lecture && r.status === 403 && raison === null) throw new ErreurRestaurateur('refus', 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir ces commandes. Vérifiez votre accès sur le site.');
-        const refus = refusRestaurateur(r.status, raison);
+        if (lecture && r.status === 403 && raison === null) throw new ErreurRestaurateur('refus', textes.nonMembre);
+        const refus = textes.refus(r.status, raison);
         // Une lecture n'est jamais « incertaine » au sens d'une écriture : elle se rejoue à la main.
         if (lecture && refus.incertain) throw new ErreurRestaurateur(refus.genre, 'Le service est indisponible. Réessayez dans un instant.');
         throw refus;
       }
-      if (corps === null) throw lecture ? new ErreurRestaurateur('reponse_invalide', 'Les commandes reçues sont illisibles. Réessayez dans un instant.') : erreurReponseRestaurateur();
+      if (corps === null) throw lecture ? new ErreurRestaurateur('reponse_invalide', textes.lectureIllisible) : textes.reponse();
       return corps;
     } finally { clearTimeout(timer); }
   }
@@ -167,6 +172,25 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       const lu = lireValeursPropositionApp(valeurs ?? {});
       if (!lu.ok) throw new ErreurRestaurateur('refus', 'Les montants de la proposition ne sont pas valides. Corrigez-les puis recommencez.');
       lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/proposition', { method:'POST', corps:{ commandeId, nouveauSousTotal:lu.valeurs.nouveauSousTotal, nouveauxFraisLivraison:lu.valeurs.nouveauxFraisLivraison, conditionsModifiees:lu.valeurs.conditionsModifiees } }, false));
+    },
+    /** Réglages du service (GET) : horaires, ouvert, accepte commandes, délai de préparation, plats à reconfirmer (liste du serveur). Lecture seule, un seul essai. */
+    async reglagesRestaurateur(accessToken: string): Promise<ReglagesRestaurateur> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/reglages', { method:'GET' }, true, TEXTES_SERVICE);
+      try { return lireReglagesRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Les informations reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Menu du restaurant (GET) : plats non archivés avec leur disponibilité. Lecture seule, un seul essai. */
+    async menuRestaurateur(accessToken: string): Promise<MenuRestaurateur> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/menu', { method:'GET' }, true, TEXTES_SERVICE);
+      try { return lireMenuRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Les informations reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /**
+     * Écrit UNE action du service ou du menu (lot D4a) : interrupteur (route statut), horaires et délai (route réglages), disponibilité d'un plat, confirmation d'un plat ou de tous (route menu/action).
+     * Le corps est produit par `corpsDeAction` (validation partagée avec le serveur) AVANT tout appel réseau : une saisie invalide ne part jamais. Le corps ne porte JAMAIS le restaurant. UN SEUL essai.
+     */
+    async ecrireService(accessToken: string, action: ActionService): Promise<void> {
+      const envoi = corpsDeAction(action);
+      if (envoi === null) throw new ErreurRestaurateur('refus', 'Cette demande n’est pas valide. Corrigez-la puis recommencez.');
+      lireReponseAction(await appelRestaurateur(accessToken, envoi.chemin, { method:'POST', corps:envoi.corps }, false, TEXTES_SERVICE));
     },
     estimerLivraison: postEstimation,
     async connecter(email: string, motDePasse: string) {
