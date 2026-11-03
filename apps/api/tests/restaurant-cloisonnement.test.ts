@@ -250,6 +250,64 @@ test("D3 annuler : seule l'annulation reste possible pendant une proposition act
   assert.equal(statutDe(COMMANDE_A), "annulee");
 });
 
+// ---------- lot D3b : la proposition en attente est close dans la foulée de l'annulation ----------
+const propositionsDe = (id: string) => g.__fauxCloison.tables.order_proposals.filter((p) => p.order_id === id);
+
+test("D3b annuler avec proposition active : la proposition passe à « expiree » (statut existant), écrite en administrateur seulement pour cela ; la commande, elle, par le client du jeton", async () => {
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A)];
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "annuler"), { ok: true });
+  assert.equal(statutDe(COMMANDE_A), "annulee");
+  assert.deepEqual(propositionsDe(COMMANDE_A).map((p) => p.statut), ["expiree"]);
+  assert.deepEqual(ecrituresDuTest().map((e) => [e.client, e.table, e.op]), [["jeton", "orders", "update"], ["jeton", "order_status_events", "insert"], ["admin", "order_proposals", "update"]]);
+  assert.deepEqual(ecrituresDuTest()[2].valeurs, { statut: "expiree" });
+});
+
+test("D3b annuler : seules les propositions de CETTE commande et encore en attente sont closes (les autres commandes et les propositions déjà répondues ne bougent pas)", async () => {
+  g.__fauxCloison.tables.order_proposals = [
+    proposition(COMMANDE_A),
+    proposition(COMMANDE_A, { id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd2", version: 0, statut: "refusee", repondu_le: new Date().toISOString() }),
+    proposition(COMMANDE_B, { id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd3" }),
+  ];
+  await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "annuler");
+  assert.deepEqual(propositionsDe(COMMANDE_A).map((p) => p.statut), ["expiree", "refusee"]);
+  assert.deepEqual(propositionsDe(COMMANDE_B).map((p) => p.statut), ["en_attente"]);
+});
+
+test("D3b annuler sans proposition en attente : aucune écriture en administrateur (rien à clore)", async () => {
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A, { statut: "acceptee", repondu_le: new Date().toISOString() })];
+  await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "annuler");
+  assert.ok(!ecrituresDuTest().some((e) => e.client === "admin"));
+  assert.deepEqual(propositionsDe(COMMANDE_A).map((p) => p.statut), ["acceptee"]);
+});
+
+test("D3b : les autres actions (accepter, refuser, prete, terminee) ne closent jamais de proposition ; une annulation REFUSÉE (commande prête) non plus", async () => {
+  g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, "prete")];
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A)];
+  const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "annuler");
+  assert.equal(code(r), "CONFLIT_ETAT");
+  assert.deepEqual(ecrituresDuTest(), [], "annulation refusée : rien d'écrit, aucune proposition close");
+  g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, "acceptee")];
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A, { statut: "acceptee" })];
+  g.__fauxCloison.ecritures = [];
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "prete"), { ok: true });
+  assert.ok(!ecrituresDuTest().some((e) => e.table === "order_proposals"));
+});
+
+test("D3b : une erreur de la clôture n'annule pas l'annulation (déjà enregistrée) : le résultat reste « ok »", async () => {
+  g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_A)];
+  const original = g.__creerDbCloison;
+  g.__creerDbCloison = (nom: string) => {
+    const db = original(nom) as { from: (t: string) => Record<string, unknown> };
+    if (nom !== "admin") return db;
+    // Seule l'écriture de clôture échoue (la lecture d'échéance qui précède fonctionne).
+    return { from: (t: string) => { const q = db.from(t); return { ...q, update: () => { throw new Error("base indisponible"); } }; } };
+  };
+  try {
+    assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "annuler"), { ok: true });
+  } finally { g.__creerDbCloison = original; }
+  assert.equal(statutDe(COMMANDE_A), "annulee");
+});
+
 test("D3 annuler : refusé (CONFLIT_ETAT) pour une commande prête, terminée, refusée ou déjà annulée, rien d'écrit", async () => {
   for (const statut of ["prete", "terminee", "refusee", "annulee"]) {
     g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A, statut)];

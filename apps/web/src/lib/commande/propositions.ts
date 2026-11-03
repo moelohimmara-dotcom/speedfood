@@ -158,6 +158,31 @@ export async function traiterPropositionEchue(commandeId: string): Promise<boole
 }
 
 /**
+ * Clôt la proposition en attente d'une commande que le restaurant vient d'ANNULER : proposition → `expiree` (statut existant, aucune migration), dans la foulée de l'annulation.
+ * Sans cela la ligne reste `en_attente` jusqu'à l'échéance : la page de suivi du client afficherait encore « accepter / refuser » pour une commande annulée (le clic serait
+ * refusé par `fn_repondre_proposition`, qui exige une commande `en_attente`, mais l'affichage est faux). Effet système (aucune policy UPDATE pour les membres) : client
+ * service-role, comme `traiterPropositionEchue`. Au mieux : l'annulation est déjà enregistrée et la garde SQL protège la commande, donc une erreur ici n'est jamais remontée.
+ * Renvoie le nombre de propositions closes.
+ */
+export async function cloreSiAnnulee(db: ClientCommandeDb, commandeId: string): Promise<number> {
+  try {
+    // Lecture avec le client du membre : aucune écriture en clé de service quand il n'y a rien à clore.
+    if (!(await lirePropositions(db, commandeId)).some((p) => p.statut === "en_attente")) return 0;
+    const admin = creerClientAdmin();
+    const { data, error } = await admin
+      .from("order_proposals")
+      .update({ statut: "expiree" })
+      .eq("order_id", commandeId)
+      .eq("statut", "en_attente")
+      .select("id");
+    if (error) return 0;
+    return (data ?? []).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Crée une nouvelle version immuable de proposition. Utilise le client de la
  * session membre : la policy RLS `membres_creation_propositions` suffit
  * (insertion seulement), sans élévation service-role.

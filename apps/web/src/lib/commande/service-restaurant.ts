@@ -4,7 +4,7 @@ import type { ResultatActionCommande, ValeursProposition } from "@/lib/contracts
 import type { StatutCommande } from "@/lib/contracts/statuts";
 import type { ClientCommandeDb } from "./commun";
 import { estUuid } from "./commun";
-import { lirePropositions, propositionActiveParmi, traiterPropositionEchue, creerPropositionRevisee } from "./propositions";
+import { lirePropositions, propositionActiveParmi, traiterPropositionEchue, creerPropositionRevisee, cloreSiAnnulee } from "./propositions";
 import { appliquerTransitionStatut, lireCommandeMinimale } from "./transitions";
 
 /**
@@ -64,6 +64,8 @@ export async function traiterCommande(
       }
     }
     await appliquerTransitionStatut(db, commande, vers, `restaurant:${utilisateurId}`);
+    // Annulation : la proposition en attente est close dans la foulée (affichage client cohérent) ; sans effet sur le reste, au mieux.
+    if (vers === "annulee") await cloreSiAnnulee(db, commandeId);
     return { ok: true };
   } catch (erreur) {
     if (erreur instanceof ErreurMetier) return { ok: false, erreur: erreur.toApi() };

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
   CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, annulationRefuseePourPaiement, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, lignesRecapProposition,
   type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur,
 } from './restaurateur';
+import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
 
 /**
@@ -31,6 +32,24 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const actif = useRef(true);
   const envoiEnCours = useRef(false);
   const lectureEnCours = useRef(false);
+  // Clavier (lot D3b) : marge basse = hauteur du clavier sous Android, défilement vers le champ actif (voir clavier.ts).
+  const defilement = useRef<ScrollView>(null);
+  const champActif = useRef<TextInput | null>(null);
+  const [hauteurClavier, setHauteurClavier] = useState(0);
+  function defilerVersChampActif() {
+    const champ = champActif.current; const zone = defilement.current;
+    const contenu = zone && (zone as unknown as { getInnerViewRef?: () => unknown }).getInnerViewRef?.();
+    if (!champ || !zone || !contenu) return;
+    try { champ.measureLayout(contenu as never, (_x, y) => { zone.scrollTo({ y: cibleDefilement(y), animated: true }); }, () => {}); } catch { /* mesure impossible : l'écran reste utilisable en défilant à la main */ }
+  }
+  useEffect(() => {
+    const montre = Keyboard.addListener('keyboardDidShow', e => { setHauteurClavier(e.endCoordinates?.height ?? 0); setTimeout(defilerVersChampActif, 80); });
+    const cache = Keyboard.addListener('keyboardDidHide', () => setHauteurClavier(0));
+    return () => { montre.remove(); cache.remove(); };
+  }, []);
+  const champs = useRef<Record<string, TextInput | null>>({});
+  const auFocus = (nom: ChampProposition) => () => { champActif.current = champs.current[nom] ?? null; setTimeout(defilerVersChampActif, 80); };
+  const reference = (nom: ChampProposition) => (t: TextInput | null) => { champs.current[nom] = t; };
 
   function appliquer(ev: EvenementAction) { const suivant = evoluer(etatRef.current, ev); etatRef.current = suivant; if (actif.current) setEtat(suivant); }
   /** Une liste relue qui montre la commande déjà proposée, traitée ou disparue ferme le formulaire de proposition : il ne reste jamais ouvert, invisible, à bloquer l'écran. */
@@ -92,7 +111,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const saisir = (champ: ChampProposition) => (valeur: string) => appliquer({ type: 'saisir', champ, valeur });
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-  <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={s.contenu}>
+  <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
     <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture'} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
@@ -129,13 +148,13 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
             <Text accessibilityRole="header" style={s.nom}>Proposer un autre prix</Text>
             <Text style={s.secondaire}>Prix actuels : sous-total {formaterGnf(formulaire.actuel.sousTotalGnf)} GNF, frais de livraison {formaterGnf(formulaire.actuel.fraisGnf)} GNF. Le client devra accepter cette nouvelle version avant toute préparation. S’il refuse ou ne répond pas à temps, la commande sera annulée sans frais.</Text>
             <Text style={s.texte}>Nouveau sous-total (GNF)</Text>
-            <TextInput accessibilityLabel={'Nouveau sous-total en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.sousTotal} onChangeText={saisir('sousTotal')} editable={!occupe} />
+            <TextInput ref={reference('sousTotal')} onFocus={auFocus('sousTotal')} accessibilityLabel={'Nouveau sous-total en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.sousTotal} onChangeText={saisir('sousTotal')} editable={!occupe} />
             {formulaire.erreurs.sousTotal && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.sousTotal}</Text>}
             <Text style={s.texte}>Nouveaux frais de livraison (GNF)</Text>
-            <TextInput accessibilityLabel={'Nouveaux frais de livraison en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.frais} onChangeText={saisir('frais')} editable={!occupe} />
+            <TextInput ref={reference('frais')} onFocus={auFocus('frais')} accessibilityLabel={'Nouveaux frais de livraison en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.frais} onChangeText={saisir('frais')} editable={!occupe} />
             {formulaire.erreurs.frais && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.frais}</Text>}
             <Text style={s.texte}>Conditions modifiées (facultatif)</Text>
-            <TextInput accessibilityLabel={'Conditions modifiées, commande ' + o.reference} style={[s.champ, s.champLong]} multiline maxLength={500} value={formulaire.brouillon.conditions} onChangeText={saisir('conditions')} editable={!occupe} placeholder="Ex. : un plat est remplacé par…" />
+            <TextInput ref={reference('conditions')} onFocus={auFocus('conditions')} accessibilityLabel={'Conditions modifiées, commande ' + o.reference} style={[s.champ, s.champLong]} multiline maxLength={500} value={formulaire.brouillon.conditions} onChangeText={saisir('conditions')} editable={!occupe} placeholder="Ex. : un plat est remplacé par…" />
             {formulaire.erreurs.conditions && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.conditions}</Text>}
             {formulaire.erreurs.general && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.general}</Text>}
             <Action titre="Continuer" disabled={occupe || verrou} agir={() => appliquer({ type: 'valider_saisie' })} />
