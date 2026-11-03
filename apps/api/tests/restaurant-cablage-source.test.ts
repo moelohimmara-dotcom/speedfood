@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // Test STATIQUE sur le source de restaurant/cablage.ts (la couche qui choisit, en production, QUEL client reçoit chaque service). Les autres tests injectent des doublures :
-// ils ne voient pas ce fichier. Celui-ci échoue si le client administrateur est utilisé ailleurs que pour lister les seconds facteurs, si un service reçoit autre chose que
+// ils ne voient pas ce fichier. Celui-ci échoue si le client administrateur est utilisé, DANS cablage.ts, ailleurs que pour lister les seconds facteurs (le service partagé du site utilise lui-même le client de service pour deux effets système bornés à une commande dont l'appartenance est déjà vérifiée : échéance d'une proposition et clôture à l'annulation), si un service reçoit autre chose que
 // le client lié au jeton, ou si le filtre « second facteur confirmé » est neutralisé. Il ne prouve pas que le Worker démarre (voir « Ce qui n'est PAS vérifié »).
 const source = readFileSync(fileURLToPath(new URL("../src/restaurant/cablage.ts", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
 const sansCommentaires = source.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "").replace(/\s\/\/ .*$/, ""));
@@ -12,7 +12,7 @@ const code = sansCommentaires.join("\n");
 
 const unique = (motif: RegExp, message: string) => assert.equal(sansCommentaires.filter((l) => motif.test(l)).length, 1, message);
 
-test("cablage : le client administrateur n'est APPELÉ qu'une fois, pour `clientAdmin` (il ne sert qu'à lister les seconds facteurs)", () => {
+test("cablage : le client administrateur n'est APPELÉ qu'une fois, pour `clientAdmin` (dans cablage.ts, il ne sert qu'à lister les seconds facteurs)", () => {
   assert.equal((code.match(/creerClientAdmin\(/g) ?? []).length, 1, "creerClientAdmin() appelé ailleurs que dans clientAdmin");
   unique(/^\s*clientAdmin:\s*\(\)\s*=>\s*creerClientAdmin\(\),\s*$/, "clientAdmin doit être la seule ligne qui appelle creerClientAdmin()");
   assert.ok(!/creerClientAdmin\s*[,)]/.test(code.replace(/import[^\n]*\n/g, "").replace(/typeof creerClientAdmin/g, "")), "creerClientAdmin passé comme valeur");

@@ -33,11 +33,12 @@ const source = readFileSync(new URL('../src/connexion/RestaurateurReel.tsx', imp
 test('écran restaurateur : marge basse dans le contenu défilant, défilement vers le champ actif, les trois champs câblés', () => {
   assert.match(source, /paddingBottom: 22 \+ margeBasseClavier\(hauteurClavier, Platform\.OS\)/);
   assert.match(source, /Keyboard\.addListener\('keyboardDidShow'/);
+  assert.ok(source.includes('const auBlur = () => { champActif.current = null; };'), 'champ actif remis à null au blur');
   assert.ok(source.includes("Keyboard.addListener('keyboardDidHide', () => setHauteurClavier(0))"), 'clavier fermé : la marge disparaît');
   assert.match(source, /scrollTo\(\{ y: cibleDefilement\(y\)/);
   assert.match(source, /<ScrollView ref=\{defilement\}/);
   for (const champ of ['sousTotal', 'frais', 'conditions']) {
-    assert.ok(source.includes(`ref={reference('${champ}')} onFocus={auFocus('${champ}')}`), champ);
+    assert.ok(source.includes(`ref={reference('${champ}')} onFocus={auFocus('${champ}')} onBlur={auBlur}`), champ);
   }
   const total = (source.match(/<TextInput [a-z]/g) ?? []).length; // balises JSX seulement
   assert.equal((source.match(/<TextInput ref=/g) ?? []).length, total, "tout nouveau champ doit être câblé au défilement");

@@ -49,6 +49,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   }, []);
   const champs = useRef<Record<string, TextInput | null>>({});
   const auFocus = (nom: ChampProposition) => () => { champActif.current = champs.current[nom] ?? null; setTimeout(defilerVersChampActif, 80); };
+  const auBlur = () => { champActif.current = null; };
   const reference = (nom: ChampProposition) => (t: TextInput | null) => { champs.current[nom] = t; };
 
   function appliquer(ev: EvenementAction) { const suivant = evoluer(etatRef.current, ev); etatRef.current = suivant; if (actif.current) setEtat(suivant); }
@@ -148,13 +149,13 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
             <Text accessibilityRole="header" style={s.nom}>Proposer un autre prix</Text>
             <Text style={s.secondaire}>Prix actuels : sous-total {formaterGnf(formulaire.actuel.sousTotalGnf)} GNF, frais de livraison {formaterGnf(formulaire.actuel.fraisGnf)} GNF. Le client devra accepter cette nouvelle version avant toute préparation. S’il refuse ou ne répond pas à temps, la commande sera annulée sans frais.</Text>
             <Text style={s.texte}>Nouveau sous-total (GNF)</Text>
-            <TextInput ref={reference('sousTotal')} onFocus={auFocus('sousTotal')} accessibilityLabel={'Nouveau sous-total en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.sousTotal} onChangeText={saisir('sousTotal')} editable={!occupe} />
+            <TextInput ref={reference('sousTotal')} onFocus={auFocus('sousTotal')} onBlur={auBlur} accessibilityLabel={'Nouveau sous-total en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.sousTotal} onChangeText={saisir('sousTotal')} editable={!occupe} />
             {formulaire.erreurs.sousTotal && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.sousTotal}</Text>}
             <Text style={s.texte}>Nouveaux frais de livraison (GNF)</Text>
-            <TextInput ref={reference('frais')} onFocus={auFocus('frais')} accessibilityLabel={'Nouveaux frais de livraison en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.frais} onChangeText={saisir('frais')} editable={!occupe} />
+            <TextInput ref={reference('frais')} onFocus={auFocus('frais')} onBlur={auBlur} accessibilityLabel={'Nouveaux frais de livraison en GNF, commande ' + o.reference} style={s.champ} keyboardType="number-pad" autoCorrect={false} maxLength={14} value={formulaire.brouillon.frais} onChangeText={saisir('frais')} editable={!occupe} />
             {formulaire.erreurs.frais && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.frais}</Text>}
             <Text style={s.texte}>Conditions modifiées (facultatif)</Text>
-            <TextInput ref={reference('conditions')} onFocus={auFocus('conditions')} accessibilityLabel={'Conditions modifiées, commande ' + o.reference} style={[s.champ, s.champLong]} multiline maxLength={500} value={formulaire.brouillon.conditions} onChangeText={saisir('conditions')} editable={!occupe} placeholder="Ex. : un plat est remplacé par…" />
+            <TextInput ref={reference('conditions')} onFocus={auFocus('conditions')} onBlur={auBlur} accessibilityLabel={'Conditions modifiées, commande ' + o.reference} style={[s.champ, s.champLong]} multiline maxLength={500} value={formulaire.brouillon.conditions} onChangeText={saisir('conditions')} editable={!occupe} placeholder="Ex. : un plat est remplacé par…" />
             {formulaire.erreurs.conditions && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.conditions}</Text>}
             {formulaire.erreurs.general && <Text accessibilityRole="alert" style={s.erreurChamp}>{formulaire.erreurs.general}</Text>}
             <Action titre="Continuer" disabled={occupe || verrou} agir={() => appliquer({ type: 'valider_saisie' })} />

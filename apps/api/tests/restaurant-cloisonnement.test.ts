@@ -321,8 +321,10 @@ test("D3 annuler : refusé (CONFLIT_ETAT) pour une commande prête, terminée, r
 test("D3 CLOISONNEMENT annuler : le compte du restaurant A ne peut pas annuler la commande du restaurant B (NON_AUTORISE), qu'elle soit en attente ou acceptée", async () => {
   for (const statut of ["en_attente", "acceptee"]) {
     g.__fauxCloison.tables.orders = [commande(COMMANDE_A, RESTAURANT_A), commande(COMMANDE_B, RESTAURANT_B, statut)];
+    g.__fauxCloison.tables.order_proposals = [proposition(COMMANDE_B)];
     assert.equal(code(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_B, "annuler")), "NON_AUTORISE", statut);
     assert.equal(statutDe(COMMANDE_B), statut);
+    assert.deepEqual(propositionsDe(COMMANDE_B).map((p) => p.statut), ["en_attente"], "la proposition de B n'est pas close par le compte de A");
   }
   assert.deepEqual(ecrituresDuTest(), []);
 });

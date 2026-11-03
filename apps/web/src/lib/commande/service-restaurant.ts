@@ -9,8 +9,8 @@ import { appliquerTransitionStatut, lireCommandeMinimale } from "./transitions";
 
 /**
  * Actions du restaurant sur une commande, UN seul chemin pour la console du site (actions serveur, session du membre) et l'application native
- * (`/api/v1/restaurant/*`, jeton porteur). Le client `db` est TOUJOURS lié à l'identité du membre (RLS) : la base reste l'autorité, sans élévation de
- * clé de service ; le contrôle `restaurant_id` ci-dessous est une défense en profondeur. L'identité du membre et son restaurant arrivent DÉJÀ établis.
+ * (`/api/v1/restaurant/*`, jeton porteur). Le client `db` est TOUJOURS lié à l'identité du membre (RLS) : la base reste l'autorité ; seuls deux effets système, bornés à une commande dont
+ * l'appartenance est DÉJÀ vérifiée, passent par la clé de service (`traiterPropositionEchue` : échéance d'une proposition ; `cloreSiAnnulee` : clôture à l'annulation) ; le contrôle `restaurant_id` ci-dessous est une défense en profondeur. L'identité du membre et son restaurant arrivent DÉJÀ établis.
  */
 
 export type ActionStatutCommande = "accepter" | "refuser" | "prete" | "terminee" | "annuler";
