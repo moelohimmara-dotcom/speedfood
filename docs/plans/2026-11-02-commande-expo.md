@@ -70,3 +70,4 @@ Constats : Speedfood ne reçoit jamais d'argent ; le client règle le restaurant
 - Mineur : l'alerte `non_recu` sans option dit encore « déclarez-le à nouveau ».
 - À déployer par Malika, séparément : site (`cf:deploy`) puis API (`wrangler deploy`, car l'API embarque le service partagé).
 - Décision de Malika (3 novembre) : les modes code marchand Orange Money / MTN sont gardés jusqu'à l'ouverture de Chap Chap Pay.
+- 3 novembre : API et site déployés par Malika (retrait des espèces). Vérifié sur l'émulateur avec la compilation #12 (release) et la vraie API : le suivi de SF-BNZ6B (acceptée) affiche « Le paiement en ligne Chap Chap Pay arrive bientôt. Rien à régler pour le moment. », sans espèces ni « J'ai payé ». Aucune nouvelle commande TEST n'a été créée (la commande via le site est bloquée par la vérification anti-robot dans le navigateur intégré ; non contournée). Le panneau du site sur une vraie commande n'a pas été vu.
