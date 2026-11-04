@@ -96,6 +96,12 @@ export interface Deps {
     /** Lot D5 : la livraison de CE restaurant avance (partir, livree avec le code à 4 chiffres, annuler). La livraison est filtrée sur le restaurant du compte (« introuvable » sinon, même réponse pour un autre restaurant). */
     agirSurLivraison(ctx: ContexteRestaurant, livraisonId: string, action: ActionLivraisonApp, code?: string): Promise<ResultatActionCommande>;
   };
+  /** Lot E1 : appareils des notifications. Plafond par compte (lève `ErreurMetier` TROP_DE_REQUETES), enregistrement (faux = échec) et retrait ; le compte est toujours celui du jeton porteur. Câblage : `appareils/cablage.ts`. */
+  appareils: {
+    limiter(utilisateurId: string): Promise<void>;
+    enregistrer(utilisateurId: string, jeton: string, plateforme: import("@speedfood/shared/contracts/appareils").PlateformeAppareil, versionApp: string | null): Promise<boolean>;
+    retirer(utilisateurId: string, jeton: string): Promise<void>;
+  };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };
     creer(valeurs: CreationCommandePayload, utilisateurId: string, apres: Planifier, environnement?: unknown): Promise<ResultatCreationCommande>;

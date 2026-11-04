@@ -422,6 +422,23 @@ Réponses : 200 `{ ok: true }` ; 400 code incorrect (`champs.raison = code_incor
 
 Tests : `restaurant-livraison-{contrat,routes,service,site}.test.ts` (le dernier fait tourner le vrai `service.ts` du site contre une base factice) ; mutations tentées (contrôle d'appartenance retiré, `restaurantId` du corps, service appelé avant le contrôle, action hors liste, code mal formé accepté, code exposé dans la lecture) : toutes font échouer au moins un test. Non vérifié : la RLS et la base réelles, le comportement sous workerd, le CPU du Worker, l'avertissement du client par notification (seul son suivi le montre).
 
+## Lot E1 : appareils des notifications (4 novembre 2026)
+
+Deux routes portées pour que l'application Expo enregistre le jeton Firebase de son installation (contrat partagé `packages/shared/src/contracts/appareils.ts`, raccordé côté site par `apps/web/src/lib/contracts/appareils.ts`). Ni relais ni CORS ; `API_RELAIS` et `CREATION_COMMANDE_API` ne sont pas touchés ; aucune migration.
+
+- `POST /api/v1/appareils` : corps `{ jeton, plateforme: "android" | "ios", versionApp? }`, réponse `{ ok: true }`. Enregistre ou met à jour l'appareil du compte (upsert sur le jeton ; un jeton déjà connu change de propriétaire ; 10 appareils au plus par compte).
+- `POST /api/v1/appareils/retirer` : corps `{ jeton }`, réponse `{ ok: true }`. Retire l'appareil du compte ; même réponse, sans effet, si le jeton appartient à un autre compte ou n'existe pas.
+
+Ordre des contrôles (le même que le site) : jeton porteur STRICT (401 `NON_AUTHENTIFIE`, « Connectez-vous pour activer les notifications. » / « … gérer les notifications. ») ; plafond par compte AVANT toute lecture du corps (429 `TROP_DE_REQUETES` ; panne du plafond = 500 générique) ; corps JSON (400 `VALIDATION` s'il est illisible) ; validation (400 « Appareil invalide. » : jeton d'appareil de 20 à 4096 caractères parmi `A-Z a-z 0-9 _ : - .`, plateforme dans la liste blanche `android|ios` ; `versionApp` de 40 caractères au plus, sinon `null`, jamais un refus) ; service (échec ou exception = 500 `ERREUR_SERVEUR`, « Impossible d'enregistrer l'appareil. Réessayez dans un instant. », sans texte d'origine). Le compte vient TOUJOURS du jeton porteur : un `utilisateurId` du corps n'est jamais lu. Ni le jeton porteur ni le jeton d'appareil ne figurent dans une réponse, une erreur ou un journal.
+
+Codes : 200, 400, 401, 429, 500.
+
+**Exception documentée (même nature que D5)** : `appareils_push` n'a aucune policy (migration `20261022170000`), son écriture est réservée à la clé de service. L'API réutilise telles quelles `enregistrerAppareil` et `retirerAppareil` du site (`apps/web/src/lib/push/appareils.ts`), qui l'emploient en interne. Usage minimal : seulement après Bearer strict, plafond par compte et validation du corps, avec le compte du jeton. Le fichier de câblage `apps/api/src/appareils/cablage.ts` n'importe NI le client administrateur NI la clé de service (0 import de `@/lib/db/admin`) : il branche les deux fonctions et le plafond `limiterAppareil`. Épinglé par `tests/appareils-cablage-source.test.ts` (trois imports exactement, aucune importation de la clé, lignes de câblage uniques, ordre identité, plafond, corps, validation, service dans la route, corps des deux fonctions du site : seule la table `appareils_push`, retrait filtré sur le compte ET le jeton, cinq imports figés dans `push/appareils.ts`).
+
+Tests : `appareils-{routes,contrat,cablage-source}.test.ts` (30 tests). Mutations (script `mutations-e1.cjs`, fichiers restaurés) : contrôle du jeton retiré (enregistrement, retrait), `utilisateurId` du corps (deux routes), plateforme hors liste, service avant le plafond, jeton renvoyé dans la réponse (deux routes), version non bornée, import de la clé de service dans le câblage, compte fixe dans le retrait : toutes tuées.
+
+Non vérifié : jamais exécuté contre la vraie base ni sous workerd ni depuis un téléphone ; l'envoi lui-même (secret `FCM_SERVICE_ACCOUNT` absent du Worker de l'API) reste hors de ce lot ; le poids du Worker passe à 1 284 373 octets.
+
 ## Réserves traitées le 31 octobre 2026
 
 Lot « réserves avant allumage » (commit `bbb482e`, puis correctifs de relecture). Une réserve n'est marquée faite que si un test échoue quand on casse le code : chaque correctif a été vérifié par mutation (condition retirée, seuil décalé, garde supprimée, regex élargie : toutes les mutations tentées font échouer au moins un test ; une seule survit, équivalente, sur `valeur.length > 0` qui double la regex).

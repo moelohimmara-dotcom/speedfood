@@ -3,6 +3,7 @@ import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { entetesCourants } from "./cales/next-headers.ts";
 import { repondre, reponseErreur } from "./http.ts";
 import { enteteRelaisDeConfiance } from "./identite/relais.ts";
+import { routeAppareils } from "./routes/appareils.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeCatalogue } from "./routes/catalogue.ts";
 import { routeClient } from "./routes/client.ts";
@@ -58,6 +59,8 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));
   app.route("/api/v1/suivi", routeSuivi(deps));
   app.route("/api/v1/commandes", routeCommandes(deps));
+  // Appareils des notifications (lot E1) : natif seulement, AUCUN en-tête CORS.
+  app.route("/api/v1/appareils", routeAppareils(deps));
   // Espace restaurateur : natif seulement, donc AUCUN en-tête CORS (ni lecture ni écriture).
   app.route("/api/v1/restaurant", routeRestaurant(deps));
 
