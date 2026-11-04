@@ -2,10 +2,11 @@ import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
-import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
+import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
 import { corpsDeAction, erreurLocalePhoto, erreurReponseService, erreurReseauPhoto, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
 import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
-import { lireValeursPropositionApp } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
+import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
+import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
@@ -18,8 +19,10 @@ export class ErreurConnexion extends Error {
 function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'object' || Array.isArray(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v as Record<string, unknown>; }
 function secret(v: unknown, max: number): string { if (typeof v !== 'string' || !v.length || v.length > max || /[\s\x00-\x1f]/.test(v)) throw new ErreurConnexion('Réponse de connexion invalide.'); return v; }
 /** Textes et table de refus d'une famille de routes du restaurateur (commandes, ou service et menu). */
-interface TextesRestaurateur { nonMembre: string; lectureIllisible: string; refus: typeof refusRestaurateur; reseau: () => ErreurRestaurateur; reponse: () => ErreurRestaurateur }
+interface TextesRestaurateur { nonMembre: string; lectureIllisible: string; refus: (statut: number, raison: RaisonSecuriteCompte | null, corps: unknown) => ErreurRestaurateur; reseau: () => ErreurRestaurateur; reponse: () => ErreurRestaurateur }
 const TEXTES_COMMANDES: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir ces commandes. Vérifiez votre accès sur le site.', lectureIllisible: 'Les commandes reçues sont illisibles. Réessayez dans un instant.', refus: refusRestaurateur, reseau: erreurReseauRestaurateur, reponse: erreurReponseRestaurateur };
+/** Livraison par le restaurant (lot D5) : mêmes règles d'envoi, table de refus propre (code faux, essais restants, plafond atteint). */
+const TEXTES_LIVRAISON: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant.', lectureIllisible: 'Réponse du service illisible.', refus: refusLivraisonRestaurateur, reseau: erreurReseauLivraison, reponse: erreurReponseLivraison };
 const TEXTES_SERVICE: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir son service. Vérifiez votre accès sur le site.', lectureIllisible: 'Les informations reçues sont illisibles. Réessayez dans un instant.', refus: refusService, reseau: erreurReseauService, reponse: erreurReponseService };
 /** Délai d'un envoi de photo (le fichier part sur le réseau mobile) : plus long que celui d'une commande ; après ce délai la réponse est « incertaine » (jamais de relance). */
 export const DELAI_PHOTO_MS = 60000;
@@ -180,7 +183,7 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
         const raison = r.status === 403 ? lireRaisonSecurite(corps) : null;
         // Compte non membre qui LIT la liste : un message propre à la lecture (le texte « traiter cette commande » est celui des actions).
         if (lecture && r.status === 403 && raison === null) throw new ErreurRestaurateur('refus', textes.nonMembre);
-        const refus = textes.refus(r.status, raison);
+        const refus = textes.refus(r.status, raison, corps);
         // Une lecture n'est jamais « incertaine » au sens d'une écriture : elle se rejoue à la main.
         if (lecture && refus.incertain) throw new ErreurRestaurateur(refus.genre, 'Le service est indisponible. Réessayez dans un instant.');
         throw refus;
@@ -221,6 +224,18 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       const lu = lireValeursPropositionApp(valeurs ?? {});
       if (!lu.ok) throw new ErreurRestaurateur('refus', 'Les montants de la proposition ne sont pas valides. Corrigez-les puis recommencez.');
       lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/proposition', { method:'POST', corps:{ commandeId, nouveauSousTotal:lu.valeurs.nouveauSousTotal, nouveauxFraisLivraison:lu.valeurs.nouveauxFraisLivraison, conditionsModifiees:lu.valeurs.conditionsModifiees } }, false));
+    },
+    /**
+     * Livraison par le restaurant (route `/livraison/action`, lot D5) : « partir », « livree » (avec le code à 4 chiffres du client) ou « annuler ». Tout est vérifié ICI avant le réseau, avec le contrat
+     * partagé avec le serveur : action de la liste blanche, identifiant de livraison, code de EXACTEMENT 4 chiffres (sinon échec LOCAL : rien ne part). UN SEUL essai. Le corps ne porte que la livraison, l'action
+     * et, pour « livree » seulement, le code (jamais le restaurant). Le code n'est ni conservé ni repris dans une erreur.
+     */
+    async actionLivraisonRestaurateur(accessToken: string, livraisonId: string, action: ActionLivraisonApp, code?: string): Promise<void> {
+      if (lireActionLivraisonApp(action) === null) throw erreurLocaleLivraison('Cette action n’est pas disponible dans l’application.');
+      const demande = lireDemandeLivraisonApp({ livraisonId, action, code });
+      if (!demande.ok) throw erreurLocaleLivraison(demande.message === MESSAGE_CODE_LIVRAISON ? MESSAGE_CODE_LIVRAISON : 'Livraison introuvable. Actualisez la liste.');
+      const corps = demande.action === 'livree' ? { livraisonId: demande.livraisonId, action: demande.action, code: demande.code } : { livraisonId: demande.livraisonId, action: demande.action };
+      lireReponseAction(await appelRestaurateur(accessToken, CHEMIN_LIVRAISON_APP, { method:'POST', corps }, false, TEXTES_LIVRAISON));
     },
     /** Réglages du service (GET) : horaires, ouvert, accepte commandes, délai de préparation, plats à reconfirmer (liste du serveur). Lecture seule, un seul essai. */
     async reglagesRestaurateur(accessToken: string): Promise<ReglagesRestaurateur> {

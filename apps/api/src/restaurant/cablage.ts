@@ -14,6 +14,8 @@ import { supprimerImage, supprimerTeleversementOrphelin, televerserImage } from 
 import { creerServiceRestaurant } from "./service.ts";
 import { ecrireReglagesRestaurant, ecrireStatutRestaurant, lireReglagesRestaurant } from "./reglages.ts";
 import { definirPhotoPlat, retirerPhotoPlat, type StockageImages } from "./photo.ts";
+import { agirSurLivraisonRestaurant, lireLivraisonsDesCommandes, type AvancementLivraison } from "./livraison.ts";
+import { avancerLivraison } from "@/lib/livraison/service";
 
 /**
  * Stockage des photos (lot D4c) : les fonctions du site, jamais une copie de leurs règles. Le bucket `medias` n'a AUCUNE policy d'écriture (migration 20260928035030) : le téléversement et la
@@ -25,6 +27,13 @@ const STOCKAGE_IMAGES: StockageImages = {
   supprimerOrphelin: (url) => supprimerTeleversementOrphelin(url),
   supprimerAncienne: (url) => supprimerImage(url),
 };
+
+/**
+ * Avancement des livraisons (lot D5) : `avancerLivraison` du site, jamais une copie de ses règles (machine à états, code de remise, plafond d'essais, clôture de la commande). Il écrit avec la CLÉ DE SERVICE
+ * (les tables de livraison n'ont aucune policy d'écriture) : c'est le seul usage système en écriture du lot, accepté par Malika. Il n'est atteint qu'APRÈS le contrôle d'appartenance de la livraison
+ * (livraison.ts, client du jeton), et l'acteur « restaurant » est imposé par livraison.ts.
+ */
+const AVANCEMENT_LIVRAISON: AvancementLivraison = (demande) => avancerLivraison(demande);
 
 /** Câblage de PRODUCTION du service restaurateur : les services du site, jamais une copie de leurs règles. Aucun secret lu ici (les clients les lisent à l'appel). */
 export const serviceRestaurant = creerServiceRestaurant({
@@ -60,4 +69,6 @@ export const serviceRestaurant = creerServiceRestaurant({
   retirerOption: (client, restaurantId, optionId) => retirerOption(client as SupabaseClient, restaurantId, optionId),
   definirPhoto: (client, restaurantId, platId, fichier) => definirPhotoPlat(client as SupabaseClient, restaurantId, platId, fichier, STOCKAGE_IMAGES),
   retirerPhoto: (client, restaurantId, platId) => retirerPhotoPlat(client as SupabaseClient, restaurantId, platId, STOCKAGE_IMAGES),
+  lireLivraisons: (client, restaurantId, commandeIds) => lireLivraisonsDesCommandes(client as SupabaseClient, restaurantId, commandeIds),
+  agirSurLivraison: (client, restaurantId, livraisonId, action, code) => agirSurLivraisonRestaurant(client as SupabaseClient, restaurantId, livraisonId, action, code, AVANCEMENT_LIVRAISON),
 });

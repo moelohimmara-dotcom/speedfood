@@ -6,7 +6,7 @@ import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type Se
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
-  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, annulationRefuseePourPaiement, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, lignesRecapProposition,
+  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, actionLivraisonDe, annulationRefuseePourPaiement, chiffresDuCode, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, ligneLivraison, lignesRecapProposition, preparerCodeLivraison,
   type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur,
 } from './restaurateur';
 import { cibleDefilement, margeBasseClavier } from './clavier';
@@ -16,7 +16,8 @@ import { couleurs as c, polices } from '../design/tokens';
  * Espace restaurateur (lots D1 à D4a), trois sections en haut de l'écran : « Commandes » (ci-dessous), « Service » et « Menu » (voir ServiceMenuReel.tsx). Commandes : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
  * automatique, aucune notification ici), boutons Accepter, Refuser, Marquer prête, Marquer terminée, et Paiement reçu / non reçu pour un paiement DÉCLARÉ par code marchand
  * Annuler la commande, et Proposer un autre prix (formulaire à trois champs, récapitulatif « ancien prix → nouveau prix », confirmation avant l'envoi). Le refus, l'annulation et le
- * « non reçu » demandent une confirmation. Aucun bouton « espèces » : Speedfood ne manipule jamais d'espèces. Rien d'autre : pas de livraison ni de menu.
+ * « non reçu » demandent une confirmation. Aucun bouton « espèces » : Speedfood ne manipule jamais d'espèces. Depuis le lot D5, la LIVRAISON par le restaurant : « Parti livrer », « Livrée » (code à 4 chiffres du client,
+ * clavier numérique, champ visible clavier ouvert) et « Annuler la livraison » (avec confirmation), selon l'état que le serveur a donné.
  * Toute règle (verrou, un seul essai, relecture après réponse incertaine) est dans `restaurateur.ts` ; cet écran n'envoie jamais le restaurant (le serveur le tire du compte).
  */
 export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; signalerOccupe?(occupe: boolean): void }) {
@@ -27,6 +28,9 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
   const [section, setSection] = useState<SectionRestaurateur>('commandes');
+  // Codes de remise TAPÉS (par commande) : uniquement dans l'écran, jamais dans la machine d'états ni dans un message ; effacés dès l'envoi et dès que la commande n'est plus « en route ».
+  const [codes, setCodes] = useState<Record<string, string>>({});
+  const [erreursCode, setErreursCode] = useState<Record<string, string>>({});
   const [serviceOuvert, setServiceOuvert] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
@@ -62,7 +66,10 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     const o = l.commandes.find(x => x.id === e.commandeId);
     if (!o || !actionsPossibles(o).includes('proposer')) appliquer({ type: 'annuler_confirmation' });
   }
-  function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null); }
+  function oublierCode(commandeId: string) { setCodes(x => { if (!(commandeId in x)) return x; const n = { ...x }; delete n[commandeId]; return n; }); setErreursCode(x => { if (!(commandeId in x)) return x; const n = { ...x }; delete n[commandeId]; return n; }); }
+  /** Un code tapé pour une commande dont la livraison n'est plus « en route » n'a plus lieu d'être : il est effacé. */
+  function purgerCodes(l: ListeRestaurateur) { const enRoute = new Set(l.commandes.filter(x => x.livraison?.statut === 'vers_client').map(x => x.id)); setCodes(x => Object.fromEntries(Object.entries(x).filter(([id]) => enRoute.has(id)))); setErreursCode(x => Object.fromEntries(Object.entries(x).filter(([id]) => enRoute.has(id)))); }
+  function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null); }
   function messageErreur(e: unknown) { return e instanceof ErreurRestaurateur || e instanceof ErreurConnexion ? e.message : 'Impossible de lire les commandes. Réessayez.'; }
 
   /** Lecture MANUELLE de la liste (ouverture de l'écran et bouton « Actualiser »). Un seul essai ; une panne laisse la liste précédente. */
@@ -76,12 +83,13 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   useEffect(() => { actif.current = true; void actualiser(); return () => { actif.current = false; }; }, []);
 
   /** UN SEUL essai. Ensuite la liste est relue pour savoir ce que le serveur a vraiment enregistré ; jamais de relance automatique. */
-  async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur) {
+  async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string) {
     if (envoiEnCours.current || lectureEnCours.current) return;
     const avant = etatRef.current;
-    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode });
+    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode, codeValide: codeLivraison !== undefined });
     if (etatRef.current === avant || etatRef.current.phase !== 'envoi') return;
     envoiEnCours.current = true;
+    oublierCode(commande.id);
     try {
       let echec: ErreurRestaurateur | null = null; let session: string | null = null;
       const enEnvoi = etatRef.current;
@@ -90,6 +98,11 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           // Les montants envoyés sont ceux du récapitulatif confirmé, portés par l'état d'envoi ; le client les revérifie encore avant le réseau.
           if (enEnvoi.phase !== 'envoi' || !enEnvoi.valeurs) throw new ErreurRestaurateur('refus', 'La proposition n’a pas pu être préparée. Recommencez.');
           await gestion.proposerRestaurateur(commande.id, enEnvoi.valeurs);
+        } else if (actionLivraisonDe(action) !== null) {
+          // Livraison (lot D5) : l'identifiant vient de la livraison que le serveur a donnée pour CETTE commande ; le code, déjà validé, part une seule fois puis est effacé de l'écran.
+          const demande = actionLivraisonDe(action); const livraison = commande.livraison;
+          if (!demande || !livraison) throw new ErreurRestaurateur('local', 'La livraison de cette commande n’est pas lisible. Actualisez la liste.');
+          await gestion.actionLivraisonRestaurateur(livraison.id, demande, demande === 'livree' ? codeLivraison : undefined);
         } else await gestion.actionRestaurateur(commande.id, action);
       }
       catch (e) { if (e instanceof ErreurRestaurateur) echec = e; else session = e instanceof ErreurConnexion ? e.message : 'Impossible de terminer cette opération. Réessayez.'; }
@@ -123,6 +136,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
+    {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
     {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
     <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
@@ -143,6 +157,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {o.clientAdresse && <Text style={s.texte}>{o.clientAdresse}</Text>}
           {o.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}
           <Text style={s.nom}>{o.totalGnf.toLocaleString('fr-FR')} GNF</Text>
+          {ligneLivraison(o) && <Text style={s.texte}>{ligneLivraison(o)}</Text>}
           {paiement && <Text style={s.texte}>{paiement}</Text>}
           {paiement && possibles.includes('paiement_recu') && <Text style={s.secondaire}>Comparez avec le SMS de confirmation de votre opérateur avant de valider.</Text>}
           {confirmation && confirmation.action in CONFIRMATIONS && <>
@@ -182,6 +197,20 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {!confirmation && !formulaire && possibles.includes('terminee') && <Action titre={'Marquer terminée ' + o.reference} disabled={bloque} agir={() => { void envoyer(o, 'terminee'); }} />}
           {!confirmation && !formulaire && possibles.includes('paiement_recu') && <Action titre={'Paiement reçu ' + o.reference} disabled={bloque} agir={() => { void envoyer(o, 'paiement_recu'); }} />}
           {!confirmation && !formulaire && possibles.includes('paiement_non_recu') && <Action titre={'Paiement non reçu ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'paiement_non_recu', lecture })} />}
+          {!confirmation && !formulaire && possibles.includes('livraison_partir') && <Action titre={'Parti livrer ' + o.reference} disabled={bloque} agir={() => { void envoyer(o, 'livraison_partir'); }} />}
+          {!confirmation && !formulaire && possibles.includes('livraison_livree') && <View style={{ gap: 8 }}>
+            <Text style={s.texte}>Code du client (4 chiffres)</Text>
+            <Text style={s.secondaire}>Demandez ce code au client à la porte : il le voit sur son suivi. Le code n’est pas conservé.</Text>
+            <TextInput ref={reference('code-' + o.id)} onFocus={auFocus('code-' + o.id)} onBlur={auBlur} accessibilityLabel={'Code du client, 4 chiffres, commande ' + o.reference} style={s.champ} keyboardType="number-pad" inputMode="numeric" maxLength={4} autoCorrect={false} autoComplete="off" importantForAutofill="no" textContentType="none" value={codes[o.id] ?? ''} onChangeText={v => { setCodes(x => ({ ...x, [o.id]: chiffresDuCode(v) })); setErreursCode(x => { if (!(o.id in x)) return x; const n = { ...x }; delete n[o.id]; return n; }); }} editable={!bloque} />
+            {erreursCode[o.id] && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursCode[o.id]}</Text>}
+            <Action titre={'Livrée ' + o.reference} disabled={bloque} agir={() => {
+              // Validation LOCALE avant tout envoi : un code qui n'a pas 4 chiffres ne part jamais, ne verrouille rien et n'est jamais repris dans le message.
+              const p = preparerCodeLivraison(codes[o.id]);
+              if (!p.ok) { setErreursCode(x => ({ ...x, [o.id]: p.message })); return; }
+              void envoyer(o, 'livraison_livree', p.code);
+            }} />
+          </View>}
+          {!confirmation && !formulaire && possibles.includes('livraison_annuler') && <Action titre={'Annuler la livraison ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'livraison_annuler', lecture })} />}
           {!confirmation && !formulaire && annulationRefuseePourPaiement(o) && <Text accessibilityRole="alert" style={s.texte}>{MESSAGE_DEJA_PAYEE}</Text>}
           {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture, paiementStatut: o.paiementStatut, paiementMode: o.paiementMode })} />}
         </View>;

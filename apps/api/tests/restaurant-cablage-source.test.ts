@@ -145,3 +145,65 @@ test("service-menu (site) : aucun client administrateur ; une seule lecture syst
   assert.equal((sansCom.match(/obtenirParametresApplication\(\)/g) ?? []).length, 3, "creerPlat, modifierPlat, ajouterOption");
   assert.equal((sansCom.match(/^import /gm) ?? []).length, 5, "liste des imports figée : toute nouvelle dépendance doit être revue");
 });
+
+// ---------- Lot D5 : livraison par le restaurant ----------
+// L'EXCEPTION du lot, acceptée par Malika : les tables de livraison n'ont aucune policy d'écriture, donc `avancerLivraison` du site (clé de service) est réutilisée telle quelle. Elle n'est atteinte qu'APRÈS
+// le contrôle d'appartenance de la livraison (livraison.ts, client du jeton). Ces tests épinglent où elle est branchée, qu'elle n'est appelée nulle part ailleurs, et ce que le service du site fait avec la clé de service.
+const lire = (relatif: string) => readFileSync(fileURLToPath(new URL(relatif, import.meta.url)), "utf8").replace(/\r\n/g, "\n");
+
+test("cablage D5 : l'avancement de livraison est UNE constante branchée sur `avancerLivraison` du site, passée seule à livraison.ts ; la lecture reçoit le client du jeton", () => {
+  unique(/^const AVANCEMENT_LIVRAISON: AvancementLivraison = \(demande\) => avancerLivraison\(demande\);$/, "AVANCEMENT_LIVRAISON");
+  unique(/^\s*lireLivraisons:\s*\(client,\s*restaurantId,\s*commandeIds\)\s*=>\s*lireLivraisonsDesCommandes\(client as SupabaseClient,\s*restaurantId,\s*commandeIds\),\s*$/, "lireLivraisons");
+  unique(/^\s*agirSurLivraison:\s*\(client,\s*restaurantId,\s*livraisonId,\s*action,\s*code\)\s*=>\s*agirSurLivraisonRestaurant\(client as SupabaseClient,\s*restaurantId,\s*livraisonId,\s*action,\s*code,\s*AVANCEMENT_LIVRAISON\),\s*$/, "agirSurLivraison");
+  assert.equal(sansCommentaires.filter((l) => /AVANCEMENT_LIVRAISON/.test(l)).length, 2, "AVANCEMENT_LIVRAISON : déclaration + un seul usage");
+  assert.equal((code.match(/avancerLivraison\(/g) ?? []).length, 1, "avancerLivraison appelé une seule fois dans le câblage");
+  const importService = source.match(/import \{([^}]*)\} from "@\/lib\/livraison\/service";/);
+  assert.ok(importService, "import du service de livraison");
+  assert.deepEqual(importService![1].split(",").map((n) => n.trim()), ["avancerLivraison"], "aucune autre fonction du service de livraison (ni repartir, ni assignerManuellement)");
+  assert.ok(!/creerClientAdmin\(\)[^\n]*(livraison|Livraison)|(livraison|Livraison)[^\n]*creerClientAdmin\(\)/.test(code), "le client administrateur n'est jamais passé à la livraison par le câblage");
+});
+
+test("livraison.ts (API) : aucun client administrateur, aucune écriture directe, aucune lecture d'environnement ; lit `livraisons` avec le client reçu, filtré sur le restaurant ; acteur « restaurant » imposé", () => {
+  const livraison = sansComm(lire("../src/restaurant/livraison.ts"));
+  assert.ok(!/creerClientAdmin|db\/admin|service_role|SERVICE_ROLE|process\.env|console\./.test(livraison));
+  assert.ok(!/\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(/.test(livraison), "aucune écriture directe : tout passe par l'avancement du site");
+  assert.equal((livraison.match(/\.from\(/g) ?? []).length, 2, "deux lectures : appartenance et liste");
+  assert.equal((livraison.match(/\.from\("livraisons"\)/g) ?? []).length, 2);
+  assert.ok(/\.from\("livraisons"\)\.select\("id"\)\.eq\("id", livraisonId\)\.eq\("restaurant_id", restaurantId\)\.maybeSingle\(\)/.test(livraison), "appartenance filtrée sur la livraison ET le restaurant du contexte");
+  assert.ok(/\.from\("livraisons"\)\.select\("id, order_id, mode, statut"\)\.eq\("restaurant_id", restaurantId\)\.in\("order_id", /.test(livraison), "liste : trois champs utiles, filtrée sur le restaurant du contexte");
+  assert.equal((livraison.match(/acteur: "restaurant",/g) ?? []).length, 1, "l'acteur est imposé ici, une seule fois");
+  assert.equal((livraison.match(/await avancer\(/g) ?? []).length, 1);
+  assert.ok(livraison.indexOf("await lireAppartenance(") < livraison.indexOf("await avancer("), "le contrôle d'appartenance précède l'avancement");
+  assert.ok(/if \(lecture\.etat === "absent"\) return INTROUVABLE;/.test(livraison) && /if \(lecture\.etat === "panne"\) return PANNE;/.test(livraison));
+});
+
+test("route D5 : contexte, puis corps, puis validation partagée, puis service ; le restaurant n'est jamais lu dans le corps", () => {
+  const routes = sansComm(lire("../src/routes/restaurant.ts"));
+  const debut = routes.indexOf('route.post("/livraison/action"');
+  assert.ok(debut > 0, "route présente");
+  const bloc = routes.slice(debut, routes.indexOf("return route;", debut));
+  const ordre = ["await contexte(c)", "await lireCorpsJson(c)", "lireDemandeLivraisonApp(lu.corps)", "deps.restaurant.agirSurLivraison("];
+  const positions = ordre.map((m) => bloc.indexOf(m));
+  assert.ok(positions.every((p) => p >= 0), "les quatre étapes sont présentes");
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions, "ordre : contexte, corps, validation, service");
+  assert.ok(!/restaurantId|restaurant_id/.test(bloc), "aucune lecture d'un restaurant dans la route");
+  assert.ok(!/console\.|process\.env/.test(bloc));
+  assert.ok(/deps\.restaurant\.agirSurLivraison\(ctx, demande\.livraisonId, demande\.action, demande\.code\)/.test(bloc), "le service ne reçoit que le contexte, la livraison, l'action et le code");
+});
+
+test("service de livraison (site) : c'est lui qui écrit avec la clé de service ; ses imports, ses contrôles de machine à états et de plafond d'essais sont figés", () => {
+  const service = sansComm(lire("../../web/src/lib/livraison/service.ts"));
+  assert.equal((service.match(/^import /gm) ?? []).length, 9, "liste des imports figée : toute nouvelle dépendance doit être revue");
+  assert.equal((service.match(/creerClientAdmin\(\)/g) ?? []).length, 1, "un seul usage direct du client de service (clôture de la commande), le reste passe par clientLivraison()");
+  assert.ok(/if \(!acteurPeut\(d\.acteur, de, d\.vers, mode\)\) return refuser/.test(service), "machine à états et droits par acteur");
+  assert.ok(/if \(l\.essais_code >= ESSAIS_CODE_MAX\) return refuser/.test(service), "plafond d'essais du code");
+  assert.ok(/!codeRemiseCorrect\(ligneCode\.code as string, d\.code \?\? ""\)/.test(service), "comparaison du code en temps constant");
+  assert.ok(/\.update\(\{ essais_code: l\.essais_code \+ 1 \}\)/.test(service), "chaque essai raté est compté");
+  assert.ok(!/console\.(log|info|warn)\(/.test(service) && (service.match(/console\.error\("[a-z_]+"\)/g) ?? []).length === 1, "aucune journalisation de valeur : un seul message fixe d'erreur");
+});
+
+test("actions-restaurant (site, référence) : la livraison doit appartenir au restaurant du membre avant l'avancement ; l'API reproduit ce contrôle", () => {
+  const site = sansComm(lire("../../web/src/lib/livraison/actions-restaurant.ts"));
+  assert.ok(/ligne\.restaurant_id !== membership\.restaurant_id\) return \{ ok: false, message: "Livraison introuvable\." \}/.test(site));
+  assert.ok(site.indexOf("ligne.restaurant_id !== membership.restaurant_id") < site.indexOf("await avancerLivraison("));
+});

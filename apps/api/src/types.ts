@@ -3,6 +3,7 @@ import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationC
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
 import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
+import type { ActionLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import type { Planifier } from "@/lib/commande/creation-coeur";
 import type { VerificateurJeton } from "./identite/jeton.ts";
 
@@ -92,6 +93,8 @@ export interface Deps {
     definirPhoto(ctx: ContexteRestaurant, platId: string, fichier: File): Promise<ResultatActionCommande>;
     /** Lot D4c : retire la photo d'un plat de CE restaurant (le plat reste en vente, sans image). */
     retirerPhoto(ctx: ContexteRestaurant, platId: string): Promise<ResultatActionCommande>;
+    /** Lot D5 : la livraison de CE restaurant avance (partir, livree avec le code à 4 chiffres, annuler). La livraison est filtrée sur le restaurant du compte (« introuvable » sinon, même réponse pour un autre restaurant). */
+    agirSurLivraison(ctx: ContexteRestaurant, livraisonId: string, action: ActionLivraisonApp, code?: string): Promise<ResultatActionCommande>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };

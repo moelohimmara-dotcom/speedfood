@@ -1,4 +1,5 @@
 import type { ApercuCommandeRestaurant, ValeursProposition } from "./commande";
+import type { LivraisonRestaurateurApi } from "./restaurant-livraison";
 
 /**
  * Contrat des routes `/api/v1/restaurant/commandes*` de l'application native (lot D1 : lire, accepter, refuser ; lot D2 : prête, terminée, confirmation du paiement ;
@@ -62,10 +63,14 @@ export type CommandeRestaurantApi = Omit<ApercuCommandeRestaurant, "jetonRecu"> 
   /** Lien WhatsApp prérempli, vers le client de la commande seulement : le restaurateur appuie lui-même sur « Envoyer ». */
   lienRecuWhatsApp: string | null;
   lienFactureWhatsApp: string | null;
+  /** Lot D5 (API unique seulement) : livraison de la commande (identifiant, statut, mode), ou null. Absent des réponses du site. Jamais le code de remise ni le livreur. */
+  livraison?: LivraisonRestaurateurApi | null;
 };
 
 export interface ReponseCommandesRestaurant {
   ok: true;
   restaurant: { id: string; nom: string; ouvert: boolean; accepteCommandes: boolean } | null;
   commandes: CommandeRestaurantApi[];
+  /** Lot D5 (API unique seulement) : nombre de commandes en livraison dont la livraison est illisible (ligne écartée, ou lecture en panne). La liste reste valide. */
+  livraisonsIllisibles?: number;
 }

@@ -1,12 +1,13 @@
 import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
 import type {CommandeCompte} from './commandes.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
+import type {ActionLivraisonApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, ValeursPropositionRestaurateur} from './restaurateur.ts';
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -156,6 +157,16 @@ export class GestionSession {
       if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
       if(!this.api.actionRestaurateur)throw new ErreurConnexion('Espace restaurateur indisponible.');
       await this.api.actionRestaurateur(acces,commandeId,action);
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Fait avancer UNE livraison du restaurant (partir, livree avec le code, annuler) : un seul essai, jamais de relance. Le restaurant n'est pas envoyé : le serveur le tire du compte. */
+  async actionLivraisonRestaurateur(livraisonId:string,action:ActionLivraisonApp,code?:string):Promise<void> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+      if(!this.api.actionLivraisonRestaurateur)throw new ErreurConnexion('Espace restaurateur indisponible.');
+      await this.api.actionLivraisonRestaurateur(acces,livraisonId,action,code);
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   /** Propose un autre prix pour UNE commande (un seul essai, jamais de relance). Le restaurant n'est pas envoyé : le serveur le tire du compte. */

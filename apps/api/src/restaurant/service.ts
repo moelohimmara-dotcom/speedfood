@@ -2,7 +2,9 @@ import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
 import type { ActionMenuApp, OptionAEcrire, PlatAEcrire, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type DecisionPaiementApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
+import { lireLivraisonApi, type ActionLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import type { ContexteRestaurant, Deps } from "../types.ts";
+import type { LecturesLivraisons } from "./livraison.ts";
 
 /**
  * Service restaurateur de l'API (lot D1) : reproduit, SANS NextResponse, l'entrée commune `restaurantAuthentifie` du site (`lib/api/v1-restaurant.ts`) et enchaîne
@@ -62,6 +64,16 @@ export interface DepsServiceRestaurant {
    */
   definirPhoto(client: unknown, restaurantId: string, platId: string, fichier: File): Promise<ResultatActionCommande>;
   retirerPhoto(client: unknown, restaurantId: string, platId: string): Promise<ResultatActionCommande>;
+  /**
+   * Lot D5 : livraisons des commandes données (identifiant, statut, mode), lues avec le client du jeton et filtrées sur le restaurant du contexte ; `null` = lecture en panne.
+   * Une panne n'invalide jamais la liste des commandes : elle est écartée et comptée.
+   */
+  lireLivraisons(client: unknown, restaurantId: string, commandeIds: readonly string[]): Promise<LecturesLivraisons | null>;
+  /**
+   * Lot D5 : fait avancer la livraison de CE restaurant (partir, livree avec le code, annuler). Le client est celui du jeton (contrôle d'appartenance) ; l'avancement lui-même est `avancerLivraison` du site
+   * (clé de service, seul usage système du lot, appelé APRÈS le contrôle d'appartenance ; voir `livraison.ts` et `cablage.ts`).
+   */
+  agirSurLivraison(client: unknown, restaurantId: string, livraisonId: string, action: ActionLivraisonApp, code: string | undefined): Promise<ResultatActionCommande>;
 }
 
 /** Résultat des services du menu du site (`ResultatMenu`). */
@@ -101,7 +113,16 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
       return { supabase, utilisateurId, restaurantId: membre.restaurantId, role: membre.role };
     },
     async lister(ctx) {
-      return d.lireCommandes(ctx.supabase, ctx.restaurantId, await d.origineSite());
+      const lecture = await d.lireCommandes(ctx.supabase, ctx.restaurantId, await d.origineSite());
+      // Lot D5 : le bloc `livraison` (identifiant, statut, mode) des commandes en livraison. Une livraison absente ou illisible n'invalide JAMAIS la liste : elle est écartée (`livraison: null`) ET comptée.
+      const ids = lecture.commandes.filter((commande) => commande.mode === "livraison").map((commande) => commande.id);
+      let livraisons: LecturesLivraisons | null = { parCommande: {}, ignorees: 0 };
+      if (ids.length > 0) {
+        try { livraisons = await d.lireLivraisons(ctx.supabase, ctx.restaurantId, ids); } catch { livraisons = null; }
+      }
+      // `lireLivraisonApi` ne retient que identifiant, statut et mode : aucune autre clé (code, livreur, coordonnées) ne peut passer, même si la lecture en renvoyait.
+      const commandes = lecture.commandes.map((commande) => ({ ...commande, livraison: lireLivraisonApi(livraisons?.parCommande[commande.id]) }));
+      return { ...lecture, commandes, livraisonsIllisibles: livraisons === null ? ids.length : livraisons.ignorees };
     },
     async traiter(ctx, commandeId: string, action: ActionRestaurantApp) {
       return d.traiterCommande(ctx.supabase, ctx.utilisateurId, ctx.restaurantId, commandeId, action);
@@ -156,6 +177,9 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     },
     async retirerPhoto(ctx, platId: string) {
       return d.retirerPhoto(ctx.supabase, ctx.restaurantId, platId);
+    },
+    async agirSurLivraison(ctx, livraisonId: string, action: ActionLivraisonApp, code?: string) {
+      return d.agirSurLivraison(ctx.supabase, ctx.restaurantId, livraisonId, action, code);
     },
   };
 }

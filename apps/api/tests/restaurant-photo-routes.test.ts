@@ -36,6 +36,7 @@ function monter(surcharge: Partial<Deps["restaurant"]> = {}) {
       enregistrerReglages: async () => { throw new Error("hors sujet"); },
       lireMenu: async () => { throw new Error("hors sujet"); },
       actionMenu: async () => { throw new Error("hors sujet"); },
+      agirSurLivraison: async () => { throw new Error("hors sujet"); },
       definirPhoto: async (ctx, platId, fichier) => { journal.appels.push("photo-definir"); journal.photos.push({ appel: "definir", ctx, platId, fichier }); return { ok: true }; },
       retirerPhoto: async (ctx, platId) => { journal.appels.push("photo-retirer"); journal.photos.push({ appel: "retirer", ctx, platId }); return { ok: true }; },
       ...surcharge,

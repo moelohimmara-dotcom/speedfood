@@ -6,6 +6,7 @@ import { lireActionMenuApp, lireReglagesApp, lireStatutApp } from "@speedfood/sh
 import { REGLES_MENU_PLAFONNEES } from "@speedfood/shared/menu/regles-plat";
 import { PHOTO_CORPS_MAX_OCTETS, lireDemandePhotoApp } from "@speedfood/shared/contracts/restaurant-photo";
 import { lireActionRestaurantApp, lireDecisionPaiementApp, lireValeursPropositionApp } from "@speedfood/shared/contracts/restaurant-commandes";
+import { lireDemandeLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import { identifier } from "../controles/chaine.ts";
 import type { Variables } from "../controles/chaine.ts";
 import { lireCorpsJson, lireFormulaireBorne, repondre, reponseErreur } from "../http.ts";
@@ -14,7 +15,7 @@ import type { Deps } from "../types.ts";
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Espace restaurateur (lots D1, D2, D3, D4a et D4b), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
+ * Espace restaurateur (lots D1, D2, D3, D4a, D4b, D4c et D5), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
  * les refuser, les passer prêtes puis terminées, les annuler, confirmer ou contester un paiement déclaré, et proposer un autre prix au client.
  *
  *  - Jeton porteur STRICT uniquement (jamais de cookie), puis `deps.restaurant.contexte` : plafond par compte, second facteur, questions de sécurité, appartenance. Le restaurant
@@ -157,6 +158,20 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
       return reponseErreur(c, { code: "VALIDATION", message: demande.message });
     }
     const resultat = demande.demande.action === "retirer" ? await deps.restaurant.retirerPhoto(ctx, demande.demande.platId) : await deps.restaurant.definirPhoto(ctx, demande.demande.platId, demande.demande.fichier);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
+  // ---------- lot D5 : livraison par le restaurant ----------
+  route.post("/livraison/action", identite, async (c) => {
+    // Même ordre que les autres écritures : le contexte (plafond par compte, second facteur, questions, appartenance) AVANT le corps et la validation. Le restaurant vient de l'appartenance du compte ;
+    // un `restaurantId` du corps n'est jamais lu, et la livraison désignée doit appartenir à ce restaurant (sinon « introuvable », sans appeler l'avancement).
+    const ctx = await contexte(c);
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    // LISTE BLANCHE (partir, livree, annuler), UUID de la livraison et code à 4 chiffres exactement (pour « livree ») AVANT tout appel au service. Le code n'est jamais repris dans un message ni journalisé.
+    const demande = lireDemandeLivraisonApp(lu.corps);
+    if (!demande.ok) return reponseErreur(c, { code: "VALIDATION", message: demande.message });
+    const resultat = await deps.restaurant.agirSurLivraison(ctx, demande.livraisonId, demande.action, demande.code);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 

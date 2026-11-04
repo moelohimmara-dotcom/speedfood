@@ -56,6 +56,7 @@ function monter(surcharge: Partial<Deps["restaurant"]> = {}, journal: Journal = 
       actionMenu: async () => { throw new Error("hors sujet"); },
       definirPhoto: async () => { throw new Error("hors sujet"); },
       retirerPhoto: async () => { throw new Error("hors sujet"); },
+      agirSurLivraison: async () => { throw new Error("hors sujet"); },
       ...surcharge,
     },
   }));
