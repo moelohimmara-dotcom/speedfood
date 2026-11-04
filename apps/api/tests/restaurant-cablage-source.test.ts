@@ -92,3 +92,13 @@ test("l'analyseur : une variante qui passe le client administrateur à un servic
   assert.ok(!/^\s*lireCommandes:\s*\(client,\s*restaurantId,\s*origine\)\s*=>\s*lireCommandesRestaurant\(client as SupabaseClient,/.test(faux));
   assert.equal(((faux + "\nclientAdmin: () => creerClientAdmin(),").match(/creerClientAdmin\(/g) ?? []).length, 2);
 });
+
+// Relecture D4b (m-5) : le service du site réutilisé par l'API ne doit pas se mettre à utiliser un client administrateur ni une autre lecture système.
+test("service-menu (site) : aucun client administrateur ; une seule lecture système indirecte (paramètres globaux), trois appels", () => {
+  const brut = readFileSync(fileURLToPath(new URL("../../web/src/lib/menu/service-menu.ts", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
+  const sansCom = brut.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "").replace(/\s\/\/ .*$/, "")).join("\n");
+  assert.ok(!/db\/admin|creerClientAdmin|service_role|SERVICE_ROLE/.test(sansCom), "client administrateur dans service-menu.ts");
+  assert.equal((sansCom.match(/from "@\/lib\/parametres\/lire"/g) ?? []).length, 1);
+  assert.equal((sansCom.match(/obtenirParametresApplication\(\)/g) ?? []).length, 3, "creerPlat, modifierPlat, ajouterOption");
+  assert.equal((sansCom.match(/^import /gm) ?? []).length, 5, "liste des imports figée : toute nouvelle dépendance doit être revue");
+});

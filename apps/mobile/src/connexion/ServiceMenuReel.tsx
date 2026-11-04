@@ -5,7 +5,7 @@ import { gestion } from './gestion';
 import { ErreurRestaurateur } from './restaurateur';
 import { Action } from './BoutonAction';
 import {
-  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, evoluerService,
+  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
   formaterPrix, libelleDisponibilitePlat, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, preparerReglages, serviceVerrouille,
   type ActionService, type BrouillonOption, type BrouillonPlat, type BrouillonReglages, type ErreursOption, type ErreursPlat, type ErreursReglages, type EtatService, type EvenementService, type Lectures, type MenuRestaurateur, type PlatRestaurateur,
   type ReglagesRestaurateur, type RelectureService,
@@ -96,7 +96,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
       // Réglages enregistrés et relus : la saisie reprend EXACTEMENT ce que le serveur a (jamais une supposition).
       if (action.type === 'reglages' && e.phase === 'verdict' && e.verdict.genre === 'confirme' && relue.reglages) poserBrouillon(brouillonDe(relue.reglages));
       // Plat ou supplément enregistré (le serveur l'a confirmé) : le formulaire se referme et se vide. Dans tout autre cas il reste ouvert avec la saisie, pour corriger ou réessayer (si le verdict le permet).
-      if (e.phase === 'verdict' && e.verdict.genre === 'confirme' && actif.current) {
+      if (e.phase === 'verdict' && formulaireSeReferme(action, e.verdict) && actif.current) {
         if (action.type === 'creer' || action.type === 'modifier') { setFormPlat(null); setBrouillonPlat(BROUILLON_PLAT_VIDE); setErreursPlat({}); }
         if (action.type === 'option_ajouter') { setFormOption(null); setBrouillonOption(BROUILLON_OPTION_VIDE); setErreursOption({}); }
       }
@@ -227,7 +227,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     {section === 'menu' && menu && <View style={{ gap: 12 }}>
       {menu.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{menu.illisibles === 1 ? '1 plat est illisible dans l’application' : menu.illisibles + ' plats sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {menu.illisibles === 1 ? 'le' : 'les'} voir et {menu.illisibles === 1 ? 'le' : 'les'} modifier.</Text>}
       <Text accessibilityRole="header" style={s.nom}>Vos plats ({menu.plats.length})</Text>
-      {formPlat?.mode === 'creer' ? formulairePlat({ mode: 'creer' }) : <Action titre="Ajouter un plat" disabled={bloque} agir={ouvrirCreation} />}
+      {formPlat?.mode === 'creer' ? formulairePlat({ mode: 'creer' }) : <Action titre="Ajouter un plat" disabled={bloque || formPlat !== null} agir={ouvrirCreation} />}
       {menu.plats.length === 0 && <Text style={s.texte}>Aucun plat dans le menu.</Text>}
       {menu.plats.some(p => p.disponible) && (confirmation?.type === 'confirmer_tout'
         ? bloc(confirmation)

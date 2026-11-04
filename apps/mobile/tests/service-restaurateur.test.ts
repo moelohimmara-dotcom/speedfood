@@ -6,7 +6,7 @@ import { GestionSession } from '../src/connexion/session.ts';
 import { ErreurRestaurateur, MESSAGE_SECURITE } from '../src/connexion/restaurateur.ts';
 import {
   BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, CONFIRMATIONS_STATUT, CONFIRMATION_TOUT_CONFIRMER, actionArchiver, actionRetirerOption, brouillonPlatDe, confirmationArchiver, confirmationRetirerOption, etatConcerne, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, prixDepuisSaisie, ETAT_SERVICE_REPOS, HORAIRES_MAX, LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, actionAConfirmer, actionConfirmerTout, actionStatut, boutonExiste, brouillonDe, brouillonModifie, chiffresSeulement,
-  confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
+  confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, formulaireSeReferme, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
   preparerReglages, refusService, serviceVerrouille, verdictService, type ActionService, type EtatService, type MenuRestaurateur, type ReglagesRestaurateur,
 } from '../src/connexion/serviceRestaurateur.ts';
 
@@ -741,14 +741,44 @@ test('D4b verdict : réponse incertaine — plat retrouvé = enregistré ; absen
   const incertain = erreurReseauService();
   const trouve = verdictService({ erreur: incertain, action, relue: { menu: m4([platBrut(NOUVEAU, { nom: 'Riz', prix: 1000 })]) } });
   assert.deepEqual(trouve, { genre: 'confirme', message: 'Le nouveau plat est bien enregistré.' });
+  // I-1 : une INSERTION dont la relecture ne montre rien n'est PAS déclarée « non enregistrée » et ne propose JAMAIS de réessayer (doublon possible si le serveur finit après la relecture).
   const absent = verdictService({ erreur: incertain, action, relue: { menu: m4([]) } });
-  assert.ok(absent.genre === 'incertain' && absent.reessayer === true);
+  assert.ok(absent.genre === 'incertain' && absent.reessayer === false && absent.message.includes('peut-être pas été enregistré') && !absent.message.includes('n’a pas été enregistré') && !absent.message.includes('Vous pouvez réessayer'));
+  const ajoutAbsent = verdictService({ erreur: incertain, action: { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] }, relue: { menu: m4([platBrut(P1)]) } });
+  assert.ok(ajoutAbsent.genre === 'incertain' && ajoutAbsent.reessayer === false && !ajoutAbsent.message.includes('Vous pouvez réessayer'));
+  // Une valeur absolue (modifier) reste rejouable quand le bouton existe encore.
+  const modifAbsente = verdictService({ erreur: incertain, action: { type: 'modifier', platId: P1, plat }, relue: { menu: m4([platBrut(P1)]) } });
+  assert.ok(modifAbsente.genre === 'incertain' && modifAbsente.reessayer === true);
   const inconnu = verdictService({ erreur: incertain, action, relue: {} });
   assert.ok(inconnu.genre === 'incertain' && inconnu.reessayer === false && !inconnu.message.includes('bien enregistré') && !inconnu.message.includes('Vous pouvez réessayer'));
   for (const a of [{ type: 'modifier', platId: P1, plat }, { type: 'archiver', platId: P1, nom: 'x' }, { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] }, { type: 'option_retirer', optionId: O1, platId: P1, nom: 'S' }] as ActionService[]) {
     const v = verdictService({ erreur: incertain, action: a, relue: {} });
     assert.ok(v.genre === 'incertain' && v.reessayer === false, a.type);
   }
+});
+test('D4b verdict m-2 : retirer un supplément alors que le plat a disparu de l’état relu — jamais « bien retiré » sans preuve', () => {
+  const a: ActionService = { type: 'option_retirer', optionId: O1, platId: P1, nom: 'S' };
+  const relue = { menu: m4([platBrut(P2)]) };
+  assert.equal(etatCorrespond(a, relue), null);
+  const ok = verdictService({ erreur: null, action: a, relue });
+  assert.ok(ok.genre === 'confirme' && ok.message.includes('n’a pas pu être relu'));
+  const inc = verdictService({ erreur: erreurReseauService(), action: a, relue });
+  assert.ok(inc.genre === 'incertain' && inc.reessayer === false && !inc.message.includes('bien retiré'));
+  assert.equal(etatCorrespond(a, { menu: m4([platBrut(P1)]) }), true);
+});
+test('D4b formulaire (I-1, m-1) : une insertion confirmée ou incertaine referme le formulaire ; un refus le laisse ouvert ; modifier seulement si confirmé', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const creer: ActionService = { type: 'creer', plat, avant: [] };
+  const ajout: ActionService = { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] };
+  const modif: ActionService = { type: 'modifier', platId: P1, plat };
+  const confirme = { genre: 'confirme', message: 'x' } as const;
+  const incertain = { genre: 'incertain', message: 'x', reessayer: false } as const;
+  const refus = { genre: 'refus', message: 'x', reessayer: false } as const;
+  for (const a of [creer, ajout]) { assert.equal(formulaireSeReferme(a, confirme), true); assert.equal(formulaireSeReferme(a, incertain), true); assert.equal(formulaireSeReferme(a, refus), false); }
+  assert.equal(formulaireSeReferme(modif, confirme), true); assert.equal(formulaireSeReferme(modif, incertain), false);
+  // m-1 : le serveur a répondu ok mais l'état relu diffère → incertain → le formulaire se referme (pas de second envoi possible avec la même saisie).
+  const v = verdictService({ erreur: null, action: creer, relue: { menu: m4([]) } });
+  assert.equal(v.genre, 'incertain'); assert.equal(formulaireSeReferme(creer, v), true);
 });
 test('D4b verdict D2-M4 : « réessayer » seulement quand le bouton existe encore (plat disparu, archivé ailleurs, non modifiable)', () => {
   const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
@@ -869,11 +899,12 @@ test('D4b écran : l’enregistrement d’un plat et d’un supplément valide A
   assert.ok(ecran.includes('if (!p.ok) { setErreursPlat(p.erreurs); return; }'));
   assert.ok(ecran.includes('const p = preparerOption(brouillonOption, plat);') && ecran.includes('if (!p.ok) { setErreursOption(p.erreurs); return; }'));
   assert.equal((ecran.match(/void envoyer\(p\.action\)/g) ?? []).length, 2, 'création/modification et supplément envoient l’action préparée, jamais une saisie brute');
-  assert.ok(ecran.includes("e.verdict.genre === 'confirme'") && ecran.includes("action.type === 'creer' || action.type === 'modifier'") && ecran.includes("action.type === 'option_ajouter'"));
+  assert.ok(ecran.includes("if (e.phase === 'verdict' && formulaireSeReferme(action, e.verdict) && actif.current) {"), 'la fermeture du formulaire passe par la décision pure formulaireSeReferme, ligne exacte');
+  assert.ok(ecran.includes("action.type === 'creer' || action.type === 'modifier'") && ecran.includes("action.type === 'option_ajouter'"));
   assert.ok(!/setFormPlat\(null\)[^\n]*\n[^\n]*envoyer/.test(ecran), 'le formulaire ne se ferme pas avant la réponse');
 });
 test('D4b écran : « Ajouter un plat », « Modifier », « Archiver », « Ajouter un supplément » et « Retirer » existent, verrouillés pendant l’envoi, et archiver / retirer passent par la confirmation', () => {
-  for (const titre of ["titre=\"Ajouter un plat\" disabled={bloque}", "'Modifier ' + p.nom} secondaire disabled={bloque}", "'Archiver ' + p.nom} secondaire disabled={bloque}", "'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
+  for (const titre of ["titre=\"Ajouter un plat\" disabled={bloque || formPlat !== null}", "'Modifier ' + p.nom} secondaire disabled={bloque}", "'Archiver ' + p.nom} secondaire disabled={bloque}", "'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
   assert.ok(ecran.includes("action: actionArchiver(p)") && ecran.includes("action: actionRetirerOption(p, o)"));
   assert.ok(!/envoyer\(actionArchiver|envoyer\(actionRetirerOption/.test(ecran), 'jamais d’archivage ni de retrait sans confirmation');
 });
