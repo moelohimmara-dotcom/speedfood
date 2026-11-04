@@ -20,4 +20,13 @@ function appliquer(config, env) {
   };
 }
 
-module.exports = { appliquer, PAQUET_PRODUCTION, CODE_PUBLIE };
+/**
+ * Firebase (notifications, lot E2) : le fichier google-services.json n'est PAS dans le dépôt (ignoré par Git, posé par Malika). Il n'est référencé que s'il existe à la compilation ;
+ * sans lui la compilation reste verte et l'appli n'a simplement pas de jeton de notification. Seule l'EXISTENCE du fichier est testée, jamais son contenu.
+ */
+function avecFirebase(config, fichierPresent) {
+  if (!fichierPresent) return config;
+  return { ...config, android: { ...config.android, googleServicesFile: "./google-services.json" } };
+}
+
+module.exports = { appliquer, avecFirebase, PAQUET_PRODUCTION, CODE_PUBLIE };

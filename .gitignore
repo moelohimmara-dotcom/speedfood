@@ -78,3 +78,7 @@ node_modules/
 /apps/api/dist/
 /apps/api/.dev.vars
 /apps/api/.wrangler/
+
+# Firebase de l appli Expo (lot E2) : posé par Malika, jamais commité
+apps/mobile/google-services.json
+apps/mobile/GoogleService-Info.plist

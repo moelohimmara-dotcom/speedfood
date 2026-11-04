@@ -14,7 +14,14 @@ export class GestionSession {
   private generation = 0; private file: Promise<unknown> = Promise.resolve();
   private renouvellement: Promise<void> | null = null;
   private clesSuivi = new Map<string,{jeton:string;reference:string}>();
+  /** Notifications (lot E2) : retrait de l'appareil à la déconnexion, appelé AVANT l'effacement de la session (jeton porteur encore valide). Un seul essai ; échec ou lenteur : la déconnexion continue. */
+  avantDeconnexion?: (acces: string) => Promise<void>;
+  /** Appelé (sans attendre) quand une session vient d'être ouverte ou restaurée : l'appli réenregistre alors l'appareil pour les notifications. Ne bloque ni ne fait échouer la connexion. */
+  apresOuverture?: () => void;
   constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
+  /** Jeton porteur de la session ouverte (renouvelé si besoin), ou `null` : jamais d'exception. Sert aux appels de l'appareil, qui ne doivent rien afficher. */
+  async acces(): Promise<string | null> { try { return this.session ? await this.jeton() : null; } catch { return null; } }
+  private signaler() { try { this.apresOuverture?.(); } catch { /* sans effet sur la session */ } }
   get connectee() { return this.session !== null; }
   /** Nombre de déconnexions VOLONTAIRES : distingue « Me déconnecter » d'une session expirée (la machine d'envoi n'efface rien à l'expiration). */
   get deconnexions() { return this.nbDeconnexions; }
@@ -35,6 +42,7 @@ export class GestionSession {
     try { await this.ordonner(() => this.coffre.effacer()); } catch { throw new ErreurConnexion('Impossible de fermer la session précédente sur cet appareil.'); }
     if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
     await this.appliquer(await this.api.connecter(email,motDePasse),n);
+    this.signaler();
   }
   async restaurer() {
     this.clesSuivi.clear();
@@ -42,7 +50,7 @@ export class GestionSession {
     let refresh: string | null;
     try { refresh = await this.coffre.lire(); } catch { throw new ErreurConnexion('Impossible de lire la session protégée.'); }
     if (!refresh || n !== this.generation) return;
-    try { await this.appliquer(await this.api.renouveler(refresh),n); }
+    try { await this.appliquer(await this.api.renouveler(refresh),n); this.signaler(); }
     catch(e) { if (e instanceof ErreurConnexion && e.definitive && n === this.generation) await this.ordonner(() => this.coffre.effacer()); throw e; }
   }
   private async jeton() {
@@ -212,6 +220,13 @@ export class GestionSession {
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   async deconnecter() {
+    const retrait = this.avantDeconnexion;
+    if (retrait && this.session) {
+      // Retrait de l'appareil D'ABORD (le jeton porteur est encore valide), un seul essai, au plus 6 s ; rien de ce qui se passe ici n'empêche la déconnexion.
+      let minuterie: ReturnType<typeof setTimeout> | undefined;
+      try { await Promise.race([this.acces().then(a => a ? retrait(a) : undefined), new Promise<void>(r => { minuterie = setTimeout(r, 6000); })]); } catch { /* silencieux */ }
+      finally { if (minuterie) clearTimeout(minuterie); }
+    }
     this.nbDeconnexions++;
     this.clesSuivi.clear();
     const acces = this.session?.accessToken; ++this.generation; this.session = null;

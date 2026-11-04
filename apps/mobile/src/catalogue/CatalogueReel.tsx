@@ -7,6 +7,8 @@ import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
 import { CommandeReelle } from './CommandeReelle';
+import { brancherOuvertureSuivi, notifications } from '../notifications';
+import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
 function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={({ pressed }) => [s.action, { opacity: disabled ? .5 : pressed ? .8 : 1 }]}><Text style={s.actionTexte}>{titre}</Text></Pressable>;
@@ -18,6 +20,7 @@ export function CatalogueReel() {
   const [commandeOuverte, setCommandeOuverte] = useState(false);
   const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null } | null>(null);
   const [messagePanier, setMessagePanier] = useState('');
+  const [messageNotifications, setMessageNotifications] = useState('');
   function voirPanier() { setPanierOuvert(true); void panier.recharger(); }
   const [restaurants, setRestaurants] = useState<RestaurantPublic[]>([]);
   const [suivant, setSuivant] = useState<string | null>(null);
@@ -47,6 +50,12 @@ export function CatalogueReel() {
     } finally { if (numero === generation.current) setCharge(false); }
   }
   useEffect(() => { void charger(null); return () => { generation.current++; }; }, []);
+  // Notifications (lot E2) : canal, écoute de l'appui sur une notification (ouvre « Mon compte » sur le suivi, sans le relire seul) et renouvellement du jeton. Ne demande jamais l'autorisation ici.
+  useEffect(() => {
+    const debrancher = brancherOuvertureSuivi(() => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); });
+    const arreter = notifications.demarrer();
+    return () => { arreter(); debrancher(); };
+  }, []);
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
   useEffect(() => {
@@ -70,6 +79,7 @@ export function CatalogueReel() {
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
+      {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {!selection && <>
@@ -96,7 +106,7 @@ export function CatalogueReel() {
     <CommandeReelle ouvert={commandeOuverte} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
-      apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); }} />
+      apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} />
   </View>;
 }
