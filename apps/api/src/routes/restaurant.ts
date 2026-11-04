@@ -3,6 +3,7 @@ import { lireBearer } from "@speedfood/shared/api/v1-regles";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { lireDelaiPreparation } from "@speedfood/shared/commande/estimation";
 import { lireActionMenuApp, lireReglagesApp, lireStatutApp } from "@speedfood/shared/contracts/restaurant-service";
+import { REGLES_MENU_PLAFONNEES } from "@speedfood/shared/menu/regles-plat";
 import { lireActionRestaurantApp, lireDecisionPaiementApp, lireValeursPropositionApp } from "@speedfood/shared/contracts/restaurant-commandes";
 import { identifier } from "../controles/chaine.ts";
 import type { Variables } from "../controles/chaine.ts";
@@ -12,7 +13,7 @@ import type { Deps } from "../types.ts";
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Espace restaurateur (lots D1, D2, D3 et D4a), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
+ * Espace restaurateur (lots D1, D2, D3, D4a et D4b), comme `apps/web/src/app/api/v1/restaurant/commandes/{route,action/route,paiement/route,proposition/route}.ts` : lire les commandes de SON restaurant, les accepter,
  * les refuser, les passer prêtes puis terminées, les annuler, confirmer ou contester un paiement déclaré, et proposer un autre prix au client.
  *
  *  - Jeton porteur STRICT uniquement (jamais de cookie), puis `deps.restaurant.contexte` : plafond par compte, second facteur, questions de sécurité, appartenance. Le restaurant
@@ -132,10 +133,11 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     const ctx = await contexte(c);
     const lu = await lireCorpsJson(c);
     if (!lu.ok) return lu.reponse;
-    // LISTE BLANCHE (disponibilite, confirmer, confirmer_tout) avant tout appel au service : créer, modifier, archiver, les suppléments (lot D4b) et toute valeur inconnue sont refusés ici.
-    const action = lireActionMenuApp(lu.corps);
-    if (action === null) return reponseErreur(c, { code: "VALIDATION", message: "Action inconnue." });
-    const resultat = await deps.restaurant.actionMenu(ctx, action);
+    // LISTE BLANCHE (disponibilite, confirmer, confirmer_tout, creer, modifier, archiver, option_ajouter, option_retirer) ET validation des champs (mêmes règles que le site, plafond absolu des prix) AVANT
+    // tout appel au service : une action inconnue ou une saisie invalide n'atteint jamais le service. Le service ne reçoit que les champs prévus (jamais un restaurant venu du corps).
+    const lecture = lireActionMenuApp(lu.corps, REGLES_MENU_PLAFONNEES);
+    if (!lecture.ok) return reponseErreur(c, { code: "VALIDATION", message: lecture.message });
+    const resultat = await deps.restaurant.actionMenu(ctx, lecture.action);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 

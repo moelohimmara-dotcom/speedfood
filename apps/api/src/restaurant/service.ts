@@ -1,6 +1,6 @@
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
-import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
+import type { ActionMenuApp, OptionAEcrire, PlatAEcrire, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type DecisionPaiementApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { ContexteRestaurant, Deps } from "../types.ts";
 
@@ -47,6 +47,15 @@ export interface DepsServiceRestaurant {
   basculerDisponibilite(client: unknown, restaurantId: string, platId: string, disponible: boolean): Promise<ResultatMenuSite>;
   confirmerDisponibilite(client: unknown, restaurantId: string, platId: string): Promise<ResultatMenuSite>;
   confirmerToutesDisponibilites(client: unknown, restaurantId: string): Promise<ResultatMenuSite>;
+  /**
+   * Lot D4b : services d'écriture du menu du site. Le restaurant vient TOUJOURS du contexte ; `creerPlat` écrit dans ce restaurant, `modifierPlat` et `archiverPlat` filtrent le plat sur lui, `ajouterOption`
+   * vérifie que le plat est à ce restaurant, `retirerOption` que le supplément appartient à un plat de ce restaurant (un identifiant d'un autre restaurant est « introuvable »).
+   */
+  creerPlat(client: unknown, restaurantId: string, plat: PlatAEcrire): Promise<ResultatMenuSite>;
+  modifierPlat(client: unknown, restaurantId: string, platId: string, plat: PlatAEcrire): Promise<ResultatMenuSite>;
+  archiverPlat(client: unknown, restaurantId: string, platId: string): Promise<ResultatMenuSite>;
+  ajouterOption(client: unknown, restaurantId: string, platId: string, option: OptionAEcrire): Promise<ResultatMenuSite>;
+  retirerOption(client: unknown, restaurantId: string, optionId: string): Promise<ResultatMenuSite>;
 }
 
 /** Résultat des services du menu du site (`ResultatMenu`). */
@@ -122,9 +131,18 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     },
     async actionMenu(ctx, action: ActionMenuApp) {
       // Même correspondance que la route du site : une raison de refus du service est une erreur de validation (le plat n'existe pas ou n'est pas à ce restaurant).
-      const resultat = action.action === "disponibilite" ? await d.basculerDisponibilite(ctx.supabase, ctx.restaurantId, action.platId, action.disponible)
-        : action.action === "confirmer" ? await d.confirmerDisponibilite(ctx.supabase, ctx.restaurantId, action.platId)
-          : await d.confirmerToutesDisponibilites(ctx.supabase, ctx.restaurantId);
+      // Chaque action reçoit le client du jeton et le restaurant du CONTEXTE ; les colonnes écrites sont celles de `PlatAEcrire` / `OptionAEcrire` (champ par champ), jamais le corps tel quel.
+      let resultat: ResultatMenuSite;
+      switch (action.action) {
+        case "disponibilite": resultat = await d.basculerDisponibilite(ctx.supabase, ctx.restaurantId, action.platId, action.disponible); break;
+        case "confirmer": resultat = await d.confirmerDisponibilite(ctx.supabase, ctx.restaurantId, action.platId); break;
+        case "confirmer_tout": resultat = await d.confirmerToutesDisponibilites(ctx.supabase, ctx.restaurantId); break;
+        case "creer": resultat = await d.creerPlat(ctx.supabase, ctx.restaurantId, action.plat); break;
+        case "modifier": resultat = await d.modifierPlat(ctx.supabase, ctx.restaurantId, action.platId, action.plat); break;
+        case "archiver": resultat = await d.archiverPlat(ctx.supabase, ctx.restaurantId, action.platId); break;
+        case "option_ajouter": resultat = await d.ajouterOption(ctx.supabase, ctx.restaurantId, action.platId, action.option); break;
+        case "option_retirer": resultat = await d.retirerOption(ctx.supabase, ctx.restaurantId, action.optionId); break;
+      }
       return resultat.ok ? { ok: true } : { ok: false, erreur: { code: "VALIDATION", message: resultat.message } };
     },
   };

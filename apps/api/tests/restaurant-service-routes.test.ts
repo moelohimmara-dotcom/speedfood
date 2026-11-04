@@ -111,7 +111,7 @@ test("D4a : plafond par compte dépassé : 429 (cinq routes), aucun service appe
 });
 
 test("D4a : le plafond est consommé AVANT la validation : un corps invalide appelle quand même le contexte une fois, jamais le service", async () => {
-  const invalides: Array<[string, unknown]> = [["statut", { champ: "ouvert", valeur: "true" }], ["reglages", { horaires: 5 }], ["menu/action", { action: "archiver", platId: PLAT }]];
+  const invalides: Array<[string, unknown]> = [["statut", { champ: "ouvert", valeur: "true" }], ["reglages", { horaires: 5 }], ["menu/action", { action: "inconnue", platId: PLAT }]];
   for (const [chemin, corps] of invalides) {
     const { app, journal } = monter();
     assert.equal((await post(app, chemin, corps)).status, 400, chemin);
@@ -124,7 +124,7 @@ test("D4a : le plafond est consommé AVANT la validation : un corps invalide app
 });
 
 test("D4a : plafond dépassé ET corps invalide : 429 (le plafond passe avant la lecture du corps), pour les trois routes d'écriture", async () => {
-  const invalides: Array<[string, unknown]> = [["statut", { champ: "ouvert", valeur: "true" }], ["reglages", { horaires: 5 }], ["menu/action", { action: "archiver", platId: PLAT }]];
+  const invalides: Array<[string, unknown]> = [["statut", { champ: "ouvert", valeur: "true" }], ["reglages", { horaires: 5 }], ["menu/action", { action: "inconnue", platId: PLAT }]];
   for (const [chemin, corps] of invalides) {
     for (const brut of [corps, "{pas du json"]) {
       const { app, journal } = monter({ contexte: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); } });
@@ -321,8 +321,8 @@ test("menu/action : disponibilite, confirmer et confirmer_tout sont transmis au 
   }
 });
 
-test("menu/action : LISTE BLANCHE : creer, modifier, archiver, option_ajouter, option_retirer, inconnue, variantes de casse = 400 VALIDATION, SANS appel au service (le plafond est consommé)", async () => {
-  const actions: unknown[] = ["creer", "modifier", "archiver", "option_ajouter", "option_retirer", "supprimer", "photo", "Disponibilite", "CONFIRMER", "confirmer ", "confirmer_tout\n", "confirmerTout", "", null, 3, ["confirmer"], { a: 1 }, undefined];
+test("menu/action : LISTE BLANCHE : une action hors liste (supprimer, photo, document, variantes de casse, vide, non texte) = 400 VALIDATION, SANS appel au service (le plafond est consommé)", async () => {
+  const actions: unknown[] = ["supprimer", "photo", "document", "historique", "Creer", "MODIFIER", "Archiver", "creer ", "option_supprimer", "Disponibilite", "CONFIRMER", "confirmer ", "confirmer_tout\n", "confirmerTout", "", null, 3, ["confirmer"], { a: 1 }, undefined];
   for (const action of actions) {
     const { app, journal } = monter();
     const reponse = await post(app, "menu/action", { action, platId: PLAT, optionId: PLAT, disponible: true, nom: "Plat", prix: 1000 });
@@ -369,4 +369,117 @@ test("menu/action : refus du service (plat introuvable ou d'un autre restaurant)
   const r2 = await post(panne, "menu/action", { action: "confirmer_tout" });
   assert.equal(r2.status, 500);
   assert.ok(!(await r2.text()).includes("secret interne"));
+});
+
+// ---------- lot D4b ----------
+const OPTION = "77777777-7777-4777-8777-777777777777";
+const SECTION = "55555555-5555-4555-8555-555555555555";
+const PLAT_ECRIT = { nom: "Poulet braisé", description: "Avec des frites", prix: 45000, prixPromo: null, sectionId: SECTION };
+
+test("D4b menu/action : les cinq actions sont transmises au service avec les seules valeurs prévues et le contexte de l'appartenance", async () => {
+  const cas: Array<[unknown, ActionMenuApp]> = [
+    [{ action: "creer", nom: "Poulet braisé", description: "Avec des frites", prix: 45000, sectionId: SECTION }, { action: "creer", plat: PLAT_ECRIT }],
+    [{ action: "modifier", platId: PLAT, nom: "Poulet braisé", description: "Avec des frites", prix: 45000, prixPromo: null, sectionId: SECTION }, { action: "modifier", platId: PLAT, plat: PLAT_ECRIT }],
+    [{ action: "archiver", platId: PLAT }, { action: "archiver", platId: PLAT }],
+    [{ action: "option_ajouter", platId: PLAT, nom: "Sauce piquante", prix: 2000 }, { action: "option_ajouter", platId: PLAT, option: { nom: "Sauce piquante", prix: 2000 } }],
+    [{ action: "option_retirer", optionId: OPTION }, { action: "option_retirer", optionId: OPTION }],
+  ];
+  for (const [corps, attendu] of cas) {
+    const { app, journal } = monter();
+    const reponse = await post(app, "menu/action", corps);
+    assert.equal(reponse.status, 200, JSON.stringify(corps));
+    assert.deepEqual(await reponse.json(), { ok: true });
+    assert.deepEqual(journal.menus, [attendu]);
+    assert.equal(journal.contextes[0], CTX);
+    assert.equal(journal.appels.filter((a) => a.startsWith("contexte")).length, 1);
+  }
+});
+
+test("D4b menu/action : un restaurantId (ou restaurant_id, id, archive_le, disponible, photoUrl…) du corps est IGNORÉ pour les cinq actions : le service ne reçoit que les champs prévus", async () => {
+  const parasites = { restaurantId: RESTAURANT_B, restaurant_id: RESTAURANT_B, id: PLAT, archive_le: "2026-01-01T00:00:00Z", disponible: false, photoUrl: "https://x", photo_url: "https://x", menu_item_id: PLAT, role: "owner" };
+  const cas: Array<[unknown, ActionMenuApp]> = [
+    [{ action: "creer", nom: "Poulet braisé", description: "Avec des frites", prix: 45000, sectionId: SECTION, ...parasites }, { action: "creer", plat: PLAT_ECRIT }],
+    [{ action: "modifier", platId: PLAT, nom: "Poulet braisé", description: "Avec des frites", prix: 45000, sectionId: SECTION, ...parasites, id: OPTION }, { action: "modifier", platId: PLAT, plat: PLAT_ECRIT }],
+    [{ action: "archiver", platId: PLAT, ...parasites }, { action: "archiver", platId: PLAT }],
+    [{ action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: 2000, ...parasites }, { action: "option_ajouter", platId: PLAT, option: { nom: "Sauce", prix: 2000 } }],
+    [{ action: "option_retirer", optionId: OPTION, ...parasites }, { action: "option_retirer", optionId: OPTION }],
+  ];
+  for (const [corps, attendu] of cas) {
+    const { app, journal } = monter();
+    assert.equal((await post(app, "menu/action", corps)).status, 200);
+    assert.deepEqual(journal.menus, [attendu]);
+    assert.equal(journal.contextes[0].restaurantId, RESTAURANT_A, "le restaurant est celui de l'appartenance");
+  }
+});
+
+test("D4b menu/action : champs invalides = 400 VALIDATION AVANT le service (prix négatif, décimal, énorme, texte ; nom vide ou trop long ; description trop longue ; identifiants invalides)", async () => {
+  const plat = { nom: "Riz", description: "", prix: 1000 };
+  const invalides: unknown[] = [
+    { action: "creer", ...plat, prix: -1 }, { action: "creer", ...plat, prix: 10.5 }, { action: "creer", ...plat, prix: 1e300 }, { action: "creer", ...plat, prix: 10_000_001 }, { action: "creer", ...plat, prix: "1000" },
+    { action: "creer", ...plat, prix: null }, { action: "creer", ...plat, prix: undefined }, { action: "creer", ...plat, nom: "" }, { action: "creer", ...plat, nom: "x".repeat(121) }, { action: "creer", ...plat, description: "x".repeat(501) },
+    { action: "creer", ...plat, prixPromo: 2000 }, { action: "creer", ...plat, sectionId: "pas-un-uuid" },
+    { action: "modifier", platId: PLAT, ...plat, prix: -5 }, { action: "modifier", platId: PLAT, ...plat, prix: 0.5 }, { action: "modifier", platId: PLAT, ...plat, prix: 1e21 }, { action: "modifier", platId: PLAT, ...plat, nom: " " },
+    { action: "modifier", platId: "abc", ...plat }, { action: "modifier", ...plat }, { action: "modifier", platId: null, ...plat },
+    { action: "archiver" }, { action: "archiver", platId: "abc" }, { action: "archiver", platId: 5 },
+    { action: "option_ajouter", platId: PLAT, nom: "", prix: 100 }, { action: "option_ajouter", platId: PLAT, nom: "x".repeat(81), prix: 100 }, { action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: -1 },
+    { action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: 1.5 }, { action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: 1e300 }, { action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: "100" }, { action: "option_ajouter", nom: "Sauce", prix: 100 },
+    { action: "option_retirer" }, { action: "option_retirer", optionId: "abc" }, { action: "option_retirer", platId: PLAT }, { action: "option_retirer", optionId: 12 },
+  ];
+  for (const corps of invalides) {
+    const { app, journal } = monter();
+    const reponse = await post(app, "menu/action", corps);
+    assert.equal(reponse.status, 400, JSON.stringify(corps));
+    assert.equal(await code(reponse), "VALIDATION");
+    aucunService(journal);
+    assert.equal(journal.appels.filter((a) => a.startsWith("contexte")).length, 1, "le plafond est consommé avant la validation");
+  }
+  // NaN et Infinity ne sont pas du JSON : le parseur les refuse.
+  const { app, journal } = monter();
+  assert.equal((await post(app, "menu/action", '{"action":"creer","nom":"Riz","prix":NaN}')).status, 400);
+  assert.equal((await post(app, "menu/action", '{"action":"creer","nom":"Riz","prix":Infinity}')).status, 400);
+  aucunService(journal);
+});
+
+test("D4b menu/action : sans jeton, non membre, sécurité du compte (MFA, questions) et plafond : les cinq écritures sont refusées avant tout service", async () => {
+  const ecritures: unknown[] = [
+    { action: "creer", nom: "Riz", prix: 1000 }, { action: "modifier", platId: PLAT, nom: "Riz", prix: 1000 }, { action: "archiver", platId: PLAT },
+    { action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: 100 }, { action: "option_retirer", optionId: OPTION },
+  ];
+  for (const corps of ecritures) {
+    const sans = monter();
+    assert.equal((await post(sans.app, "menu/action", corps, { "content-type": "application/json" })).status, 401);
+    assert.ok(!sans.journal.appels.some((a) => a.startsWith("contexte")));
+    aucunService(sans.journal);
+    const refus: Array<[number, () => Promise<never>]> = [
+      [403, async () => { throw new ErreurMetier("NON_AUTORISE", "Ce compte n'est rattaché à aucun restaurant."); }],
+      [403, async () => { throw new ErreurMetier("NON_AUTORISE", "Ouvrez Speedfood sur le site pour terminer la sécurité du compte restaurateur.", { securite: "mfa" }); }],
+      [403, async () => { throw new ErreurMetier("NON_AUTORISE", "Ouvrez Speedfood sur le site pour terminer la sécurité du compte restaurateur.", { securite: "questions" }); }],
+      [429, async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Trop de demandes."); }],
+    ];
+    for (const [statut, contexte] of refus) {
+      const { app, journal } = monter({ contexte });
+      assert.equal((await post(app, "menu/action", corps)).status, statut, JSON.stringify(corps));
+      aucunService(journal);
+    }
+  }
+});
+
+test("D4b menu/action : refus du service (plat ou supplément d'un autre restaurant) restitué en 400 VALIDATION avec son message ; panne = 500 sans détail ; aucun jeton dans la réponse", async () => {
+  const ecritures: unknown[] = [
+    { action: "creer", nom: "Riz", prix: 1000 }, { action: "modifier", platId: PLAT, nom: "Riz", prix: 1000 }, { action: "archiver", platId: PLAT },
+    { action: "option_ajouter", platId: PLAT, nom: "Sauce", prix: 100 }, { action: "option_retirer", optionId: OPTION },
+  ];
+  for (const corps of ecritures) {
+    const refus = monter({ actionMenu: async () => ({ ok: false, erreur: { code: "VALIDATION", message: "Plat introuvable." } }) }).app;
+    const reponse = await post(refus, "menu/action", corps);
+    assert.equal(reponse.status, 400);
+    const texte = await reponse.text();
+    assert.ok(texte.includes("Plat introuvable."));
+    assert.ok(!texte.includes(JETON));
+    const panne = monter({ actionMenu: async () => { throw new Error("secret interne SQL"); } }).app;
+    const r2 = await post(panne, "menu/action", corps);
+    assert.equal(r2.status, 500);
+    assert.ok(!(await r2.text()).includes("secret interne"));
+    assert.equal(await (await post(monter().app, "menu/action", corps)).text(), JSON.stringify({ ok: true }));
+  }
 });

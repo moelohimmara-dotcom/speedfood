@@ -8,7 +8,7 @@ import { confirmerPaiement } from "@/lib/commande/service-paiement";
 import { lireCommandesRestaurant } from "@/lib/api/restaurant-commandes";
 import { origineDuSite } from "@/lib/partage/origine";
 import type { ClientCommandeDb } from "@/lib/commande/commun";
-import { basculerDisponibilite, confirmerDisponibilite, confirmerToutesDisponibilites, lireMenu as lireMenuRestaurant } from "@/lib/menu/service-menu";
+import { ajouterOption, archiverPlat, basculerDisponibilite, confirmerDisponibilite, confirmerToutesDisponibilites, creerPlat, lireMenu as lireMenuRestaurant, modifierPlat, retirerOption } from "@/lib/menu/service-menu";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { creerServiceRestaurant } from "./service.ts";
 import { ecrireReglagesRestaurant, ecrireStatutRestaurant, lireReglagesRestaurant } from "./reglages.ts";
@@ -40,4 +40,9 @@ export const serviceRestaurant = creerServiceRestaurant({
   basculerDisponibilite: (client, restaurantId, platId, disponible) => basculerDisponibilite(client as SupabaseClient, restaurantId, platId, disponible),
   confirmerDisponibilite: (client, restaurantId, platId) => confirmerDisponibilite(client as SupabaseClient, restaurantId, platId),
   confirmerToutesDisponibilites: (client, restaurantId) => confirmerToutesDisponibilites(client as SupabaseClient, restaurantId),
+  creerPlat: (client, restaurantId, plat) => creerPlat(client as SupabaseClient, restaurantId, plat),
+  modifierPlat: (client, restaurantId, platId, plat) => modifierPlat(client as SupabaseClient, restaurantId, platId, plat),
+  archiverPlat: (client, restaurantId, platId) => archiverPlat(client as SupabaseClient, restaurantId, platId),
+  ajouterOption: (client, restaurantId, platId, option) => ajouterOption(client as SupabaseClient, restaurantId, platId, option),
+  retirerOption: (client, restaurantId, optionId) => retirerOption(client as SupabaseClient, restaurantId, optionId),
 });

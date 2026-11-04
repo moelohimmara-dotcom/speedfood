@@ -62,6 +62,11 @@ function monter(surcharge: Partial<DepsServiceRestaurant> = {}) {
     basculerDisponibilite: async () => { throw new Error("hors sujet"); },
     confirmerDisponibilite: async () => { throw new Error("hors sujet"); },
     confirmerToutesDisponibilites: async () => { throw new Error("hors sujet"); },
+    creerPlat: async () => { throw new Error("hors sujet"); },
+    modifierPlat: async () => { throw new Error("hors sujet"); },
+    archiverPlat: async () => { throw new Error("hors sujet"); },
+    ajouterOption: async () => { throw new Error("hors sujet"); },
+    retirerOption: async () => { throw new Error("hors sujet"); },
     ...surcharge,
   });
   return { service, journal };
@@ -252,4 +257,66 @@ test("D4a service : le statut n'appelle aucun service du menu et inversement (au
   await service.actionMenu(ctx, { action: "disponibilite", platId: PLAT, disponible: true });
   await service.modifierStatut(ctx, { champ: "accepte_commandes", valeur: false });
   assert.deepEqual(appels, ["confirmer", "tout", "dispo", "statut:accepte_commandes"]);
+});
+
+// ---------- lot D4b : créer, modifier, archiver un plat, ajouter et retirer un supplément ----------
+const PLAT_D4B = "44444444-4444-4444-8444-444444444444";
+const OPTION_D4B = "77777777-7777-4777-8777-777777777777";
+const SECTION_D4B = "55555555-5555-4555-8555-555555555555";
+const PLAT_ECRIT = { nom: "Poulet braisé", description: "Avec des frites", prix: 45000, prixPromo: null, sectionId: SECTION_D4B };
+
+test("D4b service : les cinq actions d'écriture reçoivent le client du JETON et le restaurant de l'appartenance, et les valeurs exactes (jamais l'administrateur)", async () => {
+  const recus: Array<{ appel: string; client: unknown; restaurantId: string; valeurs: unknown }> = [];
+  const { service } = monter({
+    creerPlat: async (client, restaurantId, plat) => { recus.push({ appel: "creer", client, restaurantId, valeurs: plat }); return { ok: true }; },
+    modifierPlat: async (client, restaurantId, platId, plat) => { recus.push({ appel: "modifier:" + platId, client, restaurantId, valeurs: plat }); return { ok: true }; },
+    archiverPlat: async (client, restaurantId, platId) => { recus.push({ appel: "archiver:" + platId, client, restaurantId, valeurs: null }); return { ok: true }; },
+    ajouterOption: async (client, restaurantId, platId, option) => { recus.push({ appel: "option_ajouter:" + platId, client, restaurantId, valeurs: option }); return { ok: true }; },
+    retirerOption: async (client, restaurantId, optionId) => { recus.push({ appel: "option_retirer:" + optionId, client, restaurantId, valeurs: null }); return { ok: true }; },
+  });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  assert.deepEqual(await service.actionMenu(ctx, { action: "creer", plat: PLAT_ECRIT }), { ok: true });
+  assert.deepEqual(await service.actionMenu(ctx, { action: "modifier", platId: PLAT_D4B, plat: PLAT_ECRIT }), { ok: true });
+  assert.deepEqual(await service.actionMenu(ctx, { action: "archiver", platId: PLAT_D4B }), { ok: true });
+  assert.deepEqual(await service.actionMenu(ctx, { action: "option_ajouter", platId: PLAT_D4B, option: { nom: "Sauce piquante", prix: 2000 } }), { ok: true });
+  assert.deepEqual(await service.actionMenu(ctx, { action: "option_retirer", optionId: OPTION_D4B }), { ok: true });
+  assert.deepEqual(recus.map((r) => r.appel), ["creer", "modifier:" + PLAT_D4B, "archiver:" + PLAT_D4B, "option_ajouter:" + PLAT_D4B, "option_retirer:" + OPTION_D4B]);
+  assert.deepEqual(recus[0].valeurs, PLAT_ECRIT);
+  assert.deepEqual(recus[3].valeurs, { nom: "Sauce piquante", prix: 2000 });
+  for (const r of recus) {
+    assert.equal(r.client, CLIENT_JETON, r.appel + " : client lié au jeton");
+    assert.notEqual(r.client, CLIENT_ADMIN);
+    assert.equal(r.restaurantId, RESTAURANT_A, r.appel + " : restaurant de l'appartenance");
+  }
+});
+
+test("D4b service : `creer` n'appelle jamais `modifier` et inversement (aucune confusion entre les cinq écritures)", async () => {
+  const appels: string[] = [];
+  const { service } = monter({
+    creerPlat: async () => { appels.push("creer"); return { ok: true }; },
+    modifierPlat: async () => { appels.push("modifier"); return { ok: true }; },
+    archiverPlat: async () => { appels.push("archiver"); return { ok: true }; },
+    ajouterOption: async () => { appels.push("option_ajouter"); return { ok: true }; },
+    retirerOption: async () => { appels.push("option_retirer"); return { ok: true }; },
+  });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  await service.actionMenu(ctx, { action: "modifier", platId: PLAT_D4B, plat: PLAT_ECRIT });
+  await service.actionMenu(ctx, { action: "creer", plat: PLAT_ECRIT });
+  await service.actionMenu(ctx, { action: "option_retirer", optionId: OPTION_D4B });
+  await service.actionMenu(ctx, { action: "option_ajouter", platId: PLAT_D4B, option: { nom: "x", prix: 1 } });
+  await service.actionMenu(ctx, { action: "archiver", platId: PLAT_D4B });
+  assert.deepEqual(appels, ["modifier", "creer", "option_retirer", "option_ajouter", "archiver"]);
+});
+
+test("D4b service : le refus d'un service d'écriture devient VALIDATION avec son message (plat ou supplément introuvable, d'un autre restaurant)", async () => {
+  const introuvable = async () => ({ ok: false as const, message: "Plat introuvable." });
+  const { service } = monter({ creerPlat: introuvable, modifierPlat: introuvable, archiverPlat: introuvable, ajouterOption: introuvable, retirerOption: async () => ({ ok: false, message: "Supplément introuvable." }) });
+  const ctx = await service.contexte(JETON_AAL1, "compte-1");
+  const actions = [{ action: "creer", plat: PLAT_ECRIT }, { action: "modifier", platId: PLAT_D4B, plat: PLAT_ECRIT }, { action: "archiver", platId: PLAT_D4B },
+    { action: "option_ajouter", platId: PLAT_D4B, option: { nom: "x", prix: 1 } }, { action: "option_retirer", optionId: OPTION_D4B }] as const;
+  for (const action of actions) {
+    const r = await service.actionMenu(ctx, action);
+    assert.equal(r.ok, false, action.action);
+    assert.equal((r as { erreur: { code: string } }).erreur.code, "VALIDATION", action.action);
+  }
 });

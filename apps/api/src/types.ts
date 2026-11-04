@@ -86,7 +86,7 @@ export interface Deps {
     enregistrerReglages(ctx: ContexteRestaurant, valeurs: ReglagesAEcrire): Promise<ResultatActionCommande>;
     /** Lot D4a : le menu (plats non archivés) du restaurant du compte, lu avec le client du jeton. */
     lireMenu(ctx: ContexteRestaurant): Promise<ResultatLecture<ReponseMenuRestaurant>>;
-    /** Lot D4a : disponibilité d'un plat, reconfirmation d'un plat ou de tous (services du menu du site ; le plat est toujours filtré sur le restaurant du compte). */
+    /** Lots D4a et D4b : disponibilité d'un plat, reconfirmation, création, modification, archivage d'un plat, ajout et retrait d'un supplément (services du menu du site ; le plat et le supplément sont toujours filtrés sur le restaurant du compte). */
     actionMenu(ctx: ContexteRestaurant, action: ActionMenuApp): Promise<ResultatActionCommande>;
   };
   commandes: {

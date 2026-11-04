@@ -12,7 +12,7 @@ const code = sansCommentaires.join("\n");
 
 const unique = (motif: RegExp, message: string) => assert.equal(sansCommentaires.filter((l) => motif.test(l)).length, 1, message);
 
-test("cablage : le client administrateur n'est APPELÉ qu'une fois, pour `clientAdmin` (dans cablage.ts, il ne sert qu'à lister les seconds facteurs)", () => {
+test("cablage : le client administrateur n'est APPELÉ directement qu'une fois, pour `clientAdmin` (seconds facteurs) ; l'unique lecture système indirecte est le paramètre global des prix et de la fraîcheur (voir D4a et D4b)", () => {
   assert.equal((code.match(/creerClientAdmin\(/g) ?? []).length, 1, "creerClientAdmin() appelé ailleurs que dans clientAdmin");
   unique(/^\s*clientAdmin:\s*\(\)\s*=>\s*creerClientAdmin\(\),\s*$/, "clientAdmin doit être la seule ligne qui appelle creerClientAdmin()");
   assert.ok(!/creerClientAdmin\s*[,)]/.test(code.replace(/import[^\n]*\n/g, "").replace(/typeof creerClientAdmin/g, "")), "creerClientAdmin passé comme valeur");
@@ -40,6 +40,23 @@ test("cablage D4a : statut, réglages, menu et disponibilité reçoivent le clie
   unique(/^\s*basculerDisponibilite:\s*\(client,\s*restaurantId,\s*platId,\s*disponible\)\s*=>\s*basculerDisponibilite\(client as SupabaseClient,\s*restaurantId,\s*platId,\s*disponible\),\s*$/, "basculerDisponibilite");
   unique(/^\s*confirmerDisponibilite:\s*\(client,\s*restaurantId,\s*platId\)\s*=>\s*confirmerDisponibilite\(client as SupabaseClient,\s*restaurantId,\s*platId\),\s*$/, "confirmerDisponibilite");
   unique(/^\s*confirmerToutesDisponibilites:\s*\(client,\s*restaurantId\)\s*=>\s*confirmerToutesDisponibilites\(client as SupabaseClient,\s*restaurantId\),\s*$/, "confirmerToutesDisponibilites");
+});
+
+test("cablage D4b : création, modification, archivage, ajout et retrait de supplément reçoivent le client du jeton (paramètre `client`), jamais un autre, et le restaurant du CONTEXTE", () => {
+  unique(/^\s*creerPlat:\s*\(client,\s*restaurantId,\s*plat\)\s*=>\s*creerPlat\(client as SupabaseClient,\s*restaurantId,\s*plat\),\s*$/, "creerPlat");
+  unique(/^\s*modifierPlat:\s*\(client,\s*restaurantId,\s*platId,\s*plat\)\s*=>\s*modifierPlat\(client as SupabaseClient,\s*restaurantId,\s*platId,\s*plat\),\s*$/, "modifierPlat");
+  unique(/^\s*archiverPlat:\s*\(client,\s*restaurantId,\s*platId\)\s*=>\s*archiverPlat\(client as SupabaseClient,\s*restaurantId,\s*platId\),\s*$/, "archiverPlat");
+  unique(/^\s*ajouterOption:\s*\(client,\s*restaurantId,\s*platId,\s*option\)\s*=>\s*ajouterOption\(client as SupabaseClient,\s*restaurantId,\s*platId,\s*option\),\s*$/, "ajouterOption");
+  unique(/^\s*retirerOption:\s*\(client,\s*restaurantId,\s*optionId\)\s*=>\s*retirerOption\(client as SupabaseClient,\s*restaurantId,\s*optionId\),\s*$/, "retirerOption");
+  assert.ok(!/creerClientAdmin\(\)\s*as\s+SupabaseClient/.test(code));
+});
+
+test("cablage D4b : le câblage n'importe que les services du menu prévus (aucune photo, aucun document, aucune suppression de plat)", () => {
+  const importMenu = source.match(/import \{([^}]*)\} from "@\/lib\/menu\/service-menu";/);
+  assert.ok(importMenu, "import du service du menu");
+  const noms = importMenu![1].split(",").map((n) => n.trim().replace(/ as .*/, "")).sort();
+  assert.deepEqual(noms, ["ajouterOption", "archiverPlat", "basculerDisponibilite", "confirmerDisponibilite", "confirmerToutesDisponibilites", "creerPlat", "lireMenu", "modifierPlat", "retirerOption"]);
+  assert.ok(!/photo|document|supprimer/i.test(code.replace(/import[^\n]*\n/g, "")), "aucune photo, aucun document, aucune suppression de plat dans le câblage");
 });
 
 test("cablage D4a : la SEULE lecture système du lot est le seuil de fraîcheur global (paramètre non sensible, policy réservée aux administrateurs), jamais une donnée de restaurant", () => {

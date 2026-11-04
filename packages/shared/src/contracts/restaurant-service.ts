@@ -1,4 +1,5 @@
 import type { DelaiPreparation } from "../commande/estimation";
+import type { ResultatValidation, ValeursPlat } from "../menu/regles-plat";
 
 /**
  * Contrat des routes `/api/v1/restaurant/{statut,reglages,menu,menu/action}` de l'application native (lot D4a : service ouvert ou en pause, horaires et délai de
@@ -90,33 +91,84 @@ export interface SectionMenuApi { id: string; nom: string }
 export interface ReponseMenuRestaurant { ok: true; sections: SectionMenuApi[]; plats: PlatMenuApi[] }
 
 /**
- * Actions du menu que l'application peut demander (lot D4a) : LISTE BLANCHE. Créer, modifier, archiver un plat et les suppléments sont du lot D4b : ces valeurs sont refusées
- * ici, avant tout appel au service, comme toute valeur inconnue.
+ * Actions du menu que l'application peut demander (lots D4a et D4b) : LISTE BLANCHE. Toute autre valeur est refusée avant tout appel au service.
+ * D4a : disponibilité d'un plat, reconfirmation (un plat, tous). D4b : créer, modifier, archiver un plat, ajouter et retirer un supplément. Les photos et documents (lot D4c) n'en font pas partie.
  */
-export const ACTIONS_MENU_APP = ["disponibilite", "confirmer", "confirmer_tout"] as const;
+export const ACTIONS_MENU_APP = ["disponibilite", "confirmer", "confirmer_tout", "creer", "modifier", "archiver", "option_ajouter", "option_retirer"] as const;
 export type NomActionMenuApp = (typeof ACTIONS_MENU_APP)[number];
+
+/** Un plat tel que l'API l'écrit : les cinq colonnes que le service du site écrit (jamais le restaurant, jamais l'archivage, jamais la disponibilité ou la photo). */
+export interface PlatAEcrire extends ValeursPlat { sectionId: string | null }
+export interface OptionAEcrire { nom: string; prix: number }
 
 export type ActionMenuApp =
   | { action: "disponibilite"; platId: string; disponible: boolean }
   | { action: "confirmer"; platId: string }
-  | { action: "confirmer_tout" };
+  | { action: "confirmer_tout" }
+  | { action: "creer"; plat: PlatAEcrire }
+  | { action: "modifier"; platId: string; plat: PlatAEcrire }
+  | { action: "archiver"; platId: string }
+  | { action: "option_ajouter"; platId: string; option: OptionAEcrire }
+  | { action: "option_retirer"; optionId: string };
 
 /**
- * Lit le corps de `POST /menu/action`. `null` = refus (400) : action hors liste blanche, identifiant de plat qui n'est pas un UUID, « disponible » qui n'est pas exactement un booléen.
- * L'identifiant de plat n'est JAMAIS une autorisation : le service du site filtre en plus sur le restaurant du compte.
+ * Les règles de validation des plats et des suppléments (`validerPlat`, `validerOption` de packages/shared/src/menu/regles-plat.ts), INJECTÉES pour que ce fichier reste sans import exécutable :
+ * le site, l'API et l'application refusent exactement les mêmes saisies (jamais de copie des bornes). Le prix maximum en vigueur est appliqué par le service du site ; ici, le plafond absolu de la base.
  */
-export function lireActionMenuApp(corps: unknown): ActionMenuApp | null {
-  if (typeof corps !== "object" || corps === null || Array.isArray(corps)) return null;
-  const c = corps as { action?: unknown; platId?: unknown; disponible?: unknown };
+export interface ReglesMenuInjectees {
+  validerPlat(brut: { nom: unknown; description: unknown; prix: unknown; prixPromo: unknown }): ResultatValidation<ValeursPlat>;
+  validerOption(brut: { nom: unknown; prix: unknown }): ResultatValidation<OptionAEcrire>;
+}
+
+export type LectureActionMenu = { ok: true; action: ActionMenuApp } | { ok: false; message: string };
+const refus = (message: string): LectureActionMenu => ({ ok: false, message });
+
+/** Plat à écrire : nom, description (texte, ou absente), prix entier, prix promo (entier ou absent), section (identifiant ou absente). Toute autre clé du corps est ignorée, jamais transmise. */
+function lirePlat(c: Record<string, unknown>, regles: ReglesMenuInjectees): { ok: true; plat: PlatAEcrire } | { ok: false; message: string } {
+  // Une description qui n'est pas du texte est refusée (le service du site la lirait comme vide et effacerait la description d'un plat modifié).
+  if (c.description !== undefined && c.description !== null && typeof c.description !== "string") return { ok: false, message: "La description est invalide." };
+  const sectionId = c.sectionId === undefined || c.sectionId === null ? null : typeof c.sectionId === "string" && REGEX_UUID.test(c.sectionId) ? c.sectionId : undefined;
+  if (sectionId === undefined) return { ok: false, message: "Section invalide." };
+  const v = regles.validerPlat({ nom: c.nom, description: c.description ?? "", prix: c.prix, prixPromo: c.prixPromo });
+  return v.ok ? { ok: true, plat: { nom: v.valeurs.nom, description: v.valeurs.description, prix: v.valeurs.prix, prixPromo: v.valeurs.prixPromo, sectionId } } : { ok: false, message: v.erreur };
+}
+
+/**
+ * Lit le corps de `POST /menu/action`. `ok: false` = refus (400) : action hors liste blanche, identifiant de plat ou de supplément qui n'est pas un UUID, « disponible » qui n'est pas exactement un booléen,
+ * plat ou supplément invalide (nom vide ou trop long, description trop longue, prix décimal, négatif, énorme, texte, promo au-dessus du prix). Les valeurs retournées sont normalisées (textes rognés) et ne contiennent
+ * QUE les champs prévus. Un identifiant de plat ou de supplément n'est JAMAIS une autorisation : le service du site filtre en plus sur le restaurant du compte.
+ */
+export function lireActionMenuApp(corps: unknown, regles: ReglesMenuInjectees): LectureActionMenu {
+  if (typeof corps !== "object" || corps === null || Array.isArray(corps)) return refus("Action inconnue.");
+  const c = corps as Record<string, unknown>;
   const platId = typeof c.platId === "string" && REGEX_UUID.test(c.platId) ? c.platId : null;
+  const optionId = typeof c.optionId === "string" && REGEX_UUID.test(c.optionId) ? c.optionId : null;
   switch (c.action) {
     case "disponibilite":
-      return platId !== null && typeof c.disponible === "boolean" ? { action: "disponibilite", platId, disponible: c.disponible } : null;
+      return platId !== null && typeof c.disponible === "boolean" ? { ok: true, action: { action: "disponibilite", platId, disponible: c.disponible } } : refus("Demande invalide.");
     case "confirmer":
-      return platId !== null ? { action: "confirmer", platId } : null;
+      return platId !== null ? { ok: true, action: { action: "confirmer", platId } } : refus("Demande invalide.");
     case "confirmer_tout":
-      return { action: "confirmer_tout" };
+      return { ok: true, action: { action: "confirmer_tout" } };
+    case "creer": {
+      const lu = lirePlat(c, regles);
+      return lu.ok ? { ok: true, action: { action: "creer", plat: lu.plat } } : refus(lu.message);
+    }
+    case "modifier": {
+      if (platId === null) return refus("Plat introuvable.");
+      const lu = lirePlat(c, regles);
+      return lu.ok ? { ok: true, action: { action: "modifier", platId, plat: lu.plat } } : refus(lu.message);
+    }
+    case "archiver":
+      return platId !== null ? { ok: true, action: { action: "archiver", platId } } : refus("Plat introuvable.");
+    case "option_ajouter": {
+      if (platId === null) return refus("Plat introuvable.");
+      const v = regles.validerOption({ nom: c.nom, prix: c.prix });
+      return v.ok ? { ok: true, action: { action: "option_ajouter", platId, option: { nom: v.valeurs.nom, prix: v.valeurs.prix } } } : refus(v.erreur);
+    }
+    case "option_retirer":
+      return optionId !== null ? { ok: true, action: { action: "option_retirer", optionId } } : refus("Supplément introuvable.");
     default:
-      return null;
+      return refus("Action inconnue.");
   }
 }
