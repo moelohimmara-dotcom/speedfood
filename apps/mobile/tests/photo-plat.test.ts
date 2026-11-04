@@ -204,11 +204,15 @@ test('verdict D4c envoi : menu non relu = confirmé mais avec la mention « n’
   assert.equal(serviceVerrouille({ phase: 'verdict', action: a, verdict: v, lectureVerdict: 4 }, 4), true, 'verrouillé tant que le menu n’a pas été relu');
   assert.equal(serviceVerrouille({ phase: 'verdict', action: a, verdict: v, lectureVerdict: 4 }, 5), false, 'libéré par une relecture réussie');
 });
-test('verdict D4c envoi : réponse incertaine puis menu relu avec la nouvelle photo = « bien enregistrée » ; sans changement et bouton présent = « réessayer » permis', () => {
+test('verdict D4c envoi : réponse incertaine puis menu relu avec une photo différente = confirmé (avec la réserve « autre appareil ») ; sans changement = JAMAIS « non enregistrée » ni réessai (une insertion tardive est possible), écran verrouillé jusqu’à relecture', () => {
   const a = actionPhotoDefinir(platDe(sansPhoto()), fichier());
-  assert.deepEqual(verdictService({ erreur: incertain(), action: a, relue: { menu: avecPhoto() } }), { genre: 'confirme', message: 'La photo est bien enregistrée.' });
+  assert.deepEqual(verdictService({ erreur: incertain(), action: a, relue: { menu: avecPhoto() } }), { genre: 'confirme', message: 'Une photo différente est maintenant enregistrée pour ce plat (la vôtre, sauf si elle a été changée depuis un autre appareil : vérifiez l’aperçu).' });
   const v = verdictService({ erreur: incertain(), action: a, relue: { menu: sansPhoto() } });
-  assert.equal(v.genre, 'incertain'); assert.equal((v as { reessayer: boolean }).reessayer, true);
+  assert.equal(v.genre, 'incertain'); assert.equal((v as { reessayer: boolean }).reessayer, false);
+  assert.ok(v.message.includes('peut-être pas été enregistrée') && !v.message.includes('Vous pouvez réessayer'));
+  const bloque = { phase: 'verdict' as const, action: a, verdict: v, lectureVerdict: 7 };
+  assert.equal(serviceVerrouille(bloque, 7), true, 'verrouillé tant que le menu n’a pas été relu');
+  assert.equal(serviceVerrouille(bloque, 8), false, 'libéré par une relecture réussie');
 });
 test('verdict D4c : « réessayer » seulement quand le bouton existe encore (plat disparu = refus ; photo déjà retirée = confirmé, pas de réessai)', () => {
   const envoi = actionPhotoDefinir(platDe(sansPhoto()), fichier());
@@ -359,4 +363,15 @@ test('app.json D4c : le plugin du sélecteur est déclaré SANS microphone ; auc
   assert.equal(plugin![1].microphonePermission, false);
   assert.equal(typeof plugin![1].cameraPermission, 'string');
   assert.equal(appJson.android.permissions, undefined, 'aucune permission Android écrite à la main (le plugin ajoute la caméra seulement)');
+});
+
+test('écran D4c : une photo choisie pendant un autre envoi n’est jamais abandonnée en silence (message), et le garde de prendrePhoto est épinglé', () => {
+  const bloc = ecran.slice(ecran.indexOf('async function prendrePhoto'), ecran.indexOf('const lectureVerrou'));
+  assert.ok(bloc.startsWith('async function prendrePhoto') && bloc.includes('if (selectionEnCours.current || envoiEnCours.current || lectureEnCours.current || serviceVerrouille('), 'garde au début');
+  const apres = bloc.slice(bloc.indexOf('if (action !== null && actif.current)'));
+  assert.ok(apres.indexOf('Un autre changement est en cours') > 0 && apres.indexOf('Un autre changement est en cours') < apres.indexOf('await envoyer(action)'), 'message AVANT l’envoi');
+  assert.ok(apres.includes('envoiEnCours.current || lectureEnCours.current || serviceVerrouille('));
+});
+test('app.json D4c : les permissions de stockage ajoutées par la bibliothèque sont BLOQUÉES', () => {
+  assert.deepEqual([...(appJson.android.blockedPermissions as string[])].sort(), ['android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE']);
 });

@@ -418,7 +418,7 @@ const MESSAGES_ENREGISTRE = {
   reglages: 'Vos réglages sont bien enregistrés.',
   disponible: 'Le plat est bien enregistré comme disponible.', indisponible: 'Le plat est bien enregistré comme indisponible.', confirmer: 'La confirmation est bien enregistrée.', confirmer_tout: 'La confirmation est bien enregistrée pour tous les plats.',
   creer: 'Le nouveau plat est bien enregistré.', modifier: 'Les modifications du plat sont bien enregistrées.', archiver: 'Le plat est bien archivé.', option_ajouter: 'Le supplément est bien enregistré.', option_retirer: 'Le supplément est bien retiré.',
-  photo_definir: 'La photo est bien enregistrée.', photo_retirer: 'La photo est bien retirée.',
+  photo_definir: 'Une photo différente est maintenant enregistrée pour ce plat (la vôtre, sauf si elle a été changée depuis un autre appareil : vérifiez l’aperçu).', photo_retirer: 'La photo est bien retirée.',
 };
 function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof MESSAGES_ENREGISTRE): string {
   switch (a.type) {
@@ -514,6 +514,7 @@ export function verdictService(e: { erreur: ErreurRestaurateur | null; sessionTe
   if (correspond === null) return { genre: 'incertain', message: e.erreur.message + ' L’état n’a pas pu être relu : actualisez-le avant de réessayer.', reessayer: false };
   if (correspond) return { genre: 'confirme', message: messageSucces(e.action, MESSAGES_ENREGISTRE) };
   // Une INSERTION (créer, ajouter un supplément) n'est jamais déclarée « non enregistrée » sur un simple doute : le serveur peut finir l'écriture après la relecture. Pas de « réessayer » (risque de doublon).
+  if (e.action.type === 'photo_definir' && boutonExiste(e.action, e.relue)) return { genre: 'incertain', message: 'Le menu relu ne montre pas encore la nouvelle photo : elle n’a peut-être pas été enregistrée. Actualisez le menu dans un instant et vérifiez avant d’en envoyer une autre.', reessayer: false };
   if ((e.action.type === 'creer' || e.action.type === 'option_ajouter') && boutonExiste(e.action, e.relue)) return { genre: 'incertain', message: 'Le menu relu ne montre pas encore cet ajout : il n’a peut-être pas été enregistré. Actualisez le menu dans un instant et vérifiez avant de l’ajouter à nouveau.', reessayer: false };
   if (boutonExiste(e.action, e.relue)) return { genre: 'incertain', message: 'L’état relu ne montre pas votre changement : il n’a pas été enregistré. Vous pouvez réessayer.', reessayer: true };
   return { genre: 'refus', message: 'Le plat n’apparaît plus ou ne peut plus être modifié. Actualisez le menu.', reessayer: false };

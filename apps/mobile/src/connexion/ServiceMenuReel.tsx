@@ -129,7 +129,11 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
         else action = actionPhotoDefinir(courant, choix.fichier);
       } else setMessagePhoto({ platId: plat.id, texte: choix.message });
     } finally { selectionEnCours.current = false; if (actif.current) setSelection(false); }
-    if (action !== null && actif.current) { setChoixPhoto(null); await envoyer(action); }
+    if (action !== null && actif.current) {
+      // Un autre changement a démarré pendant que le sélecteur était ouvert : la photo choisie n'est pas envoyée, et on le dit (jamais un abandon silencieux).
+      if (envoiEnCours.current || lectureEnCours.current || serviceVerrouille(etatRef.current, lecturePourEtat(etatRef.current, lecturesRef.current))) { setMessagePhoto({ platId: plat.id, texte: 'Un autre changement est en cours : la photo n’a pas été envoyée. Réessayez dans un instant.' }); return; }
+      setChoixPhoto(null); await envoyer(action);
+    }
   }
 
   const lectureVerrou = lecturePourEtat(etat, lectures);
