@@ -1,4 +1,5 @@
-import { HORAIRES_MAX, lireActionMenuApp, lireReglagesApp, lireStatutApp, type ChampStatutApp, type ReglagesAEcrire } from '../../../../packages/shared/src/contracts/restaurant-service.ts';
+import { HORAIRES_MAX, lireActionMenuApp, lireReglagesApp, lireStatutApp, type ChampStatutApp, type OptionAEcrire, type PlatAEcrire, type ReglagesAEcrire } from '../../../../packages/shared/src/contracts/restaurant-service.ts';
+import { DESCRIPTION_PLAT_MAX, NOM_OPTION_MAX, NOM_PLAT_MAX, PRIX_PLAT_PLAFOND_GNF, REGLES_MENU_PLAFONNEES } from '../../../../packages/shared/src/menu/regles-plat.ts';
 import { lireDelaiPreparation } from '../../../../packages/shared/src/commande/estimation.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
 import type { RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
@@ -7,8 +8,8 @@ import { ErreurRestaurateur, MESSAGE_SECURITE } from './restaurateur.ts';
 export { HORAIRES_MAX };
 
 /**
- * Domaine pur du lot D4a : le SERVICE du restaurateur (ouvert, prend des commandes, horaires, délai de préparation) et la DISPONIBILITÉ de ses plats (marquer disponible ou indisponible,
- * confirmer, tout confirmer). Rien d'autre : ni création, ni modification, ni archivage de plat, ni suppléments, ni photos (lots suivants).
+ * Domaine pur des lots D4a et D4b : le SERVICE du restaurateur (ouvert, prend des commandes, horaires, délai de préparation), la DISPONIBILITÉ de ses plats (marquer disponible ou indisponible,
+ * confirmer, tout confirmer) et, depuis D4b, la création, la modification et l'archivage d'un plat, l'ajout et le retrait d'un supplément. Pas de photos ni de documents (lot D4c).
  *
  * Même discipline que `restaurateur.ts` : UN SEUL essai par action, jamais de relance automatique ; après une réponse incertaine, les boutons restent verrouillés tant que l'état du serveur n'a pas
  * été relu avec succès ; les messages sont fixes (aucun texte du serveur n'est affiché) ; aucun jeton n'est conservé ; l'écran affiche ce que le SERVEUR a (jamais une valeur supposée).
@@ -83,12 +84,19 @@ export function lireReglagesRestaurateur(v: Record<string, unknown>): ReglagesRe
   return { horaires: horairesLisibles(v.horaires), ouvert: booleen(v.ouvert), accepteCommandes: booleen(v.accepteCommandes), delaiPreparationMinutes: d as number | null, platsAReconfirmer: plats, illisibles };
 }
 
+export interface OptionRestaurateur { id: string; nom: string; prixGnf: number }
+/** Ce qu'il faut renvoyer tel quel à la modification d'un plat (le serveur remplace les cinq champs ; une valeur absente effacerait l'ancienne). */
+export interface EditionPlat { description: string; prixPromoGnf: number | null; sectionId: string | null }
 export interface PlatRestaurateur {
   id: string; nom: string;
   /** Prix en GNF (entier) ; null si le serveur ne l'a pas donné lisiblement (la ligne reste lisible). */
   prixGnf: number | null; disponible: boolean;
   /** Dernière confirmation de disponibilité ; null = jamais confirmée (ou date illisible : un état inconnu ne devient jamais « disponible confirmé »). */
   confirmeLe: string | null;
+  /** Suppléments lisibles du plat ; un supplément atypique est écarté ET compté (`optionsIllisibles`), jamais tout le plat. */
+  options: OptionRestaurateur[]; optionsIllisibles: number;
+  /** Description, prix promo et section tels que le serveur les a ; `null` = un de ces champs est illisible ou le prix l'est : le plat reste visible mais ne se modifie pas ici (rien n'est écrasé à l'aveugle). */
+  edition: EditionPlat | null;
 }
 export interface MenuRestaurateur {
   plats: PlatRestaurateur[];
@@ -105,10 +113,33 @@ export function lireMenuRestaurateur(v: Record<string, unknown>): MenuRestaurate
       const o = objet(x); const nom = nomLisible(o.nom, 200);
       if (!estUuid(o.id) || ids.has(o.id) || nom === null || typeof o.disponible !== 'boolean') { illisibles++; continue; }
       ids.add(o.id);
-      plats.push({ id: o.id, nom, prixGnf: typeof o.prix === 'number' && Number.isSafeInteger(o.prix) && o.prix >= 0 ? o.prix : null, disponible: o.disponible, confirmeLe: dateOuNull(o.confirmeLe) });
+      const prixGnf = entierGnf(o.prix);
+      const { options, illisibles: optionsIllisibles } = lireOptions(o.options);
+      plats.push({ id: o.id, nom, prixGnf, disponible: o.disponible, confirmeLe: dateOuNull(o.confirmeLe), options, optionsIllisibles, edition: lireEdition(o, prixGnf) });
     } catch { illisibles++; }
   }
   return { plats, illisibles };
+}
+function entierGnf(v: unknown): number | null { return typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : null; }
+/** Suppléments d'un plat : un supplément atypique (identifiant invalide ou répété, nom illisible, prix illisible) est écarté et compté. */
+function lireOptions(v: unknown): { options: OptionRestaurateur[]; illisibles: number } {
+  if (!Array.isArray(v)) return { options: [], illisibles: 0 };
+  const ids = new Set<string>(); const options: OptionRestaurateur[] = []; let illisibles = 0;
+  for (const x of v.slice(0, 100)) {
+    const o = x && typeof x === 'object' && !Array.isArray(x) ? x as Record<string, unknown> : null;
+    const nom = o ? nomLisible(o.nom, 200) : null; const prix = o ? entierGnf(o.prix) : null;
+    if (!o || !estUuid(o.id) || ids.has(o.id) || nom === null || prix === null) { illisibles++; continue; }
+    ids.add(o.id); options.push({ id: o.id, nom, prixGnf: prix });
+  }
+  if (v.length > 100) illisibles += v.length - 100;
+  return { options, illisibles };
+}
+function lireEdition(o: Record<string, unknown>, prixGnf: number | null): EditionPlat | null {
+  const description = o.description === null || o.description === undefined ? '' : typeof o.description === 'string' && o.description.length <= DESCRIPTION_PLAT_MAX ? o.description : null;
+  const promo = o.prixPromo === null || o.prixPromo === undefined ? null : entierGnf(o.prixPromo);
+  const section = o.sectionId === null || o.sectionId === undefined ? null : estUuid(o.sectionId) ? o.sectionId : undefined;
+  if (prixGnf === null || description === null || (o.prixPromo !== null && o.prixPromo !== undefined && promo === null) || section === undefined) return null;
+  return { description: description.trim(), prixPromoGnf: promo, sectionId: section };
 }
 
 /** Lignes d'un plat à afficher. La fraîcheur affichée n'est qu'une ancienneté : « à reconfirmer » vient de la liste du serveur (`ids`), jamais d'un calcul d'ici. */
@@ -140,7 +171,9 @@ export function preparerReglages(actuel: Pick<ReglagesRestaurateur, 'horaires' |
   if (!delai.ok || typeof b.delai !== 'string') erreurs.delai = 'Indiquez le délai en minutes, de 5 à 240, en chiffres seulement (ou laissez vide).';
   if (erreurs.horaires || erreurs.delai || !delai.ok) return { ok: false, erreurs };
   const valeurs: ReglagesAEcrire = {};
-  if (b.horaires !== actuel.horaires) valeurs.horaires = b.horaires;
+  // Le texte envoyé est celui que le serveur renverra (même nettoyage que la lecture : tabulations, retours chariot, marques de direction) : sinon un horaire enregistré paraîtrait « différent » à la relecture.
+  const horaires = typeof b.horaires === 'string' && b.horaires.length <= HORAIRES_MAX ? horairesLisibles(b.horaires) : '';
+  if (horaires !== actuel.horaires) valeurs.horaires = horaires;
   if (delai.valeur !== actuel.delaiPreparationMinutes) valeurs.delaiPreparationMinutes = delai.valeur;
   if (Object.keys(valeurs).length === 0) return { ok: false, erreurs: { general: 'Rien n’a changé : modifiez les horaires ou le délai avant d’enregistrer.' } };
   // Dernier garde-fou : le contrôle partagé avec le serveur, pour que ce qui part soit exactement ce que le serveur accepte.
@@ -155,14 +188,104 @@ export type ActionService =
   | { type: 'reglages'; valeurs: ReglagesAEcrire }
   | { type: 'disponibilite'; platId: string; disponible: boolean }
   | { type: 'confirmer'; platId: string; avant: string | null }
-  | { type: 'confirmer_tout'; avant: Array<[string, string | null]> };
+  | { type: 'confirmer_tout'; avant: Array<[string, string | null]> }
+  /** Lot D4b. `avant` = les identifiants déjà présents : pour reconnaître le NOUVEAU plat (ou supplément) à la relecture, sans jamais en recréer un second sur une supposition. */
+  | { type: 'creer'; plat: PlatAEcrire; avant: string[] }
+  | { type: 'modifier'; platId: string; plat: PlatAEcrire }
+  | { type: 'archiver'; platId: string; nom: string }
+  | { type: 'option_ajouter'; platId: string; option: OptionAEcrire; avant: string[] }
+  | { type: 'option_retirer'; optionId: string; platId: string; nom: string };
 
-/** Les actions qui demandent une confirmation avant l'envoi : les deux interrupteurs (dans les deux sens) et « Tout confirmer ». */
-export function actionAConfirmer(a: ActionService): boolean { return a.type === 'statut' || a.type === 'confirmer_tout'; }
+/** Les actions qui demandent une confirmation avant l'envoi : les deux interrupteurs (dans les deux sens), « Tout confirmer », l'archivage d'un plat et le retrait d'un supplément. */
+export function actionAConfirmer(a: ActionService): boolean { return a.type === 'statut' || a.type === 'confirmer_tout' || a.type === 'archiver' || a.type === 'option_retirer'; }
+
+/** Quel état du serveur une action change : les réglages (interrupteurs, horaires, délai) ou le menu (plats, suppléments). Sert à verrouiller sur la relecture de CET état-là. */
+export function etatConcerne(a: ActionService): 'reglages' | 'menu' { return a.type === 'statut' || a.type === 'reglages' ? 'reglages' : 'menu'; }
+/** Compteurs de lectures RÉUSSIES, un par état : la relecture du menu ne déverrouille jamais une action sur les réglages, et inversement (correctif D4a m-1). */
+export interface Lectures { reglages: number; menu: number }
+/** Le compteur à comparer pour l'état courant de la machine : celui de l'action en cours ou du verdict (le menu au repos). */
+export function lecturePourEtat(etat: EtatService, l: Lectures): number { return etat.phase === 'repos' ? l.menu : l[etatConcerne(etat.action)]; }
+export function lecturePourAction(a: ActionService, l: Lectures): number { return l[etatConcerne(a)]; }
 
 /** Les deux interrupteurs ne se confondent jamais : chaque champ a son texte, son sens et sa colonne. */
 export function actionStatut(champ: ChampStatutApp, valeur: boolean): ActionService { return { type: 'statut', champ, valeur }; }
 export function actionConfirmerTout(menu: Pick<MenuRestaurateur, 'plats'>): ActionService { return { type: 'confirmer_tout', avant: menu.plats.filter(p => p.disponible).map(p => [p.id, p.confirmeLe] as [string, string | null]) }; }
+
+// ---------- plats et suppléments : saisie (lot D4b) ----------
+export interface BrouillonPlat { nom: string; prix: string; description: string }
+export interface ErreursPlat { nom?: string; prix?: string; description?: string; general?: string }
+export const BROUILLON_PLAT_VIDE: BrouillonPlat = { nom: '', prix: '', description: '' };
+export interface BrouillonOption { nom: string; prix: string }
+export interface ErreursOption { nom?: string; prix?: string; general?: string }
+export const BROUILLON_OPTION_VIDE: BrouillonOption = { nom: '', prix: '' };
+export const MESSAGE_PRIX_INVALIDE = 'Indiquez le prix en francs guinéens, en chiffres entiers (par exemple 25 000). Pas de virgule ni de lettres.';
+
+/**
+ * Lit un prix saisi : des chiffres, éventuellement séparés par des espaces (milliers). Virgule, point, signe, lettres, vide : refusés (`null`). Jamais de décimal, jamais NaN ni Infinity.
+ * Plafond : celui que la base impose au réglage du prix maximum (10 000 000) ; le serveur applique le réglage en vigueur, qui peut être plus bas.
+ */
+export function prixDepuisSaisie(saisie: unknown): number | null {
+  if (typeof saisie !== 'string' || saisie.length > 24) return null;
+  const compact = saisie.replace(/[   ]/g, '');
+  if (!/^\d{1,9}$/.test(compact)) return null;
+  const n = Number(compact);
+  return Number.isSafeInteger(n) && n <= PRIX_PLAT_PLAFOND_GNF ? n : null;
+}
+/** Texte de saisie d'un prix pour l'affichage dans un champ : chiffres seulement (le groupement par espaces est accepté en saisie, jamais imposé). */
+export function saisiePrix(n: number | null): string { return n === null ? '' : String(n); }
+
+/** Le formulaire de modification démarre avec ce que le SERVEUR a pour ce plat ; `null` si le plat n'est pas modifiable ici (champs illisibles ou prix inconnu). */
+export function brouillonPlatDe(p: PlatRestaurateur): BrouillonPlat | null {
+  return p.edition === null || p.prixGnf === null ? null : { nom: p.nom, prix: saisiePrix(p.prixGnf), description: p.edition.description };
+}
+export function brouillonPlatModifie(p: PlatRestaurateur, b: BrouillonPlat): boolean { const ref = brouillonPlatDe(p); return ref === null || ref.nom !== b.nom || ref.prix !== b.prix || ref.description !== b.description; }
+
+/**
+ * Valide la saisie d'un plat AVANT tout envoi, avec les règles du serveur (`regles-plat.ts`, partagées) : nom obligatoire, prix entier en GNF, description facultative. En création, le plat n'a ni promo
+ * ni section ; en modification, le prix promo et la section ACTUELS du serveur sont renvoyés tels quels (sinon le serveur les effacerait). Une saisie invalide ne produit JAMAIS d'action.
+ */
+export function preparerPlat(b: BrouillonPlat, cible: { mode: 'creer'; menu: Pick<MenuRestaurateur, 'plats'> } | { mode: 'modifier'; plat: PlatRestaurateur }): { ok: true; action: ActionService } | { ok: false; erreurs: ErreursPlat } {
+  if (b === null || typeof b !== 'object') return { ok: false, erreurs: { general: 'Cette saisie n’est pas valide. Corrigez-la puis recommencez.' } };
+  const erreurs: ErreursPlat = {};
+  // Le texte envoyé est celui que le serveur renverra à la relecture (même nettoyage que la lecture) : sinon un plat bien enregistré paraîtrait « différent ».
+  const nom = typeof b.nom === 'string' ? nomLisible(b.nom, 1000) ?? '' : '';
+  if (nom.length === 0 || nom.length > NOM_PLAT_MAX) erreurs.nom = nom.length === 0 ? 'Le nom du plat est obligatoire.' : 'Le nom du plat est limité à ' + NOM_PLAT_MAX + ' caractères.';
+  let description = ''; try { description = typeof b.description === 'string' ? horairesLisibles(b.description).trim() : invalide(); } catch { description = 'x'.repeat(DESCRIPTION_PLAT_MAX + 1); }
+  if (description.length > DESCRIPTION_PLAT_MAX) erreurs.description = 'La description est limitée à ' + DESCRIPTION_PLAT_MAX + ' caractères.';
+  const prix = prixDepuisSaisie(b.prix);
+  if (prix === null) erreurs.prix = MESSAGE_PRIX_INVALIDE;
+  let promo: number | null = null; let section: string | null = null;
+  if (cible.mode === 'modifier') {
+    if (cible.plat.edition === null) return { ok: false, erreurs: { general: 'Ce plat ne peut pas être modifié ici (certaines informations sont illisibles). Ouvrez Speedfood sur le site.' } };
+    promo = cible.plat.edition.prixPromoGnf; section = cible.plat.edition.sectionId;
+    if (prix !== null && promo !== null && prix < promo) erreurs.prix = 'Le prix ne peut pas être inférieur au prix promo actuel (' + formaterPrix(promo) + '). Modifiez d’abord le prix promo sur le site.';
+  }
+  if (erreurs.nom || erreurs.description || erreurs.prix || prix === null) return { ok: false, erreurs };
+  const plat: PlatAEcrire = { nom, description, prix, prixPromo: promo, sectionId: section };
+  if (cible.mode === 'modifier') {
+    const p = cible.plat;
+    if (p.nom === nom && p.prixGnf === prix && p.edition!.description === description) return { ok: false, erreurs: { general: 'Rien n’a changé : modifiez le nom, le prix ou la description avant d’enregistrer.' } };
+  }
+  const action: ActionService = cible.mode === 'creer' ? { type: 'creer', plat, avant: cible.menu.plats.map(p => p.id) } : { type: 'modifier', platId: cible.plat.id, plat };
+  // Dernier garde-fou : le contrôle partagé avec le serveur, pour que ce qui part soit exactement ce que le serveur accepte.
+  if (corpsDeAction(action) === null) return { ok: false, erreurs: { general: 'Cette saisie n’est pas valide. Corrigez-la puis recommencez.' } };
+  return { ok: true, action };
+}
+/** Valide la saisie d'un supplément (nom 80 caractères au plus, prix entier en GNF) AVANT tout envoi. */
+export function preparerOption(b: BrouillonOption, plat: PlatRestaurateur): { ok: true; action: ActionService } | { ok: false; erreurs: ErreursOption } {
+  if (b === null || typeof b !== 'object') return { ok: false, erreurs: { general: 'Cette saisie n’est pas valide. Corrigez-la puis recommencez.' } };
+  const erreurs: ErreursOption = {};
+  const nom = typeof b.nom === 'string' ? nomLisible(b.nom, 1000) ?? '' : '';
+  if (nom.length === 0 || nom.length > NOM_OPTION_MAX) erreurs.nom = nom.length === 0 ? 'Le nom du supplément est obligatoire.' : 'Le nom du supplément est limité à ' + NOM_OPTION_MAX + ' caractères.';
+  const prix = prixDepuisSaisie(b.prix);
+  if (prix === null) erreurs.prix = MESSAGE_PRIX_INVALIDE;
+  if (erreurs.nom || erreurs.prix || prix === null) return { ok: false, erreurs };
+  const action: ActionService = { type: 'option_ajouter', platId: plat.id, option: { nom, prix }, avant: plat.options.map(o => o.id) };
+  if (corpsDeAction(action) === null) return { ok: false, erreurs: { general: 'Cette saisie n’est pas valide. Corrigez-la puis recommencez.' } };
+  return { ok: true, action };
+}
+export function actionArchiver(p: Pick<PlatRestaurateur, 'id' | 'nom'>): ActionService { return { type: 'archiver', platId: p.id, nom: p.nom }; }
+export function actionRetirerOption(p: Pick<PlatRestaurateur, 'id'>, o: Pick<OptionRestaurateur, 'id' | 'nom'>): ActionService { return { type: 'option_retirer', optionId: o.id, platId: p.id, nom: o.nom }; }
 
 /** Textes fixes des confirmations, d'après ce que fait RÉELLEMENT le serveur (verifierRestaurantCommandable : fermé ou en pause = refus de toute nouvelle commande ; les commandes déjà reçues ne changent pas). */
 export const CONFIRMATIONS_STATUT: Record<ChampStatutApp, Record<'true' | 'false', { question: string; oui: string; non: string }>> = {
@@ -179,14 +302,28 @@ export const CONFIRMATION_TOUT_CONFIRMER = {
   question: 'Confirmer que tous vos plats actuellement disponibles le sont toujours ? Les clients verront leur disponibilité comme confirmée à l’instant. Ne confirmez que si c’est vrai.',
   oui: 'Oui, tout confirmer', non: 'Non, annuler',
 };
+/** Archiver : honnête sur ce que fait le serveur (le plat est marqué archivé, jamais supprimé ; il disparaît de la carte et ne peut plus être commandé ; les commandes passées le gardent) et sur ce que l'application ne sait pas faire (le rétablir). */
+export function confirmationArchiver(nom: string): { question: string; oui: string; non: string } {
+  return { question: 'Archiver « ' + nom + ' » ? Il disparaîtra de la carte : les clients ne pourront plus le voir ni le commander. Les commandes déjà passées le gardent. Il ne pourra pas être rétabli depuis l’application.', oui: 'Oui, archiver ce plat', non: 'Non, le garder' };
+}
+export function confirmationRetirerOption(nom: string): { question: string; oui: string; non: string } {
+  return { question: 'Retirer le supplément « ' + nom + ' » ? Les clients ne pourront plus le choisir pour ce plat. Les commandes déjà passées le gardent.', oui: 'Oui, retirer ce supplément', non: 'Non, le garder' };
+}
 export function confirmationDe(a: ActionService): { question: string; oui: string; non: string } | null {
   if (a.type === 'statut') return CONFIRMATIONS_STATUT[a.champ][a.valeur ? 'true' : 'false'];
   if (a.type === 'confirmer_tout') return CONFIRMATION_TOUT_CONFIRMER;
+  if (a.type === 'archiver') return confirmationArchiver(a.nom);
+  if (a.type === 'option_retirer') return confirmationRetirerOption(a.nom);
   return null;
 }
 export const LIBELLES_ACTION: Record<ActionService['type'], string> = {
   statut: 'ce changement', reglages: 'vos réglages', disponibilite: 'ce changement de disponibilité', confirmer: 'cette confirmation', confirmer_tout: 'cette confirmation',
+  creer: 'l’ajout de ce plat', modifier: 'la modification de ce plat', archiver: 'l’archivage de ce plat', option_ajouter: 'l’ajout de ce supplément', option_retirer: 'le retrait de ce supplément',
 };
+
+/** Lecture du contrat partagé (API et application refusent les mêmes saisies) : l'action normalisée, ou `null`. */
+function lireMenu(corps: unknown) { const lu = lireActionMenuApp(corps, REGLES_MENU_PLAFONNEES); return lu.ok ? lu.action : null; }
+function champsPlat(p: PlatAEcrire | undefined) { return { nom: p?.nom, description: p?.description, prix: p?.prix, prixPromo: p?.prixPromo, sectionId: p?.sectionId }; }
 
 /** Corps de la requête, SEULEMENT les champs prévus (jamais de restaurant) : la machine et le client n'envoient que ce que cette fonction produit. */
 export function corpsDeAction(a: ActionService): { chemin: '/api/v1/restaurant/statut' | '/api/v1/restaurant/reglages' | '/api/v1/restaurant/menu/action'; corps: object } | null {
@@ -194,9 +331,15 @@ export function corpsDeAction(a: ActionService): { chemin: '/api/v1/restaurant/s
   switch (a.type) {
     case 'statut': { const lu = lireStatutApp({ champ: a.champ, valeur: a.valeur }); return lu ? { chemin: '/api/v1/restaurant/statut', corps: { champ: lu.champ, valeur: lu.valeur } } : null; }
     case 'reglages': { const lu = lireReglagesApp(a.valeurs, lireDelaiPreparation); return lu.ok ? { chemin: '/api/v1/restaurant/reglages', corps: lu.valeurs } : null; }
-    case 'disponibilite': { const lu = lireActionMenuApp({ action: 'disponibilite', platId: a.platId, disponible: a.disponible }); return lu && lu.action === 'disponibilite' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: lu.action, platId: lu.platId, disponible: lu.disponible } } : null; }
-    case 'confirmer': { const lu = lireActionMenuApp({ action: 'confirmer', platId: a.platId }); return lu && lu.action === 'confirmer' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: lu.action, platId: lu.platId } } : null; }
+    case 'disponibilite': { const lu = lireMenu({ action: 'disponibilite', platId: a.platId, disponible: a.disponible }); return lu && lu.action === 'disponibilite' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: lu.action, platId: lu.platId, disponible: lu.disponible } } : null; }
+    case 'confirmer': { const lu = lireMenu({ action: 'confirmer', platId: a.platId }); return lu && lu.action === 'confirmer' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: lu.action, platId: lu.platId } } : null; }
     case 'confirmer_tout': return { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'confirmer_tout' } };
+    // Lot D4b : les valeurs envoyées sont CELLES que le contrat partagé a lues et normalisées (textes rognés), champ par champ ; une saisie invalide ne produit aucun corps (aucun appel réseau).
+    case 'creer': { const lu = lireMenu({ action: 'creer', ...champsPlat(a.plat) }); return lu && lu.action === 'creer' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'creer', ...champsPlat(lu.plat) } } : null; }
+    case 'modifier': { const lu = lireMenu({ action: 'modifier', platId: a.platId, ...champsPlat(a.plat) }); return lu && lu.action === 'modifier' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'modifier', platId: lu.platId, ...champsPlat(lu.plat) } } : null; }
+    case 'archiver': { const lu = lireMenu({ action: 'archiver', platId: a.platId }); return lu && lu.action === 'archiver' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'archiver', platId: lu.platId } } : null; }
+    case 'option_ajouter': { const lu = lireMenu({ action: 'option_ajouter', platId: a.platId, nom: a.option?.nom, prix: a.option?.prix }); return lu && lu.action === 'option_ajouter' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'option_ajouter', platId: lu.platId, nom: lu.option.nom, prix: lu.option.prix } } : null; }
+    case 'option_retirer': { const lu = lireMenu({ action: 'option_retirer', optionId: a.optionId }); return lu && lu.action === 'option_retirer' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'option_retirer', optionId: lu.optionId } } : null; }
     default: return null;
   }
 }
@@ -227,12 +370,14 @@ const MESSAGES_SUCCES = {
   accepte_commandes: { true: 'Commandes reprises.', false: 'Commandes en pause.' },
   reglages: 'Réglages enregistrés.',
   disponible: 'Plat marqué disponible.', indisponible: 'Plat marqué indisponible.', confirmer: 'Disponibilité confirmée.', confirmer_tout: 'Disponibilité confirmée pour tous les plats disponibles.',
+  creer: 'Plat ajouté.', modifier: 'Plat modifié.', archiver: 'Plat archivé : il n’apparaît plus sur la carte.', option_ajouter: 'Supplément ajouté.', option_retirer: 'Supplément retiré.',
 };
 const MESSAGES_ENREGISTRE = {
   ouvert: { true: 'La réouverture est bien enregistrée.', false: 'La fermeture est bien enregistrée.' },
   accepte_commandes: { true: 'La reprise des commandes est bien enregistrée.', false: 'La pause des commandes est bien enregistrée.' },
   reglages: 'Vos réglages sont bien enregistrés.',
   disponible: 'Le plat est bien enregistré comme disponible.', indisponible: 'Le plat est bien enregistré comme indisponible.', confirmer: 'La confirmation est bien enregistrée.', confirmer_tout: 'La confirmation est bien enregistrée pour tous les plats.',
+  creer: 'Le nouveau plat est bien enregistré.', modifier: 'Les modifications du plat sont bien enregistrées.', archiver: 'Le plat est bien archivé.', option_ajouter: 'Le supplément est bien enregistré.', option_retirer: 'Le supplément est bien retiré.',
 };
 function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof MESSAGES_ENREGISTRE): string {
   switch (a.type) {
@@ -241,6 +386,11 @@ function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof 
     case 'disponibilite': return a.disponible ? table.disponible : table.indisponible;
     case 'confirmer': return table.confirmer;
     case 'confirmer_tout': return table.confirmer_tout;
+    case 'creer': return table.creer;
+    case 'modifier': return table.modifier;
+    case 'archiver': return table.archiver;
+    case 'option_ajouter': return table.option_ajouter;
+    case 'option_retirer': return table.option_retirer;
   }
 }
 
@@ -262,6 +412,18 @@ export function etatCorrespond(a: ActionService, relue: RelectureService): boole
       const concernes = a.avant.map(([id, avant]) => ({ avant, p: relue.menu!.plats.find(x => x.id === id) })).filter(c => c.p !== undefined && c.p.disponible);
       return a.avant.length > 0 && concernes.every(c => c.p!.confirmeLe !== null && c.p!.confirmeLe !== c.avant);
     }
+    // Lot D4b : l'écran affiche ce que le SERVEUR a. Un plat créé se reconnaît à un identifiant NOUVEAU (absent de `avant`) avec le même nom et le même prix.
+    case 'creer': { if (!relue.menu) return null; const avant = new Set(a.avant); return relue.menu.plats.some(p => !avant.has(p.id) && p.nom === a.plat.nom && p.prixGnf === a.plat.prix); }
+    case 'modifier': {
+      if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId);
+      return p !== undefined && p.edition !== null && p.nom === a.plat.nom && p.prixGnf === a.plat.prix && p.edition.description === a.plat.description && p.edition.prixPromoGnf === a.plat.prixPromo && p.edition.sectionId === a.plat.sectionId;
+    }
+    case 'archiver': return relue.menu ? !relue.menu.plats.some(x => x.id === a.platId) : null;
+    case 'option_ajouter': {
+      if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); const avant = new Set(a.avant);
+      return p !== undefined && p.options.some(o => !avant.has(o.id) && o.nom === a.option.nom && o.prixGnf === a.option.prix);
+    }
+    case 'option_retirer': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p === undefined || !p.options.some(o => o.id === a.optionId); }
   }
 }
 /** « Réessayer » seulement quand le bouton qui renverrait l'action existe encore (leçon D2-M4). */
@@ -271,6 +433,11 @@ export function boutonExiste(a: ActionService, relue: RelectureService): boolean
     case 'disponibilite': return relue.menu?.plats.some(x => x.id === a.platId) === true;
     case 'confirmer': return relue.menu?.plats.some(x => x.id === a.platId && x.disponible) === true;
     case 'confirmer_tout': return relue.menu?.plats.some(x => x.disponible) === true;
+    // Lot D4b : le formulaire d'ajout existe tant que le menu a pu être relu ; la modification, l'archivage et les suppléments demandent que le plat (ou le supplément) soit encore là.
+    case 'creer': return relue.menu !== undefined;
+    case 'modifier': return relue.menu?.plats.some(x => x.id === a.platId && x.edition !== null) === true;
+    case 'archiver': case 'option_ajouter': return relue.menu?.plats.some(x => x.id === a.platId) === true;
+    case 'option_retirer': return relue.menu?.plats.some(x => x.id === a.platId && x.options.some(o => o.id === a.optionId)) === true;
   }
 }
 

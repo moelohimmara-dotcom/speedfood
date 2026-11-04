@@ -5,7 +5,7 @@ import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
 import { ErreurRestaurateur, MESSAGE_SECURITE } from '../src/connexion/restaurateur.ts';
 import {
-  CONFIRMATIONS_STATUT, CONFIRMATION_TOUT_CONFIRMER, ETAT_SERVICE_REPOS, HORAIRES_MAX, LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, actionAConfirmer, actionConfirmerTout, actionStatut, boutonExiste, brouillonDe, brouillonModifie, chiffresSeulement,
+  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, CONFIRMATIONS_STATUT, CONFIRMATION_TOUT_CONFIRMER, actionArchiver, actionRetirerOption, brouillonPlatDe, confirmationArchiver, confirmationRetirerOption, etatConcerne, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, prixDepuisSaisie, ETAT_SERVICE_REPOS, HORAIRES_MAX, LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, actionAConfirmer, actionConfirmerTout, actionStatut, boutonExiste, brouillonDe, brouillonModifie, chiffresSeulement,
   confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
   preparerReglages, refusService, serviceVerrouille, verdictService, type ActionService, type EtatService, type MenuRestaurateur, type ReglagesRestaurateur,
 } from '../src/connexion/serviceRestaurateur.ts';
@@ -56,9 +56,10 @@ test('réglages : aucun jeton ni champ inconnu n’est retenu', () => {
 // ---------- lecture du menu ----------
 test('menu : plats lus (nom, prix, disponibilité, dernière confirmation), seuls les champs affichés sont retenus', () => {
   const m = menu([platBrut(P1, { nom: 'Poulet braisé', prix: 45000 }), platBrut(P2, { disponible: false, confirmeLe: null, description: 'secret', photoUrl: 'https://x/y.jpg' })]);
-  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z' });
+  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null } });
   assert.equal(m.plats[1].disponible, false);
-  assert.ok(!JSON.stringify(m).includes('secret') && !JSON.stringify(m).includes('y.jpg'));
+  assert.equal(m.plats[1].edition?.description, 'secret', 'la description sert à la modification (jamais affichée dans la liste)');
+  assert.ok(!JSON.stringify(m).includes('y.jpg'), 'la photo n’est pas retenue');
   assert.equal(m.illisibles, 0);
 });
 test('menu I-1 : un plat sans nom lisible, sans état de disponibilité, à identifiant invalide ou répété est ÉCARTÉ et COMPTÉ ; les autres restent lisibles', () => {
@@ -384,7 +385,7 @@ test('client : une action invalide est refusée AVANT le réseau (booléen « tr
     { type: 'statut', champ: 'ouvert', valeur: 'true' }, { type: 'statut', champ: 'ouvert', valeur: 1 }, { type: 'statut', champ: 'publie', valeur: true },
     { type: 'reglages', valeurs: { horaires: 'x'.repeat(501) } }, { type: 'reglages', valeurs: { delaiPreparationMinutes: 4 } }, { type: 'reglages', valeurs: { delaiPreparationMinutes: 241 } }, { type: 'reglages', valeurs: { delaiPreparationMinutes: 30.5 } }, { type: 'reglages', valeurs: {} },
     { type: 'disponibilite', platId: 'pas-un-uuid', disponible: true }, { type: 'confirmer', platId: '', avant: null },
-    { type: 'archiver', platId: P1 }, { type: 'creer', nom: 'x' }, { type: 'option_ajouter', platId: P1 }, { type: 'inconnue' }, null, undefined,
+    { type: 'archiver', platId: 'pas-un-uuid' }, { type: 'creer', nom: 'x' }, { type: 'creer', plat: { nom: '', description: '', prix: 1000, prixPromo: null, sectionId: null }, avant: [] }, { type: 'option_ajouter', platId: P1 }, { type: 'option_retirer', optionId: 'x' }, { type: 'photo' }, { type: 'inconnue' }, null, undefined,
   ];
   for (const m of mauvaises) await assert.rejects(a.ecrireService(ACCES, m as ActionService), ErreurRestaurateur);
   assert.equal(appels.length, 0);
@@ -460,7 +461,7 @@ test('écran : chaque interrupteur envoie SON champ (jamais l’autre), avec con
   assert.ok(ecran.includes("action: actionStatut('ouvert', valeur)"), 'interrupteur « Ouvert » envoie le champ ouvert');
   assert.ok(ecran.includes("accessibilityLabel=\"Prend des commandes\" value={reglages.accepteCommandes}"), 'interrupteur « Prend des commandes » lit accepteCommandes');
   assert.ok(ecran.includes("action: actionStatut('accepte_commandes', valeur)"), 'interrupteur « Prend des commandes » envoie accepte_commandes');
-  assert.equal((ecran.match(/type: 'demander_confirmation'/g) ?? []).length, 3, 'les deux interrupteurs et « Tout confirmer » passent par la confirmation');
+  assert.equal((ecran.match(/type: 'demander_confirmation'/g) ?? []).length, 5, 'les deux interrupteurs, « Tout confirmer », « Archiver » et « Retirer le supplément » passent par la confirmation');
   assert.ok(!/setReglages\(\s*\{[^}]*ouvert/.test(ecran), 'aucun état optimiste : l’interrupteur ne change qu’avec la lecture du serveur');
 });
 test('écran : après CHAQUE écriture, l’état du serveur est relu avant le verdict (jamais une supposition optimiste)', () => {
@@ -470,8 +471,8 @@ test('écran : après CHAQUE écriture, l’état du serveur est relu avant le v
   assert.ok(ecran.includes('const relue: RelectureService = session === null ? await lireTout() : {};'));
   assert.ok(ecran.includes('gestion.reglagesRestaurateur(), gestion.menuRestaurateur()'), 'relit les réglages ET le menu');
 });
-test('écran : les trois champs de saisie sont câblés au défilement du clavier (D3b) ; le nombre de champs = le nombre câblés', () => {
-  for (const champ of ['horaires', 'delai']) assert.ok(ecran.includes(`ref={clavier.reference('${champ}')} onFocus={clavier.auFocus('${champ}')} onBlur={clavier.auBlur}`), champ);
+test('écran : les sept champs de saisie sont câblés au défilement du clavier (D3b) ; le nombre de champs = le nombre câblés', () => {
+  for (const champ of ['horaires', 'delai', 'plat-nom', 'plat-prix', 'plat-description', 'option-nom', 'option-prix']) assert.ok(ecran.includes(`ref={clavier.reference('${champ}')} onFocus={clavier.auFocus('${champ}')} onBlur={clavier.auBlur}`), champ);
   assert.equal((ecran.match(/<TextInput [a-z]/g) ?? []).length, (ecran.match(/<TextInput ref=/g) ?? []).length, 'tout nouveau champ doit être câblé au défilement');
   assert.ok(ecran.includes('keyboardType="number-pad"') && ecran.includes('chiffresSeulement(texte)'), 'le délai se saisit en chiffres seulement');
   assert.ok(ecran.includes('maxLength={HORAIRES_MAX}') && ecran.includes('/ {HORAIRES_MAX} caractères'), 'compteur de caractères des horaires');
@@ -485,11 +486,12 @@ test('écran : l’enregistrement des réglages valide AVANT d’envoyer (prepar
   assert.deepEqual(sansVerrou, [], 'chaque bouton a une condition de désactivation');
   assert.ok(ecran.includes("{p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom}"), 'pas de bouton « confirmer » pour un plat indisponible (le serveur le refuserait)');
 });
-test('écran : seules trois méthodes de session sont appelées ; aucune action de création, d’archivage, de supplément ou de photo ; pas d’espèces', () => {
+test('écran : seules trois méthodes de session sont appelées ; ni photo ni document ; pas d’espèces', () => {
   const methodes = new Set([...ecran.matchAll(/gestion\.(\w+)/g)].map(m => m[1]));
   assert.deepEqual([...methodes].sort(), ['ecrireService', 'menuRestaurateur', 'reglagesRestaurateur']);
   const types = new Set([...ecran.matchAll(/type: '(\w+)'/g)].map(m => m[1]));
-  for (const interdit of ['creer', 'archiver', 'modifier', 'option_ajouter', 'option_retirer', 'photo']) assert.ok(!types.has(interdit), interdit);
+  for (const interdit of ['photo', 'document', 'supprimer', 'historique']) assert.ok(!types.has(interdit), interdit);
+  assert.ok(!/photo(Url)?\b[^\n]*gestion\.|gestion\.[^\n]*photo/i.test(ecran));
   assert.ok(!/esp[eè]ces|cash/i.test(ecran));
 });
 test('écran parent : sélecteur Commandes | Service | Menu en haut ; l’écran Commandes est conservé tel quel (sections masquées, jamais détruites)', () => {
@@ -498,4 +500,390 @@ test('écran parent : sélecteur Commandes | Service | Menu en haut ; l’écran
   for (const bouton of ["'Accepter ' + o.reference", "'Refuser ' + o.reference", "'Marquer prête ' + o.reference", "'Marquer terminée ' + o.reference", "'Paiement reçu ' + o.reference", "'Proposer un autre prix ' + o.reference", "'Annuler la commande ' + o.reference"]) assert.ok(parent.includes(bouton), bouton);
   assert.ok(parent.includes('peutChangerDeSection(envoiOuRelecture, serviceOccupe)'), 'pas de changement de section pendant un envoi');
   assert.ok(parent.includes('envoiOuRelecture || serviceOccupe'), 'le parent est signalé occupé pendant un envoi du service');
+});
+
+// =====================================================================================================================
+// Lot D4b : créer, modifier, archiver un plat ; ajouter et retirer un supplément
+// =====================================================================================================================
+const O1 = '00000000-0000-4000-8000-0000000000b1';
+const O2 = '00000000-0000-4000-8000-0000000000b2';
+const O3 = '00000000-0000-4000-8000-0000000000b3';
+const SECTION = '55555555-5555-4555-8555-555555555555';
+const NOUVEAU = '00000000-0000-4000-8000-0000000000c1';
+const optBrute = (id: string, surcharge: Record<string, unknown> = {}) => ({ id, nom: 'Sauce piquante', prix: 2000, disponible: true, ...surcharge });
+const m4 = (plats: unknown[]) => lireMenuRestaurateur(menuBrut(plats));
+const plat1 = (m: MenuRestaurateur): PlatRestaurateur => m.plats[0];
+import type { PlatRestaurateur } from '../src/connexion/serviceRestaurateur.ts';
+
+// ---------- lecture : suppléments, édition ----------
+test('D4b menu : suppléments et champs d’édition lus (description, prix promo, section) ; rien d’autre', () => {
+  const m = m4([platBrut(P1, { description: '  Avec frites ', prixPromo: 40000, sectionId: SECTION, options: [optBrute(O1), optBrute(O2, { nom: 'Œuf', prix: 0 })] })]);
+  assert.deepEqual(plat1(m).options, [{ id: O1, nom: 'Sauce piquante', prixGnf: 2000 }, { id: O2, nom: 'Œuf', prixGnf: 0 }]);
+  assert.deepEqual(plat1(m).edition, { description: 'Avec frites', prixPromoGnf: 40000, sectionId: SECTION });
+  assert.equal(plat1(m).optionsIllisibles, 0);
+});
+test('D4b menu I-1 : un supplément atypique est ÉCARTÉ et COMPTÉ, jamais tout le plat ni tout le menu', () => {
+  const m = m4([platBrut(P1, { options: [optBrute(O1), optBrute('pas-un-uuid'), optBrute(O2, { nom: '' }), optBrute(O3, { prix: -1 }), optBrute(O1, { nom: 'Doublon' }), null, 'x', optBrute('00000000-0000-4000-8000-0000000000b4', { prix: 1.5 })] }), platBrut(P2)]);
+  assert.deepEqual(m.plats.map(p => p.id), [P1, P2]);
+  assert.deepEqual(plat1(m).options.map(o => o.id), [O1]);
+  assert.equal(plat1(m).optionsIllisibles, 7);
+  assert.equal(m.illisibles, 0);
+  assert.deepEqual(m4([platBrut(P1, { options: 'x' })]).plats[0].options, []);
+});
+test('D4b menu I-1 : description, prix promo ou section illisibles = plat visible mais NON modifiable ici (rien n’est écrasé à l’aveugle) ; il compte toujours dans la liste', () => {
+  for (const surcharge of [{ description: 5 }, { description: 'x'.repeat(501) }, { prixPromo: 'moins cher' }, { prixPromo: 1.5 }, { prixPromo: -1 }, { sectionId: 'pas-un-uuid' }, { sectionId: 5 }, { prix: 'cher' }]) {
+    const m = m4([platBrut(P1, surcharge), platBrut(P2)]);
+    assert.equal(m.plats.length, 2, JSON.stringify(surcharge));
+    assert.equal(plat1(m).edition, null, JSON.stringify(surcharge));
+    assert.equal(m.illisibles, 0);
+  }
+  assert.notEqual(plat1(m4([platBrut(P1, { description: null })])).edition, null, 'une description absente (null) est une description vide');
+});
+
+// ---------- saisie des prix ----------
+test('D4b saisie : un prix est un entier en chiffres (espaces de milliers acceptés) ; virgule, point, signe, lettres, vide, NaN, énorme refusés', () => {
+  assert.equal(prixDepuisSaisie('25000'), 25000);
+  assert.equal(prixDepuisSaisie('25 000'), 25000);
+  assert.equal(prixDepuisSaisie('25 000'), 25000);
+  assert.equal(prixDepuisSaisie('1 250 000'), 1250000);
+  assert.equal(prixDepuisSaisie('0'), 0);
+  assert.equal(prixDepuisSaisie('10000000'), 10000000);
+  for (const mauvais of ['', ' ', '25,5', '25.5', '25 000,5', '-1', '+5', '1e3', '0x10', 'abc', '12a', '১২', '10000001', '99999999999', '1'.repeat(30), 'NaN', 'Infinity', '٣٤', 25000, 25.5, NaN, Infinity, null, undefined, {}, ['1'], true]) {
+    assert.equal(prixDepuisSaisie(mauvais), null, String(mauvais));
+  }
+});
+
+// ---------- préparation d’un plat ----------
+const menuVide = { plats: [] as PlatRestaurateur[] };
+test('D4b création : saisie valide → action « creer » (textes rognés, prix entier, ni promo ni section), avec les identifiants déjà présents', () => {
+  const m = menu();
+  const r = preparerPlat({ nom: '  Poulet   braisé ', prix: '45 000', description: ' Avec frites ' }, { mode: 'creer', menu: m });
+  assert.ok(r.ok);
+  assert.deepEqual(r.ok && r.action, { type: 'creer', plat: { nom: 'Poulet braisé', description: 'Avec frites', prix: 45000, prixPromo: null, sectionId: null }, avant: [P1, P2] });
+  const sans = preparerPlat({ nom: 'Riz', prix: '1000', description: '' }, { mode: 'creer', menu: menuVide });
+  assert.deepEqual(sans.ok && corpsDeAction(sans.action), { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'creer', nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null } });
+});
+test('D4b création : saisie invalide (nom vide ou trop long, prix vide, décimal, virgule, lettres, énorme, description trop longue) = erreurs par champ et AUCUNE action', () => {
+  const bon = { nom: 'Riz', prix: '1000', description: '' };
+  const cas: Array<[Partial<typeof bon>, 'nom' | 'prix' | 'description']> = [
+    [{ nom: '' }, 'nom'], [{ nom: '   ' }, 'nom'], [{ nom: 'x'.repeat(121) }, 'nom'], [{ nom: '\u0007‮' }, 'nom'],
+    [{ prix: '' }, 'prix'], [{ prix: '10,5' }, 'prix'], [{ prix: '10.5' }, 'prix'], [{ prix: '-5' }, 'prix'], [{ prix: 'mille' }, 'prix'], [{ prix: '999999999999' }, 'prix'], [{ prix: '10000001' }, 'prix'],
+    [{ description: 'x'.repeat(501) }, 'description'],
+  ];
+  for (const [surcharge, champ] of cas) {
+    const r = preparerPlat({ ...bon, ...surcharge }, { mode: 'creer', menu: menuVide });
+    assert.equal(r.ok, false, JSON.stringify(surcharge));
+    assert.ok(!r.ok && typeof r.erreurs[champ] === 'string', champ + ' ' + JSON.stringify(surcharge));
+  }
+  for (const b of [{ nom: 5, prix: '1', description: '' }, { nom: 'x', prix: 5, description: '' }, { nom: 'x', prix: '1', description: 5 }, null, undefined] as unknown[]) {
+    assert.equal(preparerPlat(b as never, { mode: 'creer', menu: menuVide }).ok, false);
+  }
+});
+test('D4b modification : le prix promo et la section ACTUELS du serveur sont renvoyés tels quels (jamais effacés), l’identifiant du plat est celui du plat modifié', () => {
+  const p = plat1(m4([platBrut(P1, { nom: 'Poulet', description: 'Ancienne', prix: 45000, prixPromo: 40000, sectionId: SECTION })]));
+  const r = preparerPlat({ nom: 'Poulet braisé', prix: '46 000', description: 'Nouvelle' }, { mode: 'modifier', plat: p });
+  assert.deepEqual(r.ok && r.action, { type: 'modifier', platId: P1, plat: { nom: 'Poulet braisé', description: 'Nouvelle', prix: 46000, prixPromo: 40000, sectionId: SECTION } });
+  assert.deepEqual(r.ok && corpsDeAction(r.action)?.corps, { action: 'modifier', platId: P1, nom: 'Poulet braisé', description: 'Nouvelle', prix: 46000, prixPromo: 40000, sectionId: SECTION });
+});
+test('D4b modification : démarre avec ce que le serveur a ; rien de changé = pas d’envoi ; prix sous le prix promo refusé avec un message clair ; plat non modifiable refusé', () => {
+  const p = plat1(m4([platBrut(P1, { nom: 'Poulet', description: 'Ancienne', prix: 45000, prixPromo: 40000 })]));
+  assert.deepEqual(brouillonPlatDe(p), { nom: 'Poulet', prix: '45000', description: 'Ancienne' });
+  const rien = preparerPlat(brouillonPlatDe(p)!, { mode: 'modifier', plat: p });
+  assert.ok(!rien.ok && rien.erreurs.general?.includes('Rien n’a changé'));
+  const trop = preparerPlat({ nom: 'Poulet', prix: '39 000', description: 'Ancienne' }, { mode: 'modifier', plat: p });
+  assert.ok(!trop.ok && trop.erreurs.prix?.includes('prix promo'));
+  const illisible = plat1(m4([platBrut(P1, { description: 5 })]));
+  assert.equal(brouillonPlatDe(illisible), null);
+  const r = preparerPlat({ nom: 'X', prix: '1000', description: '' }, { mode: 'modifier', plat: illisible });
+  assert.ok(!r.ok && r.erreurs.general !== undefined);
+});
+test('D4b supplément : saisie valide → action avec les suppléments déjà présents ; nom vide ou trop long, prix invalide = refus sans action', () => {
+  const p = plat1(m4([platBrut(P1, { options: [optBrute(O1)] })]));
+  const r = preparerOption({ nom: ' Sauce  blanche ', prix: '1 500' }, p);
+  assert.deepEqual(r.ok && r.action, { type: 'option_ajouter', platId: P1, option: { nom: 'Sauce blanche', prix: 1500 }, avant: [O1] });
+  assert.deepEqual(r.ok && corpsDeAction(r.action), { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'option_ajouter', platId: P1, nom: 'Sauce blanche', prix: 1500 } });
+  for (const b of [{ nom: '', prix: '100' }, { nom: 'x'.repeat(81), prix: '100' }, { nom: 'Sauce', prix: '' }, { nom: 'Sauce', prix: '1,5' }, { nom: 'Sauce', prix: '-1' }, { nom: 'Sauce', prix: '99999999999' }, { nom: 5, prix: '1' }, { nom: 'Sauce', prix: 100 }] as unknown[]) {
+    assert.equal(preparerOption(b as never, p).ok, false, JSON.stringify(b));
+  }
+});
+
+// ---------- corps ----------
+test('D4b corps : chaque écriture produit la route du menu et SEULEMENT ses champs ; les clés en plus (restaurant, archive, disponible, photo) sont retirées', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const cas: Array<[ActionService, object]> = [
+    [{ type: 'creer', plat, avant: [] }, { action: 'creer', nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null }],
+    [{ type: 'modifier', platId: P1, plat }, { action: 'modifier', platId: P1, nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null }],
+    [{ type: 'archiver', platId: P1, nom: 'Riz' }, { action: 'archiver', platId: P1 }],
+    [{ type: 'option_ajouter', platId: P1, option: { nom: 'Sauce', prix: 100 }, avant: [] }, { action: 'option_ajouter', platId: P1, nom: 'Sauce', prix: 100 }],
+    [{ type: 'option_retirer', optionId: O1, platId: P1, nom: 'Sauce' }, { action: 'option_retirer', optionId: O1 }],
+  ];
+  for (const [a, corps] of cas) assert.deepEqual(corpsDeAction(a), { chemin: '/api/v1/restaurant/menu/action', corps }, a.type);
+  const parasite = corpsDeAction({ type: 'creer', plat: { ...plat, restaurantId: 'R', restaurant_id: 'R', archive_le: 'x', disponible: false, photoUrl: 'x' } as never, avant: [] });
+  assert.deepEqual(parasite?.corps, { action: 'creer', nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null });
+  assert.ok(!/restaurant|archive|disponible|photo/i.test(JSON.stringify(parasite?.corps)));
+});
+test('D4b corps : une écriture invalide ne produit AUCUN corps (prix décimal, négatif, énorme, texte, NaN ; nom vide ; identifiants invalides)', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const hostiles: unknown[] = [
+    ...[10.5, -1, 1e300, 10_000_001, '1000', NaN, Infinity, null, undefined].map(prix => ({ type: 'creer', plat: { ...plat, prix }, avant: [] })),
+    ...[10.5, -1, 1e300, NaN].map(prix => ({ type: 'modifier', platId: P1, plat: { ...plat, prix } })),
+    { type: 'creer', plat: { ...plat, nom: '' }, avant: [] }, { type: 'creer', plat: { ...plat, description: 'x'.repeat(501) }, avant: [] }, { type: 'creer', plat: { ...plat, prixPromo: 2000 }, avant: [] }, { type: 'creer', plat: { ...plat, sectionId: 'x' }, avant: [] },
+    { type: 'creer', avant: [] }, { type: 'modifier', platId: 'x', plat }, { type: 'modifier', platId: P1 }, { type: 'archiver', platId: '' }, { type: 'archiver' },
+    ...[1.5, -1, 1e300, NaN, '100'].map(prix => ({ type: 'option_ajouter', platId: P1, option: { nom: 'Sauce', prix }, avant: [] })),
+    { type: 'option_ajouter', platId: P1, option: { nom: '', prix: 1 }, avant: [] }, { type: 'option_ajouter', platId: 'x', option: { nom: 'Sauce', prix: 1 }, avant: [] }, { type: 'option_ajouter', platId: P1, avant: [] },
+    { type: 'option_retirer', optionId: 'x', platId: P1, nom: 'x' }, { type: 'option_retirer', platId: P1, nom: 'x' }, { type: 'option_retirer', optionId: P1.slice(0, 35), platId: P1, nom: 'x' },
+  ];
+  for (const a of hostiles) assert.equal(corpsDeAction(a as ActionService), null, JSON.stringify(a).slice(0, 100));
+});
+
+// ---------- confirmations ----------
+test('D4b confirmations : archiver et retirer un supplément demandent confirmation ; créer, modifier et ajouter un supplément non (le formulaire est l’intention)', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  assert.equal(actionAConfirmer({ type: 'archiver', platId: P1, nom: 'Riz' }), true);
+  assert.equal(actionAConfirmer({ type: 'option_retirer', optionId: O1, platId: P1, nom: 'Sauce' }), true);
+  for (const a of [{ type: 'creer', plat, avant: [] }, { type: 'modifier', platId: P1, plat }, { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] }] as ActionService[]) assert.equal(actionAConfirmer(a), false, a.type);
+});
+test('D4b confirmations : textes honnêtes (archiver : disparaît de la carte, commandes passées conservées, non rétablissable ici ; retirer : plus choisissable), sans espèces ni « supprimer »', () => {
+  const t = confirmationArchiver('Poulet braisé');
+  assert.ok(t.question.includes('Poulet braisé') && t.question.includes('disparaîtra de la carte') && t.question.includes('commandes déjà passées') && t.question.includes('ne pourra pas être rétabli'));
+  const u = confirmationRetirerOption('Sauce');
+  assert.ok(u.question.includes('Sauce') && u.question.includes('ne pourront plus le choisir') && u.question.includes('commandes déjà passées'));
+  assert.deepEqual(confirmationDe(actionArchiver({ id: P1, nom: 'Poulet braisé' })), t);
+  assert.deepEqual(confirmationDe(actionRetirerOption({ id: P1 }, { id: O1, nom: 'Sauce' })), u);
+  for (const x of [t, u]) assert.ok(!/esp[eè]ces|cash|supprim/i.test(x.question + x.oui + x.non));
+});
+test('D4b machine : archiver et retirer ne partent QU’après SA confirmation ; une autre confirmation ne les envoie pas', () => {
+  const arch = actionArchiver({ id: P1, nom: 'A' }); const autre = actionArchiver({ id: P2, nom: 'B' }); const ret = actionRetirerOption({ id: P1 }, { id: O1, nom: 'S' });
+  assert.equal(evoluerService(ETAT_SERVICE_REPOS, { type: 'envoyer', action: arch, lecture }).phase, 'repos');
+  assert.equal(evoluerService(ETAT_SERVICE_REPOS, { type: 'envoyer', action: ret, lecture }).phase, 'repos');
+  const c = confirmee(arch);
+  assert.equal(c.phase, 'confirmation');
+  assert.equal(evoluerService(c, { type: 'envoyer', action: autre, lecture }).phase, 'confirmation', 'on ne confirme pas un plat pour en archiver un autre');
+  assert.equal(evoluerService(c, { type: 'envoyer', action: ret, lecture }).phase, 'confirmation');
+  assert.equal(evoluerService(c, { type: 'envoyer', action: arch, lecture }).phase, 'envoi');
+  assert.equal(evoluerService(confirmee(ret), { type: 'envoyer', action: ret, lecture }).phase, 'envoi');
+});
+
+// ---------- double envoi ----------
+test('D4b machine : « créer » ne part qu’UNE fois — un second appui pendant l’envoi, la relecture ou après un doute non relu est sans effet', () => {
+  const a = preparerPlat({ nom: 'Riz', prix: '1000', description: '' }, { mode: 'creer', menu: menuVide });
+  assert.ok(a.ok); if (!a.ok) return;
+  const envoi = evoluerService(ETAT_SERVICE_REPOS, { type: 'envoyer', action: a.action, lecture });
+  assert.equal(envoi.phase, 'envoi');
+  assert.equal(evoluerService(envoi, { type: 'envoyer', action: a.action, lecture }), envoi, 'second appui pendant l’envoi');
+  const relecture = evoluerService(envoi, { type: 'repondre', erreur: erreurReseauService() });
+  assert.equal(evoluerService(relecture, { type: 'envoyer', action: a.action, lecture }), relecture, 'second appui pendant la relecture');
+  const doute = evoluerService(relecture, { type: 'relire', relue: {}, lecture });
+  assert.equal(doute.phase, 'verdict');
+  assert.equal(serviceVerrouille(doute, lecture), true);
+  assert.equal(evoluerService(doute, { type: 'envoyer', action: a.action, lecture }), doute, 'verrouillé tant que le menu n’a pas été relu');
+  assert.equal(peutEnvoyerService(doute, a.action, lecture), false);
+  assert.equal(serviceVerrouille(doute, lecture + 1), false, 'une relecture réussie du menu déverrouille');
+});
+
+// ---------- correspondance et verdict ----------
+test('D4b correspondance : créer se reconnaît à un identifiant NOUVEAU (nom et prix) ; un plat de même nom déjà présent ne compte pas ; menu non relu = inconnu', () => {
+  const plat = { nom: 'Riz gras', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const action: ActionService = { type: 'creer', plat, avant: [P1] };
+  const avant = [platBrut(P1, { nom: 'Riz gras', prix: 1000 })];
+  assert.equal(etatCorrespond(action, { menu: m4(avant) }), false, 'un plat du même nom qui existait déjà n’est pas le nouveau');
+  assert.equal(etatCorrespond(action, { menu: m4([...avant, platBrut(NOUVEAU, { nom: 'Riz gras', prix: 1000 })]) }), true);
+  assert.equal(etatCorrespond(action, { menu: m4([...avant, platBrut(NOUVEAU, { nom: 'Riz gras', prix: 2000 })]) }), false, 'même nom, autre prix : pas le plat demandé');
+  assert.equal(etatCorrespond(action, { menu: m4([...avant, platBrut(NOUVEAU, { nom: 'Autre', prix: 1000 })]) }), false);
+  assert.equal(etatCorrespond(action, {}), null);
+  assert.equal(etatCorrespond(action, { reglages: reglages() }), null, 'les réglages ne disent rien du menu');
+});
+test('D4b correspondance : créer ≠ modifier — une modification n’est jamais prise pour une création, ni l’inverse', () => {
+  const plat = { nom: 'Riz gras', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const creer: ActionService = { type: 'creer', plat, avant: [P1] };
+  const modifier: ActionService = { type: 'modifier', platId: P1, plat };
+  const modifie = m4([platBrut(P1, { nom: 'Riz gras', prix: 1000 })]);
+  assert.equal(etatCorrespond(modifier, { menu: modifie }), true);
+  assert.equal(etatCorrespond(creer, { menu: modifie }), false, 'le plat modifié n’est pas un NOUVEAU plat');
+  const cree = m4([platBrut(P1, { nom: 'Ancien', prix: 500 }), platBrut(NOUVEAU, { nom: 'Riz gras', prix: 1000 })]);
+  assert.equal(etatCorrespond(creer, { menu: cree }), true);
+  assert.equal(etatCorrespond(modifier, { menu: cree }), false, 'le plat P1 n’a pas changé');
+});
+test('D4b correspondance : modifier compare nom, prix, description, promo et section du plat visé ; archiver = le plat a disparu ; suppléments = ajouté / retiré', () => {
+  const plat = { nom: 'Poulet', description: 'Bon', prix: 45000, prixPromo: 40000, sectionId: SECTION };
+  const modifier: ActionService = { type: 'modifier', platId: P1, plat };
+  const meme = platBrut(P1, { nom: 'Poulet', description: 'Bon', prix: 45000, prixPromo: 40000, sectionId: SECTION });
+  assert.equal(etatCorrespond(modifier, { menu: m4([meme]) }), true);
+  for (const surcharge of [{ nom: 'Autre' }, { prix: 1 }, { description: 'Mauvais' }, { prixPromo: null }, { sectionId: null }]) assert.equal(etatCorrespond(modifier, { menu: m4([{ ...meme, ...surcharge }]) }), false, JSON.stringify(surcharge));
+  assert.equal(etatCorrespond(modifier, { menu: m4([platBrut(P2)]) }), false, 'plat disparu');
+  assert.equal(etatCorrespond(modifier, {}), null);
+  const archiver: ActionService = { type: 'archiver', platId: P1, nom: 'x' };
+  assert.equal(etatCorrespond(archiver, { menu: m4([platBrut(P1)]) }), false);
+  assert.equal(etatCorrespond(archiver, { menu: m4([platBrut(P2)]) }), true);
+  assert.equal(etatCorrespond(archiver, {}), null);
+  const ajouter: ActionService = { type: 'option_ajouter', platId: P1, option: { nom: 'Sauce piquante', prix: 2000 }, avant: [O1] };
+  assert.equal(etatCorrespond(ajouter, { menu: m4([platBrut(P1, { options: [optBrute(O1)] })]) }), false, 'le supplément qui existait déjà n’est pas le nouveau');
+  assert.equal(etatCorrespond(ajouter, { menu: m4([platBrut(P1, { options: [optBrute(O1), optBrute(O2)] })]) }), true);
+  assert.equal(etatCorrespond(ajouter, { menu: m4([platBrut(P2, { options: [optBrute(O2)] })]) }), false, 'sur un autre plat : non');
+  const retirer: ActionService = { type: 'option_retirer', optionId: O1, platId: P1, nom: 'Sauce' };
+  assert.equal(etatCorrespond(retirer, { menu: m4([platBrut(P1, { options: [optBrute(O1)] })]) }), false);
+  assert.equal(etatCorrespond(retirer, { menu: m4([platBrut(P1, { options: [optBrute(O2)] })]) }), true);
+  assert.equal(etatCorrespond(retirer, {}), null);
+});
+test('D4b verdict : « enregistré » seulement si le serveur l’a confirmé — succès + état relu conforme = « Plat ajouté. » ; état relu différent = pas confirmé', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const action: ActionService = { type: 'creer', plat, avant: [] };
+  const bon = m4([platBrut(NOUVEAU, { nom: 'Riz', prix: 1000 })]);
+  assert.deepEqual(verdictService({ erreur: null, action, relue: { menu: bon } }), { genre: 'confirme', message: 'Plat ajouté.' });
+  const v = verdictService({ erreur: null, action, relue: { menu: m4([]) } });
+  assert.equal(v.genre, 'incertain'); assert.ok(v.genre === 'incertain' && v.reessayer === false, 'jamais de « réessayer » après un succès du serveur : un doublon est possible');
+  const sans = verdictService({ erreur: null, action, relue: {} });
+  assert.equal(sans.genre, 'confirme'); assert.ok(sans.message.includes('n’a pas pu être relu'));
+});
+test('D4b verdict : réponse incertaine — plat retrouvé = enregistré ; absent = réessayer ; menu non relu = ni enregistré ni réessayer ; jamais de « bien enregistré » sans preuve', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const action: ActionService = { type: 'creer', plat, avant: [] };
+  const incertain = erreurReseauService();
+  const trouve = verdictService({ erreur: incertain, action, relue: { menu: m4([platBrut(NOUVEAU, { nom: 'Riz', prix: 1000 })]) } });
+  assert.deepEqual(trouve, { genre: 'confirme', message: 'Le nouveau plat est bien enregistré.' });
+  const absent = verdictService({ erreur: incertain, action, relue: { menu: m4([]) } });
+  assert.ok(absent.genre === 'incertain' && absent.reessayer === true);
+  const inconnu = verdictService({ erreur: incertain, action, relue: {} });
+  assert.ok(inconnu.genre === 'incertain' && inconnu.reessayer === false && !inconnu.message.includes('bien enregistré') && !inconnu.message.includes('Vous pouvez réessayer'));
+  for (const a of [{ type: 'modifier', platId: P1, plat }, { type: 'archiver', platId: P1, nom: 'x' }, { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] }, { type: 'option_retirer', optionId: O1, platId: P1, nom: 'S' }] as ActionService[]) {
+    const v = verdictService({ erreur: incertain, action: a, relue: {} });
+    assert.ok(v.genre === 'incertain' && v.reessayer === false, a.type);
+  }
+});
+test('D4b verdict D2-M4 : « réessayer » seulement quand le bouton existe encore (plat disparu, archivé ailleurs, non modifiable)', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const incertain = erreurReseauService();
+  const disparu = m4([platBrut(P2)]);
+  for (const a of [{ type: 'modifier', platId: P1, plat }, { type: 'archiver', platId: P1, nom: 'x' }, { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] }] as ActionService[]) {
+    const v = verdictService({ erreur: incertain, action: a, relue: { menu: disparu } });
+    // archiver d’un plat disparu = c’est fait ; les autres : plus de bouton, donc pas de « réessayer ».
+    if (a.type === 'archiver') assert.equal(v.genre, 'confirme');
+    else assert.ok(v.genre === 'refus' && !v.message.includes('réessayer'), a.type);
+  }
+  assert.equal(boutonExiste({ type: 'modifier', platId: P1, plat }, { menu: m4([platBrut(P1, { description: 5 })]) }), false, 'plat devenu non modifiable');
+  assert.equal(boutonExiste({ type: 'modifier', platId: P1, plat }, { menu: m4([platBrut(P1)]) }), true);
+  assert.equal(boutonExiste({ type: 'option_retirer', optionId: O1, platId: P1, nom: 'S' }, { menu: m4([platBrut(P1, { options: [optBrute(O1)] })]) }), true);
+  assert.equal(boutonExiste({ type: 'option_retirer', optionId: O1, platId: P1, nom: 'S' }, { menu: m4([platBrut(P1)]) }), false);
+  assert.equal(boutonExiste({ type: 'creer', plat, avant: [] }, { menu: m4([]) }), true);
+  assert.equal(boutonExiste({ type: 'creer', plat, avant: [] }, {}), false);
+});
+test('D4b verdict : refus certains (400, 403, 404, 409, 429), sécurité et session — messages fixes, jamais le texte du serveur', () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const action: ActionService = { type: 'creer', plat, avant: [] };
+  const refus = verdictService({ erreur: refusService(400), action, relue: { menu: m4([]) } });
+  assert.ok(refus.genre === 'refus' && refus.reessayer === false);
+  assert.deepEqual(verdictService({ erreur: refusService(403, 'mfa'), action, relue: {} }), { genre: 'securite', message: MESSAGE_SECURITE });
+  assert.equal(MESSAGE_SECURITE, 'Ouvrez Speedfood sur le site pour terminer la sécurité du compte restaurateur.');
+  assert.equal(verdictService({ erreur: null, sessionTerminee: 'Votre session a pris fin.', action, relue: {} }).genre, 'session');
+});
+
+// ---------- verrou par état (correctif D4a m-1) ----------
+test('D4b verrou : la relecture du MENU ne déverrouille jamais une action sur les RÉGLAGES, et inversement (m-1)', () => {
+  assert.equal(etatConcerne(actionStatut('ouvert', false)), 'reglages');
+  assert.equal(etatConcerne({ type: 'reglages', valeurs: { horaires: 'x' } }), 'reglages');
+  for (const a of [{ type: 'disponibilite', platId: P1, disponible: true }, { type: 'confirmer', platId: P1, avant: null }, { type: 'confirmer_tout', avant: [] }, { type: 'archiver', platId: P1, nom: 'x' }, { type: 'option_retirer', optionId: O1, platId: P1, nom: 'x' }] as ActionService[]) assert.equal(etatConcerne(a), 'menu', a.type);
+  const action = actionStatut('ouvert', false);
+  let lectures = { reglages: 3, menu: 7 };
+  let etat = evoluerService(ETAT_SERVICE_REPOS, { type: 'demander_confirmation', action, lecture: lecturePourEtat(ETAT_SERVICE_REPOS, lectures) });
+  etat = evoluerService(etat, { type: 'envoyer', action, lecture: lecturePourEtat(etat, lectures) });
+  etat = evoluerService(etat, { type: 'repondre', erreur: erreurReseauService() });
+  etat = evoluerService(etat, { type: 'relire', relue: {}, lecture: lecturePourAction(action, lectures) });
+  assert.equal(etat.phase, 'verdict');
+  assert.equal(serviceVerrouille(etat, lecturePourEtat(etat, lectures)), true, 'réglages jamais relus : verrouillé');
+  lectures = { ...lectures, menu: lectures.menu + 1 };
+  assert.equal(serviceVerrouille(etat, lecturePourEtat(etat, lectures)), true, 'le menu relu ne déverrouille pas un interrupteur dont l’état n’a pas été relu');
+  lectures = { ...lectures, reglages: lectures.reglages + 1 };
+  assert.equal(serviceVerrouille(etat, lecturePourEtat(etat, lectures)), false, 'les réglages relus déverrouillent');
+});
+test('D4b verrou : une création au doute reste verrouillée tant que le MENU n’est pas relu, même si les réglages le sont (jamais deux plats pour un double appui)', () => {
+  const a = preparerPlat({ nom: 'Riz', prix: '1000', description: '' }, { mode: 'creer', menu: menuVide });
+  assert.ok(a.ok); if (!a.ok) return;
+  let lectures = { reglages: 1, menu: 1 };
+  let etat = evoluerService(ETAT_SERVICE_REPOS, { type: 'envoyer', action: a.action, lecture: lecturePourEtat(ETAT_SERVICE_REPOS, lectures) });
+  etat = evoluerService(etat, { type: 'repondre', erreur: erreurReseauService() });
+  etat = evoluerService(etat, { type: 'relire', relue: { reglages: reglages() }, lecture: lecturePourAction(a.action, lectures) });
+  lectures = { ...lectures, reglages: 2 };
+  assert.equal(serviceVerrouille(etat, lecturePourEtat(etat, lectures)), true);
+  assert.equal(peutEnvoyerService(etat, a.action, lecturePourEtat(etat, lectures)), false);
+  lectures = { ...lectures, menu: 2 };
+  assert.equal(serviceVerrouille(etat, lecturePourEtat(etat, lectures)), false);
+});
+
+// ---------- m-2 : horaires nettoyés comme à la lecture ----------
+test('D4b m-2 : des horaires saisis avec tabulation, retour chariot ou marque de direction partent NETTOYÉS, donc identiques à ce que le serveur renverra (pas de faux « état relu différent »)', () => {
+  const saisie = 'Lun\t8h\r\n‮Mar 9h';
+  const p = preparerReglages({ horaires: '', delaiPreparationMinutes: null }, { horaires: saisie, delai: '' });
+  assert.ok(p.ok);
+  const envoye = p.ok ? p.valeurs.horaires : undefined;
+  assert.equal(envoye, 'Lun 8h\nMar 9h');
+  const relu = lireReglagesRestaurateur(reglagesBruts({ horaires: envoye })).horaires;
+  assert.equal(relu, envoye);
+  assert.equal(etatCorrespond({ type: 'reglages', valeurs: { horaires: envoye } }, { reglages: lireReglagesRestaurateur(reglagesBruts({ horaires: saisie })) }), true, 'même si le serveur a gardé le texte brut, la lecture le nettoie comme l’envoi');
+});
+
+// ---------- client ----------
+test('D4b client : chaque écriture = UN POST du seul corps de l’action sur /menu/action, jeton porteur, sans restaurant', async () => {
+  const plat = { nom: 'Riz', description: 'Bon', prix: 1000, prixPromo: null, sectionId: null };
+  const cas: Array<[ActionService, object]> = [
+    [{ type: 'creer', plat, avant: [] }, { action: 'creer', nom: 'Riz', description: 'Bon', prix: 1000, prixPromo: null, sectionId: null }],
+    [{ type: 'modifier', platId: P1, plat }, { action: 'modifier', platId: P1, nom: 'Riz', description: 'Bon', prix: 1000, prixPromo: null, sectionId: null }],
+    [{ type: 'archiver', platId: P1, nom: 'Riz' }, { action: 'archiver', platId: P1 }],
+    [{ type: 'option_ajouter', platId: P1, option: { nom: 'Sauce', prix: 100 }, avant: [] }, { action: 'option_ajouter', platId: P1, nom: 'Sauce', prix: 100 }],
+    [{ type: 'option_retirer', optionId: O1, platId: P1, nom: 'Sauce' }, { action: 'option_retirer', optionId: O1 }],
+  ];
+  for (const [action, corps] of cas) {
+    const { a, appels } = api(() => json({ ok: true }));
+    await a.ecrireService(ACCES, action);
+    assert.equal(appels.length, 1, action.type);
+    assert.equal(appels[0].url, API + '/api/v1/restaurant/menu/action'); assert.equal(appels[0].options.method, 'POST'); assert.equal(appels[0].options.credentials, 'omit');
+    assert.deepEqual(JSON.parse(String(appels[0].options.body)), corps);
+    assert.ok(!/restaurant_?id|restaurantId/i.test(String(appels[0].options.body)));
+    assert.equal(entete(appels[0]), 'Bearer ' + ACCES);
+  }
+});
+test('D4b client : une saisie invalide n’atteint JAMAIS le réseau (prix décimal, négatif, énorme, texte ; nom vide ; description trop longue)', async () => {
+  const { a, appels } = api(() => json({ ok: true }));
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const mauvaises: unknown[] = [
+    ...[10.5, -1, 1e300, '1000', NaN, null].map(prix => ({ type: 'creer', plat: { ...plat, prix }, avant: [] })),
+    { type: 'creer', plat: { ...plat, nom: '' }, avant: [] }, { type: 'modifier', platId: P1, plat: { ...plat, description: 'x'.repeat(501) } },
+    ...[0.5, -3, 1e300].map(prix => ({ type: 'option_ajouter', platId: P1, option: { nom: 'S', prix }, avant: [] })),
+  ];
+  for (const m of mauvaises) await assert.rejects(a.ecrireService(ACCES, m as ActionService), ErreurRestaurateur);
+  assert.equal(appels.length, 0);
+});
+test('D4b client : UN SEUL essai pour chaque écriture, même après 500, coupure ou réponse illisible ; l’erreur est incertaine', async () => {
+  const plat = { nom: 'Riz', description: '', prix: 1000, prixPromo: null, sectionId: null };
+  const actions: ActionService[] = [{ type: 'creer', plat, avant: [] }, { type: 'modifier', platId: P1, plat }, { type: 'archiver', platId: P1, nom: 'x' }, { type: 'option_ajouter', platId: P1, option: { nom: 'S', prix: 1 }, avant: [] }, { type: 'option_retirer', optionId: O1, platId: P1, nom: 'S' }];
+  const cas: Array<() => Response | Promise<Response>> = [() => json({ ok: false }, 503), () => { throw new TypeError('réseau'); }, () => new Response('pas du json', { status: 200, headers: { 'content-type': 'text/html' } })];
+  for (const repondre of cas) for (const action of actions) {
+    const { a, appels } = api(repondre);
+    await assert.rejects(a.ecrireService(ACCES, action), (e: unknown) => e instanceof ErreurRestaurateur && e.incertain === true);
+    assert.equal(appels.length, 1, action.type);
+  }
+});
+
+// ---------- écran ----------
+test('D4b écran : l’enregistrement d’un plat et d’un supplément valide AVANT d’envoyer (preparerPlat, preparerOption) ; le formulaire ne se ferme que sur un verdict « confirme »', () => {
+  assert.ok(ecran.includes('const p = preparerPlat(brouillonPlat, cible.mode === \'creer\' ? { mode: \'creer\', menu } : { mode: \'modifier\', plat: cible.plat });'));
+  assert.ok(ecran.includes('if (!p.ok) { setErreursPlat(p.erreurs); return; }'));
+  assert.ok(ecran.includes('const p = preparerOption(brouillonOption, plat);') && ecran.includes('if (!p.ok) { setErreursOption(p.erreurs); return; }'));
+  assert.equal((ecran.match(/void envoyer\(p\.action\)/g) ?? []).length, 2, 'création/modification et supplément envoient l’action préparée, jamais une saisie brute');
+  assert.ok(ecran.includes("e.verdict.genre === 'confirme'") && ecran.includes("action.type === 'creer' || action.type === 'modifier'") && ecran.includes("action.type === 'option_ajouter'"));
+  assert.ok(!/setFormPlat\(null\)[^\n]*\n[^\n]*envoyer/.test(ecran), 'le formulaire ne se ferme pas avant la réponse');
+});
+test('D4b écran : « Ajouter un plat », « Modifier », « Archiver », « Ajouter un supplément » et « Retirer » existent, verrouillés pendant l’envoi, et archiver / retirer passent par la confirmation', () => {
+  for (const titre of ["titre=\"Ajouter un plat\" disabled={bloque}", "'Modifier ' + p.nom} secondaire disabled={bloque}", "'Archiver ' + p.nom} secondaire disabled={bloque}", "'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
+  assert.ok(ecran.includes("action: actionArchiver(p)") && ecran.includes("action: actionRetirerOption(p, o)"));
+  assert.ok(!/envoyer\(actionArchiver|envoyer\(actionRetirerOption/.test(ecran), 'jamais d’archivage ni de retrait sans confirmation');
+});
+test('D4b écran : verrou par état (m-1) — compteurs séparés pour les réglages et le menu', () => {
+  assert.ok(ecran.includes('const lectureVerrou = lecturePourEtat(etat, lectures);') && ecran.includes('serviceVerrouille(etat, lectureVerrou)'));
+  assert.ok(ecran.includes("lecture: lecturePourAction(action, lecturesRef.current)"));
+  assert.ok(ecran.includes('reglages: lecturesRef.current.reglages + 1') && ecran.includes('menu: lecturesRef.current.menu + 1'));
+  assert.ok(!/\blecture\b[^\n]*\+\+/.test(ecran), 'plus de compteur unique');
+});
+test('D4b écran : aucun libellé « espèces » ; les photos restent sur le site', () => {
+  assert.ok(!/esp[eè]ces|cash/i.test(ecran));
+  assert.ok(ecran.includes('Les photos des plats se gèrent sur le site pour l’instant.'));
 });
