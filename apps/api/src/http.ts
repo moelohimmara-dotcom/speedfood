@@ -29,3 +29,38 @@ export async function lireCorpsJson(c: Context): Promise<{ ok: true; corps: unkn
     return { ok: false, reponse: reponseErreur(c, { code: "VALIDATION", message: "Requête invalide : JSON illisible." }) };
   }
 }
+
+/**
+ * Formulaire multipart d'une requête, lu avec une LIMITE sur le corps ENTIER (lot D4c, envoi de photo). Refus avant toute lecture : ce n'est pas du multipart (400), `Content-Length` illisible (400) ou
+ * supérieur à la limite (413). Le flux est en plus compté pendant la lecture : un `Content-Length` absent ou mensonger ne permet pas de faire lire plus que la limite (413). Rien n'est journalisé.
+ */
+export async function lireFormulaireBorne(c: Context, limiteOctets: number): Promise<{ ok: true; formulaire: FormData } | { ok: false; reponse: Response }> {
+  const type = c.req.header("content-type") ?? "";
+  if (!/^multipart\/form-data\s*;/i.test(type)) {
+    return { ok: false, reponse: reponseErreur(c, { code: "VALIDATION", message: "Requête invalide : formulaire attendu." }) };
+  }
+  const trop = () => ({ ok: false as const, reponse: repondre(c, { ok: false, erreur: { code: "VALIDATION", message: `Envoi trop volumineux (${Math.round(limiteOctets / 1024 / 1024)} Mo au maximum).` } }, 413) });
+  const declare = c.req.header("content-length");
+  if (declare !== undefined) {
+    if (!/^\d{1,12}$/.test(declare.trim())) return { ok: false, reponse: reponseErreur(c, { code: "VALIDATION", message: "Requête invalide." }) };
+    if (Number(declare) > limiteOctets) return trop();
+  }
+  const source = c.req.raw.body;
+  if (source === null) return { ok: false, reponse: reponseErreur(c, { code: "VALIDATION", message: "Envoi illisible. Réessayez." }) };
+  let lus = 0;
+  let depasse = false;
+  const compteur = new TransformStream<Uint8Array, Uint8Array>({
+    transform(morceau, flux) {
+      lus += morceau.byteLength;
+      if (lus > limiteOctets) { depasse = true; flux.error(new Error("corps trop gros")); return; }
+      flux.enqueue(morceau);
+    },
+  });
+  try {
+    const requete = new Request("https://borne.invalide/", { method: "POST", headers: { "content-type": type }, body: source.pipeThrough(compteur), duplex: "half" } as RequestInit);
+    return { ok: true, formulaire: await requete.formData() };
+  } catch {
+    if (depasse) return trop();
+    return { ok: false, reponse: reponseErreur(c, { code: "VALIDATION", message: "Envoi illisible. Réessayez." }) };
+  }
+}

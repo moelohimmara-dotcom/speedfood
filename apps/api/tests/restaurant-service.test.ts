@@ -67,6 +67,8 @@ function monter(surcharge: Partial<DepsServiceRestaurant> = {}) {
     archiverPlat: async () => { throw new Error("hors sujet"); },
     ajouterOption: async () => { throw new Error("hors sujet"); },
     retirerOption: async () => { throw new Error("hors sujet"); },
+    definirPhoto: async () => { throw new Error("hors sujet"); },
+    retirerPhoto: async () => { throw new Error("hors sujet"); },
     ...surcharge,
   });
   return { service, journal };

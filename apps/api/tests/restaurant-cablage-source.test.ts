@@ -56,7 +56,50 @@ test("cablage D4b : le câblage n'importe que les services du menu prévus (aucu
   assert.ok(importMenu, "import du service du menu");
   const noms = importMenu![1].split(",").map((n) => n.trim().replace(/ as .*/, "")).sort();
   assert.deepEqual(noms, ["ajouterOption", "archiverPlat", "basculerDisponibilite", "confirmerDisponibilite", "confirmerToutesDisponibilites", "creerPlat", "lireMenu", "modifierPlat", "retirerOption"]);
-  assert.ok(!/photo|document|supprimer/i.test(code.replace(/import[^\n]*\n/g, "")), "aucune photo, aucun document, aucune suppression de plat dans le câblage");
+  // Lot D4c : la photo d'un plat a ses lignes dédiées (épinglées plus bas) ; hors de ces lignes, toujours aucune photo, aucun document, aucune suppression de plat.
+  const reste = code.replace(/import[^\n]*\n/g, "").split("\n").filter((l) => !LIGNES_PHOTO.some((m) => m.test(l))).join("\n");
+  assert.ok(!/photo|document|supprimer/i.test(reste), "aucune photo (hors lignes D4c), aucun document, aucune suppression de plat dans le câblage");
+});
+
+const LIGNES_PHOTO = [
+  /^const STOCKAGE_IMAGES: StockageImages = \{$/,
+  /^\s*televerser:\s*\(fichier,\s*dossier,\s*restaurantId\)\s*=>\s*televerserImage\(fichier,\s*dossier,\s*restaurantId\),\s*$/,
+  /^\s*supprimerOrphelin:\s*\(url\)\s*=>\s*supprimerTeleversementOrphelin\(url\),\s*$/,
+  /^\s*supprimerAncienne:\s*\(url\)\s*=>\s*supprimerImage\(url\),\s*$/,
+  /^\s*definirPhoto:\s*\(client,\s*restaurantId,\s*platId,\s*fichier\)\s*=>\s*definirPhotoPlat\(client as SupabaseClient,\s*restaurantId,\s*platId,\s*fichier,\s*STOCKAGE_IMAGES\),\s*$/,
+  /^\s*retirerPhoto:\s*\(client,\s*restaurantId,\s*platId\)\s*=>\s*retirerPhotoPlat\(client as SupabaseClient,\s*restaurantId,\s*platId,\s*STOCKAGE_IMAGES\),\s*$/,
+];
+
+test("cablage D4c : la photo reçoit le client du jeton et le restaurant du CONTEXTE ; le stockage ne branche que les trois fonctions du site ; le client administrateur n'est jamais passé à photo.ts", () => {
+  for (const motif of LIGNES_PHOTO) unique(motif, String(motif));
+  assert.equal(sansCommentaires.filter((l) => /STOCKAGE_IMAGES/.test(l)).length, 3, "STOCKAGE_IMAGES : déclaration + deux usages, pas un de plus");
+  const importImages = source.match(/import \{([^}]*)\} from "@\/lib\/storage\/images";/);
+  assert.ok(importImages, "import du stockage");
+  assert.deepEqual(importImages![1].split(",").map((n) => n.trim()).sort(), ["supprimerImage", "supprimerTeleversementOrphelin", "televerserImage"]);
+  assert.ok(!/creerClientAdmin[^\n]*photo|photo[^\n]*creerClientAdmin/i.test(code), "le client administrateur n'est jamais passé à la photo");
+});
+
+// Le stockage est le SEUL usage système du lot D4c. Il vit dans le service du site (images.ts) : on fige ce qu'il touche pour qu'une évolution soit revue.
+const sansComm = (brut: string) => brut.replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "").replace(/\s\/\/ .*$/, "")).join("\n");
+
+test("images.ts (site) : le client administrateur n'y sert qu'au bucket `medias` et à COMPTER les références d'une image (head: true, aucune donnée de restaurant lue)", () => {
+  const images = sansComm(readFileSync(fileURLToPath(new URL("../../web/src/lib/storage/images.ts", import.meta.url)), "utf8"));
+  assert.equal((images.match(/creerClientAdmin\(\)/g) ?? []).length, 3, "trois usages : téléversement, orphelin, suppression");
+  assert.equal((images.match(/\.storage\.from\("medias"\)/g) ?? []).length, 4, "upload, getPublicUrl, remove (orphelin), remove (ancienne)");
+  assert.equal((images.match(/admin\.from\(/g) ?? []).length, 4, "quatre comptages de références");
+  assert.equal((images.match(/\{ count: "exact", head: true \}/g) ?? []).length, 4, "chaque lecture est un simple comptage");
+  assert.ok(!/\.insert\(|\.update\(|\.delete\(|\.upsert\(/.test(images), "aucune écriture en base avec le client administrateur");
+  assert.equal((images.match(/^import /gm) ?? []).length, 6, "liste des imports figée : toute nouvelle dépendance doit être revue");
+  assert.ok(/await limiterTeleversement\(restaurantId\)/.test(images), "quota d'envois par restaurant");
+});
+
+test("photo.ts (API) : aucun client administrateur ni lecture d'environnement ; la seule colonne écrite est photo_url, filtrée sur le restaurant et le plat non archivé", () => {
+  const photo = sansComm(readFileSync(fileURLToPath(new URL("../src/restaurant/photo.ts", import.meta.url)), "utf8"));
+  assert.ok(!/creerClientAdmin|db\/admin|service_role|SERVICE_ROLE|process\.env|console\./.test(photo));
+  assert.equal((photo.match(/\.update\(/g) ?? []).length, 1, "une seule écriture");
+  assert.ok(/\.update\(\{ photo_url: url \}\)\.eq\("id", platId\)\.eq\("restaurant_id", restaurantId\)\.is\("archive_le", null\)\.select\("id"\)/.test(photo), "écriture filtrée");
+  assert.equal((photo.match(/\.eq\("restaurant_id", restaurantId\)\.is\("archive_le", null\)/g) ?? []).length, 2, "lecture et écriture filtrées sur le restaurant du contexte et le plat non archivé");
+  assert.ok(!/\.insert\(|\.delete\(|\.upsert\(|\.rpc\(/.test(photo));
 });
 
 test("cablage D4a : la SEULE lecture système du lot est le seuil de fraîcheur global (paramètre non sensible, policy réservée aux administrateurs), jamais une donnée de restaurant", () => {

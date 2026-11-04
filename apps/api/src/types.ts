@@ -88,6 +88,10 @@ export interface Deps {
     lireMenu(ctx: ContexteRestaurant): Promise<ResultatLecture<ReponseMenuRestaurant>>;
     /** Lots D4a et D4b : disponibilité d'un plat, reconfirmation, création, modification, archivage d'un plat, ajout et retrait d'un supplément (services du menu du site ; le plat et le supplément sont toujours filtrés sur le restaurant du compte). */
     actionMenu(ctx: ContexteRestaurant, action: ActionMenuApp): Promise<ResultatActionCommande>;
+    /** Lot D4c : envoie ou remplace la photo d'un plat de CE restaurant (contrôles du fichier du site : type, 5 Mo, signature, quota). Le plat est filtré sur le restaurant du compte et ne doit pas être archivé. */
+    definirPhoto(ctx: ContexteRestaurant, platId: string, fichier: File): Promise<ResultatActionCommande>;
+    /** Lot D4c : retire la photo d'un plat de CE restaurant (le plat reste en vente, sans image). */
+    retirerPhoto(ctx: ContexteRestaurant, platId: string): Promise<ResultatActionCommande>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };

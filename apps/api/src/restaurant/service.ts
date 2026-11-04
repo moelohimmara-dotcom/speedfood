@@ -56,6 +56,12 @@ export interface DepsServiceRestaurant {
   archiverPlat(client: unknown, restaurantId: string, platId: string): Promise<ResultatMenuSite>;
   ajouterOption(client: unknown, restaurantId: string, platId: string, option: OptionAEcrire): Promise<ResultatMenuSite>;
   retirerOption(client: unknown, restaurantId: string, optionId: string): Promise<ResultatMenuSite>;
+  /**
+   * Lot D4c : photo d'un plat (`photo.ts`). Le client est celui du jeton (lecture du plat et écriture de `photo_url`), le restaurant celui du contexte. Le stockage des images (service-role, aucune policy
+   * d'écriture sur le bucket) n'est atteint que par les contrôles du fichier du site, APRÈS le contrôle d'appartenance du plat ; voir `cablage.ts`.
+   */
+  definirPhoto(client: unknown, restaurantId: string, platId: string, fichier: File): Promise<ResultatActionCommande>;
+  retirerPhoto(client: unknown, restaurantId: string, platId: string): Promise<ResultatActionCommande>;
 }
 
 /** Résultat des services du menu du site (`ResultatMenu`). */
@@ -144,6 +150,12 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
         case "option_retirer": resultat = await d.retirerOption(ctx.supabase, ctx.restaurantId, action.optionId); break;
       }
       return resultat.ok ? { ok: true } : { ok: false, erreur: { code: "VALIDATION", message: resultat.message } };
+    },
+    async definirPhoto(ctx, platId: string, fichier: File) {
+      return d.definirPhoto(ctx.supabase, ctx.restaurantId, platId, fichier);
+    },
+    async retirerPhoto(ctx, platId: string) {
+      return d.retirerPhoto(ctx.supabase, ctx.restaurantId, platId);
     },
   };
 }

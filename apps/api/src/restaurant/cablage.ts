@@ -10,8 +10,21 @@ import { origineDuSite } from "@/lib/partage/origine";
 import type { ClientCommandeDb } from "@/lib/commande/commun";
 import { ajouterOption, archiverPlat, basculerDisponibilite, confirmerDisponibilite, confirmerToutesDisponibilites, creerPlat, lireMenu as lireMenuRestaurant, modifierPlat, retirerOption } from "@/lib/menu/service-menu";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
+import { supprimerImage, supprimerTeleversementOrphelin, televerserImage } from "@/lib/storage/images";
 import { creerServiceRestaurant } from "./service.ts";
 import { ecrireReglagesRestaurant, ecrireStatutRestaurant, lireReglagesRestaurant } from "./reglages.ts";
+import { definirPhotoPlat, retirerPhotoPlat, type StockageImages } from "./photo.ts";
+
+/**
+ * Stockage des photos (lot D4c) : les fonctions du site, jamais une copie de leurs règles. Le bucket `medias` n'a AUCUNE policy d'écriture (migration 20260928035030) : le téléversement et la
+ * suppression se font avec le client de service du site, comme sa console. C'est le seul usage système du lot : il ne se produit qu'APRÈS le contrôle d'appartenance du plat (photo.ts), pour écrire
+ * un fichier au nom aléatoire dans le bucket public ; la donnée du restaurateur (`photo_url`) s'écrit avec le client lié au jeton.
+ */
+const STOCKAGE_IMAGES: StockageImages = {
+  televerser: (fichier, dossier, restaurantId) => televerserImage(fichier, dossier, restaurantId),
+  supprimerOrphelin: (url) => supprimerTeleversementOrphelin(url),
+  supprimerAncienne: (url) => supprimerImage(url),
+};
 
 /** Câblage de PRODUCTION du service restaurateur : les services du site, jamais une copie de leurs règles. Aucun secret lu ici (les clients les lisent à l'appel). */
 export const serviceRestaurant = creerServiceRestaurant({
@@ -45,4 +58,6 @@ export const serviceRestaurant = creerServiceRestaurant({
   archiverPlat: (client, restaurantId, platId) => archiverPlat(client as SupabaseClient, restaurantId, platId),
   ajouterOption: (client, restaurantId, platId, option) => ajouterOption(client as SupabaseClient, restaurantId, platId, option),
   retirerOption: (client, restaurantId, optionId) => retirerOption(client as SupabaseClient, restaurantId, optionId),
+  definirPhoto: (client, restaurantId, platId, fichier) => definirPhotoPlat(client as SupabaseClient, restaurantId, platId, fichier, STOCKAGE_IMAGES),
+  retirerPhoto: (client, restaurantId, platId) => retirerPhotoPlat(client as SupabaseClient, restaurantId, platId, STOCKAGE_IMAGES),
 });

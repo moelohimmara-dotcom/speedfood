@@ -4,10 +4,11 @@ import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { lireDelaiPreparation } from "@speedfood/shared/commande/estimation";
 import { lireActionMenuApp, lireReglagesApp, lireStatutApp } from "@speedfood/shared/contracts/restaurant-service";
 import { REGLES_MENU_PLAFONNEES } from "@speedfood/shared/menu/regles-plat";
+import { PHOTO_CORPS_MAX_OCTETS, lireDemandePhotoApp } from "@speedfood/shared/contracts/restaurant-photo";
 import { lireActionRestaurantApp, lireDecisionPaiementApp, lireValeursPropositionApp } from "@speedfood/shared/contracts/restaurant-commandes";
 import { identifier } from "../controles/chaine.ts";
 import type { Variables } from "../controles/chaine.ts";
-import { lireCorpsJson, repondre, reponseErreur } from "../http.ts";
+import { lireCorpsJson, lireFormulaireBorne, repondre, reponseErreur } from "../http.ts";
 import type { Deps } from "../types.ts";
 
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -138,6 +139,24 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     const lecture = lireActionMenuApp(lu.corps, REGLES_MENU_PLAFONNEES);
     if (!lecture.ok) return reponseErreur(c, { code: "VALIDATION", message: lecture.message });
     const resultat = await deps.restaurant.actionMenu(ctx, lecture.action);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
+  // ---------- lot D4c : photo d'un plat ----------
+  route.post("/menu/photo", identite, async (c) => {
+    // Même ordre que les autres écritures : le contexte (plafond par compte, second facteur, questions, appartenance) AVANT le corps, donc avant de lire le moindre octet du formulaire.
+    const ctx = await contexte(c);
+    // Corps borné (5 Mo + enveloppe) : refus 413 sur Content-Length, et flux compté si l'en-tête manque ou ment.
+    const lu = await lireFormulaireBorne(c, PHOTO_CORPS_MAX_OCTETS);
+    if (!lu.ok) return lu.reponse;
+    const photo = lu.formulaire.get("photo");
+    // Seul un VRAI fichier du formulaire est un fichier : un champ texte « photo » est refusé par le contrat. Aucune autre clé n'est lue (jamais de restaurantId).
+    const demande = lireDemandePhotoApp<File>({ platId: lu.formulaire.get("platId"), photo: typeof photo === "string" ? undefined : photo, retirer: lu.formulaire.get("retirer") });
+    if (!demande.ok) {
+      if (demande.tropGros) return repondre(c, { ok: false, erreur: { code: "VALIDATION", message: demande.message } }, 413);
+      return reponseErreur(c, { code: "VALIDATION", message: demande.message });
+    }
+    const resultat = demande.demande.action === "retirer" ? await deps.restaurant.retirerPhoto(ctx, demande.demande.platId) : await deps.restaurant.definirPhoto(ctx, demande.demande.platId, demande.demande.fichier);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 
