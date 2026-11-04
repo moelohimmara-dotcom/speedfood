@@ -8,7 +8,7 @@ import { choisirPhoto, type SourcePhoto } from './photoPlat';
 import { depsPhotoNatives } from './photoPlatNatif';
 import {
   BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionPhotoDefinir, actionPhotoRetirer, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
-  formaterPrix, libelleDisponibilitePlat, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, preparerReglages, serviceVerrouille,
+  formaterPrix, libelleDisponibilitePlat, lecturePourAction, lecturePourEtat, photoPeutPartir, preparerOption, preparerPlat, preparerReglages, serviceVerrouille,
   type ActionService, type BrouillonOption, type BrouillonPlat, type BrouillonReglages, type ErreursOption, type ErreursPlat, type ErreursReglages, type EtatService, type EvenementService, type Lectures, type MenuRestaurateur, type PlatRestaurateur,
   type ReglagesRestaurateur, type RelectureService,
 } from './serviceRestaurateur';
@@ -117,7 +117,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
    * aucune erreur ; une permission refusée ou une photo inutilisable affiche un message fixe et laisse tous les boutons actifs. `avant` est la photo que le serveur avait à la DERNIÈRE lecture.
    */
   async function prendrePhoto(plat: PlatRestaurateur, source: SourcePhoto) {
-    if (selectionEnCours.current || envoiEnCours.current || lectureEnCours.current || serviceVerrouille(etatRef.current, lecturePourEtat(etatRef.current, lecturesRef.current))) return;
+    if (selectionEnCours.current || !photoPeutPartir(envoiEnCours.current, lectureEnCours.current, etatRef.current, lecturesRef.current)) return;
     selectionEnCours.current = true; setSelection(true); setMessagePhoto(null);
     let action: ActionService | null = null;
     try {
@@ -131,7 +131,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     } finally { selectionEnCours.current = false; if (actif.current) setSelection(false); }
     if (action !== null && actif.current) {
       // Un autre changement a démarré pendant que le sélecteur était ouvert : la photo choisie n'est pas envoyée, et on le dit (jamais un abandon silencieux).
-      if (envoiEnCours.current || lectureEnCours.current || serviceVerrouille(etatRef.current, lecturePourEtat(etatRef.current, lecturesRef.current))) { setMessagePhoto({ platId: plat.id, texte: 'Un autre changement est en cours : la photo n’a pas été envoyée. Réessayez dans un instant.' }); return; }
+      if (!photoPeutPartir(envoiEnCours.current, lectureEnCours.current, etatRef.current, lecturesRef.current)) { setMessagePhoto({ platId: plat.id, texte: 'Un autre changement est en cours : la photo n’a pas été envoyée. Réessayez dans un instant.' }); return; }
       setChoixPhoto(null); await envoyer(action);
     }
   }

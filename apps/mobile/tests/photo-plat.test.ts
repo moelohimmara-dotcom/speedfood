@@ -8,7 +8,7 @@ import {
   choisirPhoto, dimensionsReduites, type DepsPhoto, type SelectionPhoto,
 } from '../src/connexion/photoPlat.ts';
 import {
-  actionPhotoDefinir, actionPhotoRetirer, boutonExiste, confirmationDe, confirmationRetirerPhoto, corpsDeAction, etatCorrespond, evoluerService, fichierPhotoPret, lireMenuRestaurateur, peutEnvoyerService,
+  photoPeutPartir, actionPhotoDefinir, actionPhotoRetirer, boutonExiste, confirmationDe, confirmationRetirerPhoto, corpsDeAction, etatCorrespond, evoluerService, fichierPhotoPret, lireMenuRestaurateur, peutEnvoyerService,
   refusService, serviceVerrouille, verdictService, ETAT_SERVICE_REPOS, type ActionService, type FichierPhotoPrete, type MenuRestaurateur, type PlatRestaurateur,
 } from '../src/connexion/serviceRestaurateur.ts';
 
@@ -340,7 +340,7 @@ test('écran D4c : annuler le sélecteur ne fait RIEN (ni envoi ni message) ; un
   assert.ok(bloc.includes('else setMessagePhoto({ platId: plat.id, texte: choix.message })'), 'refus et permission refusée = message fixe');
   assert.ok(bloc.includes('await envoyer(action)') && !bloc.includes('gestion.'), 'la photo passe par envoyer(), jamais directement par la session');
   assert.ok(bloc.includes('actionPhotoDefinir(courant, choix.fichier)'), 'l’état « avant » est la photo de la dernière lecture');
-  assert.ok(bloc.includes('serviceVerrouille(etatRef.current') && bloc.includes('selectionEnCours.current'), 'verrou : pas de second sélecteur, pas de photo pendant un envoi ou après une réponse incertaine');
+  assert.ok(bloc.includes('!photoPeutPartir(envoiEnCours.current, lectureEnCours.current, etatRef.current, lecturesRef.current)') && bloc.includes('selectionEnCours.current'), 'verrou : pas de second sélecteur, pas de photo pendant un envoi ou après une réponse incertaine');
   const boutons = ecran.match(/<Action [^\n]*/g) ?? [];
   assert.deepEqual(boutons.filter(b => !/disabled=\{/.test(b)), [], 'chaque bouton a une condition de désactivation');
   assert.ok(boutons.filter(b => /photo|galerie/i.test(b)).every(b => /bloque|selection/.test(b)), 'les boutons de photo sont verrouillés par le verrou général et le sélecteur');
@@ -367,11 +367,30 @@ test('app.json D4c : le plugin du sélecteur est déclaré SANS microphone ; auc
 
 test('écran D4c : une photo choisie pendant un autre envoi n’est jamais abandonnée en silence (message), et le garde de prendrePhoto est épinglé', () => {
   const bloc = ecran.slice(ecran.indexOf('async function prendrePhoto'), ecran.indexOf('const lectureVerrou'));
-  assert.ok(bloc.startsWith('async function prendrePhoto') && bloc.includes('if (selectionEnCours.current || envoiEnCours.current || lectureEnCours.current || serviceVerrouille('), 'garde au début');
+  assert.ok(bloc.includes('if (selectionEnCours.current || !photoPeutPartir(envoiEnCours.current, lectureEnCours.current, etatRef.current, lecturesRef.current)) return;'), 'garde au début');
   const apres = bloc.slice(bloc.indexOf('if (action !== null && actif.current)'));
   assert.ok(apres.indexOf('Un autre changement est en cours') > 0 && apres.indexOf('Un autre changement est en cours') < apres.indexOf('await envoyer(action)'), 'message AVANT l’envoi');
-  assert.ok(apres.includes('envoiEnCours.current || lectureEnCours.current || serviceVerrouille('));
+  assert.ok(apres.includes('if (!photoPeutPartir(envoiEnCours.current, lectureEnCours.current, etatRef.current, lecturesRef.current))'));
 });
 test('app.json D4c : les permissions de stockage ajoutées par la bibliothèque sont BLOQUÉES', () => {
-  assert.deepEqual([...(appJson.android.blockedPermissions as string[])].sort(), ['android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE']);
+  // WRITE_EXTERNAL_STORAGE reste DÉCLARÉE : sous Android 10, expo-image-picker l'exige avec la caméra (sinon « Prendre une photo » est refusée d'office sur Android 7 à 9). Seule READ est bloquée.
+  assert.deepEqual(appJson.android.blockedPermissions, ['android.permission.READ_EXTERNAL_STORAGE']);
+});
+
+test('photoPeutPartir D4c : une photo ne part que si rien n’est en cours et si l’écran n’est pas verrouillé (comportement, pas du texte)', () => {
+  const l = { reglages: 1, menu: 3 };
+  assert.equal(photoPeutPartir(false, false, ETAT_SERVICE_REPOS, l), true);
+  assert.equal(photoPeutPartir(true, false, ETAT_SERVICE_REPOS, l), false, 'envoi en cours');
+  assert.equal(photoPeutPartir(false, true, ETAT_SERVICE_REPOS, l), false, 'lecture en cours');
+  const a = actionPhotoDefinir(platDe(sansPhoto()), fichier());
+  const envoi = evoluerService(ETAT_SERVICE_REPOS, { type: 'envoyer', action: a, lecture: 3 });
+  assert.equal(photoPeutPartir(false, false, envoi, l), false, 'machine en envoi');
+  const incertainVerrou = { phase: 'verdict' as const, action: a, verdict: { genre: 'incertain' as const, message: 'x', reessayer: false }, lectureVerdict: 3 };
+  assert.equal(photoPeutPartir(false, false, incertainVerrou, l), false, 'doute sans relecture du menu');
+  assert.equal(photoPeutPartir(false, false, incertainVerrou, { reglages: 1, menu: 4 }), true, 'libérée par une relecture réussie du menu');
+  assert.equal(photoPeutPartir(false, false, incertainVerrou, { reglages: 9, menu: 3 }), false, 'relire les seuls réglages ne libère pas');
+});
+test('photo : appareil photo qui refuse de s’ouvrir (permission système) = message d’autorisation, pas « photo non préparée » ; la galerie garde le message générique', async () => {
+  assert.deepEqual(await choisirPhoto('camera', telephone({ ouvrirEchoue: true }).deps), { genre: 'permission_refusee', message: MESSAGE_CAMERA_REFUSEE });
+  assert.deepEqual(await choisirPhoto('galerie', telephone({ ouvrirEchoue: true }).deps), { genre: 'refuse', message: MESSAGE_PHOTO_ILLISIBLE });
 });

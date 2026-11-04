@@ -64,7 +64,10 @@ async function preparer(uri: string, largeur: number, hauteur: number, coteLong:
 export async function choisirPhoto(source: SourcePhoto, d: DepsPhoto): Promise<ChoixPhoto> {
   try {
     if (source === 'camera' && !(await d.demanderCamera())) return { genre: 'permission_refusee', message: MESSAGE_CAMERA_REFUSEE };
-    const choix = await d.ouvrir(source);
+    let choix: SelectionPhoto;
+    try { choix = await d.ouvrir(source); }
+    // Appareil photo qui refuse de s'ouvrir (permission système refusée au lancement, ex. Android ancien) : message d'autorisation, pas « photo non préparée » (aucune photo n'a été choisie).
+    catch { return source === 'camera' ? { genre: 'permission_refusee', message: MESSAGE_CAMERA_REFUSEE } : { genre: 'refuse', message: MESSAGE_PHOTO_ILLISIBLE }; }
     if (choix.annule) return { genre: 'annule' };
     if (typeof choix.uri !== 'string' || choix.uri.length === 0) return { genre: 'refuse', message: MESSAGE_PHOTO_ILLISIBLE };
     let fichier = await preparer(choix.uri, choix.largeur, choix.hauteur, COTE_LONG_PHOTO_PX, QUALITE_JPEG, d);

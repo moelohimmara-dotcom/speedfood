@@ -230,6 +230,8 @@ export interface Lectures { reglages: number; menu: number }
 /** Le compteur à comparer pour l'état courant de la machine : celui de l'action en cours ou du verdict (le menu au repos). */
 export function lecturePourEtat(etat: EtatService, l: Lectures): number { return etat.phase === 'repos' ? l.menu : l[etatConcerne(etat.action)]; }
 export function lecturePourAction(a: ActionService, l: Lectures): number { return l[etatConcerne(a)]; }
+/** Lot D4c : une photo peut PARTIR seulement si aucun envoi ni aucune lecture n'est en cours et si l'écran n'est pas verrouillé (réponse incertaine sans relecture réussie). Contrôlé avant d'ouvrir le sélecteur ET après le choix (un autre changement a pu démarrer entre-temps). */
+export function photoPeutPartir(envoiEnCours: boolean, lectureEnCours: boolean, etat: EtatService, lectures: Lectures): boolean { return !envoiEnCours && !lectureEnCours && !serviceVerrouille(etat, lecturePourEtat(etat, lectures)); }
 
 /** Les deux interrupteurs ne se confondent jamais : chaque champ a son texte, son sens et sa colonne. */
 export function actionStatut(champ: ChampStatutApp, valeur: boolean): ActionService { return { type: 'statut', champ, valeur }; }
@@ -499,7 +501,7 @@ export function formulaireSeReferme(action: ActionService, verdict: VerdictServi
 
 /**
  * Issue d'une tentative. `erreur` null = le serveur a répondu {ok:true} (écriture confirmée par la base). Après une réponse INCONNUE, l'état relu décide : s'il montre la valeur demandée,
- * c'est enregistré ; s'il montre l'état d'avant et que le bouton existe encore, « réessayer » est permis ; si la relecture a échoué, il est interdit (jamais à l'aveugle). Un refus certain
+ * c'est enregistré ; s'il montre l'état d'avant et que le bouton existe encore, « réessayer » est permis, SAUF pour une insertion (créer, ajouter un supplément, envoyer une photo) où le serveur peut finir l'écriture après la relecture : alors verdict incertain, sans réessai ; si la relecture a échoué, il est interdit (jamais à l'aveugle). Un refus certain
  * n'est jamais converti en succès. Même après un succès, un état relu DIFFÉRENT est signalé (modifié entre-temps depuis un autre appareil).
  */
 export function verdictService(e: { erreur: ErreurRestaurateur | null; sessionTerminee?: string | null; action: ActionService; relue: RelectureService }): VerdictService {
@@ -513,7 +515,7 @@ export function verdictService(e: { erreur: ErreurRestaurateur | null; sessionTe
   if (!e.erreur.incertain) return { genre: 'refus', message: e.erreur.message, reessayer: false };
   if (correspond === null) return { genre: 'incertain', message: e.erreur.message + ' L’état n’a pas pu être relu : actualisez-le avant de réessayer.', reessayer: false };
   if (correspond) return { genre: 'confirme', message: messageSucces(e.action, MESSAGES_ENREGISTRE) };
-  // Une INSERTION (créer, ajouter un supplément) n'est jamais déclarée « non enregistrée » sur un simple doute : le serveur peut finir l'écriture après la relecture. Pas de « réessayer » (risque de doublon).
+  // Une INSERTION (créer, ajouter un supplément, envoyer une photo : un nouveau fichier) n'est jamais déclarée « non enregistrée » sur un simple doute : le serveur peut finir l'écriture après la relecture. Pas de « réessayer » (risque de doublon).
   if (e.action.type === 'photo_definir' && boutonExiste(e.action, e.relue)) return { genre: 'incertain', message: 'Le menu relu ne montre pas encore la nouvelle photo : elle n’a peut-être pas été enregistrée. Actualisez le menu dans un instant et vérifiez avant d’en envoyer une autre.', reessayer: false };
   if ((e.action.type === 'creer' || e.action.type === 'option_ajouter') && boutonExiste(e.action, e.relue)) return { genre: 'incertain', message: 'Le menu relu ne montre pas encore cet ajout : il n’a peut-être pas été enregistré. Actualisez le menu dans un instant et vérifiez avant de l’ajouter à nouveau.', reessayer: false };
   if (boutonExiste(e.action, e.relue)) return { genre: 'incertain', message: 'L’état relu ne montre pas votre changement : il n’a pas été enregistré. Vous pouvez réessayer.', reessayer: true };

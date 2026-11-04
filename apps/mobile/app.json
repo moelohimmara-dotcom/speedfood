@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.speedfood.clientdemo",
-      "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"],
+      "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/speedfood.png",
         "backgroundColor": "#FFF6ED"
