@@ -437,6 +437,8 @@ Codes : 200, 400, 401, 429, 500.
 
 Tests : `appareils-{routes,contrat,cablage-source}.test.ts` (30 tests). Mutations (script `mutations-e1.cjs`, fichiers restaurés) : contrôle du jeton retiré (enregistrement, retrait), `utilisateurId` du corps (deux routes), plateforme hors liste, service avant le plafond, jeton renvoyé dans la réponse (deux routes), version non bornée, import de la clé de service dans le câblage, compte fixe dans le retrait : toutes tuées.
 
+**Risque résiduel (règle du site conservée)** : un jeton d’appareil déjà connu change de propriétaire. Une personne connectée qui connaîtrait le jeton Firebase d’un autre téléphone peut donc l’enregistrer sous son compte ; la victime reçoit alors les textes génériques de l’autre compte (rien de lisible pour l’attaquant). Le jeton n’est pas devinable et ne sort que du téléphone. Atténuation prévue : l’appli (lot E2) réenregistre son jeton à chaque ouverture et à chaque renouvellement du jeton.
+
 Non vérifié : jamais exécuté contre la vraie base ni sous workerd ni depuis un téléphone ; l'envoi lui-même (secret `FCM_SERVICE_ACCOUNT` absent du Worker de l'API) reste hors de ce lot ; le poids du Worker passe à 1 284 373 octets.
 
 ## Réserves traitées le 31 octobre 2026

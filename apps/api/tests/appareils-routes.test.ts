@@ -35,6 +35,7 @@ const poster = (app: App, chemin: string, corps: unknown, entetes: Record<string
 const enregistrer = (app: App, corps: unknown, entetes?: Record<string, string>) => poster(app, "/api/v1/appareils", corps, entetes);
 const retirer = (app: App, corps: unknown, entetes?: Record<string, string>) => poster(app, "/api/v1/appareils/retirer", corps, entetes);
 const code = async (r: Response) => ((await r.json()) as { erreur: { code: string } }).erreur.code;
+const message = async (r: Response) => ((await r.json()) as { erreur: { message: string } }).erreur.message;
 const aucunService = (j: Journal) => assert.ok(!j.appels.includes("enregistrer") && !j.appels.includes("retirer"), "le service a été appelé : " + j.appels.join(","));
 const BON = { jeton: JETON_APPAREIL, plateforme: "android" };
 
@@ -106,8 +107,12 @@ test("E1 enregistrer : panne du plafond = 500 générique, service non appelé",
 
 test("E1 enregistrer : corps illisible, non JSON, ou type de contenu absent, 400", async () => {
   const { app, journal } = monter();
-  assert.equal((await enregistrer(app, "{pas du json")).status, 400);
-  assert.equal((await enregistrer(app, BON, AUTH)).status, 400, "pas de Content-Type JSON");
+  const illisible = await enregistrer(app, "{pas du json");
+  assert.equal(illisible.status, 400);
+  assert.equal(await message(illisible), "Requête invalide : JSON illisible.");
+  const sansType = await enregistrer(app, BON, AUTH);
+  assert.equal(sansType.status, 400, "pas de Content-Type JSON");
+  assert.equal(await message(sansType), "Requête invalide : JSON attendu.");
   aucunService(journal);
 });
 
@@ -224,7 +229,12 @@ test("E1 retirer : plafond atteint, 429 avant la lecture du corps", async () => 
 
 test("E1 retirer : JSON illisible 400 ; jeton invalide 400 « Appareil invalide. »", async () => {
   const { app, journal } = monter();
-  assert.equal((await retirer(app, "{pas du json")).status, 400);
+  const illisible = await retirer(app, "{pas du json");
+  assert.equal(illisible.status, 400);
+  assert.equal(await message(illisible), "Requête invalide : JSON illisible.");
+  const sansType = await retirer(app, { jeton: JETON_APPAREIL }, AUTH);
+  assert.equal(sansType.status, 400);
+  assert.equal(await message(sansType), "Requête invalide : JSON attendu.");
   for (const jeton of ["court", "a".repeat(4097), "a".repeat(20) + " ", undefined, 5]) {
     const r = await retirer(app, { jeton });
     assert.equal(r.status, 400);
