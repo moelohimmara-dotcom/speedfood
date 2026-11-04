@@ -108,7 +108,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     </>}
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: m.consentement, disabled: verrouille }} disabled={verrouille} onPress={() => m.saisir('consentement', !m.consentement)} style={s.consentement}>
       <View style={[s.case, m.consentement && s.caseCochee]}>{m.consentement && <Text style={s.coche}>✓</Text>}</View>
-      <Text style={s.consentementTexte}>Je comprends que le règlement se fait en dehors de l’application et que le restaurant doit confirmer ma commande.</Text>
+      <Text style={s.consentementTexte}>Je comprends que le restaurant doit confirmer ma commande avant tout paiement.</Text>
     </Pressable>
     {m.phase === 'envoi' && <View accessibilityLiveRegion="polite" style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Envoi de votre commande…</Text></View>}
     {m.message && <Text accessibilityRole="alert" style={s.texte}>{m.message}</Text>}
