@@ -109,3 +109,10 @@ Constats : Speedfood ne reçoit jamais d'argent ; le client règle le restaurant
 - Relecture indépendante : prêt, aucun critique ni important. Nouvel usage justifié du client administrateur : `obtenirParametresApplication()` lit seulement le seuil global de fraîcheur (non renvoyé), après les contrôles d'accès, appel unique épinglé par un test statique.
 - Vérifié : typecheck, test:api (476), test:unit, test:cloisonnement, build:api (Worker 1 250 170 octets), tests appli (309), 38 + 4 mutations tuées ; 6 rejouées par le relecteur.
 - Non vérifié : vraie base (RLS), workerd/CPU, écran sur émulateur ou téléphone, déploiement. Mineurs différés : m-1 (compteur de relecture partagé réglages/menu), m-2 (horaires avec tabulation affichés « incertain »), m-3 à m-6 (commentaire de test, prix promo ignoré, lecture en série, cosmétique).
+
+### Essai réel du lot D4a sur l'émulateur (4 novembre 2026), restaurant « barbie food »
+- Lecture : sections Commandes, Service et Menu conformes à la base (ouvert, prend des commandes, horaires 46/500, 3 plats, 2 « à reconfirmer » après la première confirmation).
+- Écritures vérifiées en base, chacune avec l'accord de Malika : confirmer « Riz sauce feuille » (date de confirmation mise à jour, autres plats intacts) ; délai de préparation 25 min enregistré puis remis à vide (clavier numérique correct, horaires intacts) ; « Poulet braisé » indisponible puis disponible (~25 s) ; restaurant fermé (`ouvert=false`, `accepte_commandes` inchangé : pas de confusion des deux interrupteurs) puis rouvert (confirmations honnêtes dans les deux sens).
+- Effet durable : « Poulet braisé » est désormais confirmé (01:15 le 4 novembre) ; la date d'origine n'est pas restaurable. État final : ouvert, prend des commandes, délai vide.
+- Piège confirmé : le DNS de l'émulateur retombe (« Impossible de joindre Speedfood ») ; `private_dns_mode off` + « Actualiser » suffit. Un retour arrière Android (`KEYCODE_BACK`) ferme l'espace restaurateur.
+- Reste non vérifié : RLS d'un compte non-propriétaire, CPU Worker, téléphone, iPhone.
