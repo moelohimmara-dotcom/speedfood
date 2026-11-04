@@ -254,11 +254,16 @@ export async function avancerLivraison(d: DemandeAvancement): Promise<ResultatSe
     return refuser("La commande n'est pas encore prête : attendez que le restaurant la déclare prête.");
   }
 
+  let essaiReserve = false;
   if (d.vers === "livree" && d.acteur !== "admin") {
     if (l.essais_code >= ESSAIS_CODE_MAX) return refuser("Trop d'essais de code. Contactez l'assistance.");
+    // L'essai est RÉSERVÉ avant toute comparaison, par une mise à jour conditionnelle (valeur lue inchangée ET plafond non atteint) : des requêtes simultanées ne peuvent pas lire toutes la même valeur
+    // puis comparer chacune un code, une seule réserve la place. Sans ligne touchée : refus, sans rien comparer.
+    const { data: reservee } = await db.from("livraisons").update({ essais_code: l.essais_code + 1 }).eq("id", l.id).eq("essais_code", l.essais_code).lt("essais_code", ESSAIS_CODE_MAX).select("id");
+    if (!reservee || reservee.length === 0) return refuser("La livraison a changé d'état entre-temps. Rechargez la page.");
+    essaiReserve = true;
     const { data: ligneCode } = await db.from("livraison_codes").select("code").eq("livraison_id", l.id).maybeSingle();
     if (!ligneCode || !codeRemiseCorrect(ligneCode.code as string, d.code ?? "")) {
-      await db.from("livraisons").update({ essais_code: l.essais_code + 1 }).eq("id", l.id);
       return refuser(`Code incorrect. Demandez au client le code à 4 chiffres affiché sur son suivi (${ESSAIS_CODE_MAX - l.essais_code - 1} essai(s) restant(s)).`);
     }
   }
@@ -271,7 +276,11 @@ export async function avancerLivraison(d: DemandeAvancement): Promise<ResultatSe
   if ((d.vers === "echec" || d.vers === "annulee") && d.raison) patch.raison = d.raison.slice(0, 300);
 
   const { data: changee } = await db.from("livraisons").update(patch).eq("id", l.id).eq("statut", de).select("id");
-  if (!changee || changee.length === 0) return refuser("La livraison a changé d'état entre-temps. Rechargez la page.");
+  if (!changee || changee.length === 0) {
+    // Le bon code n'a pas servi : l'essai réservé est rendu (uniquement si personne d'autre n'a touché au compteur).
+    if (essaiReserve) await db.from("livraisons").update({ essais_code: l.essais_code }).eq("id", l.id).eq("essais_code", l.essais_code + 1);
+    return refuser("La livraison a changé d'état entre-temps. Rechargez la page.");
+  }
 
   // Livraison par le personnel du restaurant avec un livreur du registre : « en course » dès le départ (sa position est alors partagée au client).
   if (d.vers === "vers_client" && mode === "propre" && l.livreur_id) await db.from("livreurs").update({ statut: "en_course" }).eq("id", l.livreur_id).neq("statut", "en_course");

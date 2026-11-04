@@ -98,8 +98,11 @@ export async function lireLivraisonsDesCommandes(db: SupabaseClient, restaurantI
   let ignorees = 0;
   const demandees = new Set(commandeIds);
   try {
-    for (let i = 0; i < commandeIds.length; i += PAQUET) {
-      const { data, error } = await db.from("livraisons").select("id, order_id, mode, statut").eq("restaurant_id", restaurantId).in("order_id", commandeIds.slice(i, i + PAQUET));
+    const paquets: string[][] = [];
+    for (let i = 0; i < commandeIds.length; i += PAQUET) paquets.push(commandeIds.slice(i, i + PAQUET));
+    // Les paquets partent ensemble : moins d'attente qu'une file d'allers-retours.
+    const reponses = await Promise.all(paquets.map((paquet) => db.from("livraisons").select("id, order_id, mode, statut").eq("restaurant_id", restaurantId).in("order_id", paquet)));
+    for (const { data, error } of reponses) {
       if (error) return null;
       for (const ligne of (Array.isArray(data) ? data : []) as Array<Record<string, unknown>>) {
         const commandeId = ligne.order_id;

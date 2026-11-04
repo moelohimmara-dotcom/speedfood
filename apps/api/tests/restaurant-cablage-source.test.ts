@@ -172,8 +172,14 @@ test("livraison.ts (API) : aucun client administrateur, aucune écriture directe
   assert.ok(/\.from\("livraisons"\)\.select\("id"\)\.eq\("id", livraisonId\)\.eq\("restaurant_id", restaurantId\)\.maybeSingle\(\)/.test(livraison), "appartenance filtrée sur la livraison ET le restaurant du contexte");
   assert.ok(/\.from\("livraisons"\)\.select\("id, order_id, mode, statut"\)\.eq\("restaurant_id", restaurantId\)\.in\("order_id", /.test(livraison), "liste : trois champs utiles, filtrée sur le restaurant du contexte");
   assert.equal((livraison.match(/acteur: "restaurant",/g) ?? []).length, 1, "l'acteur est imposé ici, une seule fois");
-  assert.equal((livraison.match(/await avancer\(/g) ?? []).length, 1);
-  assert.ok(livraison.indexOf("await lireAppartenance(") < livraison.indexOf("await avancer("), "le contrôle d'appartenance précède l'avancement");
+  assert.equal((livraison.match(/avancer\(/g) ?? []).length, 1, "un seul appel de l'avancement (avec ou sans await)");
+  assert.ok(livraison.indexOf("await lireAppartenance(") < livraison.indexOf("avancer("), "le contrôle d'appartenance précède l'avancement");
+  assert.deepEqual(livraison.match(/^import .*$/gm), [
+    'import type { SupabaseClient } from "@supabase/supabase-js";',
+    'import type { ResultatActionCommande } from "@speedfood/shared/contracts/commande";',
+    'import { lireLivraisonApi, type ActionLivraisonApp, type LivraisonRestaurateurApi } from "@speedfood/shared/contracts/restaurant-livraison";',
+  ], "imports figés : aucun import du site (@/), jamais clientLivraison");
+  assert.ok(!/clientLivraison|from "@\//.test(livraison));
   assert.ok(/if \(lecture\.etat === "absent"\) return INTROUVABLE;/.test(livraison) && /if \(lecture\.etat === "panne"\) return PANNE;/.test(livraison));
 });
 
@@ -198,7 +204,9 @@ test("service de livraison (site) : c'est lui qui écrit avec la clé de service
   assert.ok(/if \(!acteurPeut\(d\.acteur, de, d\.vers, mode\)\) return refuser/.test(service), "machine à états et droits par acteur");
   assert.ok(/if \(l\.essais_code >= ESSAIS_CODE_MAX\) return refuser/.test(service), "plafond d'essais du code");
   assert.ok(/!codeRemiseCorrect\(ligneCode\.code as string, d\.code \?\? ""\)/.test(service), "comparaison du code en temps constant");
-  assert.ok(/\.update\(\{ essais_code: l\.essais_code \+ 1 \}\)/.test(service), "chaque essai raté est compté");
+  assert.ok(/\.update\(\{ essais_code: l\.essais_code \+ 1 \}\)\.eq\("id", l\.id\)\.eq\("essais_code", l\.essais_code\)\.lt\("essais_code", ESSAIS_CODE_MAX\)\.select\("id"\)/.test(service), "l'essai est réservé par une mise à jour CONDITIONNELLE (valeur lue + plafond)");
+  assert.ok(service.indexOf("essaiReserve = true") < service.indexOf("codeRemiseCorrect(ligneCode"), "la réservation précède la comparaison du code");
+  assert.ok(!/update\(\{ essais_code: l\.essais_code \+ 1 \}\)\.eq\("id", l\.id\);/.test(service), "plus d'écriture non conditionnelle du compteur");
   assert.ok(!/console\.(log|info|warn)\(/.test(service) && (service.match(/console\.error\("[a-z_]+"\)/g) ?? []).length === 1, "aucune journalisation de valeur : un seul message fixe d'erreur");
 });
 

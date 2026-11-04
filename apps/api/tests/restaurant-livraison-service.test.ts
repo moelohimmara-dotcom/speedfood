@@ -193,7 +193,7 @@ test("D5 lecture : les identifiants sont envoyés par paquets de 50 (adresse de 
 
 // ---------- lister : la liste n'est jamais invalidée ----------
 const CLIENT_JETON = { client: "jeton" };
-function service(lireLivraisons: DepsServiceRestaurant["lireLivraisons"], commandes: Array<{ id: string; mode: string }>) {
+function service(lireLivraisons: DepsServiceRestaurant["lireLivraisons"], commandes: Array<{ id: string; mode: string; statut?: string }>) {
   const appels: string[][] = [];
   const s = creerServiceRestaurant({
     limiter: async () => {},
@@ -203,7 +203,7 @@ function service(lireLivraisons: DepsServiceRestaurant["lireLivraisons"], comman
     questionsRequises: async () => false,
     appartenance: async () => ({ restaurantId: RESTAURANT_A, role: "owner" }),
     origineSite: async () => "https://site.exemple",
-    lireCommandes: async (_c, restaurantId) => ({ ok: true, restaurant: { id: restaurantId, nom: "Chez Fatou", ouvert: true, accepteCommandes: true }, commandes: commandes as never }),
+    lireCommandes: async (_c, restaurantId) => ({ ok: true, restaurant: { id: restaurantId, nom: "Chez Fatou", ouvert: true, accepteCommandes: true }, commandes: commandes.map((c) => ({ statut: "prete", ...c })) as never }),
     traiterCommande: async () => { throw new Error("hors sujet"); },
     confirmerPaiement: async () => { throw new Error("hors sujet"); },
     proposerRevision: async () => { throw new Error("hors sujet"); },
@@ -263,4 +263,18 @@ test("D5 liste : les lignes écartées par la lecture sont comptées, et seul le
   assert.deepEqual(r.commandes[0].livraison, { id: LIVRAISON_A, statut: "vers_client", mode: "propre" });
   assert.equal(r.livraisonsIllisibles, 2);
   assert.ok(!JSON.stringify(r).includes("1234") && !JSON.stringify(r).includes("+224"));
+});
+
+test("D5 liste : seules les commandes EN COURS (en attente, acceptée, prête) sont lues ; les terminées, refusées et annulées ne coûtent aucune lecture et ne sont pas comptées", async () => {
+  const { s, appels } = service(async () => ({ parCommande: { [CMD_A]: { id: LIVRAISON_A, statut: "assignee", mode: "propre" } }, ignorees: 0 }), [
+    { id: CMD_A, mode: "livraison", statut: "acceptee" }, { id: CMD_B, mode: "livraison", statut: "terminee" },
+    { id: "c0000000-0000-4000-8000-00000000000c", mode: "livraison", statut: "refusee" }, { id: "d0000000-0000-4000-8000-00000000000d", mode: "livraison", statut: "annulee" },
+  ]);
+  const r = await s.lister(CTX);
+  assert.deepEqual(appels, [["jeton", RESTAURANT_A, CMD_A]]);
+  assert.deepEqual(r.commandes.map((c) => c.livraison), [{ id: LIVRAISON_A, statut: "assignee", mode: "propre" }, null, null, null]);
+  assert.equal(r.livraisonsIllisibles, 0);
+  // En panne : seules les commandes en cours sont comptées, pas tout l historique.
+  const panne = service(async () => null, [{ id: CMD_A, mode: "livraison" }, { id: CMD_B, mode: "livraison", statut: "terminee" }]);
+  assert.equal((await panne.s.lister(CTX)).livraisonsIllisibles, 1);
 });

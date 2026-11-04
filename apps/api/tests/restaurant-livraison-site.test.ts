@@ -22,6 +22,8 @@ interface Etat {
   tables: Record<string, Ligne[]>;
   transitions: Array<{ id: string; de: string; vers: string; par: string }>;
   ecritures: Array<{ table: string; patch: Ligne }>;
+  /** Lectures du code attendu = comparaisons réellement tentées. */
+  comparaisons: number;
 }
 const g = globalThis as unknown as { __etatLiv: Etat; __adminLiv: () => unknown };
 
@@ -38,9 +40,10 @@ function fauxClient(): unknown {
         select() { retour = true; return chaine; },
         update(p: Ligne) { patch = p; retour = false; return chaine; },
         eq(c: string, v: unknown) { filtres.push((l) => l[c] === v); return chaine; },
+        lt(c: string, v: number) { filtres.push((l) => (l[c] as number) < v); return chaine; },
         neq(c: string, v: unknown) { filtres.push((l) => l[c] !== v); return chaine; },
         is(c: string, v: unknown) { filtres.push((l) => l[c] === v); return chaine; },
-        maybeSingle: async () => ({ data: lignes()[0] ? { ...lignes()[0] } : null, error: null }),
+        maybeSingle: async () => { if (nom === "livraison_codes") e.comparaisons++; return { data: lignes()[0] ? { ...lignes()[0] } : null, error: null }; },
         then(ok: (v: unknown) => unknown, ko: (x: unknown) => unknown) {
           return Promise.resolve().then(() => {
             if (patch) {
@@ -111,6 +114,7 @@ function monter(livraison: Partial<Ligne> = {}, commande: Partial<Ligne> = {}) {
     },
     transitions: [],
     ecritures: [],
+    comparaisons: 0,
   };
 }
 beforeEach(() => { g.__adminLiv = fauxClient; monter(); });
@@ -133,11 +137,11 @@ test("D5 site : « Parti livrer » aussi quand la commande est seulement accept�
   assert.equal(livraison().statut, "assignee");
 });
 
-test("D5 site : « Livrée » avec le BON code -> livrée, la commande prête est clôturée, aucun essai consommé", async () => {
+test("D5 site : « Livrée » avec le BON code -> livrée, la commande prête est clôturée (l'essai réservé reste compté : la livraison est terminée)", async () => {
   monter({ statut: "vers_client" });
   assert.deepEqual(await agir(RESTAURANT_A, LIV, "livree", CODE), { ok: true });
   assert.equal(livraison().statut, "livree");
-  assert.equal(livraison().essais_code, 0);
+  assert.equal(livraison().essais_code, 1);
   assert.deepEqual(g.__etatLiv.transitions, [{ id: CMD, de: "prete", vers: "terminee", par: "systeme:livraison" }]);
 });
 
@@ -210,4 +214,25 @@ test("D5 site : le service du site est appelé avec l'acteur « restaurant » m�
   monter({ mode: "speedfood", statut: "vers_client" });
   assert.deepEqual(await agir(RESTAURANT_A, LIV, "livree", CODE), CONFLIT);
   assert.equal(livraison().statut, "vers_client");
+});
+
+test("D5 site : 10 essais FAUX lancés en parallèle -> au plus ESSAIS_CODE_MAX comparaisons possibles, compteur jamais au-delà du plafond, aucun succès", async () => {
+  monter({ statut: "vers_client" });
+  const reponses = await Promise.all(Array.from({ length: 10 }, (_, i) => agir(RESTAURANT_A, LIV, "livree", String(1000 + i))));
+  assert.ok(g.__etatLiv.comparaisons <= 5, "comparaisons tentées : " + g.__etatLiv.comparaisons);
+  assert.ok((livraison().essais_code as number) <= 5);
+  assert.equal(livraison().essais_code, g.__etatLiv.comparaisons, "chaque comparaison a consommé un essai");
+  assert.equal(livraison().statut, "vers_client");
+  assert.ok(reponses.every((r) => !(r as { ok: boolean }).ok));
+  // Rafale puis bon code : jamais plus de 5 comparaisons au total, et le bon code ne passe pas une fois le plafond atteint.
+  for (let i = 0; i < 6; i++) await agir(RESTAURANT_A, LIV, "livree", "0000");
+  assert.ok(g.__etatLiv.comparaisons <= 5);
+  assert.equal(livraison().essais_code, 5);
+  assert.deepEqual(await agir(RESTAURANT_A, LIV, "livree", CODE), { ok: false, erreur: { code: "CONFLIT_ETAT", message: "Trop d'essais de code. Contactez l'assistance.", champs: { raison: "essais_epuises" } } });
+});
+
+test("D5 site : un bon code après 4 essais faux passe (la réservation ne bloque pas un bon code) ; si l'étape a changé entre-temps, l'essai réservé est rendu", async () => {
+  monter({ statut: "vers_client", essais_code: 4 });
+  assert.deepEqual(await agir(RESTAURANT_A, LIV, "livree", CODE), { ok: true });
+  assert.equal(livraison().statut, "livree");
 });

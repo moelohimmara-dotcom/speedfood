@@ -114,8 +114,10 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     },
     async lister(ctx) {
       const lecture = await d.lireCommandes(ctx.supabase, ctx.restaurantId, await d.origineSite());
-      // Lot D5 : le bloc `livraison` (identifiant, statut, mode) des commandes en livraison. Une livraison absente ou illisible n'invalide JAMAIS la liste : elle est écartée (`livraison: null`) ET comptée.
-      const ids = lecture.commandes.filter((commande) => commande.mode === "livraison").map((commande) => commande.id);
+      // Lot D5 : le bloc `livraison` (identifiant, statut, mode) des commandes en livraison. Une livraison illisible ou une lecture en panne n'invalide JAMAIS la liste : `livraison: null` ET comptée dans `livraisonsIllisibles`.
+      // Une livraison simplement absente (commande sans livraison créée) n'est PAS comptée. Seules les commandes en cours (en attente, acceptée, prête) sont lues : les commandes terminées ou
+      // refusées n'ont plus de bouton de livraison, et les lire coûterait des allers-retours (CPU du Worker) pour tout l'historique ; leur `livraison` reste `null`, sans être comptée.
+      const ids = lecture.commandes.filter((commande) => commande.mode === "livraison" && ["en_attente", "acceptee", "prete"].includes(commande.statut)).map((commande) => commande.id);
       let livraisons: LecturesLivraisons | null = { parCommande: {}, ignorees: 0 };
       if (ids.length > 0) {
         try { livraisons = await d.lireLivraisons(ctx.supabase, ctx.restaurantId, ids); } catch { livraisons = null; }
