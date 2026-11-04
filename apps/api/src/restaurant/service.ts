@@ -92,6 +92,19 @@ export function niveauDuJeton(jeton: string): string | null {
 
 const REFUS_AUCUN_RESTAURANT = "Ce compte n'est rattaché à aucun restaurant.";
 
+/**
+ * Fenêtre des commandes TERMINÉES dont on lit encore la livraison : 48 h après la création. Une remise réussie clôt la commande (prête -> terminée) ; sans sa livraison la relecture ne pourrait jamais
+ * confirmer une remise dont la réponse s'est perdue, et « Livrée » / « Annuler » disparaîtraient si le restaurant touche « Marquer terminée » avant la remise. 48 h couvrent une course de la veille au soir
+ * et une fermeture tardive ; au-delà, plus rien à confirmer ni à annuler (et lire tout l'historique coûterait du CPU au Worker).
+ */
+export const FENETRE_TERMINEES_MS = 48 * 3600 * 1000;
+function livraisonALire(commande: { statut: string; creeLe?: string }, maintenant: number): boolean {
+  if (["en_attente", "acceptee", "prete"].includes(commande.statut)) return true;
+  if (commande.statut !== "terminee") return false;
+  const cree = Date.parse(commande.creeLe ?? "");
+  return Number.isFinite(cree) && maintenant - cree <= FENETRE_TERMINEES_MS;
+}
+
 export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaurant"] {
   return {
     async contexte(jeton, utilisateurId): Promise<ContexteRestaurant> {
@@ -115,9 +128,10 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     async lister(ctx) {
       const lecture = await d.lireCommandes(ctx.supabase, ctx.restaurantId, await d.origineSite());
       // Lot D5 : le bloc `livraison` (identifiant, statut, mode) des commandes en livraison. Une livraison illisible ou une lecture en panne n'invalide JAMAIS la liste : `livraison: null` ET comptée dans `livraisonsIllisibles`.
-      // Une livraison simplement absente (commande sans livraison créée) n'est PAS comptée. Seules les commandes en cours (en attente, acceptée, prête) sont lues : les commandes terminées ou
-      // refusées n'ont plus de bouton de livraison, et les lire coûterait des allers-retours (CPU du Worker) pour tout l'historique ; leur `livraison` reste `null`, sans être comptée.
-      const ids = lecture.commandes.filter((commande) => commande.mode === "livraison" && ["en_attente", "acceptee", "prete"].includes(commande.statut)).map((commande) => commande.id);
+      // Une livraison simplement absente (commande sans livraison créée) n'est PAS comptée. Sont lues les commandes en cours ET les terminées récentes (voir `livraisonALire`) ;
+      // les autres, refusées ou annulées ont `livraison: null`, non comptée.
+      const maintenant = Date.now();
+      const ids = lecture.commandes.filter((commande) => commande.mode === "livraison" && livraisonALire(commande, maintenant)).map((commande) => commande.id);
       let livraisons: LecturesLivraisons | null = { parCommande: {}, ignorees: 0 };
       if (ids.length > 0) {
         try { livraisons = await d.lireLivraisons(ctx.supabase, ctx.restaurantId, ids); } catch { livraisons = null; }

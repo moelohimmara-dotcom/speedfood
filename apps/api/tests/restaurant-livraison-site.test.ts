@@ -24,6 +24,8 @@ interface Etat {
   ecritures: Array<{ table: string; patch: Ligne }>;
   /** Lectures du code attendu = comparaisons réellement tentées. */
   comparaisons: number;
+  /** Appelé après chaque lecture de la commande : simule une autre requête qui change l'étape entre le contrôle du code et la mise à jour d'étape. */
+  apresLectureCommande?: () => void;
 }
 const g = globalThis as unknown as { __etatLiv: Etat; __adminLiv: () => unknown };
 
@@ -43,7 +45,7 @@ function fauxClient(): unknown {
         lt(c: string, v: number) { filtres.push((l) => (l[c] as number) < v); return chaine; },
         neq(c: string, v: unknown) { filtres.push((l) => l[c] !== v); return chaine; },
         is(c: string, v: unknown) { filtres.push((l) => l[c] === v); return chaine; },
-        maybeSingle: async () => { if (nom === "livraison_codes") e.comparaisons++; return { data: lignes()[0] ? { ...lignes()[0] } : null, error: null }; },
+        maybeSingle: async () => { if (nom === "livraison_codes") e.comparaisons++; if (nom === "orders") e.apresLectureCommande?.(); return { data: lignes()[0] ? { ...lignes()[0] } : null, error: null }; },
         then(ok: (v: unknown) => unknown, ko: (x: unknown) => unknown) {
           return Promise.resolve().then(() => {
             if (patch) {
@@ -231,8 +233,18 @@ test("D5 site : 10 essais FAUX lancés en parallèle -> au plus ESSAIS_CODE_MAX 
   assert.deepEqual(await agir(RESTAURANT_A, LIV, "livree", CODE), { ok: false, erreur: { code: "CONFLIT_ETAT", message: "Trop d'essais de code. Contactez l'assistance.", champs: { raison: "essais_epuises" } } });
 });
 
-test("D5 site : un bon code après 4 essais faux passe (la réservation ne bloque pas un bon code) ; si l'étape a changé entre-temps, l'essai réservé est rendu", async () => {
+test("D5 site : un bon code après 4 essais faux passe (la réservation ne bloque pas un bon code)", async () => {
   monter({ statut: "vers_client", essais_code: 4 });
   assert.deepEqual(await agir(RESTAURANT_A, LIV, "livree", CODE), { ok: true });
   assert.equal(livraison().statut, "livree");
+});
+
+test("D5 site : bon code, mais l'étape a changé entre-temps (la mise à jour d'étape ne touche aucune ligne) -> refus de conflit et l'essai réservé est RENDU (compteur revenu à sa valeur)", async () => {
+  monter({ statut: "vers_client", essais_code: 2 });
+  g.__etatLiv.apresLectureCommande = () => { livraison().statut = "annulee"; };
+  const r = await agir(RESTAURANT_A, LIV, "livree", CODE);
+  assert.deepEqual(r, CONFLIT);
+  assert.equal(livraison().statut, "annulee", "l'autre changement n'est pas écrasé");
+  assert.equal(livraison().essais_code, 2, "l'essai réservé est rendu");
+  assert.deepEqual(g.__etatLiv.transitions, [], "la commande n'est pas clôturée");
 });

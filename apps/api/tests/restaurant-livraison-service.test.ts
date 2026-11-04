@@ -193,7 +193,7 @@ test("D5 lecture : les identifiants sont envoyés par paquets de 50 (adresse de 
 
 // ---------- lister : la liste n'est jamais invalidée ----------
 const CLIENT_JETON = { client: "jeton" };
-function service(lireLivraisons: DepsServiceRestaurant["lireLivraisons"], commandes: Array<{ id: string; mode: string; statut?: string }>) {
+function service(lireLivraisons: DepsServiceRestaurant["lireLivraisons"], commandes: Array<{ id: string; mode: string; statut?: string; creeLe?: string }>) {
   const appels: string[][] = [];
   const s = creerServiceRestaurant({
     limiter: async () => {},
@@ -265,7 +265,7 @@ test("D5 liste : les lignes écartées par la lecture sont comptées, et seul le
   assert.ok(!JSON.stringify(r).includes("1234") && !JSON.stringify(r).includes("+224"));
 });
 
-test("D5 liste : seules les commandes EN COURS (en attente, acceptée, prête) sont lues ; les terminées, refusées et annulées ne coûtent aucune lecture et ne sont pas comptées", async () => {
+test("D5 liste : seules les commandes EN COURS sont lues ; les terminées sans date récente, refusées et annulées ne coûtent aucune lecture et ne sont pas comptées", async () => {
   const { s, appels } = service(async () => ({ parCommande: { [CMD_A]: { id: LIVRAISON_A, statut: "assignee", mode: "propre" } }, ignorees: 0 }), [
     { id: CMD_A, mode: "livraison", statut: "acceptee" }, { id: CMD_B, mode: "livraison", statut: "terminee" },
     { id: "c0000000-0000-4000-8000-00000000000c", mode: "livraison", statut: "refusee" }, { id: "d0000000-0000-4000-8000-00000000000d", mode: "livraison", statut: "annulee" },
@@ -277,4 +277,24 @@ test("D5 liste : seules les commandes EN COURS (en attente, acceptée, prête) s
   // En panne : seules les commandes en cours sont comptées, pas tout l historique.
   const panne = service(async () => null, [{ id: CMD_A, mode: "livraison" }, { id: CMD_B, mode: "livraison", statut: "terminee" }]);
   assert.equal((await panne.s.lister(CTX)).livraisonsIllisibles, 1);
+});
+
+const IL_Y_A = (heures: number) => new Date(Date.now() - heures * 3600 * 1000).toISOString();
+test("D5 liste : une commande TERMINÉE récente (moins de 48 h) garde sa livraison : une remise dont la réponse s'est perdue est confirmée par la relecture (livraison « livree »)", async () => {
+  const { s, appels } = service(async () => ({ parCommande: { [CMD_A]: { id: LIVRAISON_A, statut: "livree", mode: "propre" } }, ignorees: 0 }), [{ id: CMD_A, mode: "livraison", statut: "terminee", creeLe: IL_Y_A(3) }]);
+  const r = await s.lister(CTX);
+  assert.deepEqual(appels, [["jeton", RESTAURANT_A, CMD_A]]);
+  assert.deepEqual(r.commandes[0].livraison, { id: LIVRAISON_A, statut: "livree", mode: "propre" });
+});
+test("D5 liste : l'ANCIEN historique n'est pas lu (terminée de plus de 48 h, date absente ou illisible) et n'est pas compté en cas de panne ; les terminées récentes le sont", async () => {
+  const mk = (lire: DepsServiceRestaurant["lireLivraisons"]) => service(lire, [
+    { id: CMD_A, mode: "livraison", statut: "terminee", creeLe: IL_Y_A(47) },
+    { id: CMD_B, mode: "livraison", statut: "terminee", creeLe: IL_Y_A(49) },
+    { id: "c0000000-0000-4000-8000-00000000000c", mode: "livraison", statut: "terminee" },
+    { id: "d0000000-0000-4000-8000-00000000000d", mode: "livraison", statut: "terminee", creeLe: "pas une date" },
+  ]);
+  const ok = mk(async () => ({ parCommande: {}, ignorees: 0 }));
+  await ok.s.lister(CTX);
+  assert.deepEqual(ok.appels, [["jeton", RESTAURANT_A, CMD_A]], "seule la terminée de 47 h est lue");
+  assert.equal((await mk(async () => null).s.lister(CTX)).livraisonsIllisibles, 1, "la panne ne compte que la terminée récente");
 });

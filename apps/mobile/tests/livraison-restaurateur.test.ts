@@ -376,3 +376,13 @@ test('D5 écran : la livraison est relue après chaque écriture (relecture de l
   assert.ok(!/optimiste|setListe\(\(?[^)]*livree/i.test(ecran), 'aucune mise à jour optimiste de la liste');
   assert.match(ecran, /livraisonsIllisibles > 0/, 'une livraison illisible est signalée');
 });
+
+test('D5 commande TERMINÉE : livraison « livrée » = aucun bouton d’action (et la ligne « Livrée » s’affiche) ; terminée avant la remise (en route) = « Livrée » et « Annuler la livraison » restent', () => {
+  const livree = avecLivraison('livree', 'propre', { statut: 'terminee' });
+  assert.deepEqual(actionsPossibles(livree).filter(a => a.startsWith('livraison_')), []);
+  assert.equal(ligneLivraison(livree), 'Livraison : Livrée');
+  assert.deepEqual(actionsAffichees(livree, ETAT_REPOS).filter(a => a.startsWith('livraison_')), []);
+  assert.deepEqual(possibles(avecLivraison('vers_client', 'propre', { statut: 'terminee' })), ['livraison_livree']);
+  // Remise dont la réponse s'est perdue : la relecture montre la commande terminée avec sa livraison livrée = confirmé.
+  assert.equal(parcours('livraison_livree', incertaine(), livree).verdict.genre, 'confirme');
+});
