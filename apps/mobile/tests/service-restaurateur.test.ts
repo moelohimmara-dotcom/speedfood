@@ -56,10 +56,10 @@ test('réglages : aucun jeton ni champ inconnu n’est retenu', () => {
 // ---------- lecture du menu ----------
 test('menu : plats lus (nom, prix, disponibilité, dernière confirmation), seuls les champs affichés sont retenus', () => {
   const m = menu([platBrut(P1, { nom: 'Poulet braisé', prix: 45000 }), platBrut(P2, { disponible: false, confirmeLe: null, description: 'secret', photoUrl: 'https://x/y.jpg' })]);
-  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null } });
+  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null }, photoRef: null, photoUrl: null });
   assert.equal(m.plats[1].disponible, false);
   assert.equal(m.plats[1].edition?.description, 'secret', 'la description sert à la modification (jamais affichée dans la liste)');
-  assert.ok(!JSON.stringify(m).includes('y.jpg'), 'la photo n’est pas retenue');
+  assert.deepEqual([m.plats[1].photoRef, m.plats[1].photoUrl], ['https://x/y.jpg', 'https://x/y.jpg'], 'depuis D4c, l’adresse de la photo est retenue (aperçu et comparaison)');
   assert.equal(m.illisibles, 0);
 });
 test('menu I-1 : un plat sans nom lisible, sans état de disponibilité, à identifiant invalide ou répété est ÉCARTÉ et COMPTÉ ; les autres restent lisibles', () => {
@@ -461,7 +461,7 @@ test('écran : chaque interrupteur envoie SON champ (jamais l’autre), avec con
   assert.ok(ecran.includes("action: actionStatut('ouvert', valeur)"), 'interrupteur « Ouvert » envoie le champ ouvert');
   assert.ok(ecran.includes("accessibilityLabel=\"Prend des commandes\" value={reglages.accepteCommandes}"), 'interrupteur « Prend des commandes » lit accepteCommandes');
   assert.ok(ecran.includes("action: actionStatut('accepte_commandes', valeur)"), 'interrupteur « Prend des commandes » envoie accepte_commandes');
-  assert.equal((ecran.match(/type: 'demander_confirmation'/g) ?? []).length, 5, 'les deux interrupteurs, « Tout confirmer », « Archiver » et « Retirer le supplément » passent par la confirmation');
+  assert.equal((ecran.match(/type: 'demander_confirmation'/g) ?? []).length, 6, 'les deux interrupteurs, « Tout confirmer », « Archiver », « Retirer le supplément » et « Retirer la photo » passent par la confirmation');
   assert.ok(!/setReglages\(\s*\{[^}]*ouvert/.test(ecran), 'aucun état optimiste : l’interrupteur ne change qu’avec la lecture du serveur');
 });
 test('écran : après CHAQUE écriture, l’état du serveur est relu avant le verdict (jamais une supposition optimiste)', () => {
@@ -914,7 +914,7 @@ test('D4b écran : verrou par état (m-1) — compteurs séparés pour les régl
   assert.ok(ecran.includes('reglages: lecturesRef.current.reglages + 1') && ecran.includes('menu: lecturesRef.current.menu + 1'));
   assert.ok(!/\blecture\b[^\n]*\+\+/.test(ecran), 'plus de compteur unique');
 });
-test('D4b écran : aucun libellé « espèces » ; les photos restent sur le site', () => {
+test('D4b écran : aucun libellé « espèces » ; depuis D4c les photos se gèrent dans l’application (plus de renvoi vers le site)', () => {
   assert.ok(!/esp[eè]ces|cash/i.test(ecran));
-  assert.ok(ecran.includes('Les photos des plats se gèrent sur le site pour l’instant.'));
+  assert.ok(!ecran.includes('Les photos des plats se gèrent sur le site pour l’instant.'));
 });

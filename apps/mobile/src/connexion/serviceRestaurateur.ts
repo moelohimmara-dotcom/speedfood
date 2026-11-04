@@ -1,5 +1,6 @@
 import { HORAIRES_MAX, lireActionMenuApp, lireReglagesApp, lireStatutApp, type ChampStatutApp, type OptionAEcrire, type PlatAEcrire, type ReglagesAEcrire } from '../../../../packages/shared/src/contracts/restaurant-service.ts';
 import { DESCRIPTION_PLAT_MAX, NOM_OPTION_MAX, NOM_PLAT_MAX, PRIX_PLAT_PLAFOND_GNF, REGLES_MENU_PLAFONNEES } from '../../../../packages/shared/src/menu/regles-plat.ts';
+import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS, lireDemandePhotoApp } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
 import { lireDelaiPreparation } from '../../../../packages/shared/src/commande/estimation.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
 import type { RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
@@ -9,7 +10,7 @@ export { HORAIRES_MAX };
 
 /**
  * Domaine pur des lots D4a et D4b : le SERVICE du restaurateur (ouvert, prend des commandes, horaires, délai de préparation), la DISPONIBILITÉ de ses plats (marquer disponible ou indisponible,
- * confirmer, tout confirmer) et, depuis D4b, la création, la modification et l'archivage d'un plat, l'ajout et le retrait d'un supplément. Pas de photos ni de documents (lot D4c).
+ * confirmer, tout confirmer), depuis D4b la création, la modification et l'archivage d'un plat, l'ajout et le retrait d'un supplément et, depuis D4c, la PHOTO d'un plat (envoyer, remplacer, retirer). Pas de documents.
  *
  * Même discipline que `restaurateur.ts` : UN SEUL essai par action, jamais de relance automatique ; après une réponse incertaine, les boutons restent verrouillés tant que l'état du serveur n'a pas
  * été relu avec succès ; les messages sont fixes (aucun texte du serveur n'est affiché) ; aucun jeton n'est conservé ; l'écran affiche ce que le SERVEUR a (jamais une valeur supposée).
@@ -97,6 +98,8 @@ export interface PlatRestaurateur {
   options: OptionRestaurateur[]; optionsIllisibles: number;
   /** Description, prix promo et section tels que le serveur les a ; `null` = un de ces champs est illisible ou le prix l'est : le plat reste visible mais ne se modifie pas ici (rien n'est écrasé à l'aveugle). */
   edition: EditionPlat | null;
+  /** Lot D4c. `photoRef` = ce que le serveur a (une adresse, ou null = pas de photo) : sert à COMPARER avant/après, jamais affichée. `photoUrl` = l'adresse à afficher (https seulement) ; null si absente ou illisible. */
+  photoRef: string | null; photoUrl: string | null;
 }
 export interface MenuRestaurateur {
   plats: PlatRestaurateur[];
@@ -115,10 +118,15 @@ export function lireMenuRestaurateur(v: Record<string, unknown>): MenuRestaurate
       ids.add(o.id);
       const prixGnf = entierGnf(o.prix);
       const { options, illisibles: optionsIllisibles } = lireOptions(o.options);
-      plats.push({ id: o.id, nom, prixGnf, disponible: o.disponible, confirmeLe: dateOuNull(o.confirmeLe), options, optionsIllisibles, edition: lireEdition(o, prixGnf) });
+      plats.push({ id: o.id, nom, prixGnf, disponible: o.disponible, confirmeLe: dateOuNull(o.confirmeLe), options, optionsIllisibles, edition: lireEdition(o, prixGnf), ...lirePhoto(o.photoUrl) });
     } catch { illisibles++; }
   }
   return { plats, illisibles };
+}
+/** Photo d'un plat : une valeur absente, non textuelle ou illisible n'invalide JAMAIS le plat (pas de photo affichée). Seule une adresse https sans espace ni contrôle est affichée. */
+function lirePhoto(v: unknown): { photoRef: string | null; photoUrl: string | null } {
+  if (typeof v !== 'string' || v.length === 0 || v.length > 2048) return { photoRef: null, photoUrl: null };
+  return { photoRef: v, photoUrl: /^https:\/\/[^\s\x00-\x1f\x7f]+$/.test(v) ? v : null };
 }
 function entierGnf(v: unknown): number | null { return typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : null; }
 /** Suppléments d'un plat : un supplément atypique (identifiant invalide ou répété, nom illisible, prix illisible) est écarté et compté. */
@@ -194,10 +202,26 @@ export type ActionService =
   | { type: 'modifier'; platId: string; plat: PlatAEcrire }
   | { type: 'archiver'; platId: string; nom: string }
   | { type: 'option_ajouter'; platId: string; option: OptionAEcrire; avant: string[] }
-  | { type: 'option_retirer'; optionId: string; platId: string; nom: string };
+  | { type: 'option_retirer'; optionId: string; platId: string; nom: string }
+  /** Lot D4c. `avant` = la photo que le serveur avait (`photoRef`) : l'envoi est confirmé quand la relecture montre une photo DIFFÉRENTE ; le retrait, quand elle montre « aucune ». */
+  | { type: 'photo_definir'; platId: string; avant: string | null; fichier: FichierPhotoPrete }
+  | { type: 'photo_retirer'; platId: string; nom: string };
 
-/** Les actions qui demandent une confirmation avant l'envoi : les deux interrupteurs (dans les deux sens), « Tout confirmer », l'archivage d'un plat et le retrait d'un supplément. */
-export function actionAConfirmer(a: ActionService): boolean { return a.type === 'statut' || a.type === 'confirmer_tout' || a.type === 'archiver' || a.type === 'option_retirer'; }
+/** Les actions qui demandent une confirmation avant l'envoi : les deux interrupteurs (dans les deux sens), « Tout confirmer », l'archivage d'un plat, le retrait d'un supplément et le retrait d'une photo. */
+export function actionAConfirmer(a: ActionService): boolean { return a.type === 'statut' || a.type === 'confirmer_tout' || a.type === 'archiver' || a.type === 'option_retirer' || a.type === 'photo_retirer'; }
+
+/**
+ * La photo PRÉPARÉE par l'application (réduite, en JPEG) : la seule forme qui part au réseau. `size` en octets (5 Mo au plus), `type` toujours JPEG, `nom` fixe : le nom du fichier du téléphone n'est jamais envoyé.
+ */
+export interface FichierPhotoPrete { uri: string; size: number; type: 'image/jpeg'; nom: 'photo.jpg' }
+export function fichierPhotoPret(f: unknown): f is FichierPhotoPrete {
+  if (!f || typeof f !== 'object') return false;
+  const x = f as Record<string, unknown>;
+  return typeof x.uri === 'string' && x.uri.length > 0 && x.uri.length <= 2048 && !/[\x00-\x1f\x7f]/.test(x.uri) && x.type === 'image/jpeg' && x.nom === 'photo.jpg'
+    && typeof x.size === 'number' && Number.isSafeInteger(x.size) && x.size > 0 && x.size <= PHOTO_TAILLE_MAX_OCTETS;
+}
+export function actionPhotoDefinir(p: Pick<PlatRestaurateur, 'id' | 'photoRef'>, fichier: FichierPhotoPrete): ActionService { return { type: 'photo_definir', platId: p.id, avant: p.photoRef, fichier }; }
+export function actionPhotoRetirer(p: Pick<PlatRestaurateur, 'id' | 'nom'>): ActionService { return { type: 'photo_retirer', platId: p.id, nom: p.nom }; }
 
 /** Quel état du serveur une action change : les réglages (interrupteurs, horaires, délai) ou le menu (plats, suppléments). Sert à verrouiller sur la relecture de CET état-là. */
 export function etatConcerne(a: ActionService): 'reglages' | 'menu' { return a.type === 'statut' || a.type === 'reglages' ? 'reglages' : 'menu'; }
@@ -309,16 +333,22 @@ export function confirmationArchiver(nom: string): { question: string; oui: stri
 export function confirmationRetirerOption(nom: string): { question: string; oui: string; non: string } {
   return { question: 'Retirer le supplément « ' + nom + ' » ? Les clients ne pourront plus le choisir pour ce plat. Les commandes déjà passées le gardent.', oui: 'Oui, retirer ce supplément', non: 'Non, le garder' };
 }
+/** Retirer une photo : honnête sur ce que fait le serveur (le plat reste en vente, sans image ; la photo n'est pas récupérable depuis l'application, il faudra en envoyer une autre). */
+export function confirmationRetirerPhoto(nom: string): { question: string; oui: string; non: string } {
+  return { question: 'Retirer la photo de « ' + nom + ' » ? Le plat reste en vente, sans image. Vous pourrez envoyer une autre photo plus tard.', oui: 'Oui, retirer la photo', non: 'Non, la garder' };
+}
 export function confirmationDe(a: ActionService): { question: string; oui: string; non: string } | null {
   if (a.type === 'statut') return CONFIRMATIONS_STATUT[a.champ][a.valeur ? 'true' : 'false'];
   if (a.type === 'confirmer_tout') return CONFIRMATION_TOUT_CONFIRMER;
   if (a.type === 'archiver') return confirmationArchiver(a.nom);
   if (a.type === 'option_retirer') return confirmationRetirerOption(a.nom);
+  if (a.type === 'photo_retirer') return confirmationRetirerPhoto(a.nom);
   return null;
 }
 export const LIBELLES_ACTION: Record<ActionService['type'], string> = {
   statut: 'ce changement', reglages: 'vos réglages', disponibilite: 'ce changement de disponibilité', confirmer: 'cette confirmation', confirmer_tout: 'cette confirmation',
   creer: 'l’ajout de ce plat', modifier: 'la modification de ce plat', archiver: 'l’archivage de ce plat', option_ajouter: 'l’ajout de ce supplément', option_retirer: 'le retrait de ce supplément',
+  photo_definir: 'l’envoi de cette photo', photo_retirer: 'le retrait de cette photo',
 };
 
 /** Lecture du contrat partagé (API et application refusent les mêmes saisies) : l'action normalisée, ou `null`. */
@@ -326,7 +356,8 @@ function lireMenu(corps: unknown) { const lu = lireActionMenuApp(corps, REGLES_M
 function champsPlat(p: PlatAEcrire | undefined) { return { nom: p?.nom, description: p?.description, prix: p?.prix, prixPromo: p?.prixPromo, sectionId: p?.sectionId }; }
 
 /** Corps de la requête, SEULEMENT les champs prévus (jamais de restaurant) : la machine et le client n'envoient que ce que cette fonction produit. */
-export function corpsDeAction(a: ActionService): { chemin: '/api/v1/restaurant/statut' | '/api/v1/restaurant/reglages' | '/api/v1/restaurant/menu/action'; corps: object } | null {
+export interface EnvoiService { chemin: '/api/v1/restaurant/statut' | '/api/v1/restaurant/reglages' | '/api/v1/restaurant/menu/action' | typeof CHEMIN_PHOTO_APP; corps: object; /** Photo seulement : le fichier préparé, envoyé en formulaire multipart avec `corps` (le plat). */ fichier?: FichierPhotoPrete }
+export function corpsDeAction(a: ActionService): EnvoiService | null {
   if (a === null || typeof a !== 'object') return null;
   switch (a.type) {
     case 'statut': { const lu = lireStatutApp({ champ: a.champ, valeur: a.valeur }); return lu ? { chemin: '/api/v1/restaurant/statut', corps: { champ: lu.champ, valeur: lu.valeur } } : null; }
@@ -340,6 +371,13 @@ export function corpsDeAction(a: ActionService): { chemin: '/api/v1/restaurant/s
     case 'archiver': { const lu = lireMenu({ action: 'archiver', platId: a.platId }); return lu && lu.action === 'archiver' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'archiver', platId: lu.platId } } : null; }
     case 'option_ajouter': { const lu = lireMenu({ action: 'option_ajouter', platId: a.platId, nom: a.option?.nom, prix: a.option?.prix }); return lu && lu.action === 'option_ajouter' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'option_ajouter', platId: lu.platId, nom: lu.option.nom, prix: lu.option.prix } } : null; }
     case 'option_retirer': { const lu = lireMenu({ action: 'option_retirer', optionId: a.optionId }); return lu && lu.action === 'option_retirer' ? { chemin: '/api/v1/restaurant/menu/action', corps: { action: 'option_retirer', optionId: lu.optionId } } : null; }
+    // Lot D4c : le contrat partagé (le même que le serveur) valide AVANT tout appel réseau ; un fichier trop gros, d'un autre type ou vide ne produit AUCUN envoi.
+    case 'photo_definir': {
+      if (!fichierPhotoPret(a.fichier)) return null;
+      const lu = lireDemandePhotoApp<FichierPhotoPrete>({ platId: a.platId, photo: a.fichier, retirer: undefined });
+      return lu.ok && lu.demande.action === 'definir' ? { chemin: CHEMIN_PHOTO_APP, corps: { platId: lu.demande.platId }, fichier: a.fichier } : null;
+    }
+    case 'photo_retirer': { const lu = lireDemandePhotoApp({ platId: a.platId, photo: undefined, retirer: '1' }); return lu.ok && lu.demande.action === 'retirer' ? { chemin: CHEMIN_PHOTO_APP, corps: { platId: lu.demande.platId, retirer: '1' } } : null; }
     default: return null;
   }
 }
@@ -350,6 +388,7 @@ export function refusService(statut: number, raison: RaisonSecuriteCompte | null
   if (statut === 403 && raison !== null) return new ErreurRestaurateur('securite', MESSAGE_SECURITE, false, raison);
   if (statut === 403) return new ErreurRestaurateur('refus', 'Ce compte ne peut pas modifier le service de ce restaurant. Actualisez puis vérifiez votre accès sur le site.');
   if (statut === 400 || statut === 404 || statut === 409) return new ErreurRestaurateur('refus', 'La demande n’a pas été acceptée (valeur invalide, ou plat introuvable). Actualisez puis réessayez.');
+  if (statut === 413) return new ErreurRestaurateur('refus', 'La photo est trop volumineuse (5 Mo au maximum). Choisissez-en une autre.');
   if (statut === 429) return new ErreurRestaurateur('limite', 'Trop de tentatives. Patientez un instant avant de réessayer.');
   if (statut >= 500) return new ErreurRestaurateur('serveur', 'Le service est indisponible. Votre changement a peut-être été enregistré : l’état va être relu avant de réessayer.', true);
   return new ErreurRestaurateur('refus', 'Votre changement n’a pas pu être envoyé. Actualisez puis réessayez.');
@@ -371,6 +410,7 @@ const MESSAGES_SUCCES = {
   reglages: 'Réglages enregistrés.',
   disponible: 'Plat marqué disponible.', indisponible: 'Plat marqué indisponible.', confirmer: 'Disponibilité confirmée.', confirmer_tout: 'Disponibilité confirmée pour tous les plats disponibles.',
   creer: 'Plat ajouté.', modifier: 'Plat modifié.', archiver: 'Plat archivé : il n’apparaît plus sur la carte.', option_ajouter: 'Supplément ajouté.', option_retirer: 'Supplément retiré.',
+  photo_definir: 'Photo enregistrée.', photo_retirer: 'Photo retirée : le plat reste en vente, sans image.',
 };
 const MESSAGES_ENREGISTRE = {
   ouvert: { true: 'La réouverture est bien enregistrée.', false: 'La fermeture est bien enregistrée.' },
@@ -378,6 +418,7 @@ const MESSAGES_ENREGISTRE = {
   reglages: 'Vos réglages sont bien enregistrés.',
   disponible: 'Le plat est bien enregistré comme disponible.', indisponible: 'Le plat est bien enregistré comme indisponible.', confirmer: 'La confirmation est bien enregistrée.', confirmer_tout: 'La confirmation est bien enregistrée pour tous les plats.',
   creer: 'Le nouveau plat est bien enregistré.', modifier: 'Les modifications du plat sont bien enregistrées.', archiver: 'Le plat est bien archivé.', option_ajouter: 'Le supplément est bien enregistré.', option_retirer: 'Le supplément est bien retiré.',
+  photo_definir: 'La photo est bien enregistrée.', photo_retirer: 'La photo est bien retirée.',
 };
 function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof MESSAGES_ENREGISTRE): string {
   switch (a.type) {
@@ -391,6 +432,8 @@ function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof 
     case 'archiver': return table.archiver;
     case 'option_ajouter': return table.option_ajouter;
     case 'option_retirer': return table.option_retirer;
+    case 'photo_definir': return table.photo_definir;
+    case 'photo_retirer': return table.photo_retirer;
   }
 }
 
@@ -425,6 +468,9 @@ export function etatCorrespond(a: ActionService, relue: RelectureService): boole
     }
     // Plat disparu de l’état relu (archivé ailleurs) : on ne peut RIEN affirmer sur le supplément → inconnu (null), jamais « bien retiré ».
     case 'option_retirer': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p === undefined ? null : !p.options.some(o => o.id === a.optionId); }
+    // Lot D4c : une photo envoyée est enregistrée quand le serveur a une photo DIFFÉRENTE de celle d'avant (le serveur donne à chaque fichier un nom nouveau) ; retirée quand il n'en a plus. Plat disparu : inconnu (null) pour le retrait, jamais « bien retirée ».
+    case 'photo_definir': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p !== undefined && p.photoRef !== null && p.photoRef !== a.avant; }
+    case 'photo_retirer': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p === undefined ? null : p.photoRef === null; }
   }
 }
 /** « Réessayer » seulement quand le bouton qui renverrait l'action existe encore (leçon D2-M4). */
@@ -439,6 +485,9 @@ export function boutonExiste(a: ActionService, relue: RelectureService): boolean
     case 'modifier': return relue.menu?.plats.some(x => x.id === a.platId && x.edition !== null) === true;
     case 'archiver': case 'option_ajouter': return relue.menu?.plats.some(x => x.id === a.platId) === true;
     case 'option_retirer': return relue.menu?.plats.some(x => x.id === a.platId && x.options.some(o => o.id === a.optionId)) === true;
+    // Lot D4c : le bouton « Ajouter / Changer la photo » existe tant que le plat est là ; « Retirer la photo », tant que le plat a une photo.
+    case 'photo_definir': return relue.menu?.plats.some(x => x.id === a.platId) === true;
+    case 'photo_retirer': return relue.menu?.plats.some(x => x.id === a.platId && x.photoRef !== null) === true;
   }
 }
 

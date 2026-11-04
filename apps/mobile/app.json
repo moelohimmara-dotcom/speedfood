@@ -31,6 +31,14 @@
       "expo-secure-store",
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Speedfood utilise vos photos pour illustrer les plats du menu.",
+          "cameraPermission": "Speedfood utilise l'appareil photo pour photographier vos plats.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FFF6ED",

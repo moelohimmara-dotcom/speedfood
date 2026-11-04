@@ -4,6 +4,7 @@ import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation,
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
 import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
 import { corpsDeAction, erreurReponseService, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
+import { CHEMIN_PHOTO_APP } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
 import { lireValeursPropositionApp } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
@@ -20,7 +21,14 @@ function secret(v: unknown, max: number): string { if (typeof v !== 'string' || 
 interface TextesRestaurateur { nonMembre: string; lectureIllisible: string; refus: typeof refusRestaurateur; reseau: () => ErreurRestaurateur; reponse: () => ErreurRestaurateur }
 const TEXTES_COMMANDES: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir ces commandes. Vérifiez votre accès sur le site.', lectureIllisible: 'Les commandes reçues sont illisibles. Réessayez dans un instant.', refus: refusRestaurateur, reseau: erreurReseauRestaurateur, reponse: erreurReponseRestaurateur };
 const TEXTES_SERVICE: TextesRestaurateur = { nonMembre: 'Ce compte n’est rattaché à aucun restaurant, ou n’a pas le droit de voir son service. Vérifiez votre accès sur le site.', lectureIllisible: 'Les informations reçues sont illisibles. Réessayez dans un instant.', refus: refusService, reseau: erreurReseauService, reponse: erreurReponseService };
-export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000) {
+/** Délai d'un envoi de photo (le fichier part sur le réseau mobile) : plus long que celui d'une commande ; après ce délai la réponse est « incertaine » (jamais de relance). */
+export const DELAI_PHOTO_MS = 60000;
+/**
+ * Fichier d'un formulaire sur React Native : un objet `{ uri, name, type }` que le système lit lui-même (le fichier n'est pas chargé en mémoire JavaScript). Injectable pour les tests,
+ * qui n'ont pas de système de fichiers de téléphone.
+ */
+export const fichierDeFormulaireNatif = (f: { uri: string; nom: string; type: string }): Blob => ({ uri: f.uri, name: f.nom, type: f.type }) as unknown as Blob;
+export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000, fichierDeFormulaire: typeof fichierDeFormulaireNatif = fichierDeFormulaireNatif) {
   let configuration: Promise<string> | null = null;
   async function requete(url: string, options: RequestInit, auth = false, renouvellement = false, refus: Record<number,string> = {}) {
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 15000);
@@ -115,11 +123,12 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
    * Espace restaurateur (lot D1), routes de l'API unique : jeton porteur strict, aucun cookie, restaurant désigné par le serveur (jamais envoyé d'ici). UN SEUL essai par appel,
    * jamais de relance automatique. Le 401 termine la session (comme les autres lectures privées) ; un 403 « sécurité du compte » est rendu tel quel, sans texte du serveur.
    */
-  async function appelRestaurateur(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object }, lecture: boolean, textes: TextesRestaurateur = TEXTES_COMMANDES): Promise<unknown> {
-    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+  async function appelRestaurateur(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object; formulaire?: FormData; delaiMs?: number }, lecture: boolean, textes: TextesRestaurateur = TEXTES_COMMANDES): Promise<unknown> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), options.delaiMs ?? delaiCommandeMs);
     let r: Response;
     try {
-      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps ? { 'Content-Type':'application/json' } : {}) }, ...(options.corps ? { body:JSON.stringify(options.corps) } : {}) });
+      // Formulaire (photo) : PAS de Content-Type écrit ici, le système y met la frontière du multipart.
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps && !options.formulaire ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body:options.formulaire } : options.corps ? { body:JSON.stringify(options.corps) } : {}) });
     } catch { clearTimeout(timer); throw lecture ? new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.') : textes.reseau(); }
     try {
       let corps: unknown = null;
@@ -190,6 +199,14 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ecrireService(accessToken: string, action: ActionService): Promise<void> {
       const envoi = corpsDeAction(action);
       if (envoi === null) throw new ErreurRestaurateur('refus', 'Cette demande n’est pas valide. Corrigez-la puis recommencez.');
+      if (envoi.chemin === CHEMIN_PHOTO_APP) {
+        // Lot D4c : formulaire multipart (plat + photo, ou plat + retirer=1). Le restaurant n'est jamais un champ. Le fichier a déjà passé le contrat partagé (JPEG, 5 Mo au plus) dans `corpsDeAction`.
+        const formulaire = new FormData();
+        for (const [cle, valeur] of Object.entries(envoi.corps)) formulaire.append(cle, String(valeur));
+        if (envoi.fichier) formulaire.append('photo', fichierDeFormulaire({ uri: envoi.fichier.uri, nom: envoi.fichier.nom, type: envoi.fichier.type }), envoi.fichier.nom);
+        lireReponseAction(await appelRestaurateur(accessToken, envoi.chemin, { method:'POST', formulaire, delaiMs: envoi.fichier ? DELAI_PHOTO_MS : undefined }, false, TEXTES_SERVICE));
+        return;
+      }
       lireReponseAction(await appelRestaurateur(accessToken, envoi.chemin, { method:'POST', corps:envoi.corps }, false, TEXTES_SERVICE));
     },
     estimerLivraison: postEstimation,

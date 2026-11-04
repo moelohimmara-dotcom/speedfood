@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import { ErreurRestaurateur } from './restaurateur';
 import { Action } from './BoutonAction';
+import { choisirPhoto, type SourcePhoto } from './photoPlat';
+import { depsPhotoNatives } from './photoPlatNatif';
 import {
-  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
+  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionPhotoDefinir, actionPhotoRetirer, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
   formaterPrix, libelleDisponibilitePlat, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, preparerReglages, serviceVerrouille,
   type ActionService, type BrouillonOption, type BrouillonPlat, type BrouillonReglages, type ErreursOption, type ErreursPlat, type ErreursReglages, type EtatService, type EvenementService, type Lectures, type MenuRestaurateur, type PlatRestaurateur,
   type ReglagesRestaurateur, type RelectureService,
@@ -15,7 +17,8 @@ import { couleurs as c, polices } from '../design/tokens';
 /**
  * Sections « Service » et « Menu » de l'espace restaurateur (lots D4a et D4b). Service : deux interrupteurs (« Ouvert » et « Prend des commandes ») avec confirmation, horaires et délai de préparation
  * (bouton « Enregistrer »), résumé des plats à reconfirmer (la liste du SERVEUR). Menu : disponibilité de chaque plat, confirmation d'un plat, « Tout confirmer » (avec confirmation) et, depuis D4b,
- * ajout, modification et archivage d'un plat (avec confirmation), ajout et retrait d'un supplément (avec confirmation). Les photos et documents restent sur le site (lot D4c).
+ * ajout, modification et archivage d'un plat (avec confirmation), ajout et retrait d'un supplément (avec confirmation) et, depuis D4c, la photo de chaque plat : aperçu, « Ajouter une photo » / « Changer la photo »
+ * (galerie ou appareil photo, image réduite avant l'envoi) et « Retirer la photo » (avec confirmation). Les documents restent sur le site.
  *
  * Toute règle (verrou, un seul essai, relecture après chaque écriture, verdict honnête) est dans `serviceRestaurateur.ts` ; cet écran n'envoie jamais le restaurant (le serveur le tire du compte)
  * et n'affiche que ce que le serveur a relu : un interrupteur ne bouge qu'après relecture, jamais par supposition, et un plat n'apparaît qu'une fois relu.
@@ -40,6 +43,12 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
   const [formOption, setFormOption] = useState<string | null>(null);
   const [brouillonOption, setBrouillonOption] = useState<BrouillonOption>(BROUILLON_OPTION_VIDE);
   const [erreursOption, setErreursOption] = useState<ErreursOption>({});
+  const [choixPhoto, setChoixPhoto] = useState<string | null>(null);
+  const [selection, setSelection] = useState(false);
+  const [messagePhoto, setMessagePhoto] = useState<{ platId: string; texte: string } | null>(null);
+  const [imagesEnErreur, setImagesEnErreur] = useState<Record<string, string>>({});
+  const menuRef = useRef<MenuRestaurateur | null>(null);
+  const selectionEnCours = useRef(false);
   const etatRef = useRef<EtatService>(ETAT_SERVICE_REPOS);
   const lecturesRef = useRef<Lectures>({ reglages: 0, menu: 0 });
   const reglagesRef = useRef<ReglagesRestaurateur | null>(null);
@@ -58,7 +67,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     setReglages(r); setLectures(lecturesRef.current);
     if (saisie === null || precedent === null || !brouillonModifie(precedent, saisie)) poserBrouillon(brouillonDe(r));
   }
-  function accepterMenu(m: MenuRestaurateur) { lecturesRef.current = { ...lecturesRef.current, menu: lecturesRef.current.menu + 1 }; if (!actif.current) return; setMenu(m); setLectures(lecturesRef.current); }
+  function accepterMenu(m: MenuRestaurateur) { menuRef.current = m; lecturesRef.current = { ...lecturesRef.current, menu: lecturesRef.current.menu + 1 }; if (!actif.current) return; setMenu(m); setLectures(lecturesRef.current); }
   function messageErreur(e: unknown) { return e instanceof ErreurRestaurateur || e instanceof ErreurConnexion ? e.message : 'Impossible de lire ces informations. Réessayez.'; }
 
   /** Lit les réglages ET le menu (un seul essai chacun, jamais de relance). Renvoie ce qui a pu être relu ; une panne laisse l'affichage précédent. */
@@ -101,6 +110,26 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
         if (action.type === 'option_ajouter') { setFormOption(null); setBrouillonOption(BROUILLON_OPTION_VIDE); setErreursOption({}); }
       }
     } finally { envoiEnCours.current = false; }
+  }
+
+  /**
+   * Photo d'un plat (lot D4c) : sélecteur (galerie ou appareil photo), image réduite, puis l'envoi passe par `envoyer` (un seul essai, relecture du menu, verdict honnête). Annuler le sélecteur ne fait RIEN et n'affiche
+   * aucune erreur ; une permission refusée ou une photo inutilisable affiche un message fixe et laisse tous les boutons actifs. `avant` est la photo que le serveur avait à la DERNIÈRE lecture.
+   */
+  async function prendrePhoto(plat: PlatRestaurateur, source: SourcePhoto) {
+    if (selectionEnCours.current || envoiEnCours.current || lectureEnCours.current || serviceVerrouille(etatRef.current, lecturePourEtat(etatRef.current, lecturesRef.current))) return;
+    selectionEnCours.current = true; setSelection(true); setMessagePhoto(null);
+    let action: ActionService | null = null;
+    try {
+      const choix = await choisirPhoto(source, depsPhotoNatives);
+      if (!actif.current || choix.genre === 'annule') return;
+      if (choix.genre === 'pret') {
+        const courant = menuRef.current?.plats.find(x => x.id === plat.id);
+        if (courant === undefined) setMessagePhoto({ platId: plat.id, texte: 'Ce plat n’apparaît plus dans le menu. Actualisez le menu.' });
+        else action = actionPhotoDefinir(courant, choix.fichier);
+      } else setMessagePhoto({ platId: plat.id, texte: choix.message });
+    } finally { selectionEnCours.current = false; if (actif.current) setSelection(false); }
+    if (action !== null && actif.current) { setChoixPhoto(null); await envoyer(action); }
   }
 
   const lectureVerrou = lecturePourEtat(etat, lectures);
@@ -240,6 +269,24 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
           {prix && <Text style={s.texte}>{prix}</Text>}
           <Text style={s.texte}>{lib.etat}</Text>
           {lib.confirmation && <Text style={s.secondaire}>{lib.confirmation}</Text>}
+          <View style={s.blocPhoto}>
+            {p.photoUrl !== null && imagesEnErreur[p.id] !== p.photoUrl
+              ? <Image source={{ uri: p.photoUrl }} accessibilityLabel={'Photo de ' + p.nom} style={s.photo} resizeMode="cover" onError={() => setImagesEnErreur(x => ({ ...x, [p.id]: p.photoUrl as string }))} />
+              : <Text style={s.secondaire}>{p.photoRef === null ? 'Aucune photo pour ce plat.' : 'La photo de ce plat ne peut pas être affichée ici.'}</Text>}
+            {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id
+              ? bloc(confirmation)
+              : <>
+                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} secondaire disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
+                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} secondaire disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
+              </>}
+            {choixPhoto === p.id && <View style={s.formulaire}>
+              <Text style={s.texte}>D’où vient la photo de {p.nom} ? Elle sera réduite avant l’envoi.</Text>
+              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
+              <Action titre={'Prendre une photo de ' + p.nom} disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
+              <Action titre="Annuler" secondaire disabled={selection} agir={() => setChoixPhoto(null)} />
+            </View>}
+            {messagePhoto?.platId === p.id && <Text accessibilityRole="alert" style={s.erreurChamp}>{messagePhoto.texte}</Text>}
+          </View>
           <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} secondaire disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
           {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
 
@@ -262,7 +309,6 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
           {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque} agir={() => ouvrirSupplement(p)} />}
         </View>;
       })}
-      <Text style={s.secondaire}>Les photos des plats se gèrent sur le site pour l’instant.</Text>
     </View>}
   </View>;
 }
@@ -271,6 +317,8 @@ const s = StyleSheet.create({
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   ligneInterrupteur: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   ligneOption: { gap: 6 },
+  blocPhoto: { gap: 8 },
+  photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: c.bordure },
   champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 110, textAlignVertical: 'top' },
   erreurChamp: { fontFamily: polices.texte, fontSize: 13, lineHeight: 19, color: c.action, fontWeight: '700' },
