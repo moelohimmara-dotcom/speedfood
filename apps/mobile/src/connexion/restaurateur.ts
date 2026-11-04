@@ -235,7 +235,7 @@ export function libelleStatut(c: Pick<CommandeRestaurateur, 'statut' | 'proposit
 }
 
 // ---------- erreurs ----------
-export type GenreErreurRestaurateur = 'refus' | 'securite' | 'limite' | 'serveur' | 'reseau' | 'reponse_invalide';
+export type GenreErreurRestaurateur = 'refus' | 'securite' | 'limite' | 'serveur' | 'reseau' | 'reponse_invalide' | 'local';
 /**
  * Erreur d'une action ou d'une lecture. `incertain` : l'action a pu être enregistrée ; relire la liste avant de proposer de réessayer.
  * `securite` : le compte a un second facteur ou des questions de sécurité à terminer, ce que l'application ne sait pas faire : message vers le site. Aucun jeton n'y figure.

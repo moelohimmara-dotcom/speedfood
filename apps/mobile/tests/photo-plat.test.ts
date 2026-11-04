@@ -258,7 +258,7 @@ type Appel = { url: string; options: RequestInit };
 function api(repondre: (appel: Appel) => Response | Promise<Response> = () => Response.json({ ok: true })) {
   const appels: Appel[] = [];
   const a = creerAuth(async (url, options) => { const appel = { url: String(url), options: options ?? {} }; appels.push(appel); return repondre(appel); }, 20000,
-    (f) => new File([new Uint8Array([0xff, 0xd8, 0xff])], f.nom, { type: f.type }));
+    async (f) => new File([new Uint8Array([0xff, 0xd8, 0xff])], f.nom, { type: f.type }));
   return { a, appels };
 }
 const json = (corps: unknown, status = 200) => Response.json(corps, { status });

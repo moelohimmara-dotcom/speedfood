@@ -3,8 +3,8 @@ import { lireCommandes, lireSuivi } from './commandes.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
 import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
-import { corpsDeAction, erreurReponseService, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
-import { CHEMIN_PHOTO_APP } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
+import { corpsDeAction, erreurLocalePhoto, erreurReponseService, erreurReseauPhoto, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
+import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
 import { lireValeursPropositionApp } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
@@ -24,11 +24,44 @@ const TEXTES_SERVICE: TextesRestaurateur = { nonMembre: 'Ce compte n’est ratta
 /** Délai d'un envoi de photo (le fichier part sur le réseau mobile) : plus long que celui d'une commande ; après ce délai la réponse est « incertaine » (jamais de relance). */
 export const DELAI_PHOTO_MS = 60000;
 /**
- * Fichier d'un formulaire sur React Native : un objet `{ uri, name, type }` que le système lit lui-même (le fichier n'est pas chargé en mémoire JavaScript). Injectable pour les tests,
- * qui n'ont pas de système de fichiers de téléphone.
+ * Fichier d'un formulaire : un objet « fichier » (nom, type, taille, `bytes()`) dont les OCTETS sont déjà lus en mémoire. Cause réelle de l'échec du 4 novembre 2026 (APK release, Android 14) : depuis Expo SDK 57
+ * le `fetch` global est `expo/fetch`, qui ne sait PAS envoyer l'objet `{ uri, name, type }` propre à React Native (`convertFormData.ts` : « `uri` is not supported for React Native's FormData » ; il lève
+ * « Unsupported FormDataPart implementation » AVANT tout octet envoyé). Il accepte une chaîne, un Blob, ou un objet qui a `bytes()`. Les octets sont donc lus ICI, avant l'envoi : une photo qui ne se lit pas
+ * est un échec LOCAL (rien n'est parti), jamais une réponse « incertaine ». Injectable pour les tests.
  */
-export const fichierDeFormulaireNatif = (f: { uri: string; nom: string; type: string }): Blob => ({ uri: f.uri, name: f.nom, type: f.type }) as unknown as Blob;
-export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000, fichierDeFormulaire: typeof fichierDeFormulaireNatif = fichierDeFormulaireNatif) {
+export interface FichierFormulaire { name: string; type: string; size: number; bytes(): Promise<Uint8Array> }
+export type LecteurFichierFormulaire = (f: { uri: string; nom: string; type: string }) => Promise<FichierFormulaire>;
+export const fichierDeFormulaireNatif: LecteurFichierFormulaire = async (f) => {
+  // Même lecture locale (`file://`) que la mesure de la taille dans photoPlatNatif.ts : aucun réseau.
+  const reponse = await fetch(f.uri);
+  if (!reponse.ok) throw new Error('lecture');
+  const octets = new Uint8Array(await reponse.arrayBuffer());
+  return { name: f.nom, type: f.type, size: octets.byteLength, bytes: async () => octets };
+};
+/** Octets d'une photo prête à partir : de 1 octet à 5 Mo, et signature JPEG (FF D8 FF). Sinon elle ne part pas. */
+export function octetsDePhotoValides(octets: Uint8Array): boolean {
+  return octets.byteLength > 0 && octets.byteLength <= PHOTO_TAILLE_MAX_OCTETS && octets[0] === 0xff && octets[1] === 0xd8 && octets[2] === 0xff;
+}
+/**
+ * Un formulaire est « envoyable » quand chaque partie est une chaîne ou un fichier que le `fetch` sait lire (nom, type, `bytes()`). Contrôle fait AVANT le réseau : une partie d'une autre forme
+ * (par exemple l'ancien `{ uri }`) est un défaut local, pas une panne réseau. Si l'implémentation ne permet pas de parcourir le formulaire, on ne peut rien affirmer : on laisse passer.
+ */
+export function formulaireEnvoyable(formulaire: FormData): boolean {
+  if (typeof formulaire.entries !== 'function') return true;
+  for (const [, v] of formulaire.entries() as Iterable<[string, unknown]>) {
+    if (typeof v === 'string') continue;
+    const f = v as { name?: unknown; type?: unknown; bytes?: unknown } | null;
+    if (!f || typeof f !== 'object' || typeof f.name !== 'string' || typeof f.type !== 'string' || typeof f.bytes !== 'function') return false;
+  }
+  return true;
+}
+/** Code court (jeu fermé, jamais d'adresse, de jeton ni de contenu) d'une exception levée par le `fetch` pendant l'envoi d'une photo : lisible dans le message pour un prochain essai réel. */
+export function codeEchecPhoto(e: unknown, delaiAtteint: boolean): 'delai' | 'formulaire' | 'reseau' {
+  if (delaiAtteint) return 'delai';
+  const m = e instanceof Error ? e.message : '';
+  return /^Unsupported FormData/.test(m) ? 'formulaire' : 'reseau';
+}
+export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000, fichierDeFormulaire: LecteurFichierFormulaire = fichierDeFormulaireNatif) {
   let configuration: Promise<string> | null = null;
   async function requete(url: string, options: RequestInit, auth = false, renouvellement = false, refus: Record<number,string> = {}) {
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 15000);
@@ -129,7 +162,14 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     try {
       // Formulaire (photo) : PAS de Content-Type écrit ici, le système y met la frontière du multipart.
       r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps && !options.formulaire ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body:options.formulaire } : options.corps ? { body:JSON.stringify(options.corps) } : {}) });
-    } catch { clearTimeout(timer); throw lecture ? new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.') : textes.reseau(); }
+    } catch (e) {
+      const delaiAtteint = controle.signal.aborted; clearTimeout(timer);
+      if (lecture) throw new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.');
+      if (!options.formulaire) throw textes.reseau();
+      // Photo : le code dit d'où vient l'échec. `formulaire` = le fetch a refusé le formulaire AVANT d'envoyer un seul octet (échec local, rien d'enregistré) ; `delai` / `reseau` = incertain.
+      const code = codeEchecPhoto(e, delaiAtteint);
+      throw code === 'formulaire' ? erreurLocalePhoto(code) : erreurReseauPhoto(code);
+    }
     try {
       let corps: unknown = null;
       const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
@@ -203,7 +243,16 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
         // Lot D4c : formulaire multipart (plat + photo, ou plat + retirer=1). Le restaurant n'est jamais un champ. Le fichier a déjà passé le contrat partagé (JPEG, 5 Mo au plus) dans `corpsDeAction`.
         const formulaire = new FormData();
         for (const [cle, valeur] of Object.entries(envoi.corps)) formulaire.append(cle, String(valeur));
-        if (envoi.fichier) formulaire.append('photo', fichierDeFormulaire({ uri: envoi.fichier.uri, nom: envoi.fichier.nom, type: envoi.fichier.type }), envoi.fichier.nom);
+        if (envoi.fichier) {
+          // ÉCHEC LOCAL (rien n'est parti, rien n'est enregistré, l'écran reste déverrouillé) : lecture du fichier, octets invalides, forme du formulaire. Les octets sont lus AVANT le réseau.
+          let fichier: FichierFormulaire;
+          try {
+            fichier = await fichierDeFormulaire({ uri: envoi.fichier.uri, nom: envoi.fichier.nom, type: envoi.fichier.type });
+            if (!octetsDePhotoValides(await fichier.bytes())) throw new Error('octets');
+          } catch { throw erreurLocalePhoto('lecture'); }
+          formulaire.append('photo', fichier as unknown as Blob);
+          if (!formulaireEnvoyable(formulaire)) throw erreurLocalePhoto('formulaire');
+        }
         lireReponseAction(await appelRestaurateur(accessToken, envoi.chemin, { method:'POST', formulaire, delaiMs: envoi.fichier ? DELAI_PHOTO_MS : undefined }, false, TEXTES_SERVICE));
         return;
       }

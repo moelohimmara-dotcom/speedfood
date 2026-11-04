@@ -397,6 +397,10 @@ export function refusService(statut: number, raison: RaisonSecuriteCompte | null
 }
 export const erreurReseauService = () => new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Votre changement a peut-être été enregistré : l’état va être relu avant de réessayer.', true);
 export const erreurReponseService = () => new ErreurRestaurateur('reponse_invalide', 'Réponse du service illisible. Votre changement a peut-être été enregistré : l’état va être relu avant de réessayer.', true);
+/** Photo, échec LOCAL : rien n'est parti sur le réseau, rien n'est enregistré (non incertain, l'écran reste déverrouillé). Le code est d'un jeu fermé, ni adresse ni contenu. */
+export const erreurLocalePhoto = (code: 'lecture' | 'formulaire') => new ErreurRestaurateur('local', 'La photo n’a pas pu être préparée pour l’envoi : rien n’a été enregistré. Choisissez la photo à nouveau, ou une autre. (code : ' + code + ')', false);
+/** Photo, panne PENDANT l'envoi (réseau coupé, délai de 60 s) : des octets ont pu partir, donc incertain. Le code court aide à comprendre un prochain essai réel. */
+export const erreurReseauPhoto = (code: 'delai' | 'reseau') => new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood pour envoyer la photo. Elle a peut-être été enregistrée : l’état va être relu avant de réessayer. (code : ' + code + ')', true);
 
 // ---------- verdict ----------
 export type VerdictService =
