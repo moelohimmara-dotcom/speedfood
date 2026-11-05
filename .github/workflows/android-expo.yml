@@ -50,6 +50,19 @@ jobs:
         working-directory: apps/mobile
         run: npm test
 
+      # Configuration Firebase (notifications) : fichier ignoré par Git, fourni par le secret GOOGLE_SERVICES_JSON_B64.
+      # Secret absent (ex. dépôt copié) : la compilation reste verte, sans notifications.
+      - name: Poser la configuration Firebase si elle est fournie
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > apps/mobile/google-services.json
+            echo "Configuration Firebase posee."
+          else
+            echo "Pas de configuration Firebase : APK sans notifications."
+          fi
+
       # Le dossier android est généré (ignoré par Git) : on le recrée à chaque fois depuis app.json.
       - name: Générer le projet natif Android
         working-directory: apps/mobile
