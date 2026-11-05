@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
-import type { EtatSysteme, MemoireDemande } from './autorisation';
+import { etatSystemeDe, type MemoireDemande } from './autorisation';
 import type { PortNatif } from './service';
 
 /** Seul fichier qui touche expo-notifications. Rien n'est lu ni écrit au chargement du module (sauf le comportement au premier plan, qui ne demande rien). */
@@ -18,19 +18,20 @@ if (notificationsDisponibles) {
   });
 }
 
-const etatDe = (p: Notifications.NotificationPermissionsStatus): EtatSysteme => ({
-  statut: p.granted ? 'accordee' : p.status === 'denied' ? 'refusee' : 'non_demandee',
-  peutRedemander: p.canAskAgain,
-});
-
 export const natif: PortNatif = {
-  async etat() { return etatDe(await Notifications.getPermissionsAsync()); },
-  async demander() { return etatDe(await Notifications.requestPermissionsAsync()); },
+  async etat() { return etatSystemeDe(await Notifications.getPermissionsAsync()); },
+  async demander() { return etatSystemeDe(await Notifications.requestPermissionsAsync()); },
   async creerCanal() {
     if (Platform.OS !== 'android') return;
     await Notifications.setNotificationChannelAsync(CANAL_SUIVI, { name: 'Suivi de commande', importance: Notifications.AndroidImportance.HIGH });
   },
-  derniere() { return notificationsDisponibles ? Notifications.getLastNotificationResponse() : null; },
+  // Lue puis effacée : un remontage de l'écran ne rouvre pas le suivi pour la même notification.
+  derniere() {
+    if (!notificationsDisponibles) return null;
+    const r = Notifications.getLastNotificationResponse();
+    if (r) Notifications.clearLastNotificationResponse();
+    return r;
+  },
   ecouter(rappel) {
     if (!notificationsDisponibles) return () => undefined;
     const abonnement = Notifications.addNotificationResponseReceivedListener(rappel);

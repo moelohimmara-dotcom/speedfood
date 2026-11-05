@@ -25,6 +25,11 @@ export interface DepsAppareil {
 export interface Appareil {
   enregistrer(acces: string, jetonConnu?: string): Promise<ResultatAppareil>;
   retirer(acces: string): Promise<ResultatAppareil>;
+  /**
+   * Vrai si ce jeton est celui que l'appareil vient de lire ou d'envoyer, ou si une lecture/un envoi est en cours. Dans expo-notifications, CHAQUE lecture réussie du jeton déclenche aussi
+   * l'écouteur de renouvellement : sans ce contrôle, la lecture faite pour retirer l'appareil (ou pour l'enregistrer) provoquerait un second POST, qui annulerait le retrait.
+   */
+  dejaConnu(jeton: string): boolean;
 }
 
 function avecDelai<T>(promesse: Promise<T>, ms: number): Promise<T> {
@@ -36,10 +41,14 @@ function avecDelai<T>(promesse: Promise<T>, ms: number): Promise<T> {
 
 export function creerAppareil(d: DepsAppareil): Appareil {
   const delai = d.delaiMs ?? 15000;
+  let dernier: string | null = null; // dernier jeton lu ou reçu, gardé en mémoire seulement (jamais affiché, ni écrit)
+  let enCours = 0;
   async function jeton(connu?: string): Promise<string | null> {
     try {
       const j = connu ?? await avecDelai(d.lireJeton(), delai);
-      return jetonAppareilValide(j) ? j : null;
+      if (!jetonAppareilValide(j)) return null;
+      dernier = j;
+      return j;
     } catch { return null; }
   }
   async function poster(chemin: string, acces: string, corps: Record<string, unknown>): Promise<ResultatAppareil> {
@@ -55,19 +64,26 @@ export function creerAppareil(d: DepsAppareil): Appareil {
     } catch { return 'indisponible'; } finally { clearTimeout(minuterie); }
   }
   return {
+    dejaConnu: j => enCours > 0 || j === dernier,
     async enregistrer(acces, jetonConnu) {
       if (d.plateforme === null || !acces) return 'sans_firebase';
-      const j = await jeton(jetonConnu);
-      if (j === null) return 'sans_firebase';
-      const corps: Record<string, unknown> = { jeton: j, plateforme: d.plateforme };
-      if (d.versionApp) corps.versionApp = d.versionApp.slice(0, VERSION_APP_LONGUEUR_MAX);
-      return poster(CHEMIN_APPAREILS_APP, acces, corps);
+      enCours++;
+      try {
+        const j = await jeton(jetonConnu);
+        if (j === null) return 'sans_firebase';
+        const corps: Record<string, unknown> = { jeton: j, plateforme: d.plateforme };
+        if (d.versionApp) corps.versionApp = d.versionApp.slice(0, VERSION_APP_LONGUEUR_MAX);
+        return await poster(CHEMIN_APPAREILS_APP, acces, corps);
+      } finally { enCours--; }
     },
     async retirer(acces) {
       if (d.plateforme === null || !acces) return 'sans_firebase';
-      const j = await jeton();
-      if (j === null) return 'sans_firebase';
-      return poster(CHEMIN_APPAREILS_RETRAIT_APP, acces, { jeton: j });
+      enCours++;
+      try {
+        const j = await jeton();
+        if (j === null) return 'sans_firebase';
+        return await poster(CHEMIN_APPAREILS_RETRAIT_APP, acces, { jeton: j });
+      } finally { enCours--; }
     },
   };
 }

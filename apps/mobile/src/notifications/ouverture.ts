@@ -39,3 +39,15 @@ export function demarrerOuverture(d: { port: PortOuverture; ouvrirSuivi(): void 
   traiter(derniere);
   return d.port.ecouter(traiter);
 }
+
+/**
+ * Ouverture du suivi qui respecte le verrou de l'écran de commande : pendant un envoi ou un état incertain, l'appui sur une notification n'ouvre rien tout de suite
+ * (l'écran d'envoi ne doit jamais être perdu de vue) ; l'ouverture est gardée et jouée UNE fois quand le verrou tombe.
+ */
+export function creerOuvertureDifferee(d: { verrouille(): boolean; ouvrir(): void }) {
+  let enAttente = false;
+  return {
+    demander() { if (d.verrouille()) { enAttente = true; return; } enAttente = false; d.ouvrir(); },
+    verrouillageChange() { if (enAttente && !d.verrouille()) { enAttente = false; d.ouvrir(); } },
+  };
+}

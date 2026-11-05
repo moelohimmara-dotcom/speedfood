@@ -65,3 +65,8 @@ export async function apresCommandeEnvoyee(d: { port: PortAutorisation; memoire:
     return { decision: 'rien', affiche: null };
   }
 }
+
+/** Réponse du système (forme d'expo-notifications) réduite à l'état utilisé ici. `canAskAgain` faux = refus définitif. */
+export function etatSystemeDe(p: { granted: boolean; status?: string; canAskAgain: boolean }): EtatSysteme {
+  return { statut: p.granted ? 'accordee' : p.status === 'denied' ? 'refusee' : 'non_demandee', peutRedemander: p.canAskAgain };
+}

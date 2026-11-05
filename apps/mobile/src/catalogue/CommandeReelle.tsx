@@ -23,9 +23,11 @@ type Quartiers = { etat: 'aucun' | 'chargement' | 'ok' | 'erreur'; liste: Quarti
  * Validation d'une commande en RETRAIT (lot A) ou en LIVRAISON (lot B). Fenêtre du même type que le panier et le compte : l'application réelle ne monte pas de routeur.
  * Composant mince : toute la logique (clé d'idempotence, rejeu à l'identique, verrous, remise à zéro par compte, estimation de livraison) est dans `EnvoiCommande`.
  */
-export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCommandes, apresSucces }: {
+export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCommandes, apresSucces, surVerrou }: {
   ouvert: boolean; fermer(): void; etat: ReturnType<typeof usePanierReel>;
   ouvrirCompte(): void; verifierCommandes(): void; apresSucces(reference: string): void;
+  /** Signale à l'écran parent quand l'envoi verrouille la fermeture (envoi en cours ou état incertain). */
+  surVerrou?(verrouille: boolean): void;
 }) {
   const [, redessiner] = useReducer((n: number) => n + 1, 0);
   const machine = useRef<EnvoiCommande | null>(null);
@@ -42,6 +44,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const panierPret = !!etat.panier.lignes.length && bilan.total !== null && !etat.lecture && !etat.erreurLecture && !etat.erreur;
   const peutEnvoyer = m.peutEnvoyer(etat.panier, plats, connectee, panierPret);
   const verrouille = m.verrouille;
+  useEffect(() => { surVerrou?.(verrouille); }, [verrouille]);
   const livraison = m.mode === 'livraison';
   const estimation = estimationValable(m.estimation, etat.panier.restaurantId, m.quartierId, bilan.total) ? m.estimation.estimation : null;
   const frais = fraisDeLEstimation(estimation);

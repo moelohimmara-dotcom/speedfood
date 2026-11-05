@@ -23,19 +23,23 @@ export interface DepsService {
  * Coordination des notifications de l'appli. Chaque méthode ne lève jamais : une notification qui échoue ne gêne ni la commande, ni la connexion, ni la déconnexion.
  */
 export function creerServiceNotifications(d: DepsService) {
+  // Levé par la déconnexion, baissé seulement par la prochaine ouverture de session : tant qu'il est levé, plus rien n'enregistre l'appareil (le retrait ne doit pas être annulé par un envoi concurrent).
+  let retraitEnCours = false;
   async function enregistrerSiConnecte(jetonConnu?: string) {
-    try { const acces = await d.obtenirAcces(); if (acces) await d.appareil.enregistrer(acces, jetonConnu); } catch { /* silencieux */ }
+    if (retraitEnCours) return;
+    try { const acces = await d.obtenirAcces(); if (acces && !retraitEnCours) await d.appareil.enregistrer(acces, jetonConnu); } catch { /* silencieux */ }
   }
   return {
     /** Au démarrage de l'appli : canal, ouverture sur appui, réenregistrement à chaque renouvellement du jeton. Ne demande JAMAIS l'autorisation. Retourne le désabonnement. */
     demarrer(): () => void {
       void d.natif.creerCanal().catch(() => undefined);
       const arretOuverture = demarrerOuverture({ port: d.natif, ouvrirSuivi: d.ouvrirSuivi });
-      const arretJeton = d.natif.surRenouvellementJeton(jeton => { void enregistrerSiConnecte(jeton); });
+      const arretJeton = d.natif.surRenouvellementJeton(jeton => { if (!retraitEnCours && !d.appareil.dejaConnu(jeton)) void enregistrerSiConnecte(jeton); });
       return () => { arretOuverture(); arretJeton(); };
     },
     /** À chaque ouverture de l'appli avec une session : réenregistre l'appareil, SEULEMENT si l'autorisation est déjà accordée (aucune demande). */
     async sessionOuverte(): Promise<void> {
+      retraitEnCours = false;
       try {
         if (decisionAuDemarrage(await d.natif.etat()) === 'enregistrer') await enregistrerSiConnecte();
       } catch { /* silencieux */ }
@@ -48,6 +52,7 @@ export function creerServiceNotifications(d: DepsService) {
     },
     /** À la déconnexion, AVANT l'effacement de la session (le jeton porteur est encore valide). Un seul essai, échec silencieux. */
     async avantDeconnexion(acces: string): Promise<void> {
+      retraitEnCours = true;
       try { await d.appareil.retirer(acces); } catch { /* silencieux */ }
     },
   };

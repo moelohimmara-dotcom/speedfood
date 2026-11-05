@@ -211,6 +211,7 @@ function banc(opts: { systeme?: EtatSysteme; apres?: EtatSysteme; acces?: string
     surRenouvellementJeton: r => { renouvellement = r; return () => undefined; },
   };
   const appareil = {
+    dejaConnu: () => false,
     enregistrer: async (acces: string, jeton?: string) => { if (opts.echecAppareil) throw new Error('x'); journal.enregistrements.push({ acces, jeton }); return 'enregistre' as const; },
     retirer: async (acces: string) => { if (opts.echecAppareil) throw new Error('x'); journal.retraits.push(acces); return 'enregistre' as const; },
   };

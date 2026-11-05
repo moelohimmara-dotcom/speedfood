@@ -8,6 +8,7 @@ import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
 import { CommandeReelle } from './CommandeReelle';
 import { brancherOuvertureSuivi, notifications } from '../notifications';
+import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
 function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
@@ -51,8 +52,11 @@ export function CatalogueReel() {
   }
   useEffect(() => { void charger(null); return () => { generation.current++; }; }, []);
   // Notifications (lot E2) : canal, écoute de l'appui sur une notification (ouvre « Mon compte » sur le suivi, sans le relire seul) et renouvellement du jeton. Ne demande jamais l'autorisation ici.
+  // L'appui sur une notification ne ferme JAMAIS l'écran de commande pendant un envoi ou un état incertain : l'ouverture attend la fin du verrou (une seule fois).
+  const commandeVerrouillee = useRef(false);
+  const ouvertureSuivi = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); } })).current;
   useEffect(() => {
-    const debrancher = brancherOuvertureSuivi(() => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); });
+    const debrancher = brancherOuvertureSuivi(() => ouvertureSuivi.demander());
     const arreter = notifications.demarrer();
     return () => { arreter(); debrancher(); };
   }, []);
@@ -103,7 +107,7 @@ export function CatalogueReel() {
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} />
     </ScrollView>
     <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CommandeReelle ouvert={commandeOuverte} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
+    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />

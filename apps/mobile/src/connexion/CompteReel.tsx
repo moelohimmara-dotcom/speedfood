@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { creerLectureDifferee } from './lecture-differee';
 import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErreurConnexion, type ResumeCompte } from './client';
@@ -70,10 +71,16 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     void gestion.moi().then(r=>{if(actif)setRestaurateur(r.restaurateur!==null);},()=>{if(actif)setRestaurateur(false);});
     return()=>{actif=false;};
   },[connectee]);
-  useEffect(()=>{if(ouvert&&gestion.connectee){void executer(async()=>{
+  const demandeRef=useRef(demande);demandeRef.current=demande;
+  const lireOuverture=()=>{void executer(async()=>{const demande=demandeRef.current;
     if(demande){const liste=await lireCommandes();const o=demande.reference?liste.find(x=>x.reference===demande.reference):undefined;
       if(o)await lireSuivi(o.id);else if(demande.reference)setMessage('Commande '+demande.reference+' envoyée. Elle n’apparaît pas encore dans la liste : actualisez vos commandes dans un instant.');}
-    setProfil(await gestion.espace());});}},[ouvert]);
+    setProfil(await gestion.espace());});};
+  // Ouvert par une notification appli fermée : la session n'est pas encore restaurée. La lecture des commandes est gardée et jouée UNE fois quand la session devient disponible.
+  const lireRef=useRef(lireOuverture);lireRef.current=lireOuverture;
+  const lectureDiff=useRef(creerLectureDifferee(()=>lireRef.current())).current;
+  useEffect(()=>{if(!ouvert){lectureDiff.fermeture();return;}if(gestion.connectee)lireOuverture();else lectureDiff.ouverture(false,demandeRef.current!==null);},[ouvert]);
+  useEffect(()=>{lectureDiff.sessionDisponible(ouvert);},[connectee]);
   if(restaurateurOuvert){
     // Au retour, l'état de la session est relu : une session terminée pendant l'espace restaurateur (401) renvoie au formulaire de connexion.
     const retour=()=>{setRestaurateurOccupe(false);setRestaurateurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
