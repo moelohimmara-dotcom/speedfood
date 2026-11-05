@@ -9,12 +9,14 @@ import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
 import { ErreurReglement, verdictDeclaration, type ModeReglement, type VerdictDeclaration } from './reglement';
 import { couleurs as c, polices } from '../design/tokens';
+import { notifications } from '../notifications';
+import { MESSAGES_ETAT_RESTO } from '../notifications/autorisation';
 let restauration: Promise<void> | null = null;
 function Action({ titre, agir, disabled=false }: { titre:string; agir():void; disabled?:boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{disabled}} onPress={agir} style={[s.bouton,disabled&&{opacity:.5}]}><Text style={s.boutonTexte}>{titre}</Text></Pressable>;
 }
-/** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). */
-export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; fermer():void; demande?:{reference:string|null}|null }) {
+/** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
+export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -65,13 +67,21 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     void restauration.then(async()=>{if(!actif)return;if(gestion.connectee){const p=await gestion.espace();if(actif)setProfil(p);}}).catch(e=>{if(actif)setErreur(e instanceof ErreurConnexion?e.message:'Impossible de restaurer votre session.');}).finally(()=>{if(actif){setConnectee(gestion.connectee);setAttente(false);}});
     return()=>{actif=false;revision.current++;};
   },[]);
+  const demandeRef=useRef(demande);demandeRef.current=demande;
   useEffect(()=>{
     if(!connectee){setRestaurateur(false);setRestaurateurOuvert(false);return;}
     let actif=true;
-    void gestion.moi().then(r=>{if(actif)setRestaurateur(r.restaurateur!==null);},()=>{if(actif)setRestaurateur(false);});
+    void gestion.moi().then(r=>{
+      if(!actif)return;
+      const estResto=r.restaurateur!==null;
+      setRestaurateur(estResto);
+      // Appui notification `commande_nouvelle` : ouvrir l'espace si le compte est bien membre (le serveur revalide chaque route).
+      if(estResto&&demandeRef.current?.espaceRestaurateur)setRestaurateurOuvert(true);
+      // Choix C (complément UI) : si le rôle est connu ici, même déclencheur qu'à la session (drapeau unique → pas de 2ᵉ boîte).
+      if(estResto)void notifications.apresContexteRestaurateur(true).then(e=>{if(actif&&e)setMessage(MESSAGES_ETAT_RESTO[e]);});
+    },()=>{if(actif)setRestaurateur(false);});
     return()=>{actif=false;};
   },[connectee]);
-  const demandeRef=useRef(demande);demandeRef.current=demande;
   const lireOuverture=()=>{void executer(async()=>{const demande=demandeRef.current;
     if(demande){const liste=await lireCommandes();const o=demande.reference?liste.find(x=>x.reference===demande.reference):undefined;
       if(o)await lireSuivi(o.id);else if(demande.reference)setMessage('Commande '+demande.reference+' envoyée. Elle n’apparaît pas encore dans la liste : actualisez vos commandes dans un instant.');}
@@ -102,7 +112,10 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
       {profil?<><Text style={s.texte}>{profil.pseudo??'Profil à compléter sur le site'}</Text><Text style={s.texte}>{profil.favoris} favori(s) · {profil.adresses} adresse(s) enregistrée(s)</Text></>:<Text style={s.texte}>Votre espace n’a pas encore pu être lu.</Text>}
       <Action titre="Actualiser mon espace" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
-      {restaurateur&&<Action titre="Espace restaurateur" disabled={attente} agir={()=>setRestaurateurOuvert(true)}/>}
+      {restaurateur&&<Action titre="Espace restaurateur" disabled={attente} agir={()=>{
+        void notifications.apresContexteRestaurateur(true).then(e=>{if(e)setMessage(MESSAGES_ETAT_RESTO[e]);});
+        setRestaurateurOuvert(true);
+      }}/>}
       <Action titre="Voir ou actualiser mes commandes" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
       {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&<Text style={s.texte}>Le restaurant a proposé une modification. Consultez-la sur le site avant de répondre.</Text>}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}

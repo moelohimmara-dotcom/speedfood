@@ -2,11 +2,14 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync, readdirSync } from 'node:fs';
-import { apresCommandeEnvoyee, decider, decisionAuDemarrage, etatAffiche, type EtatSysteme, type PortAutorisation } from '../src/notifications/autorisation.ts';
+import { apresCommandeEnvoyee, apresContexteRestaurateur, decider, decisionAuDemarrage, etatAffiche, type EtatSysteme, type PortAutorisation } from '../src/notifications/autorisation.ts';
 import { creerAppareil, type DepsAppareil } from '../src/notifications/enregistrement.ts';
-import { ACTION_PAR_DEFAUT, TYPES_NOTIFICATION_SUIVI, demarrerOuverture, typeDeSuivi, type PortOuverture, type ReponseNotification } from '../src/notifications/ouverture.ts';
+import { ACTION_PAR_DEFAUT, TYPES_NOTIFICATION_RESTAURATEUR, TYPES_NOTIFICATION_SUIVI, demarrerOuverture, typeDeRestaurateur, typeDeSuivi, type PortOuverture, type ReponseNotification } from '../src/notifications/ouverture.ts';
 import { creerServiceNotifications, type PortNatif } from '../src/notifications/service.ts';
 import { GestionSession } from '../src/connexion/session.ts';
+const CANAL_SUIVI = 'suivi_commande';
+const CANAL_ALERTE = 'alerte_commande';
+const CANAL_OFFRE = 'offre_course';
 
 // Jetons de ces tests : de pures valeurs factices (aucun vrai jeton Firebase, aucun vrai jeton porteur).
 const JETON = 'jeton-appareil-factice-0123456789:APA91b_xyz';
@@ -20,20 +23,20 @@ const refusee: EtatSysteme = { statut: 'refusee', peutRedemander: false };
 
 /* ---------- autorisation ---------- */
 
-test('autorisation : jamais avant une commande réellement envoyée', () => {
-  assert.equal(decider({ commandeEnvoyee: false, dejaDemandee: false, systeme: non_demandee }), 'rien');
-  assert.equal(decider({ commandeEnvoyee: true, dejaDemandee: false, systeme: non_demandee }), 'demander');
+test('autorisation : jamais sans déclencheur métier', () => {
+  assert.equal(decider({ declencheurMetier: false, dejaDemandee: false, systeme: non_demandee }), 'rien');
+  assert.equal(decider({ declencheurMetier: true, dejaDemandee: false, systeme: non_demandee }), 'demander');
 });
 test('autorisation : déjà accordée, on enregistre sans rien demander ; au démarrage on ne demande jamais', () => {
-  assert.equal(decider({ commandeEnvoyee: false, dejaDemandee: true, systeme: accordee }), 'enregistrer');
+  assert.equal(decider({ declencheurMetier: false, dejaDemandee: true, systeme: accordee }), 'enregistrer');
   assert.equal(decisionAuDemarrage(accordee), 'enregistrer');
   assert.equal(decisionAuDemarrage(non_demandee), 'rien');
   assert.equal(decisionAuDemarrage(refusee), 'rien');
 });
 test('autorisation : une seule demande, jamais de nouvelle après refus (même si le système permettrait de redemander)', () => {
-  assert.equal(decider({ commandeEnvoyee: true, dejaDemandee: true, systeme: non_demandee }), 'rien');
-  assert.equal(decider({ commandeEnvoyee: true, dejaDemandee: true, systeme: { statut: 'refusee', peutRedemander: true } }), 'rien');
-  assert.equal(decider({ commandeEnvoyee: true, dejaDemandee: false, systeme: refusee }), 'rien', 'refus définitif du système');
+  assert.equal(decider({ declencheurMetier: true, dejaDemandee: true, systeme: non_demandee }), 'rien');
+  assert.equal(decider({ declencheurMetier: true, dejaDemandee: true, systeme: { statut: 'refusee', peutRedemander: true } }), 'rien');
+  assert.equal(decider({ declencheurMetier: true, dejaDemandee: false, systeme: refusee }), 'rien', 'refus définitif du système');
 });
 test('autorisation : états affichés', () => {
   assert.equal(etatAffiche(accordee, true), 'actives');
@@ -60,6 +63,25 @@ test('autorisation : une panne du système ne lève jamais', async () => {
   const memoire = { lire: async () => false, marquer: async () => undefined };
   const r = await apresCommandeEnvoyee({ port: { etat: async () => { throw new Error('x'); }, demander: async () => accordee }, memoire });
   assert.deepEqual(r, { decision: 'rien', affiche: null });
+});
+test('autorisation C : sans rôle resto, déclencheur contexte → rien (même si jamais demandé)', async () => {
+  const { port, memoire, journal } = portAutorisation(non_demandee, accordee);
+  const r = await apresContexteRestaurateur({ port, memoire, estRestaurateur: false });
+  assert.deepEqual(r, { decision: 'rien', affiche: null });
+  assert.equal(journal.demandes, 0);
+});
+test('autorisation C : membre + jamais demandé → demander une fois ; second déclencheur → rien', async () => {
+  const { port, memoire, journal } = portAutorisation(non_demandee, refusee);
+  const r1 = await apresContexteRestaurateur({ port, memoire, estRestaurateur: true });
+  assert.equal(r1.decision, 'demander'); assert.equal(journal.demandes, 1);
+  const r2 = await apresContexteRestaurateur({ port, memoire, estRestaurateur: true });
+  assert.equal(r2.decision, 'rien'); assert.equal(journal.demandes, 1);
+});
+test('autorisation C : même drapeau que après commande — commande puis contexte ne redemande pas', async () => {
+  const { port, memoire, journal } = portAutorisation(non_demandee, accordee);
+  await apresCommandeEnvoyee({ port, memoire });
+  await apresContexteRestaurateur({ port, memoire, estRestaurateur: true });
+  assert.equal(journal.demandes, 1);
 });
 
 /* ---------- enregistrement ---------- */
@@ -171,14 +193,31 @@ function portOuverture(derniere: ReponseNotification | null = null) {
   const port: PortOuverture = { derniere: () => derniere, ecouter: r => { rappel = r; return () => { retire++; }; } };
   return { port, appui: (r: ReponseNotification) => rappel?.(r), retires: () => retire };
 }
+const ouvrir = (suivi: () => void, resto: () => void = () => undefined) =>
+  ({ ouvrirSuivi: suivi, ouvrirRestaurateur: resto });
 test('ouverture : chaque type de la liste blanche ouvre le suivi', () => {
   assert.deepEqual([...TYPES_NOTIFICATION_SUIVI], ['commande_acceptee', 'commande_prete', 'commande_terminee', 'commande_refusee', 'commande_annulee']);
-  let ouvertures = 0; const p = portOuverture(); demarrerOuverture({ port: p.port, ouvrirSuivi: () => { ouvertures++; } });
+  let ouvertures = 0; const p = portOuverture(); demarrerOuverture({ port: p.port, ...ouvrir(() => { ouvertures++; }) });
   TYPES_NOTIFICATION_SUIVI.forEach((t, i) => p.appui(reponse(t, 'id' + i)));
   assert.equal(ouvertures, 5);
 });
+test('ouverture : commande_nouvelle ouvre le restaurateur, pas le suivi', () => {
+  assert.deepEqual([...TYPES_NOTIFICATION_RESTAURATEUR], ['commande_nouvelle']);
+  let suivi = 0, resto = 0; const p = portOuverture();
+  demarrerOuverture({ port: p.port, ...ouvrir(() => { suivi++; }, () => { resto++; }) });
+  p.appui(reponse('commande_nouvelle', 'n1'));
+  assert.equal(suivi, 0); assert.equal(resto, 1);
+  assert.equal(typeDeRestaurateur(reponse('commande_nouvelle')), 'commande_nouvelle');
+  assert.equal(typeDeSuivi(reponse('commande_nouvelle')), null);
+});
+test('ouverture : type client n’ouvre pas le restaurateur', () => {
+  let suivi = 0, resto = 0; const p = portOuverture();
+  demarrerOuverture({ port: p.port, ...ouvrir(() => { suivi++; }, () => { resto++; }) });
+  p.appui(reponse('commande_prete', 'c1'));
+  assert.equal(suivi, 1); assert.equal(resto, 0);
+});
 test('ouverture : type inconnu, absent, mal typé, autre action ou réponse vide = rien', () => {
-  let ouvertures = 0; const p = portOuverture(); demarrerOuverture({ port: p.port, ouvrirSuivi: () => { ouvertures++; } });
+  let ouvertures = 0; const p = portOuverture(); demarrerOuverture({ port: p.port, ...ouvrir(() => { ouvertures++; }) });
   p.appui(reponse('promo_du_jour', 'a')); p.appui(reponse(undefined, 'b')); p.appui(reponse(42, 'c')); p.appui(reponse(['commande_prete'], 'd'));
   p.appui(reponse('commande_prete', 'e', 'autre.action')); p.appui({}); p.appui({ actionIdentifier: ACTION_PAR_DEFAUT });
   assert.equal(ouvertures, 0);
@@ -186,26 +225,34 @@ test('ouverture : type inconnu, absent, mal typé, autre action ou réponse vide
 });
 test('ouverture : le lancement à froid ouvre le suivi, une seule fois même si l\'écouteur livre la même notification', () => {
   let ouvertures = 0; const p = portOuverture(reponse('commande_prete', 'froid'));
-  demarrerOuverture({ port: p.port, ouvrirSuivi: () => { ouvertures++; } });
+  demarrerOuverture({ port: p.port, ...ouvrir(() => { ouvertures++; }) });
   assert.equal(ouvertures, 1);
   p.appui(reponse('commande_prete', 'froid')); assert.equal(ouvertures, 1);
   p.appui(reponse('commande_prete', 'autre')); assert.equal(ouvertures, 2);
 });
 test('ouverture : lancement à froid avec un type inconnu = rien ; le désabonnement est rendu', () => {
   let ouvertures = 0; const p = portOuverture(reponse('inconnu', 'froid'));
-  const arret = demarrerOuverture({ port: p.port, ouvrirSuivi: () => { ouvertures++; } });
+  const arret = demarrerOuverture({ port: p.port, ...ouvrir(() => { ouvertures++; }) });
   assert.equal(ouvertures, 0); arret(); assert.equal(p.retires(), 1);
+});
+test('canaux : ids Android alignés sur le serveur et Kotlin', () => {
+  assert.equal(CANAL_SUIVI, 'suivi_commande');
+  assert.equal(CANAL_ALERTE, 'alerte_commande');
+  assert.equal(CANAL_OFFRE, 'offre_course');
 });
 
 /* ---------- service ---------- */
 
-function banc(opts: { systeme?: EtatSysteme; apres?: EtatSysteme; acces?: string | null; derniere?: ReponseNotification | null; echecAppareil?: boolean } = {}) {
-  const journal = { demandes: 0, canaux: 0, enregistrements: [] as { acces: string; jeton?: string }[], retraits: [] as string[], ouvertures: 0, ordre: [] as string[] };
+function banc(opts: { systeme?: EtatSysteme; apres?: EtatSysteme; acces?: string | null; derniere?: ReponseNotification | null; echecAppareil?: boolean; estRestaurateur?: boolean } = {}) {
+  const journal = { demandes: 0, canaux: 0, idsCanaux: [] as string[], enregistrements: [] as { acces: string; jeton?: string }[], retraits: [] as string[], ouvertures: 0, ouverturesResto: 0, ordre: [] as string[] };
   let renouvellement: ((j: string) => void) | null = null; let ecoute: ((r: ReponseNotification) => void) | null = null; let drapeau = false;
   const natif: PortNatif = {
     etat: async () => opts.systeme ?? non_demandee,
     demander: async () => { journal.demandes++; return opts.apres ?? accordee; },
-    creerCanal: async () => { journal.canaux++; },
+    creerCanal: async () => {
+      journal.canaux++;
+      journal.idsCanaux.push(CANAL_SUIVI, CANAL_ALERTE, CANAL_OFFRE);
+    },
     derniere: () => opts.derniere ?? null,
     ecouter: r => { ecoute = r; return () => undefined; },
     surRenouvellementJeton: r => { renouvellement = r; return () => undefined; },
@@ -216,16 +263,29 @@ function banc(opts: { systeme?: EtatSysteme; apres?: EtatSysteme; acces?: string
     retirer: async (acces: string) => { if (opts.echecAppareil) throw new Error('x'); journal.retraits.push(acces); return 'enregistre' as const; },
   };
   const memoire = { lire: async () => drapeau, marquer: async () => { drapeau = true; } };
-  const service = creerServiceNotifications({ natif, appareil, memoire, obtenirAcces: async () => opts.acces === undefined ? ACCES : opts.acces, ouvrirSuivi: () => { journal.ouvertures++; } });
+  const service = creerServiceNotifications({
+    natif, appareil, memoire,
+    obtenirAcces: async () => opts.acces === undefined ? ACCES : opts.acces,
+    ouvrirSuivi: () => { journal.ouvertures++; },
+    ouvrirRestaurateur: () => { journal.ouverturesResto++; },
+    lireEstRestaurateur: async () => opts.estRestaurateur === true,
+  });
   return { service, journal, renouveler: (j: string) => renouvellement?.(j), appuyer: (r: ReponseNotification) => ecoute?.(r) };
 }
 const attendre = () => new Promise(r => setTimeout(r, 15));
 
-test('service : au démarrage, canal créé, l\'autorisation n\'est JAMAIS demandée (ni à l\'ouverture de la session)', async () => {
+test('service : au démarrage, canaux créés (suivi+alerte+offre), l\'autorisation n\'est JAMAIS demandée pour un non-membre', async () => {
   for (const systeme of [non_demandee, refusee, accordee]) {
-    const b = banc({ systeme }); b.service.demarrer(); await b.service.sessionOuverte(); await attendre();
+    const b = banc({ systeme, estRestaurateur: false }); b.service.demarrer(); await b.service.sessionOuverte(); await attendre();
     assert.equal(b.journal.demandes, 0); assert.equal(b.journal.canaux, 1);
+    assert.deepEqual(b.journal.idsCanaux, [CANAL_SUIVI, CANAL_ALERTE, CANAL_OFFRE]);
   }
+});
+test('service : session membre (choix C) demande une fois si jamais demandé', async () => {
+  const b = banc({ systeme: non_demandee, apres: accordee, estRestaurateur: true });
+  assert.equal(await b.service.sessionOuverte(), 'actives');
+  assert.equal(b.journal.demandes, 1);
+  await b.service.sessionOuverte(); assert.equal(b.journal.demandes, 1);
 });
 test('service : à l\'ouverture avec une session, réenregistrement seulement si l\'autorisation est déjà accordée', async () => {
   const oui = banc({ systeme: accordee }); await oui.service.sessionOuverte();
@@ -260,6 +320,12 @@ test('service : l\'appui sur une notification ouvre le suivi (froid et chaud), t
   assert.equal(b.journal.ouvertures, 1);
   b.appuyer(reponse('commande_acceptee', 'x')); assert.equal(b.journal.ouvertures, 2);
   b.appuyer(reponse('inconnu', 'y')); assert.equal(b.journal.ouvertures, 2);
+  assert.equal(b.journal.ouverturesResto, 0);
+});
+test('service : l\'appui commande_nouvelle ouvre le restaurateur, pas le suivi', async () => {
+  const b = banc({ derniere: reponse('commande_nouvelle', 'froid-resto') }); b.service.demarrer();
+  assert.equal(b.journal.ouverturesResto, 1); assert.equal(b.journal.ouvertures, 0);
+  b.appuyer(reponse('commande_nouvelle', 'chaud')); assert.equal(b.journal.ouverturesResto, 2); assert.equal(b.journal.ouvertures, 0);
 });
 
 /* ---------- déconnexion : retrait AVANT l'effacement de la session ---------- */

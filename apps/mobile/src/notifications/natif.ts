@@ -6,6 +6,8 @@ import type { PortNatif } from './service';
 
 /** Seul fichier qui touche expo-notifications. Rien n'est lu ni écrit au chargement du module (sauf le comportement au premier plan, qui ne demande rien). */
 export const CANAL_SUIVI = 'suivi_commande';
+export const CANAL_ALERTE = 'alerte_commande';
+export const CANAL_OFFRE = 'offre_course';
 const CLE_DEMANDEE = 'speedfood.notifications.demandee.v1';
 
 /** Les notifications ne concernent que les compilations Android et iPhone ; sur le web tout est inerte. */
@@ -24,6 +26,8 @@ export const natif: PortNatif = {
   async creerCanal() {
     if (Platform.OS !== 'android') return;
     await Notifications.setNotificationChannelAsync(CANAL_SUIVI, { name: 'Suivi de commande', importance: Notifications.AndroidImportance.HIGH });
+    await Notifications.setNotificationChannelAsync(CANAL_ALERTE, { name: 'Nouvelles commandes', importance: Notifications.AndroidImportance.HIGH });
+    await Notifications.setNotificationChannelAsync(CANAL_OFFRE, { name: 'Nouvelles courses', importance: Notifications.AndroidImportance.HIGH });
   },
   // Lue puis effacée : un remontage de l'écran ne rouvre pas le suivi pour la même notification.
   derniere() {

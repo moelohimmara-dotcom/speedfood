@@ -7,7 +7,7 @@ import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
 import { CommandeReelle } from './CommandeReelle';
-import { brancherOuvertureSuivi, notifications } from '../notifications';
+import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
@@ -19,7 +19,7 @@ export function CatalogueReel() {
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [compteOuvert, setCompteOuvert] = useState(false);
   const [commandeOuverte, setCommandeOuverte] = useState(false);
-  const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null } | null>(null);
+  const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null; espaceRestaurateur?: boolean } | null>(null);
   const [messagePanier, setMessagePanier] = useState('');
   const [messageNotifications, setMessageNotifications] = useState('');
   function voirPanier() { setPanierOuvert(true); void panier.recharger(); }
@@ -51,14 +51,16 @@ export function CatalogueReel() {
     } finally { if (numero === generation.current) setCharge(false); }
   }
   useEffect(() => { void charger(null); return () => { generation.current++; }; }, []);
-  // Notifications (lot E2) : canal, écoute de l'appui sur une notification (ouvre « Mon compte » sur le suivi, sans le relire seul) et renouvellement du jeton. Ne demande jamais l'autorisation ici.
-  // L'appui sur une notification ne ferme JAMAIS l'écran de commande pendant un envoi ou un état incertain : l'ouverture attend la fin du verrou (une seule fois).
+  // Notifications : canaux, appui suivi → « Mon compte », appui `commande_nouvelle` → espace restaurateur. Ne demande jamais l'autorisation ici.
+  // L'appui ne ferme JAMAIS l'écran de commande pendant un envoi ou un état incertain : l'ouverture attend la fin du verrou (une seule fois).
   const commandeVerrouillee = useRef(false);
   const ouvertureSuivi = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); } })).current;
+  const ouvertureResto = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null, espaceRestaurateur: true }); setCompteOuvert(true); } })).current;
   useEffect(() => {
-    const debrancher = brancherOuvertureSuivi(() => ouvertureSuivi.demander());
+    const debrancherSuivi = brancherOuvertureSuivi(() => ouvertureSuivi.demander());
+    const debrancherResto = brancherOuvertureRestaurateur(() => ouvertureResto.demander());
     const arreter = notifications.demarrer();
-    return () => { arreter(); debrancher(); };
+    return () => { arreter(); debrancherSuivi(); debrancherResto(); };
   }, []);
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
@@ -107,7 +109,7 @@ export function CatalogueReel() {
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} />
     </ScrollView>
     <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
+    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />

@@ -1,18 +1,29 @@
-/** Appui sur une notification (lot E2) : logique PURE. Seuls les types connus du serveur ouvrent le suivi ; tout le reste est ignoré. */
+/** Appui sur une notification : logique PURE. Types client → suivi ; `commande_nouvelle` → espace restaurateur ; le reste est ignoré. */
 
-/** Liste blanche : les types envoyés par `construireMessageFcm` (apps/web/src/lib/push/fcm.ts). */
+/** Liste blanche client : types de `construireMessageFcm` (apps/web/src/lib/push/fcm.ts). */
 export const TYPES_NOTIFICATION_SUIVI = ['commande_acceptee', 'commande_prete', 'commande_terminee', 'commande_refusee', 'commande_annulee'] as const;
+/** Liste blanche restaurateur (lot F1). */
+export const TYPES_NOTIFICATION_RESTAURATEUR = ['commande_nouvelle'] as const;
 export const ACTION_PAR_DEFAUT = 'expo.modules.notifications.actions.DEFAULT';
 
 export interface ReponseNotification { actionIdentifier?: unknown; notification?: { request?: { identifier?: unknown; content?: { data?: unknown } } } }
 
-/** Le `type` de la notification s'il est dans la liste blanche, sinon `null`. Ne lit rien d'autre. */
-export function typeDeSuivi(reponse: ReponseNotification | null | undefined): string | null {
+function typeDansListe(reponse: ReponseNotification | null | undefined, liste: readonly string[]): string | null {
   if (!reponse || reponse.actionIdentifier !== ACTION_PAR_DEFAUT) return null;
   const data = reponse.notification?.request?.content?.data;
   if (typeof data !== 'object' || data === null) return null;
   const type = (data as { type?: unknown }).type;
-  return typeof type === 'string' && (TYPES_NOTIFICATION_SUIVI as readonly string[]).includes(type) ? type : null;
+  return typeof type === 'string' && liste.includes(type) ? type : null;
+}
+
+/** Le `type` de suivi client s'il est dans la liste blanche, sinon `null`. */
+export function typeDeSuivi(reponse: ReponseNotification | null | undefined): string | null {
+  return typeDansListe(reponse, TYPES_NOTIFICATION_SUIVI);
+}
+
+/** Le `type` restaurateur s'il est dans la liste blanche, sinon `null`. */
+export function typeDeRestaurateur(reponse: ReponseNotification | null | undefined): string | null {
+  return typeDansListe(reponse, TYPES_NOTIFICATION_RESTAURATEUR);
 }
 
 export interface PortOuverture {
@@ -23,16 +34,21 @@ export interface PortOuverture {
 }
 
 /**
- * Branche l'ouverture du suivi. Une même notification (même identifiant) n'ouvre le suivi qu'UNE fois : le lancement à froid et l'écouteur peuvent tous deux la livrer.
- * `ouvrirSuivi` est fourni par l'écran (l'appli réelle ne monte pas de routeur : le suivi est la fenêtre « Mon compte »). Ne lit jamais le suivi automatiquement.
+ * Branche l'ouverture selon le type. Une même notification (même identifiant) n'est traitée qu'UNE fois.
+ * Pas de routeur : les callbacks sont fournis par l'écran. Aucune relecture automatique du suivi.
  */
-export function demarrerOuverture(d: { port: PortOuverture; ouvrirSuivi(): void }): () => void {
+export function demarrerOuverture(d: { port: PortOuverture; ouvrirSuivi(): void; ouvrirRestaurateur(): void }): () => void {
   const traitees = new Set<string>();
   const traiter = (reponse: ReponseNotification | null) => {
-    if (typeDeSuivi(reponse) === null) return;
+    const resto = typeDeRestaurateur(reponse);
+    const suivi = resto === null ? typeDeSuivi(reponse) : null;
+    if (resto === null && suivi === null) return;
     const id = reponse?.notification?.request?.identifier;
     if (typeof id === 'string') { if (traitees.has(id)) return; traitees.add(id); }
-    try { d.ouvrirSuivi(); } catch { /* l'écran n'est pas prêt : rien à faire */ }
+    try {
+      if (resto !== null) d.ouvrirRestaurateur();
+      else d.ouvrirSuivi();
+    } catch { /* l'écran n'est pas prêt : rien à faire */ }
   };
   let derniere: ReponseNotification | null = null;
   try { derniere = d.port.derniere(); } catch { derniere = null; }
@@ -41,8 +57,8 @@ export function demarrerOuverture(d: { port: PortOuverture; ouvrirSuivi(): void 
 }
 
 /**
- * Ouverture du suivi qui respecte le verrou de l'écran de commande : pendant un envoi ou un état incertain, l'appui sur une notification n'ouvre rien tout de suite
- * (l'écran d'envoi ne doit jamais être perdu de vue) ; l'ouverture est gardée et jouée UNE fois quand le verrou tombe.
+ * Ouverture différée qui respecte le verrou de l'écran de commande : pendant un envoi ou un état incertain, l'appui n'ouvre rien tout de suite ;
+ * l'ouverture est gardée et jouée UNE fois quand le verrou tombe.
  */
 export function creerOuvertureDifferee(d: { verrouille(): boolean; ouvrir(): void }) {
   let enAttente = false;

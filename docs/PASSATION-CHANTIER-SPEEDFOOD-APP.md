@@ -12,7 +12,7 @@ Branche de travail : `etape-adr021-deblocage-commandes` (poussée, jamais fusion
 - **Produit :** commande de repas à Conakry. Site (Next.js), API unique (Hono sur Cloudflare Workers), base Supabase, appli mobile.
 - **Chantier :** remplacer l'ancienne appli Android Kotlin (`mobile/`) par l'appli **Expo / React Native** (`apps/mobile/`), avec iPhone installé depuis le site (sans App Store).
 - **Règle produit (Malika, 3 nov. 2026) : pas de cash, tout par Chap Chap Pay.** Les modes « J'ai payé » avec code marchand restent seulement jusqu'à l'ouverture de Chap Chap Pay.
-- **Où on en est :** le client peut commander (retrait ou livraison), suivre, se connecter ; le restaurateur peut tout faire depuis l'appli (lots D1 à D5) ; le client reçoit des notifications Firebase (lots E1 à E3, essai réel sur émulateur réussi sauf « prête »).
+- **Où on en est :** le client peut commander (retrait ou livraison), suivre, se connecter ; le restaurateur peut tout faire depuis l'appli (lots D1 à D5) ; le client reçoit des notifications Firebase (lots E1 à E3, essai réel sur émulateur : acceptée, prête, terminée).
 - **Ce qui manque pour remplacer Kotlin :** espaces livreur et équipe, notifications au restaurateur, Chap Chap Pay, iPhone natif, identifiant `com.speedfood.app` + signature, essai sur vrai téléphone (§6 et §7).
 
 ## 2. Qui est Malika, comment lui parler
@@ -84,12 +84,14 @@ Déploiements faits par Malika le 5 nov. : API (version `45cfd8bc-dc2e-4e02-9862
 
 **Prouvé sur émulateur (5 nov.) :** demande d'autorisation au bon moment ; ligne `appareils_push` créée ; notification « acceptée » 1 s après l'acceptation ; notification « terminée » reçue ; appui à froid → « Mon compte » sur la commande « Terminée » ; l'ancien appareil Kotlin du même compte a reçu l'alerte de nouvelle commande.
 
+**Prouvé sur émulateur (5 nov., 2e passage — agent, AVD `speedfood_pixel`) :** compte `elohim` déjà connecté ; `POST_NOTIFICATIONS` accordée ; Wi-Fi CONNECTED ; espace restaurateur barbie food. Acceptation de `SF-P76HU` · TEST → notification « Commande acceptée » / « Le restaurant prépare votre commande. » ; passage en prête de `SF-BNZ6B` · TEST → notification **« Commande prête »** / « Votre commande est prête. » (canal `suivi_commande`, paquet `com.speedfood.clientdemo`, constatée dans le tiroir système à 16:18). Capture locale `.tmp-preuve-notif-prete-2026-11-05.png` (hors dépôt).
+
 **Non prouvé / constats :** voir §6 (haut de liste).
 
 ## 6. Tâches inachevées (à faire, par priorité)
 
 ### P1 — pour tenir la parité avec Kotlin
-1. **Notification « prête » sur un vrai téléphone.** Jamais vue sur émulateur (connexion Firebase perdue après la 1re notification ; cause non élucidée, mécanisme de remplacement non écarté).
+1. **Notification « prête » sur un vrai téléphone.** Prouvée sur émulateur le 5 nov. (2e passage) ; confirmer sur appareil physique (APK n° 26) reste utile, plus bloquant pour E3.
 2. **Notifications au restaurateur** (nouvelle commande) dans l'appli Expo : même socle. Canaux Android `alerte_commande` et `offre_course` à créer (m-4).
 3. **Espaces livreur et équipe** dans l'appli Expo (non abordés).
 4. **Chap Chap Pay en démo** : Malika place ses clés ; ensuite retirer les restes de paiement en espèces (décisions en attente de Malika) et les modes « J'ai payé ».
@@ -160,7 +162,7 @@ SDK `C:\Users\moelo\.bubblewrap\android_sdk`, AVD `speedfood_pixel` (image **Pla
 - Coordonnées réelles = coordonnées affichées × 1,2. Capture : `timeout 100 adb -s emulator-5554 exec-out screencap -p > fichier.png`.
 - Volet des notifications : `cmd statusbar expand-notifications` (précédé de `collapse` si rien ne s'affiche).
 - Connexion Firebase perdue : `cmd connectivity airplane-mode enable` puis `disable`.
-- `uiautomator dump` ne marche pas ici : repérer par captures. Saisie de formulaire : un champ à la fois, avec pauses (le clavier désaligne le focus).
+- `uiautomator dump` fonctionne sur cet AVD (repérage des `content-desc` + `bounds`). Saisie de formulaire ADB peu fiable sur les `TextInput` React Native (codes touche / `input text` mélangent les champs) : préférer le clavier de l’hôte sur la fenêtre émulateur, ou une commande TEST déjà en file.
 - Ne jamais défiler au hasard dans la liste du restaurateur : ce sont de **vraies commandes** (ex. SF-K94YB). Compte de test connecté : « elohim » ; une seule commande de test chez barbie food, avec le « oui » de Malika.
 - Un faux serveur existe pour éviter la production : `mobile/faux-serveur/` (voir mémoire `faux-serveur-audit-emulateur`).
 
@@ -171,4 +173,4 @@ Projet « Speedfood » `first-metric-478413-e1` (n° 378371573902), compte `moel
 `C:\Users\moelo\.claude\projects\C--Users-moelo-dev-speedfood\memory\` (index `MEMORY.md`). Entrées utiles : `notifications-client-expo-e3`, `firebase-speedfood`, `espace-restaurateur-expo-lots-d1-d5`, `emulateur-android-speedfood`, `expo-sdk57-fetch-formdata-piege`, `speedfood-pas-de-cash-chapchap-pay`, `verifier-tests-code-de-sortie`, `objectif-remplacement-kotlin-expo-ios-site`. Une mémoire ne remplace pas la lecture du code : vérifier avant de s'y fier.
 
 ## 9. Prochaine action recommandée
-Proposer à Malika, en une question oui/non : **(a)** essai de la notification « prête » sur un vrai téléphone (elle installe l'APK n° 26), ou **(b)** démarrer le lot « notifications au restaurateur » (plan puis implémenteur sonnet, relecteur opus, essai émulateur).
+Lot **notifications restaurateur Expo** (5 nov.) : design + plan prêts ; **F1 et F2 codés** (canaux `alerte_commande`/`offre_course`, ouverture `commande_nouvelle` → espace resto, autorisation **C** ; `apps/mobile` 486 tests + `tsc` code 0). Pas encore commit ni essai F3. Prochaine action : **oui** de Malika pour une commande TEST barbie food + essai émulateur F3, puis commit sur la branche de travail.

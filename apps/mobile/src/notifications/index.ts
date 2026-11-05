@@ -14,6 +14,16 @@ const appareil = creerAppareil({ origine: ORIGINE_CATALOGUE, fetcher: fetch, pla
 let ouvrirSuivi: () => void = () => undefined;
 export function brancherOuvertureSuivi(f: () => void) { ouvrirSuivi = f; return () => { if (ouvrirSuivi === f) ouvrirSuivi = () => undefined; }; }
 
-export const notifications = creerServiceNotifications({ natif, appareil, memoire: memoireDemande, obtenirAcces: () => gestion.acces(), ouvrirSuivi: () => ouvrirSuivi() });
+/** Espace restaurateur : fourni par l'écran principal (appui sur `commande_nouvelle`). */
+let ouvrirRestaurateur: () => void = () => undefined;
+export function brancherOuvertureRestaurateur(f: () => void) { ouvrirRestaurateur = f; return () => { if (ouvrirRestaurateur === f) ouvrirRestaurateur = () => undefined; }; }
+
+export const notifications = creerServiceNotifications({
+  natif, appareil, memoire: memoireDemande, obtenirAcces: () => gestion.acces(),
+  ouvrirSuivi: () => ouvrirSuivi(), ouvrirRestaurateur: () => ouvrirRestaurateur(),
+  lireEstRestaurateur: async () => {
+    try { return (await gestion.moi()).restaurateur !== null; } catch { return false; }
+  },
+});
 // La déconnexion retire l'appareil AVANT d'effacer la session ; le branchement est fait ici pour que `gestion.ts` ne dépende pas du natif.
 brancherSession(gestion, notifications);

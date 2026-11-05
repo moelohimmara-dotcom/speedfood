@@ -1,8 +1,10 @@
 /**
- * Autorisation des notifications (lot E2) : logique PURE, sans import natif, testée sous Node.
+ * Autorisation des notifications : logique PURE, sans import natif, testée sous Node.
  *
- * Règles (cahier des charges) : l'autorisation est demandée UNE seule fois, juste APRÈS l'envoi réussi d'une première commande réelle ; jamais à l'ouverture,
- * jamais en boucle ; un refus (ou « ne plus demander ») est respecté sans insister : l'appli continue, le suivi manuel (« Actualiser ») reste.
+ * Déclencheurs métier (une seule demande système, drapeau appareil unique) :
+ * - après l'envoi réussi d'une première commande réelle (client) ;
+ * - connexion / session si le compte est membre restaurant, et ouverture de l'Espace restaurateur (choix C).
+ * Jamais à l'ouverture froide de l'appli ; jamais en boucle ; refus respecté.
  */
 
 /** Statut du système, réduit à ce que la décision utilise. */
@@ -13,13 +15,13 @@ export type Decision = 'demander' | 'enregistrer' | 'rien';
 
 /**
  * - déjà accordée : on enregistre l'appareil, sans rien demander ;
- * - sinon, jamais avant une commande réellement envoyée ;
+ * - sinon, jamais sans déclencheur métier (`declencheurMetier`) ;
  * - jamais deux fois (le drapeau `dejaDemandee` est conservé sur l'appareil) ;
  * - refus définitif du système (`peutRedemander` faux) : rien.
  */
-export function decider(entree: { commandeEnvoyee: boolean; dejaDemandee: boolean; systeme: EtatSysteme }): Decision {
+export function decider(entree: { declencheurMetier: boolean; dejaDemandee: boolean; systeme: EtatSysteme }): Decision {
   if (entree.systeme.statut === 'accordee') return 'enregistrer';
-  if (!entree.commandeEnvoyee) return 'rien';
+  if (!entree.declencheurMetier) return 'rien';
   if (entree.dejaDemandee) return 'rien';
   if (entree.systeme.statut === 'refusee' && !entree.systeme.peutRedemander) return 'rien';
   return 'demander';
@@ -41,6 +43,10 @@ export const MESSAGES_ETAT: Record<EtatAffiche, string> = {
   actives: 'Vous serez prévenu quand votre commande avance.',
   desactivees: 'Notifications désactivées : ouvrez « Mon compte » puis actualisez pour suivre votre commande.',
 };
+export const MESSAGES_ETAT_RESTO: Record<EtatAffiche, string> = {
+  actives: 'Vous serez prévenu des nouvelles commandes.',
+  desactivees: 'Notifications désactivées : ouvrez l’espace restaurateur et actualisez.',
+};
 
 export interface PortAutorisation {
   etat(): Promise<EtatSysteme>;
@@ -48,15 +54,11 @@ export interface PortAutorisation {
 }
 export interface MemoireDemande { lire(): Promise<boolean>; marquer(): Promise<void> }
 
-/**
- * À appeler UNE fois après un envoi réussi. Le drapeau « déjà demandée » est écrit AVANT la demande au système : si l'appli est tuée pendant la boîte de dialogue,
- * on ne redemande pas. Retourne la décision prise et l'état à afficher ; ne lève jamais.
- */
-export async function apresCommandeEnvoyee(d: { port: PortAutorisation; memoire: MemoireDemande }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
+async function apresDeclencheurMetier(d: { port: PortAutorisation; memoire: MemoireDemande }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
   try {
     const systeme = await d.port.etat();
     const dejaDemandee = await d.memoire.lire();
-    const decision = decider({ commandeEnvoyee: true, dejaDemandee, systeme });
+    const decision = decider({ declencheurMetier: true, dejaDemandee, systeme });
     if (decision !== 'demander') return { decision, affiche: etatAffiche(systeme, dejaDemandee) };
     await d.memoire.marquer();
     const apres = await d.port.demander();
@@ -64,6 +66,23 @@ export async function apresCommandeEnvoyee(d: { port: PortAutorisation; memoire:
   } catch {
     return { decision: 'rien', affiche: null };
   }
+}
+
+/**
+ * À appeler UNE fois après un envoi réussi. Le drapeau « déjà demandée » est écrit AVANT la demande au système : si l'appli est tuée pendant la boîte de dialogue,
+ * on ne redemande pas. Retourne la décision prise et l'état à afficher ; ne lève jamais.
+ */
+export async function apresCommandeEnvoyee(d: { port: PortAutorisation; memoire: MemoireDemande }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
+  return apresDeclencheurMetier(d);
+}
+
+/**
+ * Choix C : après connaissance du rôle restaurateur (session / ouverture de l'espace).
+ * Si le compte n'est pas membre : rien (aucune demande). Sinon même machine à états et même drapeau que le client.
+ */
+export async function apresContexteRestaurateur(d: { port: PortAutorisation; memoire: MemoireDemande; estRestaurateur: boolean }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
+  if (!d.estRestaurateur) return { decision: 'rien', affiche: null };
+  return apresDeclencheurMetier(d);
 }
 
 /** Réponse du système (forme d'expo-notifications) réduite à l'état utilisé ici. `canAskAgain` faux = refus définitif. */

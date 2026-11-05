@@ -36,7 +36,7 @@ function montage(emission: Emission = 'immediate', surMemoire: { lire(): Promise
     creerCanal: async () => undefined, derniere: () => null, ecouter: () => () => undefined,
     surRenouvellementJeton: r => { ecouteurJeton = r; abonnements++; return () => { desabonnements++; ecouteurJeton = null; }; },
   };
-  const service = creerServiceNotifications({ natif, appareil, memoire: surMemoire, obtenirAcces: () => g.acces(), ouvrirSuivi: () => undefined });
+  const service = creerServiceNotifications({ natif, appareil, memoire: surMemoire, obtenirAcces: () => g.acces(), ouvrirSuivi: () => undefined, ouvrirRestaurateur: () => undefined, lireEstRestaurateur: async () => false });
   brancherSession(g, service);
   service.demarrer();
   return { g, service, appels, renouveler: (j: string) => ecouteurJeton?.(j), compte: () => ({ abonnements, desabonnements }) };
@@ -81,14 +81,14 @@ test('I-1 : à la déconnexion le service RETIRE (une fois) et n\'enregistre pas
   const journal = { retraits: 0, enregistrements: 0 };
   const natif: PortNatif = { etat: async () => ({ statut: 'accordee', peutRedemander: true }), demander: async () => ({ statut: 'accordee', peutRedemander: true }), creerCanal: async () => undefined, derniere: () => null, ecouter: () => () => undefined, surRenouvellementJeton: () => () => undefined };
   const appareil = { dejaConnu: () => false, enregistrer: async () => { journal.enregistrements++; return 'enregistre' as const; }, retirer: async () => { journal.retraits++; return 'enregistre' as const; } };
-  const s = creerServiceNotifications({ natif, appareil, memoire: { lire: async () => true, marquer: async () => undefined }, obtenirAcces: async () => ACCES, ouvrirSuivi: () => undefined });
+  const s = creerServiceNotifications({ natif, appareil, memoire: { lire: async () => true, marquer: async () => undefined }, obtenirAcces: async () => ACCES, ouvrirSuivi: () => undefined, ouvrirRestaurateur: () => undefined, lireEstRestaurateur: async () => false });
   await s.avantDeconnexion(ACCES);
   assert.deepEqual(journal, { retraits: 1, enregistrements: 0 });
 });
 test('I-1 : l\'arrêt de demarrer() rend les deux désabonnements', () => {
   let ouv = 0, jet = 0;
   const natif: PortNatif = { etat: async () => ({ statut: 'non_demandee', peutRedemander: true }), demander: async () => ({ statut: 'non_demandee', peutRedemander: true }), creerCanal: async () => undefined, derniere: () => null, ecouter: () => () => { ouv++; }, surRenouvellementJeton: () => () => { jet++; } };
-  const s = creerServiceNotifications({ natif, appareil: { dejaConnu: () => false, enregistrer: async () => 'enregistre', retirer: async () => 'enregistre' }, memoire: { lire: async () => false, marquer: async () => undefined }, obtenirAcces: async () => ACCES, ouvrirSuivi: () => undefined });
+  const s = creerServiceNotifications({ natif, appareil: { dejaConnu: () => false, enregistrer: async () => 'enregistre', retirer: async () => 'enregistre' }, memoire: { lire: async () => false, marquer: async () => undefined }, obtenirAcces: async () => ACCES, ouvrirSuivi: () => undefined, ouvrirRestaurateur: () => undefined, lireEstRestaurateur: async () => false });
   s.demarrer()(); assert.deepEqual([ouv, jet], [1, 1]);
 });
 test('I-1 : stockage du drapeau en échec (lecture ou écriture) = aucune demande au système', async () => {
@@ -120,7 +120,11 @@ test('I-1 (source) : index.ts branche la session et la plateforme ; canal, impor
   const fcm = source('../../web/src/lib/push/fcm.ts');
   assert.ok(fcm.includes('canal: "suivi_commande"'), 'le serveur envoie bien sur suivi_commande');
   assert.ok(natif.includes("export const CANAL_SUIVI = 'suivi_commande';"));
+  assert.ok(natif.includes("export const CANAL_ALERTE = 'alerte_commande';"));
+  assert.ok(natif.includes("export const CANAL_OFFRE = 'offre_course';"));
   assert.ok(natif.includes('setNotificationChannelAsync(CANAL_SUIVI, { name: \'Suivi de commande\', importance: Notifications.AndroidImportance.HIGH })'));
+  assert.ok(natif.includes('setNotificationChannelAsync(CANAL_ALERTE, { name: \'Nouvelles commandes\', importance: Notifications.AndroidImportance.HIGH })'));
+  assert.ok(natif.includes('setNotificationChannelAsync(CANAL_OFFRE, { name: \'Nouvelles courses\', importance: Notifications.AndroidImportance.HIGH })'));
   assert.ok(natif.includes('shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false'));
   assert.ok(natif.includes('etatSystemeDe(await Notifications.getPermissionsAsync())') && natif.includes('etatSystemeDe(await Notifications.requestPermissionsAsync())'));
   assert.ok(natif.includes('clearLastNotificationResponse()'), 'le lancement à froid est effacé après lecture');
@@ -128,8 +132,8 @@ test('I-1 (source) : index.ts branche la session et la plateforme ; canal, impor
 test('I-1 (source) : CatalogueReel appelle apresCommande après un envoi réussi et branche l\'appui dans un effet nettoyé', () => {
   const ecran = source('../src/catalogue/CatalogueReel.tsx');
   assert.match(ecran, /apresSucces=\{reference => .*void notifications\.apresCommande\(\)\.then\(/);
-  assert.match(ecran, /const debrancher = brancherOuvertureSuivi\(\(\) => ouvertureSuivi\.demander\(\)\);\n\s*const arreter = notifications\.demarrer\(\);\n\s*return \(\) => \{ arreter\(\); debrancher\(\); \};/);
-  assert.ok(ecran.includes('surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); }}'));
+  assert.match(ecran, /const debrancherSuivi = brancherOuvertureSuivi\(\(\) => ouvertureSuivi\.demander\(\)\);\n\s*const debrancherResto = brancherOuvertureRestaurateur\(\(\) => ouvertureResto\.demander\(\)\);\n\s*const arreter = notifications\.demarrer\(\);\n\s*return \(\) => \{ arreter\(\); debrancherSuivi\(\); debrancherResto\(\); \};/);
+  assert.ok(ecran.includes('surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }}'));
   assert.ok(source('../src/catalogue/CommandeReelle.tsx').includes('useEffect(() => { surVerrou?.(verrouille); }, [verrouille]);'));
 });
 
@@ -180,7 +184,7 @@ function banc2() {
   const enregistrements: (string | undefined)[] = []; let renouveler: ((j: string) => void) | null = null;
   const natif: PortNatif = { etat: async () => ({ statut: 'accordee', peutRedemander: true }), demander: async () => ({ statut: 'accordee', peutRedemander: true }), creerCanal: async () => undefined, derniere: () => null, ecouter: () => () => undefined, surRenouvellementJeton: r => { renouveler = r; return () => undefined; } };
   const appareil = { dejaConnu: () => false, enregistrer: async (_a: string, j?: string) => { enregistrements.push(j); return 'enregistre' as const; }, retirer: async () => 'enregistre' as const };
-  const service = creerServiceNotifications({ natif, appareil, memoire: { lire: async () => true, marquer: async () => undefined }, obtenirAcces: async () => ACCES, ouvrirSuivi: () => undefined });
+  const service = creerServiceNotifications({ natif, appareil, memoire: { lire: async () => true, marquer: async () => undefined }, obtenirAcces: async () => ACCES, ouvrirSuivi: () => undefined, ouvrirRestaurateur: () => undefined, lireEstRestaurateur: async () => false });
   service.demarrer();
   return { service, enregistrements, renouveler: (j: string) => renouveler?.(j) };
 }
