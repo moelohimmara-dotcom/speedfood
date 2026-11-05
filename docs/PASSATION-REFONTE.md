@@ -1,5 +1,7 @@
 # Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
 
+**Chantier appli Expo (lots D, E, tâches restantes, instructions de reprise complètes, 5 novembre 2026) :** lire [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md).
+
 **Relais Expo Android/iOS :** lire [PASSATION-EXPO-ANDROID-2026-11-01.md](PASSATION-EXPO-ANDROID-2026-11-01.md). Erreur native exacte, correction CMake à essayer (NON réalisée), commandes, critères de fermeture, état de production et limites y sont consignés. Première action : résoudre le chemin C++ supérieur à 260 caractères ; ne pas remplacer l’APK actuelle.
 
 
