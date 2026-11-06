@@ -46,3 +46,11 @@ Malika refuse explicitement la déconnexion réelle pour conserver sa session. A
 - Captures vérifiées visuellement : C:/Users/moelo/dev/controle-notifications-cycle-session-20261106/restaurateur-local.png et retour-compte-local.png. Hors Git, car elles peuvent montrer des données de compte/commande. Avertissement de diagnostic de la compilation debug présent ; pas de verdict release à partir de cet écran.
 - Cet essai prouve le raccord natif et la conservation de session, pas la course de retrait en réseau réel, la réception d’une nouvelle notification avec ce paquet, ni un appareil physique. Aucun nouveau paquet release ni iPhone de ce correctif vérifié pendant ce lot. Les compilations CI du commit seront à contrôler séparément.
 - Metro local laissé disponible sur 8081 pour cet APK debug ; arrêter ce processus coupe seulement son aperçu local. L’ancienne APK Kotlin distribuée n’a pas changé.
+
+
+## Vérification CI après push (6 novembre)
+Commit 22766ceb423169e4035c7a6a95f99a4b794d671a, même branche :
+- Contrôles n°86 (42217286429) : terminé, succès.
+- Android n°29 (42217286360) : tests, génération, compilation debug/release arm64 et x86_64, contrôle manifeste/empreinte et dépôt d’artefact : toutes étapes réussies. Artefact 13502718320, 92 818 839 octets, SHA-256 annoncé par GitHub 3281d9cfe1ee66ace085bada87402e745909a5ae7f805ba598f4dee1c3cbcd99. Archive non téléchargée/recalculée dans cette vérification ; APK n°29 non installée ici.
+- iPhone n°26 (42217286420) : tests, génération, Release sans signature, lancement simulateur et capture : toutes étapes réussies. Artefact captures-iphone-expo présent (13503056607). Capture non inspectée visuellement dans cette vérification, aucun iPhone physique ni installation depuis le site prouvés.
+Aucun déploiement. La session réelle de l’émulateur reste conservée.
