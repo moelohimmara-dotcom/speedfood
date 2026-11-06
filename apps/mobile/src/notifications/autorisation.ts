@@ -55,13 +55,16 @@ export interface PortAutorisation {
 }
 export interface MemoireDemande { lire(): Promise<boolean>; marquer(): Promise<void> }
 
-async function apresDeclencheurMetier(d: { port: PortAutorisation; memoire: MemoireDemande }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
+interface DeclencheurMetier { port: PortAutorisation; memoire: MemoireDemande; peutDemander?(): boolean }
+async function apresDeclencheurMetier(d: DeclencheurMetier): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
   try {
     const systeme = await d.port.etat();
     const dejaDemandee = await d.memoire.lire();
     const decision = decider({ declencheurMetier: true, dejaDemandee, systeme });
     if (decision !== 'demander') return { decision, affiche: etatAffiche(systeme, dejaDemandee) };
+    if (d.peutDemander?.() === false) return { decision: 'rien', affiche: null };
     await d.memoire.marquer();
+    if (d.peutDemander?.() === false) return { decision: 'rien', affiche: null };
     const apres = await d.port.demander();
     return { decision, affiche: etatAffiche(apres, true) };
   } catch {
@@ -73,7 +76,7 @@ async function apresDeclencheurMetier(d: { port: PortAutorisation; memoire: Memo
  * À appeler UNE fois après un envoi réussi. Le drapeau « déjà demandée » est écrit AVANT la demande au système : si l'appli est tuée pendant la boîte de dialogue,
  * on ne redemande pas. Retourne la décision prise et l'état à afficher ; ne lève jamais.
  */
-export async function apresCommandeEnvoyee(d: { port: PortAutorisation; memoire: MemoireDemande }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
+export async function apresCommandeEnvoyee(d: DeclencheurMetier): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
   return apresDeclencheurMetier(d);
 }
 
@@ -81,7 +84,7 @@ export async function apresCommandeEnvoyee(d: { port: PortAutorisation; memoire:
  * Choix C : après connaissance du rôle restaurateur (session / ouverture de l'espace).
  * Si le compte n'est pas membre : rien (aucune demande). Sinon même machine à états et même drapeau que le client.
  */
-export async function apresContexteRestaurateur(d: { port: PortAutorisation; memoire: MemoireDemande; estRestaurateur: boolean }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
+export async function apresContexteRestaurateur(d: DeclencheurMetier & { estRestaurateur: boolean }): Promise<{ decision: Decision; affiche: EtatAffiche | null }> {
   if (!d.estRestaurateur) return { decision: 'rien', affiche: null };
   return apresDeclencheurMetier(d);
 }

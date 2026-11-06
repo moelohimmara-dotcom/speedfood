@@ -1,5 +1,7 @@
 # Passation du chantier « appli Speedfood » (Expo) — au 6 novembre 2026
 
+**Notifications Expo — cycle de session, 6 novembre 2026 : code local vérifié.** Enregistrement dédupliqué par session et jeton, fermeture avant attente d’accès, garde après lecture native, retrait ordonné et borné, anciennes continuations invalidées. 527 tests mobiles, 646 API, 489 contrôles de cloisonnement, types, unitaires et build API : codes 0 ; 14 mutations détectées puis restaurées. Android local : catalogue, compte connecté, espace restaurateur et retour vérifiés ; session conservée sur demande de Malika, donc déconnexion réelle NON vérifiée. Résidu I2 serveur après timeout toujours ouvert ; aucun remplacement de production, déploiement ou relais modifié. Méthode : GPT exceptionnellement autorisé, audit initial Opus puis relecture GPT indépendante (quotas). Rapport : CONTROLE-NOTIFICATIONS-CYCLE-SESSION-2026-11-06.md.
+
 **Reprise du 6 novembre 2026 — parcours principal F3 vérifié sur émulateur.** F1-F2 existaient dans 362d8c7 ; deux défauts B1/B2 confirmés par Sonnet et Opus puis corrigés par le même Sonnet (b76afa0). Contrôles relancés code 0 : 646 tests API, 500 mobiles, 489 contrôles de cloisonnement, types, unitaires et build API ; cinq mutations détectées puis restaurées. GitHub Android n°28 et iPhone n°25 réussis. APK de contrôle mise à jour sans effacement, Firebase et signature vérifiés. UNE commande TEST autorisée : SF-AA5TT, retrait, 25 000 GNF, sans paiement ; notification Nouvelle commande réellement reçue, appui depuis arrière-plan avec session active → Espace restaurateur, retour sans boucle. I1/I2 hérités restent ouverts ; ni téléphone physique, ni appui restaurateur après arrêt du processus prouvés. Aucun déploiement, secret ou relais modifié. Rapport : [CONTROLE-NOTIFICATIONS-RESTAURATEUR-2026-11-06.md](CONTROLE-NOTIFICATIONS-RESTAURATEUR-2026-11-06.md).
 
 **Nettoyage du TEST F3 :** oui distinct de Malika pour SF-AA5TT ; unique confirmation d’annulation à 03:32 UTC. Réponse restaurateur « Commande annulée. » observée, encore présente après actualisation ; aucune relance et aucune autre commande touchée. Preuve par l’interface, sans lecture SQL indépendante.
@@ -51,13 +53,13 @@ npm run test:cloisonnement
 npm run build:api
 ```
 
-Depuis `apps/mobile` : `npm test` (478 tests) et `npx tsc --noEmit`. `npm install` se lance **à la racine** (espaces de travail npm, un seul `package-lock.json`).
+Depuis `apps/mobile` : `npm test` (527 tests au 6 novembre) et `npx tsc --noEmit`. `npm install` se lance **à la racine** (espaces de travail npm, un seul `package-lock.json`).
 
 Taille du Worker API : limite 1 400 000 octets, actuel ≈ 1 284 373 (marge faible).
 
 ## 4. Travaux réalisés
 
-Détail commit par commit : `git log --oneline master..HEAD` (127 commits). Journaux : `docs/plans/2026-11-02-commande-expo.md` (A à D5), `docs/plans/2026-11-04-notifications-push-client-expo.md` (E1 à E3).
+Détail commit par commit : `git log --oneline master..HEAD`. Journaux : `docs/plans/2026-11-02-commande-expo.md` (A à D5), `docs/plans/2026-11-04-notifications-push-client-expo.md` (E1 à E3).
 
 | Lot | Contenu | Preuve |
 |---|---|---|
@@ -84,7 +86,7 @@ Déploiements faits par Malika le 5 nov. : API (version `45cfd8bc-dc2e-4e02-9862
 - Secret `FCM_SERVICE_ACCOUNT` lu dans `process.env` ; **absent, l'envoi est silencieux** (aucune erreur) : la preuve se lit sur l'émulateur ET dans `appareils_push.derniere_reussite_le`.
 - Table `appareils_push` : sans policy (écriture par clé de service), 10 appareils par compte, suppression après 5 échecs.
 - API : `apps/api/src/routes/appareils.ts` + `apps/api/src/appareils/cablage.ts`. Exception documentée : réutilise `enregistrerAppareil`/`retirerAppareil` du site avec la clé de service, après Bearer strict, plafond par compte et validation du corps (test `appareils-cablage-source.test.ts` épingle les 3 imports). Risque résiduel m-1 : un jeton connu change de propriétaire (même règle que le site).
-- Appli : `apps/mobile/src/notifications/` (`autorisation`, `enregistrement`, `ouverture`, `service`, `natif`, `cablage`, `index`). Jeton natif FCM (`getDevicePushTokenAsync`), pas le service Expo Push. Autorisation demandée **une fois, après la 1re commande réelle**.
+- Appli : `apps/mobile/src/notifications/` (`autorisation`, `enregistrement`, `ouverture`, `service`, `natif`, `cablage`, `index`). Jeton natif FCM (`getDevicePushTokenAsync`), pas le service Expo Push. Autorisation demandée **une fois, après la 1re commande réelle du client ou après reconnaissance du rôle restaurateur (choix C validé)**.
 - Navigation : pas de routeur ; l'écran « suivi » est la fenêtre « Mon compte » (`CatalogueReel.tsx`).
 
 **Prouvé sur émulateur (5 nov.) :** demande d'autorisation au bon moment ; ligne `appareils_push` créée ; notification « acceptée » 1 s après l'acceptation ; notification « terminée » reçue ; appui à froid → « Mon compte » sur la commande « Terminée » ; l'ancien appareil Kotlin du même compte a reçu l'alerte de nouvelle commande.
@@ -97,7 +99,7 @@ Déploiements faits par Malika le 5 nov. : API (version `45cfd8bc-dc2e-4e02-9862
 
 ### P1 — pour tenir la parité avec Kotlin
 1. **Notification « prête » sur un vrai téléphone.** Prouvée sur émulateur le 5 nov. (2e passage) ; confirmer sur appareil physique (APK n° 26) reste utile, plus bloquant pour E3.
-2. **Notifications au restaurateur : parcours principal vérifié le 6 novembre**, canaux créés, réception Nouvelle commande et appui à chaud depuis arrière-plan. Reste avant remplacement : I1/I2, appareil physique, appui à froid et cas de déconnexion. Voir le rapport du 6 novembre.
+2. **Notifications au restaurateur : parcours principal vérifié le 6 novembre**, canaux créés, réception Nouvelle commande et appui à chaud depuis arrière-plan. Durcissement client I1/I2 vérifié le 6 novembre (rapport cycle de session). Restent le résidu serveur après timeout, la déconnexion réelle, l’appareil physique et l’appui à froid. Voir les deux rapports du 6 novembre.
 3. **Espaces livreur et équipe** dans l'appli Expo (non abordés).
 4. **Chap Chap Pay en démo** : Malika place ses clés ; ensuite retirer les restes de paiement en espèces (décisions en attente de Malika) et les modes « J'ai payé ».
 5. **Remplacement de l'APK Kotlin** : l'appli Expo doit porter `com.speedfood.app` et **la même clé de signature** (mise à jour par-dessus sans désinstaller) ; voir `docs/SIGNATURE-CANDIDAT-EXPO.md`, `docs/plans/2026-11-01-remplacement-apk-expo.md`. Conditions de publication à fixer avec Malika.
@@ -181,7 +183,7 @@ Projet « Speedfood » `first-metric-478413-e1` (n° 378371573902), compte `moel
 
 ## 9. Prochaine action recommandée
 
-Le parcours principal notifications restaurateur F1-F3 est vérifié sur l’émulateur (6 novembre, SF-AA5TT TEST). État de l’annulation de ce TEST : voir journal du plan, accord distinct requis. Avant remplacement de production : traiter I1/I2, puis choisir avec Malika l’essai sur téléphone et la suite livreur/équipe ou paiement. Ne pas rejouer la commande F3, ne pas allumer le relais commandes et ne pas remplacer Kotlin sur la seule base de cet essai.
+Le parcours F1-F3 est vérifié sur émulateur et SF-AA5TT annulée sur oui distinct. Le durcissement du cycle de session est codé, relu, testé et contrôlé sur Android local ; le résidu serveur après timeout reste ouvert. Malika souhaite conserver la session : déconnexion réelle non exécutée. Avant remplacement, prévoir le contrôle du paquet CI, les essais physiques et le traitement explicite de ce résidu. La suite fonctionnelle est le cadrage de l’espace livreur, puis équipe/paiement selon le plan. Ne pas rejouer F3, allumer le relais commandes ou remplacer Kotlin sur ces seules preuves.
 
 
 ## Préparation des décisions suivantes (6 novembre 2026)

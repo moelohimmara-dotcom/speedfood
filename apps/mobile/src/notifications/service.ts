@@ -16,6 +16,8 @@ export interface DepsService {
   memoire: MemoireDemande;
   /** Jeton porteur de la session ouverte, ou `null` (déconnecté, session perdue). Ne lève jamais. */
   obtenirAcces(): Promise<string | null>;
+  /** Identité monotone de la session réelle ; null si fermée. Un refresh ne la change pas. */
+  lireGeneration?(): number | null;
   ouvrirSuivi(): void;
   ouvrirRestaurateur(): void;
   /** Rôle restaurateur (choix C à l'ouverture de session). Ne lève jamais : `false` en cas de panne. */
@@ -26,66 +28,117 @@ export interface DepsService {
  * Coordination des notifications de l'appli. Chaque méthode ne lève jamais : une notification qui échoue ne gêne ni la commande, ni la connexion, ni la déconnexion.
  */
 export function creerServiceNotifications(d: DepsService) {
-  // Levé par la déconnexion, baissé seulement par la prochaine ouverture de session : tant qu'il est levé, plus rien n'enregistre l'appareil (le retrait ne doit pas être annulé par un envoi concurrent).
-  let retraitEnCours = false;
-  async function enregistrerSiConnecte(jetonConnu?: string) {
-    if (retraitEnCours) return;
-    try { const acces = await d.obtenirAcces(); if (acces && !retraitEnCours) await d.appareil.enregistrer(acces, jetonConnu); } catch { /* silencieux */ }
+  type Cycle = { identite: number | null; actif: boolean; controle: AbortController; postes: Set<string>; postEnCours: boolean; retrait?: (acces: string | null) => Promise<void> };
+  let courant: Cycle | null = null;
+  let file: Promise<unknown> = Promise.resolve();
+  // Seuls les appels appareil sont ordonnés ; aucune attente de mot de passe ou de session dans cette file.
+  function ordonner(f: () => Promise<unknown>): Promise<void> {
+    const p = file.catch(() => undefined).then(f);
+    file = p;
+    return p.then(() => undefined, () => undefined);
   }
-  // Une seule demande d'autorisation à la fois : les déclencheurs simultanés (session, espace, commande) partagent la même promesse, donc la même décision et le même résultat.
-  let enCours: Promise<EtatAffiche | null> | null = null;
-  function partage(f: () => Promise<EtatAffiche | null>): Promise<EtatAffiche | null> {
-    return enCours ??= f().finally(() => { enCours = null; });
+  function valide(c: Cycle): boolean {
+    return c === courant && c.actif && (!d.lireGeneration || d.lireGeneration() === c.identite);
   }
-  async function apresContexte(estRestaurateur: boolean): Promise<EtatAffiche | null> {
-    if (!estRestaurateur) return null; // un non-membre ne prend jamais la place d'une demande client
-    return partage(async () => {
-      const r = await apresContexteRestaurateur({ port: d.natif, memoire: d.memoire, estRestaurateur });
-      if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrerSiConnecte();
-      return r.affiche;
-    });
+  function cycle(): Cycle | null {
+    const identite = d.lireGeneration?.() ?? null;
+    if (d.lireGeneration && identite === null) return null;
+    // Un ancien signal d'ouverture ne peut pas rouvrir la génération déjà fermée.
+    if (d.lireGeneration && courant && !courant.actif && courant.identite === identite) return null;
+    if (!courant || !courant.actif || courant.identite !== identite) {
+      if (courant) { courant.actif = false; courant.controle.abort(); }
+      courant = { identite, actif: true, controle: new AbortController(), postes: new Set(), postEnCours: false };
+    }
+    return courant;
+  }
+  async function enregistrer(c: Cycle, jetonConnu?: string): Promise<void> {
+    if (!valide(c)) return;
+    try {
+      const acces = await d.obtenirAcces();
+      if (!acces || !valide(c)) return;
+      await ordonner(async () => {
+        if (!valide(c)) return;
+        try {
+          await d.appareil.enregistrer(acces, jetonConnu, {
+            signal: c.controle.signal,
+            peutPartir: () => valide(c),
+            reserver: j => { if (c.postes.has(j)) return false; c.postes.add(j); return true; },
+            surDepart: () => { c.postEnCours = true; },
+          });
+        } finally { c.postEnCours = false; }
+      });
+    } catch { /* Une notification ne bloque jamais la connexion. */ }
+  }
+  // Le dialogue est commun à l'installation, mais chaque continuation appartient à son cycle.
+  type ResultatPermission = Awaited<ReturnType<typeof apresCommandeEnvoyee>>;
+  let permission: Promise<ResultatPermission> | null = null;
+  const participants = new Set<Cycle>();
+  async function autoriser(c: Cycle, f: (peutDemander: () => boolean) => Promise<ResultatPermission>): Promise<EtatAffiche | null> {
+    if (!valide(c)) return null;
+    participants.add(c);
+    const p = permission ??= f(() => [...participants].some(valide)).finally(() => { if (permission === p) { permission = null; participants.clear(); } });
+    const r = await p;
+    if (!valide(c)) return null;
+    if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrer(c);
+    return valide(c) ? r.affiche : null;
+  }
+  function contexte(c: Cycle, estRestaurateur: boolean): Promise<EtatAffiche | null> {
+    if (!estRestaurateur) return Promise.resolve(null);
+    return autoriser(c, peutDemander => apresContexteRestaurateur({ port: d.natif, memoire: d.memoire, estRestaurateur, peutDemander }));
+  }
+  /** Ferme immédiatement les départs, réserve le retrait dans la file et démarre son budget de 6 s, avant toute lecture d'accès. */
+  function preparerDeconnexion(): (acces: string | null) => Promise<void> {
+    const c = courant ??= { identite: d.lireGeneration?.() ?? null, actif: false, controle: new AbortController(), postes: new Set(), postEnCours: false };
+    if (c.retrait) return c.retrait;
+    c.actif = false;
+    if (!c.postEnCours) c.controle.abort(); // une lecture native annulée ne doit pas retenir le retrait
+    const controle = new AbortController();
+    let fournir!: (acces: string | null) => void;
+    let fourni = false;
+    const accesPret = new Promise<string | null>(r => { fournir = r; });
+    const minuterie = setTimeout(() => {
+      controle.abort(); c.controle.abort();
+      if (!fourni) { fourni = true; fournir(null); }
+    }, 6000);
+    const fin = ordonner(async () => {
+      const acces = await accesPret;
+      if (!acces || controle.signal.aborted) return;
+      try { await d.appareil.retirer(acces, { signal: controle.signal, peutPartir: () => !controle.signal.aborted }); } catch { /* un seul essai */ }
+    }).finally(() => { clearTimeout(minuterie); });
+    c.retrait = acces => {
+      if (acces === null) { controle.abort(); c.controle.abort(); }
+      if (!fourni) { fourni = true; fournir(acces); }
+      return fin;
+    };
+    return c.retrait;
   }
   return {
-    /** Au démarrage de l'appli : canal, ouverture sur appui, réenregistrement à chaque renouvellement du jeton. Ne demande JAMAIS l'autorisation elle-même (la demande du choix C vient de `sessionOuverte`, une fois le rôle restaurateur reconnu). Retourne le désabonnement. */
     demarrer(): () => void {
       void d.natif.creerCanal().catch(() => undefined);
       const arretOuverture = demarrerOuverture({ port: d.natif, ouvrirSuivi: d.ouvrirSuivi, ouvrirRestaurateur: d.ouvrirRestaurateur });
-      const arretJeton = d.natif.surRenouvellementJeton(jeton => { if (!retraitEnCours && !d.appareil.dejaConnu(jeton)) void enregistrerSiConnecte(jeton); });
+      const arretJeton = d.natif.surRenouvellementJeton(jeton => {
+        const c = courant ?? cycle();
+        // Le même jeton émis par sa lecture est ignoré ; un vrai renouvellement en vol reste dans la file.
+        if (c && valide(c) && !d.appareil.dejaConnu(jeton)) void enregistrer(c, jeton);
+      });
       return () => { arretOuverture(); arretJeton(); };
     },
-    /**
-     * À chaque ouverture de l'appli avec une session : réenregistre si déjà accordée (aucune demande),
-     * puis déclencheur C si le compte est membre restaurant (une seule demande système grâce au drapeau).
-     */
     async sessionOuverte(): Promise<EtatAffiche | null> {
-      retraitEnCours = false;
-      try {
-        if (decisionAuDemarrage(await d.natif.etat()) === 'enregistrer') await enregistrerSiConnecte();
-      } catch { /* silencieux */ }
-      try {
-        const estResto = await d.lireEstRestaurateur();
-        return await apresContexte(estResto);
-      } catch {
-        return null;
-      }
+      const c = cycle(); if (!c) return null;
+      try { if (decisionAuDemarrage(await d.natif.etat()) === 'enregistrer' && valide(c)) await enregistrer(c); } catch { /* silencieux */ }
+      if (!valide(c)) return null;
+      try { const estResto = await d.lireEstRestaurateur(); return valide(c) ? await contexte(c, estResto) : null; } catch { return null; }
     },
-    /** Juste APRÈS l'envoi réussi d'une commande réelle : demande l'autorisation une seule fois, puis enregistre l'appareil si elle est accordée. Retourne l'état à montrer. */
     async apresCommande(): Promise<EtatAffiche | null> {
-      return partage(async () => {
-        const r = await apresCommandeEnvoyee({ port: d.natif, memoire: d.memoire });
-        if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrerSiConnecte();
-        return r.affiche;
-      });
+      const c = courant ?? cycle();
+      return c && valide(c) ? autoriser(c, peutDemander => apresCommandeEnvoyee({ port: d.natif, memoire: d.memoire, peutDemander })) : null;
     },
-    /** Choix C : à l'ouverture de l'Espace restaurateur (ou quand le rôle est connu hors sessionOuverte). */
     async apresContexteRestaurateur(estRestaurateur = true): Promise<EtatAffiche | null> {
-      return apresContexte(estRestaurateur);
+      const c = courant ?? cycle();
+      return c && valide(c) ? contexte(c, estRestaurateur) : null;
     },
-    /** À la déconnexion, AVANT l'effacement de la session (le jeton porteur est encore valide). Un seul essai, échec silencieux. */
-    async avantDeconnexion(acces: string): Promise<void> {
-      retraitEnCours = true;
-      try { await d.appareil.retirer(acces); } catch { /* silencieux */ }
-    },
+    preparerDeconnexion,
+    async avantDeconnexion(acces: string): Promise<void> { await preparerDeconnexion()(acces); },
   };
 }
 export type ServiceNotifications = ReturnType<typeof creerServiceNotifications>;

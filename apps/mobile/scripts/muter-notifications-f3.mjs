@@ -1,4 +1,4 @@
-// Mutations ciblées sur les corrections B1/B2 (lot F3). Chaque mutation DOIT faire échouer notifications-f3-reprise.test.ts, sinon le script sort en code 1.
+// Mutations ciblées sur les corrections B1/B2 (lot F3 ; cible de partage adaptée au cycle de session du 6 novembre). Chaque mutation DOIT faire échouer notifications-f3-reprise.test.ts, sinon le script sort en code 1.
 // Les sources sont lues en Buffer et restaurées octet pour octet ; seuls le nom de la mutation et les codes de sortie sont affichés. Aucun réseau, aucun shell.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -12,7 +12,7 @@ const ESPACE = chemin('../src/connexion/ouverture-espace.ts');
 const COMPTE = chemin('../src/connexion/CompteReel.tsx');
 
 const mutations = [
-  { nom: 'suppression du partage (service)', fichier: SERVICE, cible: 'return enCours ??= f().finally(() => { enCours = null; });', remplace: 'return f();' },
+  { nom: 'suppression du partage (service)', fichier: SERVICE, cible: 'permission ??= f(() => [...participants].some(valide)).finally(', remplace: 'f(() => [...participants].some(valide)).finally(' },
   { nom: 'demande jamais consommée (ouverture-espace)', fichier: ESPACE, cible: 'return etat.restaurateur;', remplace: 'enAttente = true; return etat.restaurateur;' },
   { nom: 'rôle null traité comme connu (ouverture-espace)', fichier: ESPACE, cible: '|| etat.restaurateur === null) return false;', remplace: ') return false;' },
   { nom: 'garde « occupé » retirée (CompteReel)', fichier: COMPTE, cible: 'if(restaurateurOccupe)return;', remplace: '' },

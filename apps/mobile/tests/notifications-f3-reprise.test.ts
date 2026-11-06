@@ -179,7 +179,8 @@ test('câblage (source) : une demande exclusivement restaurateur ne relit pas le
 });
 test('câblage (source) : le service partage une seule promesse pour contexte et commande, un non-membre en est exclu', () => {
   const s = source('../src/notifications/service.ts');
-  assert.ok(s.includes('return enCours ??= f().finally(() => { enCours = null; });'));
-  assert.equal(s.split('return partage(async () => {').length - 1, 2, 'contexte et commande');
-  assert.ok(s.includes('if (!estRestaurateur) return null;'));
+  assert.ok(s.includes('permission ??= f(() => [...participants].some(valide)).finally('));
+  assert.ok(s.includes('return autoriser(c, peutDemander => apresContexteRestaurateur('));
+  assert.ok(s.includes('autoriser(c, peutDemander => apresCommandeEnvoyee('));
+  assert.ok(s.includes('if (!estRestaurateur) return Promise.resolve(null);'));
 });

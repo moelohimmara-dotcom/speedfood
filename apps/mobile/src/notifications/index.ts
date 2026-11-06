@@ -20,6 +20,7 @@ export function brancherOuvertureRestaurateur(f: () => void) { ouvrirRestaurateu
 
 export const notifications = creerServiceNotifications({
   natif, appareil, memoire: memoireDemande, obtenirAcces: () => gestion.acces(),
+  lireGeneration: () => gestion.generationNotifications,
   ouvrirSuivi: () => ouvrirSuivi(), ouvrirRestaurateur: () => ouvrirRestaurateur(),
   lireEstRestaurateur: async () => {
     try { return (await gestion.moi()).restaurateur !== null; } catch { return false; }

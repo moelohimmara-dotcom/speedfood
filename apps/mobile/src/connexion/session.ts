@@ -16,6 +16,9 @@ export class GestionSession {
   private clesSuivi = new Map<string,{jeton:string;reference:string}>();
   /** Notifications (lot E2) : retrait de l'appareil à la déconnexion, appelé AVANT l'effacement de la session (jeton porteur encore valide). Un seul essai ; échec ou lenteur : la déconnexion continue. */
   avantDeconnexion?: (acces: string) => Promise<void>;
+  /** Ferme les départs notifications de façon synchrone, avant tout await de la déconnexion. */
+  preparerDeconnexion?: () => (acces: string | null) => Promise<void>;
+  private deconnexionEnCours: Promise<{ distanteConfirmee: boolean }> | null = null;
   /** Appelé (sans attendre) quand une session vient d'être ouverte ou restaurée : l'appli réenregistre alors l'appareil pour les notifications. Ne bloque ni ne fait échouer la connexion. */
   apresOuverture?: () => void;
   constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
@@ -23,6 +26,8 @@ export class GestionSession {
   async acces(): Promise<string | null> { try { return this.session ? await this.jeton() : null; } catch { return null; } }
   private signaler() { try { this.apresOuverture?.(); } catch { /* sans effet sur la session */ } }
   get connectee() { return this.session !== null; }
+  /** Identité locale monotone : stable au renouvellement du porteur, différente à chaque ouverture. */
+  get generationNotifications(): number | null { return this.session ? this.generation : null; }
   /** Nombre de déconnexions VOLONTAIRES : distingue « Me déconnecter » d'une session expirée (la machine d'envoi n'efface rien à l'expiration). */
   get deconnexions() { return this.nbDeconnexions; }
   private nbDeconnexions = 0;
@@ -219,14 +224,24 @@ export class GestionSession {
       await this.api.ecrireService(acces,action);
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
-  async deconnecter() {
-    const retrait = this.avantDeconnexion;
+  deconnecter(): Promise<{ distanteConfirmee: boolean }> {
+    if (this.deconnexionEnCours) return this.deconnexionEnCours;
+    const p = this.deconnecterUneFois().finally(() => { if (this.deconnexionEnCours === p) this.deconnexionEnCours = null; });
+    this.deconnexionEnCours = p;
+    return p;
+  }
+  private async deconnecterUneFois() {
+    const n = this.generation;
+    const preparation = this.preparerDeconnexion?.();
+    const retrait = preparation ?? this.avantDeconnexion;
     if (retrait && this.session) {
       // Retrait de l'appareil D'ABORD (le jeton porteur est encore valide), un seul essai, au plus 6 s ; rien de ce qui se passe ici n'empêche la déconnexion.
       let minuterie: ReturnType<typeof setTimeout> | undefined;
-      try { await Promise.race([this.acces().then(a => a ? retrait(a) : undefined), new Promise<void>(r => { minuterie = setTimeout(r, 6000); })]); } catch { /* silencieux */ }
+      try { await Promise.race([this.acces().then(a => a ? retrait(a) : preparation?.(null)), new Promise<void>(r => { minuterie = setTimeout(r, 6000); })]); } catch { /* silencieux */ }
       finally { if (minuterie) clearTimeout(minuterie); }
-    }
+    } else if (preparation) { await preparation(null); }
+    // Une connexion plus récente ne doit jamais être effacée par cette ancienne déconnexion.
+    if (n !== this.generation) return { distanteConfirmee: false };
     this.nbDeconnexions++;
     this.clesSuivi.clear();
     const acces = this.session?.accessToken; ++this.generation; this.session = null;
