@@ -32,13 +32,21 @@ export function creerServiceNotifications(d: DepsService) {
     if (retraitEnCours) return;
     try { const acces = await d.obtenirAcces(); if (acces && !retraitEnCours) await d.appareil.enregistrer(acces, jetonConnu); } catch { /* silencieux */ }
   }
+  // Une seule demande d'autorisation à la fois : les déclencheurs simultanés (session, espace, commande) partagent la même promesse, donc la même décision et le même résultat.
+  let enCours: Promise<EtatAffiche | null> | null = null;
+  function partage(f: () => Promise<EtatAffiche | null>): Promise<EtatAffiche | null> {
+    return enCours ??= f().finally(() => { enCours = null; });
+  }
   async function apresContexte(estRestaurateur: boolean): Promise<EtatAffiche | null> {
-    const r = await apresContexteRestaurateur({ port: d.natif, memoire: d.memoire, estRestaurateur });
-    if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrerSiConnecte();
-    return r.affiche;
+    if (!estRestaurateur) return null; // un non-membre ne prend jamais la place d'une demande client
+    return partage(async () => {
+      const r = await apresContexteRestaurateur({ port: d.natif, memoire: d.memoire, estRestaurateur });
+      if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrerSiConnecte();
+      return r.affiche;
+    });
   }
   return {
-    /** Au démarrage de l'appli : canal, ouverture sur appui, réenregistrement à chaque renouvellement du jeton. Ne demande JAMAIS l'autorisation. Retourne le désabonnement. */
+    /** Au démarrage de l'appli : canal, ouverture sur appui, réenregistrement à chaque renouvellement du jeton. Ne demande JAMAIS l'autorisation elle-même (la demande du choix C vient de `sessionOuverte`, une fois le rôle restaurateur reconnu). Retourne le désabonnement. */
     demarrer(): () => void {
       void d.natif.creerCanal().catch(() => undefined);
       const arretOuverture = demarrerOuverture({ port: d.natif, ouvrirSuivi: d.ouvrirSuivi, ouvrirRestaurateur: d.ouvrirRestaurateur });
@@ -63,9 +71,11 @@ export function creerServiceNotifications(d: DepsService) {
     },
     /** Juste APRÈS l'envoi réussi d'une commande réelle : demande l'autorisation une seule fois, puis enregistre l'appareil si elle est accordée. Retourne l'état à montrer. */
     async apresCommande(): Promise<EtatAffiche | null> {
-      const r = await apresCommandeEnvoyee({ port: d.natif, memoire: d.memoire });
-      if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrerSiConnecte();
-      return r.affiche;
+      return partage(async () => {
+        const r = await apresCommandeEnvoyee({ port: d.natif, memoire: d.memoire });
+        if (r.decision === 'enregistrer' || (r.decision === 'demander' && r.affiche === 'actives')) await enregistrerSiConnecte();
+        return r.affiche;
+      });
     },
     /** Choix C : à l'ouverture de l'Espace restaurateur (ou quand le rôle est connu hors sessionOuverte). */
     async apresContexteRestaurateur(estRestaurateur = true): Promise<EtatAffiche | null> {

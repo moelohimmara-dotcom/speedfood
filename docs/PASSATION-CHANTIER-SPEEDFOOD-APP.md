@@ -1,5 +1,8 @@
 # Passation du chantier « appli Speedfood » (Expo) — au 5 novembre 2026
 
+**Reprise du 6 novembre 2026 — en cours, NON livrée sur appareil.** F1-F2 sont déjà committés dans 362d8c7. Deux défauts confirmés indépendamment par Sonnet et Opus avant F3 : ouverture restaurateur à chaud absente et demandes système concurrentes. Corrigés par le même Sonnet ; tests rouges constatés (10 échecs), puis 14 ciblés verts et types mobiles code 0 ; cinq mutations code 1, restauration garantie puis ciblé code 0. Opus : prêt pour essai F3 seulement. Suites complètes après correction à code 0 (500 tests mobiles, 489 contrôles de cloisonnement) ; compilation et essai natifs encore à faire ; aucune commande créée, aucun déploiement. Choix C confirmé par Malika : demande unique après rôle membre reconnu, y compris réouverture. Risques hérités I1 (enregistrements multiples par session) et I2 (enregistrement en vol vs retrait) toujours ouverts, pas de feu vert de remplacement Kotlin. Journal détaillé : docs/plans/2026-11-05-notifications-restaurateur-expo.md.
+
+
 Document de reprise : un agent ou un développeur qui n'a pas suivi les conversations doit pouvoir continuer à partir d'ici.
 Il complète `docs/PASSATION-REFONTE.md` (refonte API unique) et ne le remplace pas. En cas de contradiction entre ce document et le code, **le code gagne** : ne pas trancher en silence, le signaler à Malika.
 
@@ -111,7 +114,9 @@ Notifications natives = compte Apple (non disponible). Aujourd'hui iOS reçoit u
 - `revalidatePath` après une action venue de l'API ; RLS d'un compte non propriétaire ; test statique m-3 à deux comptes.
 - Le script de mutation E2 devrait restaurer les fichiers en `try/finally`.
 
-### Décisions en attente de Malika
+### Décisions et accord de reprise
+
+Le 6 novembre, après rappel de ces trois décisions (prompt, fusion, espèces), Malika répond « Oui et ok pour tout cela ». Accord général consigné. Aucune opération sensible exécutée pendant le correctif F3 : préparer séparément les changements et leur portée ; conserver la contrainte de ne toucher ni pousser master tant que l’opération exacte n’est pas arrêtée. Pas de suppression d’historique ni de force-push implicite.
 - `docs/PROMPT-CODEX-CHEF-DE-PROJET.md` (fichier à elle) a été embarqué par erreur dans le commit `744ec55` (poussé, aucun secret trouvé) : le retirer de l'historique (réécriture + force-push, accord requis) ou le laisser ?
 - Fusion de la branche dans `master` : non faite, à décider.
 - Relais `commandes` du site vers l'API : **éteint** (`API_RELAIS` absent ou `non`) ; ne jamais l'allumer ni déployer sans feux verts (Tâche 10, plan 1b ; `docs/FEUX-VERTS-ADR021-COMMANDES.md`).
@@ -173,4 +178,4 @@ Projet « Speedfood » `first-metric-478413-e1` (n° 378371573902), compte `moel
 `C:\Users\moelo\.claude\projects\C--Users-moelo-dev-speedfood\memory\` (index `MEMORY.md`). Entrées utiles : `notifications-client-expo-e3`, `firebase-speedfood`, `espace-restaurateur-expo-lots-d1-d5`, `emulateur-android-speedfood`, `expo-sdk57-fetch-formdata-piege`, `speedfood-pas-de-cash-chapchap-pay`, `verifier-tests-code-de-sortie`, `objectif-remplacement-kotlin-expo-ios-site`. Une mémoire ne remplace pas la lecture du code : vérifier avant de s'y fier.
 
 ## 9. Prochaine action recommandée
-Lot **notifications restaurateur Expo** (5 nov.) : design + plan prêts ; **F1 et F2 codés** (canaux `alerte_commande`/`offre_course`, ouverture `commande_nouvelle` → espace resto, autorisation **C** ; `apps/mobile` 486 tests + `tsc` code 0). Pas encore commit ni essai F3. Prochaine action : **oui** de Malika pour une commande TEST barbie food + essai émulateur F3, puis commit sur la branche de travail.
+Lot **notifications restaurateur Expo** (5 nov.) : design + plan prêts ; **F1 et F2 codés** (canaux `alerte_commande`/`offre_course`, ouverture `commande_nouvelle` → espace resto, autorisation **C** ; `apps/mobile` 486 tests + `tsc` code 0). Commit F1-F2 déjà présent : 362d8c7 ; F3 non réalisé. Reprise du 6 novembre : correctifs B1/B2 par Sonnet, relecture indépendante Opus, puis contrôles et nouveau paquet natif. Prochaine écriture : demander à Malika un oui distinct pour une commande TEST barbie food exactement définie avant tout envoi. Son oui au lot ne vaut pas une création automatique.

@@ -4,7 +4,8 @@
  * Déclencheurs métier (une seule demande système, drapeau appareil unique) :
  * - après l'envoi réussi d'une première commande réelle (client) ;
  * - connexion / session si le compte est membre restaurant, et ouverture de l'Espace restaurateur (choix C).
- * Jamais à l'ouverture froide de l'appli ; jamais en boucle ; refus respecté.
+ * Jamais au simple démarrage anonyme de l'appli (sans session ni rôle connu) ; possible après restauration de la session et reconnaissance du rôle restaurateur (choix C, validé par Malika) ;
+ * jamais en boucle ; refus respecté.
  */
 
 /** Statut du système, réduit à ce que la décision utilise. */

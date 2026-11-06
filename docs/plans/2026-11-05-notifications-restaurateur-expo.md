@@ -278,3 +278,23 @@ Silence sans `FCM_SERVICE_ACCOUNT` ; flakiness Google Play Services sur AVD ; do
 - Pas de TBD / « similar to ».
 - Serveur non modifié (spec §4).
 - Choix C et exceptions `moelohimmara` sans trou de sécurité (spec §3, §5, §9).
+
+## Reprise du 6 novembre 2026 (en cours)
+
+- Accord de Malika pour poursuivre les notifications restaurateur. Aucun déploiement ni nouvelle écriture barbie food réalisé pendant cette reprise ; chaque écriture nécessitera son oui distinct sur l'action exacte.
+- État réel : F1-F2 sont déjà committés et poussés (362d8c7), contrairement à la section 9 de la passation qui les annonce non committés. F3 reste à prouver. La capture « prête » du second passage du 5 novembre est documentée ; aucun nouvel essai physique prétendu.
+- Méthode : Claude Code installé, session Sonnet dédiée à l'implémentation/corrections, session Opus indépendante de relecture, sources sélectionnées uniquement. Aucun fichier de secrets donné aux modèles, aucun accès aux sessions personnelles. Le contrôleur relance lui-même les suites.
+- Premier audit Sonnet : B1 ouverture à chaud de commande_nouvelle ne réagit pas au changement de demande alors que la session est déjà ouverte ; B2 deux déclencheurs simultanés peuvent demander deux fois l'autorisation. Tests rouges demandés à Sonnet avant correctif ; relecture Opus en cours. Aucun verdict « livré ».
+- Objectif du correctif : demande restaurateur consommée une seule fois, à chaud et à froid, sans ouverture pour non-membre ; exclusion des demandes d'autorisation simultanées client/restaurateur, sans nouveau drapeau ni affaiblissement serveur. Corrections par le même Sonnet, puis Opus, mutations avec restauration garantie.
+- Fichiers prévus : notifications/autorisation.ts ou service.ts, petit domaine pur d'ouverture si nécessaire, connexion/CompteReel.tsx, tests mobiles ciblés. Retour arrière : rétablir les fichiers de 362d8c7 ; aucun changement serveur, base ou réglage de production.
+- Après vert : toutes les suites prescrites, paquet Android de contrôle, essai émulateur (canal Nouvelle commande puis appui à chaud et à froid). Une commande TEST seulement après accord distinct. Protéger toute écriture incertaine : aucune relance automatique.
+- Autres décisions : Malika a répondu « Oui et ok pour tout cela » après rappel du retrait du prompt de l'historique, de la fusion et du nettoyage des espèces. Préparer séparément chaque opération et sa portée. Aucun retrait d'historique, force-push ou modification de master effectué ici ; contrainte actuelle : seul le push de la branche de travail est permis.
+
+- Choix C confirmé par Malika le 6 novembre : demande unique après reconnaissance du rôle restaurateur, y compris réouverture ; contradiction de la spec corrigée explicitement. Rouge B1/B2 constaté par le contrôleur (10 échecs sur 11 tests). Après correction par le même Sonnet : 14 tests ciblés et types mobiles code 0. Relecture Opus ciblée et mutations en cours ; aucun essai F3 prétendu.
+
+### Correctif B1/B2 — contrôles locaux terminés le 6 novembre
+
+- Implémentation : même session Sonnet, corrections reprises par message. Relecture indépendante Opus : prêt pour essai F3 seulement. Une réserve sur le verrou a été levée après lecture du nettoyage existant de RestaurateurReel (signalerOccupe(false) au démontage), sans correctif inutile.
+- Rouge : 10 échecs / 11 tests avant code ; vert : 14 ciblés. Mutations exécutées personnellement : partage supprimé, demande non consommée, rôle inconnu mal traité, garde occupé retirée, armement débranché ; cinq codes 1, sources restaurées octet pour octet via finally, ciblé final code 0.
+- Relancés personnellement après correctifs : npm run typecheck, test:api, test:unit, test:cloisonnement (489 contrôles), build:api ; npm test mobile (500/500) et tsc mobile. Tous codes 0. Journaux locaux hors dépôt : C:/Users/moelo/dev/reprise-f3-final-*.log.
+- Preuve native restante : nouveau paquet contenant le correctif, installation par-dessus le paquet de contrôle sans effacement des données, notification Nouvelle commande et ouverture espace à chaud/froid. Aucun verdict livré. I1/I2 hérités et autres cas E3 restent ouverts.

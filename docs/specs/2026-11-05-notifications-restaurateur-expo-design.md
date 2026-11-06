@@ -66,7 +66,7 @@ Un seul jeton FCM par installation : le serveur choisit le texte et le `channel_
 - **Déclencheur 2 — ouverture Espace restaurateur :** même appel, juste avant ou au moment d’ouvrir le modal (échec silencieux : l’espace s’ouvre quand même).
 - **Déclencheur client inchangé :** après la 1ʳᵉ commande réelle envoyée.
 - Refus définitif : pas d’insistance ; l’actualisation manuelle reste.
-- Au démarrage à froid : **jamais** de demande ; seulement réenregistrement si déjà accordée.
+- Au simple démarrage anonyme : **jamais** de demande. Après restauration de session et reconnaissance du rôle restaurateur, la demande unique est permise (choix C confirmé par Malika le 6 novembre 2026). Si déjà accordée : réenregistrement sans nouvelle demande.
 
 ## 6. Canaux Android
 

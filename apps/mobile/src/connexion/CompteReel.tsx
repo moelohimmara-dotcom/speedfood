@@ -11,6 +11,7 @@ import { ErreurReglement, verdictDeclaration, type ModeReglement, type VerdictDe
 import { couleurs as c, polices } from '../design/tokens';
 import { notifications } from '../notifications';
 import { MESSAGES_ETAT_RESTO } from '../notifications/autorisation';
+import { creerDemandeEspace } from './ouverture-espace';
 let restauration: Promise<void> | null = null;
 function Action({ titre, agir, disabled=false }: { titre:string; agir():void; disabled?:boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{disabled}} onPress={agir} style={[s.bouton,disabled&&{opacity:.5}]}><Text style={s.boutonTexte}>{titre}</Text></Pressable>;
@@ -25,7 +26,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string;lecture:number}|null>(null);
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
-  const [restaurateur,setRestaurateur]=useState(false);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
+  const [restaurateur,setRestaurateur]=useState<boolean|null>(null);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
   function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);return r;}
   async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
@@ -68,22 +69,29 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     return()=>{actif=false;revision.current++;};
   },[]);
   const demandeRef=useRef(demande);demandeRef.current=demande;
+  // Appui `commande_nouvelle` (à chaud ou à froid) : chaque nouvelle `demande` arme l'ouverture, consommée UNE fois quand l'écran est ouvert, la session active et le rôle lu comme membre (le serveur revalide chaque route).
+  // Tant que l'espace est occupé (action en cours), l'ouverture est différée et rejouée à la fin.
+  const demandeEspace=useRef(creerDemandeEspace()).current;
+  useEffect(()=>{demandeEspace.armer(demande);},[demande]);
   useEffect(()=>{
-    if(!connectee){setRestaurateur(false);setRestaurateurOuvert(false);return;}
+    if(!ouvert){demandeEspace.fermer();return;}
+    if(restaurateurOccupe)return;
+    if(demandeEspace.evaluer({ouvert,connectee,restaurateur}))setRestaurateurOuvert(true);
+  },[demande,ouvert,connectee,restaurateur,restaurateurOccupe]);
+  useEffect(()=>{
+    if(!connectee){setRestaurateur(null);setRestaurateurOuvert(false);return;}
     let actif=true;
     void gestion.moi().then(r=>{
       if(!actif)return;
       const estResto=r.restaurateur!==null;
       setRestaurateur(estResto);
-      // Appui notification `commande_nouvelle` : ouvrir l'espace si le compte est bien membre (le serveur revalide chaque route).
-      if(estResto&&demandeRef.current?.espaceRestaurateur)setRestaurateurOuvert(true);
-      // Choix C (complément UI) : si le rôle est connu ici, même déclencheur qu'à la session (drapeau unique → pas de 2ᵉ boîte).
+      // Choix C (complément UI) : dès que le rôle restaurateur est reconnu (connexion, session rouverte à froid), même déclencheur qu'à la session (drapeau unique + promesse partagée → pas de 2ᵉ boîte).
       if(estResto)void notifications.apresContexteRestaurateur(true).then(e=>{if(actif&&e)setMessage(MESSAGES_ETAT_RESTO[e]);});
     },()=>{if(actif)setRestaurateur(false);});
     return()=>{actif=false;};
   },[connectee]);
   const lireOuverture=()=>{void executer(async()=>{const demande=demandeRef.current;
-    if(demande){const liste=await lireCommandes();const o=demande.reference?liste.find(x=>x.reference===demande.reference):undefined;
+    if(demande&&!demande.espaceRestaurateur){const liste=await lireCommandes();const o=demande.reference?liste.find(x=>x.reference===demande.reference):undefined;
       if(o)await lireSuivi(o.id);else if(demande.reference)setMessage('Commande '+demande.reference+' envoyée. Elle n’apparaît pas encore dans la liste : actualisez vos commandes dans un instant.');}
     setProfil(await gestion.espace());});};
   // Ouvert par une notification appli fermée : la session n'est pas encore restaurée. La lecture des commandes est gardée et jouée UNE fois quand la session devient disponible.
