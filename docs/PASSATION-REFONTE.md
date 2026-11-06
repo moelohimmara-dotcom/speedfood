@@ -1,5 +1,10 @@
 # Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
 
+**Notifications restaurateur, preuve native du 6 novembre :** Android n°28 et iPhone n°25 réussis. Sur l’émulateur, une création TEST autorisée SF-AA5TT (retrait, 25 000 GNF, sans paiement) → notification Nouvelle commande reçue → appui à chaud depuis arrière-plan ouvre Espace restaurateur ; retour sans boucle. Correctif b76afa0 par Sonnet, relecture Opus, cinq mutations et toutes suites code 0 (646 API, 500 mobiles, 489 contrôles de cloisonnement). Aucun déploiement ni relais/secret modifié. I1/I2 et essais physiques restent ouverts. Rapport : CONTROLE-NOTIFICATIONS-RESTAURATEUR-2026-11-06.md ; annulation du TEST sur accord distinct, voir plan du lot.
+
+**Nettoyage du TEST F3 :** oui distinct de Malika pour SF-AA5TT ; unique confirmation d’annulation à 03:32 UTC. Réponse restaurateur « Commande annulée. » observée, encore présente après actualisation ; aucune relance et aucune autre commande touchée. Preuve par l’interface, sans lecture SQL indépendante.
+
+
 **Reprise notifications restaurateur, 6 novembre 2026 :** correctifs mobiles B1/B2 par Sonnet, relecture indépendante Opus prête pour essai seulement ; rouge/vert et cinq mutations constatés par le contrôleur. Types et suites demandées code 0 (500 tests mobiles, 489 contrôles de cloisonnement). Aucun changement serveur, secret, relais ni déploiement. Paquet et preuve natifs F3 restent à obtenir ; ne pas déclarer livré. Voir PASSATION-CHANTIER-SPEEDFOOD-APP.md et plans/2026-11-05-notifications-restaurateur-expo.md.
 
 

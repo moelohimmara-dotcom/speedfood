@@ -1,6 +1,8 @@
-# Passation du chantier « appli Speedfood » (Expo) — au 5 novembre 2026
+# Passation du chantier « appli Speedfood » (Expo) — au 6 novembre 2026
 
-**Reprise du 6 novembre 2026 — en cours, NON livrée sur appareil.** F1-F2 sont déjà committés dans 362d8c7. Deux défauts confirmés indépendamment par Sonnet et Opus avant F3 : ouverture restaurateur à chaud absente et demandes système concurrentes. Corrigés par le même Sonnet ; tests rouges constatés (10 échecs), puis 14 ciblés verts et types mobiles code 0 ; cinq mutations code 1, restauration garantie puis ciblé code 0. Opus : prêt pour essai F3 seulement. Suites complètes après correction à code 0 (500 tests mobiles, 489 contrôles de cloisonnement) ; compilation et essai natifs encore à faire ; aucune commande créée, aucun déploiement. Choix C confirmé par Malika : demande unique après rôle membre reconnu, y compris réouverture. Risques hérités I1 (enregistrements multiples par session) et I2 (enregistrement en vol vs retrait) toujours ouverts, pas de feu vert de remplacement Kotlin. Journal détaillé : docs/plans/2026-11-05-notifications-restaurateur-expo.md.
+**Reprise du 6 novembre 2026 — parcours principal F3 vérifié sur émulateur.** F1-F2 existaient dans 362d8c7 ; deux défauts B1/B2 confirmés par Sonnet et Opus puis corrigés par le même Sonnet (b76afa0). Contrôles relancés code 0 : 646 tests API, 500 mobiles, 489 contrôles de cloisonnement, types, unitaires et build API ; cinq mutations détectées puis restaurées. GitHub Android n°28 et iPhone n°25 réussis. APK de contrôle mise à jour sans effacement, Firebase et signature vérifiés. UNE commande TEST autorisée : SF-AA5TT, retrait, 25 000 GNF, sans paiement ; notification Nouvelle commande réellement reçue, appui depuis arrière-plan avec session active → Espace restaurateur, retour sans boucle. I1/I2 hérités restent ouverts ; ni téléphone physique, ni appui restaurateur après arrêt du processus prouvés. Aucun déploiement, secret ou relais modifié. Rapport : [CONTROLE-NOTIFICATIONS-RESTAURATEUR-2026-11-06.md](CONTROLE-NOTIFICATIONS-RESTAURATEUR-2026-11-06.md).
+
+**Nettoyage du TEST F3 :** oui distinct de Malika pour SF-AA5TT ; unique confirmation d’annulation à 03:32 UTC. Réponse restaurateur « Commande annulée. » observée, encore présente après actualisation ; aucune relance et aucune autre commande touchée. Preuve par l’interface, sans lecture SQL indépendante.
 
 
 Document de reprise : un agent ou un développeur qui n'a pas suivi les conversations doit pouvoir continuer à partir d'ici.
@@ -16,7 +18,7 @@ Branche de travail : `etape-adr021-deblocage-commandes` (poussée, jamais fusion
 - **Chantier :** remplacer l'ancienne appli Android Kotlin (`mobile/`) par l'appli **Expo / React Native** (`apps/mobile/`), avec iPhone installé depuis le site (sans App Store).
 - **Règle produit (Malika, 3 nov. 2026) : pas de cash, tout par Chap Chap Pay.** Les modes « J'ai payé » avec code marchand restent seulement jusqu'à l'ouverture de Chap Chap Pay.
 - **Où on en est :** le client peut commander (retrait ou livraison), suivre, se connecter ; le restaurateur peut tout faire depuis l'appli (lots D1 à D5) ; le client reçoit des notifications Firebase (lots E1 à E3, essai réel sur émulateur : acceptée, prête, terminée).
-- **Ce qui manque pour remplacer Kotlin :** espaces livreur et équipe, notifications au restaurateur, Chap Chap Pay, iPhone natif, identifiant `com.speedfood.app` + signature, essai sur vrai téléphone (§6 et §7).
+- **Ce qui manque pour remplacer Kotlin :** espaces livreur et équipe, durcissement des notifications (I1/I2), Chap Chap Pay, iPhone natif, identifiant `com.speedfood.app` + signature, essai sur vrai téléphone (§6 et §7).
 
 ## 2. Qui est Malika, comment lui parler
 
@@ -95,7 +97,7 @@ Déploiements faits par Malika le 5 nov. : API (version `45cfd8bc-dc2e-4e02-9862
 
 ### P1 — pour tenir la parité avec Kotlin
 1. **Notification « prête » sur un vrai téléphone.** Prouvée sur émulateur le 5 nov. (2e passage) ; confirmer sur appareil physique (APK n° 26) reste utile, plus bloquant pour E3.
-2. **Notifications au restaurateur** (nouvelle commande) dans l'appli Expo : même socle. Canaux Android `alerte_commande` et `offre_course` à créer (m-4).
+2. **Notifications au restaurateur : parcours principal vérifié le 6 novembre**, canaux créés, réception Nouvelle commande et appui à chaud depuis arrière-plan. Reste avant remplacement : I1/I2, appareil physique, appui à froid et cas de déconnexion. Voir le rapport du 6 novembre.
 3. **Espaces livreur et équipe** dans l'appli Expo (non abordés).
 4. **Chap Chap Pay en démo** : Malika place ses clés ; ensuite retirer les restes de paiement en espèces (décisions en attente de Malika) et les modes « J'ai payé ».
 5. **Remplacement de l'APK Kotlin** : l'appli Expo doit porter `com.speedfood.app` et **la même clé de signature** (mise à jour par-dessus sans désinstaller) ; voir `docs/SIGNATURE-CANDIDAT-EXPO.md`, `docs/plans/2026-11-01-remplacement-apk-expo.md`. Conditions de publication à fixer avec Malika.
@@ -178,8 +180,12 @@ Projet « Speedfood » `first-metric-478413-e1` (n° 378371573902), compte `moel
 `C:\Users\moelo\.claude\projects\C--Users-moelo-dev-speedfood\memory\` (index `MEMORY.md`). Entrées utiles : `notifications-client-expo-e3`, `firebase-speedfood`, `espace-restaurateur-expo-lots-d1-d5`, `emulateur-android-speedfood`, `expo-sdk57-fetch-formdata-piege`, `speedfood-pas-de-cash-chapchap-pay`, `verifier-tests-code-de-sortie`, `objectif-remplacement-kotlin-expo-ios-site`. Une mémoire ne remplace pas la lecture du code : vérifier avant de s'y fier.
 
 ## 9. Prochaine action recommandée
-Lot **notifications restaurateur Expo** (5 nov.) : design + plan prêts ; **F1 et F2 codés** (canaux `alerte_commande`/`offre_course`, ouverture `commande_nouvelle` → espace resto, autorisation **C** ; `apps/mobile` 486 tests + `tsc` code 0). Commit F1-F2 déjà présent : 362d8c7 ; F3 non réalisé. Reprise du 6 novembre : correctifs B1/B2 par Sonnet, relecture indépendante Opus, puis contrôles et nouveau paquet natif. Prochaine écriture : demander à Malika un oui distinct pour une commande TEST barbie food exactement définie avant tout envoi. Son oui au lot ne vaut pas une création automatique.
+
+Le parcours principal notifications restaurateur F1-F3 est vérifié sur l’émulateur (6 novembre, SF-AA5TT TEST). État de l’annulation de ce TEST : voir journal du plan, accord distinct requis. Avant remplacement de production : traiter I1/I2, puis choisir avec Malika l’essai sur téléphone et la suite livreur/équipe ou paiement. Ne pas rejouer la commande F3, ne pas allumer le relais commandes et ne pas remplacer Kotlin sur la seule base de cet essai.
+
 
 ## Préparation des décisions suivantes (6 novembre 2026)
 
 Voir [plans/2026-11-06-decisions-suite-appli.md](plans/2026-11-06-decisions-suite-appli.md) : accord général de Malika consigné, portée du retrait du prompt, contrainte master et inventaire initial des espèces. Aucune réécriture, fusion ou règle de paiement modifiée. Correctif notifications b76afa0 poussé ; Contrôles GitHub n°83 verts, Android n°28 encore en compilation lors de cette note.
+
+Les captures du 6 novembre et le rapport de contrôle sont la preuve actuelle ; la mention historique Android n°28 encore en cours ci-dessus est désormais remplacée par son succès et son installation de contrôle.
