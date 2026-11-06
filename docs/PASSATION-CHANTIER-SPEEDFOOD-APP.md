@@ -179,3 +179,7 @@ Projet « Speedfood » `first-metric-478413-e1` (n° 378371573902), compte `moel
 
 ## 9. Prochaine action recommandée
 Lot **notifications restaurateur Expo** (5 nov.) : design + plan prêts ; **F1 et F2 codés** (canaux `alerte_commande`/`offre_course`, ouverture `commande_nouvelle` → espace resto, autorisation **C** ; `apps/mobile` 486 tests + `tsc` code 0). Commit F1-F2 déjà présent : 362d8c7 ; F3 non réalisé. Reprise du 6 novembre : correctifs B1/B2 par Sonnet, relecture indépendante Opus, puis contrôles et nouveau paquet natif. Prochaine écriture : demander à Malika un oui distinct pour une commande TEST barbie food exactement définie avant tout envoi. Son oui au lot ne vaut pas une création automatique.
+
+## Préparation des décisions suivantes (6 novembre 2026)
+
+Voir [plans/2026-11-06-decisions-suite-appli.md](plans/2026-11-06-decisions-suite-appli.md) : accord général de Malika consigné, portée du retrait du prompt, contrainte master et inventaire initial des espèces. Aucune réécriture, fusion ou règle de paiement modifiée. Correctif notifications b76afa0 poussé ; Contrôles GitHub n°83 verts, Android n°28 encore en compilation lors de cette note.
