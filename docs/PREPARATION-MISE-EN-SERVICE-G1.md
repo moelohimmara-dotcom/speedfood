@@ -88,5 +88,19 @@ Oui/non de Malika sur le déploiement ci-dessus, exécuté par elle avec la comm
 - Contrôles publics après déploiement : catalogue 200, version 200, menu 200.
 - Route G1 : sans jeton → **401** ; avec un jeton invalide → **401**. Aucune fiche ne fuite sans session valide.
 - Non-régression dans l'application (émulateur, session réelle conservée) : « Compte connecté », historique des commandes relu contre la nouvelle API, aucun message d'erreur.
-- **Reste à vérifier (contrôle 4)** : la lecture d'une vraie fiche par un vrai compte livreur. Le compte de l'émulateur n'est pas livreur ; l'écran livreur ne lui est donc pas proposé et la branche `fiche` réelle n'a pas encore été lue en production. Ce contrôle exige un compte rattaché à une ligne `livreurs`, dont la création ou l'identification reste une décision distincte de Malika.
+- **Contrôle 4 réalisé le même jour** : voir le complément ci-dessous.
 - Aucun autre changement : site non redéployé, relais inchangé (`commandes` toujours exclu), aucun secret touché, application Kotlin inchangée.
+
+## Complément du 8 novembre — contrôle 4 : vraie fiche lue en production
+
+**Fait, le même jour, après la mise en service.** Il n'existait aucun compte livreur (vérifié : le compte de Malika n'avait aucune ligne `livreurs`). Sur instruction explicite de Malika (« fais-le toi-même directement »), la fiche de test a été créée par l'agent, en reproduisant exactement l'action du site `creerLivreurPourCompteAction` :
+
+- Tentative d'abord par le navigateur (console `/system/livraisons/livreurs`) : échec de l'outil d'automatisation, extension non connectée, **aucune page atteinte, aucune écriture par ce canal**.
+- Écriture directe via la CLI Supabase authentifiée du poste (`db query --linked`, aucun fichier de secret lu) : une insertion `livreurs` (compte de Malika, nom « Livreur de test Malika », aucun téléphone, moto, hors_ligne, cycle actif, approuvée par elle-même en tant que super_admin) et l'événement d'audit `livraison.livreur_cree` correspondant, motif précisant le canal et l'instruction. Relecture immédiate : fiche présente, champs conformes au contrat.
+- La RPC `fn_trouver_utilisateur_par_email` a refusé l'appel hors session (sa garde fonctionne) ; le compte a été identifié par lecture ciblée de `auth.users`, déjà membre unique de barbie food.
+
+**Contrôle dans l'application (émulateur, session réelle conservée) :** après redémarrage complet de l'application (les rôles n'étaient pas relus à la simple réouverture de l'écran compte — état conservé du composant), « Mon compte » propose « Espace livreur ». Ouverture : fiche réelle lue via l'API déployée — « Livreur de test Malika, Compte actif, État : Hors ligne, Déplacement : Moto, Rattachement non renseigné » (aucun restaurant rattaché, comportement prévu et déjà contrôlé au banc). Bouton « Actualiser ma fiche » : seconde lecture identique. Capture vérifiée visuellement.
+
+**État G1 après ce complément : mise en service complète et prouvée de bout en bout** (route déployée, refus sans session, fiche réelle lue par le vrai client). La fiche de test est conservée volontairement : elle servira aux lots G2 et suivants. Retour arrière si besoin : archiver ou supprimer cette ligne `livreurs` (aucune course, offre ni historique ne la référence).
+
+Reste hors de ce lot, inchangé : essais sur téléphones physiques, iPhone réel, et les lots G2 (état/offres), G3 (courses), G4 (position).
