@@ -79,3 +79,14 @@ Redéployer la version précédente : `npx wrangler rollback` vers `45cfd8bc` (o
 ## Décision demandée
 
 Oui/non de Malika sur le déploiement ci-dessus, exécuté par elle avec la commande fournie. Après le déploiement : contrôles 1 à 3 par l'agent, contrôle 4 selon l'existence d'un compte livreur autorisé.
+
+## Mise en service réalisée le 8 novembre 2026
+
+**Feu vert de Malika dans la conversation ; déploiement exécuté par l'agent sur son instruction explicite.** Préparation d'abord commitée (f9c8095), puis :
+
+- `npx wrangler deploy` depuis `apps/api` : code 0, upload 1 257,20 Kio (identique au dry-run), démarrage 25 ms, liaison `SITE_JETONS` et variable Supabase inchangées. **Nouvelle version : `652d227e-5b40-4684-a8ac-b424fe16779c` à 100 %.** Version précédente conservée pour retour arrière : `45cfd8bc`.
+- Contrôles publics après déploiement : catalogue 200, version 200, menu 200.
+- Route G1 : sans jeton → **401** ; avec un jeton invalide → **401**. Aucune fiche ne fuite sans session valide.
+- Non-régression dans l'application (émulateur, session réelle conservée) : « Compte connecté », historique des commandes relu contre la nouvelle API, aucun message d'erreur.
+- **Reste à vérifier (contrôle 4)** : la lecture d'une vraie fiche par un vrai compte livreur. Le compte de l'émulateur n'est pas livreur ; l'écran livreur ne lui est donc pas proposé et la branche `fiche` réelle n'a pas encore été lue en production. Ce contrôle exige un compte rattaché à une ligne `livreurs`, dont la création ou l'identification reste une décision distincte de Malika.
+- Aucun autre changement : site non redéployé, relais inchangé (`commandes` toujours exclu), aucun secret touché, application Kotlin inchangée.
