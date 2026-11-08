@@ -11,6 +11,6 @@ import type { Deps } from "../types.ts";
  */
 export const serviceAppareils: Deps["appareils"] = {
   limiter: limiterAppareil,
-  enregistrer: (utilisateurId, jeton, plateforme, versionApp) => enregistrerAppareil(utilisateurId, jeton, plateforme, versionApp),
-  retirer: (utilisateurId, jeton) => retirerAppareil(utilisateurId, jeton),
+  enregistrer: (utilisateurId, jeton, plateforme, versionApp, sessionId) => enregistrerAppareil(utilisateurId, jeton, plateforme, versionApp, sessionId),
+  retirer: (utilisateurId, jeton, sessionId) => retirerAppareil(utilisateurId, jeton, sessionId),
 };

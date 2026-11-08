@@ -49,14 +49,14 @@ test("E1 enregistrer : cas nominal, compte du Bearer, réponse { ok: true } sans
   const texte = await r.text();
   assert.deepEqual(JSON.parse(texte), { ok: true });
   assert.ok(!texte.includes(JETON_APPAREIL) && !texte.includes(JETON), "aucun jeton dans la réponse");
-  assert.deepEqual(journal.enregistrements, [["compte-1", JETON_APPAREIL, "android", "2.47.0"]]);
+  assert.deepEqual(journal.enregistrements, [["compte-1", JETON_APPAREIL, "android", "2.47.0", null]]);
   assert.deepEqual(journal.appels, ["identite", "limiter:compte-1", "enregistrer"], "ordre : identité, plafond, service");
 });
 
 test("E1 enregistrer : plateforme ios acceptée, version absente = null", async () => {
   const { app, journal } = monter();
   assert.equal((await enregistrer(app, { jeton: JETON_APPAREIL, plateforme: "ios" })).status, 200);
-  assert.deepEqual(journal.enregistrements, [["compte-1", JETON_APPAREIL, "ios", null]]);
+  assert.deepEqual(journal.enregistrements, [["compte-1", JETON_APPAREIL, "ios", null, null]]);
 });
 
 test("E1 enregistrer : sans jeton porteur ou avec un jeton invalide, 401 ; ni plafond ni service", async () => {
@@ -163,7 +163,7 @@ test("E1 enregistrer : le compte vient du Bearer, jamais du corps (un utilisateu
   assert.equal(journal.enregistrements.length, 1);
   assert.equal(journal.enregistrements[0][0], "compte-1");
   assert.ok(!journal.appels.some((a) => a.includes(AUTRE_COMPTE)));
-  assert.equal(journal.enregistrements[0].length, 4, "le service ne reçoit que compte, jeton, plateforme, version");
+  assert.equal(journal.enregistrements[0].length, 5, "le service reçoit compte, jeton, plateforme, version et session du jeton vérifié (protocole I2), jamais un compte du corps");
 });
 
 test("E1 enregistrer : échec du service (faux ou exception) = 500 ERREUR_SERVEUR, message du site, sans fuite", async () => {
@@ -207,7 +207,7 @@ test("E1 retirer : cas nominal, compte du Bearer, réponse { ok: true } sans jet
   const texte = await r.text();
   assert.deepEqual(JSON.parse(texte), { ok: true });
   assert.ok(!texte.includes(JETON_APPAREIL));
-  assert.deepEqual(journal.retraits, [["compte-1", JETON_APPAREIL]]);
+  assert.deepEqual(journal.retraits, [["compte-1", JETON_APPAREIL, null]]);
   assert.deepEqual(journal.appels, ["identite", "limiter:compte-1", "retirer"]);
 });
 
@@ -248,7 +248,7 @@ test("E1 retirer : jeton d'un autre compte ou inconnu = même réponse { ok: tru
   const r = await retirer(app, { jeton: JETON_APPAREIL, utilisateurId: AUTRE_COMPTE });
   assert.equal(r.status, 200);
   assert.deepEqual(await r.json(), { ok: true });
-  assert.deepEqual(journal.retraits, [["compte-1", JETON_APPAREIL]]);
+  assert.deepEqual(journal.retraits, [["compte-1", JETON_APPAREIL, null]]);
 });
 
 test("E1 retirer : panne du service = 500 générique sans fuite", async () => {

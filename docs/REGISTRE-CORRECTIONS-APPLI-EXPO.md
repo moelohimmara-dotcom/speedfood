@@ -23,7 +23,7 @@ Les lots commande A–D5 ont ajouté progressivement contrat/API, création, his
 
 | Priorité | Travail | Critère de fermeture |
 |---|---|---|
-| P1 | I2 : cohérence serveur du rattachement d’appareil après enregistrement/retrait incertain | Plan de protocole et tests simulant écriture tardive, perte réseau, session expirée et arrêt de l’appli ; preuve serveur. Un AbortController seul ne suffit pas. |
+| P1 | I2 : cohérence serveur du rattachement d’appareil après enregistrement/retrait incertain | **Correctif écrit le 8 novembre 2026** (retrait daté par session, décision pure partagée, migration en fichier, 7 tests de protocole ; suites du dépôt vertes, rejeu 120/120) — voir PROTOCOLE-I2-RETRAIT-SESSION.md. Reste la fermeture : appliquer la migration, déployer API + site sur feux verts distincts, get_advisors, puis preuve serveur réelle (écriture tardive refusée, reconnexion acceptée) et déconnexion réelle autorisée. Un AbortController seul ne suffit pas. |
 | P1 | Mise en service G1 | Comparer version déployée au code complet, préparer retour arrière, feu vert distinct, puis compte livreur/RLS réels autorisés. |
 | P1 | Notification client « prête » sur téléphone physique | Observation réelle de réception et ouverture, avec accord pour chaque transition métier nécessaire. L’émulateur ou une compilation ne ferme pas cette case. |
 | P1 | Compléter la parité avant remplacement Kotlin | Tableau fonctionnel client/restaurateur/livreur/équipe et paiement ; essais Android/iOS, signature et mise à jour conservant les données. |

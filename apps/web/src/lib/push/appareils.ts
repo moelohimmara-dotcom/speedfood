@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { deciderRattachement } from "@speedfood/shared/contracts/appareils";
 import { compteServiceConfigure, envoyerFcm } from "./fcm-envoi";
 import type { TypeNotification } from "./fcm";
 
@@ -24,8 +25,25 @@ export interface BilanFcm {
  * Enregistre (ou met à jour) l'appareil d'un compte. Un jeton déjà connu change de propriétaire : l'appareil appartient à la dernière personne connectée dessus
  * (un restaurateur qui se déconnecte puis un livreur qui se connecte sur le même téléphone). Au plus [APPAREILS_MAX_PAR_UTILISATEUR] appareils par compte.
  */
-export async function enregistrerAppareil(utilisateurId: string, jeton: string, plateforme: "android" | "ios", versionApp: string | null): Promise<boolean> {
+/** Empreinte du jeton d'appareil pour la table des retraits : le jeton lui-même ne sort jamais de `appareils_push`. */
+async function empreinteJeton(jeton: string): Promise<string> {
+  const octets = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(jeton));
+  return [...new Uint8Array(octets)].map((o) => o.toString(16).padStart(2, "0")).join("");
+}
+
+export async function enregistrerAppareil(utilisateurId: string, jeton: string, plateforme: "android" | "ios", versionApp: string | null, sessionId: string | null): Promise<boolean> {
   const db = sansTypes();
+  // Protocole I2 : le retrait de CE compte pour CET appareil bloque le réattachement par la session retirée (écriture tardive
+  // d'un POST parti avant la déconnexion). Une autre session consomme le retrait. Panne de lecture de la trace = échec propre
+  // (faux) : jamais de réattachement douteux ; l'application réenregistrera à sa prochaine ouverture.
+  if (sessionId) {
+    const empreinte = await empreinteJeton(jeton);
+    const { data: retrait, error: erreurRetrait } = await db.from("appareils_push_retraits").select("session_id").eq("utilisateur_id", utilisateurId).eq("jeton_empreinte", empreinte).maybeSingle();
+    if (erreurRetrait) return false;
+    const decision = deciderRattachement(retrait ? { sessionId: (retrait as { session_id: string }).session_id } : null, sessionId);
+    if (decision.action === "refuser") return false;
+    if (decision.consommerRetrait) await db.from("appareils_push_retraits").delete().eq("utilisateur_id", utilisateurId).eq("jeton_empreinte", empreinte);
+  }
   const { error } = await db
     .from("appareils_push")
     .upsert({ utilisateur_id: utilisateurId, jeton, plateforme, version_app: versionApp, mis_a_jour_le: new Date().toISOString(), echecs: 0 }, { onConflict: "jeton" });
@@ -37,8 +55,17 @@ export async function enregistrerAppareil(utilisateurId: string, jeton: string, 
 }
 
 /** Retire l'appareil d'un compte (déconnexion) : il ne reçoit plus rien de ce compte. Sans effet si le jeton appartient à quelqu'un d'autre. */
-export async function retirerAppareil(utilisateurId: string, jeton: string): Promise<void> {
-  await sansTypes().from("appareils_push").delete().eq("utilisateur_id", utilisateurId).eq("jeton", jeton);
+export async function retirerAppareil(utilisateurId: string, jeton: string, sessionId: string | null): Promise<void> {
+  const db = sansTypes();
+  await db.from("appareils_push").delete().eq("utilisateur_id", utilisateurId).eq("jeton", jeton);
+  // Trace du retrait (protocole I2) : la session qui vient de retirer ne pourra plus réattacher cet appareil, même par une
+  // écriture partie avant la déconnexion et appliquée après. Sans session identifiable, retrait historique sans trace.
+  if (sessionId) {
+    await db.from("appareils_push_retraits").upsert(
+      { utilisateur_id: utilisateurId, jeton_empreinte: await empreinteJeton(jeton), session_id: sessionId, retire_le: new Date().toISOString() },
+      { onConflict: "utilisateur_id,jeton_empreinte" },
+    );
+  }
 }
 
 /** Notifie les appareils des comptes donnés. `null` si les notifications poussées ne sont pas configurées (secret absent). */

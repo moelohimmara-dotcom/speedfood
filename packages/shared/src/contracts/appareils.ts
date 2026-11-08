@@ -61,3 +61,25 @@ export function lireDemandeRetrait(corps: unknown): LectureDemandeRetrait {
   if (!jetonAppareilValide(o.jeton)) return { ok: false, message: MESSAGE_APPAREIL_INVALIDE };
   return { ok: true, jeton: o.jeton };
 }
+
+/**
+ * Protocole I2 (résidu du lot « cycle de session ») : le serveur n'applique plus les écritures des appareils dans le seul ordre
+ * d'arrivée réseau. Au retrait, le serveur garde la trace du couple (compte, appareil) et de la SESSION retirée. Cette décision
+ * pure dit ce qu'un enregistrement doit subir, selon la session du jeton porteur — lu dans le jeton déjà vérifié, jamais envoyé
+ * par le corps :
+ *
+ * - même session que la session retirée : REFUSER. C'est l'écriture tardive du résidu (un POST parti avant la déconnexion,
+ *   appliqué après le retrait) ; l'appareil ne doit pas être réattaché à un compte déconnecté.
+ * - autre session (vraie reconnexion) : ACCEPTER et consommer le retrait, qui a rempli son rôle.
+ * - pas de retrait connu : ACCEPTER.
+ * - session non identifiable (jeton ancien ou vérification sans session) : ACCEPTER sans consommer — comportement historique,
+ *   limite assumée et documentée : la garde ne s'applique qu'aux sessions identifiables. Une session vide ne vaut jamais une session.
+ */
+export type DecisionRattachement = { action: "accepter" | "refuser"; consommerRetrait: boolean };
+
+export function deciderRattachement(retrait: { sessionId: string } | null, sessionId: string | null): DecisionRattachement {
+  if (!sessionId) return { action: "accepter", consommerRetrait: false };
+  if (!retrait) return { action: "accepter", consommerRetrait: false };
+  if (retrait.sessionId && retrait.sessionId === sessionId) return { action: "refuser", consommerRetrait: false };
+  return { action: "accepter", consommerRetrait: true };
+}

@@ -4,7 +4,7 @@ import { lireBearer } from "@speedfood/shared/api/v1-regles";
 import type { VerificateurJeton } from "../identite/jeton.ts";
 
 /** Ce que la chaîne pose pour les maillons suivants. */
-export type Variables = { utilisateurId: string };
+export type Variables = { utilisateurId: string; sessionId?: string };
 
 /**
  * Chaîne de contrôles de chaque requête (design §5), dans l'ordre : limite de débit, identité, limite par compte, puis (plan 1b) droits, validation, règle métier, audit.
@@ -25,7 +25,7 @@ export function identifier(verifier: VerificateurJeton, message = "Connectez-vou
     const jeton = lireBearer(c.req.header("authorization"));
     const utilisateur = jeton ? await verifier(jeton) : null;
     if (!utilisateur) throw new ErreurMetier("NON_AUTHENTIFIE", message);
-    c.set("utilisateurId", utilisateur.id);
+    c.set("utilisateurId", utilisateur.id); if (utilisateur.sessionId) c.set("sessionId", utilisateur.sessionId);
     await suivant();
   };
 }

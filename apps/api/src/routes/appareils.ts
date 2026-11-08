@@ -21,7 +21,7 @@ export function routeAppareils(deps: Pick<Deps, "verificateurs" | "appareils">) 
     if (!demande.ok) return reponseErreur(c, { code: "VALIDATION", message: demande.message });
     let enregistre = false;
     try {
-      enregistre = await deps.appareils.enregistrer(c.get("utilisateurId"), demande.jeton, demande.plateforme, demande.versionApp);
+      enregistre = await deps.appareils.enregistrer(c.get("utilisateurId"), demande.jeton, demande.plateforme, demande.versionApp, c.get("sessionId") ?? null);
     } catch {
       // L'exception d'origine est avalée : son texte pourrait citer le jeton d'appareil.
     }
@@ -35,7 +35,7 @@ export function routeAppareils(deps: Pick<Deps, "verificateurs" | "appareils">) 
     if (!demande.ok) return reponseErreur(c, { code: "VALIDATION", message: demande.message });
     // Sans effet (même réponse) si le jeton appartient à un autre compte : le service ne supprime que la ligne du compte du Bearer.
     try {
-      await deps.appareils.retirer(c.get("utilisateurId"), demande.jeton);
+      await deps.appareils.retirer(c.get("utilisateurId"), demande.jeton, c.get("sessionId") ?? null);
     } catch {
       return reponseErreur(c, { code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." });
     }

@@ -103,8 +103,8 @@ export interface Deps {
   /** Lot E1 : appareils des notifications. Plafond par compte (lève `ErreurMetier` TROP_DE_REQUETES), enregistrement (faux = échec) et retrait ; le compte est toujours celui du jeton porteur. Câblage : `appareils/cablage.ts`. */
   appareils: {
     limiter(utilisateurId: string): Promise<void>;
-    enregistrer(utilisateurId: string, jeton: string, plateforme: import("@speedfood/shared/contracts/appareils").PlateformeAppareil, versionApp: string | null): Promise<boolean>;
-    retirer(utilisateurId: string, jeton: string): Promise<void>;
+    enregistrer(utilisateurId: string, jeton: string, plateforme: import("@speedfood/shared/contracts/appareils").PlateformeAppareil, versionApp: string | null, sessionId: string | null): Promise<boolean>;
+    retirer(utilisateurId: string, jeton: string, sessionId: string | null): Promise<void>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };

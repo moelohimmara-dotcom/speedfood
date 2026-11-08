@@ -27,8 +27,8 @@ test("cablage E1 : le plafond est celui du site, l'enregistrement et le retrait 
   const lignes = cablage.split("\n");
   const unique = (motif: RegExp, nom: string) => assert.equal(lignes.filter((l) => motif.test(l)).length, 1, nom);
   unique(/^\s*limiter:\s*limiterAppareil,\s*$/, "limiter");
-  unique(/^\s*enregistrer:\s*\(utilisateurId,\s*jeton,\s*plateforme,\s*versionApp\)\s*=>\s*enregistrerAppareil\(utilisateurId,\s*jeton,\s*plateforme,\s*versionApp\),\s*$/, "enregistrer");
-  unique(/^\s*retirer:\s*\(utilisateurId,\s*jeton\)\s*=>\s*retirerAppareil\(utilisateurId,\s*jeton\),\s*$/, "retirer");
+  unique(/^\s*enregistrer:\s*\(utilisateurId,\s*jeton,\s*plateforme,\s*versionApp,\s*sessionId\)\s*=>\s*enregistrerAppareil\(utilisateurId,\s*jeton,\s*plateforme,\s*versionApp,\s*sessionId\),\s*$/, "enregistrer");
+  unique(/^\s*retirer:\s*\(utilisateurId,\s*jeton,\s*sessionId\)\s*=>\s*retirerAppareil\(utilisateurId,\s*jeton,\s*sessionId\),\s*$/, "retirer");
   assert.equal((cablage.match(/enregistrerAppareil\(/g) ?? []).length, 1);
   assert.equal((cablage.match(/retirerAppareil\(/g) ?? []).length, 1);
 });
@@ -59,8 +59,8 @@ test("routes/appareils.ts (API) : aucun import du site, de la clé de service ni
   }
 });
 
-test("service des appareils (site) : seule la table `appareils_push` est écrite par les deux fonctions branchées, avec le compte reçu ; imports figés", () => {
-  assert.equal((siteAppareils.match(/^import /gm) ?? []).length, 5, "liste des imports figée : toute nouvelle dépendance doit être revue");
+test("service des appareils (site) : seules les tables `appareils_push` et `appareils_push_retraits` (protocole I2) sont touchées par les deux fonctions branchées, avec le compte reçu ; imports figés", () => {
+  assert.equal((siteAppareils.match(/^import /gm) ?? []).length, 6, "liste des imports figée : toute nouvelle dépendance doit être revue");
   assert.equal((siteAppareils.match(/from "@\/lib\/db\/admin"/g) ?? []).length, 1);
   const debutEnreg = siteAppareils.indexOf("export async function enregistrerAppareil(");
   const debutRetrait = siteAppareils.indexOf("export async function retirerAppareil(");
@@ -69,11 +69,14 @@ test("service des appareils (site) : seule la table `appareils_push` est écrite
   const enregistrer = siteAppareils.slice(debutEnreg, debutRetrait);
   const retirer = siteAppareils.slice(debutRetrait, debutNotif);
   assert.ok(/\.from\("appareils_push"\)\s*\.upsert\(\{ utilisateur_id: utilisateurId, jeton, plateforme, version_app: versionApp,[^}]*\}, \{ onConflict: "jeton" \}\)/.test(enregistrer), "upsert sur le jeton, compte reçu");
-  assert.equal((enregistrer.match(/\.from\("/g) ?? []).length, 3, "trois accès, tous à appareils_push");
+  assert.equal((enregistrer.match(/\.from\("/g) ?? []).length, 5, "cinq accès : trace du retrait (lecture, consommation) puis appareils_push");
   assert.equal((enregistrer.match(/\.from\("appareils_push"\)/g) ?? []).length, 3);
+  assert.equal((enregistrer.match(/\.from\("appareils_push_retraits"\)/g) ?? []).length, 2, "garde I2 : lecture de la trace et consommation par une autre session");
+  assert.ok(/deciderRattachement\(/.test(enregistrer), "la décision du protocole I2 est celle du contrat partagé, pas une copie locale");
   assert.ok(/\.eq\("utilisateur_id", utilisateurId\)\.order\("mis_a_jour_le"/.test(enregistrer), "plafond de 10 appareils compté sur le compte");
   assert.ok(/\.from\("appareils_push"\)\.delete\(\)\.eq\("utilisateur_id", utilisateurId\)\.eq\("jeton", jeton\)/.test(retirer), "retrait filtré sur le compte ET le jeton");
-  assert.equal((retirer.match(/\.from\("/g) ?? []).length, 1);
+  assert.equal((retirer.match(/\.from\("/g) ?? []).length, 2, "suppression de l'appareil puis trace du retrait");
+  assert.ok(/\.from\("appareils_push_retraits"\)\.upsert\(/.test(retirer), "le retrait laisse la trace de sa session (protocole I2)");
   assert.ok(!/console\./.test(enregistrer + retirer), "aucune journalisation dans l'enregistrement ni le retrait");
 });
 

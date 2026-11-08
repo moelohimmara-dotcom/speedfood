@@ -2,7 +2,20 @@ import { createRemoteJWKSet, errors, jwtVerify } from "jose";
 import type { JWTVerifyGetKey } from "jose";
 
 /** Un vérificateur de jeton rend l'identifiant du compte, ou `null` si le jeton est invalide ou expiré. Une PANNE (clés illisibles, service d'authentification indisponible) lève une exception : la chaîne répond alors 500, jamais un faux 401. */
-export type VerificateurJeton = (jeton: string) => Promise<{ id: string } | null>;
+export type VerificateurJeton = (jeton: string) => Promise<{ id: string; sessionId?: string } | null>;
+
+/** Lit le claim `session_id` d'un jeton DÉJÀ authentifié (signature vérifiée en local, ou compte confirmé par le service). Ne jamais appeler sur un jeton non vérifié : le décodage seul ne prouve rien. */
+export function lireSessionId(jeton: string): string | undefined {
+  try {
+    const partie = jeton.split(".")[1];
+    if (!partie) return undefined;
+    const brut = Buffer.from(partie.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    const payload = JSON.parse(brut) as { session_id?: unknown };
+    return typeof payload.session_id === "string" && payload.session_id !== "" ? payload.session_id : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface ConfigJeton {
   /** Clés publiques de signature (celles que Supabase publie). */
@@ -40,7 +53,7 @@ function estJetonInvalide(erreur: unknown): boolean {
  * Jeton invalide → null ; panne (lecture des clés impossible, délai dépassé, erreur inattendue) → l'exception remonte.
  * Limite connue : un compte supprimé ou banni reste accepté jusqu'à l'expiration du jeton (une heure) ; le mode « strict » (appel au service) existe pour les actions sensibles.
  */
-export async function verifierJetonLocal(jeton: string, config: ConfigJeton, maintenant: Date = new Date()): Promise<{ id: string } | null> {
+export async function verifierJetonLocal(jeton: string, config: ConfigJeton, maintenant: Date = new Date()): Promise<{ id: string; sessionId?: string } | null> {
   try {
     const { payload } = await jwtVerify(jeton, config.cles, {
       issuer: config.issuer,
@@ -48,7 +61,9 @@ export async function verifierJetonLocal(jeton: string, config: ConfigJeton, mai
       algorithms: ["ES256"],
       currentDate: maintenant,
     });
-    return typeof payload.sub === "string" && payload.sub !== "" ? { id: payload.sub } : null;
+    if (typeof payload.sub !== "string" || payload.sub === "") return null;
+    const sessionId = typeof payload.session_id === "string" && payload.session_id !== "" ? payload.session_id : undefined;
+    return sessionId ? { id: payload.sub, sessionId } : { id: payload.sub };
   } catch (erreur) {
     if (estJetonInvalide(erreur)) return null;
     throw erreur;
@@ -78,6 +93,9 @@ export function creerVerificateurStrict(obtenirClient: () => ClientAuthStrict): 
       if (typeof error.status === "number" && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) return null;
       throw new Error(`verification du jeton impossible (${error.name ?? "sans nom"})`);
     }
-    return data.user ? { id: data.user.id } : null;
+    // Le service vient d'authentifier ce jeton : lire son claim de session est sûr.
+    if (!data.user) return null;
+    const sessionId = lireSessionId(jeton);
+    return sessionId ? { id: data.user.id, sessionId } : { id: data.user.id };
   };
 }

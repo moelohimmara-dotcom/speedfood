@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (!lu.ok) return lu.reponse;
   const corps = (typeof lu.corps === "object" && lu.corps !== null ? lu.corps : {}) as { jeton?: unknown };
   if (!jetonAppareilValide(corps.jeton)) return repondreErreur({ code: "VALIDATION", message: "Appareil invalide." });
-  await retirerAppareil(utilisateur.id, corps.jeton);
+  await retirerAppareil(utilisateur.id, corps.jeton, utilisateur.sessionId);
   return repondre({ ok: true });
 }
 

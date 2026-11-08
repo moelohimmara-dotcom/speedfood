@@ -19,12 +19,25 @@ export function repondreErreur(erreur: ErreurApi): NextResponse {
  * Utilisateur du jeton porteur, vérifié auprès du service d'authentification (signature, expiration, compte existant) ; null si absent ou invalide.
  * Les cookies de session du site ne sont JAMAIS lus ici.
  */
-export async function utilisateurDuJeton(request: Request): Promise<{ id: string } | null> {
+export async function utilisateurDuJeton(request: Request): Promise<{ id: string; sessionId: string | null } | null> {
   const jeton = lireBearer(request.headers.get("authorization"));
   if (!jeton) return null;
   const { data, error } = await creerClientAdmin().auth.getUser(jeton);
   if (error || !data.user) return null;
-  return { id: data.user.id };
+  // Le service vient d'authentifier ce jeton : lire son claim de session (protocole I2 des appareils) est sûr.
+  return { id: data.user.id, sessionId: lireSessionIdJeton(jeton) };
+}
+
+/** Claim `session_id` d'un jeton DÉJÀ authentifié par le service. Ne jamais appeler sur un jeton non vérifié. */
+function lireSessionIdJeton(jeton: string): string | null {
+  try {
+    const partie = jeton.split(".")[1];
+    if (!partie) return null;
+    const payload = JSON.parse(Buffer.from(partie.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")) as { session_id?: unknown };
+    return typeof payload.session_id === "string" && payload.session_id !== "" ? payload.session_id : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Corps JSON d'une requête, ou une réponse d'erreur toute prête (type de contenu, taille, JSON valide). */

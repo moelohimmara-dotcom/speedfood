@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return repondreErreur({ code: "VALIDATION", message: "Appareil invalide." });
   }
   const version = typeof corps.versionApp === "string" && corps.versionApp.length <= 40 ? corps.versionApp : null;
-  const ok = await enregistrerAppareil(utilisateur.id, corps.jeton, corps.plateforme, version);
+  const ok = await enregistrerAppareil(utilisateur.id, corps.jeton, corps.plateforme, version, utilisateur.sessionId);
   return ok ? repondre({ ok: true }) : repondreErreur({ code: "ERREUR_SERVEUR", message: "Impossible d'enregistrer l'appareil. Réessayez dans un instant." });
 }
 
