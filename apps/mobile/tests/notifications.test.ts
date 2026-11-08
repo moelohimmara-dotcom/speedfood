@@ -2,6 +2,7 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync, readdirSync } from 'node:fs';
+import { URL as NodeURL, fileURLToPath } from 'node:url';
 import { apresCommandeEnvoyee, apresContexteRestaurateur, decider, decisionAuDemarrage, etatAffiche, type EtatSysteme, type PortAutorisation } from '../src/notifications/autorisation.ts';
 import { creerAppareil, type DepsAppareil } from '../src/notifications/enregistrement.ts';
 import { ACTION_PAR_DEFAUT, TYPES_NOTIFICATION_RESTAURATEUR, TYPES_NOTIFICATION_SUIVI, demarrerOuverture, typeDeRestaurateur, typeDeSuivi, type PortOuverture, type ReponseNotification } from '../src/notifications/ouverture.ts';
@@ -176,9 +177,9 @@ test('jeton : jamais écrit dans la console ni repris dans un résultat ou une e
   } finally { for (const e of espions) e.mock.restore(); }
 });
 test('jeton : aucun journal ni affichage dans le code des notifications', () => {
-  const dossier = new URL('../src/notifications/', import.meta.url);
+  const dossier = new NodeURL('../src/notifications/', import.meta.url);
   for (const f of readdirSync(dossier)) {
-    const code = readFileSync(new URL(f, dossier), 'utf8');
+    const code = readFileSync(fileURLToPath(new NodeURL(f, dossier)), 'utf8');
     assert.ok(!/console\s*\./.test(code), `${f} : console`);
     assert.ok(!/\balert\s*\(/.test(code), `${f} : alert`);
   }
@@ -386,7 +387,7 @@ test('session : acces() renvoie le jeton porteur, ou null sans session (jamais d
 /* ---------- configuration ---------- */
 
 const { avecFirebase } = createRequire(import.meta.url)('../identite-candidat.cjs') as { avecFirebase: (c: Record<string, any>, present: boolean) => Record<string, any> };
-const base = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo;
+const base = JSON.parse(readFileSync(fileURLToPath(new NodeURL('../app.json', import.meta.url)), 'utf8')).expo;
 test('configuration : le plugin expo-notifications est déclaré, google-services.json n\'est jamais en dur', () => {
   assert.ok(base.plugins.some((p: unknown) => Array.isArray(p) ? p[0] === 'expo-notifications' : p === 'expo-notifications'));
   assert.equal(base.android.googleServicesFile, undefined);

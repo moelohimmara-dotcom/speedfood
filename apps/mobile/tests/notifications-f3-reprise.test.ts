@@ -11,6 +11,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { URL as NodeURL, fileURLToPath } from 'node:url';
 import { creerServiceNotifications, type PortNatif } from '../src/notifications/service.ts';
 import type { EtatSysteme } from '../src/notifications/autorisation.ts';
 
@@ -159,7 +160,7 @@ test('B2 : un non-membre en concurrence avec une commande ne déclenche rien de 
 
 /* ---------- Câblage React (texte source) : ne remplace NI un rendu réel NI l'essai F3 sur émulateur ---------- */
 
-const source = (chemin: string) => readFileSync(new URL(chemin, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const source = (chemin: string) => readFileSync(fileURLToPath(new NodeURL(chemin, import.meta.url)), 'utf8').replace(/\r\n/g, '\n');
 
 test('câblage (source) : CompteReel arme la demande à chaque nouvel appui et l\'évalue avec session, rôle et verrou « occupé » en dépendances', () => {
   const c = source('../src/connexion/CompteReel.tsx');

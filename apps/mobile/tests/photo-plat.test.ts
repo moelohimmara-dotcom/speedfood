@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { cheminDepuisModule } from './chemins.ts';
 import { creerAuth } from '../src/connexion/client.ts';
 import { ErreurRestaurateur, MESSAGE_SECURITE } from '../src/connexion/restaurateur.ts';
 import {
@@ -275,7 +276,7 @@ test('client D4c : envoi = UN POST multipart sur /menu/photo avec le jeton porte
   assert.ok(!('Content-Type' in entetes), 'la frontière du multipart est posée par le système');
   const corps = appels[0].options.body as FormData;
   assert.ok(corps instanceof FormData);
-  assert.deepEqual([...corps.keys()].sort(), ['photo', 'platId']);
+  assert.deepEqual([...((corps as unknown as { keys: () => IterableIterator<string> }).keys())].sort(), ['photo', 'platId']);
   assert.equal(corps.get('platId'), P1);
   const photo = corps.get('photo') as File;
   assert.equal(photo.type, 'image/jpeg'); assert.equal(photo.name, 'photo.jpg');
@@ -285,7 +286,7 @@ test('client D4c : retrait = UN POST multipart avec platId et retirer=1, sans fi
   await a.ecrireService(ACCES, actionPhotoRetirer(platDe(avecPhoto())));
   assert.equal(appels.length, 1);
   const corps = appels[0].options.body as FormData;
-  assert.deepEqual([...corps.keys()].sort(), ['platId', 'retirer']);
+  assert.deepEqual([...((corps as unknown as { keys: () => IterableIterator<string> }).keys())].sort(), ['platId', 'retirer']);
   assert.equal(corps.get('retirer'), '1'); assert.equal(corps.get('platId'), P1);
 });
 test('client D4c : un fichier trop gros, vide, d’un autre type ou un plat invalide n’atteint JAMAIS le réseau', async () => {
@@ -323,9 +324,9 @@ test('client D4c : le 403 de sécurité du compte et le 401 sont traités comme 
 });
 
 // ---------- écran et branchement natif (lecture du texte source) ----------
-const ecran = readFileSync(new URL('../src/connexion/ServiceMenuReel.tsx', import.meta.url), 'utf8');
-const natif = readFileSync(new URL('../src/connexion/photoPlatNatif.ts', import.meta.url), 'utf8');
-const appJson = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo as { plugins: unknown[]; android: Record<string, unknown> };
+const ecran = readFileSync(cheminDepuisModule('../src/connexion/ServiceMenuReel.tsx'), 'utf8');
+const natif = readFileSync(cheminDepuisModule('../src/connexion/photoPlatNatif.ts'), 'utf8');
+const appJson = JSON.parse(readFileSync(cheminDepuisModule('../app.json'), 'utf8')).expo as { plugins: unknown[]; android: Record<string, unknown> };
 
 test('écran D4c : « Ajouter / Changer la photo » et « Retirer la photo » par plat ; le retrait passe par la confirmation ; l’aperçu vient de l’adresse du serveur', () => {
   assert.ok(ecran.includes("(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom"));

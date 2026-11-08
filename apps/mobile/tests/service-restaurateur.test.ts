@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { cheminDepuisModule } from './chemins.ts';
 import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
 import { ErreurRestaurateur, MESSAGE_SECURITE } from '../src/connexion/restaurateur.ts';
@@ -454,8 +455,8 @@ test('session : sans connexion, aucune requête ; une session terminée (401) ef
 });
 
 // ---------- câblage de l'écran (lecture du texte source, comme tests/clavier.test.ts) ----------
-const ecran = readFileSync(new URL('../src/connexion/ServiceMenuReel.tsx', import.meta.url), 'utf8');
-const parent = readFileSync(new URL('../src/connexion/RestaurateurReel.tsx', import.meta.url), 'utf8');
+const ecran = readFileSync(cheminDepuisModule('../src/connexion/ServiceMenuReel.tsx'), 'utf8');
+const parent = readFileSync(cheminDepuisModule('../src/connexion/RestaurateurReel.tsx'), 'utf8');
 test('écran : chaque interrupteur envoie SON champ (jamais l’autre), avec confirmation, et reste piloté par l’état du serveur', () => {
   assert.ok(ecran.includes("accessibilityLabel=\"Ouvert\" value={reglages.ouvert}"), 'interrupteur « Ouvert » lit reglages.ouvert');
   assert.ok(ecran.includes("action: actionStatut('ouvert', valeur)"), 'interrupteur « Ouvert » envoie le champ ouvert');

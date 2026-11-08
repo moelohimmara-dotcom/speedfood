@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { URL as NodeURL, fileURLToPath } from 'node:url';
 import { creerAppareil } from '../src/notifications/enregistrement.ts';
 import { creerServiceNotifications, type PortNatif } from '../src/notifications/service.ts';
 import { brancherSession, plateformeDe } from '../src/notifications/cablage.ts';
@@ -15,7 +16,7 @@ const JETON = 'jeton-appareil-factice-0123456789:APA91b_xyz';
 const JETON_NOUVEAU = 'nouveau-jeton-appareil-factice-5555555555:APA91b';
 const ACCES = 'porteur-factice';
 const pause = (ms = 40) => new Promise(r => setTimeout(r, ms));
-const source = (chemin: string) => readFileSync(new URL(chemin, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const source = (chemin: string) => readFileSync(fileURLToPath(new NodeURL(chemin, import.meta.url)), 'utf8').replace(/\r\n/g, '\n');
 
 type Emission = 'immediate' | 'tardive';
 function montage(emission: Emission = 'immediate', surMemoire: { lire(): Promise<boolean>; marquer(): Promise<void> } = { lire: async () => true, marquer: async () => undefined }) {

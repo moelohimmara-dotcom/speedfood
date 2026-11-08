@@ -51,8 +51,9 @@ export function octetsDePhotoValides(octets: Uint8Array): boolean {
  * (par exemple l'ancien `{ uri }`) est un défaut local, pas une panne réseau. Si l'implémentation ne permet pas de parcourir le formulaire, on ne peut rien affirmer : on laisse passer.
  */
 export function formulaireEnvoyable(formulaire: FormData): boolean {
-  if (typeof formulaire.entries !== 'function') return true;
-  for (const [, v] of formulaire.entries() as Iterable<[string, unknown]>) {
+  const entries = (formulaire as unknown as { entries?: () => Iterable<[string, unknown]> }).entries;
+  if (typeof entries !== 'function') return true;
+  for (const [, v] of entries.call(formulaire)) {
     if (typeof v === 'string') continue;
     const f = v as { name?: unknown; type?: unknown; bytes?: unknown } | null;
     if (!f || typeof f !== 'object' || typeof f.name !== 'string' || typeof f.type !== 'string' || typeof f.bytes !== 'function') return false;

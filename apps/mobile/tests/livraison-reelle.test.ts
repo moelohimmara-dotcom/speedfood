@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { cheminDepuisModule } from './chemins.ts';
 import assert from 'node:assert/strict';
 import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
@@ -392,6 +393,6 @@ test('I2 : la liste des quartiers n’est lue qu’en livraison, une seule fois,
 
 test('M3 : l’écran n’affiche « offerts » que pour des frais nuls (jamais d’après le seul indicateur gratuite)', async () => {
   const { readFileSync } = await import('node:fs');
-  const src = readFileSync(new URL('../src/catalogue/CommandeReelle.tsx', import.meta.url), 'utf8');
+  const src = readFileSync(cheminDepuisModule('../src/catalogue/CommandeReelle.tsx'), 'utf8');
   assert.ok(!/estimation\.gratuite/.test(src)); assert.match(src, /estimation\.fraisGnf === 0 \? 'offerts'/);
 });

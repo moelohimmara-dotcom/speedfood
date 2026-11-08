@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { cheminDepuisModule } from './chemins.ts';
 import { DECALAGE_CHAMP_HAUT, MARGE_SOUS_CLAVIER, cibleDefilement, margeBasseClavier } from '../src/connexion/clavier.ts';
 
 // Lot D3b : le clavier recouvrait le formulaire de proposition (Modal + edge-to-edge sous Android).
@@ -29,7 +30,7 @@ test('la marge suffit à atteindre les boutons : elle dépasse la hauteur du cla
 });
 
 // Câblage de l'écran (aucun test d'interface : lecture du texte source, comme le test du câblage de l'API).
-const source = readFileSync(new URL('../src/connexion/RestaurateurReel.tsx', import.meta.url), 'utf8');
+const source = readFileSync(cheminDepuisModule('../src/connexion/RestaurateurReel.tsx'), 'utf8');
 test('écran restaurateur : marge basse dans le contenu défilant, défilement vers le champ actif, les trois champs câblés', () => {
   assert.match(source, /paddingBottom: 22 \+ margeBasseClavier\(hauteurClavier, Platform\.OS\)/);
   assert.match(source, /Keyboard\.addListener\('keyboardDidShow'/);

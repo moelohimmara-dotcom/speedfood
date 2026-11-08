@@ -2,14 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { URL as NodeURL, fileURLToPath } from 'node:url';
 
 // Chargement de la seule configuration locale, sans fichier d'environnement ni serveur Metro.
 process.env.EXPO_NO_DOTENV = '1';
-const depuisMobile = createRequire(new URL('../package.json', import.meta.url));
-const depuisBanc = createRequire(new URL('../controle-livreur/package.json', import.meta.url));
+const depuisMobile = createRequire(new NodeURL('../package.json', import.meta.url));
+const depuisBanc = createRequire(new NodeURL('../controle-livreur/package.json', import.meta.url));
 const config = depuisBanc('./metro.config.cjs');
-const origineApplication = new URL('../controle-livreur/index.tsx', import.meta.url);
+const origineApplication = new NodeURL('../controle-livreur/index.tsx', import.meta.url);
 const origineRendu = join(dirname(depuisMobile.resolve('react-native/package.json')), 'Libraries/Renderer/implementations/ReactNativeRenderer-dev.js');
 const resoudre = config.resolver.resolveRequest ?? ((contexte: any, nom: string, plateforme: string) => contexte.resolveRequest(contexte, nom, plateforme));
 
@@ -18,7 +18,7 @@ test('G1 Metro : React et les deux runtimes JSX résolvent la même instance mob
     for (const origine of [origineApplication, origineRendu]) {
       const contexte = {
         originModulePath: typeof origine === 'string' ? origine : fileURLToPath(origine),
-        resolveRequest: (_c: unknown, demande: string) => ({ type: 'sourceFile', filePath: createRequire(origine).resolve(demande) }),
+        resolveRequest: (_c: unknown, demande: string) => ({ type: 'sourceFile', filePath: createRequire(typeof origine === 'string' ? origine : origine.href).resolve(demande) }),
       };
       const resultat = resoudre(contexte, nom, 'android');
       assert.equal(resultat.type, 'sourceFile');

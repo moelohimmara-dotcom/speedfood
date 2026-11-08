@@ -4,6 +4,7 @@ import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
 import { creerLectureFicheLivreur, type EtatLectureFicheLivreur, type SessionFicheLivreur } from '../src/connexion/lecture-fiche-livreur.ts';
 import { readFileSync } from 'node:fs';
+import { cheminDepuisModule } from './chemins.ts';
 import { creerTransportControle, PORTEURS_CONTROLE } from '../controle-livreur/transport.ts';
 
 const fiche = { nom: 'Livreuse A', statut: 'hors_ligne', vehicule: 'moto', cycle: 'actif', motifCycle: null, restaurantNom: null };
@@ -110,11 +111,11 @@ test('G1 lecture : 401 qui termine la session affiche le retour au compte, pas u
   assert.equal(etats.at(-1)?.etat, 'erreur'); assert.match((etats.at(-1) as any).message, /Retournez au compte/);
 });
 test('G1 câblage écran : rôle livreur branche la vraie session, aucun coffre implicite dans le composant injectable', () => {
-  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const compte = readFileSync(cheminDepuisModule('../src/connexion/CompteReel.tsx'), 'utf8');
   assert.ok(compte.includes('setLivreur(r.livreur)'));
   assert.ok(compte.includes('{livreur&&<Action titre="Espace livreur"'));
   assert.ok(compte.includes('<LivreurReel session={gestion}'));
-  const vue = readFileSync(new URL('../src/connexion/LivreurReel.tsx', import.meta.url), 'utf8');
+  const vue = readFileSync(cheminDepuisModule('../src/connexion/LivreurReel.tsx'), 'utf8');
   assert.doesNotMatch(vue, /from ['"].*(?:gestion|coffre|notifications)['"]/);
   assert.match(vue, /Retour au compte/); assert.match(vue, /Actualiser ma fiche/);
   assert.doesNotMatch(vue, /traiterOffres|demanderAutorisation|geolocation|expo-location/);
@@ -130,9 +131,9 @@ test('G1 transport de contrôle : origines non locales et porteurs non factices 
   await t.requete('http://127.0.0.1:8797/__etat', { redirect: 'follow' }); assert.equal(appels, 2, 'un appelant ne peut pas réactiver le suivi des redirections');
 });
 test('G1 banc : entrée séparée, polices et coffre en mémoire, aucun import du coffre réel', () => {
-  const entree = readFileSync(new URL('../controle-livreur/index.tsx', import.meta.url), 'utf8');
+  const entree = readFileSync(cheminDepuisModule('../controle-livreur/index.tsx'), 'utf8');
   assert.ok(entree.includes('coffreFictif')); assert.ok(entree.includes('useFonts')); assert.ok(entree.includes('SafeAreaProvider'));
   assert.doesNotMatch(entree, /from ['"][^'"]*\/(?:gestion|coffre)['"]/);
-  const normal = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const normal = JSON.parse(readFileSync(cheminDepuisModule('../package.json'), 'utf8'));
   assert.equal(normal.main, 'expo-router/entry');
 });

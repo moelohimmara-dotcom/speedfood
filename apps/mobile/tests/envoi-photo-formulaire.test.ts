@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { URL as NodeURL, fileURLToPath, pathToFileURL } from 'node:url';
 import { codeEchecPhoto, creerAuth, fichierDeFormulaireNatif, formulaireEnvoyable, octetsDePhotoValides } from '../src/connexion/client.ts';
 import { ErreurRestaurateur } from '../src/connexion/restaurateur.ts';
 import { ETAT_SERVICE_REPOS, actionPhotoDefinir, evoluerService, lireMenuRestaurateur, serviceVerrouille, type FichierPhotoPrete } from '../src/connexion/serviceRestaurateur.ts';
@@ -14,16 +14,16 @@ import { ETAT_SERVICE_REPOS, actionPhotoDefinir, evoluerService, lireMenuRestaur
  * Ces tests font tourner le VRAI code de conversion du formulaire d'Expo (copié depuis node_modules/expo, jamais réécrit ici) :
  * le formulaire du téléphone est un FormData React Native auquel Expo ajoute ses méthodes (`installFormDataPatch`).
  */
-const EXPO = new URL('../../../node_modules/expo/src/', import.meta.url);
+const EXPO = new NodeURL('../../../node_modules/expo/src/', import.meta.url);
 let convertFormDataAsync: (f: FormData) => Promise<{ body: Uint8Array; boundary: string }>;
 let FormDataTelephone: typeof FormData;
 
 before(async () => {
   const dossier = mkdtempSync(join(tmpdir(), 'speedfood-expo-'));
   mkdirSync(join(dossier, 'winter'), { recursive: true });
-  copyFileSync(new URL('utils/blobUtils.ts', EXPO), join(dossier, 'blobUtils.ts'));
-  copyFileSync(new URL('winter/FormData.ts', EXPO), join(dossier, 'winter', 'FormData.ts'));
-  writeFileSync(join(dossier, 'convertFormData.ts'), readFileSync(new URL('winter/fetch/convertFormData.ts', EXPO), 'utf8').replace("'../../utils/blobUtils'", "'./blobUtils.ts'"));
+  copyFileSync(fileURLToPath(new NodeURL('utils/blobUtils.ts', EXPO)),  join(dossier, 'blobUtils.ts'));
+  copyFileSync(fileURLToPath(new NodeURL('winter/FormData.ts', EXPO)),  join(dossier, 'winter', 'FormData.ts'));
+  writeFileSync(join(dossier, 'convertFormData.ts'), readFileSync(fileURLToPath(new NodeURL('winter/fetch/convertFormData.ts', EXPO)),  'utf8').replace("'../../utils/blobUtils'", "'./blobUtils.ts'"));
   const conversion = await import(pathToFileURL(join(dossier, 'convertFormData.ts')).href);
   const patch = await import(pathToFileURL(join(dossier, 'winter', 'FormData.ts')).href);
   convertFormDataAsync = conversion.convertFormDataAsync;

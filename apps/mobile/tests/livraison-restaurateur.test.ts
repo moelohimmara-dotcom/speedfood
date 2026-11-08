@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { cheminDepuisModule } from './chemins.ts';
 import { creerAuth, ErreurConnexion } from '../src/connexion/client.ts';
 import { GestionSession } from '../src/connexion/session.ts';
 import {
@@ -342,8 +343,8 @@ test('D5 session : l’action de livraison passe le jeton d’accès, la livrais
 });
 
 // ---------- écran (texte source) ----------
-const ecran = readFileSync(new URL('../src/connexion/RestaurateurReel.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-const domaine = readFileSync(new URL('../src/connexion/restaurateur.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const ecran = readFileSync(cheminDepuisModule('../src/connexion/RestaurateurReel.tsx'), 'utf8').replace(/\r\n/g, '\n');
+const domaine = readFileSync(cheminDepuisModule('../src/connexion/restaurateur.ts'), 'utf8').replace(/\r\n/g, '\n');
 test('D5 écran : les trois boutons existent avec leurs libellés, verrouillés par `bloque`, et l’annulation passe par la confirmation', () => {
   assert.match(ecran, /titre=\{'Parti livrer ' \+ o\.reference\} disabled=\{bloque\}/);
   assert.match(ecran, /titre=\{'Livrée ' \+ o\.reference\} disabled=\{bloque\}/);

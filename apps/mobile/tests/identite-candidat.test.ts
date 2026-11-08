@@ -2,12 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import { cheminDepuisModule } from './chemins.ts';
 
 const { appliquer, CODE_PUBLIE } = createRequire(import.meta.url)("../identite-candidat.cjs") as {
   appliquer: (c: Record<string, any>, e: Record<string, string | undefined>) => Record<string, any>;
   CODE_PUBLIE: number;
 };
-const base = JSON.parse(readFileSync(new URL("../app.json", import.meta.url), "utf8")).expo;
+const base = JSON.parse(readFileSync(cheminDepuisModule('../app.json'), 'utf8')).expo;
 
 test("sans variable, la configuration de contrôle est inchangée", () => {
   assert.deepEqual(appliquer(base, {}), base);
