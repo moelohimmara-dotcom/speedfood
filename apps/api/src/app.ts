@@ -12,6 +12,7 @@ import { routeEstimation } from "./routes/estimation.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
 import { routeRestaurant } from "./routes/restaurant.ts";
 import { routeMoi } from "./routes/moi.ts";
+import { routeLivreur } from "./routes/livreur.ts";
 import { routeSuivi } from "./routes/suivi.ts";
 import { routeVersion } from "./routes/version.ts";
 import type { Deps } from "./types.ts";
@@ -55,6 +56,7 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/catalogue", routeCatalogue(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
   app.route("/api/v1/moi", routeMoi(deps));
+  app.route("/api/v1/livreur", routeLivreur(deps));
   app.route("/api/v1/client", routeClient(deps));
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));
   app.route("/api/v1/suivi", routeSuivi(deps));

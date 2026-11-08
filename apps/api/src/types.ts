@@ -35,6 +35,10 @@ export type { Planifier };
  * remplacé par de fausses valeurs dans les tests (`tests/deps-essai.ts`).
  */
 export interface Deps {
+  livreur: {
+    limiter(utilisateurId: string): Promise<void>;
+    lireFiche(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/livreur-fiche').FicheLivreur | null>;
+  };
   configurationConnexion(): import('./identite/configuration-publique').ConfigurationConnexion | null;
   catalogue: {
     restaurants(apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageRestaurants>;

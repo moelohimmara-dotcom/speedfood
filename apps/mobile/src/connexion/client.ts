@@ -8,6 +8,7 @@ import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/
 import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
+import { lireFicheLivreur, type FicheLivreur } from './livreur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -195,6 +196,10 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
   return {
     creerCommande: postCommande,
     declarerPaiement: postDeclaration,
+    async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
+      const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
     /** Quels espaces ce compte peut-il ouvrir ? (affichage seulement). */
     async moi(accessToken: string): Promise<RolesCompte> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/moi', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });

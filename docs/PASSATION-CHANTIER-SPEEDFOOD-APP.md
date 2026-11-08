@@ -1,4 +1,6 @@
-# Passation du chantier « appli Speedfood » (Expo) — au 6 novembre 2026
+# Passation du chantier « appli Speedfood » (Expo) — au 8 novembre 2026
+
+**Fiche livreur Expo G1 — 8 novembre : vérifiée localement, NON déployée.** GET /api/v1/livreur/fiche : porteur strict, plafond, RLS + filtre du compte, six champs limités, sans action de course/position. Écran natif contrôlé sur données factices : actif, suspendu/archivé, absence/panne, retour et réponse A tardive après B. 661 tests API, 544 mobiles, 489 contrôles de cloisonnement, types/unitaires/build : codes 0 ; 12 mutations détectées/restaurées. Banc arrêté, application normale et session réelle connectée conservées. Deux GPT autorisés (implémentation/relecture). Base/RLS réelle, iPhone, paquets CI G1 et mise en service restent à vérifier. Aucun déploiement, migration, secret, relais commandes ou master modifié. Rapport : CONTROLE-FICHE-LIVREUR-EXPO-2026-11-07.md ; plan : plans/2026-11-06-espace-livreur-expo.md.
 
 **Suite appli — CI et cadrage livreur, 6 novembre :** correctif 22766ce confirmé vert dans Contrôles n°86, Android n°29 (debug/release) et iPhone n°26 (Release simulateur, lancement/capture). Ce n’est pas une publication ni un essai physique. Plan G1 proposé dans plans/2026-11-06-espace-livreur-expo.md : fiche seule, sans position/offre/action. Piège vérifié : la lecture historique livreur/etat appelle traiterOffres et peut écrire ; aucun appel réel effectué. Aucun code livreur commencé ; exception GPT pour ce nouveau lot à confirmer selon la méthode de Malika.
 
@@ -55,9 +57,9 @@ npm run test:cloisonnement
 npm run build:api
 ```
 
-Depuis `apps/mobile` : `npm test` (527 tests au 6 novembre) et `npx tsc --noEmit`. `npm install` se lance **à la racine** (espaces de travail npm, un seul `package-lock.json`).
+Depuis `apps/mobile` : `npm test` (544 tests au 8 novembre) et `npx tsc --noEmit`. `npm install` se lance **à la racine** (espaces de travail npm, un seul `package-lock.json`).
 
-Taille du Worker API : limite 1 400 000 octets, actuel ≈ 1 284 373 (marge faible).
+Taille du Worker API : limite 1 400 000 octets, paquet local G1 : 1 287 370 au 8 novembre (marge faible).
 
 ## 4. Travaux réalisés
 
@@ -102,7 +104,7 @@ Déploiements faits par Malika le 5 nov. : API (version `45cfd8bc-dc2e-4e02-9862
 ### P1 — pour tenir la parité avec Kotlin
 1. **Notification « prête » sur un vrai téléphone.** Prouvée sur émulateur le 5 nov. (2e passage) ; confirmer sur appareil physique (APK n° 26) reste utile, plus bloquant pour E3.
 2. **Notifications au restaurateur : parcours principal vérifié le 6 novembre**, canaux créés, réception Nouvelle commande et appui à chaud depuis arrière-plan. Durcissement client I1/I2 vérifié le 6 novembre (rapport cycle de session). Restent le résidu serveur après timeout, la déconnexion réelle, l’appareil physique et l’appui à froid. Voir les deux rapports du 6 novembre.
-3. **Espaces livreur et équipe** dans l'appli Expo (non abordés).
+3. **Espace livreur G1** (fiche seule) vérifié localement ; mise en service, offres/courses/position et parité à terminer. Espace équipe non abordé.
 4. **Chap Chap Pay en démo** : Malika place ses clés ; ensuite retirer les restes de paiement en espèces (décisions en attente de Malika) et les modes « J'ai payé ».
 5. **Remplacement de l'APK Kotlin** : l'appli Expo doit porter `com.speedfood.app` et **la même clé de signature** (mise à jour par-dessus sans désinstaller) ; voir `docs/SIGNATURE-CANDIDAT-EXPO.md`, `docs/plans/2026-11-01-remplacement-apk-expo.md`. Conditions de publication à fixer avec Malika.
 
@@ -129,7 +131,7 @@ Le 6 novembre, après rappel de ces trois décisions (prompt, fusion, espèces),
 
 ## 7. Non abordé du tout
 
-Espace livreur et équipe dans Expo ; paiement Chap Chap Pay réel (KYC à 0 %, pas de remboursement dans leur API : mémoire `chapchap-api-constats`) ; publication iOS/Android (conditions) ; connexion Facebook en production (app Meta en mode dev, publication reportée) ; limite CPU du Worker (erreur 1102 dès ~5 visiteurs simultanés : tests de charge prudents).
+Suite livreur G2–G6 et espace équipe dans Expo ; paiement Chap Chap Pay réel (KYC à 0 %, pas de remboursement dans leur API : mémoire `chapchap-api-constats`) ; publication iOS/Android (conditions) ; connexion Facebook en production (app Meta en mode dev, publication reportée) ; limite CPU du Worker (erreur 1102 dès ~5 visiteurs simultanés : tests de charge prudents).
 
 ## 8. Instructions de reprise
 
@@ -185,7 +187,7 @@ Projet « Speedfood » `first-metric-478413-e1` (n° 378371573902), compte `moel
 
 ## 9. Prochaine action recommandée
 
-Le parcours F1-F3 est vérifié sur émulateur et SF-AA5TT annulée sur oui distinct. Le durcissement du cycle de session est codé, relu, testé et contrôlé sur Android local ; le résidu serveur après timeout reste ouvert. Malika souhaite conserver la session : déconnexion réelle non exécutée. Avant remplacement, prévoir le contrôle du paquet CI, les essais physiques et le traitement explicite de ce résidu. La suite fonctionnelle est le cadrage de l’espace livreur, puis équipe/paiement selon le plan. Ne pas rejouer F3, allumer le relais commandes ou remplacer Kotlin sur ces seules preuves.
+Le parcours F1-F3 est vérifié sur émulateur et SF-AA5TT annulée sur oui distinct. Le durcissement du cycle de session est codé, relu, testé et contrôlé sur Android local ; le résidu serveur après timeout reste ouvert. Malika souhaite conserver la session : déconnexion réelle non exécutée. Avant remplacement, prévoir le contrôle du paquet CI, les essais physiques et le traitement explicite de ce résidu. G1 fiche livreur est désormais vérifié localement : contrôler sa CI puis préparer sa mise en service, avec feu vert distinct avant tout déploiement ; offres/courses/position restent dans G2 et suivants. Équipe/paiement ensuite selon le plan. Ne pas rejouer F3, allumer le relais commandes ou remplacer Kotlin sur ces seules preuves.
 
 
 ## Préparation des décisions suivantes (6 novembre 2026)

@@ -7,6 +7,7 @@ import { gestion } from './gestion';
 import type {CommandeCompte,ResumeSuivi} from './commandes';
 import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
+import { LivreurReel } from './LivreurReel';
 import { ErreurReglement, verdictDeclaration, type ModeReglement, type VerdictDeclaration } from './reglement';
 import { couleurs as c, polices } from '../design/tokens';
 import { notifications } from '../notifications';
@@ -27,6 +28,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
   const [restaurateur,setRestaurateur]=useState<boolean|null>(null);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
+  const [livreur,setLivreur]=useState(false);const [livreurOuvert,setLivreurOuvert]=useState(false);
   function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);return r;}
   async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
@@ -76,18 +78,19 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   useEffect(()=>{
     if(!ouvert){demandeEspace.fermer();return;}
     if(restaurateurOccupe)return;
-    if(demandeEspace.evaluer({ouvert,connectee,restaurateur}))setRestaurateurOuvert(true);
+    if(demandeEspace.evaluer({ouvert,connectee,restaurateur})){setLivreurOuvert(false);setRestaurateurOuvert(true);}
   },[demande,ouvert,connectee,restaurateur,restaurateurOccupe]);
   useEffect(()=>{
-    if(!connectee){setRestaurateur(null);setRestaurateurOuvert(false);return;}
+    if(!connectee){setRestaurateur(null);setRestaurateurOuvert(false);setLivreur(false);setLivreurOuvert(false);return;}
     let actif=true;
     void gestion.moi().then(r=>{
       if(!actif)return;
+      setLivreur(r.livreur);
       const estResto=r.restaurateur!==null;
       setRestaurateur(estResto);
       // Choix C (complément UI) : dès que le rôle restaurateur est reconnu (connexion, session rouverte à froid), même déclencheur qu'à la session (drapeau unique + promesse partagée → pas de 2ᵉ boîte).
       if(estResto)void notifications.apresContexteRestaurateur(true).then(e=>{if(actif&&e)setMessage(MESSAGES_ETAT_RESTO[e]);});
-    },()=>{if(actif)setRestaurateur(false);});
+    },()=>{if(actif){setRestaurateur(false);setLivreur(false);}});
     return()=>{actif=false;};
   },[connectee]);
   const lireOuverture=()=>{void executer(async()=>{const demande=demandeRef.current;
@@ -103,6 +106,10 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     // Au retour, l'état de la session est relu : une session terminée pendant l'espace restaurateur (401) renvoie au formulaire de connexion.
     const retour=()=>{setRestaurateurOccupe(false);setRestaurateurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
     return <Modal visible={ouvert} onRequestClose={restaurateurOccupe?()=>{}:retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><RestaurateurReel fermer={retour} signalerOccupe={setRestaurateurOccupe}/></SafeAreaView></Modal>;
+  }
+  if(livreurOuvert&&connectee){
+    const retour=()=>{setLivreurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
+    return <Modal visible={ouvert} onRequestClose={retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><LivreurReel session={gestion} fermer={retour}/></SafeAreaView></Modal>;
   }
   return <Modal visible={ouvert} onRequestClose={fermerFormulaire} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au catalogue" agir={fermerFormulaire}/><Text accessibilityRole="header" style={s.titre}>Mon compte</Text>
@@ -120,6 +127,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
       {profil?<><Text style={s.texte}>{profil.pseudo??'Profil à compléter sur le site'}</Text><Text style={s.texte}>{profil.favoris} favori(s) · {profil.adresses} adresse(s) enregistrée(s)</Text></>:<Text style={s.texte}>Votre espace n’a pas encore pu être lu.</Text>}
       <Action titre="Actualiser mon espace" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
+      {livreur&&<Action titre="Espace livreur" disabled={attente} agir={()=>setLivreurOuvert(true)}/>}
       {restaurateur&&<Action titre="Espace restaurateur" disabled={attente} agir={()=>{
         void notifications.apresContexteRestaurateur(true).then(e=>{if(e)setMessage(MESSAGES_ETAT_RESTO[e]);});
         setRestaurateurOuvert(true);
