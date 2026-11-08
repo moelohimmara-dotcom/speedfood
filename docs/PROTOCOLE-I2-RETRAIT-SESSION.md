@@ -56,3 +56,13 @@ Un incident de parcours, corrigé : une réécriture de fichier de test par scri
 - La déconnexion réelle sur l'émulateur reste à vérifier avec l'accord de Malika (elle détruirait la session conservée) ; sur téléphone physique également.
 - Les retraits sans session identifiable ne laissent pas de trace : limite acceptée pour les anciens jetons, documentée dans le contrat partagé.
 - Retour arrière : redéployer les versions précédentes de l'API et du site ; la table nouvelle peut rester en place inutilisée, ou être supprimée par une migration ultérieure si le protocole est abandonné.
+
+## Mise en service du 8 novembre 2026 (partielle : API)
+
+Sur instruction de Malika de poursuivre la fermeture, après le commit ac386f0 :
+
+- **Migration appliquée** : `supabase migration list` ne montrait qu'une seule migration en attente ; `supabase db push --linked` a appliqué `20261108220000_appareils_push_retraits.sql`, rien d'autre.
+- **Audit de la table (équivalent catalogues de get_advisors, l'outil d'audit n'étant pas disponible dans cette session)** : RLS activée, 0 policy, aucun droit pour `anon` ni `authenticated`. Le passage par le vrai `get_advisors` du dashboard reste possible pour Malika.
+- **API déployée** : version `f8ddc3bb-76d7-4aae-8514-c6f6b2bd904c` à 100 % (retour arrière : `652d227e`, celle de G1). Contrôles publics : catalogue 200, version 200, fiche livreur sans jeton 401, appareils sans jeton 401 et avec jeton invalide 401.
+- **Site NON redéployé** : son script `cf:deploy` lit `.env.local` (clé de service), ce que l'agent ne fait jamais ; le déploiement du site reste l'action de Malika (`npm run cf:deploy` depuis `apps/web`). En attendant, les routes appareils du site gardent l'ancien comportement compilé ; l'application native, vrai client des appareils, passe par l'API à jour.
+- **Preuve serveur réelle du protocole encore à faire** : elle suppose un retrait réel, donc la déconnexion de la session conservée de l'émulateur (accord distinct de Malika) ou un appareil de test dédié. Le scénario attendu est écrit dans le corps du document.
