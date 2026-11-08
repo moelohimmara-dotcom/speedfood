@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** Référence source 57f80f1 : G1 terminé sur banc natif synthétique et CI ; aucune mise en service G1 ni substitution de Kotlin. Derniers contrôles personnels : API 661, mobile 544, cloisonnement 489, types/unit/build codes 0 ; 12 mutations G1 détectées. Contrôles GitHub n°88, Android n°30 et iPhone n°27 réussis. Ces chiffres concernent ce commit, pas un déploiement actuel.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Statut du projet — pour reprise par un autre développeur
 
 **Fiche livreur Expo G1 — 8 novembre : vérifiée localement, NON déployée.** GET /api/v1/livreur/fiche : porteur strict, plafond, RLS + filtre du compte, six champs limités, sans action de course/position. Écran natif contrôlé sur données factices : actif, suspendu/archivé, absence/panne, retour et réponse A tardive après B. 661 tests API, 544 mobiles, 489 contrôles de cloisonnement, types/unitaires/build : codes 0 ; 12 mutations détectées/restaurées. Banc arrêté, application normale et session réelle connectée conservées. Deux GPT autorisés (implémentation/relecture). Base/RLS réelle, iPhone, paquets CI G1 et mise en service restent à vérifier. Aucun déploiement, migration, secret, relais commandes ou master modifié. Rapport : CONTROLE-FICHE-LIVREUR-EXPO-2026-11-07.md ; plan : plans/2026-11-06-espace-livreur-expo.md.

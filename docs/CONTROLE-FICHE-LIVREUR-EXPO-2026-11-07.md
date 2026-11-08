@@ -33,7 +33,7 @@ Contrôleur : 12 mutations exécutées personnellement, chacune détectée code 
 Suites relancées personnellement après restauration : typecheck racine, test:unit, test:cloisonnement (489 contrôles), build:api, npm test mobile (544/544), npx tsc --noEmit mobile : codes 0. Paquet API : 1 287 370 octets, sous le plafond du dépôt de 1 400 000.
 Premier lancement parallèle API : 660 succès, un test RPC local annulé par délai (code 1). Même suite complète relancée seule, sans modifier test/délai : 661/661, zéro annulation, code 0. La charge parallèle est une explication probable, pas une mesure CPU. Logs g1-final-test-api-20261108.log et g1-final-test-api-seriel-20261108.log.
 
-Le serveur local est prêt sur 8797 et Metro de contrôle sur 8081, lecture .env désactivée, IPv4. Aucun autre serveur ou compte créé. Nouvel essai natif après correction React encore à terminer ; ne pas confondre ces codes 0 avec une preuve de fonctionnement en production.
+**État intermédiaire, remplacé par le résultat natif ci-dessous :** le serveur local est prêt sur 8797 et Metro de contrôle sur 8081, lecture .env désactivée, IPv4. Aucun autre serveur ou compte créé. Nouvel essai natif après correction React encore à terminer ; ne pas confondre ces codes 0 avec une preuve de fonctionnement en production.
 
 
 ## Résultat natif du 8 novembre — confirmé par le contrôleur
@@ -55,3 +55,11 @@ Seuls les processus de contrôle des ports 8081/8797, reconnus par leur commande
 ## Limites avant mise en service
 La nouvelle route GET /api/v1/livreur/fiche n’est pas déployée. RLS et base réelles à vérifier sur un compte livreur lors d’une mise en service autorisée ; pas de modification de rôle ou de compte dans ce lot. Téléphones physiques, iPhone et paquet release contenant G1 NON vérifiés par ce banc. Les compilations GitHub du commit G1 seront à contrôler après push ; ne pas réutiliser les résultats Android n°29/iPhone n°26 du correctif précédent comme preuve G1.
 La fiche seule ne couvre pas offres, disponibilité, course, position, frais/historique/dossier, notifications livreur, paiement ou parité Kotlin. Pas de remplacement de l’ancienne APK. Prochain travail : contrôler la CI G1 et préparer la mise en service de cette route, sans déployer sans feu vert distinct.
+
+
+## Complément CI vérifié le 8 novembre 2026
+Pour le commit 57f80f16b5160a2b1d16dd3a553be48a70b52fa2, les compilations après push sont désormais vérifiées réussies : [contrôles n°88](https://github.com/moelohimmara-dotcom/speedfood/actions/runs/42436056269), [Android n°30](https://github.com/moelohimmara-dotcom/speedfood/actions/runs/42436056259), [iPhone n°27](https://github.com/moelohimmara-dotcom/speedfood/actions/runs/42436056298). Cela remplace l’attente CI de la section précédente.
+
+Métadonnées GitHub : speedfood-expo-debug-apk, 92 822 295 octets, expiration 15 novembre 2026 à 02:18:14 UTC ; captures-iphone-expo, 15 760 666 octets, expiration à 02:02:23 UTC. Archives non téléchargées/recalculées/installées lors du lot documentaire. Le banc natif a utilisé le porteur debug Android n°28 et le JavaScript courant par Metro ; il ne valide pas l’installation de l’APK n°30. iPhone n°27 est une construction/lancement simulateur, pas un appareil physique ni une IPA signée.
+
+Suite : préparer la mise en service contrôlée de G1, sans déployer sans feu vert distinct. Voir la [passation actuelle](PASSATION-CHANTIER-SPEEDFOOD-APP.md).

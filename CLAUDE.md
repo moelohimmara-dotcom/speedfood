@@ -7,15 +7,17 @@ prototype de démonstration (`docs/cadrage` en parle, le prototype lui-même vit
 dans le dépôt OneDrive `...\Jarvis\speedfood\` avec la landing — voir
 `docs/PROTOCOLE-COLLABORATION.md` pour la répartition exacte).
 
-## Organisation du dépôt (depuis le 29 octobre 2026)
+## Organisation du dépôt
+
+Complément du 8 novembre : `apps/mobile/` est le client Expo Android/iOS ; `apps/api/` est déjà déployé selon les journaux de mise en service. Voir la passation actuelle pour distinguer source, production et diffusion. Les descriptions datées ci-dessous restent historiques.
 
 Deux codes séparés : **`apps/web/`** (le site Next.js, son serveur, les scripts et tests, le Worker Cloudflare) et **`mobile/`** (l'application Android/iPhone, avec `mobile/faux-serveur/`). Sont partagés, à la racine : `supabase/` (la base), `docs/`, `demo/`, `.github/`. Les commandes `npm run …` se lancent depuis `apps/web` ; `npm install` se lance **à la racine** (espaces de travail npm, verrou unique `package-lock.json` à la racine ; `typecheck`, `test:unit` et `test:cloisonnement` existent aussi à la racine). Les commandes `./gradlew …` depuis `mobile/`. Les chemins cités dans les anciens documents (`src/…`, `public/…`, `scripts/…`) se lisent `apps/web/src/…`, `apps/web/public/…`, `apps/web/scripts/…` : voir `docs/ORGANISATION-DU-DEPOT.md`. Depuis la migration en espace de travail npm, les paquets sont hissés à la racine : `node_modules/next/dist/docs/` se lit depuis la racine du dépôt (et non depuis `apps/web/`).
 
-**`apps/api/`** (31 octobre 2026) : l'API unique (Hono sur Cloudflare Workers), non déployée ; `npm run test:api` et `npm run build:api` se lancent depuis la racine. Voir `docs/API-UNIQUE.md`. Étape 1b : dix routes portées et relais du site vers l'API **éteint par défaut** (`API_RELAIS` absent ou `non`) ; ne jamais l'allumer ni déployer sans les feux verts de Malika (Tâche 10, plan 1b).
+**`apps/api/`** (31 octobre 2026) : l'API unique (Hono sur Cloudflare Workers), initialement non déployée au 31 octobre ; `npm run test:api` et `npm run build:api` se lancent depuis la racine. Voir `docs/API-UNIQUE.md`. Étape 1b : dix routes portées et relais du site vers l'API **éteint par défaut** (`API_RELAIS` absent ou `non`) ; ne jamais l'allumer ni déployer sans les feux verts de Malika (Tâche 10, plan 1b).
 
 ## Sources de vérité (dans ce dépôt, sous `docs/cadrage/`)
 
-**Reprise du chantier de l'appli Expo (lots D1 à D5, notifications E1 à E3, tâches restantes, méthode, émulateur, déploiements) : lire d'abord `docs/PASSATION-CHANTIER-SPEEDFOOD-APP.md`** (état au 5 novembre 2026).
+**Reprise du chantier de l'appli Expo (lots D1 à D5, notifications E1 à E3, tâches restantes, méthode, émulateur, déploiements) : lire d'abord `docs/PASSATION-CHANTIER-SPEEDFOOD-APP.md`** (état au 8 novembre 2026 ; guides architecture, corrections et reprise liés).
 
 **Reprise de la refonte (API unique, relais, mise en service en cours) : lire d'abord `docs/PASSATION-REFONTE.md`** (état exact au 31 octobre 2026, reste à faire dans l'ordre, ce qui n'est pas vérifié), puis les cartes du code `docs/CARTE-DU-CODE-WEB.md` et `docs/CARTE-DU-CODE-API-MOBILE-BASE.md`.
 

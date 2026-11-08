@@ -1,5 +1,7 @@
 # Banc natif G1 — usage local uniquement
 
+Procédure complète, préconditions APK debug, commandes ADB, résolution React, lancement avec cache vidé et retour au produit : [guide de reprise](../../../docs/REPRISE-EQUIPE-DEV.md). Résultat vérifié et limites : [rapport G1](../../../docs/CONTROLE-FICHE-LIVREUR-EXPO-2026-11-07.md).
+
 Ce projet séparé n'est importé ni par `src/app`, ni par la configuration normale, ni par le paquet de production.
 
 Il réutilise **le vrai composant LivreurReel, son contrôleur, GestionSession, le parseur partagé, la route Hono et le service fiche**. Le coffre est une variable en mémoire ; le module `coffre.ts`/`gestion.ts` réel n'est jamais importé. La méthode réseau `creerAuth().ficheLivreur` n'est pas utilisée ici : un port local séparé fournit la fiche ; ses tests unitaires contrôlent séparément l'origine API normale. Toute autre méthode du client produit est branchée sur un fetch qui refuse avant réseau.
@@ -19,7 +21,7 @@ node --experimental-strip-types --import ./apps/api/scripts/enregistrer-resolveu
 Dans un autre terminal, depuis la racine :
 
 ```bash
-set EXPO_NO_DOTENV=1&& set EXPO_NO_TELEMETRY=1&& set CI=1&& set NODE_OPTIONS=--dns-result-order=ipv4first&& node node_modules/expo/bin/cli start apps/mobile/controle-livreur --localhost --port 8081
+set EXPO_NO_DOTENV=1&& set EXPO_NO_TELEMETRY=1&& set CI=1&& set NODE_OPTIONS=--dns-result-order=ipv4first&& node node_modules/expo/bin/cli start apps/mobile/controle-livreur --localhost --port 8081 --clear
 ```
 
 Le contrôleur peut relayer 8081 et 8797 par `adb reverse`, puis redémarrer **seulement le processus** de l'APK debug de contrôle `com.speedfood.clientdemo`. Pas de désinstallation, pas de `pm clear`. Le bandeau doit annoncer « CONTRÔLE LOCAL — DONNÉES FACTICES ».

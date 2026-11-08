@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** Ce document est une archive de reprise antérieure. Les problèmes de construction et premières actions ci-dessous doivent être recontrôlés, pas réexécutés aveuglément.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Reprise de projet : continuer Speedfood sans l'auteur
 
 **Relais Expo Android/iOS :** lire [PASSATION-EXPO-ANDROID-2026-11-01.md](PASSATION-EXPO-ANDROID-2026-11-01.md). Erreur native exacte, correction CMake à essayer (NON réalisée), commandes, critères de fermeture, état de production et limites y sont consignés. Première action : résoudre le chemin C++ supérieur à 260 caractères ; ne pas remplacer l’APK actuelle.

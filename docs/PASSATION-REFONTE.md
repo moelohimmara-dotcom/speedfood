@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** L’appli Expo est déjà en développement : commande, restaurateur, notifications et fiche livreur G1. Les anciennes étapes « commencer React Native » ne sont plus une attente globale. G1 reste non mis en service ; Kotlin reste distribué. Le relais commandes reste exclu ; ne pas transformer cela en API_RELAIS globalement absent/non.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Passation de la refonte d'architecture (mise à jour du 1er novembre 2026)
 
 **Fiche livreur Expo G1 — 8 novembre : vérifiée localement, NON déployée.** GET /api/v1/livreur/fiche : porteur strict, plafond, RLS + filtre du compte, six champs limités, sans action de course/position. Écran natif contrôlé sur données factices : actif, suspendu/archivé, absence/panne, retour et réponse A tardive après B. 661 tests API, 544 mobiles, 489 contrôles de cloisonnement, types/unitaires/build : codes 0 ; 12 mutations détectées/restaurées. Banc arrêté, application normale et session réelle connectée conservées. Deux GPT autorisés (implémentation/relecture). Base/RLS réelle, iPhone, paquets CI G1 et mise en service restent à vérifier. Aucun déploiement, migration, secret, relais commandes ou master modifié. Rapport : CONTROLE-FICHE-LIVREUR-EXPO-2026-11-07.md ; plan : plans/2026-11-06-espace-livreur-expo.md.

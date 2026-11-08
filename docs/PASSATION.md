@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** Ce document est une archive de reprise antérieure. Ne pas utiliser ses premières actions comme ordre actuel du chantier Expo.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Passation : reprendre Speedfood et continuer le travail
 
 > **Organisation du dépôt (29 octobre 2026)** : le site est maintenant dans `apps/web/` et l'application dans `mobile/`. Les chemins `src/`, `public/`, `scripts/` cités ici se lisent `apps/web/src/`, `apps/web/public/`, `apps/web/scripts/`, et les commandes `npm run …` se lancent depuis `apps/web/`. Voir `docs/ORGANISATION-DU-DEPOT.md`.

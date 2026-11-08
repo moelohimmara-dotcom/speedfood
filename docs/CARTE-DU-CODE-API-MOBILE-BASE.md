@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** apps/mobile existe désormais et appelle directement apps/api pour le catalogue et les parcours réels. mobile/ désigne Kotlin, qui appelle encore le site et son relais. packages/shared porte les contrats. G1 ajoute apps/api/src/livreur, routes/livreur.ts et les modules connexion/*livreur* côté Expo. Les notifications ont désormais une gestion de génération et une file de session. La carte technique à jour est ARCHITECTURE-APPLI-EXPO.md ; les affirmations anciennes d’absence d’Expo ci-dessous sont historiques.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Carte du code : API, paquet partagé, application mobile, base de données, contrôle automatique, démo (31 octobre 2026)
 
 But : permettre à un agent qui reprend le projet sans historique de savoir **où est quoi** hors du site `apps/web/`. Document de navigation, pas de spécification. Pour l'état et les décisions : `docs/PASSATION.md`, `docs/REPRISE-SESSION.md`, `docs/STATUT-PROJET.md`, `docs/API-UNIQUE.md`. Pour la cible : `docs/specs/2026-10-30-architecture-cible-design.md`. Pour la répartition des dossiers : `docs/ORGANISATION-DU-DEPOT.md`.

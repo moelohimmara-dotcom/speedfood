@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** Les exemples de candidat et artefacts ci-dessous sont historiques, peuvent être expirés et ne prouvent pas la parité. Avant signature/remplacement, suivre les portes fonctionnelles, appareils et paiement de la passation actuelle. Un catalogue visible ne suffit pas. Aucun remplacement de production autorisé par cette note.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Signer le candidat Expo (à faire par Malika)
 
 Le candidat compilé par GitHub (`candidat-android-NON-SIGNE-PRODUCTION`) n'est **pas signé**. Pour qu'Android accepte de l'installer par-dessus l'application actuelle, il faut le signer avec **la même clé** (`C:\Users\moelo\speedfood-signature\speedfood.keystore`, alias `speedfood`). Aucun agent ne lit cette clé ni son mot de passe : vous seule tapez le mot de passe.

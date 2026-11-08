@@ -1,3 +1,5 @@
+> **Lecture actuelle — 8 novembre 2026.** Rapport historique du lot nommé. Les corrections ultérieures de génération, renouvellement et file de session sont consolidées dans le [registre](REGISTRE-CORRECTIONS-APPLI-EXPO.md). Pour le dernier code, ses preuves et les limites serveur I2, lire la [passation](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les états intermédiaires ci-dessous ne remplacent pas les résultats finaux.
+
 # Notifications Expo : contrôle du cycle de session — 6 novembre 2026
 
 ## Périmètre

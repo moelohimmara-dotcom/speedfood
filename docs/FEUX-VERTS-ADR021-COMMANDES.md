@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** Journal historique : certaines étapes préparées en tête ont ensuite été exécutées dans les entrées datées. Ne pas lire « rien exécuté » comme état courant. Le relais commandes reste exclu selon le dernier état rapporté. Mesures CPU et décisions de coût anciennes ne prouvent pas les conditions actuelles et n’autorisent aucune nouvelle dépense.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Feux verts pour débloquer la création de commande par l'API (ADR-021)
 
 **Préparé le 1er novembre 2026. Rien de ce document n'a été exécuté. Aucun agent ne lance ces commandes : c'est Malika qui les exécute, un feu vert à la fois.** Ordre issu de [plans/2026-11-01-idempotence-secret-site-conserve.md](plans/2026-11-01-idempotence-secret-site-conserve.md) (§ « Mise en service proposée ») et de [PASSATION-REFONTE.md](PASSATION-REFONTE.md) (§ 2).

@@ -1,3 +1,7 @@
+> **Complément de passation — 8 novembre 2026.** Le site reste un client et un fournisseur de services métier réutilisés par l’API Hono. Le nouveau client Expo vit dans apps/mobile. G1 possède une route Hono et un contrat partagé, pas une nouvelle route Next.js. Voir ARCHITECTURE-APPLI-EXPO.md. Les chemins et comptes ci-dessous décrivent leur date d’origine.
+>
+> Point d’entrée actuel : [PASSATION-CHANTIER-SPEEDFOOD-APP.md](PASSATION-CHANTIER-SPEEDFOOD-APP.md). Les sections suivantes conservent leur chronologie ; elles ne constituent pas des autorisations nouvelles.
+
 # Carte commentée du code du site : `apps/web/` (31 octobre 2026)
 
 But : permettre à un agent qui reprend le projet sans historique de se repérer dans le site Next.js. Ce document décrit **où est quoi, qui appelle quoi, quels pièges** ; il ne remplace ni `docs/PASSATION.md`, ni `docs/REPRISE-SESSION.md`, ni `docs/STATUT-PROJET.md` (à lire avant). Tout a été relevé dans le code le 31 octobre 2026 (lecture de l'en-tête des fichiers, `grep` des imports). Ce qui n'a pas été vérifié est marqué « à vérifier ». En cas de contradiction avec le code, le code gagne (voir `CLAUDE.md`).
