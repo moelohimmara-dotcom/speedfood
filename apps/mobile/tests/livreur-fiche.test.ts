@@ -119,7 +119,7 @@ test('G1 câblage écran : rôle livreur branche la vraie session, aucun coffre 
   assert.doesNotMatch(vue, /from ['"].*(?:gestion|coffre|notifications)['"]/);
   assert.match(vue, /Retour au compte/); assert.match(vue, /Actualiser mon état/);
   assert.doesNotMatch(vue, /traiterOffres|demanderAutorisation|geolocation|expo-location/, 'G2 : ni traitement des offres, ni permission, ni position dans l’écran');
-  assert.doesNotMatch(vue, /Accepter|Refuser/, 'G2 : aucune acceptation ni refus d’offre (lot G3)');
+  assert.match(vue, /Accepter/); assert.match(vue, /Refuser/); // G3 : réponse à l’offre (voir livreur-g3.test.ts)
 });
 test('G1 transport de contrôle : origines non locales et porteurs non factices refusés AVANT fetch', async () => {
   let appels = 0;

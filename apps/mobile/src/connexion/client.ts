@@ -8,7 +8,8 @@ import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/
 import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
-import { ErreurLivreur, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
+import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
+import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -65,6 +66,13 @@ export function codeEchecPhoto(e: unknown, delaiAtteint: boolean): 'delai' | 'fo
   if (delaiAtteint) return 'delai';
   const m = e instanceof Error ? e.message : '';
   return /^Unsupported FormData/.test(m) ? 'formulaire' : 'reseau';
+}
+/** Message d'un refus du serveur (`erreur.message`), seulement s'il est un texte court et lisible ; sinon `null`. */
+function messageServeurLivreur(corps: unknown): string | null {
+  const m = corps && typeof corps === 'object' ? (corps as { erreur?: { message?: unknown } }).erreur?.message : undefined;
+  if (typeof m !== 'string') return null;
+  const propre = m.trim().replace(/\s+/g, ' ');
+  return propre.length >= 1 && propre.length <= 200 ? propre : null;
 }
 export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000, fichierDeFormulaire: LecteurFichierFormulaire = fichierDeFormulaireNatif) {
   let configuration: Promise<string> | null = null;
@@ -194,6 +202,28 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       return corps;
     } finally { clearTimeout(timer); }
   }
+  /**
+   * Écriture livreur (bascule, offre, course) : un seul essai. 401 = session terminée ; 400 = refus explicite (le message du serveur, s'il est lisible, est rendu par `refus`) ;
+   * 429 = refus ; réseau, délai, autre statut ou réponse illisible = INCERTAIN (l'action a pu être appliquée : jamais de relance automatique).
+   */
+  async function ecritureLivreur(accessToken: string, chemin: string, corpsEnvoye: object, confirmer: (corps: unknown) => unknown, textes: { reseau: string; refus: (messageServeur: string | null) => string; indisponible: string; illisible: string }): Promise<void> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corpsEnvoye) });
+    } catch { clearTimeout(timer); throw new ErreurLivreur('incertain', textes.reseau); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 400) throw new ErreurLivreur('refus', textes.refus(messageServeurLivreur(corps)));
+      if (r.status === 429) throw new ErreurLivreur('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (!r.ok) throw new ErreurLivreur('incertain', textes.indisponible);
+      try { confirmer(corps); } catch { throw new ErreurLivreur('incertain', textes.illisible); }
+    } finally { clearTimeout(timer); }
+  }
   return {
     creerCommande: postCommande,
     declarerPaiement: postDeclaration,
@@ -212,22 +242,41 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
      * pour que l'écran verrouille le bouton seulement quand l'écriture a pu être appliquée.
      */
     async basculerEnLigneLivreur(accessToken: string, enLigne: boolean): Promise<void> {
-      const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
-      let r: Response;
-      try {
-        r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/livreur/en-ligne', { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify({ enLigne }) });
-      } catch { clearTimeout(timer); throw new ErreurLivreur('incertain', 'Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
-      try {
-        let corps: unknown = null;
-        const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
-        if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
-        else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
-        if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
-        if (r.status === 400) throw new ErreurLivreur('refus', 'Changement refusé : votre état a peut-être changé. Actualisez votre état.');
-        if (r.status === 429) throw new ErreurLivreur('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
-        if (!r.ok) throw new ErreurLivreur('incertain', 'Le service est indisponible. Votre disponibilité a peut-être changé : actualisez pour vérifier.');
-        try { lireEnLigneLivreur(corps); } catch { throw new ErreurLivreur('incertain', 'La réponse de disponibilité est illisible. Actualisez votre état pour vérifier.'); }
-      } finally { clearTimeout(timer); }
+      await ecritureLivreur(accessToken, '/api/v1/livreur/en-ligne', { enLigne }, lireEnLigneLivreur, {
+        reseau: 'Impossible de joindre Speedfood. Vérifiez votre connexion.',
+        refus: () => 'Changement refusé : votre état a peut-être changé. Actualisez votre état.',
+        indisponible: 'Le service est indisponible. Votre disponibilité a peut-être changé : actualisez pour vérifier.',
+        illisible: 'La réponse de disponibilité est illisible. Actualisez votre état pour vérifier.',
+      });
+    },
+    /**
+     * Réponse à l'offre affichée (G3) : `POST /api/v1/livreur/offre`, UN SEUL essai, jamais de relance. Identifiant (UUID) et réponse vérifiés ICI avant le réseau ;
+     * le corps ne porte que l'offre et la réponse (le compte vient du jeton). Refus explicite (400) = rien d'appliqué ; tout le reste = incertain.
+     */
+    async repondreOffreLivreur(accessToken: string, offreId: string, reponse: 'acceptee' | 'refusee'): Promise<void> {
+      if (typeof offreId !== 'string' || !REGEX_UUID_LIVREUR.test(offreId) || (reponse !== 'acceptee' && reponse !== 'refusee')) throw new ErreurLivreur('refus', 'Cette offre n’est plus lisible. Actualisez votre état.');
+      await ecritureLivreur(accessToken, '/api/v1/livreur/offre', { offreId, reponse }, lireReponseActionLivreur, {
+        reseau: 'Impossible de joindre Speedfood. Votre réponse a peut-être été enregistrée : actualisez votre état pour vérifier.',
+        refus: message => message ?? 'Réponse refusée : l’offre a peut-être changé. Actualisez votre état.',
+        indisponible: 'Le service est indisponible. Votre réponse a peut-être été enregistrée : actualisez votre état pour vérifier.',
+        illisible: 'La réponse du service est illisible. Votre réponse a peut-être été enregistrée : actualisez votre état pour vérifier.',
+      });
+    },
+    /**
+     * Avancement de la course affichée (G3) : `POST /api/v1/livreur/course`, UN SEUL essai, jamais de relance, même après une réponse incertaine. Le corps est produit par le contrat
+     * partagé avec le serveur AVANT le réseau (livraison UUID, étape connue, code de EXACTEMENT 4 chiffres seulement avec « livree », raison seulement avec « echec ») : une demande invalide
+     * ne part jamais et ne verrouille rien. Le code n'est ni journalisé, ni conservé, ni repris dans un message d'erreur.
+     */
+    async avancerCourseLivreur(accessToken: string, demande: DemandeCourseLivreur): Promise<void> {
+      const corps = lireCorpsCourseLivreur(demande);
+      if (corps === null) throw new ErreurLivreur('refus', 'Cette étape ne peut pas être envoyée telle quelle. Vérifiez la saisie ou actualisez votre état.');
+      const code = corps.code;
+      await ecritureLivreur(accessToken, '/api/v1/livreur/course', corps, lireReponseActionLivreur, {
+        reseau: 'Impossible de joindre Speedfood. Votre action a peut-être été enregistrée : actualisez votre état pour vérifier avant de recommencer.',
+        refus: message => (message !== null && code !== undefined && message.includes(code) ? 'Code de remise incorrect.' : message ?? 'Action refusée : votre course a peut-être changé. Actualisez votre état.'),
+        indisponible: 'Le service est indisponible. Votre action a peut-être été enregistrée : actualisez votre état pour vérifier avant de recommencer.',
+        illisible: 'La réponse du service est illisible. Votre action a peut-être été enregistrée : actualisez votre état pour vérifier avant de recommencer.',
+      });
     },
     /** Quels espaces ce compte peut-il ouvrir ? (affichage seulement). */
     async moi(accessToken: string): Promise<RolesCompte> {

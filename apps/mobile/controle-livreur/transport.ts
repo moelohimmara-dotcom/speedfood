@@ -1,5 +1,6 @@
-import { ErreurConnexion } from '../src/connexion/client.ts';
-import { ErreurLivreur, lireEtatLivreur, lireEnLigneLivreur, lireFicheLivreur } from '../src/connexion/livreur.ts';
+import { ErreurConnexion, creerAuth } from '../src/connexion/client.ts';
+import { ORIGINE_CATALOGUE } from '../src/catalogue/client.ts';
+import { ErreurLivreur, lireEtatLivreur, lireEnLigneLivreur, lireFicheLivreur, type DemandeCourseLivreur } from '../src/connexion/livreur.ts';
 import { PORTEURS_CONTROLE } from './identites.ts';
 export { PORTEURS_CONTROLE };
 
@@ -48,5 +49,18 @@ export function creerTransportControle(fetcher: typeof fetch = fetch) {
     const corps: unknown = await r.json().catch(() => null);
     try { lireEnLigneLivreur(corps); } catch { throw new ErreurLivreur('incertain', 'La réponse de disponibilité est illisible. Actualisez votre état pour vérifier.'); }
   }
-  return { requete, ficheLivreur, etatLivreur, basculerEnLigneLivreur };
+  /**
+   * G3 : offre et course passent par le VRAI client réseau de l'application (`creerAuth`), dont seul le `fetch` est remplacé : l'adresse de production est réécrite vers
+   * le banc local, puis la garde ci-dessus n'accepte que ce serveur, ces deux chemins et les deux porteurs factices. Le code testé est donc celui qui partira en production.
+   */
+  const auth = creerAuth(((url: string, init?: RequestInit) => requeteControlee(String(url).replace(ORIGINE_CATALOGUE, ORIGINE_CONTROLE), init ?? {}, ['/api/v1/livreur/offre', '/api/v1/livreur/course'])) as typeof fetch);
+  async function repondreOffreLivreur(porteur: string, offreId: string, reponse: 'acceptee' | 'refusee'): Promise<void> {
+    if (!(PORTEURS_CONTROLE as readonly string[]).includes(porteur)) throw new Error('CONTROLE_IDENTITE_REFUSEE');
+    await auth.repondreOffreLivreur(porteur, offreId, reponse);
+  }
+  async function avancerCourseLivreur(porteur: string, demande: DemandeCourseLivreur): Promise<void> {
+    if (!(PORTEURS_CONTROLE as readonly string[]).includes(porteur)) throw new Error('CONTROLE_IDENTITE_REFUSEE');
+    await auth.avancerCourseLivreur(porteur, demande);
+  }
+  return { requete, ficheLivreur, etatLivreur, basculerEnLigneLivreur, repondreOffreLivreur, avancerCourseLivreur };
 }

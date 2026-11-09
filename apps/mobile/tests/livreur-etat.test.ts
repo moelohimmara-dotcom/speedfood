@@ -17,12 +17,12 @@ const fiche: EtatLivreur['fiche'] = { nom: 'Livreuse contrôle', statut: 'hors_l
 const offre = { offreId: 'offre-1', expireLe: '2026-11-08T23:59:00.000Z', restaurantNom: 'Restaurant contrôle', distanceCourseKm: 2.4, distanceRestaurantKm: 1.1, fraisGnf: 5000 };
 
 test('domaine : réponse état exacte acceptée ; enveloppe ou champ différent rejeté', () => {
-  assert.deepEqual(lireEtatLivreur({ ok: true, etat: { fiche, offre } }), { fiche, offre });
+  assert.deepEqual(lireEtatLivreur({ ok: true, etat: { fiche, offre, course: null } }), { fiche, offre, course: null });
   assert.equal(lireEtatLivreur({ ok: true, etat: null }), null);
   assert.throws(() => lireEtatLivreur({ ok: true }));
   assert.throws(() => lireEtatLivreur({ ok: false, etat: { fiche, offre } }));
-  assert.throws(() => lireEtatLivreur({ ok: true, etat: { fiche: { ...fiche, statut: 'inconnu' }, offre: null } }));
-  assert.throws(() => lireEtatLivreur({ ok: true, etat: { fiche, offre: { ...offre, fraisGnf: 5000.5 } } }), /ILLISIBLE/);
+  assert.throws(() => lireEtatLivreur({ ok: true, etat: { fiche: { ...fiche, statut: 'inconnu' }, offre: null, course: null } }));
+  assert.throws(() => lireEtatLivreur({ ok: true, etat: { fiche, offre: { ...offre, fraisGnf: 5000.5 }, course: null } }), /ILLISIBLE/);
   assert.equal(libelleDistanceLivreur(null), '—');
   assert.match(libelleDistanceLivreur(2.4), /2,4 km/);
 });
@@ -40,7 +40,7 @@ test('client : lecture GET et bascule POST vers les seuls chemins livreur, corps
   const auth = authentification(async (entree, init) => {
     urls.push(String(entree));
     if (init?.body) corps.push(String(init.body));
-    return String(entree).endsWith('/en-ligne') ? reponse(200, { ok: true }) : reponse(200, { ok: true, etat: { fiche, offre } });
+    return String(entree).endsWith('/en-ligne') ? reponse(200, { ok: true }) : reponse(200, { ok: true, etat: { fiche, offre, course: null } });
   });
   await auth.etatLivreur(acces);
   await auth.basculerEnLigneLivreur(acces, true);
@@ -70,13 +70,15 @@ function sessionFactice(repondre: (appel: string) => Promise<unknown>): LectureF
     generationNotifications: 4,
     etatLivreur: async () => { appels.push('etat'); return repondre('etat') as Promise<EtatLivreur | null>; },
     basculerEnLigneLivreur: async (v) => { appels.push('basculer:' + v); await repondre('basculer'); },
+    repondreOffreLivreur: async (_id, rep) => { appels.push('offre:' + rep); await repondre('offre'); },
+    avancerCourseLivreur: async (d) => { appels.push('course:' + d.vers); await repondre('course'); },
   };
   return { generation: 4, appels, session };
 }
 
 test('contrôleur : bascule réussie relit l’état avant de publier la vérité', async () => {
-  let etatActuel: EtatLivreur | null = { fiche: { ...fiche, statut: 'hors_ligne' }, offre: null };
-  const f = sessionFactice(async (appel) => { if (appel === 'etat') return etatActuel; etatActuel = { fiche: { ...fiche, statut: 'disponible' }, offre: null }; return undefined; });
+  let etatActuel: EtatLivreur | null = { fiche: { ...fiche, statut: 'hors_ligne' }, offre: null, course: null };
+  const f = sessionFactice(async (appel) => { if (appel === 'etat') return etatActuel; etatActuel = { fiche: { ...fiche, statut: 'disponible' }, offre: null, course: null }; return undefined; });
   const publications: unknown[] = [];
   const controle = creerControleEtatLivreur(f.session, (e) => publications.push(e));
   await controle.actualiser();
@@ -89,7 +91,7 @@ test('contrôleur : bascule réussie relit l’état avant de publier la vérit�
 test('contrôleur : résultat incertain verrouille la bascule jusqu’à une relecture réussie', async () => {
   let mode: 'incertain' | 'refus' | 'ok' = 'incertain';
   const f = sessionFactice(async (appel) => {
-    if (appel === 'etat') return { fiche, offre: null };
+    if (appel === 'etat') return { fiche, offre: null, course: null };
     if (mode === 'incertain') throw new ErreurLivreur('incertain', 'Résultat inconnu factice.');
     if (mode === 'refus') throw new ErreurLivreur('refus', 'Refus factice.');
     return undefined;
@@ -127,6 +129,6 @@ test('session : une lecture d’état terminée après un remplacement de sessio
   const avant = session.etatLivreur();
   await new Promise((r) => setImmediate(r));
   await session.connecter('autre@factice.invalid', 'factice');
-  ouvrir({ fiche, offre: null });
+  ouvrir({ fiche, offre: null, course: null });
   await assert.rejects(avant, /annulée/);
 });

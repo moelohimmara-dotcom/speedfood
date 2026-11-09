@@ -24,6 +24,8 @@ const session = new GestionSession({
   ficheLivreur: transport.ficheLivreur,
   etatLivreur: transport.etatLivreur,
   basculerEnLigneLivreur: transport.basculerEnLigneLivreur,
+  repondreOffreLivreur: transport.repondreOffreLivreur,
+  avancerCourseLivreur: transport.avancerCourseLivreur,
   deconnecter: async () => undefined,
 }, { lire: async () => coffreFictif, ecrire: async v => { coffreFictif = v; }, effacer: async () => { coffreFictif = null; } });
 
