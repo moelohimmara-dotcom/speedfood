@@ -45,8 +45,10 @@ Malika est la propriétaire du produit. Français, phrases courtes, une action �
 | Création directe par l’API | ADR-021 : garde CREATION_COMMANDE_API et liaison SITE_JETONS ; le code refuse si la garde n’est pas ouverte. Essais directs rapportés en novembre, garde live non relue ici. Le relais commandes éteint n’empêche pas Expo d’appeler l’API directement. |
 | Appli distribuée Android | Source de version dans le dépôt : Kotlin com.speedfood.app, 2.47.0/code 51. Binaire public/téléchargement live non recontrôlé ici. Aucun remplacement effectué par ces lots. |
 | Appli Expo de contrôle | apps/mobile, com.speedfood.clientdemo, 0.1.0 ; Android et iOS configurés. Ce n’est pas l’identité de remplacement de Kotlin. |
-| G1 fiche livreur | GET /api/v1/livreur/fiche ajouté dans le code local. **Aucun feu vert G1 de déploiement, aucune mise en service G1 effectuée.** Vraie base/RLS et compte livreur réel restent à vérifier après préparation/accord. |
+| G1 fiche livreur | GET /api/v1/livreur/fiche. **Correction du 9 novembre : la route est EN LIGNE** (sonde sans jeton = 401, pas 404). Voir l'encadré ci-dessous. Vraie base/RLS et compte livreur réel restent à vérifier : aucun essai avec un vrai compte livreur. |
 | iPhone depuis le site | Objectif produit, pas une diffusion validée. CI simulateur sans signature ≠ IPA installable sur téléphone, compte Apple ou parcours de distribution acquis. |
+
+> **Constat du 9 novembre 2026 (lecture seule, aucun déploiement par cette vérification).** `wrangler deployments list` (API) montre trois déploiements récents : 8 nov. 20:38 UTC, 8 nov. 23:11 UTC et **9 nov. 14:29 UTC**. Sondes sans jeton : `GET /api/v1/livreur/fiche` = 401 et `GET /api/v1/livreur/etat` = 401 (G1 et G2 existent donc en ligne ; le commit G2 e996900 date du 9 nov. 13:40 UTC) ; `GET /api/v1/version` = 200. La migration `20261108220000_appareils_push_retraits` (protocole I2) est présente dans la base et dans le dépôt. **Non prouvé :** que le code en ligne soit identique à HEAD (wrangler ne donne pas le commit) ; version actuelle du site (le commit b6548b4, refonte du site public du 9 nov., ne concerne pas G1) ; tout essai avec un vrai compte livreur. Les lignes « non déployé » de cette passation sont dépassées sur G1/G2.
 
 Aucun nouveau secret ni migration SQL dans les correctifs F3/cycle/G1 des 6–8 novembre. La branche contient toutefois des travaux antérieurs : **un déploiement de HEAD embarque tout le paquet**, pas seulement G1. Auditer les différences et migrations depuis le code réellement déployé avant toute proposition de déploiement.
 
@@ -108,7 +110,7 @@ Le [registre des corrections](REGISTRE-CORRECTIONS-APPLI-EXPO.md) donne le code,
 
 | Priorité | Travail | Sortie attendue / décision |
 |---|---|---|
-| P0 | Préparer mise en service G1 | Revue du diff complet depuis la version déployée, garde de sécurité, retour arrière, preuve CI et plan de lecture avec compte livreur autorisé. Aucun déploiement avant oui distinct. |
+| P0 | ~~Préparer mise en service G1~~ (déjà en ligne, voir encadré du 9 novembre en §3) → **vérifier G1/G2 en ligne avec un compte livreur autorisé, en lecture seule** | Malika désigne le compte livreur ; ne pas appeler `GET livreur/etat` en production comme contrôle innocent (il fait avancer la répartition, voir §6). Comparer le code en ligne à HEAD (identité exacte non prouvée). |
 | P0 | Résidu notifications + vrais appareils | Plan explicite pour le risque serveur après timeout ; déconnexion réelle seulement après nouvel accord de Malika, tests refus/changement de compte/deux appareils, Android physique. |
 | P1 | G2 état/offre/disponibilité | Plan et arbitrage explicites des effets de répartition ; pas d’écriture cachée dans un essai de lecture. Préserver les règles Kotlin/serveur. |
 | P1 | G3 courses et G4 position | Offres, étapes, remise/échec, réponse incertaine ; ensuite permission/position/arrière-plan avec plan 1c-2 et design validés. Chaque écriture réelle avec oui distinct. |
