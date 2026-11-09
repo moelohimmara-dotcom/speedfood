@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { couleurs as c, polices } from '../design/tokens';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
+import { useMouvementReduit } from '../design/mouvement';
 import { Action } from './BoutonAction';
 import { LIBELLES_CYCLE_LIVREUR, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, libelleDistanceLivreur, libelleEcheanceOffre, type EtatLivreur } from './livreur';
 import { creerControleEtatLivreur, type EtatControleLivreur, type SessionEtatLivreur } from './controle-etat-livreur';
@@ -29,6 +30,20 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
 
 function Etat({ etat, basculeEnCours, incertain, message, basculer, actualiser }: { etat: EtatLivreur; basculeEnCours: boolean; incertain: boolean; message: string | null; basculer: (enLigne: boolean) => void; actualiser: () => void }) {
   const { fiche, offre } = etat;
+  // Entrée de la carte d'offre : un glissement unique à l'arrivée d'une offre (charte animations) ; aucun mouvement
+  // en mouvement réduit, aucune boucle, et l'état final est posé d'emblée si le réglage système l'exige.
+  const reduit = useMouvementReduit();
+  const entree = useRef(new Animated.Value(0)).current;
+  const offreId = offre?.offreId ?? null;
+  useEffect(() => {
+    if (offreId === null) return;
+    const duree = dureeMouvement(reduit, 300);
+    if (duree === 0) { entree.setValue(1); return; }
+    entree.setValue(0);
+    const animation = Animated.timing(entree, { toValue: 1, duration: duree, useNativeDriver: true });
+    animation.start();
+    return () => animation.stop();
+  }, [offreId, reduit, entree]);
   const peutBasculer = fiche.cycle === 'actif' && fiche.statut !== 'en_course';
   return <View style={s.carteGlobal}>
     <View style={s.carte}>
@@ -40,13 +55,13 @@ function Etat({ etat, basculeEnCours, incertain, message, basculer, actualiser }
       {fiche.motifCycle && <Text style={s.secondaire}>Motif : {fiche.motifCycle}</Text>}
       <Text style={s.secondaire}>Pour toute modification de votre fiche, contactez l’équipe Speedfood.</Text>
     </View>
-    {offre ? <View style={s.carte}>
+    {offre ? <Animated.View style={[s.carte, { opacity: entree, transform: [{ translateY: entree.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
       <Text accessibilityRole="header" style={s.nom}>Offre en attente</Text>
       <Text style={s.ligne}>{offre.restaurantNom}</Text>
       <Text style={s.ligne}>Course : {libelleDistanceLivreur(offre.distanceCourseKm)} · Vous êtes à {libelleDistanceLivreur(offre.distanceRestaurantKm)} du restaurant</Text>
       <Text style={s.ligne}>Frais de livraison : {offre.fraisGnf.toLocaleString('fr-FR')} GNF</Text>
       <Text style={s.secondaire}>À répondre avant le {libelleEcheanceOffre(offre.expireLe)}. L’acceptation arrive dans un prochain lot ; cette offre peut aussi expirer et être proposée à un autre livreur.</Text>
-    </View> : <Text style={s.texte}>Aucune offre pour le moment.</Text>}
+    </Animated.View> : <Text style={s.texte}>Aucune offre pour le moment.</Text>}
     {fiche.statut === 'en_course'
       ? <Text style={s.secondaire}>Course en cours : votre disponibilité reprendra à la fin de la course.</Text>
       : fiche.cycle !== 'actif'
