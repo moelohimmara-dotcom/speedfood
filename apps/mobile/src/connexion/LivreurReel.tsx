@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
+import { Squelette } from '../design/Composants';
 import { Action } from './BoutonAction';
 import { LIBELLES_CYCLE_LIVREUR, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, libelleDistanceLivreur, libelleEcheanceOffre, type EtatLivreur } from './livreur';
 import { creerControleEtatLivreur, type EtatControleLivreur, type SessionEtatLivreur } from './controle-etat-livreur';
@@ -21,7 +22,7 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
   return <ScrollView contentContainerStyle={s.contenu}>
     <Action titre="Retour au compte" agir={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Espace livreur</Text>
-    {affiche.etat === 'chargement' && <Text style={s.texte}>Lecture de votre état…</Text>}
+    {affiche.etat === 'chargement' && <><Text style={s.texte}>Lecture de votre état…</Text><Squelette /></>}
     {affiche.etat === 'erreur' && <><Text style={s.erreur}>{affiche.message}</Text><Action titre="Réessayer" agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur !== null && <Etat etat={affiche.etatLivreur} basculeEnCours={affiche.basculeEnCours} incertain={affiche.incertain} message={affiche.message} basculer={(v) => { void controleRef.current.basculer(v); }} actualiser={actualiser} />}

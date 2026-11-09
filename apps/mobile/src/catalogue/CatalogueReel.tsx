@@ -4,6 +4,7 @@ import type { PageMenu, RestaurantPublic } from '../../../../packages/shared/src
 import { creerLecteurCatalogue } from './client';
 import { chiffrer } from './panier-reel';
 import { couleurs as c, polices } from '../design/tokens';
+import { Bouton } from '../design/Composants';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
@@ -12,9 +13,7 @@ import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } 
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
-function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={({ pressed }) => [s.action, { opacity: disabled ? .5 : pressed ? .8 : 1 }]}><Text style={s.actionTexte}>{titre}</Text></Pressable>;
-}
+const Action = ({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} />;
 export function CatalogueReel() {
   const panier = usePanierReel();
   const [panierOuvert, setPanierOuvert] = useState(false);

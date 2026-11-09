@@ -1,14 +1,9 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { couleurs as c, polices } from '../design/tokens';
+import { Bouton } from '../design/Composants';
 
-/** Bouton des écrans de l'espace restaurateur (commandes, service, menu) : libellé = nom accessible, grisé et non pressable quand `disabled`. */
+/**
+ * Bouton des écrans métier (restaurateur, livreur) : délègue au bouton canonique de `design/Composants`
+ * (phase 2 de la refonte — un seul bouton dans l'application). Cet alias garde les appels existants inchangés.
+ */
 export function Action({ titre, agir, disabled = false, secondaire = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={[s.bouton, secondaire && s.boutonSecondaire, disabled && { opacity: .5 }]}><Text style={[s.boutonTexte, secondaire && s.boutonTexteSecondaire]}>{titre}</Text></Pressable>;
+  return <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} />;
 }
-
-const s = StyleSheet.create({
-  bouton: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  boutonSecondaire: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.action },
-  boutonTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700' },
-  boutonTexteSecondaire: { color: c.action },
-});

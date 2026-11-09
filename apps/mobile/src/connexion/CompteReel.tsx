@@ -10,13 +10,12 @@ import { RestaurateurReel } from './RestaurateurReel';
 import { LivreurReel } from './LivreurReel';
 import { ErreurReglement, verdictDeclaration, type ModeReglement, type VerdictDeclaration } from './reglement';
 import { couleurs as c, polices } from '../design/tokens';
+import { Bouton } from '../design/Composants';
 import { notifications } from '../notifications';
 import { MESSAGES_ETAT_RESTO } from '../notifications/autorisation';
 import { creerDemandeEspace } from './ouverture-espace';
 let restauration: Promise<void> | null = null;
-function Action({ titre, agir, disabled=false }: { titre:string; agir():void; disabled?:boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{disabled}} onPress={agir} style={[s.bouton,disabled&&{opacity:.5}]}><Text style={s.boutonTexte}>{titre}</Text></Pressable>;
-}
+const Action = ({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} />;
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
 export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
