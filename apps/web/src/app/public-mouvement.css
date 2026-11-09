@@ -11,7 +11,7 @@
 .pub-faq-item,
 .pub-bande-pro,
 .pub-ticket-bloc {
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+  transition: opacity var(--duration-editoriale) var(--ease), transform var(--duration-editoriale) var(--ease);
 }
 .pub-pre {
   opacity: 0;
@@ -159,7 +159,7 @@
 /* Apparition des cartes de restaurants et des titres de section du menu au défilement (échelonnée par Revelation). */
 .grille-restaurants > *,
 .fm-section > .fm-section-titre {
-  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+  transition: opacity var(--duration-editoriale) var(--ease), transform var(--duration-editoriale) var(--ease);
 }
 
 /* Entrée de page : un fondu court avec une légère montée, à chaque changement de page. */
@@ -281,5 +281,43 @@
   .theme-public .fm-chip:active,
   .theme-public .barre-panier:active {
     transform: none;
+  }
+}
+
+/* ---- Phase 1 de la refonte (9 novembre 2026) : entrée du hero, survol des cartes, bandeau pausable ---- */
+
+/* Entrée éditoriale du hero : les blocs du texte arrivent en cascade courte, une seule fois au chargement. */
+@keyframes pub-hero-entre {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.theme-public .pub-accueil-hero .pub-accueil-texte > * {
+  animation: pub-hero-entre var(--duration-editoriale) var(--ease) both;
+}
+.theme-public .pub-accueil-hero .pub-accueil-texte > *:nth-child(2) { animation-delay: 70ms; }
+.theme-public .pub-accueil-hero .pub-accueil-texte > *:nth-child(3) { animation-delay: 140ms; }
+.theme-public .pub-accueil-hero .pub-accueil-texte > *:nth-child(4) { animation-delay: 210ms; }
+.theme-public .pub-accueil-hero .pub-accueil-texte > *:nth-child(n + 5) { animation-delay: 280ms; }
+
+/* Survol souris des cartes restaurants : léger soulèvement et ombre franche du thème public. */
+@media (hover: hover) {
+  .theme-public .carte-restaurant:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--pub-ombre);
+  }
+}
+
+/* Le bandeau défilant se met en pause au survol (il est purement décoratif). */
+.pub-bandeau:hover .pub-bandeau-piste {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-public .pub-accueil-hero .pub-accueil-texte > * {
+    animation: none;
+  }
+  .theme-public .carte-restaurant:hover {
+    transform: none;
+    box-shadow: none;
   }
 }

@@ -57,6 +57,21 @@
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
+  /* Plafond des animations éditoriales (charte mouvement, refonte 2026-11-09) ; l'interface reste à 300 ms max. */
+  --duration-editoriale: 600ms;
+
+  /* Échelle neutre chaude (refonte 2026-11-09) : fonds et bordures intermédiaires, dérivée de --encre.
+     Les textes restent sur --encre et --secondaire (contrastes verrouillés, section 0 du design system). */
+  --neutre-50: #faf4ed;
+  --neutre-100: #f3e8db;
+  --neutre-200: #e9dcd2;
+  --neutre-300: #dcc6b3;
+  --neutre-400: #b99f88;
+  --neutre-500: #75695f;
+  --neutre-600: #5d5049;
+  --neutre-700: #4a4039;
+  --neutre-800: #38291f;
+  --neutre-900: #2b211d;
 }
 
 html {
