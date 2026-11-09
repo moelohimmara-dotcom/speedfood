@@ -8,7 +8,7 @@ import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/
 import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
 import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
-import { lireFicheLivreur, type FicheLivreur } from './livreur.ts';
+import { ErreurLivreur, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -200,6 +200,34 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** État G2 (fiche + offre) : lecture pure, un seul essai, aucun identifiant de compte dans l'URL ni le corps. */
+    async etatLivreur(accessToken: string): Promise<EtatLivreur | null> {
+      const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/etat', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireEtatLivreur(v); } catch { throw new ErreurConnexion('L’état reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * Bascule de disponibilité G2 : un seul essai, jamais de relance ; le corps ne porte que le booléen demandé.
+     * Un refus explicite du serveur (400) est distingué d'un résultat incertain (réseau, délai, 5xx, réponse illisible),
+     * pour que l'écran verrouille le bouton seulement quand l'écriture a pu être appliquée.
+     */
+    async basculerEnLigneLivreur(accessToken: string, enLigne: boolean): Promise<void> {
+      const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+      let r: Response;
+      try {
+        r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/livreur/en-ligne', { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify({ enLigne }) });
+      } catch { clearTimeout(timer); throw new ErreurLivreur('incertain', 'Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
+      try {
+        let corps: unknown = null;
+        const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+        if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+        else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+        if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+        if (r.status === 400) throw new ErreurLivreur('refus', 'Changement refusé : votre état a peut-être changé. Actualisez votre état.');
+        if (r.status === 429) throw new ErreurLivreur('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+        if (!r.ok) throw new ErreurLivreur('incertain', 'Le service est indisponible. Votre disponibilité a peut-être changé : actualisez pour vérifier.');
+        try { lireEnLigneLivreur(corps); } catch { throw new ErreurLivreur('incertain', 'La réponse de disponibilité est illisible. Actualisez votre état pour vérifier.'); }
+      } finally { clearTimeout(timer); }
     },
     /** Quels espaces ce compte peut-il ouvrir ? (affichage seulement). */
     async moi(accessToken: string): Promise<RolesCompte> {

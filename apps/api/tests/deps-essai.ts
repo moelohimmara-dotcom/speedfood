@@ -49,7 +49,7 @@ export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
     },
     restaurant: { contexte: ECHEC, lister: ECHEC, traiter: ECHEC, confirmerPaiement: ECHEC, proposer: ECHEC, modifierStatut: ECHEC, lireReglages: ECHEC, enregistrerReglages: ECHEC, lireMenu: ECHEC, actionMenu: ECHEC, definirPhoto: ECHEC, retirerPhoto: ECHEC, agirSurLivraison: ECHEC },
     appareils: { limiter: async () => {}, enregistrer: ECHEC, retirer: ECHEC },
-    livreur: { limiter: async () => {}, lireFiche: ECHEC },
+    livreur: { limiter: async () => {}, lireFiche: ECHEC, lireEtat: ECHEC, basculer: ECHEC, avancerOffres: ECHEC },
     commandes: { valider: () => { throw new Error("ECHEC : dépendance non prévue dans ce test"); }, creer: ECHEC, lister: ECHEC },
     ...surcharge,
   };

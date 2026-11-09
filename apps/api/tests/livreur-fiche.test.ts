@@ -64,8 +64,8 @@ test('G1 route : projection défensive sans position, téléphone, invitation ou
   const r = await b.app.request('/api/v1/livreur/fiche', { headers: AUTH });
   assert.equal(r.status, 200); assert.deepEqual(await r.json(), { ok: true, fiche });
 });
-test('G1 route : aucun POST ni action livreur ajouté par ce lot', async () => {
-  for (const chemin of ['/api/v1/livreur/fiche', '/api/v1/livreur/en-ligne', '/api/v1/livreur/offre']) {
+test('G1 route : aucun POST sur la fiche ; les actions de course restent absentes (en-ligne relève de G2, testé à part)', async () => {
+  for (const chemin of ['/api/v1/livreur/fiche', '/api/v1/livreur/offre', '/api/v1/livreur/course']) {
     const b = banc(); const r = await b.app.request(chemin, { method: 'POST', headers: AUTH });
     assert.equal(r.status, 404); assert.deepEqual(b.appels, []);
   }
@@ -124,14 +124,17 @@ test('G1 service : une relation restaurant masquée reste neutre, sans rattachem
     assert.equal(r.restaurantNom, null);
   }
 });
-test('G1 cloisonnement source : le service neuf n’importe aucun lecteur historique à effets ni client privilégié', () => {
-  for (const f of ['../src/livreur/cablage.ts', '../src/livreur/fiche.ts', '../src/routes/livreur.ts']) {
+test('G1/G2 cloisonnement source : les lectures n’importent aucun service à effets ni client privilégié ; le câblage ne contient aucune écriture directe', () => {
+  for (const f of ['../src/livreur/fiche.ts', '../src/livreur/etat.ts', '../src/routes/livreur.ts']) {
     const s = readFileSync(new URL(f, import.meta.url), 'utf8');
     assert.doesNotMatch(s, /(?:from|import\s*\()\s*['"][^'"]*lib\/livraison\//);
     assert.doesNotMatch(s, /creerClientAdmin|traiterOffres|avancerSimulation|\.update\(|\.insert\(|\.upsert\(|\.delete\(/);
   }
   const cablage = readFileSync(new URL('../src/livreur/cablage.ts', import.meta.url), 'utf8');
-  assert.match(cablage, /clientDuJeton:\s*creerClientJeton/);
+  assert.match(cablage, /clientDuJeton:\s*creerClientJeton/, 'les lectures passent par le client du jeton');
+  assert.doesNotMatch(cablage, /\.update\(|\.insert\(|\.upsert\(|\.delete\(|creerClientAdmin/, 'le câblage branche les services, il n’écrit jamais lui-même');
+  assert.match(cablage, /basculerEnLigne/, 'G2 : bascule branchée nommément');
+  assert.match(cablage, /traiterOffres/, 'G2 : déclencheur des offres branché nommément');
 });
 test('G1 banc local : vraie route et vrai service distinguent A/B et absence/panne sans réseau', async () => {
   const { creerBancLivreur, PORTEURS_CONTROLE } = await import(new URL('../../mobile/controle-livreur/serveur.mjs', import.meta.url).href);
@@ -149,4 +152,29 @@ test('G1 banc local : vraie route et vrai service distinguent A/B et absence/pan
   const etat = await (await app.request('/__etat')).json();
   assert.deepEqual(etat.comptesLus, ['A', 'B', 'A', 'A']);
   assert.ok(!JSON.stringify(etat).includes('controleA.') && !JSON.stringify(etat).includes('controleB.'));
+});
+test('G2 banc local : état, bascule avec déclenchement, offre et refus suspendu sans réseau', async () => {
+  const { creerBancLivreur, PORTEURS_CONTROLE } = await import(new URL('../../mobile/controle-livreur/serveur.mjs', import.meta.url).href);
+  const app = creerBancLivreur();
+  const porteurA = { authorization: 'Bearer ' + PORTEURS_CONTROLE[0] };
+  const avant = await (await app.request('/api/v1/livreur/etat', { headers: porteurA })).json();
+  assert.equal(avant.etat.fiche.statut, 'hors_ligne'); assert.equal(avant.etat.offre, null);
+  const bascule = await app.request('/api/v1/livreur/en-ligne', { method: 'POST', headers: { ...porteurA, 'content-type': 'application/json' }, body: JSON.stringify({ enLigne: true }) });
+  assert.equal(bascule.status, 200); assert.deepEqual(await bascule.json(), { ok: true });
+  const apres = await (await app.request('/api/v1/livreur/etat', { headers: porteurA })).json();
+  assert.equal(apres.etat.fiche.statut, 'disponible'); assert.equal(apres.etat.offre, null);
+  let controle = await (await app.request('/__etat')).json();
+  assert.deepEqual(controle.bascules, ['A:en_ligne']); assert.equal(controle.declenchements, 1);
+  await app.request('/__scenario?cas=offre', { method: 'POST' });
+  const avecOffre = await (await app.request('/api/v1/livreur/etat', { headers: porteurA })).json();
+  assert.equal(avecOffre.etat.offre.offreId, 'offre-témoin-1'); assert.equal(avecOffre.etat.offre.fraisGnf, 5000); assert.equal(avecOffre.etat.offre.restaurantNom, 'Restaurant témoin A'); assert.equal(avecOffre.etat.offre.distanceCourseKm, 3.2);
+  await app.request('/__scenario?cas=offre_expiree', { method: 'POST' });
+  const expiree = await (await app.request('/api/v1/livreur/etat', { headers: porteurA })).json();
+  assert.equal(expiree.etat.offre, null);
+  await app.request('/__scenario?cas=suspendu', { method: 'POST' });
+  const refusee = await app.request('/api/v1/livreur/en-ligne', { method: 'POST', headers: { ...porteurA, 'content-type': 'application/json' }, body: JSON.stringify({ enLigne: true }) });
+  assert.equal(refusee.status, 400);
+  controle = await (await app.request('/__etat')).json();
+  assert.equal(controle.declenchements, 1, 'un refus ne déclenche aucune distribution');
+  assert.ok(!JSON.stringify(controle).includes('controleA.') && !JSON.stringify(controle).includes('controleB.'));
 });

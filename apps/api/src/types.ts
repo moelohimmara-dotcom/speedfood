@@ -38,6 +38,9 @@ export interface Deps {
   livreur: {
     limiter(utilisateurId: string): Promise<void>;
     lireFiche(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/livreur-fiche').FicheLivreur | null>;
+    lireEtat(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/livreur-etat').EtatLivreur | null>;
+    basculer(utilisateurId: string, enLigne: boolean): Promise<{ ok: true } | { ok: false; message: string }>;
+    avancerOffres(): Promise<void>;
   };
   configurationConnexion(): import('./identite/configuration-publique').ConfigurationConnexion | null;
   catalogue: {

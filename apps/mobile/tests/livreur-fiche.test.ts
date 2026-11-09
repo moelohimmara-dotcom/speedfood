@@ -117,8 +117,9 @@ test('G1 câblage écran : rôle livreur branche la vraie session, aucun coffre 
   assert.ok(compte.includes('<LivreurReel session={gestion}'));
   const vue = readFileSync(cheminDepuisModule('../src/connexion/LivreurReel.tsx'), 'utf8');
   assert.doesNotMatch(vue, /from ['"].*(?:gestion|coffre|notifications)['"]/);
-  assert.match(vue, /Retour au compte/); assert.match(vue, /Actualiser ma fiche/);
-  assert.doesNotMatch(vue, /traiterOffres|demanderAutorisation|geolocation|expo-location/);
+  assert.match(vue, /Retour au compte/); assert.match(vue, /Actualiser mon état/);
+  assert.doesNotMatch(vue, /traiterOffres|demanderAutorisation|geolocation|expo-location/, 'G2 : ni traitement des offres, ni permission, ni position dans l’écran');
+  assert.doesNotMatch(vue, /Accepter|Refuser/, 'G2 : aucune acceptation ni refus d’offre (lot G3)');
 });
 test('G1 transport de contrôle : origines non locales et porteurs non factices refusés AVANT fetch', async () => {
   let appels = 0;

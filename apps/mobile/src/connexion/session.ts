@@ -5,10 +5,10 @@ import type {ActionLivraisonApp} from '../../../../packages/shared/src/contracts
 import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, ValeursPropositionRestaurateur} from './restaurateur.ts';
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
-import type { FicheLivreur } from './livreur.ts';
+import type { EtatLivreur, FicheLivreur } from './livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -162,6 +162,28 @@ export class GestionSession {
       const fiche = await this.api.ficheLivreur(acces);
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return fiche;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** État G2 de ce compte (fiche + offre) : lecture pure, annulée si la session change. */
+  async etatLivreur(): Promise<EtatLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.etatLivreur) throw new ErreurConnexion('Espace livreur indisponible.');
+      const etat = await this.api.etatLivreur(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return etat;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Bascule de disponibilité G2 : un seul essai, jamais de relance ; le compte vient du jeton, jamais d'un paramètre. */
+  async basculerEnLigneLivreur(enLigne: boolean): Promise<void> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Envoi annulé.');
+      if (!this.api.basculerEnLigneLivreur) throw new ErreurConnexion('Disponibilité indisponible.');
+      await this.api.basculerEnLigneLivreur(acces, enLigne);
     } catch (e) { await this.sessionTerminee(e, n); throw e; }
   }
   /** Commandes du restaurant de ce compte (lecture, jeton porteur). Aucune clé de suivi ni jeton de reçu : la liste n'en porte pas. */

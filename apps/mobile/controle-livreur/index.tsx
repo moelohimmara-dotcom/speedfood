@@ -22,6 +22,8 @@ const session = new GestionSession({
   connecter: async (email: string) => sessionDe(email.startsWith('b@') ? 'B' : 'A'),
   renouveler: async (refresh: string) => sessionDe(refresh.endsWith('-B') ? 'B' : 'A'),
   ficheLivreur: transport.ficheLivreur,
+  etatLivreur: transport.etatLivreur,
+  basculerEnLigneLivreur: transport.basculerEnLigneLivreur,
   deconnecter: async () => undefined,
 }, { lire: async () => coffreFictif, ecrire: async v => { coffreFictif = v; }, effacer: async () => { coffreFictif = null; } });
 

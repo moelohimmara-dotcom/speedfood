@@ -19,3 +19,4 @@ export async function lireFicheLivreur(db: SupabaseClient, utilisateurId: string
 export function creerServiceLivreur(d: { clientDuJeton(jeton: string): SupabaseClient; limiter(utilisateurId: string): Promise<void> }) {
   return { limiter: d.limiter, lireFiche: (jeton: string, utilisateurId: string) => lireFicheLivreur(d.clientDuJeton(jeton), utilisateurId) };
 }
+
