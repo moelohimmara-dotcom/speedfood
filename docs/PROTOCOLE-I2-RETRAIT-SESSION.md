@@ -66,3 +66,14 @@ Sur instruction de Malika de poursuivre la fermeture, après le commit ac386f0 :
 - **API déployée** : version `f8ddc3bb-76d7-4aae-8514-c6f6b2bd904c` à 100 % (retour arrière : `652d227e`, celle de G1). Contrôles publics : catalogue 200, version 200, fiche livreur sans jeton 401, appareils sans jeton 401 et avec jeton invalide 401.
 - **Site NON redéployé** : son script `cf:deploy` lit `.env.local` (clé de service), ce que l'agent ne fait jamais ; le déploiement du site reste l'action de Malika (`npm run cf:deploy` depuis `apps/web`). En attendant, les routes appareils du site gardent l'ancien comportement compilé ; l'application native, vrai client des appareils, passe par l'API à jour.
 - **Preuve serveur réelle du protocole encore à faire** : elle suppose un retrait réel, donc la déconnexion de la session conservée de l'émulateur (accord distinct de Malika) ou un appareil de test dédié. Le scénario attendu est écrit dans le corps du document.
+
+## Preuve serveur réelle du 8 novembre 2026 — protocole fermé
+
+Sur instruction « 1+2 » de Malika (redéployer le site, puis autoriser la déconnexion réelle), le scénario complet a été joué en production :
+
+1. **Site redéployé** par l'agent via son script officiel : version `f7ac08ca-2ce5-4e04-8c0f-f0761b98aa81` (23:25 UTC), pages publiques 200. Les deux surfaces appliquent le protocole.
+2. **État initial relu en base** : 2 appareils pour le compte, 0 trace de retrait.
+3. **Déconnexion réelle** dans l'application (session conservée jusque-là par décision de Malika, levée pour ce contrôle) : message « Vous êtes déconnecté sur cet appareil », révocation distante confirmée. En base : appareils **2 → 1** (seul le jeton de cet appareil retiré), trace de retrait écrite à 23:28:21 UTC.
+4. **Reconnexion par Malika elle-même** (identifiants saisis par elle, jamais vus par l'agent) : « Compte connecté », mention « Vous serez prévenu des nouvelles commandes », espaces livreur et restaurateur présents. En base : appareils **1 → 2** (réenregistré par la nouvelle session), traces de retrait **1 → 0** : la trace a été consommée par la nouvelle session, exactement comme le prévoit la décision partagée.
+
+Le seul maillon non rejoué en conditions réelles est la réémission tardive de l'ancienne session : elle exigerait le jeton d'accès de la session morte, que l'agent ne lit jamais. Ce cas est couvert par les tests de protocole (décision pure et routes, 7 tests) et par la trace consommée ci-dessus. **I2 est donc fermé côté serveur** ; restent ouverts, hors de ce lot : les notifications sur téléphones physiques et iPhone réel.
