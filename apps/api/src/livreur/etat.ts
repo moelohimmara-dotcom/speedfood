@@ -1,11 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { projeterEtatLivreur, type EtatLivreur } from '@speedfood/shared/contracts/livreur-etat';
+import { projeterFicheLivreur } from '@speedfood/shared/contracts/livreur-fiche';
+import { projeterOffreLivreur } from '@speedfood/shared/contracts/livreur-etat';
+import {
+  ETAPES_COURSE_LIVREUR, STATUTS_COURSE_ACTIVE, libelleCourseLivreur, projeterCourseLivreur,
+  type EtatLivreurAvecCourse, type ModeCourseLivreur, type StatutCourseActive,
+} from '@speedfood/shared/contracts/livreur-course';
+import type { LireCommande } from './commande.ts';
 
 /**
  * État du livreur pour l'application (G2) : lecture PURE, sous le jeton du porteur (RLS), filtrée sur son propre compte.
  * Aucun traitement des offres (expiration, redistribution), aucune écriture, aucun service d'action importé : l'état lu
  * est la vérité de la base à cet instant. L'offre rendue est la plus ancienne encore valable ; une offre échue est
  * simplement filtrée par sa date, jamais « traitée » ici.
+ *
+ * G3a : la course en cours s'y ajoute, toujours en lecture pure. Les colonnes demandées ne contiennent AUCUNE coordonnée ; la
+ * référence de commande et le client (texte) passent par un port ciblé (`commande.ts`), le client n'étant même pas demandé
+ * avant la récupération. Les règles de statut du site (étapes autorisées, libellés) arrivent par injection : ce module
+ * n'importe aucun module de livraison du site. Une course illisible est une ERREUR, jamais « aucune course ».
  */
 type Relation<T> = T | T[] | null;
 const un = <T>(r: Relation<T>): T | null => (Array.isArray(r) ? (r[0] ?? null) : r);
@@ -25,11 +36,17 @@ function point(brutLat: unknown, brutLon: unknown): { latitude: number; longitud
 }
 
 /** Port de câblage : la lecture passe par le client du jeton (RLS), jamais par une clé de service. */
-export function creerLectureEtat(d: { clientDuJeton(jeton: string): SupabaseClient }) {
-  return (jeton: string, utilisateurId: string) => lireEtatLivreur(d.clientDuJeton(jeton), utilisateurId);
+export interface ReglesCourse {
+  /** Règle du site (`acteurPeut`), fonction pure. */
+  acteurPeut(acteur: 'livreur', de: StatutCourseActive, vers: string, mode: ModeCourseLivreur): boolean;
+}
+export interface DependancesEtat { regles: ReglesCourse; lireCommande: LireCommande }
+
+export function creerLectureEtat(d: { clientDuJeton(jeton: string): SupabaseClient } & DependancesEtat) {
+  return (jeton: string, utilisateurId: string) => lireEtatLivreur(d.clientDuJeton(jeton), utilisateurId, { regles: d.regles, lireCommande: d.lireCommande });
 }
 
-export async function lireEtatLivreur(db: SupabaseClient, utilisateurId: string): Promise<EtatLivreur | null> {
+export async function lireEtatLivreur(db: SupabaseClient, utilisateurId: string, dep: DependancesEtat): Promise<EtatLivreurAvecCourse | null> {
   const { data: ligne, error } = await db.from('livreurs')
     .select('id, nom, statut, vehicule, cycle, motif_cycle, latitude, longitude, restaurants(nom)')
     .eq('utilisateur_id', utilisateurId)
@@ -71,5 +88,42 @@ export async function lireEtatLivreur(db: SupabaseClient, utilisateurId: string)
       };
     }
   }
-  return projeterEtatLivreur(ficheBrute, offreBrute);
+
+  const { data: courseLigne, error: erreurCourse } = await db.from('livraisons')
+    .select('id, mode, statut, frais_gnf, order_id, restaurants(nom)')
+    .eq('livreur_id', l.id)
+    .in('statut', [...STATUTS_COURSE_ACTIVE])
+    .order('cree_le', { ascending: true })
+    .order('id', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (erreurCourse) throw new Error('ETAT_LIVREUR_INDISPONIBLE');
+
+  let courseBrute: unknown = null;
+  if (courseLigne) {
+    const c = courseLigne as { id: string; mode: unknown; statut: unknown; frais_gnf: unknown; order_id: unknown; restaurants: unknown };
+    const statut = c.statut as StatutCourseActive;
+    const mode = c.mode as ModeCourseLivreur;
+    const reconnu = (STATUTS_COURSE_ACTIVE as readonly string[]).includes(statut) && (mode === 'propre' || mode === 'speedfood');
+    if (!reconnu || typeof c.order_id !== 'string') throw new Error('ETAT_LIVREUR_ILLISIBLE');
+    // Le port relit propriété et statut dans sa propre requête : le client n'en sort qu'après la récupération.
+    const commande = await dep.lireCommande(c.id, l.id);
+    if (!commande) throw new Error('ETAT_LIVREUR_INDISPONIBLE');
+    const resto = un(c.restaurants as Relation<{ nom: unknown }>);
+    courseBrute = {
+      livraisonId: c.id,
+      statut,
+      mode,
+      libelle: libelleCourseLivreur(statut, mode),
+      commandeReference: commande.reference,
+      restaurantNom: resto && typeof resto === 'object' && 'nom' in resto ? resto.nom : null,
+      fraisGnf: c.frais_gnf,
+      etapesPossibles: ETAPES_COURSE_LIVREUR.filter(vers => dep.regles.acteurPeut('livreur', statut, vers, mode)),
+      client: commande.client,
+    };
+  }
+  const course = courseBrute === null ? null : projeterCourseLivreur(courseBrute);
+  if (courseBrute !== null && course === null) throw new Error('ETAT_LIVREUR_ILLISIBLE');
+
+  return { fiche: projeterFicheLivreur(ficheBrute), offre: projeterOffreLivreur(offreBrute), course };
 }

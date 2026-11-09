@@ -38,9 +38,13 @@ export interface Deps {
   livreur: {
     limiter(utilisateurId: string): Promise<void>;
     lireFiche(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/livreur-fiche').FicheLivreur | null>;
-    lireEtat(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/livreur-etat').EtatLivreur | null>;
+    lireEtat(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/livreur-course').EtatLivreurAvecCourse | null>;
     basculer(utilisateurId: string, enLigne: boolean): Promise<{ ok: true } | { ok: false; message: string }>;
     avancerOffres(): Promise<void>;
+    /** G3a : accepte ou refuse une offre ; même service que la route du site (`repondreOffreLivreur`), identité = compte du porteur. Refus métier : `{ ok: false, message }`. */
+    repondreOffre(utilisateurId: string, offreId: string, reponse: 'acceptee' | 'refusee'): Promise<{ ok: true } | { ok: false; message: string }>;
+    /** G3a : étape suivante de la course ; refuse si `livraisonId` n'est plus la course active (lue sous le jeton), sinon `avancerMaCourse` du site. */
+    avancerCourse(jeton: string, utilisateurId: string, demande: import('@speedfood/shared/contracts/livreur-course').CorpsCourseLivreur): Promise<{ ok: true } | { ok: false; message: string }>;
   };
   configurationConnexion(): import('./identite/configuration-publique').ConfigurationConnexion | null;
   catalogue: {

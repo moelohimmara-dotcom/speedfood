@@ -25,6 +25,8 @@ export function creerBancLivreur() {
           return { data: null, error: null };
         } };
       }
+      // G3a : l'état lit aussi la course ; ce banc G2 n'en simule aucune (le banc de course relève de G3c).
+      if (table === 'livraisons') return { select() { return this; }, eq() { return this; }, in() { return this; }, order() { return this; }, limit() { return this; }, async maybeSingle() { return { data: null, error: null }; } };
       if (table !== 'livreurs') throw new Error('TABLE_NON_PREVUE');
       let uid = null;
       return { select(champs) { if (champs.includes('*')) throw new Error('PROJECTION_NON_PREVUE'); return this; }, eq(champ, valeur) { if (champ !== 'utilisateur_id') throw new Error('FILTRE_NON_PREVU'); uid = valeur; return this; }, async maybeSingle() {
@@ -42,7 +44,7 @@ export function creerBancLivreur() {
     } };
   }
   const service = creerServiceLivreur({ clientDuJeton: clientFictif, limiter: async () => undefined });
-  const lireEtat = creerLectureEtat({ clientDuJeton: () => clientFictif() });
+  const lireEtat = creerLectureEtat({ clientDuJeton: () => clientFictif(), regles: { acteurPeut: () => false, libelleLivraison: () => '' }, lireCommande: async () => { throw new Error('COMMANDE_NON_PREVUE'); } });
   async function basculerFactice(utilisateurId, enLigne) {
     const cas = scenario;
     if (cas === 'suspendu' || cas === 'archive') return { ok: false, message: 'Votre fiche n’est pas active : elle ne peut pas changer de disponibilité.' };

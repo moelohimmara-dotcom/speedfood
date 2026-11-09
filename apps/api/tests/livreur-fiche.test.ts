@@ -64,8 +64,8 @@ test('G1 route : projection défensive sans position, téléphone, invitation ou
   const r = await b.app.request('/api/v1/livreur/fiche', { headers: AUTH });
   assert.equal(r.status, 200); assert.deepEqual(await r.json(), { ok: true, fiche });
 });
-test('G1 route : aucun POST sur la fiche ; les actions de course restent absentes (en-ligne relève de G2, testé à part)', async () => {
-  for (const chemin of ['/api/v1/livreur/fiche', '/api/v1/livreur/offre', '/api/v1/livreur/course']) {
+test('G1 route : aucun POST sur la fiche (en-ligne relève de G2, offre et course de G3a, testés à part)', async () => {
+  for (const chemin of ['/api/v1/livreur/fiche']) {
     const b = banc(); const r = await b.app.request(chemin, { method: 'POST', headers: AUTH });
     assert.equal(r.status, 404); assert.deepEqual(b.appels, []);
   }

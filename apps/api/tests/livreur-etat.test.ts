@@ -4,7 +4,11 @@ import { creerApp } from '../src/app.ts';
 import { depsEssai } from './deps-essai.ts';
 import { ErreurMetier } from '@speedfood/shared/contracts/erreurs';
 import { projeterOffreLivreur } from '@speedfood/shared/contracts/livreur-etat';
-import { lireEtatLivreur as lireEtatDepuisBase } from '../src/livreur/etat.ts';
+import { lireEtatLivreur as lireEtatLivreurBrut } from '../src/livreur/etat.ts';
+import { REGLES_ESSAI } from './livreur-base-factice.ts';
+
+// G3a : la lecture reçoit les règles de statut et le port « commande » ; ici aucune course n'existe, aucune commande n'est lue.
+const lireEtatDepuisBase = (db: never, id: string) => lireEtatLivreurBrut(db, id, { regles: REGLES_ESSAI, lireCommande: async () => { throw Error('aucune commande à lire sans course'); } });
 
 /**
  * G2 : état du livreur (lecture PURE) et bascule de disponibilité (écriture explicite). La lecture ne doit atteindre aucun
@@ -48,7 +52,7 @@ test('G2 état : strict puis plafond puis lecture, projection affichée, sans ca
   const b = banc();
   const r = await b.app.request('/api/v1/livreur/etat', { headers: AUTH });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, etat: { fiche, offre } });
+  assert.deepEqual(await r.json(), { ok: true, etat: { fiche, offre, course: null } });
   assert.deepEqual(b.appels, ['strict', 'limite:' + UID_A, 'etat:' + UID_A]);
   assert.equal(r.headers.get('cache-control'), 'no-store');
   assert.equal(r.headers.get('access-control-allow-origin'), null);
@@ -83,7 +87,7 @@ test('G2 état : un identifiant injecté ne choisit jamais le compte lu', async 
   const b = banc({ etat: async (j, id) => { assert.equal(j, PORTEUR); assert.equal(id, UID_A); return { fiche, offre: null }; } });
   const r = await b.app.request('/api/v1/livreur/etat?utilisateurId=' + UID_B, { headers: AUTH });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, etat: { fiche, offre: null } });
+  assert.deepEqual(await r.json(), { ok: true, etat: { fiche, offre: null, course: null } });
 });
 
 test('G2 état : la lecture ne déclenche NI bascule NI avancement des offres', async () => {
@@ -167,10 +171,12 @@ function fausseBase(offres: Record<string, unknown>[]) {
         select: () => chaine,
         eq: (champ: string, valeur: unknown) => { filtres.push({ champ, op: 'eq', valeur }); return chaine; },
         gt: (champ: string, valeur: unknown) => { filtres.push({ champ, op: 'gt', valeur }); return chaine; },
+        in: () => chaine,
         order: (champ: string, options?: { ascending?: boolean }) => { champTri = champ; croissant = options?.ascending !== false; return chaine; },
         limit: (n: number) => { limite = n; return chaine; },
         maybeSingle: async () => {
           if (table === 'livreurs') return { data: livreur, error: null };
+          if (table === 'livraisons') return { data: null, error: null };
           const lignes = offres.filter(l => filtres.every(f => (f.op === 'eq' ? l[f.champ] === f.valeur : typeof l[f.champ] === 'string' && typeof f.valeur === 'string' && (l[f.champ] as string) > (f.valeur as string))));
           if (champTri) lignes.sort((a, b) => (String(a[champTri as string]) < String(b[champTri as string]) ? -1 : 1) * (croissant ? 1 : -1));
           return { data: lignes.slice(0, limite)[0] ?? null, error: null };
