@@ -10,6 +10,11 @@ import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, l
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
+import {
+  ErreurReservation, MESSAGES_RESERVATION, REGEX_UUID_RESERVATION, lireJourReservation, lireReponseCreationReservation, lireReponseDecisionReservation, lireReponseDisponibiliteReservation, lireReponseListeReservations,
+  lireReponseReglageReservation, lireReponseReservationClient, lireReponseReservationsRestaurant, messageServeurReservation, preparerCreation, preparerDecision, preparerReglage,
+  type DecisionReservation, type DemandeReservation, type DisponibiliteReservation, type ReglageReservation, type ReservationClient, type ReservationRestaurant, type ValeursReglageReservation,
+} from './reservation.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -224,6 +229,50 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       try { confirmer(corps); } catch { throw new ErreurLivreur('incertain', textes.illisible); }
     } finally { clearTimeout(timer); }
   }
+  /**
+   * Réservation de table, LECTURE (lot M4a) : un seul essai, jamais de relance. 401 = session terminée ; un refus du serveur (4xx) rend son message s'il est lisible ; réseau, panne ou réponse illisible = erreur de connexion
+   * non définitive (une lecture n'est jamais « incertaine » : elle se rejoue à la main). Le compte ou le restaurant viennent du jeton, jamais d'un paramètre de l'URL.
+   */
+  async function lectureReservation<T>(accessToken: string, chemin: string, lire: (corps: unknown) => T): Promise<T> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'GET', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+    } catch { clearTimeout(timer); throw new ErreurConnexion('Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 429) throw new ErreurConnexion('Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (!r.ok) { const message = r.status >= 400 && r.status < 500 ? messageServeurReservation(corps) : null; throw new ErreurConnexion(message ?? MESSAGES_RESERVATION.indisponibleLecture); }
+      try { return lire(corps); } catch { throw new ErreurConnexion(MESSAGES_RESERVATION.lectureIllisible); }
+    } finally { clearTimeout(timer); }
+  }
+  /**
+   * Réservation de table, ÉCRITURE (lot M4a) : un seul essai, jamais de relance. 401 = session terminée ; 4xx = refus explicite (le message du serveur, s'il est lisible) ; 429 = refus ;
+   * réseau, délai, autre statut ou réponse 2xx illisible = INCERTAIN (l'écriture a pu être appliquée : jamais de relance automatique). Renvoie la réponse lue strictement.
+   */
+  async function ecritureReservation<T>(accessToken: string, methode: 'POST' | 'PUT', chemin: string, corpsEnvoye: object | null, lire: (corps: unknown) => T, textes: { reseau: string; refus: string; indisponible: string; illisible: string }): Promise<T> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:methode, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(corpsEnvoye ? { 'Content-Type':'application/json' } : {}) }, ...(corpsEnvoye ? { body: JSON.stringify(corpsEnvoye) } : {}) });
+    } catch { clearTimeout(timer); throw new ErreurReservation('incertain', textes.reseau); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 429) throw new ErreurReservation('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (r.status >= 400 && r.status < 500) throw new ErreurReservation('refus', messageServeurReservation(corps) ?? textes.refus);
+      if (!r.ok) throw new ErreurReservation('incertain', textes.indisponible);
+      try { return lire(corps); } catch { throw new ErreurReservation('incertain', textes.illisible); }
+    } finally { clearTimeout(timer); }
+  }
+  const idReservationValide = (id: unknown): id is string => typeof id === 'string' && REGEX_UUID_RESERVATION.test(id);
   return {
     creerCommande: postCommande,
     declarerPaiement: postDeclaration,
@@ -277,6 +326,53 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
         indisponible: 'Le service est indisponible. Votre action a peut-être été enregistrée : actualisez votre état pour vérifier avant de recommencer.',
         illisible: 'La réponse du service est illisible. Votre action a peut-être été enregistrée : actualisez votre état pour vérifier avant de recommencer.',
       });
+    },
+    /** Réservation de table (lot M4a) : ce restaurant accepte-t-il les réservations ? Lecture, un seul essai ; l'identifiant est vérifié avant le réseau. */
+    async disponibiliteReservation(accessToken: string, restaurantId: string): Promise<DisponibiliteReservation> {
+      if (!idReservationValide(restaurantId)) throw new ErreurConnexion('Restaurant invalide.');
+      return lectureReservation(accessToken, '/api/v1/reservations/restaurants/'+restaurantId.toLowerCase()+'/disponibilite', lireReponseDisponibiliteReservation);
+    },
+    /** Création : UN SEUL POST, jamais de relance. Le corps est produit par le contrôle strict partagé avec le serveur AVANT le réseau (une demande invalide ne part jamais) ; le compte n'y figure pas (il vient du jeton). */
+    async creerReservation(accessToken: string, demande: DemandeReservation): Promise<{ reservation: ReservationClient; idempotent: boolean }> {
+      const p = preparerCreation(demande);
+      if (!p.ok) throw new ErreurReservation('refus', p.message);
+      return ecritureReservation(accessToken, 'POST', '/api/v1/reservations', p.corps, lireReponseCreationReservation, { reseau: MESSAGES_RESERVATION.reseauCreation, refus: MESSAGES_RESERVATION.refusCreation, indisponible: MESSAGES_RESERVATION.indisponibleCreation, illisible: MESSAGES_RESERVATION.illisibleCreation });
+    },
+    /** Mes réservations (50 au plus). Lecture, un seul essai. */
+    listerReservations(accessToken: string): Promise<ReservationClient[]> {
+      return lectureReservation(accessToken, '/api/v1/reservations', lireReponseListeReservations);
+    },
+    /** Une de mes réservations. Lecture, un seul essai ; identifiant vérifié avant le réseau. */
+    async lireReservation(accessToken: string, id: string): Promise<ReservationClient> {
+      if (!idReservationValide(id)) throw new ErreurConnexion(MESSAGES_RESERVATION.introuvable);
+      return lectureReservation(accessToken, '/api/v1/reservations/'+id.toLowerCase(), lireReponseReservationClient);
+    },
+    /** Annulation par le client : UN SEUL POST sans corps, jamais de relance. */
+    async annulerReservation(accessToken: string, id: string): Promise<ReservationClient> {
+      if (!idReservationValide(id)) throw new ErreurReservation('refus', MESSAGES_RESERVATION.introuvable);
+      return ecritureReservation(accessToken, 'POST', '/api/v1/reservations/'+id.toLowerCase()+'/annuler', null, lireReponseReservationClient, { reseau: MESSAGES_RESERVATION.reseauAnnulation, refus: MESSAGES_RESERVATION.refusAnnulation, indisponible: MESSAGES_RESERVATION.indisponibleAnnulation, illisible: MESSAGES_RESERVATION.illisibleAnnulation });
+    },
+    /** Restaurateur : réservations du jour (AAAA-MM-JJ, heure de Conakry = UTC ; `null` = aujourd'hui côté serveur) et demandes à venir. Lecture, un seul essai ; jour vérifié avant le réseau. Le restaurant vient du compte. */
+    async reservationsRestaurateur(accessToken: string, jour: string | null): Promise<{ jour: string; reservations: ReservationRestaurant[] }> {
+      if (jour !== null && lireJourReservation(jour) === null) throw new ErreurConnexion('Jour invalide.');
+      return lectureReservation(accessToken, '/api/v1/restaurant/reservations'+(jour === null ? '' : '?jour='+jour), lireReponseReservationsRestaurant);
+    },
+    /** Restaurateur : décision sur une réservation, UN SEUL POST. Action, motif (3 à 200 caractères pour refuser et annuler) et identifiant sont vérifiés AVANT le réseau ; le corps n'a jamais le restaurant. */
+    async deciderReservation(accessToken: string, id: string, decision: DecisionReservation): Promise<ReservationRestaurant> {
+      if (!idReservationValide(id)) throw new ErreurReservation('refus', MESSAGES_RESERVATION.introuvable);
+      const p = preparerDecision(decision);
+      if (!p.ok) throw new ErreurReservation('refus', p.message);
+      return ecritureReservation(accessToken, 'POST', '/api/v1/restaurant/reservations/'+id.toLowerCase()+'/decision', p.corps, lireReponseDecisionReservation, { reseau: MESSAGES_RESERVATION.reseauDecision, refus: MESSAGES_RESERVATION.refusDecision, indisponible: MESSAGES_RESERVATION.indisponibleDecision, illisible: MESSAGES_RESERVATION.illisibleDecision });
+    },
+    /** Restaurateur : réglage de réservation (accepte ou non, capacité par créneau). Lecture, un seul essai. */
+    reglageReservation(accessToken: string): Promise<ReglageReservation> {
+      return lectureReservation(accessToken, '/api/v1/restaurant/reservation-reglage', lireReponseReglageReservation);
+    },
+    /** Restaurateur : écrit le réglage de réservation, UN SEUL PUT. Valeurs vérifiées avant le réseau (capacité vide = `null`, sinon 1 à 500). */
+    async ecrireReglageReservation(accessToken: string, valeurs: ValeursReglageReservation): Promise<ReglageReservation> {
+      const p = preparerReglage(valeurs);
+      if (!p.ok) throw new ErreurReservation('refus', p.message);
+      return ecritureReservation(accessToken, 'PUT', '/api/v1/restaurant/reservation-reglage', p.corps, lireReponseReglageReservation, { reseau: MESSAGES_RESERVATION.reseauReglage, refus: MESSAGES_RESERVATION.refusReglage, indisponible: MESSAGES_RESERVATION.indisponibleReglage, illisible: MESSAGES_RESERVATION.illisibleReglage });
     },
     /** Quels espaces ce compte peut-il ouvrir ? (affichage seulement). */
     async moi(accessToken: string): Promise<RolesCompte> {

@@ -8,6 +8,8 @@ import { Bouton } from '../design/Composants';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
+import { ReserverTableReel } from '../connexion/ReserverTableReel';
+import { gestion } from '../connexion/gestion';
 import { CommandeReelle } from './CommandeReelle';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
@@ -89,6 +91,7 @@ export function CatalogueReel() {
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
+      {selection && <ReserverTableReel key={selection.id} session={gestion} restaurantId={selection.id} restaurantNom={titreRestaurant?.nom ?? selection.nom} relireQuand={String(compteOuvert) + '|' + (menu?.luLe ?? '')} />}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {!selection && <>

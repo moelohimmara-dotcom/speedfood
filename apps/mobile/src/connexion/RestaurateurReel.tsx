@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Action } from './BoutonAction';
 import { ServiceMenuReel } from './ServiceMenuReel';
+import { ReservationsRestaurateurReel } from './ReservationsRestaurateurReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
@@ -28,12 +29,14 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [etat, setEtat] = useState<EtatAction>(ETAT_REPOS);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
-  const [section, setSection] = useState<SectionRestaurateur>('commandes');
+  const [section, setSection] = useState<SectionRestaurateur | 'reservations'>('commandes');
   // Codes de remise TAPÉS (par commande) : uniquement dans l'écran, jamais dans la machine d'états ni dans un message ; effacés dès l'envoi et dès que la commande n'est plus « en route ».
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [erreursCode, setErreursCode] = useState<Record<string, string>>({});
   const [serviceOuvert, setServiceOuvert] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
+  const [reservationsOuvert, setReservationsOuvert] = useState(false);
+  const [reservationsOccupe, setReservationsOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
   const lectureRef = useRef(0);
   const actif = useRef(true);
@@ -121,7 +124,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const occupe = chargement || etat.phase === 'envoi' || etat.phase === 'relecture';
   // Le parent ignore le retour Android pendant l'envoi : l'écran ne doit pas être démonté avant le verdict.
   const envoiOuRelecture = etat.phase === 'envoi' || etat.phase === 'relecture';
-  useEffect(() => { signalerOccupe?.(envoiOuRelecture || serviceOccupe); return () => signalerOccupe?.(false); }, [envoiOuRelecture, serviceOccupe]);
+  useEffect(() => { signalerOccupe?.(envoiOuRelecture || serviceOccupe || reservationsOccupe); return () => signalerOccupe?.(false); }, [envoiOuRelecture, serviceOccupe, reservationsOccupe]);
   const verdict = etat.phase === 'verdict' ? etat : null;
 
   const bloque = occupe || verrou || formulaireOuvert(etat);
@@ -129,10 +132,11 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
+    <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe || reservationsOccupe} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x !== 'commandes') setServiceOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
-    {serviceOuvert && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x !== 'commandes') setServiceOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}<Pressable accessibilityRole="tab" accessibilityLabel="Réservations" accessibilityState={{ selected: section === 'reservations', disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe)} onPress={() => { setSection('reservations'); setReservationsOuvert(true); }} style={[s.onglet, section === 'reservations' && s.ongletActif]}><Text style={[s.ongletTexte, section === 'reservations' && s.ongletTexteActif]}>Réservations</Text></Pressable></View>
+    {serviceOuvert && <View style={section === 'menu' || section === 'service' ? undefined : s.masque}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    {reservationsOuvert && <View style={section === 'reservations' ? undefined : s.masque}><ReservationsRestaurateurReel session={gestion} clavier={{ reference, auFocus, auBlur }} signalerOccupe={setReservationsOccupe} /></View>}
     {section === 'commandes' && <>
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
