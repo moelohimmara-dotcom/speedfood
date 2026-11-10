@@ -121,3 +121,7 @@ export function lireRaisonEchecLivreur(saisie: unknown): string | null {
 }
 /** Ce que l'écran peut demander au serveur pour faire avancer la course : l'identifiant est celui de la course AFFICHÉE. */
 export interface DemandeCourseLivreur { livraisonId: string; vers: EtapeCourseLivreur; code?: string; raison?: string }
+/** Client à afficher à l'écran : rien tant que le résultat de la dernière action est « à vérifier » (la course affichée peut être périmée). */
+export function clientAffiche(course: CourseLivreur, incertain: boolean): ClientCourseLivreur | null {
+  return incertain ? null : clientVisible(course);
+}

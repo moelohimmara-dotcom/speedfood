@@ -5,7 +5,7 @@ import { useMouvementReduit } from '../design/mouvement';
 import { Squelette } from '../design/Composants';
 import { Action } from './BoutonAction';
 import { margeBasseClavier } from './clavier';
-import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, boutonsCourse, clientVisible, libelleDistanceLivreur, libelleEcheanceOffre, lireCodeRemiseLivreur, lireRaisonEchecLivreur, MESSAGE_CODE_REMISE_LIVREUR, MESSAGE_RAISON_ECHEC_LIVREUR, type EtapeCourseLivreur, type EtatLivreur } from './livreur';
+import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, boutonsCourse, clientAffiche, libelleDistanceLivreur, libelleEcheanceOffre, lireCodeRemiseLivreur, lireRaisonEchecLivreur, MESSAGE_CODE_REMISE_LIVREUR, MESSAGE_RAISON_ECHEC_LIVREUR, type EtapeCourseLivreur, type EtatLivreur } from './livreur';
 import { creerControleEtatLivreur, type EtatControleLivreur, type SaisieCourse, type SessionEtatLivreur } from './controle-etat-livreur';
 
 /**
@@ -66,7 +66,7 @@ function Etat({ etat, ecritureEnCours, lectureEnCours, incertain, message, bascu
   useEffect(() => { setCode(''); setRaison(''); setConfirmerEchec(false); setErreurSaisie(null); }, [livraisonId]);
   const peutBasculer = fiche.cycle === 'actif' && fiche.statut !== 'en_course';
   const verrou = ecritureEnCours || lectureEnCours || incertain;
-  const client = course ? clientVisible(course) : null;
+  const client = course ? clientAffiche(course, incertain) : null;
   const apresRecuperation = course !== null && (course.statut === 'recuperee' || course.statut === 'vers_client');
   const etapes = course ? boutonsCourse(course) : [];
   return <View style={s.carteGlobal}>

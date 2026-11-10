@@ -64,22 +64,25 @@ export function creerControleEtatLivreur(session: SessionEtatLivreur, publier: (
     const n = ++revision;
     const generation = session.generationNotifications;
     if (aDernier && generationLue !== generation) oublier();
-    const p = (async () => {
+    // Le travail rend un « finisseur » : le drapeau de lecture est remis à null AVANT toute publication du résultat, sinon l'état publié dirait « lecture en cours » (boutons grisés à jamais).
+    const travail = (async (): Promise<() => boolean> => {
       try {
         const lu = await session.etatLivreur();
-        if (valide(n, generation)) { dernier = lu; aDernier = true; generationLue = generation; incertain = false; const message = messageDiffere; messageDiffere = null; publierLu(message); return true; }
-        signalerChangement(n, generation);
-        return false;
+        if (valide(n, generation)) { dernier = lu; aDernier = true; generationLue = generation; incertain = false; const message = messageDiffere; messageDiffere = null; return () => { publierLu(message); return true; }; }
+        return () => { signalerChangement(n, generation); return false; };
       } catch (e) {
-        if (valide(n, generation)) {
+        return () => {
+          if (valide(n, generation)) {
           const texte = e instanceof ErreurConnexion ? e.message : 'Lecture impossible. Réessayez dans un instant.';
           const reste = messageDiffere; messageDiffere = null;
           if (aDernier) publierLu(reste === null ? texte : reste + ' ' + texte);
           else publier({ etat: 'erreur', message: e instanceof ErreurConnexion ? e.message : 'Impossible de lire votre état. Réessayez dans un instant.' });
-        } else signalerChangement(n, generation);
-        return false;
+          } else signalerChangement(n, generation);
+          return false;
+        };
       }
-    })().finally(() => { if (lectureEnCours === p) lectureEnCours = null; });
+    })();
+    const p: Promise<boolean> = travail.then(finir => { if (lectureEnCours === p) lectureEnCours = null; return finir(); });
     lectureEnCours = p;
     if (!aDernier) publier({ etat: 'chargement' }); else publierLu(messageDiffere);
     return p;

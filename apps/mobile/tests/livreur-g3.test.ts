@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { creerAuth, ErreurConnexion, type SessionAuth } from '../src/connexion/client.ts';
 import {
-  ErreurLivreur, boutonsCourse, clientVisible, lireCodeRemiseLivreur, lireEtatLivreur, lireRaisonEchecLivreur,
+  ErreurLivreur, boutonsCourse, clientAffiche, clientVisible, lireCodeRemiseLivreur, lireEtatLivreur, lireRaisonEchecLivreur,
   type CourseLivreur, type EtatLivreur,
 } from '../src/connexion/livreur.ts';
 import { creerControleEtatLivreur, type EtatControleLivreur, type SessionEtatLivreur } from '../src/connexion/controle-etat-livreur.ts';
@@ -500,7 +500,7 @@ test('G3 contrôleur : écran fermé = plus aucun envoi ni publication', async (
 
 test('G3 écran : sections et boutons attendus, aucune permission, aucune minuterie, aucun mot de gain', () => {
   const vue = readFileSync(new URL('../src/connexion/LivreurReel.tsx', import.meta.url), 'utf8');
-  for (const attendu of ['Accepter', 'Refuser', 'Ma course', 'boutonsCourse(', 'clientVisible(', 'ne peut pas être annulée', 'À vérifier']) assert.ok(vue.includes(attendu), attendu);
+  for (const attendu of ['Accepter', 'Refuser', 'Ma course', 'boutonsCourse(', 'clientAffiche(', 'ne peut pas être annulée', 'À vérifier']) assert.ok(vue.includes(attendu), attendu);
   assert.match(vue, /maxLength=\{4\}/); assert.match(vue, /number-pad/);
   assert.doesNotMatch(vue, /setInterval|setTimeout|expo-location|geolocation|Linking|traiterOffres|console\./);
   assert.doesNotMatch(vue, /from ['"].*(?:gestion|coffre|notifications)['"]/);
@@ -516,4 +516,35 @@ test('G3 écran : l’échec ne part que depuis la confirmation, le code envoyé
   assert.match(vue, /const valide = lireCodeRemiseLivreur\(code\);\s*if \(valide === null\) \{[^}]*return; \}\s*setCode\(''\);[^\n]*\n\s*avancer\('livree', \{ code: valide \}\);/, 'code validé, champ vidé, puis envoi du code validé');
   assert.doesNotMatch(vue, /avancer\('livree', \{ code \}\)/);
   assert.match(vue, /const valide = lireRaisonEchecLivreur\(raison\);\s*if \(valide === null\)/);
+});
+
+test('G3 contrôleur : après toute lecture, le dernier état publié n’est PLUS « lecture en cours » (boutons actifs)', async () => {
+  const actif = (p: { ecritureEnCours?: boolean; lectureEnCours?: boolean; incertain?: boolean } | undefined) => p?.lectureEnCours === false && p?.ecritureEnCours === false && p?.incertain === false;
+  const w = creerMonde(etat(courseVersClient(), offre));
+  await w.controle.actualiser();
+  assert.ok(actif(w.derniere()), 'après une lecture réussie');
+  w.m.hookEnvoi = async () => { w.m.etat = etat(null); };
+  await w.controle.avancerCourse('livree', { code: CODE });
+  assert.ok(actif(w.derniere()), 'après une écriture suivie de sa relecture');
+  w.m.echecLecture = true;
+  await w.controle.actualiser();
+  assert.equal(w.derniere().lectureEnCours, false, 'après une lecture en échec');
+  assert.equal(w.derniere().incertain, false);
+  w.m.echecLecture = false;
+  w.m.hookEnvoi = async () => { throw new ErreurLivreur('refus', 'Refus factice.'); };
+  w.m.etat = etat(courseVersClient());
+  await w.controle.actualiser();
+  await w.controle.avancerCourse('livree', { code: CODE });
+  assert.equal(w.derniere().lectureEnCours, false, 'après un refus suivi de sa relecture');
+  // Les gardes restent : une écriture reste possible après une lecture, pas pendant.
+  w.m.hookEnvoi = async () => undefined;
+  await w.controle.avancerCourse('livree', { code: CODE });
+  assert.equal(w.m.envois.length, 3);
+});
+
+test('G3 client masqué pendant « à vérifier » : aucune carte du client tant que le résultat est inconnu', () => {
+  assert.equal(clientAffiche(courseVersClient(), true), null);
+  assert.deepEqual(clientAffiche(courseVersClient(), false), client);
+  const vue = readFileSync(new URL('../src/connexion/LivreurReel.tsx', import.meta.url), 'utf8');
+  assert.match(vue, /clientAffiche\(course, incertain\)/);
 });

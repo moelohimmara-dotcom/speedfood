@@ -45,6 +45,9 @@ const mutations = [
   { nom: '14. champ excédentaire accepté par le parseur', fichier: LIVREUR, cible: 'if (Object.keys(o).length !== cles.length || !cles.every(c => Object.hasOwn(o, c))) return illisible();', remplace: 'if (!cles.every(c => Object.hasOwn(o, c))) return illisible();' },
   { nom: '15. frais non entiers acceptés', fichier: LIVREUR, cible: '!Number.isSafeInteger(o.fraisGnf) || ', remplace: '' },
   { nom: '16. clé course facultative (faux « aucune course »)', fichier: LIVREUR, cible: "const o = objetExact((v as { etat: unknown }).etat, ['fiche', 'offre', 'course']);\n  return { fiche: base.fiche, offre: base.offre, course: lireCourseStricte(o.course) };", remplace: "const o = (v as { etat: Record<string, unknown> }).etat;\n  return { fiche: base.fiche, offre: base.offre, course: lireCourseStricte(o.course ?? null) };" },
+  { nom: '17. drapeau de lecture remis a null APRES la publication (boutons gries)', fichier: CONTROLE, cible: 'finir => { if (lectureEnCours === p) lectureEnCours = null; return finir(); });', remplace: 'finir => { const r = finir(); if (lectureEnCours === p) lectureEnCours = null; return r; });' },
+  { nom: '18. client affiche pendant a verifier (clientAffiche sans masque)', fichier: LIVREUR, cible: 'return incertain ? null : clientVisible(course);', remplace: 'return clientVisible(course);' },
+  { nom: '19. ecran affiche le client sans tenir compte de a verifier', fichier: ECRAN, cible: 'clientAffiche(course, incertain)', remplace: 'clientVisible(course)' },
 ];
 const fichiers = [...new Set(mutations.map(m => m.fichier))];
 const originaux = new Map(fichiers.map(f => [f, readFileSync(f)]));
