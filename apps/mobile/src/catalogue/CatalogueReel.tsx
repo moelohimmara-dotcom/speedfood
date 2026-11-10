@@ -11,7 +11,7 @@ import { CompteReel } from '../connexion/CompteReel';
 import { ReserverTableReel } from '../connexion/ReserverTableReel';
 import { gestion } from '../connexion/gestion';
 import { CommandeReelle } from './CommandeReelle';
-import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
+import { brancherOuvertureReservations, brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
@@ -58,11 +58,14 @@ export function CatalogueReel() {
   const commandeVerrouillee = useRef(false);
   const ouvertureSuivi = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); } })).current;
   const ouvertureResto = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null, espaceRestaurateur: true }); setCompteOuvert(true); } })).current;
+  // Réponse du restaurant à une réservation (M4c) : « Mon compte » s'ouvre, SANS demande de lecture (la section « Mes réservations » est en dessous ; la personne appuie sur « Actualiser »).
+  const ouvertureReservations = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte(null); setCompteOuvert(true); } })).current;
   useEffect(() => {
     const debrancherSuivi = brancherOuvertureSuivi(() => ouvertureSuivi.demander());
     const debrancherResto = brancherOuvertureRestaurateur(() => ouvertureResto.demander());
+    const debrancherReservations = brancherOuvertureReservations(() => ouvertureReservations.demander());
     const arreter = notifications.demarrer();
-    return () => { arreter(); debrancherSuivi(); debrancherResto(); };
+    return () => { arreter(); debrancherSuivi(); debrancherResto(); debrancherReservations(); };
   }, []);
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
@@ -122,7 +125,7 @@ export function CatalogueReel() {
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </View>}
     <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
+    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); ouvertureReservations.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />

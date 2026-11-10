@@ -122,7 +122,8 @@ export interface Deps {
    * toutes les lectures et écritures filtrées sur le compte). Le plafond par compte est `limiterClientApplication`, posé par la route.
    */
   reservations: {
-    creer(utilisateurId: string, demande: DemandeReservation): Promise<ResultatReservation<{ reservation: ReservationClient; idempotent: boolean }>>;
+    /** Lot M4c : `apres` (planificateur de la requête) et `environnement` servent à l'alerte du restaurant, pour une réservation NOUVELLE seulement. Facultatifs : sans eux, aucune alerte. */
+    creer(utilisateurId: string, demande: DemandeReservation, apres?: Planifier, environnement?: unknown): Promise<ResultatReservation<{ reservation: ReservationClient; idempotent: boolean }>>;
     lister(utilisateurId: string): Promise<ResultatReservation<{ reservations: ReservationClient[] }>>;
     /** Une réservation du compte ; celle d'un autre compte est « introuvable », comme une réservation inexistante. */
     lire(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
@@ -137,7 +138,8 @@ export interface Deps {
   reservationsRestaurant: {
     /** `jour` : `AAAA-MM-JJ` (heure de Conakry = UTC) ou `null` pour aujourd'hui. Les réservations de ce jour, plus toutes les demandes à venir. */
     lister(ctx: ContexteRestaurant, jour: string | null): Promise<ResultatReservation<{ jour: string; reservations: ReservationRestaurant[] }>>;
-    decider(ctx: ContexteRestaurant, id: string, decision: DecisionReservation): Promise<ResultatReservation<{ reservation: ReservationRestaurant }>>;
+    /** Lot M4c : `apres` et `environnement` servent au message au client après une décision RÉUSSIE (confirmer, refuser, annuler). Facultatifs : sans eux, aucun message. */
+    decider(ctx: ContexteRestaurant, id: string, decision: DecisionReservation, apres?: Planifier, environnement?: unknown): Promise<ResultatReservation<{ reservation: ReservationRestaurant }>>;
     lireReglage(ctx: ContexteRestaurant): Promise<ResultatReservation<ReglageReservation>>;
     ecrireReglage(ctx: ContexteRestaurant, valeurs: ValeursReglageReservation): Promise<ResultatReservation<ReglageReservation>>;
   };

@@ -203,7 +203,7 @@ test('ouverture : chaque type de la liste blanche ouvre le suivi', () => {
   assert.equal(ouvertures, 5);
 });
 test('ouverture : commande_nouvelle ouvre le restaurateur, pas le suivi', () => {
-  assert.deepEqual([...TYPES_NOTIFICATION_RESTAURATEUR], ['commande_nouvelle']);
+  assert.deepEqual([...TYPES_NOTIFICATION_RESTAURATEUR], ['commande_nouvelle', 'reservation_nouvelle']); // lot M4c : la liste s'allonge d'un type, rien n'est retiré
   let suivi = 0, resto = 0; const p = portOuverture();
   demarrerOuverture({ port: p.port, ...ouvrir(() => { suivi++; }, () => { resto++; }) });
   p.appui(reponse('commande_nouvelle', 'n1'));

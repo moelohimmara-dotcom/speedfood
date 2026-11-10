@@ -13,7 +13,7 @@ import {
 } from "@speedfood/shared/contracts/reservation";
 import { identifier, limiterParCompte, type Variables } from "../controles/chaine.ts";
 import { lireCorpsJson, repondre, reponseErreur } from "../http.ts";
-import type { Deps } from "../types.ts";
+import type { Deps, Planifier } from "../types.ts";
 
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const INTROUVABLE = { code: "INTROUVABLE", message: "Réservation introuvable." } as const;
@@ -49,7 +49,9 @@ export function routeReservations(deps: Pick<Deps, "verificateurs" | "limiterCli
     if (!lu.ok) return lu.reponse;
     const corps = lireCorpsCreationReservation(lu.corps);
     if (!corps.ok) return reponseErreur(c, { code: "VALIDATION", message: corps.message });
-    const r = await deps.reservations.creer(c.get("utilisateurId"), corps.valeurs);
+    // « Après la réponse » (alerte du restaurant, M4c) : `waitUntil` du Worker, lu seulement quand le service planifie (réservation nouvelle). L'environnement vient de la requête, jamais du corps.
+    const apres: Planifier = (tache) => c.executionCtx.waitUntil(tache());
+    const r = await deps.reservations.creer(c.get("utilisateurId"), corps.valeurs, apres, c.env);
     if (!r.ok) return reponseErreur(c, r.erreur);
     return repondre(c, { ok: true, reservation: versClient(r.reservation), idempotent: r.idempotent === true }, r.idempotent ? 200 : 201);
   });
@@ -112,7 +114,9 @@ export function routeReservationsRestaurant(deps: Pick<Deps, "verificateurs" | "
     if (!corps.ok) return reponseErreur(c, { code: "VALIDATION", message: corps.message });
     // Identifiant mal formé : même réponse qu'une réservation inexistante ou d'un autre restaurant, sans appeler le service.
     if (!REGEX_UUID.test(id)) return reponseErreur(c, INTROUVABLE);
-    const r = await deps.reservationsRestaurant.decider(ctx, id.toLowerCase(), corps.valeurs);
+    // Message au client (M4c) : même mécanisme, seulement après une décision réussie.
+    const apres: Planifier = (tache) => c.executionCtx.waitUntil(tache());
+    const r = await deps.reservationsRestaurant.decider(ctx, id.toLowerCase(), corps.valeurs, apres, c.env);
     if (!r.ok) return reponseErreur(c, r.erreur);
     return repondre(c, { ok: true, reservation: versRestaurant(r.reservation) });
   });

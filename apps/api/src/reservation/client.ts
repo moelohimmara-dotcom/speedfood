@@ -1,6 +1,7 @@
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
 import { MAX_RESERVATIONS_ACTIVES_PAR_COMPTE, type DemandeReservation, type ReservationClient } from "@speedfood/shared/contracts/reservation";
-import type { Deps } from "../types.ts";
+import type { Deps, Planifier } from "../types.ts";
+import { planifier } from "./planification.ts";
 import { MESSAGE_BASE_INDISPONIBLE, traduireErreurBase, verifierAnnulationClient, verifierFenetreCreneau } from "./regles.ts";
 
 /**
@@ -44,6 +45,11 @@ export interface PortsReservationClient {
   lire(utilisateurId: string, id: string): Promise<ReservationClient | null>;
   /** Passe `annulee_client` si la réservation est celle du compte ET encore demandée ou confirmée (comparaison faite par la base). */
   annuler(utilisateurId: string, id: string): Promise<ResultatEcriture<ReservationClient>>;
+  /**
+   * Lot M4c : prévient les membres du restaurant qu'une demande vient d'arriver. Facultatif (absent = aucune alerte). Appelée seulement pour une réservation NOUVELLE, après la réponse, avec l'environnement
+   * de la requête (la liaison vers le site y est lue à l'appel). Ne doit jamais lever ; le service absorbe de toute façon une panne.
+   */
+  alerterNouvelleDemande?(restaurantId: string, environnement: unknown): Promise<void>;
 }
 
 /** Nombre total d'essais d'insertion quand la référence tirée existe déjà (une collision sur 28 millions : quatre essais suffisent largement). */
@@ -54,7 +60,7 @@ const refus = (erreur: ErreurApi) => ({ ok: false as const, erreur });
 
 export function creerServiceReservationClient(p: PortsReservationClient): Deps["reservations"] {
   return {
-    async creer(utilisateurId, d: DemandeReservation) {
+    async creer(utilisateurId, d: DemandeReservation, apres?: Planifier, environnement?: unknown) {
       const maintenant = p.maintenant();
       const creneauMs = Date.parse(d.creneau);
       const actives = await p.listerActives(utilisateurId, maintenant);
@@ -89,7 +95,11 @@ export function creerServiceReservationClient(p: PortsReservationClient): Deps["
       const ligne = { restaurantId: d.restaurantId, clientUserId: utilisateurId, nom: d.nom, telephone: d.telephone, nbPersonnes: d.nbPersonnes, creneau: new Date(creneauMs).toISOString(), note: d.note };
       for (let essai = 1; essai <= ESSAIS_INSERTION; essai++) {
         const r = await p.inserer(ligne);
-        if (r.ok) return { ok: true as const, reservation: r.reservation, idempotent: false };
+        if (r.ok) {
+          // Une réservation NOUVELLE seulement (jamais le rejeu idempotent, renvoyé plus haut), et seulement après l'écriture : l'alerte ne part qu'après la réponse.
+          planifier(apres, p.alerterNouvelleDemande && (() => p.alerterNouvelleDemande!(r.reservation.restaurantId, environnement)));
+          return { ok: true as const, reservation: r.reservation, idempotent: false };
+        }
         if (r.genre === "base") return refus(traduireErreurBase(r.erreur));
         // « reference_prise » : la base tire une autre référence à l'essai suivant.
       }

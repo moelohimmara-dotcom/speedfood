@@ -20,6 +20,8 @@ export interface DepsService {
   lireGeneration?(): number | null;
   ouvrirSuivi(): void;
   ouvrirRestaurateur(): void;
+  /** Lot M4c : appui sur la réponse du restaurant à une réservation → « Mon compte ». Facultatif : absent, l'appui ne fait rien. */
+  ouvrirReservations?(): void;
   /** Rôle restaurateur (choix C à l'ouverture de session). Ne lève jamais : `false` en cas de panne. */
   lireEstRestaurateur(): Promise<boolean>;
 }
@@ -115,7 +117,7 @@ export function creerServiceNotifications(d: DepsService) {
   return {
     demarrer(): () => void {
       void d.natif.creerCanal().catch(() => undefined);
-      const arretOuverture = demarrerOuverture({ port: d.natif, ouvrirSuivi: d.ouvrirSuivi, ouvrirRestaurateur: d.ouvrirRestaurateur });
+      const arretOuverture = demarrerOuverture({ port: d.natif, ouvrirSuivi: d.ouvrirSuivi, ouvrirRestaurateur: d.ouvrirRestaurateur, ouvrirReservations: d.ouvrirReservations });
       const arretJeton = d.natif.surRenouvellementJeton(jeton => {
         const c = courant ?? cycle();
         // Le même jeton émis par sa lecture est ignoré ; un vrai renouvellement en vol reste dans la file.

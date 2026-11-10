@@ -1,4 +1,4 @@
-import { construireMessageFcm, contenuPourType, creerAssertionJwt, interpreterReponseFcm, jetonAppareilValide, lireCompteServiceFcm, PORTEE_FCM, URL_JETON_GOOGLE, type TypeNotification } from "../../src/lib/push/fcm";
+import { construireMessageFcm, contenuPourType, typeNotificationPourReponseReservation, creerAssertionJwt, interpreterReponseFcm, jetonAppareilValide, lireCompteServiceFcm, PORTEE_FCM, URL_JETON_GOOGLE, type TypeNotification } from "../../src/lib/push/fcm";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -51,8 +51,27 @@ verifier("message : appareil, canal d'alerte, priorité haute, validité 30 min"
 verifier("message : données = le type seulement", m.message.data, { type: "commande_nouvelle" });
 verifier("offre de course : canal dédié et validité de 60 s (l'offre expire)", [contenuPourType("course_offre").canal, contenuPourType("course_offre").validiteSecondes], ["offre_course", 60]);
 verifier("mode validation sans envoi", [("validate_only" in construireMessageFcm(jeton, "essai", true)), ("validate_only" in construireMessageFcm(jeton, "essai"))], [true, false]);
-const tous: TypeNotification[] = ["commande_nouvelle", "course_offre", "commande_acceptee", "commande_prete", "commande_terminee", "commande_refusee", "commande_annulee", "essai", "mise_a_jour", "equipe_commande"];
+const tous: TypeNotification[] = ["commande_nouvelle", "course_offre", "commande_acceptee", "commande_prete", "commande_terminee", "commande_refusee", "commande_annulee", "essai", "mise_a_jour", "equipe_commande", "reservation_nouvelle", "reservation_confirmee", "reservation_refusee", "reservation_annulee"];
 verifier("aucun texte ne contient de donnée personnelle (téléphone, montant, référence, nom)", tous.some((t) => /\d|GNF|SF-|\+224/.test(contenuPourType(t).titre + contenuPourType(t).texte)), false);
+
+// Lot M4c : réservation de table. Texte générique, canal et validité par type ; aucune donnée de client ni motif.
+const attendusReservation: Array<[TypeNotification, string, string, string, number]> = [
+  ["reservation_nouvelle", "Nouvelle demande de réservation", "alerte_commande", "Une demande de table attend votre réponse. Ouvrez Speedfood.", 1800],
+  ["reservation_confirmee", "Réservation confirmée", "suivi_commande", "Votre table est confirmée. Ouvrez Speedfood pour voir les détails.", 3600],
+  ["reservation_refusee", "Réservation refusée", "suivi_commande", "Le restaurant n'a pas pu accepter votre demande. Ouvrez Speedfood.", 3600],
+  ["reservation_annulee", "Réservation annulée", "suivi_commande", "Le restaurant a annulé votre réservation. Ouvrez Speedfood.", 3600],
+];
+for (const [type, titre, canal, texte, validite] of attendusReservation) {
+  verifier(`réservation « ${type} » : titre, texte, canal et validité`, contenuPourType(type), { titre, texte, canal, validiteSecondes: validite });
+  const msg = construireMessageFcm(jeton, type) as { message: { data: Record<string, string>; android: { ttl: string; notification: { channel_id: string } } } };
+  verifier(`réservation « ${type} » : le message ne porte que le type (aucun identifiant, nom ni motif), canal et validité de l'envoi`, [msg.message.data, msg.message.android.notification.channel_id, msg.message.android.ttl], [{ type }, canal, `${validite}s`]);
+}
+verifier("réservation : le canal de l'alerte du restaurant est un canal Android qui existe déjà (alerte_commande) et celui du client aussi (suivi_commande)", [...new Set(attendusReservation.map((a) => a[2]))].sort(), ["alerte_commande", "suivi_commande"]);
+verifier("réservation : la réponse du restaurant donne le bon type, rien pour les autres états", [
+  typeNotificationPourReponseReservation("confirmee"), typeNotificationPourReponseReservation("refusee"), typeNotificationPourReponseReservation("annulee_restaurant"),
+  typeNotificationPourReponseReservation("honoree"), typeNotificationPourReponseReservation("non_honoree"), typeNotificationPourReponseReservation("demandee"), typeNotificationPourReponseReservation("annulee_client"), typeNotificationPourReponseReservation("x"), typeNotificationPourReponseReservation(undefined),
+], ["reservation_confirmee", "reservation_refusee", "reservation_annulee", null, null, null, null, null, null]);
+verifier("les types de commande existants gardent leur contenu (aucune régression)", [contenuPourType("commande_nouvelle").titre, contenuPourType("commande_refusee").texte, contenuPourType("equipe_commande").canal], ["Nouvelle commande", "Le restaurant n'a pas pu accepter votre commande.", "alerte_commande"]);
 
 // Lecture de la réponse.
 verifier("réponses : succès", interpreterReponseFcm(200, { name: "projects/x/messages/1" }), "ok");

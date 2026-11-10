@@ -8,8 +8,10 @@ import {
   type ValeursReglageReservation,
 } from "@speedfood/shared/contracts/reservation";
 import type { StatutReservation } from "@speedfood/shared/reservation/statuts";
-import type { ContexteRestaurant, Deps } from "../types.ts";
+import type { ContexteRestaurant, Deps, Planifier } from "../types.ts";
 import type { ResultatEcriture } from "./client.ts";
+import type { StatutReponseReservation } from "../notifications/reservation-site.ts";
+import { planifier } from "./planification.ts";
 import { MESSAGE_BASE_INDISPONIBLE, actionsPossibles, traduireErreurBase, verifierAction } from "./regles.ts";
 
 /**
@@ -29,12 +31,19 @@ export interface PortsReservationRestaurant {
   lire(client: unknown, restaurantId: string, id: string): Promise<LigneReservationRestaurant | null>;
   /** Compare-et-pose : ne change la ligne que si elle est encore à l'état `ancien`. `motif` n'est envoyé que s'il est fourni. */
   ecrireStatut(client: unknown, restaurantId: string, id: string, ancien: StatutReservation, nouveau: StatutReservation, motif: string | null): Promise<ResultatEcriture<LigneReservationRestaurant>>;
+  /**
+   * Lot M4c : prévient le client que le restaurant a répondu. Facultatif (absent = aucun message). Appelée seulement après une décision RÉUSSIE (écriture faite par cette requête), avec l'identifiant de
+   * la réservation et la réponse : le site relit lui-même le compte du client (l'API ne le connaît pas). Ne doit jamais lever ; le service absorbe de toute façon une panne.
+   */
+  prevenirClient?(reservationId: string, statut: StatutReponseReservation, environnement: unknown): Promise<void>;
   lireReglage(client: unknown, restaurantId: string): Promise<ReglageReservation | null>;
   ecrireReglage(client: unknown, restaurantId: string, valeurs: ValeursReglageReservation): Promise<ResultatEcriture<ReglageReservation>>;
 }
 
 const INTROUVABLE_RESERVATION: ErreurApi = { code: "INTROUVABLE", message: "Réservation introuvable." };
 const refus = (erreur: ErreurApi) => ({ ok: false as const, erreur });
+/** Les seules décisions qui préviennent le client (jamais « honorée » ni « non honorée », qui n'ont plus d'enjeu pour lui). */
+const MESSAGE_AU_CLIENT: ReadonlySet<StatutReservation> = new Set<StatutReservation>(["confirmee", "refusee", "annulee_restaurant"]);
 
 export function creerServiceReservationRestaurant(p: PortsReservationRestaurant): Deps["reservationsRestaurant"] {
   const enrichir = (l: LigneReservationRestaurant, maintenantMs: number): ReservationRestaurant => ({ ...l, actionsPossibles: actionsPossibles(l.statut, Date.parse(l.creneau), maintenantMs) });
@@ -53,7 +62,7 @@ export function creerServiceReservationRestaurant(p: PortsReservationRestaurant)
       return { ok: true as const, jour: jourLu, reservations };
     },
 
-    async decider(ctx, id, decision) {
+    async decider(ctx, id, decision, apres?: Planifier, environnement?: unknown) {
       const actuelle = await p.lire(ctx.supabase, ctx.restaurantId, id);
       if (!actuelle) return refus(INTROUVABLE_RESERVATION);
       const cible = STATUT_APRES_ACTION[decision.action];
@@ -62,7 +71,10 @@ export function creerServiceReservationRestaurant(p: PortsReservationRestaurant)
       const interdit = verifierAction(actuelle.statut, decision.action, Date.parse(actuelle.creneau), p.maintenant().getTime());
       if (interdit) return refus(interdit);
       const r = await p.ecrireStatut(ctx.supabase, ctx.restaurantId, id, actuelle.statut, cible, decision.motif);
-      if (r.ok) return { ok: true as const, reservation: enrichir(r.ligne, p.maintenant().getTime()) };
+      if (r.ok) {
+        if (MESSAGE_AU_CLIENT.has(cible)) planifier(apres, p.prevenirClient && (() => p.prevenirClient!(id, cible as StatutReponseReservation, environnement)));
+        return { ok: true as const, reservation: enrichir(r.ligne, p.maintenant().getTime()) };
+      }
       if (r.genre === "base") return refus(traduireErreurBase(r.erreur));
       // Aucune ligne modifiée : l'état a changé entre la lecture et l'écriture (autre appareil, annulation du client). On relit pour répondre juste.
       const relue = await p.lire(ctx.supabase, ctx.restaurantId, id);

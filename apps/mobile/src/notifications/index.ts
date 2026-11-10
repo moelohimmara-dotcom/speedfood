@@ -18,10 +18,15 @@ export function brancherOuvertureSuivi(f: () => void) { ouvrirSuivi = f; return 
 let ouvrirRestaurateur: () => void = () => undefined;
 export function brancherOuvertureRestaurateur(f: () => void) { ouvrirRestaurateur = f; return () => { if (ouvrirRestaurateur === f) ouvrirRestaurateur = () => undefined; }; }
 
+/** « Mon compte » ouvert sans lecture automatique (appui sur la réponse du restaurant à une réservation) : fourni par l'écran principal (lot M4c). */
+let ouvrirReservations: () => void = () => undefined;
+export function brancherOuvertureReservations(f: () => void) { ouvrirReservations = f; return () => { if (ouvrirReservations === f) ouvrirReservations = () => undefined; }; }
+
 export const notifications = creerServiceNotifications({
   natif, appareil, memoire: memoireDemande, obtenirAcces: () => gestion.acces(),
   lireGeneration: () => gestion.generationNotifications,
   ouvrirSuivi: () => ouvrirSuivi(), ouvrirRestaurateur: () => ouvrirRestaurateur(),
+  ouvrirReservations: () => ouvrirReservations(),
   lireEstRestaurateur: async () => {
     try { return (await gestion.moi()).restaurateur !== null; } catch { return false; }
   },

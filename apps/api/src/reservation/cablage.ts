@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { creerClientAdmin } from "@/lib/db/admin";
 import type { Deps } from "../types.ts";
+import { fournirAlerteReservationSite, fournirMessageReservationSite } from "../notifications/reservation-site.ts";
 import { creerAccesReservationClient, creerAccesReservationRestaurant } from "./acces.ts";
 import { creerServiceReservationClient } from "./client.ts";
 import { creerServiceReservationRestaurant } from "./restaurateur.ts";
@@ -19,9 +20,13 @@ import { creerServiceReservationRestaurant } from "./restaurateur.ts";
 export const serviceReservations: Deps["reservations"] = creerServiceReservationClient({
   maintenant: () => new Date(),
   ...creerAccesReservationClient({ client: () => creerClientAdmin() as unknown as SupabaseClient }),
+  // Lot M4c : l'alerte du restaurant est envoyée PAR LE SITE (secrets FCM sur le site seulement), par la liaison SITE_JETONS lue dans l'environnement de la requête, à l'appel. Absente : silence.
+  alerterNouvelleDemande: (restaurantId, environnement) => fournirAlerteReservationSite(() => environnement)(restaurantId),
 });
 
 export const serviceReservationsRestaurant: Deps["reservationsRestaurant"] = creerServiceReservationRestaurant({
   maintenant: () => new Date(),
   ...creerAccesReservationRestaurant(),
+  // Lot M4c : le message au client part par le même chemin ; le site relit lui-même le compte du client (l'API ne le connaît pas).
+  prevenirClient: (reservationId, statut, environnement) => fournirMessageReservationSite(() => environnement)(reservationId, statut),
 });

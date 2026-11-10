@@ -22,7 +22,7 @@ export function lireCompteServiceFcm(brut: string | undefined): CompteServiceFcm
 }
 
 /** Type d'événement notifié : détermine le texte, le canal Android (créé par l'application) et la durée de validité. */
-export type TypeNotification = "commande_nouvelle" | "course_offre" | "commande_acceptee" | "commande_prete" | "commande_terminee" | "commande_refusee" | "commande_annulee" | "essai" | "mise_a_jour" | "equipe_commande" | "candidature_acceptee" | "candidature_refusee" | "candidature_creee";
+export type TypeNotification = "commande_nouvelle" | "course_offre" | "commande_acceptee" | "commande_prete" | "commande_terminee" | "commande_refusee" | "commande_annulee" | "essai" | "mise_a_jour" | "equipe_commande" | "candidature_acceptee" | "candidature_refusee" | "candidature_creee" | "reservation_nouvelle" | "reservation_confirmee" | "reservation_refusee" | "reservation_annulee";
 
 export interface ContenuNotification {
   titre: string;
@@ -46,11 +46,24 @@ const CONTENUS: Record<TypeNotification, ContenuNotification> = {
   candidature_acceptee: { titre: "Demande acceptée", texte: "Votre demande d'inscription est acceptée. L'équipe prépare la mise en ligne de votre restaurant.", canal: "suivi_commande", validiteSecondes: 604800 },
   candidature_refusee: { titre: "Demande examinée", texte: "L'équipe Speedfood a examiné votre demande. Ouvrez l'application pour voir la réponse.", canal: "suivi_commande", validiteSecondes: 604800 },
   candidature_creee: { titre: "Votre restaurant est créé", texte: "Votre fiche est créée sur Speedfood. L'équipe finalise sa mise en ligne.", canal: "suivi_commande", validiteSecondes: 604800 },
+  // Réservation de table (lot M4c) : texte générique, jamais de nom, d'heure, de nombre de personnes ni de motif. L'alerte du restaurant réutilise le canal des commandes ; les réponses au client, celui du suivi.
+  reservation_nouvelle: { titre: "Nouvelle demande de réservation", texte: "Une demande de table attend votre réponse. Ouvrez Speedfood.", canal: "alerte_commande", validiteSecondes: 1800 },
+  reservation_confirmee: { titre: "Réservation confirmée", texte: "Votre table est confirmée. Ouvrez Speedfood pour voir les détails.", canal: "suivi_commande", validiteSecondes: 3600 },
+  reservation_refusee: { titre: "Réservation refusée", texte: "Le restaurant n'a pas pu accepter votre demande. Ouvrez Speedfood.", canal: "suivi_commande", validiteSecondes: 3600 },
+  reservation_annulee: { titre: "Réservation annulée", texte: "Le restaurant a annulé votre réservation. Ouvrez Speedfood.", canal: "suivi_commande", validiteSecondes: 3600 },
   essai: { titre: "Essai Speedfood", texte: "Les notifications fonctionnent sur cet appareil.", canal: "suivi_commande", validiteSecondes: 300 },
 };
 
 export function contenuPourType(type: TypeNotification): ContenuNotification {
   return CONTENUS[type];
+}
+
+/**
+ * Type de notification envoyé au client quand le restaurant répond à sa réservation : seules trois réponses préviennent le client. Tout autre état (honorée, non honorée, demandée, annulée par
+ * le client lui-même) ou valeur inconnue : `null`, rien n'est envoyé.
+ */
+export function typeNotificationPourReponseReservation(statut: unknown): TypeNotification | null {
+  return statut === "confirmee" ? "reservation_confirmee" : statut === "refusee" ? "reservation_refusee" : statut === "annulee_restaurant" ? "reservation_annulee" : null;
 }
 
 /** Corps de l'envoi d'un message à un appareil (API HTTP v1). `validerSeulement` : vérifie le message et l'authentification sans rien envoyer. */

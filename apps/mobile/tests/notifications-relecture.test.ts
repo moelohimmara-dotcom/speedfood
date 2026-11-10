@@ -133,8 +133,8 @@ test('I-1 (source) : index.ts branche la session et la plateforme ; canal, impor
 test('I-1 (source) : CatalogueReel appelle apresCommande après un envoi réussi et branche l\'appui dans un effet nettoyé', () => {
   const ecran = source('../src/catalogue/CatalogueReel.tsx');
   assert.match(ecran, /apresSucces=\{reference => .*void notifications\.apresCommande\(\)\.then\(/);
-  assert.match(ecran, /const debrancherSuivi = brancherOuvertureSuivi\(\(\) => ouvertureSuivi\.demander\(\)\);\n\s*const debrancherResto = brancherOuvertureRestaurateur\(\(\) => ouvertureResto\.demander\(\)\);\n\s*const arreter = notifications\.demarrer\(\);\n\s*return \(\) => \{ arreter\(\); debrancherSuivi\(\); debrancherResto\(\); \};/);
-  assert.ok(ecran.includes('surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }}'));
+  assert.match(ecran, /const debrancherSuivi = brancherOuvertureSuivi\(\(\) => ouvertureSuivi\.demander\(\)\);\n\s*const debrancherResto = brancherOuvertureRestaurateur\(\(\) => ouvertureResto\.demander\(\)\);\n\s*const debrancherReservations = brancherOuvertureReservations\(\(\) => ouvertureReservations\.demander\(\)\);\n\s*const arreter = notifications\.demarrer\(\);\n\s*return \(\) => \{ arreter\(\); debrancherSuivi\(\); debrancherResto\(\); debrancherReservations\(\); \};/);
+  assert.ok(ecran.includes('surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); ouvertureReservations.verrouillageChange(); }}'));
   assert.ok(source('../src/catalogue/CommandeReelle.tsx').includes('useEffect(() => { surVerrou?.(verrouille); }, [verrouille]);'));
 });
 
