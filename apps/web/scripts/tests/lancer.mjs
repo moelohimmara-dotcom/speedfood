@@ -192,6 +192,15 @@ copier("src/lib/paiement/affichage-suivi.ts");
 copier("scripts/tests/retrait-especes.test.mts");
 copier("scripts/tests/paquet-partage.test.mts");
 copier("scripts/tests/reservation.test.mts");
+copier("src/lib/contracts/reservation.ts");
+copier("src/lib/reservation/statuts.ts");
+copier("src/lib/reservation/creneaux.ts");
+copier("src/lib/reservation/formulaire.ts");
+copier("src/lib/reservation/console.ts");
+copier("src/lib/reservation/liste.ts");
+copier("src/lib/reservation/api-regles.ts");
+copier("scripts/tests/reservation-site.test.mts");
+copier("scripts/tests/reservation-api.test.mts");
 copier("src/lib/securite/redis-client.ts");
 copier("src/lib/securite/redis-limites.ts");
 copier("scripts/tests/redis.test.mts");
@@ -261,7 +270,7 @@ copier("src/lib/system-admin/contacts-regles.ts");
 copier("scripts/tests/contacts.test.mts");
 
 let statut = 0;
-for (const fichier of ["bilans", "decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne", "paiement-service", "garde-fou-speedfood", "espace-client", "recommander", "notifications-client", "acces", "partenariat", "referencement", "plat-regles", "api-v1", "relais", "gardes-relais", "alerte-interne", "restaurants-equipe", "attente-equipe", "comptes-equipe", "contenus-equipe", "audit-equipe", "menu-plat", "fcm", "version-app", "annulation-client", "retrait-especes", "paquet-partage", "redis", "estimation", "quarts", "supervision", "remboursement-manuel", "candidature", "pre-remplissage", "reservation"]) {
+for (const fichier of ["bilans", "decouverte", "securite", "ip", "alternatives", "partage", "tuile", "alertes", "push", "reglages", "menujour", "saisie", "paiement", "documents", "texteriche", "cache", "emplacements", "paliers", "audit", "verifierbase", "studio", "blocs", "apresecriture", "editeur", "accueil", "design", "reprise", "chefia", "complements", "profil", "geographie", "zone-position", "zone-alerte", "livraison", "csv", "geographie-outils", "atraiter", "console", "modeservice", "panier", "hub", "decision", "questions", "livraison-frais", "livraison-dispatch", "livraison-mouvement", "navigation", "livreurs-regles", "notation", "recommandation", "aide-choix", "table", "cle-table", "validation-commande", "microcache", "pagination", "apercu-textes", "profils", "paiement-en-ligne", "paiement-service", "garde-fou-speedfood", "espace-client", "recommander", "notifications-client", "acces", "partenariat", "referencement", "plat-regles", "api-v1", "relais", "gardes-relais", "alerte-interne", "restaurants-equipe", "attente-equipe", "comptes-equipe", "contenus-equipe", "audit-equipe", "menu-plat", "fcm", "version-app", "annulation-client", "retrait-especes", "paquet-partage", "redis", "estimation", "quarts", "supervision", "remboursement-manuel", "candidature", "pre-remplissage", "reservation", "reservation-site", "reservation-api"]) {
   const resultat = spawnSync(process.execPath, [join(tmp, `scripts/tests/${fichier}.test.mts`)], { stdio: "inherit", env: { ...process.env, SPEEDFOOD_RACINE: racine } });
   statut = statut || (resultat.status ?? 1);
 }

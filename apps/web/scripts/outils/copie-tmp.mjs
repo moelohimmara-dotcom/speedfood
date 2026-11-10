@@ -2,7 +2,8 @@
 // suffixe « .ts », alias « @/ » du site, paquets résolus depuis le dépôt, et paquet partagé « @speedfood/shared/<chemin> » (dont le fichier est
 // copié au passage, avec ses propres imports). Utilisé par le lanceur de tests purs et par les scripts d'essai sur la vraie base.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, dirname, relative } from "node:path";
+import { join, dirname, relative, resolve } from "node:path";
+import { existsSync } from "node:fs";
 
 /**
  * @param {object} options
@@ -39,7 +40,14 @@ export function creerCopieur({ tmp, racine, paquets, retirerServerOnly = false }
     if (dejaCopies.has(dest)) return;
     dejaCopies.add(dest);
     mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, transformer(readFileSync(join(racinePartage, `${chemin}.ts`), "utf8"), dest));
+    const source = readFileSync(join(racinePartage, `${chemin}.ts`), "utf8");
+    writeFileSync(dest, transformer(source, dest));
+    // Imports relatifs d'un fichier partagé (`../reservation/statuts`) : leurs cibles, du même paquet, sont copiées elles aussi (sinon le fichier copié ne se chargerait pas).
+    for (const m of source.matchAll(/from\s+"(\.{1,2}\/[^"]+?)(?:\.ts)?"/g)) {
+      const cible = resolve(join(racinePartage, dirname(chemin)), m[1]);
+      const relatif = relative(racinePartage, cible).split("\\").join("/");
+      if (!relatif.startsWith("..") && existsSync(`${cible}.ts`)) copierPartage(relatif);
+    }
   }
 
   function copier(rel) {

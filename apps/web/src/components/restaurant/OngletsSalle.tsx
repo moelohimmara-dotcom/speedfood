@@ -7,9 +7,10 @@ const ONGLETS = [
   { href: "/restaurant/salle", libelle: "Salle", exact: true },
   { href: "/restaurant/salle/saisie", libelle: "Prendre une commande", exact: true },
   { href: "/restaurant/tables", libelle: "Service et QR", exact: false },
+  { href: "/restaurant/reservations", libelle: "Réservations", exact: false },
 ] as const;
 
-/** Onglets du service sur place : la salle, la prise de commande par le serveur, puis le réglage du service et les QR à imprimer. */
+/** Onglets du service sur place : la salle, la prise de commande par le serveur, puis le réglage du service et les QR à imprimer, et les réservations de table. */
 export function OngletsSalle() {
   const chemin = usePathname() ?? "";
   return (

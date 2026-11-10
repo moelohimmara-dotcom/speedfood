@@ -72,6 +72,12 @@ export default async function ComptePage() {
               </Link>
             </li>
             <li>
+              <Link href="/compte/reservations" className="compte-espace-lien">
+                <strong>Mes réservations</strong>
+                <span>Vos demandes de table, leur état, et l&apos;annulation</span>
+              </Link>
+            </li>
+            <li>
               <Link href="/compte/favoris" className="compte-espace-lien">
                 <strong>Mes restaurants favoris</strong>
                 <span>Les restaurants que vous aimez, à portée de main</span>

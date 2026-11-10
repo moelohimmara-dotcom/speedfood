@@ -39,6 +39,7 @@ import "./cms-public.css";
 import "./studio-blocs.css";
 import "./studio-editeur.css";
 import "./partenariat.css";
+import "./reservation.css";
 import { EnregistrementServiceWorker } from "@/components/EnregistrementServiceWorker";
 import { FichiersAnimes } from "@/components/FichiersAnimes";
 import { cssJetonsSite } from "@/lib/studio/jetons-lecture";
