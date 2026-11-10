@@ -55,4 +55,23 @@
 - L'analyse du remboursement **n'est pas un avis juridique** : elle prépare celui du conseil.
 
 ## Journal
-- 10 novembre : plan écrit après lecture du code ; en attente du oui de Malika sur les décisions par défaut du §3.
+- 10 novembre : plan écrit après lecture du code ; en attente du oui de Malika sur les décisions par défaut du §3 (commit 9a89e4a).
+- 10 novembre, **état des lots** (branche `etape-modes-commande-remboursement`, poussée ; tête 53bdbd8 ; `master` à 7b6c054 contient déjà G3, pas ces lots) :
+
+| Lot | Commit | Preuve | Déployé ? |
+|---|---|---|---|
+| M1 vocabulaire, plus d'espèces dans les choix | 69e458f | tests, contrôles verts | Non |
+| M2 base de la réservation (migration `20261110090000_reservations_table.sql`) | 6d938c3 | 143 contrôles de cloisonnement ; **migration NON appliquée** | Non |
+| M3 routes serveur (API Hono, 9 routes) | b2d2702 | 116 tests, 46 mutations détectées | Non |
+| M4-0 route « ce restaurant accepte-t-il les réservations » | a92d620 | 15 tests, 12 mutations | Non |
+| M4b site (fiche restaurant, Mes réservations, console) | 6ef5621 | tests ; **pages jamais ouvertes au navigateur** | Non |
+| M4a appli Expo (client, mes réservations, restaurateur) + banc `controle-reservation/` | 5737e53 | mobile 721/721 ; banc automatisé 13 parcours ; **essai émulateur** : réserver, liste, détail, annuler avec confirmation, refuser sans puis avec motif | Non |
+| M4c notifications (alerte au restaurant, message au client) | 53bdbd8 | `test:api` 887/887 ; mobile 735/735 ; 37 mutations ; Worker API 1 352 057 octets (plafond 1 400 000) ; **aucun envoi réel, aucun essai émulateur** | Non |
+| R1 dossier d'analyse du remboursement | ac6e743 | document, 35 questions | n/a |
+| R2 remboursement dans le système | — | **pas commencé** : attend la décision humaine et l'avis juridique | — |
+
+- **Non vérifié à ce jour :** les fautes réseau (`incertain_*`, capacité pleine) et le bouton masqué (`reservation_fermee`) n'ont pas été rejoués à l'émulateur (couverts par le banc automatisé seulement) ; les pages du site (M4b) n'ont jamais été ouvertes ; les notifications de réservation n'ont jamais été envoyées pour de vrai ; aucune écriture en base réelle (migration non appliquée).
+- **Ordre de mise en service (chaque étape demande un feu vert distinct de Malika) :** (1) appliquer la migration M2, puis `get_advisors(type: "security")` et régénérer `database.types.ts` ; (2) déployer le **site** avant l'API ; (3) déployer l'API ; (4) publier une nouvelle version de l'appli (APK) ; (5) allumer `reservation` dans `API_RELAIS`. L'API se tait si le site n'a pas la nouvelle méthode RPC (ordre inverse sans danger, mais rien ne part).
+- **Limites connues de M4c :** l'appui sur une notification ouvre l'espace concerné (Espace restaurateur, ou « Mon compte »), pas directement la section ; le push web n'affiche que le texte des commandes, donc un restaurateur qui n'utilise que la console web ne reçoit pas l'alerte de réservation.
+- **Décisions encore ouvertes pour Malika :** bouton « Réserver une table » visible aux visiteurs non connectés (recommandé oui ; demande une petite route publique) ; plage des créneaux (recommandé 10:00–23:00 au lieu de 00:00–23:45) ; console du restaurateur un seul jour à la fois ; **M2b** (fonction SQL atomique pour la capacité et le plafond de 3, recommandée avant mise en service : sans elle, deux demandes simultanées peuvent dépasser la capacité) ; R2 (voir ci-dessous).
+- **R2 reste à faire** : champ « référence d'avis juridique » et décision humaine consignée, choix du moyen avec ou sans Chap Chap Pay, remboursement en espèces désactivé par défaut derrière un réglage (migration en fichier, non appliquée). À lancer après la réponse de Malika au dossier R1 ou sur son ordre. Nettoyage des espèces restant : B4/B5 (dans R2), B6 Kotlin (non touché).
