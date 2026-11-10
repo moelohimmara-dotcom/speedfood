@@ -57,3 +57,7 @@ Voir `docs/plans/2026-11-09-inventaire-restes-especes.md` : inventaire fait, zé
 - **Prompt :** P1 (laisser), P2 (retirer du dernier état) ou P3 (réécrire l'historique) ?
 - **Fusion :** F1, F2 ou F3 ?
 - **Espèces :** voir D1, D2, D3 de l'inventaire.
+
+## Décision du 10 novembre 2026
+
+Malika a choisi **P2** : `docs/PROMPT-CODEX-CHEF-DE-PROJET.md` est retiré du dernier état de la branche (commit normal, sans réécriture ni force-push). Il reste dans l'historique (ajouté par 744ec55). Les anciens documents qui le citent le font à titre historique. Reste à décider : la fusion dans `master` (F1, F2 ou F3).
