@@ -127,6 +127,8 @@ export interface Deps {
     /** Une réservation du compte ; celle d'un autre compte est « introuvable », comme une réservation inexistante. */
     lire(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
     annuler(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
+    /** Lot M4-0 : ce restaurant accepte-t-il les réservations ? `true` seulement s'il existe, est publié, non suspendu ET accepte les réservations ; sinon `false` (jamais d'erreur qui révélerait un restaurant non publié). Rien d'autre n'est rendu (ni capacité ni réglage). */
+    disponibilite(restaurantId: string): Promise<ResultatReservation<{ accepteReservation: boolean }>>;
   };
   /**
    * Lot M3 : réservation de table, côté RESTAURATEUR. `ctx` vient de `restaurant.contexte` (plafond, second facteur, questions, appartenance) : le restaurant est celui de l'appartenance du compte,

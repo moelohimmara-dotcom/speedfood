@@ -369,6 +369,30 @@ export function lireReponseDecisionReservation(v: unknown): ReservationRestauran
   return lireReservationRestaurant(o.reservation);
 }
 
+/** Réponse de `GET /reservations/restaurants/:restaurantId/disponibilite` (lot M4-0) : ce que les écrans lisent AVANT d'afficher « Réserver une table ». */
+export interface DisponibiliteReservation {
+  restaurantId: string;
+  /** `true` seulement si le restaurant existe, est publié, non suspendu ET accepte les réservations ; `false` dans tous les autres cas (jamais d'erreur qui révélerait un restaurant non publié). */
+  accepteReservation: boolean;
+  /** Plus grand groupe acceptable : toujours `NB_PERSONNES_MAX`. Ni capacité ni aucun autre réglage du restaurant ne sort ici. */
+  nbPersonnesMax: number;
+}
+
+/** Corps exact de la réponse de disponibilité, construit avec la constante partagée (une seule source pour la borne). */
+export function construireReponseDisponibiliteReservation(restaurantId: string, accepteReservation: boolean): { ok: true } & DisponibiliteReservation {
+  return { ok: true, restaurantId: restaurantId.toLowerCase(), accepteReservation, nbPersonnesMax: NB_PERSONNES_MAX };
+}
+
+/** Lecture stricte : quatre clés exactes, `ok` vrai, identifiant UUID, booléen, borne entière entre `NB_PERSONNES_MIN` et `NB_PERSONNES_MAX`. */
+export function lireReponseDisponibiliteReservation(v: unknown): DisponibiliteReservation {
+  const o = objetExact(v, ["ok", "restaurantId", "accepteReservation", "nbPersonnesMax"]);
+  if (o.ok !== true || typeof o.accepteReservation !== "boolean") return illisible();
+  if (typeof o.restaurantId !== "string" || !REGEX_UUID.test(o.restaurantId)) return illisible();
+  const max = o.nbPersonnesMax;
+  if (typeof max !== "number" || !Number.isInteger(max) || max < NB_PERSONNES_MIN || max > NB_PERSONNES_MAX) return illisible();
+  return { restaurantId: o.restaurantId, accepteReservation: o.accepteReservation, nbPersonnesMax: max };
+}
+
 /** Réponse de `GET` et `PUT /restaurant/reservation-reglage`. */
 export function lireReponseReglageReservation(v: unknown): ReglageReservation {
   const o = objetExact(v, ["ok", "accepteReservation", "capaciteCouverts"]);

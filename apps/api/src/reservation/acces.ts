@@ -18,6 +18,7 @@ import type { LigneReservationRestaurant, PortsReservationRestaurant } from "./r
 export const COLONNES_RESERVATION_CLIENT = "id, reference, restaurant_id, nom_client, telephone, nb_personnes, creneau, note, statut, motif_refus, cree_le, restaurants(nom)";
 export const COLONNES_RESERVATION_RESTAURANT = "id, reference, nom_client, telephone, nb_personnes, creneau, note, statut, motif_refus, cree_le";
 export const COLONNES_RESTAURANT_RESERVATION = "id, publie, suspendu_le, accepte_reservation, reservation_capacite_couverts";
+export const COLONNES_DISPONIBILITE_RESERVATION = "publie, suspendu_le, accepte_reservation";
 export const COLONNES_REGLAGE_RESERVATION = "accepte_reservation, reservation_capacite_couverts";
 const TABLE = "reservations_table";
 const STATUTS_ACTIFS = ["demandee", "confirmee"];
@@ -86,6 +87,13 @@ export function creerAccesReservationClient(d: { client(): SupabaseClient }): Om
         accepteReservation: r.accepte_reservation === true,
         capaciteCouverts: typeof capacite === "number" ? capacite : null,
       };
+    },
+    async lireDisponibilite(id) {
+      const { data, error } = await d.client().from("restaurants").select(COLONNES_DISPONIBILITE_RESERVATION).eq("id", id).maybeSingle();
+      if (error) throw new Error("RESTAURANT_INDISPONIBLE");
+      if (!data) return null;
+      const r = data as unknown as Ligne;
+      return { publie: r.publie === true, suspendu: r.suspendu_le !== null && r.suspendu_le !== undefined, accepteReservation: r.accepte_reservation === true };
     },
     async listerActives(utilisateurId, maintenant) {
       const { data, error } = await d.client()

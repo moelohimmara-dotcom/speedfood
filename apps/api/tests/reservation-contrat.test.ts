@@ -2,6 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CAPACITE_COUVERTS_MAX,
+  NB_PERSONNES_MAX,
+  construireReponseDisponibiliteReservation,
+  lireReponseDisponibiliteReservation,
   lireCorpsCreationReservation,
   lireCorpsDecisionReservation,
   lireCorpsReglageReservation,
@@ -226,4 +229,28 @@ test("M3 contrat : aucune borne dupliquée, celles de statuts.ts sont reprises (
   assert.equal(contrat.NB_PERSONNES_MAX, statuts.NB_PERSONNES_MAX);
   assert.equal(contrat.DELAI_MIN_MINUTES, statuts.DELAI_MIN_MINUTES);
   assert.equal(contrat.HORIZON_MAX_JOURS, statuts.HORIZON_MAX_JOURS);
+});
+
+// ---------- disponibilité (lot M4-0) ----------
+
+test("M4-0 disponibilité : la réponse est construite avec la constante partagée (aucune autre clé) et relue strictement", () => {
+  const vraie = construireReponseDisponibiliteReservation(RESTO.toUpperCase(), true);
+  assert.deepEqual(vraie, { ok: true, restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: NB_PERSONNES_MAX });
+  assert.equal(NB_PERSONNES_MAX, 12);
+  assert.deepEqual(Object.keys(construireReponseDisponibiliteReservation(RESTO, false)).sort(), ["accepteReservation", "nbPersonnesMax", "ok", "restaurantId"]);
+  assert.deepEqual(lireReponseDisponibiliteReservation(vraie), { restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 });
+  assert.deepEqual(lireReponseDisponibiliteReservation(construireReponseDisponibiliteReservation(RESTO, false)), { restaurantId: RESTO, accepteReservation: false, nbPersonnesMax: 12 });
+});
+
+test("M4-0 disponibilité : le parseur strict refuse clé en trop ou manquante, types faux, ok différent de true, identifiant mal formé, borne hors contrat", () => {
+  const bon = { ok: true, restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 };
+  const illisibles: unknown[] = [
+    { ...bon, capaciteCouverts: 30 }, { ...bon, nom: "Chez Fatou" },
+    { ok: true, restaurantId: RESTO, accepteReservation: true }, { ok: true, restaurantId: RESTO, nbPersonnesMax: 12 }, { ok: true, accepteReservation: true, nbPersonnesMax: 12 },
+    { ...bon, ok: false }, { ...bon, ok: "true" }, { ...bon, accepteReservation: "oui" }, { ...bon, accepteReservation: 1 }, { ...bon, accepteReservation: null },
+    { ...bon, restaurantId: "pas-un-uuid" }, { ...bon, restaurantId: 12 },
+    { ...bon, nbPersonnesMax: 13 }, { ...bon, nbPersonnesMax: 0 }, { ...bon, nbPersonnesMax: 2.5 }, { ...bon, nbPersonnesMax: "12" },
+    null, [], "texte", 12, undefined,
+  ];
+  for (const [i, brut] of illisibles.entries()) assert.throws(() => lireReponseDisponibiliteReservation(brut), /RESERVATION_ILLISIBLE/, `cas ${i}`);
 });

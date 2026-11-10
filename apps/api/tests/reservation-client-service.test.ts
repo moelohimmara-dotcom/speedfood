@@ -354,3 +354,37 @@ test("M3 annulation : une erreur de la base est traduite, jamais reprise", async
   assert.equal(r2.ok, false);
   if (!r2.ok) assert.doesNotMatch(JSON.stringify(r2.erreur), /boom|secret|SQL/);
 });
+
+// ---------- disponibilité (lot M4-0) ----------
+
+test("M4-0 disponibilité : seul un restaurant publié, non suspendu ET qui accepte les réservations répond true", async () => {
+  const cas: Array<[Row[], boolean, string]> = [
+    [[ligneRestaurant()], true, "acceptant"],
+    [[], false, "inconnu"],
+    [[ligneRestaurant({ publie: false })], false, "non publié"],
+    [[ligneRestaurant({ suspendu_le: "2026-11-01T00:00:00.000Z" })], false, "suspendu"],
+    [[ligneRestaurant({ accepte_reservation: false })], false, "n'accepte pas"],
+    [[ligneRestaurant({ publie: false, suspendu_le: "2026-11-01T00:00:00.000Z", accepte_reservation: false })], false, "tout faux"],
+    [[ligneRestaurant({ publie: null, accepte_reservation: null })], false, "valeurs nulles"],
+  ];
+  for (const [restaurants, attendu, nom] of cas) {
+    const b = banc({ restaurants });
+    const r = await b.service.disponibilite(RESTO_1);
+    assert.deepEqual(r, { ok: true, accepteReservation: attendu }, nom);
+    assert.equal(ecritures(b).length, 0, nom);
+  }
+});
+
+test("M4-0 disponibilité : un restaurant publié mais autre que celui demandé ne compte pas ; la capacité n'est ni lue ni rendue", async () => {
+  const b = banc({ restaurants: [ligneRestaurant({ id: RESTO_2, reservation_capacite_couverts: 30 })] });
+  assert.deepEqual(await b.service.disponibilite(RESTO_1), { ok: true, accepteReservation: false });
+  const c = banc({ restaurants: [ligneRestaurant({ reservation_capacite_couverts: 30 })] });
+  const r = await c.service.disponibilite(RESTO_1);
+  assert.deepEqual(Object.keys(r).sort(), ["accepteReservation", "ok"]);
+  for (const o of c.operations) assert.doesNotMatch(o.select, /capacite|nom|\*/);
+});
+
+test("M4-0 disponibilité : une panne de la base est une exception générique (jamais « false » trompeur, jamais le détail SQL)", async () => {
+  const b = banc({ erreurLecture: "restaurants" });
+  await assert.rejects(() => b.service.disponibilite(RESTO_1), (e: Error) => e.message === "RESTAURANT_INDISPONIBLE" && !/secret/.test(e.message));
+});

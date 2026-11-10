@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { COLONNES_REGLAGE_RESERVATION, COLONNES_RESERVATION_CLIENT, COLONNES_RESERVATION_RESTAURANT, COLONNES_RESTAURANT_RESERVATION, collisionDeReference, creerAccesReservationClient, creerAccesReservationRestaurant } from "../src/reservation/acces.ts";
+import { COLONNES_DISPONIBILITE_RESERVATION, COLONNES_REGLAGE_RESERVATION, COLONNES_RESERVATION_CLIENT, COLONNES_RESERVATION_RESTAURANT, COLONNES_RESTAURANT_RESERVATION, collisionDeReference, creerAccesReservationClient, creerAccesReservationRestaurant } from "../src/reservation/acces.ts";
 import { MAINTENANT, RESTO_1, RES_1, RES_AUTRE, UID_A, UID_B, baseReservations, ligneReservation, ligneRestaurant } from "./reservation-base-factice.ts";
 
 /**
@@ -39,6 +39,25 @@ test("M3 accès client : toutes les requêtes listent leurs colonnes, aucune ne 
     assert.ok(o.filtres.includes("eq:client_user_id"), `filtre sur le compte : ${o.op} ${o.select}`);
   }
   assert.equal(b.operations.find((o) => o.select === COLONNES_RESTAURANT_RESERVATION)?.table, "restaurants");
+});
+
+test("M4-0 accès disponibilité : une seule lecture de `restaurants`, colonnes listées (publié, suspendu, accepte), filtrée sur l'identifiant, ni capacité ni nom", async () => {
+  const b = baseReservations({ restaurants: [ligneRestaurant({ reservation_capacite_couverts: 30 })] });
+  const acces = creerAccesReservationClient({ client: () => b.client });
+  assert.deepEqual(await acces.lireDisponibilite(RESTO_1), { publie: true, suspendu: false, accepteReservation: true });
+  assert.equal(await acces.lireDisponibilite("22222222-2222-4222-8222-222222222222"), null);
+  assert.equal(COLONNES_DISPONIBILITE_RESERVATION, "publie, suspendu_le, accepte_reservation");
+  assert.equal(b.operations.length, 2);
+  for (const o of b.operations) {
+    assert.equal(o.table, "restaurants");
+    assert.equal(o.op, "select");
+    assert.equal(o.select, COLONNES_DISPONIBILITE_RESERVATION);
+    assert.deepEqual(o.filtres, ["eq:id"]);
+  }
+  const susp = baseReservations({ restaurants: [ligneRestaurant({ suspendu_le: "2026-11-01T00:00:00.000Z" })] });
+  assert.equal((await creerAccesReservationClient({ client: () => susp.client }).lireDisponibilite(RESTO_1))?.suspendu, true);
+  const panne = baseReservations({ erreurLecture: "restaurants" });
+  await assert.rejects(() => creerAccesReservationClient({ client: () => panne.client }).lireDisponibilite(RESTO_1), (e: Error) => e.message === "RESTAURANT_INDISPONIBLE");
 });
 
 test("M3 accès client : listes et lectures ne rendent jamais la ligne d'un autre compte ; l'annulation d'un autre compte ne modifie rien", async () => {

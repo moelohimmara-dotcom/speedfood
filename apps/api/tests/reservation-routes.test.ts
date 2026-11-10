@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { creerApp } from "../src/app.ts";
 import { depsEssai } from "./deps-essai.ts";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
-import { lireReponseCreationReservation, lireReponseDecisionReservation, lireReponseListeReservations, lireReponseReglageReservation, lireReponseReservationClient, lireReponseReservationsRestaurant } from "@speedfood/shared/contracts/reservation";
+import { lireReponseCreationReservation, lireReponseDisponibiliteReservation, lireReponseDecisionReservation, lireReponseListeReservations, lireReponseReglageReservation, lireReponseReservationClient, lireReponseReservationsRestaurant } from "@speedfood/shared/contracts/reservation";
 import type { Deps, ResultatReservation } from "../src/types.ts";
 
 /**
@@ -44,6 +44,7 @@ function banc(options: { client?: Partial<Reservations>; restaurateur?: Partial<
       lister: async (id) => { noter("lister", id); return options.client?.lister ? options.client.lister(id) : ok({ reservations: [resClient() as never] }); },
       lire: async (id, r) => { noter("lire", id, r); return options.client?.lire ? options.client.lire(id, r) : ok({ reservation: resClient() as never }); },
       annuler: async (id, r) => { noter("annuler", id, r); return options.client?.annuler ? options.client.annuler(id, r) : ok({ reservation: resClient({ statut: "annulee_client" }) as never }); },
+      disponibilite: async (r) => { noter("disponibilite", r); return options.client?.disponibilite ? options.client.disponibilite(r) : ok({ accepteReservation: true }); },
     },
     reservationsRestaurant: {
       lister: async (ctx, jour) => { noter("r-lister", ctx, jour); return options.restaurateur?.lister ? options.restaurateur.lister(ctx, jour) : ok({ jour: jour ?? "2026-11-10", reservations: [resResto() as never] }); },
@@ -233,6 +234,105 @@ test("M3 routes client : méthode inconnue ou chemin voisin = 404 « Route incon
     assert.equal(((await r.json()) as { erreur: { message: string } }).erreur.message, "Route inconnue.");
     assert.deepEqual(b.appels, [], `${methode} ${chemin} ne doit rien appeler`);
   }
+});
+
+// ---------- disponibilité (lot M4-0) ----------
+
+const DISPO = (id: string = RESTO) => `/api/v1/reservations/restaurants/${id}/disponibilite`;
+
+test("M4-0 route GET disponibilité : strict, plafond du compte, puis le service avec l'identifiant en minuscules ; réponse exacte lue par le parseur strict", async () => {
+  const b = banc();
+  const r = await b.app.request(DISPO(RESTO.toUpperCase()), { headers: AUTH });
+  assert.equal(r.status, 200);
+  assert.deepEqual(b.appels, ["strict", "limite:" + UID, "disponibilite"]);
+  assert.deepEqual(b.vus.disponibilite[0], [RESTO]);
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.equal(r.headers.get("access-control-allow-origin"), null);
+  const brut = await r.json();
+  assert.deepEqual(brut, { ok: true, restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 });
+  assert.deepEqual(lireReponseDisponibiliteReservation(brut), { restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 });
+});
+
+test("M4-0 route GET disponibilité : sans porteur ou porteur invalide = 401, ni plafond ni service", async () => {
+  for (const headers of [{}, { authorization: "Bearer pas.un.jeton!" }, { authorization: "Basic abc" }] as Record<string, string>[]) {
+    const b = banc();
+    const r = await b.app.request(DISPO(), { headers });
+    assert.equal(r.status, 401);
+    assert.deepEqual(serviceAppele(b.appels), []);
+    assert.ok(!b.appels.some((a) => a.startsWith("limite:")));
+    assert.equal(((await r.json()) as { erreur: { code: string } }).erreur.code, "NON_AUTHENTIFIE");
+  }
+});
+
+test("M4-0 route GET disponibilité : plafond par compte = 429 avant tout service", async () => {
+  const b = banc({ limiter: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Patientez un instant."); } });
+  const r = await b.app.request(DISPO(), { headers: AUTH });
+  assert.equal(r.status, 429);
+  assert.deepEqual(serviceAppele(b.appels), []);
+});
+
+test("M4-0 route GET disponibilité : identifiant mal formé = 400 VALIDATION (comme les autres routes), service jamais appelé", async () => {
+  for (const id of ["pas-un-uuid", "1234", "11111111-1111-4111-8111-11111111111", "11111111-1111-4111-8111-1111111111111", "zzzzzzzz-1111-4111-8111-111111111111"]) {
+    const b = banc();
+    const r = await b.app.request(DISPO(id), { headers: AUTH });
+    assert.equal(r.status, 400, id);
+    const j = (await r.json()) as { ok: boolean; erreur: { code: string; message: string } };
+    assert.equal(j.ok, false);
+    assert.equal(j.erreur.code, "VALIDATION");
+    assert.deepEqual(serviceAppele(b.appels), [], id);
+  }
+});
+
+test("M4-0 route GET disponibilité : inconnu, non publié, suspendu ou n'acceptant pas = MÊME forme avec accepteReservation:false (jamais de 404)", async () => {
+  const faux = banc({ client: { disponibilite: async () => ({ ok: true, accepteReservation: false }) } });
+  const r = await faux.app.request(DISPO(), { headers: AUTH });
+  assert.equal(r.status, 200);
+  const brut = (await r.json()) as Record<string, unknown>;
+  assert.deepEqual(brut, { ok: true, restaurantId: RESTO, accepteReservation: false, nbPersonnesMax: 12 });
+  const vrai = (await (await banc().app.request(DISPO(), { headers: AUTH })).json()) as Record<string, unknown>;
+  assert.deepEqual(Object.keys(brut), Object.keys(vrai), "mêmes clés, même ordre");
+});
+
+test("M4-0 route GET disponibilité : rien d'autre que le contrat ne sort, même si le service amont rend plus (capacité, nom, compte, jeton)", async () => {
+  const amont = { ok: true, accepteReservation: true, capaciteCouverts: 30, restaurantNom: "Chez Fatou", clientUserId: UID, jeton_suivi_hash: "f".repeat(64) } as never;
+  const b = banc({ client: { disponibilite: async () => amont } });
+  const r = await b.app.request(DISPO(), { headers: AUTH });
+  assert.equal(r.status, 200);
+  const brut = await r.text();
+  assert.doesNotMatch(brut, new RegExp(`capacite|Chez Fatou|${UID}|jeton|hash|30`));
+  assert.deepEqual(Object.keys(JSON.parse(brut)).sort(), ["accepteReservation", "nbPersonnesMax", "ok", "restaurantId"]);
+});
+
+test("M4-0 route GET disponibilité : un service amont douteux (accepteReservation non booléen) = 500 générique, jamais un « true » inventé", async () => {
+  const b = banc({ client: { disponibilite: async () => ({ ok: true, accepteReservation: "oui" }) as never } });
+  const r = await b.app.request(DISPO(), { headers: AUTH });
+  assert.equal(r.status, 500);
+  assert.deepEqual(await r.json(), { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Réessayez dans un instant." } });
+});
+
+test("M4-0 route disponibilité : autre méthode ou chemin voisin = 404 sans rien appeler ; /reservations/:id reste intact", async () => {
+  const cas: Array<[string, string]> = [
+    ["POST", DISPO()], ["PUT", DISPO()], ["DELETE", DISPO()], ["PATCH", DISPO()],
+    ["GET", `/api/v1/reservations/restaurants/${RESTO}`], ["GET", `/api/v1/reservations/restaurants/${RESTO}/disponibilite/x`], ["GET", `/api/v1/reservations/restaurants/${RESTO}/capacite`],
+    ["GET", "/api/v1/reservations/restaurants//disponibilite"],
+  ];
+  for (const [methode, chemin] of cas) {
+    const b = banc();
+    const r = await b.app.request(chemin, { method: methode, headers: AUTH });
+    assert.equal(r.status, 404, `${methode} ${chemin}`);
+    assert.deepEqual(b.appels, [], `${methode} ${chemin} ne doit rien appeler`);
+  }
+  const b = banc();
+  assert.equal((await b.app.request(`/api/v1/reservations/${ID}`, { headers: AUTH })).status, 200);
+  assert.deepEqual(b.appels, ["strict", "limite:" + UID, "lire"]);
+});
+
+test("M4-0 route disponibilité : aucun en-tête CORS, y compris la préflight", async () => {
+  const b = banc();
+  const r = await b.app.request(DISPO(), { method: "OPTIONS", headers: { origin: "https://exemple.invalid", "access-control-request-method": "GET" } });
+  assert.equal(r.headers.get("access-control-allow-origin"), null);
+  assert.equal(r.status, 404);
+  assert.deepEqual(b.appels, []);
 });
 
 test("M3 routes client : aucun en-tête CORS (natif seulement), y compris la préflight", async () => {

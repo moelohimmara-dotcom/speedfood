@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import { lireBearer } from "@speedfood/shared/api/v1-regles";
 import {
+  construireReponseDisponibiliteReservation,
   lireCorpsCreationReservation,
   lireCorpsDecisionReservation,
   lireCorpsReglageReservation,
@@ -51,6 +52,17 @@ export function routeReservations(deps: Pick<Deps, "verificateurs" | "limiterCli
     const r = await deps.reservations.creer(c.get("utilisateurId"), corps.valeurs);
     if (!r.ok) return reponseErreur(c, r.erreur);
     return repondre(c, { ok: true, reservation: versClient(r.reservation), idempotent: r.idempotent === true }, r.idempotent ? 200 : 201);
+  });
+
+  // Lot M4-0 : « ce restaurant accepte-t-il les réservations ? », lu AVANT d'afficher le bouton. Un identifiant mal formé = 400 (VALIDATION) ; inconnu, non publié, suspendu ou fermé = `false`
+  // avec la même forme (jamais de 404). La réponse est construite ici avec la constante partagée : rien du service amont (capacité, nom) ne peut y entrer.
+  route.get("/restaurants/:restaurantId/disponibilite", ...garde, async (c) => {
+    const restaurantId = c.req.param("restaurantId");
+    if (!REGEX_UUID.test(restaurantId)) return reponseErreur(c, { code: "VALIDATION", message: "Restaurant invalide." });
+    const r = await deps.reservations.disponibilite(restaurantId.toLowerCase());
+    if (!r.ok) return reponseErreur(c, r.erreur);
+    if (typeof r.accepteReservation !== "boolean") illisible();
+    return repondre(c, construireReponseDisponibiliteReservation(restaurantId, r.accepteReservation));
   });
 
   route.get("/:id", ...garde, async (c) => {

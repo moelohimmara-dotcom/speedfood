@@ -18,6 +18,13 @@ export interface RestaurantPourReservation {
   capaciteCouverts: number | null;
 }
 
+/** Ce que la disponibilité lit du restaurant (lot M4-0). */
+export interface DisponibiliteRestaurant {
+  publie: boolean;
+  suspendu: boolean;
+  accepteReservation: boolean;
+}
+
 export type ErreurBrute = { code?: unknown; message?: unknown };
 export type ResultatEcriture<L> = { ok: true; ligne: L } | { ok: false; genre: "aucune_ligne" } | { ok: false; genre: "base"; erreur: ErreurBrute };
 export type ResultatInsertion = { ok: true; reservation: ReservationClient } | { ok: false; genre: "reference_prise" } | { ok: false; genre: "base"; erreur: ErreurBrute };
@@ -31,6 +38,8 @@ export interface PortsReservationClient {
   sommeCouverts(restaurantId: string, creneau: Date): Promise<number>;
   /** La référence est tirée par la base ; une collision (contrainte d'unicité) répond `reference_prise` et l'appelant réessaie. */
   inserer(ligne: { restaurantId: string; clientUserId: string; nom: string; telephone: string; nbPersonnes: number; creneau: string; note: string | null }): Promise<ResultatInsertion>;
+  /** Lot M4-0 : trois colonnes seulement (publié, suspendu, accepte) ; `null` si le restaurant n'existe pas. Ni capacité ni nom. */
+  lireDisponibilite(id: string): Promise<DisponibiliteRestaurant | null>;
   lister(utilisateurId: string): Promise<ReservationClient[]>;
   lire(utilisateurId: string, id: string): Promise<ReservationClient | null>;
   /** Passe `annulee_client` si la réservation est celle du compte ET encore demandée ou confirmée (comparaison faite par la base). */
@@ -85,6 +94,12 @@ export function creerServiceReservationClient(p: PortsReservationClient): Deps["
         // « reference_prise » : la base tire une autre référence à l'essai suivant.
       }
       return refus({ code: "ERREUR_SERVEUR", message: MESSAGE_BASE_INDISPONIBLE });
+    },
+
+    async disponibilite(restaurantId) {
+      // Inconnu, non publié, suspendu ou fermé aux réservations : la même réponse (`false`), jamais une erreur qui révélerait l'existence d'un restaurant non publié.
+      const dispo = await p.lireDisponibilite(restaurantId);
+      return { ok: true as const, accepteReservation: dispo !== null && dispo.publie && !dispo.suspendu && dispo.accepteReservation };
     },
 
     async lister(utilisateurId) {
