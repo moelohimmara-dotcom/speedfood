@@ -1484,6 +1484,71 @@ export type Database = {
         }
         Relationships: []
       }
+      reservations_table: {
+        Row: {
+          client_user_id: string | null
+          cree_le: string
+          creneau: string
+          id: string
+          jeton_suivi_hash: string | null
+          mis_a_jour_le: string
+          motif_refus: string | null
+          nb_personnes: number
+          nom_client: string
+          note: string | null
+          reference: string
+          restaurant_id: string
+          statut: string
+          telephone: string
+          traitee_le: string | null
+          traitee_par: string | null
+        }
+        Insert: {
+          client_user_id?: string | null
+          cree_le?: string
+          creneau: string
+          id?: string
+          jeton_suivi_hash?: string | null
+          mis_a_jour_le?: string
+          motif_refus?: string | null
+          nb_personnes: number
+          nom_client: string
+          note?: string | null
+          reference?: string
+          restaurant_id: string
+          statut?: string
+          telephone: string
+          traitee_le?: string | null
+          traitee_par?: string | null
+        }
+        Update: {
+          client_user_id?: string | null
+          cree_le?: string
+          creneau?: string
+          id?: string
+          jeton_suivi_hash?: string | null
+          mis_a_jour_le?: string
+          motif_refus?: string | null
+          nb_personnes?: number
+          nom_client?: string
+          note?: string | null
+          reference?: string
+          restaurant_id?: string
+          statut?: string
+          telephone?: string
+          traitee_le?: string | null
+          traitee_par?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_table_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_codes_marchand: {
         Row: {
           mis_a_jour_le: string
@@ -1650,6 +1715,7 @@ export type Database = {
       restaurants: {
         Row: {
           accepte_commandes: boolean
+          accepte_reservation: boolean
           accepte_sur_place: boolean
           categorie_id: string
           code_court: string
@@ -1675,12 +1741,14 @@ export type Database = {
           photo_url: string | null
           publie: boolean
           quartier_id: string
+          reservation_capacite_couverts: number | null
           statut_mis_a_jour_le: string
           suspendu_le: string | null
           suspendu_motif: string | null
         }
         Insert: {
           accepte_commandes?: boolean
+          accepte_reservation?: boolean
           accepte_sur_place?: boolean
           categorie_id: string
           code_court?: string
@@ -1706,12 +1774,14 @@ export type Database = {
           photo_url?: string | null
           publie?: boolean
           quartier_id: string
+          reservation_capacite_couverts?: number | null
           statut_mis_a_jour_le?: string
           suspendu_le?: string | null
           suspendu_motif?: string | null
         }
         Update: {
           accepte_commandes?: boolean
+          accepte_reservation?: boolean
           accepte_sur_place?: boolean
           categorie_id?: string
           code_court?: string
@@ -1737,6 +1807,7 @@ export type Database = {
           photo_url?: string | null
           publie?: boolean
           quartier_id?: string
+          reservation_capacite_couverts?: number | null
           statut_mis_a_jour_le?: string
           suspendu_le?: string | null
           suspendu_motif?: string | null

@@ -1009,5 +1009,300 @@ verifier("affectations : un établissement ne peut avoir qu'un seul titulaire ac
   catch { return true; }
 })()));
 
+// ---------------------------------------------------------------- 20. réservations de table (lot M2)
+console.log("\n--- Réservations de table");
+const RESTO_C = "00000000-0000-4000-8000-0000000000c2";
+const RESTO_D = "00000000-0000-4000-8000-0000000000d2";
+// Le compte de A a été supprimé plus haut (essai de cascade des favoris) : un nouveau restaurateur du restaurant A.
+const RESTAURATEUR_A = "00000000-0000-4000-8000-00000000a0a1";
+await db.exec(`
+  insert into auth.users (id, email) values (${U(RESTAURATEUR_A)}, 'a2@test.invalid');
+  insert into restaurant_memberships (restaurant_id, utilisateur_id, role) values (${U(ID.resto_a)}, ${U(RESTAURATEUR_A)}, 'owner');
+  insert into restaurants (id, nom, categorie_id, quartier_id, publie) values ('${RESTO_D}', 'RESTO-D-NONPUBLIE', '${CAT}', '${QUA}', false);
+`);
+await db.exec(`
+  insert into restaurants (id, nom, categorie_id, quartier_id, publie) values ('${RESTO_C}', 'RESTO-C-SANS-RESERVATION', '${CAT}', '${QUA}', true);
+  update restaurants set accepte_reservation = true where id in (${U(ID.resto_a)}, ${U(ID.resto_b)}, '${RESTO_D}');
+`);
+verifier("restaurants : la réservation est désactivée par défaut", (await db.query(`select accepte_reservation from restaurants where id = '${RESTO_C}'`)).rows[0].accepte_reservation === false);
+verifier("restaurants : pas de plafond de couverts par défaut", (await db.query(`select reservation_capacite_couverts c from restaurants where id = '${RESTO_C}'`)).rows[0].c === null);
+
+/** Rôle du serveur (clé de service) : contourne la RLS, sans identité ; les triggers et contraintes s'appliquent. */
+async function commeServeur(sql, params = []) {
+  await db.exec("set role service_role");
+  try {
+    const r = await db.query(sql, params);
+    return { touchees: r.affectedRows ?? r.rows.length, erreur: null, lignes: r.rows };
+  } catch (e) {
+    return { touchees: 0, erreur: e.message, lignes: [] };
+  } finally {
+    await db.exec("reset role");
+  }
+}
+const H = (c) => c.repeat(64);
+/** Crée une réservation « comme le serveur » ; `dans` est un intervalle (négatif = créneau passé, refusé par la garde). */
+const creerResa = (o = {}) => {
+  const d = { resto: ID.resto_a, client: null, hash: H("0"), nom: "Mamadou Diallo", tel: "+224620000001", nb: 2, dans: "3 days", note: null, statut: "demandee", ...o };
+  return commeServeur(
+    `insert into reservations_table (restaurant_id, client_user_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau, note, statut)
+     values ($1, $2, $3, $4, $5, $6, now() + $7::interval, $8, $9) returning id, reference`,
+    [d.resto, d.client, d.hash, d.nom, d.tel, d.nb, d.dans, d.note, d.statut],
+  );
+};
+let compteurHash = 0;
+const hashNeuf = () => (++compteurHash).toString(16).padStart(64, "0");
+const neuve = async (o = {}) => {
+  const r = await creerResa({ hash: hashNeuf(), ...o });
+  if (r.erreur) throw new Error("création de réservation d'essai impossible : " + r.erreur);
+  return r.lignes[0].id;
+};
+/** Réservation DÉJÀ passée ou limite : insérée en superutilisateur avec les triggers coupés (la garde de création les refuserait). */
+async function neuveHorsGarde(statut, dans, motif = null) {
+  await db.exec("set session_replication_role = replica");
+  try {
+    const r = await db.query(
+      `insert into reservations_table (restaurant_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau, statut, motif_refus, traitee_le)
+       values ($1, $2, 'Client Passe', '+224620000009', 2, now() + $3::interval, $4, $5, case when $4 = 'demandee' then null else now() end) returning id`,
+      [ID.resto_a, hashNeuf(), dans, statut, motif],
+    );
+    return r.rows[0].id;
+  } finally {
+    await db.exec("set session_replication_role = origin");
+  }
+}
+const statutDe = async (id) => (await db.query(`select statut from reservations_table where id = $1`, [id])).rows[0].statut;
+const motifDe = (r, fragment) => r.erreur !== null && r.erreur.includes(fragment);
+const refuseSv = async (nom, sql, params = [], fragment = "") => {
+  const r = await commeServeur(sql, params);
+  verifier(nom, r.erreur !== null && r.erreur.includes(fragment), `erreur : ${r.erreur ?? "aucune"}`);
+};
+const autoriseSv = async (nom, sql, params = []) => {
+  const r = await commeServeur(sql, params);
+  verifier(nom, r.erreur === null && r.touchees >= 1, `touchées : ${r.touchees}, erreur : ${r.erreur ?? "aucune"}`);
+};
+
+// Données de départ : deux réservations chez A (une liée à un compte, une d'invité), une d'un AUTRE compte chez A, une chez B.
+const R_A1 = await neuve({ client: ID.client });
+const R_A2 = await neuve();
+const R_A3 = await neuve({ client: ID.support, hash: null });
+const R_B1 = await neuve({ resto: ID.resto_b });
+verifier("création par le serveur : la référence est lisible (SF-R- + 5 caractères)", /^SF-R-[2-9A-HJKMNP-Z]{5}$/.test((await db.query(`select reference from reservations_table where id = '${R_A1}'`)).rows[0].reference));
+verifier("création par le serveur : l'état de départ est « demandée »", (await statutDe(R_A1)) === "demandee");
+
+console.log("--- Réservations : lecture");
+const RA = `restaurant_id = ${U(ID.resto_a)}`;
+const RB = `restaurant_id = ${U(ID.resto_b)}`;
+verifier("réservations : le restaurant A voit ses 3 réservations", (await nb(RESTAURATEUR_A, "reservations_table", RA)) === 3);
+verifier("réservations : le restaurant A ne voit aucune réservation de B", VIDE(await nb(RESTAURATEUR_A, "reservations_table", RB)));
+verifier("réservations : le restaurant B voit sa réservation", (await nb(ID.user_b, "reservations_table", RB)) === 1);
+verifier("réservations : le restaurant B ne voit aucune réservation de A", VIDE(await nb(ID.user_b, "reservations_table", RA)));
+verifier("réservations : le client voit la sienne et seulement la sienne", (await nb(ID.client, "reservations_table")) === 1 && (await nb(ID.client, "reservations_table", `id = '${R_A1}'`)) === 1);
+verifier("réservations : le client ne voit pas celle d'un autre compte", VIDE(await nb(ID.client, "reservations_table", `id = '${R_A3}'`)));
+verifier("réservations : un visiteur anonyme ne voit rien", VIDE(await nb(null, "reservations_table")));
+verifier("réservations : le support lit toutes les réservations", (await nb(ID.support, "reservations_table")) === 4);
+verifier("réservations : le super administrateur lit toutes les réservations", (await nb(ID.admin, "reservations_table")) === 4);
+const lectureHash = await lire(RESTAURATEUR_A, `select jeton_suivi_hash from reservations_table`);
+verifier("réservations : le restaurateur ne lit pas le condensé du jeton de suivi", lectureHash.erreur !== undefined && lectureHash.lignes.length === 0, `erreur : ${lectureHash.erreur ?? "aucune"}`);
+verifier("réservations : le client ne lit pas le condensé du jeton de suivi", (await lire(ID.client, `select jeton_suivi_hash from reservations_table`)).erreur !== undefined);
+verifier("réservations : `select *` est refusé à un compte connecté (colonnes listées par le code)", (await lire(RESTAURATEUR_A, `select * from reservations_table`)).erreur !== undefined);
+verifier("réservations : le restaurateur lit les colonnes utiles (nom, téléphone, créneau, état)", (await lire(RESTAURATEUR_A, `select reference, nom_client, telephone, nb_personnes, creneau, note, statut, motif_refus from reservations_table`)).lignes.length === 3);
+verifier("réservations : un visiteur anonyme ne peut pas lire une colonne", (await lire(null, `select statut from reservations_table`)).erreur !== undefined);
+
+console.log("--- Réservations : écriture par les comptes");
+const corpsInsert = (resto, extra = "") =>
+  `insert into reservations_table (restaurant_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau${extra ? ", " + extra.split("=")[0] : ""}) values (${U(resto)}, '${hashNeuf()}', 'Intrus Test', '+224620000002', 2, now() + interval '2 days'${extra ? ", " + extra.split("=")[1] : ""})`;
+await interdit("aucun INSERT direct : le restaurateur ne crée pas de réservation", RESTAURATEUR_A, corpsInsert(ID.resto_a));
+await interdit("aucun INSERT direct : le client connecté ne crée pas de réservation", ID.client, corpsInsert(ID.resto_a));
+await interdit("aucun INSERT direct : un visiteur anonyme ne crée pas de réservation", null, corpsInsert(ID.resto_a));
+await interdit("aucun INSERT direct : le super administrateur non plus", ID.admin, corpsInsert(ID.resto_a));
+await interdit("aucun DELETE par le restaurateur", RESTAURATEUR_A, `delete from reservations_table where id = '${R_A2}'`);
+await interdit("aucun DELETE par le client", ID.client, `delete from reservations_table where id = '${R_A1}'`);
+await interdit("aucun DELETE par un anonyme", null, `delete from reservations_table`);
+await interdit("anonyme : aucune modification", null, `update reservations_table set statut = 'confirmee'`);
+await interdit("le client ne modifie pas directement sa réservation (annulation par le serveur)", ID.client, `update reservations_table set statut = 'annulee_client' where id = '${R_A1}'`);
+await interdit("le client ne confirme pas sa propre réservation", ID.client, `update reservations_table set statut = 'confirmee' where id = '${R_A1}'`);
+await interdit("le support ne modifie pas une réservation (lecture seule)", ID.support, `update reservations_table set statut = 'confirmee' where id = '${R_A2}'`);
+await interdit("le restaurateur B ne modifie pas la réservation de A", ID.user_b, `update reservations_table set statut = 'confirmee' where id = '${R_A2}'`);
+await interdit("le restaurateur A ne modifie pas la réservation de B", RESTAURATEUR_A, `update reservations_table set statut = 'confirmee' where id = '${R_B1}'`);
+verifier("la réservation de B est restée « demandée » après les tentatives de A", (await statutDe(R_B1)) === "demandee");
+await interdit("le restaurateur ne modifie pas le nom du client", RESTAURATEUR_A, `update reservations_table set nom_client = 'Autre' where id = '${R_A2}'`);
+await interdit("le restaurateur ne modifie pas le créneau", RESTAURATEUR_A, `update reservations_table set creneau = now() + interval '5 days' where id = '${R_A2}'`);
+await interdit("le restaurateur ne déplace pas la réservation vers un autre restaurant", RESTAURATEUR_A, `update reservations_table set restaurant_id = ${U(ID.resto_b)} where id = '${R_A2}'`);
+await interdit("le restaurateur ne falsifie pas « traitée par »", RESTAURATEUR_A, `update reservations_table set traitee_par = ${U(ID.user_b)} where id = '${R_A2}'`);
+await interdit("le restaurateur ne modifie pas le condensé du jeton", RESTAURATEUR_A, `update reservations_table set jeton_suivi_hash = '${H("f")}' where id = '${R_A2}'`);
+await autorise("le restaurateur A confirme la réservation de son restaurant", RESTAURATEUR_A, `update reservations_table set statut = 'confirmee' where id = '${R_A2}'`);
+const traitee = (await db.query(`select traitee_par, traitee_le, mis_a_jour_le, cree_le from reservations_table where id = '${R_A2}'`)).rows[0];
+verifier("la confirmation consigne qui a traité (le restaurateur connecté)", traitee.traitee_par === RESTAURATEUR_A);
+verifier("la confirmation consigne quand", traitee.traitee_le !== null);
+await autorise("le restaurateur A refuse une demande avec un motif", RESTAURATEUR_A, `update reservations_table set statut = 'refusee', motif_refus = 'Complet ce soir-là' where id = '${R_A1}'`);
+
+console.log("--- Réservations : transitions imposées par la base");
+{
+  const dem = await neuve();
+  const conf = await neuve();
+  await autoriseSv("transition demandee -> confirmee (serveur)", `update reservations_table set statut = 'confirmee' where id = '${conf}'`);
+  await refuseSv("demandee -> honoree refusée", `update reservations_table set statut = 'honoree' where id = '${dem}'`, [], "Changement d'état impossible");
+  await refuseSv("demandee -> non_honoree refusée", `update reservations_table set statut = 'non_honoree' where id = '${dem}'`, [], "Changement d'état impossible");
+  await refuseSv("demandee -> annulee_restaurant refusée", `update reservations_table set statut = 'annulee_restaurant', motif_refus = 'Fermeture' where id = '${dem}'`, [], "Changement d'état impossible");
+  await refuseSv("confirmee -> demandee refusée", `update reservations_table set statut = 'demandee' where id = '${conf}'`, [], "Changement d'état impossible");
+  await refuseSv("confirmee -> refusee refusée", `update reservations_table set statut = 'refusee', motif_refus = 'Trop tard' where id = '${conf}'`, [], "Changement d'état impossible");
+  await refuseSv("un état inconnu est refusé par la base", `update reservations_table set statut = 'peut_etre' where id = '${dem}'`, [], "Changement d'état impossible");
+  // États terminaux : plus aucun changement, même par le serveur.
+  const refusee = await neuve();
+  await autoriseSv("transition demandee -> refusee avec motif (serveur)", `update reservations_table set statut = 'refusee', motif_refus = 'Complet' where id = '${refusee}'`);
+  for (const vers of ["confirmee", "demandee", "annulee_client", "honoree"]) {
+    await refuseSv(`refusee (terminal) -> ${vers} refusée`, `update reservations_table set statut = '${vers}' where id = '${refusee}'`, [], "Changement d'état impossible");
+  }
+  verifier("un état terminal garde son motif : modification refusée", motifDe(await commeServeur(`update reservations_table set motif_refus = 'Autre motif' where id = '${refusee}'`), "terminée"));
+  const annuleeClient = await neuve();
+  await autoriseSv("transition demandee -> annulee_client (serveur, créneau futur)", `update reservations_table set statut = 'annulee_client' where id = '${annuleeClient}'`);
+  await refuseSv("annulee_client (terminal) -> confirmee refusée", `update reservations_table set statut = 'confirmee' where id = '${annuleeClient}'`, [], "Changement d'état impossible");
+  verifier("annulation client sans compte connecté : « traitée par » reste vide", (await db.query(`select traitee_par from reservations_table where id = '${annuleeClient}'`)).rows[0].traitee_par === null);
+  const annuleeResto = await neuve();
+  await autoriseSv("confirmee -> annulee_restaurant avec motif (serveur)", `update reservations_table set statut = 'confirmee' where id = '${annuleeResto}'`);
+  await autorise("le restaurateur annule une réservation confirmée avec un motif", RESTAURATEUR_A, `update reservations_table set statut = 'annulee_restaurant', motif_refus = 'Panne d''électricité' where id = '${annuleeResto}'`);
+  await refuseSv("annulee_restaurant (terminal) -> honoree refusée", `update reservations_table set statut = 'honoree' where id = '${annuleeResto}'`, [], "Changement d'état impossible");
+  // L'annulation « par le client » est réservée au serveur.
+  const pourAnnulation = await neuve();
+  await interdit("un restaurateur ne pose pas l'annulation « par le client » à sa place", RESTAURATEUR_A, `update reservations_table set statut = 'annulee_client' where id = '${pourAnnulation}'`);
+  verifier("… et le message est clair", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'annulee_client' where id = '${pourAnnulation}'`), "par le serveur"));
+  // Règles de temps.
+  const passeeDemandee = await neuveHorsGarde("demandee", "-3 hours");
+  verifier("une demande dont le créneau est passé ne se confirme plus", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'confirmee' where id = '${passeeDemandee}'`), "Le créneau est passé"));
+  await refuseSv("une demande dont le créneau est passé ne s'annule plus par le client", `update reservations_table set statut = 'annulee_client' where id = '${passeeDemandee}'`, [], "Le créneau est passé");
+  await autorise("… mais le restaurant peut la refuser, avec un motif", RESTAURATEUR_A, `update reservations_table set statut = 'refusee', motif_refus = 'Demande trop tardive' where id = '${passeeDemandee}'`);
+  const loin = await neuve();
+  await autoriseSv("réservation lointaine confirmée (serveur)", `update reservations_table set statut = 'confirmee' where id = '${loin}'`);
+  verifier("« honorée » refusée plus d'une heure avant le créneau", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'honoree' where id = '${loin}'`), "dans l'heure"));
+  verifier("« non honorée » refusée avant le créneau", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'non_honoree' where id = '${loin}'`), "créneau passé"));
+  const proche = await neuve({ dans: "45 minutes" });
+  await autoriseSv("réservation proche confirmée (serveur)", `update reservations_table set statut = 'confirmee' where id = '${proche}'`);
+  verifier("« non honorée » toujours refusée avant le créneau, même à moins d'une heure", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'non_honoree' where id = '${proche}'`), "créneau passé"));
+  await autorise("« honorée » permise dans l'heure qui précède le créneau", RESTAURATEUR_A, `update reservations_table set statut = 'honoree' where id = '${proche}'`);
+  const passeeConf = await neuveHorsGarde("confirmee", "-2 hours");
+  await autorise("« non honorée » permise une fois le créneau passé", RESTAURATEUR_A, `update reservations_table set statut = 'non_honoree' where id = '${passeeConf}'`);
+  const passeeConf2 = await neuveHorsGarde("confirmee", "-1 hour");
+  await autorise("« honorée » permise après le créneau", RESTAURATEUR_A, `update reservations_table set statut = 'honoree' where id = '${passeeConf2}'`);
+  const traiteeParServeur = (await db.query(`select traitee_par, traitee_le from reservations_table where id = '${passeeConf2}'`)).rows[0];
+  verifier("les états honoree/non_honoree gardent « traitée le » de la confirmation", traiteeParServeur.traitee_le !== null);
+}
+
+console.log("--- Réservations : colonnes immuables");
+{
+  const id = await neuve({ client: ID.client });
+  const immuables = [
+    ["reference", `reference = 'SF-R-ZZZZZ'`],
+    ["restaurant_id", `restaurant_id = ${U(ID.resto_b)}`],
+    ["creneau", `creneau = now() + interval '9 days'`],
+    ["nb_personnes", `nb_personnes = 5`],
+    ["nom_client", `nom_client = 'Autre Nom'`],
+    ["telephone", `telephone = '+224650000000'`],
+    ["jeton_suivi_hash", `jeton_suivi_hash = '${H("e")}'`],
+    ["client_user_id (vers un autre compte)", `client_user_id = ${U(ID.user_b)}`],
+    ["cree_le", `cree_le = now() - interval '10 days'`],
+    ["id", `id = gen_random_uuid()`],
+  ];
+  for (const [nom, set] of immuables) {
+    await refuseSv(`la colonne ${nom} est immuable, même pour le serveur`, `update reservations_table set ${set} where id = '${id}'`, [], "ne peut plus être modifiée");
+  }
+  const sansLien = await neuve({ client: ID.client, hash: null });
+  await db.exec(`insert into auth.users (id, email) values ('00000000-0000-4000-8000-00000000f0e1', 'ephemere@test.invalid')`);
+  const lie = await neuve({ client: "00000000-0000-4000-8000-00000000f0e1" });
+  await db.exec(`delete from auth.users where id = '00000000-0000-4000-8000-00000000f0e1'`);
+  const survivante = (await db.query(`select client_user_id from reservations_table where id = '${lie}'`)).rows;
+  verifier("la suppression d'un compte laisse la réservation, sans compte lié (set null autorisé malgré l'immuabilité)", survivante.length === 1 && survivante[0].client_user_id === null);
+  verifier("(contrôle) une réservation sans jeton mais avec compte est acceptée", typeof sansLien === "string");
+}
+
+console.log("--- Réservations : garde de création et contraintes (rôle du serveur)");
+{
+  const r0 = await creerResa({ hash: hashNeuf() });
+  verifier("création valide acceptée (garde-fou contre un test creux)", r0.erreur === null, r0.erreur ?? "");
+  verifier("restaurant sans réservation activée : refusé", motifDe(await creerResa({ resto: RESTO_C, hash: hashNeuf() }), "n'accepte pas les réservations"));
+  verifier("restaurant non publié : refusé", motifDe(await creerResa({ resto: RESTO_D, hash: hashNeuf() }), "n'est pas disponible"));
+  verifier("restaurant inexistant : refusé", (await creerResa({ resto: "00000000-0000-4000-8000-0000000000ff", hash: hashNeuf() })).erreur !== null);
+  await db.exec(`update restaurants set suspendu_le = now(), suspendu_motif = 'essai' where id = ${U(ID.resto_b)}`);
+  verifier("restaurant suspendu : refusé", motifDe(await creerResa({ resto: ID.resto_b, hash: hashNeuf() }), "n'est pas disponible"));
+  await db.exec(`update restaurants set suspendu_le = null, suspendu_motif = null where id = ${U(ID.resto_b)}`);
+  verifier("créneau passé : refusé", motifDe(await creerResa({ dans: "-1 hour", hash: hashNeuf() }), "plus de 30 minutes"));
+  verifier("créneau dans 10 minutes : refusé", motifDe(await creerResa({ dans: "10 minutes", hash: hashNeuf() }), "plus de 30 minutes"));
+  verifier("créneau dans 29 minutes : refusé", motifDe(await creerResa({ dans: "29 minutes", hash: hashNeuf() }), "plus de 30 minutes"));
+  verifier("créneau dans 31 minutes : accepté", (await creerResa({ dans: "31 minutes", hash: hashNeuf() })).erreur === null);
+  verifier("créneau dans 59 jours : accepté", (await creerResa({ dans: "59 days", hash: hashNeuf() })).erreur === null);
+  verifier("créneau dans 61 jours : refusé", motifDe(await creerResa({ dans: "61 days", hash: hashNeuf() }), "60 jours"));
+  verifier("nombre de personnes 0 : refusé", motifDe(await creerResa({ nb: 0, hash: hashNeuf() }), "nb_personnes"));
+  verifier("nombre de personnes 13 : refusé", motifDe(await creerResa({ nb: 13, hash: hashNeuf() }), "nb_personnes"));
+  verifier("nombre de personnes 1 : accepté", (await creerResa({ nb: 1, hash: hashNeuf() })).erreur === null);
+  verifier("nombre de personnes 12 : accepté", (await creerResa({ nb: 12, hash: hashNeuf() })).erreur === null);
+  verifier("nom d'un caractère : refusé", motifDe(await creerResa({ nom: "A", hash: hashNeuf() }), "nom_client"));
+  verifier("nom fait d'espaces : refusé", motifDe(await creerResa({ nom: "      ", hash: hashNeuf() }), "nom_client"));
+  verifier("nom de 61 caractères : refusé", motifDe(await creerResa({ nom: "N".repeat(61), hash: hashNeuf() }), "nom_client"));
+  verifier("téléphone non guinéen : refusé", motifDe(await creerResa({ tel: "0612345678", hash: hashNeuf() }), "telephone"));
+  verifier("téléphone non normalisé : refusé", motifDe(await creerResa({ tel: "620000001", hash: hashNeuf() }), "telephone"));
+  verifier("note de 201 caractères : refusée", motifDe(await creerResa({ note: "n".repeat(201), hash: hashNeuf() }), "note"));
+  verifier("note de 200 caractères : acceptée", (await creerResa({ note: "n".repeat(200), hash: hashNeuf() })).erreur === null);
+  verifier("sans compte ni jeton : refusé", motifDe(await creerResa({ client: null, hash: null }), "compte ou à un jeton"));
+  verifier("condensé de jeton mal formé : refusé", motifDe(await creerResa({ hash: "pas-un-condense" }), "jeton_suivi_hash"));
+  const dupli = hashNeuf();
+  verifier("premier condensé de jeton accepté", (await creerResa({ hash: dupli })).erreur === null);
+  verifier("même condensé de jeton deux fois : refusé (unicité)", motifDe(await creerResa({ hash: dupli }), "unique"));
+  verifier("création directement à l'état « confirmée » : refusée", motifDe(await creerResa({ statut: "confirmee", hash: hashNeuf() }), "commence toujours"));
+  verifier("référence mal formée : refusée", motifDe(await commeServeur(`insert into reservations_table (reference, restaurant_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau) values ('SF-R-0O1IL', ${U(ID.resto_a)}, '${hashNeuf()}', 'Test Test', '+224620000001', 2, now() + interval '2 days')`), "reference"));
+  verifier("les références générées sont toutes distinctes", (await db.query(`select count(distinct reference)::int d, count(*)::int n from reservations_table`)).rows.every((l) => l.d === l.n));
+  // Motif : obligatoire au refus et à l'annulation par le restaurant.
+  const pourMotif = await neuve();
+  verifier("refus sans motif : refusé par la base", motifDe(await commeServeur(`update reservations_table set statut = 'refusee' where id = '${pourMotif}'`), "reservations_table_motif_obligatoire"));
+  verifier("refus avec motif trop court : refusé", motifDe(await commeServeur(`update reservations_table set statut = 'refusee', motif_refus = 'ab' where id = '${pourMotif}'`), "motif_refus"));
+  verifier("refus avec motif de 201 caractères : refusé", motifDe(await commeServeur(`update reservations_table set statut = 'refusee', motif_refus = '${"m".repeat(201)}' where id = '${pourMotif}'`), "motif_refus"));
+  const pourMotif2 = await neuve();
+  await autoriseSv("(contrôle) la confirmation n'exige pas de motif", `update reservations_table set statut = 'confirmee' where id = '${pourMotif2}'`);
+  verifier("annulation par le restaurant sans motif : refusée par la base", motifDe(await commeServeur(`update reservations_table set statut = 'annulee_restaurant' where id = '${pourMotif2}'`), "reservations_table_motif_obligatoire"));
+  await interdit("le restaurateur ne peut pas refuser sans motif", RESTAURATEUR_A, `update reservations_table set statut = 'refusee' where id = '${pourMotif}'`);
+  // « Traitée le » : toujours renseignée dès que la demande n'est plus « demandée » (contrainte).
+  verifier("la contrainte « traitée le renseignée » existe", (await db.query(`select 1 from pg_constraint where conname = 'reservations_table_traitee_le_renseignee'`)).rows.length === 1);
+  // Mise à jour automatique de mis_a_jour_le.
+  const ancien = (await db.query(`select mis_a_jour_le from reservations_table where id = '${pourMotif2}'`)).rows[0].mis_a_jour_le;
+  await db.exec(`update reservations_table set mis_a_jour_le = now() - interval '1 day' where id = '${pourMotif2}'`);
+  verifier("`mis_a_jour_le` est recalculé par la base (valeur imposée ignorée)", (await db.query(`select mis_a_jour_le >= now() - interval '1 minute' ok from reservations_table where id = '${pourMotif2}'`)).rows[0].ok === true && ancien !== undefined);
+}
+
+console.log("--- Réservations : structure de la sécurité");
+{
+  verifier("réservations : la RLS est activée", (await db.query(`select relrowsecurity from pg_class where relname = 'reservations_table' and relnamespace = 'public'::regnamespace`)).rows[0].relrowsecurity === true);
+  const pol = (await db.query(`select policyname, cmd, array_to_string(roles, ',') roles from pg_policies where tablename = 'reservations_table' order by policyname`)).rows;
+  verifier("réservations : quatre policies exactement", pol.map((p) => `${p.policyname}:${p.cmd}`).join("|"), "clients_lecture_leurs_reservations:SELECT|membres_lecture_leurs_reservations:SELECT|membres_maj_leurs_reservations:UPDATE|support_lecture_reservations:SELECT");
+  verifier("réservations : chaque policy est réservée au rôle `authenticated` (jamais sans restriction de rôle)", pol.every((p) => p.roles === "authenticated"), JSON.stringify(pol));
+  verifier("réservations : aucune policy INSERT ni DELETE", pol.every((p) => p.cmd !== "INSERT" && p.cmd !== "DELETE"));
+  const droits = (await db.query(`select grantee, privilege_type from information_schema.role_table_grants where table_name = 'reservations_table' and table_schema = 'public' and grantee in ('anon', 'authenticated')`)).rows;
+  verifier("réservations : `anon` n'a aucun droit sur la table", droits.filter((d) => d.grantee === "anon").length === 0, JSON.stringify(droits));
+  verifier("réservations : `authenticated` n'a ni INSERT ni DELETE sur la table", droits.filter((d) => d.grantee === "authenticated" && ["INSERT", "DELETE", "TRUNCATE"].includes(d.privilege_type)).length === 0);
+  const colonnesLisibles = (await db.query(`select column_name from information_schema.column_privileges where table_name = 'reservations_table' and grantee = 'authenticated' and privilege_type = 'SELECT'`)).rows.map((c) => c.column_name);
+  verifier("réservations : `jeton_suivi_hash` n'est lisible par aucun compte connecté", !colonnesLisibles.includes("jeton_suivi_hash") && colonnesLisibles.includes("statut"), JSON.stringify(colonnesLisibles));
+  const colonnesModifiables = (await db.query(`select column_name from information_schema.column_privileges where table_name = 'reservations_table' and grantee = 'authenticated' and privilege_type = 'UPDATE' order by column_name`)).rows.map((c) => c.column_name);
+  verifier("réservations : un compte connecté ne modifie que le statut et le motif", colonnesModifiables.join(","), "motif_refus,statut");
+  const fonctions = (await db.query(`select p.proname, p.prosecdef, p.proconfig from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_reference_reservation', 'fn_garde_creation_reservation', 'fn_valider_reservation')`)).rows;
+  verifier("réservations : trois fonctions, aucune SECURITY DEFINER, chemin de recherche fixé", fonctions.length === 3 && fonctions.every((f) => f.prosecdef === false && JSON.stringify(f.proconfig).includes("search_path")), JSON.stringify(fonctions));
+  const triggers = (await db.query(`select tgname from pg_trigger where tgrelid = 'public.reservations_table'::regclass and not tgisinternal order by tgname`)).rows.map((t) => t.tgname);
+  verifier("réservations : triggers attendus", triggers.join(","), "trg_reservations_table_garde_creation,trg_reservations_table_valider");
+}
+
+console.log("--- Réservations : réglages du restaurant");
+await autorise("A active la réservation de son restaurant", RESTAURATEUR_A, `update restaurants set accepte_reservation = false where id = ${U(ID.resto_a)}`);
+await autorise("A règle le plafond de couverts de son restaurant", RESTAURATEUR_A, `update restaurants set accepte_reservation = true, reservation_capacite_couverts = 40 where id = ${U(ID.resto_a)}`);
+await autorise("A retire le plafond de couverts (null = pas de plafond)", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = null where id = ${U(ID.resto_a)}`);
+await interdit("A ne règle pas la réservation du restaurant de B", RESTAURATEUR_A, `update restaurants set accepte_reservation = false where id = ${U(ID.resto_b)}`);
+await interdit("un client ne règle pas la réservation d'un restaurant", ID.client, `update restaurants set accepte_reservation = true where id = ${U(ID.resto_a)}`);
+await interdit("un anonyme ne règle pas la réservation d'un restaurant", null, `update restaurants set accepte_reservation = true where id = ${U(ID.resto_a)}`);
+await interdit("plafond de couverts à 0 : refusé", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = 0 where id = ${U(ID.resto_a)}`);
+await interdit("plafond de couverts à 501 : refusé", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = 501 where id = ${U(ID.resto_a)}`);
+await autorise("plafond de couverts à 500 : accepté", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = 500 where id = ${U(ID.resto_a)}`);
+await db.exec(`update restaurants set reservation_capacite_couverts = null where id = ${U(ID.resto_a)}`);
+verifier("A désactive la réservation : la garde refuse alors toute création chez lui", await (async () => {
+  await db.exec(`update restaurants set accepte_reservation = false where id = ${U(ID.resto_a)}`);
+  const r = await creerResa({ hash: hashNeuf() });
+  await db.exec(`update restaurants set accepte_reservation = true where id = ${U(ID.resto_a)}`);
+  return motifDe(r, "n'accepte pas les réservations");
+})());
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);
