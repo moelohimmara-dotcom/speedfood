@@ -1,10 +1,18 @@
-# Passation du chantier appli Speedfood — état au 8 novembre 2026
+# Passation du chantier appli Speedfood — état au 8 novembre 2026, complété le 10 novembre (G3)
 
 ## 1. Lire ceci en premier
 
 Ce document est le point d’entrée pour reprendre sans l’auteur ni les conversations. État du code vérifié : **57f80f1** sur **etape-adr021-deblocage-commandes**. Le présent lot ne change que la documentation. Les dates des anciens plans restent celles de leurs observations ; elles ne constituent pas des autorisations nouvelles.
 
 **En trois phrases.** L’appli Expo sait consulter le catalogue réel, gérer son panier, commander avec un compte existant, suivre les commandes et ouvrir l’espace restaurateur. Les notifications client/restaurateur et la fiche livreur G1 ont du code testé ; G1 est validé sur banc Android local et compilé en CI, mais sa route n’est pas mise en service par ce chantier. Kotlin reste l’appli distribuée ; la prochaine équipe doit préparer la mise en service contrôlée de G1 avant les offres/courses/position, puis terminer la parité et les paiements avant remplacement.
+
+> **Complément du 10 novembre 2026 (lots G3, code local, NON déployé).** La branche est à **5e7dca8** (poussée). Elle contient, au-delà de 57f80f1 : **G3a** (API : `GET /etat` étendu avec `course`, `POST /api/v1/livreur/offre`, `POST /api/v1/livreur/course`, commit 9007db3), **G3b** (écran Expo : offre, course, code de remise, échec avec raison) et **G3c** (banc local factice `apps/mobile/controle-livreur/`, commit 8bf19d4), plus le correctif 5e7dca8. Détail, arbitrages et journal : [plan G3](plans/2026-11-09-espace-livreur-g3-offres-et-courses.md). Points à retenir :
+> - **Rien de G3 n'est déployé.** Ordre obligatoire : feu vert distinct de Malika → déployer l'API G3a → sonde 401 sans jeton → vérifier que `/etat` contient `course` → seulement ensuite un APK G3b. Contre l'API G2 actuelle, l'appli G3b refuserait la réponse (pas de `course`) et l'espace livreur tomberait en erreur.
+> - **Écart accepté par Malika (9 nov.) :** aucune policy RLS ne laisse le livreur lire `orders` ; la référence, le nom, le téléphone et l'adresse du client sont lus avec la clé de service par un port lié à « ma course », seulement après récupération de la commande. Cela ne vaut pas feu vert de déploiement. Alternative propre reportée : fonction `SECURITY DEFINER` par migration.
+> - **Essai natif du 10 novembre (émulateur, banc factice) :** défaut réel trouvé (boutons grisés en permanence après chaque lecture, invisible aux 598 tests), corrigé en 5e7dca8 ; parcours rejoué : accepter, étapes, client visible seulement « vers le client », faux code refusé puis bon code, réponse incertaine verrouillée puis relue. Non rejoués à l'émulateur : échec avec raison, course changée, mode propre, réponse lente. Mineurs ouverts : M4 (le clavier cache le champ du code), M1, M5–M8.
+> - **Contrôles du 10 novembre :** mobile 600/600, `tsc` 0, typecheck 0, `test:api` 724/724 (0), `build:api` 0 (Worker 1 308 553 octets, plafond 1 400 000), banc `parcours-g3.mjs` 11 parcours, mutations G3 32/32. **`test:unit` est rouge** sur `design.test.mts` (variables CSS `neutre-*`, `duration-editoriale`) à cause de la refonte du site public du 9 nov. : hors lots G3, à traiter par qui a fait la refonte.
+> - **Essai G2 réel (9 nov., commit 287ff8e) :** la fiche « Livreur de test Malika » existe et Malika s'est connectée elle-même : l'ancienne phrase « aucun compte livreur réel » du tableau §3 est dépassée.
+> - **Décisions en attente de Malika :** fichier `docs/PROMPT-CODEX-CHEF-DE-PROJET.md` (P1 laisser / P2 retirer du dernier état, recommandé / P3 réécrire l'historique), fusion dans `master` (F1 avance rapide / F2 PR / F3 non), nettoyage des espèces D1–D3 ; voir [décisions](plans/2026-11-09-decisions-fusion-master-et-prompt.md) et [inventaire espèces](plans/2026-11-09-inventaire-restes-especes.md) (0 ligne en base). Ordre recommandé : P2, puis F1, puis N1.
 
 | Pour trouver… | Document |
 |---|---|
@@ -66,6 +74,7 @@ Historique ADR-021 : l’alerte réelle et un essai de création directe ont ét
 | Restaurateur F1–F3 | Canaux, permission choix C après rôle, clic Nouvelle commande vers espace restaurateur | SF-AA5TT TEST créée une fois, notification reçue, clic à chaud depuis arrière-plan et retour sans boucle ; commande annulée sur oui distinct. Verrous conservés. |
 | Cycle de notifications | Réservation par génération/jeton, file des appels, fermeture anticipée et budget de retrait | Tests déterministes + contrôle natif de non-régression. Déconnexion réelle non faite ; résidu serveur après timeout encore ouvert. |
 | Livreur G1 | Fiche seule, lecture manuelle, rôle d’affichage et contrôle serveur | Banc natif avec vraie UI/route/service mais DB/identités fictives ; état absent/panne, suspendu/archivé, relation masquée, réponse A tardive après B. Pas d’offre/course/position. |
+| Livreur G3 (offres, courses) | `POST /offre`, `POST /course`, écran Expo, banc factice | **Code local seulement**, relu deux fois côté API et une fois côté appli, essai natif sur émulateur le 10 novembre (voir encadré en §1). Jamais essayé contre la vraie API ni la vraie base. |
 | Équipe / livreur complet | Non terminés dans Expo | Kotlin conserve des fonctions non portées : parité inachevée, remplacement interdit sur G1 seul. |
 
 La réception Nouvelle commande du 6 novembre et les contrôles G1 du 8 sont deux preuves différentes. Le banc G1 ne passe pas par le client réseau produit contre l’API réelle ; ce client est testé séparément. Un code de sortie 0 sans parcours métier ne suffit pas.
@@ -112,14 +121,16 @@ Le [registre des corrections](REGISTRE-CORRECTIONS-APPLI-EXPO.md) donne le code,
 |---|---|---|
 | P0 | ~~Préparer mise en service G1~~ (déjà en ligne, voir encadré du 9 novembre en §3) → **vérifier G1/G2 en ligne avec un compte livreur autorisé, en lecture seule** | Malika désigne le compte livreur ; ne pas appeler `GET livreur/etat` en production comme contrôle innocent (il fait avancer la répartition, voir §6). Comparer le code en ligne à HEAD (identité exacte non prouvée). |
 | P0 | Résidu notifications + vrais appareils | Plan explicite pour le risque serveur après timeout ; déconnexion réelle seulement après nouvel accord de Malika, tests refus/changement de compte/deux appareils, Android physique. |
-| P1 | G2 état/offre/disponibilité | Plan et arbitrage explicites des effets de répartition ; pas d’écriture cachée dans un essai de lecture. Préserver les règles Kotlin/serveur. |
-| P1 | G3 courses et G4 position | Offres, étapes, remise/échec, réponse incertaine ; ensuite permission/position/arrière-plan avec plan 1c-2 et design validés. Chaque écriture réelle avec oui distinct. |
+| P1 | ~~G2 état/offre/disponibilité~~ (G2 en ligne ; G3a/b/c codés le 10 nov., voir §1 : déploiement de l'API puis APK sur feux verts distincts) | Plan et arbitrage explicites des effets de répartition ; pas d’écriture cachée dans un essai de lecture. Préserver les règles Kotlin/serveur. |
+| P1 | G3 : mise en service ; G4 position | G3 codé (voir §1) : feu vert, déploiement de l'API, vérifier `course` dans `/etat`, puis APK, puis un essai réel avec la fiche « Livreur de test Malika » (une écriture réelle = un oui distinct). Ensuite G4 : permission/position/arrière-plan avec plan 1c-2 et design validés. |
 | P1 | G5 parité livreur et espace équipe | File/historique/frais de course/dossier/aide/notifications ; inventorier l’équipe avant découpage, sans inventer les droits. |
 | P1 | Paiement Chap Chap Pay | KYC/accès à revalider avec Malika, spécification des succès/échecs/remboursements ; retirer les usages actifs d’espèces sans casser l’historique. Aucun argent réel ni clé demandée dans le chat. |
 | P2 | iPhone et remplacement Android | Choix de distribution iOS/signature/notifications validé ; Android com.speedfood.app, certificat existant et code croissant ; vraie mise à jour sans perte et parité avant remplacement. |
 | Séparé | limiteur par requête, Facebook, ancien iOS, master/historique | Examiner dans leurs lots ; décisions/coûts/publications restent à Malika. Ne pas déduire une autorisation du présent inventaire. |
 
 ## 8. État local laissé à la prochaine équipe
+
+**Fin de session du 10 novembre :** banc (8797) et son Metro arrêtés, `adb reverse` retiré, Metro normal relancé sur 8081 (non revérifié ensuite), application de l'émulateur arrêtée, session réelle conservée. Pour rejouer le banc G3 : `apps/mobile/controle-livreur/README.md` (serveur factice sur 127.0.0.1:8797, Metro dédié en mode CI avec `--clear`, premier bundle environ 40 s, `adb reverse` 8081 et 8797). Ne jamais lancer le banc sans arrêter d'abord le Metro normal qui tient 8081. Dans l'état précédent :
 
 Au dernier contrôle fonctionnel du 8 novembre : banc 8797 arrêté, son relais ADB retiré ; Metro **normal** sur 8081, application normale affichant Compte connecté, session réelle conservée. Ces processus peuvent avoir changé depuis : inspecter avant d’agir, ne pas réutiliser un PID historique.
 
