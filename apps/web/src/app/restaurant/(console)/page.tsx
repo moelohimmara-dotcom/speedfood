@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { obtenirContexteRestaurant } from "@/lib/auth/contexte";
 import { chargerApercusCommandes } from "@/lib/commande/requetes";
+import { libelleModeClient } from "@/lib/commande/mode";
 import type { ApercuCommandeRestaurant } from "@/lib/contracts/commande";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { enRetard, minutesDepuis } from "@/lib/alertes/commandes";
@@ -106,7 +107,7 @@ export default async function AccueilConsolePage() {
                   </span>
                   <span className="rc-commande-montant">{gnf(c.sousTotal)}</span>
                   <span className="rc-commande-meta">
-                    {c.mode === "livraison" ? "Livraison" : c.mode === "sur_place" ? `Table ${c.tableNumero ?? ""}` : "Retrait"} · {ancienneteLisible(new Date(c.creeLe), maintenant)}
+                    {libelleModeClient(c.mode, c.tableNumero)} · {ancienneteLisible(new Date(c.creeLe), maintenant)}
                     {retard !== null ? <span className="rc-retard"> · attend depuis {retard} min</span> : null}
                   </span>
                 </Link>

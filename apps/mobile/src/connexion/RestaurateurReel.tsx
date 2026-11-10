@@ -11,6 +11,7 @@ import {
 } from './restaurateur';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
+import { libelleModeClient } from '../domaine/libelle-mode';
 
 /**
  * Espace restaurateur (lots D1 à D4a), trois sections en haut de l'écran : « Commandes » (ci-dessous), « Service » et « Menu » (voir ServiceMenuReel.tsx). Commandes : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
@@ -152,7 +153,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
         return <View key={o.id} style={s.carte}>
           <Text style={s.nom}>{o.reference}{o.estTest ? ' · TEST' : ''}</Text>
           <Text style={s.texte}>{libelleStatut(o)}</Text>
-          <Text style={s.texte}>{o.mode === 'livraison' ? 'Livraison' : o.mode === 'retrait' ? 'Retrait' : 'Sur place' + (o.tableNumero ? ' · table ' + o.tableNumero : '')} · {new Date(o.creeLe).toLocaleString('fr-FR')}</Text>
+          <Text style={s.texte}>{libelleModeClient(o.mode, o.tableNumero)} · {new Date(o.creeLe).toLocaleString('fr-FR')}</Text>
           <Text selectable style={s.texte}>{ligneClient(o)}</Text>
           {o.clientAdresse && <Text style={s.texte}>{o.clientAdresse}</Text>}
           {o.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}

@@ -23,7 +23,7 @@ export function MemoireTable({ restaurantId, accepteSurPlace }: { restaurantId: 
   return (
     <p className="fiche-table" role="status">
       <span>
-        {accepteSurPlace ? <>Vous êtes à la <strong>table {table}</strong> : choisissez vos plats, la commande arrivera à votre table.</> : <>Table {table} : ce restaurant ne prend pas encore les commandes à table, choisissez le retrait ou la livraison.</>}
+        {accepteSurPlace ? <>Vous êtes à la <strong>table {table}</strong> : choisissez vos plats, la commande arrivera à votre table.</> : <>Table {table} : ce restaurant ne prend pas encore les commandes à table, choisissez «&nbsp;À emporter&nbsp;» ou «&nbsp;Livraison&nbsp;».</>}
       </span>
       <button
         type="button"

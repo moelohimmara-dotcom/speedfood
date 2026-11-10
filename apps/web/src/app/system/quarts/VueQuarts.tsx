@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
+import { libelleModeClient } from "@/lib/commande/mode";
 import {
   etatEtablissement,
   libelleAttente,
@@ -19,7 +20,6 @@ import { ActionsEtablissement, RelanceCommande, type CommandeAffichee } from "./
  * de rejouer l'écran avec des données factices (page d'aperçu) sans toucher au code de lecture.
  */
 
-const LIBELLES_MODE: Record<string, string> = { livraison: "Livraison", retrait: "Retrait" };
 const LIBELLES_STATUT: Record<string, string> = {
   en_attente: "En attente",
   acceptee: "Acceptée",
@@ -195,7 +195,7 @@ function CarteEtablissement({
     reference: commande.reference,
     attente: libelleAttente(commande.creeLe, maintenant),
     statut: LIBELLES_STATUT[commande.statut] ?? commande.statut,
-    mode: LIBELLES_MODE[commande.modeCommande] ?? commande.modeCommande,
+    mode: libelleModeClient(commande.modeCommande),
   }));
 
   return (

@@ -314,11 +314,11 @@ export default async function FicheRestaurantPage({
       {livraisonActive ? (
       <section className="fiche-livraison" aria-labelledby="fiche-livraison-titre">
         <h2 id="fiche-livraison-titre" className="fiche-livraison-titre">
-          Livraison et retrait
+          Livraison et à emporter
         </h2>
         {lignesLivraison.length > 0 ? (
           <>
-            <p className="fiche-livraison-texte">Ce restaurant déclare livrer dans les zones suivantes. Le retrait et les conditions se confirment avec lui.</p>
+            <p className="fiche-livraison-texte">Ce restaurant déclare livrer dans les zones suivantes. L&apos;option à emporter et les conditions se confirment avec lui.</p>
             <ul className="fiche-livraison-liste">
               {lignesLivraison.map((l) => (
                 <li key={l.libelle}>
@@ -329,7 +329,7 @@ export default async function FicheRestaurantPage({
             </ul>
           </>
         ) : (
-          <p className="fiche-livraison-texte">Ce restaurant n&apos;a pas déclaré de zones de livraison. Retrait ou livraison : à confirmer avec lui au moment de la commande.</p>
+          <p className="fiche-livraison-texte">Ce restaurant n&apos;a pas déclaré de zones de livraison. À emporter ou livraison : à confirmer avec lui au moment de la commande.</p>
         )}
       </section>
       ) : null}

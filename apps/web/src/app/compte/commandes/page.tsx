@@ -6,7 +6,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { ouvrirSuiviCommandeAction } from "@/lib/client/actions-espace";
 import { COMMANDES_MAX_AFFICHEES, listerMesCommandes } from "@/lib/client/mes-commandes";
 import { formaterDateCommande, formaterMontantClient, libellePaiementClient, libelleStatutCommandeClient } from "@/lib/client/espace";
-import { libelleMode } from "@/lib/commande/mode";
+import { libelleModeClient } from "@/lib/commande/mode";
 import { BoutonRecommander } from "@/components/BoutonRecommander";
 
 export const metadata: Metadata = { title: "Mes commandes" };
@@ -74,7 +74,7 @@ function CarteCommande({ commande: c }: { commande: Awaited<ReturnType<typeof li
         </span>
       </div>
       <p className="espace-secondaire">
-        Commande {c.reference} · {formaterDateCommande(c.creeLe)} · {libelleMode(c.mode)}
+        Commande {c.reference} · {formaterDateCommande(c.creeLe)} · {libelleModeClient(c.mode)}
       </p>
       <p>
         <strong>{formaterMontantClient(c.totalGnf)}</strong>

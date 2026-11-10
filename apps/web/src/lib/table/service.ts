@@ -1,7 +1,7 @@
 import "server-only";
 import { clientLivraison } from "@/lib/livraison/lecture";
 import { versStatutCommande } from "@/lib/commande/commun";
-import { appelPossible, compteDansAddition, estModeReglement, prenomSeul, totalAddition, type ModeReglement } from "./regles";
+import { appelPossible, compteDansAddition, estModeReglement, prenomSeul, totalAddition, verifierModeReglementCloture, type ModeReglement } from "./regles";
 
 /**
  * Sessions de table (voir docs/COMMANDE-SUR-PLACE.md). Toutes les écritures passent ici, avec la clé de service ; l'appelant a DÉJÀ
@@ -224,7 +224,10 @@ async function terminerCommande(db: Db, id: string, depuis: string, acteur: stri
  * doit l'accepter ou la refuser d'abord).
  */
 export async function cloturerTable(args: { restaurantId: string; sessionId: string; mode: unknown; acteurId: string }): Promise<Resultat> {
-  if (!estModeReglement(args.mode)) return { ok: false, erreur: "Choisissez le mode de règlement." };
+  // Les espèces (règle du 3 novembre 2026) sont refusées ici, avant toute lecture ou écriture : seul le mode contrôlé est enregistré.
+  const reglement = verifierModeReglementCloture(args.mode);
+  if (!reglement.ok) return { ok: false, erreur: reglement.erreur };
+  const mode = reglement.mode;
   const db = clientLivraison();
   const vue = await vueTable(db, args.sessionId);
   if (!vue || vue.session.restaurantId !== args.restaurantId || vue.session.statut !== "ouverte") return { ok: false, erreur: "Table introuvable ou déjà clôturée." };
@@ -243,11 +246,11 @@ export async function cloturerTable(args: { restaurantId: string; sessionId: str
   }
   // 2) Règlement reçu sur toutes les commandes qui comptent, puis clôture de la session.
   for (const c of aTerminer) {
-    await db.from("orders").update({ paiement_mode: args.mode, paiement_statut: "recu", paiement_declare_le: maintenant }).eq("id", c.id).neq("paiement_statut", "recu");
+    await db.from("orders").update({ paiement_mode: mode, paiement_statut: "recu", paiement_declare_le: maintenant }).eq("id", c.id).neq("paiement_statut", "recu");
   }
   const { data, error } = await db
     .from("table_sessions")
-    .update({ statut: "payee", paiement_mode: args.mode, cloturee_le: maintenant, cloturee_par: args.acteurId, mis_a_jour_le: maintenant })
+    .update({ statut: "payee", paiement_mode: mode, cloturee_le: maintenant, cloturee_par: args.acteurId, mis_a_jour_le: maintenant })
     .eq("id", args.sessionId)
     .eq("restaurant_id", args.restaurantId)
     .eq("statut", "ouverte")

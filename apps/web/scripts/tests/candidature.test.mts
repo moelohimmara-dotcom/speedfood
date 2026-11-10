@@ -1,6 +1,8 @@
 import {
   DELAI_REPONSE_HEURES,
   MAX_PLATS,
+  MOYENS_PAIEMENT,
+  MOYENS_PAIEMENT_LISIBLES,
   cheminImageCandidature,
   ecarterPlatsExistants,
   etatPourCandidat,
@@ -47,7 +49,8 @@ verifier("candidature valide", ok.ok, true);
 if (ok.ok) {
   verifier("organisation, commune et quartier du serveur", [ok.candidature.demande.organisation, ok.candidature.demande.commune, ok.candidature.demande.quartier], ["Chez Awa", "Ratoma", "Kipé"]);
   verifier("e-mail du compte, jamais celui du corps", ok.candidature.demande.email, "awa@exemple.test");
-  verifier("moyens, services, plats conservés", [ok.candidature.moyensPaiement, ok.candidature.services, ok.candidature.plats.length], [["especes", "orange_money"], ["livraison", "retrait"], 2]);
+  verifier("moyens, services, plats conservés", [ok.candidature.moyensPaiement, ok.candidature.services, ok.candidature.plats.length], [["orange_money"], ["livraison", "retrait"], 2]);
+  verifier("espèces jamais conservées dans une candidature (même envoyées par une ancienne application)", ok.candidature.moyensPaiement.includes("especes"), false);
 }
 verifier("un e-mail dans le corps est ignoré", validerCandidature({ ...corps, email: "pirate@exemple.test", commune: "Ailleurs" }, ctx).ok && (validerCandidature({ ...corps, email: "pirate@exemple.test", commune: "Ailleurs" }, ctx) as { candidature: { demande: { email: string; commune: string } } }).candidature.demande.email === "awa@exemple.test", true);
 verifier("nom manquant", erreur({ ...corps, nom: "" })?.startsWith("Indiquez le nom de votre établissement"), true);
@@ -57,6 +60,10 @@ verifier("horaires manquants", erreur({ ...corps, horaires: "" })?.startsWith("I
 verifier("aucun service", erreur({ ...corps, services: [] })?.startsWith("Indiquez au moins un service"), true);
 verifier("service inconnu", erreur({ ...corps, services: ["drone"] }), "Services invalides.");
 verifier("moyen inconnu", erreur({ ...corps, moyensPaiement: ["cheque"] }), "Moyens de paiement invalides.");
+verifier("moyens proposés : mobile money seulement, jamais d'espèces", [...MOYENS_PAIEMENT], ["orange_money", "mtn_momo"]);
+verifier("moyens lisibles : l'ancienne valeur espèces reste reconnue en lecture", [...MOYENS_PAIEMENT_LISIBLES], ["especes", "orange_money", "mtn_momo"]);
+const seulesEspeces = validerCandidature({ ...corps, moyensPaiement: ["especes"] }, ctx);
+verifier("espèces seules envoyées : aucune erreur, aucun moyen retenu", seulesEspeces.ok && seulesEspeces.candidature.moyensPaiement, []);
 verifier("moyens absents = aucun", validerCandidature({ ...corps, moyensPaiement: undefined }, ctx).ok, true);
 
 // Menu
@@ -107,7 +114,8 @@ verifier("au plus 80 plats gardés", beaucoup.plats.length, MAX_PLATS);
 verifier("les 3 en trop sont signalés", beaucoup.refuses.length, 3);
 
 // Fiche et plats d'un établissement créé depuis une candidature
-verifier("fiche : livraison propre et sur place", ficheDepuisCandidature({ horaires: " Tous les jours 9h-22h ", moyens_paiement: ["especes", "orange_money", "especes", "bitcoin"], services: ["livraison", "sur_place", "drone"] }), { horaires: "Tous les jours 9h-22h", moyens_paiement: ["especes", "orange_money"], accepte_sur_place: true, livraison_mode: "propre" });
+verifier("fiche : livraison propre et sur place", ficheDepuisCandidature({ horaires: " Tous les jours 9h-22h ", moyens_paiement: ["especes", "orange_money", "especes", "bitcoin"], services: ["livraison", "sur_place", "drone"] }), { horaires: "Tous les jours 9h-22h", moyens_paiement: ["orange_money"], accepte_sur_place: true, livraison_mode: "propre" });
+verifier("fiche : une ancienne candidature qui contient espèces reste lisible, sans les reporter sur la fiche", ficheDepuisCandidature({ horaires: "9h-22h", moyens_paiement: ["especes"], services: ["livraison"] }).moyens_paiement, []);
 verifier("fiche : retrait seul = aucune livraison", ficheDepuisCandidature({ horaires: "9h-22h", moyens_paiement: [], services: ["retrait"] }).livraison_mode, "aucune");
 verifier("fiche : données illisibles ne cassent rien", ficheDepuisCandidature({ horaires: null, moyens_paiement: "x", services: undefined }), { horaires: "", moyens_paiement: [], accepte_sur_place: false, livraison_mode: "aucune" });
 verifier("plats du catalogue revalidés", platsPourCatalogue([{ nom: "Riz", prix: 25000 }]), [{ nom: "Riz", prix: 25000 }]);

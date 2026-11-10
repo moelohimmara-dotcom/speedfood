@@ -144,7 +144,7 @@ export async function estimerLivraison(
 ): Promise<EstimationLivraison> {
   const [parametres, depart] = await Promise.all([lireReglagesLivraison(db), pointDuRestaurant(db, restaurantId)]);
   if (depart.mode === "aucune") {
-    return { statut: "erreur", code: "pas_de_livraison", message: "Ce restaurant ne livre pas : choisissez le retrait." };
+    return { statut: "erreur", code: "pas_de_livraison", message: "Ce restaurant ne livre pas : choisissez « À emporter »." };
   }
   if (!parametres.fraisActifs) return { statut: "non_calcule" };
 

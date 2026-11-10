@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { acquitterAppelAction, annulerTableAction, cloturerTableAction, validerTableAction } from "@/lib/table/actions";
-import { LIBELLES_ETAT_TABLE, LIBELLES_REGLEMENT, MODES_REGLEMENT, ORDRE_ETAT_TABLE, compteDansAddition, etatTable, type ModeReglement } from "@/lib/table/regles";
+import { LIBELLES_ETAT_TABLE, LIBELLES_REGLEMENT, MODES_REGLEMENT, ORDRE_ETAT_TABLE, compteDansAddition, etatTable, type ModeReglementPropose } from "@/lib/table/regles";
 import type { TableOuverte } from "@/lib/table/service";
 
 const gnf = (n: number) => `${n.toLocaleString("fr-FR")} GNF`;
@@ -37,7 +37,7 @@ export function SalleTables({ tables }: { tables: TableOuverte[] }) {
   const routeur = useRouter();
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
-  const [mode, setMode] = useState<Record<string, ModeReglement>>({});
+  const [mode, setMode] = useState<Record<string, ModeReglementPropose>>({});
   const precedent = useRef<number | null>(null);
 
   const vues = tables
@@ -109,7 +109,7 @@ export function SalleTables({ tables }: { tables: TableOuverte[] }) {
                 <select
                   aria-label="Mode de règlement"
                   value={choisi ?? ""}
-                  onChange={(e) => setMode((m) => ({ ...m, [t.session.id]: e.target.value as ModeReglement }))}
+                  onChange={(e) => setMode((m) => ({ ...m, [t.session.id]: e.target.value as ModeReglementPropose }))}
                 >
                   <option value="">Mode de règlement…</option>
                   {MODES_REGLEMENT.map((m) => (

@@ -1,7 +1,11 @@
 import {
+  LIBELLES_REGLEMENT,
+  MODES_REGLEMENT,
+  MODES_REGLEMENT_LISIBLES,
   appelPossible,
   compteDansAddition,
   estModeReglement,
+  estModeReglementPropose,
   estReglageValidation,
   estServiceTable,
   etatTable,
@@ -9,7 +13,11 @@ import {
   prochainNumeroAppel,
   totalAddition,
   validationRequise,
+  verifierModeReglementCloture,
 } from "../../src/lib/table/regles";
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -57,6 +65,27 @@ verifier("table : en cours", etatTable(base), "en_cours");
 verifier("table : à valider (non validée avec une commande en attente)", etatTable({ ...base, validee: false, commandes: [{ statut: "en_attente" }] }), "a_valider");
 verifier("table : à valider prime sur l'addition", etatTable({ ...base, validee: false, commandes: [{ statut: "en_attente" }], additionDemandee: true }), "a_valider");
 verifier("table : addition avant appel simple, appel avant en cours", [etatTable({ ...base, additionDemandee: true, appelServeur: true }), etatTable({ ...base, appelServeur: true })], ["addition_demandee", "appel"]);
+
+// --- règlement d'une table : plus d'espèces proposées (règle du 3 novembre 2026), anciennes valeurs encore lisibles
+verifier("modes proposés : mobile money seulement", [...MODES_REGLEMENT], ["orange_money", "mtn_momo"]);
+verifier("modes lisibles : espèces reste reconnue pour les anciennes lignes", [...MODES_REGLEMENT_LISIBLES], ["especes", "orange_money", "mtn_momo"]);
+verifier("chaque mode lisible a son libellé", MODES_REGLEMENT_LISIBLES.map((m) => typeof LIBELLES_REGLEMENT[m]), ["string", "string", "string"]);
+verifier("lecture tolérante : estModeReglement accepte toujours espèces", [estModeReglement("especes"), estModeReglement("orange_money"), estModeReglement("carte")], [true, true, false]);
+verifier("estModeReglementPropose : refuse espèces et l'inconnu", [estModeReglementPropose("especes"), estModeReglementPropose("orange_money"), estModeReglementPropose("mtn_momo"), estModeReglementPropose("carte"), estModeReglementPropose(null)], [false, true, true, false, false]);
+verifier("clôture : un mode proposé passe", [verifierModeReglementCloture("orange_money"), verifierModeReglementCloture("mtn_momo")], [{ ok: true, mode: "orange_money" }, { ok: true, mode: "mtn_momo" }]);
+const refusEspeces = verifierModeReglementCloture("especes");
+verifier("clôture : espèces refusée avec un message clair", [refusEspeces.ok, !refusEspeces.ok && /espèces/.test(refusEspeces.erreur) && /Orange Money/.test(refusEspeces.erreur)], [false, true]);
+verifier("clôture : mode absent ou inconnu refusé", [verifierModeReglementCloture(undefined).ok, verifierModeReglementCloture("carte").ok, verifierModeReglementCloture(42).ok], [false, false, false]);
+
+// Câblage (motifs de code) : la clôture passe par le contrôle partagé AVANT toute lecture ou écriture en base ; l'écran de la salle ne boucle que sur les modes proposés.
+const racineTable = process.env.SPEEDFOOD_RACINE ?? process.cwd();
+const lireSource = (rel: string) => readFileSync(join(racineTable, rel), "utf8");
+const serviceTable = lireSource("src/lib/table/service.ts");
+const debutCloture = serviceTable.indexOf("export async function cloturerTable(");
+const corpsCloture = serviceTable.slice(debutCloture, serviceTable.indexOf("export async function annulerTable("));
+verifier("câblage : cloturerTable contrôle le mode avant la base et n'écrit que le mode contrôlé", [corpsCloture.indexOf("verifierModeReglementCloture(args.mode)") > -1 && corpsCloture.indexOf("verifierModeReglementCloture(args.mode)") < corpsCloture.indexOf("clientLivraison()"), /paiement_mode: args.mode/.test(corpsCloture)], [true, false]);
+const salle = lireSource("src/app/restaurant/(console)/salle/SalleTables.tsx");
+verifier("câblage : l'écran de la salle ne propose que les modes proposés", [/MODES_REGLEMENT.map/.test(salle), /MODES_REGLEMENT_LISIBLES/.test(salle)], [true, false]);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s)`);

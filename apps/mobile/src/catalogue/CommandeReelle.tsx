@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { chiffrer } from './panier-reel';
+import { libelleModeClient } from '../domaine/libelle-mode';
 import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, totalEstime, validerSaisie } from './commande-reelle';
 import { EnvoiCommande } from './envoi-commande';
 import { creerLecteurCatalogue } from './client';
@@ -69,9 +70,9 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   return <Modal visible={ouvert} onRequestClose={fermerSiPossible} animationType="slide"><SafeAreaView style={s.page}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au panier" agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
-    <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
+    <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'} · {libelleModeClient(m.mode)}</Text>
     <View accessibilityRole="radiogroup" style={s.rangee}>
-      <Choix moitie titre="Retrait" actif={!livraison} desactive={verrouille} agir={() => m.saisir('mode', 'retrait')} />
+      <Choix moitie titre="À emporter" actif={!livraison} desactive={verrouille} agir={() => m.saisir('mode', 'retrait')} />
       <Choix moitie titre="Livraison" actif={livraison} desactive={verrouille} agir={() => m.saisir('mode', 'livraison')} />
     </View>
     <View style={s.carte}>
@@ -83,7 +84,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
         {estimation?.statut === 'non_calcule' && <Text accessibilityLiveRegion="polite" style={s.texte}>Frais de livraison : à convenir avec le restaurant (non calculés par l’application).</Text>}
         {total !== null && <Text accessibilityRole="header" style={s.nom}>Total estimé : {gnf(total)}</Text>}
       </>}
-      <Text style={s.secondaire}>{livraison ? 'Livraison : les frais affichés sont une estimation de Speedfood ; le serveur les recalcule à l’envoi et vous demande de confirmer s’ils ont changé.' : 'Retrait : pas de frais de livraison.'} Le restaurant confirme votre commande ; le montant final est recalculé par Speedfood.</Text>
+      <Text style={s.secondaire}>{livraison ? 'Livraison : les frais affichés sont une estimation de Speedfood ; le serveur les recalcule à l’envoi et vous demande de confirmer s’ils ont changé.' : 'À emporter : pas de frais de livraison.'} Le restaurant confirme votre commande ; le montant final est recalculé par Speedfood.</Text>
     </View>
     {!panierPret && !verrouille && <Text accessibilityRole="alert" style={s.texte}>{etat.panier.lignes.length ? 'Les prix doivent être relus avant l’envoi. Retournez au panier et actualisez-le.' : 'Votre panier est vide.'}</Text>}
     {!connectee && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Connectez-vous pour envoyer votre commande.</Text><Action titre="Ouvrir mon compte" agir={ouvrirCompte} /></View>}
@@ -100,7 +101,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       <Text style={s.texte}>Quartier</Text>
       {quartierChoisi && <Text accessibilityLiveRegion="polite" style={s.nom}>{quartierChoisi.libelle}</Text>}
       {quartiers.etat === 'chargement' && <View style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement des quartiers…</Text></View>}
-      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander en retrait.</Text><Action titre="Réessayer la liste des quartiers" agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
+      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander à emporter.</Text><Action titre="Réessayer la liste des quartiers" agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
       {quartiers.etat === 'ok' && <>
         <TextInput accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
         {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}

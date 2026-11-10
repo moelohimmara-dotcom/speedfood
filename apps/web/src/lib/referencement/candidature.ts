@@ -10,7 +10,13 @@ import { validerDemandeReferencement, type DemandeReferencement } from "../site/
 /** Délai de réponse annoncé au candidat. Il engage Speedfood : l'écran d'envoi et le suivi l'affichent. */
 export const DELAI_REPONSE_HEURES = 48;
 
-export const MOYENS_PAIEMENT = ["especes", "orange_money", "mtn_momo"] as const;
+/**
+ * Moyens de paiement PROPOSÉS aux candidats : jamais les espèces (règle produit du 3 novembre 2026). La contrainte SQL de `referencement_demandes` accepte encore « especes » :
+ * le code ne l'envoie plus jamais, et une candidature plus ancienne qui la contient reste lisible (voir `MOYENS_PAIEMENT_LISIBLES`).
+ */
+export const MOYENS_PAIEMENT = ["orange_money", "mtn_momo"] as const;
+/** Moyens LISIBLES : les proposés, plus l'ancienne valeur « especes » (jamais reportée sur une fiche ni conservée à l'écriture). */
+export const MOYENS_PAIEMENT_LISIBLES = ["especes", ...MOYENS_PAIEMENT] as const;
 export const SERVICES = ["livraison", "retrait", "sur_place"] as const;
 export const MAX_PLATS = 80;
 /** Garde-fou contre une faute de frappe de zéros (le plafond réel par plat se règle dans les paramètres au moment de créer l'établissement). */
@@ -104,11 +110,13 @@ export function validerCandidature(corps: unknown, contexte: { commune: string; 
   });
   if (!base.ok) return base;
 
-  const moyens = listeAutorisee(c.moyensPaiement, MOYENS_PAIEMENT, MOYENS_PAIEMENT.length);
-  if (!moyens) return { ok: false, erreur: "Moyens de paiement invalides." };
+  // Une ancienne application peut encore envoyer « especes » : ce n'est pas une erreur, mais la valeur n'est jamais conservée.
+  const moyensLus = listeAutorisee(c.moyensPaiement, MOYENS_PAIEMENT_LISIBLES, MOYENS_PAIEMENT_LISIBLES.length);
+  if (!moyensLus) return { ok: false, erreur: "Moyens de paiement invalides." };
+  const moyens = moyensLus.filter((m) => m !== "especes");
   const services = listeAutorisee(c.services, SERVICES, SERVICES.length);
   if (!services) return { ok: false, erreur: "Services invalides." };
-  if (services.length === 0) return { ok: false, erreur: "Indiquez au moins un service : livraison, retrait ou sur place." };
+  if (services.length === 0) return { ok: false, erreur: "Indiquez au moins un service : livraison, à emporter ou sur place." };
   const plats = validerPlats(c.plats);
   if (!plats) return { ok: false, erreur: `Menu invalide : chaque plat a un nom (2 caractères au moins) et un prix entier en GNF entre ${PRIX_PLAT_MIN_GNF} et ${PRIX_PLAT_MAX_GNF}, ${MAX_PLATS} plats au plus.` };
 

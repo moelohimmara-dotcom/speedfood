@@ -9,7 +9,7 @@ import {
   type ActionStatutCommande,
 } from "@/lib/commande/actions-restaurant";
 import { LIBELLES_MODE, libelleStatutPaiement, lienWhatsAppVers, texteRecuWhatsApp } from "@/lib/paiement/regles";
-import { libelleMode } from "@/lib/commande/mode";
+import { libelleModeClient } from "@/lib/commande/mode";
 import { texteDocumentWhatsApp } from "@/lib/paiement/documents-regles";
 import { Button, Card, Badge, Alert } from "@/components/ui";
 import { FormulaireProposition } from "./FormulaireProposition";
@@ -179,7 +179,7 @@ export function CommandeCarte({
           </div>
           <p className="cmd-meta">
             {age ? `${age} · ` : ""}{formaterDate(commande.creeLe)} ·{" "}
-            {libelleMode(commande.mode, commande.tableNumero)}
+            {libelleModeClient(commande.mode, commande.tableNumero)}
           </p>
         </div>
         <div className="cmd-montants">

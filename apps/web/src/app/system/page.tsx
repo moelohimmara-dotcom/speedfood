@@ -478,11 +478,11 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             </div>
             <div className="ad-pilotage-deux u-mt-s4">
               <div>
-                <h3 className="ad-sous-titre">Livraison ou retrait</h3>
+                <h3 className="ad-sous-titre">Livraison ou à emporter</h3>
                 <BarresHorizontales
                   lignes={[
                     { cle: "livraison", libelle: "Livraison", valeur: stats.commandes.livraison, couleur: "var(--rouge-fonce)" },
-                    { cle: "retrait", libelle: "Retrait sur place", valeur: stats.commandes.retrait, couleur: "var(--secondaire)" },
+                    { cle: "retrait", libelle: "À emporter", valeur: stats.commandes.retrait, couleur: "var(--secondaire)" },
                   ]}
                 />
                 <h3 className="ad-sous-titre">Quartiers les plus actifs</h3>

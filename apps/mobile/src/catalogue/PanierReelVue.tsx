@@ -11,7 +11,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander }: { ouvert: boo
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView contentContainerStyle={s.contenu}>
     <Pressable accessibilityRole="button" onPress={fermer} style={s.bouton}><Text style={s.boutonTexte}>Retour au catalogue</Text></Pressable>
     <Text accessibilityRole="header" style={s.titre}>Mon panier</Text><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
-    <Text style={s.texte}>Prix indicatifs hors options. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text>
+    <Text style={s.texte}>Prix indicatifs hors options. Rien n’est envoyé tant que vous n’avez pas validé votre commande (à emporter ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text>
     <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>
     {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Pressable accessibilityRole="button" accessibilityLabel="Réessayer le stockage du panier" onPress={etat.reessayer} style={s.bouton}><Text style={s.boutonTexte}>Réessayer le stockage du panier</Text></Pressable></>}
     {etat.lecture && <><ActivityIndicator color={c.action} /><Text style={s.texte}>Vérification des prix et disponibilités…</Text></>}

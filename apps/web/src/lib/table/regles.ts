@@ -58,8 +58,16 @@ export function prochainNumeroAppel(dernier: number | null): number {
   return Number.isInteger(dernier) && (dernier as number) > 0 ? (dernier as number) + 1 : 1;
 }
 
-export const MODES_REGLEMENT = ["especes", "orange_money", "mtn_momo"] as const;
-export type ModeReglement = (typeof MODES_REGLEMENT)[number];
+/**
+ * Modes de règlement PROPOSÉS pour clôturer une table : jamais les espèces (règle produit du 3 novembre 2026 : Speedfood ne manipule pas d'espèces ; en attendant
+ * Chap Chap Pay, code marchand Orange Money ou MTN MoMo).
+ */
+export const MODES_REGLEMENT = ["orange_money", "mtn_momo"] as const;
+export type ModeReglementPropose = (typeof MODES_REGLEMENT)[number];
+
+/** Modes LISIBLES : les proposés, plus « especes » que la base accepte encore (aucune ligne aujourd'hui) : une ancienne table doit rester affichable. */
+export const MODES_REGLEMENT_LISIBLES = ["especes", ...MODES_REGLEMENT] as const;
+export type ModeReglement = (typeof MODES_REGLEMENT_LISIBLES)[number];
 
 export const LIBELLES_REGLEMENT: Record<ModeReglement, string> = {
   especes: "Espèces",
@@ -67,8 +75,24 @@ export const LIBELLES_REGLEMENT: Record<ModeReglement, string> = {
   mtn_momo: "MTN MoMo",
 };
 
+/** LECTURE : reconnaît aussi les espèces (anciennes lignes). Ne sert jamais à accepter un règlement : voir `estModeReglementPropose`. */
 export function estModeReglement(valeur: unknown): valeur is ModeReglement {
+  return typeof valeur === "string" && (MODES_REGLEMENT_LISIBLES as readonly string[]).includes(valeur);
+}
+
+export function estModeReglementPropose(valeur: unknown): valeur is ModeReglementPropose {
   return typeof valeur === "string" && (MODES_REGLEMENT as readonly string[]).includes(valeur);
+}
+
+export type ResultatModeReglement = { ok: true; mode: ModeReglementPropose } | { ok: false; erreur: string };
+
+/** ÉCRITURE : le mode reçu pour clôturer une table. Les espèces sont refusées avec un message clair, jamais enregistrées. */
+export function verifierModeReglementCloture(valeur: unknown): ResultatModeReglement {
+  if (valeur === "especes") {
+    return { ok: false, erreur: "Le règlement en espèces n'est pas pris en charge par Speedfood. Choisissez Orange Money ou MTN MoMo." };
+  }
+  if (!estModeReglementPropose(valeur)) return { ok: false, erreur: "Choisissez le mode de règlement." };
+  return { ok: true, mode: valeur };
 }
 
 /** Délai minimal entre deux appels au serveur (ou demandes d'addition) d'une même table : pas de martèlement. */

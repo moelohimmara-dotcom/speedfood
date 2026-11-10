@@ -35,7 +35,7 @@ interface Props {
 }
 
 /**
- * Formulaire de commande invitée (ADR-005) : nom, téléphone, retrait ou
+ * Formulaire de commande invitée (ADR-005) : nom, téléphone, à emporter ou
  * livraison (adresse obligatoire uniquement en livraison), consentement
  * explicite au règlement hors portail.
  *
@@ -256,7 +256,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
           <label className="choix-carte">
             <input type="radio" name="mode" value="sur_place" checked={mode === "sur_place"} onChange={() => setMode("sur_place")} />
             <span className="choix-texte">
-              <strong>À table</strong>
+              <strong>Sur place</strong>
               <small>On vous sert à votre table</small>
             </span>
           </label>
@@ -270,7 +270,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
             onChange={() => setMode("retrait")}
           />
           <span className="choix-texte">
-            <strong>Retrait sur place</strong>
+            <strong>À emporter</strong>
             <small>Vous passez récupérer votre commande</small>
           </span>
         </label>

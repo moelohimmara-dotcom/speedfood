@@ -22,7 +22,7 @@ export default function Restaurant() {
   return <Ecran retour>
     <View style={[s.carte, { backgroundColor: c.mangue, alignItems: 'center', padding: 8 }]}><IllustrationPlat type={restaurant.illustration} taille={245} /></View>
     <View style={{ gap: 8 }}><Texte style={{ color: c.secondaire, fontSize: 12 }}>ADRESSE FICTIVE · {restaurant.zone.toUpperCase()}</Texte><Titre>{restaurant.nom}</Titre><Texte style={{ color: c.secondaire }}>{restaurant.description}</Texte></View>
-    <View style={[s.ligne, { backgroundColor: c.surface, borderRadius: 14, padding: 14 }]}><Icone nom="position" /><Texte>Retrait · scénario de démonstration</Texte></View>
+    <View style={[s.ligne, { backgroundColor: c.surface, borderRadius: 14, padding: 14 }]}><Icone nom="position" /><Texte>À emporter · scénario de démonstration</Texte></View>
     <Titre petit>Au menu</Titre>
     {message !== '' && <View style={[s.note, { gap: 12 }]}><Texte accessibilityRole="alert">{message}</Texte>{autreRestaurant && <Bouton titre="Vider le panier actuel" secondaire onPress={() => { vider(); setAutreRestaurant(false); setMessage('Le panier est vidé. Vous pouvez ajouter un plat de ce restaurant.'); }} />}</View>}
     {plats.filter(p => p.restaurantId === restaurant.id).map(p => <View key={p.id} style={[s.carte, { padding: 16, gap: 14 }]}>

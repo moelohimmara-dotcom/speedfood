@@ -115,7 +115,7 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     const modeOk = payload.mode === 'retrait' ? !payload.destination && payload.fraisAffiches === undefined
       : payload.mode === 'livraison' && typeof payload.destination?.quartierId === 'string' && payload.destination.latitude === undefined && payload.destination.longitude === undefined
         && typeof payload.client.adresse === 'string' && payload.client.adresse.trim().length >= ADRESSE_MIN && payload.client.adresse.length <= ADRESSE_MAX;
-    if (!modeOk) throw new ErreurCommande('validation', 'Cette application envoie des commandes en retrait, ou en livraison vers un quartier avec une adresse.');
+    if (!modeOk) throw new ErreurCommande('validation', 'Cette application envoie des commandes à emporter, ou en livraison vers un quartier avec une adresse.');
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {

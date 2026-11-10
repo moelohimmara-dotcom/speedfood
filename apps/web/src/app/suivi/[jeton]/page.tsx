@@ -6,7 +6,7 @@ import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { Badge, Card, Alert } from "@/components/ui";
 import { LienRetour } from "@/components/LienRetour";
 import { paiementOuvert } from "@/lib/paiement/regles";
-import { libelleMode } from "@/lib/commande/mode";
+import { libelleModeClient } from "@/lib/commande/mode";
 import { PropositionCarte } from "./PropositionCarte";
 import { PanneauPaiement } from "./PanneauPaiement";
 import { RafraichissementAuto } from "./RafraichissementAuto";
@@ -248,7 +248,7 @@ export async function renderSuiviPage(jeton: string, session = false) {
             <span>{formaterGNF(totalIndicatif)}</span>
           </div>
           <p className="suivi-note suivi-note-mentions">
-            {suivi.mode === "livraison" ? "Livraison demandée" : libelleMode(suivi.mode, suivi.tableNumero)} · montants
+            {libelleModeClient(suivi.mode, suivi.tableNumero)} · montants
             indicatifs : aucun paiement n&apos;est encaissé par Speedfood et aucun frais de livraison
             n&apos;est calculé automatiquement.
           </p>
