@@ -11,6 +11,7 @@ import { routeCommandes } from "./routes/commandes.ts";
 import { routeEstimation } from "./routes/estimation.ts";
 import { routeFournisseurs } from "./routes/fournisseurs.ts";
 import { routeRestaurant } from "./routes/restaurant.ts";
+import { routeReservationReglage, routeReservations, routeReservationsRestaurant } from "./routes/reservation.ts";
 import { routeMoi } from "./routes/moi.ts";
 import { routeLivreur } from "./routes/livreur.ts";
 import { routeSuivi } from "./routes/suivi.ts";
@@ -65,6 +66,10 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/appareils", routeAppareils(deps));
   // Espace restaurateur : natif seulement, donc AUCUN en-tête CORS (ni lecture ni écriture).
   app.route("/api/v1/restaurant", routeRestaurant(deps));
+  // Réservation de table (lot M3) : natif seulement, AUCUN CORS. Côté client (plafond par compte) puis côté restaurateur (liste du jour, décisions, réglages).
+  app.route("/api/v1/reservations", routeReservations(deps));
+  app.route("/api/v1/restaurant/reservations", routeReservationsRestaurant(deps));
+  app.route("/api/v1/restaurant/reservation-reglage", routeReservationReglage(deps));
 
   app.notFound((c) => reponseErreur(c, { code: "INTROUVABLE", message: "Route inconnue." }));
   app.onError((erreur, c) => {

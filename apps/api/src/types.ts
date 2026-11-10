@@ -5,10 +5,14 @@ import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseRegl
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { ActionLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import type { Planifier } from "@/lib/commande/creation-coeur";
+import type { DecisionReservation, DemandeReservation, ReglageReservation, ReservationClient, ReservationRestaurant, ValeursReglageReservation } from "@speedfood/shared/contracts/reservation";
 import type { VerificateurJeton } from "./identite/jeton.ts";
 
 /** Lecture d'une ressource du restaurateur : la valeur, ou l'erreur au contrat uniforme. */
 export type ResultatLecture<T> = { ok: true; valeur: T } | { ok: false; erreur: ErreurApi };
+
+/** Résultat d'un service de réservation : la valeur, ou le refus au contrat uniforme (jamais un texte de la base). */
+export type ResultatReservation<T> = ({ ok: true } & T) | { ok: false; erreur: ErreurApi };
 
 export type ResultatEspace = { ok: true; message: string; favori?: boolean } | { ok: false; message: string };
 
@@ -112,6 +116,28 @@ export interface Deps {
     limiter(utilisateurId: string): Promise<void>;
     enregistrer(utilisateurId: string, jeton: string, plateforme: import("@speedfood/shared/contracts/appareils").PlateformeAppareil, versionApp: string | null, sessionId: string | null): Promise<boolean>;
     retirer(utilisateurId: string, jeton: string, sessionId: string | null): Promise<void>;
+  };
+  /**
+   * Lot M3 : réservation de table, côté CLIENT. Le compte est TOUJOURS celui du jeton (paramètre `utilisateurId`, jamais le corps). Câblage : `reservation/cablage.ts` (clé de service, colonnes listées,
+   * toutes les lectures et écritures filtrées sur le compte). Le plafond par compte est `limiterClientApplication`, posé par la route.
+   */
+  reservations: {
+    creer(utilisateurId: string, demande: DemandeReservation): Promise<ResultatReservation<{ reservation: ReservationClient; idempotent: boolean }>>;
+    lister(utilisateurId: string): Promise<ResultatReservation<{ reservations: ReservationClient[] }>>;
+    /** Une réservation du compte ; celle d'un autre compte est « introuvable », comme une réservation inexistante. */
+    lire(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
+    annuler(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
+  };
+  /**
+   * Lot M3 : réservation de table, côté RESTAURATEUR. `ctx` vient de `restaurant.contexte` (plafond, second facteur, questions, appartenance) : le restaurant est celui de l'appartenance du compte,
+   * jamais un identifiant reçu. Lectures et écritures avec le client lié au jeton du membre (RLS appliquée), en filtrant en plus sur le restaurant du contexte.
+   */
+  reservationsRestaurant: {
+    /** `jour` : `AAAA-MM-JJ` (heure de Conakry = UTC) ou `null` pour aujourd'hui. Les réservations de ce jour, plus toutes les demandes à venir. */
+    lister(ctx: ContexteRestaurant, jour: string | null): Promise<ResultatReservation<{ jour: string; reservations: ReservationRestaurant[] }>>;
+    decider(ctx: ContexteRestaurant, id: string, decision: DecisionReservation): Promise<ResultatReservation<{ reservation: ReservationRestaurant }>>;
+    lireReglage(ctx: ContexteRestaurant): Promise<ResultatReservation<ReglageReservation>>;
+    ecrireReglage(ctx: ContexteRestaurant, valeurs: ValeursReglageReservation): Promise<ResultatReservation<ReglageReservation>>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };
