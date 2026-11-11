@@ -108,5 +108,15 @@ Ordre, chaque point après un feu vert distinct :
 - Parité fonctionnelle de l'appli Expo avec Kotlin (voir `docs/PASSATION-CHANTIER-SPEEDFOOD-APP.md`, §4).
 - iOS : hors périmètre de ce plan (pas de distribution validée).
 
+## 7. Nouvelle clé : empreintes publiques (consignées le 11 novembre 2026)
+
+Clé créée par Malika sur sa machine (JDK 17, `keytool`), alias `speedfood`, RSA 2048, validité 10 000 jours. Le fichier et son mot de passe ne sont jamais dans le dépôt. Les empreintes ci-dessous sont publiques et servent à l'enregistrement Firebase, au script de signature et au contrôle de remplacement.
+
+- SHA-1 : `56:78:E5:41:91:A2:E7:61:00:58:BA:D8:4C:3E:5C:AB:77:B1:55:A1`
+- SHA-256 : `25:6B:6E:FE:37:19:9C:B1:DD:63:0A:63:4F:6C:85:4B:6C:A4:25:9E:54:61:33:0F:EB:D4:16:ED:B6:98:06:B5`
+
+**Non vérifié par Claude :** que ces empreintes correspondent bien au fichier (Claude ne lit pas la clé), et que les deux sauvegardes existent et ont été restaurées avec succès (porte de sortie de la phase 1).
+
 ## Journal
 - 11 novembre 2026 : plan écrit après la perte de la clé et la décision de Malika (option A, projet Firebase existant). Aucun code modifié.
+- 11 novembre 2026 : JDK 17 installé, nouvelle clé générée par Malika, empreintes publiques reçues. Sauvegardes à confirmer.
