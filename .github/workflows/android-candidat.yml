@@ -1,8 +1,9 @@
 name: Android Expo (candidat de remplacement, NON publié)
 
-# Prépare le CANDIDAT qui remplacerait l'APK Kotlin (com.speedfood.app) : identité de production, code supérieur au code publié, cible Android 37.
+# Prépare le CANDIDAT de la NOUVELLE appli Speedfood (com.speedfood.mobile) : identité de production, code supérieur au dernier code de l'ancienne appli Kotlin, cible Android 37.
+# Elle s'installe À CÔTÉ de l'ancienne (com.speedfood.app, dont la clé est perdue) : plan docs/plans/2026-11-11-nouvelle-identite-android.md.
 # Il n'est PAS signé avec la clé de production (elle reste chez Malika, jamais dans GitHub) : l'APK sortie est signée avec la clé de DEBUG du modèle Expo.
-# Elle ne doit JAMAIS être publiée telle quelle. Procédure : docs/plans/2026-11-01-remplacement-apk-expo.md (signature par Malika, contrôle, essai sur appareil).
+# Elle ne doit JAMAIS être publiée telle quelle. Procédure : signature par Malika (docs/SIGNATURE-CANDIDAT-EXPO.md), contrôle, essai sur appareil.
 # Ne se déclenche que sur une branche « candidat-* » (jamais sur etape-* ni master) ; valeurs lues dans apps/mobile/candidat-android.json.
 on:
   push:
@@ -77,7 +78,7 @@ jobs:
           APK=$(ls apps/mobile/android/app/build/outputs/apk/release/*.apk | head -1)
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
           "$AAPT" dump badging "$APK" | grep -E "^(package|sdkVersion|targetSdkVersion)" | tee badging.txt
-          grep -q "name='com.speedfood.app' versionCode='${SPEEDFOOD_CODE}'" badging.txt
+          grep -q "name='com.speedfood.mobile' versionCode='${SPEEDFOOD_CODE}'" badging.txt
           grep -q "targetSdkVersion:'37'" badging.txt
           sha256sum "$APK"; ls -l "$APK"
 
