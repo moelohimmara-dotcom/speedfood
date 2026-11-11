@@ -7,6 +7,8 @@ import { PageHeader, Panneau } from "@/components/admin/blocs";
 import { LienRetour } from "@/components/LienRetour";
 import { SousNav } from "../../SousNav";
 import { FormulaireReglagesPaiement } from "./FormulaireReglagesPaiement";
+import { ReglageEspeces } from "./ReglageEspeces";
+import { lireEspecesAutorise, lireJournalReglageEspeces } from "@/lib/paiement/en-ligne/remboursement-lecture";
 
 export const metadata = { title: "Paiement en ligne (paramètres)" };
 export const dynamic = "force-dynamic";
@@ -14,7 +16,7 @@ export const dynamic = "force-dynamic";
 /** Réglages du paiement en ligne, réservés à `super_admin` (permission `parametres.editer`). Voir docs/PAIEMENT-ARCHITECTURE.md. */
 export default async function ReglagesPaiementPage() {
   const contexte = await exigerPermissionPage("parametres.editer");
-  const reglages = await lireReglagesAdmin();
+  const [reglages, especesAutorise, journalEspeces] = await Promise.all([lireReglagesAdmin(), lireEspecesAutorise(), lireJournalReglageEspeces()]);
 
   return (
     <div>
@@ -27,6 +29,9 @@ export default async function ReglagesPaiementPage() {
         </Alert>
       ) : null}
       <FormulaireReglagesPaiement reglages={reglages} />
+      <div className="u-mt-s6">
+        <ReglageEspeces autorise={especesAutorise} journal={journalEspeces} />
+      </div>
       <div className="u-mt-s6">
         <Panneau titre="Comptes de versement">
           <p className="u-mt-0">Numéro mobile money où Speedfood verse chaque restaurant et chaque livreur. Un compte n&apos;est utilisé qu&apos;après vérification.</p>

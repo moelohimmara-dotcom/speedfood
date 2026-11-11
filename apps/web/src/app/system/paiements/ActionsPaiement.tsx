@@ -14,10 +14,12 @@ interface Props {
   litigeAHumain: string | null;
   /** Les espèces (dernier recours) sont réservées au propriétaire : sans ce droit, le choix n'est pas proposé. */
   peutEspeces: boolean;
+  /** Réglage de plateforme « remboursement en espèces autorisé » (faux par défaut). Le serveur le revérifie : ce n'est qu'un confort d'affichage. */
+  especesAutorise: boolean;
 }
 
 /** Actions d'une ligne de paiement : reprendre des versements, ou trancher un litige confié à un humain (motif obligatoire). */
-export function ActionsPaiement({ paiementId, etat, versementsEnAttente, litigeAHumain, peutEspeces }: Props) {
+export function ActionsPaiement({ paiementId, etat, versementsEnAttente, litigeAHumain, peutEspeces, especesAutorise }: Props) {
   const router = useRouter();
   const notifier = useNotification();
   const [motif, setMotif] = useState("");
@@ -74,7 +76,7 @@ export function ActionsPaiement({ paiementId, etat, versementsEnAttente, litigeA
               <legend>Comment le client a-t-il été remboursé ?</legend>
               <label htmlFor={`moyen-${litigeAHumain}`}>Moyen</label>
               <select id={`moyen-${litigeAHumain}`} value={moyen} onChange={(e) => setMoyen(e.target.value)}>
-                {MOYENS_REMBOURSEMENT.filter((m) => m !== "especes" || peutEspeces).map((m) => (
+                {MOYENS_REMBOURSEMENT.filter((m) => m !== "especes" || (peutEspeces && especesAutorise)).map((m) => (
                   <option key={m} value={m}>
                     {LIBELLE_MOYEN[m]}
                   </option>

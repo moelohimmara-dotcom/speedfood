@@ -3128,3 +3128,40 @@ a.ad-carte-lien:hover {
   gap: var(--space-2);
   align-items: center;
 }
+
+/* Dossier d'un remboursement et décision humaine (lot R2). Noms préfixés « dossier-remb- » : le CSS est global. */
+.dossier-remb-sections {
+  display: grid;
+  gap: var(--space-4);
+}
+.dossier-remb-liste {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+}
+.dossier-remb-formulaire {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.dossier-remb-formulaire legend {
+  padding: 0 var(--space-1);
+  font-weight: 700;
+}
+.dossier-remb-notes {
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: 0.85rem;
+}
+.dossier-remb-confirmation {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1.5px dashed var(--encre);
+  border-radius: var(--radius-sm);
+}
