@@ -120,3 +120,4 @@ Clé créée par Malika sur sa machine (JDK 17, `keytool`), alias `speedfood`, R
 ## Journal
 - 11 novembre 2026 : plan écrit après la perte de la clé et la décision de Malika (option A, projet Firebase existant). Aucun code modifié.
 - 11 novembre 2026 : JDK 17 installé, nouvelle clé générée par Malika, empreintes publiques reçues. Sauvegardes à confirmer.
+- 11 novembre 2026 : Malika confirme les deux sauvegardes faites et la copie testée (déclaratif, non vérifié par Claude). Phase 1 terminée.
