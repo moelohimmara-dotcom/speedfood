@@ -25,13 +25,14 @@ const OUVERTURE = chemin('../../mobile/src/notifications/ouverture.ts');
 const ECRAN = chemin('../../mobile/src/catalogue/CatalogueReel.tsx');
 
 const PLANIFIER_ALERTE = 'planifier(apres, p.alerterNouvelleDemande && (() => p.alerterNouvelleDemande!(d.restaurantId, environnement)));';
+const PLANIFIER_ALERTE_REJEU = 'planifier(apres, p.alerterNouvelleDemande && (() => p.alerterNouvelleDemande!(d.restaurantId, environnement)));';
 const PLANIFIER_MESSAGE = 'planifier(apres, p.prevenirClient && (() => p.prevenirClient!(id, "confirmee", environnement)));';
 
 // suite : 'api' | 'site' (marqueur = phrase imprimée seulement si TOUS les contrôles du fichier visé passent) | 'appli'
 const mutations = [
   // --- API : alerte du restaurant ---
-  { suite: 'api', nom: 'A01. alerte envoyée aussi pour un REJEU idempotent', fichier: CLIENT, cible: 'if (existante) return { ok: true as const, reservation: existante, idempotent: true };', remplace: 'if (existante) { ' + PLANIFIER_ALERTE + ' return { ok: true as const, reservation: existante, idempotent: true }; }' },
-  { suite: 'api', nom: 'A02. alerte planifiée même quand l\'insertion échoue (erreur de la base)', fichier: CLIENT, cible: 'const r = await p.inserer(ligne);', remplace: 'const r = await p.inserer(ligne);\n        ' + PLANIFIER_ALERTE },
+  { suite: 'api', nom: 'A01. alerte envoyée aussi pour un REJEU idempotent', fichier: CLIENT, cible: 'if (r.etat === "rejeu") return { ok: true as const, reservation: r.reservation, idempotent: true };', remplace: 'if (r.etat === "rejeu") { ' + PLANIFIER_ALERTE_REJEU + ' return { ok: true as const, reservation: r.reservation, idempotent: true }; }' },
+  { suite: 'api', nom: 'A02. alerte planifiée même quand la fonction SQL refuse ou échoue', fichier: CLIENT, cible: 'if (!r.ok) return refus(r.genre', remplace: PLANIFIER_ALERTE_REJEU + ' if (!r.ok) return refus(r.genre' },
   { suite: 'api', nom: 'A03. alerte adressée au compte du client au lieu du restaurant', fichier: CLIENT, cible: 'p.alerterNouvelleDemande!(r.reservation.restaurantId, environnement)', remplace: 'p.alerterNouvelleDemande!(utilisateurId, environnement)' },
   { suite: 'api', nom: 'A04. alerte jouée avant la réponse (appel direct au lieu de la planification)', fichier: CLIENT, cible: 'planifier(apres, p.alerterNouvelleDemande && (() => p.alerterNouvelleDemande!(r.reservation.restaurantId, environnement)));', remplace: 'void p.alerterNouvelleDemande?.(r.reservation.restaurantId, environnement);' },
   { suite: 'api', nom: 'A05. une panne du planificateur fait échouer la création (plus absorbée)', fichier: PLANIF, cible: '  } catch { /* pas de contexte d\'exécution : rien à planifier */ }', remplace: '  } catch (e) { throw e; }' },

@@ -85,7 +85,7 @@ test("M4c création : un refus (restaurant absent, fermé, créneau, plafond, do
     ["créneau trop proche", {}, { creneau: new Date(MAINTENANT.getTime() + 10 * 60_000).toISOString() }],
     ["capacité dépassée", { restaurants: [ligneRestaurant({ reservation_capacite_couverts: 2 })] }, {}],
     ["doublon de créneau", { reservations: [ligneReservation({ id: RES_1, creneau: CRENEAU, nb_personnes: 2 })] }, {}],
-    ["erreur de la base", { erreurInsertion: { code: "XX000", message: "boom" } }, {}],
+    ["erreur de la base", { erreurRpc: { code: "XX000", message: "boom" } }, {}],
     ["références toujours prises", { collisionsReference: 99 }, {}],
   ];
   for (const [nom, options, surcharge] of cas) {

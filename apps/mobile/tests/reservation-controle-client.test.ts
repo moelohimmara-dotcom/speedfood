@@ -320,10 +320,13 @@ test('demande : une erreur brute (non typée) est aussi un « erreur » sans ver
   assert.equal(e.lu().disponibilite, 'erreur'); assert.deepEqual(verrous(e.lu()), SANS_VERROU);
 });
 
-test('demande : pas de session — « deconnecte » sans aucun appel réseau', async () => {
+test('demande : pas de session — la disponibilité est lue quand même (lecture publique), « connecte » est faux et AUCUN envoi ne part', async () => {
   const s = sessionDemande({}); s.generationNotifications = null; const e = ouvrirDemande(s);
   await e.controle.lireDisponibilite(R1);
-  assert.equal(e.lu().disponibilite, 'deconnecte'); assert.deepEqual(s.lecturesDispo, []); assert.deepEqual(verrous(e.lu()), SANS_VERROU);
+  assert.equal(e.lu().disponibilite, 'oui'); assert.equal(e.lu().connecte, false); assert.deepEqual(s.lecturesDispo, [R1]); assert.deepEqual(verrous(e.lu()), SANS_VERROU);
+  await e.controle.envoyer({ restaurantId: R1, creneau: '2026-11-12T19:00:00.000Z', nbPersonnes: 2, nom: 'Aminata Camara', telephone: '620000001', note: '' });
+  assert.equal(s.envois?.length ?? 0, 0, 'aucun envoi sans compte');
+  assert.equal(e.lu().confirmee, null);
 });
 
 test('demande : le client change de restaurant pendant la lecture — seule la réponse du dernier restaurant compte, et plus rien ne reste « en cours »', async () => {

@@ -19,18 +19,19 @@ const WORKER = chemin('../src/worker.ts');
 // Un seul `cible → remplace` par mutation (la cible doit être UNIQUE dans le fichier, sinon le script s'arrête).
 const mutations = [
   // --- création : règles métier ---
-  { nom: '01. capacité exacte refusée (> devient >=)', fichier: CLIENT, cible: 'if (deja + d.nbPersonnes > restaurant.capaciteCouverts) {', remplace: 'if (deja + d.nbPersonnes >= restaurant.capaciteCouverts) {' },
-  { nom: '02. capacité jamais contrôlée', fichier: CLIENT, cible: 'if (deja + d.nbPersonnes > restaurant.capaciteCouverts) {', remplace: 'if (false) {' },
-  { nom: '03. plafond de 3 réservations actives repoussé à 4', fichier: CLIENT, cible: 'if (actives.length >= MAX_RESERVATIONS_ACTIVES_PAR_COMPTE) {', remplace: 'if (actives.length > MAX_RESERVATIONS_ACTIVES_PAR_COMPTE) {' },
-  { nom: '04. doublon de créneau du compte accepté', fichier: CLIENT, cible: 'if (actives.some((r) => Date.parse(r.creneau) === creneauMs)) {', remplace: 'if (false) {' },
-  { nom: '05. rejeu idempotent supprimé (une seconde réservation serait créée)', fichier: CLIENT, cible: 'if (existante) return', remplace: 'if (false) return' },
-  { nom: '06. rejeu idempotent sans comparer le nombre de personnes', fichier: CLIENT, cible: ' && r.nbPersonnes === d.nbPersonnes);', remplace: ');' },
-  { nom: '07. rejeu idempotent sans comparer le restaurant', fichier: CLIENT, cible: 'r.restaurantId === d.restaurantId && ', remplace: '' },
+  // Lot M5 : capacité, plafond, doublon, fenêtre, restaurant et rejeu sont désormais jugés par la fonction SQL atomique (mutations M5 et section 21 du cloisonnement). Ici : la part API de la création.
+  { nom: '01. rejeu idempotent renvoyé comme une création (alerte et indicateur faux)', fichier: CLIENT, cible: 'if (r.etat === "rejeu") return { ok: true as const, reservation: r.reservation, idempotent: true };', remplace: 'if (false) return { ok: true as const, reservation: r.reservation, idempotent: true };' },
+  { nom: '02. plage horaire non contrôlée par le serveur avant l\'appel', fichier: CLIENT, cible: 'if (horsPlage) return refus(horsPlage);', remplace: '' },
+  { nom: '03. refus de la fonction SQL toujours traduit en « capacité »', fichier: CLIENT, cible: 'traduireRefusCreation(r.code, d.nbPersonnes)', remplace: 'traduireRefusCreation("CAPACITE", d.nbPersonnes)' },
+  { nom: '04. nombre de personnes transmis à la fonction SQL faussé', fichier: CLIENT, cible: 'nbPersonnes: d.nbPersonnes, creneau: new Date(', remplace: 'nbPersonnes: 1, creneau: new Date(' },
+  { nom: '05. restaurant transmis à la fonction SQL pris ailleurs', fichier: CLIENT, cible: 'restaurantId: d.restaurantId, clientUserId: utilisateurId,', remplace: 'restaurantId: utilisateurId, clientUserId: utilisateurId,' },
+  { nom: '06. créneau transmis non normalisé (chaîne du client telle quelle)', fichier: CLIENT, cible: 'creneau: new Date(Date.parse(d.creneau)).toISOString()', remplace: 'creneau: d.creneau' },
+  { nom: '07. note du client perdue avant la fonction SQL', fichier: CLIENT, cible: 'creneau: new Date(Date.parse(d.creneau)).toISOString(), note: d.note', remplace: 'creneau: new Date(Date.parse(d.creneau)).toISOString(), note: null' },
   { nom: '08. compte écrit pris ailleurs que du jeton', fichier: CLIENT, cible: 'clientUserId: utilisateurId,', remplace: 'clientUserId: d.restaurantId,' },
-  { nom: '09. restaurant non publié ou suspendu accepté', fichier: CLIENT, cible: 'if (!restaurant.publie || restaurant.suspendu) return', remplace: 'if (false) return' },
-  { nom: '10. restaurant qui n\'accepte pas les réservations accepté', fichier: CLIENT, cible: 'if (!restaurant.accepteReservation) return', remplace: 'if (false) return' },
-  { nom: '11. collision de référence : un seul essai', fichier: CLIENT, cible: 'essai <= ESSAIS_INSERTION;', remplace: 'essai <= 1;' },
-  { nom: '12. erreur de la base reprise telle quelle (fuite du texte SQL)', fichier: CLIENT, cible: 'if (r.genre === "base") return refus(traduireErreurBase(r.erreur));\n        // « reference_prise »', remplace: 'if (r.genre === "base") return refus({ code: "ERREUR_SERVEUR", message: String(r.erreur.message) });\n        // « reference_prise »' },
+  { nom: '09. accès : compte transmis à la fonction SQL pris ailleurs', fichier: ACCES, cible: 'p_client_user_id: ligne.clientUserId,', remplace: 'p_client_user_id: ligne.restaurantId,' },
+  { nom: '10. accès : mauvaise fonction SQL appelée', fichier: ACCES, cible: '.rpc("fn_creer_reservation_atomique", {', remplace: '.rpc("fn_creer_reservation", {' },
+  { nom: '11. accès : réponse de la fonction SQL non lue strictement (code de refus inconnu accepté)', fichier: ACCES, cible: 'if (!estCodeRefusCreation(o.code)) throw new Error("RESERVATION_ILLISIBLE");', remplace: '' },
+  { nom: '12. erreur de la base reprise telle quelle (fuite du texte SQL)', fichier: CLIENT, cible: 'refus(r.genre === "base" ? traduireErreurBase(r.erreur) : traduireRefusCreation', remplace: 'refus(r.genre === "base" ? { code: "ERREUR_SERVEUR", message: String(r.erreur.message) } : traduireRefusCreation' },
   { nom: '13. fenêtre : 30 minutes pile refusées', fichier: REGLES, cible: 'if (creneauMs < maintenantMs + DELAI_MIN_MINUTES * MINUTE)', remplace: 'if (creneauMs <= maintenantMs + DELAI_MIN_MINUTES * MINUTE)' },
   // --- annulation par le client ---
   { nom: '14. annulation client : idempotence supprimée (une écriture est refaite)', fichier: CLIENT, cible: 'if (actuelle.statut === "annulee_client") return { ok: true as const, reservation: actuelle };', remplace: '' },
@@ -66,7 +67,7 @@ const mutations = [
   { nom: '41. route restaurateur : réponse de décision non reprojetée', fichier: ROUTE, cible: 'const versRestaurant = (brute: unknown) => projeterReservationRestaurant(brute) ?? illisible();', remplace: 'const versRestaurant = (brute: unknown) => brute;' },
   // --- accès base ---
   { nom: '42. accès : un select sans colonnes explicites (select *)', fichier: ACCES, cible: 'export const COLONNES_REGLAGE_RESERVATION = "accepte_reservation, reservation_capacite_couverts";', remplace: 'export const COLONNES_REGLAGE_RESERVATION = "*";' },
-  { nom: '43. accès : collision de référence non reconnue', fichier: ACCES, cible: 'if (erreur.code !== "23505") return false;', remplace: 'return false;' },
+  { nom: '43. accès : état inconnu de la fonction SQL accepté comme réservation', fichier: ACCES, cible: 'if (o.etat !== "creee" && o.etat !== "rejeu") throw new Error("RESERVATION_ILLISIBLE");', remplace: '' },
   { nom: '44. accès : liste du client non bornée à 50', fichier: ACCES, cible: 'const LIMITE_LISTE_CLIENT = 50;', remplace: 'const LIMITE_LISTE_CLIENT = 5000;' },
   // --- lot M4-0 : disponibilité (route GET /reservations/restaurants/:restaurantId/disponibilite) ---
   { nom: '47. disponibilité : « publié » ignoré', fichier: CLIENT, cible: 'dispo.publie && ', remplace: '' },
@@ -78,7 +79,7 @@ const mutations = [
   { nom: '53. disponibilité : capacité ajoutée aux colonnes lues', fichier: ACCES, cible: 'export const COLONNES_DISPONIBILITE_RESERVATION = "publie, suspendu_le, accepte_reservation";', remplace: 'export const COLONNES_DISPONIBILITE_RESERVATION = "publie, suspendu_le, accepte_reservation, reservation_capacite_couverts";' },
   { nom: '54. disponibilité route : identifiant mal formé transmis au service', fichier: ROUTE, cible: '    if (!REGEX_UUID.test(restaurantId)) return reponseErreur(c, { code: "VALIDATION", message: "Restaurant invalide." });\n', remplace: '' },
   { nom: '55. disponibilité route : réponse non construite par le contrat (fuite du service amont)', fichier: ROUTE, cible: 'return repondre(c, construireReponseDisponibiliteReservation(restaurantId, r.accepteReservation));', remplace: 'return repondre(c, { ...r, ...construireReponseDisponibiliteReservation(restaurantId, r.accepteReservation) });' },
-  { nom: '56. disponibilité route : porteur et plafond retirés', fichier: ROUTE, cible: 'route.get("/restaurants/:restaurantId/disponibilite", ...garde, async', remplace: 'route.get("/restaurants/:restaurantId/disponibilite", async' },
+  { nom: '56. disponibilité route : limite par adresse retirée (route publique, lot M5)', fichier: ROUTE, cible: '    await deps.limiterDisponibiliteReservation();\n', remplace: '' },
   { nom: '57. disponibilité contrat : borne dupliquée au lieu de NB_PERSONNES_MAX', fichier: CONTRAT, cible: 'accepteReservation, nbPersonnesMax: NB_PERSONNES_MAX };', remplace: 'accepteReservation, nbPersonnesMax: 10 };' },
   { nom: '58. disponibilité contrat : parseur sans borne haute', fichier: CONTRAT, cible: 'max < NB_PERSONNES_MIN || max > NB_PERSONNES_MAX)', remplace: 'max < NB_PERSONNES_MIN || max > 999)' },
   // --- montage ---

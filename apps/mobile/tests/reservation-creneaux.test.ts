@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   JOURS_PROPOSES, ajouterJours, creneauxDuJour, heuresDuJour, jourDeCreneau, joursProposes, libelleCreneau, libelleHeure, libelleJour, libelleJourProche, quartsDeLHeure,
 } from '../src/domaine/creneaux-reservation.ts';
-import { DELAI_MIN_MINUTES, HORIZON_MAX_JOURS, PAS_CRENEAU_MINUTES, lireCorpsCreationReservation } from '../../../packages/shared/src/contracts/reservation.ts';
+import { DELAI_MIN_MINUTES, HORIZON_MAX_JOURS, PAS_CRENEAU_MINUTES, DERNIER_CRENEAU_MINUTES, PREMIER_CRENEAU_MINUTES, creneauDansPlage, heuresDeLaPlage, lireCorpsCreationReservation } from '../../../packages/shared/src/contracts/reservation.ts';
 
 const MIN = 60_000;
 const t = (iso: string) => Date.parse(iso);
@@ -51,10 +51,10 @@ test('ajouterJours : passage de mois, d’année et d’année bissextile (UTC, 
   for (const fuseau of FUSEAUX) souFuseau(fuseau, () => { assert.equal(ajouterJours('2026-03-28', 2), '2026-03-30', fuseau); assert.equal(ajouterJours('2026-10-24', 2), '2026-10-26', fuseau); });
 });
 
-test('créneaux d’un jour futur : 96 créneaux, tous les 15 minutes, de 00:00 à 23:45, au format ISO UTC canonique', () => {
+test('créneaux d’un jour futur : 52 créneaux, tous les 15 minutes, de 10:00 à 22:45, au format ISO UTC canonique', () => {
   const liste = creneauxDuJour('2026-11-12', t('2026-11-10T09:30:00Z'));
-  assert.equal(liste.length, 96);
-  assert.equal(liste[0], '2026-11-12T00:00:00.000Z'); assert.equal(liste[1], '2026-11-12T00:15:00.000Z'); assert.equal(liste[95], '2026-11-12T23:45:00.000Z');
+  assert.equal(liste.length, 52);
+  assert.equal(liste[0], '2026-11-12T10:00:00.000Z'); assert.equal(liste[1], '2026-11-12T10:15:00.000Z'); assert.equal(liste[51], '2026-11-12T22:45:00.000Z');
   for (const c of liste) assert.equal(new Date(c).toISOString(), c);
   for (let i = 1; i < liste.length; i++) assert.equal(Date.parse(liste[i]) - Date.parse(liste[i - 1]), PAS_CRENEAU_MINUTES * MIN);
 });
@@ -64,7 +64,7 @@ test('aujourd’hui : seulement les créneaux à 30 minutes ou plus de l’insta
   const liste = creneauxDuJour('2026-11-10', maintenant);
   assert.equal(liste[0], '2026-11-10T10:00:00.000Z', '9 h 30 + 30 min = 10 h 00 pile : permis');
   assert.ok(!liste.includes('2026-11-10T09:45:00.000Z'));
-  assert.equal(liste.length, 56);
+  assert.equal(liste.length, 52, 'de 10:00 à 22:45');
   for (const c of liste) assert.ok(Date.parse(c) >= maintenant + DELAI_MIN_MINUTES * MIN);
   // 9 h 31 : 10 h 00 est à 29 min : refusé ; le premier est 10 h 15.
   assert.equal(creneauxDuJour('2026-11-10', t('2026-11-10T09:31:00Z'))[0], '2026-11-10T10:15:00.000Z');
@@ -76,11 +76,12 @@ test('frontière de minuit : tard le soir il ne reste aucun créneau aujourd’h
   const tard = t('2026-11-10T23:50:00Z');
   assert.deepEqual(creneauxDuJour('2026-11-10', tard), []);
   assert.deepEqual(heuresDuJour('2026-11-10', tard), []);
-  assert.equal(creneauxDuJour('2026-11-11', tard)[0], '2026-11-11T00:30:00.000Z', '23 h 50 + 30 min = 00 h 20, premier quart d’heure : 00 h 30');
+  assert.equal(creneauxDuJour('2026-11-11', tard)[0], '2026-11-11T10:00:00.000Z', 'jamais de créneau de nuit : le premier de demain est 10 h 00');
   const justeAvant = t('2026-11-10T23:30:00Z');
   assert.deepEqual(creneauxDuJour('2026-11-10', justeAvant), [], '23 h 30 + 30 min = 00 h 00 le lendemain : rien aujourd’hui');
-  assert.equal(creneauxDuJour('2026-11-11', justeAvant)[0], '2026-11-11T00:00:00.000Z');
-  assert.deepEqual(creneauxDuJour('2026-11-10', t('2026-11-10T23:14:00Z')), ['2026-11-10T23:45:00.000Z'], '23 h 14 + 30 = 23 h 44 : reste 23 h 45');
+  assert.equal(creneauxDuJour('2026-11-11', justeAvant)[0], '2026-11-11T10:00:00.000Z');
+  assert.deepEqual(creneauxDuJour('2026-11-10', t('2026-11-10T22:14:00Z')), ['2026-11-10T22:45:00.000Z'], '22 h 14 + 30 = 22 h 44 : reste 22 h 45, le dernier');
+  assert.deepEqual(creneauxDuJour('2026-11-10', t('2026-11-10T22:16:00Z')), [], '22 h 16 + 30 = 22 h 46 : plus rien aujourd’hui');
 });
 
 test('un jour déjà passé n’offre aucun créneau', () => {
@@ -96,7 +97,9 @@ test('jour invalide : aucun créneau (jamais d’exception, jamais de 30 févrie
 test('heures proposées et quarts d’heure d’une heure', () => {
   const maintenant = t('2026-11-10T09:30:00Z');
   const heures = heuresDuJour('2026-11-10', maintenant);
-  assert.equal(heures[0], 10); assert.equal(heures.at(-1), 23); assert.equal(heures.length, 14);
+  assert.equal(heures[0], 10); assert.equal(heures.at(-1), 22); assert.equal(heures.length, 13);
+  assert.deepEqual(quartsDeLHeure('2026-11-12', 23, maintenant), [], 'aucun créneau à 23 h');
+  assert.deepEqual(quartsDeLHeure('2026-11-12', 22, maintenant).map(c => c.slice(11, 16)), ['22:00', '22:15', '22:30', '22:45']);
   assert.deepEqual(quartsDeLHeure('2026-11-10', 10, maintenant), ['2026-11-10T10:00:00.000Z', '2026-11-10T10:15:00.000Z', '2026-11-10T10:30:00.000Z', '2026-11-10T10:45:00.000Z']);
   assert.deepEqual(quartsDeLHeure('2026-11-10', 9, maintenant), []);
   const encore = t('2026-11-10T09:46:00Z');
@@ -150,7 +153,19 @@ test('chaque créneau proposé est accepté par le contrôle strict du serveur (
     assert.ok(lu.ok, creneau + ' ' + (lu.ok ? '' : lu.message));
     n++;
   }
-  assert.ok(n > 1000);
+  assert.ok(n > 500);
   // Tous restent dans l’horizon de 60 jours du serveur.
   for (const jour of joursProposes(maintenant)) for (const creneau of creneauxDuJour(jour, maintenant)) assert.ok(Date.parse(creneau) <= maintenant + HORIZON_MAX_JOURS * 24 * 60 * MIN);
+});
+
+test('plage 10:00 à 22:45 : une seule constante partagée ; les heures de l’application sont exactement celles du serveur, aucune hors plage', () => {
+  const maintenant = t('2026-11-10T09:30:00Z');
+  const duJour = creneauxDuJour('2026-11-12', maintenant).map(c => c.slice(11, 16));
+  assert.deepEqual(duJour, heuresDeLaPlage(), 'parité avec la constante partagée');
+  assert.equal(PREMIER_CRENEAU_MINUTES, 600); assert.equal(DERNIER_CRENEAU_MINUTES, 22 * 60 + 45);
+  for (const [h, attendu] of [['09:45', false], ['10:00', true], ['22:45', true], ['23:00', false], ['00:00', false]] as const) {
+    assert.equal(creneauDansPlage(Date.parse('2026-11-12T' + h + ':00Z')), attendu, h);
+    const lu = lireCorpsCreationReservation({ restaurantId: RESTAURANT, creneau: '2026-11-12T' + h + ':00.000Z', nbPersonnes: 2, nom: 'Aminata', telephone: '622123456', note: null });
+    assert.equal(lu.ok, attendu, h);
+  }
 });

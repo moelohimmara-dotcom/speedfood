@@ -74,20 +74,32 @@ export function creerBancReservation() {
 
   const portsClient = {
     maintenant: () => new Date(),
-    async lireRestaurant(id) {
-      const r = monde.restaurants.get(id); if (!r) return null;
-      const pleine = prendreFaute('capacite_pleine') === 'capacite_pleine';
-      return { id: r.id, publie: r.publie, suspendu: r.suspendu, accepteReservation: r.accepte, capaciteCouverts: pleine ? 0 : r.capacite };
-    },
-    async listerActives(uid, maintenant) { return monde.reservations.filter(r => r.clientUid === uid && ACTIVES.includes(r.statut) && Date.parse(r.creneau) > maintenant.getTime()).map(versClient); },
-    async sommeCouverts(restaurantId, creneau) { return monde.reservations.filter(r => r.restaurantId === restaurantId && ACTIVES.includes(r.statut) && Date.parse(r.creneau) === creneau.getTime()).reduce((t, r) => t + r.nbPersonnes, 0); },
-    async inserer(ligne) {
+    /** Imite en mémoire la fonction SQL atomique (lot M5), dans le MÊME ordre : rejeu, fenêtre, restaurant, plafond, doublon, capacité, insertion. */
+    async creerAtomique(ligne) {
       const faute = prendreFaute('incertain_applique', 'incertain_perdue');
       if (faute === 'incertain_perdue') throw new Error('PANNE_FACTICE_AVANT_ECRITURE');
+      const maintenant = Date.now(); const creneau = Date.parse(ligne.creneau);
+      const actives = monde.reservations.filter(r => ACTIVES.includes(r.statut) && Date.parse(r.creneau) > maintenant);
+      const rejeu = actives.find(r => r.clientUid === ligne.clientUserId && r.restaurantId === ligne.restaurantId && Date.parse(r.creneau) === creneau && r.nbPersonnes === ligne.nbPersonnes);
+      if (rejeu) return { ok: true, etat: 'rejeu', reservation: versClient(rejeu) };
+      const refus = code => ({ ok: false, genre: 'refus', code });
+      if (creneau < maintenant + 30 * 60000) return refus('FENETRE_PROCHE');
+      if (creneau > maintenant + 60 * JOUR_MS) return refus('FENETRE_LOIN');
+      const resto = monde.restaurants.get(ligne.restaurantId);
+      if (!resto) return refus('RESTAURANT_INTROUVABLE');
+      if (!resto.publie || resto.suspendu) return refus('RESTAURANT_INDISPONIBLE');
+      if (!resto.accepte) return refus('RESERVATION_FERMEE');
+      const siennes = actives.filter(r => r.clientUid === ligne.clientUserId);
+      if (siennes.length >= 3) return refus('PLAFOND');
+      if (siennes.some(r => Date.parse(r.creneau) === creneau)) return refus('DOUBLON');
+      const pleine = prendreFaute('capacite_pleine') === 'capacite_pleine';
+      const deja = monde.reservations.filter(r => r.restaurantId === ligne.restaurantId && ACTIVES.includes(r.statut) && Date.parse(r.creneau) === creneau).reduce((total, r) => total + r.nbPersonnes, 0);
+      const plafond = pleine ? 0 : resto.capacite;
+      if (plafond !== null && deja + ligne.nbPersonnes > plafond) return refus('CAPACITE');
       const r = ajouter({ restaurantId: ligne.restaurantId, clientUid: ligne.clientUserId, nom: ligne.nom, telephone: ligne.telephone, nbPersonnes: ligne.nbPersonnes, creneau: ligne.creneau, note: ligne.note, statut: 'demandee' });
       noter('client:creer');
       if (faute === 'incertain_applique') throw new Error('PANNE_FACTICE_APRES_ECRITURE');
-      return { ok: true, reservation: versClient(r) };
+      return { ok: true, etat: 'creee', reservation: versClient(r) };
     },
     async lireDisponibilite(id) { const r = monde.restaurants.get(id); return r ? { publie: r.publie, suspendu: r.suspendu, accepteReservation: r.accepte } : null; },
     async lister(uid) { monde.lectures++; return monde.reservations.filter(r => r.clientUid === uid).sort((a, b) => Date.parse(a.creneau) - Date.parse(b.creneau)).slice(0, 50).map(versClient); },
@@ -132,6 +144,7 @@ export function creerBancReservation() {
   const deps = {
     verificateurs: { strict: async j => { const i = PORTEURS_CONTROLE.indexOf(j); return i < 0 ? null : { id: COMPTES_CONTROLE[i] }; }, local: async () => { throw Error('MODE_LOCAL_INTERDIT'); } },
     limiterClientApplication: async () => undefined,
+    limiterDisponibiliteReservation: async () => undefined,
     restaurant: { contexte: async (_jeton, utilisateurId) => {
       if (utilisateurId !== RESTAURATEUR) throw new ErreurMetier('NON_AUTORISE', 'Ce compte n’est rattaché à aucun restaurant.');
       return { supabase: {}, utilisateurId, restaurantId: RESTAURANTS_CONTROLE.ouvert, role: 'manager' };

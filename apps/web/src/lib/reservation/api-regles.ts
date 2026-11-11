@@ -109,6 +109,8 @@ export interface OptionsAppel<T> {
   service: { baseApi: string; secret: string; ipVisiteur?: string | null };
   /** Jeton porteur de la session, lu côté serveur ; `null` = personne de connecté. */
   jeton: string | null;
+  /** Lecture PUBLIQUE (lot M5 : disponibilité de la réservation) : aucun jeton exigé ni envoyé, jamais de cookie. Réservé aux lectures (`GET`). */
+  publique?: boolean;
   methode: "GET" | "POST" | "PUT";
   chemin: string;
   corps?: unknown;
@@ -130,11 +132,12 @@ function delaiEffectif(delaiMs: number | undefined, ecriture: boolean): number {
  */
 export async function appelerApi<T>(options: OptionsAppel<T>): Promise<ResultatApi<T>> {
   const ecriture = options.methode !== "GET";
-  if (options.jeton === null || options.jeton === "") return { ok: false, genre: "connexion", message: MESSAGE_CONNEXION_EXPIREE };
+  const publique = options.publique === true && !ecriture;
+  if (!publique && (options.jeton === null || options.jeton === "")) return { ok: false, genre: "connexion", message: MESSAGE_CONNEXION_EXPIREE };
   if (!options.chemin.startsWith("/api/v1/")) return echec(false);
   const envoyer = options.envoyer ?? fetch;
   const entetes = new Headers();
-  entetes.set("authorization", `Bearer ${options.jeton}`);
+  if (!publique) entetes.set("authorization", `Bearer ${options.jeton}`);
   entetes.set("x-relais-secret", options.service.secret);
   if (adresseIpPlausible(options.service.ipVisiteur)) entetes.set("x-relais-ip", options.service.ipVisiteur);
   let corps: string | undefined;

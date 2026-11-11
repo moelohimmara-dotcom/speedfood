@@ -40,7 +40,13 @@ test("M4c : aucun fichier de la réservation (hors la liaison) n'écrit dans les
 
 test("M4c : les services ne planifient qu'APRÈS une écriture réussie et absorbent toute panne de la notification", () => {
   const client = sansCommentaires(lire("../src/reservation/client.ts"));
-  assert.match(client, /if \(r\.ok\) \{\s*planifier\(/);
+  // Création : la planification vient APRÈS le refus (`!r.ok`) et le rejeu, jamais avant.
+  const creer = client.slice(client.indexOf("async creer("), client.indexOf("async disponibilite("));
+  const iRefus = creer.indexOf("if (!r.ok) return refus(");
+  const iRejeu = creer.indexOf('if (r.etat === "rejeu") return');
+  const iPlanifier = creer.indexOf("planifier(apres, p.alerterNouvelleDemande");
+  assert.ok(iRefus > 0 && iRejeu > iRefus && iPlanifier > iRejeu, "refus, puis rejeu, puis planification");
+  assert.equal((creer.match(/planifier\(/g) ?? []).length, 1, "une seule planification dans la création");
   const resto = sansCommentaires(lire("../src/reservation/restaurateur.ts"));
   assert.match(resto, /if \(r\.ok\) \{\s*if \(MESSAGE_AU_CLIENT\.has\(cible\)\)/);
 });

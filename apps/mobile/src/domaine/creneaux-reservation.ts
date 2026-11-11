@@ -1,7 +1,8 @@
 // Jours, heures et créneaux de la réservation de table : fonctions PURES, en UTC.
 // L'heure de Conakry est l'heure UTC (pas de changement d'heure) : le fuseau du téléphone du client ne sert JAMAIS, ni pour fabriquer un créneau ni pour l'afficher.
+// Plage des heures : de 10:00 à 22:45 inclus (lot M5), la MÊME constante partagée que le site et le serveur.
 // Aucune lecture de l'horloge ici : l'instant présent est un paramètre. Délai, horizon et pas viennent du module partagé (une seule source avec le serveur).
-import { DELAI_MIN_MINUTES, HORIZON_MAX_JOURS, PAS_CRENEAU_MINUTES, lireJourReservation } from '../../../../packages/shared/src/contracts/reservation.ts';
+import { DELAI_MIN_MINUTES, DERNIER_CRENEAU_MINUTES, HORIZON_MAX_JOURS, PAS_CRENEAU_MINUTES, PREMIER_CRENEAU_MINUTES, lireJourReservation } from '../../../../packages/shared/src/contracts/reservation.ts';
 
 /** Nombre de jours proposés à partir d'aujourd'hui. */
 export const JOURS_PROPOSES = 14;
@@ -36,14 +37,14 @@ export function joursProposes(maintenantMs: number, nombre = JOURS_PROPOSES): st
   return Array.from({ length: nombre }, (_, i) => ajouterJours(aujourdhui, i));
 }
 
-/** Tous les créneaux d'un jour que le serveur accepterait : un quart d'heure exact, à 30 minutes ou plus de `maintenantMs` (30 minutes pile permis), dans l'horizon des 60 jours. */
+/** Tous les créneaux d'un jour que le serveur accepterait : un quart d'heure exact, à 30 minutes ou plus de `maintenantMs` (30 minutes pile permis), dans l'horizon des 60 jours, de 10:00 à 22:45. */
 export function creneauxDuJour(jour: string, maintenantMs: number): string[] {
   if (lireJourReservation(jour) === null) return [];
   const debut = Date.parse(jour + 'T00:00:00.000Z');
   const plusTot = maintenantMs + DELAI_MIN_MINUTES * MINUTE;
   const plusTard = maintenantMs + HORIZON_MAX_JOURS * JOUR_MS;
   const liste: string[] = [];
-  for (let minutes = 0; minutes < 24 * 60; minutes += PAS_CRENEAU_MINUTES) {
+  for (let minutes = PREMIER_CRENEAU_MINUTES; minutes <= DERNIER_CRENEAU_MINUTES; minutes += PAS_CRENEAU_MINUTES) {
     const instant = debut + minutes * MINUTE;
     if (instant >= plusTot && instant <= plusTard) liste.push(new Date(instant).toISOString());
   }

@@ -53,7 +53,7 @@ function nouveauBanc() {
     const controle = creerControleReservationRestaurateur(s, e => pubs.push(JSON.parse(JSON.stringify(e))));
     return { controle, pubs, lu: () => pubs.at(-1) };
   }
-  return { app, post, inspecter, client, resto, session, scenario: cas => post('/__scenario?cas=' + cas), faute: type => post('/__faute?type=' + type) };
+  return { app, transport, post, inspecter, client, resto, session, scenario: cas => post('/__scenario?cas=' + cas), faute: type => post('/__faute?type=' + type) };
 }
 
 const parcours = [];
@@ -191,7 +191,9 @@ cas('créneau trop proche ou trop lointain : refusé AVANT le réseau (rien ne p
   const b = nouveauBanc(); await b.scenario('reservation_ouverte');
   const c = await b.client('A'); await c.demande.lireDisponibilite(OUVERT);
   const proche = new Date(Math.ceil((Date.now() + 5 * 60000) / 900000) * 900000).toISOString();
-  await c.demande.envoyer(demande(proche)); assert.match(c.etatD().message, /trop proche/);
+  // Le contrôle de plage (10:00 à 22:45) passe avant celui du délai : selon l’heure de la journée, le créneau proche est refusé pour l’un ou l’autre motif.
+  const minutesProche = new Date(proche).getUTCHours() * 60 + new Date(proche).getUTCMinutes();
+  await c.demande.envoyer(demande(proche)); assert.match(c.etatD().message, minutesProche >= 600 && minutesProche <= 22 * 60 + 45 ? /trop proche/ : /entre 10:00 et 22:45/);
   await c.demande.envoyer(demande(creneauDans(90, 19))); assert.match(c.etatD().message, /60 jours/);
   assert.equal((await b.inspecter()).reservations, 0); aucunVerrou(c.etatD());
 });
@@ -243,6 +245,32 @@ cas('le journal du banc ne contient ni nom, ni téléphone, ni note', async () =
   const texte = JSON.stringify(await b.inspecter());
   for (const secret of ['Aminata', '620000001', '620 00 00 01', 'Au calme', 'Bearer']) assert.ok(!texte.includes(secret), secret);
   assert.ok(!JSON.stringify(c.pubsD).includes('Aminata') && !JSON.stringify(c.pubsD).includes('Au calme'), 'les états publiés ne contiennent pas les coordonnées');
+});
+
+cas('visiteur sans compte : le bouton est proposé (lecture publique), il mène à la connexion, et AUCUNE demande ne peut partir', async () => {
+  const b = nouveauBanc(); await b.scenario('reservation_ouverte');
+  let coffre = null;
+  const visiteur = new GestionSession({ ...creerAuth(async () => { throw new Error('CONTROLE_APPEL_PRODUIT_REFUSE'); }), ...b.transport.api }, { lire: async () => coffre, ecrire: async v => { coffre = v; }, effacer: async () => { coffre = null; } });
+  assert.equal(visiteur.generationNotifications, null, 'personne de connecté');
+  const pubs = []; const ctl = creerControleDemandeReservation(visiteur, e => pubs.push(JSON.parse(JSON.stringify(e))));
+  await ctl.lireDisponibilite(OUVERT);
+  assert.equal(pubs.at(-1).disponibilite, 'oui'); assert.equal(pubs.at(-1).connecte, false);
+  await ctl.envoyer(demande(creneauDans(2, 19)));
+  assert.equal((await b.inspecter()).reservations, 0, 'rien n’a été créé sans compte');
+  assert.deepEqual((await b.inspecter()).journal, []);
+  await ctl.lireDisponibilite(RESTAURANTS_CONTROLE.ferme);
+  assert.equal(pubs.at(-1).disponibilite, 'non', 'un restaurant fermé reste masqué pour un visiteur');
+  // Après connexion, l’envoi redevient possible après une nouvelle lecture.
+  const compte = await b.session('A'); const apres = []; const ctlA = creerControleDemandeReservation(compte, e => apres.push(JSON.parse(JSON.stringify(e))));
+  await ctlA.lireDisponibilite(OUVERT); assert.equal(apres.at(-1).connecte, true);
+  await ctlA.envoyer(demande(creneauDans(2, 19))); assert.equal(apres.at(-1).confirmee.statut, 'demandee');
+});
+
+cas('plage 10:00 à 22:45 : le serveur refuse 09:45 et 23:00 même si l’application les envoyait', async () => {
+  const b = nouveauBanc(); await b.scenario('reservation_ouverte');
+  const reponse = async heure => (await b.app.request('/api/v1/reservations', { method: 'POST', headers: { Authorization: 'Bearer ' + PORTEURS_CONTROLE[0], 'content-type': 'application/json' }, body: JSON.stringify({ restaurantId: OUVERT, creneau: creneauDans(3, 0).slice(0, 11) + heure + ':00.000Z', nbPersonnes: 2, nom: 'Aminata Camara', telephone: '620 00 00 01', note: null }) })).status;
+  assert.equal(await reponse('09:45'), 400); assert.equal(await reponse('23:00'), 400);
+  assert.equal(await reponse('10:00'), 201); assert.equal(await reponse('22:45'), 201);
 });
 
 let echecs = 0;

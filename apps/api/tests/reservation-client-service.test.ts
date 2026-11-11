@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { creerAccesReservationClient } from "../src/reservation/acces.ts";
-import { ESSAIS_INSERTION, creerServiceReservationClient, type PortsReservationClient } from "../src/reservation/client.ts";
+import { creerServiceReservationClient, type PortsReservationClient } from "../src/reservation/client.ts";
 import { CRENEAU, MAINTENANT, RESTO_1, RESTO_2, RES_1, RES_2, RES_3, RES_4, RES_AUTRE, TEL_A, TEL_B, UID_A, UID_B, baseReservations, ligneReservation, ligneRestaurant, type Row } from "./reservation-base-factice.ts";
 import type { DemandeReservation } from "@speedfood/shared/contracts/reservation";
 
@@ -12,12 +12,14 @@ import type { DemandeReservation } from "@speedfood/shared/contracts/reservation
 const DEMANDE: DemandeReservation = { restaurantId: RESTO_1, creneau: CRENEAU, nbPersonnes: 4, nom: "Aminata Camara", telephone: TEL_A, note: null };
 
 function banc(options: Parameters<typeof baseReservations>[0] = {}, surcharge: Partial<PortsReservationClient> = {}, maintenant: Date = MAINTENANT) {
-  const base = baseReservations(options);
+  const base = baseReservations({ maintenant, ...options });
   const acces = creerAccesReservationClient({ client: () => base.client });
   const service = creerServiceReservationClient({ maintenant: () => maintenant, ...acces, ...surcharge });
   return { ...base, service };
 }
-const ecritures = (b: { operations: { op: string }[] }) => b.operations.filter((o) => o.op !== "select");
+/** Écritures directes dans la table (la création passe par la fonction SQL, comptée à part : `appelsCreation`). */
+const ecritures = (b: { operations: { op: string }[] }) => b.operations.filter((o) => o.op === "insert" || o.op === "update");
+const appelsCreation = (b: { operations: { op: string; valeurs?: Record<string, unknown> | null }[] }) => b.operations.filter((o) => o.op === "rpc");
 
 // ---------- création : le chemin heureux ----------
 
@@ -31,9 +33,11 @@ test("M3 création : une demande valide crée une réservation « demandée » l
   assert.equal(r.reservation.creneau, CRENEAU);
   assert.equal(r.reservation.note, "Près de la fenêtre");
   assert.match(r.reservation.reference, /^SF-R-[2-9A-HJKMNP-Z]{5}$/);
-  const insertion = b.operations.find((o) => o.op === "insert");
-  assert.deepEqual(insertion?.valeurs, { restaurant_id: RESTO_1, client_user_id: UID_A, nom_client: "Aminata Camara", telephone: TEL_A, nb_personnes: 4, creneau: CRENEAU, note: "Près de la fenêtre" });
-  assert.ok(!("jeton_suivi_hash" in (insertion?.valeurs ?? {})) && !("statut" in (insertion?.valeurs ?? {})) && !("reference" in (insertion?.valeurs ?? {})));
+  // Un seul appel à la fonction SQL, avec le compte du jeton ; aucune écriture directe, aucun statut, aucune référence, aucun jeton de suivi.
+  assert.equal(appelsCreation(b).length, 1);
+  const appel = appelsCreation(b)[0];
+  assert.deepEqual(appel.valeurs, { p_client_user_id: UID_A, p_restaurant_id: RESTO_1, p_nom: "Aminata Camara", p_telephone: TEL_A, p_nb_personnes: 4, p_creneau: CRENEAU, p_note: "Près de la fenêtre" });
+  assert.equal(ecritures(b).length, 0);
   assert.equal(b.tables.reservations_table.length, 1);
 });
 
@@ -41,6 +45,7 @@ test("M3 création : le compte écrit est celui passé par la route (le jeton), 
   const b = banc();
   await b.service.creer(UID_B, DEMANDE);
   assert.equal(b.tables.reservations_table[0].client_user_id, UID_B);
+  assert.equal(appelsCreation(b)[0].valeurs?.p_client_user_id, UID_B);
 });
 
 // ---------- création : refus ----------
@@ -204,23 +209,22 @@ test("M3 rejeu idempotent : la réservation d'UN AUTRE compte n'est jamais renvo
 
 // ---------- création : collision de référence, erreurs de la base ----------
 
-test("M3 création : collision de référence = nouvel essai (la base tire une autre référence), puis succès", async () => {
+test("M3 création : collision de référence = la fonction SQL tire une autre référence (un seul appel de l'API), puis succès", async () => {
   const b = banc({ collisionsReference: 2 });
   const r = await b.service.creer(UID_A, DEMANDE);
   assert.ok(r.ok);
-  assert.equal(b.operations.filter((o) => o.op === "insert").length, 3);
+  assert.equal(appelsCreation(b).length, 1, "le nouveau tirage est fait dans la base, pas par de nouveaux appels");
   assert.equal(b.tables.reservations_table.length, 1);
 });
 
-test("M3 création : collisions répétées au-delà du nombre d'essais = erreur propre (jamais un 500 brut ni le texte SQL)", async () => {
+test("M3 création : collisions répétées au-delà du nombre d'essais de la base = erreur propre (jamais un 500 brut ni le texte SQL)", async () => {
   const b = banc({ collisionsReference: 99 });
   const r = await b.service.creer(UID_A, DEMANDE);
   assert.equal(r.ok, false);
   if (!r.ok) {
     assert.equal(r.erreur.code, "ERREUR_SERVEUR");
-    assert.doesNotMatch(JSON.stringify(r.erreur), /duplicate|constraint|reference_key|SF-R-/);
+    assert.doesNotMatch(JSON.stringify(r.erreur), /duplicate|constraint|reference_key|SF-R-|REFERENCE/);
   }
-  assert.equal(b.operations.filter((o) => o.op === "insert").length, ESSAIS_INSERTION);
   assert.equal(b.tables.reservations_table.length, 0);
 });
 
@@ -232,8 +236,8 @@ test("M3 création : une erreur de la base (garde de création, contrainte) est 
     [{ code: "23514", message: 'new row for relation "reservations_table" violates check constraint "reservations_table_telephone_check"' }, "VALIDATION", /refusées/],
     [{ code: "XX000", message: 'relation "reservations_table" does not exist' }, "ERREUR_SERVEUR", /Réessayez/],
   ];
-  for (const [erreurInsertion, code, motif] of cas) {
-    const b = banc({ erreurInsertion });
+  for (const [erreurRpc, code, motif] of cas) {
+    const b = banc({ erreurRpc });
     const r = await b.service.creer(UID_A, DEMANDE);
     assert.equal(r.ok, false);
     if (!r.ok) {
@@ -241,13 +245,15 @@ test("M3 création : une erreur de la base (garde de création, contrainte) est 
       assert.match(r.erreur.message, motif);
       assert.doesNotMatch(r.erreur.message, /relation|constraint|reservations_table|new row/);
     }
-    assert.equal(b.operations.filter((o) => o.op === "insert").length, 1, "une erreur de la base n'est pas réessayée");
+    assert.equal(appelsCreation(b).length, 1, "une erreur de la base n'est pas réessayée");
   }
 });
 
-test("M3 création : une lecture impossible (base en panne) lève une erreur générique sans détail (500 par onError)", async () => {
-  const b = banc({ erreurLecture: "reservations_table" });
-  await assert.rejects(() => b.service.creer(UID_A, DEMANDE), (e: Error) => e.message === "RESERVATIONS_INDISPONIBLES");
+test("M3 création : une réponse illisible de la fonction (forme inattendue) lève une erreur générique sans détail (500 par onError), jamais une réservation inventée", async () => {
+  for (const reponseRpc of [null, { etat: "peut_etre" }, { etat: "refus", code: "INCONNU" }, { etat: "creee", reservation: { id: "x" } }]) {
+    const b = banc({ reponseRpc });
+    await assert.rejects(() => b.service.creer(UID_A, DEMANDE), (e: Error) => e.message === "RESERVATION_ILLISIBLE", JSON.stringify(reponseRpc));
+  }
 });
 
 // ---------- lecture ----------

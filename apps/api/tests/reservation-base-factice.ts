@@ -5,6 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *  - `select *` (ou `select()` sans colonne) échoue, comme pour un compte connecté ; nommer `jeton_suivi_hash` échoue aussi ;
  *  - seules les colonnes demandées reviennent (un test voit donc ce que le code a réellement demandé) ;
  *  - un UPDATE ne peut toucher que les colonnes permises (`colonnesModifiables`).
+ * La fonction SQL de création (`fn_creer_reservation_atomique`, lot M5) est IMITÉE ici par `rpc` : MÊMES règles, MÊME ordre, mêmes codes de refus. Cette imitation ne prouve PAS le SQL (c'est
+ * `test:cloisonnement`, sur une vraie base PostgreSQL jetable, qui le prouve) : elle sert à vérifier que l'API appelle la fonction avec les bons arguments et traduit chaque réponse.
  * Chaque requête est enregistrée (`operations`) pour que les tests vérifient colonnes, filtres et valeurs écrites. La logique SQL (triggers, RLS) est couverte par `test:cloisonnement`.
  */
 
@@ -26,7 +28,7 @@ export type Row = Record<string, unknown>;
 
 export interface OperationVue {
   table: string;
-  op: "select" | "insert" | "update";
+  op: "select" | "insert" | "update" | "rpc";
   select: string;
   filtres: string[];
   valeurs: Row | null;
@@ -77,6 +79,12 @@ interface Options {
   erreurMiseAJour?: { code: string; message: string };
   /** Erreur renvoyée par toute lecture de cette table. */
   erreurLecture?: string;
+  /** Instant « maintenant » de la fonction de création (la vraie fonction lit `now()` de la base). */
+  maintenant?: Date;
+  /** Erreur renvoyée par l'appel de la fonction de création. */
+  erreurRpc?: { code: string; message: string };
+  /** Réponse brute imposée à la fonction de création (pour tester la lecture stricte). */
+  reponseRpc?: unknown;
   /** Appelée juste avant l'exécution d'un UPDATE (pour simuler un changement concurrent). */
   avantMiseAJour?: (tables: Record<string, Row[]>) => void;
 }
@@ -125,7 +133,57 @@ export function baseReservations(options: Options = {}) {
     if (select.includes("jeton_suivi_hash")) throw new Error("COLONNE_FERMEE : jeton_suivi_hash");
   }
 
+
+  const ACTIFS = ["demandee", "confirmee"];
+  /** Imitation de `fn_creer_reservation_atomique` (même ordre : plage, rejeu, fenêtre, restaurant, plafond, doublon, capacité, insertion avec nouveau tirage de référence). */
+  function appelerCreation(args: Row): { data: unknown; error: { code: string; message: string } | null } {
+    const maintenant = (options.maintenant ?? MAINTENANT).getTime();
+    const creneau = Date.parse(String(args.p_creneau));
+    const compte = args.p_client_user_id;
+    const resto = args.p_restaurant_id;
+    const nb = args.p_nb_personnes as number;
+    const toutes = tables.reservations_table;
+    const actives = toutes.filter((r) => r.client_user_id === compte && ACTIFS.includes(r.statut as string) && Date.parse(String(r.creneau)) > maintenant);
+    const rendre = (ligne: Row) => projeter("reservations_table", ligne, "id, reference, restaurant_id, nom_client, telephone, nb_personnes, creneau, note, statut, motif_refus, cree_le, restaurants(nom)");
+    const refus = (code: string) => ({ data: { etat: "refus", code }, error: null });
+    const minutes = new Date(creneau).getUTCHours() * 60 + new Date(creneau).getUTCMinutes();
+    if (minutes < 600 || minutes > 22 * 60 + 45) return refus("HORS_PLAGE");
+    const existante = actives.find((r) => r.restaurant_id === resto && Date.parse(String(r.creneau)) === creneau && r.nb_personnes === nb);
+    if (existante) return { data: { etat: "rejeu", reservation: rendre(existante) }, error: null };
+    if (creneau < maintenant + 30 * 60_000) return refus("FENETRE_PROCHE");
+    if (creneau > maintenant + 60 * 86_400_000) return refus("FENETRE_LOIN");
+    const restaurant = tables.restaurants.find((r) => r.id === resto);
+    if (!restaurant) return refus("RESTAURANT_INTROUVABLE");
+    if (restaurant.publie !== true || (restaurant.suspendu_le !== null && restaurant.suspendu_le !== undefined)) return refus("RESTAURANT_INDISPONIBLE");
+    if (restaurant.accepte_reservation !== true) return refus("RESERVATION_FERMEE");
+    if (actives.length >= 3) return refus("PLAFOND");
+    if (actives.some((r) => Date.parse(String(r.creneau)) === creneau)) return refus("DOUBLON");
+    const capacite = restaurant.reservation_capacite_couverts as number | null | undefined;
+    if (typeof capacite === "number") {
+      const deja = toutes.filter((r) => r.restaurant_id === resto && Date.parse(String(r.creneau)) === creneau && ACTIFS.includes(r.statut as string)).reduce((n, r) => n + (r.nb_personnes as number), 0);
+      if (deja + nb > capacite) return refus("CAPACITE");
+    }
+    for (let essai = 1; essai <= 4; essai++) {
+      if (restantesCollisions > 0) { restantesCollisions--; continue; }
+      compteur++;
+      const nouvelle = ligneReservation({
+        id: `cccccccc-0000-4000-8000-${String(compteur).padStart(12, "0")}`, reference: `SF-R-2222${"23456789"[compteur % 8]}`, statut: "demandee",
+        restaurant_id: resto, client_user_id: compte, nom_client: args.p_nom, telephone: args.p_telephone, nb_personnes: nb, creneau: new Date(creneau).toISOString(), note: args.p_note,
+      });
+      toutes.push(nouvelle);
+      return { data: { etat: "creee", reservation: rendre(nouvelle) }, error: null };
+    }
+    return refus("REFERENCE_INDISPONIBLE");
+  }
+
   const client = {
+    rpc(nom: string, args: Row) {
+      operations.push({ table: `rpc:${nom}`, op: "rpc", select: "", filtres: [], valeurs: args, tri: [], limite: null });
+      if (nom !== "fn_creer_reservation_atomique") return Promise.resolve({ data: null, error: { code: "42883", message: "function inconnue" } });
+      if (options.erreurRpc) return Promise.resolve({ data: null, error: options.erreurRpc });
+      if (options.reponseRpc !== undefined) return Promise.resolve({ data: options.reponseRpc, error: null });
+      return Promise.resolve(appelerCreation(args));
+    },
     from(table: string) {
       const vue: OperationVue = { table, op: "select", select: "", filtres: [], valeurs: null, tri: [], limite: null };
       operations.push(vue);

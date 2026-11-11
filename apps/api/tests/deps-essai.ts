@@ -33,6 +33,7 @@ export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
     connexionClientActive: ECHEC,
     verificateurs: { strict: refus, local: refus },
     limiterClientApplication: async () => {},
+    limiterDisponibiliteReservation: async () => {},
     lireRoles: ECHEC,
     client: { lireEspace: ECHEC, basculerFavori: ECHEC, enregistrerProfil: ECHEC, actionAdresse: ECHEC, supprimerCompte: ECHEC },
     estimerPourClient: ECHEC,

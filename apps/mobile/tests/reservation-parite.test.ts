@@ -66,7 +66,7 @@ test('la préparation locale des corps refuse exactement ce que le serveur refus
 test('chaque créneau proposé est accepté par le lecteur de corps du serveur (aucune règle de créneau recopiée de travers)', () => {
   const maintenant = Date.parse('2026-11-10T12:07:00.000Z');
   const tous = creneaux.joursProposes(maintenant).flatMap(j => creneaux.creneauxDuJour(j, maintenant));
-  assert.ok(tous.length > 1000);
+  assert.ok(tous.length > 500);
   for (const c of tous) {
     const lu = partage.lireCorpsCreationReservation({ restaurantId: '11111111-1111-4111-8111-111111111111', creneau: c, nbPersonnes: 2, nom: 'Aminata', telephone: '620000001' });
     assert.ok(lu.ok, c);

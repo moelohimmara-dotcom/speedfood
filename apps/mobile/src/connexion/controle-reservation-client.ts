@@ -166,6 +166,8 @@ export interface EtatControleDemande {
   incertain: boolean;
   message: string | null;
   confirmee: ResumeDemande | null;
+  /** Un compte est connecté (lot M5) : sans compte, le bouton s'affiche quand même mais mène à la connexion ; l'envoi reste impossible. */
+  connecte: boolean;
 }
 
 const resume = (r: ReservationClient): ResumeDemande => ({ id: r.id, reference: r.reference, restaurantNom: r.restaurantNom, creneau: r.creneau, nbPersonnes: r.nbPersonnes, statut: r.statut });
@@ -194,7 +196,7 @@ export function creerControleDemandeReservation(session: SessionReservationClien
   let empreinte: Pick<DemandeReservation, 'restaurantId' | 'creneau' | 'nbPersonnes'> | null = null;
   let generationDisponibilite: number | null = null;
 
-  const etat = (): EtatControleDemande => ({ restaurantId, disponibilite, nbPersonnesMax, lectureEnCours, envoiEnCours, relectureEnCours, incertain, message, confirmee });
+  const etat = (): EtatControleDemande => ({ restaurantId, disponibilite, nbPersonnesMax, lectureEnCours, envoiEnCours, relectureEnCours, incertain, message, confirmee, connecte: session.generationNotifications !== null });
   const publierEtat = () => publier(etat());
   /** Compte changé ou session terminée : rien de ce qui a été lu ou envoyé ne reste. */
   function oublier() { restaurantId = null; disponibilite = 'inconnue'; nbPersonnesMax = NB_PERSONNES_MAX; incertain = false; confirmee = null; empreinte = null; generationDisponibilite = null; }
@@ -207,7 +209,6 @@ export function creerControleDemandeReservation(session: SessionReservationClien
     const generation = session.generationNotifications;
     if (!idEgaux(restaurantId, id)) { disponibilite = 'inconnue'; nbPersonnesMax = NB_PERSONNES_MAX; generationDisponibilite = null; if (!incertain) { confirmee = null; message = null; } }
     restaurantId = id;
-    if (generation === null) { lectureEnCours = false; disponibilite = 'deconnecte'; publierEtat(); return; }
     lectureEnCours = true;
     publierEtat();
     let lu: DisponibiliteReservation | null = null; let echec: unknown = null;

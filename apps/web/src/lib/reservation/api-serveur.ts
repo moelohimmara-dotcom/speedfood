@@ -42,7 +42,8 @@ async function appeler<T>(partiel: Omit<OptionsAppel<T>, "service" | "jeton">): 
   try {
     const service = decisionServiceReservation({ API_RELAIS: process.env.API_RELAIS, API_URL: process.env.API_URL, RELAIS_SECRET: process.env.RELAIS_SECRET });
     if (service.type === "indisponible") return INDISPONIBLE;
-    const jeton = await jetonDeLaSession();
+    // Lecture publique : la session n'est même pas consultée (aucun cookie lu, aucun jeton envoyé).
+    const jeton = partiel.publique === true ? null : await jetonDeLaSession();
     const entetes = await headers();
     const ipVisiteur = ipVisiteurDepuisEntetes(entetes.get("cf-connecting-ip"), entetes.get("x-forwarded-for"));
     return await appelerApi({ ...partiel, service: { baseApi: service.baseApi, secret: service.secret, ipVisiteur }, jeton });
@@ -53,11 +54,11 @@ async function appeler<T>(partiel: Omit<OptionsAppel<T>, "service" | "jeton">): 
 
 // ---------- côté client ----------
 
-/** « Ce restaurant accepte-t-il les réservations ? » (lu avant d'afficher « Réserver une table »). Exige une session : sans elle, résultat `connexion`. */
+/** « Ce restaurant accepte-t-il les réservations ? » (lu avant d'afficher « Réserver une table »). Lecture PUBLIQUE (lot M5) : un visiteur sans compte voit le bouton ; seule la création exige un compte. */
 export function lireDisponibiliteReservation(restaurantId: string): Promise<ResultatApi<DisponibiliteReservation>> {
   const chemin = cheminDisponibilite(restaurantId);
   if (chemin === null) return Promise.resolve(INDISPONIBLE);
-  return appeler({ methode: "GET", chemin, lire: lireReponseDisponibiliteReservation });
+  return appeler({ methode: "GET", chemin, lire: lireReponseDisponibiliteReservation, publique: true });
 }
 
 export function creerReservation(demande: DemandeReservation) {

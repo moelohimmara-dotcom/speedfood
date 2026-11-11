@@ -1,9 +1,10 @@
-import { DELAI_MIN_MINUTES, HORIZON_MAX_JOURS, PAS_CRENEAU_MINUTES, lireJourReservation } from "../contracts/reservation";
+import { DELAI_MIN_MINUTES, DERNIER_CRENEAU_MINUTES, HORIZON_MAX_JOURS, PAS_CRENEAU_MINUTES, PREMIER_CRENEAU_MINUTES, creneauDansPlage, heureDeMinutes, lireJourReservation } from "../contracts/reservation";
 
 /**
  * Jours et créneaux de la réservation de table (lot M4b). L'heure de Conakry est l'heure UTC (pas de changement d'heure) : tout se calcule et s'affiche
  * en UTC, jamais avec le fuseau du navigateur ni du serveur. Ce fichier n'emploie donc aucune fonction d'heure locale (un test le vérifie).
  * Les règles de délai (30 minutes à l'avance, 60 jours au plus) sont celles de l'API, reprises du module partagé : l'API reste seule juge.
+ * Plage des heures (lot M5) : de 10:00 à 22:45 inclus, une seule constante dans `packages/shared`, la même que celle de l'application et du serveur.
  */
 
 /** Nombre de jours proposés dans le formulaire. */
@@ -62,7 +63,7 @@ export function formaterHeure(iso: string): string {
   return `${deuxChiffres(d.getUTCHours())}:${deuxChiffres(d.getUTCMinutes())}`;
 }
 
-/** Les créneaux (« HH:MM », tous les 15 minutes) d'un jour, ceux qui respectent le délai minimal et l'horizon maximal à partir de `maintenant`. Jour illisible = aucun. */
+/** Les créneaux (« HH:MM », tous les 15 minutes, de 10:00 à 22:45) d'un jour, ceux qui respectent le délai minimal et l'horizon maximal à partir de `maintenant`. Jour illisible = aucun. */
 export function creneauxDuJour(jour: string, maintenant: Date): string[] {
   const valide = lireJourReservation(jour);
   if (valide === null) return [];
@@ -70,10 +71,10 @@ export function creneauxDuJour(jour: string, maintenant: Date): string[] {
   const plusTot = maintenant.getTime() + DELAI_MIN_MINUTES * MINUTE;
   const plusTard = maintenant.getTime() + HORIZON_MAX_JOURS * JOUR;
   const liste: string[] = [];
-  for (let minutes = 0; minutes < 24 * 60; minutes += PAS_CRENEAU_MINUTES) {
+  for (let minutes = PREMIER_CRENEAU_MINUTES; minutes <= DERNIER_CRENEAU_MINUTES; minutes += PAS_CRENEAU_MINUTES) {
     const instant = debut + minutes * MINUTE;
     if (instant < plusTot || instant > plusTard) continue;
-    liste.push(`${deuxChiffres(Math.floor(minutes / 60))}:${deuxChiffres(minutes % 60)}`);
+    liste.push(heureDeMinutes(minutes));
   }
   return liste;
 }
@@ -99,10 +100,11 @@ export function creneauIso(jour: string, heure: string): string | null {
   return `${valide}T${h[1]}:${h[2]}:00.000Z`;
 }
 
-/** Le créneau est-il proposable maintenant ? « trop_proche » : moins de 30 minutes d'avance (ou passé). « trop_loin » : au-delà des 14 jours proposés. */
-export function creneauAccepte(iso: string, maintenant: Date): "ok" | "trop_proche" | "trop_loin" | "invalide" {
+/** Le créneau est-il proposable maintenant ? « hors_plage » : avant 10:00 ou après 22:45. « trop_proche » : moins de 30 minutes d'avance (ou passé). « trop_loin » : au-delà des 14 jours proposés. */
+export function creneauAccepte(iso: string, maintenant: Date): "ok" | "hors_plage" | "trop_proche" | "trop_loin" | "invalide" {
   const instant = Date.parse(iso);
   if (!Number.isFinite(instant)) return "invalide";
+  if (!creneauDansPlage(instant)) return "hors_plage";
   if (instant < maintenant.getTime() + DELAI_MIN_MINUTES * MINUTE) return "trop_proche";
   // Les jours sans créneau (aujourd'hui, tard le soir) sont sautés : la limite est le dernier jour réellement proposé.
   const dernier = joursReservables(maintenant).at(-1);

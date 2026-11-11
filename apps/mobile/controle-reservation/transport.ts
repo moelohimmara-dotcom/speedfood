@@ -15,7 +15,9 @@ export function creerTransportControle(fetcher: typeof fetch = fetch) {
     const u = new URL(url);
     if (u.origin !== ORIGINE_CONTROLE || u.username || u.password || !CHEMINS_PERMIS.some(r => r.test(u.pathname))) throw new Error('CONTROLE_ORIGINE_REFUSEE');
     const autorisation = new Headers(init.headers).get('Authorization');
-    if (!autorisation || !PORTEURS_CONTROLE.some(p => autorisation === 'Bearer ' + p)) throw new Error('CONTROLE_IDENTITE_REFUSEE');
+    // Seule la lecture de disponibilité est publique (lot M5) : sans porteur, mais jamais pour autre chose.
+    const lecturePublique = !autorisation && (init.method ?? 'GET') === 'GET' && /^\/api\/v1\/reservations\/restaurants\/[0-9a-f-]{36}\/disponibilite$/i.test(u.pathname);
+    if (!lecturePublique && (!autorisation || !PORTEURS_CONTROLE.some(p => autorisation === 'Bearer ' + p))) throw new Error('CONTROLE_IDENTITE_REFUSEE');
     const controle = new AbortController(); const minuterie = setTimeout(() => controle.abort(), 6000);
     try { return await fetcher(u.href, { ...init, redirect: 'error', signal: controle.signal, credentials: 'omit' }); }
     finally { clearTimeout(minuterie); }

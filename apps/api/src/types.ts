@@ -62,6 +62,8 @@ export interface Deps {
   /** Un vérificateur par mode de la décision du 31 octobre 2026 ; chaque route déclare le sien, `strict` par défaut. */
   verificateurs: { strict: VerificateurJeton; local: VerificateurJeton };
   limiterClientApplication(utilisateurId: string): Promise<void>;
+  /** Lot M5 : plafond PAR ADRESSE de la lecture publique « ce restaurant accepte-t-il les réservations ? » (aucune identité). Lève `ErreurMetier` TROP_DE_REQUETES. */
+  limiterDisponibiliteReservation(): Promise<void>;
   lireRoles(utilisateurId: string): Promise<RolesCompte>;
   client: {
     lireEspace(utilisateurId: string): Promise<object>;

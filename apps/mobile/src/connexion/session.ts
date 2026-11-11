@@ -284,10 +284,9 @@ export class GestionSession {
   async disponibiliteReservation(restaurantId: string): Promise<DisponibiliteReservation> {
     const n = this.generation;
     try {
-      const acces = await this.jeton();
-      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      // Lecture PUBLIQUE (lot M5) : aucun jeton, même connecté ; un visiteur sans compte voit lui aussi le bouton.
       if (!this.api.disponibiliteReservation) throw new ErreurConnexion('Réservation indisponible.');
-      const r = await this.api.disponibiliteReservation(acces, restaurantId);
+      const r = await this.api.disponibiliteReservation(null, restaurantId);
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return r;
     } catch (e) { await this.sessionTerminee(e, n); throw e; }

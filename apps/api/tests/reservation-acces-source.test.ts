@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { COLONNES_DISPONIBILITE_RESERVATION, COLONNES_REGLAGE_RESERVATION, COLONNES_RESERVATION_CLIENT, COLONNES_RESERVATION_RESTAURANT, COLONNES_RESTAURANT_RESERVATION, collisionDeReference, creerAccesReservationClient, creerAccesReservationRestaurant } from "../src/reservation/acces.ts";
+import { COLONNES_DISPONIBILITE_RESERVATION, COLONNES_REGLAGE_RESERVATION, COLONNES_RESERVATION_CLIENT, COLONNES_RESERVATION_RESTAURANT, creerAccesReservationClient, creerAccesReservationRestaurant, lireReponseCreation } from "../src/reservation/acces.ts";
 import { MAINTENANT, RESTO_1, RES_1, RES_AUTRE, UID_A, UID_B, baseReservations, ligneReservation, ligneRestaurant } from "./reservation-base-factice.ts";
 
 /**
@@ -20,25 +20,19 @@ test("M3 accès client : toutes les requêtes listent leurs colonnes, aucune ne 
     reservations: [ligneReservation({ id: RES_1 }), ligneReservation({ id: RES_AUTRE, client_user_id: UID_B, reference: "SF-R-AAAAB" })],
   });
   const acces = creerAccesReservationClient({ client: () => b.client });
-  await acces.lireRestaurant(RESTO_1);
-  await acces.listerActives(UID_A, MAINTENANT);
-  await acces.sommeCouverts(RESTO_1, new Date("2026-11-12T19:00:00.000Z"));
   await acces.lister(UID_A);
   await acces.lire(UID_A, RES_1);
-  await acces.inserer({ restaurantId: RESTO_1, clientUserId: UID_A, nom: "Aminata Camara", telephone: "+224620000001", nbPersonnes: 2, creneau: "2026-11-20T19:00:00.000Z", note: null });
+  await acces.creerAtomique({ restaurantId: RESTO_1, clientUserId: UID_A, nom: "Aminata Camara", telephone: "+224620000001", nbPersonnes: 2, creneau: "2026-11-20T19:00:00.000Z", note: null });
   await acces.annuler(UID_A, RES_1);
-  assert.ok(b.operations.length >= 7);
+  assert.ok(b.operations.length >= 4);
   for (const o of b.operations) {
-    assert.ok(o.select.length > 0 && !o.select.includes("*"), `select explicite : ${o.select}`);
+    assert.ok(o.op === "rpc" || (o.select.length > 0 && !o.select.includes("*")), `select explicite : ${o.select}`);
     assert.doesNotMatch(o.select, /jeton_suivi_hash/);
     assert.doesNotMatch(JSON.stringify(o.valeurs ?? {}), /jeton_suivi_hash/);
   }
-  const surReservations = b.operations.filter((o) => o.table === "reservations_table" && o.select !== "nb_personnes");
-  for (const o of surReservations) {
-    if (o.op === "insert") continue;
-    assert.ok(o.filtres.includes("eq:client_user_id"), `filtre sur le compte : ${o.op} ${o.select}`);
-  }
-  assert.equal(b.operations.find((o) => o.select === COLONNES_RESTAURANT_RESERVATION)?.table, "restaurants");
+  // Les lectures et l'annulation sont filtrées sur le compte ; la création (fonction SQL) reçoit le compte du jeton en argument, jamais ailleurs.
+  for (const o of b.operations.filter((x) => x.table === "reservations_table")) assert.ok(o.filtres.includes("eq:client_user_id"), `filtre sur le compte : ${o.op} ${o.select}`);
+  assert.equal(b.operations.find((o) => o.op === "rpc")?.valeurs?.p_client_user_id, UID_A);
 });
 
 test("M4-0 accès disponibilité : une seule lecture de `restaurants`, colonnes listées (publié, suspendu, accepte), filtrée sur l'identifiant, ni capacité ni nom", async () => {
@@ -64,19 +58,34 @@ test("M3 accès client : listes et lectures ne rendent jamais la ligne d'un autr
   const b = baseReservations({ colonnesModifiables: ["statut"], reservations: [ligneReservation({ id: RES_1 }), ligneReservation({ id: RES_AUTRE, client_user_id: UID_B, telephone: "+224699999999", reference: "SF-R-AAAAB" })] });
   const acces = creerAccesReservationClient({ client: () => b.client });
   assert.deepEqual((await acces.lister(UID_A)).map((r) => r.id), [RES_1]);
-  assert.deepEqual((await acces.listerActives(UID_A, MAINTENANT)).map((r) => r.id), [RES_1]);
   assert.equal(await acces.lire(UID_A, RES_AUTRE), null);
   const r = await acces.annuler(UID_A, RES_AUTRE);
   assert.deepEqual(r, { ok: false, genre: "aucune_ligne" });
   assert.equal(b.tables.reservations_table.find((x) => x.id === RES_AUTRE)?.statut, "demandee");
 });
 
-test("M3 accès client : l'insertion n'écrit que les colonnes prévues (ni statut, ni référence, ni jeton, ni horodatage)", async () => {
+test("M5 accès client : la création appelle UNE fonction SQL avec sept arguments nommés, rien d'autre (ni statut, ni référence, ni jeton, ni horodatage), et aucune écriture directe", async () => {
   const b = baseReservations();
   const acces = creerAccesReservationClient({ client: () => b.client });
-  await acces.inserer({ restaurantId: RESTO_1, clientUserId: UID_A, nom: "Aminata Camara", telephone: "+224620000001", nbPersonnes: 2, creneau: "2026-11-20T19:00:00.000Z", note: "x" });
-  const insertion = b.operations.find((o) => o.op === "insert");
-  assert.deepEqual(Object.keys(insertion?.valeurs ?? {}).sort(), ["client_user_id", "creneau", "nb_personnes", "nom_client", "note", "restaurant_id", "telephone"]);
+  const r = await acces.creerAtomique({ restaurantId: RESTO_1, clientUserId: UID_A, nom: "Aminata Camara", telephone: "+224620000001", nbPersonnes: 2, creneau: "2026-11-20T19:00:00.000Z", note: "x" });
+  assert.ok(r.ok && r.etat === "creee");
+  assert.equal(b.operations.length, 1);
+  const appel = b.operations[0];
+  assert.equal(appel.op, "rpc");
+  assert.equal(appel.table, "rpc:fn_creer_reservation_atomique");
+  assert.deepEqual(Object.keys(appel.valeurs ?? {}).sort(), ["p_client_user_id", "p_creneau", "p_nb_personnes", "p_nom", "p_note", "p_restaurant_id", "p_telephone"]);
+  assert.deepEqual(appel.valeurs, { p_client_user_id: UID_A, p_restaurant_id: RESTO_1, p_nom: "Aminata Camara", p_telephone: "+224620000001", p_nb_personnes: 2, p_creneau: "2026-11-20T19:00:00.000Z", p_note: "x" });
+});
+
+test("M5 accès client : une erreur de la base (garde, contrainte) est rendue brute au service, qui la traduit ; la réponse de la fonction est lue STRICTEMENT", async () => {
+  const panne = baseReservations({ erreurRpc: { code: "P0001", message: "Ce restaurant n'accepte pas les réservations de table." } });
+  const brute = await creerAccesReservationClient({ client: () => panne.client }).creerAtomique({ restaurantId: RESTO_1, clientUserId: UID_A, nom: "Aminata Camara", telephone: "+224620000001", nbPersonnes: 2, creneau: "2026-11-20T19:00:00.000Z", note: null });
+  assert.deepEqual(brute, { ok: false, genre: "base", erreur: { code: "P0001", message: "Ce restaurant n'accepte pas les réservations de table." } });
+  const refus = lireReponseCreation({ etat: "refus", code: "CAPACITE" });
+  assert.deepEqual(refus, { ok: false, genre: "refus", code: "CAPACITE" });
+  for (const douteuse of [null, undefined, "creee", 3, [], {}, { etat: "peut_etre" }, { etat: "refus" }, { etat: "refus", code: "AUTRE" }, { etat: "refus", code: "capacite" }, { etat: "creee" }, { etat: "creee", reservation: null }, { etat: "creee", reservation: { id: "x" } }]) {
+    assert.throws(() => lireReponseCreation(douteuse), (e: Error) => e.message === "RESERVATION_ILLISIBLE", JSON.stringify(douteuse));
+  }
 });
 
 test("M3 accès restaurateur : chaque requête est filtrée sur le restaurant du contexte, colonnes explicites, jamais le compte du client ni le condensé du jeton", async () => {
@@ -96,14 +105,6 @@ test("M3 accès restaurateur : chaque requête est filtrée sur le restaurant du
   assert.equal(COLONNES_RESERVATION_RESTAURANT.includes("client_user_id"), false);
   assert.equal(COLONNES_RESERVATION_CLIENT.includes("jeton"), false);
   assert.equal(COLONNES_REGLAGE_RESERVATION, "accepte_reservation, reservation_capacite_couverts");
-});
-
-test("M3 accès : une collision de référence (23505 sur la référence) est reconnue ; toute autre erreur d'unicité ou autre code ne l'est pas", () => {
-  assert.equal(collisionDeReference({ code: "23505", message: 'duplicate key value violates unique constraint "reservations_table_reference_key"' }), true);
-  assert.equal(collisionDeReference({ code: "23505", message: "duplicate key", details: "Key (reference)=(SF-R-AAAAA) already exists." }), true);
-  assert.equal(collisionDeReference({ code: "23505", message: 'duplicate key value violates unique constraint "reservations_table_pkey"' }), false);
-  assert.equal(collisionDeReference({ code: "23514", message: "reference" }), false);
-  assert.equal(collisionDeReference({}), false);
 });
 
 test("M3 accès : une ligne illisible venue de la base est une panne (jamais une réservation tronquée)", async () => {
@@ -154,9 +155,10 @@ test("M3 source : le port restaurateur filtre TOUJOURS sur le restaurant ET écr
   assert.equal((restaurateur.match(/\.from\(TABLE\)/g) ?? []).length, 4, "quatre requêtes sur la table, côté restaurateur");
   assert.equal((restaurateur.match(/\.eq\("restaurant_id", restaurantId\)/g) ?? []).length, 4, "chacune filtrée sur le restaurant du contexte");
   assert.match(restaurateur, /\.eq\("statut", ancien\)\s*\n\s*\.select/, "compare-et-pose sur l'état attendu");
-  const client = acces.slice(acces.indexOf("export function creerAccesReservationClient"), acces.indexOf("export function collisionDeReference"));
-  assert.equal((client.match(/\.eq\("client_user_id", utilisateurId\)/g) ?? []).length, 4, "liste, actives, lecture et annulation : chacune filtrée sur le compte");
-  assert.match(client, /\.insert\(\{ restaurant_id: ligne\.restaurantId, client_user_id: ligne\.clientUserId,/);
+  const client = acces.slice(acces.indexOf("export function creerAccesReservationClient"), acces.indexOf("export function lireReponseCreation"));
+  assert.equal((client.match(/\.eq\("client_user_id", utilisateurId\)/g) ?? []).length, 3, "liste, lecture et annulation : chacune filtrée sur le compte");
+  assert.match(client, /\.rpc\("fn_creer_reservation_atomique", \{\s*p_client_user_id: ligne\.clientUserId,/, "la création passe par la fonction SQL, avec le compte du jeton");
+  assert.doesNotMatch(client, /\.insert\(/, "aucune insertion directe côté client : la création est la fonction SQL");
 });
 
 test("M3 source : les routes sont montées dans app.ts (sans CORS) et câblées dans worker.ts", () => {

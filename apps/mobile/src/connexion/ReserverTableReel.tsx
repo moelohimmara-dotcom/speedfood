@@ -11,7 +11,7 @@ import { couleurs as c, polices } from '../design/tokens';
  * s'affiche et le reste de l'écran n'est pas touché. Jours, heures et quarts d'heure se choisissent par boutons (heure de Conakry, jamais celle du téléphone). Un récapitulatif précède
  * l'envoi, qui est UNIQUE : un résultat incertain verrouille l'envoi jusqu'à la relecture de « Mes réservations » (voir `controle-reservation-client.ts`). Aucune règle n'est dans cet écran.
  */
-export function ReserverTableReel({ session, restaurantId, restaurantNom, relireQuand = '' }: { session: SessionReservationClient; restaurantId: string; restaurantNom: string; relireQuand?: string }) {
+export function ReserverTableReel({ session, restaurantId, restaurantNom, relireQuand = '', ouvrirConnexion }: { session: SessionReservationClient; restaurantId: string; restaurantNom: string; relireQuand?: string; ouvrirConnexion?: () => void }) {
   const [etat, setEtat] = useState<EtatControleDemande | null>(null);
   const controle = useRef<ReturnType<typeof creerControleDemandeReservation> | null>(null);
   const [ouvert, setOuvert] = useState(false);
@@ -25,6 +25,8 @@ export function ReserverTableReel({ session, restaurantId, restaurantNom, relire
   const [telephone, setTelephone] = useState('');
   const [note, setNote] = useState('');
   const [erreurLocale, setErreurLocale] = useState<string | null>(null);
+  // Visiteur sans compte : il a appuyé sur « Réserver une table », a été envoyé à la connexion ; à son retour, le formulaire s'ouvre tout seul.
+  const [veutReserver, setVeutReserver] = useState(false);
 
   useEffect(() => { const ctl = creerControleDemandeReservation(session, setEtat); controle.current = ctl; return () => ctl.fermer(); }, [session]);
   // Lecture de la disponibilité : à l'ouverture de l'écran et quand l'utilisateur revient de son compte ou actualise le menu (jamais par minuterie).
@@ -33,6 +35,10 @@ export function ReserverTableReel({ session, restaurantId, restaurantNom, relire
   useEffect(() => {
     if (etat?.confirmee) { setOuvert(false); setRecapitulatif(false); setJour(null); setHeure(null); setCreneau(null); setNom(''); setTelephone(''); setNote(''); setNbPersonnes(2); }
   }, [etat?.confirmee?.id]);
+
+  useEffect(() => {
+    if (veutReserver && etat?.connecte && etat.disponibilite === 'oui') { setVeutReserver(false); setInstant(Date.now()); setOuvert(true); setRecapitulatif(false); setErreurLocale(null); controle.current?.nouvelleDemande(); }
+  }, [veutReserver, etat?.connecte, etat?.disponibilite]);
 
   if (!etat) return null;
   const visible = etat.disponibilite === 'oui' || etat.incertain || etat.confirmee !== null;
@@ -66,7 +72,11 @@ export function ReserverTableReel({ session, restaurantId, restaurantNom, relire
       <Text accessibilityRole="alert" style={s.texte}>Résultat à vérifier : l’envoi est bloqué tant que vos réservations n’ont pas été relues.</Text>
       <Action titre="Vérifier mes réservations" agir={() => { void controle.current?.relire(); }} disabled={etat.relectureEnCours || etat.envoiEnCours} />
     </>}
-    {!ouvert && !verrou && <Action titre="Réserver une table" agir={ouvrirFormulaire} disabled={occupe} />}
+    {!etat.connecte && !verrou && !etat.confirmee && <>
+      <Text style={s.secondaire}>Il faut un compte pour réserver. Appuyez sur le bouton : on vous demande de vous connecter, puis vous revenez ici.</Text>
+      <Action titre="Réserver une table" agir={() => { setVeutReserver(true); ouvrirConnexion?.(); }} disabled={occupe} />
+    </>}
+    {etat.connecte && !ouvert && !verrou && <Action titre="Réserver une table" agir={ouvrirFormulaire} disabled={occupe} />}
     {ouvert && !recapitulatif && <View style={s.formulaire}>
       <Text style={s.etiquette}>Jour</Text>
       <View style={s.rangee}>{jours.map(j => <Pressable key={j} accessibilityRole="button" accessibilityLabel={libelleJourProche(j, instant)} accessibilityState={{ selected: jour === j }} disabled={verrou} onPress={() => { setJour(j); setHeure(null); setCreneau(null); }} style={[s.choix, jour === j && s.choixActif]}><Text style={[s.choixTexte, jour === j && s.choixTexteActif]}>{libelleJourProche(j, instant)}</Text></Pressable>)}</View>

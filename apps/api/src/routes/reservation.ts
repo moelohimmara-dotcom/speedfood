@@ -28,13 +28,14 @@ const versRestaurant = (brute: unknown) => projeterReservationRestaurant(brute) 
 /**
  * Réservation de table, côté CLIENT (lot M3). Jeton porteur STRICT (une réservation est une écriture), plafond par compte (`limiterClientApplication`, comme `routes/client.ts`).
  * L'identité et le plafond sont posés PAR ROUTE ET PAR MÉTHODE, jamais sur « * » : une méthode inconnue répond 404 sans appeler le service d'authentification.
+ * Seule exception, voulue (décision de Malika du 10 novembre, lot M5) : la DISPONIBILITÉ d'un restaurant est publique, sans jeton, plafonnée par adresse (voir plus bas).
  *
  *  - Le compte vient UNIQUEMENT du jeton vérifié : le corps n'a aucune clé « compte » (une clé inconnue refuse le corps).
  *  - Les réponses sont reprojetées sur les champs du contrat : aucun compte, aucun jeton ni condensé de jeton ne peut sortir. Réponses jamais mises en cache, aucun CORS (natif seulement),
  *    rien du corps (nom, téléphone, note) n'est journalisé.
  *  - POST : 201 pour une réservation nouvelle, 200 pour un rejeu idempotent. Une réservation est une DEMANDE (« demandée ») que le restaurant confirme ou refuse.
  */
-export function routeReservations(deps: Pick<Deps, "verificateurs" | "limiterClientApplication" | "reservations">) {
+export function routeReservations(deps: Pick<Deps, "verificateurs" | "limiterClientApplication" | "limiterDisponibiliteReservation" | "reservations">) {
   const route = new Hono<{ Variables: Variables }>();
   const garde = [identifier(deps.verificateurs.strict, "Connectez-vous pour gérer vos réservations."), limiterParCompte(deps.limiterClientApplication)] as const;
 
@@ -56,9 +57,13 @@ export function routeReservations(deps: Pick<Deps, "verificateurs" | "limiterCli
     return repondre(c, { ok: true, reservation: versClient(r.reservation), idempotent: r.idempotent === true }, r.idempotent ? 200 : 201);
   });
 
-  // Lot M4-0 : « ce restaurant accepte-t-il les réservations ? », lu AVANT d'afficher le bouton. Un identifiant mal formé = 400 (VALIDATION) ; inconnu, non publié, suspendu ou fermé = `false`
-  // avec la même forme (jamais de 404). La réponse est construite ici avec la constante partagée : rien du service amont (capacité, nom) ne peut y entrer.
-  route.get("/restaurants/:restaurantId/disponibilite", ...garde, async (c) => {
+  // Lot M4-0 puis M5 : « ce restaurant accepte-t-il les réservations ? », lu AVANT d'afficher le bouton, y compris par un visiteur NON connecté (le bouton « Réserver une table » est visible de tous ;
+  // la création, elle, reste réservée aux comptes connectés). Route PUBLIQUE : aucun jeton n'est lu ni vérifié (un jeton envoyé est ignoré), aucun cookie, aucun CORS (natif et serveur du site seulement).
+  // Choix : on ouvre la route existante plutôt que d'en ajouter une jumelle (un seul contrat, rien à garder synchronisé) ; le plafond par ADRESSE (comme les autres routes publiques) passe en premier,
+  // avant même la validation de l'identifiant. Un identifiant mal formé = 400 (VALIDATION) ; inconnu, non publié, suspendu ou fermé = `false` avec la même forme (jamais de 404 qui révélerait l'existence).
+  // La réponse est construite ici avec la constante partagée : rien du service amont (capacité, nom) ne peut y entrer.
+  route.get("/restaurants/:restaurantId/disponibilite", async (c) => {
+    await deps.limiterDisponibiliteReservation();
     const restaurantId = c.req.param("restaurantId");
     if (!REGEX_UUID.test(restaurantId)) return reponseErreur(c, { code: "VALIDATION", message: "Restaurant invalide." });
     const r = await deps.reservations.disponibilite(restaurantId.toLowerCase());

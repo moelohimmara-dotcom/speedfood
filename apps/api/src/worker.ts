@@ -4,7 +4,7 @@ import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { connexionClientActive } from "@/lib/client/reglage";
 import { lireRolesCompte } from "@/lib/api/moi-service";
 import { creerClientAdmin } from "@/lib/db/admin";
-import { limiterAnnulationClient, limiterClientApplication, limiterLectureSuivi, limiterReponseProposition } from "@/lib/securite/limitation-debit";
+import { limiterAnnulationClient, limiterClientApplication, limiterDisponibiliteReservation, limiterLectureSuivi, limiterReponseProposition } from "@/lib/securite/limitation-debit";
 import { estJetonValide } from "@/lib/commande/jetons";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { annulerParClient } from "@/lib/commande/annulation-client";
@@ -47,6 +47,7 @@ const app = creerApp({
     },
   },
   limiterClientApplication,
+  limiterDisponibiliteReservation,
   lireRoles: lireRolesCompte,
   client: {
     lireEspace: lireEspaceClient,

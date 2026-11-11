@@ -233,11 +233,11 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
    * Réservation de table, LECTURE (lot M4a) : un seul essai, jamais de relance. 401 = session terminée ; un refus du serveur (4xx) rend son message s'il est lisible ; réseau, panne ou réponse illisible = erreur de connexion
    * non définitive (une lecture n'est jamais « incertaine » : elle se rejoue à la main). Le compte ou le restaurant viennent du jeton, jamais d'un paramètre de l'URL.
    */
-  async function lectureReservation<T>(accessToken: string, chemin: string, lire: (corps: unknown) => T): Promise<T> {
+  async function lectureReservation<T>(accessToken: string | null, chemin: string, lire: (corps: unknown) => T): Promise<T> {
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
-      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'GET', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'GET', credentials:'omit', signal:controle.signal, headers: accessToken === null ? { Accept:'application/json' } : { Authorization:'Bearer '+accessToken, Accept:'application/json' } });
     } catch { clearTimeout(timer); throw new ErreurConnexion('Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
     try {
       let corps: unknown = null;
@@ -327,8 +327,8 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
         illisible: 'La réponse du service est illisible. Votre action a peut-être été enregistrée : actualisez votre état pour vérifier avant de recommencer.',
       });
     },
-    /** Réservation de table (lot M4a) : ce restaurant accepte-t-il les réservations ? Lecture, un seul essai ; l'identifiant est vérifié avant le réseau. */
-    async disponibiliteReservation(accessToken: string, restaurantId: string): Promise<DisponibiliteReservation> {
+    /** Réservation de table (lot M4a, publique depuis le lot M5) : ce restaurant accepte-t-il les réservations ? Lecture, un seul essai, SANS jeton (`null`) pour un visiteur sans compte ; l'identifiant est vérifié avant le réseau. */
+    async disponibiliteReservation(accessToken: string | null, restaurantId: string): Promise<DisponibiliteReservation> {
       if (!idReservationValide(restaurantId)) throw new ErreurConnexion('Restaurant invalide.');
       return lectureReservation(accessToken, '/api/v1/reservations/restaurants/'+restaurantId.toLowerCase()+'/disponibilite', lireReponseDisponibiliteReservation);
     },

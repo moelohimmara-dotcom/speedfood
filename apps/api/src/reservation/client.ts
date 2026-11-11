@@ -1,23 +1,16 @@
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
-import { MAX_RESERVATIONS_ACTIVES_PAR_COMPTE, type DemandeReservation, type ReservationClient } from "@speedfood/shared/contracts/reservation";
+import type { DemandeReservation, ReservationClient } from "@speedfood/shared/contracts/reservation";
 import type { Deps, Planifier } from "../types.ts";
 import { planifier } from "./planification.ts";
-import { MESSAGE_BASE_INDISPONIBLE, traduireErreurBase, verifierAnnulationClient, verifierFenetreCreneau } from "./regles.ts";
+import { traduireErreurBase, traduireRefusCreation, verifierAnnulationClient, verifierPlageCreneau, type CodeRefusCreation } from "./regles.ts";
 
 /**
  * Service de réservation côté CLIENT (lot M3), sans dépendance à Hono : la base et l'horloge sont des PORTS injectés (câblage : `cablage.ts`, doublures dans les tests).
  * Le compte (`utilisateurId`) est celui du jeton vérifié par la route ; chaque lecture et chaque écriture est filtrée sur lui, aucune réservation d'un autre compte n'est jamais lue ni renvoyée.
+ *
+ * Lot M5 (M2b) : la CRÉATION est une seule fonction SQL (`fn_creer_reservation_atomique`) qui vérifie capacité, plafond, doublon, rejeu et restaurant dans UNE transaction, derrière des
+ * verrous consultatifs : deux demandes simultanées ne peuvent plus dépasser la capacité ni le plafond. Le service ne garde que ce qui est pur (la plage horaire, refusée avant tout appel).
  */
-
-/** Ce que le service sait du restaurant : de quoi décider avant d'écrire (la base répète ces contrôles). */
-export interface RestaurantPourReservation {
-  id: string;
-  publie: boolean;
-  suspendu: boolean;
-  accepteReservation: boolean;
-  /** `null` = pas de plafond. */
-  capaciteCouverts: number | null;
-}
 
 /** Ce que la disponibilité lit du restaurant (lot M4-0). */
 export interface DisponibiliteRestaurant {
@@ -28,17 +21,20 @@ export interface DisponibiliteRestaurant {
 
 export type ErreurBrute = { code?: unknown; message?: unknown };
 export type ResultatEcriture<L> = { ok: true; ligne: L } | { ok: false; genre: "aucune_ligne" } | { ok: false; genre: "base"; erreur: ErreurBrute };
-export type ResultatInsertion = { ok: true; reservation: ReservationClient } | { ok: false; genre: "reference_prise" } | { ok: false; genre: "base"; erreur: ErreurBrute };
+
+/** Réponse de la fonction SQL de création : réservation créée, rejeu d'une réservation existante, refus (avec un code), ou erreur de la base (garde, contrainte). */
+export type ResultatCreationAtomique =
+  | { ok: true; etat: "creee" | "rejeu"; reservation: ReservationClient }
+  | { ok: false; genre: "refus"; code: CodeRefusCreation }
+  | { ok: false; genre: "base"; erreur: ErreurBrute };
 
 export interface PortsReservationClient {
   maintenant(): Date;
-  lireRestaurant(id: string): Promise<RestaurantPourReservation | null>;
-  /** Les réservations du compte encore actives : demandée ou confirmée, créneau strictement après `maintenant`. */
-  listerActives(utilisateurId: string, maintenant: Date): Promise<ReservationClient[]>;
-  /** Somme des personnes des réservations demandées ET confirmées de ce restaurant à ce créneau (tous comptes). */
-  sommeCouverts(restaurantId: string, creneau: Date): Promise<number>;
-  /** La référence est tirée par la base ; une collision (contrainte d'unicité) répond `reference_prise` et l'appelant réessaie. */
-  inserer(ligne: { restaurantId: string; clientUserId: string; nom: string; telephone: string; nbPersonnes: number; creneau: string; note: string | null }): Promise<ResultatInsertion>;
+  /**
+   * Appelle la fonction SQL atomique. Le compte est celui du jeton (jamais du corps). Le statut, la référence et les horodatages sont posés par la base ; aucun jeton de suivi.
+   * La même demande rejouée par le même compte renvoie `rejeu` avec la réservation existante (rien n'est écrit).
+   */
+  creerAtomique(ligne: { restaurantId: string; clientUserId: string; nom: string; telephone: string; nbPersonnes: number; creneau: string; note: string | null }): Promise<ResultatCreationAtomique>;
   /** Lot M4-0 : trois colonnes seulement (publié, suspendu, accepte) ; `null` si le restaurant n'existe pas. Ni capacité ni nom. */
   lireDisponibilite(id: string): Promise<DisponibiliteRestaurant | null>;
   lister(utilisateurId: string): Promise<ReservationClient[]>;
@@ -52,58 +48,23 @@ export interface PortsReservationClient {
   alerterNouvelleDemande?(restaurantId: string, environnement: unknown): Promise<void>;
 }
 
-/** Nombre total d'essais d'insertion quand la référence tirée existe déjà (une collision sur 28 millions : quatre essais suffisent largement). */
-export const ESSAIS_INSERTION = 4;
-
 const INTROUVABLE_RESERVATION: ErreurApi = { code: "INTROUVABLE", message: "Réservation introuvable." };
 const refus = (erreur: ErreurApi) => ({ ok: false as const, erreur });
 
 export function creerServiceReservationClient(p: PortsReservationClient): Deps["reservations"] {
   return {
     async creer(utilisateurId, d: DemandeReservation, apres?: Planifier, environnement?: unknown) {
-      const maintenant = p.maintenant();
-      const creneauMs = Date.parse(d.creneau);
-      const actives = await p.listerActives(utilisateurId, maintenant);
+      // Plage horaire : refusée par le SERVEUR avant tout appel (le client peut être modifié). Le reste (rejeu, fenêtre, restaurant, plafond, doublon, capacité) est jugé par la fonction SQL.
+      const horsPlage = verifierPlageCreneau(Date.parse(d.creneau));
+      if (horsPlage) return refus(horsPlage);
 
-      // Rejeu idempotent : la table n'a pas de clé d'idempotence ; la même demande du même compte (restaurant, créneau, nombre de personnes) renvoie la réservation existante.
-      // Cette vérification passe AVANT le plafond et le doublon de créneau, qui refuseraient à tort un rejeu.
-      const existante = actives.find((r) => r.restaurantId === d.restaurantId && Date.parse(r.creneau) === creneauMs && r.nbPersonnes === d.nbPersonnes);
-      if (existante) return { ok: true as const, reservation: existante, idempotent: true };
-
-      const fenetre = verifierFenetreCreneau(creneauMs, maintenant.getTime());
-      if (fenetre) return refus(fenetre);
-
-      const restaurant = await p.lireRestaurant(d.restaurantId);
-      if (!restaurant) return refus({ code: "INTROUVABLE", message: "Ce restaurant est introuvable." });
-      if (!restaurant.publie || restaurant.suspendu) return refus({ code: "CONFLIT_ETAT", message: "Ce restaurant n'est pas disponible pour une réservation." });
-      if (!restaurant.accepteReservation) return refus({ code: "CONFLIT_ETAT", message: "Ce restaurant n'accepte pas les réservations de table." });
-
-      if (actives.length >= MAX_RESERVATIONS_ACTIVES_PAR_COMPTE) {
-        return refus({ code: "CONFLIT_ETAT", message: `Vous avez déjà ${MAX_RESERVATIONS_ACTIVES_PAR_COMPTE} réservations à venir. Annulez-en une ou attendez qu'elle ait eu lieu.` });
-      }
-      if (actives.some((r) => Date.parse(r.creneau) === creneauMs)) {
-        return refus({ code: "CONFLIT_ETAT", message: "Vous avez déjà une réservation à ce créneau. Choisissez un autre horaire." });
-      }
-
-      if (restaurant.capaciteCouverts !== null) {
-        const deja = await p.sommeCouverts(d.restaurantId, new Date(creneauMs));
-        if (deja + d.nbPersonnes > restaurant.capaciteCouverts) {
-          return refus({ code: "CONFLIT_ETAT", message: `Il ne reste pas assez de places à ce créneau pour ${d.nbPersonnes} ${d.nbPersonnes === 1 ? "personne" : "personnes"}. Essayez un autre horaire.` });
-        }
-      }
-
-      const ligne = { restaurantId: d.restaurantId, clientUserId: utilisateurId, nom: d.nom, telephone: d.telephone, nbPersonnes: d.nbPersonnes, creneau: new Date(creneauMs).toISOString(), note: d.note };
-      for (let essai = 1; essai <= ESSAIS_INSERTION; essai++) {
-        const r = await p.inserer(ligne);
-        if (r.ok) {
-          // Une réservation NOUVELLE seulement (jamais le rejeu idempotent, renvoyé plus haut), et seulement après l'écriture : l'alerte ne part qu'après la réponse.
-          planifier(apres, p.alerterNouvelleDemande && (() => p.alerterNouvelleDemande!(r.reservation.restaurantId, environnement)));
-          return { ok: true as const, reservation: r.reservation, idempotent: false };
-        }
-        if (r.genre === "base") return refus(traduireErreurBase(r.erreur));
-        // « reference_prise » : la base tire une autre référence à l'essai suivant.
-      }
-      return refus({ code: "ERREUR_SERVEUR", message: MESSAGE_BASE_INDISPONIBLE });
+      const r = await p.creerAtomique({ restaurantId: d.restaurantId, clientUserId: utilisateurId, nom: d.nom, telephone: d.telephone, nbPersonnes: d.nbPersonnes, creneau: new Date(Date.parse(d.creneau)).toISOString(), note: d.note });
+      if (!r.ok) return refus(r.genre === "base" ? traduireErreurBase(r.erreur) : traduireRefusCreation(r.code, d.nbPersonnes));
+      // Rejeu idempotent : la même demande du même compte renvoie la réservation existante, sans alerte.
+      if (r.etat === "rejeu") return { ok: true as const, reservation: r.reservation, idempotent: true };
+      // Une réservation NOUVELLE seulement (jamais le rejeu, renvoyé plus haut), et seulement après l'écriture : l'alerte ne part qu'après la réponse.
+      planifier(apres, p.alerterNouvelleDemande && (() => p.alerterNouvelleDemande!(r.reservation.restaurantId, environnement)));
+      return { ok: true as const, reservation: r.reservation, idempotent: false };
     },
 
     async disponibilite(restaurantId) {

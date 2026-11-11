@@ -1,7 +1,10 @@
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
 import {
   ACTIONS_RESERVATION_RESTAURANT,
+  MAX_RESERVATIONS_ACTIVES_PAR_COMPTE,
+  MESSAGE_CRENEAU_HORS_PLAGE,
   STATUT_APRES_ACTION,
+  creneauDansPlage,
   type ActionReservationRestaurant,
 } from "@speedfood/shared/contracts/reservation";
 import {
@@ -36,11 +39,58 @@ export function libelleEtat(statut: StatutReservation): string {
   return LIBELLES[statut];
 }
 
-/** Le créneau doit tomber dans plus de 30 minutes et au plus dans 60 jours (comme la garde de création : 30 minutes exactement et 60 jours exactement sont permis). */
+const MESSAGE_FENETRE_PROCHE = `Le créneau doit être dans plus de ${DELAI_MIN_MINUTES} minutes. Choisissez un horaire plus tard.`;
+const MESSAGE_FENETRE_LOIN = `On ne peut pas réserver plus de ${HORIZON_MAX_JOURS} jours à l'avance.`;
+
+/**
+ * Le créneau doit tomber dans plus de 30 minutes et au plus dans 60 jours (comme la garde de création : 30 minutes exactement et 60 jours exactement sont permis).
+ * Règle pure, miroir de la fonction SQL de création (`fn_creer_reservation_atomique`, qui juge avec l'horloge de la base) ; un test de parité garde les deux d'accord.
+ */
 export function verifierFenetreCreneau(creneauMs: number, maintenantMs: number): ErreurApi | null {
-  if (creneauMs < maintenantMs + DELAI_MIN_MINUTES * MINUTE) return { code: "VALIDATION", message: `Le créneau doit être dans plus de ${DELAI_MIN_MINUTES} minutes. Choisissez un horaire plus tard.` };
-  if (creneauMs > maintenantMs + HORIZON_MAX_JOURS * JOUR) return { code: "VALIDATION", message: `On ne peut pas réserver plus de ${HORIZON_MAX_JOURS} jours à l'avance.` };
+  if (creneauMs < maintenantMs + DELAI_MIN_MINUTES * MINUTE) return { code: "VALIDATION", message: MESSAGE_FENETRE_PROCHE };
+  if (creneauMs > maintenantMs + HORIZON_MAX_JOURS * JOUR) return { code: "VALIDATION", message: MESSAGE_FENETRE_LOIN };
   return null;
+}
+
+/** Plage des créneaux (10:00 à 22:45, heure de Conakry = UTC) : refusée par le SERVEUR même si l'application est modifiée. La plage vient du module partagé. */
+export function verifierPlageCreneau(creneauMs: number): ErreurApi | null {
+  return creneauDansPlage(creneauMs) ? null : { code: "VALIDATION", message: MESSAGE_CRENEAU_HORS_PLAGE };
+}
+
+/** Les motifs de refus que la fonction SQL de création peut rendre (`fn_creer_reservation_atomique`). */
+export const CODES_REFUS_CREATION = [
+  "HORS_PLAGE", "FENETRE_PROCHE", "FENETRE_LOIN", "RESTAURANT_INTROUVABLE", "RESTAURANT_INDISPONIBLE", "RESERVATION_FERMEE", "PLAFOND", "DOUBLON", "CAPACITE", "REFERENCE_INDISPONIBLE",
+] as const;
+export type CodeRefusCreation = (typeof CODES_REFUS_CREATION)[number];
+
+export function estCodeRefusCreation(v: unknown): v is CodeRefusCreation {
+  return typeof v === "string" && (CODES_REFUS_CREATION as readonly string[]).includes(v);
+}
+
+/** Traduit un refus de la fonction SQL en erreur du contrat : mêmes codes et mêmes messages qu'avant la fonction atomique (le client ne voit aucun changement). Aucun chiffre de capacité n'est révélé. */
+export function traduireRefusCreation(code: CodeRefusCreation, nbPersonnes: number): ErreurApi {
+  switch (code) {
+    case "HORS_PLAGE":
+      return { code: "VALIDATION", message: MESSAGE_CRENEAU_HORS_PLAGE };
+    case "FENETRE_PROCHE":
+      return { code: "VALIDATION", message: MESSAGE_FENETRE_PROCHE };
+    case "FENETRE_LOIN":
+      return { code: "VALIDATION", message: MESSAGE_FENETRE_LOIN };
+    case "RESTAURANT_INTROUVABLE":
+      return { code: "INTROUVABLE", message: "Ce restaurant est introuvable." };
+    case "RESTAURANT_INDISPONIBLE":
+      return { code: "CONFLIT_ETAT", message: "Ce restaurant n'est pas disponible pour une réservation." };
+    case "RESERVATION_FERMEE":
+      return { code: "CONFLIT_ETAT", message: "Ce restaurant n'accepte pas les réservations de table." };
+    case "PLAFOND":
+      return { code: "CONFLIT_ETAT", message: `Vous avez déjà ${MAX_RESERVATIONS_ACTIVES_PAR_COMPTE} réservations à venir. Annulez-en une ou attendez qu'elle ait eu lieu.` };
+    case "DOUBLON":
+      return { code: "CONFLIT_ETAT", message: "Vous avez déjà une réservation à ce créneau. Choisissez un autre horaire." };
+    case "CAPACITE":
+      return { code: "CONFLIT_ETAT", message: `Il ne reste pas assez de places à ce créneau pour ${nbPersonnes} ${nbPersonnes === 1 ? "personne" : "personnes"}. Essayez un autre horaire.` };
+    case "REFERENCE_INDISPONIBLE":
+      return { code: "ERREUR_SERVEUR", message: MESSAGE_BASE_INDISPONIBLE };
+  }
 }
 
 /**

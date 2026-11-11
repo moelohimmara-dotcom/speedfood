@@ -1,5 +1,5 @@
 import {
-  DELAI_MIN_MINUTES, NB_PERSONNES_MAX, NB_PERSONNES_MIN, NOM_RESERVATION_MAX, NOM_RESERVATION_MIN, NOTE_RESERVATION_MAX, lireCorpsCreationReservation, type DemandeReservation,
+  DELAI_MIN_MINUTES, MESSAGE_CRENEAU_HORS_PLAGE, NB_PERSONNES_MAX, NB_PERSONNES_MIN, NOM_RESERVATION_MAX, NOM_RESERVATION_MIN, NOTE_RESERVATION_MAX, creneauDansPlage, lireCorpsCreationReservation, type DemandeReservation,
 } from "../contracts/reservation";
 import { normaliserTelephone } from "../commande/telephone";
 import { NB_JOURS_RESERVABLES, creneauIso, creneauxDuJour, formaterCreneau, joursReservables } from "./creneaux";
@@ -63,6 +63,7 @@ export function validerFormulaireReservation(brut: BrutReservation, maintenant: 
     else {
       creneau = creneauIso(jour, heure);
       if (creneau === null) erreurs.heure = "Choisissez une heure parmi celles proposées.";
+      else if (!creneauDansPlage(Date.parse(creneau))) erreurs.heure = MESSAGE_CRENEAU_HORS_PLAGE;
       else if (!creneauxDuJour(jour, maintenant).includes(heure)) erreurs.heure = `Cette heure est trop proche. Réservez au moins ${DELAI_MIN_MINUTES} minutes à l'avance.`;
     }
   }

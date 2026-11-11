@@ -30,7 +30,7 @@ const CORPS = { restaurantId: RESTO, creneau: "2026-11-12T19:00:00Z", nbPersonne
 type Reservations = Deps["reservations"];
 type Restaurateur = Deps["reservationsRestaurant"];
 
-function banc(options: { client?: Partial<Reservations>; restaurateur?: Partial<Restaurateur>; limiter?: (id: string) => Promise<void>; contexte?: (jeton: string, id: string) => Promise<unknown> } = {}) {
+function banc(options: { client?: Partial<Reservations>; restaurateur?: Partial<Restaurateur>; limiter?: (id: string) => Promise<void>; limiterDispo?: () => Promise<void>; contexte?: (jeton: string, id: string) => Promise<unknown> } = {}) {
   const appels: string[] = [];
   const vus: Record<string, unknown[]> = {};
   const noter = (nom: string, ...args: unknown[]) => { appels.push(nom); (vus[nom] ??= []).push(args); };
@@ -38,6 +38,7 @@ function banc(options: { client?: Partial<Reservations>; restaurateur?: Partial<
   const deps = depsEssai({
     verificateurs: { strict: async (j) => { appels.push("strict"); return j === PORTEUR ? { id: UID } : null; }, local: async () => { throw Error("Le mode local ne doit pas être appelé."); } },
     limiterClientApplication: async (id) => { appels.push("limite:" + id); await options.limiter?.(id); },
+    limiterDisponibiliteReservation: async () => { appels.push("limite-adresse"); await options.limiterDispo?.(); },
     restaurant: { ...depsEssai().restaurant, contexte: async (jeton: string, id: string) => { appels.push("contexte:" + id); (vus.contexte ??= []).push([jeton, id]); return (options.contexte ? options.contexte(jeton, id) : { supabase: {}, utilisateurId: id, restaurantId: RESTO, role: "manager" }) as never; } },
     reservations: {
       creer: async (id, d) => { noter("creer", id, d); return options.client?.creer ? options.client.creer(id, d) : ok({ reservation: resClient() as never, idempotent: false }); },
@@ -57,7 +58,7 @@ function banc(options: { client?: Partial<Reservations>; restaurateur?: Partial<
 }
 const avec = (methode: string, corps?: unknown, headers: Record<string, string> = AUTH) => ({ method: methode, headers: corps === undefined ? headers : { ...headers, "content-type": "application/json" }, body: corps === undefined ? undefined : JSON.stringify(corps) });
 const POST = (corps: unknown, headers: Record<string, string> = AUTH) => avec("POST", corps, headers);
-const serviceAppele = (appels: string[]) => appels.filter((a) => !["strict"].includes(a) && !a.startsWith("limite:") && !a.startsWith("contexte:"));
+const serviceAppele = (appels: string[]) => appels.filter((a) => !["strict", "limite-adresse"].includes(a) && !a.startsWith("limite:") && !a.startsWith("contexte:"));
 
 // =====================================================================================================================
 // Client
@@ -240,35 +241,52 @@ test("M3 routes client : méthode inconnue ou chemin voisin = 404 « Route incon
 
 const DISPO = (id: string = RESTO) => `/api/v1/reservations/restaurants/${id}/disponibilite`;
 
-test("M4-0 route GET disponibilité : strict, plafond du compte, puis le service avec l'identifiant en minuscules ; réponse exacte lue par le parseur strict", async () => {
+test("M5 route GET disponibilité PUBLIQUE : sans aucun jeton, plafond par ADRESSE puis le service avec l'identifiant en minuscules ; jamais d'identité ; réponse exacte lue par le parseur strict", async () => {
   const b = banc();
-  const r = await b.app.request(DISPO(RESTO.toUpperCase()), { headers: AUTH });
+  const r = await b.app.request(DISPO(RESTO.toUpperCase()));
   assert.equal(r.status, 200);
-  assert.deepEqual(b.appels, ["strict", "limite:" + UID, "disponibilite"]);
+  assert.deepEqual(b.appels, ["limite-adresse", "disponibilite"], "ni vérification de jeton, ni plafond par compte");
   assert.deepEqual(b.vus.disponibilite[0], [RESTO]);
   assert.equal(r.headers.get("cache-control"), "no-store");
   assert.equal(r.headers.get("access-control-allow-origin"), null);
+  assert.equal(r.headers.get("set-cookie"), null, "aucun cookie");
   const brut = await r.json();
   assert.deepEqual(brut, { ok: true, restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 });
   assert.deepEqual(lireReponseDisponibiliteReservation(brut), { restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 });
 });
 
-test("M4-0 route GET disponibilité : sans porteur ou porteur invalide = 401, ni plafond ni service", async () => {
-  for (const headers of [{}, { authorization: "Bearer pas.un.jeton!" }, { authorization: "Basic abc" }] as Record<string, string>[]) {
+test("M5 route GET disponibilité PUBLIQUE : un jeton envoyé (valide, périmé ou absurde) est IGNORÉ : même réponse, jamais de 401, le vérificateur n'est jamais appelé", async () => {
+  for (const headers of [AUTH, { authorization: "Bearer pas.un.jeton!" }, { authorization: "Basic abc" }, {}] as Record<string, string>[]) {
     const b = banc();
     const r = await b.app.request(DISPO(), { headers });
-    assert.equal(r.status, 401);
-    assert.deepEqual(serviceAppele(b.appels), []);
-    assert.ok(!b.appels.some((a) => a.startsWith("limite:")));
-    assert.equal(((await r.json()) as { erreur: { code: string } }).erreur.code, "NON_AUTHENTIFIE");
+    assert.equal(r.status, 200, JSON.stringify(headers));
+    assert.deepEqual(b.appels, ["limite-adresse", "disponibilite"]);
+    assert.deepEqual(await r.json(), { ok: true, restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 });
   }
 });
 
-test("M4-0 route GET disponibilité : plafond par compte = 429 avant tout service", async () => {
-  const b = banc({ limiter: async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Patientez un instant."); } });
-  const r = await b.app.request(DISPO(), { headers: AUTH });
-  assert.equal(r.status, 429);
-  assert.deepEqual(serviceAppele(b.appels), []);
+test("M5 route GET disponibilité PUBLIQUE : plafond par adresse = 429 avant tout service ET avant la validation de l'identifiant (l'énumération coûte aussi)", async () => {
+  const limite = async () => { throw new ErreurMetier("TROP_DE_REQUETES", "Patientez un instant."); };
+  for (const id of [RESTO, "pas-un-uuid"]) {
+    const b = banc({ limiterDispo: limite });
+    const r = await b.app.request(DISPO(id));
+    assert.equal(r.status, 429, id);
+    assert.deepEqual(serviceAppele(b.appels), [], id);
+    assert.equal(((await r.json()) as { erreur: { code: string } }).erreur.code, "TROP_DE_REQUETES");
+  }
+});
+
+test("M5 route disponibilité PUBLIQUE : les AUTRES routes de réservation restent à porteur strict (liste, création, lecture, annulation = 401 sans jeton, ni service ni plafond)", async () => {
+  const cas: Array<[string, string, unknown?]> = [
+    ["GET", "/api/v1/reservations"], ["POST", "/api/v1/reservations", CORPS], ["GET", `/api/v1/reservations/${ID}`], ["POST", `/api/v1/reservations/${ID}/annuler`, {}],
+  ];
+  for (const [methode, chemin, corps] of cas) {
+    const b = banc();
+    const r = await b.app.request(chemin, methode === "GET" ? { headers: {} } : POST(corps, {}));
+    assert.equal(r.status, 401, `${methode} ${chemin}`);
+    assert.deepEqual(serviceAppele(b.appels), [], `${methode} ${chemin}`);
+    assert.ok(!b.appels.includes("limite-adresse"), "le plafond par adresse n'est posé que sur la disponibilité");
+  }
 });
 
 test("M4-0 route GET disponibilité : identifiant mal formé = 400 VALIDATION (comme les autres routes), service jamais appelé", async () => {

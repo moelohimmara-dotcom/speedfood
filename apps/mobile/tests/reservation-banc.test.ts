@@ -9,11 +9,11 @@ const chemin = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const lire = (p: string) => readFileSync(chemin(p), 'utf8');
 const ID = '33333333-3333-4333-8333-333333333333';
 
-test('M4a banc : le parcours complet (13 parcours : envoi, refus, fautes, capacité, plafond, restaurateur, motif) passe sur la base factice', () => {
+test('M4a banc : le parcours complet (15 parcours : visiteur, plage, envoi, refus, fautes, capacité, plafond, restaurateur, motif) passe sur la base factice', () => {
   // Le banc importe les fichiers de l'API par le résolveur de l'API : le parcours tourne dans un processus séparé, sans serveur ni réseau.
   const r = spawnSync(process.execPath, ['--experimental-strip-types', '--import', pathToFileURL(chemin('../../api/scripts/enregistrer-resolveur.mjs')).href, chemin('../controle-reservation/parcours-reservation.mjs')], { cwd: chemin('../../..'), encoding: 'utf8', timeout: 180000 });
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(r.stdout, /PARCOURS RESERVATION : 13 parcours OK/);
+  assert.match(r.stdout, /PARCOURS RESERVATION : 15 parcours OK/);
   assert.doesNotMatch(r.stdout, /ECHEC/);
 });
 

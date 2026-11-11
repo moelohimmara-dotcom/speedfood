@@ -86,6 +86,23 @@ verifier("message de service indisponible, en français", MESSAGE_SERVICE_INDISP
   })(), ["creneau", "nbPersonnes", "nom", "note", "restaurantId", "telephone"]);
 }
 
+// ---------- lecture PUBLIQUE de la disponibilité (lot M5) : sans session, ni jeton ni cookie ----------
+{
+  const { appels, envoyer } = faux(() => json({ ok: true, restaurantId: RESTO, accepteReservation: true, nbPersonnesMax: 12 }));
+  const r = await appelerApi({ service: SERVICE, jeton: null, publique: true, methode: "GET", chemin: cheminDisponibilite(RESTO) as string, lire: lireReponseDisponibiliteReservation, envoyer });
+  verifier("public : un visiteur sans session obtient la réponse", r.ok ? r.donnees.accepteReservation : r, true);
+  const h = new Headers(appels[0].init.headers);
+  verifier("public : aucun jeton ni cookie envoyés, secret et adresse du visiteur transmis", [h.get("authorization"), h.get("cookie"), h.get("x-relais-secret"), h.get("x-relais-ip")], [null, null, SECRET, "41.77.12.5"]);
+  const ecriture = await appelerApi({ service: SERVICE, jeton: null, publique: true, methode: "POST", chemin: "/api/v1/reservations", corps: {}, lire: lireReponseCreationReservation, envoyer });
+  verifier("public : jamais pour une écriture (la création exige toujours un compte)", [ecriture.ok ? "ok" : ecriture.genre, appels.length], ["connexion", 1]);
+  const sansPublic = await appelerApi({ service: SERVICE, jeton: null, methode: "GET", chemin: cheminDisponibilite(RESTO) as string, lire: lireReponseDisponibiliteReservation, envoyer });
+  verifier("sans l'option publique, une lecture sans session reste refusée", [sansPublic.ok ? "ok" : sansPublic.genre, appels.length], ["connexion", 1]);
+}
+{
+  const src = readFileSync(join(process.env.SPEEDFOOD_RACINE ?? process.cwd(), "src/lib/reservation/api-serveur.ts"), "utf8");
+  verifier("api-serveur : la disponibilité est lue en mode public", /lire: lireReponseDisponibiliteReservation, publique: true/.test(src), true);
+}
+
 // ---------- jeton absent : rien n'est envoyé ----------
 {
   const { appels, envoyer } = faux(() => json({}));

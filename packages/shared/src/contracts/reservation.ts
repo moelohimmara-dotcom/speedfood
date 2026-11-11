@@ -17,6 +17,45 @@ export { DELAI_MIN_MINUTES, HORIZON_MAX_JOURS, NB_PERSONNES_MAX, NB_PERSONNES_MI
 
 /** Le créneau tombe sur un quart d'heure exact (secondes et millisecondes à zéro). */
 export const PAS_CRENEAU_MINUTES = 15;
+/**
+ * Plage des créneaux de la journée (décision de Malika du 10 novembre) : de 10:00 à 22:45 inclus, heure de Conakry (= UTC, pas de changement d'heure).
+ * UNE SEULE source : le site, l'appli et le serveur la lisent ici (le serveur refuse un créneau hors plage même si le client est modifié ; la fonction SQL de création la répète).
+ */
+export const PREMIER_CRENEAU_MINUTES = 10 * 60;
+export const DERNIER_CRENEAU_MINUTES = 22 * 60 + 45;
+
+function deuxChiffresCreneau(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+/** « HH:MM » d'un nombre de minutes depuis minuit. */
+export function heureDeMinutes(minutes: number): string {
+  return `${deuxChiffresCreneau(Math.floor(minutes / 60))}:${deuxChiffresCreneau(minutes % 60)}`;
+}
+
+export const PREMIER_CRENEAU_HEURE = heureDeMinutes(PREMIER_CRENEAU_MINUTES);
+export const DERNIER_CRENEAU_HEURE = heureDeMinutes(DERNIER_CRENEAU_MINUTES);
+export const MESSAGE_CRENEAU_HORS_PLAGE = `Choisissez une heure entre ${PREMIER_CRENEAU_HEURE} et ${DERNIER_CRENEAU_HEURE} (heure de Conakry).`;
+
+/** Minutes écoulées depuis minuit (UTC) à cet instant. */
+export function minutesDuJourUtc(instantMs: number): number {
+  const d = new Date(instantMs);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
+/** L'heure de ce créneau tombe-t-elle dans la plage 10:00 à 22:45 (bornes comprises) ? Les secondes ne comptent pas : le pas de 15 minutes est contrôlé à part. */
+export function creneauDansPlage(instantMs: number): boolean {
+  if (!Number.isFinite(instantMs)) return false;
+  const minutes = minutesDuJourUtc(instantMs);
+  return minutes >= PREMIER_CRENEAU_MINUTES && minutes <= DERNIER_CRENEAU_MINUTES;
+}
+
+/** Tous les créneaux (« HH:MM ») d'une journée entière : de 10:00 à 22:45, tous les 15 minutes. */
+export function heuresDeLaPlage(): string[] {
+  const liste: string[] = [];
+  for (let m = PREMIER_CRENEAU_MINUTES; m <= DERNIER_CRENEAU_MINUTES; m += PAS_CRENEAU_MINUTES) liste.push(heureDeMinutes(m));
+  return liste;
+}
 export const NOM_RESERVATION_MIN = 2;
 export const NOM_RESERVATION_MAX = 60;
 export const NOTE_RESERVATION_MAX = 200;
@@ -150,7 +189,7 @@ export type LectureCorps<T> = { ok: true; valeurs: T } | { ok: false; message: s
 const CLES_CREATION = ["restaurantId", "creneau", "nbPersonnes", "nom", "telephone", "note"];
 
 /**
- * Corps de `POST /reservations` : clés exactes (`note` facultative) ; restaurant en UUID ; créneau ISO 8601 UTC (suffixe Z) tombant sur un quart d'heure exact ;
+ * Corps de `POST /reservations` : clés exactes (`note` facultative) ; restaurant en UUID ; créneau ISO 8601 UTC (suffixe Z) tombant sur un quart d'heure exact, entre 10:00 et 22:45 (heure de Conakry) ;
  * 1 à 12 personnes entières ; nom de 2 à 60 caractères ; téléphone guinéen normalisé par la règle commune ; note de 200 caractères au plus. Aucune clé « compte » :
  * le compte est celui du jeton. Les messages ne reprennent jamais la saisie.
  */
@@ -165,6 +204,7 @@ export function lireCorpsCreationReservation(v: unknown): LectureCorps<DemandeRe
   }
   const instant = Date.parse(o.creneau);
   if (instant % (PAS_CRENEAU_MINUTES * 60_000) !== 0) return refus(`Choisissez un créneau tous les ${PAS_CRENEAU_MINUTES} minutes (19:00, 19:15, 19:30...).`);
+  if (!creneauDansPlage(instant)) return refus(MESSAGE_CRENEAU_HORS_PLAGE);
   if (typeof o.nbPersonnes !== "number" || !Number.isInteger(o.nbPersonnes) || o.nbPersonnes < NB_PERSONNES_MIN || o.nbPersonnes > NB_PERSONNES_MAX) {
     return refus(`Le nombre de personnes doit être compris entre ${NB_PERSONNES_MIN} et ${NB_PERSONNES_MAX}.`);
   }

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   NB_JOURS_RESERVABLES, creneauAccepte, creneauIso, creneauxDuJour, formaterCreneau, formaterHeure, formaterJour, joursReservables,
 } from "../../src/lib/reservation/creneaux";
+import { MESSAGE_CRENEAU_HORS_PLAGE, PREMIER_CRENEAU_HEURE, DERNIER_CRENEAU_HEURE, heuresDeLaPlage } from "../../src/lib/contracts/reservation";
 import { recapitulatifReservation, validerFormulaireReservation, type BrutReservation } from "../../src/lib/reservation/formulaire";
 import {
   construireReglage, construireDecision, jourSuivant, jourPrecedent, libelleAction, libelleCapacite, ordonnerActions, tonStatutReservation,
@@ -37,21 +38,30 @@ verifier("passage d'année : 30 décembre -> janvier", joursReservables(new Date
 const tard = joursReservables(new Date("2026-11-10T23:50:00.000Z"));
 verifier("23:50 : aujourd'hui n'est plus proposé", [tard[0].valeur, tard.length, tard[13].valeur], ["2026-11-11", 14, "2026-11-24"]);
 verifier("23:30:00 pile : plus rien aujourd'hui", creneauxDuJour("2026-11-10", new Date("2026-11-10T23:30:00.000Z")), []);
-verifier("23:30:00 pile : 00:00 de demain proposé (délai exact de 30 minutes)", creneauxDuJour("2026-11-11", new Date("2026-11-10T23:30:00.000Z"))[0], "00:00");
-verifier("23:30:00.001 : 00:00 de demain refusé", creneauxDuJour("2026-11-11", new Date("2026-11-10T23:30:00.001Z"))[0], "00:15");
-verifier("22:00 : aujourd'hui garde 22:30 à 23:45 (6 créneaux)", creneauxDuJour("2026-11-10", new Date("2026-11-10T22:00:00.000Z")), ["22:30", "22:45", "23:00", "23:15", "23:30", "23:45"]);
+verifier("09:30:00 pile : 10:00 aujourd'hui proposé (délai exact de 30 minutes)", creneauxDuJour("2026-11-10", new Date("2026-11-10T09:30:00.000Z"))[0], "10:00");
+verifier("09:30:00.001 : 10:00 refusé, 10:15 proposé", creneauxDuJour("2026-11-10", new Date("2026-11-10T09:30:00.001Z"))[0], "10:15");
+verifier("22:00 : aujourd'hui garde 22:30 et 22:45 (le dernier créneau est 22:45)", creneauxDuJour("2026-11-10", new Date("2026-11-10T22:00:00.000Z")), ["22:30", "22:45"]);
+verifier("22:16 : plus aucun créneau aujourd'hui, la liste des jours commence demain", [creneauxDuJour("2026-11-10", new Date("2026-11-10T22:16:00.000Z")), joursReservables(new Date("2026-11-10T22:16:00.000Z"))[0].valeur], [[], "2026-11-11"]);
+verifier("22:15:00 pile : 22:45 encore proposé", creneauxDuJour("2026-11-10", new Date("2026-11-10T22:15:00.000Z")), ["22:45"]);
+verifier("23:30 : demain commence à 10:00 (jamais 00:00 ni la nuit)", creneauxDuJour("2026-11-11", new Date("2026-11-10T23:30:00.000Z"))[0], "10:00");
 
 // ---------- créneaux : quarts d'heure, délai de 30 minutes ----------
 const aujourdhui = creneauxDuJour("2026-11-10", MAINTENANT);
 verifier("12:07 : premier créneau 12:45 (au moins 30 minutes d'avance)", aujourdhui[0], "12:45");
-verifier("dernier créneau 23:45", aujourdhui[aujourdhui.length - 1], "23:45");
+verifier("dernier créneau 22:45", aujourdhui[aujourdhui.length - 1], "22:45");
 verifier("tous les créneaux sont des quarts d'heure exacts", aujourdhui.every((h) => /^\d{2}:(00|15|30|45)$/.test(h)), true);
 verifier("12:00:00 pile : 12:30 accepté", creneauxDuJour("2026-11-10", new Date("2026-11-10T12:00:00.000Z"))[0], "12:30");
-verifier("00:00:00 : 94 créneaux aujourd'hui (00:30 à 23:45)", creneauxDuJour("2026-11-10", new Date("2026-11-10T00:00:00.000Z")).length, 94);
-verifier("un jour futur : 96 créneaux, de 00:00 à 23:45", (() => { const l = creneauxDuJour("2026-11-12", MAINTENANT); return [l.length, l[0], l[95]]; })(), [96, "00:00", "23:45"]);
+verifier("00:00:00 : 52 créneaux aujourd'hui (10:00 à 22:45)", creneauxDuJour("2026-11-10", new Date("2026-11-10T00:00:00.000Z")).length, 52);
+verifier("un jour futur : 52 créneaux, de 10:00 à 22:45", (() => { const l = creneauxDuJour("2026-11-12", MAINTENANT); return [l.length, l[0], l[51]]; })(), [52, "10:00", "22:45"]);
+verifier("aucun créneau de nuit ni avant 10:00 ni après 22:45", (() => { const l = creneauxDuJour("2026-11-12", MAINTENANT); return [l.includes("09:45"), l.includes("23:00"), l.includes("00:00"), l.includes("23:45")]; })(), [false, false, false, false]);
 verifier("un jour passé : aucun créneau", creneauxDuJour("2026-11-09", MAINTENANT), []);
 verifier("un jour lointain (hors 60 jours) : aucun créneau", creneauxDuJour("2027-03-01", MAINTENANT), []);
 verifier("jour invalide : aucun créneau", [creneauxDuJour("2026-02-30", MAINTENANT), creneauxDuJour("demain", MAINTENANT)], [[], []]);
+
+// ---------- plage partagée : le site, l'application et le serveur lisent la MÊME constante ----------
+verifier("parité : les heures du site sont exactement celles de la constante partagée (10:00 à 22:45)", creneauxDuJour("2026-11-12", MAINTENANT), heuresDeLaPlage());
+verifier("parité : bornes de la constante", [PREMIER_CRENEAU_HEURE, DERNIER_CRENEAU_HEURE, heuresDeLaPlage().length], ["10:00", "22:45", 52]);
+verifier("source : creneaux.ts ne recopie aucune borne (ni 10 * 60, ni 22 * 60, ni 22:45 en dur)", /10 * 60|22 * 60|"22:45"|"10:00"/.test(readFileSync(join(process.env.SPEEDFOOD_RACINE ?? process.cwd(), "src/lib/reservation/creneaux.ts"), "utf8")), false);
 
 // ---------- créneau ISO et affichage : jamais le fuseau du navigateur ni du serveur ----------
 verifier("créneau ISO UTC", creneauIso("2026-11-12", "19:15"), "2026-11-12T19:15:00.000Z");
@@ -91,7 +101,9 @@ verifier("créneau trop proche (moins de 30 minutes)", creneauAccepte("2026-11-1
 verifier("créneau pile à 30 minutes : accepté", creneauAccepte("2026-11-10T12:37:00.000Z", MAINTENANT), "ok");
 verifier("créneau passé", creneauAccepte("2026-11-09T12:45:00.000Z", MAINTENANT), "trop_proche");
 verifier("créneau au-delà des 14 jours proposés", creneauAccepte("2026-11-25T12:45:00.000Z", MAINTENANT), "trop_loin");
-verifier("créneau le dernier jour proposé", creneauAccepte("2026-11-23T23:45:00.000Z", MAINTENANT), "ok");
+verifier("créneau le dernier jour proposé", creneauAccepte("2026-11-23T22:45:00.000Z", MAINTENANT), "ok");
+verifier("créneau hors plage : 09:45 et 23:00 et minuit", [creneauAccepte("2026-11-12T09:45:00.000Z", MAINTENANT), creneauAccepte("2026-11-12T23:00:00.000Z", MAINTENANT), creneauAccepte("2026-11-13T00:00:00.000Z", MAINTENANT)], ["hors_plage", "hors_plage", "hors_plage"]);
+verifier("créneau en plage : 10:00 et 22:45", [creneauAccepte("2026-11-12T10:00:00.000Z", MAINTENANT), creneauAccepte("2026-11-12T22:45:00.000Z", MAINTENANT)], ["ok", "ok"]);
 verifier("créneau illisible", creneauAccepte("demain soir", MAINTENANT), "invalide");
 
 // ---------- formulaire ----------
@@ -119,6 +131,9 @@ verifier("téléphone vide", erreurs({ telephone: "" }), ["telephone"]);
 verifier("note trop longue (201)", erreurs({ note: "n".repeat(201) }), ["note"]);
 verifier("note : 200 caractères acceptés", erreurs({ note: "n".repeat(200) }), []);
 verifier("heure : pas un quart d'heure", erreurs({ heure: "19:10" }), ["heure"]);
+verifier("heure : 09:45 et 23:00 refusées (plage de 10:00 à 22:45)", [erreurs({ heure: "09:45" }), erreurs({ heure: "23:00" }), erreurs({ heure: "00:00" })], [["heure"], ["heure"], ["heure"]]);
+verifier("heure : 10:00 et 22:45 acceptées", [erreurs({ heure: "10:00" }), erreurs({ heure: "22:45" })], [[], []]);
+verifier("heure hors plage : message clair, sans reprendre la saisie", (() => { const r = validerFormulaireReservation({ ...BON, heure: "23:00" }, MAINTENANT, 12); return r.ok ? null : r.erreurs.heure; })(), MESSAGE_CRENEAU_HORS_PLAGE);
 verifier("heure absente", erreurs({ heure: "" }), ["heure"]);
 verifier("jour absent", erreurs({ jour: "" }), ["jour"]);
 verifier("jour au-delà des 14 jours", erreurs({ jour: "2026-11-24" }), ["jour"]);
