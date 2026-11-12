@@ -1,6 +1,9 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte.ts';
+import { traduireErreurAuth, verifierEmail, verifierInscription } from './auth-publique.ts';
+import { normaliserTelephone } from '../../../../packages/shared/src/commande/telephone.ts';
+import { SITE_WEB } from './aide.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
 import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
@@ -106,9 +109,29 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
   async function jetons(type: 'password' | 'refresh_token', donnees: object): Promise<SessionAuth> {
     const k = await cle();
     const v = await requete(SUPABASE+'/auth/v1/token?grant_type='+type, { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify(donnees) },true,type==='refresh_token');
+    return sessionDe(v);
+  }
+  /** Lecture stricte d'une réponse qui ouvre une session (connexion, renouvellement, inscription sans confirmation d'e-mail). */
+  function sessionDe(v: Record<string, unknown>): SessionAuth {
     const user = objet(v.user);
     if (typeof user.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(user.id) || typeof v.expires_in !== 'number' || !Number.isSafeInteger(v.expires_in) || v.expires_in < 1 || v.expires_in > 86400) throw new ErreurConnexion('Réponse de connexion invalide.');
     return { accessToken:secret(v.access_token,16384), refreshToken:secret(v.refresh_token,1024), expiresAt:Math.floor(Date.now()/1000)+v.expires_in, userId:user.id };
+  }
+  /**
+   * Appel PUBLIC du service d'authentification (inscription, mot de passe oublié) : clé publique seulement, aucun cookie, UN SEUL essai. Rend le statut et le corps lu (ou `null`) : le texte brut
+   * du serveur n'est jamais affiché, `traduireErreurAuth` en fait un message français. Réseau coupé ou délai dépassé : message neutre.
+   */
+  async function authPublic(chemin: string, parametres: Record<string, string>, corps: object): Promise<{ ok: boolean; statut: number; texte: string; json: Record<string, unknown> | null }> {
+    const k = await cle();
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 15000);
+    try {
+      let r: Response;
+      try { r = await fetcher(SUPABASE+'/auth/v1/'+chemin+'?'+new URLSearchParams(parametres).toString(), { method:'POST', credentials:'omit', signal:controle.signal, headers:{ apikey:k, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify(corps) }); }
+      catch { throw new ErreurConnexion('Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.'); }
+      let texte = ''; let json: Record<string, unknown> | null = null;
+      try { texte = await r.text(); if (texte.length > 262144) texte = ''; const v: unknown = JSON.parse(texte); json = v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null; } catch { json = null; }
+      return { ok: r.ok, statut: r.status, texte, json };
+    } finally { clearTimeout(timer); }
   }
   /** UN SEUL essai, jamais de relance automatique : un envoi incertain se rejoue à la main avec la même clé d'idempotence. */
   async function postCommande(accessToken: string, payload: CreationCommandePayload): Promise<{ reference: string; jeton: string; idempotent: boolean }> {
@@ -226,6 +249,28 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     } finally { clearTimeout(timer); }
   }
   return {
+    /**
+     * Inscription (parité A2, route `signup` du service d'authentification, mêmes données que l'ancienne appli). Règles vérifiées AVANT le réseau. Rend la session si le service n'exige pas de confirmation
+     * d'e-mail, sinon `null` (un e-mail de confirmation est parti). Une adresse déjà inscrite reçoit la même réponse qu'une nouvelle : on ne révèle pas qui a un compte. Un seul essai.
+     */
+    async inscrire(nom: string, telephone: string, email: string, motDePasse: string): Promise<SessionAuth | null> {
+      const probleme = verifierInscription({ nom, telephone, email, motDePasse });
+      if (probleme !== null) throw new ErreurConnexion(probleme);
+      const r = await authPublic('signup', { redirect_to: SITE_WEB + '/auth/confirmation?suite=%2Fcompte' }, { email: email.trim(), password: motDePasse, data: { nom_commande: nom.trim(), telephone: normaliserTelephone(telephone) } });
+      if (!r.ok) throw new ErreurConnexion(traduireErreurAuth(r.statut, r.texte));
+      if (r.json === null || typeof r.json.access_token !== 'string') return null;
+      try { return sessionDe(r.json); } catch { return null; }
+    },
+    /** Mot de passe oublié (parité A3, route `recover`) : même réponse que le compte existe ou non. Le lien reçu s'ouvre dans le navigateur, sur la page du site. Un seul essai. */
+    async demanderReinitialisation(email: string): Promise<void> {
+      const probleme = verifierEmail(email);
+      if (probleme !== null) throw new ErreurConnexion(probleme);
+      const r = await authPublic('recover', { redirect_to: SITE_WEB + '/auth/confirmation?suite=%2Fconnexion%2Fnouveau-mot-de-passe' }, { email: email.trim() });
+      if (r.ok) return;
+      // Trop de demandes ou panne : message précis ; sinon l'envoi a échoué, sans détail technique.
+      if (r.statut === 429 || r.statut >= 500) throw new ErreurConnexion(traduireErreurAuth(r.statut, r.texte));
+      throw new ErreurConnexion('L’e-mail n’a pas pu être envoyé pour le moment. Réessayez dans quelques minutes.');
+    },
     creerCommande: postCommande,
     declarerPaiement: postDeclaration,
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {

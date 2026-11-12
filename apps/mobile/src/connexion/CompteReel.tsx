@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { creerLectureDifferee } from './lecture-differee';
-import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErreurConnexion, type ResumeCompte } from './client';
 import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
+import { InscriptionReelle, OubliReel } from './AccesReel';
 import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
 import { LivreurReel } from './LivreurReel';
@@ -27,6 +28,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string;lecture:number}|null>(null);
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   const [confirmerProposition,setConfirmerProposition]=useState<'acceptee'|'refusee'|null>(null);
+  const [acces,setAcces]=useState<'connexion'|'inscription'|'oubli'>('connexion');
   const [suppressionOuverte,setSuppressionOuverte]=useState(false);const [motSuppression,setMotSuppression]=useState('');
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
   const [restaurateur,setRestaurateur]=useState<boolean|null>(null);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
@@ -147,12 +149,15 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     <Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>
     {attente&&<><ActivityIndicator color={c.action}/><Text accessibilityLiveRegion="polite" style={s.texte}>Connexion à Speedfood…</Text></>}
     {erreur&&<Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}{message!==''&&<Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    {!connectee?<>
-      <Text style={s.texte}>Connectez-vous avec votre compte Speedfood existant.</Text>
+    {!connectee&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
+    :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
+    :!connectee?<>
+      <Text style={s.texte}>Connectez-vous avec votre compte Speedfood.</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
       <Action titre="Me connecter" disabled={attente||!email.trim()||!motDePasse} agir={()=>{const demande=gestion.connecter(email,motDePasse);setEmail('');setMotDePasse('');void executer(async()=>{await demande;setProfil(await gestion.espace());});}}/>
-      <Action titre="Créer un compte sur le site" disabled={attente} agir={()=>{void Linking.openURL('https://speedfood-app.moelohimmara.workers.dev/entrer').catch(()=>setErreur('Impossible d’ouvrir le site.'));}}/>
+      <Action titre="Mot de passe oublié ?" disabled={attente} agir={()=>{setErreur(null);setAcces('oubli');}}/>
+      <Action titre="Créer un compte" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
       {erreur&&<Action titre="Relire la session protégée" disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
     </>:<>
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>

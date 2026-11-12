@@ -8,7 +8,7 @@ import type {CreationCommandePayload} from '../../../../packages/shared/src/cont
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -49,6 +49,27 @@ export class GestionSession {
     if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
     await this.appliquer(await this.api.connecter(email,motDePasse),n);
     this.signaler();
+  }
+  /**
+   * Inscription (A2). Sans session rendue (e-mail de confirmation envoyé), rien n'est ouvert ni écrit. Avec une session rendue, elle est ouverte et protégée exactement comme une connexion.
+   * Le mot de passe n'est conservé nulle part.
+   */
+  async inscrire(nom: string, telephone: string, email: string, motDePasse: string): Promise<{ sessionOuverte: boolean }> {
+    if (!this.api.inscrire) throw new ErreurConnexion('Inscription indisponible.');
+    const s = await this.api.inscrire(nom, telephone, email, motDePasse);
+    if (s === null) return { sessionOuverte: false };
+    this.clesSuivi.clear();
+    const n = ++this.generation; this.session = null;
+    try { await this.ordonner(() => this.coffre.effacer()); } catch { throw new ErreurConnexion('Impossible de fermer la session précédente sur cet appareil.'); }
+    if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
+    await this.appliquer(s, n);
+    this.signaler();
+    return { sessionOuverte: true };
+  }
+  /** Mot de passe oublié (A3) : sans effet sur la session. */
+  async demanderReinitialisation(email: string): Promise<void> {
+    if (!this.api.demanderReinitialisation) throw new ErreurConnexion('Réinitialisation indisponible.');
+    await this.api.demanderReinitialisation(email);
   }
   async restaurer() {
     this.clesSuivi.clear();
