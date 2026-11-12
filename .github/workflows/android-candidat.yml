@@ -65,6 +65,20 @@ jobs:
           echo "Installation de $PAQUET"
           "$SDKM" "$PAQUET"
 
+      # Configuration Firebase (notifications) : fichier ignoré par Git, fourni par le secret GOOGLE_SERVICES_JSON_B64 (posé par Malika).
+      # Sans ce fichier, la compilation reste verte mais l'appli n'a AUCUNE notification (« Default FirebaseApp failed to initialize » constaté à l'émulateur le 12 novembre 2026).
+      - name: Poser la configuration Firebase
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > apps/mobile/google-services.json
+            echo "Configuration Firebase posee."
+          else
+            echo "Secret GOOGLE_SERVICES_JSON_B64 absent : le candidat n'aurait pas de notifications."
+            exit 1
+          fi
+
       - name: Générer le projet natif Android (identité de production)
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --no-install
