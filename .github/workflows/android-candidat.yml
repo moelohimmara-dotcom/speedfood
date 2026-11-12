@@ -83,9 +83,11 @@ jobs:
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --no-install
 
-      - name: Compiler le candidat (release, arm64 et x86_64)
+      # Architectures de TÉLÉPHONE seulement (décision du 12 novembre 2026) : arm64-v8a (récents) et armeabi-v7a (32 bits, beaucoup d'entrée de gamme), comme l'ancienne appli.
+      # x86 et x86_64 ne servent qu'aux émulateurs : l'essai sur émulateur se fait avec le workflow « Android Expo (compilation de contrôle) ».
+      - name: Compiler le candidat (release, arm64 et 32 bits)
         working-directory: apps/mobile/android
-        run: ./gradlew :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64 -Pandroid.compileSdkVersion=37 -Pandroid.targetSdkVersion=37
+        run: ./gradlew :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,armeabi-v7a -Pandroid.compileSdkVersion=37 -Pandroid.targetSdkVersion=37
 
       - name: Contrôler l'identité du candidat
         run: |
@@ -94,6 +96,11 @@ jobs:
           "$AAPT" dump badging "$APK" | grep -E "^(package|sdkVersion|targetSdkVersion)" | tee badging.txt
           grep -q "name='com.speedfood.mobile' versionCode='${SPEEDFOOD_CODE}'" badging.txt
           grep -q "targetSdkVersion:'37'" badging.txt
+          # Les deux architectures de téléphone sont présentes, celles d'émulateur absentes (sinon l'APK publique pèserait plus lourd pour rien).
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/' || { echo "arm64-v8a manquante"; exit 1; }
+          unzip -l "$APK" | grep -q 'lib/armeabi-v7a/' || { echo "armeabi-v7a (32 bits) manquante"; exit 1; }
+          if unzip -l "$APK" | grep -qE 'lib/x86(_64)?/'; then echo "bibliothèques x86/x86_64 présentes : inutile pour un téléphone"; exit 1; fi
+          unzip -l "$APK" | grep -E 'lib/[a-z0-9_-]+/' | awk '{print $4}' | cut -d/ -f2 | sort | uniq -c
           sha256sum "$APK"; ls -l "$APK"
 
       - uses: actions/upload-artifact@v4
