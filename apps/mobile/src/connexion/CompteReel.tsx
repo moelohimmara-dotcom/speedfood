@@ -4,7 +4,7 @@ import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, Sty
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErreurConnexion, type ResumeCompte } from './client';
 import { gestion } from './gestion';
-import type {CommandeCompte,ResumeSuivi} from './commandes';
+import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
 import { LivreurReel } from './LivreurReel';
@@ -25,12 +25,13 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [commandes,setCommandes]=useState<CommandeCompte[]|null>(null);
   const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string;lecture:number}|null>(null);
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
+  const [confirmerProposition,setConfirmerProposition]=useState<'acceptee'|'refusee'|null>(null);
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
   const [restaurateur,setRestaurateur]=useState<boolean|null>(null);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
   const [livreur,setLivreur]=useState(false);const [livreurOuvert,setLivreurOuvert]=useState(false);
-  function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);}
+  function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);setConfirmerProposition(null);}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);return r;}
-  async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
+  async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);setConfirmerProposition(null);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
   const annulationEnCours=useRef(false);
   async function annulerCommande(id:string){
     if(annulationEnCours.current)return;annulationEnCours.current=true;
@@ -40,6 +41,17 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       if(n===revision.current)setMessage('Commande '+ref+' annulée.');
       try{await lireCommandes();await lireSuivi(id);}catch{}
     }finally{annulationEnCours.current=false;}
+  }
+  const propositionEnCours=useRef(false);
+  /** Réponse à la proposition du restaurant : UN seul essai, puis le suivi est relu pour montrer ce que le serveur a vraiment enregistré (même si la réponse s'est perdue en route). */
+  async function repondreProposition(id:string,propositionId:string,accepter:boolean){
+    if(propositionEnCours.current)return;propositionEnCours.current=true;setConfirmerProposition(null);
+    try{
+      const n=revision.current;
+      try{await gestion.repondreProposition(id,propositionId,accepter);}catch(e){try{await lireSuivi(id);}catch{}throw e;}
+      if(n===revision.current)setMessage(accepter?'Proposition acceptée. Le restaurant doit encore confirmer votre commande.':'Proposition refusée : votre commande est annulée.');
+      try{await lireCommandes();await lireSuivi(id);}catch{}
+    }finally{propositionEnCours.current=false;}
   }
   const declarationEnCours=useRef(false);
   /** Déclaration du règlement : UN seul essai. Ensuite le suivi est relu (sans l'effacer) pour savoir ce que le serveur a vraiment enregistré avant de proposer de réessayer. */
@@ -133,12 +145,31 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       }}/>}
       <Action titre="Voir ou actualiser mes commandes" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
-      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&<Text style={s.texte}>Le restaurant a proposé une modification. Consultez-la sur le site avant de répondre.</Text>}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
+      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&(suivi.valeur.proposition===null?<Text style={s.texte}>Le restaurant a proposé une modification que l’application ne peut pas afficher. Actualisez ce suivi ou consultez-la sur le site avant de répondre.</Text>:<PropositionCarte proposition={suivi.valeur.proposition} totalActuel={suivi.valeur.totalGnf} confirmation={confirmerProposition} occupe={attente} choisir={setConfirmerProposition} repondre={accepter=>{void executer(()=>repondreProposition(suivi.id,suivi.valeur.proposition!.id,accepter));}}/>)}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
       <Action titre="Me déconnecter de cet appareil" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}
     <Text style={s.secondaire}>Vous pouvez commander en retrait ou en livraison depuis le panier lorsque vous êtes connecté.</Text>
   </ScrollView></SafeAreaView></Modal>;
+}
+/** Proposition révisée du restaurant : nouveaux montants, conditions, échéance, puis accepter ou refuser (avec confirmation, car la réponse est définitive). */
+function PropositionCarte({proposition:p,totalActuel,confirmation,occupe,choisir,repondre}:{proposition:PropositionClient;totalActuel:number;confirmation:'acceptee'|'refusee'|null;occupe:boolean;choisir(v:'acceptee'|'refusee'|null):void;repondre(accepter:boolean):void}){
+  const echue=p.expireLe!==null&&Date.parse(p.expireLe)<=Date.now();
+  return <ScrollView scrollEnabled={false} contentContainerStyle={s.carte}>
+    <Text accessibilityRole="header" style={s.nom}>Proposition du restaurant</Text>
+    <Text style={s.texte}>Nouveau total : {p.nouveauTotal.toLocaleString('fr-FR')} GNF (au lieu de {totalActuel.toLocaleString('fr-FR')} GNF).</Text>
+    <Text style={s.texte}>Plats : {p.nouveauSousTotal.toLocaleString('fr-FR')} GNF · Livraison : {p.nouveauxFraisLivraison.toLocaleString('fr-FR')} GNF</Text>
+    {p.conditionsModifiees!==null&&<Text style={s.texte}>Conditions : {p.conditionsModifiees}</Text>}
+    {p.expireLe!==null&&<Text style={s.secondaire}>{echue?'Cette proposition a expiré.':'À accepter avant le '+new Date(p.expireLe).toLocaleString('fr-FR')+'.'}</Text>}
+    {confirmation===null?<>
+      <Action titre="Accepter la proposition" disabled={occupe||echue} agir={()=>choisir('acceptee')}/>
+      <Action titre="Refuser la proposition" disabled={occupe||echue} agir={()=>choisir('refusee')}/>
+    </>:<>
+      <Text accessibilityRole="alert" style={s.texte}>{confirmation==='acceptee'?'Accepter cette proposition ? Les nouveaux montants seront retenus ; le restaurant devra encore confirmer votre commande.':'Refuser cette proposition ? Votre commande sera annulée.'}</Text>
+      <Action titre={confirmation==='acceptee'?'Oui, accepter':'Oui, refuser'} disabled={occupe} agir={()=>repondre(confirmation==='acceptee')}/>
+      <Action titre="Non, revenir" disabled={occupe} agir={()=>choisir(null)}/>
+    </>}
+  </ScrollView>;
 }
 function libelle(v:string){const noms:Record<string,string>={en_attente:'En attente du restaurant',acceptee:'Acceptée',refusee:'Refusée',prete:'Prête',terminee:'Terminée',annulee:'Annulée',expiree:'Expirée'};return noms[v]??'État : '+v.replaceAll('_',' ');}
 const s=StyleSheet.create({carte:{gap:12,padding:16,borderWidth:1,borderColor:c.bordure,borderRadius:18,backgroundColor:c.surface},contenu:{padding:22,gap:18,width:'100%',maxWidth:620,alignSelf:'center'},titre:{fontFamily:polices.titre,fontSize:34,color:c.encre},nom:{fontFamily:polices.titre,fontSize:23,color:c.encre},texte:{fontFamily:polices.texte,fontSize:15,lineHeight:23,color:c.encre},secondaire:{fontFamily:polices.texte,fontSize:12,lineHeight:19,color:c.secondaire},champ:{backgroundColor:c.surface,borderWidth:1,borderColor:c.bordure,borderRadius:16,padding:16,minHeight:54,fontFamily:polices.texte,fontSize:16,color:c.encre},bouton:{backgroundColor:c.action,minHeight:48,padding:14,borderRadius:26,alignItems:'center',justifyContent:'center'},boutonTexte:{color:c.surface,fontFamily:polices.texte,fontWeight:'700'}});

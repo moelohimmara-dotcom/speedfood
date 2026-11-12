@@ -376,6 +376,13 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if(v.ok!==true||typeof v.reference!=='string'||!v.reference.length||v.reference.length>40)throw new ErreurConnexion('Réponse d’annulation invalide.');
       return {reference:v.reference};
     },
+    /** Réponse du client à la proposition révisée du restaurant (route du site `suivi/proposition`). UN SEUL essai ; le jeton ne va que dans le corps ; seul `ok:true` vaut succès. */
+    async repondreProposition(jeton:string,propositionId:string,accepter:boolean):Promise<void> {
+      if(typeof propositionId!=='string'||!propositionId.length||propositionId.length>64)throw new ErreurConnexion('Proposition invalide. Actualisez le suivi.');
+      const v=await requete(ORIGINE_CATALOGUE+'/api/v1/suivi/proposition',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jeton,propositionId,reponse:accepter?'acceptee':'refusee'})},false,false,{
+        409:'Cette proposition n’est plus valable (expirée ou déjà traitée). Actualisez le suivi.',404:'Proposition introuvable. Actualisez le suivi.',400:'Réponse invalide : lien de suivi ou proposition invalide. Actualisez vos commandes.'});
+      if(v.ok!==true)throw new ErreurConnexion('Réponse invalide du serveur.');
+    },
     async espace(accessToken: string): Promise<ResumeCompte> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });
       if (v.ok !== true || !Array.isArray(v.favoris) || !Array.isArray(v.adresses) || v.favoris.length > 100 || v.adresses.length > 5) throw new ErreurConnexion('Impossible de lire votre espace client.');

@@ -49,6 +49,7 @@ export const QUESTIONS_AIDE: QuestionAide[] = [
   { question: 'Comment passer une commande ?', reponse: 'Choisissez un restaurant, ajoutez des plats au panier, ouvrez le panier puis touchez « Commander ». Il faut être connecté à votre compte Speedfood. Le restaurant confirme ensuite votre commande : elle n’est ferme qu’à ce moment-là.' },
   { question: 'Comment payer ?', reponse: 'Vous réglez directement le restaurant, selon les moyens qu’il accepte. Une fois votre commande acceptée, vous pouvez déclarer votre règlement dans « Mon compte ». Le paiement en ligne n’est pas encore disponible dans l’application.' },
   { question: 'Où suivre ma commande ?', reponse: 'Dans « Mon compte », touchez « Voir ou actualiser mes commandes » puis « Suivre » sur la commande voulue. Actualisez le suivi pour lire son état courant ; une notification vous prévient aussi à chaque étape si vous les avez autorisées.' },
+  { question: 'Le restaurant me propose un autre prix. Que faire ?', reponse: 'Dans « Mon compte », suivez la commande : la proposition s’affiche avec le nouveau total et ses conditions. Si vous l’acceptez, le restaurant doit encore confirmer votre commande. Si vous la refusez, la commande est annulée. Une proposition expire à l’heure indiquée.' },
   { question: 'Je ne reçois pas les notifications.', reponse: 'Vérifiez dans les réglages du téléphone que les notifications de Speedfood sont autorisées, et que vous êtes connecté. Elles nécessitent les services Google du téléphone. Sinon, actualisez le suivi dans « Mon compte ».' },
 ];
 

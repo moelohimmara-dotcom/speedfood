@@ -8,7 +8,7 @@ import type {CreationCommandePayload} from '../../../../packages/shared/src/cont
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -107,6 +107,16 @@ export class GestionSession {
     if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
     if(r.reference!==cle.reference)throw new ErreurConnexion('La réponse reçue ne correspond pas à cette commande.');
     return r.reference;
+  }
+  /** Répond à la proposition révisée de CETTE commande (un seul essai). Le jeton de suivi reste ici ; seule une session ouverte peut répondre. */
+  async repondreProposition(id:string,propositionId:string,accepter:boolean):Promise<void> {
+    const n=this.generation;
+    await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+    const cle=this.clesSuivi.get(id);if(!cle)throw new ErreurConnexion('Actualisez vos commandes pour répondre à cette proposition.');
+    if(!this.api.repondreProposition)throw new ErreurConnexion('Réponse à la proposition indisponible.');
+    await this.api.repondreProposition(cle.jeton,propositionId,accepter);
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
   }
   /** Déclare le règlement de CETTE commande (un seul essai). Le jeton de suivi reste ici ; seule une session ouverte peut déclarer, comme pour l'annulation. */
   async declarerPaiement(id:string,mode:string,reference:string|null):Promise<void> {

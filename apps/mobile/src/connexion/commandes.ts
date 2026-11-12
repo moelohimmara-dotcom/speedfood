@@ -1,7 +1,10 @@
 import { lireReglementOuNull, type ReglementSuivi } from './reglement.ts';
 export interface CommandeCompte { id:string; reference:string; creeLe:string; restaurantNom:string; mode:string; statut:string; totalGnf:number; estTest:boolean }
 export interface CommandeAvecCle extends CommandeCompte { jeton:string|null }
-export interface ResumeSuivi { reference:string; statut:string; etatDerive:string; mode:string; estTest:boolean; restaurantNom:string; totalGnf:number; pretEstimeeLe:string|null; propositionEnAttente:boolean; lignes:LigneSuivi[]; paiement:ReglementSuivi|null }
+/** Proposition révisée du restaurant, telle que le client la voit (parité Kotlin `PropositionSuivie`, ligne B7). */
+export interface PropositionClient { id:string; nouveauSousTotal:number; nouveauxFraisLivraison:number; nouveauTotal:number; conditionsModifiees:string|null; expireLe:string|null }
+/** `proposition` est `null` quand il n'y en a pas, OU quand elle est illisible : `propositionEnAttente` reste alors vrai (le règlement reste fermé) mais rien n'est répondable depuis l'appli. */
+export interface ResumeSuivi { reference:string; statut:string; etatDerive:string; mode:string; estTest:boolean; restaurantNom:string; totalGnf:number; pretEstimeeLe:string|null; propositionEnAttente:boolean; proposition:PropositionClient|null; lignes:LigneSuivi[]; paiement:ReglementSuivi|null }
 export interface LigneSuivi { nom:string; quantite:number; prixGnf:number; options:string[] }
 function invalide():never { throw Error('LECTURE_COMMANDE_INVALIDE'); }
 function objet(v:unknown):Record<string,unknown>{if(!v||typeof v!=='object'||Array.isArray(v))return invalide();return v as Record<string,unknown>;}
@@ -22,7 +25,15 @@ export function lireCommandes(v:Record<string,unknown>):CommandeAvecCle[]{
   return {id,reference:texte(o.reference,40),creeLe:date(o.creeLe),restaurantNom:texte(o.restaurantNom),mode:texte(o.mode,40),statut:texte(o.statut,40),totalGnf:montant(o.totalGnf),estTest:booleen(o.estTest),jeton:o.jeton==null?null:texte(o.jeton,1024)};
  });
 }
+function conditions(v:unknown):string|null{if(v==null)return null;if(typeof v!=='string'||v.length>1000||/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(v))return invalide();return v.trim().length?v:null;}
+/** Lecture stricte : au moindre doute la proposition est ignorée (`null`), jamais devinée. */
+function lireProposition(v:unknown):PropositionClient|null{
+ try{
+  const o=objet(v);const sous=montant(o.nouveauSousTotal);const frais=montant(o.nouveauxFraisLivraison);const total=sous+frais;if(!Number.isSafeInteger(total))return null;
+  return {id:texte(o.id,64),nouveauSousTotal:sous,nouveauxFraisLivraison:frais,nouveauTotal:total,conditionsModifiees:conditions(o.conditionsModifiees),expireLe:o.expireLe==null?null:date(o.expireLe)};
+ }catch{return null;}
+}
 export function lireSuivi(v:Record<string,unknown>):ResumeSuivi{
  if(v.ok!==true)return invalide();const o=objet(v.suivi);const total=montant(o.sousTotal)+montant(o.fraisLivraisonEstime);if(!Number.isSafeInteger(total))return invalide();
- return {reference:texte(o.reference,40),statut:texte(o.statut,40),etatDerive:texte(o.etatDerive,60),mode:texte(o.mode,40),estTest:booleen(o.estTest),restaurantNom:texte(objet(o.restaurant).nom),totalGnf:total,pretEstimeeLe:o.pretEstimeeLe===null?null:date(o.pretEstimeeLe),propositionEnAttente:o.propositionActive!=null,lignes:lignes(o.lignes),paiement:lireReglementOuNull(o.paiement)};
+ return {reference:texte(o.reference,40),statut:texte(o.statut,40),etatDerive:texte(o.etatDerive,60),mode:texte(o.mode,40),estTest:booleen(o.estTest),restaurantNom:texte(objet(o.restaurant).nom),totalGnf:total,pretEstimeeLe:o.pretEstimeeLe===null?null:date(o.pretEstimeeLe),propositionEnAttente:o.propositionActive!=null,proposition:o.propositionActive==null?null:lireProposition(o.propositionActive),lignes:lignes(o.lignes),paiement:lireReglementOuNull(o.paiement)};
 }
