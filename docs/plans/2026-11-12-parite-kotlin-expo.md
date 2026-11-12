@@ -26,13 +26,13 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | N° | Fonction Kotlin | Route(s) du site | État Expo | Lot |
 |---|---|---|---|---|
 | A1 | Connexion e-mail + mot de passe, renouvellement de session (`connecter`, `rafraichir`) | `/moi` et service d'authentification | Reprise (essais TEST réels, compte existant) | |
-| A2 | Inscription (`inscrire`) | service d'authentification | Codée, tests OK (inscription dans l'appli, e-mail de confirmation) ; essai émulateur à faire | 1 |
-| A3 | Mot de passe oublié (`demanderReinitialisation`) | service d'authentification | Codée, tests OK (lien de réinitialisation par e-mail) ; essai émulateur à faire | 1 |
+| A2 | Inscription (`inscrire`) | service d'authentification | Codée, tests OK (inscription dans l'appli, e-mail de confirmation) ; essai émulateur partiel le 12 novembre (écran et 4 validations locales : nom, téléphone, e-mail, mot de passe ; aucun envoi) ; inscription réelle à faire sur un compte jetable | 1 |
+| A3 | Mot de passe oublié (`demanderReinitialisation`) | service d'authentification | Codée, tests OK (lien de réinitialisation par e-mail) ; essai émulateur partiel le 12 novembre (écran et e-mail invalide ; aucun envoi) ; envoi réel à faire sur un compte désigné | 1 |
 | A4 | Connexion par code (`connecterAvecCode`) | service d'authentification | Absente (sert au retour de Facebook : voir A5) | 1 |
 | A5 | Connexion Facebook (fournisseur actif) | `/connexion/fournisseurs` | Absente, bloquée : il faut un client OAuth pour `com.speedfood.mobile` avec son empreinte, et l'application Facebook de Malika | 1 |
 | A6 | Connexion Google (non déclarée active par le site) | `/connexion/fournisseurs` | Absente, à ne reprendre que si Malika la réactive | à décider |
-| A7 | Verrou de l'appareil (biométrie ou code) | local | Codée, tests OK (règle portée, `expo-local-authentication`) ; essai sur téléphone à faire | 1 |
-| A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; essai émulateur à faire | 1 |
+| A7 | Verrou de l'appareil (biométrie ou code) | local | Codée, tests OK (règle portée, `expo-local-authentication`) ; réglage vu sur émulateur le 12 novembre avec un compte professionnel (désactivé ; branche « configurez d'abord un verrouillage d'écran » de l'émulateur vérifiée) ; activation et verrouillage à l'ouverture à essayer sur téléphone avec verrouillage configuré | 1 |
+| A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; panneau et garde-fou essayés sur émulateur le 12 novembre (mot faux : bouton désactivé ; fermé par « Non, garder », compte intact) ; suppression réelle à faire sur un compte jetable uniquement | 1 |
 | A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer : rôles lus, entrées restaurateur et livreur présentes ; l'écran « choix du profil » de l'ancienne appli n'existe pas dans Expo (décision de conception à prendre) | 1 |
 | A10 | Visite guidée au premier lancement | local | Absente | 4 |
 | A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Reprise (tests OK ; essayée sur émulateur le 12 novembre : numéro réel lu, boutons WhatsApp et appel, FAQ) | 1 |
@@ -48,11 +48,11 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | B4 | Commande retrait ou livraison, estimation de livraison, idempotence | `/commandes`, `/livraison/estimation` | Reprise (essais TEST réels) | |
 | B5 | Suivi d'une commande, liste « mes commandes » | `/suivi`, `/commandes` | Reprise (50 commandes maximum) | |
 | B6 | Annuler une commande avant la réponse du restaurant | `/suivi/annuler` | Reprise | |
-| B7 | Répondre à une proposition de prix du restaurant (`repondreProposition`) | `/suivi/proposition` | Codée, tests OK (accepter ou refuser, confirmation, un seul essai) ; essai émulateur à faire | 1 |
+| B7 | Répondre à une proposition de prix du restaurant (`repondreProposition`) | `/suivi/proposition` | Codée, tests OK (accepter ou refuser, confirmation, un seul essai) ; suivi lu sur émulateur le 12 novembre, mais aucune proposition en attente sur les commandes existantes (terminées ou annulées) : réponse à exercer sur un scénario dédié | 1 |
 | B8 | Paiement par code marchand, déclaration | `/suivi/paiement` | Reprise | |
-| B9 | Favoris (`basculerFavori`) | `/client/favoris` | Codée, tests OK (liste, retrait, cœur sur la fiche restaurant) ; essai émulateur à faire | 1 |
-| B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | Codée, tests OK (5 adresses, principale, suppression) ; essai émulateur à faire | 1 |
-| B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | Codée, tests OK (pseudo, avatar, mode préféré, notifications) ; essai émulateur à faire | 1 |
+| B9 | Favoris (`basculerFavori`) | `/client/favoris` | Reprise (essai émulateur du 12 novembre : état lu sur la fiche, ajout puis retrait, état restauré et relu à chaque fois) | 1 |
+| B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | Reprise (essai émulateur du 12 novembre : bouton désactivé à vide, adresse de test ajoutée relue « 1 sur 5 » puis supprimée, retour à « 0 sur 5 ») | 1 |
+| B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | Reprise (essai émulateur du 12 novembre : profil relu du serveur, mode préféré changé puis restauré, vérifié par réouverture de l'espace) | 1 |
 | B12 | Candidature : déposer, envoyer une image, lire, lire un menu (`deposer`, `envoyerImage`, `lire`, `lireMenu`) | `/candidature`, `/candidature/image`, `/candidature/menu-photo` | Absente | 4 |
 | B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | À confirmer | 4 |
 | B14 | Bandeau et notification de mise à jour | `/version` | Reprise (version d'essai : ouvre `/installer`) | |
@@ -69,7 +69,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | C5 | Émettre le document d'une commande (`emettreDocument`) | `/restaurant/commandes/document` | Absente | 2 |
 | C6 | Menu : lire et modifier (`menu`, `modifierMenu`) | `/restaurant/menu`, `/restaurant/menu/action` | Reprise | |
 | C7 | Photos de plats : envoyer, retirer (`envoyerPhoto`, `retirerPhoto`) | `/restaurant/menu/photo` | À confirmer (retrait non vérifié) | 2 |
-| C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Absente | 2 |
+| C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Codée, tests OK (lecture paginée stricte, lignes illisibles comptées, aucun essai émulateur : nouvel APK à compiler) ; essai émulateur à faire | 2 |
 | C9 | Réglages : charger, délai, horaires (`charger`, `enregistrerDelai`, `enregistrerHoraires`) | `/restaurant/reglages` | Reprise | |
 | C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Absente | 2 |
 | C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer (canal d'alerte présent, pas la sonnerie plein écran) | 2 |
@@ -113,7 +113,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 17 lignes reprises sur 65, 15 à confirmer, 33 absentes.
+Voir §8 : 20 lignes reprises sur 65, 13 à confirmer, 32 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -149,13 +149,13 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 | Famille | Lignes | Reprise | À confirmer | Absente |
 |---|---|---|---|---|
 | A. Accès, compte, profil | 12 | 1 | 4 | 7 |
-| B. Client | 15 | 8 | 5 | 2 |
-| C. Restaurateur | 13 | 6 | 3 | 4 |
+| B. Client | 15 | 11 | 2 | 2 |
+| C. Restaurateur | 13 | 6 | 4 | 3 |
 | D. Livreur | 10 | 2 | 3 | 5 |
 | E. Équipe | 15 | 0 | 0 | 15 |
-| **Total** | **65** | **17** | **15** | **33** |
+| **Total** | **65** | **20** | **13** | **32** |
 
-Soit **17 lignes sur 65 (26 %) réellement reprises** au sens du §1, **15 à confirmer** et **33 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **13 à confirmer** et **32 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -176,3 +176,18 @@ Code et tests écrits, **aucun essai sur émulateur ni sur téléphone encore** 
 Reste dans le lot 1 : **A4 et A5** (connexion Facebook, bloquée par le client OAuth et l'application Facebook), **A9** (décision de conception sur le choix du profil), **B15** (réception réelle d'une notification, à essayer avec un compte de test).
 
 À vérifier : l'espace client de Kotlin porte aussi une liste d'**avis** laissés (`EspaceClient.avis`), qui n'a pas de ligne dans la matrice. À relire côté Kotlin avant de dire que l'inventaire est complet.
+
+## Essais sur émulateur du lot 1 (12 novembre 2026, suite)
+
+Contrôles relancés avant les essais : tests mobile 677/677, `tsc` mobile 0, `typecheck` racine 0 (les 8 échecs vus en bac à sable venaient du bac à sable : mêmes fichiers à 10/10 hors bac à sable). Essais menés sur l'émulateur `speedfood-essai` (appli `com.speedfood.clientdemo` du lot), session connectée par Malika elle-même et laissée connectée ; aucune déconnexion, aucune suppression de compte, aucun déploiement. Captures et journaux hors dépôt.
+
+- **B9, B10, B11 passent en « Reprise »** : espace relu du serveur (profil, 0 adresse, 0 favori au départ) ; favori ajouté puis retiré sur la fiche, état relu à chaque fois ; adresse de test ajoutée (« 1 sur 5 ») puis supprimée (« 0 sur 5 ») ; mode préféré passé en Retrait, enregistré (« Modifications enregistrées. »), puis restauré en Livraison et vérifié par réouverture de l'espace.
+- **A2 et A3, essai partiel** : écrans et validations locales prouvés en captures (nom, téléphone, e-mail, mot de passe pour A2 ; e-mail invalide pour A3). Aucun envoi réel : l'inscription complète et le lien de réinitialisation demandent un compte jetable désigné.
+- **A8, garde-fou seulement** : panneau lu, mot faux (« TEST ») laissant le bouton de suppression désactivé, fermeture par « Non, garder mon compte », compte intact et session toujours connectée. La suppression réelle reste à faire sur un compte jetable.
+- **A7, partiel** : réglage affiché avec le compte professionnel connecté (désactivé) ; l'émulateur n'ayant pas de verrouillage d'écran, la branche « configurez d'abord un verrouillage d'écran » est vérifiée. Activation et écran de verrouillage à essayer sur un vrai téléphone.
+- **B7, non exercé** : liste et suivi lus (commandes TEST terminées ou annulées) ; aucune proposition en attente à répondre. Demande un scénario dédié (commande en attente + proposition du restaurant), à préparer avec un oui distinct.
+- **Incident d'automatisation pendant B11** : une saisie `adb` a temporairement altéré le pseudo affiché (« eloh toim ») et le mode est resté en Retrait après le premier essai de restauration. Corrigé dans la même session : pseudo « elohim » et mode Livraison réenregistrés, puis **vérifiés par réouverture de l'espace** (relecture serveur). Aucune autre donnée touchée ; adresses et favoris revenus à zéro comme au départ.
+
+## Lot 2 commencé : C8 historique du restaurateur (12 novembre 2026, suite)
+
+Premier code du lot 2, sur la branche en cours (à séparer au commit) : domaine pur `historique-restaurateur.ts` (lecture stricte d'une page : statuts finaux seulement, total = sous-total + frais, ligne illisible écartée et comptée, aucune coordonnée client retenue), client `historiqueRestaurant` (page vérifiée avant le réseau, un seul essai), session et section « Historique » de l'espace restaurateur (pages de 20, « Charger la suite » sans doublon, actualisation manuelle). Tests écrits avant le code : 7 nouveaux tests, suite mobile **684/684**, `tsc` mobile et typecheck racine à 0 ; le test des sections existant est mis à jour (Commandes, Service, Menu, Historique). **Aucun essai émulateur** : l'APK installé est une release figée, il faut compiler un nouvel APK de contrôle (CI) avant de marquer C8 « Reprise ». Aucun déploiement.
