@@ -4,6 +4,7 @@ import { Action } from './BoutonAction';
 import { ServiceMenuReel } from './ServiceMenuReel';
 import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
+import { SurveillanceCommandes } from './surveillance-commandes';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
@@ -87,7 +88,16 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   function oublierCode(commandeId: string) { setCodes(x => { if (!(commandeId in x)) return x; const n = { ...x }; delete n[commandeId]; return n; }); setErreursCode(x => { if (!(commandeId in x)) return x; const n = { ...x }; delete n[commandeId]; return n; }); }
   /** Un code tapé pour une commande dont la livraison n'est plus « en route » n'a plus lieu d'être : il est effacé. */
   function purgerCodes(l: ListeRestaurateur) { const enRoute = new Set(l.commandes.filter(x => x.livraison?.statut === 'vers_client').map(x => x.id)); setCodes(x => Object.fromEntries(Object.entries(x).filter(([id]) => enRoute.has(id)))); setErreursCode(x => Object.fromEntries(Object.entries(x).filter(([id]) => enRoute.has(id)))); }
-  function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null); }
+  // Alerte de nouvelle commande (C11, premier plan) : chaque liste lue passe par la surveillance portée de l'ancienne appli ; le bandeau ne parle que sur une vraie alerte.
+  const surveillanceRef = useRef(new SurveillanceCommandes());
+  const [alerteCommande, setAlerteCommande] = useState<string | null>(null);
+  function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null);
+    const tour = surveillanceRef.current.tourListe(l, Date.now());
+    if (tour.genre === 'suite') {
+      if (tour.alerter) setAlerteCommande(tour.aTraiter.length === 1 ? 'Nouvelle commande à traiter : ' + tour.aTraiter[0].reference + '.' : tour.aTraiter.length + ' commandes à traiter, dont ' + tour.aTraiter[0].reference + '.');
+      else if (tour.aTraiter.length === 0) setAlerteCommande(null);
+    }
+  }
   function messageErreur(e: unknown) { return e instanceof ErreurRestaurateur || e instanceof ErreurConnexion ? e.message : 'Impossible de lire les commandes. Réessayez.'; }
 
   /** Lecture MANUELLE de la liste (ouverture de l'écran et bouton « Actualiser »). Un seul essai ; une panne laisse la liste précédente. */
@@ -154,6 +164,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {section === 'activite' && activiteOuverte && <ActiviteReel />}
     {section === 'commandes' && <>
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
+    {alerteCommande && <Text accessibilityRole="alert" style={s.alerte}>{alerteCommande}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
@@ -246,6 +257,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 }
 
 const s = StyleSheet.create({
+  alerte: { fontFamily: polices.texte, fontSize: 16, lineHeight: 24, fontWeight: '700', color: c.action },
   sections: { flexDirection: 'row', gap: 8 },
   onglet: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.action, borderRadius: 22, backgroundColor: c.surface },
   ongletActif: { backgroundColor: c.action },
