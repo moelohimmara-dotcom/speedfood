@@ -26,16 +26,16 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | N° | Fonction Kotlin | Route(s) du site | État Expo | Lot |
 |---|---|---|---|---|
 | A1 | Connexion e-mail + mot de passe, renouvellement de session (`connecter`, `rafraichir`) | `/moi` et service d'authentification | Reprise (essais TEST réels, compte existant) | |
-| A2 | Inscription (`inscrire`) | service d'authentification | À confirmer | 1 |
-| A3 | Mot de passe oublié (`demanderReinitialisation`) | service d'authentification | À confirmer | 1 |
-| A4 | Connexion par code (`connecterAvecCode`) | service d'authentification | Absente | 1 |
-| A5 | Connexion Facebook (fournisseur actif) | `/connexion/fournisseurs` | Absente | 1 |
+| A2 | Inscription (`inscrire`) | service d'authentification | Codée, tests OK (inscription dans l'appli, e-mail de confirmation) ; essai émulateur à faire | 1 |
+| A3 | Mot de passe oublié (`demanderReinitialisation`) | service d'authentification | Codée, tests OK (lien de réinitialisation par e-mail) ; essai émulateur à faire | 1 |
+| A4 | Connexion par code (`connecterAvecCode`) | service d'authentification | Absente (sert au retour de Facebook : voir A5) | 1 |
+| A5 | Connexion Facebook (fournisseur actif) | `/connexion/fournisseurs` | Absente, bloquée : il faut un client OAuth pour `com.speedfood.mobile` avec son empreinte, et l'application Facebook de Malika | 1 |
 | A6 | Connexion Google (non déclarée active par le site) | `/connexion/fournisseurs` | Absente, à ne reprendre que si Malika la réactive | à décider |
-| A7 | Verrou de l'appareil (biométrie ou code) | local | Absente | 1 |
-| A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Absente | 1 |
-| A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer (rôles lus ; choix de profil non vérifié) | 1 |
+| A7 | Verrou de l'appareil (biométrie ou code) | local | Codée, tests OK (règle portée, `expo-local-authentication`) ; essai sur téléphone à faire | 1 |
+| A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; essai émulateur à faire | 1 |
+| A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer : rôles lus, entrées restaurateur et livreur présentes ; l'écran « choix du profil » de l'ancienne appli n'existe pas dans Expo (décision de conception à prendre) | 1 |
 | A10 | Visite guidée au premier lancement | local | Absente | 4 |
-| A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Absente | 1 |
+| A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Codée, tests OK (WhatsApp, appel, FAQ, liens légaux) ; essai émulateur à faire | 1 |
 | A12 | Liens profonds (`LiensProfonds`) | local | À confirmer | 4 |
 
 ### B. Client
@@ -48,11 +48,11 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | B4 | Commande retrait ou livraison, estimation de livraison, idempotence | `/commandes`, `/livraison/estimation` | Reprise (essais TEST réels) | |
 | B5 | Suivi d'une commande, liste « mes commandes » | `/suivi`, `/commandes` | Reprise (50 commandes maximum) | |
 | B6 | Annuler une commande avant la réponse du restaurant | `/suivi/annuler` | Reprise | |
-| B7 | Répondre à une proposition de prix du restaurant (`repondreProposition`) | `/suivi/proposition` | Absente | 1 |
+| B7 | Répondre à une proposition de prix du restaurant (`repondreProposition`) | `/suivi/proposition` | Codée, tests OK (accepter ou refuser, confirmation, un seul essai) ; essai émulateur à faire | 1 |
 | B8 | Paiement par code marchand, déclaration | `/suivi/paiement` | Reprise | |
-| B9 | Favoris (`basculerFavori`) | `/client/favoris` | À confirmer (écran présent) | 1 |
-| B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | À confirmer | 1 |
-| B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | À confirmer | 1 |
+| B9 | Favoris (`basculerFavori`) | `/client/favoris` | Codée, tests OK (liste, retrait, cœur sur la fiche restaurant) ; essai émulateur à faire | 1 |
+| B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | Codée, tests OK (5 adresses, principale, suppression) ; essai émulateur à faire | 1 |
+| B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | Codée, tests OK (pseudo, avatar, mode préféré, notifications) ; essai émulateur à faire | 1 |
 | B12 | Candidature : déposer, envoyer une image, lire, lire un menu (`deposer`, `envoyerImage`, `lire`, `lireMenu`) | `/candidature`, `/candidature/image`, `/candidature/menu-photo` | Absente | 4 |
 | B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | À confirmer | 4 |
 | B14 | Bandeau et notification de mise à jour | `/version` | Reprise (version d'essai : ouvre `/installer`) | |
@@ -159,3 +159,20 @@ Soit **17 lignes sur 65 (26 %) réellement reprises** au sens du §1, **15 à co
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
+
+## Avancement du lot 1 (12 novembre 2026, branche `lot1-client-securite`, non poussée)
+
+Code et tests écrits, **aucun essai sur émulateur ni sur téléphone encore** : ces lignes restent donc « Codée » et ne passent à « Reprise » qu'après les essais (règle du §1).
+
+| Ligne | Commit | Ce qui est fait |
+|---|---|---|
+| A11 Aide et contact | d16ddc6 | WhatsApp et appel (numéro lu sur `/aide`), FAQ, à propos, liens légaux |
+| B7 Propositions de prix | 14f3b5f | proposition lue en entier, accepter ou refuser avec confirmation, un seul essai, suivi relu après la réponse |
+| A8 Suppression de compte | 9379cb9 | mot SUPPRIMER vérifié avant le réseau, refus certain distingué de l'incertain, session et coffre effacés sans révocation distante |
+| A2 et A3 Inscription, mot de passe oublié | ebbeca8 | mêmes appels `signup` et `recover` que l'ancienne appli, règles locales, messages sans texte brut du serveur |
+| B9 à B11 Profil, adresses, favoris | 9d96a95 | écran « Mon espace », cœur de favori sur la fiche restaurant, écritures jamais rejouées (un favori se bascule) |
+| A7 Verrou des espaces pro | d42a1ff | règle portée à l'identique, branchement `expo-local-authentication` (nouvelle dépendance officielle d'Expo) |
+
+Reste dans le lot 1 : **A4 et A5** (connexion Facebook, bloquée par le client OAuth et l'application Facebook), **A9** (décision de conception sur le choix du profil), **B15** (réception réelle d'une notification, à essayer avec un compte de test).
+
+À vérifier : l'espace client de Kotlin porte aussi une liste d'**avis** laissés (`EspaceClient.avis`), qui n'a pas de ligne dans la matrice. À relire côté Kotlin avant de dire que l'inventaire est complet.
