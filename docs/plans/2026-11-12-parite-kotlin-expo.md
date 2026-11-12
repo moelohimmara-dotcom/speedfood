@@ -1,0 +1,161 @@
+# Parité Kotlin vers Expo : matrice et plan de reprise (12 novembre 2026)
+
+> **Plan et inventaire seulement.** Aucun code d'application n'est modifié par ce document. Aucun déploiement, aucune migration, aucun secret. Chaque lot de reprise sera livré sur sa propre branche, avec tests écrits avant le code, essai sur émulateur et, pour les lignes critiques, essai sur un vrai téléphone. Les déploiements en production exigent un feu vert distinct de Malika.
+
+## 1. Décision de Malika et règle de remplacement
+
+**Décision (12 novembre 2026) :** reprendre dans la nouvelle appli Expo (`com.speedfood.mobile`) **toutes** les fonctions de l'ancienne appli Kotlin (`com.speedfood.app`, 2.47.0), **y compris l'espace Équipe**. Dès que l'on est sûr que la nouvelle appli contient tout ce que contient l'ancienne, la remplacer.
+
+**Ce que « remplacer » veut dire.** La clé de signature de l'ancienne appli est perdue : Android refuse toute mise à jour par-dessus. Remplacer signifie faire de la nouvelle appli la **principale** sur `/installer`, inviter les utilisateurs à l'installer, puis à supprimer l'ancienne. L'ancienne ne peut pas être retirée des téléphones à distance. La nouvelle appli est publiée aujourd'hui comme « version d'essai » à côté de l'ancienne (voir `2026-11-11-nouvelle-identite-android.md`).
+
+**Quand une ligne est « Reprise » (porte de sortie).** Une fonction n'est comptée comme reprise que si les cinq conditions sont réunies : (1) l'écran existe dans Expo ; (2) il appelle la même route du site que Kotlin ; (3) des tests écrits avant le code la couvrent, y compris les refus ; (4) elle a été essayée sur émulateur ; (5) pour les lignes critiques (commande, paiement, livreur, Équipe), elle a été essayée sur un vrai téléphone. Sans cela, la ligne reste « À confirmer » ou « Absente ». **Le remplacement n'est proposé que lorsque toutes les lignes sont « Reprise », avec validation de Malika.**
+
+## 2. Constat technique qui borne l'effort
+
+- Le site expose **78 routes `/api/v1/…`** (`apps/web/src/app/api/v1`), dont une trentaine sous `/equipe/…`. L'ancienne appli les appelle directement (`siteUrl` + `/api/v1/…`, couche `mobile/shared/src/commonMain/kotlin/com/speedfood/app/data/`). **La nouvelle appli peut utiliser les mêmes routes : il n'y a pas de serveur à écrire pour reprendre l'Équipe.** Le travail est : code client, écrans, tests, essais.
+- Les contrôles d'accès restent côté serveur (rôle du compte, droits d'équipe). L'appli ne tranche jamais un droit toute seule (règle du dépôt).
+- Ce qui n'est PAS que de l'interface : fonctions natives Android (service de premier plan, position GPS, sonnerie plein écran, verrou biométrique, connexion Facebook). Elles demandent des modules natifs ou des plugins de configuration Expo, des permissions, et des essais sur appareil réel.
+- État du serveur de connexion (lu le 12 novembre) : `GET /api/v1/connexion/fournisseurs` renvoie `{"facebook": true}` : la connexion **Facebook** est active et doit être reprise ; Google n'est pas déclaré actif.
+
+## 3. Matrice
+
+Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les preuves du dépôt (passation du 8 au 10 novembre) ; **À confirmer** = du code existe mais la parité n'est pas prouvée, ou l'inventaire du 12 novembre ne suffit pas à trancher (à relire écran par écran avant de décider) ; **Absente** = rien d'équivalent trouvé dans `apps/mobile/src`. L'inventaire du 12 novembre est fait sur les opérations des interfaces de la couche données Kotlin (`suspend fun` de chaque `XxxApi`) et sur un recoupement par mots-clés du code Expo : il est fiable pour « Absente », indicatif pour « À confirmer ».
+
+### A. Accès, compte, profil
+
+| N° | Fonction Kotlin | Route(s) du site | État Expo | Lot |
+|---|---|---|---|---|
+| A1 | Connexion e-mail + mot de passe, renouvellement de session (`connecter`, `rafraichir`) | `/moi` et service d'authentification | Reprise (essais TEST réels, compte existant) | |
+| A2 | Inscription (`inscrire`) | service d'authentification | À confirmer | 1 |
+| A3 | Mot de passe oublié (`demanderReinitialisation`) | service d'authentification | À confirmer | 1 |
+| A4 | Connexion par code (`connecterAvecCode`) | service d'authentification | Absente | 1 |
+| A5 | Connexion Facebook (fournisseur actif) | `/connexion/fournisseurs` | Absente | 1 |
+| A6 | Connexion Google (non déclarée active par le site) | `/connexion/fournisseurs` | Absente, à ne reprendre que si Malika la réactive | à décider |
+| A7 | Verrou de l'appareil (biométrie ou code) | local | Absente | 1 |
+| A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Absente | 1 |
+| A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer (rôles lus ; choix de profil non vérifié) | 1 |
+| A10 | Visite guidée au premier lancement | local | Absente | 4 |
+| A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Absente | 1 |
+| A12 | Liens profonds (`LiensProfonds`) | local | À confirmer | 4 |
+
+### B. Client
+
+| N° | Fonction Kotlin | Route(s) du site | État Expo | Lot |
+|---|---|---|---|---|
+| B1 | Accueil, liste et recherche de restaurants, disponibilité | catalogue | Reprise | |
+| B2 | Fiche restaurant, menu, fiche plat | catalogue | Reprise | |
+| B3 | Panier persistant, plats par restaurant | local | Reprise | |
+| B4 | Commande retrait ou livraison, estimation de livraison, idempotence | `/commandes`, `/livraison/estimation` | Reprise (essais TEST réels) | |
+| B5 | Suivi d'une commande, liste « mes commandes » | `/suivi`, `/commandes` | Reprise (50 commandes maximum) | |
+| B6 | Annuler une commande avant la réponse du restaurant | `/suivi/annuler` | Reprise | |
+| B7 | Répondre à une proposition de prix du restaurant (`repondreProposition`) | `/suivi/proposition` | Absente | 1 |
+| B8 | Paiement par code marchand, déclaration | `/suivi/paiement` | Reprise | |
+| B9 | Favoris (`basculerFavori`) | `/client/favoris` | À confirmer (écran présent) | 1 |
+| B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | À confirmer | 1 |
+| B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | À confirmer | 1 |
+| B12 | Candidature : déposer, envoyer une image, lire, lire un menu (`deposer`, `envoyerImage`, `lire`, `lireMenu`) | `/candidature`, `/candidature/image`, `/candidature/menu-photo` | Absente | 4 |
+| B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | À confirmer | 4 |
+| B14 | Bandeau et notification de mise à jour | `/version` | Reprise (version d'essai : ouvre `/installer`) | |
+| B15 | Notifications push du client (enregistrer, retirer, jeton, essai) | `/appareils`, `/appareils/essai` | À confirmer : enregistrement fait, réception réelle d'une notification jamais vue | 1 |
+
+### C. Restaurateur
+
+| N° | Fonction Kotlin | Route(s) du site | État Expo | Lot |
+|---|---|---|---|---|
+| C1 | Commandes en cours et actions (`etat`, `agir`) | `/restaurant/commandes`, `/restaurant/commandes/action` | Reprise | |
+| C2 | Ouvrir ou fermer le restaurant (`definirStatut`) | `/restaurant/statut` | Reprise | |
+| C3 | Proposer un autre prix (`proposer`) | `/restaurant/commandes/proposition` | Reprise | |
+| C4 | Confirmer un paiement (`confirmerPaiement`) | `/restaurant/commandes/paiement` | Reprise | |
+| C5 | Émettre le document d'une commande (`emettreDocument`) | `/restaurant/commandes/document` | Absente | 2 |
+| C6 | Menu : lire et modifier (`menu`, `modifierMenu`) | `/restaurant/menu`, `/restaurant/menu/action` | Reprise | |
+| C7 | Photos de plats : envoyer, retirer (`envoyerPhoto`, `retirerPhoto`) | `/restaurant/menu/photo` | À confirmer (retrait non vérifié) | 2 |
+| C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Absente | 2 |
+| C9 | Réglages : charger, délai, horaires (`charger`, `enregistrerDelai`, `enregistrerHoraires`) | `/restaurant/reglages` | Reprise | |
+| C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Absente | 2 |
+| C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer (canal d'alerte présent, pas la sonnerie plein écran) | 2 |
+| C12 | Service de surveillance au premier plan (`SurveillanceRestaurateurService`) | `/restaurant/commandes` | Absente (module natif) | 2 |
+| C13 | Notifications du restaurateur (nouvelle commande, clic) | `/appareils` | À confirmer : essai émulateur fait, réception réelle d'une notification jamais vue | 2 |
+
+### D. Livreur
+
+| N° | Fonction Kotlin | Route(s) du site | État Expo | Lot |
+|---|---|---|---|---|
+| D1 | Fiche, dossier et état (`dossier`, `etat`) | `/livreur/etat` | Reprise (G1, G2) | |
+| D2 | Disponibilité en ligne (`enLigne`) | `/livreur/en-ligne` | Reprise (G2) | |
+| D3 | Répondre à une offre (`repondreOffre`) | `/livreur/offre` | À confirmer : code et essai émulateur faits (G3), jamais essayée contre la vraie base ni sur téléphone | 3 |
+| D4 | Avancer une course, code de remise (`avancer`) | `/livreur/course` | À confirmer : code et essai émulateur faits (G3), idem | 3 |
+| D5 | File des courses (`file`) | `/livreur/etat` | À confirmer | 3 |
+| D6 | Historique des courses (`historique`) | `/livreur/…` | Absente | 3 |
+| D7 | Gains (écran Gains) | `/livreur/gains` | Absente | 3 |
+| D8 | Aide du livreur (écran Aide) | local ou `/aide` | Absente | 3 |
+| D9 | Position GPS et service de premier plan (`position`, `SuiviLivreur.tour`, `SuiviLivreurService`) | `/livreur/position` | Absente (permission, module natif) | 3 |
+| D10 | Activité du livreur (`Activite.livreur`) | `/restaurant/activite` ou `/livreur/…` | Absente | 3 |
+
+### E. Équipe (15 modules, aucun dans Expo)
+
+| N° | Module Kotlin (opérations) | Route(s) du site | État Expo | Lot |
+|---|---|---|---|---|
+| E1 | Tableau, exploitation, moi, commandes, détail, changer le statut, révéler les coordonnées, répartition, actions livraison et livreur (`Equipe`) | `/equipe/tableau`, `/equipe/moi`, `/equipe/commandes(/[id])`, `/equipe/livraisons`, `/equipe/livreurs/action`, `/equipe/repartition` | Absente | 5 |
+| E2 | Finances (`finances`) | `/equipe/finances` | Absente | 5 |
+| E3 | Paiements (`paiements`) | `/equipe/paiements` | Absente | 5 |
+| E4 | Restaurants : liste, fiche, enregistrer le profil (`restaurants`, `fiche`, `enregistrerProfil`) | `/equipe/restaurants(/[id](/profil))` | Absente | 6 |
+| E5 | Menus et photos : lire, importer ; confirmer et disponibilité (`lire`, `importer`, `reconfirmer`, `definirDisponibilite`) | `/equipe/menus(/[id](/photo, /import), /confirmer, /disponibilite)` | Absente | 6 |
+| E6 | Référencements : demandes, changer le statut, créer un établissement, rattacher un compte, options | `/equipe/referencements(/…)` | Absente | 6 |
+| E7 | Partenariats : liste, changer le statut | `/equipe/partenariats(/statut)` | Absente | 6 |
+| E8 | Avis : lister, modérer (`avis`, `moderer`) | `/equipe/avis(/moderation)` | Absente | 7 |
+| E9 | Bannières et médias (`bannieres`, `medias`) | `/equipe/bannieres`, `/equipe/medias` | Absente | 7 |
+| E10 | Paramètres (`parametres`) | `/equipe/parametres` | Absente | 7 |
+| E11 | Comptes (`comptes`) | `/equipe/comptes` | Absente | 8 |
+| E12 | Audit (`audit`) | `/equipe/audit` | Absente | 8 |
+| E13 | Liste d'attente : zones, marquer comme prévenu (`zones`, `marquerPrevenue`) | `/equipe/liste-attente(/prevenue)` | Absente | 8 |
+| E14 | Mises à jour : annonces de version (`misesAJour`) | `/equipe/mises-a-jour` | Absente | 8 |
+| E15 | Activité et vue d'ensemble de l'équipe | `/equipe/tableau` | Absente | 5 |
+
+## 4. Totaux au 12 novembre 2026
+
+Voir §8 : 17 lignes reprises sur 65, 15 à confirmer, 33 absentes.
+
+## 5. Lots proposés (ordre de reprise)
+
+L'ordre suit la valeur pour les utilisateurs actuels et le risque : d'abord ce qui manque à tout le monde ou qui est exigé par les boutiques, ensuite les métiers, ensuite l'administration.
+
+- **Lot 1, client et sécurité (A2 à A5, A7 à A9, A11, B7 à B11, B15).** Suppression de compte, proposition de prix, connexion Facebook et par code, verrou, mot de passe oublié, inscription, aide, favoris, adresses, espace client, réception réelle d'une notification. C'est le socle sans lequel un client ne peut pas quitter l'ancienne appli.
+- **Lot 2, restaurateur complet (C5, C7, C8, C10 à C13).** Documents, historique, activité, photos, sonnerie, service de surveillance au premier plan.
+- **Lot 3, livreur complet (D3 à D10).** Essai des offres et courses contre la vraie base, gains, historique, aide, position GPS et service de premier plan.
+- **Lot 4, reste du client (A10, A12, B12, B13).** Visite guidée, liens profonds, candidature, cache hors ligne.
+- **Lots 5 à 8, Équipe.** Lot 5 : exploitation, finances, paiements. Lot 6 : restaurants, menus, référencements, partenariats. Lot 7 : avis, bannières et médias, paramètres. Lot 8 : comptes, audit, liste d'attente, mises à jour.
+- **Lot 9, parité finale et remplacement.** Revue ligne par ligne de cette matrice, essais sur plusieurs téléphones (dont un 32 bits), décision de Malika, puis `/installer` : la nouvelle appli devient la principale et l'ancienne passe en second.
+
+Pour chaque lot : tests écrits avant le code (y compris les refus), relecture indépendante, contrôles du dépôt (types, qualité, tests, cloisonnement), compilation par la CI, signature par Malika, essai sur émulateur puis téléphone, déploiement seulement avec un feu vert.
+
+## 6. Points durs et risques
+
+1. **Modules natifs** (service de premier plan, GPS, sonnerie plein écran, verrou biométrique, Facebook) : ils demandent des plugins de configuration Expo, des permissions, et des essais sur un vrai téléphone, car l'émulateur ne les prouve pas toujours. Les restrictions des services de premier plan sous Android récent peuvent obliger à adapter le comportement de l'ancienne appli.
+2. **Connexion Facebook :** il faut un client configuré pour le nouvel identifiant `com.speedfood.mobile` et la nouvelle empreinte de signature. À préparer avec Malika (compte développeur Facebook).
+3. **Équipe :** ce sont des actions sensibles (paiements, comptes, finances). Les routes du site contrôlent les droits ; le client doit seulement afficher et envoyer, jamais décider. Chaque écran sera testé avec un compte sans droit (refus attendu).
+4. **Taille et performance :** l'APK est déjà de 62 Mio. Ajouter une quinzaine de consoles et des modules natifs l'alourdira ; surveiller.
+5. **Téléphones 32 bits :** `armeabi-v7a` n'a jamais été exécuté sur un appareil. À prouver avant le remplacement.
+6. **Parité fonctionnelle, pas visuelle :** la nouvelle appli peut avoir une autre interface ; ce qui compte, c'est que chaque fonction existe et se comporte de même. Toute différence voulue est consignée ici avec la décision de Malika.
+7. **Données locales :** les données locales de l'ancienne appli (panier, session) ne passent pas dans la nouvelle ; les données serveur (comptes, commandes) restent.
+
+## 7. Questions ouvertes pour Malika
+
+- Connexion Google : la reprendre quand même, ou non (le site ne la déclare pas active) ?
+- Date visée pour le remplacement, et durée pendant laquelle l'ancienne reste proposée ensuite ?
+- Priorité si l'on doit arbitrer : lots métiers (2 et 3) avant le lot 1 ?
+
+## 8. Totaux calculés
+
+| Famille | Lignes | Reprise | À confirmer | Absente |
+|---|---|---|---|---|
+| A. Accès, compte, profil | 12 | 1 | 4 | 7 |
+| B. Client | 15 | 8 | 5 | 2 |
+| C. Restaurateur | 13 | 6 | 3 | 4 |
+| D. Livreur | 10 | 2 | 3 | 5 |
+| E. Équipe | 15 | 0 | 0 | 15 |
+| **Total** | **65** | **17** | **15** | **33** |
+
+Soit **17 lignes sur 65 (26 %) réellement reprises** au sens du §1, **15 à confirmer** et **33 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+
+## Journal
+- 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
