@@ -1,5 +1,6 @@
 import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
 import type {CommandeCompte} from './commandes.ts';
+import type {ActionAdresse, ChampsProfil, EspaceComplet} from './espace-client.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
 import type {ActionLivraisonApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, ValeursPropositionRestaurateur} from './restaurateur.ts';
@@ -8,7 +9,7 @@ import type {CreationCommandePayload} from '../../../../packages/shared/src/cont
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -138,6 +139,27 @@ export class GestionSession {
     if(!this.api.repondreProposition)throw new ErreurConnexion('Réponse à la proposition indisponible.');
     await this.api.repondreProposition(cle.jeton,propositionId,accepter);
     if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+  }
+  /** Appel de l'espace client avec le porteur de la session ouverte : une réponse arrivée après une déconnexion est refusée ; un 401 termine la session. Aucune relance. */
+  private async espaceClient<T>(appel: (acces: string) => Promise<T>, annule: string): Promise<T> {
+    const n = this.generation;
+    const acces = await this.jeton();
+    if (n !== this.generation) throw new ErreurConnexion(annule);
+    try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
+    catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Profil, adresses et favoris complets (B9 à B11). */
+  espaceComplet(): Promise<EspaceComplet> {
+    return this.espaceClient(a => this.api.espaceComplet ? this.api.espaceComplet(a) : Promise.reject(new ErreurConnexion('Espace client indisponible.')), 'Lecture annulée.');
+  }
+  basculerFavori(restaurantId: string): Promise<{ message: string; favori: boolean }> {
+    return this.espaceClient(a => this.api.basculerFavori ? this.api.basculerFavori(a, restaurantId) : Promise.reject(new ErreurConnexion('Favoris indisponibles.')), 'Envoi annulé.');
+  }
+  enregistrerProfil(champs: ChampsProfil): Promise<{ message: string }> {
+    return this.espaceClient(a => this.api.enregistrerProfil ? this.api.enregistrerProfil(a, champs) : Promise.reject(new ErreurConnexion('Profil indisponible.')), 'Envoi annulé.');
+  }
+  actionAdresse(action: ActionAdresse): Promise<{ message: string }> {
+    return this.espaceClient(a => this.api.actionAdresse ? this.api.actionAdresse(a, action) : Promise.reject(new ErreurConnexion('Adresses indisponibles.')), 'Envoi annulé.');
   }
   /**
    * Supprime le compte connecté (un seul essai). Succès : plus rien du compte ne reste sur l'appareil (session, coffre, clés de suivi) et les départs de notification sont fermés SANS jeton

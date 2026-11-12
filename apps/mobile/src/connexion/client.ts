@@ -2,6 +2,7 @@ import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte.ts';
 import { traduireErreurAuth, verifierEmail, verifierInscription } from './auth-publique.ts';
+import { ErreurEspaceClient, estUuid, lireEspaceComplet, validerAdresse, validerPseudo, verifierProfil, type ActionAdresse, type ChampsProfil, type EspaceComplet } from './espace-client.ts';
 import { normaliserTelephone } from '../../../../packages/shared/src/commande/telephone.ts';
 import { SITE_WEB } from './aide.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
@@ -248,7 +249,64 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       try { confirmer(corps); } catch { throw new ErreurLivreur('incertain', textes.illisible); }
     } finally { clearTimeout(timer); }
   }
+  /**
+   * Écriture de l'espace client (profil, adresses, favoris) : UN SEUL essai, jamais rejouée toute seule (un favori se BASCULE, une adresse s'AJOUTE). 401 = session terminée ; 400 (message du serveur,
+   * s'il est lisible) et 429 = `refus` (rien d'enregistré) ; réseau, délai, autre statut ou réponse illisible = `incertain` (l'appelant relit l'espace). Le porteur n'est que dans l'en-tête.
+   */
+  async function ecritureEspace(accessToken: string, chemin: string, corpsEnvoye: object, avecFavori = false): Promise<{ message: string; favori?: boolean }> {
+    const incertain = () => new ErreurEspaceClient('incertain', 'Impossible de confirmer l’enregistrement. Actualisez pour voir l’état réel.');
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try { r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/client/'+chemin, { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body:JSON.stringify(corpsEnvoye) }); }
+    catch { clearTimeout(timer); throw incertain(); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const t = await r.text(); if (t.length <= 262144) corps = JSON.parse(t); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 429) throw new ErreurEspaceClient('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (r.status === 400) throw new ErreurEspaceClient('refus', messageServeurLivreur(corps) ?? 'La modification n’a pas été enregistrée. Réessayez dans un instant.');
+      if (!r.ok || !corps || typeof corps !== 'object' || (corps as { ok?: unknown }).ok !== true) throw incertain();
+      const o = corps as { message?: unknown; favori?: unknown };
+      if (avecFavori && typeof o.favori !== 'boolean') throw incertain();
+      const message = messageServeurLivreur({ erreur: { message: o.message } }) ?? 'Enregistré.';
+      return avecFavori ? { message, favori: o.favori as boolean } : { message };
+    } finally { clearTimeout(timer); }
+  }
   return {
+    /** Espace client complet (profil, adresses, favoris) : lecture seule, un seul essai. */
+    async espaceComplet(accessToken: string): Promise<EspaceComplet> {
+      const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });
+      try { return lireEspaceComplet(v); } catch { throw new ErreurConnexion('Votre espace est illisible. Réessayez dans un instant.'); }
+    },
+    /** Favori (B9) : bascule ajout/retrait. Le résultat dit l'état voulu par le serveur ; un résultat incertain se règle en relisant l'espace, jamais en rejouant. */
+    async basculerFavori(accessToken: string, restaurantId: string): Promise<{ message: string; favori: boolean }> {
+      if (!estUuid(restaurantId)) throw new ErreurEspaceClient('refus', 'Restaurant introuvable.');
+      const r = await ecritureEspace(accessToken, 'favoris', { restaurantId }, true);
+      return { message: r.message, favori: r.favori === true };
+    },
+    /** Profil (B11) : seuls les champs fournis changent. Règles vérifiées avant le réseau. */
+    async enregistrerProfil(accessToken: string, champs: ChampsProfil): Promise<{ message: string }> {
+      const probleme = verifierProfil(champs);
+      if (probleme !== null) throw new ErreurEspaceClient('refus', probleme);
+      const corps: Record<string, unknown> = {};
+      if (champs.pseudo !== undefined) { const v = validerPseudo(champs.pseudo); if (v.ok) corps.pseudo = v.pseudo; }
+      if (champs.avatar !== undefined) corps.avatar = champs.avatar;
+      if (champs.modePrefere !== undefined) corps.modePrefere = champs.modePrefere;
+      if (champs.notificationsCommande !== undefined) corps.notificationsCommande = champs.notificationsCommande;
+      return ecritureEspace(accessToken, 'profil', corps);
+    },
+    /** Carnet d'adresses (B10) : ajouter, supprimer ou définir la principale. Règles vérifiées avant le réseau. */
+    async actionAdresse(accessToken: string, a: ActionAdresse): Promise<{ message: string }> {
+      if (a.action === 'ajouter') {
+        const v = validerAdresse(a.libelle, a.adresse);
+        if (!v.ok) throw new ErreurEspaceClient('refus', v.erreur);
+        return ecritureEspace(accessToken, 'adresses', { action: 'ajouter', libelle: v.libelle, adresse: v.adresse });
+      }
+      if ((a.action !== 'supprimer' && a.action !== 'defaut') || !estUuid(a.adresseId)) throw new ErreurEspaceClient('refus', 'Adresse inconnue.');
+      return ecritureEspace(accessToken, 'adresses', { action: a.action, adresseId: a.adresseId });
+    },
     /**
      * Inscription (parité A2, route `signup` du service d'authentification, mêmes données que l'ancienne appli). Règles vérifiées AVANT le réseau. Rend la session si le service n'exige pas de confirmation
      * d'e-mail, sinon `null` (un e-mail de confirmation est parti). Une adresse déjà inscrite reçoit la même réponse qu'une nouvelle : on ne révèle pas qui a un compte. Un seul essai.

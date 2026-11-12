@@ -9,6 +9,7 @@ import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
 import { AideReelle } from '../connexion/AideReelle';
+import { FavoriFiche } from '../connexion/FavoriFiche';
 import { CommandeReelle } from './CommandeReelle';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
@@ -84,6 +85,7 @@ export function CatalogueReel() {
       <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
+      {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>
       <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
       <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />

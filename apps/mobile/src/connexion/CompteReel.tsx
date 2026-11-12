@@ -7,6 +7,7 @@ import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
 import { InscriptionReelle, OubliReel } from './AccesReel';
+import { EspaceClientReel } from './EspaceClientReel';
 import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
 import { LivreurReel } from './LivreurReel';
@@ -29,6 +30,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   const [confirmerProposition,setConfirmerProposition]=useState<'acceptee'|'refusee'|null>(null);
   const [acces,setAcces]=useState<'connexion'|'inscription'|'oubli'>('connexion');
+  const [espaceOuvert,setEspaceOuvert]=useState(false);
   const [suppressionOuverte,setSuppressionOuverte]=useState(false);const [motSuppression,setMotSuppression]=useState('');
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
   const [restaurateur,setRestaurateur]=useState<boolean|null>(null);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
@@ -144,6 +146,12 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     const retour=()=>{setLivreurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
     return <Modal visible={ouvert} onRequestClose={retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><LivreurReel session={gestion} fermer={retour}/></SafeAreaView></Modal>;
   }
+  if(espaceOuvert&&connectee){
+    // Au retour (ou si la session prend fin pendant l'espace), l'état de la session est relu : un 401 renvoie au formulaire de connexion.
+    const retour=()=>{setEspaceOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}else void executer(async()=>{setProfil(await gestion.espace());});};
+    const terminee=()=>{setEspaceOuvert(false);setConnectee(gestion.connectee);setProfil(null);effacerLectures();setErreur('Votre session a pris fin. Reconnectez-vous.');};
+    return <EspaceClientReel ouvert={ouvert} fermer={retour} sessionTerminee={terminee}/>;
+  }
   return <Modal visible={ouvert} onRequestClose={fermerFormulaire} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au catalogue" agir={fermerFormulaire}/><Text accessibilityRole="header" style={s.titre}>Mon compte</Text>
     <Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>
@@ -163,6 +171,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
       {profil?<><Text style={s.texte}>{profil.pseudo??'Profil à compléter sur le site'}</Text><Text style={s.texte}>{profil.favoris} favori(s) · {profil.adresses} adresse(s) enregistrée(s)</Text></>:<Text style={s.texte}>Votre espace n’a pas encore pu être lu.</Text>}
       <Action titre="Actualiser mon espace" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
+      <Action titre="Mon profil, mes adresses et mes favoris" disabled={attente} agir={()=>setEspaceOuvert(true)}/>
       {livreur&&<Action titre="Espace livreur" disabled={attente} agir={()=>setLivreurOuvert(true)}/>}
       {restaurateur&&<Action titre="Espace restaurateur" disabled={attente} agir={()=>{
         void notifications.apresContexteRestaurateur(true).then(e=>{if(e)setMessage(MESSAGES_ETAT_RESTO[e]);});
