@@ -1,8 +1,9 @@
 name: Android Expo (candidat de remplacement, NON publié)
 
-# Prépare le CANDIDAT qui remplacerait l'APK Kotlin (com.speedfood.app) : identité de production, code supérieur au code publié, cible Android 37.
+# Prépare le CANDIDAT de la NOUVELLE appli Speedfood (com.speedfood.mobile) : identité de production, code supérieur au dernier code de l'ancienne appli Kotlin, cible Android 37.
+# Elle s'installe À CÔTÉ de l'ancienne (com.speedfood.app, dont la clé est perdue) : plan docs/plans/2026-11-11-nouvelle-identite-android.md.
 # Il n'est PAS signé avec la clé de production (elle reste chez Malika, jamais dans GitHub) : l'APK sortie est signée avec la clé de DEBUG du modèle Expo.
-# Elle ne doit JAMAIS être publiée telle quelle. Procédure : docs/plans/2026-11-01-remplacement-apk-expo.md (signature par Malika, contrôle, essai sur appareil).
+# Elle ne doit JAMAIS être publiée telle quelle. Procédure : signature par Malika (docs/SIGNATURE-CANDIDAT-EXPO.md), contrôle, essai sur appareil.
 # Ne se déclenche que sur une branche « candidat-* » (jamais sur etape-* ni master) ; valeurs lues dans apps/mobile/candidat-android.json.
 on:
   push:
@@ -64,21 +65,42 @@ jobs:
           echo "Installation de $PAQUET"
           "$SDKM" "$PAQUET"
 
+      # Configuration Firebase (notifications) : fichier ignoré par Git, fourni par le secret GOOGLE_SERVICES_JSON_B64 (posé par Malika).
+      # Sans ce fichier, la compilation reste verte mais l'appli n'a AUCUNE notification (« Default FirebaseApp failed to initialize » constaté à l'émulateur le 12 novembre 2026).
+      - name: Poser la configuration Firebase
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > apps/mobile/google-services.json
+            echo "Configuration Firebase posee."
+          else
+            echo "Secret GOOGLE_SERVICES_JSON_B64 absent : le candidat n'aurait pas de notifications."
+            exit 1
+          fi
+
       - name: Générer le projet natif Android (identité de production)
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --no-install
 
-      - name: Compiler le candidat (release, arm64 et x86_64)
+      # Architectures de TÉLÉPHONE seulement (décision du 12 novembre 2026) : arm64-v8a (récents) et armeabi-v7a (32 bits, beaucoup d'entrée de gamme), comme l'ancienne appli.
+      # x86 et x86_64 ne servent qu'aux émulateurs : l'essai sur émulateur se fait avec le workflow « Android Expo (compilation de contrôle) ».
+      - name: Compiler le candidat (release, arm64 et 32 bits)
         working-directory: apps/mobile/android
-        run: ./gradlew :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64 -Pandroid.compileSdkVersion=37 -Pandroid.targetSdkVersion=37
+        run: ./gradlew :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,armeabi-v7a -Pandroid.compileSdkVersion=37 -Pandroid.targetSdkVersion=37
 
       - name: Contrôler l'identité du candidat
         run: |
           APK=$(ls apps/mobile/android/app/build/outputs/apk/release/*.apk | head -1)
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
           "$AAPT" dump badging "$APK" | grep -E "^(package|sdkVersion|targetSdkVersion)" | tee badging.txt
-          grep -q "name='com.speedfood.app' versionCode='${SPEEDFOOD_CODE}'" badging.txt
+          grep -q "name='com.speedfood.mobile' versionCode='${SPEEDFOOD_CODE}'" badging.txt
           grep -q "targetSdkVersion:'37'" badging.txt
+          # Les deux architectures de téléphone sont présentes, celles d'émulateur absentes (sinon l'APK publique pèserait plus lourd pour rien).
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/' || { echo "arm64-v8a manquante"; exit 1; }
+          unzip -l "$APK" | grep -q 'lib/armeabi-v7a/' || { echo "armeabi-v7a (32 bits) manquante"; exit 1; }
+          if unzip -l "$APK" | grep -qE 'lib/x86(_64)?/'; then echo "bibliothèques x86/x86_64 présentes : inutile pour un téléphone"; exit 1; fi
+          unzip -l "$APK" | grep -E 'lib/[a-z0-9_-]+/' | awk '{print $4}' | cut -d/ -f2 | sort | uniq -c
           sha256sum "$APK"; ls -l "$APK"
 
       - uses: actions/upload-artifact@v4
