@@ -66,12 +66,12 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | C2 | Ouvrir ou fermer le restaurant (`definirStatut`) | `/restaurant/statut` | Reprise | |
 | C3 | Proposer un autre prix (`proposer`) | `/restaurant/commandes/proposition` | Reprise | |
 | C4 | Confirmer un paiement (`confirmerPaiement`) | `/restaurant/commandes/paiement` | Reprise | |
-| C5 | Émettre le document d'une commande (`emettreDocument`) | `/restaurant/commandes/document` | Absente | 2 |
+| C5 | Émettre le document d'une commande (`emettreDocument`) | `/restaurant/commandes/document` | Codée, tests OK (numéros lus sans les liens WhatsApp, reçu seulement si paiement reçu, un seul essai) ; essai émulateur à faire | 2 |
 | C6 | Menu : lire et modifier (`menu`, `modifierMenu`) | `/restaurant/menu`, `/restaurant/menu/action` | Reprise | |
-| C7 | Photos de plats : envoyer, retirer (`envoyerPhoto`, `retirerPhoto`) | `/restaurant/menu/photo` | À confirmer (retrait non vérifié) | 2 |
+| C7 | Photos de plats : envoyer, retirer (`envoyerPhoto`, `retirerPhoto`) | `/restaurant/menu/photo` | À confirmer : envoi et retrait codés (D4c), retrait maintenant couvert par les tests (corps, correspondance relue, verdict) ; essai émulateur à faire | 2 |
 | C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Codée, tests OK (lecture paginée stricte, lignes illisibles comptées, aucun essai émulateur : nouvel APK à compiler) ; essai émulateur à faire | 2 |
 | C9 | Réglages : charger, délai, horaires (`charger`, `enregistrerDelai`, `enregistrerHoraires`) | `/restaurant/reglages` | Reprise | |
-| C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Absente | 2 |
+| C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Codée, tests OK (lecture stricte des bilans et des récentes, aucune coordonnée retenue) ; essai émulateur à faire | 2 |
 | C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer (canal d'alerte présent, pas la sonnerie plein écran) | 2 |
 | C12 | Service de surveillance au premier plan (`SurveillanceRestaurateurService`) | `/restaurant/commandes` | Absente (module natif) | 2 |
 | C13 | Notifications du restaurateur (nouvelle commande, clic) | `/appareils` | À confirmer : essai émulateur fait, réception réelle d'une notification jamais vue | 2 |
@@ -113,7 +113,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 13 à confirmer, 32 absentes.
+Voir §8 : 20 lignes reprises sur 65, 15 à confirmer, 30 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -150,12 +150,12 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 |---|---|---|---|---|
 | A. Accès, compte, profil | 12 | 1 | 4 | 7 |
 | B. Client | 15 | 11 | 2 | 2 |
-| C. Restaurateur | 13 | 6 | 4 | 3 |
+| C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 3 | 5 |
 | E. Équipe | 15 | 0 | 0 | 15 |
-| **Total** | **65** | **20** | **13** | **32** |
+| **Total** | **65** | **20** | **15** | **30** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **13 à confirmer** et **32 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **15 à confirmer** et **30 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -191,3 +191,5 @@ Contrôles relancés avant les essais : tests mobile 677/677, `tsc` mobile 0, `t
 ## Lot 2 commencé : C8 historique du restaurateur (12 novembre 2026, suite)
 
 Premier code du lot 2, sur la branche en cours (à séparer au commit) : domaine pur `historique-restaurateur.ts` (lecture stricte d'une page : statuts finaux seulement, total = sous-total + frais, ligne illisible écartée et comptée, aucune coordonnée client retenue), client `historiqueRestaurant` (page vérifiée avant le réseau, un seul essai), session et section « Historique » de l'espace restaurateur (pages de 20, « Charger la suite » sans doublon, actualisation manuelle). Tests écrits avant le code : 7 nouveaux tests, suite mobile **684/684**, `tsc` mobile et typecheck racine à 0 ; le test des sections existant est mis à jour (Commandes, Service, Menu, Historique). **Aucun essai émulateur** : l'APK installé est une release figée, il faut compiler un nouvel APK de contrôle (CI) avant de marquer C8 « Reprise ». Aucun déploiement.
+
+Suite du lot 2 sur la branche `lot2-restaurateur` : **C10 activité** (domaine `activite-restaurateur.ts`, section « Activité » : aujourd'hui, 7 jours, répartition, dernières terminées ; 5 tests) et **C5 documents** (numéros de reçu/facture lus dans la liste — sans jamais retenir les liens WhatsApp — boutons « Établir le reçu numéroté / une facture » sous les mêmes règles que l'ancienne appli, un seul essai puis relecture ; 10 tests). Pour **C7**, l'envoi et le retrait de photo existaient déjà (D4c) sans couverture du retrait : 3 tests ajoutés (corps `retirer=1`, correspondance relue, verdict après échec). Un test C5 a été corrigé en cours de route : une clé de document absente vaut « pas encore établi » (comme l'ancienne appli), seul un type faux écarte la ligne. Suite mobile **702/702**, types à 0. Essais émulateur de C5, C7, C8 et C10 à grouper sur le prochain APK de contrôle. Restent au lot 2 : C11 sonnerie plein écran, C12 service de premier plan (modules natifs, à prototyper tôt), C13 réception réelle d'une notification restaurateur.
