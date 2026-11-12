@@ -9,9 +9,10 @@ import type {CreationCommandePayload} from '../../../../packages/shared/src/cont
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 import type { PageHistorique } from './historique-restaurateur.ts';
 import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
+import type { GainsLivreur, PageCoursesLivreur } from './gains-livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -235,6 +236,30 @@ export class GestionSession {
       const fiche = await this.api.ficheLivreur(acces);
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return fiche;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Gains de ce livreur (lecture, jeton porteur) : frais de course du jour et des 7 jours, jamais une paie. */
+  async gainsLivreur(): Promise<GainsLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.gainsLivreur) throw new ErreurConnexion('Gains indisponibles.');
+      const g = await this.api.gainsLivreur(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return g;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Une page de l'historique des courses livrées de ce livreur (lecture paginée, jeton porteur). */
+  async historiqueLivreur(page: number): Promise<PageCoursesLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.historiqueLivreur) throw new ErreurConnexion('Historique indisponible.');
+      const p = await this.api.historiqueLivreur(acces, page);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return p;
     } catch (e) { await this.sessionTerminee(e, n); throw e; }
   }
   /** État G2 de ce compte (fiche + offre) : lecture pure, annulée si la session change. */

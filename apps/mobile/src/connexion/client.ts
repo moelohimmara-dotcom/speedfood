@@ -14,6 +14,7 @@ import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../.
 import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
+import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
 import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
@@ -336,6 +337,24 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * Gains du livreur (lot 3, D7) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/gains`, l'API unique ne l'héberge pas encore).
+     * Lecture seule, un seul essai ; `null` = ce compte n'est pas livreur. Le montant lu est un frais de course, jamais une paie.
+     */
+    async gainsLivreur(accessToken: string): Promise<GainsLivreur | null> {
+      const v = await requete(SITE_WEB+'/api/v1/livreur/gains', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireGainsLivreur(v); } catch { throw new ErreurConnexion('Vos courses reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /**
+     * Historique paginé des courses livrées (lot 3, D6) : route DU SITE comme l'ancienne appli (`POST /api/v1/livreur/historique`, corps `{page}`).
+     * La page est vérifiée AVANT le réseau ; un seul essai ; `null` = ce compte n'est pas livreur.
+     */
+    async historiqueLivreur(accessToken: string, page: number): Promise<PageCoursesLivreur | null> {
+      const demandee = preparerPageCourses(page);
+      if (demandee === null) throw new ErreurLivreur('refus', 'Cette page d’historique n’est pas valide. Actualisez vos courses.');
+      const v = await requete(SITE_WEB+'/api/v1/livreur/historique', { method:'POST', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify({ page: demandee }) });
+      try { return lirePageCoursesLivreur(v); } catch { throw new ErreurConnexion('Votre historique reçu est illisible. Réessayez dans un instant.'); }
     },
     /** État G2 (fiche + offre) : lecture pure, un seul essai, aucun identifiant de compte dans l'URL ni le corps. */
     async etatLivreur(accessToken: string): Promise<EtatLivreur | null> {

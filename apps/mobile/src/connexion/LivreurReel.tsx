@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
@@ -7,6 +7,8 @@ import { Action } from './BoutonAction';
 import { margeBasseClavier } from './clavier';
 import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, boutonsCourse, clientAffiche, libelleDistanceLivreur, libelleEcheanceOffre, lireCodeRemiseLivreur, lireRaisonEchecLivreur, MESSAGE_CODE_REMISE_LIVREUR, MESSAGE_RAISON_ECHEC_LIVREUR, type EtapeCourseLivreur, type EtatLivreur } from './livreur';
 import { creerControleEtatLivreur, type EtatControleLivreur, type SaisieCourse, type SessionEtatLivreur } from './controle-etat-livreur';
+import { CoursesLivreurReel } from './CoursesLivreurReel';
+import { AssistanceLivreur } from './AssistanceLivreur';
 
 /**
  * Espace livreur : fiche du compte, état (G2), offre en attente (G3 : Accepter / Refuser), course en cours (G3 : étapes autorisées par le serveur, code de remise,
@@ -58,6 +60,8 @@ function Etat({ etat, ecritureEnCours, lectureEnCours, incertain, message, bascu
     return () => animation.stop();
   }, [offreId, reduit, entree]);
   // Saisies locales de la course : le code et la raison restent ici le temps de la saisie, et sont effacés quand la course change, se termine, ou à l'envoi.
+  const [coursesOuvertes, setCoursesOuvertes] = useState(false);
+  const [assistanceOuverte, setAssistanceOuverte] = useState(false);
   const [code, setCode] = useState('');
   const [raison, setRaison] = useState('');
   const [confirmerEchec, setConfirmerEchec] = useState(false);
@@ -147,6 +151,10 @@ function Etat({ etat, ecritureEnCours, lectureEnCours, incertain, message, bascu
         : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} disabled={!peutBasculer || verrou} agir={() => basculer(fiche.statut !== 'disponible')} />}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
     <Action titre="Actualiser mon état" disabled={ecritureEnCours} agir={actualiser} />
+    <Action titre="Mes courses livrées et leurs frais" secondaire disabled={ecritureEnCours} agir={() => setCoursesOuvertes(v => !v)} />
+    {coursesOuvertes && <CoursesLivreurReel />}
+    <Action titre="Assistance conducteur" secondaire disabled={ecritureEnCours} agir={() => setAssistanceOuverte(true)} />
+    <AssistanceLivreur ouvert={assistanceOuverte} fermer={() => setAssistanceOuverte(false)} referenceCourse={course?.commandeReference ?? null} />
   </View>;
 }
 
