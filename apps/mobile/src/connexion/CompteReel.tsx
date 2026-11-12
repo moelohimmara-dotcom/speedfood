@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErreurConnexion, type ResumeCompte } from './client';
 import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
+import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
 import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
 import { LivreurReel } from './LivreurReel';
@@ -26,10 +27,11 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   const [suivi,setSuivi]=useState<{id:string;valeur:ResumeSuivi;luLe:string;lecture:number}|null>(null);
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   const [confirmerProposition,setConfirmerProposition]=useState<'acceptee'|'refusee'|null>(null);
+  const [suppressionOuverte,setSuppressionOuverte]=useState(false);const [motSuppression,setMotSuppression]=useState('');
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
   const [restaurateur,setRestaurateur]=useState<boolean|null>(null);const [restaurateurOuvert,setRestaurateurOuvert]=useState(false);const [restaurateurOccupe,setRestaurateurOccupe]=useState(false);
   const [livreur,setLivreur]=useState(false);const [livreurOuvert,setLivreurOuvert]=useState(false);
-  function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);setConfirmerProposition(null);}
+  function effacerLectures(){setCommandes(null);setSuivi(null);setConfirmerAnnulation(false);setConfirmerProposition(null);setSuppressionOuverte(false);setMotSuppression('');}
   async function lireCommandes(){effacerLectures();const n=revision.current;const r=await gestion.commandes();if(n===revision.current)setCommandes(r);return r;}
   async function lireSuivi(id:string){setSuivi(null);setConfirmerAnnulation(false);setConfirmerProposition(null);const n=revision.current;const r=await gestion.suivi(id);if(n===revision.current)setSuivi({id,valeur:r,luLe:new Date().toLocaleTimeString('fr-FR'),lecture:++lectures.current});}
   const annulationEnCours=useRef(false);
@@ -41,6 +43,24 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       if(n===revision.current)setMessage('Commande '+ref+' annulée.');
       try{await lireCommandes();await lireSuivi(id);}catch{}
     }finally{annulationEnCours.current=false;}
+  }
+  const suppressionEnCours=useRef(false);
+  /** Suppression du compte : UN seul essai, irréversible. Refus = rien supprimé (on reste connecté, le message du serveur est affiché) ; incertain = jamais présenté comme un succès, l'espace est relu pour voir si la session a pris fin. */
+  async function supprimerCompte(){
+    if(suppressionEnCours.current)return;suppressionEnCours.current=true;
+    try{
+      const n=revision.current;
+      try{await gestion.supprimerCompte(motSuppression);}
+      catch(e){
+        if(e instanceof ErreurSuppressionCompte){
+          if(n===revision.current)setErreur(e.message);
+          if(e.genre==='incertain'){try{const p=await gestion.espace();if(n===revision.current)setProfil(p);}catch{}}
+          return;
+        }
+        throw e;
+      }
+      if(n===revision.current){setMotSuppression('');setSuppressionOuverte(false);setMessage('Votre compte a été supprimé et votre session effacée de cet appareil.');}
+    }finally{suppressionEnCours.current=false;}
   }
   const propositionEnCours=useRef(false);
   /** Réponse à la proposition du restaurant : UN seul essai, puis le suivi est relu pour montrer ce que le serveur a vraiment enregistré (même si la réponse s'est perdue en route). */
@@ -146,6 +166,14 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       <Action titre="Voir ou actualiser mes commandes" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
       {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&(suivi.valeur.proposition===null?<Text style={s.texte}>Le restaurant a proposé une modification que l’application ne peut pas afficher. Actualisez ce suivi ou consultez-la sur le site avant de répondre.</Text>:<PropositionCarte proposition={suivi.valeur.proposition} totalActuel={suivi.valeur.totalGnf} confirmation={confirmerProposition} occupe={attente} choisir={setConfirmerProposition} repondre={accepter=>{void executer(()=>repondreProposition(suivi.id,suivi.valeur.proposition!.id,accepter));}}/>)}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
+      {suppressionOuverte?<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}>
+        <Text accessibilityRole="header" style={s.nom}>Supprimer mon compte</Text>
+        <Text accessibilityRole="alert" style={s.texte}>Cette action est définitive : votre compte et vos données personnelles seront effacés et ne pourront pas être récupérés. Un compte professionnel (restaurant, livreur, équipe) ne peut pas être supprimé ici.</Text>
+        <Text style={s.texte}>Pour confirmer, écrivez {MOT_CONFIRMATION} ci-dessous.</Text>
+        <TextInput accessibilityLabel="Écrire SUPPRIMER pour confirmer" value={motSuppression} onChangeText={setMotSuppression} autoCapitalize="characters" autoCorrect={false} editable={!attente} style={s.champ}/>
+        <Action titre="Supprimer définitivement mon compte" disabled={attente||!confirmationSuppressionValide(motSuppression)} agir={()=>{void executer(()=>supprimerCompte());}}/>
+        <Action titre="Non, garder mon compte" disabled={attente} agir={()=>{setSuppressionOuverte(false);setMotSuppression('');}}/>
+      </ScrollView>:<Action titre="Supprimer mon compte" disabled={attente} agir={()=>setSuppressionOuverte(true)}/>}
       <Action titre="Me déconnecter de cet appareil" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}

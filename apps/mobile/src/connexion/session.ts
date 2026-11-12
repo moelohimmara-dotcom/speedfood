@@ -8,7 +8,7 @@ import type {CreationCommandePayload} from '../../../../packages/shared/src/cont
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -117,6 +117,24 @@ export class GestionSession {
     if(!this.api.repondreProposition)throw new ErreurConnexion('Réponse à la proposition indisponible.');
     await this.api.repondreProposition(cle.jeton,propositionId,accepter);
     if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+  }
+  /**
+   * Supprime le compte connecté (un seul essai). Succès : plus rien du compte ne reste sur l'appareil (session, coffre, clés de suivi) et les départs de notification sont fermés SANS jeton
+   * (le compte n'existe plus : aucun appel de révocation distante). Refus, incertitude : la session reste intacte. 401 : session terminée. Le panier n'est pas touché.
+   */
+  async supprimerCompte(confirmation:string):Promise<void> {
+    const n=this.generation;
+    const acces=await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+    if(!this.api.supprimerCompte)throw new ErreurConnexion('Suppression du compte indisponible.');
+    try{await this.api.supprimerCompte(acces,confirmation);}
+    catch(e){await this.sessionTerminee(e,n);throw e;}
+    // Succès : le compte n'existe plus. Si une déconnexion a eu lieu entre-temps, tout est déjà effacé.
+    if(n!==this.generation)return;
+    const preparation=this.preparerDeconnexion?.();
+    this.nbDeconnexions++;this.clesSuivi.clear();++this.generation;this.session=null;
+    try{if(preparation)await preparation(null);}catch{/* sans effet sur l'effacement local */}
+    try{await this.ordonner(()=>this.coffre.effacer());}catch{throw new ErreurConnexion('Compte supprimé, mais l’effacement local n’est pas confirmé. Utilisez « Me déconnecter de cet appareil ».');}
   }
   /** Déclare le règlement de CETTE commande (un seul essai). Le jeton de suivi reste ici ; seule une session ouverte peut déclarer, comme pour l'annulation. */
   async declarerPaiement(id:string,mode:string,reference:string|null):Promise<void> {

@@ -1,5 +1,6 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
+import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
 import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
@@ -382,6 +383,30 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       const v=await requete(ORIGINE_CATALOGUE+'/api/v1/suivi/proposition',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jeton,propositionId,reponse:accepter?'acceptee':'refusee'})},false,false,{
         409:'Cette proposition n’est plus valable (expirée ou déjà traitée). Actualisez le suivi.',404:'Proposition introuvable. Actualisez le suivi.',400:'Réponse invalide : lien de suivi ou proposition invalide. Actualisez vos commandes.'});
       if(v.ok!==true)throw new ErreurConnexion('Réponse invalide du serveur.');
+    },
+    /**
+     * Suppression du compte connecté (route `client/compte`, droit à l'effacement) : IRRÉVERSIBLE, UN SEUL essai, jamais de relance. Le mot SUPPRIMER est vérifié ICI avant le réseau (sinon rien ne part).
+     * `refus` (400 : compte professionnel, mot refusé, panne côté serveur ; 429) = rien n'a été supprimé ; 401 = session terminée ; réseau, délai, autre statut ou réponse illisible = `incertain`
+     * (la suppression a pu être faite : jamais présentée comme un succès). Le porteur n'est que dans l'en-tête, jamais dans l'adresse ni dans un message.
+     */
+    async supprimerCompte(accessToken:string,confirmation:string):Promise<void> {
+      if(!confirmationSuppressionValide(confirmation))throw new ErreurSuppressionCompte('refus','Écrivez SUPPRIMER pour confirmer la suppression.');
+      const incertain=()=>new ErreurSuppressionCompte('incertain','Impossible de confirmer la suppression. Actualisez votre espace : si votre session a pris fin, votre compte est bien supprimé.');
+      const controle=new AbortController();const timer=setTimeout(()=>controle.abort(),delaiCommandeMs);
+      let r:Response;
+      try{r=await fetcher(ORIGINE_CATALOGUE+'/api/v1/client/compte',{method:'POST',credentials:'omit',signal:controle.signal,headers:{Authorization:'Bearer '+accessToken,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify({confirmation:MOT_CONFIRMATION})});}
+      catch{clearTimeout(timer);throw incertain();}
+      try{
+        let corps:unknown=null;
+        const json=(r.headers.get('content-type')??'').includes('application/json')&&!(Number(r.headers.get('content-length'))>262144);
+        if(json){try{const texte=await r.text();if(texte.length<=262144)corps=JSON.parse(texte);}catch{corps=null;}}
+        else{try{await r.body?.cancel();}catch{/* corps déjà fermé */}}
+        if(r.status===401)throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.',true);
+        if(r.status===429)throw new ErreurSuppressionCompte('refus','Trop de tentatives. Patientez un instant avant de réessayer.');
+        if(r.status===400)throw new ErreurSuppressionCompte('refus',messageServeurLivreur(corps)??'Le compte n’a pas été supprimé. Écrivez-nous depuis le centre d’aide si le problème persiste.');
+        if(!r.ok)throw incertain();
+        if(!corps||typeof corps!=='object'||(corps as {ok?:unknown}).ok!==true)throw incertain();
+      }finally{clearTimeout(timer);}
     },
     async espace(accessToken: string): Promise<ResumeCompte> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });
