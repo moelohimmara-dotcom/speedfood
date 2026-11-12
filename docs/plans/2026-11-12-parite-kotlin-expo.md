@@ -35,7 +35,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; essai émulateur à faire | 1 |
 | A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer : rôles lus, entrées restaurateur et livreur présentes ; l'écran « choix du profil » de l'ancienne appli n'existe pas dans Expo (décision de conception à prendre) | 1 |
 | A10 | Visite guidée au premier lancement | local | Absente | 4 |
-| A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Codée, tests OK (WhatsApp, appel, FAQ, liens légaux) ; essai émulateur à faire | 1 |
+| A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Reprise (tests OK ; essayée sur émulateur le 12 novembre : numéro réel lu, boutons WhatsApp et appel, FAQ) | 1 |
 | A12 | Liens profonds (`LiensProfonds`) | local | À confirmer | 4 |
 
 ### B. Client
