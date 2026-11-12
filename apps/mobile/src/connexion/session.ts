@@ -1,16 +1,17 @@
-import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
+﻿import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
 import type {CommandeCompte} from './commandes.ts';
 import type {ActionAdresse, ChampsProfil, EspaceComplet} from './espace-client.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
 import type {ActionLivraisonApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
-import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, ValeursPropositionRestaurateur} from './restaurateur.ts';
+import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, TypeDocument, ValeursPropositionRestaurateur} from './restaurateur.ts';
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 import type { PageHistorique } from './historique-restaurateur.ts';
+import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -298,6 +299,27 @@ export class GestionSession {
       const r=await this.api.historiqueRestaurant(acces,page,taille);
       if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
       return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Activité de CE restaurant (lecture, jeton porteur) : bilans et dernières commandes terminées, aucune coordonnée client. */
+  async activiteRestaurant():Promise<ActiviteRestaurateur> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.activiteRestaurant)throw new ErreurConnexion('Activité indisponible.');
+      const r=await this.api.activiteRestaurant(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Établit le reçu ou la facture d'UNE commande (un seul essai, jamais de relance : un numéro est attribué). Le restaurant n'est pas envoyé. */
+  async emettreDocumentRestaurateur(commandeId:string,type:TypeDocument):Promise<void> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+      if(!this.api.emettreDocumentRestaurateur)throw new ErreurConnexion('Documents indisponibles.');
+      await this.api.emettreDocumentRestaurateur(acces,commandeId,type);
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   /** Accepte ou refuse UNE commande (un seul essai, jamais de relance). Le restaurant n'est pas envoyé : le serveur le tire du compte. */

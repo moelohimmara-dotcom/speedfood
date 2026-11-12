@@ -7,7 +7,7 @@ import { GestionSession } from '../src/connexion/session.ts';
 import { ErreurRestaurateur, MESSAGE_SECURITE } from '../src/connexion/restaurateur.ts';
 import {
   BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, CONFIRMATIONS_STATUT, CONFIRMATION_TOUT_CONFIRMER, actionArchiver, actionRetirerOption, brouillonPlatDe, confirmationArchiver, confirmationRetirerOption, etatConcerne, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, prixDepuisSaisie, ETAT_SERVICE_REPOS, HORAIRES_MAX, LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, actionAConfirmer, actionConfirmerTout, actionStatut, boutonExiste, brouillonDe, brouillonModifie, chiffresSeulement,
-  confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, formulaireSeReferme, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
+  actionPhotoRetirer, confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, formulaireSeReferme, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
   preparerReglages, refusService, serviceVerrouille, verdictService, type ActionService, type EtatService, type MenuRestaurateur, type ReglagesRestaurateur,
 } from '../src/connexion/serviceRestaurateur.ts';
 
@@ -234,9 +234,9 @@ test('machine : événements hors contexte laissent l’état inchangé ; efface
   assert.equal(evoluerService(verdict, { type: 'effacer' }), ETAT_SERVICE_REPOS);
   assert.equal(evoluerService(verdict, { type: 'envoyer', action: { type: 'confirmer', platId: P1, avant: null }, lecture: 1 }).phase, 'envoi', 'un verdict confirmé ne verrouille rien');
 });
-test('machine : sections — l’ordre Commandes, Service, Menu, Historique ; pas de changement de section pendant un envoi', () => {
-  assert.deepEqual([...SECTIONS_RESTAURATEUR], ['commandes', 'service', 'menu', 'historique']);
-  assert.deepEqual(SECTIONS_RESTAURATEUR.map(s => LIBELLES_SECTIONS[s]), ['Commandes', 'Service', 'Menu', 'Historique']);
+test('machine : sections — l’ordre Commandes, Service, Menu, Historique, Activité ; pas de changement de section pendant un envoi', () => {
+  assert.deepEqual([...SECTIONS_RESTAURATEUR], ['commandes', 'service', 'menu', 'historique', 'activite']);
+  assert.deepEqual(SECTIONS_RESTAURATEUR.map(s => LIBELLES_SECTIONS[s]), ['Commandes', 'Service', 'Menu', 'Historique', 'Activité']);
   assert.equal(peutChangerDeSection(false, false), true);
   assert.equal(peutChangerDeSection(true, false), false);
   assert.equal(peutChangerDeSection(false, true), false);
@@ -918,4 +918,41 @@ test('D4b écran : verrou par état (m-1) — compteurs séparés pour les régl
 test('D4b écran : aucun libellé « espèces » ; depuis D4c les photos se gèrent dans l’application (plus de renvoi vers le site)', () => {
   assert.ok(!/esp[eè]ces|cash/i.test(ecran));
   assert.ok(!ecran.includes('Les photos des plats se gèrent sur le site pour l’instant.'));
+});
+
+// ---------- C7 : retrait de la photo d'un plat (parité Kotlin, lot 2) ----------
+test('C7 retrait photo : action, confirmation obligatoire et corps envoye (platId + retirer=1, jamais de fichier)', () => {
+  const plat = menu([platBrut(P1, { photoUrl: 'https://x/y.jpg' })]).plats[0];
+  const action = actionPhotoRetirer(plat);
+  assert.deepEqual(action, { type: 'photo_retirer', platId: P1, nom: plat.nom });
+  assert.equal(actionAConfirmer(action), true);
+  const confirmation = confirmationDe(action);
+  if (confirmation === null) assert.fail('confirmation du retrait de photo absente');
+  assert.equal(confirmation.oui, 'Oui, retirer la photo');
+  const envoi = corpsDeAction(action);
+  if (envoi === null) assert.fail('envoi du retrait de photo refuse a tort');
+  assert.equal(envoi.fichier, undefined);
+  assert.deepEqual(envoi.corps, { platId: P1, retirer: '1' });
+});
+test('C7 retrait photo : correspondance relue — photo absente = retiree, photo presente = pas encore, plat disparu ou pas de relecture = inconnu', () => {
+  const action = { type: 'photo_retirer', platId: P1, nom: 'Plat' } as const;
+  const avecPhoto = menu([platBrut(P1, { photoUrl: 'https://x/y.jpg' })]);
+  const sansPhoto = menu([platBrut(P1, { photoUrl: null })]);
+  assert.equal(etatCorrespond(action, { menu: sansPhoto }), true);
+  assert.equal(etatCorrespond(action, { menu: avecPhoto }), false);
+  assert.equal(etatCorrespond(action, { menu: menu([platBrut(P2)]) }), null, 'plat disparu : jamais « bien retiree »');
+  assert.equal(etatCorrespond(action, {}), null);
+});
+test('C7 retrait photo : le bouton de retrait existe tant que le plat a une photo ; verdict incertain apres echec si la photo est toujours la', () => {
+  const action = { type: 'photo_retirer', platId: P1, nom: 'Plat' } as const;
+  const avecPhoto = menu([platBrut(P1, { photoUrl: 'https://x/y.jpg' })]);
+  const sansPhoto = menu([platBrut(P1, { photoUrl: null })]);
+  assert.equal(boutonExiste(action, { menu: avecPhoto }), true);
+  assert.equal(boutonExiste(action, { menu: sansPhoto }), false);
+  const echec = new ErreurRestaurateur('reseau', 'panne', true);
+  const v = verdictService({ erreur: echec, action, relue: { menu: avecPhoto } });
+  assert.equal(v.genre, 'incertain');
+  assert.equal(v.genre === 'incertain' && v.reessayer, true);
+  const fait = verdictService({ erreur: echec, action, relue: { menu: sansPhoto } });
+  assert.equal(fait.genre, 'confirme');
 });

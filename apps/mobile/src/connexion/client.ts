@@ -7,7 +7,7 @@ import { normaliserTelephone } from '../../../../packages/shared/src/commande/te
 import { SITE_WEB } from './aide.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
-import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
+import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type TypeDocument, type ValeursPropositionRestaurateur } from './restaurateur.ts';
 import { corpsDeAction, erreurLocalePhoto, erreurReponseService, erreurReseauPhoto, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
 import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
 import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
@@ -16,6 +16,7 @@ import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
+import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -402,6 +403,20 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if (demande === null) throw new ErreurRestaurateur('refus', 'Cette page d’historique n’est pas valide. Actualisez l’historique.');
       const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/historique', { method:'POST', corps: demande }, true);
       try { return lirePageHistorique(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’historique reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * Établit le reçu numéroté ou la facture d'UNE commande (route `/commandes/document`, lot 2 / C5). Type de la liste blanche et identifiant vérifiés AVANT le
+     * réseau ; UN SEUL essai (émettre attribue un numéro : jamais de relance automatique, la liste relue montre le document établi). Le corps ne porte que la commande et le type.
+     */
+    async emettreDocumentRestaurateur(accessToken: string, commandeId: string, type: TypeDocument): Promise<void> {
+      if (type !== 'recu' && type !== 'facture') throw new ErreurRestaurateur('refus', 'Ce document n’est pas disponible dans l’application.');
+      if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(commandeId)) throw new ErreurRestaurateur('refus', 'Commande introuvable. Actualisez la liste.');
+      lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/document', { method:'POST', corps:{ commandeId, type } }, false));
+    },
+    /** Activité du restaurant (route `/restaurant/activite`, lot 2 / C10) : bilans du jour et des 7 jours, répartition, dernières terminées. Lecture seule, UN SEUL essai, relue strictement. */
+    async activiteRestaurant(accessToken: string): Promise<ActiviteRestaurateur> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/activite', { method:'GET' }, true);
+      try { return lireActiviteRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’activité reçue est illisible. Réessayez dans un instant.'); }
     },
     /**
      * Accepter, refuser, marquer prête ou terminée (route `/commandes/action`) ; confirmer ou contester un paiement déclaré (route `/commandes/paiement`). Liste blanche vérifiée AVANT tout

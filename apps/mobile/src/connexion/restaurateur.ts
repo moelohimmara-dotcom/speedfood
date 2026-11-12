@@ -79,6 +79,10 @@ export interface CommandeRestaurateur {
   /** Montants de la proposition active (null s'il n'y en a pas, ou si le serveur ne les a pas donnés lisiblement) : sert à reconnaître SA proposition après une réponse incertaine. */
   propositionMontants: { sousTotal: number; frais: number } | null;
   paiementStatut: StatutPaiementRestaurateur; paiementMode: ModePaiementRestaurateur | null; paiementReference: string | null;
+  /** Le paiement et les documents sont montrables (commande acceptée, prête ou terminée, selon le serveur) ; sinon aucun bouton de document. */
+  paiementVisible: boolean;
+  /** Numéros de documents déjà établis (lot 2, C5), ou null : seuls les numéros sont retenus — jamais les liens WhatsApp, qui portent le jeton du reçu. */
+  documents: { recu: string | null; facture: string | null };
   /** Lot D5 : livraison de la commande (identifiant, statut, mode), ou null (pas de livraison, ou livraison illisible : voir `livraisonsIllisibles`). Jamais le code de remise, jamais le livreur. */
   livraison: LivraisonRestaurateur | null;
 }
@@ -132,7 +136,8 @@ export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaura
       clientTelephone: libre(o.clientTelephone, 40, true), clientAdresse: libreOuNull(o.clientAdresse, 300), totalGnf: total, sousTotalGnf, fraisGnf, creeLe: date(o.creeLe), estTest: booleen(o.estTest), lignes,
       propositionEnAttente: o.propositionActive !== null && o.propositionActive !== undefined,
       propositionMontants: montantsProposition(o.propositionActive),
-      paiementStatut: o.paiementStatut as StatutPaiementRestaurateur, paiementMode: o.paiementMode as ModePaiementRestaurateur | null, paiementReference: libreOuNull(o.paiementReference, 80), livraison,
+      paiementStatut: o.paiementStatut as StatutPaiementRestaurateur, paiementMode: o.paiementMode as ModePaiementRestaurateur | null, paiementReference: libreOuNull(o.paiementReference, 80),
+      paiementVisible: booleen(o.paiementVisible), documents: lireDocuments(o.documents), livraison,
     };
   };
   const commandes: CommandeRestaurateur[] = []; let illisibles = 0;
@@ -141,6 +146,30 @@ export function lireListeRestaurateur(v: Record<string, unknown>): ListeRestaura
   const duServeur = typeof v.livraisonsIllisibles === 'number' && Number.isSafeInteger(v.livraisonsIllisibles) && v.livraisonsIllisibles >= 0 && v.livraisonsIllisibles <= 1000 ? v.livraisonsIllisibles : 0;
   const livraisonsIllisibles = duServeur + commandes.filter(c => livraisonIllisible.has(c.id)).length;
   return { restaurant: r === null ? null : { id: texte(r.id, 36), nom: texte(r.nom, 200), ouvert: booleen(r.ouvert), accepteCommandes: booleen(r.accepteCommandes) }, commandes, illisibles, livraisonsIllisibles };
+}
+
+/** Numéros de documents déjà établis (lot 2, C5) : un numéro est un texte court ; toute autre forme rend la ligne illisible (comptée, comme les autres lectures strictes). */
+function lireDocuments(v: unknown): { recu: string | null; facture: string | null } {
+  const o = objet(v);
+  return { recu: texteOuNull(o.recu, 60), facture: texteOuNull(o.facture, 60) };
+}
+
+export type TypeDocument = 'recu' | 'facture';
+/**
+ * Documents encore à établir pour une commande (lot 2, C5, mêmes règles que l'ancienne appli et la console du site) : le reçu seulement une fois le paiement
+ * reçu et tant qu'aucun reçu n'existe ; la facture tant qu'aucune facture n'existe. Rien hors « paiement visible » (commande pas encore acceptée, ou clôturée
+ * autrement). Le serveur et la base revérifient (numérotation continue, états) ; émettre deux fois renvoie le premier document.
+ */
+export function documentsDisponibles(c: Pick<CommandeRestaurateur, 'paiementVisible' | 'paiementStatut' | 'documents'>): TypeDocument[] {
+  if (!c.paiementVisible) return [];
+  const types: TypeDocument[] = [];
+  if (c.paiementStatut === 'recu' && c.documents.recu === null) types.push('recu');
+  if (c.documents.facture === null) types.push('facture');
+  return types;
+}
+/** « Reçu R-2026-001 » : le numéro d'un document déjà établi, ou null. */
+export function libelleDocument(type: TypeDocument, numero: string | null): string | null {
+  return numero === null ? null : (type === 'recu' ? 'Reçu ' : 'Facture ') + numero;
 }
 
 /** Montants de la proposition active, ou null. Une valeur atypique ne rend jamais la ligne illisible : les montants sont alors simplement inconnus. */

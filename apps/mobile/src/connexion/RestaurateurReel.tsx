@@ -3,12 +3,13 @@ import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable,
 import { Action } from './BoutonAction';
 import { ServiceMenuReel } from './ServiceMenuReel';
 import { HistoriqueReel } from './HistoriqueReel';
+import { ActiviteReel } from './ActiviteReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
-  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, actionLivraisonDe, annulationRefuseePourPaiement, chiffresDuCode, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, ligneLivraison, lignesRecapProposition, preparerCodeLivraison,
-  type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur,
+  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, actionLivraisonDe, annulationRefuseePourPaiement, chiffresDuCode, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, documentsDisponibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleDocument, libelleStatut, libellePaiement, ligneClient, ligneLivraison, lignesRecapProposition, preparerCodeLivraison,
+  type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur, type TypeDocument,
 } from './restaurateur';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
@@ -32,8 +33,23 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   // Codes de remise TAPÉS (par commande) : uniquement dans l'écran, jamais dans la machine d'états ni dans un message ; effacés dès l'envoi et dès que la commande n'est plus « en route ».
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [erreursCode, setErreursCode] = useState<Record<string, string>>({});
+  // Documents (lot 2, C5) : émission séparée de la machine des commandes — un seul essai, puis la liste est relue pour montrer le numéro attribué.
+  const [docOccupe, setDocOccupe] = useState(false);
+  const [docMessage, setDocMessage] = useState('');
+  const docEnCours = useRef(false);
+  async function emettreDocument(o: CommandeRestaurateur, type: TypeDocument) {
+    if (docEnCours.current || envoiEnCours.current) return;
+    docEnCours.current = true; setDocOccupe(true); setDocMessage('');
+    try {
+      await gestion.emettreDocumentRestaurateur(o.id, type);
+      try { accepterListe(await gestion.commandesRestaurant()); setDocMessage((type === 'recu' ? 'Reçu établi' : 'Facture établie') + ' pour ' + o.reference + ' : la liste a été relue.'); }
+      catch { setDocMessage((type === 'recu' ? 'Reçu établi' : 'Facture établie') + ' pour ' + o.reference + '. Actualisez la liste pour voir son numéro.'); }
+    } catch (e) { setDocMessage(e instanceof ErreurRestaurateur || e instanceof ErreurConnexion ? e.message : 'Impossible d’établir ce document. Réessayez.'); }
+    finally { docEnCours.current = false; if (actif.current) setDocOccupe(false); }
+  }
   const [serviceOuvert, setServiceOuvert] = useState(false);
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
+  const [activiteOuverte, setActiviteOuverte] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
   const lectureRef = useRef(0);
@@ -132,9 +148,10 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
     <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
-    {serviceOuvert && section !== 'historique' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
+    {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
+    {section === 'activite' && activiteOuverte && <ActiviteReel />}
     {section === 'commandes' && <>
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
@@ -144,6 +161,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}
+    {docMessage !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{docMessage}</Text>}
     {liste && grouper(liste.commandes).map(g => <View key={g.groupe} style={{ gap: 12 }}>
       <Text accessibilityRole="header" style={s.nom}>{g.titre} ({g.commandes.length})</Text>
       {g.commandes.length === 0 && <Text style={s.secondaire}>Aucune commande.</Text>}
@@ -161,6 +179,9 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {o.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}
           <Text style={s.nom}>{o.totalGnf.toLocaleString('fr-FR')} GNF</Text>
           {ligneLivraison(o) && <Text style={s.texte}>{ligneLivraison(o)}</Text>}
+          {libelleDocument('recu', o.documents.recu) && <Text style={s.texte}>{libelleDocument('recu', o.documents.recu)}</Text>}
+          {libelleDocument('facture', o.documents.facture) && <Text style={s.texte}>{libelleDocument('facture', o.documents.facture)}</Text>}
+          {!confirmation && !formulaire && documentsDisponibles(o).map(t => <Action key={t} titre={(t === 'recu' ? 'Établir le reçu numéroté ' : 'Établir une facture ') + o.reference} secondaire disabled={bloque || docOccupe} agir={() => { void emettreDocument(o, t); }} />)}
           {paiement && <Text style={s.texte}>{paiement}</Text>}
           {paiement && possibles.includes('paiement_recu') && <Text style={s.secondaire}>Comparez avec le SMS de confirmation de votre opérateur avant de valider.</Text>}
           {confirmation && confirmation.action in CONFIRMATIONS && <>
