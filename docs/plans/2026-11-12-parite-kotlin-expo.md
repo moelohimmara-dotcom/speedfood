@@ -1,4 +1,4 @@
-# Parité Kotlin vers Expo : matrice et plan de reprise (12 novembre 2026)
+﻿# Parité Kotlin vers Expo : matrice et plan de reprise (12 novembre 2026)
 
 > **Plan et inventaire seulement.** Aucun code d'application n'est modifié par ce document. Aucun déploiement, aucune migration, aucun secret. Chaque lot de reprise sera livré sur sa propre branche, avec tests écrits avant le code, essai sur émulateur et, pour les lignes critiques, essai sur un vrai téléphone. Les déploiements en production exigent un feu vert distinct de Malika.
 
@@ -84,12 +84,12 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | D2 | Disponibilité en ligne (`enLigne`) | `/livreur/en-ligne` | Reprise (G2) | |
 | D3 | Répondre à une offre (`repondreOffre`) | `/livreur/offre` | À confirmer : code et essai émulateur faits (G3), jamais essayée contre la vraie base ni sur téléphone | 3 |
 | D4 | Avancer une course, code de remise (`avancer`) | `/livreur/course` | À confirmer : code et essai émulateur faits (G3), idem | 3 |
-| D5 | File des courses (`file`) | `/livreur/etat` | À confirmer | 3 |
-| D6 | Historique des courses (`historique`) | `/livreur/…` | Absente | 3 |
-| D7 | Gains (écran Gains) | `/livreur/gains` | Absente | 3 |
-| D8 | Aide du livreur (écran Aide) | local ou `/aide` | Absente | 3 |
+| D5 | File des courses (`file`) | `/livreur/etat` | À confirmer : l'état ne donne que la course en cours ; la route `file` de l'ancienne appli n'existe ni sur le site ni dans l'API (à créer côté serveur, comme D6) | 3 |
+| D6 | Historique des courses (`historique`) | `/livreur/historique` | Codée, tests OK (route du site créée : elle n'existait ni sur le site ni dans l'API ; lecture paginée stricte côté appli) ; essai émulateur à faire, route à déployer avec le site le moment venu | 3 |
+| D7 | Gains (écran Gains) | `/livreur/gains` | Codée, tests OK (frais de course, jamais une paie ; route du site comme l'ancienne appli) ; essai émulateur à faire | 3 |
+| D8 | Aide du livreur (écran Aide) | local ou `/aide` | Codée, tests OK (assistance conducteur : règles, incident selon la course, numéro lu sur `/aide`) ; essai émulateur à faire | 3 |
 | D9 | Position GPS et service de premier plan (`position`, `SuiviLivreur.tour`, `SuiviLivreurService`) | `/livreur/position` | Absente (permission, module natif) | 3 |
-| D10 | Activité du livreur (`Activite.livreur`) | `/restaurant/activite` ou `/livreur/…` | Absente | 3 |
+| D10 | Activité du livreur (`Activite.livreur`) | `/livreur/gains` | Codée avec D7 (même route et mêmes données : bilans du jour et de la semaine) ; essai émulateur à faire | 3 |
 
 ### E. Équipe (15 modules, aucun dans Expo)
 
@@ -113,7 +113,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 15 à confirmer, 30 absentes.
+Voir §8 : 20 lignes reprises sur 65, 19 à confirmer, 26 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -151,11 +151,11 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 | A. Accès, compte, profil | 12 | 1 | 4 | 7 |
 | B. Client | 15 | 11 | 2 | 2 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
-| D. Livreur | 10 | 2 | 3 | 5 |
+| D. Livreur | 10 | 2 | 7 | 1 |
 | E. Équipe | 15 | 0 | 0 | 15 |
-| **Total** | **65** | **20** | **15** | **30** |
+| **Total** | **65** | **20** | **19** | **26** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **15 à confirmer** et **30 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **19 à confirmer** et **26 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -195,3 +195,7 @@ Premier code du lot 2, sur la branche en cours (à séparer au commit) : domaine
 Suite du lot 2 sur la branche `lot2-restaurateur` : **C10 activité** (domaine `activite-restaurateur.ts`, section « Activité » : aujourd'hui, 7 jours, répartition, dernières terminées ; 5 tests) et **C5 documents** (numéros de reçu/facture lus dans la liste — sans jamais retenir les liens WhatsApp — boutons « Établir le reçu numéroté / une facture » sous les mêmes règles que l'ancienne appli, un seul essai puis relecture ; 10 tests). Pour **C7**, l'envoi et le retrait de photo existaient déjà (D4c) sans couverture du retrait : 3 tests ajoutés (corps `retirer=1`, correspondance relue, verdict après échec). Un test C5 a été corrigé en cours de route : une clé de document absente vaut « pas encore établi » (comme l'ancienne appli), seul un type faux écarte la ligne. Suite mobile **702/702**, types à 0. Essais émulateur de C5, C7, C8 et C10 à grouper sur le prochain APK de contrôle. Restent au lot 2 : C11 sonnerie plein écran, C12 service de premier plan (modules natifs, à prototyper tôt), C13 réception réelle d'une notification restaurateur.
 
 Vers C11/C12 : la logique de surveillance de l'ancienne appli est portée en TypeScript (`surveillance-commandes.ts`, règles et horloge testées : 6 tests, suite à **708/708**) et branchée au premier plan dans l'espace restaurateur (bandeau « Nouvelle commande à traiter » à chaque liste relue qui alerte). C'est la fondation commune ; la sonnerie, l'écran gardé allumé et le service de premier plan restent un chantier natif Android (module local + compilation CI + essai sur vrai téléphone), non écrit à l'aveugle. C13 reste un essai réel à mener avec le prochain APK de contrôle.
+
+## Lot 3 commencé : D7 gains, D6 historique, D8 assistance (branche `lot2-restaurateur`, suite)
+
+Constat avant code : les routes `file`, `historique` et `dossier` que l'ancienne appli appelle n'existent **ni sur le site ni dans l'API unique** ; seuls `etat`, `offre`, `course`, `en-ligne`, `position` et `gains` (site) existent. D7 est donc codée contre la route du site `/livreur/gains`, comme l'ancienne appli (frais de course, jamais une paie ; l'écran ne dit ni « gain » ni « paie » — un test existant l'impose et a fait renommer l'écran en « Mes courses livrées et leurs frais »). Pour D6, la route du site `POST /api/v1/livreur/historique` est créée (même patron que les gains : jeton, livreur tiré du compte, courses livrées paginées par 20, aucune coordonnée client) ; elle ne servira qu'au déploiement du site, le moment venu et avec un feu vert. Côté appli : domaines purs testés avant le code (8 tests), écrans « Mes courses livrées et leurs frais » (gains + historique paginé) et « Assistance conducteur » (D8 : règles de la plateforme, incident selon la course en cours, numéro lu sur `/aide`). D10 se confond avec D7 (même route `/livreur/gains` côté ancienne appli). Suite mobile **716/716**, types mobile et racine à 0, tests unitaires du site à 0. Essais émulateur à grouper avec le prochain APK de contrôle ; D5 (file) demandera la même création de route côté serveur, D9 reste natif (position + service de premier plan).
