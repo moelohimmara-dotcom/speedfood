@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Action } from './BoutonAction';
 import { ServiceMenuReel } from './ServiceMenuReel';
+import { HistoriqueReel } from './HistoriqueReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
@@ -32,6 +33,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [erreursCode, setErreursCode] = useState<Record<string, string>>({});
   const [serviceOuvert, setServiceOuvert] = useState(false);
+  const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
   const lectureRef = useRef(0);
@@ -130,8 +132,9 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
     <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x !== 'commandes') setServiceOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
-    {serviceOuvert && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
+    {serviceOuvert && section !== 'historique' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
     {section === 'commandes' && <>
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}

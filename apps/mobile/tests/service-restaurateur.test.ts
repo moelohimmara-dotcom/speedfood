@@ -234,9 +234,9 @@ test('machine : événements hors contexte laissent l’état inchangé ; efface
   assert.equal(evoluerService(verdict, { type: 'effacer' }), ETAT_SERVICE_REPOS);
   assert.equal(evoluerService(verdict, { type: 'envoyer', action: { type: 'confirmer', platId: P1, avant: null }, lecture: 1 }).phase, 'envoi', 'un verdict confirmé ne verrouille rien');
 });
-test('machine : sections — l’ordre Commandes, Service, Menu ; pas de changement de section pendant un envoi', () => {
-  assert.deepEqual([...SECTIONS_RESTAURATEUR], ['commandes', 'service', 'menu']);
-  assert.deepEqual(SECTIONS_RESTAURATEUR.map(s => LIBELLES_SECTIONS[s]), ['Commandes', 'Service', 'Menu']);
+test('machine : sections — l’ordre Commandes, Service, Menu, Historique ; pas de changement de section pendant un envoi', () => {
+  assert.deepEqual([...SECTIONS_RESTAURATEUR], ['commandes', 'service', 'menu', 'historique']);
+  assert.deepEqual(SECTIONS_RESTAURATEUR.map(s => LIBELLES_SECTIONS[s]), ['Commandes', 'Service', 'Menu', 'Historique']);
   assert.equal(peutChangerDeSection(false, false), true);
   assert.equal(peutChangerDeSection(true, false), false);
   assert.equal(peutChangerDeSection(false, true), false);

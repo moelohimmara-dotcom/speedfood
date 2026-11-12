@@ -7,9 +7,10 @@ import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, ValeursProposit
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
+import type { PageHistorique } from './historique-restaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -284,6 +285,17 @@ export class GestionSession {
       const acces=await this.jeton();
       if(!this.api.commandesRestaurant)throw new ErreurConnexion('Espace restaurateur indisponible.');
       const r=await this.api.commandesRestaurant(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Historique des commandes finies de CE restaurant (lecture paginée, jeton porteur) : aucun jeton de suivi, aucune coordonnée client. */
+  async historiqueRestaurant(page:number,taille:number):Promise<PageHistorique> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.historiqueRestaurant)throw new ErreurConnexion('Historique indisponible.');
+      const r=await this.api.historiqueRestaurant(acces,page,taille);
       if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
       return r;
     }catch(e){await this.sessionTerminee(e,n);throw e;}

@@ -15,6 +15,7 @@ import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, l
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
+import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
@@ -390,6 +391,17 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async commandesRestaurant(accessToken: string): Promise<ListeRestaurateur> {
       const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes', { method:'GET' }, true);
       try { return lireListeRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Les commandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /**
+     * Historique des commandes finies, page par page (route `/restaurant/historique`, lot 2 / C8). La page demandée est vérifiée AVANT le réseau et portée par le corps :
+     * le serveur répond toujours par la page exactement demandée. Lecture seule, UN SEUL essai. Le restaurant n'est jamais envoyé (le serveur le tire du compte) et
+     * la réponse est relue strictement : aucune coordonnée client n'est retenue.
+     */
+    async historiqueRestaurant(accessToken: string, page: number, taille: number): Promise<PageHistorique> {
+      const demande = preparerPageHistorique(page, taille);
+      if (demande === null) throw new ErreurRestaurateur('refus', 'Cette page d’historique n’est pas valide. Actualisez l’historique.');
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/historique', { method:'POST', corps: demande }, true);
+      try { return lirePageHistorique(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’historique reçu est illisible. Réessayez dans un instant.'); }
     },
     /**
      * Accepter, refuser, marquer prête ou terminée (route `/commandes/action`) ; confirmer ou contester un paiement déclaré (route `/commandes/paiement`). Liste blanche vérifiée AVANT tout

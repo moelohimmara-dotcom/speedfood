@@ -17,9 +17,9 @@ export { HORAIRES_MAX };
  */
 
 // ---------- sections de l'espace restaurateur ----------
-export type SectionRestaurateur = 'commandes' | 'service' | 'menu';
-export const SECTIONS_RESTAURATEUR: readonly SectionRestaurateur[] = ['commandes', 'service', 'menu'];
-export const LIBELLES_SECTIONS: Record<SectionRestaurateur, string> = { commandes: 'Commandes', service: 'Service', menu: 'Menu' };
+export type SectionRestaurateur = 'commandes' | 'service' | 'menu' | 'historique';
+export const SECTIONS_RESTAURATEUR: readonly SectionRestaurateur[] = ['commandes', 'service', 'menu', 'historique'];
+export const LIBELLES_SECTIONS: Record<SectionRestaurateur, string> = { commandes: 'Commandes', service: 'Service', menu: 'Menu', historique: 'Historique' };
 /** On ne change pas de section pendant un envoi ou une relecture (commandes OU service), pour que le verdict reste devant les yeux. */
 export function peutChangerDeSection(occupeCommandes: boolean, occupeService: boolean): boolean { return !occupeCommandes && !occupeService; }
 
