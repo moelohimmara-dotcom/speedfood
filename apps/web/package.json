@@ -13,6 +13,7 @@
     "test:concurrence": "node ../../supabase/concurrence/concurrence.mjs",
     "test:simulation": "node ../../supabase/concurrence/simulation-journee.mjs",
     "test:sw": "node scripts/tests/sw-hors-ligne.test.mjs",
+    "verifier-apk-mobile": "node scripts/verifier-apk-mobile.mjs",
     "export:donnees": "node scripts/export/exporter.mjs",
     "export:verifier": "node scripts/export/verifier-restauration.mjs",
     "cf:build": "node scripts/verifier-base.mjs && opennextjs-cloudflare build",

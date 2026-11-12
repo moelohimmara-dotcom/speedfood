@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { VERSION_APPLICATION } from "../../src/lib/application/version";
+import { adresseApkMobile } from "../../src/lib/application/apk-mobile";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -35,13 +36,12 @@ if (mobile) {
   verifier("mobile : code strictement supérieur à celui de l'ancienne appli", mobile.code > VERSION_APPLICATION.code, true);
   verifier("mobile : nom et notes renseignés", mobile.nom.length > 0 && mobile.nom.length <= 40 && mobile.notes.length > 10 && mobile.notes.length <= 300, true);
   verifier("mobile : le fichier n'est JAMAIS celui de l'ancienne appli", mobile.apkChemin !== "/speedfood.apk" && mobile.apkChemin !== "/speedfood.apk.sha256", true);
-  verifier("mobile : chemin d'APK sous public/, nom dédié", /^\/speedfood-mobile[A-Za-z0-9._-]*\.apk$/.test(mobile.apkChemin), true);
-  const fichier = join(racine, "public", mobile.apkChemin);
-  verifier("mobile : l'APK existe et n'est pas vide", existsSync(fichier) && statSync(fichier).size > 1_000_000, true);
-  const apkMobile = readFileSync(fichier);
-  verifier("mobile : l'empreinte publiée = celle de l'APK", mobile.apkSha256, createHash("sha256").update(apkMobile).digest("hex"));
-  verifier("mobile : la taille publiée = celle de l'APK", mobile.apkTaille, apkMobile.length);
+  verifier("mobile : chemin sur le site = route dédiée /speedfood-mobile.apk (redirection vers R2)", mobile.apkChemin, "/speedfood-mobile.apk");
+  verifier("mobile : la route du site n'existe pas en fichier statique (au-delà de 25 Mio le Worker refuserait le déploiement)", existsSync(join(racine, "public", "speedfood-mobile.apk")), false);
+  verifier("mobile : adresse R2 acceptable (HTTPS r2.dev, .apk, jamais l'ancienne appli)", adresseApkMobile(VERSION_APPLICATION), mobile.apkUrl);
+  verifier("mobile : taille plausible d'une appli complète, au-delà de 25 Mio donc hébergée sur R2", mobile.apkTaille > 25 * 1024 * 1024 && mobile.apkTaille < 200 * 1024 * 1024, true);
   verifier("mobile : empreinte bien formée et différente de l'ancienne", /^[a-f0-9]{64}$/.test(mobile.apkSha256) && mobile.apkSha256 !== VERSION_APPLICATION.apkSha256, true);
+  // L'empreinte et la taille du fichier réellement hébergé se contrôlent EN LIGNE : `npm run verifier-apk-mobile` (scripts/verifier-apk-mobile.mjs).
 } else {
   console.log("OK    mobile : aucun bloc publié (rien à vérifier tant que la nouvelle appli n'est pas mise en ligne)");
 }
