@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { VERSION_APPLICATION } from "@/lib/application/version";
+import { presentationApkMobile } from "@/lib/application/installer-mobile";
 
 export const metadata: Metadata = {
   title: "Télécharger l'application Speedfood",
@@ -18,6 +19,16 @@ const ETAPES_ANDROID = [
   "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
   "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
   "L'icône Speedfood apparaît sur votre écran d'accueil. Ouvrez-la : elle vous guide au premier lancement.",
+];
+
+/** Nouvelle appli (Expo, com.speedfood.mobile) en version d'essai, à côté de l'ancienne. `null` : rien n'est publié ou le téléchargement n'est pas valide, la section n'apparaît pas. */
+const MOBILE = presentationApkMobile();
+
+const ETAPES_MOBILE = [
+  "Touchez « Télécharger la version d'essai » ci-dessus.",
+  "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
+  "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
+  "Une deuxième icône Speedfood apparaît, à côté de celle de l'ancienne application. Elle utilise les mêmes comptes et les mêmes restaurants.",
 ];
 
 const ETAPES_IPHONE = [
@@ -97,6 +108,33 @@ export default function InstallerPage() {
           L&apos;application contrôle elle-même cette empreinte avant chaque mise à jour.
         </p>
       </section>
+
+      {MOBILE ? (
+        <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-nouvelle">
+          <h2 id="installer-nouvelle" className="pub-titre pub-h3-page">Nouvelle application Speedfood (version d&apos;essai)</h2>
+          <p className="installer-note">
+            Gratuite · version {MOBILE.nom}
+            {MOBILE.tailleMo > 0 ? ` · ${MOBILE.tailleMo} Mo` : ""}. Une nouvelle application Speedfood est disponible en essai. Elle s&apos;installe <strong>à côté</strong> de
+            l&apos;ancienne et ne la remplace pas : gardez l&apos;ancienne tant que vous avez besoin de ses fonctions. Certaines ne sont pas encore reprises dans la
+            nouvelle, notamment l&apos;espace équipe et l&apos;espace livreur complet.
+          </p>
+          <p>
+            <a className="pub-btn" href={MOBILE.chemin} download="speedfood-mobile.apk">
+              Télécharger la version d&apos;essai
+            </a>
+          </p>
+
+          <h3 className="pub-titre pub-h3-page">Installer en quatre étapes</h3>
+          <Etapes etapes={ETAPES_MOBILE} />
+          <p className="installer-note">
+            Cette version d&apos;essai ne se met pas à jour en un geste : revenez sur cette page pour les nouvelles versions. Comme pour l&apos;autre application, Android affiche
+            un avertissement standard avant d&apos;installer un fichier téléchargé, et les notifications nécessitent les services Google du téléphone.
+          </p>
+          <p className="installer-note">
+            Empreinte SHA-256 du fichier : <code>{MOBILE.sha256}</code>
+          </p>
+        </section>
+      ) : null}
 
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-iphone">
         <h2 id="installer-iphone" className="pub-titre pub-h3-page">iPhone et iPad</h2>
