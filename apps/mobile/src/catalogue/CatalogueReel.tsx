@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PageMenu, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { creerLecteurCatalogue } from './client';
 import { chiffrer } from './panier-reel';
@@ -10,6 +10,7 @@ import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
 import { AideReelle } from '../connexion/AideReelle';
 import { FavoriFiche } from '../connexion/FavoriFiche';
+import { verrouPro } from '../connexion/verrou-natif';
 import { CommandeReelle } from './CommandeReelle';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
@@ -64,6 +65,11 @@ export function CatalogueReel() {
     const debrancherResto = brancherOuvertureRestaurateur(() => ouvertureResto.demander());
     const arreter = notifications.demarrer();
     return () => { arreter(); debrancherSuivi(); debrancherResto(); };
+  }, []);
+  // Verrou des espaces professionnels : départ et retour au premier plan (délai de 2 minutes mesuré par le verrou lui-même).
+  useEffect(() => {
+    const abonnement = AppState.addEventListener('change', etat => { if (etat === 'active') verrouPro.reprise(); else verrouPro.quitte(); });
+    return () => abonnement.remove();
   }, []);
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }

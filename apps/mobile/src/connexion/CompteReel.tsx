@@ -8,6 +8,7 @@ import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
 import { InscriptionReelle, OubliReel } from './AccesReel';
 import { EspaceClientReel } from './EspaceClientReel';
+import { PorteVerrou, ReglageVerrou } from './VerrouProReel';
 import { ReglementReel } from './ReglementReel';
 import { RestaurateurReel } from './RestaurateurReel';
 import { LivreurReel } from './LivreurReel';
@@ -140,11 +141,11 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   if(restaurateurOuvert){
     // Au retour, l'état de la session est relu : une session terminée pendant l'espace restaurateur (401) renvoie au formulaire de connexion.
     const retour=()=>{setRestaurateurOccupe(false);setRestaurateurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
-    return <Modal visible={ouvert} onRequestClose={restaurateurOccupe?()=>{}:retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><RestaurateurReel fermer={retour} signalerOccupe={setRestaurateurOccupe}/></SafeAreaView></Modal>;
+    return <Modal visible={ouvert} onRequestClose={restaurateurOccupe?()=>{}:retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><PorteVerrou retour={restaurateurOccupe?()=>{}:retour}><RestaurateurReel fermer={retour} signalerOccupe={setRestaurateurOccupe}/></PorteVerrou></SafeAreaView></Modal>;
   }
   if(livreurOuvert&&connectee){
     const retour=()=>{setLivreurOuvert(false);setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}};
-    return <Modal visible={ouvert} onRequestClose={retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><LivreurReel session={gestion} fermer={retour}/></SafeAreaView></Modal>;
+    return <Modal visible={ouvert} onRequestClose={retour} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><PorteVerrou retour={retour}><LivreurReel session={gestion} fermer={retour}/></PorteVerrou></SafeAreaView></Modal>;
   }
   if(espaceOuvert&&connectee){
     // Au retour (ou si la session prend fin pendant l'espace), l'état de la session est relu : un 401 renvoie au formulaire de connexion.
@@ -177,6 +178,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
         void notifications.apresContexteRestaurateur(true).then(e=>{if(e)setMessage(MESSAGES_ETAT_RESTO[e]);});
         setRestaurateurOuvert(true);
       }}/>}
+      {(restaurateur||livreur)&&<ReglageVerrou/>}
       <Action titre="Voir ou actualiser mes commandes" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
       {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&(suivi.valeur.proposition===null?<Text style={s.texte}>Le restaurant a proposé une modification que l’application ne peut pas afficher. Actualisez ce suivi ou consultez-la sur le site avant de répondre.</Text>:<PropositionCarte proposition={suivi.valeur.proposition} totalActuel={suivi.valeur.totalGnf} confirmation={confirmerProposition} occupe={attente} choisir={setConfirmerProposition} repondre={accepter=>{void executer(()=>repondreProposition(suivi.id,suivi.valeur.proposition!.id,accepter));}}/>)}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
