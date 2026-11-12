@@ -8,6 +8,7 @@ import { Bouton } from '../design/Composants';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
+import { AideReelle } from '../connexion/AideReelle';
 import { CommandeReelle } from './CommandeReelle';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
@@ -19,6 +20,7 @@ export function CatalogueReel() {
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [compteOuvert, setCompteOuvert] = useState(false);
   const [commandeOuverte, setCommandeOuverte] = useState(false);
+  const [aideOuverte, setAideOuverte] = useState(false);
   const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null; espaceRestaurateur?: boolean } | null>(null);
   const [messagePanier, setMessagePanier] = useState('');
   const [messageNotifications, setMessageNotifications] = useState('');
@@ -85,6 +87,7 @@ export function CatalogueReel() {
       <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>
       <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
       <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />
+      <Action titre="Aide et contact" agir={() => setAideOuverte(true)} />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
@@ -124,6 +127,7 @@ export function CatalogueReel() {
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} />
+    <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
   </View>;
 }
 const s = StyleSheet.create({
