@@ -18,10 +18,12 @@ import type { PaiementsEquipe } from './paiements-equipe.ts';
 import type { AccesEquipe, ActionRepartitionEquipe, CommandeARepartir, CommandeEquipe, CoordonneesEquipe, ReponseDetailEquipe, StatutCommandeEquipe } from './commandes-equipe.ts';
 import type { ExploitationEquipe } from './exploitation-equipe.ts';
 import type { DemandePartenariat, DemandeReferencement, FicheRestaurantEquipe, MenusEquipe, PlatMenuEquipe, RestaurantEquipe } from './catalogue-equipe.ts';
+import type { AvisEquipe, BanniereEquipe, ParametresEquipe } from './contenus-equipe.ts';
+import type { AuditEquipe, CompteEquipe, MisesAJourEquipe, ZoneAttenteEquipe } from './admin-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -254,6 +256,36 @@ export class GestionSession {
     if (n !== this.generation) throw new ErreurConnexion(annule);
     try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
     catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  comptesEquipe(recherche?: { q?: string; type?: string }): Promise<{ comptes: CompteEquipe[]; tronque: boolean; illisibles: number }> {
+    return this.appelCandidature(a => this.api.comptesEquipe ? this.api.comptesEquipe(a, recherche) : Promise.reject(new ErreurConnexion('Comptes indisponibles.')), 'Lecture annulée.');
+  }
+  auditEquipe(filtres?: { action?: string; depuis?: number }): Promise<AuditEquipe> {
+    return this.appelCandidature(a => this.api.auditEquipe ? this.api.auditEquipe(a, filtres) : Promise.reject(new ErreurConnexion('Journal indisponible.')), 'Lecture annulée.');
+  }
+  zonesAttenteEquipe(): Promise<{ zones: ZoneAttenteEquipe[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.zonesAttenteEquipe ? this.api.zonesAttenteEquipe(a) : Promise.reject(new ErreurConnexion('Zones indisponibles.')), 'Lecture annulée.');
+  }
+  marquerZonePrevenueEquipe(niveau: string, zoneId: string): Promise<string> {
+    return this.appelCandidature(a => this.api.marquerZonePrevenueEquipe ? this.api.marquerZonePrevenueEquipe(a, niveau, zoneId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  misesAJourEquipe(): Promise<MisesAJourEquipe> {
+    return this.appelCandidature(a => this.api.misesAJourEquipe ? this.api.misesAJourEquipe(a) : Promise.reject(new ErreurConnexion('Mises à jour indisponibles.')), 'Lecture annulée.');
+  }
+  avisEquipe(): Promise<AvisEquipe> {
+    return this.appelCandidature(a => this.api.avisEquipe ? this.api.avisEquipe(a) : Promise.reject(new ErreurConnexion('Avis indisponibles.')), 'Lecture annulée.');
+  }
+  modererAvisEquipe(avisId: string, action: string, motif?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.modererAvisEquipe ? this.api.modererAvisEquipe(a, avisId, action, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  bannieresEquipe(statut?: string): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+    return this.appelCandidature(a => this.api.bannieresEquipe ? this.api.bannieresEquipe(a, statut) : Promise.reject(new ErreurConnexion('Bannières indisponibles.')), 'Lecture annulée.');
+  }
+  mediasEquipe(): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+    return this.appelCandidature(a => this.api.mediasEquipe ? this.api.mediasEquipe(a) : Promise.reject(new ErreurConnexion('Médias indisponibles.')), 'Lecture annulée.');
+  }
+  parametresEquipe(): Promise<ParametresEquipe> {
+    return this.appelCandidature(a => this.api.parametresEquipe ? this.api.parametresEquipe(a) : Promise.reject(new ErreurConnexion('Paramètres indisponibles.')), 'Lecture annulée.');
   }
   restaurantsEquipe(): Promise<{ restaurants: RestaurantEquipe[]; illisibles: number }> {
     return this.appelCandidature(a => this.api.restaurantsEquipe ? this.api.restaurantsEquipe(a) : Promise.reject(new ErreurConnexion('Établissements indisponibles.')), 'Lecture annulée.');

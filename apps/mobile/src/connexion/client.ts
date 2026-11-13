@@ -25,6 +25,8 @@ import {
 } from './commandes-equipe.ts';
 import { lirePaiementsEquipe, type PaiementsEquipe } from './paiements-equipe.ts';
 import { lireExploitationEquipe, preparerActionLivraisonEquipe, preparerActionLivreurEquipe, type ExploitationEquipe } from './exploitation-equipe.ts';
+import { lireAvisEquipe, lireBannieresEquipe, lireParametresEquipe, preparerModeration, type AvisEquipe, type BanniereEquipe, type ParametresEquipe } from './contenus-equipe.ts';
+import { lireAuditEquipe, lireComptesEquipe, lireMisesAJourEquipe, lireZonesAttente, type AuditEquipe, type CompteEquipe, type MisesAJourEquipe, type ZoneAttenteEquipe } from './admin-equipe.ts';
 import {
   STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, lireFicheRestaurantEquipe, lireMenusEquipe, lireOptionsReferencement, lirePartenariatsEquipe,
   lirePlatsMenuEquipe, lireReferencementsEquipe, lireRestaurantsEquipe, validerProfilSimpleEquipe,
@@ -581,6 +583,66 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if (!uuidEquipe.test(demandeId) || !(STATUTS_PARTENARIAT_EQUIPE as readonly string[]).includes(statut)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
       const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/partenariats/statut', { id: demandeId, statut }, 'Le statut n’a pas pu être changé.');
       return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Statut enregistré.';
+    },
+    /** Avis à modérer et alertes de qualité (lot 7, E8). */
+    async avisEquipe(accessToken: string): Promise<AvisEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/avis', 'Les avis reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireAvisEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les avis reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Décision de modération d'un avis (motif exigé pour retirer du contenu ; tracée par le serveur). Un seul essai. */
+    async modererAvisEquipe(accessToken: string, avisId: string, action: string, motif?: string): Promise<string> {
+      const corps = preparerModeration(avisId, action, motif);
+      if (corps === null) throw new ErreurEquipe('refus', 'Indiquez le motif (5 caractères au moins) pour retirer du contenu, puis réessayez.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/avis/moderation', corps, 'La décision n’a pas pu être enregistrée.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Décision enregistrée.';
+    },
+    /** Bannières diffusées sur les écrans publics (lot 7, E9, lecture seule : créer et publier restent sur le site). */
+    async bannieresEquipe(accessToken: string, statut?: string): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+      const q = statut === 'publie' || statut === 'brouillon' ? '?statut=' + statut : '';
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/bannieres' + q, 'Les bannières reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireBannieresEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les bannières reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Bibliothèque de médias : les bannières qui ont une image (lecture seule, pas d'envoi ici). */
+    async mediasEquipe(accessToken: string): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/medias', 'Les médias reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireBannieresEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les médias reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Réglages globaux de l'application (lot 7, E10, lecture seule : les modifier reste sur le site). */
+    async parametresEquipe(accessToken: string): Promise<ParametresEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/parametres', 'Les paramètres reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireParametresEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les paramètres reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Annuaire des comptes (lot 8, E11, lecture seule : suppressions et rôles restent sur le site). */
+    async comptesEquipe(accessToken: string, recherche?: { q?: string; type?: string }): Promise<{ comptes: CompteEquipe[]; tronque: boolean; illisibles: number }> {
+      const q = new URLSearchParams();
+      if (recherche?.q) q.set('q', recherche.q.slice(0, 100));
+      if (recherche?.type && ['restaurateur', 'systeme', 'sans_affiliation', 'test'].includes(recherche.type)) q.set('type', recherche.type);
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/comptes?' + q.toString(), 'Les comptes reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireComptesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les comptes reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Journal d'audit et indicateurs (lot 8, E12, lecture seule : le journal est en écriture seule par le serveur). */
+    async auditEquipe(accessToken: string, filtres?: { action?: string; depuis?: number }): Promise<AuditEquipe> {
+      const q = new URLSearchParams();
+      if (filtres?.action) q.set('action', filtres.action.slice(0, 80));
+      if (filtres?.depuis === 1 || filtres?.depuis === 7 || filtres?.depuis === 30) q.set('depuis', String(filtres.depuis));
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/audit?' + q.toString(), 'Le journal reçu est illisible. Réessayez dans un instant.');
+      try { return lireAuditEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le journal reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Zones de la liste d'attente (lot 8, E13) : que des zones et des nombres, aucun contact. */
+    async zonesAttenteEquipe(accessToken: string): Promise<{ zones: ZoneAttenteEquipe[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/liste-attente', 'Les zones reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireZonesAttente(v); } catch { throw new ErreurEquipe('refus', 'Les zones reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Marque les personnes d'une zone comme prévenues (aucun contact touché ; tracé par le serveur). Un seul essai. */
+    async marquerZonePrevenueEquipe(accessToken: string, niveau: string, zoneId: string): Promise<string> {
+      if (!['region', 'prefecture', 'commune', 'quartier'].includes(niveau) || !uuidEquipe.test(zoneId)) throw new ErreurEquipe('refus', 'Zone invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/liste-attente/prevenue', { niveau, id: zoneId }, 'La zone n’a pas pu être marquée comme prévenue.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Zone marquée comme prévenue.';
+    },
+    /** État des mises à jour (lot 8, E14, lecture seule : interrupteurs et annonces restent sur le site). */
+    async misesAJourEquipe(accessToken: string): Promise<MisesAJourEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/mises-a-jour', 'Les mises à jour reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireMisesAJourEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les mises à jour reçues sont illisibles. Réessayez dans un instant.'); }
     },
     /** Tableau de bord de l'équipe (lot 5, E1/E15) : seuls les blocs permis au rôle sont renvoyés ; un bloc absent n'est jamais inventé. */
     async tableauEquipe(accessToken: string): Promise<TableauEquipe> {

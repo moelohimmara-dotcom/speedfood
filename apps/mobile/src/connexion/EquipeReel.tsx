@@ -14,6 +14,8 @@ import type { PaiementsEquipe } from './paiements-equipe';
 import type { AccesEquipe } from './commandes-equipe';
 import { CommandesEquipeReel, ExploitationEquipeReel, RepartitionEquipeReel } from './EquipeCommandes';
 import { MenusEquipeReel, PartenariatsEquipeReel, ReferencementsEquipeReel, RestaurantsEquipeReel } from './EquipeCatalogue';
+import { AvisEquipeReel, BannieresEquipeReel, MediasEquipeReel, ParametresEquipeReel } from './EquipeContenus';
+import { AttenteEquipeReel, AuditEquipeReel, ComptesEquipeReel, MisesAJourEquipeReel } from './EquipeAdmin';
 import { couleurs as c, polices } from '../design/tokens';
 
 /**
@@ -21,11 +23,13 @@ import { couleurs as c, polices } from '../design/tokens';
  * quand le compte n'a pas le droit du module (le serveur décide, jamais l'écran). Lectures manuelles, un seul essai, aucune relance.
  * Premier module livré : les finances (E2, lecture seule — les taux et versements se modifient sur le site).
  */
-type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'restaurants' | 'menus' | 'referencements' | 'partenariats' | 'finances' | 'paiements';
+type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'restaurants' | 'menus' | 'referencements' | 'partenariats' | 'avis' | 'bannieres' | 'medias' | 'parametres' | 'comptes' | 'audit' | 'attente' | 'mises-a-jour' | 'finances' | 'paiements';
 const MODULES_EQUIPE: ReadonlyArray<{ id: ModuleEquipe; libelle: string }> = [
   { id: 'tableau', libelle: 'Tableau de bord' }, { id: 'commandes', libelle: 'Commandes (support)' }, { id: 'repartition', libelle: 'Répartition' },
   { id: 'exploitation', libelle: 'Exploitation livreurs' }, { id: 'restaurants', libelle: 'Établissements' }, { id: 'menus', libelle: 'Menus' },
-  { id: 'referencements', libelle: 'Référencements' }, { id: 'partenariats', libelle: 'Partenariats' },
+  { id: 'referencements', libelle: 'Référencements' }, { id: 'partenariats', libelle: 'Partenariats' }, { id: 'avis', libelle: 'Avis et signalements' },
+  { id: 'bannieres', libelle: 'Bannières' }, { id: 'medias', libelle: 'Médias' }, { id: 'parametres', libelle: 'Paramètres' },
+  { id: 'comptes', libelle: 'Comptes' }, { id: 'audit', libelle: 'Journal d’audit' }, { id: 'attente', libelle: 'Liste d’attente' }, { id: 'mises-a-jour', libelle: 'Mises à jour' },
   { id: 'finances', libelle: 'Finances' }, { id: 'paiements', libelle: 'Paiements' },
 ];
 
@@ -52,6 +56,14 @@ export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void
     {module === 'menus' && <MenusEquipeReel />}
     {module === 'referencements' && <ReferencementsEquipeReel />}
     {module === 'partenariats' && <PartenariatsEquipeReel />}
+    {module === 'avis' && <AvisEquipeReel />}
+    {module === 'bannieres' && <BannieresEquipeReel />}
+    {module === 'medias' && <MediasEquipeReel />}
+    {module === 'parametres' && <ParametresEquipeReel />}
+    {module === 'comptes' && <ComptesEquipeReel />}
+    {module === 'audit' && <AuditEquipeReel />}
+    {module === 'attente' && <AttenteEquipeReel />}
+    {module === 'mises-a-jour' && <MisesAJourEquipeReel />}
     {module === 'finances' && <FinancesEquipeReel />}
     {module === 'paiements' && <PaiementsEquipeReel />}
   </ScrollView></SafeAreaView></Modal>;
