@@ -15,6 +15,7 @@ import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, l
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
+import { fournisseursActifsDepuis } from './reseaux-sociaux.ts';
 import { ErreurCandidature, corpsCandidature as produireCorpsCandidature, lireLectureMenu, lireVueCandidature, type BrouillonCandidature, type LectureMenu, type VueCandidature } from './candidature.ts';
 import { ErreurEquipe } from './equipe.ts';
 import { DEBUT_PERIODE_FINANCES, FIN_PERIODE_FINANCES, lireFinancesEquipe, type FinancesEquipe } from './finances-equipe.ts';
@@ -39,6 +40,8 @@ import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from 
 import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
+/** Base du service d'authentification (adresses de départ des connexions sociales PKCE). */
+export const URL_AUTH_SOCIALE = SUPABASE + '/auth/v1';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
 export interface ResumeCompte { pseudo: string | null; favoris: number; adresses: number }
 export class ErreurConnexion extends Error {
@@ -877,6 +880,35 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async connecter(email: string, motDePasse: string) {
       if (!email.trim() || email.length > 254 || !motDePasse.length || motDePasse.length > 4096) throw new ErreurConnexion('Renseignez votre adresse e-mail et votre mot de passe.');
       return jetons('password',{ email:email.trim(), password:motDePasse });
+    },
+    /**
+     * Fournisseurs sociaux activés côté service d'authentification (A4/A5/A6) : lus sur le point public des réglages ; Facebook exige en plus
+     * l'interrupteur de l'équipe lu sur le site. Tout échec vaut « aucun » : jamais un bouton qui échouerait.
+     */
+    async fournisseursActifs(): Promise<Set<'google' | 'facebook'>> {
+      try {
+        const k = await cle();
+        const v = await requete(SUPABASE+'/auth/v1/settings', { method:'GET', headers:{ apikey:k, Accept:'application/json' } });
+        let facebookSite = false;
+        if ((v.external as Record<string, unknown> | undefined)?.facebook === true) {
+          try { const f = await requete(SITE_WEB+'/api/v1/connexion/fournisseurs', { method:'GET' }); facebookSite = f.facebook === true; } catch { facebookSite = false; }
+        }
+        return fournisseursActifsDepuis(v, facebookSite);
+      } catch { return new Set(); }
+    },
+    /** Échange le code à usage unique du retour social (secret PKCE) contre la session, créée si le compte n'existe pas. Un seul essai. */
+    async connecterAvecCode(code: string, verificateur: string) {
+      if (!code || code.length > 512 || !verificateur || verificateur.length < 43 || verificateur.length > 128) throw new ErreurConnexion('Le retour de connexion est invalide. Réessayez.');
+      const k = await cle();
+      const v = await requete(SUPABASE+'/auth/v1/token?grant_type=pkce', { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify({ auth_code: code, code_verifier: verificateur }) }, true);
+      return sessionDe(v);
+    },
+    /** Connexion avec un jeton d'identité Google obtenu sur le téléphone (fournisseur natif futur) : vérifié par le service d'authentification. Un seul essai. */
+    async connecterAvecGoogle(jetonIdentite: string, nonce?: string) {
+      if (!jetonIdentite || jetonIdentite.length > 16384) throw new ErreurConnexion('Le jeton Google est invalide. Réessayez.');
+      const k = await cle();
+      const v = await requete(SUPABASE+'/auth/v1/token?grant_type=id_token', { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify({ provider:'google', id_token: jetonIdentite, ...(nonce ? { nonce } : {}) }) }, true);
+      return sessionDe(v);
     },
     renouveler: (refreshToken: string) => jetons('refresh_token',{ refresh_token:refreshToken }),
     async commandes(accessToken:string) {

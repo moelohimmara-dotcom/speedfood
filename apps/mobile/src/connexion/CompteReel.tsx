@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { creerLectureDifferee } from './lecture-differee';
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ErreurConnexion, type ResumeCompte } from './client';
+import { ErreurConnexion, URL_AUTH_SOCIALE, type ResumeCompte } from './client';
+import { SITE_WEB } from './aide';
+import { lireCodeRetourSocial, preparerVerificateur, urlConnexionSociale, versBase64Url, type FournisseurSocial } from './reseaux-sociaux';
 import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
@@ -97,6 +100,36 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       return verdictDeclaration({erreur,sessionTerminee:session,mode,reference,relu:relu?relu.paiement:undefined});
     }
   }
+  // Connexions sociales (A4/A5/A6) : boutons seulement si le service d'authentification a activé le fournisseur (Facebook : et l'équipe).
+  // Le parcours ouvre le navigateur (PKCE) ; le secret ne vit qu'en mémoire ici, le code du retour est échangé une seule fois.
+  const [sociaux,setSociaux]=useState<ReadonlySet<FournisseurSocial>>(new Set());
+  const socialEnAttente=useRef<{fournisseur:FournisseurSocial;verificateur:string}|null>(null);
+  useEffect(()=>{
+    if(!ouvert||connectee)return;let actifSocial=true;
+    void gestion.fournisseursActifs().then(s=>{if(actifSocial)setSociaux(s);});
+    return()=>{actifSocial=false;};
+  },[ouvert,connectee]);
+  async function commencerSocial(fournisseur:FournisseurSocial){
+    try{
+      const verificateur=preparerVerificateur(await Crypto.getRandomBytesAsync(32));
+      if(verificateur===null)throw new ErreurConnexion('Connexion sociale indisponible sur cet appareil.');
+      const digest=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,verificateur,{encoding:Crypto.CryptoEncoding.BASE64});
+      socialEnAttente.current={fournisseur,verificateur};
+      await Linking.openURL(urlConnexionSociale(URL_AUTH_SOCIALE,SITE_WEB,fournisseur,versBase64Url(digest)));
+    }catch(e){socialEnAttente.current=null;setErreur(e instanceof ErreurConnexion?e.message:'Impossible d’ouvrir la connexion sociale. Réessayez.');}
+  }
+  useEffect(()=>{
+    if(!ouvert)return;let actifRetour=true;
+    const traiter=(url:string|null)=>{
+      if(!actifRetour||!url||socialEnAttente.current===null)return;
+      const code=lireCodeRetourSocial(url,SITE_WEB);if(code===null)return;
+      const attente=socialEnAttente.current;socialEnAttente.current=null;
+      void executer(async()=>{await gestion.connecterAvecCode(code,attente.verificateur);setProfil(await gestion.espace());});
+    };
+    void Linking.getInitialURL().then(traiter).catch(()=>undefined);
+    const abonnement=Linking.addEventListener('url',e=>traiter(e.url));
+    return()=>{actifRetour=false;abonnement.remove();};
+  },[ouvert]);
   function fermerFormulaire(){setEmail('');setMotDePasse('');fermer();}
   async function executer(f:()=>Promise<void>){
     const n=++revision.current; setAttente(true);setErreur(null);setMessage('');
@@ -172,6 +205,8 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
       <Action titre="Me connecter" disabled={attente||!email.trim()||!motDePasse} agir={()=>{const demande=gestion.connecter(email,motDePasse);setEmail('');setMotDePasse('');void executer(async()=>{await demande;setProfil(await gestion.espace());});}}/>
+      {sociaux.has('google')&&<Action titre="Continuer avec Google" disabled={attente} agir={()=>{void commencerSocial('google');}}/>}
+      {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
       <Action titre="Mot de passe oublié ?" disabled={attente} agir={()=>{setErreur(null);setAcces('oubli');}}/>
       <Action titre="Créer un compte" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
       {erreur&&<Action titre="Relire la session protégée" disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
