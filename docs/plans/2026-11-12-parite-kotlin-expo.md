@@ -98,10 +98,10 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | E1 | Tableau, exploitation, moi, commandes, détail, changer le statut, révéler les coordonnées, répartition, actions livraison et livreur (`Equipe`) | `/equipe/tableau`, `/equipe/moi`, `/equipe/commandes(/[id])`, `/equipe/livraisons`, `/equipe/livreurs/action`, `/equipe/repartition` | Codée, tests OK (accès et menu, recherche et détail support aux coordonnées masquées, statut et révélation avec motif tracé, répartition et actions livraison/livreur confirmées puis relues) ; essai émulateur avec un compte d'équipe à faire | 5 |
 | E2 | Finances (`finances`) | `/equipe/finances` | Codée, tests OK (relevé lu strictement, lecture seule, lien d'édition vers le site) ; essai émulateur à faire | 5 |
 | E3 | Paiements (`paiements`) | `/equipe/paiements` | Codée, tests OK (lecture seule, aucun numéro de versement retenu, décisions d'argent laissées au site) ; essai émulateur à faire | 5 |
-| E4 | Restaurants : liste, fiche, enregistrer le profil (`restaurants`, `fiche`, `enregistrerProfil`) | `/equipe/restaurants(/[id](/profil))` | Absente | 6 |
-| E5 | Menus et photos : lire, importer ; confirmer et disponibilité (`lire`, `importer`, `reconfirmer`, `definirDisponibilite`) | `/equipe/menus(/[id](/photo, /import), /confirmer, /disponibilite)` | Absente | 6 |
-| E6 | Référencements : demandes, changer le statut, créer un établissement, rattacher un compte, options | `/equipe/referencements(/…)` | Absente | 6 |
-| E7 | Partenariats : liste, changer le statut | `/equipe/partenariats(/statut)` | Absente | 6 |
+| E4 | Restaurants : liste, fiche, enregistrer le profil (`restaurants`, `fiche`, `enregistrerProfil`) | `/equipe/restaurants(/[id](/profil))` | Codée, tests OK (état lu, fiche et menu, profil simple horaires + numéro interne ; publication et suspension laissées au site) ; essai émulateur à faire | 6 |
+| E5 | Menus et photos : lire, importer ; confirmer et disponibilité (`lire`, `importer`, `reconfirmer`, `definirDisponibilite`) | `/equipe/menus(/[id](/photo, /import), /confirmer, /disponibilite)` | Codée en partie, tests OK (fraîcheur, plats, reconfirmation et disponibilité) ; import d'un menu écrit et envoi d'une photo restent à coder ; essai émulateur à faire | 6 |
+| E6 | Référencements : demandes, changer le statut, créer un établissement, rattacher un compte, options | `/equipe/referencements(/…)` | Codée, tests OK (demandes sans e-mail ni chemin de fichier, statuts, création depuis les listes officielles, rattachement confirmé) ; essai émulateur à faire | 6 |
+| E7 | Partenariats : liste, changer le statut | `/equipe/partenariats(/statut)` | Codée, tests OK (suivi de statut confirmé ; suppression laissée au site) ; essai émulateur à faire | 6 |
 | E8 | Avis : lister, modérer (`avis`, `moderer`) | `/equipe/avis(/moderation)` | Absente | 7 |
 | E9 | Bannières et médias (`bannieres`, `medias`) | `/equipe/bannieres`, `/equipe/medias` | Absente | 7 |
 | E10 | Paramètres (`parametres`) | `/equipe/parametres` | Absente | 7 |
@@ -113,7 +113,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 25 à confirmer, 20 absentes.
+Voir §8 : 20 lignes reprises sur 65, 29 à confirmer, 16 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -152,10 +152,10 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 | B. Client | 15 | 11 | 3 | 1 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 7 | 1 |
-| E. Équipe | 15 | 0 | 4 | 11 |
-| **Total** | **65** | **20** | **25** | **20** |
+| E. Équipe | 15 | 0 | 8 | 7 |
+| **Total** | **65** | **20** | **29** | **16** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **25 à confirmer** et **20 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **29 à confirmer** et **16 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -211,3 +211,7 @@ Quatre lignes codées, tests avant le code à chaque fois (4 + 7 + 6 tests) : **
 Fondation de l'espace équipe (entrée « Espace équipe » dans « Mon compte » quand le rôle lu sur `/moi` le donne, sous le même verrou que les autres espaces professionnels ; chaque module est relu par la session et le serveur refuse proprement un module sans droit) et trois lectures codées, tests avant le code (4 + 4 tests) : **tableau de bord** (E1/E15 : blocs commandes, exploitation et catalogue seulement si le rôle y a droit — un bloc absent n'est jamais remplacé par un zéro inventé), **finances** (E2 : relevé L3 en lecture seule, taux marqués « (développement) », édition renvoyée au site) et **paiements en ligne** (E3 : lecture seule, compteurs et versements, aucun numéro de téléphone retenu, décisions d'argent laissées au site). Suite mobile **744/744**, types à 0. Restent au lot 5 : les commandes et actions d'exploitation de E1 (détail, statuts, coordonnées révélées, répartition, actions livraison/livreur) ; puis les lots 6 à 8 (restaurants/menus/référencements/partenariats, avis/bannières/paramètres, comptes/audit/liste d'attente/mises à jour).
 
 E1 complétée ensuite : accès du compte et son menu (natif ou site), recherche de commandes et détail support (coordonnées masquées partout, historique et propositions), changement de statut et révélation des coordonnées — chacun avec motif obligatoire, confirmation, un seul essai et relecture ; poste de répartition (accepter, refuser, prête, remise, annuler) et exploitation livreurs (affecter, relancer, avancer, annuler ; mettre en/hors ligne, approuver, refuser, suspendre, réactiver, archiver, motif où le serveur l'exige). Deux formes ont été corrigées sur le contrat réel du serveur en cours de route : les coordonnées révélées (`{telephone, adresse, devoilees}`) et l'avancement d'une livraison (`{action: 'avancer', vers}`). 9 tests de plus, suite à **753/753**. Le lot 5 est entièrement codé ; il ne manque que les essais émulateur avec un compte d'équipe.
+
+## Lot 6 : établissements, menus, référencements, partenariats
+
+Quatre modules de plus dans l'espace équipe, tests avant le code (5 tests) : **E4 établissements** (état et fiche lus, menu de la fiche, profil simple — horaires et numéro interne — validé comme le serveur ; publication, suspension et suppression restent sur le site, l'écran le dit), **E5 menus** (fraîcheur par établissement, plats, reconfirmation d'un plat ou de tout le menu et disponibilité, confirmées puis relues ; l'import d'un menu écrit et l'envoi d'une photo de plat restent à coder), **E6 référencements** (demandes lues sans e-mail ni chemin de fichier, dossier de candidature résumé, changements de statut avec motif de refus lu par le demandeur, création de l'établissement depuis les listes officielles et rattachement du compte, confirmés puis relus) et **E7 partenariats** (suivi de statut ; suppression laissée au site). Suite mobile **758/758**, types à 0. Restent les lots 7 et 8 : avis et signalements, bannières et médias, paramètres, comptes, audit, liste d'attente et mises à jour.
