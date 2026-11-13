@@ -34,9 +34,9 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | A7 | Verrou de l'appareil (biométrie ou code) | local | Codée, tests OK (règle portée, `expo-local-authentication`) ; réglage vu sur émulateur le 12 novembre avec un compte professionnel (désactivé ; branche « configurez d'abord un verrouillage d'écran » de l'émulateur vérifiée) ; activation et verrouillage à l'ouverture à essayer sur téléphone avec verrouillage configuré | 1 |
 | A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; panneau et garde-fou essayés sur émulateur le 12 novembre (mot faux : bouton désactivé ; fermé par « Non, garder », compte intact) ; suppression réelle à faire sur un compte jetable uniquement | 1 |
 | A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer : rôles lus, entrées restaurateur et livreur présentes ; l'écran « choix du profil » de l'ancienne appli n'existe pas dans Expo (décision de conception à prendre) | 1 |
-| A10 | Visite guidée au premier lancement | local | Absente | 4 |
+| A10 | Visite guidée au premier lancement | local | Codée, tests OK (deux séries de deux écrans, proposée une seule fois, rouvrable depuis l'accueil et l'espace restaurateur) ; essai émulateur à faire | 4 |
 | A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Reprise (tests OK ; essayée sur émulateur le 12 novembre : numéro réel lu, boutons WhatsApp et appel, FAQ) | 1 |
-| A12 | Liens profonds (`LiensProfonds`) | local | À confirmer | 4 |
+| A12 | Liens profonds (`LiensProfonds`) | local | Codée, tests OK (seuls les hôtes Speedfood connus : restaurant ouvert, commande vers « Mon compte » ; aucune navigation arbitraire) ; essai émulateur à faire | 4 |
 
 ### B. Client
 
@@ -53,8 +53,8 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | B9 | Favoris (`basculerFavori`) | `/client/favoris` | Reprise (essai émulateur du 12 novembre : état lu sur la fiche, ajout puis retrait, état restauré et relu à chaque fois) | 1 |
 | B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | Reprise (essai émulateur du 12 novembre : bouton désactivé à vide, adresse de test ajoutée relue « 1 sur 5 » puis supprimée, retour à « 0 sur 5 ») | 1 |
 | B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | Reprise (essai émulateur du 12 novembre : profil relu du serveur, mode préféré changé puis restauré, vérifié par réouverture de l'espace) | 1 |
-| B12 | Candidature : déposer, envoyer une image, lire, lire un menu (`deposer`, `envoyerImage`, `lire`, `lireMenu`) | `/candidature`, `/candidature/image`, `/candidature/menu-photo` | Absente | 4 |
-| B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | À confirmer | 4 |
+| B12 | Candidature : déposer, envoyer une image, lire, lire un menu (`deposer`, `envoyerImage`, `lire`, `lireMenu`) | `/candidature`, `/candidature/image`, `/candidature/menu-photo` | Codée, tests OK (formulaire en trois temps, plats et lecture de photo de menu relue avant ajout, images après dépôt ; routes du site comme l'ancienne appli) ; essai émulateur à faire | 4 |
+| B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | Codée, tests OK (dernière lecture gardée 7 jours au plus, rendue hors ligne avec son ancienneté, revalidée strictement) ; essai émulateur à faire | 4 |
 | B14 | Bandeau et notification de mise à jour | `/version` | Reprise (version d'essai : ouvre `/installer`) | |
 | B15 | Notifications push du client (enregistrer, retirer, jeton, essai) | `/appareils`, `/appareils/essai` | À confirmer : enregistrement fait, réception réelle d'une notification jamais vue | 1 |
 
@@ -113,7 +113,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 19 à confirmer, 26 absentes.
+Voir §8 : 20 lignes reprises sur 65, 21 à confirmer, 24 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -148,14 +148,14 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 
 | Famille | Lignes | Reprise | À confirmer | Absente |
 |---|---|---|---|---|
-| A. Accès, compte, profil | 12 | 1 | 4 | 7 |
-| B. Client | 15 | 11 | 2 | 2 |
+| A. Accès, compte, profil | 12 | 1 | 5 | 6 |
+| B. Client | 15 | 11 | 3 | 1 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 7 | 1 |
 | E. Équipe | 15 | 0 | 0 | 15 |
-| **Total** | **65** | **20** | **19** | **26** |
+| **Total** | **65** | **20** | **21** | **24** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **19 à confirmer** et **26 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **21 à confirmer** et **24 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -201,3 +201,7 @@ Vers C11/C12 : la logique de surveillance de l'ancienne appli est portée en Typ
 Constat avant code : les routes `file`, `historique` et `dossier` que l'ancienne appli appelle n'existent **ni sur le site ni dans l'API unique** ; seuls `etat`, `offre`, `course`, `en-ligne`, `position` et `gains` (site) existent. D7 est donc codée contre la route du site `/livreur/gains`, comme l'ancienne appli (frais de course, jamais une paie ; l'écran ne dit ni « gain » ni « paie » — un test existant l'impose et a fait renommer l'écran en « Mes courses livrées et leurs frais »). Pour D6, la route du site `POST /api/v1/livreur/historique` est créée (même patron que les gains : jeton, livreur tiré du compte, courses livrées paginées par 20, aucune coordonnée client) ; elle ne servira qu'au déploiement du site, le moment venu et avec un feu vert. Côté appli : domaines purs testés avant le code (8 tests), écrans « Mes courses livrées et leurs frais » (gains + historique paginé) et « Assistance conducteur » (D8 : règles de la plateforme, incident selon la course en cours, numéro lu sur `/aide`). D10 se confond avec D7 (même route `/livreur/gains` côté ancienne appli). Suite mobile **716/716**, types mobile et racine à 0, tests unitaires du site à 0. Essais émulateur à grouper avec le prochain APK de contrôle ; D5 (file) demandera la même création de route côté serveur, D9 reste natif (position + service de premier plan).
 
 D5 file, dans la foulée : route du site `GET /api/v1/livreur/file` créée (courses actives projetées par le contrat partagé, client seulement après récupération, course illisible = erreur jamais une file tronquée), domaine `file-livreur.ts` (course en cours : état d'abord, file en repli ; suivantes exclues) et bloc « File des courses » dans l'espace livreur, par la session injectée comme le reste de l'écran (un premier branchement direct au singleton a été refusé par deux tests de câblage existants, corrigé). 3 tests de plus, suite à **719/719**. Au lot 3, il ne reste que D9 (position GPS et service de premier plan, natif) et les essais réels de D3/D4 contre la vraie base.
+
+## Lot 4 : A12 liens profonds, A10 visite guidée, B12 candidature, B13 cache hors ligne
+
+Quatre lignes codées, tests avant le code à chaque fois (4 + 7 + 6 tests) : **A12** — seuls les liens des hôtes Speedfood connus sont interprétés (`/r/…` ouvre la fiche, `/commande/…` ouvre « Mon compte », tout le reste est ignoré) ; **A10** — visite guidée fidèle (deux écrans client, deux restaurateur), proposée une seule fois au premier lancement et rouvrable depuis l'accueil et l'espace restaurateur ; **B12** — candidature complète contre les routes du site : formulaire en trois temps, quartiers du catalogue, plats saisis ou lus sur la photo du menu (relus avant ajout, refusés nommés), envoi en un essai, logo et photo après dépôt ; **B13** — cache hors ligne du catalogue : chaque lecture réussie est gardée dans une base dédiée, rendue hors ligne avec son ancienneté (« Vous êtes hors ligne… »), revalidée strictement et jamais servie après 7 jours ; commander exige toujours le réseau. Suite mobile **736/736**, types à 0. Le lot 4 est entièrement codé ; il ne manque que les essais émulateur, groupés avec le prochain APK de contrôle.
