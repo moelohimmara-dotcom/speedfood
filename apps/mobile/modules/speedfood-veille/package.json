@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "speedfood-veille",
   "version": "1.0.0",
   "description": "Veille native Speedfood : service de premier plan, sonnerie des nouvelles commandes (restaurateur) et suivi de position (livreur). Prototype : compilation par la CI Android requise.",
