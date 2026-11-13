@@ -95,9 +95,9 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 | N° | Module Kotlin (opérations) | Route(s) du site | État Expo | Lot |
 |---|---|---|---|---|
-| E1 | Tableau, exploitation, moi, commandes, détail, changer le statut, révéler les coordonnées, répartition, actions livraison et livreur (`Equipe`) | `/equipe/tableau`, `/equipe/moi`, `/equipe/commandes(/[id])`, `/equipe/livraisons`, `/equipe/livreurs/action`, `/equipe/repartition` | Absente | 5 |
-| E2 | Finances (`finances`) | `/equipe/finances` | Absente | 5 |
-| E3 | Paiements (`paiements`) | `/equipe/paiements` | Absente | 5 |
+| E1 | Tableau, exploitation, moi, commandes, détail, changer le statut, révéler les coordonnées, répartition, actions livraison et livreur (`Equipe`) | `/equipe/tableau`, `/equipe/moi`, `/equipe/commandes(/[id])`, `/equipe/livraisons`, `/equipe/livreurs/action`, `/equipe/repartition` | À confirmer : tableau et bloc exploitation lus (même lecture que E15) ; commandes, détail, statuts, coordonnées, répartition et actions restent à coder | 5 |
+| E2 | Finances (`finances`) | `/equipe/finances` | Codée, tests OK (relevé lu strictement, lecture seule, lien d'édition vers le site) ; essai émulateur à faire | 5 |
+| E3 | Paiements (`paiements`) | `/equipe/paiements` | Codée, tests OK (lecture seule, aucun numéro de versement retenu, décisions d'argent laissées au site) ; essai émulateur à faire | 5 |
 | E4 | Restaurants : liste, fiche, enregistrer le profil (`restaurants`, `fiche`, `enregistrerProfil`) | `/equipe/restaurants(/[id](/profil))` | Absente | 6 |
 | E5 | Menus et photos : lire, importer ; confirmer et disponibilité (`lire`, `importer`, `reconfirmer`, `definirDisponibilite`) | `/equipe/menus(/[id](/photo, /import), /confirmer, /disponibilite)` | Absente | 6 |
 | E6 | Référencements : demandes, changer le statut, créer un établissement, rattacher un compte, options | `/equipe/referencements(/…)` | Absente | 6 |
@@ -109,11 +109,11 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | E12 | Audit (`audit`) | `/equipe/audit` | Absente | 8 |
 | E13 | Liste d'attente : zones, marquer comme prévenu (`zones`, `marquerPrevenue`) | `/equipe/liste-attente(/prevenue)` | Absente | 8 |
 | E14 | Mises à jour : annonces de version (`misesAJour`) | `/equipe/mises-a-jour` | Absente | 8 |
-| E15 | Activité et vue d'ensemble de l'équipe | `/equipe/tableau` | Absente | 5 |
+| E15 | Activité et vue d'ensemble de l'équipe | `/equipe/tableau` | Codée avec le tableau de E1 (même lecture : blocs par domaine selon le rôle) ; essai émulateur à faire | 5 |
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 21 à confirmer, 24 absentes.
+Voir §8 : 20 lignes reprises sur 65, 24 à confirmer, 21 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -152,10 +152,10 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 | B. Client | 15 | 11 | 3 | 1 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 7 | 1 |
-| E. Équipe | 15 | 0 | 0 | 15 |
-| **Total** | **65** | **20** | **21** | **24** |
+| E. Équipe | 15 | 0 | 3 | 12 |
+| **Total** | **65** | **20** | **24** | **21** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **21 à confirmer** et **24 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **24 à confirmer** et **21 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -205,3 +205,7 @@ D5 file, dans la foulée : route du site `GET /api/v1/livreur/file` créée (cou
 ## Lot 4 : A12 liens profonds, A10 visite guidée, B12 candidature, B13 cache hors ligne
 
 Quatre lignes codées, tests avant le code à chaque fois (4 + 7 + 6 tests) : **A12** — seuls les liens des hôtes Speedfood connus sont interprétés (`/r/…` ouvre la fiche, `/commande/…` ouvre « Mon compte », tout le reste est ignoré) ; **A10** — visite guidée fidèle (deux écrans client, deux restaurateur), proposée une seule fois au premier lancement et rouvrable depuis l'accueil et l'espace restaurateur ; **B12** — candidature complète contre les routes du site : formulaire en trois temps, quartiers du catalogue, plats saisis ou lus sur la photo du menu (relus avant ajout, refusés nommés), envoi en un essai, logo et photo après dépôt ; **B13** — cache hors ligne du catalogue : chaque lecture réussie est gardée dans une base dédiée, rendue hors ligne avec son ancienneté (« Vous êtes hors ligne… »), revalidée strictement et jamais servie après 7 jours ; commander exige toujours le réseau. Suite mobile **736/736**, types à 0. Le lot 4 est entièrement codé ; il ne manque que les essais émulateur, groupés avec le prochain APK de contrôle.
+
+## Lot 5 commencé : espace équipe, tableau, finances, paiements
+
+Fondation de l'espace équipe (entrée « Espace équipe » dans « Mon compte » quand le rôle lu sur `/moi` le donne, sous le même verrou que les autres espaces professionnels ; chaque module est relu par la session et le serveur refuse proprement un module sans droit) et trois lectures codées, tests avant le code (4 + 4 tests) : **tableau de bord** (E1/E15 : blocs commandes, exploitation et catalogue seulement si le rôle y a droit — un bloc absent n'est jamais remplacé par un zéro inventé), **finances** (E2 : relevé L3 en lecture seule, taux marqués « (développement) », édition renvoyée au site) et **paiements en ligne** (E3 : lecture seule, compteurs et versements, aucun numéro de téléphone retenu, décisions d'argent laissées au site). Suite mobile **744/744**, types à 0. Restent au lot 5 : les commandes et actions d'exploitation de E1 (détail, statuts, coordonnées révélées, répartition, actions livraison/livreur) ; puis les lots 6 à 8 (restaurants/menus/référencements/partenariats, avis/bannières/paramètres, comptes/audit/liste d'attente/mises à jour).
