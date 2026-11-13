@@ -9,6 +9,9 @@ import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR,
 import { creerControleEtatLivreur, type EtatControleLivreur, type SaisieCourse, type SessionEtatLivreur } from './controle-etat-livreur';
 import { CoursesLivreurReel } from './CoursesLivreurReel';
 import { AssistanceLivreur } from './AssistanceLivreur';
+import { ErreurConnexion } from './client';
+import { coursesSuivantes, type FileLivreur } from './file-livreur';
+import { ErreurLivreur, type CourseLivreur } from './livreur';
 
 /**
  * Espace livreur : fiche du compte, état (G2), offre en attente (G3 : Accepter / Refuser), course en cours (G3 : étapes autorisées par le serveur, code de remise,
@@ -35,12 +38,13 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
     {affiche.etat === 'chargement' && <><Text style={s.texte}>Lecture de votre état…</Text><Squelette /></>}
     {affiche.etat === 'erreur' && <><Text style={s.erreur}>{affiche.message}</Text><Action titre="Réessayer" agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" agir={actualiser} /></>}
-    {affiche.etat === 'lu' && affiche.etatLivreur !== null && <Etat etat={affiche.etatLivreur} ecritureEnCours={affiche.ecritureEnCours} lectureEnCours={affiche.lectureEnCours} incertain={affiche.incertain} message={affiche.message}
+    {affiche.etat === 'lu' && affiche.etatLivreur !== null && <Etat session={session} etat={affiche.etatLivreur} ecritureEnCours={affiche.ecritureEnCours} lectureEnCours={affiche.lectureEnCours} incertain={affiche.incertain} message={affiche.message}
       basculer={(v) => { void controleRef.current.basculer(v); }} repondre={(r) => { void controleRef.current.repondreOffre(r); }} avancer={(vers, saisie) => { void controleRef.current.avancerCourse(vers, saisie); }} actualiser={actualiser} />}
   </ScrollView>;
 }
 
-function Etat({ etat, ecritureEnCours, lectureEnCours, incertain, message, basculer, repondre, avancer, actualiser }: {
+function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, message, basculer, repondre, avancer, actualiser }: {
+  session: SessionEtatLivreur;
   etat: EtatLivreur; ecritureEnCours: boolean; lectureEnCours: boolean; incertain: boolean; message: string | null;
   basculer: (enLigne: boolean) => void; repondre: (reponse: 'acceptee' | 'refusee') => void; avancer: (vers: EtapeCourseLivreur, saisie?: SaisieCourse) => void; actualiser: () => void;
 }) {
@@ -60,6 +64,7 @@ function Etat({ etat, ecritureEnCours, lectureEnCours, incertain, message, bascu
     return () => animation.stop();
   }, [offreId, reduit, entree]);
   // Saisies locales de la course : le code et la raison restent ici le temps de la saisie, et sont effacés quand la course change, se termine, ou à l'envoi.
+  const [fileOuverte, setFileOuverte] = useState(false);
   const [coursesOuvertes, setCoursesOuvertes] = useState(false);
   const [assistanceOuverte, setAssistanceOuverte] = useState(false);
   const [code, setCode] = useState('');
@@ -151,10 +156,43 @@ function Etat({ etat, ecritureEnCours, lectureEnCours, incertain, message, bascu
         : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} disabled={!peutBasculer || verrou} agir={() => basculer(fiche.statut !== 'disponible')} />}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
     <Action titre="Actualiser mon état" disabled={ecritureEnCours} agir={actualiser} />
+    <Action titre="File des courses" secondaire disabled={ecritureEnCours} agir={() => setFileOuverte(v => !v)} />
+    {fileOuverte && <FileCourses session={session} courseActuelle={course} />}
     <Action titre="Mes courses livrées et leurs frais" secondaire disabled={ecritureEnCours} agir={() => setCoursesOuvertes(v => !v)} />
     {coursesOuvertes && <CoursesLivreurReel />}
     <Action titre="Assistance conducteur" secondaire disabled={ecritureEnCours} agir={() => setAssistanceOuverte(true)} />
     <AssistanceLivreur ouvert={assistanceOuverte} fermer={() => setAssistanceOuverte(false)} referenceCourse={course?.commandeReference ?? null} />
+  </View>;
+}
+
+/** File des courses (D5) : les courses qui viennent après celle en cours (déjà montrée par « Ma course »). Lecture manuelle, un seul essai, par la session injectée. */
+function FileCourses({ session, courseActuelle }: { session: SessionEtatLivreur; courseActuelle: CourseLivreur | null }) {
+  const [file, setFile] = useState<FileLivreur | null | undefined>(undefined);
+  const [chargement, setChargement] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const enCours = useRef(false);
+  const actif = useRef(true);
+  useEffect(() => { actif.current = true; return () => { actif.current = false; }; }, []);
+  async function lire() {
+    if (enCours.current) return;
+    enCours.current = true; setChargement(true); setErreur(null);
+    try { if (!session.fileLivreur) throw new ErreurConnexion('File des courses indisponible.'); const f = await session.fileLivreur(); if (actif.current) setFile(f); }
+    catch (e) { if (actif.current) setErreur(e instanceof ErreurLivreur || e instanceof ErreurConnexion ? e.message : 'Impossible de lire votre file de courses. Réessayez.'); }
+    finally { enCours.current = false; if (actif.current) setChargement(false); }
+  }
+  useEffect(() => { void lire(); }, []);
+  const suivantes = file ? coursesSuivantes(file, courseActuelle) : [];
+  return <View style={s.carte}>
+    <Text accessibilityRole="header" style={s.sousTitre}>File des courses</Text>
+    {chargement && <Text accessibilityLiveRegion="polite" style={s.secondaire}>Lecture de votre file…</Text>}
+    {erreur && <Text accessibilityRole="alert" style={s.erreur}>{erreur}</Text>}
+    <Action titre="Actualiser la file" secondaire disabled={chargement} agir={() => { void lire(); }} />
+    {file === null && <Text style={s.secondaire}>Ce compte n'est pas un compte livreur.</Text>}
+    {file && suivantes.length === 0 && <Text style={s.secondaire}>Aucune autre course en file.</Text>}
+    {suivantes.map(x => <View key={x.livraisonId} style={{ gap: 4 }}>
+      <Text style={s.ligne}>{x.commandeReference} · {x.restaurantNom}</Text>
+      <Text style={s.secondaire}>{x.libelle} · {x.fraisGnf.toLocaleString('fr-FR')} GNF de frais de course</Text>
+    </View>)}
   </View>;
 }
 

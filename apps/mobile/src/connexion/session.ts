@@ -10,9 +10,10 @@ import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.
 import type { PageHistorique } from './historique-restaurateur.ts';
 import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
 import type { GainsLivreur, PageCoursesLivreur } from './gains-livreur.ts';
+import type { FileLivreur } from './file-livreur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -236,6 +237,18 @@ export class GestionSession {
       const fiche = await this.api.ficheLivreur(acces);
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return fiche;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** File des courses de ce livreur (lecture, jeton porteur) : la course en cours puis celles qui viennent. */
+  async fileLivreur(): Promise<FileLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.fileLivreur) throw new ErreurConnexion('File des courses indisponible.');
+      const f = await this.api.fileLivreur(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return f;
     } catch (e) { await this.sessionTerminee(e, n); throw e; }
   }
   /** Gains de ce livreur (lecture, jeton porteur) : frais de course du jour et des 7 jours, jamais une paie. */

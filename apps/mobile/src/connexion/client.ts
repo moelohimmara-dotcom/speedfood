@@ -15,6 +15,7 @@ import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, l
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
+import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
 import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
@@ -337,6 +338,14 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * File des courses du livreur (lot 3, D5) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/file`, créée pour la parité).
+     * Lecture seule, un seul essai, strictement relue ; `null` = ce compte n'est pas livreur.
+     */
+    async fileLivreur(accessToken: string): Promise<FileLivreur | null> {
+      const v = await requete(SITE_WEB+'/api/v1/livreur/file', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireFileLivreur(v); } catch { throw new ErreurConnexion('Votre file de courses reçue est illisible. Réessayez dans un instant.'); }
     },
     /**
      * Gains du livreur (lot 3, D7) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/gains`, l'API unique ne l'héberge pas encore).

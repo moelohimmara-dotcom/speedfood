@@ -7,6 +7,8 @@ import {
 export interface SessionEtatLivreur {
   readonly generationNotifications: number | null;
   etatLivreur(): Promise<EtatLivreur | null>;
+  /** File des courses (D5) : facultative pour les doublures de test anciennes. */
+  fileLivreur?(): Promise<import('./file-livreur.ts').FileLivreur | null>;
   basculerEnLigneLivreur(enLigne: boolean): Promise<void>;
   repondreOffreLivreur(offreId: string, reponse: 'acceptee' | 'refusee'): Promise<void>;
   avancerCourseLivreur(demande: DemandeCourseLivreur): Promise<void>;
