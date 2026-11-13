@@ -13,6 +13,7 @@ import type { TableauEquipe } from './tableau-equipe';
 import type { PaiementsEquipe } from './paiements-equipe';
 import type { AccesEquipe } from './commandes-equipe';
 import { CommandesEquipeReel, ExploitationEquipeReel, RepartitionEquipeReel } from './EquipeCommandes';
+import { MenusEquipeReel, PartenariatsEquipeReel, ReferencementsEquipeReel, RestaurantsEquipeReel } from './EquipeCatalogue';
 import { couleurs as c, polices } from '../design/tokens';
 
 /**
@@ -20,10 +21,12 @@ import { couleurs as c, polices } from '../design/tokens';
  * quand le compte n'a pas le droit du module (le serveur décide, jamais l'écran). Lectures manuelles, un seul essai, aucune relance.
  * Premier module livré : les finances (E2, lecture seule — les taux et versements se modifient sur le site).
  */
-type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'finances' | 'paiements';
+type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'restaurants' | 'menus' | 'referencements' | 'partenariats' | 'finances' | 'paiements';
 const MODULES_EQUIPE: ReadonlyArray<{ id: ModuleEquipe; libelle: string }> = [
   { id: 'tableau', libelle: 'Tableau de bord' }, { id: 'commandes', libelle: 'Commandes (support)' }, { id: 'repartition', libelle: 'Répartition' },
-  { id: 'exploitation', libelle: 'Exploitation livreurs' }, { id: 'finances', libelle: 'Finances' }, { id: 'paiements', libelle: 'Paiements' },
+  { id: 'exploitation', libelle: 'Exploitation livreurs' }, { id: 'restaurants', libelle: 'Établissements' }, { id: 'menus', libelle: 'Menus' },
+  { id: 'referencements', libelle: 'Référencements' }, { id: 'partenariats', libelle: 'Partenariats' },
+  { id: 'finances', libelle: 'Finances' }, { id: 'paiements', libelle: 'Paiements' },
 ];
 
 export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void }) {
@@ -45,6 +48,10 @@ export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void
     {module === 'commandes' && <CommandesEquipeReel />}
     {module === 'repartition' && <RepartitionEquipeReel />}
     {module === 'exploitation' && <ExploitationEquipeReel />}
+    {module === 'restaurants' && <RestaurantsEquipeReel />}
+    {module === 'menus' && <MenusEquipeReel />}
+    {module === 'referencements' && <ReferencementsEquipeReel />}
+    {module === 'partenariats' && <PartenariatsEquipeReel />}
     {module === 'finances' && <FinancesEquipeReel />}
     {module === 'paiements' && <PaiementsEquipeReel />}
   </ScrollView></SafeAreaView></Modal>;

@@ -25,6 +25,11 @@ import {
 } from './commandes-equipe.ts';
 import { lirePaiementsEquipe, type PaiementsEquipe } from './paiements-equipe.ts';
 import { lireExploitationEquipe, preparerActionLivraisonEquipe, preparerActionLivreurEquipe, type ExploitationEquipe } from './exploitation-equipe.ts';
+import {
+  STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, lireFicheRestaurantEquipe, lireMenusEquipe, lireOptionsReferencement, lirePartenariatsEquipe,
+  lirePlatsMenuEquipe, lireReferencementsEquipe, lireRestaurantsEquipe, validerProfilSimpleEquipe,
+  type DemandePartenariat, type DemandeReferencement, type FicheRestaurantEquipe, type MenusEquipe, type PlatMenuEquipe, type RestaurantEquipe,
+} from './catalogue-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
@@ -495,6 +500,87 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if (corps === null) throw new ErreurEquipe('refus', 'Demande invalide : vérifiez l’action et le motif (5 caractères au moins quand il est exigé).');
       const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/livreurs/action', corps, 'Impossible d’appliquer cette action sur le livreur.');
       return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Livreur mis à jour.';
+    },
+    /** Établissements vus par l'équipe (lot 6, E4) : état seulement, publication et suspension restent sur le site. */
+    async restaurantsEquipe(accessToken: string): Promise<{ restaurants: RestaurantEquipe[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/restaurants', 'Les établissements reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireRestaurantsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les établissements reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Fiche d'un établissement pour l'équipe (identité, état, menu). */
+    async ficheRestaurantEquipe(accessToken: string, restaurantId: string): Promise<FicheRestaurantEquipe> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/restaurants/' + restaurantId, 'La fiche reçue est illisible. Réessayez dans un instant.');
+      try { return lireFicheRestaurantEquipe(v); } catch { throw new ErreurEquipe('refus', 'La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Modification simple d'un établissement (horaires + numéro interne, validés avant le réseau comme le serveur). Un seul essai. */
+    async modifierProfilEquipe(accessToken: string, restaurantId: string, horaires: string, telephoneBrut: string): Promise<string> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const validation = validerProfilSimpleEquipe(horaires, telephoneBrut);
+      if (!validation.ok) throw new ErreurEquipe('refus', validation.message);
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/restaurants/' + restaurantId + '/profil', { horaires: validation.horaires, telephone: validation.telephone ?? '' }, 'Impossible d’enregistrer ce profil.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Profil enregistré.';
+    },
+    /** Fraîcheur des menus des établissements tenus par l'équipe (lot 6, E5). */
+    async menusEquipe(accessToken: string): Promise<MenusEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/menus', 'Les menus reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireMenusEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les menus reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Plats du menu d'un établissement tenu par l'équipe. */
+    async platsMenuEquipe(accessToken: string, restaurantId: string): Promise<{ nom: string; plats: PlatMenuEquipe[] }> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/menus/' + restaurantId, 'Le menu reçu est illisible. Réessayez dans un instant.');
+      try { return lirePlatsMenuEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le menu reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Reconfirme un plat disponible, ou tout le menu si aucun plat n'est donné. Un seul essai. */
+    async reconfirmerMenuEquipe(accessToken: string, restaurantId: string, platId?: string): Promise<string> {
+      if (!uuidEquipe.test(restaurantId) || (platId !== undefined && !uuidEquipe.test(platId))) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le menu.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/confirmer', platId ? { restaurantId, platId } : { restaurantId }, 'Impossible de reconfirmer pour le moment.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Menu reconfirmé.';
+    },
+    /** Marque un plat épuisé ou le remet en vente. Un seul essai. */
+    async disponibiliteMenuEquipe(accessToken: string, restaurantId: string, platId: string, disponible: boolean): Promise<string> {
+      if (!uuidEquipe.test(restaurantId) || !uuidEquipe.test(platId) || typeof disponible !== 'boolean') throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le menu.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/disponibilite', { restaurantId, platId, disponible }, 'Impossible d’enregistrer pour le moment.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Plat mis à jour.';
+    },
+    /** Demandes de référencement (le téléphone du responsable est envoyé pour le rappeler ; jamais l'e-mail). */
+    async referencementsEquipe(accessToken: string): Promise<{ demandes: DemandeReferencement[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/referencements', 'Les demandes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireReferencementsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les demandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Catégories et quartiers officiels pour créer l'établissement d'une demande. */
+    async optionsReferencement(accessToken: string): Promise<{ categories: Array<{ id: string; nom: string }>; quartiers: Array<{ id: string; nom: string }> }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/referencements/options', 'Les listes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireOptionsReferencement(v); } catch { throw new ErreurEquipe('refus', 'Les listes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Change le statut d'une demande de référencement (jamais « creee » à la main). Un seul essai. */
+    async statutReferencement(accessToken: string, demandeId: string, statut: string, motif?: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId) || !(STATUTS_REFERENCEMENT_EQUIPE as readonly string[]).includes(statut) || statut === 'creee') throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/referencements/statut', { id: demandeId, statut, ...(motif ? { motif } : {}) }, 'Le statut n’a pas pu être changé.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Statut enregistré.';
+    },
+    /** Crée l'établissement (non publié) d'une demande, catégorie et quartier des listes officielles. Un seul essai. */
+    async creerEtablissementReferencement(accessToken: string, demandeId: string, categorieId: string, quartierId: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId) || !uuidEquipe.test(categorieId) || !uuidEquipe.test(quartierId)) throw new ErreurEquipe('refus', 'Choisissez une catégorie et un quartier des listes proposées.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/referencements/creer-etablissement', { id: demandeId, categorieId, quartierId }, 'L’établissement n’a pas pu être créé.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Établissement créé (non publié).';
+    },
+    /** Rattache le compte du candidat à son établissement créé, comme propriétaire (décision humaine). Un seul essai. */
+    async rattacherReferencement(accessToken: string, demandeId: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/referencements/rattacher', { id: demandeId }, 'Le compte n’a pas pu être rattaché.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Compte rattaché à l’établissement.';
+    },
+    /** Demandes de partenariat reçues par la page « Devenir partenaire ». */
+    async partenariatsEquipe(accessToken: string): Promise<{ partenariats: DemandePartenariat[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/partenariats', 'Les demandes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lirePartenariatsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les demandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Change le statut d'une demande de partenariat (suppression laissée au site, irréversible). Un seul essai. */
+    async statutPartenariat(accessToken: string, demandeId: string, statut: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId) || !(STATUTS_PARTENARIAT_EQUIPE as readonly string[]).includes(statut)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/partenariats/statut', { id: demandeId, statut }, 'Le statut n’a pas pu être changé.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Statut enregistré.';
     },
     /** Tableau de bord de l'équipe (lot 5, E1/E15) : seuls les blocs permis au rôle sont renvoyés ; un bloc absent n'est jamais inventé. */
     async tableauEquipe(accessToken: string): Promise<TableauEquipe> {
