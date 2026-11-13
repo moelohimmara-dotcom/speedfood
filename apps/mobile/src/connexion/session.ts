@@ -12,10 +12,13 @@ import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
 import type { GainsLivreur, PageCoursesLivreur } from './gains-livreur.ts';
 import type { FileLivreur } from './file-livreur.ts';
 import type { BrouillonCandidature, LectureMenu, VueCandidature } from './candidature.ts';
+import type { FinancesEquipe } from './finances-equipe.ts';
+import type { TableauEquipe } from './tableau-equipe.ts';
+import type { PaiementsEquipe } from './paiements-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -248,6 +251,16 @@ export class GestionSession {
     if (n !== this.generation) throw new ErreurConnexion(annule);
     try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
     catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  tableauEquipe(): Promise<TableauEquipe> {
+    return this.appelCandidature(a => this.api.tableauEquipe ? this.api.tableauEquipe(a) : Promise.reject(new ErreurConnexion('Tableau de bord indisponible.')), 'Lecture annulée.');
+  }
+  paiementsEquipe(): Promise<PaiementsEquipe> {
+    return this.appelCandidature(a => this.api.paiementsEquipe ? this.api.paiementsEquipe(a) : Promise.reject(new ErreurConnexion('Paiements indisponibles.')), 'Lecture annulée.');
+  }
+  /** Finances de l'équipe (lecture, jeton porteur) : le serveur décide du droit du module. */
+  financesEquipe(): Promise<FinancesEquipe> {
+    return this.appelCandidature(a => this.api.financesEquipe ? this.api.financesEquipe(a) : Promise.reject(new ErreurConnexion('Finances indisponibles.')), 'Lecture annulée.');
   }
   lireCandidature(): Promise<VueCandidature | null> {
     return this.appelCandidature(a => this.api.lireCandidature ? this.api.lireCandidature(a) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Lecture annulée.');

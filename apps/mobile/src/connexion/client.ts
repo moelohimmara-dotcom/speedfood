@@ -16,6 +16,10 @@ import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
 import { ErreurCandidature, corpsCandidature as produireCorpsCandidature, lireLectureMenu, lireVueCandidature, type BrouillonCandidature, type LectureMenu, type VueCandidature } from './candidature.ts';
+import { ErreurEquipe } from './equipe.ts';
+import { DEBUT_PERIODE_FINANCES, FIN_PERIODE_FINANCES, lireFinancesEquipe, type FinancesEquipe } from './finances-equipe.ts';
+import { lireTableauEquipe, type TableauEquipe } from './tableau-equipe.ts';
+import { lirePaiementsEquipe, type PaiementsEquipe } from './paiements-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
@@ -256,6 +260,27 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       return corps as Record<string, unknown>;
     } finally { clearTimeout(timer); }
   }
+  /**
+   * Lecture d'un module de l'espace équipe (lots 5 à 8), route DU SITE : un seul essai. Le serveur décide du droit (permission par module) :
+   * 403 = refus rendu avec son message court, sans jamais contourner ; 401 = session terminée.
+   */
+  async function appelEquipeLecture(accessToken: string, chemin: string, defaut: string): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try { r = await fetcher(SITE_WEB+chemin, { method:'GET', credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } }); }
+    catch { clearTimeout(timer); throw new ErreurEquipe('refus', 'Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 403) throw new ErreurEquipe('refus', messageServeurLivreur(corps) ?? 'Votre compte n’a pas le droit d’ouvrir ce module. Vérifiez votre accès sur le site.');
+      if (!r.ok) throw new ErreurEquipe('refus', 'Le service est indisponible. Réessayez dans un instant.');
+      if (corps === null || typeof corps !== 'object' || Array.isArray(corps)) throw new ErreurEquipe('refus', defaut);
+      return corps as Record<string, unknown>;
+    } finally { clearTimeout(timer); }
+  }
   /** Formulaire photo de candidature : les octets sont lus et vérifiés AVANT le réseau (échec local = rien n'est parti). */
   async function formulairePhotoCandidature(fichier: FichierPhotoPrete, type?: 'logo' | 'photo'): Promise<FormData> {
     let relu: FichierFormulaire;
@@ -375,6 +400,21 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Tableau de bord de l'équipe (lot 5, E1/E15) : seuls les blocs permis au rôle sont renvoyés ; un bloc absent n'est jamais inventé. */
+    async tableauEquipe(accessToken: string): Promise<TableauEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/tableau', 'Le tableau de bord reçu est illisible. Réessayez dans un instant.');
+      try { return lireTableauEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le tableau de bord reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Paiements en ligne vus par l'équipe (lot 5, E3) : lecture seule, aucun numéro de versement retenu. */
+    async paiementsEquipe(accessToken: string): Promise<PaiementsEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/paiements', 'Les paiements reçus sont illisibles. Réessayez dans un instant.');
+      try { return lirePaiementsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les paiements reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Finances de l'équipe (lot 5, E2) : relevé L3 en lecture seule, période par défaut de l'ancienne appli. */
+    async financesEquipe(accessToken: string, debut: string = DEBUT_PERIODE_FINANCES, fin: string = FIN_PERIODE_FINANCES): Promise<FinancesEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/finances?debut=' + encodeURIComponent(debut) + '&fin=' + encodeURIComponent(fin), 'Les finances reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireFinancesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les finances reçues sont illisibles. Réessayez dans un instant.'); }
     },
     /** La demande de candidature du compte (lot 4, B12), ou `null` s'il n'en a pas. Route du site, un seul essai. */
     async lireCandidature(accessToken: string): Promise<VueCandidature | null> {
