@@ -9,6 +9,10 @@ import {
   STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE,
   type DemandePartenariat, type DemandeReferencement, type FicheRestaurantEquipe, type MenusEquipe, type PlatMenuEquipe, type RestaurantEquipe,
 } from './catalogue-equipe';
+import { lignesProposees, type LigneProposee } from './candidature';
+import { choisirPhoto, type SourcePhoto } from './photoPlat';
+import { depsPhotoNatives } from './photoPlatNatif';
+import { Pressable } from 'react-native';
 import { couleurs as c, polices } from '../design/tokens';
 
 function messageErreur(e: unknown) {
@@ -101,10 +105,25 @@ export function RestaurantsEquipeReel() {
 
 /** Fraîcheur des menus (E5) : plats à reconfirmer ou épuisés des établissements tenus par l'équipe ; reconfirmation et disponibilité confirmées puis relues. */
 export function MenusEquipeReel() {
-  const { chargement, erreur, message, setMessage, executer, actif } = useChargement();
+  const { chargement, erreur, setErreur, message, setMessage, executer, actif } = useChargement();
   const [menus, setMenus] = useState<MenusEquipe | null>(null);
   const [plats, setPlats] = useState<{ restaurantId: string; nom: string; plats: PlatMenuEquipe[] } | null>(null);
+  const [lignesPhoto, setLignesPhoto] = useState<LigneProposee[] | null>(null);
+  const [refusesPhoto, setRefusesPhoto] = useState<string[]>([]);
   const [confirmation, setConfirmation] = useState<{ restaurantId: string; plat: PlatMenuEquipe; genre: 'reconfirmer' | 'disponibilite' } | null>(null);
+
+  async function photoMenu(restaurantId: string, source: SourcePhoto) {
+    const choix = await choisirPhoto(source, depsPhotoNatives);
+    if (choix.genre === 'annule') return;
+    if (choix.genre !== 'pret') { setErreur(choix.message); return; }
+    await executer(async () => {
+      const lecture = await gestion.lirePhotoMenuEquipe(restaurantId, choix.fichier);
+      if (!actif.current) return;
+      setLignesPhoto(lignesProposees(lecture));
+      setRefusesPhoto(lecture.refuses.map(r => r.brut + ' — ' + r.raison));
+      if (lecture.etat === 'vide') setMessage('Aucun plat lu sur cette photo. Saisissez les plats à la main.');
+    });
+  }
 
   async function lire() {
     await executer(async () => { const m = await gestion.menusEquipe(); if (actif.current) setMenus(m); });
@@ -138,6 +157,26 @@ export function MenusEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Un instant…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
+    <Text style={s.texte}>Ajouter des plats depuis une photo du menu : rien n’est conservé, vous relisez la liste avant l’import.</Text>
+    <Action titre="Lire une photo de menu (galerie)" secondaire disabled={chargement} agir={() => { void photoMenu(plats.restaurantId, 'galerie'); }} />
+    <Action titre="Lire une photo de menu (appareil photo)" secondaire disabled={chargement} agir={() => { void photoMenu(plats.restaurantId, 'camera'); }} />
+    {lignesPhoto !== null && <>
+      <Text style={s.nomPetit}>Plats lus sur la photo</Text>
+      {lignesPhoto.map((l, i) => <Pressable key={l.nom + '-' + i} accessibilityRole="button" accessibilityState={{ selected: l.coche }} disabled={chargement} onPress={() => setLignesPhoto(x => x === null ? x : x.map((y, j) => j === i ? { ...y, coche: !y.coche } : y))} style={[s.carte, l.coche && s.puceActive]}>
+        <Text style={s.texte}>{l.coche ? '✓ ' : ''}{l.nom} · {l.prix} GNF</Text>
+      </Pressable>)}
+      {refusesPhoto.map(r => <Text key={r} style={s.secondaire}>Non lu : {r}</Text>)}
+      <Action titre="Importer les plats cochés" disabled={chargement} agir={() => {
+        void executer(async () => {
+          const retour = await gestion.importerMenuEquipe(plats.restaurantId, lignesPhoto);
+          if (!actif.current) return;
+          setLignesPhoto(null); setRefusesPhoto([]);
+          setMessage(retour.message + ' Menu relu.');
+          const p = await gestion.platsMenuEquipe(plats.restaurantId);
+          if (actif.current) setPlats({ restaurantId: plats.restaurantId, ...p });
+        });
+      }} />
+    </>}
     <Action titre="Tout reconfirmer" disabled={chargement} agir={() => {
       void executer(async () => {
         const retour = await gestion.reconfirmerMenuEquipe(plats.restaurantId);
@@ -293,6 +332,7 @@ export function PartenariatsEquipeReel() {
 }
 
 const s = StyleSheet.create({
+  puceActive: { borderColor: c.action, borderWidth: 2 },
   nom: { fontFamily: polices.titre, fontSize: 23, color: c.encre, marginTop: 8 },
   nomPetit: { fontFamily: polices.titre, fontSize: 17, color: c.encre },
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },

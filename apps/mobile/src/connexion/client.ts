@@ -28,7 +28,7 @@ import { lireExploitationEquipe, preparerActionLivraisonEquipe, preparerActionLi
 import { lireAvisEquipe, lireBannieresEquipe, lireParametresEquipe, preparerModeration, type AvisEquipe, type BanniereEquipe, type ParametresEquipe } from './contenus-equipe.ts';
 import { lireAuditEquipe, lireComptesEquipe, lireMisesAJourEquipe, lireZonesAttente, type AuditEquipe, type CompteEquipe, type MisesAJourEquipe, type ZoneAttenteEquipe } from './admin-equipe.ts';
 import {
-  STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, lireFicheRestaurantEquipe, lireMenusEquipe, lireOptionsReferencement, lirePartenariatsEquipe,
+  STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, lireFicheRestaurantEquipe, lireMenusEquipe, lireOptionsReferencement, lirePartenariatsEquipe, preparerImportMenuEquipe,
   lirePlatsMenuEquipe, lireReferencementsEquipe, lireRestaurantsEquipe, validerProfilSimpleEquipe,
   type DemandePartenariat, type DemandeReferencement, type FicheRestaurantEquipe, type MenusEquipe, type PlatMenuEquipe, type RestaurantEquipe,
 } from './catalogue-equipe.ts';
@@ -297,10 +297,10 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
    * Écriture sensible de l'espace équipe (statut support, coordonnées, répartition) : un seul essai, jamais de relance (le serveur trace l'action).
    * Refus explicite (400, 403, 409) = `refus` avec le message court du serveur ; réseau, délai, 5xx ou réponse illisible = `incertain`.
    */
-  async function appelEquipeEcriture(accessToken: string, chemin: string, corps: object, defaut: string): Promise<Record<string, unknown>> {
-    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+  async function appelEquipeEcriture(accessToken: string, chemin: string, corps: object | FormData, defaut: string): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), corps instanceof FormData ? DELAI_PHOTO_MS : delaiCommandeMs);
     let r: Response;
-    try { r = await fetcher(SITE_WEB+chemin, { method:'POST', credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corps) }); }
+    try { r = await fetcher(SITE_WEB+chemin, { method:'POST', credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(corps instanceof FormData ? {} : { 'Content-Type':'application/json' }) }, body: corps instanceof FormData ? corps : JSON.stringify(corps) }); }
     catch { clearTimeout(timer); throw new ErreurEquipe('incertain', 'Impossible de joindre Speedfood. L’action a peut-être été appliquée : actualisez avant de réessayer.'); }
     try {
       let lu: unknown = null;
@@ -544,6 +544,22 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if (!uuidEquipe.test(restaurantId) || !uuidEquipe.test(platId) || typeof disponible !== 'boolean') throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le menu.');
       const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/disponibilite', { restaurantId, platId, disponible }, 'Impossible d’enregistrer pour le moment.');
       return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Plat mis à jour.';
+    },
+    /** Fait lire une photo de menu d'un établissement tenu par l'équipe (rien n'est conservé) : la liste revient pour relecture. */
+    async lirePhotoMenuEquipe(accessToken: string, restaurantId: string, fichier: FichierPhotoPrete): Promise<LectureMenu> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const formulaire = await formulairePhotoCandidature(fichier);
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/' + restaurantId + '/photo', formulaire, 'La photo n’a pas pu être lue.');
+      try { return lireLectureMenu(v); } catch { throw new ErreurEquipe('refus', 'La lecture reçue est illisible. Saisissez les plats à la main.'); }
+    },
+    /** Ajoute au menu les plats relus et cochés (préparés et vérifiés avant le réseau). Un seul essai ; renvoie le nombre ajouté par le serveur. */
+    async importerMenuEquipe(accessToken: string, restaurantId: string, lignes: Array<{ nom: string; prix: string; coche: boolean }>): Promise<{ message: string; ajoutes: number }> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const prepare = preparerImportMenuEquipe(lignes);
+      if (prepare.plats === null) throw new ErreurEquipe('refus', prepare.erreur ?? 'Cochez au moins un plat à importer.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/' + restaurantId + '/import', { plats: prepare.plats }, 'Les plats n’ont pas pu être ajoutés.');
+      const ajoutes = typeof v.ajoutes === 'number' && Number.isSafeInteger(v.ajoutes) && v.ajoutes >= 0 ? v.ajoutes : prepare.plats.length;
+      return { message: typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : ajoutes + ' plat(s) ajouté(s) au menu.', ajoutes };
     },
     /** Demandes de référencement (le téléphone du responsable est envoyé pour le rappeler ; jamais l'e-mail). */
     async referencementsEquipe(accessToken: string): Promise<{ demandes: DemandeReferencement[]; illisibles: number }> {

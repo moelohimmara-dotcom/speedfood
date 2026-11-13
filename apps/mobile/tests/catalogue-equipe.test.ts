@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, lireFicheRestaurantEquipe, lireMenusEquipe, lirePartenariatsEquipe,
-  lirePlatsMenuEquipe, lireReferencementsEquipe, lireRestaurantsEquipe, validerProfilSimpleEquipe,
+  lirePlatsMenuEquipe, lireReferencementsEquipe, lireRestaurantsEquipe, preparerImportMenuEquipe, validerProfilSimpleEquipe,
 } from '../src/connexion/catalogue-equipe.ts';
 
 const R1 = '11111111-1111-4111-8111-111111111111';
@@ -54,6 +54,14 @@ test('referencements : demandes lues sans e-mail ni chemin de fichier ; dossier 
   assert.equal(l.demandes[0].candidature?.avecLogo, true);
   assert.ok(!JSON.stringify(l).includes('exemple.com') && !JSON.stringify(l).includes('logo.png'));
   assert.deepEqual(STATUTS_REFERENCEMENT_EQUIPE, ['nouvelle', 'rappelee', 'visite_prevue', 'accord', 'refusee', 'creee']);
+});
+
+test('menus equipe : import prepare seulement avec des lignes valides et cochees', () => {
+  assert.deepEqual(preparerImportMenuEquipe([{ nom: 'Riz gras', prix: '20000', coche: true }, { nom: 'Soupe', prix: '15000', coche: false }]), { plats: [{ nom: 'Riz gras', prix: 20000 }], erreur: null });
+  const mauvais = preparerImportMenuEquipe([{ nom: 'Riz gras', prix: '20000', coche: true }, { nom: 'X', prix: '20000', coche: true }]);
+  assert.equal(mauvais.plats, null);
+  assert.match(mauvais.erreur ?? '', /Ligne 2/);
+  assert.equal(preparerImportMenuEquipe([]).erreur, 'Cochez au moins un plat à importer.');
 });
 
 test('partenariats : demandes lues, statuts fermes', () => {

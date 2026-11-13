@@ -116,6 +116,25 @@ export function lireMenusEquipe(v: Record<string, unknown>): MenusEquipe {
     }),
   };
 }
+/**
+ * Plats à importer dans un menu, préparés depuis les lignes relues d'une photo : seules les lignes cochées, mêmes contrôles
+ * qu'une saisie (nom et prix entier borné). Une ligne invalide arrête tout et est nommée — jamais un import partiel silencieux.
+ */
+export function preparerImportMenuEquipe(lignes: Array<{ nom: string; prix: string; coche: boolean }>): { plats: Array<{ nom: string; prix: number }> | null; erreur: string | null } {
+  const cochees = lignes.map((l, i) => ({ ...l, rang: i + 1 })).filter(l => l.coche);
+  if (cochees.length === 0) return { plats: null, erreur: 'Cochez au moins un plat à importer.' };
+  const plats: Array<{ nom: string; prix: number }> = [];
+  for (const l of cochees) {
+    const nom = typeof l.nom === 'string' ? l.nom.trim() : '';
+    const chiffres = typeof l.prix === 'string' ? l.prix.replace(/\s/g, '') : '';
+    const prix = /^[0-9]+$/.test(chiffres) ? Number(chiffres) : NaN;
+    if (nom.length < 2) return { plats: null, erreur: 'Ligne ' + l.rang + ' (' + (nom || 'sans nom') + ') : indiquez le nom du plat (2 caractères au moins).' };
+    if (!Number.isSafeInteger(prix) || prix < 100 || prix > 1_000_000) return { plats: null, erreur: 'Ligne ' + l.rang + ' (' + nom + ') : indiquez un prix en GNF, entier, entre 100 et 1000000.' };
+    plats.push({ nom, prix });
+  }
+  return { plats, erreur: null };
+}
+
 export function lirePlatsMenuEquipe(v: Record<string, unknown>): { nom: string; plats: PlatMenuEquipe[] } {
   if (v.ok !== true || !Array.isArray(v.plats) || v.plats.length > 500) return invalide();
   return {
