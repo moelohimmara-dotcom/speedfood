@@ -15,6 +15,8 @@ import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, l
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
+import { ErreurCandidature, corpsCandidature as produireCorpsCandidature, lireLectureMenu, lireVueCandidature, type BrouillonCandidature, type LectureMenu, type VueCandidature } from './candidature.ts';
+import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
@@ -232,6 +234,41 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     } finally { clearTimeout(timer); }
   }
   /**
+   * Appels candidature (lot 4, B12), routes DU SITE comme l'ancienne appli : un seul essai, jamais de relance. 401 = session terminée ;
+   * refus explicite du serveur (400, 409) = `refus` avec son message court ; réseau, délai, 5xx ou réponse illisible après un envoi = `incertain`.
+   */
+  async function appelCandidature(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object; formulaire?: FormData; ecriture: boolean; defaut: string }): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), options.formulaire ? DELAI_PHOTO_MS : delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(SITE_WEB+chemin, { method: options.method, credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body: options.formulaire } : options.corps ? { body: JSON.stringify(options.corps) } : {}) });
+    } catch { clearTimeout(timer); throw options.ecriture ? new ErreurCandidature('incertain', 'Impossible de joindre Speedfood. Votre envoi a peut-être été enregistré : relisez votre demande avant de réessayer.') : new ErreurCandidature('refus', 'Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 400 || r.status === 409) throw new ErreurCandidature('refus', messageServeurLivreur(corps) ?? options.defaut);
+      if (r.status === 429) throw new ErreurCandidature('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (!r.ok) throw options.ecriture ? new ErreurCandidature('incertain', 'Le service est indisponible. Votre envoi a peut-être été enregistré : relisez votre demande avant de réessayer.') : new ErreurCandidature('refus', 'Le service est indisponible. Réessayez dans un instant.');
+      if (corps === null || typeof corps !== 'object' || Array.isArray(corps)) throw options.ecriture ? new ErreurCandidature('incertain', 'Réponse du service illisible. Relisez votre demande avant de réessayer.') : new ErreurCandidature('refus', 'Réponse du service illisible. Réessayez dans un instant.');
+      return corps as Record<string, unknown>;
+    } finally { clearTimeout(timer); }
+  }
+  /** Formulaire photo de candidature : les octets sont lus et vérifiés AVANT le réseau (échec local = rien n'est parti). */
+  async function formulairePhotoCandidature(fichier: FichierPhotoPrete, type?: 'logo' | 'photo'): Promise<FormData> {
+    let relu: FichierFormulaire;
+    try {
+      relu = await fichierDeFormulaire({ uri: fichier.uri, nom: fichier.nom, type: fichier.type });
+      if (!octetsDePhotoValides(await relu.bytes())) throw new Error('octets');
+    } catch { throw new ErreurCandidature('refus', 'La photo n’a pas pu être préparée pour l’envoi : rien n’a été enregistré. Choisissez-la à nouveau, ou une autre.'); }
+    const formulaire = new FormData();
+    if (type) formulaire.append('type', type);
+    formulaire.append('fichier', relu as unknown as Blob);
+    return formulaire;
+  }
+  /**
    * Écriture livreur (bascule, offre, course) : un seul essai. 401 = session terminée ; 400 = refus explicite (le message du serveur, s'il est lisible, est rendu par `refus`) ;
    * 429 = refus ; réseau, délai, autre statut ou réponse illisible = INCERTAIN (l'action a pu être appliquée : jamais de relance automatique).
    */
@@ -338,6 +375,28 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** La demande de candidature du compte (lot 4, B12), ou `null` s'il n'en a pas. Route du site, un seul essai. */
+    async lireCandidature(accessToken: string): Promise<VueCandidature | null> {
+      const v = await appelCandidature(accessToken, '/api/v1/candidature', { method:'GET', ecriture:false, defaut:'Votre demande n’a pas pu être chargée.' });
+      try { return lireVueCandidature(v); } catch { throw new ErreurCandidature('refus', 'Votre demande reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Dépose la candidature remplie (corps produit par le domaine, revérifié avant le réseau par l'écran ; le serveur revérifie tout). Un seul essai. */
+    async deposerCandidature(accessToken: string, brouillon: BrouillonCandidature): Promise<VueCandidature> {
+      const v = await appelCandidature(accessToken, '/api/v1/candidature', { method:'POST', corps: produireCorpsCandidature(brouillon), ecriture:true, defaut:'Votre demande n’a pas pu être envoyée.' });
+      try { const vue = lireVueCandidature(v); if (vue === null) throw new Error('vide'); return vue; } catch { throw new ErreurCandidature('incertain', 'Réponse du service illisible. Relisez votre demande avant de réessayer.'); }
+    },
+    /** Envoie le logo ou la photo de la candidature déposée (multipart, un seul essai) ; renvoie la demande relue par le serveur. */
+    async envoyerImageCandidature(accessToken: string, type: 'logo' | 'photo', fichier: FichierPhotoPrete): Promise<VueCandidature> {
+      const formulaire = await formulairePhotoCandidature(fichier, type);
+      const v = await appelCandidature(accessToken, '/api/v1/candidature/image', { method:'POST', formulaire, ecriture:true, defaut:'L’image n’a pas pu être envoyée.' });
+      try { const vue = lireVueCandidature(v); if (vue === null) throw new Error('vide'); return vue; } catch { throw new ErreurCandidature('incertain', 'Réponse du service illisible. Relisez votre demande avant de réessayer.'); }
+    },
+    /** Fait lire une photo de menu par le serveur (rien n'est conservé) : la liste revient pour relecture avant ajout au brouillon. */
+    async lireMenuPhotoCandidature(accessToken: string, fichier: FichierPhotoPrete): Promise<LectureMenu> {
+      const formulaire = await formulairePhotoCandidature(fichier);
+      const v = await appelCandidature(accessToken, '/api/v1/candidature/menu-photo', { method:'POST', formulaire, ecriture:false, defaut:'La photo n’a pas pu être lue. Saisissez les plats à la main.' });
+      try { return lireLectureMenu(v); } catch { throw new ErreurCandidature('refus', 'La lecture reçue est illisible. Saisissez les plats à la main.'); }
     },
     /**
      * File des courses du livreur (lot 3, D5) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/file`, créée pour la parité).

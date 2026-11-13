@@ -11,9 +11,11 @@ import type { PageHistorique } from './historique-restaurateur.ts';
 import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
 import type { GainsLivreur, PageCoursesLivreur } from './gains-livreur.ts';
 import type { FileLivreur } from './file-livreur.ts';
+import type { BrouillonCandidature, LectureMenu, VueCandidature } from './candidature.ts';
+import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -238,6 +240,26 @@ export class GestionSession {
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return fiche;
     } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Appel candidature avec le porteur de la session ouverte : un 401 termine la session, une réponse après déconnexion est refusée. Aucune relance. */
+  private async appelCandidature<T>(appel: (acces: string) => Promise<T>, annule: string): Promise<T> {
+    const n = this.generation;
+    const acces = await this.jeton();
+    if (n !== this.generation) throw new ErreurConnexion(annule);
+    try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
+    catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  lireCandidature(): Promise<VueCandidature | null> {
+    return this.appelCandidature(a => this.api.lireCandidature ? this.api.lireCandidature(a) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Lecture annulée.');
+  }
+  deposerCandidature(brouillon: BrouillonCandidature): Promise<VueCandidature> {
+    return this.appelCandidature(a => this.api.deposerCandidature ? this.api.deposerCandidature(a, brouillon) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Envoi annulé.');
+  }
+  envoyerImageCandidature(type: 'logo' | 'photo', fichier: FichierPhotoPrete): Promise<VueCandidature> {
+    return this.appelCandidature(a => this.api.envoyerImageCandidature ? this.api.envoyerImageCandidature(a, type, fichier) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Envoi annulé.');
+  }
+  lireMenuPhotoCandidature(fichier: FichierPhotoPrete): Promise<LectureMenu> {
+    return this.appelCandidature(a => this.api.lireMenuPhotoCandidature ? this.api.lireMenuPhotoCandidature(a, fichier) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Lecture annulée.');
   }
   /** File des courses de ce livreur (lecture, jeton porteur) : la course en cours puis celles qui viennent. */
   async fileLivreur(): Promise<FileLivreur | null> {

@@ -53,3 +53,20 @@ export function creerLecteurCatalogue(fetcher: typeof fetch = fetch, delai = 150
     },
   };
 }
+
+const curseurCache = (v: unknown) => v === null ? null : identifiant(v);
+/** Revalidation d'une page de restaurants gardée dans le cache hors ligne (mêmes règles strictes que la lecture fraîche). */
+export function validerPageRestaurants(v: unknown): PageRestaurants {
+  const o = objet(v);
+  return { restaurants: liste(o.restaurants, 50, restaurant), suivant: curseurCache(o.suivant), luLe: date(o.luLe) };
+}
+/** Revalidation d'une page de menu gardée dans le cache hors ligne. */
+export function validerPageMenu(v: unknown): PageMenu {
+  const o = objet(v);
+  return { restaurant: restaurant(o.restaurant), plats: liste(o.plats, 100, plat), suivant: curseurCache(o.suivant), luLe: date(o.luLe) };
+}
+/** Revalidation des quartiers gardés dans le cache hors ligne. */
+export function validerListeQuartiers(v: unknown): ListeQuartiers {
+  const o = objet(v);
+  return { quartiers: liste(o.quartiers, 2000, quartier), luLe: date(o.luLe) };
+}

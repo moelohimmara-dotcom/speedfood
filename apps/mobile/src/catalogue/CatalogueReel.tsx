@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PageMenu, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
-import { creerLecteurCatalogue } from './client';
+import { creerLecteurCatalogue, validerPageMenu, validerPageRestaurants } from './client';
+import { creerCacheCatalogue, libelleAgeCache } from './cache-catalogue';
+import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
 import { chiffrer } from './panier-reel';
 import { couleurs as c, polices } from '../design/tokens';
 import { Bouton } from '../design/Composants';
@@ -12,6 +14,9 @@ import { AideReelle } from '../connexion/AideReelle';
 import { FavoriFiche } from '../connexion/FavoriFiche';
 import { verrouPro } from '../connexion/verrou-natif';
 import { CommandeReelle } from './CommandeReelle';
+import { lireLienProfond } from '../connexion/liens-profonds';
+import { VisiteGuidee, doitOuvrirVisite } from '../connexion/VisiteReel';
+import { CandidatureReel } from '../connexion/CandidatureReel';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
@@ -23,6 +28,8 @@ export function CatalogueReel() {
   const [compteOuvert, setCompteOuvert] = useState(false);
   const [commandeOuverte, setCommandeOuverte] = useState(false);
   const [aideOuverte, setAideOuverte] = useState(false);
+  const [visiteOuverte, setVisiteOuverte] = useState(false);
+  const [candidatureOuverte, setCandidatureOuverte] = useState(false);
   const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null; espaceRestaurateur?: boolean } | null>(null);
   const [messagePanier, setMessagePanier] = useState('');
   const [messageNotifications, setMessageNotifications] = useState('');
@@ -32,6 +39,7 @@ export function CatalogueReel() {
   const [selection, setSelection] = useState<RestaurantPublic | null>(null);
   const [menu, setMenu] = useState<PageMenu | null>(null);
   const [lectureLe, setLectureLe] = useState<string | null>(null);
+  const [ageHorsLigne, setAgeHorsLigne] = useState<number | null>(null);
   const [charge, setCharge] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [recherche, setRecherche] = useState('');
@@ -40,13 +48,19 @@ export function CatalogueReel() {
     const numero = ++generation.current;
     setCharge(true); setErreur(null);
     try {
+      // Cache hors ligne (B13) : chaque lecture réussie est gardée ; hors ligne, la dernière lecture valable (7 jours au plus) est rendue avec son âge.
+      const cache = creerCacheCatalogue(await ouvrirStockageCacheCatalogue());
       if (r) {
-        const page = await lecteur.menu(r.id, apres);
+        const res = await cache.lire('menu:' + r.id + ':' + (apres ?? ''), () => lecteur.menu(r.id, apres), validerPageMenu);
         if (numero !== generation.current) return;
+        setAgeHorsLigne(res.ageMs);
+        const page = res.donnees;
         setMenu(ancien => ({ ...page, plats: apres && ancien ? [...ancien.plats, ...page.plats.filter(p => !ancien.plats.some(a => a.id === p.id))] : page.plats }));
       } else {
-        const page = await lecteur.restaurants(apres);
+        const res = await cache.lire('restaurants:' + (apres ?? ''), () => lecteur.restaurants(apres), validerPageRestaurants);
         if (numero !== generation.current) return;
+        setAgeHorsLigne(res.ageMs);
+        const page = res.donnees;
         setRestaurants(anciens => apres ? [...anciens, ...page.restaurants.filter(r => !anciens.some(a => a.id === r.id))] : page.restaurants);
         setSuivant(page.suivant); setLectureLe(page.luLe);
       }
@@ -55,6 +69,31 @@ export function CatalogueReel() {
     } finally { if (numero === generation.current) setCharge(false); }
   }
   useEffect(() => { void charger(null); return () => { generation.current++; }; }, []);
+  const restaurantsRef = useRef<RestaurantPublic[]>([]);
+  restaurantsRef.current = restaurants;
+  // Visite guidée (A10) : proposée automatiquement au premier lancement seulement ; rouvrable depuis le catalogue.
+  useEffect(() => { let actif = true; void doitOuvrirVisite().then(v => { if (actif && v) setVisiteOuverte(true); }); return () => { actif = false; }; }, []);
+  // Liens profonds (A12) : un lien Speedfood connu ouvre la fiche du restaurant ; un lien de commande ouvre « Mon compte » (le suivi s'y lit, connecté).
+  // Tout autre lien est ignoré ici et reste sur le site : aucune navigation arbitraire.
+  useEffect(() => {
+    let actif = true;
+    const traiter = (url: string | null) => {
+      if (!actif || !url) return;
+      const lien = lireLienProfond(url);
+      if (lien === null) return;
+      if (lien.genre === 'restaurant') {
+        const connu = restaurantsRef.current.find(r => r.id === lien.id);
+        if (connu) ouvrir(connu);
+        else { const amorce = { id: lien.id } as RestaurantPublic; setSelection(amorce); setMenu(null); void charger(amorce); }
+      } else {
+        setDemandeCompte({ reference: null }); setCompteOuvert(true);
+        setMessagePanier('Lien de commande reçu : retrouvez son suivi dans vos commandes.');
+      }
+    };
+    void Linking.getInitialURL().then(traiter).catch(() => undefined);
+    const abonnement = Linking.addEventListener('url', e => traiter(e.url));
+    return () => { actif = false; abonnement.remove(); };
+  }, []);
   // Notifications : canaux, appui suivi → « Mon compte », appui `commande_nouvelle` → espace restaurateur. Ne demande jamais l'autorisation ici.
   // L'appui ne ferme JAMAIS l'écran de commande pendant un envoi ou un état incertain : l'ouverture attend la fin du verrou (une seule fois).
   const commandeVerrouillee = useRef(false);
@@ -96,6 +135,8 @@ export function CatalogueReel() {
       <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
       <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />
       <Action titre="Aide et contact" agir={() => setAideOuverte(true)} />
+      <Action titre="Visite guidée" agir={() => setVisiteOuverte(true)} />
+      <Action titre="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
@@ -120,6 +161,7 @@ export function CatalogueReel() {
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} />}
       </>}
       {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Dernière lecture : {new Date((selection ? menu!.luLe : lectureLe)!).toLocaleString('fr-FR')}. La disponibilité peut évoluer.</Text>}
+      {ageHorsLigne !== null && <Text accessibilityRole="alert" style={s.texte}>Vous êtes hors ligne : voici la dernière lecture gardée sur ce téléphone, {libelleAgeCache(ageHorsLigne)}. Les prix et disponibilités peuvent avoir changé ; commander demande le réseau.</Text>}
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} />
     </ScrollView>
     {barrePanierVisible && <View style={s.barrePanier} accessibilityRole="summary">
@@ -136,6 +178,8 @@ export function CatalogueReel() {
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} />
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
+    <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
+    <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
   </View>;
 }
 const s = StyleSheet.create({

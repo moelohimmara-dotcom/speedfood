@@ -5,6 +5,7 @@ import { ServiceMenuReel } from './ServiceMenuReel';
 import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
 import { SurveillanceCommandes } from './surveillance-commandes';
+import { VisiteGuidee } from './VisiteReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
@@ -51,6 +52,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [serviceOuvert, setServiceOuvert] = useState(false);
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
   const [activiteOuverte, setActiviteOuverte] = useState(false);
+  const [visiteOuverte, setVisiteOuverte] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
   const lectureRef = useRef(0);
@@ -158,6 +160,8 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
     <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
+    <Action titre="Visite guidée" secondaire agir={() => setVisiteOuverte(true)} />
+    <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
     <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
     {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
