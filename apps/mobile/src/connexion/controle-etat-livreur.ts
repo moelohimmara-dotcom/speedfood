@@ -9,6 +9,8 @@ export interface SessionEtatLivreur {
   etatLivreur(): Promise<EtatLivreur | null>;
   /** File des courses (D5) : facultative pour les doublures de test anciennes. */
   fileLivreur?(): Promise<import('./file-livreur.ts').FileLivreur | null>;
+  /** Envoi d'une position (D9) : facultatif pour les doublures de test anciennes. */
+  envoyerPosition?(latitude: number, longitude: number): Promise<void>;
   basculerEnLigneLivreur(enLigne: boolean): Promise<void>;
   repondreOffreLivreur(offreId: string, reponse: 'acceptee' | 'refusee'): Promise<void>;
   avancerCourseLivreur(demande: DemandeCourseLivreur): Promise<void>;

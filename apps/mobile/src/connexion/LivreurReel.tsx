@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { brancherSuiviLivreur } from './suivi-livreur';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
 import { Squelette } from '../design/Composants';
@@ -49,6 +50,9 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
   basculer: (enLigne: boolean) => void; repondre: (reponse: 'acceptee' | 'refusee') => void; avancer: (vers: EtapeCourseLivreur, saisie?: SaisieCourse) => void; actualiser: () => void;
 }) {
   const { fiche, offre, course } = etat;
+  // Suivi de position (D9, prototype) : branché seulement en ligne ; tout le détail vit dans `suivi-livreur` (permission, service, envoi par la session).
+  const enLigne = fiche.statut !== 'hors_ligne';
+  useEffect(() => brancherSuiviLivreur(session, enLigne), [enLigne, session]);
   // Entrée de la carte d'offre : un glissement unique à l'arrivée d'une offre (charte animations) ; aucun mouvement
   // en mouvement réduit, aucune boucle, et l'état final est posé d'emblée si le réglage système l'exige.
   const reduit = useMouvementReduit();

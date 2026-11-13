@@ -5,6 +5,7 @@ import { ServiceMenuReel } from './ServiceMenuReel';
 import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
 import { SurveillanceCommandes } from './surveillance-commandes';
+import { veilleNative } from '../../modules/speedfood-veille/src/index';
 import { VisiteGuidee } from './VisiteReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
@@ -96,7 +97,11 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null);
     const tour = surveillanceRef.current.tourListe(l, Date.now());
     if (tour.genre === 'suite') {
-      if (tour.alerter) setAlerteCommande(tour.aTraiter.length === 1 ? 'Nouvelle commande à traiter : ' + tour.aTraiter[0].reference + '.' : tour.aTraiter.length + ' commandes à traiter, dont ' + tour.aTraiter[0].reference + '.');
+      if (tour.alerter) {
+        setAlerteCommande(tour.aTraiter.length === 1 ? 'Nouvelle commande à traiter : ' + tour.aTraiter[0].reference + '.' : tour.aTraiter.length + ' commandes à traiter, dont ' + tour.aTraiter[0].reference + '.');
+        // Veille native (C11/C12, prototype) : sonnerie et écran allumé quand le module est présent ; sinon le bandeau ci-dessus suffit.
+        void veilleNative.alerterVeilleRestaurateur(tour.aTraiter.length, tour.aTraiter[0].reference);
+      }
       else if (tour.aTraiter.length === 0) setAlerteCommande(null);
     }
   }
@@ -110,7 +115,21 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     catch (e) { if (actif.current) setErreur(messageErreur(e)); }
     finally { lectureEnCours.current = false; if (actif.current) setChargement(false); }
   }
+  /** Relecture silencieuse de la veille : même lecture, sans indicateur ; une panne laisse la liste affichée. */
+  async function chargerSilencieux() {
+    if (lectureEnCours.current || envoiEnCours.current) return;
+    lectureEnCours.current = true;
+    try { accepterListe(await gestion.commandesRestaurant()); } catch { /* la liste affichée reste la vérité de l'écran */ }
+    finally { lectureEnCours.current = false; }
+  }
   useEffect(() => { actif.current = true; void actualiser(); return () => { actif.current = false; }; }, []);
+  // Veille au premier plan (C11/C12, prototype) : service natif démarré à l'ouverture, relecture silencieuse toutes les 15 secondes
+  // (même discipline qu'ailleurs : un seul essai, une panne laisse la liste). Arrêt à la fermeture de l'espace.
+  useEffect(() => {
+    void veilleNative.demarrerVeilleRestaurateur();
+    const minuteur = setInterval(() => { void chargerSilencieux(); }, 15_000);
+    return () => { clearInterval(minuteur); void veilleNative.arreterVeilleRestaurateur(); };
+  }, []);
 
   /** UN SEUL essai. Ensuite la liste est relue pour savoir ce que le serveur a vraiment enregistré ; jamais de relance automatique. */
   async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string) {
