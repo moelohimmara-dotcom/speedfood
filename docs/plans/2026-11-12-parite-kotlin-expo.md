@@ -28,9 +28,9 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | A1 | Connexion e-mail + mot de passe, renouvellement de session (`connecter`, `rafraichir`) | `/moi` et service d'authentification | Reprise (essais TEST réels, compte existant) | |
 | A2 | Inscription (`inscrire`) | service d'authentification | Codée, tests OK (inscription dans l'appli, e-mail de confirmation) ; essai émulateur partiel le 12 novembre (écran et 4 validations locales : nom, téléphone, e-mail, mot de passe ; aucun envoi) ; inscription réelle à faire sur un compte jetable | 1 |
 | A3 | Mot de passe oublié (`demanderReinitialisation`) | service d'authentification | Codée, tests OK (lien de réinitialisation par e-mail) ; essai émulateur partiel le 12 novembre (écran et e-mail invalide ; aucun envoi) ; envoi réel à faire sur un compte désigné | 1 |
-| A4 | Connexion par code (`connecterAvecCode`) | service d'authentification | Absente (sert au retour de Facebook : voir A5) | 1 |
-| A5 | Connexion Facebook (fournisseur actif) | `/connexion/fournisseurs` | Absente, bloquée : il faut un client OAuth pour `com.speedfood.mobile` avec son empreinte, et l'application Facebook de Malika | 1 |
-| A6 | Connexion Google (non déclarée active par le site) | `/connexion/fournisseurs` | Absente, à ne reprendre que si Malika la réactive | à décider |
+| A4 | Connexion par code (`connecterAvecCode`) | service d'authentification | Codée, tests OK (retour lu seulement sur la page relais du site ou le lien de l'application, code échangé une fois avec le secret PKCE gardé en mémoire) ; essai réel à faire | 1 |
+| A5 | Connexion Facebook (fournisseur actif) | `/connexion/fournisseurs` | Codée, tests OK (bouton seulement si le fournisseur est actif côté service d'authentification ET l'interrupteur de l'équipe ouvert ; parcours navigateur PKCE) ; essai réel subordonné à l'application Meta de Malika rendue publique | 1 |
+| A6 | Connexion Google (non déclarée active par le site) | `/connexion/fournisseurs` | Codée, tests OK (même parcours navigateur PKCE qu'A5, bouton seulement si Google est actif ; la fenêtre native du téléphone reste une variante ultérieure) ; essai réel à faire | à décider |
 | A7 | Verrou de l'appareil (biométrie ou code) | local | Codée, tests OK (règle portée, `expo-local-authentication`) ; réglage vu sur émulateur le 12 novembre avec un compte professionnel (désactivé ; branche « configurez d'abord un verrouillage d'écran » de l'émulateur vérifiée) ; activation et verrouillage à l'ouverture à essayer sur téléphone avec verrouillage configuré | 1 |
 | A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; panneau et garde-fou essayés sur émulateur le 12 novembre (mot faux : bouton désactivé ; fermé par « Non, garder », compte intact) ; suppression réelle à faire sur un compte jetable uniquement | 1 |
 | A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer : rôles lus, entrées restaurateur et livreur présentes ; l'écran « choix du profil » de l'ancienne appli n'existe pas dans Expo (décision de conception à prendre) | 1 |
@@ -72,8 +72,8 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Codée, tests OK (lecture paginée stricte, lignes illisibles comptées, aucun essai émulateur : nouvel APK à compiler) ; essai émulateur à faire | 2 |
 | C9 | Réglages : charger, délai, horaires (`charger`, `enregistrerDelai`, `enregistrerHoraires`) | `/restaurant/reglages` | Reprise | |
 | C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Codée, tests OK (lecture stricte des bilans et des récentes, aucune coordonnée retenue) ; essai émulateur à faire | 2 |
-| C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer : logique de surveillance portée et testée (`surveillance-commandes.ts`) et bandeau d'alerte au premier plan branché dans l'espace restaurateur ; sonnerie et écran gardé allumé restent natifs (même chantier que C12, APK de contrôle requis) | 2 |
-| C12 | Service de surveillance au premier plan (`SurveillanceRestaurateurService`) | `/restaurant/commandes` | Absente (module natif) | 2 |
+| C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer : logique de surveillance portée et testée, bandeau au premier plan, et prototype natif de sonnerie + écran allumé écrit (module `speedfood-veille`, branché sur la décision de surveillance) ; compilation CI et essai sur vrai téléphone requis | 2 |
+| C12 | Service de surveillance au premier plan (`SurveillanceRestaurateurService`) | `/restaurant/commandes` | Absente : prototype natif écrit (module local `speedfood-veille` : service de premier plan, aucun jeton côté natif, relecture TypeScript toutes les 15 s tant que le processus vit) ; compilation CI et essai sur vrai téléphone requis avant de dire « Codée » | 2 |
 | C13 | Notifications du restaurateur (nouvelle commande, clic) | `/appareils` | À confirmer : essai émulateur fait, réception réelle d'une notification jamais vue | 2 |
 
 ### D. Livreur
@@ -88,7 +88,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | D6 | Historique des courses (`historique`) | `/livreur/historique` | Codée, tests OK (route du site créée : elle n'existait ni sur le site ni dans l'API ; lecture paginée stricte côté appli) ; essai émulateur à faire, route à déployer avec le site le moment venu | 3 |
 | D7 | Gains (écran Gains) | `/livreur/gains` | Codée, tests OK (frais de course, jamais une paie ; route du site comme l'ancienne appli) ; essai émulateur à faire | 3 |
 | D8 | Aide du livreur (écran Aide) | local ou `/aide` | Codée, tests OK (assistance conducteur : règles, incident selon la course, numéro lu sur `/aide`) ; essai émulateur à faire | 3 |
-| D9 | Position GPS et service de premier plan (`position`, `SuiviLivreur.tour`, `SuiviLivreurService`) | `/livreur/position` | Absente (permission, module natif) | 3 |
+| D9 | Position GPS et service de premier plan (`position`, `SuiviLivreur.tour`, `SuiviLivreurService`) | `/livreur/position` | Absente : prototype natif écrit (service de localisation du module `speedfood-veille`, permission demandée au passage en ligne, positions envoyées par la session) ; compilation CI et essai sur vrai téléphone requis avant de dire « Codée » | 3 |
 | D10 | Activité du livreur (`Activite.livreur`) | `/livreur/gains` | Codée avec D7 (même route et mêmes données : bilans du jour et de la semaine) ; essai émulateur à faire | 3 |
 
 ### E. Équipe (15 modules, aucun dans Expo)
@@ -113,7 +113,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 36 à confirmer, 9 absentes.
+Voir §8 : 20 lignes reprises sur 65, 39 à confirmer, 6 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -148,14 +148,14 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 
 | Famille | Lignes | Reprise | À confirmer | Absente |
 |---|---|---|---|---|
-| A. Accès, compte, profil | 12 | 1 | 5 | 6 |
+| A. Accès, compte, profil | 12 | 1 | 8 | 3 |
 | B. Client | 15 | 11 | 3 | 1 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 7 | 1 |
 | E. Équipe | 15 | 0 | 15 | 0 |
-| **Total** | **65** | **20** | **36** | **9** |
+| **Total** | **65** | **20** | **39** | **6** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **36 à confirmer** et **9 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **39 à confirmer** et **6 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -221,3 +221,9 @@ Quatre modules de plus dans l'espace équipe, tests avant le code (5 tests) : **
 Les sept dernières lignes Équipe, tests avant le code (4 + 4 tests) : **E8 avis** (signalements et alertes de qualité, quatre décisions de modération avec motif exigé pour retirer du contenu public), **E9 bannières et médias** et **E10 paramètres** (lectures seules : publier, envoyer une image ou changer un réglage reste sur le site, l'écran le dit et y renvoie), **E11 comptes** (annuaire cherché par e-mail, affiliations ; suppressions et rôles sur le site), **E12 audit** (indicateurs, filtres proposés par le serveur, journal), **E13 liste d'attente** (zones et nombres seulement, aucun contact ; marquage « prévenue » confirmé puis relu) et **E14 mises à jour** (version publiée, dernière annonce, interrupteurs et nouveautés, en consultation). Suite mobile **766/766**, types mobile et racine à 0. **Toute la famille Équipe est codée.** Il ne reste comme lignes absentes que celles des blocages externes et du natif : A4, A5 et A6 (connexions sociales, décisions et configurations de Malika), C12 (service de premier plan), D9 (position et service livreur) — et, partout, les essais émulateur et téléphone qui feront passer les lignes « Codée » en « Reprise ».
 
 E5 complétée juste après : lecture d'une photo de menu pour un établissement tenu par l'équipe (rien n'est conservé, lignes relues et refusées nommées) et import des plats cochés, préparé et vérifié avant le réseau (une ligne invalide arrête tout et est nommée). 1 test de plus, suite à **767/767**.
+
+## Connexions sociales et prototype natif
+
+**A4, A5 et A6 codées** par le socle commun des connexions sociales : boutons affichés seulement si le service d'authentification a activé le fournisseur (Facebook : et l'interrupteur de l'équipe), parcours navigateur PKCE (le même échange `grant_type=pkce` que l'ancienne appli), code du retour lu seulement sur la page relais du site ou le lien de l'application, secret PKCE gardé en mémoire le temps du parcours. 4 tests, suite à **771/771**. L'essai réel de Facebook reste subordonné à l'application Meta de Malika rendue publique ; Google s'essaiera dès qu'il est actif côté service d'authentification.
+
+**Prototype natif C11/C12/D9 écrit** : module Expo local `apps/mobile/modules/speedfood-veille` (deux services de premier plan Android + pont TypeScript qui se dégrade sans erreur quand le natif est absent, testé). Aucun jeton ne passe côté natif : la session TypeScript garde les lectures (relecture restaurateur toutes les 15 secondes) et envoie les positions du livreur ; le natif sonne, allume l'écran et remonte les positions. Trois tests existants ont borné le prototype : aucun mot de géolocalisation dans l'écran livreur (branchement sorti dans `suivi-livreur.ts`), aucune permission Android écrite dans `app.json` (celles du module vivent dans son propre manifeste). Suite à **772/772**, types à 0. **Aucune compilation Kotlin n'a été vérifiée ici** : la première compilation du module se fera en CI, puis essais sur vrai téléphone ; C12 et D9 restent donc « Absente » dans la matrice tant que ce n'est pas fait.
