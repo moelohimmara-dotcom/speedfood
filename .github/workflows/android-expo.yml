@@ -70,7 +70,23 @@ jobs:
 
       - name: Compiler les APK debug et release de contrôle (arm64 et x86_64)
         working-directory: apps/mobile/android
-        run: ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64
+        run: |
+          set +e
+          ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a,x86_64 2>&1 | tee "$GITHUB_WORKSPACE/gradle-controle.log"
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            {
+              echo "## Extrait de l'erreur Gradle"
+              echo '```'
+              grep -m1 -B2 -A25 "What went wrong" "$GITHUB_WORKSPACE/gradle-controle.log" || true
+              echo "--- dernieres lignes ---"
+              tail -n 40 "$GITHUB_WORKSPACE/gradle-controle.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            extrait=$( { grep -m1 -A20 "What went wrong" "$GITHUB_WORKSPACE/gradle-controle.log" || tail -n 20 "$GITHUB_WORKSPACE/gradle-controle.log"; } | head -n 22 )
+            printf '%s' "$extrait" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0} END {print ""}' | sed -e 's/^/::error ::/'
+          fi
+          exit "$code"
 
       - name: Empreinte et manifeste public des APK
         run: |
