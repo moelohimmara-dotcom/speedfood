@@ -102,18 +102,18 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | E5 | Menus et photos : lire, importer ; confirmer et disponibilité (`lire`, `importer`, `reconfirmer`, `definirDisponibilite`) | `/equipe/menus(/[id](/photo, /import), /confirmer, /disponibilite)` | Codée en partie, tests OK (fraîcheur, plats, reconfirmation et disponibilité) ; import d'un menu écrit et envoi d'une photo restent à coder ; essai émulateur à faire | 6 |
 | E6 | Référencements : demandes, changer le statut, créer un établissement, rattacher un compte, options | `/equipe/referencements(/…)` | Codée, tests OK (demandes sans e-mail ni chemin de fichier, statuts, création depuis les listes officielles, rattachement confirmé) ; essai émulateur à faire | 6 |
 | E7 | Partenariats : liste, changer le statut | `/equipe/partenariats(/statut)` | Codée, tests OK (suivi de statut confirmé ; suppression laissée au site) ; essai émulateur à faire | 6 |
-| E8 | Avis : lister, modérer (`avis`, `moderer`) | `/equipe/avis(/moderation)` | Absente | 7 |
-| E9 | Bannières et médias (`bannieres`, `medias`) | `/equipe/bannieres`, `/equipe/medias` | Absente | 7 |
-| E10 | Paramètres (`parametres`) | `/equipe/parametres` | Absente | 7 |
-| E11 | Comptes (`comptes`) | `/equipe/comptes` | Absente | 8 |
-| E12 | Audit (`audit`) | `/equipe/audit` | Absente | 8 |
-| E13 | Liste d'attente : zones, marquer comme prévenu (`zones`, `marquerPrevenue`) | `/equipe/liste-attente(/prevenue)` | Absente | 8 |
-| E14 | Mises à jour : annonces de version (`misesAJour`) | `/equipe/mises-a-jour` | Absente | 8 |
+| E8 | Avis : lister, modérer (`avis`, `moderer`) | `/equipe/avis(/moderation)` | Codée, tests OK (signalements et alertes lus, décisions avec motif pour retirer du contenu, confirmées puis relues) ; essai émulateur à faire | 7 |
+| E9 | Bannières et médias (`bannieres`, `medias`) | `/equipe/bannieres`, `/equipe/medias` | Codée, tests OK (listes lues, troncature signalée ; création et publication laissées au site) ; essai émulateur à faire | 7 |
+| E10 | Paramètres (`parametres`) | `/equipe/parametres` | Codée, tests OK (les quatorze réglages lus strictement, consultation seulement) ; essai émulateur à faire | 7 |
+| E11 | Comptes (`comptes`) | `/equipe/comptes` | Codée, tests OK (annuaire lu et cherché par e-mail ; suppressions et rôles laissés au site) ; essai émulateur à faire | 8 |
+| E12 | Audit (`audit`) | `/equipe/audit` | Codée, tests OK (indicateurs, filtres proposés par le serveur et journal lus) ; essai émulateur à faire | 8 |
+| E13 | Liste d'attente : zones, marquer comme prévenu (`zones`, `marquerPrevenue`) | `/equipe/liste-attente(/prevenue)` | Codée, tests OK (zones et nombres seulement, marquage confirmé puis relu) ; essai émulateur à faire | 8 |
+| E14 | Mises à jour : annonces de version (`misesAJour`) | `/equipe/mises-a-jour` | Codée, tests OK (version, annonce, interrupteurs et journal lus ; bascules et annonces laissées au site) ; essai émulateur à faire | 8 |
 | E15 | Activité et vue d'ensemble de l'équipe | `/equipe/tableau` | Codée avec le tableau de E1 (même lecture : blocs par domaine selon le rôle) ; essai émulateur à faire | 5 |
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 29 à confirmer, 16 absentes.
+Voir §8 : 20 lignes reprises sur 65, 36 à confirmer, 9 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -152,10 +152,10 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 | B. Client | 15 | 11 | 3 | 1 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 7 | 1 |
-| E. Équipe | 15 | 0 | 8 | 7 |
-| **Total** | **65** | **20** | **29** | **16** |
+| E. Équipe | 15 | 0 | 15 | 0 |
+| **Total** | **65** | **20** | **36** | **9** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **29 à confirmer** et **16 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **36 à confirmer** et **9 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
@@ -215,3 +215,7 @@ E1 complétée ensuite : accès du compte et son menu (natif ou site), recherche
 ## Lot 6 : établissements, menus, référencements, partenariats
 
 Quatre modules de plus dans l'espace équipe, tests avant le code (5 tests) : **E4 établissements** (état et fiche lus, menu de la fiche, profil simple — horaires et numéro interne — validé comme le serveur ; publication, suspension et suppression restent sur le site, l'écran le dit), **E5 menus** (fraîcheur par établissement, plats, reconfirmation d'un plat ou de tout le menu et disponibilité, confirmées puis relues ; l'import d'un menu écrit et l'envoi d'une photo de plat restent à coder), **E6 référencements** (demandes lues sans e-mail ni chemin de fichier, dossier de candidature résumé, changements de statut avec motif de refus lu par le demandeur, création de l'établissement depuis les listes officielles et rattachement du compte, confirmés puis relus) et **E7 partenariats** (suivi de statut ; suppression laissée au site). Suite mobile **758/758**, types à 0. Restent les lots 7 et 8 : avis et signalements, bannières et médias, paramètres, comptes, audit, liste d'attente et mises à jour.
+
+## Lots 7 et 8 : avis, contenus, comptes, audit, attente, mises à jour
+
+Les sept dernières lignes Équipe, tests avant le code (4 + 4 tests) : **E8 avis** (signalements et alertes de qualité, quatre décisions de modération avec motif exigé pour retirer du contenu public), **E9 bannières et médias** et **E10 paramètres** (lectures seules : publier, envoyer une image ou changer un réglage reste sur le site, l'écran le dit et y renvoie), **E11 comptes** (annuaire cherché par e-mail, affiliations ; suppressions et rôles sur le site), **E12 audit** (indicateurs, filtres proposés par le serveur, journal), **E13 liste d'attente** (zones et nombres seulement, aucun contact ; marquage « prévenue » confirmé puis relu) et **E14 mises à jour** (version publiée, dernière annonce, interrupteurs et nouveautés, en consultation). Suite mobile **766/766**, types mobile et racine à 0. **Toute la famille Équipe est codée.** Il ne reste comme lignes absentes que celles des blocages externes et du natif : A4, A5 et A6 (connexions sociales, décisions et configurations de Malika), C12 (service de premier plan), D9 (position et service livreur) — plus la partie import/photo de E5 — et, partout, les essais émulateur et téléphone qui feront passer les lignes « Codée » en « Reprise ».
