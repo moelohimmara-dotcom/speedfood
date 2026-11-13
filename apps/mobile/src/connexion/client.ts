@@ -19,7 +19,12 @@ import { ErreurCandidature, corpsCandidature as produireCorpsCandidature, lireLe
 import { ErreurEquipe } from './equipe.ts';
 import { DEBUT_PERIODE_FINANCES, FIN_PERIODE_FINANCES, lireFinancesEquipe, type FinancesEquipe } from './finances-equipe.ts';
 import { lireTableauEquipe, type TableauEquipe } from './tableau-equipe.ts';
+import {
+  STATUTS_COMMANDE_EQUIPE, estActionRepartitionEquipe, lireAccesEquipe, lireCommandesARepartir, lireCommandesEquipe, lireCoordonneesEquipe, lireDetailCommandeEquipe, preparerMotifEquipe,
+  type AccesEquipe, type ActionRepartitionEquipe, type CommandeARepartir, type CommandeEquipe, type CoordonneesEquipe, type ReponseDetailEquipe, type StatutCommandeEquipe,
+} from './commandes-equipe.ts';
 import { lirePaiementsEquipe, type PaiementsEquipe } from './paiements-equipe.ts';
+import { lireExploitationEquipe, preparerActionLivraisonEquipe, preparerActionLivreurEquipe, type ExploitationEquipe } from './exploitation-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
@@ -281,6 +286,29 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       return corps as Record<string, unknown>;
     } finally { clearTimeout(timer); }
   }
+  /**
+   * Écriture sensible de l'espace équipe (statut support, coordonnées, répartition) : un seul essai, jamais de relance (le serveur trace l'action).
+   * Refus explicite (400, 403, 409) = `refus` avec le message court du serveur ; réseau, délai, 5xx ou réponse illisible = `incertain`.
+   */
+  async function appelEquipeEcriture(accessToken: string, chemin: string, corps: object, defaut: string): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try { r = await fetcher(SITE_WEB+chemin, { method:'POST', credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corps) }); }
+    catch { clearTimeout(timer); throw new ErreurEquipe('incertain', 'Impossible de joindre Speedfood. L’action a peut-être été appliquée : actualisez avant de réessayer.'); }
+    try {
+      let lu: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) lu = JSON.parse(texte); } catch { lu = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 400 || r.status === 403 || r.status === 409) throw new ErreurEquipe('refus', messageServeurLivreur(lu) ?? defaut);
+      if (r.status === 429) throw new ErreurEquipe('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (!r.ok) throw new ErreurEquipe('incertain', 'Le service est indisponible. L’action a peut-être été appliquée : actualisez avant de réessayer.');
+      if (lu === null || typeof lu !== 'object' || Array.isArray(lu) || (lu as { ok?: unknown }).ok !== true) throw new ErreurEquipe('incertain', 'Réponse du service illisible. Actualisez avant de réessayer.');
+      return lu as Record<string, unknown>;
+    } finally { clearTimeout(timer); }
+  }
+  const uuidEquipe = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
   /** Formulaire photo de candidature : les octets sont lus et vérifiés AVANT le réseau (échec local = rien n'est parti). */
   async function formulairePhotoCandidature(fichier: FichierPhotoPrete, type?: 'logo' | 'photo'): Promise<FormData> {
     let relu: FichierFormulaire;
@@ -400,6 +428,73 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Accès du compte dans l'équipe (rôle, permissions, menu déjà filtrés par le serveur). */
+    async accesEquipe(accessToken: string): Promise<AccesEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/moi', 'Votre accès équipe reçu est illisible. Réessayez dans un instant.');
+      try { return lireAccesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Votre accès équipe reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Recherche de commandes pour le support (coordonnées déjà masquées par la base). */
+    async commandesEquipe(accessToken: string, recherche: { statut?: string; reference?: string; jour?: boolean }): Promise<{ commandes: CommandeEquipe[]; illisibles: number }> {
+      const q = new URLSearchParams();
+      if (recherche.statut) q.set('statut', recherche.statut);
+      if (recherche.reference) q.set('reference', recherche.reference.slice(0, 40));
+      if (recherche.jour) q.set('jour', '1');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/commandes?' + q.toString(), 'Les commandes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireCommandesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les commandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Détail d'une commande pour le support (historique, propositions, transitions permises). */
+    async detailCommandeEquipe(accessToken: string, commandeId: string): Promise<ReponseDetailEquipe> {
+      if (!uuidEquipe.test(commandeId)) throw new ErreurEquipe('refus', 'Commande introuvable. Actualisez la liste.');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/commandes/' + commandeId, 'Le détail reçu est illisible. Réessayez dans un instant.');
+      try { return lireDetailCommandeEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le détail reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Fait passer une commande à un statut cible (motif obligatoire, tracé par le serveur). Un seul essai. */
+    async changerStatutEquipe(accessToken: string, commandeId: string, vers: StatutCommandeEquipe, motifBrut: string): Promise<void> {
+      if (!uuidEquipe.test(commandeId) || !(STATUTS_COMMANDE_EQUIPE as readonly string[]).includes(vers)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le détail.');
+      const motif = preparerMotifEquipe(motifBrut);
+      if (motif === null) throw new ErreurEquipe('refus', 'Un motif est obligatoire (500 caractères au plus) pour une action de support.');
+      await appelEquipeEcriture(accessToken, '/api/v1/equipe/commandes/' + commandeId + '/statut', { vers, motif }, 'Impossible d’appliquer ce changement de statut.');
+    },
+    /** Révèle les coordonnées d'un client (motif obligatoire, trace d'audit écrite par le serveur avant la réponse). Un seul essai. */
+    async revelerCoordonneesEquipe(accessToken: string, commandeId: string, motifBrut: string): Promise<CoordonneesEquipe> {
+      if (!uuidEquipe.test(commandeId)) throw new ErreurEquipe('refus', 'Commande introuvable. Actualisez la liste.');
+      const motif = preparerMotifEquipe(motifBrut);
+      if (motif === null) throw new ErreurEquipe('refus', 'Un motif est obligatoire (500 caractères au plus) pour révéler les coordonnées.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/commandes/' + commandeId + '/coordonnees', { motif }, 'Les coordonnées n’ont pas pu être révélées.');
+      try { return lireCoordonneesEquipe(v); } catch { throw new ErreurEquipe('incertain', 'Réponse du service illisible. Par prudence, considérez la révélation comme non faite et actualisez.'); }
+    },
+    /** Commandes actives des établissements tenus par l'équipe (poste de répartition). */
+    async commandesARepartir(accessToken: string): Promise<{ commandes: CommandeARepartir[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/repartition', 'Les commandes à répartir reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireCommandesARepartir(v); } catch { throw new ErreurEquipe('refus', 'Les commandes à répartir reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Fait avancer une commande au poste de répartition (action de la liste blanche, tracée par le serveur). Un seul essai. */
+    async actionRepartitionEquipe(accessToken: string, commandeId: string, action: ActionRepartitionEquipe): Promise<StatutCommandeEquipe> {
+      if (!uuidEquipe.test(commandeId) || !estActionRepartitionEquipe(action)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/repartition/action', { commandeId, action }, 'Impossible d’appliquer cette action.');
+      const s = v.statut;
+      if (typeof s !== 'string' || !(STATUTS_COMMANDE_EQUIPE as readonly string[]).includes(s)) throw new ErreurEquipe('incertain', 'Réponse du service illisible. Actualisez la liste avant de réessayer.');
+      return s as StatutCommandeEquipe;
+    },
+    /** Exploitation livreurs (lot 5, E1) : courses en cours et fiches des livreurs (jamais le dossier d'identité, le serveur ne le renvoie pas). */
+    async exploitationEquipe(accessToken: string): Promise<ExploitationEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/livraisons', 'L’exploitation reçue est illisible. Réessayez dans un instant.');
+      try { return lireExploitationEquipe(v); } catch { throw new ErreurEquipe('refus', 'L’exploitation reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Action sur une livraison (corps préparé et vérifié avant le réseau ; le serveur trace). Un seul essai ; renvoie le message du serveur. */
+    async actionLivraisonEquipe(accessToken: string, action: string, livraisonId: string, livreurId?: string): Promise<string> {
+      const corps = preparerActionLivraisonEquipe(action, livraisonId, livreurId);
+      if (corps === null) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez l’exploitation.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/livraisons/action', corps, 'Impossible d’appliquer cette action sur la livraison.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Livraison mise à jour.';
+    },
+    /** Action sur un livreur (motif seulement où le serveur l'exige ; le serveur trace). Un seul essai ; renvoie le message du serveur. */
+    async actionLivreurEquipe(accessToken: string, action: string, livreurId: string, motif?: string): Promise<string> {
+      const corps = preparerActionLivreurEquipe(action, livreurId, motif);
+      if (corps === null) throw new ErreurEquipe('refus', 'Demande invalide : vérifiez l’action et le motif (5 caractères au moins quand il est exigé).');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/livreurs/action', corps, 'Impossible d’appliquer cette action sur le livreur.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Livreur mis à jour.';
     },
     /** Tableau de bord de l'équipe (lot 5, E1/E15) : seuls les blocs permis au rôle sont renvoyés ; un bloc absent n'est jamais inventé. */
     async tableauEquipe(accessToken: string): Promise<TableauEquipe> {

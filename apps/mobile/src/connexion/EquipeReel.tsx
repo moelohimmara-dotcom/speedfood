@@ -11,6 +11,8 @@ import { formaterGnf } from './restaurateur';
 import { libelleStatutVersement, tauxAffiche, type FinancesEquipe } from './finances-equipe';
 import type { TableauEquipe } from './tableau-equipe';
 import type { PaiementsEquipe } from './paiements-equipe';
+import type { AccesEquipe } from './commandes-equipe';
+import { CommandesEquipeReel, ExploitationEquipeReel, RepartitionEquipeReel } from './EquipeCommandes';
 import { couleurs as c, polices } from '../design/tokens';
 
 /**
@@ -18,19 +20,31 @@ import { couleurs as c, polices } from '../design/tokens';
  * quand le compte n'a pas le droit du module (le serveur décide, jamais l'écran). Lectures manuelles, un seul essai, aucune relance.
  * Premier module livré : les finances (E2, lecture seule — les taux et versements se modifient sur le site).
  */
-type ModuleEquipe = 'tableau' | 'finances' | 'paiements';
+type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'finances' | 'paiements';
 const MODULES_EQUIPE: ReadonlyArray<{ id: ModuleEquipe; libelle: string }> = [
-  { id: 'tableau', libelle: 'Tableau de bord' }, { id: 'finances', libelle: 'Finances' }, { id: 'paiements', libelle: 'Paiements' },
+  { id: 'tableau', libelle: 'Tableau de bord' }, { id: 'commandes', libelle: 'Commandes (support)' }, { id: 'repartition', libelle: 'Répartition' },
+  { id: 'exploitation', libelle: 'Exploitation livreurs' }, { id: 'finances', libelle: 'Finances' }, { id: 'paiements', libelle: 'Paiements' },
 ];
 
 export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void }) {
   const [module, setModule] = useState<ModuleEquipe>('tableau');
+  const { donnees: acces } = useLectureEquipe<AccesEquipe>(() => gestion.accesEquipe());
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au compte" agir={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Espace équipe</Text>
     <Text style={s.secondaire}>Chaque module est relu depuis le serveur. Si votre compte n'a pas le droit d'un module, le serveur le refuse et l'écran vous le dit.</Text>
+    {acces && <View style={s.carte}>
+      <Text style={s.nomPetit}>Votre accès : {acces.role}</Text>
+      {acces.groupes.map(g => <View key={g.libelle} style={{ gap: 4 }}>
+        <Text style={s.texte}>{g.libelle}</Text>
+        {g.entrees.map(e => <Text key={e.chemin} style={s.secondaire}>{e.natif ? 'Dans l’application : ' : 'Sur le site : '}{e.libelle}</Text>)}
+      </View>)}
+    </View>}
     <View style={s.modules}>{MODULES_EQUIPE.map(m => <Bouton key={m.id} titre={m.libelle} secondaire={module !== m.id} onPress={() => setModule(m.id)} />)}</View>
     {module === 'tableau' && <TableauEquipeReel />}
+    {module === 'commandes' && <CommandesEquipeReel />}
+    {module === 'repartition' && <RepartitionEquipeReel />}
+    {module === 'exploitation' && <ExploitationEquipeReel />}
     {module === 'finances' && <FinancesEquipeReel />}
     {module === 'paiements' && <PaiementsEquipeReel />}
   </ScrollView></SafeAreaView></Modal>;

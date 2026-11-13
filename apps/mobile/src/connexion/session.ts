@@ -15,10 +15,12 @@ import type { BrouillonCandidature, LectureMenu, VueCandidature } from './candid
 import type { FinancesEquipe } from './finances-equipe.ts';
 import type { TableauEquipe } from './tableau-equipe.ts';
 import type { PaiementsEquipe } from './paiements-equipe.ts';
+import type { AccesEquipe, ActionRepartitionEquipe, CommandeARepartir, CommandeEquipe, CoordonneesEquipe, ReponseDetailEquipe, StatutCommandeEquipe } from './commandes-equipe.ts';
+import type { ExploitationEquipe } from './exploitation-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -251,6 +253,36 @@ export class GestionSession {
     if (n !== this.generation) throw new ErreurConnexion(annule);
     try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
     catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  exploitationEquipe(): Promise<ExploitationEquipe> {
+    return this.appelCandidature(a => this.api.exploitationEquipe ? this.api.exploitationEquipe(a) : Promise.reject(new ErreurConnexion('Exploitation indisponible.')), 'Lecture annulée.');
+  }
+  actionLivraisonEquipe(action: string, livraisonId: string, livreurId?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.actionLivraisonEquipe ? this.api.actionLivraisonEquipe(a, action, livraisonId, livreurId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  actionLivreurEquipe(action: string, livreurId: string, motif?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.actionLivreurEquipe ? this.api.actionLivreurEquipe(a, action, livreurId, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  accesEquipe(): Promise<AccesEquipe> {
+    return this.appelCandidature(a => this.api.accesEquipe ? this.api.accesEquipe(a) : Promise.reject(new ErreurConnexion('Accès équipe indisponible.')), 'Lecture annulée.');
+  }
+  commandesEquipe(recherche: { statut?: string; reference?: string; jour?: boolean }): Promise<{ commandes: CommandeEquipe[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.commandesEquipe ? this.api.commandesEquipe(a, recherche) : Promise.reject(new ErreurConnexion('Commandes indisponibles.')), 'Lecture annulée.');
+  }
+  detailCommandeEquipe(commandeId: string): Promise<ReponseDetailEquipe> {
+    return this.appelCandidature(a => this.api.detailCommandeEquipe ? this.api.detailCommandeEquipe(a, commandeId) : Promise.reject(new ErreurConnexion('Détail indisponible.')), 'Lecture annulée.');
+  }
+  changerStatutEquipe(commandeId: string, vers: StatutCommandeEquipe, motif: string): Promise<void> {
+    return this.appelCandidature(a => this.api.changerStatutEquipe ? this.api.changerStatutEquipe(a, commandeId, vers, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  revelerCoordonneesEquipe(commandeId: string, motif: string): Promise<CoordonneesEquipe> {
+    return this.appelCandidature(a => this.api.revelerCoordonneesEquipe ? this.api.revelerCoordonneesEquipe(a, commandeId, motif) : Promise.reject(new ErreurConnexion('Révélation indisponible.')), 'Envoi annulé.');
+  }
+  commandesARepartir(): Promise<{ commandes: CommandeARepartir[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.commandesARepartir ? this.api.commandesARepartir(a) : Promise.reject(new ErreurConnexion('Répartition indisponible.')), 'Lecture annulée.');
+  }
+  actionRepartitionEquipe(commandeId: string, action: ActionRepartitionEquipe): Promise<StatutCommandeEquipe> {
+    return this.appelCandidature(a => this.api.actionRepartitionEquipe ? this.api.actionRepartitionEquipe(a, commandeId, action) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
   }
   tableauEquipe(): Promise<TableauEquipe> {
     return this.appelCandidature(a => this.api.tableauEquipe ? this.api.tableauEquipe(a) : Promise.reject(new ErreurConnexion('Tableau de bord indisponible.')), 'Lecture annulée.');
