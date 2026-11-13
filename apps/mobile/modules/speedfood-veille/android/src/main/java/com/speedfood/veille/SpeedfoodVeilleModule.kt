@@ -24,33 +24,53 @@ class SpeedfoodVeilleModule : Module() {
     }
 
     AsyncFunction("DemarrerVeilleRestaurateur") {
-      val contexte = appContext.reactContext ?: return@AsyncFunction false
-      VeilleRestaurateurService.demarrer(contexte)
-      true
+      val contexte = appContext.reactContext
+      if (contexte == null) {
+        false
+      } else {
+        VeilleRestaurateurService.demarrer(contexte)
+        true
+      }
     }
 
     AsyncFunction("AlerterVeilleRestaurateur") { nombre: Int, reference: String ->
-      val contexte = appContext.reactContext ?: return@AsyncFunction false
-      VeilleRestaurateurService.alerter(contexte, nombre, reference)
-      true
+      val contexte = appContext.reactContext
+      if (contexte == null) {
+        false
+      } else {
+        VeilleRestaurateurService.alerter(contexte, nombre, reference)
+        true
+      }
     }
 
     AsyncFunction("ArreterVeilleRestaurateur") {
-      val contexte = appContext.reactContext ?: return@AsyncFunction false
-      VeilleRestaurateurService.arreter(contexte)
-      true
+      val contexte = appContext.reactContext
+      if (contexte == null) {
+        false
+      } else {
+        VeilleRestaurateurService.arreter(contexte)
+        true
+      }
     }
 
     AsyncFunction("DemarrerSuiviLivreur") {
-      val contexte = appContext.reactContext ?: return@AsyncFunction false
-      SuiviLivreurService.demarrer(contexte)
-      true
+      val contexte = appContext.reactContext
+      if (contexte == null) {
+        false
+      } else {
+        SuiviLivreurService.demarrer(contexte)
+        true
+      }
     }
 
     AsyncFunction("ArreterSuiviLivreur") {
-      val contexte = appContext.reactContext ?: return@AsyncFunction false
-      SuiviLivreurService.arreter(contexte)
-      true
+      val contexte = appContext.reactContext
+      if (contexte == null) {
+        false
+      } else {
+        SuiviLivreurService.arreter(contexte)
+        true
+      }
     }
   }
 }

@@ -49,13 +49,13 @@ class VeilleRestaurateurService : Service() {
     super.onDestroy()
   }
 
+  @Suppress("DEPRECATION")
   private fun sonner(nombre: Int, reference: String) {
     val gestionnaire = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val texte = if (nombre <= 1) "Nouvelle commande à traiter : $reference" else "$nombre commandes à traiter"
     gestionnaire.notify(ID_ALERTE, notificationAlerte(texte))
     try {
       val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-      @Suppress("DEPRECATION")
       reveil = pm.newWakeLock(
         PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
         "speedfood:alerte-commande",
