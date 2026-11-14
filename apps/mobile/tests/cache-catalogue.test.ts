@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { VALIDITE_CACHE_MS, creerCacheCatalogue, libelleAgeCache, type StockageCache } from '../src/catalogue/cache-catalogue.ts';
+import { VALIDITE_CACHE_MS, creerCacheCatalogue, libelleAgeCache, valeurDepuisLignesBrutes, type StockageCache } from '../src/catalogue/cache-catalogue.ts';
 
 function memoire(initial: Record<string, string> = {}, ecritureEchoue = false) {
   const donnees = new Map(Object.entries(initial));
@@ -56,6 +56,20 @@ test('cache catalogue : cache corrompu ou invalide = erreur d origine, rien d in
   const { stockage } = memoire({ restaurants: JSON.stringify({ le: 1_000, donnees: 42 }) });
   const cache = creerCacheCatalogue(stockage, () => 2_000);
   await assert.rejects(cache.lire('restaurants', panne, (v) => { if (typeof v !== 'string') throw new Error('INVALIDE'); return v; }), /RESEAU/);
+});
+
+test('cache catalogue : valeur relue depuis les lignes brutes SQLite (tableaux de valeurs, pas des objets)', () => {
+  // expo-sqlite `executeForRawResultAsync` rend une ligne par tableau de valeurs : la valeur est a l indice 0.
+  assert.equal(valeurDepuisLignesBrutes([['{"le":1,"donnees":"x"}']]), '{"le":1,"donnees":"x"}');
+  assert.equal(valeurDepuisLignesBrutes([['premiere', 'ignoree']]), 'premiere');
+  // Forme objet acceptee aussi (autres pilotes) ; tout le reste rend null, jamais une valeur inventee.
+  assert.equal(valeurDepuisLignesBrutes([{ valeur: 'objet' }]), 'objet');
+  assert.equal(valeurDepuisLignesBrutes([]), null);
+  assert.equal(valeurDepuisLignesBrutes([[42]]), null);
+  assert.equal(valeurDepuisLignesBrutes([[null]]), null);
+  assert.equal(valeurDepuisLignesBrutes([{}]), null);
+  assert.equal(valeurDepuisLignesBrutes(null), null);
+  assert.equal(valeurDepuisLignesBrutes('pas des lignes'), null);
 });
 
 test('cache catalogue : libelles d anciennete en clair', () => {
