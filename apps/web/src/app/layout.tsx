@@ -1,6 +1,7 @@
 import { PROMESSE_PAR_DEFAUT } from "@/lib/parametres/promesse-defauts";
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Bricolage_Grotesque, Manrope } from "next/font/google";
+import { Barlow_Condensed, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { ConsoleProviders } from "@/components/console/ConsoleProviders";
 import "./utilitaires.css";
@@ -56,10 +57,12 @@ const barlowCondensed = Barlow_Condensed({
 
 // Titres du site public (direction B, décision du 4 octobre 2026). Pas de préchargement : le fichier n'est téléchargé que
 // par les pages dont le CSS l'utilise (site public), jamais par la console.
-const bricolage = Bricolage_Grotesque({
+// Police auto-hébergée (fichier variable officiel, graisses 700 à 800) : Google Fonts sert désormais Bricolage
+// par des adresses sans extension que le chargeur de Next 16 ne sait pas lire — la construction échouait en amont.
+const bricolage = localFont({
+  src: "./fonts/bricolage-grotesque.woff2",
   variable: "--font-bricolage",
-  weight: ["700", "800"],
-  subsets: ["latin"],
+  weight: "700 800",
   display: "swap",
   preload: false,
 });
