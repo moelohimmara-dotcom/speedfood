@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { cheminDepuisModule } from './chemins.ts';
 import { lireLienProfond } from '../src/connexion/liens-profonds.ts';
+import { abonnerLienEnAttente, deposerLienEnAttente, prendreLienEnAttente } from '../src/connexion/lien-en-attente.ts';
 import { DIAPOS_CLIENT, DIAPOS_RESTAURATEUR, doitProposerVisite, etapeSuivante } from '../src/connexion/visite.ts';
 
 test('liens profonds : restaurant et commande des hotes Speedfood connus', () => {
@@ -52,6 +53,28 @@ test('liens profonds : Android declare les liens HTTPS des hotes connus (sinon l
       );
     }
   }
+});
+
+test('lien en attente : depose puis pris une seule fois ; abonne prevenu aussitot', () => {
+  prendreLienEnAttente();
+  const recus: string[] = [];
+  const desabonner = abonnerLienEnAttente((url) => recus.push(url));
+  deposerLienEnAttente('https://speedfood.dev/r/abc');
+  assert.deepEqual(recus, ['https://speedfood.dev/r/abc'], 'l abonne est prevenu au depot');
+  assert.equal(prendreLienEnAttente(), 'https://speedfood.dev/r/abc');
+  assert.equal(prendreLienEnAttente(), null, 'un lien pris est consomme : jamais rejoue');
+  desabonner();
+  deposerLienEnAttente('https://speedfood.dev/commande/j1');
+  assert.deepEqual(recus, ['https://speedfood.dev/r/abc'], 'apres desabonnement, plus aucune notification');
+  assert.equal(prendreLienEnAttente(), 'https://speedfood.dev/commande/j1', 'le depot reste en attente pour le prochain monteur');
+  prendreLienEnAttente();
+});
+
+test('lien en attente : un depot vide ou blanc est ignore, rien n est invente', () => {
+  prendreLienEnAttente();
+  deposerLienEnAttente('');
+  deposerLienEnAttente('   ');
+  assert.equal(prendreLienEnAttente(), null);
 });
 
 test('visite guidee : deux series de deux ecrans, fidelement reprises', () => {
