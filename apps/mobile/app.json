@@ -18,6 +18,21 @@
     },
     "android": {
       "package": "com.speedfood.clientdemo",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            { "scheme": "https", "host": "speedfood.dev", "pathPrefix": "/r/" },
+            { "scheme": "https", "host": "speedfood.dev", "pathPrefix": "/commande/" },
+            { "scheme": "https", "host": "www.speedfood.dev", "pathPrefix": "/r/" },
+            { "scheme": "https", "host": "www.speedfood.dev", "pathPrefix": "/commande/" },
+            { "scheme": "https", "host": "speedfood-app.moelohimmara.workers.dev", "pathPrefix": "/r/" },
+            { "scheme": "https", "host": "speedfood-app.moelohimmara.workers.dev", "pathPrefix": "/commande/" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/speedfood.png",
