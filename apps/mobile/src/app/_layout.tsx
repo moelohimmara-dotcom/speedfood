@@ -1,7 +1,8 @@
 import { Stack, router, usePathname } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { deposerLienEnAttente } from '../connexion/lien-en-attente';
+import { IntroLogo } from '../design/IntroLogo';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, View, Text, Platform } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,9 +43,11 @@ export default function Layout() {
     }
   }, [chemin]);
   const [chargees, erreur] = useFonts({ Manrope: require('../../assets/fonts/manrope.ttf'), Bricolage: require('../../assets/fonts/bricolage.ttf') });
+  const [introTerminee, setIntroTerminee] = useState(false);
   if (!chargees && !erreur) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fond }}><Text>Speedfood</Text></View>;
   // Premier branchement réel en lecture. Aucun écran démo ni stockage démo monté.
-  return <SafeAreaProvider><SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={{ flex: 1, backgroundColor: c.fond }}><StatusBar style="dark" /><BandeauMiseAJour /><CatalogueReel /></SafeAreaView></SafeAreaProvider>;
+  // Intro du logo par-dessus le catalogue déjà monté : elle ne bloque ni ne retarde les lectures.
+  return <SafeAreaProvider><SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={{ flex: 1, backgroundColor: c.fond }}><StatusBar style="dark" /><BandeauMiseAJour /><CatalogueReel />{!introTerminee && <IntroLogo onTerminee={() => setIntroTerminee(true)} />}</SafeAreaView></SafeAreaProvider>;
 }
 /** Conservé pour retour arrière du démonstrateur, non monté par le catalogue réel. */
 export function LayoutDemonstration() {
