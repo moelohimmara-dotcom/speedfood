@@ -905,7 +905,7 @@ test('D4b écran : l’enregistrement d’un plat et d’un supplément valide A
   assert.ok(!/setFormPlat\(null\)[^\n]*\n[^\n]*envoyer/.test(ecran), 'le formulaire ne se ferme pas avant la réponse');
 });
 test('D4b écran : « Ajouter un plat », « Modifier », « Archiver », « Ajouter un supplément » et « Retirer » existent, verrouillés pendant l’envoi, et archiver / retirer passent par la confirmation', () => {
-  for (const titre of ["titre=\"Ajouter un plat\" disabled={bloque || formPlat !== null}", "'Modifier ' + p.nom} secondaire disabled={bloque}", "'Archiver ' + p.nom} secondaire disabled={bloque}", "'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
+  for (const titre of ["titre=\"Ajouter un plat\" icone=\"plus\" disabled={bloque || formPlat !== null}", "'Modifier ' + p.nom} secondaire disabled={bloque}", "'Archiver ' + p.nom} secondaire disabled={bloque}", "'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
   assert.ok(ecran.includes("action: actionArchiver(p)") && ecran.includes("action: actionRetirerOption(p, o)"));
   assert.ok(!/envoyer\(actionArchiver|envoyer\(actionRetirerOption/.test(ecran), 'jamais d’archivage ni de retrait sans confirmation');
 });

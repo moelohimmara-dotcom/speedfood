@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bouton } from '../design/Composants';
+import type { NomIcone } from '../design/Icone';
 import { Action } from './BoutonAction';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
@@ -24,13 +25,13 @@ import { couleurs as c, polices } from '../design/tokens';
  * Premier module livré : les finances (E2, lecture seule — les taux et versements se modifient sur le site).
  */
 type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'restaurants' | 'menus' | 'referencements' | 'partenariats' | 'avis' | 'bannieres' | 'medias' | 'parametres' | 'comptes' | 'audit' | 'attente' | 'mises-a-jour' | 'finances' | 'paiements';
-const MODULES_EQUIPE: ReadonlyArray<{ id: ModuleEquipe; libelle: string }> = [
-  { id: 'tableau', libelle: 'Tableau de bord' }, { id: 'commandes', libelle: 'Commandes (support)' }, { id: 'repartition', libelle: 'Répartition' },
-  { id: 'exploitation', libelle: 'Exploitation livreurs' }, { id: 'restaurants', libelle: 'Établissements' }, { id: 'menus', libelle: 'Menus' },
-  { id: 'referencements', libelle: 'Référencements' }, { id: 'partenariats', libelle: 'Partenariats' }, { id: 'avis', libelle: 'Avis et signalements' },
-  { id: 'bannieres', libelle: 'Bannières' }, { id: 'medias', libelle: 'Médias' }, { id: 'parametres', libelle: 'Paramètres' },
-  { id: 'comptes', libelle: 'Comptes' }, { id: 'audit', libelle: 'Journal d’audit' }, { id: 'attente', libelle: 'Liste d’attente' }, { id: 'mises-a-jour', libelle: 'Mises à jour' },
-  { id: 'finances', libelle: 'Finances' }, { id: 'paiements', libelle: 'Paiements' },
+const MODULES_EQUIPE: ReadonlyArray<{ id: ModuleEquipe; libelle: string; icone: NomIcone }> = [
+  { id: 'tableau', libelle: 'Tableau de bord', icone: 'accueil' }, { id: 'commandes', libelle: 'Commandes (support)', icone: 'document' }, { id: 'repartition', libelle: 'Répartition', icone: 'partage' },
+  { id: 'exploitation', libelle: 'Exploitation livreurs', icone: 'eclair' }, { id: 'restaurants', libelle: 'Établissements', icone: 'plat' }, { id: 'menus', libelle: 'Menus', icone: 'liste' },
+  { id: 'referencements', libelle: 'Référencements', icone: 'info' }, { id: 'partenariats', libelle: 'Partenariats', icone: 'message' }, { id: 'avis', libelle: 'Avis et signalements', icone: 'alerte' },
+  { id: 'bannieres', libelle: 'Bannières', icone: 'etoile' }, { id: 'medias', libelle: 'Médias', icone: 'camera' }, { id: 'parametres', libelle: 'Paramètres', icone: 'engrenage' },
+  { id: 'comptes', libelle: 'Comptes', icone: 'compte' }, { id: 'audit', libelle: 'Journal d’audit', icone: 'recherche' }, { id: 'attente', libelle: 'Liste d’attente', icone: 'cloche' }, { id: 'mises-a-jour', libelle: 'Mises à jour', icone: 'actualiser' },
+  { id: 'finances', libelle: 'Finances', icone: 'document' }, { id: 'paiements', libelle: 'Paiements', icone: 'coche' },
 ];
 
 export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void }) {
@@ -47,7 +48,7 @@ export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void
         {g.entrees.map(e => <Text key={e.chemin} style={s.secondaire}>{e.natif ? 'Dans l’application : ' : 'Sur le site : '}{e.libelle}</Text>)}
       </View>)}
     </View>}
-    <View style={s.modules}>{MODULES_EQUIPE.map(m => <Bouton key={m.id} titre={m.libelle} secondaire={module !== m.id} onPress={() => setModule(m.id)} />)}</View>
+    <View style={s.modules}>{MODULES_EQUIPE.map(m => <Bouton key={m.id} titre={m.libelle} icone={m.icone} secondaire={module !== m.id} onPress={() => setModule(m.id)} />)}</View>
     {module === 'tableau' && <TableauEquipeReel />}
     {module === 'commandes' && <CommandesEquipeReel />}
     {module === 'repartition' && <RepartitionEquipeReel />}
