@@ -1,5 +1,7 @@
 import { Stack, router, usePathname } from 'expo-router';
+import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
+import { deposerLienEnAttente } from '../connexion/lien-en-attente';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, View, Text, Platform } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +30,17 @@ function Navigation() {
   </View></View>;
 }
 export default function Layout() {
+  const chemin = usePathname();
+  // Liens profonds (A12) : le routeur reçoit /r/:id et /commande/:jeton avant l'écran catalogue.
+  // Le lien reconstruit est déposé pour le catalogue (seul juge des hôtes et chemins connus), puis on revient à l'accueil.
+  useEffect(() => {
+    if (!chemin) return;
+    const m = /^\/(r|commande)\/([^/]+)$/.exec(chemin);
+    if (m) {
+      deposerLienEnAttente('https://speedfood.dev/' + m[1] + '/' + m[2]);
+      router.replace('/');
+    }
+  }, [chemin]);
   const [chargees, erreur] = useFonts({ Manrope: require('../../assets/fonts/manrope.ttf'), Bricolage: require('../../assets/fonts/bricolage.ttf') });
   if (!chargees && !erreur) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fond }}><Text>Speedfood</Text></View>;
   // Premier branchement réel en lecture. Aucun écran démo ni stockage démo monté.

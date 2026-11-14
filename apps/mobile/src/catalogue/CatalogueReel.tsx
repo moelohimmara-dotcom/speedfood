@@ -15,6 +15,7 @@ import { FavoriFiche } from '../connexion/FavoriFiche';
 import { verrouPro } from '../connexion/verrou-natif';
 import { CommandeReelle } from './CommandeReelle';
 import { lireLienProfond } from '../connexion/liens-profonds';
+import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
 import { VisiteGuidee, doitOuvrirVisite } from '../connexion/VisiteReel';
 import { CandidatureReel } from '../connexion/CandidatureReel';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
@@ -77,8 +78,10 @@ export function CatalogueReel() {
   // Tout autre lien est ignoré ici et reste sur le site : aucune navigation arbitraire.
   useEffect(() => {
     let actif = true;
+    let derniereUrl: string | null = null;
     const traiter = (url: string | null) => {
-      if (!actif || !url) return;
+      if (!actif || !url || url === derniereUrl) return;
+      derniereUrl = url;
       const lien = lireLienProfond(url);
       if (lien === null) return;
       if (lien.genre === 'restaurant') {
@@ -90,9 +93,12 @@ export function CatalogueReel() {
         setMessagePanier('Lien de commande reçu : retrouvez son suivi dans vos commandes.');
       }
     };
+    // Le routeur intercepte /r/... et /commande/... : le layout dépose le lien, pris ici au montage ou dès son dépôt.
+    traiter(prendreLienEnAttente());
+    const desabonner = abonnerLienEnAttente((url) => traiter(url));
     void Linking.getInitialURL().then(traiter).catch(() => undefined);
     const abonnement = Linking.addEventListener('url', e => traiter(e.url));
-    return () => { actif = false; abonnement.remove(); };
+    return () => { actif = false; desabonner(); abonnement.remove(); };
   }, []);
   // Notifications : canaux, appui suivi → « Mon compte », appui `commande_nouvelle` → espace restaurateur. Ne demande jamais l'autorisation ici.
   // L'appui ne ferme JAMAIS l'écran de commande pendant un envoi ou un état incertain : l'ouverture attend la fin du verrou (une seule fois).
