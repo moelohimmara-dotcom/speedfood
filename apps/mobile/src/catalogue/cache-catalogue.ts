@@ -40,6 +40,18 @@ export function creerCacheCatalogue(stockage: StockageCache, maintenant: () => n
 }
 export type CacheCatalogue = ReturnType<typeof creerCacheCatalogue>;
 
+/**
+ * Valeur relue depuis les lignes brutes du stockage natif : expo-sqlite (`executeForRawResultAsync`) rend chaque ligne
+ * comme un tableau de valeurs (la valeur est à l'indice 0), pas comme un objet. La forme objet est acceptée aussi ;
+ * tout le reste rend null — jamais une valeur inventée.
+ */
+export function valeurDepuisLignesBrutes(lignes: unknown): string | null {
+  if (!Array.isArray(lignes) || lignes.length === 0) return null;
+  const premiere = lignes[0] as unknown;
+  const v = Array.isArray(premiere) ? premiere[0] : (premiere as { valeur?: unknown } | null)?.valeur;
+  return typeof v === 'string' ? v : null;
+}
+
 /** Ancienneté en clair pour l'écran : « à l'instant », « il y a 5 min », « il y a 2 h », « il y a 3 j ». */
 export function libelleAgeCache(ageMs: number): string {
   if (ageMs < 60_000) return "à l'instant";
