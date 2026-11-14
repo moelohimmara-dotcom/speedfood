@@ -39,6 +39,17 @@ test('intro logo : animation courte montee dans le layout, mouvement reduit resp
   assert.match(layout, /<CatalogueReel \/>/, 'le catalogue reste monte sous l intro');
 });
 
+test('espaces pro : onglets restaurateur, actions livreur et modules equipe portent une icone', () => {
+  const resto = lire('../src/connexion/RestaurateurReel.tsx');
+  assert.match(resto, /ICONES_SECTIONS/, 'les onglets du restaurateur ont leurs icones');
+  const livreur = lire('../src/connexion/LivreurReel.tsx');
+  assert.match(livreur, /icone="eclair"/, 'la bascule en ligne du livreur porte l eclair');
+  assert.match(livreur, /icone="liste"/, 'la file des courses porte l icone liste');
+  const equipe = lire('../src/connexion/EquipeReel.tsx');
+  assert.match(equipe, /icone: '/, 'chaque module equipe declare son icone');
+  assert.match(equipe, /icone=\{m\.icone\}/, 'les boutons de modules affichent leur icone');
+});
+
 test('accueil client : les entrees principales portent une icone (panier, compte, aide, visite, restaurant)', () => {
   const catalogue = lire('../src/catalogue/CatalogueReel.tsx');
   for (const nom of ['panier', 'compte', 'message', 'etoile', 'plat']) {

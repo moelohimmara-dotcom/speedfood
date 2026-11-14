@@ -157,14 +157,14 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
       ? <Text style={s.secondaire}>Course en cours : votre disponibilité reprendra à la fin de la course.</Text>
       : fiche.cycle !== 'actif'
         ? <Text style={s.secondaire}>Votre fiche n’est pas active : la mise en ligne n’est pas possible. Contactez l’équipe Speedfood.</Text>
-        : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} disabled={!peutBasculer || verrou} agir={() => basculer(fiche.statut !== 'disponible')} />}
+        : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} icone="eclair" disabled={!peutBasculer || verrou} agir={() => basculer(fiche.statut !== 'disponible')} />}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
-    <Action titre="Actualiser mon état" disabled={ecritureEnCours} agir={actualiser} />
-    <Action titre="File des courses" secondaire disabled={ecritureEnCours} agir={() => setFileOuverte(v => !v)} />
+    <Action titre="Actualiser mon état" icone="actualiser" disabled={ecritureEnCours} agir={actualiser} />
+    <Action titre="File des courses" icone="liste" secondaire disabled={ecritureEnCours} agir={() => setFileOuverte(v => !v)} />
     {fileOuverte && <FileCourses session={session} courseActuelle={course} />}
-    <Action titre="Mes courses livrées et leurs frais" secondaire disabled={ecritureEnCours} agir={() => setCoursesOuvertes(v => !v)} />
+    <Action titre="Mes courses livrées et leurs frais" icone="document" secondaire disabled={ecritureEnCours} agir={() => setCoursesOuvertes(v => !v)} />
     {coursesOuvertes && <CoursesLivreurReel />}
-    <Action titre="Assistance conducteur" secondaire disabled={ecritureEnCours} agir={() => setAssistanceOuverte(true)} />
+    <Action titre="Assistance conducteur" icone="message" secondaire disabled={ecritureEnCours} agir={() => setAssistanceOuverte(true)} />
     <AssistanceLivreur ouvert={assistanceOuverte} fermer={() => setAssistanceOuverte(false)} referenceCourse={course?.commandeReference ?? null} />
   </View>;
 }

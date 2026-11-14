@@ -16,6 +16,12 @@ import {
 } from './restaurateur';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
+import { Icone, type NomIcone } from '../design/Icone';
+
+/** Icône de chaque onglet de l'espace restaurateur (même famille visuelle que l'accueil client). */
+export const ICONES_SECTIONS: Record<SectionRestaurateur, NomIcone> = {
+  commandes: 'liste', service: 'engrenage', menu: 'plat', historique: 'horloge', activite: 'document',
+};
 
 /**
  * Espace restaurateur (lots D1 à D4a), trois sections en haut de l'écran : « Commandes » (ci-dessous), « Service » et « Menu » (voir ServiceMenuReel.tsx). Commandes : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
@@ -181,7 +187,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
     <Action titre="Visite guidée" secondaire agir={() => setVisiteOuverte(true)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
+    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Icone nom={ICONES_SECTIONS[x]} taille={19} couleur={section === x ? c.action : c.secondaire} /><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
     {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
     {section === 'activite' && activiteOuverte && <ActiviteReel />}
@@ -192,7 +198,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
     {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
-    <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} />
+    <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} icone="actualiser" />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}
     {docMessage !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{docMessage}</Text>}
@@ -215,7 +221,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {ligneLivraison(o) && <Text style={s.texte}>{ligneLivraison(o)}</Text>}
           {libelleDocument('recu', o.documents.recu) && <Text style={s.texte}>{libelleDocument('recu', o.documents.recu)}</Text>}
           {libelleDocument('facture', o.documents.facture) && <Text style={s.texte}>{libelleDocument('facture', o.documents.facture)}</Text>}
-          {!confirmation && !formulaire && documentsDisponibles(o).map(t => <Action key={t} titre={(t === 'recu' ? 'Établir le reçu numéroté ' : 'Établir une facture ') + o.reference} secondaire disabled={bloque || docOccupe} agir={() => { void emettreDocument(o, t); }} />)}
+          {!confirmation && !formulaire && documentsDisponibles(o).map(t => <Action key={t} titre={(t === 'recu' ? 'Établir le reçu numéroté ' : 'Établir une facture ') + o.reference} secondaire disabled={bloque || docOccupe} icone="document" agir={() => { void emettreDocument(o, t); }} />)}
           {paiement && <Text style={s.texte}>{paiement}</Text>}
           {paiement && possibles.includes('paiement_recu') && <Text style={s.secondaire}>Comparez avec le SMS de confirmation de votre opérateur avant de valider.</Text>}
           {confirmation && confirmation.action in CONFIRMATIONS && <>
