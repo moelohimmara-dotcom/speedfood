@@ -16,6 +16,8 @@ export interface EntreeJournalEquipe {
 export interface AuditEquipe {
   indicateurs: IndicateurAuditEquipe[]; actions: Array<{ code: string; libelle: string }>;
   periodes: Array<{ valeur: number | null; libelle: string }>; journal: EntreeJournalEquipe[]; tronque: boolean;
+  /** Entrées du journal écartées car illisibles (comptées, jamais affichées ni inventées). */
+  illisibles: number;
 }
 export type NiveauAttente = 'region' | 'prefecture' | 'commune' | 'quartier';
 export interface ZoneAttenteEquipe { niveau: NiveauAttente; id: string; nom: string; contexte: string; personnes: number; prevenues: number; derniere: string }
@@ -69,6 +71,17 @@ export function lireAuditEquipe(v: Record<string, unknown>): AuditEquipe {
   if (v.ok !== true || typeof v.tronque !== 'boolean') return invalide();
   if (!Array.isArray(v.indicateurs) || v.indicateurs.length > 100 || !Array.isArray(v.actions) || v.actions.length > 200
     || !Array.isArray(v.periodes) || v.periodes.length > 10 || !Array.isArray(v.journal) || v.journal.length > 500) return invalide();
+  const journalLu: { lignes: EntreeJournalEquipe[]; illisibles: number } = { lignes: [], illisibles: 0 };
+  for (const x of v.journal) {
+    try {
+      const o = objet(x);
+      journalLu.lignes.push({
+        id: texteNonVide(o.id, 80), horodatage: dateTexte(o.horodatage), action: texteNonVide(o.action, 80), libelle: texteNonVide(o.libelle, 200),
+        acteurEmail: texteOuNull(o.acteurEmail, 200), auteur: texteNonVide(o.auteur, 200), cibleType: texteNonVide(o.cibleType, 60),
+        cibleId: texte(o.cibleId, 80), cible: texteNonVide(o.cible, 300), cibleUrl: texteOuNull(o.cibleUrl, 500), motif: texteOuNull(o.motif, 300),
+      });
+    } catch { journalLu.illisibles++; }
+  }
   return {
     tronque: v.tronque,
     indicateurs: v.indicateurs.map(x => {
@@ -83,14 +96,9 @@ export function lireAuditEquipe(v: Record<string, unknown>): AuditEquipe {
       const o = objet(x);
       return { valeur: o.valeur === null ? null : entier(o.valeur, 3650), libelle: texteNonVide(o.libelle, 120) };
     }),
-    journal: v.journal.map(x => {
-      const o = objet(x);
-      return {
-        id: texteNonVide(o.id, 80), horodatage: dateTexte(o.horodatage), action: texteNonVide(o.action, 80), libelle: texteNonVide(o.libelle, 200),
-        acteurEmail: texteOuNull(o.acteurEmail, 200), auteur: texteNonVide(o.auteur, 200), cibleType: texteNonVide(o.cibleType, 60),
-        cibleId: texte(o.cibleId, 80), cible: texteNonVide(o.cible, 300), cibleUrl: texteOuNull(o.cibleUrl, 500), motif: texteOuNull(o.motif, 300),
-      };
-    }),
+    // Comme les comptes et les zones : une entrée du journal illisible est écartée et comptée, elle ne tue pas tout l'écran.
+    journal: journalLu.lignes,
+    illisibles: journalLu.illisibles,
   };
 }
 

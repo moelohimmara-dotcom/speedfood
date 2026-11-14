@@ -35,7 +35,33 @@ test('audit equipe : indicateurs, filtres proposes et journal lus', () => {
   assert.equal(a.indicateurs[0].valeur, 3);
   assert.equal(a.journal[0].auteur, 'acteur inconnu');
   assert.equal(a.periodes[0].valeur, null);
+  assert.equal(a.illisibles, 0);
   assert.throws(() => lireAuditEquipe({ ok: true, indicateurs: [], actions: [], periodes: [], journal: 'x', tronque: false }));
+});
+
+test('audit equipe : une ligne du journal illisible est ecartee et comptee, les autres restent affichees', () => {
+  const ligneOk = {
+    id: 'e1', horodatage: '2026-11-10T10:00:00.000Z', action: 'restaurant.approbation', libelle: 'Approbation',
+    acteurEmail: null, auteur: 'acteur inconnu', cibleType: 'restaurant', cibleId: 'r1',
+    cible: 'Restaurant r1', cibleUrl: null, motif: null,
+  };
+  const a = lireAuditEquipe({
+    ok: true, tronque: false, indicateurs: [], actions: [], periodes: [],
+    journal: [
+      ligneOk,
+      { ...ligneOk, id: 'e2', horodatage: 'pas une date' },
+      { ...ligneOk, id: 42 },
+      { ...ligneOk, id: 'e4', acteurEmail: 'x'.repeat(201) },
+    ],
+  });
+  assert.deepEqual(a.journal.map(j => j.id), ['e1'], 'seule la ligne saine est gardee, dans l ordre');
+  assert.equal(a.illisibles, 3, 'les trois lignes illisibles sont comptees, jamais affichees ni inventees');
+  // Les sections generees par le serveur (indicateurs) restent strictes : une valeur fausse rejette toute la reponse.
+  assert.throws(() => lireAuditEquipe({
+    ok: true, tronque: false,
+    indicateurs: [{ cle: 'c1', libelle: 'L', definition: '', valeur: 1.5 }],
+    actions: [], periodes: [], journal: [ligneOk],
+  }));
 });
 
 test('liste attente : zones lues, reste a prevenir calcule comme le serveur', () => {

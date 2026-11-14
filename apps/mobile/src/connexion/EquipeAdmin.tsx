@@ -70,6 +70,7 @@ export function AuditEquipeReel() {
       {donnees.periodes.map(p => <Action key={p.libelle} titre={(depuis === (p.valeur ?? undefined) ? '✓ ' : '') + p.libelle} secondaire disabled={chargement} agir={() => setDepuis(p.valeur ?? undefined)} />)}
     </View>}
     {donnees?.tronque && <Text accessibilityRole="alert" style={s.texte}>Journal incomplet : ouvrez le site pour tout voir.</Text>}
+    {donnees && donnees.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{donnees.illisibles} entrée(s) du journal n’ont pas pu être lues et ont été écartées ; le reste est affiché.</Text>}
     {(donnees?.journal ?? []).map(j => <View key={j.id} style={s.carte}>
       <Text style={s.nomPetit}>{j.libelle}</Text>
       <Text style={s.secondaire}>{new Date(j.horodatage).toLocaleString('fr-FR')} · {j.auteur} · {j.cible}</Text>
