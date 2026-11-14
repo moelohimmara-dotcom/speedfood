@@ -34,9 +34,9 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | A7 | Verrou de l'appareil (biométrie ou code) | local | Codée, tests OK (règle portée, `expo-local-authentication`) ; réglage vu sur émulateur le 12 novembre avec un compte professionnel (désactivé ; branche « configurez d'abord un verrouillage d'écran » de l'émulateur vérifiée) ; activation et verrouillage à l'ouverture à essayer sur téléphone avec verrouillage configuré | 1 |
 | A8 | Suppression de compte (`supprimerCompte`) | `/client/compte` | Codée, tests OK (mot SUPPRIMER, refus compte professionnel, résultat incertain) ; panneau et garde-fou essayés sur émulateur le 12 novembre (mot faux : bouton désactivé ; fermé par « Non, garder », compte intact) ; suppression réelle à faire sur un compte jetable uniquement | 1 |
 | A9 | Espaces et rôles (`roles`), choix et changement de profil | `/moi` | À confirmer : rôles lus, entrées restaurateur et livreur présentes ; l'écran « choix du profil » de l'ancienne appli n'existe pas dans Expo (décision de conception à prendre) | 1 |
-| A10 | Visite guidée au premier lancement | local | Codée, tests OK (deux séries de deux écrans, proposée une seule fois, rouvrable depuis l'accueil et l'espace restaurateur) ; essai émulateur à faire | 4 |
+| A10 | Visite guidée au premier lancement | local | Reprise (tests OK ; essayée sur émulateur le 14 novembre 2026 : proposée automatiquement au premier lancement du nouvel APK, deux écrans parcourus, catalogue ouvert ensuite) | 4 |
 | A11 | Aide et support, numéro WhatsApp (`whatsapp`, écran Support) | `/aide` | Reprise (tests OK ; essayée sur émulateur le 12 novembre : numéro réel lu, boutons WhatsApp et appel, FAQ) | 1 |
-| A12 | Liens profonds (`LiensProfonds`) | local | Codée, tests OK (seuls les hôtes Speedfood connus : restaurant ouvert, commande vers « Mon compte » ; aucune navigation arbitraire) ; essai émulateur à faire | 4 |
+| A12 | Liens profonds (`LiensProfonds`) | local | Reprise (tests OK ; liens HTTPS déclarés côté Android (intentFilters, trois hôtes connus) et interception du routeur corrigée après essai ; essayée sur émulateur le 14 novembre 2026 : lien commande à chaud et à froid → « Mon compte » ouvert + message de suivi, lien restaurant inconnu → « Ce restaurant ne figure plus au catalogue public ») | 4 |
 
 ### B. Client
 
@@ -54,7 +54,7 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | B10 | Adresses enregistrées (`adresse`) | `/client/adresses` | Reprise (essai émulateur du 12 novembre : bouton désactivé à vide, adresse de test ajoutée relue « 1 sur 5 » puis supprimée, retour à « 0 sur 5 ») | 1 |
 | B11 | Espace client et profil (`espace`, `profil`) | `/client/espace`, `/client/profil` | Reprise (essai émulateur du 12 novembre : profil relu du serveur, mode préféré changé puis restauré, vérifié par réouverture de l'espace) | 1 |
 | B12 | Candidature : déposer, envoyer une image, lire, lire un menu (`deposer`, `envoyerImage`, `lire`, `lireMenu`) | `/candidature`, `/candidature/image`, `/candidature/menu-photo` | Codée, tests OK (formulaire en trois temps, plats et lecture de photo de menu relue avant ajout, images après dépôt ; routes du site comme l'ancienne appli) ; essai émulateur à faire | 4 |
-| B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | Codée, tests OK (dernière lecture gardée 7 jours au plus, rendue hors ligne avec son ancienneté, revalidée strictement) ; essai émulateur à faire | 4 |
+| B13 | Cache hors ligne des restaurants (`RestaurantApiAvecCache`) | local | Reprise (tests OK ; panne réelle corrigée le 14 novembre 2026 : la relecture SQLite lisait des objets au lieu des tableaux bruts, le cache ne se relisait jamais ; essayée sur émulateur le même jour : catalogue en ligne, vrai mode avion, redémarrage — bandeau « Vous êtes hors ligne : voici la dernière lecture gardée sur ce téléphone » et restaurants servis depuis le cache) | 4 |
 | B14 | Bandeau et notification de mise à jour | `/version` | Reprise (version d'essai : ouvre `/installer`) | |
 | B15 | Notifications push du client (enregistrer, retirer, jeton, essai) | `/appareils`, `/appareils/essai` | À confirmer : enregistrement fait, réception réelle d'une notification jamais vue | 1 |
 
@@ -66,14 +66,14 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | C2 | Ouvrir ou fermer le restaurant (`definirStatut`) | `/restaurant/statut` | Reprise | |
 | C3 | Proposer un autre prix (`proposer`) | `/restaurant/commandes/proposition` | Reprise | |
 | C4 | Confirmer un paiement (`confirmerPaiement`) | `/restaurant/commandes/paiement` | Reprise | |
-| C5 | Émettre le document d'une commande (`emettreDocument`) | `/restaurant/commandes/document` | Codée, tests OK (numéros lus sans les liens WhatsApp, reçu seulement si paiement reçu, un seul essai) ; essai émulateur à faire | 2 |
+| C5 | Émettre le document d'une commande (`emettreDocument`) | `/restaurant/commandes/document` | Codée, tests OK (numéros lus sans les liens WhatsApp, reçu seulement si paiement reçu, un seul essai) ; essai émulateur partiel le 14 novembre 2026 : boutons « Établir une facture » vus sur plusieurs commandes terminées (lecture seule — l'émission numérote pour de vrai, jamais cliquée sur le compte réel ; aucun bouton reçu vu sur ce compte, les commandes visibles étant en « Paiement non demandé ») ; émission à prouver sur un scénario jetable | 2 |
 | C6 | Menu : lire et modifier (`menu`, `modifierMenu`) | `/restaurant/menu`, `/restaurant/menu/action` | Reprise | |
-| C7 | Photos de plats : envoyer, retirer (`envoyerPhoto`, `retirerPhoto`) | `/restaurant/menu/photo` | À confirmer : envoi et retrait codés (D4c), retrait maintenant couvert par les tests (corps, correspondance relue, verdict) ; essai émulateur à faire | 2 |
-| C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Codée, tests OK (lecture paginée stricte, lignes illisibles comptées, aucun essai émulateur : nouvel APK à compiler) ; essai émulateur à faire | 2 |
+| C7 | Photos de plats : envoyer, retirer (`envoyerPhoto`, `retirerPhoto`) | `/restaurant/menu/photo` | À confirmer : envoi et retrait codés (D4c), retrait maintenant couvert par les tests (corps, correspondance relue, verdict) ; essai émulateur partiel le 14 novembre 2026 : actions « Ajouter une photo à … » vues pour les trois plats du menu réel (lecture seule, aucun envoi sur le menu réel ; aucun plat n'avait de photo, donc pas de bouton Retirer) ; envoi et retrait à prouver sur un plat d'essai | 2 |
+| C8 | Historique des commandes (`historique`) | `/restaurant/historique` | Codée, tests OK (lecture paginée stricte, lignes illisibles comptées) ; essayée sur émulateur le 14 novembre 2026 (écran ouvert depuis l'espace restaurateur, commandes réelles listées) ; essai sur vrai téléphone restant (famille commande) | 2 |
 | C9 | Réglages : charger, délai, horaires (`charger`, `enregistrerDelai`, `enregistrerHoraires`) | `/restaurant/reglages` | Reprise | |
-| C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Codée, tests OK (lecture stricte des bilans et des récentes, aucune coordonnée retenue) ; essai émulateur à faire | 2 |
-| C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer : logique de surveillance portée et testée, bandeau au premier plan, et prototype natif de sonnerie + écran allumé écrit (module `speedfood-veille`, branché sur la décision de surveillance) ; compilation CI et essai sur vrai téléphone requis | 2 |
-| C12 | Service de surveillance au premier plan (`SurveillanceRestaurateurService`) | `/restaurant/commandes` | Absente : prototype natif écrit (module local `speedfood-veille` : service de premier plan, aucun jeton côté natif, relecture TypeScript toutes les 15 s tant que le processus vit) ; compilation CI et essai sur vrai téléphone requis avant de dire « Codée » | 2 |
+| C10 | Activité du restaurateur (`Activite.restaurant`) | `/restaurant/activite` | Codée, tests OK (lecture stricte des bilans et des récentes, aucune coordonnée retenue) ; essayée sur émulateur le 14 novembre 2026 (écran ouvert depuis l'espace restaurateur) ; essai sur vrai téléphone restant (famille commande) | 2 |
+| C11 | Sonnerie et écran allumé pour une commande entrante (`AlerteAndroid`) | local | À confirmer : logique de surveillance portée et testée, bandeau au premier plan, et prototype natif de sonnerie + écran allumé écrit (module `speedfood-veille`, branché sur la décision de surveillance) ; compilation CI faite le 14 novembre 2026 (module natif compilé dans les APK de contrôle) ; essai sur vrai téléphone requis | 2 |
+| C12 | Service de surveillance au premier plan (`SurveillanceRestaurateurService`) | `/restaurant/commandes` | Absente : prototype natif écrit (module local `speedfood-veille` : service de premier plan, aucun jeton côté natif, relecture TypeScript toutes les 15 s tant que le processus vit) ; compilation CI faite le 14 novembre 2026 ; essai sur vrai téléphone requis avant de dire « Codée » | 2 |
 | C13 | Notifications du restaurateur (nouvelle commande, clic) | `/appareils` | À confirmer : essai émulateur fait, réception réelle d'une notification jamais vue | 2 |
 
 ### D. Livreur
@@ -84,12 +84,12 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | D2 | Disponibilité en ligne (`enLigne`) | `/livreur/en-ligne` | Reprise (G2) | |
 | D3 | Répondre à une offre (`repondreOffre`) | `/livreur/offre` | À confirmer : code et essai émulateur faits (G3), jamais essayée contre la vraie base ni sur téléphone | 3 |
 | D4 | Avancer une course, code de remise (`avancer`) | `/livreur/course` | À confirmer : code et essai émulateur faits (G3), idem | 3 |
-| D5 | File des courses (`file`) | `/livreur/file` | Codée, tests OK (route du site créée comme D6 ; lecture stricte des courses, suivantes hors course en cours) ; essai émulateur à faire | 3 |
-| D6 | Historique des courses (`historique`) | `/livreur/historique` | Codée, tests OK (route du site créée : elle n'existait ni sur le site ni dans l'API ; lecture paginée stricte côté appli) ; essai émulateur à faire, route à déployer avec le site le moment venu | 3 |
-| D7 | Gains (écran Gains) | `/livreur/gains` | Codée, tests OK (frais de course, jamais une paie ; route du site comme l'ancienne appli) ; essai émulateur à faire | 3 |
-| D8 | Aide du livreur (écran Aide) | local ou `/aide` | Codée, tests OK (assistance conducteur : règles, incident selon la course, numéro lu sur `/aide`) ; essai émulateur à faire | 3 |
-| D9 | Position GPS et service de premier plan (`position`, `SuiviLivreur.tour`, `SuiviLivreurService`) | `/livreur/position` | Absente : prototype natif écrit (service de localisation du module `speedfood-veille`, permission demandée au passage en ligne, positions envoyées par la session) ; compilation CI et essai sur vrai téléphone requis avant de dire « Codée » | 3 |
-| D10 | Activité du livreur (`Activite.livreur`) | `/livreur/gains` | Codée avec D7 (même route et mêmes données : bilans du jour et de la semaine) ; essai émulateur à faire | 3 |
+| D5 | File des courses (`file`) | `/livreur/file` | Codée, tests OK (route du site créée comme D6 ; lecture stricte des courses, suivantes hors course en cours) ; essayée sur émulateur le 14 novembre 2026 : l'écran affiche honnêtement « Le service est indisponible » — la route du site répond 404 tant qu'elle n'est pas déployée (vérifié sans jeton) ; à re-prouver après déploiement du site, puis sur téléphone | 3 |
+| D6 | Historique des courses (`historique`) | `/livreur/historique` | Codée, tests OK (route du site créée : elle n'existait ni sur le site ni dans l'API ; lecture paginée stricte côté appli) ; essayée sur émulateur le 14 novembre 2026 : « Charger l'historique des courses » répond « Le service est indisponible » — la route du site répond 404 tant qu'elle n'est pas déployée (vérifié sans jeton) ; route à déployer avec le site le moment venu, puis essai sur téléphone | 3 |
+| D7 | Gains (écran Gains) | `/livreur/gains` | Codée, tests OK (frais de course, jamais une paie ; route du site comme l'ancienne appli) ; essayée sur émulateur le 14 novembre 2026 : écran « Mes courses livrées et leurs frais » avec bilans réels du jour et des 7 jours et dernières courses ; essai sur vrai téléphone restant (famille livreur) | 3 |
+| D8 | Aide du livreur (écran Aide) | local ou `/aide` | Codée, tests OK (assistance conducteur : règles, incident selon la course, numéro lu sur `/aide`) ; essayée sur émulateur le 14 novembre 2026 : « Assistance conducteur » ouverte (règles de la plateforme, incident, appeler ou écrire sur WhatsApp) ; essai sur vrai téléphone restant (famille livreur) | 3 |
+| D9 | Position GPS et service de premier plan (`position`, `SuiviLivreur.tour`, `SuiviLivreurService`) | `/livreur/position` | Absente : prototype natif écrit (service de localisation du module `speedfood-veille`, permission demandée au passage en ligne, positions envoyées par la session) ; compilation CI faite le 14 novembre 2026 ; essai sur vrai téléphone requis avant de dire « Codée » | 3 |
+| D10 | Activité du livreur (`Activite.livreur`) | `/livreur/gains` | Codée avec D7 (même route et mêmes données : bilans du jour et de la semaine) ; essayée sur émulateur le 14 novembre 2026 avec D7 (bilans du jour et des 7 derniers jours affichés) ; essai sur vrai téléphone restant (famille livreur) | 3 |
 
 ### E. Équipe (15 modules, aucun dans Expo)
 
@@ -106,14 +106,14 @@ Légende : **Reprise** = les cinq conditions du §1 sont réunies d'après les p
 | E9 | Bannières et médias (`bannieres`, `medias`) | `/equipe/bannieres`, `/equipe/medias` | Codée, tests OK (listes lues, troncature signalée ; création et publication laissées au site) ; essai émulateur à faire | 7 |
 | E10 | Paramètres (`parametres`) | `/equipe/parametres` | Codée, tests OK (les quatorze réglages lus strictement, consultation seulement) ; essai émulateur à faire | 7 |
 | E11 | Comptes (`comptes`) | `/equipe/comptes` | Codée, tests OK (annuaire lu et cherché par e-mail ; suppressions et rôles laissés au site) ; essai émulateur à faire | 8 |
-| E12 | Audit (`audit`) | `/equipe/audit` | Codée, tests OK (indicateurs, filtres proposés par le serveur et journal lus) ; essai émulateur à faire | 8 |
+| E12 | Audit (`audit`) | `/equipe/audit` | Codée, tests OK (indicateurs, filtres proposés par le serveur et journal lus) ; panne réelle corrigée le 14 novembre 2026 : une entrée du journal illisible rejetait tout l'écran — les entrées illisibles sont désormais écartées et comptées, comme pour les comptes ; re-prouvée sur émulateur le même jour (indicateurs réels affichés, « 2 entrée(s) du journal n'ont pas pu être lues et ont été écartées », entrées lisibles affichées) ; essai sur vrai téléphone restant (famille équipe) | 8 |
 | E13 | Liste d'attente : zones, marquer comme prévenu (`zones`, `marquerPrevenue`) | `/equipe/liste-attente(/prevenue)` | Codée, tests OK (zones et nombres seulement, marquage confirmé puis relu) ; essai émulateur à faire | 8 |
 | E14 | Mises à jour : annonces de version (`misesAJour`) | `/equipe/mises-a-jour` | Codée, tests OK (version, annonce, interrupteurs et journal lus ; bascules et annonces laissées au site) ; essai émulateur à faire | 8 |
 | E15 | Activité et vue d'ensemble de l'équipe | `/equipe/tableau` | Codée avec le tableau de E1 (même lecture : blocs par domaine selon le rôle) ; essai émulateur à faire | 5 |
 
 ## 4. Totaux au 12 novembre 2026
 
-Voir §8 : 20 lignes reprises sur 65, 39 à confirmer, 6 absentes.
+Voir §8 : 23 lignes reprises sur 65, 36 à confirmer, 6 absentes.
 
 ## 5. Lots proposés (ordre de reprise)
 
@@ -148,17 +148,18 @@ Pour chaque lot : tests écrits avant le code (y compris les refus), relecture i
 
 | Famille | Lignes | Reprise | À confirmer | Absente |
 |---|---|---|---|---|
-| A. Accès, compte, profil | 12 | 1 | 8 | 3 |
-| B. Client | 15 | 11 | 3 | 1 |
+| A. Accès, compte, profil | 12 | 3 | 6 | 3 |
+| B. Client | 15 | 12 | 2 | 1 |
 | C. Restaurateur | 13 | 6 | 6 | 1 |
 | D. Livreur | 10 | 2 | 7 | 1 |
 | E. Équipe | 15 | 0 | 15 | 0 |
-| **Total** | **65** | **20** | **39** | **6** |
+| **Total** | **65** | **23** | **36** | **6** |
 
-Soit **20 lignes sur 65 (31 %) réellement reprises** au sens du §1, **39 à confirmer** et **6 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
+Soit **23 lignes sur 65 (35 %) réellement reprises** au sens du §1, **36 à confirmer** et **6 absentes**. Ces totaux sont recalculés à chaque mise à jour de la matrice : le remplacement n'est proposé qu'à 65 sur 65 lignes « Reprise ».
 
 ## Journal
 - 12 novembre 2026 : décision de Malika (tout reprendre, Équipe comprise, puis remplacer) ; matrice établie à partir de la couche données Kotlin, des routes du site et du code Expo. Aucune fonction n'a encore été reprise par ce document.
+- 14 novembre 2026 : compilation Android de contrôle enfin verte (un caractère BOM dans le `package.json` du module veille bloquait le paquet « release » ; commits `a8220c7`, `84656d6`, `f3573e2`, `837a82c`, `3b5ff56` sur `lot2-restaurateur`) ; essais groupés sur émulateur avec les APK de contrôle des runs 43441535907, 43532023995, 43537555772 et 43545962605, session du compte conservée à chaque installation (`install -r`). Passent en « Reprise » : A10, A12, B13. Épreuves consignées sans promotion (téléphone ou scénario jetable restant) : C5, C7, C8, C10, D5, D6, D7, D8, D10, E12. Aucun déploiement, rien sur `master`.
 
 ## Avancement du lot 1 (12 novembre 2026, branche `lot1-client-securite`, non poussée)
 
