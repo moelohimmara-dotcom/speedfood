@@ -7,6 +7,7 @@ import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
 import { chiffrer } from './panier-reel';
 import { couleurs as c, polices } from '../design/tokens';
 import { Bouton } from '../design/Composants';
+import { Icone, type NomIcone } from '../design/Icone';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
@@ -22,7 +23,7 @@ import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } 
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
-const Action = ({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} />;
+const Action = ({ titre, agir, disabled = false, secondaire = false, icone, libelleCourt }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; icone?: NomIcone; libelleCourt?: string }) => <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} icone={icone} libelleCourt={libelleCourt} />;
 export function CatalogueReel() {
   const panier = usePanierReel();
   const [panierOuvert, setPanierOuvert] = useState(false);
@@ -132,19 +133,21 @@ export function CatalogueReel() {
   return <View style={{ flex: 1, backgroundColor: c.fond }}>
     <View style={s.entete}><Image source={require('../../assets/images/speedfood.png')} style={{ width: 36, height: 36 }} /><Text style={s.marque}>Speedfood</Text><Text style={s.badge}>CATALOGUE</Text></View>
     <ScrollView contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
-      {selection && <Action titre="Retour aux restaurants" agir={retour} />}
+      {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" secondaire />}
       <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>
-      <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} />
-      <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} />
-      <Action titre="Aide et contact" agir={() => setAideOuverte(true)} />
-      <Action titre="Visite guidée" agir={() => setVisiteOuverte(true)} />
-      <Action titre="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} icone="panier" libelleCourt={nombreArticles > 0 ? `Panier (${nombreArticles})` : 'Panier'} />
+        <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} icone="compte" libelleCourt="Compte" />
+        <Action titre="Aide et contact" agir={() => setAideOuverte(true)} icone="message" libelleCourt="Aide" />
+        <Action titre="Visite guidée" agir={() => setVisiteOuverte(true)} icone="etoile" libelleCourt="Visite" />
+      </View>
+      <Action titre="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="plat" secondaire />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
-      {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} /></>}
+      {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
@@ -153,22 +156,22 @@ export function CatalogueReel() {
         <TextInput accessibilityLabel="Rechercher dans les restaurants chargés" placeholder="Restaurant, cuisine, localité…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.recherche} />
         <Text style={s.secondaire}>Recherche dans {restaurants.length} restaurant{restaurants.length > 1 ? 's chargés' : ' chargé'}.</Text>
         {visibles.map(r => <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={s.carte}>
-          <Text style={s.nom}>{r.nom}</Text><Text style={s.texte}>{[r.categorie, r.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</Text><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu →</Text>
+          <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={s.texte}>{[r.categorie, r.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</Text></View><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
         </Pressable>)}
         {!charge && !erreur && visibles.length === 0 && <Text style={s.texte}>{restaurants.length ? 'Aucun résultat parmi les restaurants chargés.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
-        {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} />}
+        {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
       </>}
       {menu && <>
         <Text style={s.secondaire}>{menu.restaurant.statutMisAJourLe ? `État déclaré le ${new Date(menu.restaurant.statutMisAJourLe).toLocaleString('fr-FR')} : ${menu.restaurant.ouvert ? 'ouvert' : 'fermé'}.` : 'Ouverture à confirmer.'}</Text>
         {menu.plats.map(p => <View key={p.id} style={s.carte}><Text style={s.nom}>{p.nom}</Text>{p.description !== '' && <Text style={s.texte}>{p.description}</Text>}<Text style={s.nom}>{new Intl.NumberFormat('fr-FR').format(p.prixGnf)} GNF</Text><Text style={s.secondaire}>{{ disponible: 'Disponibilité récemment confirmée', epuise: 'Épuisé', a_confirmer: 'Disponibilité à confirmer' }[p.disponibilite]}</Text>{p.confirmeLe && <Text style={s.secondaire}>Confirmation du {new Date(p.confirmeLe).toLocaleString('fr-FR')}</Text>}
-          <Action titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : `Ajouter ${p.nom} au panier`} disabled={!panier.pret || p.disponibilite === 'epuise'} agir={() => { try { panier.ajouter(menu.restaurant,p); setMessagePanier(`${p.nom} ajouté à votre sélection.`); } catch(e) { setMessagePanier(e instanceof Error && e.message === 'AUTRE_RESTAURANT' ? 'Votre panier contient un autre restaurant. Ouvrez-le et videz-le volontairement avant de changer.' : 'Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).'); } }} />
+          <Action titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : `Ajouter ${p.nom} au panier`} icone="panier" disabled={!panier.pret || p.disponibilite === 'epuise'} agir={() => { try { panier.ajouter(menu.restaurant,p); setMessagePanier(`${p.nom} ajouté à votre sélection.`); } catch(e) { setMessagePanier(e instanceof Error && e.message === 'AUTRE_RESTAURANT' ? 'Votre panier contient un autre restaurant. Ouvrez-le et videz-le volontairement avant de changer.' : 'Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).'); } }} />
         </View>)}
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
-        {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} />}
+        {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
       </>}
       {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Dernière lecture : {new Date((selection ? menu!.luLe : lectureLe)!).toLocaleString('fr-FR')}. La disponibilité peut évoluer.</Text>}
       {ageHorsLigne !== null && <Text accessibilityRole="alert" style={s.texte}>Vous êtes hors ligne : voici la dernière lecture gardée sur ce téléphone, {libelleAgeCache(ageHorsLigne)}. Les prix et disponibilités peuvent avoir changé ; commander demande le réseau.</Text>}
-      <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} />
+      <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} icone="actualiser" secondaire />
     </ScrollView>
     {barrePanierVisible && <View style={s.barrePanier} accessibilityRole="summary">
       <View style={{ flex: 1, gap: 2 }}>
