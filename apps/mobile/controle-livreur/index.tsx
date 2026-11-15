@@ -10,9 +10,10 @@ import { creerAuth } from '../src/connexion/client';
 import { Action } from '../src/connexion/BoutonAction';
 import { couleurs as c, polices } from '../src/design/tokens';
 import { creerTransportControle } from './transport';
+import { fetchHttp } from '../src/connexion/http-natif';
 import { PORTEURS_CONTROLE, COMPTES_CONTROLE } from './identites';
 
-const transport = creerTransportControle();
+const transport = creerTransportControle(fetchHttp);
 let coffreFictif: string | null = null;
 const sessionDe = (compte: 'A' | 'B') => ({ accessToken: PORTEURS_CONTROLE[compte === 'A' ? 0 : 1], refreshToken: 'refresh-factice-' + compte, userId: COMPTES_CONTROLE[compte === 'A' ? 0 : 1], expiresAt: 9999999999 });
 // Toute méthode produit autre que fiche est bloquée AVANT le réseau ; aucun serveur réel n'est joignable.

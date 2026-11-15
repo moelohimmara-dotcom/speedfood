@@ -12,9 +12,13 @@ export function creerTransportControle(fetcher: typeof fetch = fetch) {
     if (u.origin !== ORIGINE_CONTROLE || u.username || u.password || !chemins.includes(u.pathname)) throw new Error('CONTROLE_ORIGINE_REFUSEE');
     const autorisation = new Headers(init.headers).get('Authorization');
     if (autorisation && !PORTEURS_CONTROLE.some(p => autorisation === 'Bearer ' + p)) throw new Error('CONTROLE_IDENTITE_REFUSEE');
-    const controle = new AbortController(); const minuterie = setTimeout(() => controle.abort(), 6000);
+    // Le plafond local reste actif, mais ne masque plus l’annulation du vrai client.
+    if (init.signal?.aborted) throw new Error('CONTROLE_REQUETE_ANNULEE');
+    const controle = new AbortController(); const annuler = () => controle.abort();
+    init.signal?.addEventListener('abort', annuler, { once: true });
+    const minuterie = setTimeout(annuler, 6000);
     try { return await fetcher(u.href, { ...init, redirect: 'error', signal: controle.signal, credentials: 'omit' }); }
-    finally { clearTimeout(minuterie); }
+    finally { clearTimeout(minuterie); init.signal?.removeEventListener('abort', annuler); }
   }
   /** Surface publique historique (G1) : seuls la fiche et les commandes du banc sont exposées ici. */
   async function requete(url: string, init: RequestInit): Promise<Response> {

@@ -339,13 +339,16 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
-      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corpsEnvoye) });
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'POST', redirect:'error', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corpsEnvoye) });
+      if (controle.signal.aborted) throw new ErreurLivreur('incertain', textes.reseau);
     } catch { clearTimeout(timer); throw new ErreurLivreur('incertain', textes.reseau); }
     try {
       let corps: unknown = null;
       const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
       if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
       else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      // Une fin de lecture arrivée après l’abandon ne confirme jamais une écriture.
+      if (controle.signal.aborted) throw new ErreurLivreur('incertain', textes.illisible);
       if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
       if (r.status === 400) throw new ErreurLivreur('refus', textes.refus(messageServeurLivreur(corps)));
       if (r.status === 429) throw new ErreurLivreur('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');

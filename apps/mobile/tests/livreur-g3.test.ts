@@ -548,3 +548,57 @@ test('G3 client masqué pendant « à vérifier » : aucune carte du client tant
   const vue = readFileSync(new URL('../src/connexion/LivreurReel.tsx', import.meta.url), 'utf8');
   assert.match(vue, /clientAffiche\(course, incertain\)/);
 });
+
+test('G3 délai réel du client : abandon à 20 secondes, résultat incertain et aucun rejeu', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let appels = 0; let signal: AbortSignal | undefined;
+  const api = creerAuth(((_url: string, init: RequestInit) => {
+    appels++; signal = init.signal as AbortSignal;
+    return new Promise<Response>((_resolve, reject) => signal!.addEventListener('abort', () => reject(new Error('ABANDON_FACTICE')), { once: true }));
+  }) as typeof fetch);
+  const resultat = assert.rejects(() => api.avancerCourseLivreur('porteur-factice', { livraisonId: LIV, vers: 'recuperee' }), (e: unknown) => e instanceof ErreurLivreur && e.genre === 'incertain');
+  t.mock.timers.tick(19999); assert.equal(signal?.aborted, false);
+  t.mock.timers.tick(1); await resultat;
+  assert.equal(signal?.aborted, true); assert.equal(appels, 1);
+});
+
+test('G3 redirection HTTP réelle : aucune deuxième requête, même vers une destination locale', async () => {
+  const { createServer } = await import('node:http');
+  let destination = 0; let entree = 0; let statut = 307;
+  const serveur = createServer((req, res) => {
+    if (req.url === '/destination') { destination++; res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); }
+    else { entree++; res.writeHead(statut, { Location: '/destination' }); res.end(); }
+  });
+  await new Promise<void>(resolve => serveur.listen(0, '127.0.0.1', resolve));
+  try {
+    const port = (serveur.address() as { port: number }).port;
+    const api = creerAuth(((url: string, init: RequestInit) => fetch('http://127.0.0.1:' + port + new URL(url).pathname, init)) as typeof fetch);
+    for (statut of [301, 302, 303, 307, 308]) {
+      await assert.rejects(() => api.avancerCourseLivreur('porteur-factice', { livraisonId: LIV, vers: 'recuperee' }), (e: unknown) => e instanceof ErreurLivreur && e.genre === 'incertain');
+      await assert.rejects(() => api.repondreOffreLivreur('porteur-factice', OFFRE, 'acceptee'), (e: unknown) => e instanceof ErreurLivreur && e.genre === 'incertain');
+    }
+    assert.equal(entree, 10); assert.equal(destination, 0);
+  } finally { await new Promise<void>((resolve, reject) => serveur.close(e => e ? reject(e) : resolve())); }
+});
+
+for (const phase of ['en-têtes', 'corps'] as const) {
+  test('G3 délai : une réponse tardive après abandon reste incertaine (' + phase + ')', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    let signal: AbortSignal | undefined; let appels = 0;
+    let liberer: (() => void) | undefined;
+    const api = creerAuth(((_url: string, init: RequestInit) => {
+      appels++; signal = init.signal as AbortSignal;
+      const reponse = Response.json({ ok: true });
+      if (phase === 'en-têtes') return new Promise<Response>(resolve => { liberer = () => resolve(reponse); });
+      Object.defineProperty(reponse, 'text', { value: () => new Promise<string>(resolve => { liberer = () => resolve('{"ok":true}'); }) });
+      return Promise.resolve(reponse);
+    }) as typeof fetch);
+    const resultat = assert.rejects(() => api.avancerCourseLivreur('porteur-factice', { livraisonId: LIV, vers: 'recuperee' }), (e: unknown) => e instanceof ErreurLivreur && e.genre === 'incertain');
+    await Promise.resolve(); await Promise.resolve();
+    assert.ok(liberer, 'lecture entrée dans la phase à retarder');
+    t.mock.timers.tick(20000);
+    assert.equal(signal?.aborted, true);
+    liberer!(); await resultat;
+    assert.equal(appels, 1, 'aucun rejeu après réponse tardive');
+  });
+}
