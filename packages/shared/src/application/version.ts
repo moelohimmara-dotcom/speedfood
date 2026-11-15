@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 101,
-    nom: "3.0.1",
-    notes: "Nouvelle présentation : accueil en tuiles avec icônes, boutons illustrés et animation du logo à l'ouverture. Mêmes comptes, mêmes restaurants.",
+    code: 102,
+    nom: "3.0.2",
+    notes: "Formulaires livreur plus accessibles avec le clavier. Actions livreur mieux protégées contre les redirections et les réponses trop lentes, sans nouvel envoi automatique.",
     obligatoire: false,
-    apkSha256: "4cae07ead479fb4b5a911245827a99eb099a99ff1fedefc682153a52f1b82098",
+    apkSha256: "20f665cc69914e51c8abc95211e9e356a27e0fc64488464f35a5e3479a8acefe",
     apkTaille: 65685603,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.0.1.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.0.2.apk",
   },
 };
