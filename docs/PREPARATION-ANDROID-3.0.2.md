@@ -46,3 +46,16 @@ trop lentes, sans nouvel envoi automatique. »
 
 Ce document décrit la préparation ; compilation, essai du nouvel artefact,
 signature et diffusion doivent être consignés séparément une fois réalisés.
+
+## Publication réalisée — 15 novembre 2026
+
+Feu vert explicite de Malika pour cette action. APK signée par Malika seule (certificat SHA-256 `256b6efe…06b5`, un seul signataire, schémas v2 et v3).
+
+- Compilations CI vertes sur le même code (candidat et contrôle, commits `92fb1b3` et `92ebf2e`, seule une note de documentation les distingue). Contenu de l'APK signée identique au candidat compilé (1167 entrées, zéro différence).
+- APK de contrôle installée par `adb install -r` sur l'émulateur : démarrage sans Metro, catalogue chargé, session conservée. Les corrections livreur n'ont pas été exercées sur une vraie course ni sur un téléphone.
+- Envoi R2 : `speedfood-mobile-3.0.2.apk`, 65 685 603 octets, SHA-256 `20f665cc69914e51c8abc95211e9e356a27e0fc64488464f35a5e3479a8acefe`, identique après téléchargement public.
+- Bloc `mobile` de `version.ts` : code 102, nom 3.0.2 (commit `31f045c`, fusionné dans `master` en avance rapide). Tests du site, de l'API et types verts.
+- Déployés : API (version `2d268bdd`) puis site (version `16948bcc`).
+- Vérifié en ligne : `/api/v1/version` sur les deux hôtes (ancien bloc 51 / 2.47.0 inchangé, mobile 102 / 3.0.2) ; `/speedfood-mobile.apk` redirige vers l'objet 3.0.2, empreinte identique ; `/speedfood.apk` toujours à `d44b55a8…70e9c` ; `/installer` répond 200 et annonce la 3.0.2.
+
+Reste ouvert : essai des corrections livreur sur un vrai téléphone, et tout ce qui figure dans la matrice de parité.
