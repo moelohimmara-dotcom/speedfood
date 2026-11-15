@@ -44,3 +44,13 @@ test('écran restaurateur : marge basse dans le contenu défilant, défilement v
   const total = (source.match(/<TextInput [a-z]/g) ?? []).length; // balises JSX seulement
   assert.equal((source.match(/<TextInput ref=/g) ?? []).length, total, "tout nouveau champ doit être câblé au défilement");
 });
+
+const livreur = readFileSync(cheminDepuisModule('../src/connexion/LivreurReel.tsx'), 'utf8');
+test('livreur : défilement des champs de remise et d’échec à l’ouverture du clavier', () => {
+  assert.match(livreur, /<ScrollView ref=\{defilement\}/);
+  assert.match(livreur, /scrollTo\(\{ y: cibleDefilement\(y\)/);
+  assert.match(livreur, /onContentSizeChange=\{defilerVersChampActif\}/);
+  for (const champ of ['code-remise', 'raison-echec']) {
+    assert.ok(livreur.includes(`ref={clavier.reference('${champ}')} onFocus={clavier.auFocus('${champ}')} onBlur={clavier.auBlur}`), champ);
+  }
+});

@@ -1,11 +1,11 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Keyboard, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { brancherSuiviLivreur } from './suivi-livreur';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
 import { Squelette } from '../design/Composants';
 import { Action } from './BoutonAction';
-import { margeBasseClavier } from './clavier';
+import { cibleDefilement, margeBasseClavier } from './clavier';
 import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, boutonsCourse, clientAffiche, libelleDistanceLivreur, libelleEcheanceOffre, lireCodeRemiseLivreur, lireRaisonEchecLivreur, MESSAGE_CODE_REMISE_LIVREUR, MESSAGE_RAISON_ECHEC_LIVREUR, type EtapeCourseLivreur, type EtatLivreur } from './livreur';
 import { creerControleEtatLivreur, type EtatControleLivreur, type SaisieCourse, type SessionEtatLivreur } from './controle-etat-livreur';
 import { CoursesLivreurReel } from './CoursesLivreurReel';
@@ -25,6 +25,22 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
   const controle = useMemo(() => creerControleEtatLivreur(session, setAffiche), [session]);
   const controleRef = useRef(controle); controleRef.current = controle;
   const [hauteurClavier, setHauteurClavier] = useState(0);
+  const defilement = useRef<ScrollView>(null);
+  const champActif = useRef<TextInput | null>(null);
+  const champs = useRef<Record<string, TextInput | null>>({});
+  function defilerVersChampActif() {
+    const champ = champActif.current; const zone = defilement.current;
+    const contenu = zone && (zone as unknown as { getInnerViewRef?: () => unknown }).getInnerViewRef?.();
+    if (!champ || !zone || !contenu) return;
+    try { champ.measureLayout(contenu as never, (_x, y) => {
+      if (champActif.current === champ && defilement.current === zone) zone.scrollTo({ y: cibleDefilement(y), animated: true });
+    }, () => {}); } catch { /* Défilement manuel disponible si la mesure échoue. */ }
+  }
+  const clavier = {
+    reference: (nom: string) => (champ: TextInput | null) => { champs.current[nom] = champ; },
+    auFocus: (nom: string) => () => { champActif.current = champs.current[nom] ?? null; defilerVersChampActif(); },
+    auBlur: () => { champActif.current = null; },
+  };
   useEffect(() => { void controle.actualiser(); return () => { controle.fermer(); }; }, [controle]);
   useEffect(() => {
     const montre = Keyboard.addListener('keyboardDidShow', e => setHauteurClavier(e.endCoordinates?.height ?? 0));
@@ -33,18 +49,19 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
   }, []);
   const actualiser = () => { void controleRef.current.actualiser(); };
 
-  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.contenu, { paddingBottom: 20 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
+  return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView ref={defilement} onContentSizeChange={defilerVersChampActif} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.contenu, { paddingBottom: 20 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
     <Action titre="Retour au compte" agir={fermer} disabled={affiche.etat === 'lu' && affiche.ecritureEnCours} />
     <Text accessibilityRole="header" style={s.titre}>Espace livreur</Text>
     {affiche.etat === 'chargement' && <><Text style={s.texte}>Lecture de votre état…</Text><Squelette /></>}
     {affiche.etat === 'erreur' && <><Text style={s.erreur}>{affiche.message}</Text><Action titre="Réessayer" agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur !== null && <Etat session={session} etat={affiche.etatLivreur} ecritureEnCours={affiche.ecritureEnCours} lectureEnCours={affiche.lectureEnCours} incertain={affiche.incertain} message={affiche.message}
-      basculer={(v) => { void controleRef.current.basculer(v); }} repondre={(r) => { void controleRef.current.repondreOffre(r); }} avancer={(vers, saisie) => { void controleRef.current.avancerCourse(vers, saisie); }} actualiser={actualiser} />}
-  </ScrollView>;
+      basculer={(v) => { void controleRef.current.basculer(v); }} repondre={(r) => { void controleRef.current.repondreOffre(r); }} avancer={(vers, saisie) => { void controleRef.current.avancerCourse(vers, saisie); }} actualiser={actualiser} clavier={clavier} />}
+  </ScrollView></KeyboardAvoidingView>;
 }
 
-function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, message, basculer, repondre, avancer, actualiser }: {
+function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, message, basculer, repondre, avancer, actualiser, clavier }: {
+  clavier: { reference(nom: string): (champ: TextInput | null) => void; auFocus(nom: string): () => void; auBlur(): void };
   session: SessionEtatLivreur;
   etat: EtatLivreur; ecritureEnCours: boolean; lectureEnCours: boolean; incertain: boolean; message: string | null;
   basculer: (enLigne: boolean) => void; repondre: (reponse: 'acceptee' | 'refusee') => void; avancer: (vers: EtapeCourseLivreur, saisie?: SaisieCourse) => void; actualiser: () => void;
@@ -122,7 +139,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
           return <View key={e} style={s.formulaire}>
             <Text style={s.ligne}>Code de remise du client (4 chiffres)</Text>
             <Text style={s.secondaire}>Demandez ce code au client à la porte. Il n’est pas conservé et n’est jamais renvoyé automatiquement.</Text>
-            <TextInput accessibilityLabel="Code de remise du client, 4 chiffres" style={s.champ} keyboardType="number-pad" inputMode="numeric" maxLength={4} autoCorrect={false} autoComplete="off" importantForAutofill="no" textContentType="none" value={code} editable={!verrou}
+            <TextInput ref={clavier.reference('code-remise')} onFocus={clavier.auFocus('code-remise')} onBlur={clavier.auBlur} accessibilityLabel="Code de remise du client, 4 chiffres" style={s.champ} keyboardType="number-pad" inputMode="numeric" maxLength={4} autoCorrect={false} autoComplete="off" importantForAutofill="no" textContentType="none" value={code} editable={!verrou}
               onChangeText={(v) => { setCode(v.replace(/\D/g, '').slice(0, 4)); setErreurSaisie(null); }} />
             {erreurSaisie !== null && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreurSaisie}</Text>}
             <Action titre="Livrée" disabled={verrou} agir={() => {
@@ -139,7 +156,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
           return <View key={e} style={s.formulaire}>
             <Text accessibilityRole="alert" style={s.ligne}>Signaler l’échec de la livraison ? Cette action ne peut pas être annulée.</Text>
             <Text style={s.ligne}>Raison</Text>
-            <TextInput accessibilityLabel="Raison de l’échec de la livraison" style={[s.champ, s.champLong]} multiline maxLength={300} value={raison} editable={!verrou} onChangeText={(v) => { setRaison(v); setErreurSaisie(null); }} placeholder="Ex. : client injoignable" />
+            <TextInput ref={clavier.reference('raison-echec')} onFocus={clavier.auFocus('raison-echec')} onBlur={clavier.auBlur} accessibilityLabel="Raison de l’échec de la livraison" style={[s.champ, s.champLong]} multiline maxLength={300} value={raison} editable={!verrou} onChangeText={(v) => { setRaison(v); setErreurSaisie(null); }} placeholder="Ex. : client injoignable" />
             {erreurSaisie !== null && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreurSaisie}</Text>}
             <Action titre="Confirmer l’échec" disabled={verrou} agir={() => {
               const valide = lireRaisonEchecLivreur(raison);
