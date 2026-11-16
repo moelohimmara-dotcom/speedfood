@@ -261,7 +261,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
       {menu.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{menu.illisibles === 1 ? '1 plat est illisible dans l’application' : menu.illisibles + ' plats sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {menu.illisibles === 1 ? 'le' : 'les'} voir et {menu.illisibles === 1 ? 'le' : 'les'} modifier.</Text>}
       <Text accessibilityRole="header" style={s.nom}>Vos plats ({menu.plats.length})</Text>
       {formPlat?.mode === 'creer' ? formulairePlat({ mode: 'creer' }) : <Action titre="Ajouter un plat" icone="plus" disabled={bloque || formPlat !== null} agir={ouvrirCreation} />}
-      {menu.plats.length === 0 && <Text style={s.texte}>Aucun plat dans le menu.</Text>}
+      {menu.plats.length === 0 && <Text style={s.texte}>Votre menu est vide : ajoutez votre premier plat.</Text>}
       {menu.plats.some(p => p.disponible) && (confirmation?.type === 'confirmer_tout'
         ? bloc(confirmation)
         : <Action titre="Tout confirmer" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionConfirmerTout(menu), lecture: lectureVerrou })} />)}

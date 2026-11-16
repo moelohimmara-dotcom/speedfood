@@ -76,3 +76,8 @@ test('un « Retour » en bouton texte se place à gauche ; l’icône « plat »
   assert.match(parametres, /<GroupeLignes>[\s\S]*titre="Revoir la visite guidée"/);
   assert.match(parametres, /titre="Oublier les commandes de cet appareil" variante="danger"/);
 });
+test('parité Kotlin (G26) : le menu vide invite à ajouter un premier plat, avec le texte de l’ancienne appli', () => {
+  const s = lire('../src/connexion/ServiceMenuReel.tsx');
+  assert.match(s, /menu\.plats\.length === 0 && <Text style=\{s\.texte\}>Votre menu est vide : ajoutez votre premier plat\.<\/Text>/);
+  assert.doesNotMatch(s, /Aucun plat dans le menu\./);
+});

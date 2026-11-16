@@ -187,3 +187,20 @@ Demande de Malika : l'aspect des icônes et des boutons « dérange beaucoup »,
 - **Appliqué** : « Retour » en bouton texte avec flèche, « Actualiser » en teinté avec icône (équipe, livreur, restaurateur, historique), « Annuler cette commande », « Oui, annuler », « Supprimer mon compte », « Vider le panier » et la corbeille de chaque ligne en danger, « Suivre » en teinté, écrans de commande, panier et règlement ramenés au bouton canonique, stepper du panier en rond contour.
 - Tests : `boutons-icones-refonte.test.ts` (6), trois tests existants adaptés à la nouvelle forme, 905 tests au total.
 - À juger à l'écran (émulateur) : proportions, couleur du teinté, lisibilité des icônes à 22 px, état désactivé, bouton « Actualiser » en teinté.
+
+### G26 (menu vide), clos le 16 novembre 2026
+
+Le menu vide dit maintenant « Votre menu est vide : ajoutez votre premier plat. » (texte de l'ancienne appli), sous le bouton « Ajouter un plat » déjà présent. Le texte d'avertissement d'archivage du premier relevé n'existe pas dans Kotlin sous cette forme : Kotlin demande « Archiver « nom » ? » avec une phrase courte, alors qu'Expo a déjà une confirmation plus complète (« il disparaîtra de la carte… ne pourra pas être rétabli depuis l'application »). Rien à porter. 907 tests.
+
+### Bilan des écarts G19 à G26
+
+| Réf. | État |
+|---|---|
+| G19 poste fixe livreur | codé (10.6), vérifié en partie sur émulateur (réglage gardé) ; écran allumé en course à essayer sur téléphone |
+| G20 suivi de position | codé (10.7), à essayer sur téléphone |
+| G21 messages de fiche | codés (10.9) ; « Mon dossier » bloqué : la route serveur `/api/v1/livreur/dossier` n'existe pas (404), décision de Malika |
+| G22 offres, file, gains | déjà présents sous d'autres mots, rien à porter |
+| G23 son et poste fixe restaurateur | codé (10.6), carte vérifiée sur émulateur |
+| G24 invite d'alerte | codé (10.8), vérifié sur émulateur ; différence assumée : pas de surveillance continue application fermée |
+| G25 proposer un changement | déjà présent (« Proposer un autre prix ») |
+| G26 menu vide | clos |
