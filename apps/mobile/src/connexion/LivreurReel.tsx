@@ -4,6 +4,10 @@ import { brancherSuiviLivreur } from './suivi-livreur';
 import { veilleNative } from '../../modules/speedfood-veille/src/index';
 import { ReglagesTelephone } from './ReglagesTelephone';
 import { stockagePreferences } from './stockage-preferences';
+import {
+  AIDE_SUIVI_ECRAN_ETEINT, BOUTON_AUTORISER_POSITION, BOUTON_SUIVI_NON, BOUTON_SUIVI_OUI, LIBELLE_SUIVI_ECRAN_ETEINT, MESSAGE_POSITION_ABSENTE, MESSAGE_POSITION_RECHERCHE, MESSAGE_POSITION_REFUSEE, TEXTE_CHOIX_SUIVI, TITRE_CHOIX_SUIVI,
+  doitDemanderChoix, ecrireChoixSuivi, lireChoixSuivi, type EtatPositionLivreur,
+} from './consentement-position';
 import { AIDE_POSTE_FIXE_LIVREUR, CLE_POSTE_FIXE_LIVREUR, LIBELLE_POSTE_FIXE_LIVREUR, ecranLivreurAllume, ecrirePreference, lireInactifParDefaut } from './preferences-poste';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
@@ -73,7 +77,23 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
   const { fiche, offre, course } = etat;
   // Suivi de position (D9, prototype) : branché seulement en ligne ; tout le détail vit dans `suivi-livreur` (permission, service, envoi par la session).
   const enLigne = fiche.statut !== 'hors_ligne';
-  useEffect(() => brancherSuiviLivreur(session, enLigne), [enLigne, session]);
+  // Consentement au suivi écran éteint (G20) : demandé une fois en passant en ligne, gardé sur l'appareil ; aucun suivi ne démarre avant le choix.
+  const [arrierePlan, setArrierePlan] = useState<boolean | null>(null);
+  const [choixLu, setChoixLu] = useState(false);
+  const [consentement, setConsentement] = useState(false);
+  const [etatPosition, setEtatPosition] = useState<EtatPositionLivreur | null>(null);
+  const [essaiPosition, setEssaiPosition] = useState(0);
+  useEffect(() => { let vivant = true; void lireChoixSuivi(stockagePreferences).then(v => { if (vivant) { setArrierePlan(v); setChoixLu(true); } }); return () => { vivant = false; }; }, []);
+  useEffect(() => {
+    setEtatPosition(null);
+    return brancherSuiviLivreur(session, enLigne && arrierePlan !== null, { arrierePlan: arrierePlan === true, surEtat: setEtatPosition });
+  }, [enLigne, arrierePlan, session, essaiPosition]);
+  function choisirSuivi(autorise: boolean, metEnLigne: boolean) {
+    setArrierePlan(autorise); setConsentement(false);
+    void ecrireChoixSuivi(stockagePreferences, autorise);
+    if (metEnLigne) basculer(true);
+  }
+  const demanderChoix = consentement || doitDemanderChoix(arrierePlan, choixLu, enLigne, false);
   // Mode poste fixe (G19) : choix gardé sur l'appareil, absent = non. L'écran reste allumé seulement pendant une course, et il est relâché ensuite ou à la fermeture.
   const [posteFixe, setPosteFixe] = useState(false);
   useEffect(() => { let vivant = true; void lireInactifParDefaut(stockagePreferences, CLE_POSTE_FIXE_LIVREUR).then(v => { if (vivant) setPosteFixe(v); }); return () => { vivant = false; }; }, []);
@@ -122,7 +142,10 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
       {fiche.motifCycle && <Text style={s.secondaire}>Motif : {fiche.motifCycle}</Text>}
       <Text style={s.secondaire}>Pour toute modification de votre fiche, contactez l’équipe Speedfood.</Text>
     </View>
-    <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[{ cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_LIVREUR, aide: AIDE_POSTE_FIXE_LIVREUR, actif: posteFixe, changer: changerPosteFixe }]} />
+    <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
+      { cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_LIVREUR, aide: AIDE_POSTE_FIXE_LIVREUR, actif: posteFixe, changer: changerPosteFixe },
+      { cle: 'suivi-ecran-eteint', libelle: LIBELLE_SUIVI_ECRAN_ETEINT, aide: AIDE_SUIVI_ECRAN_ETEINT, actif: arrierePlan === true, changer: v => choisirSuivi(v, false) },
+    ]} />
     {incertain && <Text accessibilityRole="alert" style={s.erreur}>À vérifier : le résultat de votre dernière action est inconnu. Actualisez votre état avant toute autre action.</Text>}
     {offre ? <Animated.View style={[s.carte, { opacity: entree, transform: [{ translateY: entree.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
       <Text accessibilityRole="header" style={s.nom}>Offre en attente</Text>
@@ -188,7 +211,19 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
       ? <Text style={s.secondaire}>Course en cours : votre disponibilité reprendra à la fin de la course.</Text>
       : fiche.cycle !== 'actif'
         ? <Text style={s.secondaire}>Votre fiche n’est pas active : la mise en ligne n’est pas possible. Contactez l’équipe Speedfood.</Text>
-        : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} icone="eclair" disabled={!peutBasculer || verrou} agir={() => basculer(fiche.statut !== 'disponible')} />}
+        : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} icone="eclair" disabled={!peutBasculer || verrou} agir={() => { const vers = fiche.statut !== 'disponible'; if (doitDemanderChoix(arrierePlan, choixLu, false, vers)) setConsentement(true); else basculer(vers); }} />}
+    {demanderChoix && <View style={s.carte}>
+      <Text accessibilityRole="header" style={s.nom}>{TITRE_CHOIX_SUIVI}</Text>
+      <Text style={s.ligne}>{TEXTE_CHOIX_SUIVI}</Text>
+      <Action titre={BOUTON_SUIVI_OUI} agir={() => choisirSuivi(true, !enLigne)} />
+      <Action titre={BOUTON_SUIVI_NON} secondaire agir={() => choisirSuivi(false, !enLigne)} />
+    </View>}
+    {enLigne && etatPosition === 'refusee' && <View style={s.carte}>
+      <Text style={s.ligne}>{MESSAGE_POSITION_REFUSEE}</Text>
+      <Action titre={BOUTON_AUTORISER_POSITION} agir={() => setEssaiPosition(n => n + 1)} />
+    </View>}
+    {enLigne && etatPosition === 'indisponible' && <Text style={s.secondaire}>{MESSAGE_POSITION_ABSENTE}</Text>}
+    {enLigne && etatPosition === 'recherche' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{MESSAGE_POSITION_RECHERCHE}</Text>}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
     <Action titre="Actualiser mon état" icone="actualiser" disabled={ecritureEnCours} agir={actualiser} />
     <Action titre="File des courses" icone="liste" secondaire disabled={ecritureEnCours} agir={() => setFileOuverte(v => !v)} />

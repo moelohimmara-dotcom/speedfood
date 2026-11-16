@@ -154,3 +154,13 @@ La CI compile désormais `speedfood-veille` (classes `com.speedfood.veille` pré
 - aucun plantage (le service dataSync démarre bien grâce à la permission ajoutée).
 
 Non essayé : poste fixe coupé pendant que l'espace est ouvert, mode poste fixe du livreur avec une course, sonnerie de l'alerte (nouvelle commande réelle), position du livreur (aucune permission de localisation n'est demandée par le code Expo : le service s'arrête seul sans elle, voir G20). Tout cela demande un téléphone ou une commande réelle.
+
+### Tranche 10.7 : consentement au suivi de position du livreur (G20), codée le 16 novembre 2026, non essayée
+
+**Rectificatif** : les notes précédentes disent qu'« aucun code Expo ne demande la permission de localisation ». C'est faux : `brancherSuiviLivreur` la demandait déjà via `PermissionsAndroid` au passage en ligne (ma recherche d'`expo-location` ne pouvait pas le voir). Ce qui manquait réellement :
+- l'invite explicative **« Recevoir vos courses écran éteint ? »** avec ses deux choix (« Autoriser le suivi », « Seulement application ouverte »), demandée une fois au passage en ligne, ou quand le livreur est déjà en ligne sans avoir jamais choisi ;
+- les messages de position : « Autorisez la position de votre téléphone… » avec le bouton « Autoriser la position », « La position n'est pas disponible sur cet appareil. », « Position en cours de recherche… ».
+
+Codé : `consentement-position.ts` (choix gardé sur l'appareil sous la clé de l'ancienne appli `livreur_suivi_arriere_plan`, absent = pas encore choisi, stockage en panne = on redemande), `suivi-livreur.ts` (le suivi ne démarre qu'après le choix ; sans « écran éteint », il s'arrête quand l'application quitte l'écran et reprend à son retour ; il rapporte refusée, indisponible, en recherche, connue), et dans `LivreurReel.tsx` l'invite, les messages et un interrupteur « Suivi écran éteint » pour changer d'avis. Tests : `consentement-position.test.ts` (6), 888 tests au total.
+
+Essai téléphone indispensable : la permission Android, le service de localisation écran éteint, la reprise au retour dans l'application, le partage de position réel.

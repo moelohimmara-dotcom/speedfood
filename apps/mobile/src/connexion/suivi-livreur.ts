@@ -1,29 +1,61 @@
-import { PermissionsAndroid, Platform } from 'react-native';
+import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { veilleNative } from '../../modules/speedfood-veille/src/index';
 import type { SessionEtatLivreur } from './controle-etat-livreur';
+import { suiviDoitTourner, type EtatPositionLivreur } from './consentement-position';
+
+export interface OptionsSuiviLivreur {
+  /** Vrai : le suivi continue écran éteint (le livreur l'a autorisé). Faux : il ne tourne que application ouverte. */
+  arrierePlan?: boolean;
+  /** Dit à l'écran où en est la position : refusée, indisponible, en recherche, connue. */
+  surEtat?: (etat: EtatPositionLivreur) => void;
+}
 
 /**
- * Branchement du suivi de position du livreur (D9, prototype) : permission demandée au moment de passer en ligne seulement,
+ * Branchement du suivi de position du livreur (D9, G20) : permission demandée au moment de passer en ligne seulement,
  * service natif démarré ensuite, positions envoyées par la session (seule détentrice du jeton). Rend la fonction d'arrêt.
- * Hors Android, sans permission ou sans module natif : rien ne démarre et l'espace livreur continue sans, jamais d'écran cassé.
+ * Sans « écran éteint », le service est arrêté quand l'application quitte l'écran et relancé à son retour.
+ * Hors Android, sans permission ou sans module natif : rien ne démarre, l'écran en est informé, et l'espace livreur continue sans.
  */
-export function brancherSuiviLivreur(session: SessionEtatLivreur, enLigne: boolean): () => void {
+export function brancherSuiviLivreur(session: SessionEtatLivreur, enLigne: boolean, options: OptionsSuiviLivreur = {}): () => void {
   if (!enLigne) return () => undefined;
-  let actif = true;
+  const arrierePlan = options.arrierePlan ?? true;
+  let vivant = true;
+  let generation = 0;
+  let enMarche = false;
   let retirerPositions: (() => void) | null = null;
-  void (async () => {
+  const dire = (etat: EtatPositionLivreur) => { if (vivant) options.surEtat?.(etat); };
+
+  async function demarrer() {
+    if (enMarche) return;
+    enMarche = true;
+    const mienne = ++generation;
+    const perimee = () => !vivant || mienne !== generation;
     try {
       if (Platform.OS === 'android') {
         const accorde = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-        if (!actif || accorde !== PermissionsAndroid.RESULTS.GRANTED) return;
+        if (perimee()) return;
+        if (accorde !== PermissionsAndroid.RESULTS.GRANTED) { enMarche = false; dire('refusee'); return; }
       }
-    } catch { return; }
-    if (!actif) return;
+    } catch { enMarche = false; dire('indisponible'); return; }
     const demarre = await veilleNative.demarrerSuiviLivreur();
-    if (!actif || !demarre) return;
+    if (perimee()) { if (demarre && !vivant) void veilleNative.arreterSuiviLivreur(); return; }
+    if (!demarre) { enMarche = false; dire('indisponible'); return; }
+    dire('recherche');
     retirerPositions = veilleNative.ecouterPositions((latitude, longitude) => {
+      dire('connue');
       if (session.envoyerPosition) void session.envoyerPosition(latitude, longitude).catch(() => undefined);
     });
-  })();
-  return () => { actif = false; retirerPositions?.(); void veilleNative.arreterSuiviLivreur(); };
+  }
+  function arreter() {
+    generation++;
+    enMarche = false;
+    retirerPositions?.(); retirerPositions = null;
+    void veilleNative.arreterSuiviLivreur();
+  }
+
+  const abonnement = arrierePlan ? null : AppState.addEventListener('change', etat => {
+    if (suiviDoitTourner(false, etat === 'active')) void demarrer(); else arreter();
+  });
+  if (suiviDoitTourner(arrierePlan, AppState.currentState === 'active')) void demarrer();
+  return () => { vivant = false; abonnement?.remove(); arreter(); };
 }
