@@ -34,6 +34,30 @@ test('commande : charge utile exacte, retrait, aucun prix par ligne, sous-total 
   for (const l of p.lignes) assert.deepEqual(Object.keys(l).sort(), ['menuItemId', 'optionIds', 'quantite']);
 });
 
+// Parité Kotlin (tranche 10.2) : les suppléments partent dans `optionIds` de chaque ligne, le sous-total affiché les compte (le serveur le compare au sien).
+const opt1 = '00000000-0000-4000-8000-0000000000b1', opt2 = '00000000-0000-4000-8000-0000000000b2';
+const platO: PlatCataloguePublic = { ...plat(id1, 25000), options: [{ id: opt1, nom: 'Piment', prixGnf: 500 }, { id: opt2, nom: 'Œuf', prixGnf: 2000 }] };
+const panierO = ajouter(ajouter(vide(), resto, platO, [opt2, opt1]), resto, platO); // 1 × (25000 + 2500) + 1 × 25000
+test('commande : suppléments envoyés par ligne (triés), lignes distinctes pour le même plat, sous-total avec suppléments', () => {
+  const r = preparerEnvoi(panierO, [platO], saisie, creerTentative(generateur)); assert.equal(r.ok, true);
+  const p = (r as { ok: true; payload: CreationCommandePayload }).payload;
+  assert.deepEqual(p.lignes, [{ menuItemId: id1, quantite: 1, optionIds: [opt1, opt2] }, { menuItemId: id1, quantite: 1, optionIds: [] }]);
+  assert.equal(p.sousTotalAffiche, 27500 + 25000);
+  for (const l of p.lignes) assert.deepEqual(Object.keys(l).sort(), ['menuItemId', 'optionIds', 'quantite']);
+});
+test('commande : un supplément disparu du menu relu bloque l’envoi (total à vérifier), rien ne part', () => {
+  const sans = { ...platO, options: [{ id: opt2, nom: 'Œuf', prixGnf: 2000 }] };
+  const r = preparerEnvoi(panierO, [sans], saisie, creerTentative(generateur)); assert.equal(r.ok, false);
+  assert.match((r as { ok: false; erreurs: { panier?: string } }).erreurs.panier ?? '', /total doit être vérifié/);
+});
+test('commande : la clé d’idempotence change avec les suppléments, jamais deux commandes différentes sous la même clé', () => {
+  const t = creerTentative(generateur);
+  const cle = (p: typeof panierO, l: PlatCataloguePublic[]) => ((preparerEnvoi(p, l, saisie, t) as { ok: true; payload: CreationCommandePayload }).payload).cleIdempotence;
+  const a = ajouter(vide(), resto, platO, [opt1]), b = ajouter(vide(), resto, platO, [opt2]), c = ajouter(vide(), resto, platO);
+  assert.equal(cle(a, [platO]), cle(a, [platO]), 'même panier = même clé (rejeu)');
+  assert.notEqual(cle(a, [platO]), cle(b, [platO])); assert.notEqual(cle(a, [platO]), cle(c, [platO]));
+});
+
 test('commande : envoi POST authentifié, corps = charge utile, un seul appel, réponse 201 contrôlée', async () => {
   const p = payloadValide(); const appels: { url: string; o: RequestInit }[] = [];
   const a = creerAuth(async (url, o) => { appels.push({ url: String(url), o: o! }); return json({ ok: true, reference: 'SF-ABCDE', jeton: JETON, idempotent: false }, 201); });

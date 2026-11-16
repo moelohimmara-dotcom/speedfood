@@ -75,7 +75,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       <Choix moitie titre="Livraison" actif={livraison} desactive={verrouille} agir={() => m.saisir('mode', 'livraison')} />
     </View>
     <View style={s.carte}>
-      {chiffrer(etat.panier, plats).lignes.map(l => <Text key={l.platId} style={s.texte}>{l.quantite} × {l.plat?.nom ?? 'Plat à vérifier'}{l.plat ? ' · ' + gnf(l.plat.prixGnf * l.quantite) : ''}</Text>)}
+      {chiffrer(etat.panier, plats).lignes.map(l => <Text key={l.cle} style={s.texte}>{l.quantite} × {l.plat?.nom ?? 'Plat à vérifier'}{l.options.length > 0 ? ' (' + l.options.map(o => o.nom).join(', ') + ')' : ''}{l.prixUnitaire !== null ? ' · ' + gnf(l.prixUnitaire * l.quantite) : ''}</Text>)}
       <Text accessibilityRole="header" style={s.nom}>{bilan.total === null ? 'Total à vérifier' : `Sous-total : ${gnf(bilan.total)}`}</Text>
       {livraison && bilan.total !== null && <>
         {m.etatEstimation === 'calcul' && <View accessibilityLiveRegion="polite" style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Calcul des frais de livraison…</Text></View>}

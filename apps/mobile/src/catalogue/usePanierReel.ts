@@ -46,8 +46,11 @@ export function usePanierReel() {
   }
   return { panier, pret, erreur, statut, menu, lecture, erreurLecture, prixModifies, recharger,
     reessayer: () => { if (pret) sauver(actuel.current); else void restaurer(); },
-    ajouter: (r: RestaurantPublic, p: PlatCataloguePublic) => { modifier(ajouter(actuel.current, r.id, p)); verification.current++; setLecture(false); setMenu(null); },
-    quantite: (id: string, n: number) => modifier(quantite(actuel.current, id, n)),
+    ajouter: (r: RestaurantPublic, p: PlatCataloguePublic, optionIds: readonly string[] = []) => { modifier(ajouter(actuel.current, r.id, p, optionIds)); verification.current++; setLecture(false); setMenu(null); },
+    /** « Vider et ajouter » (changement de restaurant, confirmé par la personne) : le panier repart de zéro avec ce plat. */
+    remplacerEtAjouter: (r: RestaurantPublic, p: PlatCataloguePublic, optionIds: readonly string[] = []) => { modifier(ajouter(vide(), r.id, p, optionIds)); verification.current++; setLecture(false); setMenu(null); setErreurLecture(null); },
+    /** `cle` : clé de la ligne (`cleLigne`) ; pour une ligne sans supplément, l'identifiant du plat. */
+    quantite: (cle: string, n: number) => modifier(quantite(actuel.current, cle, n)),
     vider: () => { modifier(vide()); verification.current++; setLecture(false); setMenu(null); setErreurLecture(null); },
   };
 }

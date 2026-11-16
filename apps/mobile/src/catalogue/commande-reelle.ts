@@ -170,7 +170,7 @@ export type Tentative = ReturnType<typeof creerTentative>;
 export type PreparationEnvoi = { ok: true; payload: CreationCommandePayload } | { ok: false; erreurs: ErreursSaisie };
 /**
  * Construit le corps de la commande (retrait ou livraison) à partir du panier réel, des prix relus et de la saisie.
- * Aucune option n'est proposée dans l'application : `optionIds` reste vide (le catalogue public ne porte ni option ni supplément).
+ * Les suppléments choisis partent dans `optionIds` de chaque ligne (triés, sans doublon) ; le sous-total affiché les compte, le serveur recalcule tout et le compare au sien.
  */
 export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCataloguePublic[], saisie: SaisieCommande, tentative: Tentative, compteId = ''): PreparationEnvoi {
   const { erreurs, nom, telephone } = validerSaisie(saisie);
@@ -182,7 +182,7 @@ export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCatalogueP
   // Livraison : l'estimation doit dater de CE restaurant, CE quartier et CE sous-total ; sinon elle est périmée et rien ne part.
   if (livraison && !erreurs.quartier && !estimationValable(saisie.estimation, panier.restaurantId, saisie.quartierId, bilan.total)) erreurs.livraison = 'Les frais de livraison doivent être recalculés avant l’envoi.';
   if (erreurs.nom || erreurs.telephone || erreurs.consentement || erreurs.panier || erreurs.adresse || erreurs.quartier || erreurs.livraison || telephone === null || bilan.total === null || !panier.restaurantId) return { ok: false, erreurs };
-  const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [] as string[] }));
+  const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [...(l.optionIds ?? [])] }));
   const base = { restaurantId: panier.restaurantId, lignes, sousTotalAffiche: bilan.total, consentementReglement: true };
   if (!livraison) {
     const empreinte = JSON.stringify([compteId, panier.restaurantId, 'retrait', lignes, nom, telephone, bilan.total]);

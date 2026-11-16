@@ -29,7 +29,7 @@ const MESSAGE_ESTIMATION_ECHEC = 'Impossible de calculer les frais de livraison.
 
 const MESSAGE_SESSION = 'Votre session a pris fin. Reconnectez-vous puis réessayez : votre commande n’est pas perdue.';
 const MESSAGE_INCERTAIN = 'Envoi incertain. Votre commande a peut-être été enregistrée : vérifiez vos commandes ou réessayez.';
-const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId === c.restaurantId && p.lignes.length === c.lignes.length && p.lignes.every((l, i) => l.platId === c.lignes[i].menuItemId && l.quantite === c.lignes[i].quantite);
+const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId === c.restaurantId && p.lignes.length === c.lignes.length && p.lignes.every((l, i) => l.platId === c.lignes[i].menuItemId && l.quantite === c.lignes[i].quantite && (l.optionIds ?? []).join(',') === c.lignes[i].optionIds.join(','));
 
 export class EnvoiCommande {
   phase: Phase = 'saisie'; message: string | null = null;

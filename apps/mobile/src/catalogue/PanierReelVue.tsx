@@ -11,22 +11,24 @@ export function PanierReelVue({ ouvert, fermer, etat, commander }: { ouvert: boo
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView contentContainerStyle={s.contenu}>
     <Pressable accessibilityRole="button" onPress={fermer} style={s.bouton}><Text style={s.boutonTexte}>Retour au catalogue</Text></Pressable>
     <Text accessibilityRole="header" style={s.titre}>Mon panier</Text><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
-    <Text style={s.texte}>Prix indicatifs hors options. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text>
+    <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text>
     <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>
     {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Pressable accessibilityRole="button" accessibilityLabel="Réessayer le stockage du panier" onPress={etat.reessayer} style={s.bouton}><Text style={s.boutonTexte}>Réessayer le stockage du panier</Text></Pressable></>}
     {etat.lecture && <><ActivityIndicator color={c.action} /><Text style={s.texte}>Vérification des prix et disponibilités…</Text></>}
     {etat.erreurLecture && <Text accessibilityRole="alert" style={s.texte}>{etat.erreurLecture}</Text>}
     {etat.prixModifies && <Text accessibilityRole="alert" style={s.texte}>Les prix ont changé depuis votre dernière lecture. Le montant affiché a été actualisé.</Text>}
     {!etat.panier.lignes.length && <Text style={s.texte}>Votre panier est vide. Choisissez un plat dans un menu.</Text>}
-    {bilan.lignes.map(l => <View key={l.platId} style={s.carte}>
+    {bilan.lignes.map(l => <View key={l.cle} style={s.carte}>
       <Text style={s.nom}>{l.plat?.nom ?? 'Plat à vérifier'}</Text>
-      <Text style={s.texte}>{l.plat ? gnf(l.plat.prixGnf) : 'Rechargez le menu pour vérifier ce plat.'}</Text>
+      {l.options.length > 0 && <Text style={s.texte}>Avec : {l.options.map(o => o.nom).join(', ')}</Text>}
+      {(l.optionIds?.length ?? 0) > l.options.length && <Text accessibilityRole="alert" style={s.texte}>Un supplément choisi ne figure plus au menu. Retirez cette ligne pour revoir le total.</Text>}
+      <Text style={s.texte}>{l.prixUnitaire !== null ? `${gnf(l.prixUnitaire)} l’unité` : 'Rechargez le menu pour vérifier ce plat.'}</Text>
       {etat.menu && !l.plat && <Text accessibilityRole="alert" style={s.texte}>Ce plat ne figure plus dans le menu publié. Retirez-le pour revoir le total.</Text>}
       {l.plat?.disponibilite !== 'disponible' && <Text style={s.secondaire}>{l.plat?.disponibilite === 'epuise' ? 'Épuisé : retirez ce plat.' : 'Disponibilité à confirmer.'}</Text>}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Retirer une portion de ${l.plat?.nom ?? 'ce plat'}`} onPress={() => etat.quantite(l.platId, l.quantite-1)} style={s.touche}><Text style={s.nom}>−</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Retirer une portion de ${l.plat?.nom ?? 'ce plat'}`} onPress={() => etat.quantite(l.cle, l.quantite-1)} style={s.touche}><Text style={s.nom}>−</Text></Pressable>
         <Text accessibilityLabel={`${l.quantite} portion${l.quantite>1?'s':''}`} style={s.nom}>{l.quantite}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Ajouter une portion de ${l.plat?.nom ?? 'ce plat'}`} disabled={!l.plat || l.plat.disponibilite === 'epuise' || l.quantite >= 30 || etat.lecture || !!etat.erreurLecture} onPress={() => etat.quantite(l.platId, l.quantite+1)} style={s.touche}><Text style={s.nom}>+</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Ajouter une portion de ${l.plat?.nom ?? 'ce plat'}`} disabled={!l.plat || l.plat.disponibilite === 'epuise' || l.quantite >= 30 || etat.lecture || !!etat.erreurLecture} onPress={() => etat.quantite(l.cle, l.quantite+1)} style={s.touche}><Text style={s.nom}>+</Text></Pressable>
       </View>
     </View>)}
     {!!etat.panier.lignes.length && <>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, BackHandler, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { PageMenu, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
+import type { PageMenu, PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { creerLecteurCatalogue, validerPageMenu, validerPageRestaurants } from './client';
 import { creerCacheCatalogue, libelleAgeCache } from './cache-catalogue';
 import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
@@ -18,6 +18,7 @@ import { CommandeReelle } from './CommandeReelle';
 import { Vignette } from './Vignette';
 import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
+import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
 import { VisiteGuidee, doitOuvrirVisite } from '../connexion/VisiteReel';
@@ -120,6 +121,25 @@ export function CatalogueReel() {
     const abonnement = AppState.addEventListener('change', etat => { if (etat === 'active') verrouPro.reprise(); else verrouPro.quitte(); });
     return () => abonnement.remove();
   }, []);
+  // Suppléments (10.2) et changement de restaurant (G8) : un plat avec suppléments ouvre d'abord leur choix ; un panier d'un autre restaurant demande confirmation avant d'être vidé.
+  const [platEnChoix, setPlatEnChoix] = useState<PlatCataloguePublic | null>(null);
+  const [remplacement, setRemplacement] = useState<{ plat: PlatCataloguePublic; optionIds: string[] } | null>(null);
+  function ajouterAuPanier(p: PlatCataloguePublic, optionIds: string[]) {
+    const r = menu?.restaurant; if (!r) return;
+    try { panier.ajouter(r, p, optionIds); setMessagePanier(`${p.nom} ajouté à votre sélection.`); }
+    catch (e) {
+      const m = e instanceof Error ? e.message : '';
+      if (m === 'AUTRE_RESTAURANT') setRemplacement({ plat: p, optionIds });
+      else if (m === 'OPTION_INVALIDE') setMessagePanier('Un supplément choisi n’est plus proposé. Actualisez le menu puis réessayez.');
+      else setMessagePanier('Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).');
+    }
+  }
+  function demanderAjout(p: PlatCataloguePublic) { if ((p.options?.length ?? 0) > 0) setPlatEnChoix(p); else ajouterAuPanier(p, []); }
+  function remplacerPanier() {
+    const r = menu?.restaurant; const demande = remplacement; setRemplacement(null);
+    if (!r || !demande) return;
+    try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre sélection.`); } catch { setMessagePanier('Ajout impossible. Vérifiez la sélection puis réessayez.'); }
+  }
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
   useEffect(() => {
@@ -173,7 +193,7 @@ export function CatalogueReel() {
         <EnteteFiche restaurant={menu.restaurant} />
         {grouperMenu(menu.sections, menu.plats).map(g => <View key={'section-' + g.titre} style={{ gap: 12 }}>
           <Text accessibilityRole="header" style={s.titreSection}>{g.titre}</Text>
-          {g.plats.map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} ajouter={() => { try { panier.ajouter(menu.restaurant, p); setMessagePanier(`${p.nom} ajouté à votre sélection.`); } catch (e) { setMessagePanier(e instanceof Error && e.message === 'AUTRE_RESTAURANT' ? 'Votre panier contient un autre restaurant. Ouvrez-le et videz-le volontairement avant de changer.' : 'Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).'); } }} />)}
+          {g.plats.map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} ajouter={() => demanderAjout(p)} />)}
         </View>)}
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
@@ -198,6 +218,8 @@ export function CatalogueReel() {
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
+    <ChoixSupplements key={platEnChoix?.id ?? 'aucun'} plat={platEnChoix} annuler={() => setPlatEnChoix(null)} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); if (p) ajouterAuPanier(p, ids); }} />
+    <ChangerRestaurant visible={remplacement !== null} nomPanier={panier.menu?.restaurant.nom ?? null} vider={remplacerPanier} garder={() => setRemplacement(null)} />
   </View>;
 }
 const s = StyleSheet.create({
