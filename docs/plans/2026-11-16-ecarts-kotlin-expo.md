@@ -124,3 +124,10 @@ L'ancienne appli n'étant pas connectée sur l'émulateur (et le mot de passe n'
 | G26 | **Mineur** | Menu vide : Kotlin « Votre menu est vide : ajoutez votre premier plat. », Expo « Aucun plat dans le menu. ». Il n'existe aucun texte de suppression de plat dans Kotlin (seulement « Retirer ce supplément » et « Retirer la photo », déjà présents dans Expo). |
 
 Reste réel à coder, par ordre de valeur : **G19 + G23** (écran allumé : un seul module `expo-keep-awake` ou un drapeau dans `speedfood-veille`, plus les réglages du téléphone), **G24** (invite d'explication), **G21** (« Mon dossier »), **G26** (texte du menu vide). Tout module natif ajouté oblige à compiler un nouvel APK et à essayer sur téléphone.
+### Tranche 10.6 : poste fixe et son (G19, G23), codée le 16 novembre 2026, non essayée
+
+- **Livreur (G19)** : interrupteur « Mode poste fixe » dans l'espace livreur ; choix gardé sur l'appareil (absent = non). L'écran reste allumé seulement pendant une course et il est relâché ensuite ou à la fermeture de l'espace.
+- **Restaurateur (G23)** : section « Service », carte « Réglages de ce téléphone » avec « Son des nouvelles commandes » et « Poste fixe », tous deux actifs tant qu'on ne les coupe pas. Son coupé : le bandeau d'alerte s'affiche toujours mais la sonnerie native ne part pas. Poste fixe : l'écran de la console reste allumé tant que l'espace est ouvert.
+- **Natif** : nouvelle fonction `GarderEcranAllume` dans `speedfood-veille` (drapeau `FLAG_KEEP_SCREEN_ON` de l'activité). Un ancien APK sans cette fonction ne fait simplement rien. **Le code Kotlin natif n'a pas été compilé** : seule la compilation CI le dira. Essai sur téléphone à faire (écran qui reste allumé, relâché à la sortie).
+- Constat annexe : l'offre livreur a déjà son compte à rebours (`libelleEcheanceOffre`), ce qui retire encore un morceau de G22.
+- Tests : `preferences-poste.test.ts` (7), 881 tests au total, tsc propre.

@@ -1,6 +1,10 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { brancherSuiviLivreur } from './suivi-livreur';
+import { veilleNative } from '../../modules/speedfood-veille/src/index';
+import { ReglagesTelephone } from './ReglagesTelephone';
+import { stockagePreferences } from './stockage-preferences';
+import { AIDE_POSTE_FIXE_LIVREUR, CLE_POSTE_FIXE_LIVREUR, LIBELLE_POSTE_FIXE_LIVREUR, ecranLivreurAllume, ecrirePreference, lireInactifParDefaut } from './preferences-poste';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
 import { Squelette } from '../design/Composants';
@@ -70,6 +74,15 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
   // Suivi de position (D9, prototype) : branché seulement en ligne ; tout le détail vit dans `suivi-livreur` (permission, service, envoi par la session).
   const enLigne = fiche.statut !== 'hors_ligne';
   useEffect(() => brancherSuiviLivreur(session, enLigne), [enLigne, session]);
+  // Mode poste fixe (G19) : choix gardé sur l'appareil, absent = non. L'écran reste allumé seulement pendant une course, et il est relâché ensuite ou à la fermeture.
+  const [posteFixe, setPosteFixe] = useState(false);
+  useEffect(() => { let vivant = true; void lireInactifParDefaut(stockagePreferences, CLE_POSTE_FIXE_LIVREUR).then(v => { if (vivant) setPosteFixe(v); }); return () => { vivant = false; }; }, []);
+  const enCourse = course !== null;
+  useEffect(() => {
+    void veilleNative.garderEcranAllume(ecranLivreurAllume(posteFixe, enCourse));
+    return () => { void veilleNative.garderEcranAllume(false); };
+  }, [posteFixe, enCourse]);
+  function changerPosteFixe(v: boolean) { setPosteFixe(v); void ecrirePreference(stockagePreferences, CLE_POSTE_FIXE_LIVREUR, v); }
   // Entrée de la carte d'offre : un glissement unique à l'arrivée d'une offre (charte animations) ; aucun mouvement
   // en mouvement réduit, aucune boucle, et l'état final est posé d'emblée si le réglage système l'exige.
   const reduit = useMouvementReduit();
@@ -109,6 +122,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
       {fiche.motifCycle && <Text style={s.secondaire}>Motif : {fiche.motifCycle}</Text>}
       <Text style={s.secondaire}>Pour toute modification de votre fiche, contactez l’équipe Speedfood.</Text>
     </View>
+    <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[{ cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_LIVREUR, aide: AIDE_POSTE_FIXE_LIVREUR, actif: posteFixe, changer: changerPosteFixe }]} />
     {incertain && <Text accessibilityRole="alert" style={s.erreur}>À vérifier : le résultat de votre dernière action est inconnu. Actualisez votre état avant toute autre action.</Text>}
     {offre ? <Animated.View style={[s.carte, { opacity: entree, transform: [{ translateY: entree.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
       <Text accessibilityRole="header" style={s.nom}>Offre en attente</Text>

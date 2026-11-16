@@ -6,6 +6,9 @@ import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
 import { SurveillanceCommandes } from './surveillance-commandes';
 import { veilleNative } from '../../modules/speedfood-veille/src/index';
+import { ReglagesTelephone } from './ReglagesTelephone';
+import { stockagePreferences } from './stockage-preferences';
+import { AIDE_POSTE_FIXE_RESTAURATEUR, AIDE_SON, CLE_POSTE_FIXE_RESTAURATEUR, CLE_SON_RESTAURATEUR, LIBELLE_POSTE_FIXE_RESTAURATEUR, LIBELLE_SON, doitSonner, ecranRestaurateurAllume, ecrirePreference, lireActifParDefaut } from './preferences-poste';
 import { VisiteGuidee } from './VisiteReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
@@ -100,13 +103,30 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   // Alerte de nouvelle commande (C11, premier plan) : chaque liste lue passe par la surveillance portée de l'ancienne appli ; le bandeau ne parle que sur une vraie alerte.
   const surveillanceRef = useRef(new SurveillanceCommandes());
   const [alerteCommande, setAlerteCommande] = useState<string | null>(null);
+  // Réglages du téléphone (G23) : son et poste fixe, actifs tant qu'on ne les coupe pas. Le son passe par une référence : la relecture de 15 s garde la fonction du premier rendu.
+  const sonRef = useRef(true);
+  const [sonActif, setSonActif] = useState(true);
+  const [posteFixe, setPosteFixe] = useState(true);
+  useEffect(() => {
+    let vivant = true;
+    void lireActifParDefaut(stockagePreferences, CLE_SON_RESTAURATEUR).then(v => { if (vivant) { sonRef.current = v; setSonActif(v); } });
+    void lireActifParDefaut(stockagePreferences, CLE_POSTE_FIXE_RESTAURATEUR).then(v => { if (vivant) setPosteFixe(v); });
+    return () => { vivant = false; };
+  }, []);
+  // Poste fixe : l'écran de la console reste allumé tant que l'espace est ouvert ; il est relâché à la fermeture.
+  useEffect(() => {
+    void veilleNative.garderEcranAllume(ecranRestaurateurAllume(posteFixe));
+    return () => { void veilleNative.garderEcranAllume(false); };
+  }, [posteFixe]);
+  function changerSon(v: boolean) { sonRef.current = v; setSonActif(v); void ecrirePreference(stockagePreferences, CLE_SON_RESTAURATEUR, v); }
+  function changerPosteFixe(v: boolean) { setPosteFixe(v); void ecrirePreference(stockagePreferences, CLE_POSTE_FIXE_RESTAURATEUR, v); }
   function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null);
     const tour = surveillanceRef.current.tourListe(l, Date.now());
     if (tour.genre === 'suite') {
       if (tour.alerter) {
         setAlerteCommande(tour.aTraiter.length === 1 ? 'Nouvelle commande à traiter : ' + tour.aTraiter[0].reference + '.' : tour.aTraiter.length + ' commandes à traiter, dont ' + tour.aTraiter[0].reference + '.');
         // Veille native (C11/C12, prototype) : sonnerie et écran allumé quand le module est présent ; sinon le bandeau ci-dessus suffit.
-        void veilleNative.alerterVeilleRestaurateur(tour.aTraiter.length, tour.aTraiter[0].reference);
+        if (doitSonner(sonRef.current)) void veilleNative.alerterVeilleRestaurateur(tour.aTraiter.length, tour.aTraiter[0].reference);
       }
       else if (tour.aTraiter.length === 0) setAlerteCommande(null);
     }
@@ -189,6 +209,10 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
     <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Icone nom={ICONES_SECTIONS[x]} taille={19} couleur={section === x ? c.surface : c.secondaire} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
     {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    {section === 'service' && <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
+      { cle: 'son', libelle: LIBELLE_SON, aide: AIDE_SON, actif: sonActif, changer: changerSon },
+      { cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_RESTAURATEUR, aide: AIDE_POSTE_FIXE_RESTAURATEUR, actif: posteFixe, changer: changerPosteFixe },
+    ]} />}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
     {section === 'activite' && activiteOuverte && <ActiviteReel />}
     {section === 'commandes' && <>

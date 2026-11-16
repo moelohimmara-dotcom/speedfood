@@ -13,6 +13,7 @@ interface VeilleNative {
   ArreterVeilleRestaurateur(): Promise<boolean>;
   DemarrerSuiviLivreur(): Promise<boolean>;
   ArreterSuiviLivreur(): Promise<boolean>;
+  GarderEcranAllume?(actif: boolean): Promise<boolean>;
   addListener?(nom: string, fn: (e: { latitude: number; longitude: number }) => void): { remove(): void };
 }
 
@@ -56,6 +57,11 @@ export const veilleNative = {
   async arreterSuiviLivreur(): Promise<void> {
     const m = await obtenir(); if (!m) return;
     try { await m.ArreterSuiviLivreur(); } catch { /* déjà arrêté */ }
+  },
+  /** Mode poste fixe : garde l'écran allumé (ou le laisse s'éteindre). Module absent, ancien APK sans cette fonction ou aucune activité : `false`, sans erreur. */
+  async garderEcranAllume(actif: boolean): Promise<boolean> {
+    const m = await obtenir(); if (!m || typeof m.GarderEcranAllume !== 'function') return false;
+    try { return await m.GarderEcranAllume(actif); } catch { return false; }
   },
   /** Positions du livreur remontées par le service (à envoyer par la session, qui seule détient le jeton). */
   ecouterPositions(fn: (latitude: number, longitude: number) => void): () => void {

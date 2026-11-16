@@ -63,6 +63,23 @@ class SpeedfoodVeilleModule : Module() {
       }
     }
 
+    // Mode poste fixe (G19, G23) : garde l'écran de l'activité allumé, ou le laisse s'éteindre. Sans activité (application en arrière-plan), rien à faire.
+    AsyncFunction("GarderEcranAllume") { actif: Boolean ->
+      val activite = appContext.currentActivity
+      if (activite == null) {
+        false
+      } else {
+        activite.runOnUiThread {
+          if (actif) {
+            activite.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+          } else {
+            activite.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+          }
+        }
+        true
+      }
+    }
+
     AsyncFunction("ArreterSuiviLivreur") {
       val contexte = appContext.reactContext
       if (contexte == null) {
