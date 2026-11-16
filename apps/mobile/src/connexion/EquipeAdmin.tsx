@@ -43,7 +43,7 @@ export function ComptesEquipeReel() {
     <Action titre="Rechercher" disabled={chargement} agir={() => setRecherche(q.trim())} />
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des comptes…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les comptes" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser les comptes" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {donnees?.tronque && <Text accessibilityRole="alert" style={s.texte}>Liste incomplète : ouvrez le site pour tout voir.</Text>}
     {(donnees?.comptes ?? []).map(x => <View key={x.utilisateurId} style={s.carte}>
       <Text style={s.nomPetit}>{x.email}</Text>
@@ -62,7 +62,7 @@ export function AuditEquipeReel() {
     <Text style={s.secondaire}>Écrit par le serveur seul : rien ne se modifie ici.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture du journal…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser le journal" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser le journal" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {donnees && <View style={s.carte}>
       {donnees.indicateurs.map(i => <Text key={i.cle} style={s.texte}>{i.libelle} : {i.valeur}</Text>)}
     </View>}
@@ -101,7 +101,7 @@ export function AttenteEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des zones…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Action titre="Actualiser les zones" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser les zones" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {(donnees?.zones ?? []).map(z => <View key={z.niveau + '-' + z.id} style={s.carte}>
       <Text style={s.nomPetit}>{z.nom}</Text>
       <Text style={s.texte}>{z.personnes} personnes · {nonPrevenues(z.personnes, z.prevenues)} pas encore prévenues</Text>
@@ -123,7 +123,7 @@ export function MisesAJourEquipeReel() {
     <Text style={s.secondaire}>Lecture seule : activer une fonctionnalité ou annoncer une version change ce que voient les clients, cela reste sur le site.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des mises à jour…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les mises à jour" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser les mises à jour" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {m && <>
       <View style={s.carte}>
         <Text style={s.nomPetit}>Version publiée : {m.version.nom} (code {m.version.code})</Text>

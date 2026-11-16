@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bouton } from '../design/Composants';
+import { Bouton, GroupeLignes, LigneNavigation } from '../design/Composants';
 import type { NomIcone } from '../design/Icone';
 import { Action } from './BoutonAction';
 import { ErreurConnexion } from './client';
@@ -38,7 +38,7 @@ export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void
   const [module, setModule] = useState<ModuleEquipe>('tableau');
   const { donnees: acces } = useLectureEquipe<AccesEquipe>(() => gestion.accesEquipe());
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Action titre="Retour au compte" variante="texte" icone="retour" agir={fermer} />
+    <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Espace équipe</Text>
     <Text style={s.secondaire}>Chaque module est relu depuis le serveur. Si votre compte n'a pas le droit d'un module, le serveur le refuse et l'écran vous le dit.</Text>
     {acces && <View style={s.carte}>
@@ -48,7 +48,7 @@ export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void
         {g.entrees.map(e => <Text key={e.chemin} style={s.secondaire}>{e.natif ? 'Dans l’application : ' : 'Sur le site : '}{e.libelle}</Text>)}
       </View>)}
     </View>}
-    <View style={s.modules}>{MODULES_EQUIPE.map(m => <Bouton key={m.id} titre={m.libelle} icone={m.icone} secondaire={module !== m.id} onPress={() => setModule(m.id)} />)}</View>
+    <GroupeLignes>{MODULES_EQUIPE.map((m, i) => <LigneNavigation key={m.id} premiere={i === 0} actif={module === m.id} titre={m.libelle} icone={m.icone} onPress={() => setModule(m.id)} />)}</GroupeLignes>
     {module === 'tableau' && <TableauEquipeReel />}
     {module === 'commandes' && <CommandesEquipeReel />}
     {module === 'repartition' && <RepartitionEquipeReel />}
@@ -95,7 +95,7 @@ function TableauEquipeReel() {
     {t && <Text style={s.secondaire}>Rôle : {t.role}. Seuls les chiffres de vos domaines sont montrés.</Text>}
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture du tableau de bord…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser le tableau" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser le tableau" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {t?.commandes && <View style={s.carte}>
       <Text style={s.nomPetit}>Commandes</Text>
       <Text style={s.texte}>{t.commandes.activesDuJour} actives aujourd’hui · {t.commandes.enAttente} en attente · {t.commandes.propositionsEnAttente} propositions en attente</Text>
@@ -121,7 +121,7 @@ function PaiementsEquipeReel() {
     <Text style={s.secondaire}>Lecture seule : les décisions qui déplacent de l'argent restent sur le site.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des paiements…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les paiements" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser les paiements" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {p && <>
       {p.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{p.illisibles === 1 ? '1 paiement est illisible dans l’application.' : p.illisibles + ' paiements sont illisibles dans l’application.'}</Text>}
       <View style={s.carte}>
@@ -163,7 +163,7 @@ function FinancesEquipeReel() {
     <Text style={s.secondaire}>Période : 1-31 octobre 2026. Lecture seule : les taux affichés sont ceux du développement, ils se modifient sur le site.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des finances…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les finances" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser les finances" variante="texte" icone="actualiser" iconeSeule agir={() => { void lire(); }} disabled={chargement} />
     {finances && <>
       {finances.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{finances.illisibles === 1 ? '1 ligne de relevé est illisible dans l’application.' : finances.illisibles + ' lignes de relevé sont illisibles dans l’application.'}</Text>}
       <Text style={s.texte}>Rythme : {finances.parametres.rythme} · devise {finances.parametres.devise} · taux par défaut : {tauxAffiche(finances.parametres.tauxDefaut)}</Text>

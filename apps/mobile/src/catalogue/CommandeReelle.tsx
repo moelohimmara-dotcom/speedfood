@@ -15,8 +15,8 @@ const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
 const lecteur = creerLecteurCatalogue();
 const COLLATEUR_FR = new Intl.Collator('fr');
 /** Bouton de l'écran de commande : le bouton canonique (cinq niveaux), comme partout ailleurs dans l'application. */
-function Action({ titre, agir, disabled = false, secondaire = false, variante, icone }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; variante?: VarianteBouton; icone?: NomIcone }) {
-  return <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} variante={variante} icone={icone} />;
+function Action({ titre, agir, disabled = false, secondaire = false, variante, icone, iconeSeule = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; variante?: VarianteBouton; icone?: NomIcone; iconeSeule?: boolean }) {
+  return <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} variante={variante} icone={icone} iconeSeule={iconeSeule} />;
 }
 function Choix({ titre, actif, desactive, agir, moitie = false }: { titre: string; actif: boolean; desactive: boolean; agir(): void; moitie?: boolean }) {
   return <Pressable accessibilityRole="radio" accessibilityLabel={titre} accessibilityState={{ checked: actif, disabled: desactive }} disabled={desactive} onPress={agir} style={[s.choix, moitie && s.choixMoitie, actif && s.choixActif, desactive && s.inactif]}><Text style={[s.choixTexte, actif && s.choixTexteActif]}>{titre}</Text></Pressable>;
@@ -71,7 +71,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const fermerSiPossible = () => { if (m.peutFermer()) fermer(); };
   const propositions = quartiers.etat === 'ok' ? filtrerQuartiers(quartiers.liste, recherche) : [];
   return <Modal visible={ouvert} onRequestClose={fermerSiPossible} animationType="slide"><SafeAreaView style={s.page}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Action titre="Retour au panier" variante="texte" icone="retour" agir={fermerSiPossible} disabled={verrouille} />
+    <Action titre="Retour au panier" variante="texte" icone="retour" iconeSeule agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
     <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
     <View accessibilityRole="radiogroup" style={s.rangee}>

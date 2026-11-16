@@ -39,11 +39,14 @@ export function Bouton({ titre, onPress, secondaire = false, variante, disabled 
   // Icône seule : le nom accessible reste le titre complet (jamais un bouton muet). Action principale : rond plein de 48 px (ajouter au panier) ;
   // sinon icône discrète sur zone de toucher de 48 px, qui se teinte au toucher (actualiser, retour, supprimer).
   const plein = niveau === 'plein';
-  const couleurIcone = plein ? c.surface : disabled ? c.desactiveTexte : niveau === 'danger' ? c.danger : niveau === 'teinte' || niveau === 'contour' ? c.encre : c.action;
+  // Retour : flèche sombre, comme dans les applications courantes ; les autres icônes seules prennent la couleur de leur niveau.
+  const couleurIcone = plein ? c.surface : disabled ? c.desactiveTexte : niveau === 'danger' ? c.danger : niveau === 'teinte' || niveau === 'contour' || icone === 'retour' ? c.encre : c.action;
+  // Une icône seule se place sans s'étirer : le retour à gauche, l'actualisation à droite.
+  const placement = icone === 'actualiser' ? { alignSelf: 'flex-end' as const } : { alignSelf: 'flex-start' as const };
   if (iconeSeule && icone) {
     return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={titre} testID={testID} disabled={disabled} onPress={onPress}
       android_ripple={{ color: plein ? '#9A2119' : a.pression, borderless: false }}
-      style={({ pressed }) => [s.boutonIcone, niveau === 'contour' && { borderWidth: 1.5, borderColor: disabled ? c.bordure : c.contour }, plein ? { backgroundColor: disabled ? c.desactiveFond : pressed ? a.pression : c.action } : { backgroundColor: pressed ? a.pression : 'transparent' }, pressed && { transform: [{ scale: .96 }] }]}>
+      style={({ pressed }) => [s.boutonIcone, placement, niveau === 'contour' && { borderWidth: 1.5, borderColor: disabled ? c.bordure : c.contour }, plein ? { backgroundColor: disabled ? c.desactiveFond : pressed ? a.pression : c.action } : { backgroundColor: pressed ? a.pression : 'transparent' }, pressed && { transform: [{ scale: .96 }] }]}>
       <Icone nom={icone} couleur={couleurIcone} taille={24} />
     </Pressable>;
   }
@@ -58,10 +61,10 @@ export function Bouton({ titre, onPress, secondaire = false, variante, disabled 
  * Ligne de navigation (écran Compte, réglages) : icône dans un rond teinté, titre, aide courte, flèche. Les lignes d'un même groupe se suivent dans une carte ;
  * `premiere` supprime le trait de séparation du haut. Remplace les gros boutons rouges qui ne sont pas des actions mais des destinations.
  */
-export function LigneNavigation({ titre, sousTitre, icone, onPress, disabled = false, premiere = false, testID }: { titre: string; sousTitre?: string; icone: NomIcone; onPress(): void; disabled?: boolean; premiere?: boolean; testID?: string }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={sousTitre ? titre + '. ' + sousTitre : titre} accessibilityState={{ disabled }} testID={testID} disabled={disabled} onPress={onPress}
+export function LigneNavigation({ titre, sousTitre, icone, onPress, disabled = false, premiere = false, actif = false, testID }: { titre: string; sousTitre?: string; icone: NomIcone; onPress(): void; disabled?: boolean; premiere?: boolean; actif?: boolean; testID?: string }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={sousTitre ? titre + '. ' + sousTitre : titre} accessibilityState={{ disabled, selected: actif }} testID={testID} disabled={disabled} onPress={onPress}
     android_ripple={{ color: c.actionTeinte }}
-    style={({ pressed }) => [s.ligneNav, !premiere && { borderTopWidth: 1, borderTopColor: c.bordure }, pressed && { backgroundColor: c.surfaceAlt }, disabled && { opacity: .5 }]}>
+    style={({ pressed }) => [s.ligneNav, !premiere && { borderTopWidth: 1, borderTopColor: c.bordure }, actif && { backgroundColor: c.actionTeinte }, pressed && { backgroundColor: c.surfaceAlt }, disabled && { opacity: .5 }]}>
     <View style={s.rondNav}><Icone nom={icone} couleur={c.action} taille={22} /></View>
     <View style={{ flex: 1, gap: 2 }}>
       <Texte style={{ fontWeight: '700', fontSize: 16, lineHeight: 22 }}>{titre}</Texte>
@@ -69,6 +72,22 @@ export function LigneNavigation({ titre, sousTitre, icone, onPress, disabled = f
     </View>
     <Icone nom="chevron" couleur={c.secondaire} taille={20} />
   </Pressable>;
+}
+/**
+ * Onglets à icônes seules (commutateur segmenté) : une icône par section, la section active en plein, le nom accessible dit toujours la section en toutes lettres.
+ * L'écran qui l'utilise affiche le titre de la section active juste dessous : l'icône seule suffit pour choisir, le mot confirme où l'on est.
+ */
+export function OngletsIcones<T extends string>({ onglets, actif, choisir, desactive = false }: { onglets: ReadonlyArray<{ id: T; libelle: string; icone: NomIcone }>; actif: T; choisir(id: T): void; desactive?: boolean }) {
+  return <View accessibilityRole="tablist" style={s.segments}>
+    {onglets.map(o => {
+      const selectionne = o.id === actif;
+      return <Pressable key={o.id} accessibilityRole="tab" accessibilityLabel={o.libelle} accessibilityState={{ selected: selectionne, disabled: desactive }} disabled={desactive}
+        android_ripple={{ color: c.actionTeinte, borderless: false }} onPress={() => choisir(o.id)}
+        style={({ pressed }) => [s.segment, selectionne && { backgroundColor: c.action }, !selectionne && pressed && { backgroundColor: c.actionTeinte }, desactive && !selectionne && { opacity: .5 }]}>
+        <Icone nom={o.icone} taille={24} couleur={selectionne ? c.surface : c.secondaire} />
+      </Pressable>;
+    })}
+  </View>;
 }
 /** Carte qui regroupe des lignes de navigation. */
 export function GroupeLignes({ children }: PropsWithChildren) { return <View style={s.groupeNav}>{children}</View>; }
@@ -129,6 +148,8 @@ export const s = StyleSheet.create({
   boutonIcone: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   ligneNav: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12 },
   rondNav: { width: 42, height: 42, borderRadius: 21, backgroundColor: c.actionTeinte, alignItems: 'center', justifyContent: 'center' },
+  segments: { flexDirection: 'row', gap: 4, padding: 4, backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 28 },
+  segment: { flex: 1, minHeight: 48, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   groupeNav: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 20, overflow: 'hidden' },
   boutonTuile: { flex: 1, minHeight: 76, backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, overflow: 'hidden' },

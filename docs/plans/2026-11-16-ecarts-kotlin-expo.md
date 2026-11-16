@@ -204,3 +204,16 @@ Le menu vide dit maintenant « Votre menu est vide : ajoutez votre premier plat.
 | G24 invite d'alerte | codé (10.8), vérifié sur émulateur ; différence assumée : pas de surveillance continue application fermée |
 | G25 proposer un changement | déjà présent (« Proposer un autre prix ») |
 | G26 menu vide | clos |
+
+### Refonte des boutons, troisième passage : icônes seules là où le geste est universel (16 novembre 2026)
+
+Retour de Malika sur capture : dans les puces d'onglets de l'espace restaurateur, retirer les textes et ne garder que les icônes, avec de meilleurs cadres ; appliquer la même règle dans toute l'appli, comme les applications à succès : bouton à icône seule quand c'est nécessaire, bouton à texte quand il faut un mot.
+
+Règle retenue : **icône seule** pour retour, actualiser, aide et choix de section (le nom accessible dit toujours l'action en toutes lettres) ; **texte** pour une action qui engage (Commander, Supprimer, Annuler la commande, Enregistrer) ; **ligne de navigation** pour une destination (Mon profil, Espace livreur, modules de l'équipe, File des courses…).
+- `OngletsIcones` : commutateur segmenté, icône 24 px, section active en plein ; l'écran affiche le titre de la section active dessous.
+- 21 « Actualiser » (teinté + texte) et 8 « Retour » passés en icône seule ; le retour se place à gauche et en encre, l'actualisation à droite.
+- Espace restaurateur : en-tête retour à gauche et aide à droite, onglets en icônes, titre de section.
+- Les modules de l'équipe (une vingtaine de gros boutons roses) et les trois entrées du livreur (file, courses livrées, assistance) deviennent des lignes de navigation, avec état « actif » pour la ligne ouverte.
+- Restent en texte, volontairement : annulations dans un formulaire (« Retour » d'une étape, « Non, garder »), actions qui engagent.
+- Le mot « gain » est banni de l'interface (frais de course, pas une paie) : un test du projet l'a rattrapé dans mes propres sous-titres, corrigés aussi sur l'écran Compte.
+- 908 tests. À juger à l'écran : taille des icônes seules, lisibilité sans texte, titre de section.

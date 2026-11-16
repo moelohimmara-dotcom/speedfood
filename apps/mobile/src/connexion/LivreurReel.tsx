@@ -12,7 +12,7 @@ import {
 import { AIDE_POSTE_FIXE_LIVREUR, CLE_POSTE_FIXE_LIVREUR, LIBELLE_POSTE_FIXE_LIVREUR, ecranLivreurAllume, ecrirePreference, lireInactifParDefaut } from './preferences-poste';
 import { couleurs as c, dureeMouvement, polices } from '../design/tokens';
 import { useMouvementReduit } from '../design/mouvement';
-import { Squelette } from '../design/Composants';
+import { GroupeLignes, LigneNavigation, Squelette } from '../design/Composants';
 import { Action } from './BoutonAction';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR, LIBELLES_VEHICULE_LIVREUR, boutonsCourse, clientAffiche, libelleDistanceLivreur, libelleEcheanceOffre, lireCodeRemiseLivreur, lireRaisonEchecLivreur, MESSAGE_CODE_REMISE_LIVREUR, MESSAGE_RAISON_ECHEC_LIVREUR, type EtapeCourseLivreur, type EtatLivreur } from './livreur';
@@ -59,11 +59,11 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
   const actualiser = () => { void controleRef.current.actualiser(); };
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView ref={defilement} onContentSizeChange={defilerVersChampActif} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.contenu, { paddingBottom: 20 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" variante="texte" icone="retour" agir={fermer} disabled={affiche.etat === 'lu' && affiche.ecritureEnCours} />
+    <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} disabled={affiche.etat === 'lu' && affiche.ecritureEnCours} />
     <Text accessibilityRole="header" style={s.titre}>Espace livreur</Text>
     {affiche.etat === 'chargement' && <><Text style={s.texte}>Lecture de votre état…</Text><Squelette /></>}
     {affiche.etat === 'erreur' && <><Text style={s.erreur}>{affiche.message}</Text><Action titre="Réessayer" agir={actualiser} /></>}
-    {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" secondaire icone="actualiser" agir={actualiser} /></>}
+    {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" variante="texte" icone="actualiser" iconeSeule agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur !== null && <Etat session={session} etat={affiche.etatLivreur} ecritureEnCours={affiche.ecritureEnCours} lectureEnCours={affiche.lectureEnCours} incertain={affiche.incertain} message={affiche.message}
       basculer={(v) => { void controleRef.current.basculer(v); }} repondre={(r) => { void controleRef.current.repondreOffre(r); }} avancer={(vers, saisie) => { void controleRef.current.avancerCourse(vers, saisie); }} actualiser={actualiser} clavier={clavier} />}
   </ScrollView></KeyboardAvoidingView>;
@@ -226,12 +226,14 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
     {enLigne && etatPosition === 'indisponible' && <Text style={s.secondaire}>{MESSAGE_POSITION_ABSENTE}</Text>}
     {enLigne && etatPosition === 'recherche' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{MESSAGE_POSITION_RECHERCHE}</Text>}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
-    <Action titre="Actualiser mon état" secondaire icone="actualiser" disabled={ecritureEnCours} agir={actualiser} />
-    <Action titre="File des courses" icone="liste" secondaire disabled={ecritureEnCours} agir={() => setFileOuverte(v => !v)} />
+    <Action titre="Actualiser mon état" variante="texte" icone="actualiser" iconeSeule disabled={ecritureEnCours} agir={actualiser} />
+    <GroupeLignes>
+      <LigneNavigation premiere actif={fileOuverte} titre="File des courses" sousTitre="Les courses qui vous attendent" icone="liste" disabled={ecritureEnCours} onPress={() => setFileOuverte(v => !v)} />
+      <LigneNavigation actif={coursesOuvertes} titre="Mes courses livrées et leurs frais" sousTitre="Historique et frais de course" icone="document" disabled={ecritureEnCours} onPress={() => setCoursesOuvertes(v => !v)} />
+      <LigneNavigation titre="Assistance conducteur" sousTitre="Écrire à l’équipe Speedfood" icone="aide" disabled={ecritureEnCours} onPress={() => setAssistanceOuverte(true)} />
+    </GroupeLignes>
     {fileOuverte && <FileCourses session={session} courseActuelle={course} />}
-    <Action titre="Mes courses livrées et leurs frais" icone="document" secondaire disabled={ecritureEnCours} agir={() => setCoursesOuvertes(v => !v)} />
     {coursesOuvertes && <CoursesLivreurReel />}
-    <Action titre="Assistance conducteur" icone="message" secondaire disabled={ecritureEnCours} agir={() => setAssistanceOuverte(true)} />
     <AssistanceLivreur ouvert={assistanceOuverte} fermer={() => setAssistanceOuverte(false)} referenceCourse={course?.commandeReference ?? null} />
   </View>;
 }
@@ -257,7 +259,7 @@ function FileCourses({ session, courseActuelle }: { session: SessionEtatLivreur;
     <Text accessibilityRole="header" style={s.sousTitre}>File des courses</Text>
     {chargement && <Text accessibilityLiveRegion="polite" style={s.secondaire}>Lecture de votre file…</Text>}
     {erreur && <Text accessibilityRole="alert" style={s.erreur}>{erreur}</Text>}
-    <Action titre="Actualiser la file" secondaire disabled={chargement} agir={() => { void lire(); }} />
+    <Action titre="Actualiser la file" variante="texte" icone="actualiser" iconeSeule disabled={chargement} agir={() => { void lire(); }} />
     {file === null && <Text style={s.secondaire}>Ce compte n'est pas un compte livreur.</Text>}
     {file && suivantes.length === 0 && <Text style={s.secondaire}>Aucune autre course en file.</Text>}
     {suivantes.map(x => <View key={x.livraisonId} style={{ gap: 4 }}>

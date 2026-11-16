@@ -68,7 +68,7 @@ export function RepartitionEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des commandes à répartir…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Action titre="Actualiser la répartition" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser la répartition" variante="texte" icone="actualiser" iconeSeule agir={() => { void lire(); }} disabled={chargement} />
     {illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{illisibles === 1 ? '1 commande est illisible dans l’application.' : illisibles + ' commandes sont illisibles dans l’application.'}</Text>}
     {commandes !== null && commandes.length === 0 && <Text style={s.texte}>Aucune commande à confirmer pour le moment.</Text>}
     {(commandes ?? []).map(o => <View key={o.id} style={s.carte}>
@@ -125,7 +125,7 @@ export function CommandesEquipeReel() {
   if (detail) {
     const o = detail.commande;
     return <View style={{ gap: 12 }}>
-      <Action titre="Retour à la liste" variante="texte" icone="retour" agir={fermerDetail} />
+      <Action titre="Retour à la liste" variante="texte" icone="retour" iconeSeule agir={fermerDetail} />
       <Text accessibilityRole="header" style={s.nom}>{o.reference}</Text>
       <Text style={s.texte}>{o.restaurantNom} · {o.statut.replaceAll('_', ' ')} · {o.mode === 'livraison' ? 'Livraison' : o.mode === 'sur_place' ? 'Sur place' : 'Retrait'}</Text>
       <Text style={s.texte}>{o.clientNom} · {o.telephoneAffiche}</Text>
@@ -244,7 +244,7 @@ export function ExploitationEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture de l’exploitation…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Action titre="Actualiser l’exploitation" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser l’exploitation" variante="texte" icone="actualiser" iconeSeule agir={() => { void lire(); }} disabled={chargement} />
     {donnees && donnees.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{donnees.illisibles === 1 ? '1 ligne est illisible dans l’application.' : donnees.illisibles + ' lignes sont illisibles dans l’application.'}</Text>}
     <Text accessibilityRole="header" style={s.nomPetit}>Courses en cours</Text>
     {donnees !== null && donnees.livraisons.length === 0 && <Text style={s.texte}>Aucune course en cours.</Text>}

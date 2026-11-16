@@ -81,3 +81,23 @@ test('parité Kotlin (G26) : le menu vide invite à ajouter un premier plat, ave
   assert.match(s, /menu\.plats\.length === 0 && <Text style=\{s\.texte\}>Votre menu est vide : ajoutez votre premier plat\.<\/Text>/);
   assert.doesNotMatch(s, /Aucun plat dans le menu\./);
 });
+test('icônes seules là où le geste est universel, texte là où il faut un mot ; jamais le mot « gain » (ce sont des frais de course)', () => {
+  const composants = lire('../src/design/Composants.tsx');
+  assert.match(composants, /export function OngletsIcones/);
+  assert.match(composants, /accessibilityLabel=\{o\.libelle\}/, 'chaque onglet à icône seule garde son nom accessible');
+  const resto = lire('../src/connexion/RestaurateurReel.tsx');
+  assert.match(resto, /<OngletsIcones /);
+  assert.doesNotMatch(resto, /s\.ongletTexte/, 'plus de texte dans les puces d’onglets');
+  assert.match(resto, /titre="Retour au compte" variante="texte" icone="retour" iconeSeule/);
+  // Aucun « Actualiser » ni « Retour » à flèche ne reste en bouton à texte : tous passent en icône seule.
+  const fautifs: string[] = [];
+  for (const f of fichiers(racine)) {
+    const t = readFileSync(f, 'utf8');
+    for (const m of t.matchAll(/<(?:Action|Bouton) titre="(?:Actualiser|Retour)[^"]*"[^\n>]*?icone="(?:actualiser|retour)"[^\n>]*>/g)) if (!/iconeSeule/.test(m[0])) fautifs.push(f.split('src')[1] + ' : ' + m[0].slice(0, 80));
+  }
+  assert.deepEqual(fautifs, []);
+  assert.match(composants, /icone === 'actualiser' \? \{ alignSelf: 'flex-end'/);
+  assert.match(lire('../src/connexion/EquipeReel.tsx'), /<GroupeLignes>\{MODULES_EQUIPE\.map/);
+  assert.match(lire('../src/connexion/LivreurReel.tsx'), /<LigneNavigation premiere actif=\{fileOuverte\} titre="File des courses"/);
+  for (const f of fichiers(racine)) assert.doesNotMatch(readFileSync(f, 'utf8'), /sousTitre="[^"]*\bgains?\b/i, f);
+});

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Action } from './BoutonAction';
+import { OngletsIcones } from '../design/Composants';
 import { ServiceMenuReel } from './ServiceMenuReel';
 import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
@@ -217,11 +218,15 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" variante="texte" icone="retour" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
+    <View style={s.entete}>
+      <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
+      <Action titre="Visite guidée" variante="texte" icone="aide" iconeSeule agir={() => setVisiteOuverte(true)} />
+    </View>
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
-    <Action titre="Visite guidée" variante="texte" icone="aide" agir={() => setVisiteOuverte(true)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Icone nom={ICONES_SECTIONS[x]} taille={19} couleur={section === x ? c.surface : c.secondaire} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
+    <OngletsIcones desactive={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} actif={section} onglets={SECTIONS_RESTAURATEUR.map(x => ({ id: x, libelle: LIBELLES_SECTIONS[x], icone: ICONES_SECTIONS[x] }))}
+      choisir={x => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} />
+    <Text accessibilityRole="header" style={s.nom}>{LIBELLES_SECTIONS[section]}</Text>
     {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'service' && <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
       { cle: 'son', libelle: LIBELLE_SON, aide: AIDE_SON, actif: sonActif, changer: changerSon },
@@ -243,7 +248,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
     {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
-    <Action titre="Actualiser les commandes" secondaire agir={() => { void actualiser(); }} disabled={occupe} icone="actualiser" />
+    <Action titre="Actualiser les commandes" variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}
     {docMessage !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{docMessage}</Text>}
@@ -332,11 +337,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 
 const s = StyleSheet.create({
   alerte: { fontFamily: polices.texte, fontSize: 16, lineHeight: 24, fontWeight: '700', color: c.action },
-  sections: { flexDirection: 'row', gap: 8 },
-  onglet: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.action, borderRadius: 22, backgroundColor: c.surface },
-  ongletActif: { backgroundColor: c.action },
-  ongletTexte: { fontFamily: polices.texte, fontWeight: '700', fontSize: 11, textAlign: 'center', color: c.action },
-  ongletTexteActif: { color: c.surface },
+  entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   masque: { display: 'none' },
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   invite: { gap: 12, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },

@@ -249,11 +249,11 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       {vue==='compte'&&<>
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
       {profil?<><Text style={s.texte}>{profil.pseudo??'Profil à compléter sur le site'}</Text><Text style={s.texte}>{profil.favoris} favori(s) · {profil.adresses} adresse(s) enregistrée(s)</Text></>:<Text style={s.texte}>Votre espace n’a pas encore pu être lu.</Text>}
-      <Action titre="Actualiser mon espace" icone="actualiser" variante="texte" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
+      <Action titre="Actualiser mon espace" icone="actualiser" iconeSeule variante="texte" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
       <Text accessibilityRole="header" style={s.rubrique}>Mon espace</Text>
       <GroupeLignes>
         <LigneNavigation premiere titre="Mon profil" sousTitre="Adresses, favoris et avis" icone="compte" disabled={attente} onPress={()=>setEspaceOuvert(true)}/>
-        {livreur&&<LigneNavigation titre="Espace livreur" sousTitre="Courses, gains et état" icone="livreur" disabled={attente} onPress={()=>setLivreurOuvert(true)}/>}
+        {livreur&&<LigneNavigation titre="Espace livreur" sousTitre="Courses, frais de course et état" icone="livreur" disabled={attente} onPress={()=>setLivreurOuvert(true)}/>}
         {restaurateur&&<LigneNavigation titre="Espace restaurateur" sousTitre="Commandes, menu et service" icone="restaurateur" disabled={attente} onPress={()=>{
           void notifications.apresContexteRestaurateur(true).then(e=>{if(e)setMessage(MESSAGES_ETAT_RESTO[e]);});
           setRestaurateurOuvert(true);

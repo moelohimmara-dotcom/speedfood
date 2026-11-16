@@ -107,7 +107,7 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
           {vue.etat === 'refusee' && vue.motifRefus && <Text accessibilityRole="alert" style={s.texte}>Motif : {vue.motifRefus}</Text>}
           <Text style={s.secondaire}>{vue.aLogo ? 'Logo reçu.' : 'Pas encore de logo.'} {vue.aPhoto ? 'Photo reçue.' : 'Pas encore de photo.'}</Text>
         </View>
-        <Bouton titre="Actualiser ma demande" secondaire disabled={attente} onPress={() => { void executer(relire); }} />
+        <Bouton titre="Actualiser ma demande" variante="texte" icone="actualiser" iconeSeule disabled={attente} onPress={() => { void executer(relire); }} />
         {vue.etat !== 'creee' && <>
           <Bouton titre={vue.aLogo ? 'Changer le logo' : 'Envoyer le logo'} secondaire disabled={attente} onPress={() => { void envoyerImage('logo', 'galerie'); }} />
           <Bouton titre={vue.aPhoto ? 'Changer la photo' : 'Envoyer une photo du restaurant'} secondaire disabled={attente} onPress={() => { void envoyerImage('photo', 'galerie'); }} />
