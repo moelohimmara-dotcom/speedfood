@@ -59,3 +59,14 @@ test('câblage (source) : le module natif sait garder l’écran allumé et chaq
   assert.match(livreur, /veilleNative\.garderEcranAllume\(ecranLivreurAllume\(/);
   assert.match(livreur, /LIBELLE_POSTE_FIXE_LIVREUR/);
 });
+test('module natif : il est déclaré à la compilation (build.gradle) et chaque service de premier plan a sa permission de type', () => {
+  const gradle = source('../modules/speedfood-veille/android/build.gradle');
+  assert.match(gradle, /id 'com\.android\.library'/);
+  assert.match(gradle, /id 'expo-module-gradle-plugin'/);
+  assert.match(gradle, /namespace "com\.speedfood\.veille"/);
+  const manifeste = source('../modules/speedfood-veille/android/src/main/AndroidManifest.xml');
+  assert.match(manifeste, /foregroundServiceType="dataSync"/);
+  assert.match(manifeste, /android\.permission\.FOREGROUND_SERVICE_DATA_SYNC/);
+  assert.match(manifeste, /foregroundServiceType="location"/);
+  assert.match(manifeste, /android\.permission\.FOREGROUND_SERVICE_LOCATION/);
+});

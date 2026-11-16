@@ -131,3 +131,16 @@ Reste réel à coder, par ordre de valeur : **G19 + G23** (écran allumé : un s
 - **Natif** : nouvelle fonction `GarderEcranAllume` dans `speedfood-veille` (drapeau `FLAG_KEEP_SCREEN_ON` de l'activité). Un ancien APK sans cette fonction ne fait simplement rien. **Le code Kotlin natif n'a pas été compilé** : seule la compilation CI le dira. Essai sur téléphone à faire (écran qui reste allumé, relâché à la sortie).
 - Constat annexe : l'offre livreur a déjà son compte à rebours (`libelleEcheanceOffre`), ce qui retire encore un morceau de G22.
 - Tests : `preferences-poste.test.ts` (7), 881 tests au total, tsc propre.
+
+### Correction importante : le module natif `speedfood-veille` n'a jamais été compilé (16 novembre 2026, nuit)
+
+Constat à l'essai émulateur : avec le poste fixe actif, la fenêtre n'a pas le drapeau « écran allumé » et **aucun service de premier plan ne tourne**. Le contrôle de l'APK de compilation montre qu'aucune classe `com.speedfood.veille` n'y figure (ni `SpeedfoodVeilleModule`, ni les deux services). Cause : le module n'avait **pas de `android/build.gradle`**, donc l'autolinking d'Expo l'ignorait. Il était écrit « prototype, compilation CI requise » mais n'avait jamais été intégré à un build.
+
+Conséquences, qui **corrigent le second passage** :
+- **G20** (suivi de position du livreur) : le service de localisation n'existe pas dans les APK. `veilleNative.demarrerSuiviLivreur()` rend `false` sans rien dire. Le livreur n'envoie donc pas de position depuis l'appli Expo. Ce n'est plus « couvert en grande partie » : c'est **à vérifier et à tester sur téléphone**, avec la permission de localisation (qu'aucun code Expo ne demande non plus).
+- **G24** (alerte restaurateur) : la veille native (service, sonnerie, écran allumé) n'existait pas non plus. Seul le bandeau d'alerte dans l'appli et les notifications du serveur fonctionnaient.
+- **G19 et G23** (poste fixe) : leur partie « écran allumé » dépend du même module.
+
+Correctifs de ce commit : ajout de `android/build.gradle` (modèle des modules Expo officiels, plugin `expo-module-gradle-plugin`) et de la permission `FOREGROUND_SERVICE_DATA_SYNC`, absente (sur Android 14 et plus, le service de veille du restaurateur aurait fait planter l'appli à l'ouverture de l'espace). Test de présence ajouté. **Le code Kotlin des deux services n'a jamais été compilé** : un échec de compilation CI est possible et il faudra le lire.
+
+Le module étant désormais lié, il demandera des essais sur téléphone avant toute publication : sonnerie du restaurateur, notification de premier plan, position du livreur, permission de localisation.

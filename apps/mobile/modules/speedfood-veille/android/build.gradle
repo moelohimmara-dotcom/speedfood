@@ -1,0 +1,15 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.speedfood.veille'
+version = '1.0.0'
+
+android {
+  namespace "com.speedfood.veille"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
