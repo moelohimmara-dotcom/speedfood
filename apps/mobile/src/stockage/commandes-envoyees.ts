@@ -7,7 +7,7 @@ import type { PanierReel } from '../catalogue/panier-reel';
  * Mémoire locale des dernières commandes ENVOYÉES depuis cet appareil (pour « Commander à nouveau »). Base à part (`speedfood-client-commandes.db`), même forme qu'un panier :
  * une ligne, un texte versionné. Écritures strictement l'une après l'autre ; un échec de stockage ne gêne jamais l'envoi d'une commande.
  */
-export interface MemoireCommandes { lire(): Promise<MemoCommande[]>; memoriser(reference: string, panier: PanierReel): Promise<void> }
+export interface MemoireCommandes { lire(): Promise<MemoCommande[]>; memoriser(reference: string, panier: PanierReel): Promise<void>; oublier(): Promise<void> }
 let ouverture: Promise<MemoireCommandes> | null = null;
 async function ouvrir(): Promise<MemoireCommandes> {
   const db = await openDatabaseAsync('speedfood-client-commandes.db');
@@ -25,6 +25,7 @@ async function ouvrir(): Promise<MemoireCommandes> {
     return {
       lire: () => enfiler(async () => decoderMemos(await depot.lire())),
       memoriser: (reference, panier) => enfiler(async () => { const liste = decoderMemos(await depot.lire()); await depot.ecrire(encoderMemos(memoriserCommande(liste, reference, panier, Date.now()))); }),
+      oublier: () => enfiler(async () => { await depot.ecrire(encoderMemos([])); }),
     };
   } catch (e) { await db.closeAsync().catch(() => undefined); throw e; }
 }

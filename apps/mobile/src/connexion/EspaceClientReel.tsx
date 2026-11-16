@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Te
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
-import { ADRESSES_MAX, AVATARS_CLIENT, ErreurEspaceClient, MODES_PREFERES_CLIENT, emojiAvatarClient, validerAdresse, validerPseudo, type EspaceComplet } from './espace-client';
+import { ADRESSES_MAX, AVATARS_CLIENT, ErreurEspaceClient, MESSAGE_AUCUN_AVIS, MODES_PREFERES_CLIENT, emojiAvatarClient, etoilesAvis, libelleStatutAvis, validerAdresse, validerPseudo, type EspaceComplet } from './espace-client';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 /**
@@ -92,6 +92,16 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
       {espace.favoris.map(f => <View key={f.restaurantId} style={s.carte}>
         <Text style={s.nomPetit}>{f.nom}</Text><Text style={s.texte}>{f.ouvert ? 'Ouvert' : 'Fermé'}</Text>
         <View style={{ alignItems: 'flex-end' }}><Bouton titre={'Retirer ' + f.nom + ' des favoris'} icone="coeur" iconeSeule secondaire disabled={attente} onPress={() => { void ecrire(() => gestion.basculerFavori(f.restaurantId)); }} /></View>
+      </View>)}
+      <Text accessibilityRole="header" style={s.nom}>Mes avis</Text>
+      {espace.avis === null && <Text style={s.texte}>Vos avis ne peuvent pas être affichés pour le moment. Actualisez dans un instant.</Text>}
+      {espace.avis !== null && espace.avis.length === 0 && <Text style={s.texte}>{MESSAGE_AUCUN_AVIS}</Text>}
+      {(espace.avis ?? []).map(a => <View key={a.id} style={s.carte}>
+        <Text style={s.nomPetit}>{a.restaurantNom}</Text>
+        <Text accessibilityLabel={`${a.note} étoiles sur 5`} style={[s.nomPetit, { color: c.action }]}>{etoilesAvis(a.note)}</Text>
+        {!!a.commentaire && <Text style={s.texte}>{a.commentaire}</Text>}
+        {libelleStatutAvis(a.statut) && <Text style={s.secondaire}>{libelleStatutAvis(a.statut)}</Text>}
+        {!!a.reponse && <Text style={s.secondaire}>Réponse du restaurant : {a.reponse}</Text>}
       </View>)}
     </>}
   </ScrollView></SafeAreaView></Modal>;

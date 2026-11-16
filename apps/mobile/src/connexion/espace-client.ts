@@ -17,7 +17,14 @@ export const emojiAvatarClient = (cle: string | null | undefined): string => AVA
 export interface ProfilClient { pseudo: string; avatar: string; modePrefere: string | null; notificationsCommande: boolean }
 export interface AdresseClient { id: string; libelle: string; adresse: string; parDefaut: boolean }
 export interface FavoriClient { restaurantId: string; nom: string; ouvert: boolean }
-export interface EspaceComplet { profil: ProfilClient | null; adresses: AdresseClient[]; favoris: FavoriClient[] }
+/** Avis laissé sur un restaurant (parité Kotlin, tranche 10.5). `commentaire` est déjà vidé par le serveur quand la modération l'a masqué. */
+export interface AvisClient { id: string; restaurantNom: string; note: number; commentaire: string | null; statut: string; reponse: string | null; creeLe: string }
+/** `avis` : `null` quand le serveur en a envoyé de douteux (le reste de l'espace reste utilisable, mais on ne montre rien d'inventé) ; `[]` sans avis ou avec un serveur plus ancien. */
+export interface EspaceComplet { profil: ProfilClient | null; adresses: AdresseClient[]; favoris: FavoriClient[]; avis: AvisClient[] | null }
+export const AVIS_MAX = 100;
+export const MESSAGE_AUCUN_AVIS = 'Vous n’avez laissé aucun avis. Après une commande terminée, vous pouvez noter le restaurant.';
+export const etoilesAvis = (note: number): string => { const n = Math.min(5, Math.max(0, Math.trunc(note))); return '★'.repeat(n) + '☆'.repeat(5 - n); };
+export const libelleStatutAvis = (statut: string): string | null => statut === 'publie' ? null : 'En attente de modération';
 
 /** `refus` = rien n'a été enregistré ; `incertain` = l'écriture a pu être faite : on relit l'espace, on ne rejoue jamais (un favori se bascule). */
 export class ErreurEspaceClient extends Error {
@@ -48,7 +55,20 @@ export function lireEspaceComplet(v: Record<string, unknown>): EspaceComplet {
   if (!Array.isArray(v.adresses) || v.adresses.length > ADRESSES_MAX || !Array.isArray(v.favoris) || v.favoris.length > FAVORIS_MAX) return invalide();
   const adresses = v.adresses.map(x => { const o = objet(x); if (!estUuid(o.id)) return invalide(); return { id: o.id, libelle: texte(o.libelle, 60), adresse: texte(o.adresse, 400), parDefaut: booleen(o.parDefaut) }; });
   const favoris = v.favoris.map(x => { const o = objet(x); if (!estUuid(o.restaurantId)) return invalide(); return { restaurantId: o.restaurantId, nom: texte(o.nom, 200), ouvert: booleen(o.ouvert) }; });
-  return { profil, adresses, favoris };
+  return { profil, adresses, favoris, avis: lireAvis(v.avis) };
+}
+function texteFacultatif(v: unknown, max: number): string | null { if (v === null || v === undefined) return null; return texte(v, max); }
+/** Les avis sont secondaires : au moindre doute on renvoie `null` (« illisibles ») sans refuser l'espace entier. */
+function lireAvis(v: unknown): AvisClient[] | null {
+  if (v === undefined) return [];
+  try {
+    if (!Array.isArray(v) || v.length > AVIS_MAX) return null;
+    return v.map(x => {
+      const o = objet(x);
+      if (!estUuid(o.id) || typeof o.note !== 'number' || !Number.isInteger(o.note) || o.note < 1 || o.note > 5) return invalide();
+      return { id: o.id, restaurantNom: texte(o.restaurantNom, 200), note: o.note, commentaire: texteFacultatif(o.commentaire, 2000), statut: texte(o.statut, 40), reponse: texteFacultatif(o.reponse, 2000), creeLe: texte(o.creeLe, 40) };
+    });
+  } catch { return null; }
 }
 
 const PSEUDO_AUTORISE = /^[A-Za-zÀ-ÿ0-9 _.-]+$/;
