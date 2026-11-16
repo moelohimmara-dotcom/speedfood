@@ -1,0 +1,31 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icone } from '../design/Icone';
+import { couleurs as c, polices } from '../design/tokens';
+import { ONGLETS, libelleBadge, libelleOnglet, type IdOnglet } from './onglets';
+/** Barre d'onglets fixe du client (parité Kotlin, G18) : icône et mot court, onglet actif marqué, pastille du nombre d'articles sur « Panier ». Zones tactiles de 56 px au moins. */
+export function BarreOnglets({ actif, articles, choisir }: { actif: IdOnglet; articles: number; choisir(id: IdOnglet): void }) {
+  const insets = useSafeAreaInsets();
+  return <View accessibilityRole="tablist" style={[s.barre, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+    {ONGLETS.map(o => {
+      const choisi = o.id === actif; const badge = o.id === 'panier' ? libelleBadge(articles) : null;
+      return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: choisi }} accessibilityLabel={libelleOnglet(o.id, articles)} onPress={() => choisir(o.id)} style={s.onglet}>
+        <View style={[s.icone, choisi && s.iconeActive]}>
+          <Icone nom={o.icone} taille={24} couleur={choisi ? c.encre : c.secondaire} />
+          {badge && <View style={s.badge}><Text style={s.badgeTexte}>{badge}</Text></View>}
+        </View>
+        <Text style={[s.libelle, choisi && s.libelleActif]}>{o.libelle}</Text>
+      </Pressable>;
+    })}
+  </View>;
+}
+const s = StyleSheet.create({
+  barre: { flexDirection: 'row', backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.bordure, paddingTop: 6, paddingHorizontal: 4 },
+  onglet: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  icone: { width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  iconeActive: { backgroundColor: c.mangue },
+  badge: { position: 'absolute', top: -4, right: 6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: c.action, alignItems: 'center', justifyContent: 'center' },
+  badgeTexte: { color: c.surface, fontFamily: polices.texte, fontSize: 11, fontWeight: '700' },
+  libelle: { fontFamily: polices.texte, fontSize: 12, color: c.secondaire },
+  libelleActif: { color: c.encre, fontWeight: '700' },
+});

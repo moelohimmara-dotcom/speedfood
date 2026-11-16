@@ -24,10 +24,11 @@ import { notifications } from '../notifications';
 import { MESSAGES_ETAT_RESTO } from '../notifications/autorisation';
 import { creerDemandeEspace } from './ouverture-espace';
 let restauration: Promise<void> | null = null;
-const Action = ({ titre, agir, disabled = false, icone }: { titre: string; agir(): void; disabled?: boolean; icone?: NomIcone }) => <Bouton titre={titre} onPress={agir} disabled={disabled} icone={icone} />;
+const Action = ({ titre, agir, disabled = false, icone, iconeSeule = false, secondaire = false }: { titre: string; agir(): void; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; secondaire?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} icone={icone} iconeSeule={iconeSeule} secondaire={secondaire} />;
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
 /** `espaceDemande` / `messageEntree` : venus de l'écran d'entrée « Qui êtes-vous ? ». Une session ouverte ouvre directement l'espace demandé (le serveur revérifie chaque route) ; sinon `messageEntree` guide la connexion. */
-export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, messageEntree=null }: { ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; espaceDemande?:'restaurateur'|'livreur'|'equipe'|null; messageEntree?:string|null }) {
+/** `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets ; `vue` : onglet « Compte » (profil, espaces, réglages) ou « Commandes » (liste et suivi). Vrai : fenêtre plein écran comme avant. */
+export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, messageEntree=null, enModal=true, vue='compte' }: { ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; espaceDemande?:'restaurateur'|'livreur'|'equipe'|null; messageEntree?:string|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -181,7 +182,7 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
   // Ouvert par une notification appli fermée : la session n'est pas encore restaurée. La lecture des commandes est gardée et jouée UNE fois quand la session devient disponible.
   const lireRef=useRef(lireOuverture);lireRef.current=lireOuverture;
   const lectureDiff=useRef(creerLectureDifferee(()=>lireRef.current())).current;
-  useEffect(()=>{if(!ouvert){lectureDiff.fermeture();return;}if(gestion.connectee)lireOuverture();else lectureDiff.ouverture(false,demandeRef.current!==null);},[ouvert]);
+  useEffect(()=>{if(!ouvert){lectureDiff.fermeture();return;}if(gestion.connectee)lireOuverture();else lectureDiff.ouverture(false,demandeRef.current!==null);},[ouvert,vue]);
   useEffect(()=>{lectureDiff.sessionDisponible(ouvert);},[connectee]);
   if(restaurateurOuvert){
     // Au retour, l'état de la session est relu : une session terminée pendant l'espace restaurateur (401) renvoie au formulaire de connexion.
@@ -202,16 +203,17 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
     const terminee=()=>{setEspaceOuvert(false);setConnectee(gestion.connectee);setProfil(null);effacerLectures();setErreur('Votre session a pris fin. Reconnectez-vous.');};
     return <EspaceClientReel ouvert={ouvert} fermer={retour} sessionTerminee={terminee}/>;
   }
-  return <Modal visible={ouvert} onRequestClose={fermerFormulaire} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Action titre="Retour au catalogue" agir={fermerFormulaire}/><Text accessibilityRole="header" style={s.titre}>Mon compte</Text>
-    <Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>
+  const corps=<ScrollView style={enModal?undefined:{flex:1,backgroundColor:c.fond}} keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
+    {enModal&&<Action titre="Retour au catalogue" icone="retour" iconeSeule secondaire agir={fermerFormulaire}/>}
+    <Text accessibilityRole="header" style={s.titre}>{vue==='commandes'?'Mes commandes':'Mon compte'}</Text>
+    {(vue==='compte'||!connectee)&&<Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>}
     {attente&&<><ActivityIndicator color={c.action}/><Text accessibilityLiveRegion="polite" style={s.texte}>Connexion à Speedfood…</Text></>}
     {erreur&&<Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}{message!==''&&<Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
     {!connectee&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
     :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
     :!connectee?<>
       {messageEntree&&<Text accessibilityRole="alert" style={s.texte}>{messageEntree}</Text>}
-      <Text style={s.texte}>Connectez-vous avec votre compte Speedfood.</Text>
+      <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver vos commandes.':'Connectez-vous avec votre compte Speedfood.'}</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
       <Action titre="Me connecter" disabled={attente||!email.trim()||!motDePasse} agir={()=>{const demande=gestion.connecter(email,motDePasse);setEmail('');setMotDePasse('');void executer(async()=>{await demande;setProfil(await gestion.espace());});}}/>
@@ -221,6 +223,7 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       <Action titre="Créer un compte" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
       {erreur&&<Action titre="Relire la session protégée" disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
     </>:<>
+      {vue==='compte'&&<>
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
       {profil?<><Text style={s.texte}>{profil.pseudo??'Profil à compléter sur le site'}</Text><Text style={s.texte}>{profil.favoris} favori(s) · {profil.adresses} adresse(s) enregistrée(s)</Text></>:<Text style={s.texte}>Votre espace n’a pas encore pu être lu.</Text>}
       <Action titre="Actualiser mon espace" icone="actualiser" disabled={attente} agir={()=>{void executer(async()=>{setProfil(await gestion.espace());});}}/>
@@ -232,9 +235,13 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       }}/>}
       {equipe&&<Action titre="Espace équipe" icone="liste" disabled={attente} agir={()=>setEquipeOuverte(true)}/>}
       {(restaurateur||livreur||equipe)&&<ReglageVerrou/>}
-      <Action titre="Voir ou actualiser mes commandes" icone="document" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
+      </>}
+      {vue==='commandes'&&<>
+      <Action titre="Actualiser mes commandes" icone="actualiser" iconeSeule secondaire disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>
       {commandes!==null&&<><Text accessibilityRole="header" style={s.nom}>Mes commandes</Text><Text style={s.secondaire}>Les 50 dernières commandes au maximum. Actualisez pour lire leur état courant.</Text>{commandes.length===0&&<Text style={s.texte}>Aucune commande rattachée à ce compte.</Text>}{commandes.map(o=><ScrollView key={o.id} scrollEnabled={false} contentContainerStyle={s.carte}><Text style={s.nom}>{o.reference}{o.estTest?' · TEST':''}</Text><Text style={s.texte}>{o.restaurantNom} · {o.mode==='livraison'?'Livraison':o.mode==='retrait'?'Retrait':'Sur place'}</Text><Text style={s.texte}>{new Date(o.creeLe).toLocaleString('fr-FR')} · {o.totalGnf.toLocaleString('fr-FR')} GNF</Text><Text style={s.texte}>{libelle(o.statut)}</Text><Action titre={'Suivre '+o.reference} disabled={attente} agir={()=>{void executer(()=>lireSuivi(o.id));}}/></ScrollView>)}</>}
-      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&(suivi.valeur.proposition===null?<Text style={s.texte}>Le restaurant a proposé une modification que l’application ne peut pas afficher. Actualisez ce suivi ou consultez-la sur le site avant de répondre.</Text>:<PropositionCarte proposition={suivi.valeur.proposition} totalActuel={suivi.valeur.totalGnf} confirmation={confirmerProposition} occupe={attente} choisir={setConfirmerProposition} repondre={accepter=>{void executer(()=>repondreProposition(suivi.id,suivi.valeur.proposition!.id,accepter));}}/>)}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
+      {suivi&&<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}><Text accessibilityRole="header" style={s.nom}>Suivi {suivi.valeur.reference}{suivi.valeur.estTest?' · TEST':''}</Text><Text style={s.texte}>{libelle(suivi.valeur.etatDerive)}</Text><Text style={s.texte}>{suivi.valeur.restaurantNom} · {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>{suivi.valeur.pretEstimeeLe&&<Text style={s.texte}>Préparation estimée : {new Date(suivi.valeur.pretEstimeeLe).toLocaleString('fr-FR')}</Text>}{suivi.valeur.propositionEnAttente&&(suivi.valeur.proposition===null?<Text style={s.texte}>Le restaurant a proposé une modification que l’application ne peut pas afficher. Actualisez ce suivi ou consultez-la sur le site avant de répondre.</Text>:<PropositionCarte proposition={suivi.valeur.proposition} totalActuel={suivi.valeur.totalGnf} confirmation={confirmerProposition} occupe={attente} choisir={setConfirmerProposition} repondre={accepter=>{void executer(()=>repondreProposition(suivi.id,suivi.valeur.proposition!.id,accepter));}}/>)}{suivi.valeur.lignes.map((l,i)=><Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length>0?' ('+l.options.join(', ')+')':''} · {(l.prixGnf*l.quantite).toLocaleString('fr-FR')} GNF</Text>)}<Text style={s.secondaire}>État lu à {suivi.luLe}.</Text><ReglementReel key={suivi.id} suivi={suivi.valeur} lecture={suivi.lecture} occupe={attente} declarer={(m,ref)=>declarerReglement(suivi.id,m,ref)}/>{suivi.valeur.etatDerive==='en_attente'&&(confirmerAnnulation?<><Text accessibilityRole="alert" style={s.texte}>Annuler définitivement cette commande ?</Text><Action titre="Oui, annuler" disabled={attente} agir={()=>{setConfirmerAnnulation(false);void executer(()=>annulerCommande(suivi.id));}}/><Action titre="Non, garder" disabled={attente} agir={()=>setConfirmerAnnulation(false)}/></>:<Action titre="Annuler cette commande" disabled={attente} agir={()=>setConfirmerAnnulation(true)}/>)}<Action titre="Actualiser ce suivi" icone="actualiser" iconeSeule secondaire disabled={attente} agir={()=>{void executer(()=>lireSuivi(suivi.id));}}/></ScrollView>}
+      </>}
+      {vue==='compte'&&<>
       {suppressionOuverte?<ScrollView scrollEnabled={false} contentContainerStyle={s.carte}>
         <Text accessibilityRole="header" style={s.nom}>Supprimer mon compte</Text>
         <Text accessibilityRole="alert" style={s.texte}>Cette action est définitive : votre compte et vos données personnelles seront effacés et ne pourront pas être récupérés. Un compte professionnel (restaurant, livreur, équipe) ne peut pas être supprimé ici.</Text>
@@ -244,10 +251,13 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
         <Action titre="Non, garder mon compte" disabled={attente} agir={()=>{setSuppressionOuverte(false);setMotSuppression('');}}/>
       </ScrollView>:<Action titre="Supprimer mon compte" disabled={attente} agir={()=>setSuppressionOuverte(true)}/>}
       <Action titre="Me déconnecter de cet appareil" icone="deconnexion" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
+      </>}
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}
     <Text style={s.secondaire}>Vous pouvez commander en retrait ou en livraison depuis le panier lorsque vous êtes connecté.</Text>
-  </ScrollView></SafeAreaView></Modal>;
+  </ScrollView>;
+  if(enModal)return <Modal visible={ouvert} onRequestClose={fermerFormulaire} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}>{corps}</SafeAreaView></Modal>;
+  return ouvert?corps:null;
 }
 /** Proposition révisée du restaurant : nouveaux montants, conditions, échéance, puis accepter ou refuser (avec confirmation, car la réponse est définitive). */
 function PropositionCarte({proposition:p,totalActuel,confirmation,occupe,choisir,repondre}:{proposition:PropositionClient;totalActuel:number;confirmation:'acceptee'|'refusee'|null;occupe:boolean;choisir(v:'acceptee'|'refusee'|null):void;repondre(accepter:boolean):void}){

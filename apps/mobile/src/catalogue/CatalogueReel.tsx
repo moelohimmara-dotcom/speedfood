@@ -20,6 +20,8 @@ import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { EntreeReelle, doitOuvrirEntree } from '../connexion/EntreeReelle';
+import { BarreOnglets } from './BarreOnglets';
+import { etatPourOnglet, ongletActif, type IdOnglet } from './onglets';
 import type { EspaceEntree } from '../connexion/entree';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
@@ -29,7 +31,7 @@ import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } 
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
-const Action = ({ titre, agir, disabled = false, secondaire = false, icone, libelleCourt }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; icone?: NomIcone; libelleCourt?: string }) => <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} icone={icone} libelleCourt={libelleCourt} />;
+const Action = ({ titre, agir, disabled = false, secondaire = false, icone, libelleCourt, iconeSeule = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; icone?: NomIcone; libelleCourt?: string; iconeSeule?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} icone={icone} libelleCourt={libelleCourt} iconeSeule={iconeSeule} />;
 export function CatalogueReel() {
   const panier = usePanierReel();
   const [panierOuvert, setPanierOuvert] = useState(false);
@@ -162,22 +164,29 @@ export function CatalogueReel() {
   const titreRestaurant = menu?.restaurant ?? selection;
   const nombreArticles = panier.panier.lignes.reduce((total, ligne) => total + ligne.quantite, 0);
   const sousTotal = panier.menu ? chiffrer(panier.panier, panier.menu.plats).total : null;
-  const barrePanierVisible = nombreArticles > 0;
+  // Barre d'onglets (G18) : l'onglet actif se déduit de l'état des écrans ; un appui donne l'état voulu. Panier et Compte s'affichent DANS la page, sous la barre.
+  const onglet = ongletActif({ panierOuvert, compteOuvert, demandeCompte });
+  const surRestaurants = onglet === 'restaurants';
+  const barrePanierVisible = nombreArticles > 0 && surRestaurants;
+  function choisirOnglet(id: IdOnglet) {
+    const e = etatPourOnglet(id);
+    setPanierOuvert(e.panierOuvert); setCompteOuvert(e.compteOuvert); setDemandeCompte(e.demandeCompte);
+    if (id !== 'compte' && id !== 'commandes') { setEspaceDemande(null); setMessageEntree(null); }
+    if (e.panierOuvert) void panier.recharger();
+  }
   return <View style={{ flex: 1, backgroundColor: c.fond }}>
-    <View style={s.entete}><Image source={require('../../assets/images/speedfood.png')} style={{ width: 36, height: 36 }} /><Text style={s.marque}>Speedfood</Text><Text style={s.badge}>CATALOGUE</Text></View>
-    <ScrollView contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
-      {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" secondaire />}
+    <View style={s.entete}>
+      <Image source={require('../../assets/images/speedfood.png')} style={{ width: 36, height: 36 }} /><Text style={s.marque}>Speedfood</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Aide et contact" onPress={() => setAideOuverte(true)} style={s.rondEntete}><Icone nom="message" taille={22} couleur={c.encre} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Visite guidée" onPress={() => setVisiteOuverte(true)} style={s.rondEntete}><Icone nom="info" taille={22} couleur={c.encre} /></Pressable>
+    </View>
+    <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
+      {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
       <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Action titre={`Voir mon panier · ${panier.panier.lignes.reduce((n,l)=>n+l.quantite,0)} article(s)`} agir={voirPanier} icone="panier" libelleCourt={nombreArticles > 0 ? `Panier (${nombreArticles})` : 'Panier'} />
-        <Action titre="Mon compte Speedfood" agir={() => setCompteOuvert(true)} icone="compte" libelleCourt="Compte" />
-        <Action titre="Aide et contact" agir={() => setAideOuverte(true)} icone="message" libelleCourt="Aide" />
-        <Action titre="Visite guidée" agir={() => setVisiteOuverte(true)} icone="etoile" libelleCourt="Visite" />
-      </View>
       <Action titre="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="plat" secondaire />
       <Action titre="Qui êtes-vous ? Changer d’espace" agir={() => setEntreeOuverte(true)} icone="compte" secondaire libelleCourt="Changer d’espace" />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
@@ -187,7 +196,7 @@ export function CatalogueReel() {
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {!selection && <>
-        <TextInput accessibilityLabel="Rechercher dans les restaurants chargés" placeholder="Restaurant, cuisine, localité…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.recherche} />
+        <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher dans les restaurants chargés" placeholder="Restaurant, cuisine, localité…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
         <Text style={s.secondaire}>Recherche dans {restaurants.length} restaurant{restaurants.length > 1 ? 's chargés' : ' chargé'}.</Text>
         {visibles.map(r => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }]}>
           <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
@@ -211,7 +220,7 @@ export function CatalogueReel() {
       </>}
       {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Dernière lecture : {new Date((selection ? menu!.luLe : lectureLe)!).toLocaleString('fr-FR')}. La disponibilité peut évoluer.</Text>}
       {ageHorsLigne !== null && <Text accessibilityRole="alert" style={s.texte}>Vous êtes hors ligne : voici la dernière lecture gardée sur ce téléphone, {libelleAgeCache(ageHorsLigne)}. Les prix et disponibilités peuvent avoir changé ; commander demande le réseau.</Text>}
-      <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} icone="actualiser" secondaire />
+      <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} icone="actualiser" iconeSeule secondaire />
     </ScrollView>
     {barrePanierVisible && <View style={s.barrePanier} accessibilityRole="summary">
       <View style={{ flex: 1, gap: 2 }}>
@@ -220,12 +229,13 @@ export function CatalogueReel() {
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </View>}
-    <PanierReelVue ouvert={panierOuvert} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
+    <PanierReelVue enModal={false} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
+    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} />
+    <BarreOnglets actif={onglet} articles={nombreArticles} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
-    <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} />
     <EntreeReelle ouvert={entreeOuverte} fermer={() => setEntreeOuverte(false)}
       ouvrirEspace={espace => { setDemandeCompte(null); setMessageEntree(null); setEspaceDemande(espace); setCompteOuvert(true); }}
       ouvrirConnexion={message => { setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(message); setCompteOuvert(true); }}
@@ -244,7 +254,8 @@ const s = StyleSheet.create({
   surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 36, lineHeight: 41 },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },
-  note: { backgroundColor: c.avertissementFond, borderRadius: 16, padding: 16, gap: 12 }, recherche: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, minHeight: 56, padding: 16, fontFamily: polices.texte, fontSize: 15, color: c.encre },
+  note: { backgroundColor: c.avertissementFond, borderRadius: 16, padding: 16, gap: 12 }, rechercheBoite: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, minHeight: 56, paddingHorizontal: 16 }, rechercheChamp: { flex: 1, minHeight: 54, fontFamily: polices.texte, fontSize: 15, color: c.encre },
+  rondEntete: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface },
   action: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, justifyContent: 'center', alignItems: 'center' }, actionTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700', fontSize: 14 },
   barrePanier: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 18, backgroundColor: c.encre, shadowColor: c.encre, shadowOpacity: 0.16, shadowRadius: 10, elevation: 4 }, barrePanierTitre: { color: c.surface, fontFamily: polices.texte, fontSize: 15, fontWeight: '700' }, barrePanierSousTitre: { color: c.fond, fontFamily: polices.texte, fontSize: 12 }, barrePanierAction: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, justifyContent: 'center', backgroundColor: c.mangue }, barrePanierActionTexte: { color: c.encre, fontFamily: polices.texte, fontWeight: '700', fontSize: 13 },
 });

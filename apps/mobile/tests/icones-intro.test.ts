@@ -50,9 +50,13 @@ test('espaces pro : onglets restaurateur, actions livreur et modules equipe port
   assert.match(equipe, /icone=\{m\.icone\}/, 'les boutons de modules affichent leur icone');
 });
 
-test('accueil client : les entrees principales portent une icone (panier, compte, aide, visite, restaurant)', () => {
+test('accueil client : les entrees principales portent une icone (onglets, aide, visite, restaurant)', () => {
   const catalogue = lire('../src/catalogue/CatalogueReel.tsx');
-  for (const nom of ['panier', 'compte', 'message', 'etoile', 'plat']) {
-    assert.match(catalogue, new RegExp(`icone="${nom}"`), `entree sans icone dans le catalogue : ${nom}`);
-  }
+  const onglets = lire('../src/catalogue/onglets.ts');
+  // Barre d'onglets (G18) : Restaurants, Commandes, Panier, Compte, chacun avec son icône.
+  for (const nom of ['plat', 'document', 'panier', 'compte']) assert.match(onglets, new RegExp(`icone: '${nom}'`), `onglet sans icone : ${nom}`);
+  // En-tête : Aide et Visite guidée en boutons ronds à icône seule, dont le nom accessible dit l'action en toutes lettres.
+  assert.match(catalogue, /accessibilityLabel="Aide et contact"[\s\S]{0,140}?<Icone nom="message"/);
+  assert.match(catalogue, /accessibilityLabel="Visite guidée"[\s\S]{0,140}?<Icone nom="info"/);
+  assert.match(catalogue, /icone="plat"/, 'entree sans icone dans le catalogue : plat (J’ai un restaurant)');
 });
