@@ -62,7 +62,8 @@ export function usePanierReel() {
         vus.add(page.suivant); page = await lecteur.menu(memo.restaurantId, page.suivant); plats.push(...page.plats);
       }
       const plan = preparerRecommande(memo, plats);
-      if (plan.ajoutes > 0) { modifier(plan.panier); verification.current++; setLecture(false); setMenu(null); setErreurLecture(null); }
+      // Le menu vient d'être lu : on le garde pour que le panier s'ouvre déjà vérifié (nom, prix, total), sans second appui sur « recharger ».
+      if (plan.ajoutes > 0) { modifier(plan.panier); verification.current++; setLecture(false); setMenu({ ...page, plats }); setErreurLecture(null); setPrixModifies(false); }
       return plan;
     },
     /** `cle` : clé de la ligne (`cleLigne`) ; pour une ligne sans supplément, l'identifiant du plat. */

@@ -74,3 +74,8 @@ test('câblage (source) : l’envoi réussi mémorise, la liste propose « Comma
   assert.match(source('../src/catalogue/CommandeReelle.tsx'), /const avant = etat\.panier;[\s\S]*apresSucces\(r\.reference, avant\)/);
   assert.match(source('../src/connexion/CompteReel.tsx'), /titre="Commander à nouveau"/);
 });
+test('câblage (source) : après « Commander à nouveau », le menu lu est conservé pour que le panier s’ouvre déjà vérifié', () => {
+  const s = source('../src/catalogue/usePanierReel.ts');
+  assert.match(s, /if \(plan\.ajoutes > 0\) \{ modifier\(plan\.panier\);[^}]*setMenu\(\{ \.\.\.page, plats \}\);/);
+  assert.doesNotMatch(s, /if \(plan\.ajoutes > 0\) \{[^}]*setMenu\(null\)/);
+});
