@@ -49,12 +49,12 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
   const pseudoValide = validerPseudo(pseudo).ok;
   const adresseValide = validerAdresse(libelle, adresse).ok;
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Bouton titre="Retour" onPress={fermer} />
+    <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Mon espace</Text>
     {attente && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Un instant…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Bouton titre="Actualiser mon espace" secondaire disabled={attente} onPress={() => { void ecrire(async () => ({ message: '' })); }} />
+    <Bouton titre="Actualiser mon espace" icone="actualiser" iconeSeule secondaire disabled={attente} onPress={() => { void ecrire(async () => ({ message: '' })); }} />
     {espace && <>
       <Text accessibilityRole="header" style={s.nom}>Mon profil</Text>
       <View style={s.carte}>
@@ -75,7 +75,7 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
         {!a.parDefaut && <Bouton titre={'Définir « ' + a.libelle + ' » comme principale'} secondaire disabled={attente} onPress={() => { void ecrire(() => gestion.actionAdresse({ action: 'defaut', adresseId: a.id })); }} />}
         {aSupprimer === a.id
           ? <><Text accessibilityRole="alert" style={s.texte}>Supprimer cette adresse ?</Text><Bouton titre="Oui, supprimer" disabled={attente} onPress={() => { void ecrire(() => gestion.actionAdresse({ action: 'supprimer', adresseId: a.id })); }} /><Bouton titre="Non, garder" secondaire disabled={attente} onPress={() => setASupprimer(null)} /></>
-          : <Bouton titre={'Supprimer « ' + a.libelle + ' »'} secondaire disabled={attente} onPress={() => setASupprimer(a.id)} />}
+          : <View style={{ alignItems: 'flex-end' }}><Bouton titre={'Supprimer « ' + a.libelle + ' »'} icone="corbeille" iconeSeule secondaire disabled={attente} onPress={() => setASupprimer(a.id)} /></View>}
       </View>)}
       {espace.adresses.length < ADRESSES_MAX
         ? <View style={s.carte}>
@@ -91,7 +91,7 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
       {espace.favoris.length === 0 && <Text style={s.texte}>Aucun favori. Touchez le cœur d’un restaurant pour le retrouver ici.</Text>}
       {espace.favoris.map(f => <View key={f.restaurantId} style={s.carte}>
         <Text style={s.nomPetit}>{f.nom}</Text><Text style={s.texte}>{f.ouvert ? 'Ouvert' : 'Fermé'}</Text>
-        <Bouton titre={'Retirer ' + f.nom + ' des favoris'} secondaire disabled={attente} onPress={() => { void ecrire(() => gestion.basculerFavori(f.restaurantId)); }} />
+        <View style={{ alignItems: 'flex-end' }}><Bouton titre={'Retirer ' + f.nom + ' des favoris'} icone="coeur" iconeSeule secondaire disabled={attente} onPress={() => { void ecrire(() => gestion.basculerFavori(f.restaurantId)); }} /></View>
       </View>)}
     </>}
   </ScrollView></SafeAreaView></Modal>;

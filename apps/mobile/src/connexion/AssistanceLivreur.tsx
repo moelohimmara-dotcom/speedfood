@@ -28,7 +28,7 @@ export function AssistanceLivreur({ ouvert, fermer, referenceCourse }: { ouvert:
   }
   const whatsapp = adresseWhatsApp(numero); const appel = adresseAppel(numero);
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Bouton titre="Retour" onPress={fermer} />
+    <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Assistance conducteur</Text>
     <Text accessibilityRole="header" style={s.nom}>Règles de la plateforme</Text>
     {REGLES_LIVREUR.map(r => <Text key={r} style={s.texte}>• {r}</Text>)}

@@ -52,7 +52,8 @@ export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date()
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{detail && <Text style={s.secondaire}>{detail}</Text>}</View>
       </View>
     </View>
-    <Bouton titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : `Ajouter ${p.nom} au panier`} libelleCourt={p.disponibilite === 'epuise' ? 'Épuisé' : 'Ajouter'} icone="panier" disabled={desactive || p.disponibilite === 'epuise'} onPress={ajouter} />
+    {/* « + » rond à droite, comme dans les applis de commande : le nom accessible dit « Ajouter X au panier » ; un plat épuisé est grisé. */}
+    <View style={{ alignItems: 'flex-end' }}><Bouton titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : `Ajouter ${p.nom} au panier`} icone="plus" iconeSeule disabled={desactive || p.disponibilite === 'epuise'} onPress={ajouter} /></View>
   </View>;
 }
 const s = StyleSheet.create({

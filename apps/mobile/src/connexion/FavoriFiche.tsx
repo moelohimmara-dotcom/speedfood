@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Icone } from '../design/Icone';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import { ErreurEspaceClient, type FavoriClient } from './espace-client';
 import { etatFavori, libelleFavori } from './favori-fiche';
-import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 /**
  * Bouton « favori » de la fiche restaurant (parité Kotlin, lot 1, ligne B9). L'état est LU sur le serveur avant toute action ; la bascule est faite en un seul essai puis l'état réel est relu
@@ -37,9 +37,14 @@ export function FavoriFiche({ restaurantId, nom, version, ouvrirCompte }: { rest
   }
   const etat = etatFavori({ connectee: gestion.connectee, favoris, erreurLecture }, restaurantId);
   const titre = libelleFavori(etat, nom);
+  // Cœur seul, compris de tous : plein quand le restaurant est en favori, vide sinon. Le nom accessible dit l'action exacte (« Ajouter X aux favoris »…).
   return <View style={s.bloc}>
-    {titre !== null && <Bouton titre={titre} secondaire disabled={attente} onPress={() => { if (etat === 'connexion') ouvrirCompte(); else if (etat === 'indisponible') { enCours.current = true; setAttente(true); void lire().finally(() => { enCours.current = false; if (actif.current) setAttente(false); }); } else void basculer(); }} />}
+    {titre !== null && <Pressable accessibilityRole="button" accessibilityLabel={titre} accessibilityState={{ disabled: attente, selected: etat === 'favori' }} disabled={attente} style={[s.coeur, etat === 'favori' && s.coeurActif, attente && { opacity: .5 }]}
+      onPress={() => { if (etat === 'connexion') ouvrirCompte(); else if (etat === 'indisponible') { enCours.current = true; setAttente(true); void lire().finally(() => { enCours.current = false; if (actif.current) setAttente(false); }); } else void basculer(); }}>
+      <Icone nom="coeur" taille={26} couleur={etat === 'favori' ? c.action : c.encre} rempli={etat === 'favori'} />
+    </Pressable>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
   </View>;
 }
-const s = StyleSheet.create({ bloc: { gap: 8 }, texte: { fontFamily: polices.texte, fontSize: 13, lineHeight: 20, color: c.secondaire } });
+const s = StyleSheet.create({ bloc: { gap: 8 }, texte: { fontFamily: polices.texte, fontSize: 13, lineHeight: 20, color: c.secondaire },
+  coeur: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface }, coeurActif: { borderColor: c.action, borderWidth: 2 } });

@@ -28,7 +28,7 @@ export function AideReelle({ ouvert, fermer, restaurateur = false }: { ouvert: b
   const whatsapp = adresseWhatsApp(numero); const appel = adresseAppel(numero);
   const questions = restaurateur ? QUESTIONS_AIDE_RESTAURATEUR.concat(QUESTIONS_AIDE) : QUESTIONS_AIDE;
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Bouton titre="Retour" onPress={fermer} />
+    <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Aide et contact</Text>
     <Text accessibilityRole="header" style={s.nom}>Nous contacter</Text>
     {attente && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Recherche du contact d’assistance…</Text></>}

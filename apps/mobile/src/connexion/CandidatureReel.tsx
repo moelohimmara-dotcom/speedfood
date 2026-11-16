@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bouton } from '../design/Composants';
@@ -89,7 +89,7 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
   }
 
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Bouton titre="Retour" onPress={fermer} />
+    <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
     <Text accessibilityRole="header" style={s.titre}>J'ai un restaurant</Text>
     {!gestion.connectee ? <>
       <Text style={s.texte}>Connectez-vous avec votre compte Speedfood pour déposer la demande de votre restaurant. L'équipe Speedfood la lit et vous répond sous 48 h.</Text>
