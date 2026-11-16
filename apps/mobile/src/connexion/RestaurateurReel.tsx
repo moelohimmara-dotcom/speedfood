@@ -226,7 +226,10 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
     <OngletsIcones desactive={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} actif={section} onglets={SECTIONS_RESTAURATEUR.map(x => ({ id: x, libelle: LIBELLES_SECTIONS[x], icone: ICONES_SECTIONS[x] }))}
       choisir={x => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} />
-    <Text accessibilityRole="header" style={s.nom}>{LIBELLES_SECTIONS[section]}</Text>
+    <View style={s.ligneTitre}>
+      <Text accessibilityRole="header" style={[s.nom, { flex: 1 }]}>{LIBELLES_SECTIONS[section]}</Text>
+      {section === 'commandes' && <Action titre="Actualiser les commandes" variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />}
+    </View>
     {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'service' && <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
       { cle: 'son', libelle: LIBELLE_SON, aide: AIDE_SON, actif: sonActif, changer: changerSon },
@@ -248,7 +251,6 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
     {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
-    <Action titre="Actualiser les commandes" variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}
     {docMessage !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{docMessage}</Text>}
@@ -338,6 +340,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 const s = StyleSheet.create({
   alerte: { fontFamily: polices.texte, fontSize: 16, lineHeight: 24, fontWeight: '700', color: c.action },
   entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  ligneTitre: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   masque: { display: 'none' },
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   invite: { gap: 12, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },

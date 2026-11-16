@@ -101,3 +101,10 @@ test('icônes seules là où le geste est universel, texte là où il faut un mo
   assert.match(lire('../src/connexion/LivreurReel.tsx'), /<LigneNavigation premiere actif=\{fileOuverte\} titre="File des courses"/);
   for (const f of fichiers(racine)) assert.doesNotMatch(readFileSync(f, 'utf8'), /sousTitre="[^"]*\bgains?\b/i, f);
 });
+test('l’icône d’actualisation vit sur la ligne du titre (restaurateur) ou dans la carte d’état (livreur), jamais seule sous un bouton', () => {
+  const resto = lire('../src/connexion/RestaurateurReel.tsx');
+  assert.match(resto, /<View style=\{s\.ligneTitre\}>[\s\S]{0,260}section === 'commandes' && <Action titre="Actualiser les commandes"/);
+  const livreur = lire('../src/connexion/LivreurReel.tsx');
+  assert.match(livreur, /<View style=\{s\.ligneTitre\}>[\s\S]{0,260}<Action titre="Actualiser mon état"/);
+  assert.equal((livreur.match(/titre="Actualiser mon état" variante="texte" icone="actualiser" iconeSeule disabled=\{ecritureEnCours\}/g) ?? []).length, 1, 'une seule icône d’actualisation dans l’écran d’état');
+});

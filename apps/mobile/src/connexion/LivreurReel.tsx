@@ -135,7 +135,10 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
   const etapes = course ? boutonsCourse(course) : [];
   return <View style={s.carteGlobal}>
     <View style={s.carte}>
-      <Text accessibilityRole="header" style={s.nom}>{fiche.nom}</Text>
+      <View style={s.ligneTitre}>
+        <Text accessibilityRole="header" style={[s.nom, { flex: 1 }]}>{fiche.nom}</Text>
+        <Action titre="Actualiser mon état" variante="texte" icone="actualiser" iconeSeule disabled={ecritureEnCours} agir={actualiser} />
+      </View>
       <Text style={s.ligne}>{LIBELLES_CYCLE_LIVREUR[fiche.cycle]}</Text>
       <Text style={s.ligne}>État : {LIBELLES_STATUT_LIVREUR[fiche.statut]}</Text>
       <Text style={s.ligne}>Déplacement : {LIBELLES_VEHICULE_LIVREUR[fiche.vehicule]}</Text>
@@ -226,7 +229,6 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
     {enLigne && etatPosition === 'indisponible' && <Text style={s.secondaire}>{MESSAGE_POSITION_ABSENTE}</Text>}
     {enLigne && etatPosition === 'recherche' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{MESSAGE_POSITION_RECHERCHE}</Text>}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
-    <Action titre="Actualiser mon état" variante="texte" icone="actualiser" iconeSeule disabled={ecritureEnCours} agir={actualiser} />
     <GroupeLignes>
       <LigneNavigation premiere actif={fileOuverte} titre="File des courses" sousTitre="Les courses qui vous attendent" icone="liste" disabled={ecritureEnCours} onPress={() => setFileOuverte(v => !v)} />
       <LigneNavigation actif={coursesOuvertes} titre="Mes courses livrées et leurs frais" sousTitre="Historique et frais de course" icone="document" disabled={ecritureEnCours} onPress={() => setCoursesOuvertes(v => !v)} />
@@ -273,6 +275,7 @@ const s = StyleSheet.create({
   contenu: { padding: 20, gap: 14 },
   titre: { fontFamily: polices.titre, fontSize: 30, color: c.encre },
   carteGlobal: { gap: 14 },
+  ligneTitre: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, padding: 16, gap: 7 },
   client: { gap: 4, paddingTop: 6 },
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
