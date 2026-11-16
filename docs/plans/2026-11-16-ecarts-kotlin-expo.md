@@ -107,3 +107,20 @@ Méthode : les textes affichés par neuf écrans de l'ancienne appli (livreur : 
 | G26 | Restaurateur | Menu vide : « ajoutez votre premier plat » ; suppression d'un plat : texte d'avertissement | MenuRestaurateurScreen | Textes absents |
 
 Suite proposée : essai émulateur de l'ensemble du lot 10 et de ces lignes avec le compte TEST, puis tranches 10.6 (livreur : G19 à G22) et 10.7 (restaurateur : G23 à G26). G20 attend une décision de Malika (permission de position en arrière-plan).
+
+### Second passage : comparaison du code Kotlin et Expo (16 novembre 2026, soir)
+
+L'ancienne appli n'étant pas connectée sur l'émulateur (et le mot de passe n'étant jamais saisi), la comparaison s'est faite sur le code. Le premier passage donnait **beaucoup de faux positifs** : plusieurs fonctions existent déjà sous d'autres mots, ou dans le module natif `apps/mobile/modules/speedfood-veille` (services de premier plan : veille du restaurateur avec sonnerie et allumage de l'écran, suivi de position du livreur).
+
+| Réf. | Verdict | Détail |
+|---|---|---|
+| G19 | **Confirmé** | Kotlin : `PosteFixe` (écran allumé pendant une course, interrupteur « Mode poste fixe » dans l'accueil et le compte du livreur, choix gardé sur l'appareil, absent = non). Expo : aucun module pour garder l'écran allumé (pas d'`expo-keep-awake`, rien dans `speedfood-veille`). |
+| G20 | **Déjà couvert en grande partie** | Expo a `SuiviLivreurService` (service de premier plan de localisation, `FOREGROUND_SERVICE_TYPE_LOCATION`), donc le suivi continue écran éteint tant que le service tourne. À vérifier : la permission demandée et l'invite « Recevoir vos courses écran éteint ? » (choix de l'ancienne appli). Décision produit et essai téléphone restent nécessaires. |
+| G21 | **Confirmé en partie** | Les libellés de cycle de la fiche existent (« Compte actif », « Dossier en cours »…). Manque la rubrique « Mon dossier » (pièces manquantes, « Votre dossier est complet. »), à brancher sur la même route que Kotlin (`LivreurEspace.kt`, `PieceDossierLivreur`). |
+| G22 | **Réfuté pour l'essentiel** | Existent sous d'autres mots : « Offre en attente » (restaurant, distances, frais, Accepter/Refuser), la file des courses, l'échec de livraison avec raison de 300 caractères (`confirmerEchec`), les gains en « frais de course » (choix volontaire : ce n'est pas une paie, voir `gains-livreur.ts`). Reste à comparer : le compte à rebours de l'offre et la liste « Courses à venir ». |
+| G23 | **Confirmé** | Kotlin : réglages « son des nouvelles commandes » et « poste fixe » du restaurateur (stockés sur l'appareil, actifs tant qu'ils ne sont pas coupés). Expo : aucun des deux réglages. Les horaires et plats à reconfirmer existent déjà. |
+| G24 | **Fonction présente, invite absente** | La veille (`VeilleRestaurateurService`, surveillance portée en TypeScript, sonnerie et écran) existe. Manque l'invite « Être alerté application fermée ? » qui explique et laisse choisir. Application fermée, ce sont les notifications du serveur qui prennent le relais (voir le commentaire de `speedfood-veille/src/index.ts`) : la surveillance continue de l'ancienne appli n'est pas identique. |
+| G25 | **Réfuté** | Expo a « Proposer un autre prix » (formulaire à trois champs, récapitulatif ancien prix vers nouveau, confirmation avant envoi). Écart de libellé seulement. |
+| G26 | **Mineur** | Menu vide : Kotlin « Votre menu est vide : ajoutez votre premier plat. », Expo « Aucun plat dans le menu. ». Il n'existe aucun texte de suppression de plat dans Kotlin (seulement « Retirer ce supplément » et « Retirer la photo », déjà présents dans Expo). |
+
+Reste réel à coder, par ordre de valeur : **G19 + G23** (écran allumé : un seul module `expo-keep-awake` ou un drapeau dans `speedfood-veille`, plus les réglages du téléphone), **G24** (invite d'explication), **G21** (« Mon dossier »), **G26** (texte du menu vide). Tout module natif ajouté oblige à compiler un nouvel APK et à essayer sur téléphone.
