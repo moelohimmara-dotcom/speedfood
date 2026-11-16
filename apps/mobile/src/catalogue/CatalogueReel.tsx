@@ -6,6 +6,9 @@ import { creerCacheCatalogue, libelleAgeCache } from './cache-catalogue';
 import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
 import { chiffrer, type PanierReel } from './panier-reel';
 import { libelleRecommande, trouverMemo, type MemoCommande } from './recommande';
+import * as SecureStore from 'expo-secure-store';
+import { CLE_ZONE_ACCUEIL, FILTRES, filtrerRestaurants, libelleZone, nombreParZone, restaurantsDansZone, sectionsAccueil, zoneEffective, zonesDisponibles, type IdFiltre } from './accueil';
+import { ChoixZone } from './ChoixZone';
 import { ouvrirCommandesEnvoyees } from '../stockage/commandes-envoyees';
 import { couleurs as c, polices } from '../design/tokens';
 import { Bouton } from '../design/Composants';
@@ -180,8 +183,24 @@ export function CatalogueReel() {
     const abonnement = BackHandler.addEventListener('hardwareBackPress', () => { retour(); return true; });
     return () => abonnement.remove();
   }, [selection]);
-  const normaliser = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const visibles = restaurants.filter(r => normaliser(r.nom+' '+r.lieu+' '+r.categorie).includes(normaliser(recherche.trim())));
+  // Accueil (10.3) : zone choisie sans position (m\u00e9moris\u00e9e), filtre, recherche, sections quand la liste est assez longue.
+  const [choixZone, setChoixZone] = useState<string | null>(null);
+  const [zoneOuverte, setZoneOuverte] = useState(false);
+  const [filtre, setFiltre] = useState<IdFiltre>('tous');
+  useEffect(() => { void SecureStore.getItemAsync(CLE_ZONE_ACCUEIL).then(v => setChoixZone(v), () => undefined); }, []);
+  function choisirZone(id: string) { setChoixZone(id); setZoneOuverte(false); void SecureStore.setItemAsync(CLE_ZONE_ACCUEIL, id).catch(() => undefined); }
+  const zones = zonesDisponibles(restaurants);
+  const zone = zoneEffective(zones, choixZone);
+  const visibles = filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre);
+  const sections = sectionsAccueil(visibles, recherche, filtre);
+  const carteRestaurant = (r: RestaurantPublic, cle: string) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }]}>
+    <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
+    <View style={{ flex: 1, gap: 8 }}>
+      <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' \u00b7 ') || 'Localisation non renseign\u00e9e'}</Text></View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
+    </View>
+  </Pressable>; };
   const titreRestaurant = menu?.restaurant ?? selection;
   const nombreArticles = panier.panier.lignes.reduce((total, ligne) => total + ligne.quantite, 0);
   const sousTotal = panier.menu ? chiffrer(panier.panier, panier.menu.plats).total : null;
@@ -217,17 +236,16 @@ export function CatalogueReel() {
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {!selection && <>
-        <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher dans les restaurants chargés" placeholder="Restaurant, cuisine, localité…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
-        <Text style={s.secondaire}>Recherche dans {restaurants.length} restaurant{restaurants.length > 1 ? 's chargés' : ' chargé'}.</Text>
-        {visibles.map(r => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }]}>
-          <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
-          <View style={{ flex: 1, gap: 8 }}>
-            <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</Text></View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
-          </View>
-        </Pressable>; })}
-        {!charge && !erreur && visibles.length === 0 && <Text style={s.texte}>{restaurants.length ? 'Aucun résultat parmi les restaurants chargés.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
+        {zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}
+        <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher un restaurant, un quartier ou une cuisine" placeholder="Un restaurant, un quartier, une cuisine…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
+        <Text style={s.secondaire}>{visibles.length} restaurant{visibles.length > 1 ? 's' : ''} sur {restaurants.length} chargé{restaurants.length > 1 ? 's' : ''}.</Text>
+        {sections ? <>
+          {sections.ouverts.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Ouverts maintenant</Text>{sections.ouverts.map(r => carteRestaurant(r, 'ouverts-' + r.id))}</>}
+          {sections.mieuxNotes.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Les mieux notés</Text>{sections.mieuxNotes.map(r => carteRestaurant(r, 'notes-' + r.id))}</>}
+          <Text accessibilityRole="header" style={s.titreSection}>Tous les restaurants</Text>{visibles.map(r => carteRestaurant(r, 'tous-' + r.id))}
+        </> : visibles.map(r => carteRestaurant(r, r.id))}
+        {!charge && !erreur && visibles.length === 0 && <Text style={s.texte}>{restaurants.length ? 'Aucun restaurant ne correspond à votre recherche.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
         {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
       </>}
       {menu && <>
@@ -264,6 +282,7 @@ export function CatalogueReel() {
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
+    <ChoixZone visible={zoneOuverte} zones={zones} nombres={nombreParZone(restaurants, zones)} total={restaurants.length} courante={zone} choisir={choisirZone} fermer={() => setZoneOuverte(false)} />
     <ChoixSupplements key={platEnChoix?.id ?? 'aucun'} plat={platEnChoix} annuler={() => setPlatEnChoix(null)} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); if (p) ajouterAuPanier(p, ids); }} />
     <ChangerRestaurant visible={remplacement !== null} nomPanier={panier.menu?.restaurant.nom ?? null} vider={remplacerPanier} garder={() => setRemplacement(null)} />
     <ChangerRestaurant visible={recommandeEnAttente !== null} titreAction="Vider et recommander" nomPanier={panier.menu?.restaurant.nom ?? null} vider={() => { if (recommandeEnAttente) void recommander(recommandeEnAttente); }} garder={() => setRecommandeEnAttente(null)} />
@@ -275,6 +294,7 @@ const s = StyleSheet.create({
   contenu: { padding: 22, gap: 18, width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 40 },
   surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 36, lineHeight: 41 },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
+  puceZone: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5, borderColor: c.encre, backgroundColor: c.surface }, puceTexte: { color: c.encre, fontFamily: polices.texte, fontSize: 14 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },
   note: { backgroundColor: c.avertissementFond, borderRadius: 16, padding: 16, gap: 12 }, rechercheBoite: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, minHeight: 56, paddingHorizontal: 16 }, rechercheChamp: { flex: 1, minHeight: 54, fontFamily: polices.texte, fontSize: 15, color: c.encre },
   rondEntete: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface },
