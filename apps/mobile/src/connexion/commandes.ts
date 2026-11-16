@@ -4,7 +4,9 @@ export interface CommandeAvecCle extends CommandeCompte { jeton:string|null }
 /** Proposition révisée du restaurant, telle que le client la voit (parité Kotlin `PropositionSuivie`, ligne B7). */
 export interface PropositionClient { id:string; nouveauSousTotal:number; nouveauxFraisLivraison:number; nouveauTotal:number; conditionsModifiees:string|null; expireLe:string|null }
 /** `proposition` est `null` quand il n'y en a pas, OU quand elle est illisible : `propositionEnAttente` reste alors vrai (le règlement reste fermé) mais rien n'est répondable depuis l'appli. */
-export interface ResumeSuivi { reference:string; statut:string; etatDerive:string; mode:string; estTest:boolean; restaurantNom:string; totalGnf:number; pretEstimeeLe:string|null; propositionEnAttente:boolean; proposition:PropositionClient|null; lignes:LigneSuivi[]; paiement:ReglementSuivi|null }
+export interface ResumeSuivi { reference:string; statut:string; etatDerive:string; mode:string; estTest:boolean; restaurantNom:string; totalGnf:number; pretEstimeeLe:string|null; propositionEnAttente:boolean; proposition:PropositionClient|null; lignes:LigneSuivi[]; paiement:ReglementSuivi|null;
+ /** Sous-total des plats, frais de livraison estimés (ou 0) et délai de préparation habituel du restaurant (5 à 240 min), `null` s'il n'en déclare pas. `totalGnf` = somme des deux premiers. */
+ sousTotalGnf:number; fraisLivraisonGnf:number; delaiPreparationMinutes:number|null }
 export interface LigneSuivi { nom:string; quantite:number; prixGnf:number; options:string[] }
 function invalide():never { throw Error('LECTURE_COMMANDE_INVALIDE'); }
 function objet(v:unknown):Record<string,unknown>{if(!v||typeof v!=='object'||Array.isArray(v))return invalide();return v as Record<string,unknown>;}
@@ -35,5 +37,6 @@ function lireProposition(v:unknown):PropositionClient|null{
 }
 export function lireSuivi(v:Record<string,unknown>):ResumeSuivi{
  if(v.ok!==true)return invalide();const o=objet(v.suivi);const total=montant(o.sousTotal)+montant(o.fraisLivraisonEstime);if(!Number.isSafeInteger(total))return invalide();
- return {reference:texte(o.reference,40),statut:texte(o.statut,40),etatDerive:texte(o.etatDerive,60),mode:texte(o.mode,40),estTest:booleen(o.estTest),restaurantNom:texte(objet(o.restaurant).nom),totalGnf:total,pretEstimeeLe:o.pretEstimeeLe===null?null:date(o.pretEstimeeLe),propositionEnAttente:o.propositionActive!=null,proposition:o.propositionActive==null?null:lireProposition(o.propositionActive),lignes:lignes(o.lignes),paiement:lireReglementOuNull(o.paiement)};
+ return {reference:texte(o.reference,40),statut:texte(o.statut,40),etatDerive:texte(o.etatDerive,60),mode:texte(o.mode,40),estTest:booleen(o.estTest),restaurantNom:texte(objet(o.restaurant).nom),totalGnf:total,pretEstimeeLe:o.pretEstimeeLe===null?null:date(o.pretEstimeeLe),propositionEnAttente:o.propositionActive!=null,proposition:o.propositionActive==null?null:lireProposition(o.propositionActive),lignes:lignes(o.lignes),paiement:lireReglementOuNull(o.paiement),sousTotalGnf:montant(o.sousTotal),fraisLivraisonGnf:montant(o.fraisLivraisonEstime),delaiPreparationMinutes:delaiPreparation(objet(o.restaurant).delaiPreparationMinutes)};
 }
+function delaiPreparation(v:unknown):number|null{if(v===undefined||v===null)return null;if(typeof v!=='number'||!Number.isSafeInteger(v)||v<5||v>240)return invalide();return v;}
