@@ -26,7 +26,8 @@ import { creerDemandeEspace } from './ouverture-espace';
 let restauration: Promise<void> | null = null;
 const Action = ({ titre, agir, disabled = false, icone }: { titre: string; agir(): void; disabled?: boolean; icone?: NomIcone }) => <Bouton titre={titre} onPress={agir} disabled={disabled} icone={icone} />;
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
-export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null }) {
+/** `espaceDemande` / `messageEntree` : venus de l'écran d'entrée « Qui êtes-vous ? ». Une session ouverte ouvre directement l'espace demandé (le serveur revérifie chaque route) ; sinon `messageEntree` guide la connexion. */
+export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, messageEntree=null }: { ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; espaceDemande?:'restaurateur'|'livreur'|'equipe'|null; messageEntree?:string|null }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -147,6 +148,13 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
   // Tant que l'espace est occupé (action en cours), l'ouverture est différée et rejouée à la fin.
   const demandeEspace=useRef(creerDemandeEspace()).current;
   useEffect(()=>{demandeEspace.armer(demande);},[demande]);
+  // Piste choisie à l'écran d'entrée : ouverture directe de l'espace, une fois, quand l'écran est ouvert et la session active.
+  useEffect(()=>{
+    if(!ouvert||!connectee||!espaceDemande)return;
+    if(espaceDemande==='restaurateur'){setLivreurOuvert(false);setEquipeOuverte(false);setRestaurateurOuvert(true);}
+    else if(espaceDemande==='livreur'){setRestaurateurOuvert(false);setEquipeOuverte(false);setLivreurOuvert(true);}
+    else{setRestaurateurOuvert(false);setLivreurOuvert(false);setEquipeOuverte(true);}
+  },[ouvert,connectee,espaceDemande]);
   useEffect(()=>{
     if(!ouvert){demandeEspace.fermer();return;}
     if(restaurateurOccupe)return;
@@ -202,6 +210,7 @@ export function CompteReel({ ouvert, fermer, demande=null }: { ouvert:boolean; f
     {!connectee&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
     :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
     :!connectee?<>
+      {messageEntree&&<Text accessibilityRole="alert" style={s.texte}>{messageEntree}</Text>}
       <Text style={s.texte}>Connectez-vous avec votre compte Speedfood.</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>

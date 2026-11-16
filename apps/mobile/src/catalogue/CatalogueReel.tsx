@@ -19,6 +19,8 @@ import { Vignette } from './Vignette';
 import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
+import { EntreeReelle, doitOuvrirEntree } from '../connexion/EntreeReelle';
+import type { EspaceEntree } from '../connexion/entree';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
 import { VisiteGuidee, doitOuvrirVisite } from '../connexion/VisiteReel';
@@ -78,7 +80,15 @@ export function CatalogueReel() {
   const restaurantsRef = useRef<RestaurantPublic[]>([]);
   restaurantsRef.current = restaurants;
   // Visite guidée (A10) : proposée automatiquement au premier lancement seulement ; rouvrable depuis le catalogue.
-  useEffect(() => { let actif = true; void doitOuvrirVisite().then(v => { if (actif && v) setVisiteOuverte(true); }); return () => { actif = false; }; }, []);
+  // Écran d'entrée « Qui êtes-vous ? » (G17) : proposé d'abord au premier lancement ; la visite guidée n'arrive qu'après, jamais par-dessus.
+  const [entreeOuverte, setEntreeOuverte] = useState(false);
+  const [entreeVerifiee, setEntreeVerifiee] = useState(false);
+  const [visiteAProposer, setVisiteAProposer] = useState(false);
+  const [espaceDemande, setEspaceDemande] = useState<EspaceEntree | null>(null);
+  const [messageEntree, setMessageEntree] = useState<string | null>(null);
+  useEffect(() => { let actif = true; void doitOuvrirEntree().then(v => { if (!actif) return; if (v) setEntreeOuverte(true); setEntreeVerifiee(true); }); return () => { actif = false; }; }, []);
+  useEffect(() => { let actif = true; void doitOuvrirVisite().then(v => { if (actif && v) setVisiteAProposer(true); }); return () => { actif = false; }; }, []);
+  useEffect(() => { if (visiteAProposer && entreeVerifiee && !entreeOuverte) { setVisiteAProposer(false); setVisiteOuverte(true); } }, [visiteAProposer, entreeVerifiee, entreeOuverte]);
   // Liens profonds (A12) : un lien Speedfood connu ouvre la fiche du restaurant ; un lien de commande ouvre « Mon compte » (le suivi s'y lit, connecté).
   // Tout autre lien est ignoré ici et reste sur le site : aucune navigation arbitraire.
   useEffect(() => {
@@ -169,6 +179,7 @@ export function CatalogueReel() {
         <Action titre="Visite guidée" agir={() => setVisiteOuverte(true)} icone="etoile" libelleCourt="Visite" />
       </View>
       <Action titre="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="plat" secondaire />
+      <Action titre="Qui êtes-vous ? Changer d’espace" agir={() => setEntreeOuverte(true)} icone="compte" secondaire libelleCourt="Changer d’espace" />
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
@@ -214,7 +225,11 @@ export function CatalogueReel() {
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
-    <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} />
+    <CompteReel ouvert={compteOuvert} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} />
+    <EntreeReelle ouvert={entreeOuverte} fermer={() => setEntreeOuverte(false)}
+      ouvrirEspace={espace => { setDemandeCompte(null); setMessageEntree(null); setEspaceDemande(espace); setCompteOuvert(true); }}
+      ouvrirConnexion={message => { setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(message); setCompteOuvert(true); }}
+      ouvrirCandidature={() => setCandidatureOuverte(true)} ouvrirAide={() => setAideOuverte(true)} ouvrirVisite={() => setVisiteOuverte(true)} />
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
