@@ -3,6 +3,7 @@ import { Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSh
 import { brancherSuiviLivreur } from './suivi-livreur';
 import { veilleNative } from '../../modules/speedfood-veille/src/index';
 import { ReglagesTelephone } from './ReglagesTelephone';
+import { messageCycleLivreur } from './message-cycle-livreur';
 import { stockagePreferences } from './stockage-preferences';
 import {
   AIDE_SUIVI_ECRAN_ETEINT, BOUTON_AUTORISER_POSITION, BOUTON_SUIVI_NON, BOUTON_SUIVI_OUI, LIBELLE_SUIVI_ECRAN_ETEINT, MESSAGE_POSITION_ABSENTE, MESSAGE_POSITION_RECHERCHE, MESSAGE_POSITION_REFUSEE, TEXTE_CHOIX_SUIVI, TITRE_CHOIX_SUIVI,
@@ -139,7 +140,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
       <Text style={s.ligne}>État : {LIBELLES_STATUT_LIVREUR[fiche.statut]}</Text>
       <Text style={s.ligne}>Déplacement : {LIBELLES_VEHICULE_LIVREUR[fiche.vehicule]}</Text>
       {fiche.restaurantNom ? <Text style={s.ligne}>Restaurant rattaché : {fiche.restaurantNom}</Text> : <Text style={s.secondaire}>Rattachement non renseigné.</Text>}
-      {fiche.motifCycle && <Text style={s.secondaire}>Motif : {fiche.motifCycle}</Text>}
+      {fiche.motifCycle && fiche.cycle !== 'suspendu' && <Text style={s.secondaire}>Motif : {fiche.motifCycle}</Text>}
       <Text style={s.secondaire}>Pour toute modification de votre fiche, contactez l’équipe Speedfood.</Text>
     </View>
     <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
@@ -210,7 +211,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
     {fiche.statut === 'en_course'
       ? <Text style={s.secondaire}>Course en cours : votre disponibilité reprendra à la fin de la course.</Text>
       : fiche.cycle !== 'actif'
-        ? <Text style={s.secondaire}>Votre fiche n’est pas active : la mise en ligne n’est pas possible. Contactez l’équipe Speedfood.</Text>
+        ? <Text accessibilityRole={messageCycleLivreur(fiche.cycle, fiche.motifCycle)?.erreur ? 'alert' : undefined} style={messageCycleLivreur(fiche.cycle, fiche.motifCycle)?.erreur ? s.erreur : s.secondaire}>{messageCycleLivreur(fiche.cycle, fiche.motifCycle)?.texte}</Text>
         : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} icone="eclair" disabled={!peutBasculer || verrou} agir={() => { const vers = fiche.statut !== 'disponible'; if (doitDemanderChoix(arrierePlan, choixLu, false, vers)) setConsentement(true); else basculer(vers); }} />}
     {demanderChoix && <View style={s.carte}>
       <Text accessibilityRole="header" style={s.nom}>{TITRE_CHOIX_SUIVI}</Text>
