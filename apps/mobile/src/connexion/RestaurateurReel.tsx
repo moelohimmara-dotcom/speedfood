@@ -7,6 +7,10 @@ import { ActiviteReel } from './ActiviteReel';
 import { SurveillanceCommandes } from './surveillance-commandes';
 import { veilleNative } from '../../modules/speedfood-veille/src/index';
 import { ReglagesTelephone } from './ReglagesTelephone';
+import {
+  AIDE_ALERTE_ARRIERE_PLAN, BOUTON_ALERTE_NON, BOUTON_ALERTE_OUI, LIBELLE_ALERTE_ARRIERE_PLAN, TEXTE_QUESTION_ALERTE, TITRE_QUESTION_ALERTE,
+  doitPoserQuestionAlerte, ecrireChoixAlerte, lireChoixAlerte, veilleDoitTourner,
+} from './alerte-arriere-plan';
 import { stockagePreferences } from './stockage-preferences';
 import { AIDE_POSTE_FIXE_RESTAURATEUR, AIDE_SON, CLE_POSTE_FIXE_RESTAURATEUR, CLE_SON_RESTAURATEUR, LIBELLE_POSTE_FIXE_RESTAURATEUR, LIBELLE_SON, doitSonner, ecranRestaurateurAllume, ecrirePreference, lireActifParDefaut } from './preferences-poste';
 import { VisiteGuidee } from './VisiteReel';
@@ -118,6 +122,10 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     void veilleNative.garderEcranAllume(ecranRestaurateurAllume(posteFixe));
     return () => { void veilleNative.garderEcranAllume(false); };
   }, [posteFixe]);
+  const [alerteFermee, setAlerteFermee] = useState<boolean | null>(null);
+  const [choixAlerteLu, setChoixAlerteLu] = useState(false);
+  useEffect(() => { let vivant = true; void lireChoixAlerte(stockagePreferences).then(v => { if (vivant) { setAlerteFermee(v); setChoixAlerteLu(true); } }); return () => { vivant = false; }; }, []);
+  function choisirAlerte(v: boolean) { setAlerteFermee(v); void ecrireChoixAlerte(stockagePreferences, v); }
   function changerSon(v: boolean) { sonRef.current = v; setSonActif(v); void ecrirePreference(stockagePreferences, CLE_SON_RESTAURATEUR, v); }
   function changerPosteFixe(v: boolean) { setPosteFixe(v); void ecrirePreference(stockagePreferences, CLE_POSTE_FIXE_RESTAURATEUR, v); }
   function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null);
@@ -152,10 +160,16 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   // Veille au premier plan (C11/C12, prototype) : service natif démarré à l'ouverture, relecture silencieuse toutes les 15 secondes
   // (même discipline qu'ailleurs : un seul essai, une panne laisse la liste). Arrêt à la fermeture de l'espace.
   useEffect(() => {
-    void veilleNative.demarrerVeilleRestaurateur();
     const minuteur = setInterval(() => { void chargerSilencieux(); }, 15_000);
     return () => { clearInterval(minuteur); void veilleNative.arreterVeilleRestaurateur(); };
   }, []);
+  // Alerte application fermée (G24) : le service de veille ne tourne en permanence que si le restaurateur l'a demandé (choix gardé sur l'appareil) ;
+  // sans cela, seule une vraie alerte le réveille, application ouverte. Dans tous les cas il s'arrête à la fermeture de l'espace.
+  useEffect(() => {
+    if (!veilleDoitTourner(alerteFermee)) return;
+    void veilleNative.demarrerVeilleRestaurateur();
+    return () => { void veilleNative.arreterVeilleRestaurateur(); };
+  }, [alerteFermee]);
 
   /** UN SEUL essai. Ensuite la liste est relue pour savoir ce que le serveur a vraiment enregistré ; jamais de relance automatique. */
   async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string) {
@@ -212,10 +226,17 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {section === 'service' && <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
       { cle: 'son', libelle: LIBELLE_SON, aide: AIDE_SON, actif: sonActif, changer: changerSon },
       { cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_RESTAURATEUR, aide: AIDE_POSTE_FIXE_RESTAURATEUR, actif: posteFixe, changer: changerPosteFixe },
+      { cle: 'alerte-fermee', libelle: LIBELLE_ALERTE_ARRIERE_PLAN, aide: AIDE_ALERTE_ARRIERE_PLAN, actif: alerteFermee === true, changer: choisirAlerte },
     ]} />}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
     {section === 'activite' && activiteOuverte && <ActiviteReel />}
     {section === 'commandes' && <>
+    {doitPoserQuestionAlerte(alerteFermee, choixAlerteLu) && <View style={s.formulaire}>
+      <Text accessibilityRole="header" style={s.nom}>{TITRE_QUESTION_ALERTE}</Text>
+      <Text style={s.texte}>{TEXTE_QUESTION_ALERTE}</Text>
+      <Action titre={BOUTON_ALERTE_OUI} agir={() => choisirAlerte(true)} />
+      <Action titre={BOUTON_ALERTE_NON} secondaire agir={() => choisirAlerte(false)} />
+    </View>}
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
     {alerteCommande && <Text accessibilityRole="alert" style={s.alerte}>{alerteCommande}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
