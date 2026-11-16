@@ -144,3 +144,13 @@ Conséquences, qui **corrigent le second passage** :
 Correctifs de ce commit : ajout de `android/build.gradle` (modèle des modules Expo officiels, plugin `expo-module-gradle-plugin`) et de la permission `FOREGROUND_SERVICE_DATA_SYNC`, absente (sur Android 14 et plus, le service de veille du restaurateur aurait fait planter l'appli à l'ouverture de l'espace). Test de présence ajouté. **Le code Kotlin des deux services n'a jamais été compilé** : un échec de compilation CI est possible et il faudra le lire.
 
 Le module étant désormais lié, il demandera des essais sur téléphone avant toute publication : sonnerie du restaurateur, notification de premier plan, position du livreur, permission de localisation.
+
+### Essai émulateur du module natif (16 novembre 2026, 10 h 30, build `6f8a780`)
+
+La CI compile désormais `speedfood-veille` (classes `com.speedfood.veille` présentes dans les dex). Sur l'émulateur, compte TEST, espace restaurateur ouvert avec « Poste fixe » actif (valeur par défaut) :
+- `VeilleRestaurateurService` tourne au premier plan (notification 4101, canal `veille_restaurateur`) ;
+- `mHoldScreenWindow` désigne la fenêtre de l'appli : l'écran est retenu allumé ;
+- en quittant l'espace (« Retour au compte ») : le service est arrêté et l'écran n'est plus retenu ;
+- aucun plantage (le service dataSync démarre bien grâce à la permission ajoutée).
+
+Non essayé : poste fixe coupé pendant que l'espace est ouvert, mode poste fixe du livreur avec une course, sonnerie de l'alerte (nouvelle commande réelle), position du livreur (aucune permission de localisation n'est demandée par le code Expo : le service s'arrête seul sans elle, voir G20). Tout cela demande un téléphone ou une commande réelle.
