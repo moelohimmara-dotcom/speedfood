@@ -59,3 +59,16 @@ Constats complémentaires de cette relecture :
 
 - **G18 (barre d'onglets) : décidé par Malika (« oui pour la barre d'onglets »), codé et testé.** Quatre onglets fixes comme l'ancienne appli : Restaurants, Commandes, Panier, Compte, avec pastille du nombre d'articles sur Panier. Panier et Compte s'affichent dans la page sous la barre ; l'onglet Commandes a sa vue dédiée (liste et suivi). Les espaces restaurateur, livreur et équipe gardent leur coque plein écran sans la barre, comme les « coques » de l'ancienne appli. Essai émulateur à faire.
 - **Icônes à la place de boutons** : cœur seul pour les favoris (plein quand le restaurant est en favori), « + » rond pour ajouter un plat, `−`, `+` et corbeille dans le panier, flèche pour « Retour », cercle fléché pour « Actualiser », corbeille pour supprimer une adresse, loupe dans la recherche, Aide et Visite guidée en icônes rondes dans l'en-tête. Chaque bouton à icône seule garde un nom accessible complet (« Supprimer « Maison » », « Ajouter Poulet au panier »), vérifié par un test sur tout le code de l'appli. Les actions graves ou rares gardent leur texte (Commander, Me déconnecter, Supprimer mon compte).
+### Essai sur émulateur du 16 novembre 2026 (APK de contrôle, run 60, commit `1c3e25c`)
+
+Installée par-dessus la précédente, sans effacement : le compte de test (client, restaurateur, livreur, équipe) est resté connecté.
+
+Vu et conforme :
+- **G17 écran d'entrée** : proposé au premier lancement de cette version, trois cartes avec icône ; la piste « restaurateur » ouvre directement « Espace restaurateur » (barbie food, 16 commandes d'historique, 0 à traiter).
+- **G18 barre d'onglets** : quatre onglets, onglet actif marqué ; « Compte » (profil, espaces, verrou) et « Commandes » (vraies commandes, bouton d'actualisation en icône) s'affichent dans la page sous la barre ; « Restaurants » garde la fiche ouverte ; pastille « 1 » sur Panier après un ajout ; bandeau « 1 article · Voir le panier » au-dessus de la barre.
+- **G1 à G5 fiche et menu** (données réelles) : vignette à initiale quand il n'y a pas de photo, pastille « Ouvert », « Statut à confirmer (dernière confirmation il y a 12 jours) », cœur seul, plat en promo avec **25 000 GNF en rouge et 30 000 GNF barré**, « À confirmer, dernière confirmation il y a 35 jours », « + » rond.
+- **Panier** : actualiser, vider et retirer en icônes, `−` et `+`, total 25 000 GNF au prix promo. La ligne d'essai a été retirée ensuite : le panier est revenu vide.
+
+Défauts trouvés à l'essai, corrigés dans le commit suivant (à vérifier sur la prochaine APK) : mots coupés et icône invisible sur l'onglet actif de l'espace restaurateur ; boutons « J'ai un restaurant » et « Changer d'espace » et note d'accueil au-dessus du menu d'une fiche ; grand vide sous chaque plat ; panier vide affichant un nom de restaurant et une note ; titre « Mes commandes » en double.
+
+Non essayé (donnée ou compte manquant) : choix de suppléments et « Changer de restaurant ? » (aucun plat avec supplément en base, un seul restaurant), photo et logo réels, note ★, sections du menu, pistes livreur et équipe, messages de refus et de connexion (le compte de test a tous les rôles et est connecté), ajout d'un plat d'un autre restaurant. Ces points restent « codés, testés » et ne passent pas « Reprise ».
