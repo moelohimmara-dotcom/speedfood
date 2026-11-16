@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { DELAI_RELECTURE_MS, ETAPES_SUIVI, doitRelire, estFinal, heureLisible, libelleStatutSuivi, messageRestaurantARepondu, previsionPreparation, etapeActuelle, tonStatut } from '../src/connexion/suivi-affichage.ts';
 import { lireSuivi } from '../src/connexion/commandes.ts';
 // Parité Kotlin (tranche 10.4, `SuiviScreen` et `SuiviViewModel`) : libellé et ton d'état, frise d'étapes, estimation de préparation, message après réponse du restaurant, relecture automatique.
@@ -55,4 +56,10 @@ test('lecture du suivi : sous-total, frais de livraison et délai habituel du re
 });
 test('lecture du suivi : un délai hors bornes (5 à 240) ou non entier est refusé', () => {
   for (const d of [4, 241, 1.5, '20', -1, 0]) assert.throws(() => lireSuivi(brut({}, { delaiPreparationMinutes: d }) as Record<string, unknown>), Error, String(d));
+});
+test('câblage (source) : ouvrir un suivi fait défiler jusqu’à sa carte, une seule fois par ouverture', () => {
+  const s = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  assert.match(s, /async function lireSuivi\(id:string\)\{defilerVersSuivi\.current=true;/);
+  assert.match(s, /<ScrollView ref=\{defilement\}/);
+  assert.match(s, /if\(defilerVersSuivi\.current\)\{defilerVersSuivi\.current=false;defilement\.current\?\.scrollTo\(/);
 });
