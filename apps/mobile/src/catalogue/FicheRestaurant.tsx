@@ -61,5 +61,5 @@ const s = StyleSheet.create({
   nom: { color: c.encre, fontFamily: polices.titre, fontSize: 19 }, prix: { color: c.encre, fontFamily: polices.texte, fontSize: 15, fontWeight: '700' },
   barre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 13, textDecorationLine: 'line-through' },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 22 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
-  pastille: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 }, pastilleTexte: { fontFamily: polices.texte, fontSize: 12, fontWeight: '700' },
+  pastille: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 , alignSelf: 'flex-start' }, pastilleTexte: { fontFamily: polices.texte, fontSize: 12, fontWeight: '700' },
 });

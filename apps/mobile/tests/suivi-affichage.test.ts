@@ -61,6 +61,6 @@ test('câblage (source) : ouvrir un suivi fait défiler jusqu’à sa carte, une
   const s = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
   assert.match(s, /async function lireSuivi\(id:string\)\{defilerVersSuivi\.current=true;/);
   assert.match(s, /<ScrollView ref=\{defilement\}/);
-  assert.match(s, /style=\{s\.nom\}>\{'Suivi '\}\{suivi\.valeur\.reference\}/, 'le titre garde l’espace entre « Suivi » et la référence');
+  assert.match(s, /style=\{\[s\.nom,\{flex:1\}\]\}>\{'Suivi '\}\{suivi\.valeur\.reference\}/,'le titre garde l’espace entre « Suivi » et la référence');
   assert.match(s, /if\(defilerVersSuivi\.current\)\{defilerVersSuivi\.current=false;defilement\.current\?\.scrollTo\(/);
 });

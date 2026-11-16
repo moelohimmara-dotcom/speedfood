@@ -111,3 +111,16 @@ test('l’icône d’actualisation vit sur la ligne du titre (restaurateur) ou d
 test('sur une ligne de navigation active, le rond de l’icône passe en blanc pour rester visible sur le fond teinté', () => {
   assert.match(lire('../src/design/Composants.tsx'), /style=\{\[s\.rondNav, actif && \{ backgroundColor: c\.surface \}\]\}/);
 });
+test('suivi et liste des commandes : l’actualisation est sur la ligne du titre, « Commander à nouveau » est en contour dans la liste, la pastille d’état est compacte', () => {
+  const compte = lire('../src/connexion/CompteReel.tsx');
+  assert.match(compte, /<View style=\{s\.ligneTitre\}><Text accessibilityRole="header" style=\{\[s\.titre,\{flex:1\}\]\}>[\s\S]{0,200}titre="Actualiser mes commandes"/);
+  assert.match(compte, /<View style=\{s\.ligneTitre\}><Text accessibilityRole="header" style=\{\[s\.nom,\{flex:1\}\]\}>[\s\S]{0,260}titre="Actualiser ce suivi"/);
+  assert.match(compte, /titre="Commander à nouveau" icone="actualiser" variante="contour"/);
+  assert.match(lire('../src/catalogue/FicheRestaurant.tsx'), /pastille: \{[^}]*alignSelf: 'flex-start'/);
+});
+test('écran de commande : le sélecteur retrait ou livraison est teinté et cerclé, jamais en rouge plein (un seul bouton plein par écran)', () => {
+  const s = lire('../src/catalogue/CommandeReelle.tsx');
+  assert.match(s, /choixActif: \{ backgroundColor: c\.actionTeinte, borderColor: c\.action \}/);
+  assert.match(s, /choixTexteActif: \{ color: c\.actionTeinteTexte \}/);
+  assert.doesNotMatch(s, /choixActif: \{ backgroundColor: c\.action \}/);
+});

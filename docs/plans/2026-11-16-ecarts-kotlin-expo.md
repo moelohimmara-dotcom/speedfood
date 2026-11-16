@@ -217,3 +217,12 @@ Règle retenue : **icône seule** pour retour, actualiser, aide et choix de sect
 - Restent en texte, volontairement : annulations dans un formulaire (« Retour » d'une étape, « Non, garder »), actions qui engagent.
 - Le mot « gain » est banni de l'interface (frais de course, pas une paie) : un test du projet l'a rattrapé dans mes propres sous-titres, corrigés aussi sur l'écran Compte.
 - 908 tests. À juger à l'écran : taille des icônes seules, lisibilité sans texte, titre de section.
+
+### Revue visuelle des écrans restants (16 novembre 2026, APK `4c8c212`)
+
+Vus sur émulateur : Paramètres, espace livreur, modules de l'équipe, liste des commandes, suivi, panier, écran de commande. Corrigés en local :
+- ligne de navigation active : rond d'icône blanc (il disparaissait sur le fond teinté) ;
+- liste des commandes : l'actualisation passe sur la ligne du titre, « Commander à nouveau » en contour pour se distinguer de « Suivre » ;
+- suivi : l'actualisation passe sur la ligne du titre de la carte, la pastille d'état devient compacte (elle s'étirait sur toute la largeur) ;
+- écran de commande : le sélecteur Retrait ou Livraison était un grand bouton rouge plein qui rivalisait avec « Envoyer ma commande » ; il devient un choix teinté et cerclé.
+- 912 tests. Non vu : l'espace restaurateur avec l'actualisation à sa nouvelle place, le choix Livraison avec quartiers, la file des courses en ligne.

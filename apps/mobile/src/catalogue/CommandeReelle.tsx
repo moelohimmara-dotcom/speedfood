@@ -141,8 +141,9 @@ const s = StyleSheet.create({
   boutonTexte: { fontFamily: polices.texte, color: c.surface, fontWeight: '700' },
   rangee: { flexDirection: 'row', gap: 12 },
   choixMoitie: { flex: 1 },
-  choix: { minHeight: 48, padding: 14, borderRadius: 26, borderWidth: 2, borderColor: c.action, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }, choixActif: { backgroundColor: c.action },
-  choixTexte: { fontFamily: polices.texte, color: c.encre, fontWeight: '700', textAlign: 'center' }, choixTexteActif: { color: c.surface },
+  // Sélecteur (retrait ou livraison, quartier…) : un choix, pas une action. L'option retenue est teintée et cerclée ; le seul bouton plein de l'écran reste « Envoyer ma commande ».
+  choix: { minHeight: 48, padding: 14, borderRadius: 26, borderWidth: 1.5, borderColor: c.contour, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }, choixActif: { backgroundColor: c.actionTeinte, borderColor: c.action },
+  choixTexte: { fontFamily: polices.texte, color: c.encre, fontWeight: '700', textAlign: 'center' }, choixTexteActif: { color: c.actionTeinteTexte },
   consentement: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   case: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: c.action, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface }, caseCochee: { backgroundColor: c.action },
   coche: { color: c.surface, fontWeight: '700' }, consentementTexte: { flex: 1, fontFamily: polices.texte, fontSize: 14, lineHeight: 21, color: c.encre },
