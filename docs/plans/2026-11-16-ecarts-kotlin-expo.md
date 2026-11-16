@@ -38,3 +38,20 @@ Méthode de ce relevé : lecture des écrans Kotlin (`mobile/shared/.../ui`) et 
 - Ensuite, relevé fin des espaces restaurateur, livreur et Équipe, avec la même méthode.
 
 Règles inchangées : aucun déploiement, publication ni signature sans le feu vert de Malika ; une ligne ne passe « Reprise » qu'avec les cinq conditions de la matrice. Les changements de l'API sont déployés seulement après tests et accord.
+
+## Avancement (16 novembre 2026, branche `lot10-catalogue-riche`, poussée sous `etape-lot10-catalogue`)
+
+Rien de ce qui suit n'est encore compté « Reprise » : le code et les tests sont faits, l'essai sur émulateur reste à faire.
+
+| Écart | État |
+|---|---|
+| G1 à G5 (photos, promo, sections, note, fiche) | Codés et testés (API 729 tests, appli 825). **API déployée le 16 novembre 2026** (version `bf1d7e9f`), contrôles en ligne bons. Essai émulateur à faire. Les données réelles (un seul restaurant, aucun plat avec photo, section ou supplément) ne montrent pour l'instant que les horaires et un prix barré. |
+| G6 à G8 (suppléments, panier, commande, « Changer de restaurant ? ») | Codés et testés. Une ligne du panier = un plat et ses suppléments ; le total compte les suppléments (le serveur compare le sous-total affiché au sien) ; plafond de 20 suppléments par ligne comme le serveur. Le bandeau « Voir mon panier » existait déjà en bas d'écran. Essai émulateur à faire, surtout un vrai plat avec supplément (à créer côté restaurateur ou en base d'essai). |
+| G17 (écran « Qui êtes-vous ? ») | Codé et testé. Trois cartes (client, restaurateur, livreur) et un lien « Équipe Speedfood ». Chaque piste lit les droits du compte et mène à l'espace, à la connexion (messages de l'ancienne appli) ou à un refus précis. La décision A9 est tranchée par Malika (« la nouvelle appli ne demande pas… »). Essai émulateur à faire. |
+
+Constats complémentaires de cette relecture :
+
+- **Livreurs** : dans l'ancienne appli, il n'y a **pas** d'inscription de livreur dans l'application. Le compte livreur est ouvert par l'équipe Speedfood, le dossier d'identité se dépose sur le site, et un livreur « candidat » voit « fiche en cours d'examen ». La piste « Je suis livreur » reprend exactement cette règle. Si Malika veut en plus une inscription de livreur dans l'appli, c'est une fonction nouvelle, pas une reprise.
+- **Équipe** : les modules existent dans Expo (tableau, commandes support, répartition, exploitation livreurs avec approbation des candidats, établissements, menus, référencements, partenariats, avis, bannières, médias, paramètres, comptes, audit, liste d'attente, mises à jour, finances, paiements). Ce qui manquait était la porte d'entrée, désormais faite.
+- **G18 (nouveau, constaté)** : l'ancienne appli a une **barre d'onglets** pour le client (Restaurants, Commandes, Panier, Compte) et **trois coques séparées** selon le profil choisi (client, restaurateur, professionnel). Expo a une page unique avec des fenêtres. C'est un écart de navigation, à trancher avec Malika : la refonte en onglets est un gros chantier de structure.
+- **Pas encore relus** : les écrans restaurateur et livreur écran par écran (textes, états, boutons). Le relevé précédent n'a couvert que le parcours client et l'entrée.
