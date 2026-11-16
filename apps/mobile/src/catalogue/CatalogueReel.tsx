@@ -15,6 +15,9 @@ import { AideReelle } from '../connexion/AideReelle';
 import { FavoriFiche } from '../connexion/FavoriFiche';
 import { verrouPro } from '../connexion/verrou-natif';
 import { CommandeReelle } from './CommandeReelle';
+import { Vignette } from './Vignette';
+import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
+import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
 import { VisiteGuidee, doitOuvrirVisite } from '../connexion/VisiteReel';
@@ -155,16 +158,22 @@ export function CatalogueReel() {
       {!selection && <>
         <TextInput accessibilityLabel="Rechercher dans les restaurants chargés" placeholder="Restaurant, cuisine, localité…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.recherche} />
         <Text style={s.secondaire}>Recherche dans {restaurants.length} restaurant{restaurants.length > 1 ? 's chargés' : ' chargé'}.</Text>
-        {visibles.map(r => <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={s.carte}>
-          <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={s.texte}>{[r.categorie, r.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</Text></View><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
-        </Pressable>)}
+        {visibles.map(r => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }]}>
+          <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</Text></View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
+          </View>
+        </Pressable>; })}
         {!charge && !erreur && visibles.length === 0 && <Text style={s.texte}>{restaurants.length ? 'Aucun résultat parmi les restaurants chargés.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
         {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
       </>}
       {menu && <>
-        <Text style={s.secondaire}>{menu.restaurant.statutMisAJourLe ? `État déclaré le ${new Date(menu.restaurant.statutMisAJourLe).toLocaleString('fr-FR')} : ${menu.restaurant.ouvert ? 'ouvert' : 'fermé'}.` : 'Ouverture à confirmer.'}</Text>
-        {menu.plats.map(p => <View key={p.id} style={s.carte}><Text style={s.nom}>{p.nom}</Text>{p.description !== '' && <Text style={s.texte}>{p.description}</Text>}<Text style={s.nom}>{new Intl.NumberFormat('fr-FR').format(p.prixGnf)} GNF</Text><Text style={s.secondaire}>{{ disponible: 'Disponibilité récemment confirmée', epuise: 'Épuisé', a_confirmer: 'Disponibilité à confirmer' }[p.disponibilite]}</Text>{p.confirmeLe && <Text style={s.secondaire}>Confirmation du {new Date(p.confirmeLe).toLocaleString('fr-FR')}</Text>}
-          <Action titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : `Ajouter ${p.nom} au panier`} icone="panier" disabled={!panier.pret || p.disponibilite === 'epuise'} agir={() => { try { panier.ajouter(menu.restaurant,p); setMessagePanier(`${p.nom} ajouté à votre sélection.`); } catch(e) { setMessagePanier(e instanceof Error && e.message === 'AUTRE_RESTAURANT' ? 'Votre panier contient un autre restaurant. Ouvrez-le et videz-le volontairement avant de changer.' : 'Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).'); } }} />
+        <EnteteFiche restaurant={menu.restaurant} />
+        {grouperMenu(menu.sections, menu.plats).map(g => <View key={'section-' + g.titre} style={{ gap: 12 }}>
+          <Text accessibilityRole="header" style={s.titreSection}>{g.titre}</Text>
+          {g.plats.map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} ajouter={() => { try { panier.ajouter(menu.restaurant, p); setMessagePanier(`${p.nom} ajouté à votre sélection.`); } catch (e) { setMessagePanier(e instanceof Error && e.message === 'AUTRE_RESTAURANT' ? 'Votre panier contient un autre restaurant. Ouvrez-le et videz-le volontairement avant de changer.' : 'Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).'); } }} />)}
         </View>)}
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
@@ -197,7 +206,7 @@ const s = StyleSheet.create({
   contenu: { padding: 22, gap: 18, width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 40 },
   surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 36, lineHeight: 41 },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
-  carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 },
+  carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },
   note: { backgroundColor: c.avertissementFond, borderRadius: 16, padding: 16, gap: 12 }, recherche: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, minHeight: 56, padding: 16, fontFamily: polices.texte, fontSize: 15, color: c.encre },
   action: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, justifyContent: 'center', alignItems: 'center' }, actionTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700', fontSize: 14 },
   barrePanier: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 18, backgroundColor: c.encre, shadowColor: c.encre, shadowOpacity: 0.16, shadowRadius: 10, elevation: 4 }, barrePanierTitre: { color: c.surface, fontFamily: polices.texte, fontSize: 15, fontWeight: '700' }, barrePanierSousTitre: { color: c.fond, fontFamily: polices.texte, fontSize: 12 }, barrePanierAction: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, justifyContent: 'center', backgroundColor: c.mangue }, barrePanierActionTexte: { color: c.encre, fontFamily: polices.texte, fontWeight: '700', fontSize: 13 },
