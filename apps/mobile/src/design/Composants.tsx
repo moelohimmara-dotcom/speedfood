@@ -65,7 +65,7 @@ export function LigneNavigation({ titre, sousTitre, icone, onPress, disabled = f
   return <Pressable accessibilityRole="button" accessibilityLabel={sousTitre ? titre + '. ' + sousTitre : titre} accessibilityState={{ disabled, selected: actif }} testID={testID} disabled={disabled} onPress={onPress}
     android_ripple={{ color: c.actionTeinte }}
     style={({ pressed }) => [s.ligneNav, !premiere && { borderTopWidth: 1, borderTopColor: c.bordure }, actif && { backgroundColor: c.actionTeinte }, pressed && { backgroundColor: c.surfaceAlt }, disabled && { opacity: .5 }]}>
-    <View style={s.rondNav}><Icone nom={icone} couleur={c.action} taille={22} /></View>
+    <View style={[s.rondNav, actif && { backgroundColor: c.surface }]}><Icone nom={icone} couleur={c.action} taille={22} /></View>
     <View style={{ flex: 1, gap: 2 }}>
       <Texte style={{ fontWeight: '700', fontSize: 16, lineHeight: 22 }}>{titre}</Texte>
       {sousTitre ? <Texte style={{ color: c.secondaire, fontSize: 13, lineHeight: 18 }}>{sousTitre}</Texte> : null}

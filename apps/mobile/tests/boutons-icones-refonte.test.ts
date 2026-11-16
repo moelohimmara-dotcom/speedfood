@@ -108,3 +108,6 @@ test('l’icône d’actualisation vit sur la ligne du titre (restaurateur) ou d
   assert.match(livreur, /<View style=\{s\.ligneTitre\}>[\s\S]{0,260}<Action titre="Actualiser mon état"/);
   assert.equal((livreur.match(/titre="Actualiser mon état" variante="texte" icone="actualiser" iconeSeule disabled=\{ecritureEnCours\}/g) ?? []).length, 1, 'une seule icône d’actualisation dans l’écran d’état');
 });
+test('sur une ligne de navigation active, le rond de l’icône passe en blanc pour rester visible sur le fond teinté', () => {
+  assert.match(lire('../src/design/Composants.tsx'), /style=\{\[s\.rondNav, actif && \{ backgroundColor: c\.surface \}\]\}/);
+});
