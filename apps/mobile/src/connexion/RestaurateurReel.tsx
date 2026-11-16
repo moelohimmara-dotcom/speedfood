@@ -187,7 +187,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
     <Action titre="Visite guidée" secondaire agir={() => setVisiteOuverte(true)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Icone nom={ICONES_SECTIONS[x]} taille={19} couleur={section === x ? c.action : c.secondaire} /><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
+    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} style={[s.onglet, section === x && s.ongletActif]}><Icone nom={ICONES_SECTIONS[x]} taille={19} couleur={section === x ? c.surface : c.secondaire} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}</View>
     {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
     {section === 'activite' && activiteOuverte && <ActiviteReel />}
@@ -290,7 +290,7 @@ const s = StyleSheet.create({
   sections: { flexDirection: 'row', gap: 8 },
   onglet: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.action, borderRadius: 22, backgroundColor: c.surface },
   ongletActif: { backgroundColor: c.action },
-  ongletTexte: { fontFamily: polices.texte, fontWeight: '700', color: c.action },
+  ongletTexte: { fontFamily: polices.texte, fontWeight: '700', fontSize: 12, textAlign: 'center', color: c.action },
   ongletTexteActif: { color: c.surface },
   masque: { display: 'none' },
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },

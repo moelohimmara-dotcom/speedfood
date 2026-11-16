@@ -23,8 +23,8 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true 
       {!!etat.panier.lignes.length && <Rond nom="Actualiser le panier" icone="actualiser" desactive={etat.lecture} onPress={() => { void etat.recharger(); }} />}
       {!!etat.panier.lignes.length && <Rond nom="Vider le panier" icone="corbeille" onPress={() => setConfirmation(true)} />}
     </View>
-    <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
-    <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text>
+    {!!etat.panier.lignes.length && <><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
+    <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
     <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>
     {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Pressable accessibilityRole="button" accessibilityLabel="Réessayer le stockage du panier" onPress={etat.reessayer} style={s.bouton}><Text style={s.boutonTexte}>Réessayer le stockage du panier</Text></Pressable></>}
     {etat.lecture && <><ActivityIndicator color={c.action} /><Text style={s.texte}>Vérification des prix et disponibilités…</Text></>}
