@@ -13,7 +13,7 @@ function Rond({ nom, icone, onPress, desactive = false }: { nom: string; icone: 
 /**
  * Panier. `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets (onglet « Panier ») ; vrai : fenêtre plein écran comme avant.
  */
-export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true }: { ouvert: boolean; fermer(): void; etat: ReturnType<typeof usePanierReel>; commander(): void; enModal?: boolean }) {
+export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true, information = '' }: { ouvert: boolean; fermer(): void; etat: ReturnType<typeof usePanierReel>; commander(): void; enModal?: boolean; information?: string }) {
   const [confirmation, setConfirmation] = useState(false);
   const bilan = chiffrer(etat.panier, etat.menu?.plats ?? []);
   const corps = <ScrollView contentContainerStyle={s.contenu}>
@@ -25,6 +25,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true 
     </View>
     {!!etat.panier.lignes.length && <><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
     <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
+    {information !== '' && <Text accessibilityRole="alert" style={s.texte}>{information}</Text>}
     <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>
     {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Pressable accessibilityRole="button" accessibilityLabel="Réessayer le stockage du panier" onPress={etat.reessayer} style={s.bouton}><Text style={s.boutonTexte}>Réessayer le stockage du panier</Text></Pressable></>}
     {etat.lecture && <><ActivityIndicator color={c.action} /><Text style={s.texte}>Vérification des prix et disponibilités…</Text></>}

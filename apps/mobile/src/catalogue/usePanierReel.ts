@@ -4,6 +4,7 @@ import { ajouter, quantite, vide, type PanierReel } from './panier-reel';
 import { ouvrirPanierReel } from '../stockage/panier-reel-sqlite';
 import type { SessionPanierReel } from '../stockage/panier-reel-session';
 import { creerLecteurCatalogue } from './client';
+import { preparerRecommande, type MemoCommande, type PlanRecommande } from './recommande';
 const lecteur = creerLecteurCatalogue();
 export function usePanierReel() {
   const [panier, setPanier] = useState(vide);
@@ -49,6 +50,21 @@ export function usePanierReel() {
     ajouter: (r: RestaurantPublic, p: PlatCataloguePublic, optionIds: readonly string[] = []) => { modifier(ajouter(actuel.current, r.id, p, optionIds)); verification.current++; setLecture(false); setMenu(null); },
     /** « Vider et ajouter » (changement de restaurant, confirmé par la personne) : le panier repart de zéro avec ce plat. */
     remplacerEtAjouter: (r: RestaurantPublic, p: PlatCataloguePublic, optionIds: readonly string[] = []) => { modifier(ajouter(vide(), r.id, p, optionIds)); verification.current++; setLecture(false); setMenu(null); setErreurLecture(null); },
+    /**
+     * « Commander à nouveau » : relit le menu ACTUEL du restaurant puis remplace le panier par les lignes encore disponibles (voir `preparerRecommande`). Le panier n'est touché que
+     * s'il reste au moins une ligne ; une erreur de lecture le laisse intact et se propage. L'appelant a déjà fait confirmer le changement de restaurant.
+     */
+    recommander: async (memo: MemoCommande): Promise<PlanRecommande> => {
+      if (!pret) throw Error('STOCKAGE_NON_CHARGE');
+      let page = await lecteur.menu(memo.restaurantId); const plats = [...page.plats]; const vus = new Set<string>();
+      while (page.suivant && memo.lignes.some(l => !plats.some(p => p.id === l.platId))) {
+        if (vus.has(page.suivant) || vus.size >= 50) throw Error('MENU_TROP_LONG');
+        vus.add(page.suivant); page = await lecteur.menu(memo.restaurantId, page.suivant); plats.push(...page.plats);
+      }
+      const plan = preparerRecommande(memo, plats);
+      if (plan.ajoutes > 0) { modifier(plan.panier); verification.current++; setLecture(false); setMenu(null); setErreurLecture(null); }
+      return plan;
+    },
     /** `cle` : clé de la ligne (`cleLigne`) ; pour une ligne sans supplément, l'identifiant du plat. */
     quantite: (cle: string, n: number) => modifier(quantite(actuel.current, cle, n)),
     vider: () => { modifier(vide()); verification.current++; setLecture(false); setMenu(null); setErreurLecture(null); },

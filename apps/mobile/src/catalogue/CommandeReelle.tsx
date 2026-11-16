@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue';
-import { chiffrer } from './panier-reel';
+import { chiffrer, type PanierReel } from './panier-reel';
 import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, totalEstime, validerSaisie } from './commande-reelle';
 import { EnvoiCommande } from './envoi-commande';
 import { creerLecteurCatalogue } from './client';
@@ -25,7 +25,7 @@ type Quartiers = { etat: 'aucun' | 'chargement' | 'ok' | 'erreur'; liste: Quarti
  */
 export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCommandes, apresSucces, surVerrou }: {
   ouvert: boolean; fermer(): void; etat: ReturnType<typeof usePanierReel>;
-  ouvrirCompte(): void; verifierCommandes(): void; apresSucces(reference: string): void;
+  ouvrirCompte(): void; verifierCommandes(): void; apresSucces(reference: string, envoye: PanierReel): void;
   /** Signale à l'écran parent quand l'envoi verrouille la fermeture (envoi en cours ou état incertain). */
   surVerrou?(verrouille: boolean): void;
 }) {
@@ -60,8 +60,9 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   // Frais de livraison : recalculés quand le quartier, le sous-total, le restaurant ou la connexion changent ; la dernière demande remplace les précédentes.
   useEffect(() => { if (ouvert) void m.actualiserEstimation(etat.panier, plats, connectee, panierPret); }, [ouvert, m.mode, m.quartierId, bilan.total, etat.panier.restaurantId, connectee, panierPret, m.etatEstimation, verrouille]);
   async function envoyer() {
+    const avant = etat.panier; // ce qui part : mémorisé pour « Commander à nouveau » (le panier est vidé juste après)
     const r = await m.envoyer(etat.panier, plats, etat.vider, connectee, panierPret);
-    if (r.type === 'succes') { apresSucces(r.reference); }
+    if (r.type === 'succes') { apresSucces(r.reference, avant); }
     else if (r.type === 'session_changee') verifierCommandes();
   }
   const fermerSiPossible = () => { if (m.peutFermer()) fermer(); };

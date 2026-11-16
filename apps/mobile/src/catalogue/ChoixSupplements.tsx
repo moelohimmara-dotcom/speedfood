@@ -31,11 +31,11 @@ export function ChoixSupplements({ plat, annuler, confirmer }: { plat: PlatCatal
 }
 
 /** « Changer de restaurant ? » : une commande concerne un seul restaurant ; la personne choisit de vider le panier ou de le garder. */
-export function ChangerRestaurant({ visible, nomPanier, vider, garder }: { visible: boolean; nomPanier: string | null; vider(): void; garder(): void }) {
+export function ChangerRestaurant({ visible, nomPanier, vider, garder, titreAction = 'Vider et ajouter' }: { visible: boolean; nomPanier: string | null; vider(): void; garder(): void; titreAction?: string }) {
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={garder}><View style={s.fond}><SafeAreaView style={s.feuille}>
     <Text accessibilityRole="header" style={s.titre}>Changer de restaurant ?</Text>
     <Text style={s.texte}>Votre panier contient des plats de {nomPanier ?? 'un autre restaurant'}. Une commande concerne un seul restaurant : voulez-vous vider le panier et commencer ici ?</Text>
-    <Bouton titre="Vider et ajouter" onPress={vider} />
+    <Bouton titre={titreAction} onPress={vider} />
     <Bouton titre="Garder mon panier" secondaire onPress={garder} />
   </SafeAreaView></View></Modal>;
 }

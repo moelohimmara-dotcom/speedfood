@@ -18,7 +18,7 @@ function optionsVerifiees(ids: unknown): string[] {
   return [...(ids as string[])].sort();
 }
 /** `avecOptions` faux : lecture de l'ancienne version 1 du stockage, qui ne connaît aucun supplément. */
-function verifier(p: PanierReel, avecOptions = true): PanierReel {
+export function verifier(p: PanierReel, avecOptions = true): PanierReel {
   if (!p || !Array.isArray(p.lignes) || p.lignes.length > 50 || (p.lignes.length ? typeof p.restaurantId !== 'string' || !uuid.test(p.restaurantId) : p.restaurantId !== null)) throw Error('PANIER_INVALIDE');
   const lignes = p.lignes.map(l => {
     if (!l || typeof l.platId !== 'string' || !uuid.test(l.platId) || !Number.isSafeInteger(l.quantite) || l.quantite < 1 || l.quantite > 30) throw Error('PANIER_INVALIDE');

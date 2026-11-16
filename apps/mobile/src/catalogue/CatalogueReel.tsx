@@ -4,7 +4,9 @@ import type { PageMenu, PlatCataloguePublic, RestaurantPublic } from '../../../.
 import { creerLecteurCatalogue, validerPageMenu, validerPageRestaurants } from './client';
 import { creerCacheCatalogue, libelleAgeCache } from './cache-catalogue';
 import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
-import { chiffrer } from './panier-reel';
+import { chiffrer, type PanierReel } from './panier-reel';
+import { libelleRecommande, trouverMemo, type MemoCommande } from './recommande';
+import { ouvrirCommandesEnvoyees } from '../stockage/commandes-envoyees';
 import { couleurs as c, polices } from '../design/tokens';
 import { Bouton } from '../design/Composants';
 import { Icone, type NomIcone } from '../design/Icone';
@@ -152,6 +154,25 @@ export function CatalogueReel() {
     if (!r || !demande) return;
     try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre sélection.`); } catch { setMessagePanier('Ajout impossible. Vérifiez la sélection puis réessayez.'); }
   }
+  // « Commander à nouveau » (G13) : mémoire locale des commandes envoyées d'ici ; le panier est rebâti sur le menu actuel (changement de restaurant confirmé avant d'être vidé).
+  const [memos, setMemos] = useState<MemoCommande[]>([]);
+  const [recommandeEnAttente, setRecommandeEnAttente] = useState<MemoCommande | null>(null);
+  const [messageRecommande, setMessageRecommande] = useState('');
+  const lireMemos = () => { void ouvrirCommandesEnvoyees().then(m => m.lire()).then(setMemos, () => undefined); };
+  useEffect(lireMemos, []);
+  function memoriserEnvoi(reference: string, envoye: PanierReel) { void ouvrirCommandesEnvoyees().then(m => m.memoriser(reference, envoye)).then(lireMemos, () => undefined); }
+  async function recommander(memo: MemoCommande) {
+    setRecommandeEnAttente(null);
+    try {
+      const plan = await panier.recommander(memo);
+      setMessageRecommande(libelleRecommande(plan));
+      if (plan.ajoutes > 0) { setCompteOuvert(false); setDemandeCompte(null); setPanierOuvert(true); }
+    } catch { setMessageRecommande('Impossible de relire le menu du restaurant. Votre panier n’a pas été modifié : réessayez.'); setCompteOuvert(false); setDemandeCompte(null); setPanierOuvert(true); }
+  }
+  function lancerRecommande(reference: string) {
+    const memo = trouverMemo(memos, reference); if (!memo) return;
+    if (panier.panier.lignes.length > 0 && panier.panier.restaurantId !== memo.restaurantId) setRecommandeEnAttente(memo); else void recommander(memo);
+  }
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
   useEffect(() => {
@@ -170,7 +191,7 @@ export function CatalogueReel() {
   const barrePanierVisible = nombreArticles > 0 && surRestaurants;
   function choisirOnglet(id: IdOnglet) {
     const e = etatPourOnglet(id);
-    setPanierOuvert(e.panierOuvert); setCompteOuvert(e.compteOuvert); setDemandeCompte(e.demandeCompte);
+    setPanierOuvert(e.panierOuvert); setCompteOuvert(e.compteOuvert); setDemandeCompte(e.demandeCompte); setMessageRecommande('');
     if (id !== 'compte' && id !== 'commandes') { setEspaceDemande(null); setMessageEntree(null); }
     if (e.panierOuvert) void panier.recharger();
   }
@@ -229,13 +250,13 @@ export function CatalogueReel() {
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </View>}
-    <PanierReelVue enModal={false} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} />
+    <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
+    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
-      apresSucces={reference => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
+      apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <EntreeReelle ouvert={entreeOuverte} fermer={() => setEntreeOuverte(false)}
       ouvrirEspace={espace => { setDemandeCompte(null); setMessageEntree(null); setEspaceDemande(espace); setCompteOuvert(true); }}
       ouvrirConnexion={message => { setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(message); setCompteOuvert(true); }}
@@ -245,6 +266,7 @@ export function CatalogueReel() {
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
     <ChoixSupplements key={platEnChoix?.id ?? 'aucun'} plat={platEnChoix} annuler={() => setPlatEnChoix(null)} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); if (p) ajouterAuPanier(p, ids); }} />
     <ChangerRestaurant visible={remplacement !== null} nomPanier={panier.menu?.restaurant.nom ?? null} vider={remplacerPanier} garder={() => setRemplacement(null)} />
+    <ChangerRestaurant visible={recommandeEnAttente !== null} titreAction="Vider et recommander" nomPanier={panier.menu?.restaurant.nom ?? null} vider={() => { if (recommandeEnAttente) void recommander(recommandeEnAttente); }} garder={() => setRecommandeEnAttente(null)} />
   </View>;
 }
 const s = StyleSheet.create({
