@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
-import { Bouton } from '../design/Composants';
+import { Bouton, GroupeLignes, LigneNavigation } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 import { adresseInstallation, lireVersionPubliee, miseAJourDisponible } from '../livraison/mise-a-jour';
 import { gestion } from './gestion';
@@ -37,20 +37,21 @@ export function ParametresReel({ connectee, ouvrirVisite, oublierCommandes, sess
   return <View style={s.bloc}>
     <Text accessibilityRole="header" style={s.titre}>Paramètres</Text>
     {message !== '' && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.texte}>{message}</Text>}
-    <Text style={s.nom}>Notifications</Text>
     <Text style={s.secondaire}>Speedfood vous prévient à chaque étape de votre commande. Si rien n’arrive, vérifiez que les notifications de Speedfood sont autorisées dans les réglages du téléphone.</Text>
-    {connectee ? <Bouton titre="Tester les notifications" icone="cloche" secondaire disabled={occupe} onPress={() => { void essayer(); }} /> : <Text style={s.secondaire}>Connectez-vous pour tester les notifications.</Text>}
-    <Text style={s.nom}>Application</Text>
-    <Text style={s.texte}>Version installée : {nom}</Text>
-    {Platform.OS === 'android' && <Bouton titre="Vérifier les mises à jour" icone="actualiser" secondaire disabled={occupe} onPress={() => { void verifier(); }} />}
+    {!connectee && <Text style={s.secondaire}>Connectez-vous pour tester les notifications.</Text>}
+    <GroupeLignes>
+      {connectee && <LigneNavigation premiere titre="Tester les notifications" sousTitre="Envoie une notification d’essai à ce téléphone" icone="cloche" disabled={occupe} onPress={() => { void essayer(); }} />}
+      {Platform.OS === 'android' && <LigneNavigation premiere={!connectee} titre="Vérifier les mises à jour" sousTitre={'Version installée : ' + nom} icone="actualiser" disabled={occupe} onPress={() => { void verifier(); }} />}
+      <LigneNavigation premiere={!connectee && Platform.OS !== 'android'} titre="Revoir la visite guidée" sousTitre="Un tour rapide de l’application" icone="aide" disabled={occupe} onPress={ouvrirVisite} />
+    </GroupeLignes>
+    {Platform.OS !== 'android' && <Text style={s.secondaire}>Version installée : {nom}</Text>}
     {telechargeable && <Bouton titre="Télécharger la nouvelle version" icone="externe" disabled={occupe} onPress={() => { void Linking.openURL(adresseInstallation()).catch(() => setMessage('Impossible d’ouvrir la page de téléchargement.')); }} />}
-    <Bouton titre="Revoir la visite guidée" icone="etoile" secondaire disabled={occupe} onPress={ouvrirVisite} />
     <Text style={s.nom}>Cet appareil</Text>
     <Text style={s.secondaire}>Les commandes que vous envoyez sont mémorisées sur ce téléphone pour « Commander à nouveau » (plats et quantités seulement).</Text>
     {confirmerOubli
       ? <><Text accessibilityRole="alert" style={s.texte}>Oublier les commandes de cet appareil ? Elles disparaissent de ce téléphone ; vos commandes restent dans votre compte.</Text>
-        <Bouton titre="Oublier" disabled={occupe} onPress={() => { void oublier(); }} /><Bouton titre="Retour" secondaire disabled={occupe} onPress={() => setConfirmerOubli(false)} /></>
-      : <Bouton titre="Oublier les commandes de cet appareil" secondaire disabled={occupe} onPress={() => setConfirmerOubli(true)} />}
+        <Bouton titre="Oublier" variante="danger" icone="corbeille" disabled={occupe} onPress={() => { void oublier(); }} /><Bouton titre="Retour" secondaire disabled={occupe} onPress={() => setConfirmerOubli(false)} /></>
+      : <Bouton titre="Oublier les commandes de cet appareil" variante="danger" icone="corbeille" disabled={occupe} onPress={() => setConfirmerOubli(true)} />}
   </View>;
 }
 const s = StyleSheet.create({

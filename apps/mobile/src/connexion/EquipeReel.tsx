@@ -27,7 +27,7 @@ import { couleurs as c, polices } from '../design/tokens';
 type ModuleEquipe = 'tableau' | 'commandes' | 'repartition' | 'exploitation' | 'restaurants' | 'menus' | 'referencements' | 'partenariats' | 'avis' | 'bannieres' | 'medias' | 'parametres' | 'comptes' | 'audit' | 'attente' | 'mises-a-jour' | 'finances' | 'paiements';
 const MODULES_EQUIPE: ReadonlyArray<{ id: ModuleEquipe; libelle: string; icone: NomIcone }> = [
   { id: 'tableau', libelle: 'Tableau de bord', icone: 'accueil' }, { id: 'commandes', libelle: 'Commandes (support)', icone: 'document' }, { id: 'repartition', libelle: 'Répartition', icone: 'partage' },
-  { id: 'exploitation', libelle: 'Exploitation livreurs', icone: 'eclair' }, { id: 'restaurants', libelle: 'Établissements', icone: 'plat' }, { id: 'menus', libelle: 'Menus', icone: 'liste' },
+  { id: 'exploitation', libelle: 'Exploitation livreurs', icone: 'livreur' }, { id: 'restaurants', libelle: 'Établissements', icone: 'restaurant' }, { id: 'menus', libelle: 'Menus', icone: 'liste' },
   { id: 'referencements', libelle: 'Référencements', icone: 'info' }, { id: 'partenariats', libelle: 'Partenariats', icone: 'message' }, { id: 'avis', libelle: 'Avis et signalements', icone: 'alerte' },
   { id: 'bannieres', libelle: 'Bannières', icone: 'etoile' }, { id: 'medias', libelle: 'Médias', icone: 'camera' }, { id: 'parametres', libelle: 'Paramètres', icone: 'engrenage' },
   { id: 'comptes', libelle: 'Comptes', icone: 'compte' }, { id: 'audit', libelle: 'Journal d’audit', icone: 'recherche' }, { id: 'attente', libelle: 'Liste d’attente', icone: 'cloche' }, { id: 'mises-a-jour', libelle: 'Mises à jour', icone: 'actualiser' },

@@ -63,3 +63,16 @@ test('un seul bouton dans toute l’application : plus de bouton dessiné à la 
     assert.doesNotMatch(t, /style=\{s\.bouton\b|style=\{\[s\.bouton\b/, f + ' : plus de style de bouton local');
   }
 });
+test('un « Retour » en bouton texte se place à gauche ; l’icône « plat » n’est plus barrée ; les raccourcis de l’accueil sont des tuiles côte à côte', () => {
+  const src = lire('../src/design/Composants.tsx');
+  assert.match(src, /niveau === 'texte' && icone === 'retour' && \{ alignSelf: 'flex-start' \}/);
+  const icones = lire('../src/design/Icone.tsx');
+  assert.match(icones, /plat: Utensils\b/);
+  assert.doesNotMatch(icones, /UtensilsCrossed/, 'les couverts barrés se lisent comme un interdit');
+  const catalogue = lire('../src/catalogue/CatalogueReel.tsx');
+  assert.match(catalogue, /flexDirection: 'row', gap: 12 \}\}><Action titre="J’ai un restaurant" libelleCourt=/);
+  assert.match(catalogue, /titre="Qui êtes-vous \? Changer d’espace" libelleCourt="Changer d’espace"/);
+  const parametres = lire('../src/connexion/ParametresReel.tsx');
+  assert.match(parametres, /<GroupeLignes>[\s\S]*titre="Revoir la visite guidée"/);
+  assert.match(parametres, /titre="Oublier les commandes de cet appareil" variante="danger"/);
+});

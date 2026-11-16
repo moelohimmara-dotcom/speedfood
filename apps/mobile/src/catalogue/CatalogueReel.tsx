@@ -227,8 +227,8 @@ export function CatalogueReel() {
       <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       {!selection && <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>}
-      {!selection && <><Action titre="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="plat" secondaire />
-      <Action titre="Qui êtes-vous ? Changer d’espace" agir={() => setEntreeOuverte(true)} icone="compte" secondaire /></>}
+      {!selection && <><View style={{ flexDirection: 'row', gap: 12 }}><Action titre="J’ai un restaurant" libelleCourt="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="restaurateur" />
+      <Action titre="Qui êtes-vous ? Changer d’espace" libelleCourt="Changer d’espace" agir={() => setEntreeOuverte(true)} icone="compte" /></View></>}
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}

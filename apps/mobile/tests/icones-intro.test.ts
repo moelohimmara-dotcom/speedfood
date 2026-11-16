@@ -58,5 +58,5 @@ test('accueil client : les entrees principales portent une icone (onglets, aide,
   // En-tête : Aide et Visite guidée en boutons ronds à icône seule, dont le nom accessible dit l'action en toutes lettres.
   assert.match(catalogue, /accessibilityLabel="Aide et contact"[\s\S]{0,140}?<Icone nom="message"/);
   assert.match(catalogue, /accessibilityLabel="Visite guidée"[\s\S]{0,140}?<Icone nom="info"/);
-  assert.match(catalogue, /icone="plat"/, 'entree sans icone dans le catalogue : plat (J’ai un restaurant)');
+  assert.match(catalogue, /titre="J’ai un restaurant"[\s\S]{0,160}?icone="restaurateur"/, 'entree sans icone dans le catalogue : toque (J’ai un restaurant)');
 });

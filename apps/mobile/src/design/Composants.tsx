@@ -49,7 +49,7 @@ export function Bouton({ titre, onPress, secondaire = false, variante, disabled 
   }
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={titre} testID={testID} disabled={disabled} onPress={onPress}
     android_ripple={{ color: a.pression }}
-    style={({ pressed }) => [s.bouton, { backgroundColor: pressed ? a.pression : a.fond }, a.bordure ? { borderWidth: 1.5, borderColor: a.bordure } : null, niveau === 'texte' && s.boutonTexte, pressed && { transform: [{ scale: .985 }] }]}>
+    style={({ pressed }) => [s.bouton, { backgroundColor: pressed ? a.pression : a.fond }, a.bordure ? { borderWidth: 1.5, borderColor: a.bordure } : null, niveau === 'texte' && s.boutonTexte, niveau === 'texte' && icone === 'retour' && { alignSelf: 'flex-start' }, pressed && { transform: [{ scale: .985 }] }]}>
     {icone && <Icone nom={icone} couleur={a.texte} taille={22} />}
     <Texte style={{ color: a.texte, fontWeight: '700', fontSize: 16, lineHeight: 22, textAlign: 'center', flexShrink: 1 }}>{titre}</Texte>
   </Pressable>;

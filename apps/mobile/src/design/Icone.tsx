@@ -36,7 +36,7 @@ import Trash2 from 'lucide-react-native/icons/trash-2';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
 import User from 'lucide-react-native/icons/user';
 import Users from 'lucide-react-native/icons/users';
-import UtensilsCrossed from 'lucide-react-native/icons/utensils-crossed';
+import Utensils from 'lucide-react-native/icons/utensils';
 import X from 'lucide-react-native/icons/x';
 import Zap from 'lucide-react-native/icons/zap';
 import { couleurs } from './tokens';
@@ -50,7 +50,7 @@ const icones = {
   accueil: House, coeur: Heart, panier: ShoppingCart, compte: User, recherche: Search, position: MapPin,
   retour: ArrowLeft, fleche: ArrowRight, bas: ChevronDown, chevron: ChevronRight, plus: Plus, moins: Minus, coche: Check, horloge: Clock, fermer: X,
   cloche: Bell, telephone: Phone, message: MessageCircle, cadenas: Lock, deconnexion: LogOut, corbeille: Trash2, crayon: Pencil, camera: Camera,
-  actualiser: RefreshCw, externe: ExternalLink, document: FileText, engrenage: Settings, eclair: Zap, plat: UtensilsCrossed, liste: List, info: Info,
+  actualiser: RefreshCw, externe: ExternalLink, document: FileText, engrenage: Settings, eclair: Zap, plat: Utensils, liste: List, info: Info,
   alerte: TriangleAlert, partage: Share, etoile: Star,
   livreur: Bike, restaurateur: ChefHat, equipe: Users, restaurant: Store, recu: ReceiptText, aide: CircleHelp,
 } as const satisfies Record<string, ComponentType<PropsLucide>>;

@@ -15,7 +15,7 @@ export async function doitOuvrirEntree(): Promise<boolean> {
   try { return doitProposerEntree((await SecureStore.getItemAsync(CLE_ENTREE_VUE)) === '1'); } catch { return false; }
 }
 async function marquerEntreeVue(): Promise<void> { try { await SecureStore.setItemAsync(CLE_ENTREE_VUE, '1'); } catch { /* l'écran se reproposera, rien de grave */ } }
-const ICONES: Record<string, NomIcone> = { client: 'panier', restaurateur: 'plat', livreur: 'eclair' };
+const ICONES: Record<string, NomIcone> = { client: 'panier', restaurateur: 'restaurateur', livreur: 'livreur' };
 
 export function EntreeReelle({ ouvert, fermer, ouvrirEspace, ouvrirConnexion, ouvrirCandidature, ouvrirAide, ouvrirVisite }: {
   ouvert: boolean; fermer(): void; ouvrirEspace(espace: EspaceEntree): void; ouvrirConnexion(message: string): void; ouvrirCandidature(): void; ouvrirAide(): void; ouvrirVisite(): void;
@@ -51,7 +51,7 @@ export function EntreeReelle({ ouvert, fermer, ouvrirEspace, ouvrirConnexion, ou
     {occupe && <View accessibilityLiveRegion="polite" style={{ alignItems: 'center', gap: 8 }}><ActivityIndicator color={c.action} /><Text style={s.secondaire}>Vérification de votre compte…</Text></View>}
     {refus && <View style={s.carte}>
       <Text accessibilityRole="alert" style={s.texte}>{refus.message}</Text>
-      {refus.candidature && <Bouton titre="J’ai un restaurant" icone="plat" onPress={() => quitter(ouvrirCandidature)} />}
+      {refus.candidature && <Bouton titre="J’ai un restaurant" icone="restaurateur" onPress={() => quitter(ouvrirCandidature)} />}
       {refus.assistance && <Bouton titre="Aide et contact" icone="message" onPress={() => quitter(ouvrirAide)} />}
     </View>}
     <Bouton titre="Revoir la visite guidée" secondaire icone="etoile" onPress={() => quitter(ouvrirVisite)} />
