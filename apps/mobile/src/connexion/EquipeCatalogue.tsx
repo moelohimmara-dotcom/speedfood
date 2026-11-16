@@ -63,7 +63,7 @@ export function RestaurantsEquipeReel() {
   }
 
   if (fiche) return <View style={{ gap: 12 }}>
-    <Action titre="Retour aux établissements" agir={() => setFiche(null)} />
+    <Action titre="Retour aux établissements" variante="texte" icone="retour" agir={() => setFiche(null)} />
     <Text accessibilityRole="header" style={s.nom}>{fiche.nom}</Text>
     <Text style={s.texte}>{etatEtablissement(fiche)}{fiche.ouvert ? ' · ouvert' : ' · fermé'} · {fiche.modeVente === 'speedfood' ? 'tenu par Speedfood' : 'autonome'} · {fiche.quartier}</Text>
     {fiche.motifCorrection && <Text accessibilityRole="alert" style={s.texte}>Correction demandée : {fiche.motifCorrection}</Text>}
@@ -92,7 +92,7 @@ export function RestaurantsEquipeReel() {
     <Text accessibilityRole="header" style={s.nom}>Établissements</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des établissements…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les établissements" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser les établissements" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
     {illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{illisibles === 1 ? '1 établissement est illisible dans l’application.' : illisibles + ' établissements sont illisibles dans l’application.'}</Text>}
     {restaurants !== null && restaurants.length === 0 && <Text style={s.texte}>Aucun établissement.</Text>}
     {(restaurants ?? []).map(r => <View key={r.id} style={s.carte}>
@@ -152,7 +152,7 @@ export function MenusEquipeReel() {
   }
 
   if (plats) return <View style={{ gap: 12 }}>
-    <Action titre="Retour aux menus" agir={() => setPlats(null)} />
+    <Action titre="Retour aux menus" variante="texte" icone="retour" agir={() => setPlats(null)} />
     <Text accessibilityRole="header" style={s.nom}>{plats.nom}</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Un instant…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
@@ -205,7 +205,7 @@ export function MenusEquipeReel() {
     {menus && <Text style={s.secondaire}>Un plat est à reconfirmer après {menus.fraicheurHeures} h sans confirmation.</Text>}
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des menus…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les menus" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser les menus" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
     {(menus?.menus ?? []).map(m => <View key={m.restaurantId} style={s.carte}>
       <Text style={s.nomPetit}>{m.nom}</Text>
       <Text style={s.texte}>{m.plats} plats · {m.aReconfirmer} à reconfirmer · {m.epuises} épuisés</Text>
@@ -239,7 +239,7 @@ export function ReferencementsEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des demandes…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Action titre="Actualiser les demandes" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser les demandes" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
     {illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{illisibles} demande(s) illisible(s) dans l’application.</Text>}
     {(demandes ?? []).map(d => <View key={d.id} style={s.carte}>
       <Text style={s.nomPetit}>{d.organisation}</Text>
@@ -310,7 +310,7 @@ export function PartenariatsEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des demandes…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Action titre="Actualiser les partenariats" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser les partenariats" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
     {(demandes ?? []).map(d => <View key={d.id} style={s.carte}>
       <Text style={s.nomPetit}>{d.organisation}</Text>
       <Text style={s.texte}>{LIBELLES_PART[d.statut] ?? d.statut} · {d.nomContact} · {d.contact}</Text>

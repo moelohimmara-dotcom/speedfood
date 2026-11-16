@@ -56,7 +56,7 @@ export function HistoriqueReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture de l’historique…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{illisibles === 1 ? '1 commande ancienne est illisible dans l’application' : illisibles + ' commandes anciennes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {illisibles === 1 ? 'la' : 'les'} retrouver.</Text>}
-    <Action titre="Actualiser l’historique" agir={() => { void lire(1, true); }} disabled={chargement} />
+    <Action titre="Actualiser l’historique" secondaire icone="actualiser" agir={() => { void lire(1, true); }} disabled={chargement} />
     {commandes !== null && <>
       <Text style={s.texte}>{resumeHistorique(commandes.length, total)}</Text>
       {commandes.length === 0 && !chargement && <Text style={s.texte}>Aucune commande dans l’historique.</Text>}

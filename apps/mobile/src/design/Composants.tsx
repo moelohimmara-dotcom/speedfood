@@ -7,29 +7,71 @@ import { Icone, type NomIcone } from './Icone';
 import { useApplication } from '../etat/Application';
 export function Texte({ style, ...props }: TextProps) { return <Text {...props} style={[s.texte, style]} />; }
 export function Titre({ children, petit = false }: PropsWithChildren<{ petit?: boolean }>) { return <Texte accessibilityRole="header" style={[s.titre, petit && { fontSize: 25 }]}>{children}</Texte>; }
-export function Bouton({ titre, onPress, secondaire = false, disabled = false, icone, iconeSeule = false, libelleCourt, testID }: { titre: string; onPress(): void; secondaire?: boolean; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; libelleCourt?: string; testID?: string }) {
-  const couleurIcone = secondaire || disabled ? c.encre : c.surface;
+/**
+ * Les cinq niveaux d'un bouton (un seul « plein » par écran, comme dans les applications actuelles) :
+ * `plein` (action principale), `teinte` (action secondaire, c'est le sens de `secondaire`), `contour` (choix neutre), `texte` (action légère),
+ * `danger` (destructif : contour rouge, jamais le rempli de l'action principale).
+ */
+export type VarianteBouton = 'plein' | 'teinte' | 'contour' | 'texte' | 'danger';
+interface ApparenceBouton { fond: string; texte: string; bordure?: string; pression: string }
+function apparence(v: VarianteBouton, disabled: boolean): ApparenceBouton {
+  if (disabled) return { fond: v === 'texte' ? 'transparent' : c.desactiveFond, texte: c.desactiveTexte, pression: c.desactiveFond };
+  switch (v) {
+    case 'plein': return { fond: c.action, texte: c.surface, pression: '#9A2119' };
+    case 'teinte': return { fond: c.actionTeinte, texte: c.actionTeinteTexte, pression: '#F6D6D0' };
+    case 'contour': return { fond: 'transparent', texte: c.encre, bordure: c.contour, pression: c.actionTeinte };
+    case 'texte': return { fond: 'transparent', texte: c.action, pression: c.actionTeinte };
+    case 'danger': return { fond: 'transparent', texte: c.danger, bordure: c.danger, pression: c.dangerFond };
+  }
+}
+export function Bouton({ titre, onPress, secondaire = false, variante, disabled = false, icone, iconeSeule = false, libelleCourt, testID }: { titre: string; onPress(): void; secondaire?: boolean; variante?: VarianteBouton; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; libelleCourt?: string; testID?: string }) {
+  const niveau: VarianteBouton = variante ?? (secondaire ? 'teinte' : 'plein');
+  const a = apparence(niveau, disabled);
   if (libelleCourt && icone) {
     // Tuile d'accueil : icône au-dessus, mot court dessous ; le nom accessible reste le titre complet.
     return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={titre} testID={testID} disabled={disabled} onPress={onPress}
-      style={({ pressed }) => [s.boutonTuile, secondaire && s.boutonSecondaire, disabled && { backgroundColor: c.bordure }, pressed && { opacity: .8 }]}>
-      <Icone nom={icone} couleur={c.encre} taille={24} />
+      android_ripple={{ color: c.actionTeinte }}
+      style={({ pressed }) => [s.boutonTuile, secondaire && s.boutonSecondaire, disabled && { backgroundColor: c.bordure }, pressed && { opacity: .85 }]}>
+      <Icone nom={icone} couleur={c.action} taille={26} />
       <Texte style={{ color: c.encre, fontWeight: '700', fontSize: 12.5, textAlign: 'center' }}>{libelleCourt}</Texte>
     </Pressable>;
   }
+  // Icône seule : le nom accessible reste le titre complet (jamais un bouton muet). Action principale : rond plein de 48 px (ajouter au panier) ;
+  // sinon icône discrète sur zone de toucher de 48 px, qui se teinte au toucher (actualiser, retour, supprimer).
+  const plein = niveau === 'plein';
+  const couleurIcone = plein ? c.surface : disabled ? c.desactiveTexte : niveau === 'danger' ? c.danger : niveau === 'teinte' || niveau === 'contour' ? c.encre : c.action;
   if (iconeSeule && icone) {
-    // Icône seule à l'écran ; le nom accessible reste le titre complet (jamais un bouton muet).
     return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={titre} testID={testID} disabled={disabled} onPress={onPress}
-      style={({ pressed }) => [s.boutonIcone, secondaire && s.boutonSecondaire, disabled && { backgroundColor: c.bordure }, pressed && { opacity: .8 }]}>
-      <Icone nom={icone} couleur={couleurIcone} taille={22} />
+      android_ripple={{ color: plein ? '#9A2119' : a.pression, borderless: false }}
+      style={({ pressed }) => [s.boutonIcone, niveau === 'contour' && { borderWidth: 1.5, borderColor: disabled ? c.bordure : c.contour }, plein ? { backgroundColor: disabled ? c.desactiveFond : pressed ? a.pression : c.action } : { backgroundColor: pressed ? a.pression : 'transparent' }, pressed && { transform: [{ scale: .96 }] }]}>
+      <Icone nom={icone} couleur={couleurIcone} taille={24} />
     </Pressable>;
   }
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={titre} testID={testID} disabled={disabled} onPress={onPress}
-    style={({ pressed }) => [s.bouton, secondaire && s.boutonSecondaire, disabled && { backgroundColor: c.bordure }, pressed && { opacity: .8 }]}>
-    {icone && <Icone nom={icone} couleur={couleurIcone} taille={20} />}
-    <Texte style={{ color: disabled || secondaire ? c.encre : c.surface, fontWeight: '700', textAlign: 'center' }}>{titre}</Texte>
+    android_ripple={{ color: a.pression }}
+    style={({ pressed }) => [s.bouton, { backgroundColor: pressed ? a.pression : a.fond }, a.bordure ? { borderWidth: 1.5, borderColor: a.bordure } : null, niveau === 'texte' && s.boutonTexte, pressed && { transform: [{ scale: .985 }] }]}>
+    {icone && <Icone nom={icone} couleur={a.texte} taille={22} />}
+    <Texte style={{ color: a.texte, fontWeight: '700', fontSize: 16, lineHeight: 22, textAlign: 'center', flexShrink: 1 }}>{titre}</Texte>
   </Pressable>;
 }
+/**
+ * Ligne de navigation (écran Compte, réglages) : icône dans un rond teinté, titre, aide courte, flèche. Les lignes d'un même groupe se suivent dans une carte ;
+ * `premiere` supprime le trait de séparation du haut. Remplace les gros boutons rouges qui ne sont pas des actions mais des destinations.
+ */
+export function LigneNavigation({ titre, sousTitre, icone, onPress, disabled = false, premiere = false, testID }: { titre: string; sousTitre?: string; icone: NomIcone; onPress(): void; disabled?: boolean; premiere?: boolean; testID?: string }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={sousTitre ? titre + '. ' + sousTitre : titre} accessibilityState={{ disabled }} testID={testID} disabled={disabled} onPress={onPress}
+    android_ripple={{ color: c.actionTeinte }}
+    style={({ pressed }) => [s.ligneNav, !premiere && { borderTopWidth: 1, borderTopColor: c.bordure }, pressed && { backgroundColor: c.surfaceAlt }, disabled && { opacity: .5 }]}>
+    <View style={s.rondNav}><Icone nom={icone} couleur={c.action} taille={22} /></View>
+    <View style={{ flex: 1, gap: 2 }}>
+      <Texte style={{ fontWeight: '700', fontSize: 16, lineHeight: 22 }}>{titre}</Texte>
+      {sousTitre ? <Texte style={{ color: c.secondaire, fontSize: 13, lineHeight: 18 }}>{sousTitre}</Texte> : null}
+    </View>
+    <Icone nom="chevron" couleur={c.secondaire} taille={20} />
+  </Pressable>;
+}
+/** Carte qui regroupe des lignes de navigation. */
+export function GroupeLignes({ children }: PropsWithChildren) { return <View style={s.groupeNav}>{children}</View>; }
 export function Ecran({ children, retour = false, style }: PropsWithChildren<{ retour?: boolean; style?: ViewStyle }>) {
   const { statutSauvegarde, reessayerSauvegarde } = useApplication();
   return <View style={s.ecran}>
@@ -81,9 +123,13 @@ export const s = StyleSheet.create({
   entete: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 20, minHeight: 68, borderBottomColor: c.bordure, borderBottomWidth: 1 },
   contenu: { padding: 22, gap: 22, width: '100%', maxWidth: 660, alignSelf: 'center', paddingBottom: 30 },
   touche: { minWidth: 46, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 24 },
-  bouton: { minHeight: 54, backgroundColor: c.action, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  bouton: { minHeight: 52, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 26, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  boutonTexte: { minHeight: 48, paddingHorizontal: 14 },
   boutonSecondaire: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.encre },
-  boutonIcone: { width: 54, height: 54, backgroundColor: c.action, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
+  boutonIcone: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  ligneNav: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12 },
+  rondNav: { width: 42, height: 42, borderRadius: 21, backgroundColor: c.actionTeinte, alignItems: 'center', justifyContent: 'center' },
+  groupeNav: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 20, overflow: 'hidden' },
   boutonTuile: { flex: 1, minHeight: 76, backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, overflow: 'hidden' },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 12 },

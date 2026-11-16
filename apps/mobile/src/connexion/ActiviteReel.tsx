@@ -40,7 +40,7 @@ export function ActiviteReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture de l’activité…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {activite && activite.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{activite.illisibles === 1 ? '1 commande récente est illisible dans l’application' : activite.illisibles + ' commandes récentes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {activite.illisibles === 1 ? 'la' : 'les'} retrouver.</Text>}
-    <Action titre="Actualiser l’activité" agir={() => { void lire(); }} disabled={chargement} />
+    <Action titre="Actualiser l’activité" secondaire icone="actualiser" agir={() => { void lire(); }} disabled={chargement} />
     {activite && <>
       <BlocBilan titre="Aujourd’hui" bilan={activite.aujourdhui} />
       <BlocBilan titre="7 derniers jours" bilan={activite.semaine} />

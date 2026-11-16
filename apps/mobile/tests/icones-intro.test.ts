@@ -8,7 +8,7 @@ const lire = (relatif: string) => readFileSync(cheminDepuisModule(relatif), 'utf
 test('icones : le jeu couvre les actions du client (cloche, aide, verrou, photo, document, parametres...)', () => {
   const icone = lire('../src/design/Icone.tsx');
   for (const nom of ['cloche', 'telephone', 'message', 'cadenas', 'deconnexion', 'corbeille', 'crayon', 'camera', 'actualiser', 'externe', 'document', 'engrenage', 'eclair', 'plat', 'liste', 'info', 'alerte', 'partage', 'etoile']) {
-    assert.match(icone, new RegExp(`\\b${nom}:\\s*'`), `icone manquante : ${nom}`);
+    assert.match(icone, new RegExp(`\\b${nom}:\\s*[A-Z]`), `icone manquante : ${nom}`);
   }
 });
 

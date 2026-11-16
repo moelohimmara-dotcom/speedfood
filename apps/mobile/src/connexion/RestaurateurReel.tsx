@@ -217,7 +217,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
+    <Action titre="Retour au compte" variante="texte" icone="retour" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
     <Action titre="Visite guidée" secondaire agir={() => setVisiteOuverte(true)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
@@ -243,7 +243,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
     {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
-    <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} icone="actualiser" />
+    <Action titre="Actualiser les commandes" secondaire agir={() => { void actualiser(); }} disabled={occupe} icone="actualiser" />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}
     {docMessage !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{docMessage}</Text>}

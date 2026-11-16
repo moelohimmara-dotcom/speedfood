@@ -59,11 +59,11 @@ export function LivreurReel({ session, fermer }: { session: SessionEtatLivreur; 
   const actualiser = () => { void controleRef.current.actualiser(); };
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView ref={defilement} onContentSizeChange={defilerVersChampActif} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.contenu, { paddingBottom: 20 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" agir={fermer} disabled={affiche.etat === 'lu' && affiche.ecritureEnCours} />
+    <Action titre="Retour au compte" variante="texte" icone="retour" agir={fermer} disabled={affiche.etat === 'lu' && affiche.ecritureEnCours} />
     <Text accessibilityRole="header" style={s.titre}>Espace livreur</Text>
     {affiche.etat === 'chargement' && <><Text style={s.texte}>Lecture de votre état…</Text><Squelette /></>}
     {affiche.etat === 'erreur' && <><Text style={s.erreur}>{affiche.message}</Text><Action titre="Réessayer" agir={actualiser} /></>}
-    {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" agir={actualiser} /></>}
+    {affiche.etat === 'lu' && affiche.etatLivreur === null && <><Text style={s.texte}>Ce compte n’est pas un compte livreur.</Text><Action titre="Actualiser mon état" secondaire icone="actualiser" agir={actualiser} /></>}
     {affiche.etat === 'lu' && affiche.etatLivreur !== null && <Etat session={session} etat={affiche.etatLivreur} ecritureEnCours={affiche.ecritureEnCours} lectureEnCours={affiche.lectureEnCours} incertain={affiche.incertain} message={affiche.message}
       basculer={(v) => { void controleRef.current.basculer(v); }} repondre={(r) => { void controleRef.current.repondreOffre(r); }} avancer={(vers, saisie) => { void controleRef.current.avancerCourse(vers, saisie); }} actualiser={actualiser} clavier={clavier} />}
   </ScrollView></KeyboardAvoidingView>;
@@ -226,7 +226,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
     {enLigne && etatPosition === 'indisponible' && <Text style={s.secondaire}>{MESSAGE_POSITION_ABSENTE}</Text>}
     {enLigne && etatPosition === 'recherche' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{MESSAGE_POSITION_RECHERCHE}</Text>}
     {message !== null && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{message}</Text>}
-    <Action titre="Actualiser mon état" icone="actualiser" disabled={ecritureEnCours} agir={actualiser} />
+    <Action titre="Actualiser mon état" secondaire icone="actualiser" disabled={ecritureEnCours} agir={actualiser} />
     <Action titre="File des courses" icone="liste" secondaire disabled={ecritureEnCours} agir={() => setFileOuverte(v => !v)} />
     {fileOuverte && <FileCourses session={session} courseActuelle={course} />}
     <Action titre="Mes courses livrées et leurs frais" icone="document" secondaire disabled={ecritureEnCours} agir={() => setCoursesOuvertes(v => !v)} />

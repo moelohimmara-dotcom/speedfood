@@ -32,7 +32,7 @@ export function InscriptionReelle({ emailInitial, retour, sessionOuverte }: { em
   if (envoyee !== null) return <>
     <Text accessibilityRole="header" style={s.nom}>Vérifiez votre boîte e-mail</Text>
     <Text accessibilityLiveRegion="polite" style={s.texte}>Si cette adresse peut recevoir un compte, un e-mail de confirmation a été envoyé à {envoyee}. Ouvrez le lien reçu (regardez aussi les courriers indésirables), puis connectez-vous ici.</Text>
-    <Bouton titre="Retour à la connexion" onPress={() => retour(envoyee)} />
+    <Bouton titre="Retour à la connexion" variante="texte" icone="retour" onPress={() => retour(envoyee)} />
   </>;
   return <>
     <Text accessibilityRole="header" style={s.nom}>Créer un compte</Text>

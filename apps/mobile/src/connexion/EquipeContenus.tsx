@@ -54,7 +54,7 @@ export function AvisEquipeReel() {
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des avis…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    <Action titre="Actualiser les avis" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser les avis" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
     {(donnees?.alertes ?? []).map((a, i) => <View key={i} style={s.carte}>
       <Text style={s.nomPetit}>{libelleAlerteAvis(a.type)}</Text>
       <Text style={s.texte}>{a.cible} · {a.detail}</Text>
@@ -82,7 +82,7 @@ function ListeBannieres({ titre, seulementImages }: { titre: string; seulementIm
     <Text style={s.secondaire}>Lecture seule : créer, publier ou supprimer reste sur le site, car cela change ce que voit le public.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
     {donnees?.tronque && <Text accessibilityRole="alert" style={s.texte}>Liste incomplète : ouvrez le site pour tout voir.</Text>}
     {(donnees?.bannieres ?? []).map(b => <View key={b.id} style={s.carte}>
       <Text style={s.nomPetit}>{b.titre}</Text>
@@ -118,7 +118,7 @@ export function ParametresEquipeReel() {
     <Text style={s.secondaire}>Lecture seule : modifier un réglage se fait sur le site, où il est validé et tracé.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des paramètres…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser les paramètres" agir={() => { void relire(); }} disabled={chargement} />
+    <Action titre="Actualiser les paramètres" secondaire icone="actualiser" agir={() => { void relire(); }} disabled={chargement} />
     {p && <View style={s.carte}>
       {LIGNES_PARAMETRES.map(l => <Text key={l.libelle} style={s.texte}>{l.libelle} : {l.lire(p)}</Text>)}
       <Text style={s.texte}>Signature : {p.promesseSignature}</Text>

@@ -57,7 +57,7 @@ export function CoursesLivreurReel() {
     <Text style={s.secondaire}>Les montants sont les frais de chaque course livrée. Ce ne sont pas une paie : la règle de rémunération n'existe pas encore.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture de vos courses…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre="Actualiser mes courses" agir={() => { void lireGains(); }} disabled={chargement} />
+    <Action titre="Actualiser mes courses" secondaire icone="actualiser" agir={() => { void lireGains(); }} disabled={chargement} />
     {gains === null && <Text style={s.texte}>Ce compte n'est pas un compte livreur.</Text>}
     {gains && <>
       {(gains.illisibles > 0) && <Text accessibilityRole="alert" style={s.texte}>{gains.illisibles === 1 ? '1 course récente est illisible dans l’application.' : gains.illisibles + ' courses récentes sont illisibles dans l’application.'}</Text>}

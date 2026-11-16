@@ -6,7 +6,7 @@ const lire = (relatif: string) => readFileSync(new URL(relatif, import.meta.url)
 
 test('phase 2 : un seul bouton — les écrans métier délèguent au composant canonique', () => {
   const boutonAction = lire('../src/connexion/BoutonAction.tsx');
-  assert.match(boutonAction, /import \{ Bouton \} from '\.\.\/design\/Composants'/);
+  assert.match(boutonAction, /import \{ Bouton(?:, type VarianteBouton)? \} from '\.\.\/design\/Composants'/);
   assert.match(boutonAction, /<Bouton /);
   assert.doesNotMatch(boutonAction, /StyleSheet\.create/, 'aucun style de bouton propre restant');
 

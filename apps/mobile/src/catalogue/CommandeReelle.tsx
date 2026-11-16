@@ -9,11 +9,14 @@ import { creerLecteurCatalogue } from './client';
 import type { usePanierReel } from './usePanierReel';
 import { gestion } from '../connexion/gestion';
 import { couleurs as c, polices } from '../design/tokens';
+import { Bouton, type VarianteBouton } from '../design/Composants';
+import type { NomIcone } from '../design/Icone';
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
 const lecteur = creerLecteurCatalogue();
 const COLLATEUR_FR = new Intl.Collator('fr');
-function Action({ titre, agir, disabled = false }: { titre: string; agir(): void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={titre} disabled={disabled} accessibilityState={{ disabled }} onPress={agir} style={[s.bouton, disabled && s.inactif]}><Text style={s.boutonTexte}>{titre}</Text></Pressable>;
+/** Bouton de l'écran de commande : le bouton canonique (cinq niveaux), comme partout ailleurs dans l'application. */
+function Action({ titre, agir, disabled = false, secondaire = false, variante, icone }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; variante?: VarianteBouton; icone?: NomIcone }) {
+  return <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} variante={variante} icone={icone} />;
 }
 function Choix({ titre, actif, desactive, agir, moitie = false }: { titre: string; actif: boolean; desactive: boolean; agir(): void; moitie?: boolean }) {
   return <Pressable accessibilityRole="radio" accessibilityLabel={titre} accessibilityState={{ checked: actif, disabled: desactive }} disabled={desactive} onPress={agir} style={[s.choix, moitie && s.choixMoitie, actif && s.choixActif, desactive && s.inactif]}><Text style={[s.choixTexte, actif && s.choixTexteActif]}>{titre}</Text></Pressable>;
@@ -68,7 +71,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const fermerSiPossible = () => { if (m.peutFermer()) fermer(); };
   const propositions = quartiers.etat === 'ok' ? filtrerQuartiers(quartiers.liste, recherche) : [];
   return <Modal visible={ouvert} onRequestClose={fermerSiPossible} animationType="slide"><SafeAreaView style={s.page}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
-    <Action titre="Retour au panier" agir={fermerSiPossible} disabled={verrouille} />
+    <Action titre="Retour au panier" variante="texte" icone="retour" agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
     <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
     <View accessibilityRole="radiogroup" style={s.rangee}>
@@ -101,14 +104,14 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       <Text style={s.texte}>Quartier</Text>
       {quartierChoisi && <Text accessibilityLiveRegion="polite" style={s.nom}>{quartierChoisi.libelle}</Text>}
       {quartiers.etat === 'chargement' && <View style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement des quartiers…</Text></View>}
-      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander en retrait.</Text><Action titre="Réessayer la liste des quartiers" agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
+      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander en retrait.</Text><Action titre="Réessayer la liste des quartiers" secondaire agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
       {quartiers.etat === 'ok' && <>
         <TextInput accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
         {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
         {recherche.trim() !== '' && propositions.length === 0 && <Text style={s.secondaire}>Aucun quartier ne correspond. Essayez une autre orthographe.</Text>}
         {recherche.trim() === '' && !quartierChoisi && <Text style={s.secondaire}>Saisissez le début du nom de votre quartier pour le trouver.</Text>}
       </>}
-      {m.quartierId && m.etatEstimation === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>{m.messageEstimation}</Text><Action titre="Recalculer les frais de livraison" disabled={verrouille} agir={() => m.relancerEstimation()} /></View>}
+      {m.quartierId && m.etatEstimation === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>{m.messageEstimation}</Text><Action titre="Recalculer les frais de livraison" secondaire disabled={verrouille} agir={() => m.relancerEstimation()} /></View>}
     </>}
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: m.consentement, disabled: verrouille }} disabled={verrouille} onPress={() => m.saisir('consentement', !m.consentement)} style={s.consentement}>
       <View style={[s.case, m.consentement && s.caseCochee]}>{m.consentement && <Text style={s.coche}>✓</Text>}</View>
@@ -119,11 +122,11 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     {m.phase === 'incertain' && <View style={s.carte}>
       <Text style={s.texte}>Si vous réessayez, la même demande est renvoyée : vous ne risquez pas de commande en double.</Text>
       <Action titre="Réessayer" agir={() => { void envoyer(); }} />
-      <Action titre="Vérifier mes commandes" agir={verifierCommandes} />
-      {!m.abandonDemande ? <Action titre="Modifier ma commande" agir={() => m.demanderAbandon()} /> : <>
+      <Action titre="Vérifier mes commandes" secondaire agir={verifierCommandes} />
+      {!m.abandonDemande ? <Action titre="Modifier ma commande" secondaire agir={() => m.demanderAbandon()} /> : <>
         <Text accessibilityRole="alert" style={s.texte}>Si la commande précédente a été enregistrée, en envoyer une autre créerait un doublon. Vérifiez d’abord vos commandes.</Text>
-        <Action titre="Je confirme : elle n’a pas été enregistrée" agir={() => m.confirmerAbandon()} />
-        <Action titre="Non, garder mon envoi" agir={() => m.annulerAbandon()} /></>}
+        <Action titre="Je confirme : elle n’a pas été enregistrée" variante="danger" agir={() => m.confirmerAbandon()} />
+        <Action titre="Non, garder mon envoi" secondaire agir={() => m.annulerAbandon()} /></>}
     </View>}
     {m.phase !== 'incertain' && <Action titre={m.phase === 'envoi' ? 'Envoi en cours…' : 'Envoyer ma commande'} disabled={!peutEnvoyer} agir={() => { void envoyer(); }} />}
   </ScrollView></SafeAreaView></Modal>;

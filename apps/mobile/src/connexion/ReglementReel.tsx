@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { actionReglement, declarationVerrouillee, preparerDeclaration, reglementAffichable, type ModeReglement, type VerdictDeclaration } from './reglement';
 import type { ResumeSuivi } from './commandes';
 import { couleurs as c, polices } from '../design/tokens';
+import { Bouton } from '../design/Composants';
 
 /**
  * Bloc « Régler le restaurant » du suivi (lot C). Speedfood ne reçoit pas l'argent : le client règle le restaurant avec son code marchand (ou en espèces), puis le DÉCLARE ;
@@ -49,9 +50,7 @@ export function ReglementReel({ suivi, lecture, occupe, declarer }: { suivi: Res
         <Text style={s.secondaire}>4 à 40 lettres, chiffres, points ou tirets.</Text>
       </>}
       {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-      <Pressable accessibilityRole="button" accessibilityLabel='J’ai payé' disabled={bloque || choix === null} accessibilityState={{ disabled: bloque || choix === null }} onPress={() => { void envoyer(); }} style={[s.bouton, (bloque || choix === null) && s.inactif]}>
-        <Text style={s.boutonTexte}>{envoi ? 'Envoi…' : 'J’ai payé'}</Text>
-      </Pressable>
+      <Bouton titre={envoi ? 'Envoi…' : 'J’ai payé'} icone="coche" disabled={bloque || choix === null} onPress={() => { void envoyer(); }} />
     </>}
     {verdict && <Text accessibilityRole={verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.message}</Text>}
   </View>;
