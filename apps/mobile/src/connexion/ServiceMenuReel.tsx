@@ -282,26 +282,26 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
             {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id
               ? bloc(confirmation)
               : <>
-                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} variante="contour" icone="camera" disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
-                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} variante="danger" icone="corbeille" disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
+                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} libelle={p.photoRef === null ? 'Ajouter une photo' : 'Changer la photo'} variante="contour" icone="camera" disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
+                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} libelle="Retirer la photo" variante="danger" icone="corbeille" disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
               </>}
             {choixPhoto === p.id && <View style={s.formulaire}>
               <Text style={s.texte}>D’où vient la photo de {p.nom} ? Elle sera réduite avant l’envoi.</Text>
-              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} secondaire disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
-              <Action titre={'Prendre une photo de ' + p.nom} secondaire icone="camera" disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
+              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} libelle="Choisir dans la galerie" secondaire disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
+              <Action titre={'Prendre une photo de ' + p.nom} libelle="Prendre une photo" secondaire icone="camera" disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
               <Action titre="Annuler" variante="texte" disabled={selection} agir={() => setChoixPhoto(null)} />
             </View>}
             {messagePhoto?.platId === p.id && <Text accessibilityRole="alert" style={s.erreurChamp}>{messagePhoto.texte}</Text>}
           </View>
-          <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} variante="contour" disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
-          {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} secondaire icone="coche" disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
+          <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} libelle={p.disponible ? 'Marquer indisponible' : 'Marquer disponible'} variante="contour" disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
+          {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} libelle="Confirmer la disponibilité" secondaire icone="coche" disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
 
           {platEnEdition?.id === p.id && platEnEdition ? formulairePlat({ mode: 'modifier', plat: platEnEdition })
-            : p.edition !== null ? <Action titre={'Modifier ' + p.nom} variante="contour" icone="crayon" disabled={bloque} agir={() => ouvrirModification(p)} />
+            : p.edition !== null ? <Action titre={'Modifier ' + p.nom} libelle="Modifier" variante="contour" icone="crayon" disabled={bloque} agir={() => ouvrirModification(p)} />
               : <Text style={s.secondaire}>Ce plat a des informations illisibles dans l’application : modifiez-le sur le site.</Text>}
           {confirmation?.type === 'archiver' && confirmation.platId === p.id
             ? bloc(confirmation)
-            : <Action titre={'Archiver ' + p.nom} variante="danger" icone="corbeille" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
+            : <Action titre={'Archiver ' + p.nom} libelle="Archiver" variante="danger" icone="corbeille" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
 
           <Text accessibilityRole="header" style={s.sousTitre}>Suppléments ({p.options.length})</Text>
           {p.options.length === 0 && <Text style={s.secondaire}>Aucun supplément.</Text>}
@@ -312,7 +312,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
               : <Action titre={'Retirer le supplément ' + o.nom + ' de ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionRetirerOption(p, o), lecture: lectureVerrou })} />}
           </View>)}
           {p.optionsIllisibles > 0 && <Text accessibilityRole="alert" style={s.secondaire}>{p.optionsIllisibles === 1 ? '1 supplément est illisible' : p.optionsIllisibles + ' suppléments sont illisibles'} dans l’application : voyez-les sur le site.</Text>}
-          {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} variante="contour" icone="plus" disabled={bloque} agir={() => ouvrirSupplement(p)} />}
+          {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} libelle="Ajouter un supplément" variante="contour" icone="plus" disabled={bloque} agir={() => ouvrirSupplement(p)} />}
         </View>;
       })}
     </View>}

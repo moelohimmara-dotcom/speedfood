@@ -129,7 +129,13 @@ test('écran Service et Menu : un seul bouton plein par bloc, le destructif en d
   assert.match(s, /titre="Ajouter un plat" icone="plus"/, 'Ajouter un plat reste l’action principale du menu');
   assert.match(s, /titre="Tout confirmer" secondaire icone="coche"/, 'Tout confirmer n’est plus un second bouton plein');
   assert.match(s, /variante="texte" icone="actualiser" iconeSeule agir=\{\(\) => \{ void actualiser\(\); \}\}/);
-  assert.match(s, /'Archiver ' \+ p\.nom\} variante="danger"/);
+  assert.match(s, /'Archiver ' \+ p\.nom\} libelle="Archiver" variante="danger"/);
+  // Sur une carte de plat, le mot court s'affiche et le nom complet (avec le plat) reste le nom accessible.
+  assert.match(s, /titre=\{\(p\.photoRef === null \? 'Ajouter une photo à ' : 'Changer la photo de '\) \+ p\.nom\} libelle=\{p\.photoRef === null \? 'Ajouter une photo' : 'Changer la photo'\}/);
+  assert.match(s, /'Ajouter un supplément à ' \+ p\.nom\} libelle="Ajouter un supplément"/);
+  const composants = lire('../src/design/Composants.tsx');
+  assert.match(composants, /\{libelle \?\? titre\}<\/Texte>/, 'le libellé court s’affiche, sinon le titre');
+  assert.match(composants, /accessibilityLabel=\{titre\}/, 'le nom accessible reste le titre complet');
   assert.match(s, /variante=\{a\.type === 'archiver' \|\| a\.type === 'option_retirer' \|\| a\.type === 'photo_retirer' \? 'danger' : undefined\}/, 'la confirmation d’une suppression est en danger');
   assert.match(s, /'Retirer le supplément ' \+ o\.nom \+ ' de ' \+ p\.nom\} variante="danger" icone="corbeille" iconeSeule/);
   assert.doesNotMatch(s, /<Action titre="Annuler" secondaire/, 'les annulations de formulaire sont en texte');

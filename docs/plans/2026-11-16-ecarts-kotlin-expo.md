@@ -235,3 +235,7 @@ Vu à l'essai : l'onglet Menu du restaurateur empilait trois boutons pleins (« 
 - **Profil** : « Enregistrer cette adresse » en teinté (un seul plein avec « Enregistrer mon profil »), « Oui, supprimer » en danger. **Entrée** : « Aide et contact » en contour.
 - Non repris, volontairement : les cartes de commande du restaurateur (un seul bouton d'état à la fois), les formulaires exclusifs entre eux (candidature, accès).
 - 913 tests.
+
+### Libellés courts sur les cartes de plat (17 novembre 2026, APK `5463884`)
+
+Vu à l'écran : l'onglet Menu a bien un seul bouton plein (« Ajouter un plat »), « Tout confirmer » en teinté et l'actualisation en icône. Mais chaque bouton d'une carte répétait le nom du plat (« Confirmer la disponibilité Riz sauce feuille »), sur deux lignes, alors que le nom du plat est juste au-dessus. Le bouton canonique a maintenant une propriété `libelle` : le texte affiché est le mot court (« Modifier », « Archiver », « Ajouter une photo », « Marquer indisponible », « Confirmer la disponibilité », « Ajouter un supplément »…), et le titre complet avec le plat reste le nom accessible lu par les lecteurs d'écran. Les tests exigent toujours le titre complet. 914 tests. À revoir à l'écran après la prochaine compilation.

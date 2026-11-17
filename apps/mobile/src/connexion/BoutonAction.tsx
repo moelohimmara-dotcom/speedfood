@@ -6,6 +6,6 @@ import type { NomIcone } from '../design/Icone';
  * (phase 2 de la refonte — un seul bouton dans l'application). Cet alias garde les appels existants inchangés ;
  * `secondaire` = bouton teinté, `variante` choisit un autre niveau (`contour`, `texte`, `danger`).
  */
-export function Action({ titre, agir, disabled = false, secondaire = false, variante, icone, iconeSeule = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; variante?: VarianteBouton; icone?: NomIcone; iconeSeule?: boolean }) {
-  return <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} variante={variante} icone={icone} iconeSeule={iconeSeule} />;
+export function Action({ titre, libelle, agir, disabled = false, secondaire = false, variante, icone, iconeSeule = false }: { titre: string; libelle?: string; agir(): void; disabled?: boolean; secondaire?: boolean; variante?: VarianteBouton; icone?: NomIcone; iconeSeule?: boolean }) {
+  return <Bouton titre={titre} libelle={libelle} onPress={agir} disabled={disabled} secondaire={secondaire} variante={variante} icone={icone} iconeSeule={iconeSeule} />;
 }

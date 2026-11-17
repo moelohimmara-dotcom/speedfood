@@ -24,7 +24,8 @@ function apparence(v: VarianteBouton, disabled: boolean): ApparenceBouton {
     case 'danger': return { fond: 'transparent', texte: c.danger, bordure: c.danger, pression: c.dangerFond };
   }
 }
-export function Bouton({ titre, onPress, secondaire = false, variante, disabled = false, icone, iconeSeule = false, libelleCourt, testID }: { titre: string; onPress(): void; secondaire?: boolean; variante?: VarianteBouton; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; libelleCourt?: string; testID?: string }) {
+/** `libelle` : texte affiché quand il est plus court que le titre (le nom du plat est déjà au-dessus du bouton) ; le titre complet reste le nom accessible. */
+export function Bouton({ titre, libelle, onPress, secondaire = false, variante, disabled = false, icone, iconeSeule = false, libelleCourt, testID }: { titre: string; libelle?: string; onPress(): void; secondaire?: boolean; variante?: VarianteBouton; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; libelleCourt?: string; testID?: string }) {
   const niveau: VarianteBouton = variante ?? (secondaire ? 'teinte' : 'plein');
   const a = apparence(niveau, disabled);
   if (libelleCourt && icone) {
@@ -54,7 +55,7 @@ export function Bouton({ titre, onPress, secondaire = false, variante, disabled 
     android_ripple={{ color: a.pression }}
     style={({ pressed }) => [s.bouton, { backgroundColor: pressed ? a.pression : a.fond }, a.bordure ? { borderWidth: 1.5, borderColor: a.bordure } : null, niveau === 'texte' && s.boutonTexte, niveau === 'texte' && icone === 'retour' && { alignSelf: 'flex-start' }, pressed && { transform: [{ scale: .985 }] }]}>
     {icone && <Icone nom={icone} couleur={a.texte} taille={22} />}
-    <Texte style={{ color: a.texte, fontWeight: '700', fontSize: 16, lineHeight: 22, textAlign: 'center', flexShrink: 1 }}>{titre}</Texte>
+    <Texte style={{ color: a.texte, fontWeight: '700', fontSize: 16, lineHeight: 22, textAlign: 'center', flexShrink: 1 }}>{libelle ?? titre}</Texte>
   </Pressable>;
 }
 /**
