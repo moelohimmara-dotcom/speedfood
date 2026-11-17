@@ -158,7 +158,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     const textes = a ? confirmationDe(a) : null;
     return a && textes ? <View style={s.formulaire}>
       <Text accessibilityRole="alert" style={s.texte}>{textes.question}</Text>
-      <Action titre={textes.oui} disabled={bloque} agir={() => { void envoyer(a); }} />
+      <Action titre={textes.oui} variante={a.type === 'archiver' || a.type === 'option_retirer' || a.type === 'photo_retirer' ? 'danger' : undefined} disabled={bloque} agir={() => { void envoyer(a); }} />
       <Action titre={textes.non} secondaire disabled={occupe} agir={() => appliquer({ type: 'annuler_confirmation' })} />
     </View> : null;
   };
@@ -197,7 +197,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     {erreursPlat.description && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursPlat.description}</Text>}
     {erreursPlat.general && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursPlat.general}</Text>}
     <Action titre={cible.mode === 'creer' ? 'Ajouter ce plat' : 'Enregistrer les modifications'} disabled={bloque} agir={() => enregistrerPlat(cible)} />
-    <Action titre="Annuler" secondaire disabled={occupe} agir={fermerFormulairePlat} />
+    <Action titre="Annuler" variante="texte" disabled={occupe} agir={fermerFormulairePlat} />
   </View>;
   const formulaireOption = (plat: PlatRestaurateur) => <View style={s.formulaire}>
     <Text accessibilityRole="header" style={s.nomPlat}>{'Nouveau supplément pour ' + plat.nom}</Text>
@@ -209,14 +209,16 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     {erreursOption.prix && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursOption.prix}</Text>}
     {erreursOption.general && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursOption.general}</Text>}
     <Action titre="Ajouter ce supplément" disabled={bloque} agir={() => enregistrerSupplement(plat)} />
-    <Action titre="Annuler" secondaire disabled={occupe} agir={fermerFormulaireOption} />
+    <Action titre="Annuler" variante="texte" disabled={occupe} agir={fermerFormulaireOption} />
   </View>;
 
   return <View style={{ gap: 14 }}>
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre changement…' : etat.phase === 'relecture' ? 'Relecture de l’état du restaurant…' : 'Lecture en cours…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre={section === 'service' ? 'Actualiser le service' : 'Actualiser le menu'} agir={() => { void actualiser(); }} disabled={occupe} />
-    {luLe && <Text style={s.secondaire}>Lu à {luLe}. L’écran ne se met pas à jour tout seul : actualisez pour voir les changements faits ailleurs.</Text>}
+    <View style={s.ligneLecture}>
+      <Text style={[s.secondaire, { flex: 1 }]}>{luLe ? 'Lu à ' + luLe + '. L’écran ne se met pas à jour tout seul : actualisez pour voir les changements faits ailleurs.' : 'Pas encore lu.'}</Text>
+      <Action titre={section === 'service' ? 'Actualiser le service' : 'Actualiser le menu'} variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />
+    </View>
     {verdict && <Text accessibilityRole={verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.message}</Text>}
 
     {section === 'service' && reglages && <View style={{ gap: 14 }}>
@@ -264,7 +266,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
       {menu.plats.length === 0 && <Text style={s.texte}>Votre menu est vide : ajoutez votre premier plat.</Text>}
       {menu.plats.some(p => p.disponible) && (confirmation?.type === 'confirmer_tout'
         ? bloc(confirmation)
-        : <Action titre="Tout confirmer" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionConfirmerTout(menu), lecture: lectureVerrou })} />)}
+        : <Action titre="Tout confirmer" secondaire icone="coche" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionConfirmerTout(menu), lecture: lectureVerrou })} />)}
       {menu.plats.map(p => {
         const lib = libelleDisponibilitePlat(p, aReconfirmer, maintenant);
         const prix = formaterPrix(p.prixGnf);
@@ -280,26 +282,26 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
             {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id
               ? bloc(confirmation)
               : <>
-                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} secondaire disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
-                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} secondaire disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
+                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} variante="contour" icone="camera" disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
+                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} variante="danger" icone="corbeille" disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
               </>}
             {choixPhoto === p.id && <View style={s.formulaire}>
               <Text style={s.texte}>D’où vient la photo de {p.nom} ? Elle sera réduite avant l’envoi.</Text>
-              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
-              <Action titre={'Prendre une photo de ' + p.nom} disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
-              <Action titre="Annuler" secondaire disabled={selection} agir={() => setChoixPhoto(null)} />
+              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} secondaire disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
+              <Action titre={'Prendre une photo de ' + p.nom} secondaire icone="camera" disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
+              <Action titre="Annuler" variante="texte" disabled={selection} agir={() => setChoixPhoto(null)} />
             </View>}
             {messagePhoto?.platId === p.id && <Text accessibilityRole="alert" style={s.erreurChamp}>{messagePhoto.texte}</Text>}
           </View>
-          <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} secondaire disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
-          {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
+          <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} variante="contour" disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
+          {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} secondaire icone="coche" disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
 
           {platEnEdition?.id === p.id && platEnEdition ? formulairePlat({ mode: 'modifier', plat: platEnEdition })
-            : p.edition !== null ? <Action titre={'Modifier ' + p.nom} secondaire disabled={bloque} agir={() => ouvrirModification(p)} />
+            : p.edition !== null ? <Action titre={'Modifier ' + p.nom} variante="contour" icone="crayon" disabled={bloque} agir={() => ouvrirModification(p)} />
               : <Text style={s.secondaire}>Ce plat a des informations illisibles dans l’application : modifiez-le sur le site.</Text>}
           {confirmation?.type === 'archiver' && confirmation.platId === p.id
             ? bloc(confirmation)
-            : <Action titre={'Archiver ' + p.nom} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
+            : <Action titre={'Archiver ' + p.nom} variante="danger" icone="corbeille" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
 
           <Text accessibilityRole="header" style={s.sousTitre}>Suppléments ({p.options.length})</Text>
           {p.options.length === 0 && <Text style={s.secondaire}>Aucun supplément.</Text>}
@@ -307,10 +309,10 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
             <Text style={s.texte}>{o.nom} · {formaterPrix(o.prixGnf)}</Text>
             {confirmation?.type === 'option_retirer' && confirmation.optionId === o.id
               ? bloc(confirmation)
-              : <Action titre={'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionRetirerOption(p, o), lecture: lectureVerrou })} />}
+              : <Action titre={'Retirer le supplément ' + o.nom + ' de ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionRetirerOption(p, o), lecture: lectureVerrou })} />}
           </View>)}
           {p.optionsIllisibles > 0 && <Text accessibilityRole="alert" style={s.secondaire}>{p.optionsIllisibles === 1 ? '1 supplément est illisible' : p.optionsIllisibles + ' suppléments sont illisibles'} dans l’application : voyez-les sur le site.</Text>}
-          {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque} agir={() => ouvrirSupplement(p)} />}
+          {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} variante="contour" icone="plus" disabled={bloque} agir={() => ouvrirSupplement(p)} />}
         </View>;
       })}
     </View>}
@@ -320,7 +322,8 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
 const s = StyleSheet.create({
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   ligneInterrupteur: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ligneOption: { gap: 6 },
+  ligneOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  ligneLecture: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blocPhoto: { gap: 8 },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: c.bordure },
   champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },

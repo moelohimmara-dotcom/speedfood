@@ -74,7 +74,7 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
         <Text style={s.nomPetit}>{a.libelle}{a.parDefaut ? ' · principale' : ''}</Text><Text style={s.texte}>{a.adresse}</Text>
         {!a.parDefaut && <Bouton titre={'Définir « ' + a.libelle + ' » comme principale'} secondaire disabled={attente} onPress={() => { void ecrire(() => gestion.actionAdresse({ action: 'defaut', adresseId: a.id })); }} />}
         {aSupprimer === a.id
-          ? <><Text accessibilityRole="alert" style={s.texte}>Supprimer cette adresse ?</Text><Bouton titre="Oui, supprimer" disabled={attente} onPress={() => { void ecrire(() => gestion.actionAdresse({ action: 'supprimer', adresseId: a.id })); }} /><Bouton titre="Non, garder" secondaire disabled={attente} onPress={() => setASupprimer(null)} /></>
+          ? <><Text accessibilityRole="alert" style={s.texte}>Supprimer cette adresse ?</Text><Bouton titre="Oui, supprimer" variante="danger" icone="corbeille" disabled={attente} onPress={() => { void ecrire(() => gestion.actionAdresse({ action: 'supprimer', adresseId: a.id })); }} /><Bouton titre="Non, garder" secondaire disabled={attente} onPress={() => setASupprimer(null)} /></>
           : <View style={{ alignItems: 'flex-end' }}><Bouton titre={'Supprimer « ' + a.libelle + ' »'} icone="corbeille" iconeSeule secondaire disabled={attente} onPress={() => setASupprimer(a.id)} /></View>}
       </View>)}
       {espace.adresses.length < ADRESSES_MAX
@@ -84,7 +84,7 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
           <TextInput accessibilityLabel="Nom de l’adresse" value={libelle} onChangeText={setLibelle} maxLength={40} editable={!attente} style={s.champ} />
           <Text style={s.texte}>Adresse pour le livreur : quartier, rue, point de repère</Text>
           <TextInput accessibilityLabel="Adresse de livraison" value={adresse} onChangeText={setAdresse} multiline maxLength={320} editable={!attente} style={[s.champ, { minHeight: 90 }]} />
-          <Bouton titre="Enregistrer cette adresse" disabled={attente || !adresseValide} onPress={() => { const v = validerAdresse(libelle, adresse); if (!v.ok) return; void ecrire(async () => { const r = await gestion.actionAdresse({ action: 'ajouter', libelle, adresse }); if (actif.current) { setLibelle(''); setAdresse(''); } return r; }); }} />
+          <Bouton titre="Enregistrer cette adresse" secondaire disabled={attente || !adresseValide} onPress={() => { const v = validerAdresse(libelle, adresse); if (!v.ok) return; void ecrire(async () => { const r = await gestion.actionAdresse({ action: 'ajouter', libelle, adresse }); if (actif.current) { setLibelle(''); setAdresse(''); } return r; }); }} />
         </View>
         : <Text style={s.texte}>Vous avez déjà {ADRESSES_MAX} adresses : supprimez-en une avant d’en ajouter.</Text>}
       <Text accessibilityRole="header" style={s.nom}>Mes favoris</Text>

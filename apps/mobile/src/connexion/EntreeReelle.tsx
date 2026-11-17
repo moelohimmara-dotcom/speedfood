@@ -52,7 +52,7 @@ export function EntreeReelle({ ouvert, fermer, ouvrirEspace, ouvrirConnexion, ou
     {refus && <View style={s.carte}>
       <Text accessibilityRole="alert" style={s.texte}>{refus.message}</Text>
       {refus.candidature && <Bouton titre="J’ai un restaurant" icone="restaurateur" onPress={() => quitter(ouvrirCandidature)} />}
-      {refus.assistance && <Bouton titre="Aide et contact" icone="message" onPress={() => quitter(ouvrirAide)} />}
+      {refus.assistance && <Bouton titre="Aide et contact" icone="message" variante="contour" onPress={() => quitter(ouvrirAide)} />}
     </View>}
     <Bouton titre="Revoir la visite guidée" secondaire icone="etoile" onPress={() => quitter(ouvrirVisite)} />
     <Bouton titre="Équipe Speedfood" secondaire icone="liste" disabled={occupe} onPress={() => { void choisir('equipe'); }} />

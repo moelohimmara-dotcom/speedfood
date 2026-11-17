@@ -240,11 +240,11 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
       <Action titre="Me connecter" disabled={attente||!email.trim()||!motDePasse} agir={()=>{const demande=gestion.connecter(email,motDePasse);setEmail('');setMotDePasse('');void executer(async()=>{await demande;setProfil(await gestion.espace());});}}/>
-      {sociaux.has('google')&&<Action titre="Continuer avec Google" disabled={attente} agir={()=>{void commencerSocial('google');}}/>}
-      {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
-      <Action titre="Mot de passe oublié ?" disabled={attente} agir={()=>{setErreur(null);setAcces('oubli');}}/>
-      <Action titre="Créer un compte" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
-      {erreur&&<Action titre="Relire la session protégée" disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
+      {sociaux.has('google')&&<Action titre="Continuer avec Google" variante="contour" disabled={attente} agir={()=>{void commencerSocial('google');}}/>}
+      {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" variante="contour" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
+      <Action titre="Mot de passe oublié ?" variante="texte" disabled={attente} agir={()=>{setErreur(null);setAcces('oubli');}}/>
+      <Action titre="Créer un compte" variante="contour" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
+      {erreur&&<Action titre="Relire la session protégée" secondaire disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
     </>:<>
       {vue==='compte'&&<>
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
@@ -278,7 +278,7 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       <Action titre="Me déconnecter de cet appareil" icone="deconnexion" variante="contour" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
       </>}
     </>}
-    {erreur&&<Action titre="Effacer la session de cet appareil" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}
+    {erreur&&<Action titre="Effacer la session de cet appareil" variante="danger" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}
     {vue==='compte'&&parametres&&<ParametresReel connectee={connectee} ouvrirVisite={parametres.ouvrirVisite} oublierCommandes={parametres.oublierCommandes} sessionTerminee={()=>{setConnectee(gestion.connectee);setProfil(null);effacerLectures();setErreur('Votre session a pris fin. Reconnectez-vous.');}}/>}
     <Text style={s.secondaire}>Vous pouvez commander en retrait ou en livraison depuis le panier lorsque vous êtes connecté.</Text>
   </ScrollView>;
@@ -296,11 +296,11 @@ function PropositionCarte({proposition:p,totalActuel,confirmation,occupe,choisir
     {p.expireLe!==null&&<Text style={s.secondaire}>{echue?'Cette proposition a expiré.':'À accepter avant le '+new Date(p.expireLe).toLocaleString('fr-FR')+'.'}</Text>}
     {confirmation===null?<>
       <Action titre="Accepter la proposition" disabled={occupe||echue} agir={()=>choisir('acceptee')}/>
-      <Action titre="Refuser la proposition" disabled={occupe||echue} agir={()=>choisir('refusee')}/>
+      <Action titre="Refuser la proposition" variante="contour" disabled={occupe||echue} agir={()=>choisir('refusee')}/>
     </>:<>
       <Text accessibilityRole="alert" style={s.texte}>{confirmation==='acceptee'?'Accepter cette proposition ? Les nouveaux montants seront retenus ; le restaurant devra encore confirmer votre commande.':'Refuser cette proposition ? Votre commande sera annulée.'}</Text>
       <Action titre={confirmation==='acceptee'?'Oui, accepter':'Oui, refuser'} disabled={occupe} agir={()=>repondre(confirmation==='acceptee')}/>
-      <Action titre="Non, revenir" disabled={occupe} agir={()=>choisir(null)}/>
+      <Action titre="Non, revenir" secondaire disabled={occupe} agir={()=>choisir(null)}/>
     </>}
   </ScrollView>;
 }

@@ -124,3 +124,27 @@ test('écran de commande : le sélecteur retrait ou livraison est teinté et cer
   assert.match(s, /choixTexteActif: \{ color: c\.actionTeinteTexte \}/);
   assert.doesNotMatch(s, /choixActif: \{ backgroundColor: c\.action \}/);
 });
+test('écran Service et Menu : un seul bouton plein par bloc, le destructif en danger, l’actualisation en icône seule, retrait d’un supplément en icône seule', () => {
+  const s = lire('../src/connexion/ServiceMenuReel.tsx');
+  assert.match(s, /titre="Ajouter un plat" icone="plus"/, 'Ajouter un plat reste l’action principale du menu');
+  assert.match(s, /titre="Tout confirmer" secondaire icone="coche"/, 'Tout confirmer n’est plus un second bouton plein');
+  assert.match(s, /variante="texte" icone="actualiser" iconeSeule agir=\{\(\) => \{ void actualiser\(\); \}\}/);
+  assert.match(s, /'Archiver ' \+ p\.nom\} variante="danger"/);
+  assert.match(s, /variante=\{a\.type === 'archiver' \|\| a\.type === 'option_retirer' \|\| a\.type === 'photo_retirer' \? 'danger' : undefined\}/, 'la confirmation d’une suppression est en danger');
+  assert.match(s, /'Retirer le supplément ' \+ o\.nom \+ ' de ' \+ p\.nom\} variante="danger" icone="corbeille" iconeSeule/);
+  assert.doesNotMatch(s, /<Action titre="Annuler" secondaire/, 'les annulations de formulaire sont en texte');
+});
+test('écran de connexion et profil : « Me connecter » reste le seul bouton plein ; les connexions sociales, « Créer un compte » et « Mot de passe oublié ? » sont de niveaux plus discrets ; les suppressions sont en danger', () => {
+  const compte = lire('../src/connexion/CompteReel.tsx');
+  assert.match(compte, /<Action titre="Me connecter" disabled=/, 'Me connecter reste plein');
+  assert.match(compte, /titre="Continuer avec Google" variante="contour"/);
+  assert.match(compte, /titre="Continuer avec Facebook" variante="contour"/);
+  assert.match(compte, /titre="Mot de passe oublié \?" variante="texte"/);
+  assert.match(compte, /titre="Créer un compte" variante="contour"/);
+  assert.match(compte, /titre="Effacer la session de cet appareil" variante="danger"/);
+  assert.match(compte, /titre="Refuser la proposition" variante="contour"/);
+  assert.match(lire('../src/connexion/EntreeReelle.tsx'), /titre="Aide et contact" icone="message" variante="contour"/);
+  const espace = lire('../src/connexion/EspaceClientReel.tsx');
+  assert.match(espace, /titre="Oui, supprimer" variante="danger"/);
+  assert.match(espace, /titre="Enregistrer cette adresse" secondaire/);
+});

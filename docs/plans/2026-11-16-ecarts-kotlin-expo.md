@@ -226,3 +226,12 @@ Vus sur émulateur : Paramètres, espace livreur, modules de l'équipe, liste de
 - suivi : l'actualisation passe sur la ligne du titre de la carte, la pastille d'état devient compacte (elle s'étirait sur toute la largeur) ;
 - écran de commande : le sélecteur Retrait ou Livraison était un grand bouton rouge plein qui rivalisait avec « Envoyer ma commande » ; il devient un choix teinté et cerclé.
 - 912 tests. Non vu : l'espace restaurateur avec l'actualisation à sa nouvelle place, le choix Livraison avec quartiers, la file des courses en ligne.
+
+### Hiérarchie des boutons sur les écrans denses (17 novembre 2026, APK `372e6ab`)
+
+Vu à l'essai : l'onglet Menu du restaurateur empilait trois boutons pleins (« Actualiser le menu », « Ajouter un plat », « Tout confirmer ») et une dizaine de boutons au même niveau par plat. Un comptage des boutons pleins par fichier a montré le même défaut ailleurs (connexion : Google, Facebook, Créer un compte et Mot de passe oublié au niveau de « Me connecter »).
+- **Menu et Service** : actualisation en icône seule sur la ligne de l'heure de lecture ; « Ajouter un plat » seul plein ; « Tout confirmer » et « Confirmer la disponibilité » en teinté avec coche ; photo, disponibilité, modifier, suppléments en contour avec leur icône ; « Archiver », « Retirer la photo » et le retrait d'un supplément (icône seule) en danger ; confirmation d'une suppression en danger ; « Annuler » des formulaires en texte.
+- **Connexion** : « Me connecter » seul plein ; Google et Facebook en contour ; « Créer un compte » en contour ; « Mot de passe oublié ? » en texte ; « Effacer la session » en danger ; « Refuser la proposition » en contour.
+- **Profil** : « Enregistrer cette adresse » en teinté (un seul plein avec « Enregistrer mon profil »), « Oui, supprimer » en danger. **Entrée** : « Aide et contact » en contour.
+- Non repris, volontairement : les cartes de commande du restaurateur (un seul bouton d'état à la fois), les formulaires exclusifs entre eux (candidature, accès).
+- 913 tests.
