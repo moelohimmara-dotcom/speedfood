@@ -11,6 +11,8 @@ import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import CircleHelp from 'lucide-react-native/icons/circle-help';
 import Clock from 'lucide-react-native/icons/clock';
 import ExternalLink from 'lucide-react-native/icons/external-link';
+import Eye from 'lucide-react-native/icons/eye';
+import EyeOff from 'lucide-react-native/icons/eye-off';
 import FileText from 'lucide-react-native/icons/file-text';
 import Heart from 'lucide-react-native/icons/heart';
 import House from 'lucide-react-native/icons/house';
@@ -51,7 +53,7 @@ const icones = {
   retour: ArrowLeft, fleche: ArrowRight, bas: ChevronDown, chevron: ChevronRight, plus: Plus, moins: Minus, coche: Check, horloge: Clock, fermer: X,
   cloche: Bell, telephone: Phone, message: MessageCircle, cadenas: Lock, deconnexion: LogOut, corbeille: Trash2, crayon: Pencil, camera: Camera,
   actualiser: RefreshCw, externe: ExternalLink, document: FileText, engrenage: Settings, eclair: Zap, plat: Utensils, liste: List, info: Info,
-  alerte: TriangleAlert, partage: Share, etoile: Star,
+  visible: Eye, masque: EyeOff, alerte: TriangleAlert, partage: Share, etoile: Star,
   livreur: Bike, restaurateur: ChefHat, equipe: Users, restaurant: Store, recu: ReceiptText, aide: CircleHelp,
 } as const satisfies Record<string, ComponentType<PropsLucide>>;
 export type NomIcone = keyof typeof icones;

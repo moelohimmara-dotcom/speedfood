@@ -279,12 +279,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
             {p.photoUrl !== null && imagesEnErreur[p.id] !== p.photoUrl
               ? <Image source={{ uri: p.photoUrl }} accessibilityLabel={'Photo de ' + p.nom} style={s.photo} resizeMode="cover" onError={() => setImagesEnErreur(x => ({ ...x, [p.id]: p.photoUrl as string }))} />
               : <Text style={s.secondaire}>{p.photoRef === null ? 'Aucune photo pour ce plat.' : 'La photo de ce plat ne peut pas être affichée ici.'}</Text>}
-            {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id
-              ? bloc(confirmation)
-              : <>
-                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} libelle={p.photoRef === null ? 'Ajouter une photo' : 'Changer la photo'} variante="contour" icone="camera" disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
-                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} libelle="Retirer la photo" variante="danger" icone="corbeille" disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
-              </>}
+            {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id && bloc(confirmation)}
             {choixPhoto === p.id && <View style={s.formulaire}>
               <Text style={s.texte}>D’où vient la photo de {p.nom} ? Elle sera réduite avant l’envoi.</Text>
               <Action titre={'Choisir dans la galerie une photo de ' + p.nom} libelle="Choisir dans la galerie" secondaire disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
@@ -293,15 +288,19 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
             </View>}
             {messagePhoto?.platId === p.id && <Text accessibilityRole="alert" style={s.erreurChamp}>{messagePhoto.texte}</Text>}
           </View>
-          <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} libelle={p.disponible ? 'Marquer indisponible' : 'Marquer disponible'} variante="contour" disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
-          {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} libelle="Confirmer la disponibilité" secondaire icone="coche" disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
-
+          <View style={s.rangeeIcones}>
+            {!(confirmation?.type === 'photo_retirer' && confirmation.platId === p.id) && <>
+              <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} variante="contour" icone="camera" iconeSeule disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
+              {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
+            </>}
+            <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} variante="contour" icone={p.disponible ? 'masque' : 'visible'} iconeSeule disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
+            {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} secondaire icone="coche" iconeSeule disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
+            {platEnEdition?.id !== p.id && p.edition !== null && <Action titre={'Modifier ' + p.nom} variante="contour" icone="crayon" iconeSeule disabled={bloque} agir={() => ouvrirModification(p)} />}
+            {!(confirmation?.type === 'archiver' && confirmation.platId === p.id) && <Action titre={'Archiver ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
+          </View>
+          {confirmation?.type === 'archiver' && confirmation.platId === p.id && bloc(confirmation)}
           {platEnEdition?.id === p.id && platEnEdition ? formulairePlat({ mode: 'modifier', plat: platEnEdition })
-            : p.edition !== null ? <Action titre={'Modifier ' + p.nom} libelle="Modifier" variante="contour" icone="crayon" disabled={bloque} agir={() => ouvrirModification(p)} />
-              : <Text style={s.secondaire}>Ce plat a des informations illisibles dans l’application : modifiez-le sur le site.</Text>}
-          {confirmation?.type === 'archiver' && confirmation.platId === p.id
-            ? bloc(confirmation)
-            : <Action titre={'Archiver ' + p.nom} libelle="Archiver" variante="danger" icone="corbeille" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
+            : p.edition === null && <Text style={s.secondaire}>Ce plat a des informations illisibles dans l’application : modifiez-le sur le site.</Text>}
 
           <Text accessibilityRole="header" style={s.sousTitre}>Suppléments ({p.options.length})</Text>
           {p.options.length === 0 && <Text style={s.secondaire}>Aucun supplément.</Text>}
@@ -322,6 +321,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
 const s = StyleSheet.create({
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   ligneInterrupteur: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rangeeIcones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   ligneOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   ligneLecture: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blocPhoto: { gap: 8 },
