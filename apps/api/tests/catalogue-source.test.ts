@@ -147,3 +147,28 @@ test('I1 : le tri des quartiers utilise un collateur créé une fois au niveau m
   const src = readFileSync(new URL('../src/catalogue/lectures.ts', import.meta.url), 'utf8');
   assert.match(src, /^const COLLATEUR_FR = new Intl\.Collator\('fr'\);/m); assert.match(src, /COLLATEUR_FR\.compare\(a\.libelle, b\.libelle\)/); assert.ok(!/localeCompare/.test(src));
 });
+
+test('source catalogue riche : une note hors de l’échelle 0 à 5 (donnée incohérente) devient null, jamais une note refusée en bloc par l’appli', async () => {
+  const note = async (somme: number, total: number) => (await lireRestaurants(null, db(() => [{ ...riche, avis_somme: somme, avis_total: total }]))).restaurants[0].note;
+  assert.equal(await note(30, 3), null); assert.equal(await note(16, 3), null); assert.equal(await note(15, 3), 5);
+});
+test('source menu riche : les suppléments sont triés par nom, et les sections ne sont lues et envoyées qu’avec la première page', async () => {
+  const s1 = id.replace(/1$/, 'a');
+  const lecture = async (apres: string | null) => {
+    const vus: string[] = []; let tri: string | null = null;
+    const page = await lireMenu(id, apres, db(u => {
+      vus.push(u.pathname.split('/').pop()!);
+      if (u.pathname.endsWith('/restaurants')) return riche;
+      if (u.pathname.endsWith('/menu_sections')) return [{ id: s1, nom: 'Entrées', position: 1 }];
+      tri = u.searchParams.get('menu_item_options.order');
+      return [{ id, nom: 'Poulet', description: '', prix: 1000, prix_promo: null, disponible: true, disponibilite_confirmee_le: new Date().toISOString(), photo_url: null, section_id: s1, menu_item_options: [] }];
+    }), parametres);
+    return { page, vus, tri };
+  };
+  const premiere = await lecture(null);
+  assert.equal(premiere.tri, 'nom.asc', 'ordre stable des suppléments'); assert.ok(premiere.vus.includes('menu_sections'));
+  assert.deepEqual(premiere.page?.sections, [{ id: s1, nom: 'Entrées', position: 1 }]);
+  const suite = await lecture(id);
+  assert.ok(!suite.vus.includes('menu_sections'), 'pas de nouvelle lecture des sections'); assert.ok(!('sections' in suite.page!), 'pas de sections renvoyées sur les pages suivantes');
+  assert.equal(suite.tri, 'nom.asc'); assert.equal(suite.page?.plats.length, 1);
+});

@@ -16,10 +16,11 @@ type LigneRestaurant = {
 /** Une adresse d'image n'est transmise qu'en HTTPS, sans espace ni caractère de contrôle, de 2000 caractères au plus ; sinon `null`. */
 function urlImage(v: unknown): string | null { return typeof v === 'string' && v.length <= 2000 && /^https:\/\/[^\s\x00-\x1f]+$/.test(v) ? v : null; }
 function texteFacultatif(v: unknown, max: number): string | null { if (typeof v !== 'string') return null; const t = v.trim(); return t.length > 0 && t.length <= max ? t : null; }
-/** Note moyenne au dixième, formule de l'ancienne appli (division entière puis /10) ; `null` sans avis. */
+/** Note moyenne au dixième, formule de l'ancienne appli (division entière puis /10) ; `null` sans avis, et `null` aussi si le résultat sort de l'échelle 0 à 5 (donnée incohérente : jamais une note inventée). */
 function noteMoyenne(somme: unknown, total: unknown): number | null {
   if (!Number.isSafeInteger(somme) || !Number.isSafeInteger(total) || (total as number) <= 0 || (somme as number) < 0) return null;
-  return Math.floor(((somme as number) * 10) / (total as number)) / 10;
+  const note = Math.floor(((somme as number) * 10) / (total as number)) / 10;
+  return note <= 5 ? note : null;
 }
 function projeter(r: LigneRestaurant, fiche = false): RestaurantPublic {
   const base: RestaurantPublic = {
@@ -46,11 +47,12 @@ export async function lireMenu(id: string, apres: string | null, db: SupabaseCli
   if (erreurRestaurant) throw new Error('catalogue_indisponible');
   const restaurant = brutRestaurant as unknown as LigneRestaurant | null;
   if (!restaurant) return null;
-  let q = db.from('menu_items').select('id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, menu_item_options(id, nom, prix, disponible)').eq('restaurant_id', id).is('archive_le', null).order('id').limit(101);
+  let q = db.from('menu_items').select('id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, menu_item_options(id, nom, prix, disponible)').eq('restaurant_id', id).is('archive_le', null).order('id').order('nom', { referencedTable: 'menu_item_options' }).limit(101);
   if (apres) q = q.gt('id', apres);
-  const sectionsRequete = db.from('menu_sections').select('id, nom, position').eq('restaurant_id', id).order('position', { ascending: true }).limit(50);
+  // Les sections ne sont lues et envoyées qu'avec la première page : les pages suivantes n'en refont ni la lecture ni le transport (l'appli garde celles de la première page).
+  const sectionsRequete = apres ? Promise.resolve({ data: null, error: null }) : db.from('menu_sections').select('id, nom, position').eq('restaurant_id', id).order('position', { ascending: true }).limit(50);
   const [{ data: brut, error }, { data: lignesSections, error: erreurSections }, { disponibiliteFraicheurHeures }] = await Promise.all([q, sectionsRequete, parametres()]);
-  if (error || !brut || erreurSections || !lignesSections) throw new Error('catalogue_indisponible');
+  if (error || !brut || erreurSections || (!apres && !lignesSections)) throw new Error('catalogue_indisponible');
   const data = brut as unknown as LignePlat[];
   const maintenant = new Date();
   const plats = data.slice(0, 100).map(p => {
@@ -62,8 +64,8 @@ export async function lireMenu(id: string, apres: string | null, db: SupabaseCli
     });
     return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: urlImage(p.photo_url), sectionId: p.section_id ?? null, options };
   });
-  const sections = [...lignesSections].sort((a, b) => a.position - b.position).map(s => ({ id: s.id, nom: s.nom, position: s.position }));
-  return { restaurant: projeter(restaurant, true), plats, suivant: data.length > 100 ? plats.at(-1)!.id : null, luLe: maintenant.toISOString(), sections };
+  const sections = apres ? undefined : [...(lignesSections ?? [])].sort((a, b) => a.position - b.position).map(s => ({ id: s.id, nom: s.nom, position: s.position }));
+  return { restaurant: projeter(restaurant, true), plats, suivant: data.length > 100 ? plats.at(-1)!.id : null, luLe: maintenant.toISOString(), ...(sections ? { sections } : {}) };
 }
 
 /** Collateur créé UNE fois : la comparaison locale par chaîne en recréerait un à chaque comparaison (limite CPU du Worker, erreur 1102). */

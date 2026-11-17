@@ -70,7 +70,7 @@ export function CatalogueReel() {
         if (numero !== generation.current) return;
         setAgeHorsLigne(res.ageMs);
         const page = res.donnees;
-        setMenu(ancien => ({ ...page, plats: apres && ancien ? [...ancien.plats, ...page.plats.filter(p => !ancien.plats.some(a => a.id === p.id))] : page.plats }));
+        setMenu(ancien => ({ ...page, sections: page.sections ?? (apres ? ancien?.sections : undefined), plats: apres && ancien ? [...ancien.plats, ...page.plats.filter(p => !ancien.plats.some(a => a.id === p.id))] : page.plats }));
       } else {
         const res = await cache.lire('restaurants:' + (apres ?? ''), () => lecteur.restaurants(apres), validerPageRestaurants);
         if (numero !== generation.current) return;

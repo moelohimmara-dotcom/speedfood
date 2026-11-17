@@ -38,7 +38,8 @@ export function brancherSuiviLivreur(session: SessionEtatLivreur, enLigne: boole
       }
     } catch { enMarche = false; dire('indisponible'); return; }
     const demarre = await veilleNative.demarrerSuiviLivreur();
-    if (perimee()) { if (demarre && !vivant) void veilleNative.arreterSuiviLivreur(); return; }
+    // Démarrage périmé (arrêt survenu pendant l'attente, ou composant retiré) : si le service a bien démarré et qu'aucune exécution plus récente n'est en marche, on l'arrête.
+    if (perimee()) { if (demarre && !enMarche) void veilleNative.arreterSuiviLivreur(); return; }
     if (!demarre) { enMarche = false; dire('indisponible'); return; }
     dire('recherche');
     retirerPositions = veilleNative.ecouterPositions((latitude, longitude) => {
