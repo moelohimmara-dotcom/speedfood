@@ -163,3 +163,10 @@ test('écran de commande : une liste de choix (quartiers) s’affiche en lignes 
   assert.match(s, /choixLigne: \{ borderRadius: 14, alignItems: 'flex-start'/);
   assert.match(s, /choixTexteLigne: \{ textAlign: 'left' \}/);
 });
+
+test('icône seule : le danger a un cadre rouge et le teinté un fond teinté, comme le contour a son cadre (rangée homogène)', () => {
+  const composants = lire('../src/design/Composants.tsx');
+  assert.match(composants, /niveau === 'danger' && \{ borderWidth: 1\.5, borderColor: disabled \? c\.bordure : c\.danger \}/);
+  assert.match(composants, /niveau === 'teinte' && !disabled \? c\.actionTeinte : 'transparent'/);
+  assert.match(lire('../src/connexion/ServiceMenuReel.tsx'), /rangeeIcones: \{[^}]*marginBottom: 8/);
+});

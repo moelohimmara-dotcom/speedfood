@@ -321,7 +321,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
 const s = StyleSheet.create({
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   ligneInterrupteur: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rangeeIcones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  rangeeIcones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 },
   ligneOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   ligneLecture: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blocPhoto: { gap: 8 },

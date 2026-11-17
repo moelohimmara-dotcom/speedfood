@@ -47,7 +47,7 @@ export function Bouton({ titre, libelle, onPress, secondaire = false, variante, 
   if (iconeSeule && icone) {
     return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={titre} testID={testID} disabled={disabled} onPress={onPress}
       android_ripple={{ color: plein ? '#9A2119' : a.pression, borderless: false }}
-      style={({ pressed }) => [s.boutonIcone, placement, niveau === 'contour' && { borderWidth: 1.5, borderColor: disabled ? c.bordure : c.contour }, plein ? { backgroundColor: disabled ? c.desactiveFond : pressed ? a.pression : c.action } : { backgroundColor: pressed ? a.pression : 'transparent' }, pressed && { transform: [{ scale: .96 }] }]}>
+      style={({ pressed }) => [s.boutonIcone, placement, niveau === 'contour' && { borderWidth: 1.5, borderColor: disabled ? c.bordure : c.contour }, niveau === 'danger' && { borderWidth: 1.5, borderColor: disabled ? c.bordure : c.danger }, plein ? { backgroundColor: disabled ? c.desactiveFond : pressed ? a.pression : c.action } : { backgroundColor: pressed ? a.pression : niveau === 'teinte' && !disabled ? c.actionTeinte : 'transparent' }, pressed && { transform: [{ scale: .96 }] }]}>
       <Icone nom={icone} couleur={couleurIcone} taille={24} />
     </Pressable>;
   }
