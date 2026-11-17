@@ -154,3 +154,9 @@ test('écran de connexion et profil : « Me connecter » reste le seul bouton pl
   assert.match(espace, /titre="Oui, supprimer" variante="danger"/);
   assert.match(espace, /titre="Enregistrer cette adresse" secondaire/);
 });
+test('écran de commande : une liste de choix (quartiers) s’affiche en lignes alignées à gauche, le sélecteur à deux options reste en pilules', () => {
+  const s = lire('../src/catalogue/CommandeReelle.tsx');
+  assert.match(s, /moitie \? s\.choixMoitie : s\.choixLigne/);
+  assert.match(s, /choixLigne: \{ borderRadius: 14, alignItems: 'flex-start'/);
+  assert.match(s, /choixTexteLigne: \{ textAlign: 'left' \}/);
+});

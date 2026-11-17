@@ -19,7 +19,7 @@ function Action({ titre, agir, disabled = false, secondaire = false, variante, i
   return <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} variante={variante} icone={icone} iconeSeule={iconeSeule} />;
 }
 function Choix({ titre, actif, desactive, agir, moitie = false }: { titre: string; actif: boolean; desactive: boolean; agir(): void; moitie?: boolean }) {
-  return <Pressable accessibilityRole="radio" accessibilityLabel={titre} accessibilityState={{ checked: actif, disabled: desactive }} disabled={desactive} onPress={agir} style={[s.choix, moitie && s.choixMoitie, actif && s.choixActif, desactive && s.inactif]}><Text style={[s.choixTexte, actif && s.choixTexteActif]}>{titre}</Text></Pressable>;
+  return <Pressable accessibilityRole="radio" accessibilityLabel={titre} accessibilityState={{ checked: actif, disabled: desactive }} disabled={desactive} onPress={agir} style={[s.choix, moitie ? s.choixMoitie : s.choixLigne, actif && s.choixActif, desactive && s.inactif]}><Text style={[s.choixTexte, !moitie && s.choixTexteLigne, actif && s.choixTexteActif]}>{titre}</Text></Pressable>;
 }
 type Quartiers = { etat: 'aucun' | 'chargement' | 'ok' | 'erreur'; liste: QuartierPublic[] };
 /**
@@ -141,6 +141,9 @@ const s = StyleSheet.create({
   boutonTexte: { fontFamily: polices.texte, color: c.surface, fontWeight: '700' },
   rangee: { flexDirection: 'row', gap: 12 },
   choixMoitie: { flex: 1 },
+  // Liste de choix (quartiers) : des lignes, texte à gauche, pas des pilules d'action.
+  choixLigne: { borderRadius: 14, alignItems: 'flex-start', paddingVertical: 12, paddingHorizontal: 16 },
+  choixTexteLigne: { textAlign: 'left' },
   // Sélecteur (retrait ou livraison, quartier…) : un choix, pas une action. L'option retenue est teintée et cerclée ; le seul bouton plein de l'écran reste « Envoyer ma commande ».
   choix: { minHeight: 48, padding: 14, borderRadius: 26, borderWidth: 1.5, borderColor: c.contour, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }, choixActif: { backgroundColor: c.actionTeinte, borderColor: c.action },
   choixTexte: { fontFamily: polices.texte, color: c.encre, fontWeight: '700', textAlign: 'center' }, choixTexteActif: { color: c.actionTeinteTexte },
