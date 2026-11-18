@@ -21,8 +21,15 @@ export { reponseErreur };
 
 const SANS_CACHE = { "Cache-Control": "no-store" };
 
+/** En-têtes de sécurité de TOUTES les réponses de l'API (le site les pose déjà) : HTTPS imposé et pas de devinette du type de contenu. */
+const ENTETES_SECURITE: Record<string, string> = { "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff" };
+
 export function creerApp(deps: Deps) {
   const app = new Hono();
+  app.use("*", async (c, suivant) => {
+    await suivant();
+    for (const [nom, valeur] of Object.entries(ENTETES_SECURITE)) c.res.headers.set(nom, valeur);
+  });
   // Ces lectures portent une identité explicite, sans cookie. Aucun CORS d'écriture.
   for (const chemin of ['/api/v1/moi', '/api/v1/client/espace', '/api/v1/commandes']) {
     app.use(chemin, async (c, suivant) => {
