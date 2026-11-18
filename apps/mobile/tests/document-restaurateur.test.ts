@@ -85,7 +85,8 @@ test('client document : POST {commandeId, type} sur la route document, jeton por
     const { a, appels } = api(() => json({ ok: true }));
     await a.emettreDocumentRestaurateur(ACCES, A, type);
     assert.equal(appels.length, 1);
-    assert.equal(appels[0].url, 'https://speedfood-api.moelohimmara.workers.dev/api/v1/restaurant/commandes/document');
+    // Cette route n'existe QUE sur le site (l'API répond « Route inconnue. » : relevé de l'essai du 18/11/2026).
+    assert.equal(appels[0].url, 'https://speedfood-app.moelohimmara.workers.dev/api/v1/restaurant/commandes/document');
     assert.equal(appels[0].options.method, 'POST');
     assert.deepEqual(JSON.parse(String(appels[0].options.body)), { commandeId: A, type });
     assert.equal((appels[0].options.headers as Record<string, string>).Authorization, 'Bearer ' + ACCES);

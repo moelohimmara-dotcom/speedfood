@@ -5,6 +5,7 @@ import { ouvrirPanierReel } from '../stockage/panier-reel-sqlite';
 import type { SessionPanierReel } from '../stockage/panier-reel-session';
 import { creerLecteurCatalogue } from './client';
 import { preparerRecommande, type MemoCommande, type PlanRecommande } from './recommande';
+import { avecNouveauxEssais } from './nouveaux-essais';
 const lecteur = creerLecteurCatalogue();
 export function usePanierReel() {
   const [panier, setPanier] = useState(vide);
@@ -18,8 +19,8 @@ export function usePanierReel() {
   const [prixModifies, setPrixModifies] = useState(false);
   async function restaurer() {
     const n = ++generation.current; setErreur(null); setStatut('Restauration du panier…');
-    try { const s = await ouvrirPanierReel(); const p = await s.charger(); if (n !== generation.current) return; session.current = s; actuel.current = p; setPanier(p); setPret(true); setStatut('Panier restauré sur cet appareil'); }
-    catch (e) { if (n === generation.current) { setStatut('Panier non restauré'); const bloque = e instanceof Error && /Access Handle|Invalid VFS|createSyncAccessHandle/.test(e.message); setErreur(bloque ? 'Le stockage web est occupé par un autre onglet. Fermez les autres aperçus de cette adresse, puis réessayez. Aucune donnée effacée.' : 'Impossible de restaurer le panier. Ses données n’ont pas été effacées.'); } }
+    try { const { s, p } = await avecNouveauxEssais(async () => { const s = await ouvrirPanierReel(); return { s, p: await s.charger() }; }, [300, 900]); if (n !== generation.current) return; session.current = s; actuel.current = p; setPanier(p); setPret(true); setStatut(p.lignes.length > 0 ? 'Panier restauré sur cet appareil' : ''); }
+    catch (e) { if (n === generation.current) { console.error('panier_restauration_echec', e instanceof Error ? e.message.slice(0, 120) : 'inconnue'); setStatut('Panier non restauré'); const bloque = e instanceof Error && /Access Handle|Invalid VFS|createSyncAccessHandle/.test(e.message); setErreur(bloque ? 'Le stockage web est occupé par un autre onglet. Fermez les autres aperçus de cette adresse, puis réessayez. Aucune donnée effacée.' : 'Impossible de restaurer le panier. Ses données n’ont pas été effacées.'); } }
   }
   useEffect(() => { void restaurer(); return () => { generation.current++; revision.current++; verification.current++; }; }, []);
   function sauver(p: PanierReel) {

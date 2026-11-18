@@ -11,6 +11,7 @@ import { CLE_ZONE_ACCUEIL, FILTRES, filtrerRestaurants, libelleZone, nombreParZo
 import { ChoixZone } from './ChoixZone';
 import { ouvrirCommandesEnvoyees } from '../stockage/commandes-envoyees';
 import { couleurs as c, polices } from '../design/tokens';
+import { dateLisible } from '../design/format';
 import { Bouton } from '../design/Composants';
 import { Icone, type NomIcone } from '../design/Icone';
 import { usePanierReel } from './usePanierReel';
@@ -144,7 +145,7 @@ export function CatalogueReel() {
   const [remplacement, setRemplacement] = useState<{ plat: PlatCataloguePublic; optionIds: string[] } | null>(null);
   function ajouterAuPanier(p: PlatCataloguePublic, optionIds: string[]) {
     const r = menu?.restaurant; if (!r) return;
-    try { panier.ajouter(r, p, optionIds); setMessagePanier(`${p.nom} ajouté à votre sélection.`); }
+    try { panier.ajouter(r, p, optionIds); setMessagePanier(`${p.nom} ajouté à votre panier.`); }
     catch (e) {
       const m = e instanceof Error ? e.message : '';
       if (m === 'AUTRE_RESTAURANT') setRemplacement({ plat: p, optionIds });
@@ -156,7 +157,7 @@ export function CatalogueReel() {
   function remplacerPanier() {
     const r = menu?.restaurant; const demande = remplacement; setRemplacement(null);
     if (!r || !demande) return;
-    try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre sélection.`); } catch { setMessagePanier('Ajout impossible. Vérifiez la sélection puis réessayez.'); }
+    try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre panier.`); } catch { setMessagePanier('Ajout impossible. Vérifiez la sélection puis réessayez.'); }
   }
   // « Commander à nouveau » (G13) : mémoire locale des commandes envoyées d'ici ; le panier est rebâti sur le menu actuel (changement de restaurant confirmé avant d'être vidé).
   const [memos, setMemos] = useState<MemoCommande[]>([]);
@@ -215,6 +216,12 @@ export function CatalogueReel() {
     if (id !== 'compte' && id !== 'commandes') { setEspaceDemande(null); setMessageEntree(null); }
     if (e.panierOuvert) void panier.recharger();
   }
+  // Retour Android depuis Commandes, Panier ou Compte : on revient à Restaurants au lieu de quitter l'application (la fiche, elle, a son propre retour plus haut).
+  useEffect(() => {
+    if (selection || onglet === 'restaurants' || Platform.OS === 'web') return;
+    const abonnement = BackHandler.addEventListener('hardwareBackPress', () => { choisirOnglet('restaurants'); return true; });
+    return () => abonnement.remove();
+  }, [selection, onglet]);
   return <View style={{ flex: 1, backgroundColor: c.fond }}>
     <View style={s.entete}>
       <Image source={require('../../assets/images/speedfood.png')} style={{ width: 36, height: 36 }} /><Text style={s.marque}>Speedfood</Text>
@@ -231,7 +238,7 @@ export function CatalogueReel() {
       {!selection && <><View style={{ flexDirection: 'row', gap: 12 }}><Action titre="J’ai un restaurant" libelleCourt="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="restaurateur" />
       <Action titre="Qui êtes-vous ? Changer d’espace" libelleCourt="Changer d’espace" agir={() => setEntreeOuverte(true)} icone="compte" /></View></>}
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
-      {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer le stockage du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
+      {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer l’enregistrement du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
@@ -258,7 +265,7 @@ export function CatalogueReel() {
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
       </>}
-      {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Dernière lecture : {new Date((selection ? menu!.luLe : lectureLe)!).toLocaleString('fr-FR')}. La disponibilité peut évoluer.</Text>}
+      {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Mis à jour le {dateLisible((selection ? menu!.luLe : lectureLe)!)}. La disponibilité peut évoluer.</Text>}
       {ageHorsLigne !== null && <Text accessibilityRole="alert" style={s.texte}>Vous êtes hors ligne : voici la dernière lecture gardée sur ce téléphone, {libelleAgeCache(ageHorsLigne)}. Les prix et disponibilités peuvent avoir changé ; commander demande le réseau.</Text>}
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} icone="actualiser" iconeSeule secondaire />
     </ScrollView>

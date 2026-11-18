@@ -6,6 +6,7 @@ import type { usePanierReel } from './usePanierReel';
 import { couleurs as c, polices } from '../design/tokens';
 import { type NomIcone } from '../design/Icone';
 import { Bouton, type VarianteBouton } from '../design/Composants';
+import { dateLisible } from '../design/format';
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n)+' GNF';
 /** Bouton rond à icône seule : le nom accessible dit toujours l'action en toutes lettres. */
 function Rond({ nom: titre, icone, onPress, desactive = false, variante = 'texte' }: { nom: string; icone: NomIcone; onPress(): void; desactive?: boolean; variante?: VarianteBouton }) {
@@ -24,11 +25,12 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
       {!!etat.panier.lignes.length && <Rond nom="Actualiser le panier" icone="actualiser" desactive={etat.lecture} onPress={() => { void etat.recharger(); }} />}
       {!!etat.panier.lignes.length && <Rond nom="Vider le panier" variante="danger" icone="corbeille" onPress={() => setConfirmation(true)} />}
     </View>
-    {!!etat.panier.lignes.length && <><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'}</Text>
+    {confirmation && <View accessibilityViewIsModal style={s.carte}><Text accessibilityRole="header" style={s.nom}>Vider le panier ?</Text><Text style={s.texte}>Tous les plats de votre panier seront retirés.</Text><Bouton titre="Confirmer le panier vide" variante="danger" onPress={() => { etat.vider(); setConfirmation(false); }} /><Bouton titre="Garder le panier" secondaire onPress={() => setConfirmation(false)} /></View>}
+    {!!etat.panier.lignes.length && <><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'}</Text>
     <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
     {information !== '' && <Text accessibilityRole="alert" style={s.texte}>{information}</Text>}
-    <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>
-    {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Bouton titre="Réessayer le stockage du panier" secondaire onPress={etat.reessayer} /></>}
+    {etat.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>}
+    {etat.erreur && <><Text accessibilityRole="alert" style={s.texte}>{etat.erreur}</Text><Bouton titre="Réessayer l’enregistrement du panier" secondaire onPress={etat.reessayer} /></>}
     {etat.lecture && <><ActivityIndicator color={c.action} /><Text style={s.texte}>Vérification des prix et disponibilités…</Text></>}
     {etat.erreurLecture && <Text accessibilityRole="alert" style={s.texte}>{etat.erreurLecture}</Text>}
     {etat.prixModifies && <Text accessibilityRole="alert" style={s.texte}>Les prix ont changé depuis votre dernière lecture. Le montant affiché a été actualisé.</Text>}
@@ -50,10 +52,9 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
     </View>)}
     {!!etat.panier.lignes.length && <>
       <Text accessibilityRole="header" style={s.nom}>{etat.lecture || etat.erreurLecture || bilan.total === null ? 'Total à vérifier' : `Sous-total indicatif : ${gnf(bilan.total)}`}</Text>
-      {etat.menu && <Text style={s.secondaire}>Menu relu le {new Date(etat.menu.luLe).toLocaleString('fr-FR')}.</Text>}
+      {etat.menu && <Text style={s.secondaire}>Menu actualisé le {dateLisible(etat.menu.luLe)}.</Text>}
       <Bouton titre="Commander" icone="coche" disabled={etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null} onPress={commander} />
     </>}
-    {confirmation && <View style={s.carte}><Text accessibilityRole="header" style={s.nom}>Vider votre sélection ?</Text><Bouton titre="Confirmer le panier vide" variante="danger" onPress={() => { etat.vider(); setConfirmation(false); }} /><Bouton titre="Garder le panier" secondaire onPress={() => setConfirmation(false)} /></View>}
   </ScrollView>;
   if (enModal) return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}>{corps}</SafeAreaView></Modal>;
   return ouvert ? <View style={{ flex: 1, backgroundColor: c.fond }}>{corps}</View> : null;

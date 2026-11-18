@@ -73,7 +73,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   return <Modal visible={ouvert} onRequestClose={fermerSiPossible} animationType="slide"><SafeAreaView style={s.page}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au panier" variante="texte" icone="retour" iconeSeule agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
-    <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre sélection'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
+    <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
     <View accessibilityRole="radiogroup" style={s.rangee}>
       <Choix moitie titre="Retrait" actif={!livraison} desactive={verrouille} agir={() => m.saisir('mode', 'retrait')} />
       <Choix moitie titre="Livraison" actif={livraison} desactive={verrouille} agir={() => m.saisir('mode', 'livraison')} />
