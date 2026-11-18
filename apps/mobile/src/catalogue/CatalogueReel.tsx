@@ -228,6 +228,13 @@ export function CatalogueReel() {
       <Pressable accessibilityRole="button" accessibilityLabel="Aide et contact" onPress={() => setAideOuverte(true)} style={s.rondEntete}><Icone nom="message" taille={22} couleur={c.encre} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Visite guidée" onPress={() => setVisiteOuverte(true)} style={s.rondEntete}><Icone nom="info" taille={22} couleur={c.encre} /></Pressable>
     </View>
+    {surRestaurants && ageHorsLigne !== null && <View accessibilityRole="alert" style={s.bandeauHorsLigne}>
+      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+        <Icone nom="alerte" taille={20} couleur={c.avertissement} />
+        <Text style={s.bandeauHorsLigneTexte}>Vous êtes hors ligne : voici la dernière version gardée sur ce téléphone, {libelleAgeCache(ageHorsLigne)}. Prix et disponibilités peuvent avoir changé ; commander demande le réseau.</Text>
+      </View>
+      <Action titre="Réessayer" secondaire agir={() => { void charger(selection); }} disabled={charge} />
+    </View>}
     <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
       <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
@@ -266,7 +273,6 @@ export function CatalogueReel() {
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
       </>}
       {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Mis à jour le {dateLisible((selection ? menu!.luLe : lectureLe)!)}. La disponibilité peut évoluer.</Text>}
-      {ageHorsLigne !== null && <Text accessibilityRole="alert" style={s.texte}>Vous êtes hors ligne : voici la dernière lecture gardée sur ce téléphone, {libelleAgeCache(ageHorsLigne)}. Les prix et disponibilités peuvent avoir changé ; commander demande le réseau.</Text>}
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} icone="actualiser" iconeSeule secondaire />
     </ScrollView>
     {barrePanierVisible && <View style={s.barrePanier} accessibilityRole="summary">
@@ -300,6 +306,8 @@ const s = StyleSheet.create({
   entete: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.bordure },
   marque: { fontFamily: polices.titre, fontSize: 26, color: c.encre, flex: 1 }, badge: { color: c.encre, backgroundColor: c.mangue, padding: 8, borderRadius: 10, fontSize: 11, fontFamily: polices.texte },
   contenu: { padding: 22, gap: 18, width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 40 },
+  bandeauHorsLigne: { marginHorizontal: 16, marginBottom: 8, padding: 12, gap: 10, borderRadius: 14, backgroundColor: c.avertissementFond },
+  bandeauHorsLigneTexte: { flex: 1, fontFamily: polices.texte, fontSize: 14, lineHeight: 20, color: c.avertissement },
   surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 36, lineHeight: 41 },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   puceZone: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1.5, borderColor: c.encre, backgroundColor: c.surface }, puceTexte: { color: c.encre, fontFamily: polices.texte, fontSize: 14 },

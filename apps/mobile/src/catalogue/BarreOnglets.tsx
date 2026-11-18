@@ -12,9 +12,9 @@ export function BarreOnglets({ actif, articles, choisir }: { actif: IdOnglet; ar
       return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: choisi }} accessibilityLabel={libelleOnglet(o.id, articles)} onPress={() => choisir(o.id)} style={s.onglet}>
         <View style={[s.icone, choisi && s.iconeActive]}>
           <Icone nom={o.icone} taille={24} couleur={choisi ? c.encre : c.secondaire} />
-          {badge && <View style={s.badge}><Text style={s.badgeTexte}>{badge}</Text></View>}
+          {badge && <View style={s.badge}><Text maxFontSizeMultiplier={1.2} style={s.badgeTexte}>{badge}</Text></View>}
         </View>
-        <Text style={[s.libelle, choisi && s.libelleActif]}>{o.libelle}</Text>
+        <Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.libelle, choisi && s.libelleActif]}>{o.libelle}</Text>
       </Pressable>;
     })}
   </View>;
