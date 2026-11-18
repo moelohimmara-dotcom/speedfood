@@ -235,9 +235,9 @@ export function CatalogueReel() {
     <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
-      <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Commandez en retrait ou en livraison. Vous réglez le restaurant après sa confirmation.'}</Text>
+      {!selection && <Text style={s.texte}>Commandez en retrait ou en livraison. Vous réglez le restaurant après sa confirmation.</Text>}
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
-      <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
+      {panier.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>}
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer l’enregistrement du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
