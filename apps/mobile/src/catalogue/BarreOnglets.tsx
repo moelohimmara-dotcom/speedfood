@@ -10,7 +10,8 @@ export function BarreOnglets({ actif, articles, choisir }: { actif: IdOnglet; ar
     {ONGLETS.map(o => {
       const choisi = o.id === actif; const badge = o.id === 'panier' ? libelleBadge(articles) : null;
       return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: choisi }} accessibilityLabel={libelleOnglet(o.id, articles)} onPress={() => choisir(o.id)} style={s.onglet}>
-        <View style={[s.icone, choisi && s.iconeActive]}>
+        <View style={s.icone}>
+          <View collapsable={false} style={[s.pastille, choisi && s.pastilleActive]} />
           <Icone nom={o.icone} taille={24} couleur={choisi ? c.encre : c.secondaire} />
           {badge && <View style={s.badge}><Text maxFontSizeMultiplier={1.2} style={s.badgeTexte}>{badge}</Text></View>}
         </View>
@@ -22,8 +23,10 @@ export function BarreOnglets({ actif, articles, choisir }: { actif: IdOnglet; ar
 const s = StyleSheet.create({
   barre: { flexDirection: 'row', backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.bordure, paddingTop: 6, paddingHorizontal: 4 },
   onglet: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  icone: { width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
-  iconeActive: { backgroundColor: c.mangue },
+  icone: { width: 56, height: 30, alignItems: 'center', justifyContent: 'center' },
+  // Fond de la pastille : vue à part, découpée en arrondi (overflow hidden) ; un rayon porté par la vue qui change de fond n'était pas appliqué sur Android pour Commandes, Panier et Compte.
+  pastille: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, overflow: 'hidden', backgroundColor: 'transparent' },
+  pastilleActive: { backgroundColor: c.mangue },
   badge: { position: 'absolute', top: -4, right: 6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: c.action, alignItems: 'center', justifyContent: 'center' },
   badgeTexte: { color: c.surface, fontFamily: polices.texte, fontSize: 11, fontWeight: '700' },
   libelle: { fontFamily: polices.texte, fontSize: 12, color: c.secondaire },

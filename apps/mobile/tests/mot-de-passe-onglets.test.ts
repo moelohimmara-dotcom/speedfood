@@ -29,7 +29,9 @@ test('connexion et inscription : le nom accessible de chaque champ est son libel
   assert.ok(compte.includes('<Text style={s.texte}>Mot de passe</Text><ChampMotDePasse etiquette="Mot de passe"'));
 });
 
-test('barre d’onglets : la pastille a toujours un fond, donc son rayon dès le premier rendu (pas de pastille carrée)', () => {
+test('barre d’onglets : le fond de la pastille est une vue à part, découpée en arrondi (pas de pastille carrée sur Commandes, Panier, Compte)', () => {
   const t = lire('../src/catalogue/BarreOnglets.tsx');
-  assert.match(t, /icone: \{ width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' \}/);
+  assert.match(t, /<View collapsable=\{false\} style=\{\[s\.pastille, choisi && s\.pastilleActive\]\} \/>/);
+  assert.match(t, /pastille: \{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, overflow: 'hidden'/);
+  assert.match(t, /pastilleActive: \{ backgroundColor: c\.mangue \}/);
 });

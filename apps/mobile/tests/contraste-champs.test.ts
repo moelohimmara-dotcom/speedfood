@@ -25,9 +25,9 @@ test('contraste : tout style « champ » de l’interface utilise le contour de 
   const fautifs: string[] = []; let trouves = 0;
   for (const f of fichiers(racine)) {
     for (const l of readFileSync(f, 'utf8').split(/\r?\n/)) {
-      if (/^\s*champ: \{/.test(l)) { trouves++; if (!l.includes('borderColor: c.champBordure')) fautifs.push(f.pathname.split('/src/')[1] + ' : ' + l.trim().slice(0, 80)); }
+      if (/^\s*champ:\s*\{/.test(l) || /(^|[{,])champ:\{/.test(l)) { trouves++; if (!/borderColor:\s*c\.champBordure/.test(l)) fautifs.push(f.pathname.split('/src/')[1] + ' : ' + l.trim().slice(0, 80)); }
     }
   }
-  assert.ok(trouves >= 12, 'au moins douze styles de champ relevés : ' + trouves);
+  assert.ok(trouves >= 13, 'au moins treize styles de champ relevés (dont celui de la connexion, écrit sur une ligne) : ' + trouves);
   assert.deepEqual(fautifs, []);
 });
