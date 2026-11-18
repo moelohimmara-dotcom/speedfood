@@ -63,7 +63,7 @@ const s = StyleSheet.create({
   nom: { fontFamily: polices.titre, fontSize: 19, color: c.encre },
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },
   secondaire: { fontFamily: polices.texte, fontSize: 12, lineHeight: 19, color: c.secondaire },
-  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 16, padding: 16, minHeight: 54, fontFamily: polices.texte, fontSize: 16, color: c.encre },
+  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 16, padding: 16, minHeight: 54, fontFamily: polices.texte, fontSize: 16, color: c.encre },
   bouton: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   inactif: { opacity: 0.5 },
   boutonTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700' },

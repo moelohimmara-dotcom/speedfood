@@ -13,6 +13,7 @@ import type { QuartierPublic } from '../../../../packages/shared/src/contracts/c
 import { choisirPhoto, type SourcePhoto } from './photoPlat';
 import { depsPhotoNatives } from './photoPlatNatif';
 import { couleurs as c, polices } from '../design/tokens';
+import { useClavierFormulaire } from './useClavierFormulaire';
 
 const lecteur = creerLecteurCatalogue();
 
@@ -88,7 +89,8 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
     });
   }
 
-  return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
+  const k = useClavierFormulaire();
+  return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView ref={k.defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[s.contenu, k.margeBasse(22)]}>
     <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
     <Text accessibilityRole="header" style={s.titre}>J’ai un restaurant</Text>
     {!gestion.connectee ? <>
@@ -116,18 +118,18 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
       </> : vue === null ? <>
         <Text style={s.secondaire}>Étape {etape + 1} sur 4. Votre brouillon reste sur ce téléphone tant que la demande n'est pas envoyée.</Text>
         {etape === 0 && <>
-          <Champ label="Nom du restaurant" valeur={b.nom} changer={v => setB(x => ({ ...x, nom: v }))} editable={!attente} />
+          <Champ liaison={k.champ("Nom du restaurant")} label="Nom du restaurant" valeur={b.nom} changer={v => setB(x => ({ ...x, nom: v }))} editable={!attente} />
           <Text style={s.texte}>Quartier</Text>
           {quartiers.length === 0 && <Text style={s.secondaire}>Chargement des quartiers…</Text>}
           <View style={s.rangee}>{quartiers.map(q => <Pressable key={q.id} accessibilityRole="button" accessibilityState={{ selected: b.quartierId === q.id }} disabled={attente} onPress={() => setB(x => ({ ...x, quartierId: q.id }))} style={[s.puce, b.quartierId === q.id && s.puceActive]}><Text style={s.texte}>{q.libelle}</Text></Pressable>)}</View>
-          <Champ label="Indications pour vous trouver (facultatif)" valeur={b.indications} changer={v => setB(x => ({ ...x, indications: v }))} editable={!attente} />
-          <Champ label="Votre prénom" valeur={b.prenom} changer={v => setB(x => ({ ...x, prenom: v }))} editable={!attente} />
-          <Champ label="Votre nom" valeur={b.nomResponsable} changer={v => setB(x => ({ ...x, nomResponsable: v }))} editable={!attente} />
-          <Champ label="Téléphone (Guinée)" valeur={b.telephone} changer={v => setB(x => ({ ...x, telephone: v }))} editable={!attente} clavier="phone-pad" />
+          <Champ liaison={k.champ("Indications pour vous trouver (facultatif)")} label="Indications pour vous trouver (facultatif)" valeur={b.indications} changer={v => setB(x => ({ ...x, indications: v }))} editable={!attente} />
+          <Champ liaison={k.champ("Votre prénom")} label="Votre prénom" valeur={b.prenom} changer={v => setB(x => ({ ...x, prenom: v }))} editable={!attente} />
+          <Champ liaison={k.champ("Votre nom")} label="Votre nom" valeur={b.nomResponsable} changer={v => setB(x => ({ ...x, nomResponsable: v }))} editable={!attente} />
+          <Champ liaison={k.champ("Téléphone (Guinée)")} label="Téléphone (Guinée)" valeur={b.telephone} changer={v => setB(x => ({ ...x, telephone: v }))} editable={!attente} clavier="phone-pad" />
         </>}
         {etape === 1 && <>
-          <Champ label="Horaires" valeur={b.horaires} changer={v => setB(x => ({ ...x, horaires: v }))} editable={!attente} placeholder="Tous les jours, 9h à 22h" />
-          <Champ label="Catégories (facultatif)" valeur={b.categories} changer={v => setB(x => ({ ...x, categories: v }))} editable={!attente} placeholder="Grillades, cuisine locale…" />
+          <Champ liaison={k.champ("Horaires")} label="Horaires" valeur={b.horaires} changer={v => setB(x => ({ ...x, horaires: v }))} editable={!attente} placeholder="Tous les jours, 9h à 22h" />
+          <Champ liaison={k.champ("Catégories (facultatif)")} label="Catégories (facultatif)" valeur={b.categories} changer={v => setB(x => ({ ...x, categories: v }))} editable={!attente} placeholder="Grillades, cuisine locale…" />
           <Text style={s.texte}>Services proposés</Text>
           <View style={s.rangee}>{SERVICES_CANDIDATURE.map(x => <Pressable key={x.valeur} accessibilityRole="button" accessibilityState={{ selected: b.services.includes(x.valeur) }} disabled={attente} onPress={() => basculer('services', x.valeur)} style={[s.puce, b.services.includes(x.valeur) && s.puceActive]}><Text style={s.texte}>{x.libelle}</Text></Pressable>)}</View>
           <Text style={s.texte}>Moyens de paiement acceptés</Text>
@@ -140,8 +142,8 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
             <Text style={s.texte}>{p.nom} · {p.prix.toLocaleString('fr-FR')} GNF</Text>
             <Bouton titre={'Retirer ' + p.nom} secondaire disabled={attente} onPress={() => setB(x => ({ ...x, plats: x.plats.filter((_, j) => j !== i) }))} />
           </View>)}
-          <Champ label="Nom du plat" valeur={nomPlat} changer={setNomPlat} editable={!attente} />
-          <Champ label="Prix en GNF" valeur={prixPlat} changer={setPrixPlat} editable={!attente} clavier="number-pad" />
+          <Champ liaison={k.champ("Nom du plat")} label="Nom du plat" valeur={nomPlat} changer={setNomPlat} editable={!attente} />
+          <Champ liaison={k.champ("Prix en GNF")} label="Prix en GNF" valeur={prixPlat} changer={setPrixPlat} editable={!attente} clavier="number-pad" />
           <Bouton titre="Ajouter ce plat" secondaire disabled={attente} onPress={() => {
             const r = ajouterPlatCandidature(b, nomPlat, prixPlat);
             if (r.brouillon === null) { setErreur(r.erreur); return; }
@@ -186,10 +188,10 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
   </ScrollView></SafeAreaView></Modal>;
 }
 
-function Champ({ label, valeur, changer, editable, placeholder, clavier }: { label: string; valeur: string; changer(v: string): void; editable: boolean; placeholder?: string; clavier?: 'phone-pad' | 'number-pad' }) {
+function Champ({ label, valeur, changer, editable, placeholder, clavier, liaison }: { label: string; valeur: string; changer(v: string): void; editable: boolean; placeholder?: string; clavier?: 'phone-pad' | 'number-pad'; liaison?: object }) {
   return <>
     <Text style={s.texte}>{label}</Text>
-    <TextInput accessibilityLabel={label} value={valeur} onChangeText={changer} editable={editable} placeholder={placeholder} keyboardType={clavier ?? 'default'} style={s.champ} />
+    <TextInput {...liaison} accessibilityLabel={label} value={valeur} onChangeText={changer} editable={editable} placeholder={placeholder} keyboardType={clavier ?? 'default'} style={s.champ} />
   </>;
 }
 
@@ -201,7 +203,7 @@ const s = StyleSheet.create({
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },
   secondaire: { fontFamily: polices.texte, fontSize: 12, lineHeight: 19, color: c.secondaire },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, padding: 16, gap: 10 },
-  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 16, padding: 14, minHeight: 50, fontFamily: polices.texte, fontSize: 16, color: c.encre },
+  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 16, padding: 14, minHeight: 50, fontFamily: polices.texte, fontSize: 16, color: c.encre },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   puce: { minHeight: 48, paddingHorizontal: 14, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface },
   puceActive: { borderColor: c.action, borderWidth: 2 },

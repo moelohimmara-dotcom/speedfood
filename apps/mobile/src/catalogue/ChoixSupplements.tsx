@@ -47,7 +47,7 @@ const s = StyleSheet.create({
   secondaire: { fontFamily: polices.texte, fontSize: 13, color: c.secondaire },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface },
   ligneActive: { borderColor: c.action, borderWidth: 2 },
-  case: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: c.bordure, alignItems: 'center', justifyContent: 'center' },
+  case: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: c.champBordure, alignItems: 'center', justifyContent: 'center' },
   caseActive: { backgroundColor: c.action, borderColor: c.action },
   coche: { color: c.surface, fontWeight: '700' },
 });

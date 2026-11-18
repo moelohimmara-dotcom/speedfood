@@ -326,7 +326,7 @@ const s = StyleSheet.create({
   ligneLecture: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blocPhoto: { gap: 8 },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: c.bordure },
-  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
+  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.champBordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 110, textAlignVertical: 'top' },
   erreurChamp: { fontFamily: polices.texte, fontSize: 13, lineHeight: 19, color: c.action, fontWeight: '700' },
   carte: { gap: 8, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },

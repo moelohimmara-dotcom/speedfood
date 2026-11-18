@@ -6,6 +6,7 @@ import { gestion } from './gestion';
 import { ADRESSES_MAX, AVATARS_CLIENT, ErreurEspaceClient, MESSAGE_AUCUN_AVIS, MODES_PREFERES_CLIENT, emojiAvatarClient, etoilesAvis, libelleStatutAvis, validerAdresse, validerPseudo, type EspaceComplet } from './espace-client';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
+import { useClavierFormulaire } from './useClavierFormulaire';
 /**
  * « Mon espace » (parité Kotlin, lot 1, lignes B9 favoris, B10 adresses, B11 profil). Chaque écriture : un seul essai, jamais rejouée toute seule ; APRÈS chaque écriture (réussie, refusée ou incertaine)
  * l'espace est relu pour afficher l'état réel du serveur. Un 401 renvoie à la connexion. Le porteur reste dans la session : rien d'identifiant ne passe par cet écran.
@@ -48,7 +49,8 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
   }
   const pseudoValide = validerPseudo(pseudo).ok;
   const adresseValide = validerAdresse(libelle, adresse).ok;
-  return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
+  const k = useClavierFormulaire();
+  return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView ref={k.defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[s.contenu, k.margeBasse(22)]}>
     <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Mon espace</Text>
     {attente && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Un instant…</Text></>}
@@ -59,7 +61,7 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
       <Text accessibilityRole="header" style={s.nom}>Mon profil</Text>
       <View style={s.carte}>
         <Text style={s.texte}>Pseudo</Text>
-        <TextInput accessibilityLabel="Votre pseudo" value={pseudo} onChangeText={setPseudo} autoCorrect={false} maxLength={40} editable={!attente} style={s.champ} />
+        <TextInput {...k.champ("Votre pseudo")} accessibilityLabel="Votre pseudo" value={pseudo} onChangeText={setPseudo} autoCorrect={false} maxLength={40} editable={!attente} style={s.champ} />
         <Text style={s.texte}>Avatar : {emojiAvatarClient(avatar)}</Text>
         <View style={s.rangee}>{AVATARS_CLIENT.map(a => <Pressable key={a.cle} accessibilityRole="button" accessibilityLabel={'Avatar ' + a.libelle} accessibilityState={{ selected: avatar === a.cle }} disabled={attente} onPress={() => setAvatar(a.cle)} style={[s.puce, avatar === a.cle && s.puceActive]}><Text style={s.emoji}>{a.emoji}</Text></Pressable>)}</View>
         <Text style={s.texte}>Mode de commande préféré</Text>
@@ -81,9 +83,9 @@ export function EspaceClientReel({ ouvert, fermer, sessionTerminee }: { ouvert: 
         ? <View style={s.carte}>
           <Text style={s.nomPetit}>Ajouter une adresse</Text>
           <Text style={s.texte}>Nom court (par exemple Maison)</Text>
-          <TextInput accessibilityLabel="Nom de l’adresse" value={libelle} onChangeText={setLibelle} maxLength={40} editable={!attente} style={s.champ} />
+          <TextInput {...k.champ("Nom de l’adresse")} accessibilityLabel="Nom de l’adresse" value={libelle} onChangeText={setLibelle} maxLength={40} editable={!attente} style={s.champ} />
           <Text style={s.texte}>Adresse pour le livreur : quartier, rue, point de repère</Text>
-          <TextInput accessibilityLabel="Adresse de livraison" value={adresse} onChangeText={setAdresse} multiline maxLength={320} editable={!attente} style={[s.champ, { minHeight: 90 }]} />
+          <TextInput {...k.champ("Adresse de livraison")} accessibilityLabel="Adresse de livraison" value={adresse} onChangeText={setAdresse} multiline maxLength={320} editable={!attente} style={[s.champ, { minHeight: 90 }]} />
           <Bouton titre="Enregistrer cette adresse" secondaire disabled={attente || !adresseValide} onPress={() => { const v = validerAdresse(libelle, adresse); if (!v.ok) return; void ecrire(async () => { const r = await gestion.actionAdresse({ action: 'ajouter', libelle, adresse }); if (actif.current) { setLibelle(''); setAdresse(''); } return r; }); }} />
         </View>
         : <Text style={s.texte}>Vous avez déjà {ADRESSES_MAX} adresses : supprimez-en une avant d’en ajouter.</Text>}
@@ -114,7 +116,7 @@ const s = StyleSheet.create({
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },
   secondaire: { fontFamily: polices.texte, fontSize: 12, lineHeight: 19, color: c.secondaire },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, padding: 16, gap: 12 },
-  champ: { backgroundColor: c.fond, borderWidth: 1, borderColor: c.bordure, borderRadius: 16, padding: 14, minHeight: 50, fontFamily: polices.texte, fontSize: 16, color: c.encre },
+  champ: { backgroundColor: c.fond, borderWidth: 1, borderColor: c.champBordure, borderRadius: 16, padding: 14, minHeight: 50, fontFamily: polices.texte, fontSize: 16, color: c.encre },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   puce: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.fond },

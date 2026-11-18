@@ -150,5 +150,5 @@ const s = StyleSheet.create({
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },
   secondaire: { fontFamily: polices.texte, fontSize: 12, lineHeight: 19, color: c.secondaire },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, padding: 16, gap: 8 },
-  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 16, padding: 14, minHeight: 50, fontFamily: polices.texte, fontSize: 16, color: c.encre },
+  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 16, padding: 14, minHeight: 50, fontFamily: polices.texte, fontSize: 16, color: c.encre },
 });

@@ -77,5 +77,5 @@ export function OubliReel({ emailInitial, retour }: { emailInitial: string; reto
 const s = StyleSheet.create({
   nom: { fontFamily: polices.titre, fontSize: 23, color: c.encre },
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre },
-  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 16, padding: 16, minHeight: 54, fontFamily: polices.texte, fontSize: 16, color: c.encre },
+  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 16, padding: 16, minHeight: 54, fontFamily: polices.texte, fontSize: 16, color: c.encre },
 });

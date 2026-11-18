@@ -8,6 +8,7 @@ import { EnvoiCommande } from './envoi-commande';
 import { creerLecteurCatalogue } from './client';
 import type { usePanierReel } from './usePanierReel';
 import { gestion } from '../connexion/gestion';
+import { useClavierFormulaire } from '../connexion/useClavierFormulaire';
 import { couleurs as c, polices } from '../design/tokens';
 import { Bouton, type VarianteBouton } from '../design/Composants';
 import type { NomIcone } from '../design/Icone';
@@ -69,8 +70,9 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     else if (r.type === 'session_changee') verifierCommandes();
   }
   const fermerSiPossible = () => { if (m.peutFermer()) fermer(); };
+  const k = useClavierFormulaire();
   const propositions = quartiers.etat === 'ok' ? filtrerQuartiers(quartiers.liste, recherche) : [];
-  return <Modal visible={ouvert} onRequestClose={fermerSiPossible} animationType="slide"><SafeAreaView style={s.page}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
+  return <Modal visible={ouvert} onRequestClose={fermerSiPossible} animationType="slide"><SafeAreaView style={s.page}><ScrollView ref={k.defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[s.contenu, k.margeBasse(22)]}>
     <Action titre="Retour au panier" variante="texte" icone="retour" iconeSeule agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
     <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
@@ -92,21 +94,21 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     {!panierPret && !verrouille && <Text accessibilityRole="alert" style={s.texte}>{etat.panier.lignes.length ? 'Les prix doivent être relus avant l’envoi. Retournez au panier et actualisez-le.' : 'Votre panier est vide.'}</Text>}
     {!connectee && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Connectez-vous pour envoyer votre commande.</Text><Action titre="Ouvrir mon compte" agir={ouvrirCompte} /></View>}
     <Text style={s.texte}>Votre nom</Text>
-    <TextInput accessibilityLabel="Votre nom" value={m.nom} onChangeText={v => m.saisir('nom', v)} editable={!verrouille} autoComplete="name" maxLength={120} style={s.champ} />
+    <TextInput ref={k.reference('nom')} onFocus={k.auFocus('nom')} onBlur={k.auBlur} accessibilityLabel="Votre nom" value={m.nom} onChangeText={v => m.saisir('nom', v)} editable={!verrouille} autoComplete="name" returnKeyType="next" maxLength={120} style={s.champ} />
     {m.nom !== '' && erreurs.nom && <Text style={s.secondaire}>{erreurs.nom}</Text>}
     <Text style={s.texte}>Téléphone</Text>
-    <TextInput accessibilityLabel="Votre téléphone" value={m.telephone} onChangeText={v => m.saisir('telephone', v)} editable={!verrouille} keyboardType="phone-pad" autoComplete="tel" maxLength={30} style={s.champ} />
+    <TextInput ref={k.reference('telephone')} onFocus={k.auFocus('telephone')} onBlur={k.auBlur} accessibilityLabel="Téléphone" placeholder="Exemple : 622 12 34 56" value={m.telephone} onChangeText={v => m.saisir('telephone', v)} editable={!verrouille} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" maxLength={30} style={s.champ} />
     {m.telephone !== '' && erreurs.telephone && <Text style={s.secondaire}>{erreurs.telephone}</Text>}
     {livraison && <>
       <Text style={s.texte}>Adresse de livraison</Text>
-      <TextInput accessibilityLabel="Adresse de livraison" value={m.adresse} onChangeText={v => m.saisir('adresse', v)} editable={!verrouille} autoComplete="street-address" maxLength={ADRESSE_MAX} multiline style={s.champ} />
+      <TextInput ref={k.reference('adresse')} onFocus={k.auFocus('adresse')} onBlur={k.auBlur} accessibilityLabel="Adresse de livraison" value={m.adresse} onChangeText={v => m.saisir('adresse', v)} editable={!verrouille} autoComplete="street-address" maxLength={ADRESSE_MAX} multiline style={s.champ} />
       {m.adresse !== '' && erreurs.adresse && <Text style={s.secondaire}>{erreurs.adresse}</Text>}
       <Text style={s.texte}>Quartier</Text>
       {quartierChoisi && <Text accessibilityLiveRegion="polite" style={s.nom}>{quartierChoisi.libelle}</Text>}
       {quartiers.etat === 'chargement' && <View style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement des quartiers…</Text></View>}
       {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander en retrait.</Text><Action titre="Réessayer la liste des quartiers" secondaire agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
       {quartiers.etat === 'ok' && <>
-        <TextInput accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
+        <TextInput ref={k.reference('quartier')} onFocus={k.auFocus('quartier')} onBlur={k.auBlur} accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
         {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
         {recherche.trim() !== '' && propositions.length === 0 && <Text style={s.secondaire}>Aucun quartier ne correspond. Essayez une autre orthographe.</Text>}
         {recherche.trim() === '' && !quartierChoisi && <Text style={s.secondaire}>Saisissez le début du nom de votre quartier pour le trouver.</Text>}
@@ -136,7 +138,7 @@ const s = StyleSheet.create({
   titre: { fontFamily: polices.titre, fontSize: 34, color: c.encre }, nom: { fontFamily: polices.titre, fontSize: 21, color: c.encre },
   texte: { fontFamily: polices.texte, fontSize: 15, lineHeight: 23, color: c.encre }, secondaire: { fontFamily: polices.texte, fontSize: 12, lineHeight: 19, color: c.secondaire },
   carte: { padding: 18, gap: 12, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.bordure },
-  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 16, padding: 16, minHeight: 54, fontFamily: polices.texte, fontSize: 16, color: c.encre },
+  champ: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 16, padding: 16, minHeight: 54, fontFamily: polices.texte, fontSize: 16, color: c.encre },
   bouton: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }, inactif: { opacity: 0.5 },
   boutonTexte: { fontFamily: polices.texte, color: c.surface, fontWeight: '700' },
   rangee: { flexDirection: 'row', gap: 12 },
