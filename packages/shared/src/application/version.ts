@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 103,
-    nom: "3.1.0",
-    notes: "Catalogue plus riche avec photos et suppléments. Boutons et icônes plus clairs. Livreur : voyez ce qui manque à votre dossier. Retrouvez vos commandes sans vous connecter. Réglages du téléphone : sonnerie, écran allumé, suivi écran éteint, alerte application fermée.",
+    code: 104,
+    nom: "3.1.1",
+    notes: "Le clavier ne cache plus les champs de commande. Premier lancement sans fausse erreur. Bouton Afficher pour les mots de passe, champs plus lisibles. Bannière hors ligne avec Réessayer. Retour Android depuis les onglets. Textes et dates plus clairs.",
     obligatoire: false,
-    apkSha256: "94ddb5fa19e7e2ab223fd6ee41ab214e9e51371837c6bbe5bbe0edef2329d1f3",
-    apkTaille: 65874019,
+    apkSha256: "1ecaf62951e5c365d3f74b4bd4fe8a86a4fb83cae7246933690bd959d6ebf80d",
+    apkTaille: 65894499,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.0.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.1.apk",
   },
 };
