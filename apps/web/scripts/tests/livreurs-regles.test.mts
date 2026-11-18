@@ -9,6 +9,7 @@ import {
   ficheActivable,
   cycleApresActivation,
   dossierExigible,
+  etatDossierLivreur,
   messageWhatsAppActivationRestaurant,
   jetonActivationPlausible,
   lienWhatsAppVers,
@@ -122,3 +123,14 @@ if (ko > 0) {
   console.log(`\n${ko} échec(s)`);
   process.exit(1);
 }
+
+// « Mon dossier » (application) : l'état des pièces exigées, jamais leur contenu.
+const rien = { pieceRequise: false, urgenceRequise: false };
+const plein = { pieceType: "carte_identite", pieceNumero: "AB12345", urgenceNom: "Proche Un", urgenceTelephone: "+224622000009" };
+verifier("dossier état : rien d'exigé = liste vide, quel que soit le dossier", etatDossierLivreur({ restaurantId: null, reglages: rien, dossier: null }), { pieces: [], message: null });
+verifier("dossier état : livreur d'un restaurant = jamais de pièce, même si tout est exigé", etatDossierLivreur({ restaurantId: "r1", reglages: { pieceRequise: true, urgenceRequise: true }, dossier: null }), { pieces: [], message: null });
+verifier("dossier état : pièce exigée et absente = manquante", etatDossierLivreur({ restaurantId: null, reglages: { pieceRequise: true, urgenceRequise: false }, dossier: null }).pieces.map(p => [p.code, p.statut]), [["piece_identite", "manquant"]]);
+verifier("dossier état : tout exigé et complet = deux pièces à jour", etatDossierLivreur({ restaurantId: null, reglages: { pieceRequise: true, urgenceRequise: true }, dossier: plein }).pieces.map(p => [p.code, p.statut]), [["piece_identite", "a_jour"], ["urgence", "a_jour"]]);
+verifier("dossier état : pièce sans numéro = manquante, urgence complète = à jour", etatDossierLivreur({ restaurantId: null, reglages: { pieceRequise: true, urgenceRequise: true }, dossier: { ...plein, pieceNumero: null } }).pieces.map(p => [p.code, p.statut]), [["piece_identite", "manquant"], ["urgence", "a_jour"]]);
+verifier("dossier état : urgence sans téléphone = manquante", etatDossierLivreur({ restaurantId: null, reglages: { pieceRequise: false, urgenceRequise: true }, dossier: { ...plein, urgenceTelephone: "  " } }).pieces.map(p => p.statut), ["manquant"]);
+verifier("dossier état : jamais de contenu dans la réponse", JSON.stringify(etatDossierLivreur({ restaurantId: null, reglages: { pieceRequise: true, urgenceRequise: true }, dossier: plein })).includes("AB12345") || JSON.stringify(etatDossierLivreur({ restaurantId: null, reglages: { pieceRequise: true, urgenceRequise: true }, dossier: plein })).includes("Proche"), false);

@@ -247,6 +247,37 @@ export function dossierExigible(f: FichePourActivation): boolean {
   return f.restaurantId === null;
 }
 
+/** Une pièce du dossier d'activation vue par le livreur : son ÉTAT seulement, jamais son contenu (ni numéro, ni nom, ni téléphone). */
+export interface PieceDossierEtat {
+  code: "piece_identite" | "urgence";
+  libelle: string;
+  statut: "a_jour" | "manquant";
+  explication: string;
+}
+export interface EtatDossierLivreur { pieces: PieceDossierEtat[]; message: string | null }
+export interface DossierEnBase { pieceType: string | null; pieceNumero: string | null; urgenceNom: string | null; urgenceTelephone: string | null }
+
+/**
+ * « Mon dossier » (application, parité avec l'ancienne appli) : ce qui manque au dossier d'activation selon ce que la console exige.
+ * Seules les pièces EXIGÉES sont listées : rien d'exigé, ou livreur d'un restaurant (dossier jamais demandé), donne une liste vide
+ * (l'écran dit « Votre dossier est complet »). Une pièce est « à jour » quand tous ses champs sont présents ; le contenu n'est jamais renvoyé.
+ */
+export function etatDossierLivreur(entree: { restaurantId: string | null; reglages: ReglagesDossier; dossier: DossierEnBase | null }): EtatDossierLivreur {
+  if (!dossierExigible({ cycle: "", utilisateurId: null, restaurantId: entree.restaurantId })) return { pieces: [], message: null };
+  const d = entree.dossier;
+  const plein = (v: string | null | undefined) => typeof v === "string" && v.trim() !== "";
+  const pieces: PieceDossierEtat[] = [];
+  if (entree.reglages.pieceRequise) {
+    const complete = !!d && plein(d.pieceType) && plein(d.pieceNumero);
+    pieces.push({ code: "piece_identite", libelle: "Pièce d'identité", statut: complete ? "a_jour" : "manquant", explication: complete ? "C'est fait." : "Contactez l'équipe Speedfood pour compléter cette pièce." });
+  }
+  if (entree.reglages.urgenceRequise) {
+    const complete = !!d && plein(d.urgenceNom) && plein(d.urgenceTelephone);
+    pieces.push({ code: "urgence", libelle: "Personne à prévenir en cas de problème", statut: complete ? "a_jour" : "manquant", explication: complete ? "C'est fait." : "Contactez l'équipe Speedfood pour compléter cette pièce." });
+  }
+  return { pieces, message: null };
+}
+
 export function messageWhatsAppActivationRestaurant(nom: string, restaurant: string, lien: string, validiteJours: number): string {
   const prenom = nom.split(" ")[0] ?? nom;
   return `Bonjour ${prenom}, ${restaurant} vous ajoute comme livreur sur Speedfood : ${lien}\nIl ne sert qu'une fois et reste valable ${validiteJours} jour${validiteJours > 1 ? "s" : ""}. Ouvrez-le sur votre téléphone, créez votre compte ou connectez-vous : vous verrez ici les livraisons de ${restaurant}.`;

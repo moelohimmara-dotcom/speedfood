@@ -19,6 +19,7 @@ import { LIBELLES_CYCLE_LIVREUR, LIBELLES_ETAPE_COURSE, LIBELLES_STATUT_LIVREUR,
 import { creerControleEtatLivreur, type EtatControleLivreur, type SaisieCourse, type SessionEtatLivreur } from './controle-etat-livreur';
 import { CoursesLivreurReel } from './CoursesLivreurReel';
 import { AssistanceLivreur } from './AssistanceLivreur';
+import { DossierLivreurReel } from './DossierLivreurReel';
 import { ErreurConnexion } from './client';
 import { coursesSuivantes, type FileLivreur } from './file-livreur';
 import { ErreurLivreur, type CourseLivreur } from './livreur';
@@ -121,6 +122,7 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
   // Saisies locales de la course : le code et la raison restent ici le temps de la saisie, et sont effacés quand la course change, se termine, ou à l'envoi.
   const [fileOuverte, setFileOuverte] = useState(false);
   const [coursesOuvertes, setCoursesOuvertes] = useState(false);
+  const [dossierOuvert, setDossierOuvert] = useState(false);
   const [assistanceOuverte, setAssistanceOuverte] = useState(false);
   const [code, setCode] = useState('');
   const [raison, setRaison] = useState('');
@@ -232,10 +234,12 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
     <GroupeLignes>
       <LigneNavigation premiere actif={fileOuverte} titre="File des courses" sousTitre="Les courses qui vous attendent" icone="liste" disabled={ecritureEnCours} onPress={() => setFileOuverte(v => !v)} />
       <LigneNavigation actif={coursesOuvertes} titre="Mes courses livrées et leurs frais" sousTitre="Historique et frais de course" icone="document" disabled={ecritureEnCours} onPress={() => setCoursesOuvertes(v => !v)} />
+      <LigneNavigation actif={dossierOuvert} titre="Mon dossier" sousTitre="Ce qui manque à votre dossier" icone="recu" disabled={ecritureEnCours} onPress={() => setDossierOuvert(v => !v)} />
       <LigneNavigation titre="Assistance conducteur" sousTitre="Écrire à l’équipe Speedfood" icone="aide" disabled={ecritureEnCours} onPress={() => setAssistanceOuverte(true)} />
     </GroupeLignes>
     {fileOuverte && <FileCourses session={session} courseActuelle={course} />}
     {coursesOuvertes && <CoursesLivreurReel />}
+    {dossierOuvert && <DossierLivreurReel />}
     <AssistanceLivreur ouvert={assistanceOuverte} fermer={() => setAssistanceOuverte(false)} referenceCourse={course?.commandeReference ?? null} />
   </View>;
 }

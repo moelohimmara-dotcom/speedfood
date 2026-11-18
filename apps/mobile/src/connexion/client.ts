@@ -35,6 +35,7 @@ import {
 } from './catalogue-equipe.ts';
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
+import { lireDossierLivreur, type DossierLivreur } from './dossier-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
 import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
@@ -710,6 +711,14 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async fileLivreur(accessToken: string): Promise<FileLivreur | null> {
       const v = await requete(SITE_WEB+'/api/v1/livreur/file', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFileLivreur(v); } catch { throw new ErreurConnexion('Votre file de courses reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * « Mon dossier » du livreur : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/dossier`, créée pour la parité). Lecture seule, un seul essai,
+     * strictement relue ; seul l'état de chaque pièce est lu, jamais son contenu ; `null` = ce compte n'est pas livreur.
+     */
+    async dossierLivreur(accessToken: string): Promise<DossierLivreur | null> {
+      const v = await requete(SITE_WEB+'/api/v1/livreur/dossier', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireDossierLivreur(v); } catch { throw new ErreurConnexion('L’état de votre dossier reçu est illisible. Réessayez dans un instant.'); }
     },
     /**
      * Gains du livreur (lot 3, D7) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/gains`, l'API unique ne l'héberge pas encore).

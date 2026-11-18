@@ -198,7 +198,7 @@ Le menu vide dit maintenant « Votre menu est vide : ajoutez votre premier plat.
 |---|---|
 | G19 poste fixe livreur | codé (10.6), vérifié en partie sur émulateur (réglage gardé) ; écran allumé en course à essayer sur téléphone |
 | G20 suivi de position | codé (10.7), à essayer sur téléphone |
-| G21 messages de fiche | codés (10.9) ; « Mon dossier » bloqué : la route serveur `/api/v1/livreur/dossier` n'existe pas (404), décision de Malika |
+| G21 messages de fiche et « Mon dossier » | codés (10.9 et 10.10) ; route du site `GET /api/v1/livreur/dossier` créée (état des pièces exigées seulement, jamais le contenu), écran « Mon dossier » dans l'espace livreur ; **route non déployée** (déploiement du site, accord de Malika). Aucun endroit ne permet de compléter un dossier après l'activation : explication « Contactez l'équipe Speedfood » |
 | G22 offres, file, gains | déjà présents sous d'autres mots, rien à porter |
 | G23 son et poste fixe restaurateur | codé (10.6), carte vérifiée sur émulateur |
 | G24 invite d'alerte | codé (10.8), vérifié sur émulateur ; différence assumée : pas de surveillance continue application fermée |
