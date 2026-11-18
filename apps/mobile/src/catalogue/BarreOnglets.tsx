@@ -22,7 +22,7 @@ export function BarreOnglets({ actif, articles, choisir }: { actif: IdOnglet; ar
 const s = StyleSheet.create({
   barre: { flexDirection: 'row', backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.bordure, paddingTop: 6, paddingHorizontal: 4 },
   onglet: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  icone: { width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  icone: { width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
   iconeActive: { backgroundColor: c.mangue },
   badge: { position: 'absolute', top: -4, right: 6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: c.action, alignItems: 'center', justifyContent: 'center' },
   badgeTexte: { color: c.surface, fontFamily: polices.texte, fontSize: 11, fontWeight: '700' },

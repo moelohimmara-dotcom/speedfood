@@ -5,6 +5,7 @@ import { gestion } from './gestion';
 import { LONGUEUR_MIN_MOT_DE_PASSE, verifierEmail, verifierInscription } from './auth-publique';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
+import { ChampMotDePasse } from './ChampMotDePasse';
 /**
  * Inscription et mot de passe oublié (parité Kotlin, lot 1, lignes A2 et A3). Chaque écran garde son propre état d'attente et d'erreur ; les règles sont vérifiées avant le réseau, un seul essai par appui.
  * Le mot de passe est vidé de l'écran dès l'envoi et n'est conservé nulle part.
@@ -36,10 +37,10 @@ export function InscriptionReelle({ emailInitial, retour, sessionOuverte }: { em
   </>;
   return <>
     <Text accessibilityRole="header" style={s.nom}>Créer un compte</Text>
-    <Text style={s.texte}>Nom</Text><TextInput accessibilityLabel="Votre nom" value={nom} onChangeText={setNom} autoCapitalize="words" autoComplete="name" editable={!attente} style={s.champ} />
-    <Text style={s.texte}>Téléphone (Guinée)</Text><TextInput accessibilityLabel="Votre téléphone guinéen" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" placeholder="622 12 34 56" editable={!attente} style={s.champ} />
-    <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail du nouveau compte" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ} />
-    <Text style={s.texte}>Mot de passe ({LONGUEUR_MIN_MOT_DE_PASSE} caractères au moins)</Text><TextInput accessibilityLabel="Mot de passe du nouveau compte" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="new-password" editable={!attente} style={s.champ} />
+    <Text style={s.texte}>Nom</Text><TextInput accessibilityLabel="Nom" value={nom} onChangeText={setNom} autoCapitalize="words" autoComplete="name" editable={!attente} style={s.champ} />
+    <Text style={s.texte}>Téléphone (Guinée)</Text><TextInput accessibilityLabel="Téléphone (Guinée)" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" placeholder="622 12 34 56" editable={!attente} style={s.champ} />
+    <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ} />
+    <Text style={s.texte}>Mot de passe ({LONGUEUR_MIN_MOT_DE_PASSE} caractères au moins)</Text><ChampMotDePasse etiquette={'Mot de passe (' + LONGUEUR_MIN_MOT_DE_PASSE + ' caractères au moins)'} valeur={motDePasse} changer={setMotDePasse} autoComplete="new-password" editable={!attente} style={s.champ} />
     {attente && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Création du compte…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     <Bouton titre="Créer mon compte" disabled={attente} onPress={() => { void envoyer(); }} />

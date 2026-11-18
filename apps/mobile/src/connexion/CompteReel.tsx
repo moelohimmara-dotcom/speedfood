@@ -23,6 +23,7 @@ import { LivreurReel } from './LivreurReel';
 import { EquipeReel } from './EquipeReel';
 import { ErreurReglement, verdictDeclaration, type ModeReglement, type VerdictDeclaration } from './reglement';
 import { couleurs as c, polices } from '../design/tokens';
+import { ChampMotDePasse } from './ChampMotDePasse';
 import { Bouton, GroupeLignes, LigneNavigation, type VarianteBouton } from '../design/Composants';
 import type { NomIcone } from '../design/Icone';
 import { notifications } from '../notifications';
@@ -239,8 +240,8 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       {messageEntree&&<Text accessibilityRole="alert" style={s.texte}>{messageEntree}</Text>}
       {vue==='commandes'&&<CommandesAppareilReel oublier={parametres?parametres.oublierCommandes:()=>gestion.oublierCommandesAppareil()} apresOubli={()=>setMessage('Les commandes de cet appareil ont été oubliées.')}/>}
       <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver toutes vos commandes, les annuler ou régler.':'Connectez-vous avec votre compte Speedfood.'}</Text>
-      <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
-      <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
+      <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
+      <Text style={s.texte}>Mot de passe</Text><ChampMotDePasse etiquette="Mot de passe" valeur={motDePasse} changer={setMotDePasse} autoComplete="current-password" editable={!attente} style={s.champ}/>
       <Action titre="Me connecter" disabled={attente||!email.trim()||!motDePasse} agir={()=>{const demande=gestion.connecter(email,motDePasse);setEmail('');setMotDePasse('');void executer(async()=>{await demande;setProfil(await gestion.espace());});}}/>
       {sociaux.has('google')&&<Action titre="Continuer avec Google" variante="contour" disabled={attente} agir={()=>{void commencerSocial('google');}}/>}
       {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" variante="contour" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
