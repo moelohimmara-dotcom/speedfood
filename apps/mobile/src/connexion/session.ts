@@ -1,5 +1,6 @@
 ﻿import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
-import type {CommandeCompte} from './commandes.ts';
+import type {CommandeCompte, ResumeSuivi} from './commandes.ts';
+import { depuisCompte, referenceDeCle, versVue, type CommandeAppareil, type MemoireAppareil, type VueCommandeAppareil } from './commandes-appareil.ts';
 import type {ActionAdresse, ChampsProfil, EspaceComplet} from './espace-client.ts';
 import {essaiNotification, type BilanEssai} from './parametres.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
@@ -39,7 +40,15 @@ export class GestionSession {
   private deconnexionEnCours: Promise<{ distanteConfirmee: boolean }> | null = null;
   /** Appelé (sans attendre) quand une session vient d'être ouverte ou restaurée : l'appli réenregistre alors l'appareil pour les notifications. Ne bloque ni ne fait échouer la connexion. */
   apresOuverture?: () => void;
-  constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
+  /** Commandes gardées sur l'appareil (écart G12) : référence et jeton de suivi (le jeton reste dans le coffre et ici, jamais jusqu'à l'écran). Facultatif : sans dépôt, rien n'est gardé. */
+  private memoire?: MemoireAppareil;
+  private clesAppareil = new Map<string,string>();
+  constructor(api: ApiSession, coffre: CoffreSession, memoire?: MemoireAppareil) { this.api = api; this.coffre = coffre; this.memoire = memoire; }
+  /** Garde des commandes de l'appareil, au mieux et sans attendre : une écriture qui échoue ne gêne ni l'envoi d'une commande ni la lecture de la liste. */
+  private noterCommandes(liste: readonly CommandeAppareil[]) {
+    if (!this.memoire || liste.length === 0) return;
+    try { void this.memoire.enregistrer(liste).catch(() => undefined); } catch { /* sans effet */ }
+  }
   /** Jeton porteur de la session ouverte (renouvelé si besoin), ou `null` : jamais d'exception. Sert aux appels de l'appareil, qui ne doivent rien afficher. */
   async acces(): Promise<string | null> { try { return this.session ? await this.jeton() : null; } catch { return null; } }
   private signaler() { try { this.apresOuverture?.(); } catch { /* sans effet sur la session */ } }
@@ -146,6 +155,7 @@ export class GestionSession {
     try {
       const lignes=await this.api.commandes(await this.jeton());
       if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      this.noterCommandes(depuisCompte(lignes));
       this.clesSuivi.clear();
       return lignes.map(({jeton,...commande})=>{if(jeton)this.clesSuivi.set(commande.id,{jeton,reference:commande.reference});return commande;});
     }catch(e){if(e instanceof ErreurConnexion&&e.definitive&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
@@ -220,6 +230,8 @@ export class GestionSession {
     if(n!==this.generation)return;
     const preparation=this.preparerDeconnexion?.();
     this.nbDeconnexions++;this.clesSuivi.clear();++this.generation;this.session=null;
+    // Le compte n'existe plus : ses commandes gardées sur l'appareil (et leurs jetons) s'effacent aussi.
+    void this.oublierCommandesAppareil().catch(()=>undefined);
     try{if(preparation)await preparation(null);}catch{/* sans effet sur l'effacement local */}
     try{await this.ordonner(()=>this.coffre.effacer());}catch{throw new ErreurConnexion('Compte supprimé, mais l’effacement local n’est pas confirmé. Utilisez « Me déconnecter de cet appareil ».');}
   }
@@ -232,12 +244,38 @@ export class GestionSession {
     if(!this.api.declarerPaiement)throw new ErreurConnexion('Déclaration du règlement indisponible.');
     await this.api.declarerPaiement(cle.jeton,mode,reference);
   }
+  /** Commandes gardées sur cet appareil (sans jeton), les plus récentes d'abord. Lecture seule, SANS session : on les retrouve même déconnecté. */
+  async commandesAppareil():Promise<VueCommandeAppareil[]> {
+    if(!this.memoire)return [];
+    const liste=await this.memoire.lire();
+    this.clesAppareil.clear();for(const c of liste)this.clesAppareil.set(c.reference,c.jeton);
+    return liste.map(versVue);
+  }
+  /**
+   * État en direct d'une commande de l'appareil (lecture seule, SANS session : le jeton de suivi est la clé). Annuler, répondre au restaurant et déclarer un règlement
+   * exigent toujours une session ouverte. Le suivi reçu doit porter la référence attendue, sinon il est refusé.
+   */
+  async suiviAppareil(cle:string):Promise<ResumeSuivi> {
+    const reference=referenceDeCle(cle);
+    if(reference===null)throw new ErreurConnexion('Cette commande n’est plus sur cet appareil.');
+    let jeton=this.clesAppareil.get(reference);
+    if(!jeton){await this.commandesAppareil();jeton=this.clesAppareil.get(reference);}
+    if(!jeton)throw new ErreurConnexion('Cette commande n’est plus sur cet appareil.');
+    const r=await this.api.suivi(jeton);
+    if(r.reference!==reference)throw new ErreurConnexion('Le suivi reçu ne correspond pas à cette commande.');
+    return r;
+  }
+  /** « Oublier les commandes de cet appareil » : efface les références et les jetons gardés ici. Les commandes du compte restent sur le serveur. */
+  async oublierCommandesAppareil():Promise<void> {
+    this.clesAppareil.clear();
+    await this.memoire?.oublier();
+  }
   /** Envoie une commande (un seul essai). Le jeton de suivi reçu est jeté ici : il ne remonte jamais jusqu'à l'écran, le suivi le relit via `commandes()`. */
   async creerCommande(payload:CreationCommandePayload):Promise<{reference:string;idempotent:boolean}> {
     const n=this.generation;
     const acces=await this.jeton();
     if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
-    try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);return {reference:r.reference,idempotent:r.idempotent};}
+    try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);this.noterCommandes([{reference:r.reference,jeton:r.jeton,restaurantNom:'',creeLe:Date.now(),totalGnf:0,mode:payload.mode}]);return {reference:r.reference,idempotent:r.idempotent};}
     catch(e){if(e instanceof ErreurCommande&&e.genre==='session'&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
   }
   /** Frais et durée de livraison calculés par le serveur pour ce quartier et ce sous-total (lecture, jeton porteur du compte connecté). Une session terminée le dit, sans rien effacer d'autre. */

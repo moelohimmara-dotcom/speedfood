@@ -8,6 +8,7 @@ import { SITE_WEB, adresseAppel, adresseWhatsApp, lireAide } from './aide';
 import { DELAI_RELECTURE_MS, doitRelire, estFinal, etapeActuelle, libelleStatutSuivi, messageRestaurantARepondu, previsionPreparation, tonStatut } from './suivi-affichage';
 import { FriseSuivi } from './FriseSuivi';
 import { Pastille } from '../catalogue/FicheRestaurant';
+import { CommandesAppareilReel } from './CommandesAppareilReel';
 import { lireCodeRetourSocial, preparerVerificateur, urlConnexionSociale, versBase64Url, type FournisseurSocial } from './reseaux-sociaux';
 import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
@@ -236,7 +237,8 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
     :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
     :!connectee?<>
       {messageEntree&&<Text accessibilityRole="alert" style={s.texte}>{messageEntree}</Text>}
-      <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver vos commandes.':'Connectez-vous avec votre compte Speedfood.'}</Text>
+      {vue==='commandes'&&<CommandesAppareilReel oublier={parametres?parametres.oublierCommandes:()=>gestion.oublierCommandesAppareil()}/>}
+      <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver toutes vos commandes, les annuler ou régler.':'Connectez-vous avec votre compte Speedfood.'}</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
       <Action titre="Me connecter" disabled={attente||!email.trim()||!motDePasse} agir={()=>{const demande=gestion.connecter(email,motDePasse);setEmail('');setMotDePasse('');void executer(async()=>{await demande;setProfil(await gestion.espace());});}}/>
@@ -275,7 +277,7 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
         <Action titre="Supprimer définitivement mon compte" variante="danger" icone="corbeille" disabled={attente||!confirmationSuppressionValide(motSuppression)} agir={()=>{void executer(()=>supprimerCompte());}}/>
         <Action titre="Non, garder mon compte" secondaire disabled={attente} agir={()=>{setSuppressionOuverte(false);setMotSuppression('');}}/>
       </ScrollView>:<Action titre="Supprimer mon compte" variante="danger" icone="corbeille" disabled={attente} agir={()=>setSuppressionOuverte(true)}/>}
-      <Action titre="Me déconnecter de cet appareil" icone="deconnexion" variante="contour" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.');});}}/>
+      <Action titre="Me déconnecter de cet appareil" icone="deconnexion" variante="contour" disabled={attente} agir={()=>{setProfil(null);effacerLectures();void executer(async()=>{const r=await gestion.deconnecter();setMessage((r.distanteConfirmee?'Vous êtes déconnecté sur cet appareil.':'Session effacée sur cet appareil. La révocation distante n’a pas pu être confirmée.')+' Vos commandes restent consultables dans l’onglet Commandes ; « Oublier les commandes de cet appareil » (Paramètres) les efface.');});}}/>
       </>}
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" variante="danger" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}

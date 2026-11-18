@@ -47,9 +47,9 @@ export function ParametresReel({ connectee, ouvrirVisite, oublierCommandes, sess
     {Platform.OS !== 'android' && <Text style={s.secondaire}>Version installée : {nom}</Text>}
     {telechargeable && <Bouton titre="Télécharger la nouvelle version" icone="externe" disabled={occupe} onPress={() => { void Linking.openURL(adresseInstallation()).catch(() => setMessage('Impossible d’ouvrir la page de téléchargement.')); }} />}
     <Text style={s.nom}>Cet appareil</Text>
-    <Text style={s.secondaire}>Les commandes que vous envoyez sont mémorisées sur ce téléphone pour « Commander à nouveau » (plats et quantités seulement).</Text>
+    <Text style={s.secondaire}>Les commandes que vous envoyez sont gardées sur ce téléphone : leur suivi reste consultable sans connexion (la clé de suivi est dans le coffre du téléphone) et « Commander à nouveau » retrouve leurs plats et quantités.</Text>
     {confirmerOubli
-      ? <><Text accessibilityRole="alert" style={s.texte}>Oublier les commandes de cet appareil ? Elles disparaissent de ce téléphone ; vos commandes restent dans votre compte.</Text>
+      ? <><Text accessibilityRole="alert" style={s.texte}>Oublier les commandes de cet appareil ? Elles disparaissent de ce téléphone, avec leur clé de suivi ; vos commandes restent dans votre compte.</Text>
         <Bouton titre="Oublier" variante="danger" icone="corbeille" disabled={occupe} onPress={() => { void oublier(); }} /><Bouton titre="Retour" secondaire disabled={occupe} onPress={() => setConfirmerOubli(false)} /></>
       : <Bouton titre="Oublier les commandes de cet appareil" variante="danger" icone="corbeille" disabled={occupe} onPress={() => setConfirmerOubli(true)} />}
   </View>;

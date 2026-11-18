@@ -16,6 +16,7 @@ import { Icone, type NomIcone } from '../design/Icone';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
+import { gestion } from '../connexion/gestion';
 import { AideReelle } from '../connexion/AideReelle';
 import { FavoriFiche } from '../connexion/FavoriFiche';
 import { verrouPro } from '../connexion/verrou-natif';
@@ -269,7 +270,7 @@ export function CatalogueReel() {
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </View>}
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); } }} />
+    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
