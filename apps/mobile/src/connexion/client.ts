@@ -5,6 +5,7 @@ import { traduireErreurAuth, verifierEmail, verifierInscription } from './auth-p
 import { ErreurEspaceClient, estUuid, lireEspaceComplet, validerAdresse, validerPseudo, verifierProfil, type ActionAdresse, type ChampsProfil, type EspaceComplet } from './espace-client.ts';
 import { normaliserTelephone } from '../../../../packages/shared/src/commande/telephone.ts';
 import { SITE_WEB } from './aide.ts';
+import { origineRestaurateur } from './origines-restaurateur.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
 import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type TypeDocument, type ValeursPropositionRestaurateur } from './restaurateur.ts';
@@ -226,7 +227,7 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     let r: Response;
     try {
       // Formulaire (photo) : PAS de Content-Type écrit ici, le système y met la frontière du multipart.
-      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps && !options.formulaire ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body:options.formulaire } : options.corps ? { body:JSON.stringify(options.corps) } : {}) });
+      r = await fetcher(origineRestaurateur(chemin)+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps && !options.formulaire ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body:options.formulaire } : options.corps ? { body:JSON.stringify(options.corps) } : {}) });
     } catch (e) {
       const delaiAtteint = controle.signal.aborted; clearTimeout(timer);
       if (lecture) throw new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.');
