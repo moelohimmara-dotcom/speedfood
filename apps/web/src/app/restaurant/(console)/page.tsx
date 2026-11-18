@@ -9,6 +9,7 @@ import { BoutonsPartage } from "@/components/BoutonsPartage";
 import { cheminRestaurant, texteRestaurant, urlAbsolue } from "@/lib/partage/liens";
 import { origineDuSite } from "@/lib/partage/origine";
 import { lireReglagesAssistance } from "@/lib/parametres/assistance";
+import { lireMotifsRestaurants } from "@/lib/restaurant/motifs";
 import { formaterDelaiValidation } from "@/lib/parametres/assistance-format";
 import { ListeDemarrage } from "@/components/ListeDemarrage";
 import { RecapitulatifJour } from "@/components/restaurant/RecapitulatifJour";
@@ -57,7 +58,7 @@ export default async function AccueilConsolePage() {
   const [{ data: restaurant }, { count: nombrePlats }, commandes] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("nom, publie, ouvert, accepte_commandes, statut_mis_a_jour_le, motif_correction, photo_url, logo_url, horaires, moyens_paiement")
+      .select("nom, publie, ouvert, accepte_commandes, statut_mis_a_jour_le, correction_demandee, photo_url, logo_url, horaires, moyens_paiement")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", id).is("archive_le", null),
@@ -65,6 +66,8 @@ export default async function AccueilConsolePage() {
     chargerApercusCommandes(supabase, id, { depuisLe: new Date(new Date().getTime() - 2 * PERIODE * 86_400_000).toISOString() }).catch(() => [] as ApercuCommandeRestaurant[]),
   ]);
 
+  // Le texte de la correction demandée n'est plus lisible directement : la fonction de la base ne le rend qu'aux membres du restaurant.
+  const motifCorrection = restaurant?.correction_demandee ? ((await lireMotifsRestaurants(supabase, [id])).get(id)?.motifCorrection ?? null) : null;
   const origine = await origineDuSite();
   const { whatsapp, delaiValidationHeures } = await lireReglagesAssistance();
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(id));
@@ -139,10 +142,10 @@ export default async function AccueilConsolePage() {
         }
       />
 
-      {restaurant?.motif_correction ? (
+      {motifCorrection ? (
         <div className="ad-bandeau ad-bandeau-attention" role="note">
           <p className="u-m-0">
-            <strong>Une correction est demandée avant publication :</strong> {restaurant.motif_correction}
+            <strong>Une correction est demandée avant publication :</strong> {motifCorrection}
           </p>
         </div>
       ) : !restaurant?.publie ? (

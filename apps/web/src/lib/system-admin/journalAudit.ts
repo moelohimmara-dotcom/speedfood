@@ -78,7 +78,7 @@ export async function obtenirIndicateurs(): Promise<Indicateur[]> {
       .select("id", { count: "exact", head: true })
       .eq("publie", false)
       .is("suspendu_le", null)
-      .is("motif_correction", null),
+      .eq("correction_demandee", false),
     supabase
       .from("restaurants")
       .select("id", { count: "exact", head: true })

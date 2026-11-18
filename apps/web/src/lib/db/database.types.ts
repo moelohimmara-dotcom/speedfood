@@ -1658,6 +1658,7 @@ export type Database = {
           delai_preparation_minutes: number | null
           couverture_illustration: Json | null
           cree_le: string
+          correction_demandee: boolean
           donnees_demo: boolean
           horaires: string
           id: string
@@ -1844,6 +1845,10 @@ export type Database = {
       fn_est_membre_restaurant: {
         Args: { p_restaurant_id: string }
         Returns: boolean
+      }
+      fn_motifs_restaurants: {
+        Args: { p_ids: string[] }
+        Returns: { restaurant_id: string; motif_correction: string | null; suspendu_motif: string | null }[]
       }
       fn_generer_code_court: { Args: never; Returns: string }
       fn_questions_etat: { Args: never; Returns: Json }

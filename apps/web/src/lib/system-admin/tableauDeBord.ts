@@ -57,7 +57,7 @@ export async function obtenirCompteursRestaurants(): Promise<CompteursRestaurant
         .select("id", { count: "exact", head: true })
         .eq("publie", false)
         .is("suspendu_le", null)
-        .is("motif_correction", null),
+        .eq("correction_demandee", false),
       supabase
         .from("restaurants")
         .select("id", { count: "exact", head: true })
@@ -70,7 +70,7 @@ export async function obtenirCompteursRestaurants(): Promise<CompteursRestaurant
       supabase
         .from("restaurants")
         .select("id", { count: "exact", head: true })
-        .not("motif_correction", "is", null),
+        .eq("correction_demandee", true),
     ]);
 
   return {
@@ -229,7 +229,7 @@ export async function listerRestaurantsEnAttenteValidation(
     // Un restaurant de démonstration dépublié n'est pas une demande de mise en ligne : il ne doit pas passer devant les vraies (16 octobre 2026).
     .eq("donnees_demo", false)
     .is("suspendu_le", null)
-    .is("motif_correction", null)
+    .eq("correction_demandee", false)
     .order("cree_le", { ascending: true })
     .limit(Math.max(1, Math.min(limite, 20)));
 

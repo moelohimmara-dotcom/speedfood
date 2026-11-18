@@ -621,7 +621,7 @@ const definerConnu = new Set([
   "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_est_ce_mon_livreur", "fn_mon_restaurant_a_ce_livreur",
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
-  "fn_quarts_prendre", "fn_quarts_liberer",
+  "fn_quarts_prendre", "fn_quarts_liberer", "fn_motifs_restaurants",
 ]);
 const definerAuth = (await db.query(`
   select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -1008,6 +1008,50 @@ verifier("affectations : un établissement ne peut avoir qu'un seul titulaire ac
   try { await db.exec(`insert into affectations_operateurs (restaurant_id, operateur_id) values (${U(ID.resto_a)}, ${U(ID.admin)})`); return false; }
   catch { return true; }
 })()));
+
+// ---------------------------------------------------------------- 8. colonnes internes de restaurants (18 novembre 2026)
+console.log("\n--- Colonnes internes de restaurants : motif de correction et motif de suspension");
+await db.exec(`update restaurants set motif_correction = 'CORRECTION-SECRETE-A', suspendu_motif = 'SUSPENSION-SECRETE-A' where id = ${U(ID.resto_a)}`);
+await db.exec(`update restaurants set motif_correction = 'CORRECTION-SECRETE-B' where id = ${U(ID.resto_b)}`);
+const echoue = (r) => r.erreur !== undefined;
+for (const [libelle, qui] of [["un visiteur anonyme", null], ["un client connecté", ID.client], ["le restaurateur du restaurant", ID.user_b], ["l'équipe (support)", ID.support]]) {
+  verifier(`${libelle} ne lit pas motif_correction directement`, echoue(await lire(qui, `select motif_correction from restaurants where id = ${U(ID.resto_a)}`)));
+  verifier(`${libelle} ne lit pas suspendu_motif directement`, echoue(await lire(qui, `select suspendu_motif from restaurants where id = ${U(ID.resto_a)}`)));
+  verifier(`${libelle} : « select * » sur restaurants échoue (le code liste ses colonnes)`, echoue(await lire(qui, `select * from restaurants where id = ${U(ID.resto_a)}`)));
+  verifier(`${libelle} lit toujours les colonnes publiques d'un restaurant publié`, (await lire(qui, `select nom, ouvert, horaires, latitude, longitude, correction_demandee from restaurants where id = ${U(ID.resto_a)}`)).lignes.length === 1);
+}
+verifier("anonyme : le filtre par correction_demandee marche sans exposer le texte", (await lire(null, `select count(*)::int n from restaurants where correction_demandee`)).lignes[0]?.n === 2);
+verifier("correction_demandee est vraie seulement quand un motif de correction existe", (await db.query(`select count(*)::int n from restaurants where correction_demandee <> (motif_correction is not null)`)).rows[0].n === 0);
+const motifs = async (qui, ids) => (await lire(qui, `select restaurant_id, motif_correction, suspendu_motif from fn_motifs_restaurants(array[${ids.map(U).join(",")}])`));
+const dedans = (r, id) => (r.lignes ?? []).find((l) => l.restaurant_id === id);
+// Le compte du restaurateur A a été supprimé plus haut dans ce fichier : on teste avec le restaurateur B, membre de son restaurant.
+const mB = await motifs(ID.user_b, [ID.resto_a, ID.resto_b]);
+verifier("le restaurateur B lit les motifs de SON restaurant par la fonction", dedans(mB, ID.resto_b)?.motif_correction === "CORRECTION-SECRETE-B");
+verifier("le restaurateur B ne lit PAS les motifs du restaurant A (ni la suspension, ni la correction)", dedans(mB, ID.resto_a) === undefined && mB.lignes.length === 1);
+const mAdmin = await motifs(ID.admin, [ID.resto_a, ID.resto_b]);
+verifier("l'administrateur système lit les motifs des deux restaurants", mAdmin.lignes.length === 2 && dedans(mAdmin, ID.resto_b)?.motif_correction === "CORRECTION-SECRETE-B");
+const mSupport = await motifs(ID.support, [ID.resto_a]);
+verifier("le support (membre de l'équipe) lit les motifs par la fonction", dedans(mSupport, ID.resto_a)?.motif_correction === "CORRECTION-SECRETE-A");
+const mClient = await motifs(ID.client, [ID.resto_a, ID.resto_b]);
+verifier("un client connecté ne reçoit aucun motif par la fonction", mClient.erreur === undefined && mClient.lignes.length === 0);
+verifier("un visiteur anonyme ne peut pas appeler la fonction des motifs", echoue(await motifs(null, [ID.resto_a])));
+verifier("la fonction refuse plus de 5000 identifiants", (await lire(ID.admin, `select count(*)::int n from fn_motifs_restaurants(array(select '00000000-0000-4000-8000-0000000000a1'::uuid from generate_series(1, 5001)))`)).lignes[0]?.n === 0);
+await autorise("l'équipe peut toujours écrire une correction demandée", ID.admin, `update restaurants set motif_correction = 'Corriger les horaires' where id = ${U(ID.resto_b)}`);
+verifier("la correction écrite est lisible par la fonction", dedans(await motifs(ID.admin, [ID.resto_b]), ID.resto_b)?.motif_correction === "Corriger les horaires");
+// Garde contre le piège de ce schéma : une colonne ajoutée plus tard à restaurants n'aurait aucun droit de lecture pour le public.
+const sansDroitPublic = (await db.query(`
+  select column_name from information_schema.columns
+  where table_schema = 'public' and table_name = 'restaurants'
+    and not has_column_privilege('anon', 'public.restaurants', column_name, 'SELECT')
+  order by 1`)).rows.map((r) => r.column_name);
+verifier("seules motif_correction et suspendu_motif n'ont pas de droit de lecture public (toute autre colonne, présente ou future, doit en recevoir un par migration)", sansDroitPublic.join(",") === "motif_correction,suspendu_motif", sansDroitPublic.join(","));
+const sansDroitConnecte = (await db.query(`
+  select column_name from information_schema.columns
+  where table_schema = 'public' and table_name = 'restaurants'
+    and not has_column_privilege('authenticated', 'public.restaurants', column_name, 'SELECT')
+  order by 1`)).rows.map((r) => r.column_name);
+verifier("même règle pour les comptes connectés", sansDroitConnecte.join(",") === "motif_correction,suspendu_motif", sansDroitConnecte.join(","));
+verifier("la fonction des motifs n'est pas exécutable par un visiteur anonyme (droit d'exécution)", (await db.query(`select has_function_privilege('anon', 'public.fn_motifs_restaurants(uuid[])', 'execute') as ok`)).rows[0].ok === false);
 
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);
