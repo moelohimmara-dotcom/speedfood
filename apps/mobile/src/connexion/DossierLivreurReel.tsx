@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Action } from './BoutonAction';
+import { AssistanceLivreur } from './AssistanceLivreur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
-  DELAI_RELECTURE_DOSSIER_MS, EXPLICATION_PAR_DEFAUT, MESSAGE_DOSSIER_ILLISIBLE, NOTE_DOSSIER, TITRE_DOSSIER, piecesManquantes, resumeDossier, type DossierLivreur,
+  BOUTON_CONTACT_DOSSIER, DELAI_RELECTURE_DOSSIER_MS, EXPLICATION_PAR_DEFAUT, MESSAGE_DOSSIER_ILLISIBLE, NOTE_DOSSIER, TEXTE_CONTACT_DOSSIER, TITRE_CONTACT_DOSSIER, TITRE_DOSSIER,
+  afficherContactDossier, piecesManquantes, resumeDossier, type DossierLivreur,
 } from './dossier-livreur';
 import { couleurs as c, polices } from '../design/tokens';
 
@@ -18,6 +20,7 @@ export function DossierLivreurReel() {
   const [dossier, setDossier] = useState<DossierLivreur | null | undefined>(undefined);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [assistance, setAssistance] = useState(false);
   const enCours = useRef(false);
   const actif = useRef(true);
   useEffect(() => { actif.current = true; return () => { actif.current = false; }; }, []);
@@ -48,8 +51,14 @@ export function DossierLivreurReel() {
       {piecesManquantes(dossier).map(p => <Text key={p.code + p.libelle} style={s.avertissement}>{p.explication.trim() === '' ? EXPLICATION_PAR_DEFAUT : p.explication}</Text>)}
       {dossier.message !== null && dossier.message.trim() !== '' && <Text style={s.secondaire}>{dossier.message}</Text>}
     </>}
+    {afficherContactDossier(dossier) && <>
+      <Text accessibilityRole="header" style={s.sousTitre}>{TITRE_CONTACT_DOSSIER}</Text>
+      <Text style={s.secondaire}>{TEXTE_CONTACT_DOSSIER}</Text>
+      <Action titre="Contacter l’assistance pour compléter mon dossier" libelle={BOUTON_CONTACT_DOSSIER} variante="contour" agir={() => setAssistance(true)} />
+    </>}
     {erreur !== null && <Text accessibilityRole="alert" style={s.erreur}>{dossier === undefined ? MESSAGE_DOSSIER_ILLISIBLE : 'Dernière lecture impossible : ' + erreur + ' Ce que vous voyez est le dernier état connu.'}</Text>}
     <Text style={s.secondaire}>{NOTE_DOSSIER}</Text>
+    <AssistanceLivreur ouvert={assistance} fermer={() => setAssistance(false)} referenceCourse={null} />
   </View>;
 }
 
@@ -57,6 +66,7 @@ const s = StyleSheet.create({
   carte: { gap: 8, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },
   entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   titre: { fontFamily: polices.titre, fontSize: 18, color: c.encre },
+  sousTitre: { fontFamily: polices.titre, fontSize: 16, color: c.encre, marginTop: 4 },
   texte: { fontFamily: polices.texte, fontSize: 16, color: c.encre },
   secondaire: { fontFamily: polices.texte, fontSize: 14, color: c.secondaire },
   avertissement: { fontFamily: polices.texte, fontSize: 14, color: c.actionTeinteTexte },
