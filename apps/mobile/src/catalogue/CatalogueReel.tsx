@@ -26,13 +26,13 @@ import { Vignette } from './Vignette';
 import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
-import { EntreeReelle, doitOuvrirEntree } from '../connexion/EntreeReelle';
 import { BarreOnglets } from './BarreOnglets';
 import { etatPourOnglet, ongletActif, type IdOnglet } from './onglets';
 import type { EspaceEntree } from '../connexion/entree';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
-import { VisiteGuidee, doitOuvrirVisite } from '../connexion/VisiteReel';
+import { VisiteGuidee } from '../connexion/VisiteReel';
+import { LEGENDE_A_CONFIRMER, commandabilite, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants } from './parcours-client';
 import { CandidatureReel } from '../connexion/CandidatureReel';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
@@ -88,16 +88,9 @@ export function CatalogueReel() {
   useEffect(() => { void charger(null); return () => { generation.current++; }; }, []);
   const restaurantsRef = useRef<RestaurantPublic[]>([]);
   restaurantsRef.current = restaurants;
-  // Visite guidée (A10) : proposée automatiquement au premier lancement seulement ; rouvrable depuis le catalogue.
-  // Écran d'entrée « Qui êtes-vous ? » (G17) : proposé d'abord au premier lancement ; la visite guidée n'arrive qu'après, jamais par-dessus.
-  const [entreeOuverte, setEntreeOuverte] = useState(false);
-  const [entreeVerifiee, setEntreeVerifiee] = useState(false);
-  const [visiteAProposer, setVisiteAProposer] = useState(false);
+  // Premier lancement (revue du 18/11/2026) : le catalogue s'ouvre directement, sans écran « Qui êtes-vous ? » ni visite par-dessus. La visite reste dans l'en-tête et dans « Mon compte » ; restaurateurs et livreurs se connectent depuis « Mon compte ».
   const [espaceDemande, setEspaceDemande] = useState<EspaceEntree | null>(null);
   const [messageEntree, setMessageEntree] = useState<string | null>(null);
-  useEffect(() => { let actif = true; void doitOuvrirEntree().then(v => { if (!actif) return; if (v) setEntreeOuverte(true); setEntreeVerifiee(true); }); return () => { actif = false; }; }, []);
-  useEffect(() => { let actif = true; void doitOuvrirVisite().then(v => { if (actif && v) setVisiteAProposer(true); }); return () => { actif = false; }; }, []);
-  useEffect(() => { if (visiteAProposer && entreeVerifiee && !entreeOuverte) { setVisiteAProposer(false); setVisiteOuverte(true); } }, [visiteAProposer, entreeVerifiee, entreeOuverte]);
   // Liens profonds (A12) : un lien Speedfood connu ouvre la fiche du restaurant ; un lien de commande ouvre « Mon compte » (le suivi s'y lit, connecté).
   // Tout autre lien est ignoré ici et reste sur le site : aucune navigation arbitraire.
   useEffect(() => {
@@ -153,7 +146,11 @@ export function CatalogueReel() {
       else setMessagePanier('Ajout impossible. Vérifiez les quantités du panier (30 maximum par plat).');
     }
   }
-  function demanderAjout(p: PlatCataloguePublic) { if ((p.options?.length ?? 0) > 0) setPlatEnChoix(p); else ajouterAuPanier(p, []); }
+  function demanderAjout(p: PlatCataloguePublic) {
+    const dispo = menu ? commandabilite(menu.restaurant) : null;
+    if (dispo && !dispo.commandable) { setMessagePanier(dispo.titre + '. ' + dispo.message); return; }
+    if ((p.options?.length ?? 0) > 0) setPlatEnChoix(p); else ajouterAuPanier(p, []);
+  }
   function remplacerPanier() {
     const r = menu?.restaurant; const demande = remplacement; setRemplacement(null);
     if (!r || !demande) return;
@@ -193,9 +190,9 @@ export function CatalogueReel() {
   function choisirZone(id: string) { setChoixZone(id); setZoneOuverte(false); void SecureStore.setItemAsync(CLE_ZONE_ACCUEIL, id).catch(() => undefined); }
   const zones = zonesDisponibles(restaurants);
   const zone = zoneEffective(zones, choixZone);
-  const visibles = filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre);
+  const visibles = ordonnerRestaurants(filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre));
   const sections = sectionsAccueil(visibles, recherche, filtre);
-  const carteRestaurant = (r: RestaurantPublic, cle: string) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }]}>
+  const carteRestaurant = (r: RestaurantPublic, cle: string) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }, !r.ouvert && { opacity: 0.72 }]}>
     <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
     <View style={{ flex: 1, gap: 8 }}>
       <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' \u00b7 ') || 'Localisation non renseign\u00e9e'}</Text></View>
@@ -237,13 +234,9 @@ export function CatalogueReel() {
     </View>}
     <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
-      <Text style={s.surtitre}>LE CATALOGUE SPEEDFOOD</Text>
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
-      <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Découvrez les restaurants et leurs menus publiés.'}</Text>
+      <Text style={s.texte}>{selection ? [titreRestaurant?.categorie, titreRestaurant?.lieu].filter(Boolean).join(' · ') || 'Localisation non renseignée' : 'Commandez en retrait ou en livraison. Vous réglez le restaurant après sa confirmation.'}</Text>
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
-      {!selection && <View style={s.note}><Text style={s.texte}>Les menus sont réels. Vous pouvez commander en retrait ou en livraison depuis le panier après connexion ; le paiement en ligne n’est pas encore disponible ici.</Text></View>}
-      {!selection && <><View style={{ flexDirection: 'row', gap: 12 }}><Action titre="J’ai un restaurant" libelleCourt="J’ai un restaurant" agir={() => setCandidatureOuverte(true)} icone="restaurateur" />
-      <Action titre="Qui êtes-vous ? Changer d’espace" libelleCourt="Changer d’espace" agir={() => setEntreeOuverte(true)} icone="compte" /></View></>}
       <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer l’enregistrement du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
@@ -251,9 +244,8 @@ export function CatalogueReel() {
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {!selection && <>
-        {zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}
         <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher un restaurant, un quartier ou une cuisine" placeholder="Un restaurant, un quartier, une cuisine…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
         <Text style={s.secondaire}>{visibles.length} restaurant{visibles.length > 1 ? 's' : ''} sur {restaurants.length} chargé{restaurants.length > 1 ? 's' : ''}.</Text>
         {sections ? <>
           {sections.ouverts.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Ouverts maintenant</Text>{sections.ouverts.map(r => carteRestaurant(r, 'ouverts-' + r.id))}</>}
@@ -265,9 +257,10 @@ export function CatalogueReel() {
       </>}
       {menu && <>
         <EnteteFiche restaurant={menu.restaurant} />
+        {nombreAConfirmer(menu.plats) > 0 && <Text style={s.secondaire}>{LEGENDE_A_CONFIRMER}</Text>}
         {grouperMenu(menu.sections, menu.plats).map(g => <View key={'section-' + g.titre} style={{ gap: 12 }}>
           <Text accessibilityRole="header" style={s.titreSection}>{g.titre}</Text>
-          {g.plats.map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} ajouter={() => demanderAjout(p)} />)}
+          {ordonnerPlats(g.plats).map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} commandable={commandabilite(menu.restaurant).commandable} ajouter={() => demanderAjout(p)} />)}
         </View>)}
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
@@ -283,16 +276,12 @@ export function CatalogueReel() {
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </View>}
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
+    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
-    <EntreeReelle ouvert={entreeOuverte} fermer={() => setEntreeOuverte(false)}
-      ouvrirEspace={espace => { setDemandeCompte(null); setMessageEntree(null); setEspaceDemande(espace); setCompteOuvert(true); }}
-      ouvrirConnexion={message => { setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(message); setCompteOuvert(true); }}
-      ouvrirCandidature={() => setCandidatureOuverte(true)} ouvrirAide={() => setAideOuverte(true)} ouvrirVisite={() => setVisiteOuverte(true)} />
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
@@ -308,7 +297,7 @@ const s = StyleSheet.create({
   contenu: { padding: 22, gap: 18, width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 40 },
   bandeauHorsLigne: { marginHorizontal: 16, marginBottom: 8, padding: 12, gap: 10, borderRadius: 14, backgroundColor: c.avertissementFond },
   bandeauHorsLigneTexte: { flex: 1, fontFamily: polices.texte, fontSize: 14, lineHeight: 20, color: c.avertissement },
-  surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 36, lineHeight: 41 },
+  surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 32, lineHeight: 37 },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   puceZone: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1.5, borderColor: c.encre, backgroundColor: c.surface }, puceTexte: { color: c.encre, fontFamily: polices.texte, fontSize: 14 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },

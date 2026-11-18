@@ -1,5 +1,6 @@
 import type { OptionPlatPublic, PlatCataloguePublic, RestaurantPublic, SectionMenuPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
+import { ageStatutAffichable } from './parcours-client.ts';
 /**
  * Règles d'affichage du catalogue, portées de l'ancienne appli Kotlin (tranche 10.1) : sections du menu, prix promo, note, suppléments, pastille et fraîcheur du statut.
  * Fonctions pures, sans réseau. Le prix payé est toujours recalculé par le serveur à la commande : rien d'ici ne fixe un montant.
@@ -50,5 +51,6 @@ export function libelleStatut(r: Pick<RestaurantPublic, 'ouvert' | 'accepteComma
   if (date === null || Number.isNaN(date.getTime())) return 'Statut à confirmer';
   const age = Math.max(0, maintenant.getTime() - date.getTime());
   const lisible = ancienneteLisible(date, maintenant);
-  return age <= FRAICHEUR_HEURES * 3_600_000 ? `Statut confirmé ${lisible}` : `Statut à confirmer (dernière confirmation ${lisible})`;
+  if (age <= FRAICHEUR_HEURES * 3_600_000) return `Statut confirmé ${lisible}`;
+  return ageStatutAffichable(date, maintenant) === null ? 'Statut à confirmer' : `Statut à confirmer (dernière confirmation ${lisible})`;
 }

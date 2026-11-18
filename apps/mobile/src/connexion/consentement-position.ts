@@ -22,7 +22,16 @@ export function suiviDoitTourner(arrierePlan: boolean, appOuverte: boolean): boo
 export type EtatPositionLivreur = 'refusee' | 'indisponible' | 'recherche' | 'connue';
 
 export const TITRE_CHOIX_SUIVI = 'Recevoir vos courses écran éteint ?';
-export const TEXTE_CHOIX_SUIVI = 'Pour vous proposer des courses même quand l’écran est éteint ou l’application fermée, Speedfood suit votre position tant que vous êtes en ligne. Une notification reste affichée pendant ce suivi. Votre position ne sert qu’à vous proposer des courses et à suivre votre livraison ; le suivi s’arrête dès que vous vous mettez hors ligne. Vous pouvez changer d’avis à tout moment.';
+export const TEXTE_CHOIX_SUIVI = 'Pour vous proposer des courses, Speedfood a besoin de connaître votre position tant que vous êtes en ligne. Voici ce que cela veut dire, avant que votre téléphone vous demande l’autorisation.';
+export const BOUTON_PAS_MAINTENANT = 'Pas maintenant';
+export const LIEN_CONFIDENTIALITE = 'Lire la politique de confidentialité';
+/** Les quatre points d'une divulgation bien visible : ce qui est collecté, quand, pourquoi, ce que le livreur garde en main. Le texte dit « même écran éteint ou application fermée » : c'est le cas avec « Autoriser le suivi ». */
+export const LIGNES_DIVULGATION: ReadonlyArray<{ icone: 'position' | 'eclair' | 'info' | 'coche'; titre: string; texte: string }> = [
+  { icone: 'position', titre: 'Ce qui est collecté', texte: 'Votre position précise (GPS), seulement quand vous êtes en ligne.' },
+  { icone: 'eclair', titre: 'Quand', texte: 'Avec « Autoriser le suivi » : même écran éteint ou application fermée, une notification reste affichée. Avec « Seulement application ouverte » : uniquement quand Speedfood est ouverte.' },
+  { icone: 'info', titre: 'Pourquoi', texte: 'Vous proposer les courses proches de vous et permettre au client de suivre sa livraison.' },
+  { icone: 'coche', titre: 'Vous gardez la main', texte: 'Le suivi s’arrête dès que vous vous mettez hors ligne. Vous pouvez changer d’avis à tout moment.' },
+];
 export const BOUTON_SUIVI_OUI = 'Autoriser le suivi';
 export const BOUTON_SUIVI_NON = 'Seulement application ouverte';
 export const MESSAGE_POSITION_REFUSEE = 'Autorisez la position de votre téléphone : sans elle, Speedfood ne peut pas vous proposer les courses proches de vous.';

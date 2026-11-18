@@ -5,6 +5,7 @@ import type { QuartierPublic } from '../../../../packages/shared/src/contracts/c
 import { chiffrer, type PanierReel } from './panier-reel';
 import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, totalEstime, validerSaisie } from './commande-reelle';
 import { EnvoiCommande } from './envoi-commande';
+import { COMMENTAIRE_PLATS_A_CONFIRMER, TEXTE_CONSENTEMENT, TITRE_PARCOURS, commandabilite, etapesParcours, nombreAConfirmer, phraseARegler } from './parcours-client';
 import { creerLecteurCatalogue } from './client';
 import type { usePanierReel } from './usePanierReel';
 import { gestion } from '../connexion/gestion';
@@ -53,6 +54,11 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const estimation = estimationValable(m.estimation, etat.panier.restaurantId, m.quartierId, bilan.total) ? m.estimation.estimation : null;
   const frais = fraisDeLEstimation(estimation);
   const total = totalEstime(bilan.total, livraison ? frais : 0);
+  // Restaurant fermé ou en pause depuis l'ajout au panier : l'écran le dit et ne laisse pas envoyer (le serveur refuserait de toute façon).
+  const dispo = etat.menu ? commandabilite(etat.menu.restaurant) : null;
+  const bloque = dispo !== null && !dispo.commandable;
+  const aConfirmer = nombreAConfirmer(bilan.lignes.map(l => l.plat));
+  const aRegler = phraseARegler(livraison ? total : bilan.total);
   const quartierChoisi = quartiers.liste.find(q => q.id === m.quartierId) ?? null;
   // Liste des quartiers : lue seulement au PREMIER passage en livraison (jamais en retrait) ; pas de cache entre deux ouvertures de l'écran la route étant `no-store` ; son échec n'empêche pas le retrait.
   useEffect(() => {
@@ -91,6 +97,16 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       </>}
       <Text style={s.secondaire}>{livraison ? 'Livraison : les frais affichés sont une estimation de Speedfood ; le serveur les recalcule à l’envoi et vous demande de confirmer s’ils ont changé.' : 'Retrait : pas de frais de livraison.'} Le restaurant confirme votre commande ; le montant final est recalculé par Speedfood.</Text>
     </View>
+    {bloque && <View accessibilityRole="alert" style={s.alerte}><Text style={s.alerteTitre}>{dispo.titre}</Text><Text style={s.alerteTexte}>{dispo.message} Votre panier est gardé.</Text></View>}
+    <View style={s.carte}>
+      <Text accessibilityRole="header" style={s.nom}>{TITRE_PARCOURS}</Text>
+      {etapesParcours(etat.menu?.restaurant.moyensPaiement).map(e => <View key={e.numero} style={s.etape}>
+        <View style={s.etapeNumero} accessibilityElementsHidden importantForAccessibility="no"><Text style={s.etapeNumeroTexte}>{e.numero}</Text></View>
+        <View style={{ flex: 1, gap: 2 }}><Text style={s.etapeTitre}>{e.titre}</Text><Text style={s.etapeTexte}>{e.texte}</Text></View>
+      </View>)}
+      {aRegler && <Text style={s.etapeTitre}>{aRegler}</Text>}
+      {aConfirmer > 0 && <Text style={s.secondaire}>{COMMENTAIRE_PLATS_A_CONFIRMER(aConfirmer)}</Text>}
+    </View>
     {!panierPret && !verrouille && <Text accessibilityRole="alert" style={s.texte}>{etat.panier.lignes.length ? 'Les prix doivent être relus avant l’envoi. Retournez au panier et actualisez-le.' : 'Votre panier est vide.'}</Text>}
     {!connectee && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Connectez-vous pour envoyer votre commande.</Text><Action titre="Ouvrir mon compte" agir={ouvrirCompte} /></View>}
     <Text style={s.texte}>Votre nom</Text>
@@ -117,7 +133,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     </>}
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: m.consentement, disabled: verrouille }} disabled={verrouille} onPress={() => m.saisir('consentement', !m.consentement)} style={s.consentement}>
       <View style={[s.case, m.consentement && s.caseCochee]}>{m.consentement && <Text style={s.coche}>✓</Text>}</View>
-      <Text style={s.consentementTexte}>Je comprends que le restaurant doit confirmer ma commande avant tout paiement.</Text>
+      <Text style={s.consentementTexte}>{TEXTE_CONSENTEMENT}</Text>
     </Pressable>
     {m.phase === 'envoi' && <View accessibilityLiveRegion="polite" style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Envoi de votre commande…</Text></View>}
     {m.message && <Text accessibilityRole="alert" style={s.texte}>{m.message}</Text>}
@@ -130,7 +146,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
         <Action titre="Je confirme : elle n’a pas été enregistrée" variante="danger" agir={() => m.confirmerAbandon()} />
         <Action titre="Non, garder mon envoi" secondaire agir={() => m.annulerAbandon()} /></>}
     </View>}
-    {m.phase !== 'incertain' && <Action titre={m.phase === 'envoi' ? 'Envoi en cours…' : 'Envoyer ma commande'} disabled={!peutEnvoyer} agir={() => { void envoyer(); }} />}
+    {m.phase !== 'incertain' && <Action titre={m.phase === 'envoi' ? 'Envoi en cours…' : 'Envoyer ma commande'} disabled={!peutEnvoyer || bloque} agir={() => { void envoyer(); }} />}
   </ScrollView></SafeAreaView></Modal>;
 }
 const s = StyleSheet.create({
@@ -153,4 +169,7 @@ const s = StyleSheet.create({
   case: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: c.action, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface }, caseCochee: { backgroundColor: c.action },
   coche: { color: c.surface, fontWeight: '700' }, consentementTexte: { flex: 1, fontFamily: polices.texte, fontSize: 14, lineHeight: 21, color: c.encre },
   attente: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  alerte: { padding: 16, gap: 4, backgroundColor: c.avertissementFond, borderRadius: 16 }, alerteTitre: { fontFamily: polices.texte, fontSize: 16, fontWeight: '700', color: c.avertissement }, alerteTexte: { fontFamily: polices.texte, fontSize: 14, lineHeight: 20, color: c.avertissement },
+  etape: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }, etapeNumero: { width: 28, height: 28, borderRadius: 14, backgroundColor: c.mangue, alignItems: 'center', justifyContent: 'center' }, etapeNumeroTexte: { fontFamily: polices.texte, fontWeight: '700', fontSize: 14, color: c.encre },
+  etapeTitre: { fontFamily: polices.texte, fontWeight: '700', fontSize: 15, lineHeight: 22, color: c.encre }, etapeTexte: { fontFamily: polices.texte, fontSize: 14, lineHeight: 21, color: c.encre },
 });

@@ -2,6 +2,7 @@ import type { CreationCommandePayload } from '../../../../packages/shared/src/co
 import type { PlatCataloguePublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { normaliserTelephone } from '../../../../packages/shared/src/commande/telephone.ts';
 import { chiffrer, type PanierReel } from './panier-reel.ts';
+import { ERREUR_CONSENTEMENT } from './parcours-client.ts';
 
 /**
  * Domaine pur de l'envoi d'une commande en RETRAIT (lot A) ou en LIVRAISON (lot B) depuis l'application.
@@ -153,7 +154,7 @@ export function validerSaisie(s: SaisieCommande): { erreurs: ErreursSaisie; nom:
   }
   const telephone = normaliserTelephone(s.telephone);
   if (telephone === null) erreurs.telephone = 'Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (ex. 622 12 34 56).';
-  if (s.consentement !== true) erreurs.consentement = 'Cochez la case pour confirmer que vous réglerez au restaurant.';
+  if (s.consentement !== true) erreurs.consentement = ERREUR_CONSENTEMENT;
   return { erreurs, nom, telephone };
 }
 

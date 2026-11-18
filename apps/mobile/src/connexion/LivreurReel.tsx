@@ -20,6 +20,7 @@ import { creerControleEtatLivreur, type EtatControleLivreur, type SaisieCourse, 
 import { CoursesLivreurReel } from './CoursesLivreurReel';
 import { AssistanceLivreur } from './AssistanceLivreur';
 import { DossierLivreurReel } from './DossierLivreurReel';
+import { DivulgationPosition } from './DivulgationPosition';
 import { ErreurConnexion } from './client';
 import { coursesSuivantes, type FileLivreur } from './file-livreur';
 import { ErreurLivreur, type CourseLivreur } from './livreur';
@@ -218,12 +219,8 @@ function Etat({ session, etat, ecritureEnCours, lectureEnCours, incertain, messa
       : fiche.cycle !== 'actif'
         ? <Text accessibilityRole={messageCycleLivreur(fiche.cycle, fiche.motifCycle)?.erreur ? 'alert' : undefined} style={messageCycleLivreur(fiche.cycle, fiche.motifCycle)?.erreur ? s.erreur : s.secondaire}>{messageCycleLivreur(fiche.cycle, fiche.motifCycle)?.texte}</Text>
         : <Action titre={ecritureEnCours ? 'Envoi en cours…' : fiche.statut === 'disponible' ? 'Me mettre hors ligne' : 'Me mettre en ligne'} icone="eclair" disabled={!peutBasculer || verrou} agir={() => { const vers = fiche.statut !== 'disponible'; if (doitDemanderChoix(arrierePlan, choixLu, false, vers)) setConsentement(true); else basculer(vers); }} />}
-    {demanderChoix && <View style={s.carte}>
-      <Text accessibilityRole="header" style={s.nom}>{TITRE_CHOIX_SUIVI}</Text>
-      <Text style={s.ligne}>{TEXTE_CHOIX_SUIVI}</Text>
-      <Action titre={BOUTON_SUIVI_OUI} agir={() => choisirSuivi(true, !enLigne)} />
-      <Action titre={BOUTON_SUIVI_NON} secondaire agir={() => choisirSuivi(false, !enLigne)} />
-    </View>}
+    <DivulgationPosition ouvert={demanderChoix} titre={TITRE_CHOIX_SUIVI} texte={TEXTE_CHOIX_SUIVI} boutonOui={BOUTON_SUIVI_OUI} boutonNon={BOUTON_SUIVI_NON}
+      autoriser={() => choisirSuivi(true, !enLigne)} appOuverteSeulement={() => choisirSuivi(false, !enLigne)} annuler={() => setConsentement(false)} />
     {enLigne && etatPosition === 'refusee' && <View style={s.carte}>
       <Text style={s.ligne}>{MESSAGE_POSITION_REFUSEE}</Text>
       <Action titre={BOUTON_AUTORISER_POSITION} agir={() => setEssaiPosition(n => n + 1)} />

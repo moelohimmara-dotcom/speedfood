@@ -34,7 +34,7 @@ const Action = ({ titre, agir, disabled = false, icone, iconeSeule = false, seco
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
 /** `espaceDemande` / `messageEntree` : venus de l'écran d'entrée « Qui êtes-vous ? ». Une session ouverte ouvre directement l'espace demandé (le serveur revérifie chaque route) ; sinon `messageEntree` guide la connexion. */
 /** `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets ; `vue` : onglet « Compte » (profil, espaces, réglages) ou « Commandes » (liste et suivi). Vrai : fenêtre plein écran comme avant. */
-export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, messageEntree=null, enModal=true, vue='compte', recommander=null, parametres=null }: { parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; espaceDemande?:'restaurateur'|'livreur'|'equipe'|null; messageEntree?:string|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
+export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, messageEntree=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null }: { ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; espaceDemande?:'restaurateur'|'livreur'|'equipe'|null; messageEntree?:string|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -247,6 +247,11 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
       {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" variante="contour" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
       <Action titre="Mot de passe oublié ?" variante="texte" disabled={attente} agir={()=>{setErreur(null);setAcces('oubli');}}/>
       <Action titre="Créer un compte" variante="contour" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
+      {vue==='compte'&&<>
+        <Text accessibilityRole="header" style={s.rubrique}>Restaurateur ou livreur ?</Text>
+        <Text style={s.texte}>Connectez-vous avec votre compte professionnel : votre espace apparaît ici après la connexion.</Text>
+        {ouvrirCandidature&&<Action titre="J’ai un restaurant" icone="restaurateur" variante="contour" disabled={attente} agir={ouvrirCandidature}/>}
+      </>}
       {erreur&&<Action titre="Relire la session protégée" secondaire disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
     </>:<>
       {vue==='compte'&&<>
@@ -262,6 +267,7 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
           setRestaurateurOuvert(true);
         }}/>}
         {equipe&&<LigneNavigation titre="Espace équipe" sousTitre="Administration Speedfood" icone="equipe" disabled={attente} onPress={()=>setEquipeOuverte(true)}/>}
+        {!restaurateur&&ouvrirCandidature&&<LigneNavigation titre="J’ai un restaurant" sousTitre="Demander à être référencé sur Speedfood" icone="restaurateur" disabled={attente} onPress={ouvrirCandidature}/>}
       </GroupeLignes>
       {(restaurateur||livreur||equipe)&&<ReglageVerrou/>}
       </>}
