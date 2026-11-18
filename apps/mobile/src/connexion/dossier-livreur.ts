@@ -43,6 +43,11 @@ export function resumeDossier(d: DossierLivreur): string {
   return `Il manque ${m.length} pièces : ${m.map(p => p.libelle).join(', ')}.`;
 }
 
+/** Le bouton d'assistance n'apparaît que s'il y a quelque chose à compléter : un dossier complet n'a rien à demander. */
+export const afficherContactDossier = (d: DossierLivreur | null | undefined): boolean => d !== null && d !== undefined && piecesManquantes(d).length > 0;
+export const TITRE_CONTACT_DOSSIER = 'Compléter mon dossier';
+export const TEXTE_CONTACT_DOSSIER = 'L’application ne reçoit pas de documents. L’équipe Speedfood vous dit comment compléter chaque pièce : écrivez ou appelez l’assistance.';
+export const BOUTON_CONTACT_DOSSIER = 'Contacter l’assistance';
 export const TITRE_DOSSIER = 'Mon dossier';
 export const MESSAGE_DOSSIER_ILLISIBLE = 'L’état de votre dossier n’a pas pu être vérifié pour l’instant.';
 export const NOTE_DOSSIER = 'Votre dossier d’identité est réservé à l’équipe Speedfood : l’application ne montre que ce qui manque, jamais vos documents.';

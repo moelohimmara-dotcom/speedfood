@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { lireDossierLivreur, piecesManquantes, resumeDossier } from '../src/connexion/dossier-livreur.ts';
+import { afficherContactDossier, lireDossierLivreur, piecesManquantes, resumeDossier, TEXTE_CONTACT_DOSSIER } from '../src/connexion/dossier-livreur.ts';
 const lire = (chemin: string) => readFileSync(new URL(chemin, import.meta.url), 'utf8');
 const piece = (statut: string, libelle = 'Pièce d’identité') => ({ code: 'piece_identite', libelle, statut, explication: 'Contactez l’équipe Speedfood pour compléter cette pièce.' });
 
@@ -42,4 +42,14 @@ test('dossier livreur : câblage (route du site, session, rubrique « Mon dossie
   const ecran = lire('../src/connexion/DossierLivreurReel.tsx');
   assert.match(ecran, /DELAI_RELECTURE_DOSSIER_MS/, 'relue toutes les minutes tant que la rubrique est ouverte');
   assert.match(ecran, /Ce que vous voyez est le dernier état connu/, 'une lecture qui échoue le dit et garde le dernier état');
+});
+
+test('dossier livreur : le contact de l’assistance n’apparaît que s’il manque une pièce, sans promettre de dépôt', () => {
+  const complet = lireDossierLivreur({ ok: true, dossier: { pieces: [], message: null } });
+  const manque = lireDossierLivreur({ ok: true, dossier: { pieces: [piece('manquant')], message: null } });
+  assert.equal(afficherContactDossier(complet), false);
+  assert.equal(afficherContactDossier(manque), true);
+  assert.equal(afficherContactDossier(null), false);
+  assert.equal(afficherContactDossier(undefined), false);
+  assert.ok(!/déposez|téléversez|envoyez votre/i.test(TEXTE_CONTACT_DOSSIER));
 });
