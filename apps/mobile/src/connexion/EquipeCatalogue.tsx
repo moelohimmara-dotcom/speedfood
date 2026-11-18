@@ -6,8 +6,8 @@ import { gestion } from './gestion';
 import { ErreurEquipe } from './equipe';
 import { formaterGnf } from './restaurateur';
 import {
-  STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE,
-  type DemandePartenariat, type DemandeReferencement, type FicheRestaurantEquipe, type MenusEquipe, type PlatMenuEquipe, type RestaurantEquipe,
+  FILTRES_ETABLISSEMENT, STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, compterEtablissements, filtrerEtablissements,
+  type DemandePartenariat, type FiltreEtablissement, type DemandeReferencement, type FicheRestaurantEquipe, type MenusEquipe, type PlatMenuEquipe, type RestaurantEquipe,
 } from './catalogue-equipe';
 import { lignesProposees, type LigneProposee } from './candidature';
 import { choisirPhoto, type SourcePhoto } from './photoPlat';
@@ -47,6 +47,7 @@ export function RestaurantsEquipeReel() {
   const [fiche, setFiche] = useState<FicheRestaurantEquipe | null>(null);
   const [horaires, setHoraires] = useState('');
   const [telephone, setTelephone] = useState('');
+  const [filtre, setFiltre] = useState<FiltreEtablissement>('tous');
 
   async function lire() {
     await executer(async () => {
@@ -67,6 +68,7 @@ export function RestaurantsEquipeReel() {
     <Text accessibilityRole="header" style={s.nom}>{fiche.nom}</Text>
     <Text style={s.texte}>{etatEtablissement(fiche)}{fiche.ouvert ? ' · ouvert' : ' · fermé'} · {fiche.modeVente === 'speedfood' ? 'tenu par Speedfood' : 'autonome'} · {fiche.quartier}</Text>
     {fiche.motifCorrection && <Text accessibilityRole="alert" style={s.texte}>Correction demandée : {fiche.motifCorrection}</Text>}
+    {fiche.suspendu && fiche.motifSuspension && <Text accessibilityRole="alert" style={s.texte}>Motif de suspension : {fiche.motifSuspension}</Text>}
     <Text style={s.secondaire}>La publication, la suspension et la suppression se décident sur le site.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Un instant…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
@@ -94,10 +96,12 @@ export function RestaurantsEquipeReel() {
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     <Action titre="Actualiser les établissements" variante="texte" icone="actualiser" iconeSeule agir={() => { void lire(); }} disabled={chargement} />
     {illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{illisibles === 1 ? '1 établissement est illisible dans l’application.' : illisibles + ' établissements sont illisibles dans l’application.'}</Text>}
+    {restaurants !== null && restaurants.length > 0 && <View style={s.filtres}>{FILTRES_ETABLISSEMENT.map(f => <Action key={f.id} titre={'Afficher : ' + f.libelle} libelle={f.libelle + ' (' + compterEtablissements(restaurants)[f.id] + ')'} variante={filtre === f.id ? 'teinte' : 'contour'} agir={() => setFiltre(f.id)} />)}</View>}
     {restaurants !== null && restaurants.length === 0 && <Text style={s.texte}>Aucun établissement.</Text>}
-    {(restaurants ?? []).map(r => <View key={r.id} style={s.carte}>
+    {restaurants !== null && restaurants.length > 0 && filtrerEtablissements(restaurants, filtre).length === 0 && <Text style={s.texte}>Aucun établissement dans cette catégorie.</Text>}
+    {filtrerEtablissements(restaurants ?? [], filtre).map(r => <View key={r.id} style={s.carte}>
       <Text style={s.nomPetit}>{r.nom}</Text>
-      <Text style={s.texte}>{etatEtablissement(r)} · {r.categorie} · {r.platsDisponibles}/{r.plats} plats disponibles</Text>
+      <Text style={s.texte}>{etatEtablissement(r)}{r.motifCorrection !== null ? ' · correction demandée' : ''} · {r.categorie} · {r.platsDisponibles}/{r.plats} plats disponibles</Text>
       <Action titre={'Fiche ' + r.nom} secondaire disabled={chargement} agir={() => { void ouvrir(r); }} />
     </View>)}
   </View>;
@@ -332,6 +336,7 @@ export function PartenariatsEquipeReel() {
 }
 
 const s = StyleSheet.create({
+  filtres: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   puceActive: { borderColor: c.action, borderWidth: 2 },
   nom: { fontFamily: polices.titre, fontSize: 23, color: c.encre, marginTop: 8 },
   nomPetit: { fontFamily: polices.titre, fontSize: 17, color: c.encre },

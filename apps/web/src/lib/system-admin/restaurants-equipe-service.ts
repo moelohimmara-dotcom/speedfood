@@ -56,6 +56,8 @@ export interface PlatFicheEquipe {
 
 export interface FicheRestaurantEquipe extends RestaurantEquipeResume {
   platsDetail: PlatFicheEquipe[];
+  /** Motif de la suspension (vu seulement par l'équipe, comme sur la fiche du site) ; absent si l'établissement n'est pas suspendu. */
+  motifSuspension: string | null;
 }
 
 export type ResultatProfilEquipe =
@@ -69,6 +71,7 @@ interface LigneRestaurantEquipe {
   ouvert: boolean;
   suspendu_le: string | null;
   motif_correction: string | null;
+  suspendu_motif?: string | null;
   mode_vente: string | null;
   horaires: string | null;
   consignes: string | null;
@@ -152,7 +155,7 @@ export async function lireFicheRestaurantEquipe(restaurantId: string): Promise<F
   const { data } = await base
     .from("restaurants")
     .select(
-      "id, nom, publie, ouvert, suspendu_le, motif_correction, mode_vente, horaires, consignes, menu_categories(nom), neighborhoods(nom)",
+      "id, nom, publie, ouvert, suspendu_le, motif_correction, suspendu_motif, mode_vente, horaires, consignes, menu_categories(nom), neighborhoods(nom)",
     )
     .eq("id", restaurantId)
     .maybeSingle();
@@ -195,6 +198,7 @@ export async function lireFicheRestaurantEquipe(restaurantId: string): Promise<F
     plats: platsDetail.length,
     platsDisponibles: platsDetail.filter((p) => p.etat === "disponible").length,
     platsDetail,
+    motifSuspension: resto.suspendu_le !== null && typeof resto.suspendu_motif === "string" && resto.suspendu_motif.trim() !== "" ? resto.suspendu_motif.trim() : null,
   };
 }
 

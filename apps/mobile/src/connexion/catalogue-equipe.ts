@@ -16,7 +16,11 @@ export interface RestaurantEquipe {
 }
 export type EtatPlatEquipe = 'disponible' | 'a_confirmer' | 'epuise';
 export interface PlatFicheEquipe { id: string; nom: string; prix: number; disponible: boolean; etat: EtatPlatEquipe }
-export interface FicheRestaurantEquipe extends RestaurantEquipe { platsDetail: PlatFicheEquipe[] }
+export interface FicheRestaurantEquipe extends RestaurantEquipe {
+  platsDetail: PlatFicheEquipe[];
+  /** Motif de la suspension, lu par l'équipe seulement (comme sur la fiche du site) ; null si non suspendu ou si l'API ne l'envoie pas encore. */
+  motifSuspension: string | null;
+}
 export interface MenuEquipeResume { restaurantId: string; nom: string; plats: number; aReconfirmer: number; epuises: number; derniereConfirmation: string | null }
 export interface MenusEquipe { fraicheurHeures: number; menus: MenuEquipeResume[] }
 export interface PlatMenuEquipe { id: string; nom: string; prix: number; disponible: boolean; confirmeLe: string | null; etat: EtatPlatEquipe }
@@ -41,6 +45,13 @@ function objet(v: unknown): Record<string, unknown> { if (!v || typeof v !== 'ob
 function texte(v: unknown, max: number): string { if (typeof v !== 'string' || v.length > max || /[\x00-\x1f]/.test(v)) return invalide(); return v; }
 function texteNonVide(v: unknown, max: number): string { const s = texte(v, max); if (s.length === 0) return invalide(); return s; }
 function texteOuNull(v: unknown, max: number): string | null { return v === null || v === undefined ? null : texte(v, max); }
+/** Un motif saisi par l'équipe peut contenir des retours à la ligne et des tabulations ; aucun autre caractère de contrôle. Borné à 1000 caractères comme la base. */
+function motifOuNull(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v !== 'string' || v.length > 1000 || /[\x00-\x08\x0b-\x1f\x7f]/.test(v)) return invalide();
+  const s = v.trim();
+  return s === '' ? null : s;
+}
 function montant(v: unknown): number { if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) return invalide(); return v; }
 function booleen(v: unknown): boolean { if (typeof v !== 'boolean') return invalide(); return v; }
 function identifiant(v: unknown): string {
@@ -66,7 +77,7 @@ function lireRestaurant(x: unknown): RestaurantEquipe {
   const o = objet(x);
   return {
     id: identifiant(o.id), nom: texteNonVide(o.nom, 200), categorie: texte(o.categorie, 200), quartier: texte(o.quartier, 200),
-    publie: booleen(o.publie), ouvert: booleen(o.ouvert), suspendu: booleen(o.suspendu), motifCorrection: texteOuNull(o.motifCorrection, 500),
+    publie: booleen(o.publie), ouvert: booleen(o.ouvert), suspendu: booleen(o.suspendu), motifCorrection: motifOuNull(o.motifCorrection),
     modeVente: modeVenteEquipe(o.modeVente), horaires: texte(o.horaires, 500), consignes: texte(o.consignes, 1000),
     telephoneCommandes: texteOuNull(o.telephoneCommandes, 40), plats: montant(o.plats), platsDisponibles: montant(o.platsDisponibles),
   };
@@ -83,11 +94,33 @@ export function lireFicheRestaurantEquipe(v: Record<string, unknown>): FicheRest
   if (!Array.isArray(o.platsDetail) || o.platsDetail.length > 500) return invalide();
   return {
     ...lireRestaurant(o),
+    motifSuspension: motifOuNull(o.motifSuspension),
     platsDetail: o.platsDetail.map(x => {
       const p = objet(x);
       return { id: identifiant(p.id), nom: texteNonVide(p.nom, 200), prix: montant(p.prix), disponible: booleen(p.disponible), etat: etatPlat(p.etat) };
     }),
   };
+}
+
+export type FiltreEtablissement = 'tous' | 'en_attente' | 'publies' | 'suspendus' | 'correction';
+export const FILTRES_ETABLISSEMENT: ReadonlyArray<{ id: FiltreEtablissement; libelle: string }> = [
+  { id: 'tous', libelle: 'Tous' }, { id: 'en_attente', libelle: 'En attente' }, { id: 'publies', libelle: 'Publiés' }, { id: 'suspendus', libelle: 'Suspendus' }, { id: 'correction', libelle: 'Correction' },
+];
+/** Mêmes définitions que les filtres de `/system/catalogue/restaurants` : en attente = ni publié, ni suspendu, ni en correction ; publiés = visibles ; correction = une correction est demandée. */
+export function correspondFiltre(r: RestaurantEquipe, filtre: FiltreEtablissement): boolean {
+  switch (filtre) {
+    case 'en_attente': return !r.publie && !r.suspendu && r.motifCorrection === null;
+    case 'publies': return r.publie;
+    case 'suspendus': return r.suspendu;
+    case 'correction': return r.motifCorrection !== null;
+    default: return true;
+  }
+}
+export const filtrerEtablissements = (liste: readonly RestaurantEquipe[], filtre: FiltreEtablissement): RestaurantEquipe[] => liste.filter(r => correspondFiltre(r, filtre));
+export function compterEtablissements(liste: readonly RestaurantEquipe[]): Record<FiltreEtablissement, number> {
+  const n: Record<FiltreEtablissement, number> = { tous: liste.length, en_attente: 0, publies: 0, suspendus: 0, correction: 0 };
+  for (const r of liste) for (const f of FILTRES_ETABLISSEMENT) if (f.id !== 'tous' && correspondFiltre(r, f.id)) n[f.id]++;
+  return n;
 }
 
 /** Validation de la modification simple (horaires + numéro interne), mêmes règles que le serveur. Numéro vide = retrait du contact. */

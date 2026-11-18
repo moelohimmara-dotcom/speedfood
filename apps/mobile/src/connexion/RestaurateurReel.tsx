@@ -5,6 +5,7 @@ import { OngletsIcones } from '../design/Composants';
 import { ServiceMenuReel } from './ServiceMenuReel';
 import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
+import { EtatPublicationReel } from './EtatPublicationReel';
 import { SurveillanceCommandes } from './surveillance-commandes';
 import { veilleNative } from '../../modules/speedfood-veille/src/index';
 import { ReglagesTelephone } from './ReglagesTelephone';
@@ -224,6 +225,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     </View>
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
+    <EtatPublicationReel />
     <OngletsIcones desactive={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} actif={section} onglets={SECTIONS_RESTAURATEUR.map(x => ({ id: x, libelle: LIBELLES_SECTIONS[x], icone: ICONES_SECTIONS[x] }))}
       choisir={x => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} />
     <View style={s.ligneTitre}>

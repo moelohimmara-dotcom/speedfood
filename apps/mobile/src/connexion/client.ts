@@ -39,6 +39,7 @@ import { lireDossierLivreur, type DossierLivreur } from './dossier-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
 import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
+import { lireEtatPublication, type EtatPublication } from './etat-restaurateur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
 /** Base du service d'authentification (adresses de départ des connexions sociales PKCE). */
@@ -818,6 +819,11 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     async activiteRestaurant(accessToken: string): Promise<ActiviteRestaurateur> {
       const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/activite', { method:'GET' }, true);
       try { return lireActiviteRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’activité reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** État de publication de CE restaurant (route `/restaurant/etat`) : publié, suspendu, correction demandée avant publication. Lecture seule, UN SEUL essai, relue strictement. */
+    async etatRestaurant(accessToken: string): Promise<EtatPublication> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/etat', { method:'GET' }, true);
+      try { return lireEtatPublication(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’état de publication reçu est illisible. Réessayez dans un instant.'); }
     },
     /**
      * Accepter, refuser, marquer prête ou terminée (route `/commandes/action`) ; confirmer ou contester un paiement déclaré (route `/commandes/paiement`). Liste blanche vérifiée AVANT tout
