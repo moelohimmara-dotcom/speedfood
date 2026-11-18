@@ -124,11 +124,17 @@ test('commandes de l’appareil : câblage (stockage au coffre, écran sans conn
   assert.match(stockage, /speedfood-client-appareil\.db/); assert.doesNotMatch(stockage, /depot\.ecrire\([^)]*jeton/, 'jamais le jeton dans la base');
   assert.match(lire('../src/connexion/gestion.ts'), /new GestionSession\(creerAuth\(fetchHttp\), coffreSession, memoireCommandesAppareil\)/);
   const compte = lire('../src/connexion/CompteReel.tsx');
-  assert.match(compte, /vue==='commandes'&&<CommandesAppareilReel oublier=\{parametres\?parametres\.oublierCommandes:\(\)=>gestion\.oublierCommandesAppareil\(\)\}\/>/);
+  assert.match(compte, /vue==='commandes'&&<CommandesAppareilReel oublier=\{parametres\?parametres\.oublierCommandes:\(\)=>gestion\.oublierCommandesAppareil\(\)\} apresOubli=\{\(\)=>setMessage\('Les commandes de cet appareil ont été oubliées\.'\)\}\/>/);
   assert.match(compte, /Vos commandes restent consultables dans l’onglet Commandes/);
   assert.match(lire('../src/catalogue/CatalogueReel.tsx'), /await m\.oublier\(\); setMemos\(\[\]\); await gestion\.oublierCommandesAppareil\(\);/);
   const ecran = lire('../src/connexion/CommandesAppareilReel.tsx');
   assert.match(ecran, /MESSAGE_ANNULER_CONNECTEZ_VOUS/); assert.match(ecran, /MESSAGE_PROPOSITION_CONNECTEZ_VOUS/);
   assert.doesNotMatch(ecran, /gestion\.(annuler|repondreProposition|declarerPaiement)/, 'lecture seule : aucune écriture sans connexion');
   assert.match(lire('../src/connexion/ParametresReel.tsx'), /avec leur clé de suivi/);
+});test('commandes de l’appareil : le suivi s’affiche au-dessus de la liste, la liste est limitée aux plus récentes (la connexion reste à portée), « Oublier » ferme tout', () => {
+  const ecran = lire('../src/connexion/CommandesAppareilReel.tsx');
+  assert.ok(ecran.indexOf('{suivi !== null && <View') < ecran.indexOf('.map(v => <View key={v.cle}'), 'la carte de suivi est rendue avant la liste');
+  assert.match(ecran, /VISIBLES_MAX = 5/); assert.match(ecran, /\(toutes \? liste : liste\.slice\(0, VISIBLES_MAX\)\)\.map\(/);
+  assert.match(ecran, /liste\.length > VISIBLES_MAX && <Action titre=\{'Afficher les ' \+ liste\.length/, 'les autres s’affichent à la demande');
+  assert.match(ecran, /setSuivi\(null\); setToutes\(false\); apresOubli\?\.\(\)/);
 });

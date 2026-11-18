@@ -14,6 +14,8 @@ export const TEXTE_COMMANDES_APPAREIL = 'Elles sont gardées sur ce téléphone 
 export const MESSAGE_AUCUNE_COMMANDE_APPAREIL = 'Aucune commande n’est gardée sur ce téléphone.';
 export const MESSAGE_ANNULER_CONNECTEZ_VOUS = 'Pour annuler cette commande, connectez-vous.';
 export const MESSAGE_PROPOSITION_CONNECTEZ_VOUS = 'Le restaurant propose un changement : connectez-vous pour répondre.';
+/** Les plus récentes d'abord : la connexion reste à portée de doigt ; le reste de la liste s'affiche à la demande. */
+export const VISIBLES_MAX = 5;
 const MODES: Record<string, string> = { retrait: 'Retrait', livraison: 'Livraison', sur_place: 'Sur place' };
 
 /**
@@ -21,13 +23,14 @@ const MODES: Record<string, string> = { retrait: 'Retrait', livraison: 'Livraiso
  * qui ne quitte jamais le coffre) et son suivi. LECTURE SEULE : annuler, répondre au restaurant et régler exigent d'être connecté (le texte le dit). « Oublier » efface les références
  * et les jetons de ce téléphone ; les commandes du compte restent sur le serveur.
  */
-export function CommandesAppareilReel({ oublier }: { oublier(): Promise<void> }) {
+export function CommandesAppareilReel({ oublier, apresOubli }: { oublier(): Promise<void>; apresOubli?(): void }) {
   const [liste, setListe] = useState<VueCommandeAppareil[] | null>(null);
   const [statuts, setStatuts] = useState<Record<string, string>>({});
   const [suivi, setSuivi] = useState<{ cle: string; valeur: ResumeSuivi; luLe: string } | null>(null);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [confirmerOubli, setConfirmerOubli] = useState(false);
+  const [toutes, setToutes] = useState(false);
   const enCours = useRef(false);
   const actif = useRef(true);
   useEffect(() => { actif.current = true; return () => { actif.current = false; }; }, []);
@@ -67,7 +70,7 @@ export function CommandesAppareilReel({ oublier }: { oublier(): Promise<void> })
 
   async function oubli() {
     setConfirmerOubli(false);
-    try { await oublier(); if (actif.current) { setListe([]); setStatuts({}); setSuivi(null); } }
+    try { await oublier(); if (actif.current) { setListe([]); setStatuts({}); setSuivi(null); setToutes(false); apresOubli?.(); } }
     catch { if (actif.current) setErreur('Impossible d’oublier les commandes de cet appareil pour le moment. Réessayez.'); }
   }
 
@@ -80,13 +83,7 @@ export function CommandesAppareilReel({ oublier }: { oublier(): Promise<void> })
     {chargement && liste === null && <ActivityIndicator color={c.action} />}
     {erreur !== null && <Text accessibilityRole="alert" style={s.erreur}>{erreur}</Text>}
     {liste !== null && liste.length === 0 && <Text style={s.texte}>{MESSAGE_AUCUNE_COMMANDE_APPAREIL}</Text>}
-    {liste !== null && liste.map(v => <View key={v.cle} style={s.carte}>
-      <Text style={s.nom}>{v.reference}</Text>
-      <Text style={s.texte}>{v.restaurantNom !== '' ? v.restaurantNom : 'Restaurant'} · {MODES[v.mode] ?? v.mode}</Text>
-      <Text style={s.texte}>{new Date(v.creeLe).toLocaleString('fr-FR')}{v.totalGnf > 0 ? ' · ' + v.totalGnf.toLocaleString('fr-FR') + ' GNF' : ''}</Text>
-      {statuts[v.cle] !== undefined && <Text style={s.texte}>{statuts[v.cle]}</Text>}
-      <Action titre={'Suivre ' + v.reference} libelle="Suivre" variante="contour" disabled={chargement} agir={() => { void ouvrir(v.cle); }} />
-    </View>)}
+    {/* Le suivi ouvert s'affiche AU-DESSUS de la liste : en le demandant on le voit, sans défiler une longue liste. */}
     {suivi !== null && <View style={s.carte}>
       <Text accessibilityRole="header" style={s.nom}>{'Suivi '}{suivi.valeur.reference}{suivi.valeur.estTest ? ' · TEST' : ''}</Text>
       <Text style={s.texte}>{suivi.valeur.restaurantNom}</Text>
@@ -102,6 +99,14 @@ export function CommandesAppareilReel({ oublier }: { oublier(): Promise<void> })
       <Text style={s.secondaire}>État lu à {suivi.luLe}.</Text>
       <Action titre="Fermer le suivi" variante="texte" agir={() => setSuivi(null)} />
     </View>}
+    {liste !== null && (toutes ? liste : liste.slice(0, VISIBLES_MAX)).map(v => <View key={v.cle} style={s.carte}>
+      <Text style={s.nom}>{v.reference}</Text>
+      <Text style={s.texte}>{v.restaurantNom !== '' ? v.restaurantNom : 'Restaurant'} · {MODES[v.mode] ?? v.mode}</Text>
+      <Text style={s.texte}>{new Date(v.creeLe).toLocaleString('fr-FR')}{v.totalGnf > 0 ? ' · ' + v.totalGnf.toLocaleString('fr-FR') + ' GNF' : ''}</Text>
+      {statuts[v.cle] !== undefined && <Text style={s.texte}>{statuts[v.cle]}</Text>}
+      <Action titre={'Suivre ' + v.reference} libelle="Suivre" variante="contour" disabled={chargement} agir={() => { void ouvrir(v.cle); }} />
+    </View>)}
+    {liste !== null && !toutes && liste.length > VISIBLES_MAX && <Action titre={'Afficher les ' + liste.length + ' commandes de cet appareil'} libelle={'Afficher les ' + liste.length + ' commandes'} variante="contour" agir={() => setToutes(true)} />}
     {liste !== null && liste.length > 0 && (confirmerOubli
       ? <><Text accessibilityRole="alert" style={s.texte}>Oublier les commandes de cet appareil ? Elles disparaissent de ce téléphone, avec leur clé de suivi ; vos commandes restent dans votre compte.</Text>
         <Action titre="Oublier" variante="danger" icone="corbeille" agir={() => { void oubli(); }} />

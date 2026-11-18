@@ -237,7 +237,7 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
     :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
     :!connectee?<>
       {messageEntree&&<Text accessibilityRole="alert" style={s.texte}>{messageEntree}</Text>}
-      {vue==='commandes'&&<CommandesAppareilReel oublier={parametres?parametres.oublierCommandes:()=>gestion.oublierCommandesAppareil()}/>}
+      {vue==='commandes'&&<CommandesAppareilReel oublier={parametres?parametres.oublierCommandes:()=>gestion.oublierCommandesAppareil()} apresOubli={()=>setMessage('Les commandes de cet appareil ont été oubliées.')}/>}
       <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver toutes vos commandes, les annuler ou régler.':'Connectez-vous avec votre compte Speedfood.'}</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail Speedfood" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
       <Text style={s.texte}>Mot de passe</Text><TextInput accessibilityLabel="Mot de passe Speedfood" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" editable={!attente} style={s.champ}/>
