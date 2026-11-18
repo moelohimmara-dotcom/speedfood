@@ -4,10 +4,27 @@
  * Rien n'est gardé de personnel (que des données publiques du catalogue) et rien n'est envoyé : commander exige toujours le réseau.
  * Un cache de plus de 7 jours n'est plus servi — mieux vaut une erreur honnête qu'un menu d'il y a longtemps.
  */
+import { avecNouveauxEssais } from './nouveaux-essais.ts';
 export interface StockageCache { lire(cle: string): Promise<string | null>; ecrire(cle: string, valeur: string): Promise<void> }
 export interface ResultatCache<T> { donnees: T; ageMs: number | null }
 
 export const VALIDITE_CACHE_MS = 7 * 24 * 3600 * 1000;
+
+/** Cache sans mémoire : rien à relire, rien à garder. Le catalogue se lit alors en frais, sans filet hors ligne. */
+export const STOCKAGE_CACHE_ABSENT: StockageCache = { lire: async () => null, ecrire: async () => undefined };
+
+/**
+ * Ouvre le stockage du cache avec de nouveaux essais silencieux ; s'il reste inutilisable, rend un cache vide (et laisse une trace courte) au lieu de propager l'erreur : le cache n'est qu'un
+ * filet hors ligne, jamais une condition pour afficher le catalogue (essai du 18/11/2026 : « Le catalogue est indisponible » au premier lancement alors que le serveur répondait).
+ */
+export async function ouvrirCacheOuVide(
+  ouvrir: () => Promise<StockageCache>,
+  attendre?: (ms: number) => Promise<void>,
+  delaisMs: readonly number[] = [300, 900],
+): Promise<StockageCache> {
+  try { return await avecNouveauxEssais(ouvrir, delaisMs, attendre); }
+  catch (e) { console.error('cache_catalogue_indisponible', e instanceof Error ? e.message.slice(0, 120) : 'inconnue'); return STOCKAGE_CACHE_ABSENT; }
+}
 
 export function creerCacheCatalogue(stockage: StockageCache, maintenant: () => number = () => Date.now()) {
   return {

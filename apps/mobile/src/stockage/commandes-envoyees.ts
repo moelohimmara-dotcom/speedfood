@@ -1,4 +1,5 @@
-import { openDatabaseAsync, type SQLiteBindParams } from 'expo-sqlite';
+import { type SQLiteBindParams } from 'expo-sqlite';
+import { ouvrirBaseEnSerie } from './ouverture-serie';
 import { creerDepotPanier } from './panier-reel-depot';
 import { initialiserPanierReel } from './migrations/0001-panier-reel';
 import { decoderMemos, encoderMemos, memoriserCommande, type MemoCommande } from '../catalogue/recommande';
@@ -10,7 +11,7 @@ import type { PanierReel } from '../catalogue/panier-reel';
 export interface MemoireCommandes { lire(): Promise<MemoCommande[]>; memoriser(reference: string, panier: PanierReel): Promise<void>; oublier(): Promise<void> }
 let ouverture: Promise<MemoireCommandes> | null = null;
 async function ouvrir(): Promise<MemoireCommandes> {
-  const db = await openDatabaseAsync('speedfood-client-commandes.db');
+  const db = await ouvrirBaseEnSerie('speedfood-client-commandes.db');
   try {
     await initialiserPanierReel(db);
     const depot = creerDepotPanier(async (sql, params, lecture) => {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, BackHandler, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PageMenu, PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { creerLecteurCatalogue, validerPageMenu, validerPageRestaurants } from './client';
-import { creerCacheCatalogue, libelleAgeCache } from './cache-catalogue';
+import { creerCacheCatalogue, libelleAgeCache, ouvrirCacheOuVide } from './cache-catalogue';
 import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
 import { chiffrer, type PanierReel } from './panier-reel';
 import { libelleRecommande, trouverMemo, type MemoCommande } from './recommande';
@@ -66,7 +66,7 @@ export function CatalogueReel() {
     setCharge(true); setErreur(null);
     try {
       // Cache hors ligne (B13) : chaque lecture réussie est gardée ; hors ligne, la dernière lecture valable (7 jours au plus) est rendue avec son âge.
-      const cache = creerCacheCatalogue(await ouvrirStockageCacheCatalogue());
+      const cache = creerCacheCatalogue(await ouvrirCacheOuVide(ouvrirStockageCacheCatalogue));
       if (r) {
         const res = await cache.lire('menu:' + r.id + ':' + (apres ?? ''), () => lecteur.menu(r.id, apres), validerPageMenu);
         if (numero !== generation.current) return;

@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { openDatabaseAsync, type SQLiteBindParams } from 'expo-sqlite';
+import { type SQLiteBindParams } from 'expo-sqlite';
+import { ouvrirBaseEnSerie } from './ouverture-serie';
 import { creerDepotPanier } from './panier-reel-depot';
 import { initialiserPanierReel } from './migrations/0001-panier-reel';
 import {
@@ -25,7 +26,7 @@ function enMemoire(): MemoireAppareil {
 
 async function ouvrir(): Promise<MemoireAppareil> {
   if (Platform.OS === 'web') return enMemoire();
-  const db = await openDatabaseAsync('speedfood-client-appareil.db');
+  const db = await ouvrirBaseEnSerie('speedfood-client-appareil.db');
   try {
     await initialiserPanierReel(db);
     const depot = creerDepotPanier(async (sql, params, lecture) => {

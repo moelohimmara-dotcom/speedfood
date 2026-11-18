@@ -1,4 +1,5 @@
-import { openDatabaseAsync, type SQLiteBindParams } from 'expo-sqlite';
+import { type SQLiteBindParams } from 'expo-sqlite';
+import { ouvrirBaseEnSerie } from '../stockage/ouverture-serie';
 import { valeurDepuisLignesBrutes, type StockageCache } from './cache-catalogue';
 
 /**
@@ -9,7 +10,7 @@ import { valeurDepuisLignesBrutes, type StockageCache } from './cache-catalogue'
 let ouverture: Promise<StockageCache> | null = null;
 
 async function ouvrir(): Promise<StockageCache> {
-  const base = await openDatabaseAsync('speedfood-catalogue-cache.db');
+  const base = await ouvrirBaseEnSerie('speedfood-catalogue-cache.db');
   try {
     const init = await base.prepareAsync('CREATE TABLE IF NOT EXISTS cache_catalogue (cle TEXT PRIMARY KEY, valeur TEXT NOT NULL)');
     try { await init.executeAsync(); } finally { await init.finalizeAsync(); }
