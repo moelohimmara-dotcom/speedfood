@@ -23,7 +23,7 @@ test('domaine : réponse état exacte acceptée ; enveloppe ou champ différent 
   assert.throws(() => lireEtatLivreur({ ok: false, etat: { fiche, offre } }));
   assert.throws(() => lireEtatLivreur({ ok: true, etat: { fiche: { ...fiche, statut: 'inconnu' }, offre: null, course: null } }));
   assert.throws(() => lireEtatLivreur({ ok: true, etat: { fiche, offre: { ...offre, fraisGnf: 5000.5 }, course: null } }), /ILLISIBLE/);
-  assert.equal(libelleDistanceLivreur(null), '—');
+  assert.equal(libelleDistanceLivreur(null), 'non renseignée');
   assert.match(libelleDistanceLivreur(2.4), /2,4 km/);
 });
 

@@ -74,12 +74,12 @@ test('historique livreur : demande de page bornee avant le reseau', () => {
 test('assistance livreur : les trois regles de la plateforme, fidelement', () => {
   assert.equal(REGLES_LIVREUR.length, 3);
   assert.ok(REGLES_LIVREUR[0].includes('code du client'));
-  assert.ok(REGLES_LIVREUR[1].includes("n'encaisse rien"));
+  assert.ok(REGLES_LIVREUR[1].includes("n’encaisse rien"));
   assert.ok(REGLES_LIVREUR[2].includes('déclarée'));
 });
 test('assistance livreur : texte d incident selon la course en cours, et avertissement identite', () => {
   assert.ok(texteIncidentLivreur('SF-AAA111').includes('SF-AAA111'));
   assert.ok(texteIncidentLivreur('SF-AAA111').includes('déclarez-la'));
   assert.equal(texteIncidentLivreur(null), TEXTE_SANS_COURSE);
-  assert.ok(avertissementIdentite().includes("pièce d'identité"));
+  assert.ok(avertissementIdentite().includes("pièce d’identité"));
 });

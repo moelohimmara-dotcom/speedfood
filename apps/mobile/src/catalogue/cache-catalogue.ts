@@ -54,7 +54,7 @@ export function valeurDepuisLignesBrutes(lignes: unknown): string | null {
 
 /** Ancienneté en clair pour l'écran : « à l'instant », « il y a 5 min », « il y a 2 h », « il y a 3 j ». */
 export function libelleAgeCache(ageMs: number): string {
-  if (ageMs < 60_000) return "à l'instant";
+  if (ageMs < 60_000) return "à l’instant";
   if (ageMs < 3_600_000) return 'il y a ' + Math.floor(ageMs / 60_000) + ' min';
   if (ageMs < 24 * 3_600_000) return 'il y a ' + Math.floor(ageMs / 3_600_000) + ' h';
   return 'il y a ' + Math.floor(ageMs / (24 * 3_600_000)) + ' j';

@@ -142,7 +142,7 @@ export const s = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: c.fond },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 20, minHeight: 68, borderBottomColor: c.bordure, borderBottomWidth: 1 },
   contenu: { padding: 22, gap: 22, width: '100%', maxWidth: 660, alignSelf: 'center', paddingBottom: 30 },
-  touche: { minWidth: 46, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 24 },
+  touche: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24 },
   bouton: { minHeight: 52, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 26, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   boutonTexte: { minHeight: 48, paddingHorizontal: 14 },
   boutonSecondaire: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.encre },

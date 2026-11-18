@@ -80,7 +80,7 @@ test('lien en attente : un depot vide ou blanc est ignore, rien n est invente', 
 test('visite guidee : deux series de deux ecrans, fidelement reprises', () => {
   assert.equal(DIAPOS_CLIENT.length, 2);
   assert.equal(DIAPOS_RESTAURATEUR.length, 2);
-  assert.equal(DIAPOS_CLIENT[0].titre, 'Les restaurants de votre zone');
+  assert.equal(DIAPOS_CLIENT[0].titre, 'Les restaurants près de chez vous');
   assert.equal(DIAPOS_CLIENT[1].titre, 'Commandez, puis suivez');
   assert.equal(DIAPOS_RESTAURATEUR[0].titre, 'Speedfood tient votre fiche avec vous');
   assert.equal(DIAPOS_RESTAURATEUR[1].titre, 'Des plats toujours à jour');

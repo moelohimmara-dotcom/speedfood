@@ -40,7 +40,7 @@ export function EquipeReel({ ouvert, fermer }: { ouvert: boolean; fermer(): void
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} />
     <Text accessibilityRole="header" style={s.titre}>Espace équipe</Text>
-    <Text style={s.secondaire}>Chaque module est relu depuis le serveur. Si votre compte n'a pas le droit d'un module, le serveur le refuse et l'écran vous le dit.</Text>
+    <Text style={s.secondaire}>Chaque module est relu depuis le serveur. Si votre compte n’a pas le droit d’un module, le serveur le refuse et l’écran vous le dit.</Text>
     {acces && <View style={s.carte}>
       <Text style={s.nomPetit}>Votre accès : {acces.role}</Text>
       {acces.groupes.map(g => <View key={g.libelle} style={{ gap: 4 }}>
@@ -118,14 +118,14 @@ function PaiementsEquipeReel() {
   const { donnees: p, chargement, erreur, relire } = useLectureEquipe<PaiementsEquipe>(() => gestion.paiementsEquipe());
   return <View style={{ gap: 12 }}>
     <Text accessibilityRole="header" style={s.nom}>Paiements en ligne</Text>
-    <Text style={s.secondaire}>Lecture seule : les décisions qui déplacent de l'argent restent sur le site.</Text>
+    <Text style={s.secondaire}>Lecture seule : les décisions qui déplacent de l’argent restent sur le site.</Text>
     {chargement && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Lecture des paiements…</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     <Action titre="Actualiser les paiements" variante="texte" icone="actualiser" iconeSeule agir={() => { void relire(); }} disabled={chargement} />
     {p && <>
       {p.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{p.illisibles === 1 ? '1 paiement est illisible dans l’application.' : p.illisibles + ' paiements sont illisibles dans l’application.'}</Text>}
       <View style={s.carte}>
-        <Text style={s.nomPetit}>Vue d'ensemble</Text>
+        <Text style={s.nomPetit}>Vue d’ensemble</Text>
         <Text style={s.texte}>Paiement en ligne : {p.reglages.actif ? 'activé' : 'éteint'} · fournisseur : {p.reglages.fournisseur}{p.reglages.valeursValidees ? ' · valeurs validées' : ''}</Text>
         <Text style={s.texte}>{p.compteurs.enAttente} en attente du client · {p.compteurs.versementsATraiter} versements à traiter · {p.compteurs.litigesAHumain} litiges à confier à l'exploitation</Text>
       </View>

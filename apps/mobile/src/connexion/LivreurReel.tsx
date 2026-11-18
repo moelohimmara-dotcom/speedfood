@@ -266,7 +266,7 @@ function FileCourses({ session, courseActuelle }: { session: SessionEtatLivreur;
     {chargement && <Text accessibilityLiveRegion="polite" style={s.secondaire}>Lecture de votre file…</Text>}
     {erreur && <Text accessibilityRole="alert" style={s.erreur}>{erreur}</Text>}
     <Action titre="Actualiser la file" variante="texte" icone="actualiser" iconeSeule disabled={chargement} agir={() => { void lire(); }} />
-    {file === null && <Text style={s.secondaire}>Ce compte n'est pas un compte livreur.</Text>}
+    {file === null && <Text style={s.secondaire}>Ce compte n’est pas un compte livreur.</Text>}
     {file && suivantes.length === 0 && <Text style={s.secondaire}>Aucune autre course en file.</Text>}
     {suivantes.map(x => <View key={x.livraisonId} style={{ gap: 4 }}>
       <Text style={s.ligne}>{x.commandeReference} · {x.restaurantNom}</Text>

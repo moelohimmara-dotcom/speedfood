@@ -126,12 +126,12 @@ export function compterEtablissements(liste: readonly RestaurantEquipe[]): Recor
 /** Validation de la modification simple (horaires + numéro interne), mêmes règles que le serveur. Numéro vide = retrait du contact. */
 export function validerProfilSimpleEquipe(horairesBrut: string, telephoneBrut: string): { ok: true; horaires: string; telephone: string | null } | { ok: false; message: string } {
   const horaires = typeof horairesBrut === 'string' ? horairesBrut.trim() : '';
-  if (!horaires) return { ok: false, message: "Renseignez les horaires avant d'enregistrer." };
+  if (!horaires) return { ok: false, message: "Renseignez les horaires avant d’enregistrer." };
   if (horaires.length > 500) return { ok: false, message: 'Les horaires ne peuvent pas dépasser 500 caractères.' };
   const brut = typeof telephoneBrut === 'string' ? telephoneBrut.trim() : '';
   if (brut === '') return { ok: true, horaires, telephone: null };
   const telephone = normaliserTelephone(brut);
-  if (telephone === null) return { ok: false, message: "Ce numéro n'est pas un numéro guinéen valide." };
+  if (telephone === null) return { ok: false, message: "Ce numéro n’est pas un numéro guinéen valide." };
   return { ok: true, horaires, telephone };
 }
 

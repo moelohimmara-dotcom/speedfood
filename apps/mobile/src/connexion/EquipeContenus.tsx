@@ -102,7 +102,7 @@ const LIGNES_PARAMETRES: ReadonlyArray<{ libelle: string; lire(p: ParametresEqui
   { libelle: 'Fraîcheur des disponibilités', lire: p => p.disponibiliteFraicheurHeures + ' h' },
   { libelle: 'Conservation des coordonnées', lire: p => p.conservationCoordonneesJours + ' jours' },
   { libelle: 'Conservation des commandes non clôturées', lire: p => p.conservationNonClotureeJours + ' jours' },
-  { libelle: "Conservation du journal d'audit", lire: p => p.conservationAuditMois + ' mois' },
+  { libelle: "Conservation du journal d’audit", lire: p => p.conservationAuditMois + ' mois' },
   { libelle: 'WhatsApp de l’assistance', lire: p => p.whatsappAssistance || 'Non renseigné' },
   { libelle: 'Délai de validation d’un établissement', lire: p => p.delaiValidationHeures === null ? 'Non fixé' : p.delaiValidationHeures + ' h' },
   { libelle: 'Position sur la carte', lire: p => p.positionCarteActive ? 'Active' : 'Inactive' },

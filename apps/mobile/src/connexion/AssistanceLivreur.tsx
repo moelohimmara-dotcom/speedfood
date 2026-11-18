@@ -32,11 +32,11 @@ export function AssistanceLivreur({ ouvert, fermer, referenceCourse }: { ouvert:
     <Text accessibilityRole="header" style={s.titre}>Assistance conducteur</Text>
     <Text accessibilityRole="header" style={s.nom}>Règles de la plateforme</Text>
     {REGLES_LIVREUR.map(r => <Text key={r} style={s.texte}>• {r}</Text>)}
-    <Text accessibilityRole="header" style={s.nom}>Appeler l'assistance</Text>
+    <Text accessibilityRole="header" style={s.nom}>Appeler l’assistance</Text>
     {attente && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Recherche du contact d’assistance…</Text></>}
     {!attente && whatsapp && <Bouton titre="Écrire à l’assistance sur WhatsApp" onPress={() => ouvrir(whatsapp)} />}
     {!attente && appel && <Bouton titre="Appeler l’assistance" secondaire onPress={() => ouvrir(appel)} />}
-    {!attente && !whatsapp && <Text style={s.texte}>Le numéro d'assistance n'est pas encore disponible. Écrivez à l'équipe Speedfood depuis « Mon compte ».</Text>}
+    {!attente && !whatsapp && <Text style={s.texte}>Le numéro d’assistance n’est pas encore disponible. Écrivez à l’équipe Speedfood depuis « Mon compte ».</Text>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     <Text accessibilityRole="header" style={s.nom}>Un incident ?</Text>
     <Text style={s.texte}>{texteIncidentLivreur(referenceCourse)}</Text>

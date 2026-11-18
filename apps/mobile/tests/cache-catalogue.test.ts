@@ -73,8 +73,8 @@ test('cache catalogue : valeur relue depuis les lignes brutes SQLite (tableaux d
 });
 
 test('cache catalogue : libelles d anciennete en clair', () => {
-  assert.equal(libelleAgeCache(0), "à l'instant");
-  assert.equal(libelleAgeCache(30_000), "à l'instant");
+  assert.equal(libelleAgeCache(0), "à l’instant");
+  assert.equal(libelleAgeCache(30_000), "à l’instant");
   assert.equal(libelleAgeCache(5 * 60_000), 'il y a 5 min');
   assert.equal(libelleAgeCache(2 * 3_600_000), 'il y a 2 h');
   assert.equal(libelleAgeCache(3 * 24 * 3_600_000), 'il y a 3 j');

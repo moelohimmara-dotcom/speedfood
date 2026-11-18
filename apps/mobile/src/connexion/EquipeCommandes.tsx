@@ -136,7 +136,7 @@ export function CommandesEquipeReel() {
       {message !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
       <Text accessibilityRole="header" style={s.nomPetit}>Historique</Text>
       {o.historique.length === 0 && <Text style={s.secondaire}>Aucun événement.</Text>}
-      {o.historique.map((h, i) => <Text key={i} style={s.secondaire}>{new Date(h.horodatage).toLocaleString('fr-FR')} · {(h.statutPrecedent ?? '—').replaceAll('_', ' ')} → {h.statutSuivant.replaceAll('_', ' ')} · {h.acteur}</Text>)}
+      {o.historique.map((h, i) => <Text key={i} style={s.secondaire}>{new Date(h.horodatage).toLocaleString('fr-FR')} · {(h.statutPrecedent ?? 'création').replaceAll('_', ' ')} → {h.statutSuivant.replaceAll('_', ' ')} · {h.acteur}</Text>)}
       {o.propositions.length > 0 && <>
         <Text accessibilityRole="header" style={s.nomPetit}>Propositions de prix</Text>
         {o.propositions.map(p => <Text key={p.version} style={s.secondaire}>v{p.version} · {formaterGnf(p.sousTotalPrecedent)} → {formaterGnf(p.nouveauSousTotal)} GNF · {p.statut.replaceAll('_', ' ')}</Text>)}

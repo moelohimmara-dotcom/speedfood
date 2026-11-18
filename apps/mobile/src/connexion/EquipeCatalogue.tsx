@@ -124,7 +124,7 @@ export function MenusEquipeReel() {
       const lecture = await gestion.lirePhotoMenuEquipe(restaurantId, choix.fichier);
       if (!actif.current) return;
       setLignesPhoto(lignesProposees(lecture));
-      setRefusesPhoto(lecture.refuses.map(r => r.brut + ' — ' + r.raison));
+      setRefusesPhoto(lecture.refuses.map(r => r.brut + ' : ' + r.raison));
       if (lecture.etat === 'vide') setMessage('Aucun plat lu sur cette photo. Saisissez les plats à la main.');
     });
   }
@@ -264,7 +264,7 @@ export function ReferencementsEquipeReel() {
         }} />
         <Action titre="Non, revenir" secondaire disabled={chargement} agir={() => setConfirmation(null)} />
       </> : <>
-        {d.statut !== 'creee' && STATUTS_REFERENCEMENT_EQUIPE.filter(x => x !== 'creee' && x !== d.statut).map(x => <Action key={x} titre={(LIBELLES_REF[x] ?? x) + ' — ' + d.organisation} secondaire disabled={chargement} agir={() => { setErreur(null); setMotif(''); setConfirmation({ demande: d, genre: 'statut', statut: x }); }} />)}
+        {d.statut !== 'creee' && STATUTS_REFERENCEMENT_EQUIPE.filter(x => x !== 'creee' && x !== d.statut).map(x => <Action key={x} titre={(LIBELLES_REF[x] ?? x) + ' : ' + d.organisation} secondaire disabled={chargement} agir={() => { setErreur(null); setMotif(''); setConfirmation({ demande: d, genre: 'statut', statut: x }); }} />)}
         {!d.etablissementCree && <Action titre={'Créer l’établissement de ' + d.organisation} secondaire disabled={chargement} agir={() => {
           void executer(async () => {
             const o = await gestion.optionsReferencement();
@@ -330,7 +330,7 @@ export function PartenariatsEquipeReel() {
           });
         }} />
         <Action titre="Non, revenir" secondaire disabled={chargement} agir={() => setConfirmation(null)} />
-      </> : STATUTS_PARTENARIAT_EQUIPE.filter(x => x !== d.statut).map(x => <Action key={x} titre={(LIBELLES_PART[x] ?? x) + ' — ' + d.organisation} secondaire disabled={chargement} agir={() => setConfirmation({ demande: d, statut: x })} />)}
+      </> : STATUTS_PARTENARIAT_EQUIPE.filter(x => x !== d.statut).map(x => <Action key={x} titre={(LIBELLES_PART[x] ?? x) + ' : ' + d.organisation} secondaire disabled={chargement} agir={() => setConfirmation({ demande: d, statut: x })} />)}
     </View>)}
   </View>;
 }

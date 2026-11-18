@@ -38,7 +38,7 @@ export function VisiteGuidee({ ouvert, variante, fermer }: { ouvert: boolean; va
       <Text accessibilityRole="header" style={s.titre}>{diapo.titre}</Text>
       <Text style={s.texte}>{diapo.texte}</Text>
       <View style={s.points}>{diapos.map((d, i) => <View key={d.titre} style={[s.point, i === page && s.pointActif]} />)}</View>
-      <Bouton titre={page >= diapos.length - 1 ? "C'est parti" : 'Suivant'} onPress={suivant} />
+      <Bouton titre={page >= diapos.length - 1 ? "C’est parti" : 'Suivant'} onPress={suivant} />
       <Bouton titre="Passer la visite" secondaire onPress={terminer} />
     </View>
   </SafeAreaView></Modal>;

@@ -74,7 +74,7 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
       const lecture = await gestion.lireMenuPhotoCandidature(choix.fichier);
       if (!actif.current) return;
       setLignes(lignesProposees(lecture));
-      setRefuses(lecture.refuses.map(r => r.brut + ' — ' + r.raison));
+      setRefuses(lecture.refuses.map(r => r.brut + ' : ' + r.raison));
       if (lecture.etat === 'vide') setMessage('Aucun plat lu sur cette photo. Saisissez les plats à la main.');
     });
   }
@@ -90,9 +90,9 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
 
   return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     <Bouton titre="Retour" icone="retour" iconeSeule secondaire onPress={fermer} />
-    <Text accessibilityRole="header" style={s.titre}>J'ai un restaurant</Text>
+    <Text accessibilityRole="header" style={s.titre}>J’ai un restaurant</Text>
     {!gestion.connectee ? <>
-      <Text style={s.texte}>Connectez-vous avec votre compte Speedfood pour déposer la demande de votre restaurant. L'équipe Speedfood la lit et vous répond sous 48 h.</Text>
+      <Text style={s.texte}>Connectez-vous avec votre compte Speedfood pour déposer la demande de votre restaurant. L’équipe Speedfood la lit et vous répond sous 48 h.</Text>
       <Bouton titre="Me connecter ou créer un compte" onPress={() => { fermer(); ouvrirCompte(); }} />
     </> : <>
       {attente && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>Un instant…</Text></>}
@@ -147,7 +147,7 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
             if (r.brouillon === null) { setErreur(r.erreur); return; }
             setErreur(null); setB(r.brouillon); setNomPlat(''); setPrixPlat('');
           }} />
-          <Text style={s.texte}>Ou lisez la photo de votre menu : rien n'est conservé, vous relisez la liste avant de l'ajouter.</Text>
+          <Text style={s.texte}>Ou lisez la photo de votre menu : rien n’est conservé, vous relisez la liste avant de l’ajouter.</Text>
           <Bouton titre="Lire une photo de menu (galerie)" secondaire disabled={attente} onPress={() => { void photoMenu('galerie'); }} />
           <Bouton titre="Lire une photo de menu (appareil photo)" secondaire disabled={attente} onPress={() => { void photoMenu('camera'); }} />
           {lignes !== null && <>
@@ -164,14 +164,14 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
           </>}
         </>}
         {etape === 3 && <>
-          <Text accessibilityRole="header" style={s.nomPetit}>Vérifiez avant l'envoi</Text>
+          <Text accessibilityRole="header" style={s.nomPetit}>Vérifiez avant l’envoi</Text>
           <View style={s.carte}>
             <Text style={s.texte}>{b.nom}</Text>
             <Text style={s.texte}>{b.prenom} {b.nomResponsable} · {b.telephone}</Text>
             <Text style={s.texte}>{b.horaires}</Text>
             <Text style={s.texte}>{b.plats.length} plat(s) déclaré(s)</Text>
           </View>
-          <Text style={s.secondaire}>L'équipe Speedfood lit chaque demande et répond sous 48 h. Une seule demande ouverte par compte.</Text>
+          <Text style={s.secondaire}>L’équipe Speedfood lit chaque demande et répond sous 48 h. Une seule demande ouverte par compte.</Text>
           <Bouton titre="Envoyer ma demande" disabled={attente} onPress={() => {
             void executer(async () => {
               const v = await gestion.deposerCandidature(b);

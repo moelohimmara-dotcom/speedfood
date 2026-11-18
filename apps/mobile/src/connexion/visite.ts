@@ -6,12 +6,12 @@
 export interface DiapoVisite { titre: string; texte: string }
 
 export const DIAPOS_CLIENT: readonly DiapoVisite[] = [
-  { titre: 'Les restaurants de votre zone', texte: "Changez de zone en un geste depuis l'accueil. Aucune position n'est demandée sans votre accord." },
+  { titre: 'Les restaurants près de chez vous', texte: "Parcourez les menus publiés et trouvez un plat. Aucune position n’est demandée sans votre accord." },
   { titre: 'Commandez, puis suivez', texte: 'Le restaurant confirme votre plat. Vous suivez la préparation et la livraison.' },
 ];
 
 export const DIAPOS_RESTAURATEUR: readonly DiapoVisite[] = [
-  { titre: 'Speedfood tient votre fiche avec vous', texte: "Vous donnez vos plats et vos horaires. L'équipe les met en ligne et les garde à jour." },
+  { titre: 'Speedfood tient votre fiche avec vous', texte: "Vous donnez vos plats et vos horaires. L’équipe les met en ligne et les garde à jour." },
   { titre: 'Des plats toujours à jour', texte: 'Chaque jour, confirmez en un geste ce qui est disponible : les clients voient un menu fiable.' },
 ];
 
