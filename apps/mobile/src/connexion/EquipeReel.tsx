@@ -127,7 +127,7 @@ function PaiementsEquipeReel() {
       <View style={s.carte}>
         <Text style={s.nomPetit}>Vue d’ensemble</Text>
         <Text style={s.texte}>Paiement en ligne : {p.reglages.actif ? 'activé' : 'éteint'} · fournisseur : {p.reglages.fournisseur}{p.reglages.valeursValidees ? ' · valeurs validées' : ''}</Text>
-        <Text style={s.texte}>{p.compteurs.enAttente} en attente du client · {p.compteurs.versementsATraiter} versements à traiter · {p.compteurs.litigesAHumain} litiges à confier à l'exploitation</Text>
+        <Text style={s.texte}>{p.compteurs.enAttente} en attente du client · {p.compteurs.versementsATraiter} versements à traiter · {p.compteurs.litigesAHumain} litiges à confier à l’exploitation</Text>
       </View>
       {p.paiements.length === 0 && <Text style={s.texte}>Aucun paiement à montrer.</Text>}
       {p.paiements.map(x => <View key={x.id} style={s.carte}>

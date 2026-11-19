@@ -924,7 +924,7 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     },
     /** Connexion avec un jeton d'identité Google obtenu sur le téléphone (fournisseur natif futur) : vérifié par le service d'authentification. Un seul essai. */
     async connecterAvecGoogle(jetonIdentite: string, nonce?: string) {
-      if (!jetonIdentite || jetonIdentite.length > 16384) throw new ErreurConnexion('Le jeton Google est invalide. Réessayez.');
+      if (!jetonIdentite || jetonIdentite.length > 16384) throw new ErreurConnexion('La connexion Google n’a pas abouti. Réessayez.');
       const k = await cle();
       const v = await requete(SUPABASE+'/auth/v1/token?grant_type=id_token', { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify({ provider:'google', id_token: jetonIdentite, ...(nonce ? { nonce } : {}) }) }, true);
       return sessionDe(v);

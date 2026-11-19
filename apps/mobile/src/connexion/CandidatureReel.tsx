@@ -116,7 +116,7 @@ export function CandidatureReel({ ouvert, fermer, ouvrirCompte }: { ouvert: bool
         </>}
         {vue.etat === 'refusee' && <Bouton titre="Déposer une nouvelle demande" disabled={attente} onPress={() => { setVue(null); setB(brouillonVide()); setEtape(0); }} />}
       </> : vue === null ? <>
-        <Text style={s.secondaire}>Étape {etape + 1} sur 4. Votre brouillon reste sur ce téléphone tant que la demande n'est pas envoyée.</Text>
+        <Text style={s.secondaire}>Étape {etape + 1} sur 4. Votre brouillon reste sur ce téléphone tant que la demande n’est pas envoyée.</Text>
         {etape === 0 && <>
           <Champ liaison={k.champ("Nom du restaurant")} label="Nom du restaurant" valeur={b.nom} changer={v => setB(x => ({ ...x, nom: v }))} editable={!attente} />
           <Text style={s.texte}>Quartier</Text>

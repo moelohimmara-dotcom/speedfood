@@ -43,7 +43,7 @@ export function usePanierReel() {
       if (numero !== verification.current || actuel.current.restaurantId !== id) return;
       setPrixModifies(!!menu && menu.restaurant.id === id && plats.some(p => menu.plats.some(a => a.id === p.id && a.prixGnf !== p.prixGnf)));
       setMenu({ ...page, plats });
-    } catch { if (numero === verification.current) setErreurLecture('Impossible de vérifier le menu actuel. Le total ne peut pas être confirmé ; votre sélection est conservée.'); }
+    } catch { if (numero === verification.current) setErreurLecture('Impossible de vérifier le menu actuel. Le total ne peut pas être confirmé ; votre panier est conservé.'); }
     finally { if (numero === verification.current) setLecture(false); }
   }
   return { panier, pret, erreur, statut, menu, lecture, erreurLecture, prixModifies, recharger,

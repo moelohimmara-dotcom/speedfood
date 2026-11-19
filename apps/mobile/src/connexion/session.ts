@@ -486,7 +486,7 @@ export class GestionSession {
     try {
       const acces = await this.jeton();
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
-      if (!this.api.gainsLivreur) throw new ErreurConnexion('Gains indisponibles.');
+      if (!this.api.gainsLivreur) throw new ErreurConnexion('Frais de course indisponibles.');
       const g = await this.api.gainsLivreur(acces);
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return g;

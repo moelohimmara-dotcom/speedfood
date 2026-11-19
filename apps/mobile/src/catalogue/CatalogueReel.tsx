@@ -154,7 +154,7 @@ export function CatalogueReel() {
   function remplacerPanier() {
     const r = menu?.restaurant; const demande = remplacement; setRemplacement(null);
     if (!r || !demande) return;
-    try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre panier.`); } catch { setMessagePanier('Ajout impossible. Vérifiez la sélection puis réessayez.'); }
+    try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre panier.`); } catch { setMessagePanier('Ajout impossible. Vérifiez votre panier puis réessayez.'); }
   }
   // « Commander à nouveau » (G13) : mémoire locale des commandes envoyées d'ici ; le panier est rebâti sur le menu actuel (changement de restaurant confirmé avant d'être vidé).
   const [memos, setMemos] = useState<MemoCommande[]>([]);

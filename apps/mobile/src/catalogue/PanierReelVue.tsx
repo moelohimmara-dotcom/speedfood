@@ -30,7 +30,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
     </View>
     {confirmation && <View accessibilityViewIsModal style={s.carte}><Text accessibilityRole="header" style={s.nom}>Vider le panier ?</Text><Text style={s.texte}>Tous les plats de votre panier seront retirés.</Text><Bouton titre="Confirmer le panier vide" variante="danger" onPress={() => { etat.vider(); setConfirmation(false); }} /><Bouton titre="Garder le panier" secondaire onPress={() => setConfirmation(false)} /></View>}
     {!!etat.panier.lignes.length && <><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'}</Text>
-    <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; le serveur recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
+    <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; Speedfood recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
     {dispo && !dispo.commandable && !!etat.panier.lignes.length && <View accessibilityRole="alert" style={s.alerte}><Text style={s.alerteTitre}>{dispo.titre}</Text><Text style={s.alerteTexte}>{dispo.message} Votre panier est gardé.</Text></View>}
     {information !== '' && <Text accessibilityRole="alert" style={s.texte}>{information}</Text>}
     {etat.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>}

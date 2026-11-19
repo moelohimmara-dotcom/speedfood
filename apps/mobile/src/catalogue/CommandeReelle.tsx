@@ -95,7 +95,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
         {estimation?.statut === 'non_calcule' && <Text accessibilityLiveRegion="polite" style={s.texte}>Frais de livraison : à convenir avec le restaurant (non calculés par l’application).</Text>}
         {total !== null && <Text accessibilityRole="header" style={s.nom}>Total estimé : {gnf(total)}</Text>}
       </>}
-      <Text style={s.secondaire}>{livraison ? 'Livraison : les frais affichés sont une estimation de Speedfood ; le serveur les recalcule à l’envoi et vous demande de confirmer s’ils ont changé.' : 'Retrait : pas de frais de livraison.'} Le restaurant confirme votre commande ; le montant final est recalculé par Speedfood.</Text>
+      <Text style={s.secondaire}>{livraison ? 'Livraison : les frais affichés sont une estimation de Speedfood ; Speedfood les recalcule à l’envoi et vous demande de confirmer s’ils ont changé.' : 'Retrait : pas de frais de livraison.'} Le restaurant confirme votre commande ; le montant final est recalculé par Speedfood.</Text>
     </View>
     {bloque && <View accessibilityRole="alert" style={s.alerte}><Text style={s.alerteTitre}>{dispo.titre}</Text><Text style={s.alerteTexte}>{dispo.message} Votre panier est gardé.</Text></View>}
     <View style={s.carte}>
