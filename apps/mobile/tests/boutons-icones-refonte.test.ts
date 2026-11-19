@@ -153,7 +153,6 @@ test('écran de connexion et profil : « Me connecter » reste le seul bouton pl
   assert.match(compte, /titre="Créer un compte" variante="contour"/);
   assert.match(compte, /titre="Effacer la session de cet appareil" variante="danger"/);
   assert.match(compte, /titre="Refuser la proposition" variante="contour"/);
-  assert.match(lire('../src/connexion/EntreeReelle.tsx'), /titre="Aide et contact" icone="message" variante="contour"/);
   const espace = lire('../src/connexion/EspaceClientReel.tsx');
   assert.match(espace, /titre="Oui, supprimer" variante="danger"/);
   assert.match(espace, /titre="Enregistrer cette adresse" secondaire/);

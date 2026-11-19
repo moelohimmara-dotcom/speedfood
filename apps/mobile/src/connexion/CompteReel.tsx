@@ -32,9 +32,8 @@ import { creerDemandeEspace } from './ouverture-espace';
 let restauration: Promise<void> | null = null;
 const Action = ({ titre, agir, disabled = false, icone, iconeSeule = false, secondaire = false, variante }: { titre: string; agir(): void; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; secondaire?: boolean; variante?: VarianteBouton }) => <Bouton titre={titre} onPress={agir} disabled={disabled} icone={icone} iconeSeule={iconeSeule} secondaire={secondaire} variante={variante} />;
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
-/** `espaceDemande` / `messageEntree` : venus de l'écran d'entrée « Qui êtes-vous ? ». Une session ouverte ouvre directement l'espace demandé (le serveur revérifie chaque route) ; sinon `messageEntree` guide la connexion. */
 /** `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets ; `vue` : onglet « Compte » (profil, espaces, réglages) ou « Commandes » (liste et suivi). Vrai : fenêtre plein écran comme avant. */
-export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, messageEntree=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null }: { ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; espaceDemande?:'restaurateur'|'livreur'|'equipe'|null; messageEntree?:string|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
+export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null }: { ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -160,13 +159,6 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
   // Tant que l'espace est occupé (action en cours), l'ouverture est différée et rejouée à la fin.
   const demandeEspace=useRef(creerDemandeEspace()).current;
   useEffect(()=>{demandeEspace.armer(demande);},[demande]);
-  // Piste choisie à l'écran d'entrée : ouverture directe de l'espace, une fois, quand l'écran est ouvert et la session active.
-  useEffect(()=>{
-    if(!ouvert||!connectee||!espaceDemande)return;
-    if(espaceDemande==='restaurateur'){setLivreurOuvert(false);setEquipeOuverte(false);setRestaurateurOuvert(true);}
-    else if(espaceDemande==='livreur'){setRestaurateurOuvert(false);setEquipeOuverte(false);setLivreurOuvert(true);}
-    else{setRestaurateurOuvert(false);setLivreurOuvert(false);setEquipeOuverte(true);}
-  },[ouvert,connectee,espaceDemande]);
   useEffect(()=>{
     if(!ouvert){demandeEspace.fermer();return;}
     if(restaurateurOccupe)return;
@@ -237,7 +229,6 @@ export function CompteReel({ ouvert, fermer, demande=null, espaceDemande=null, m
     {!connectee&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
     :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
     :!connectee?<>
-      {messageEntree&&<Text accessibilityRole="alert" style={s.texte}>{messageEntree}</Text>}
       {vue==='commandes'&&<CommandesAppareilReel oublier={parametres?parametres.oublierCommandes:()=>gestion.oublierCommandesAppareil()} apresOubli={()=>setMessage('Les commandes de cet appareil ont été oubliées.')}/>}
       <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver toutes vos commandes, les annuler ou régler.':'Connectez-vous avec votre compte Speedfood.'}</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
