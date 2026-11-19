@@ -3,24 +3,17 @@ import { Modal, StyleSheet, Text, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bouton } from '../design/Composants';
-import { CLE_VISITE_VUE, DIAPOS_CLIENT, DIAPOS_RESTAURATEUR, doitProposerVisite, etapeSuivante } from './visite';
+import { CLE_VISITE_VUE, DIAPOS_CLIENT, DIAPOS_RESTAURATEUR, etapeSuivante } from './visite';
 import { couleurs as c, polices } from '../design/tokens';
 
-/** La visite a-t-elle déjà été vue sur cet appareil ? Toute anomalie de lecture vaut « pas vue » : on la repropose, sans bloquer. */
-export async function visiteDejaVue(): Promise<boolean> {
-  try { return (await SecureStore.getItemAsync(CLE_VISITE_VUE)) === '1'; } catch { return false; }
-}
-/** Marque la visite comme vue (valeur non secrète) : elle ne se reproposera plus toute seule. Un échec d'écriture est sans conséquence. */
+/** Marque la visite comme vue (valeur non secrète). Un échec d'écriture est sans conséquence. */
 export async function marquerVisiteVue(): Promise<void> {
   try { await SecureStore.setItemAsync(CLE_VISITE_VUE, '1'); } catch { /* la visite se reproposera, rien de grave */ }
-}
-export async function doitOuvrirVisite(): Promise<boolean> {
-  return doitProposerVisite(await visiteDejaVue());
 }
 
 /**
  * Visite guidée (parité Kotlin, lot 4, ligne A10) : deux écrans, « Passer » à tout moment, « Suivant » puis « C'est parti ».
- * Proposée automatiquement au premier lancement seulement ; rouvrable depuis l'accueil et l'espace restaurateur. Aucune permission demandée.
+ * Rouvrable depuis l'accueil et l'espace restaurateur. Aucune permission demandée.
  */
 export function VisiteGuidee({ ouvert, variante, fermer }: { ouvert: boolean; variante: 'client' | 'restaurateur'; fermer(): void }) {
   const diapos = variante === 'restaurateur' ? DIAPOS_RESTAURATEUR : DIAPOS_CLIENT;

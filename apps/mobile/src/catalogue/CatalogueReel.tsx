@@ -28,7 +28,6 @@ import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { BarreOnglets } from './BarreOnglets';
 import { etatPourOnglet, ongletActif, type IdOnglet } from './onglets';
-import type { EspaceEntree } from '../connexion/entree';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
 import { VisiteGuidee } from '../connexion/VisiteReel';
@@ -89,8 +88,6 @@ export function CatalogueReel() {
   const restaurantsRef = useRef<RestaurantPublic[]>([]);
   restaurantsRef.current = restaurants;
   // Premier lancement (revue du 18/11/2026) : le catalogue s'ouvre directement, sans écran « Qui êtes-vous ? » ni visite par-dessus. La visite reste dans l'en-tête et dans « Mon compte » ; restaurateurs et livreurs se connectent depuis « Mon compte ».
-  const [espaceDemande, setEspaceDemande] = useState<EspaceEntree | null>(null);
-  const [messageEntree, setMessageEntree] = useState<string | null>(null);
   // Liens profonds (A12) : un lien Speedfood connu ouvre la fiche du restaurant ; un lien de commande ouvre « Mon compte » (le suivi s'y lit, connecté).
   // Tout autre lien est ignoré ici et reste sur le site : aucune navigation arbitraire.
   useEffect(() => {
@@ -210,7 +207,6 @@ export function CatalogueReel() {
   function choisirOnglet(id: IdOnglet) {
     const e = etatPourOnglet(id);
     setPanierOuvert(e.panierOuvert); setCompteOuvert(e.compteOuvert); setDemandeCompte(e.demandeCompte); setMessageRecommande('');
-    if (id !== 'compte' && id !== 'commandes') { setEspaceDemande(null); setMessageEntree(null); }
     if (e.panierOuvert) void panier.recharger();
   }
   // Retour Android depuis Commandes, Panier ou Compte : on revient à Restaurants au lieu de quitter l'application (la fiche, elle, a son propre retour plus haut).
@@ -276,7 +272,7 @@ export function CatalogueReel() {
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </View>}
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); setEspaceDemande(null); setMessageEntree(null); }} demande={demandeCompte} espaceDemande={espaceDemande} messageEntree={messageEntree} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
+    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}

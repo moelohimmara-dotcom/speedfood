@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { cheminDepuisModule } from './chemins.ts';
 import { lireLienProfond } from '../src/connexion/liens-profonds.ts';
 import { abonnerLienEnAttente, deposerLienEnAttente, prendreLienEnAttente } from '../src/connexion/lien-en-attente.ts';
-import { DIAPOS_CLIENT, DIAPOS_RESTAURATEUR, doitProposerVisite, etapeSuivante } from '../src/connexion/visite.ts';
+import { DIAPOS_CLIENT, DIAPOS_RESTAURATEUR, etapeSuivante } from '../src/connexion/visite.ts';
 
 test('liens profonds : restaurant et commande des hotes Speedfood connus', () => {
   assert.deepEqual(lireLienProfond('https://speedfood-app.moelohimmara.workers.dev/r/abc-123'), { genre: 'restaurant', id: 'abc-123' });
@@ -86,9 +86,7 @@ test('visite guidee : deux series de deux ecrans, fidelement reprises', () => {
   assert.equal(DIAPOS_RESTAURATEUR[1].titre, 'Des plats toujours à jour');
 });
 
-test('visite guidee : proposee seulement si jamais vue ; progression bornee', () => {
-  assert.equal(doitProposerVisite(false), true);
-  assert.equal(doitProposerVisite(true), false);
+test('visite guidee : progression bornee', () => {
   assert.deepEqual(etapeSuivante(0, 2), { page: 1, terminee: false });
   assert.deepEqual(etapeSuivante(1, 2), { page: 1, terminee: true });
   assert.deepEqual(etapeSuivante(5, 2), { page: 1, terminee: true });
