@@ -1053,5 +1053,43 @@ const sansDroitConnecte = (await db.query(`
 verifier("même règle pour les comptes connectés", sansDroitConnecte.join(",") === "motif_correction,suspendu_motif", sansDroitConnecte.join(","));
 verifier("la fonction des motifs n'est pas exécutable par un visiteur anonyme (droit d'exécution)", (await db.query(`select has_function_privilege('anon', 'public.fn_motifs_restaurants(uuid[])', 'execute') as ok`)).rows[0].ok === false);
 
+// ---------------------------------------------------------------- 9. effacement de la position des livreurs (18 novembre 2026)
+console.log("\n--- Effacement de la position des livreurs : hors ligne, envoi tardif, nettoyage de 24 h");
+const POS_A = "00000000-0000-4000-8000-00000000aa03";
+const POS_B = "00000000-0000-4000-8000-00000000aa04";
+const POS_C = "00000000-0000-4000-8000-00000000aa05";
+const POS_D = "00000000-0000-4000-8000-00000000aa06";
+const POS_E = "00000000-0000-4000-8000-00000000aa07";
+const positionDe = async (id) => (await db.query(`select latitude, longitude, position_le, statut, simule from livreurs where id = ${U(id)}`)).rows[0];
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le) values (${U(POS_A)}, 'Position Test A', 'disponible', 9.5, -13.7, now())`);
+await db.exec(`update livreurs set statut = 'hors_ligne' where id = ${U(POS_A)}`);
+const posApresHorsLigne = await positionDe(POS_A);
+verifier("position : passer hors ligne efface latitude, longitude et position_le", posApresHorsLigne.latitude === null && posApresHorsLigne.longitude === null && posApresHorsLigne.position_le === null);
+await db.exec(`update livreurs set latitude = 9.9, longitude = -13.9, position_le = now() where id = ${U(POS_A)}`);
+const posEnvoiTardif = await positionDe(POS_A);
+verifier("position : un envoi tardif sur une fiche hors ligne ne laisse aucune position", posEnvoiTardif.latitude === null && posEnvoiTardif.longitude === null && posEnvoiTardif.position_le === null);
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le) values (${U(POS_B)}, 'Position Test B', 'disponible', 9.6, -13.6, now())`);
+await db.exec(`update livreurs set telephone = '+224620000099' where id = ${U(POS_B)}`);
+const posIntacte = await positionDe(POS_B);
+verifier("position : un livreur disponible garde sa position après une mise à jour sans changement de statut", posIntacte.latitude === 9.6 && posIntacte.longitude === -13.6 && posIntacte.position_le !== null);
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le, simule) values
+  (${U(POS_C)}, 'Position Test C', 'disponible', 9.7, -13.5, now() - interval '25 hours', false),
+  (${U(POS_D)}, 'Position Test D', 'disponible', 9.8, -13.4, now() - interval '25 hours', true)`);
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le) values (${U(POS_E)}, 'Position Test E', 'disponible', 9.4, -13.8, now() - interval '23 hours')`);
+const nettoyees = (await db.query(`select public.fn_effacer_positions_anciennes() as n`)).rows[0].n;
+verifier("position : le nettoyage de 24 h renvoie le nombre de fiches nettoyées (une seule ici)", nettoyees === 1, `renvoyé : ${nettoyees}`);
+const posC = await positionDe(POS_C);
+verifier("position : une position de 25 h est effacée par le nettoyage", posC.latitude === null && posC.longitude === null && posC.position_le === null);
+const posE = await positionDe(POS_E);
+verifier("position : une position de 23 h est gardée par le nettoyage", posE.latitude === 9.4 && posE.position_le !== null);
+const posD = await positionDe(POS_D);
+verifier("position : un livreur simulé garde sa position de 25 h (démonstration)", posD.latitude === 9.8 && posD.position_le !== null && posD.simule === true);
+verifier("position : un délai de 0 heure est refusé", (await (async () => {
+  try { await db.query(`select public.fn_effacer_positions_anciennes(0)`); return false; }
+  catch { return true; }
+})()));
+verifier("position : anon ne peut pas exécuter le nettoyage (droit d'exécution)", (await db.query(`select has_function_privilege('anon', 'public.fn_effacer_positions_anciennes(integer)', 'execute') as ok`)).rows[0].ok === false);
+verifier("position : authenticated ne peut pas exécuter le nettoyage (droit d'exécution)", (await db.query(`select has_function_privilege('authenticated', 'public.fn_effacer_positions_anciennes(integer)', 'execute') as ok`)).rows[0].ok === false);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);

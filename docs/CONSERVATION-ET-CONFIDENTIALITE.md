@@ -18,7 +18,7 @@ Relevé fait dans le schéma de production le 3 octobre 2026 (colonnes dont le n
 | Motifs de modération, suspension, accès | `audit_events.motif`, `restaurants.motif_correction`, `restaurants.suspendu_motif` | Le personnel Speedfood | Peu, mais ne doit jamais contenir de téléphone ni d'adresse |
 | Nom, téléphone, véhicule d'un livreur | `livreurs` | L'exploitation, à la création de la fiche | Oui (personnelle) |
 | Pièce d'identité (type, numéro) et contact d'urgence d'un livreur | `livreur_dossiers` | Le livreur, à l'activation, **seulement si la console l'exige** | **Oui, sensible** : lisible par le seul super administrateur, chaque consultation est journalisée |
-| Position d'un livreur | `livreurs.latitude`, `longitude` (dernière position seulement) | Son téléphone, tant qu'il est en ligne | Oui : écrasée à chaque envoi, jamais historisée |
+| Position d'un livreur | `livreurs.latitude`, `longitude` (dernière position seulement) | Son téléphone, tant qu'il est en ligne | Oui : écrasée à chaque envoi, jamais historisée. Elle est aussi effacée dès que le livreur passe hors ligne, et par un nettoyage horaire pour toute position de plus de 24 heures (livreurs simulés exclus de ce nettoyage). |
 | Compteurs de limitation de débit | `rate_limits` | Calculé | Non : empreintes irréversibles, effacées par un nettoyage opportuniste (au bout d'un jour ou plus selon le trafic) |
 | Photos et logos | stockage `medias` | Les restaurants | Non personnelles (à ne pas y mettre de visages sans accord) |
 
