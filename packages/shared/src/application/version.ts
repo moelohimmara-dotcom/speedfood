@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 105,
-    nom: "3.1.2",
-    notes: "Le catalogue s'ouvre directement. Le paiement est expliqué avant l'envoi de la commande. Plats à confirmer mieux indiqués. Restaurant fermé : menu consultable, commande bloquée. Position du livreur expliquée en plein écran. Accès restaurateur dans Mon compte.",
+    code: 106,
+    nom: "3.1.3",
+    notes: "Messages du panier et de la commande clarifiés : le panier est nommé partout et le recalcul du montant est expliqué par Speedfood. Frais de course du livreur mieux nommés.",
     obligatoire: false,
-    apkSha256: "275a55a5319db953cb9b863a0d6bc61c7a577961f46686bbd354ec173622b6bc",
+    apkSha256: "1c54070a94a8e2e462a33d6427a92eb9dcce20f3d4a6930ee0b3c570c15c281a",
     apkTaille: 65894499,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.2.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.3.apk",
   },
 };
