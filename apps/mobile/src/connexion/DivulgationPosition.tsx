@@ -20,7 +20,7 @@ export function DivulgationPosition({ ouvert, titre, texte, boutonOui, boutonNon
     <Text style={s.texte}>{texte}</Text>
     <View style={s.liste}>{LIGNES_DIVULGATION.map(l => <View key={l.titre} style={s.ligne}>
       <View style={s.pastille} accessibilityElementsHidden importantForAccessibility="no"><Icone nom={l.icone} taille={20} couleur={c.action} /></View>
-      <View style={{ flex: 1, gap: 2 }}><Text style={s.ligneTitre}>{l.titre}</Text><Text style={s.ligneTexte}>{l.texte}</Text></View>
+      <View style={{ flex: 1, gap: 2 }}><Text accessibilityRole="header" style={s.ligneTitre}>{l.titre}</Text><Text style={s.ligneTexte}>{l.texte}</Text></View>
     </View>)}</View>
     <Bouton titre={LIEN_CONFIDENTIALITE} variante="texte" onPress={() => { void Linking.openURL(SITE_WEB + '/confidentialite').catch(() => undefined); }} />
     <Bouton titre={boutonOui} onPress={autoriser} />

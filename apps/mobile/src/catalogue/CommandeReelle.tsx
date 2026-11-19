@@ -111,14 +111,14 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     {!connectee && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Connectez-vous pour envoyer votre commande.</Text><Action titre="Ouvrir mon compte" agir={ouvrirCompte} /></View>}
     <Text style={s.texte}>Votre nom</Text>
     <TextInput ref={k.reference('nom')} onFocus={k.auFocus('nom')} onBlur={k.auBlur} accessibilityLabel="Votre nom" value={m.nom} onChangeText={v => m.saisir('nom', v)} editable={!verrouille} autoComplete="name" returnKeyType="next" maxLength={120} style={s.champ} />
-    {m.nom !== '' && erreurs.nom && <Text style={s.secondaire}>{erreurs.nom}</Text>}
+    {m.nom !== '' && erreurs.nom && <Text accessibilityRole="alert" style={s.secondaire}>{erreurs.nom}</Text>}
     <Text style={s.texte}>Téléphone</Text>
     <TextInput ref={k.reference('telephone')} onFocus={k.auFocus('telephone')} onBlur={k.auBlur} accessibilityLabel="Téléphone" placeholder="Exemple : 622 12 34 56" value={m.telephone} onChangeText={v => m.saisir('telephone', v)} editable={!verrouille} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" maxLength={30} style={s.champ} />
-    {m.telephone !== '' && erreurs.telephone && <Text style={s.secondaire}>{erreurs.telephone}</Text>}
+    {m.telephone !== '' && erreurs.telephone && <Text accessibilityRole="alert" style={s.secondaire}>{erreurs.telephone}</Text>}
     {livraison && <>
       <Text style={s.texte}>Adresse de livraison</Text>
       <TextInput ref={k.reference('adresse')} onFocus={k.auFocus('adresse')} onBlur={k.auBlur} accessibilityLabel="Adresse de livraison" value={m.adresse} onChangeText={v => m.saisir('adresse', v)} editable={!verrouille} autoComplete="street-address" maxLength={ADRESSE_MAX} multiline style={s.champ} />
-      {m.adresse !== '' && erreurs.adresse && <Text style={s.secondaire}>{erreurs.adresse}</Text>}
+      {m.adresse !== '' && erreurs.adresse && <Text accessibilityRole="alert" style={s.secondaire}>{erreurs.adresse}</Text>}
       <Text style={s.texte}>Quartier</Text>
       {quartierChoisi && <Text accessibilityLiveRegion="polite" style={s.nom}>{quartierChoisi.libelle}</Text>}
       {quartiers.etat === 'chargement' && <View style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement des quartiers…</Text></View>}
@@ -126,12 +126,12 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       {quartiers.etat === 'ok' && <>
         <TextInput ref={k.reference('quartier')} onFocus={k.auFocus('quartier')} onBlur={k.auBlur} accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
         {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
-        {recherche.trim() !== '' && propositions.length === 0 && <Text style={s.secondaire}>Aucun quartier ne correspond. Essayez une autre orthographe.</Text>}
+        {recherche.trim() !== '' && propositions.length === 0 && <Text accessibilityRole="alert" style={s.secondaire}>Aucun quartier ne correspond. Essayez une autre orthographe.</Text>}
         {recherche.trim() === '' && !quartierChoisi && <Text style={s.secondaire}>Saisissez le début du nom de votre quartier pour le trouver.</Text>}
       </>}
       {m.quartierId && m.etatEstimation === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>{m.messageEstimation}</Text><Action titre="Recalculer les frais de livraison" secondaire disabled={verrouille} agir={() => m.relancerEstimation()} /></View>}
     </>}
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: m.consentement, disabled: verrouille }} disabled={verrouille} onPress={() => m.saisir('consentement', !m.consentement)} style={s.consentement}>
+    <Pressable accessibilityRole="checkbox" accessibilityLabel={TEXTE_CONSENTEMENT} accessibilityState={{ checked: m.consentement, disabled: verrouille }} disabled={verrouille} onPress={() => m.saisir('consentement', !m.consentement)} style={s.consentement}>
       <View style={[s.case, m.consentement && s.caseCochee]}>{m.consentement && <Text style={s.coche}>✓</Text>}</View>
       <Text style={s.consentementTexte}>{TEXTE_CONSENTEMENT}</Text>
     </Pressable>
