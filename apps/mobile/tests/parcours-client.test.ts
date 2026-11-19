@@ -118,3 +118,59 @@ test('câblage : accueil direct, fiche et commande bloquées si fermé, divulgat
   assert.match(divulgation, /<Modal visible=\{ouvert\} animationType="slide" onRequestClose=\{annuler\}>/);
   assert.match(divulgation, /Linking\.openURL\(SITE_WEB \+ '\/confidentialite'\)/);
 });
+
+test('plat à confirmer, cas limites : une date dans le futur vaut « à l’instant », 7 jours pile reste dit, 8 jours devient « pas confirmé récemment »', () => {
+  const futur = etatPlat({ disponibilite: 'a_confirmer', confirmeLe: new Date(MAINTENANT.getTime() + 3_600_000).toISOString() }, MAINTENANT);
+  assert.equal(futur.texte, 'À confirmer'); assert.equal(futur.ton, 'attention');
+  // Valeur réelle vérifiée : `ancienneteLisible` renvoie « à l'instant » avec une apostrophe droite (packages/shared), d’où l’échappement ici.
+  assert.equal(futur.detail, 'dernière confirmation à l\'instant', 'décalage d’horloge : le futur est traité comme maintenant');
+  assert.equal(etatPlat({ disponibilite: 'a_confirmer', confirmeLe: ilYa(24 * 7) }, MAINTENANT).detail, 'dernière confirmation il y a 7 jours');
+  assert.equal(etatPlat({ disponibilite: 'a_confirmer', confirmeLe: new Date(MAINTENANT.getTime() - (7 * 86_400_000 + 1_000)).toISOString() }, MAINTENANT).detail, 'pas confirmé récemment', '7 jours et une seconde : la borne est exacte, pas tronquée en jours pleins');
+  assert.equal(etatPlat({ disponibilite: 'a_confirmer', confirmeLe: ilYa(24 * 8) }, MAINTENANT).detail, 'pas confirmé récemment');
+});
+
+test('statut du restaurant, cas limites : 0 minute et 7 jours pile affichés, 7 jours et une seconde ne le sont plus', () => {
+  assert.equal(ageStatutAffichable(new Date(MAINTENANT), MAINTENANT), 'à l\'instant', 'valeur réelle : apostrophe droite de ancienneteLisible');
+  assert.equal(ageStatutAffichable(new Date(ilYa(24 * 7)), MAINTENANT), 'il y a 7 jours');
+  assert.equal(ageStatutAffichable(new Date(MAINTENANT.getTime() - (7 * 86_400_000 + 1_000)), MAINTENANT), null);
+});
+
+test('moyens affichables, cas limites : toutes les variantes d’espèces sont retirées, Orange Money et MTN MoMo restent, les doublons ne sont pas fusionnés', () => {
+  assert.deepEqual(moyensAffichables(['ESPÈCES', 'Espece', 'espèces', 'cash', 'Paiement en liquide']), []);
+  assert.deepEqual(moyensAffichables(['Orange Money', 'MTN MoMo', 'Orange Money']), ['Orange Money', 'MTN MoMo', 'Orange Money'], 'comportement actuel : aucun dédoublonnage');
+});
+
+test('étapes du parcours, cas limites : toujours trois étapes numérotées 1, 2, 3 ; que des espèces donne la phrase neutre, sans parenthèses', () => {
+  for (const moyens of [undefined, [], ['Orange Money'], ['Espèces', 'cash']]) {
+    const etapes = etapesParcours(moyens);
+    assert.equal(etapes.length, 3); assert.deepEqual(etapes.map(e => e.numero), [1, 2, 3]);
+  }
+  const neutre = etapesParcours(['Espèces', 'cash'])[2].texte;
+  assert.equal(neutre, 'Le restaurant vous indique comment le régler, puis vous le déclarez dans « Commandes ». Speedfood ne reçoit pas votre argent.');
+  assert.doesNotMatch(neutre, /\(/);
+});
+
+test('tris, cas limites : liste vide, un seul élément, tous du même rang dans l’ordre d’origine, liste d’entrée jamais modifiée', () => {
+  assert.deepEqual(ordonnerRestaurants([]), []);
+  assert.deepEqual(ordonnerPlats([]), []);
+  const seulR = [{ id: 'x', ouvert: false, accepteCommandes: false }];
+  assert.deepEqual(ordonnerRestaurants(seulR).map(r => r.id), ['x']);
+  const seulP = [{ id: 'x', disponibilite: 'epuise' as const }];
+  assert.deepEqual(ordonnerPlats(seulP).map(p => p.id), ['x']);
+  const memesR = [
+    { id: 'a', ouvert: true, accepteCommandes: true }, { id: 'b', ouvert: true, accepteCommandes: true }, { id: 'c', ouvert: true, accepteCommandes: true },
+  ];
+  assert.deepEqual(ordonnerRestaurants(memesR).map(r => r.id), ['a', 'b', 'c'], 'même rang : ordre inchangé');
+  assert.deepEqual(memesR.map(r => r.id), ['a', 'b', 'c'], 'la liste d’entrée n’est pas modifiée');
+  const memesP = [
+    { id: '1', disponibilite: 'disponible' as const }, { id: '2', disponibilite: 'disponible' as const }, { id: '3', disponibilite: 'disponible' as const },
+  ];
+  assert.deepEqual(ordonnerPlats(memesP).map(p => p.id), ['1', '2', '3'], 'même rang : ordre inchangé');
+  assert.deepEqual(memesP.map(p => p.id), ['1', '2', '3'], 'la liste d’entrée n’est pas modifiée');
+});
+
+test('phrase à régler, cas limites : 0 donne « 0 GNF », null donne null, un grand montant prend le séparateur de milliers français', () => {
+  assert.equal(phraseARegler(0), 'À régler au restaurant après sa confirmation : 0 GNF');
+  assert.equal(phraseARegler(null), null);
+  assert.equal(phraseARegler(12_345_678), 'À régler au restaurant après sa confirmation : ' + new Intl.NumberFormat('fr-FR').format(12_345_678) + ' GNF');
+});

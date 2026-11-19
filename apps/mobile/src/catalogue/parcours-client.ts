@@ -38,13 +38,13 @@ export function etatPlat(p: Pick<PlatCataloguePublic, 'disponibilite' | 'confirm
   const valide = date !== null && !Number.isNaN(date.getTime());
   if (p.disponibilite === 'epuise') return { texte: 'Épuisé', ton: 'neutre', detail: null };
   if (p.disponibilite === 'disponible') return { texte: 'Disponible', ton: 'succes', detail: valide ? `confirmé ${ancienneteLisible(date, maintenant)}` : null };
-  const jours = valide ? Math.floor(Math.max(0, maintenant.getTime() - date.getTime()) / 86_400_000) : null;
-  return { texte: 'À confirmer', ton: 'attention', detail: jours !== null && jours <= JOURS_CONFIRMATION_UTILE ? `dernière confirmation ${ancienneteLisible(date as Date, maintenant)}` : 'pas confirmé récemment' };
+  const ageMs = valide ? Math.max(0, maintenant.getTime() - date.getTime()) : null;
+  return { texte: 'À confirmer', ton: 'attention', detail: ageMs !== null && ageMs <= JOURS_CONFIRMATION_UTILE * 86_400_000 ? `dernière confirmation ${ancienneteLisible(date as Date, maintenant)}` : 'pas confirmé récemment' };
 }
 /** « Statut du restaurant » de la fiche : la date n'est affichée que si elle reste parlante. */
 export function ageStatutAffichable(date: Date, maintenant: Date): string | null {
-  const jours = Math.floor(Math.max(0, maintenant.getTime() - date.getTime()) / 86_400_000);
-  return jours <= JOURS_CONFIRMATION_UTILE ? ancienneteLisible(date, maintenant) : null;
+  const ageMs = Math.max(0, maintenant.getTime() - date.getTime());
+  return ageMs <= JOURS_CONFIRMATION_UTILE * 86_400_000 ? ancienneteLisible(date, maintenant) : null;
 }
 export const LEGENDE_A_CONFIRMER = 'À confirmer : le restaurant n’a pas reconfirmé ce plat récemment. Vous pouvez le commander ; le restaurant vous dit si c’est possible avant tout paiement, et vous propose un autre choix sinon.';
 export const COMMENTAIRE_PLATS_A_CONFIRMER = (n: number): string => n === 1
