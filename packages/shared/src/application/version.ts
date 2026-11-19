@@ -58,7 +58,7 @@ export const VERSION_APPLICATION: VersionApplication = {
     nom: "3.1.3",
     notes: "Messages du panier et de la commande clarifiés : le panier est nommé partout et le recalcul du montant est expliqué par Speedfood. Frais de course du livreur mieux nommés.",
     obligatoire: false,
-    apkSha256: "1c54070a94a8e2e462a33d6427a92eb9dcce20f3d4a6930ee0b3c570c15c281a",
+    apkSha256: "1c54070a94a8e2e462a33d6427a92eb9dcee20f3d4a6930ee0b3c570c15c281a",
     apkTaille: 65894499,
     apkChemin: "/speedfood-mobile.apk",
     apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.3.apk",
