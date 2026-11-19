@@ -30,7 +30,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
     </View>
     {confirmation && <View accessibilityViewIsModal style={s.carte}><Text accessibilityRole="header" style={s.nom}>Vider le panier ?</Text><Text style={s.texte}>Tous les plats de votre panier seront retirés.</Text><Bouton titre="Confirmer le panier vide" variante="danger" onPress={() => { etat.vider(); setConfirmation(false); }} /><Bouton titre="Garder le panier" secondaire onPress={() => setConfirmation(false)} /></View>}
     {!!etat.panier.lignes.length && <><Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'}</Text>
-    <Text style={s.texte}>Prix indicatifs, suppléments compris. Rien n’est envoyé tant que vous n’avez pas validé votre commande (retrait ou livraison) ; Speedfood recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
+    <Text style={s.texte}>Prix indicatifs. Rien n’est envoyé avant que vous validiez votre commande ; Speedfood recalcule le montant à l’envoi. Les frais de livraison sont calculés à l’étape suivante.</Text></>}
     {dispo && !dispo.commandable && !!etat.panier.lignes.length && <View accessibilityRole="alert" style={s.alerte}><Text style={s.alerteTitre}>{dispo.titre}</Text><Text style={s.alerteTexte}>{dispo.message} Votre panier est gardé.</Text></View>}
     {information !== '' && <Text accessibilityRole="alert" style={s.texte}>{information}</Text>}
     {etat.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{etat.statut}</Text>}
@@ -45,7 +45,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
       {(l.optionIds?.length ?? 0) > l.options.length && <Text accessibilityRole="alert" style={s.texte}>Un supplément choisi ne figure plus au menu. Retirez cette ligne pour revoir le total.</Text>}
       <Text style={s.texte}>{l.prixUnitaire !== null ? `${gnf(l.prixUnitaire)} l’unité` : 'Rechargez le menu pour vérifier ce plat.'}</Text>
       {etat.menu && !l.plat && <Text accessibilityRole="alert" style={s.texte}>Ce plat ne figure plus dans le menu publié. Retirez-le pour revoir le total.</Text>}
-      {l.plat?.disponibilite !== 'disponible' && <Text style={s.secondaire}>{l.plat?.disponibilite === 'epuise' ? 'Épuisé : retirez ce plat.' : 'Disponibilité à confirmer.'}</Text>}
+      {l.plat?.disponibilite !== 'disponible' && <Text style={[s.secondaire, l.plat?.disponibilite === 'a_confirmer' && { color: c.avertissement }]}>{l.plat?.disponibilite === 'epuise' ? 'Épuisé : retirez ce plat.' : 'Disponibilité à confirmer.'}</Text>}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
         <Rond nom={`Retirer une portion de ${l.plat?.nom ?? 'ce plat'}`} variante="contour" icone="moins" onPress={() => etat.quantite(l.cle, l.quantite - 1)} />
         <Text accessibilityLabel={`${l.quantite} portion${l.quantite>1?'s':''}`} style={s.nom}>{l.quantite}</Text>
