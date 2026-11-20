@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  FENETRE_COMMANDE_EN_COURS_MS, RELECTURES_ACCUEIL_MAX, TITRE_PAR_DEFAUT, aRelirePourAccueil, choisirCommandeEnCours, heureConakry, libelleHeure, enteteAccueil,
+  DELAI_ACCUEIL_MS, DELAI_COMMANDE_EN_COURS_MS, FENETRE_COMMANDE_EN_COURS_MS, RELECTURES_ACCUEIL_MAX, TITRE_PAR_DEFAUT, delaiRelectureAccueil, aRelirePourAccueil, choisirCommandeEnCours, heureConakry, libelleHeure, enteteAccueil,
 } from '../src/catalogue/accueil-vivant.ts';
 import {
   PHRASE_ATTENTE_RESTAURANT, PHRASE_A_REGLER, PHRASE_EN_PREPARATION, PHRASE_PROPOSITION, phraseProchaineEtape, type EtatPourPhrase,
@@ -137,6 +137,22 @@ test('accueil : le titre vivant, la carte et le point de l’onglet sont branch�
   assert.match(accueil, /<CarteCommandeEnCours commande=\{enCours\.commande\} suivre=\{voirCommandeEnCours\} \/>/);
   assert.match(accueil, /commandeEnCours=\{enCours\.commande !== null\}/);
   assert.match(lire('../src/catalogue/BarreOnglets.tsx'), /Commandes, une commande en cours/);
+});
+
+test('point d’onglet : relecture toutes les 15 s tant qu’une commande est en cours, 45 s sinon', () => {
+  assert.equal(delaiRelectureAccueil(true), DELAI_COMMANDE_EN_COURS_MS);
+  assert.equal(delaiRelectureAccueil(false), DELAI_ACCUEIL_MS);
+  assert.equal(DELAI_COMMANDE_EN_COURS_MS, 15000);
+  assert.ok(DELAI_COMMANDE_EN_COURS_MS < DELAI_ACCUEIL_MS);
+});
+
+test('point d’onglet : la carte est relue à chaque changement d’onglet, après un envoi, et le délai suit l’état', () => {
+  const accueil = lire('../src/catalogue/CatalogueReel.tsx');
+  assert.match(accueil, /useEffect\(\(\) => \{ enCours\.recharger\(\); \}, \[onglet\]\);/);
+  assert.match(accueil, /setTimeout\(\(\) => enCours\.recharger\(\), 2000\)/);
+  const crochet = lire('../src/catalogue/useCommandeEnCours.ts');
+  assert.match(crochet, /delaiRelectureAccueil\(commandeConnue\)/);
+  assert.match(crochet, /\[commandeConnue\]\);/);
 });
 
 test('suivi : la phrase « qui agit » est affichée sous la frise, connecté ou non', () => {

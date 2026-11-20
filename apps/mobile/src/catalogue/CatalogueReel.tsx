@@ -209,12 +209,12 @@ export function CatalogueReel() {
   const onglet = ongletActif({ panierOuvert, compteOuvert, demandeCompte });
   const surRestaurants = onglet === 'restaurants';
   const barrePanierVisible = nombreArticles > 0 && surRestaurants;
-  // « Commande en cours » : le bouton de la carte ouvre le suivi de cette commande ; chaque retour sur Restaurants relit son état.
+  // « Commande en cours » : le bouton de la carte ouvre le suivi de cette commande ; chaque changement d'onglet relit son état (la carte et le point de l'onglet Commandes restent justes).
   function voirCommandeEnCours() {
     if (enCours.commande === null) return;
     setPanierOuvert(false); setDemandeCompte({ reference: enCours.commande.reference }); setCompteOuvert(true);
   }
-  useEffect(() => { if (onglet === 'restaurants') enCours.recharger(); }, [onglet]);
+  useEffect(() => { enCours.recharger(); }, [onglet]);
   function choisirOnglet(id: IdOnglet) {
     const e = etatPourOnglet(id);
     setPanierOuvert(e.panierOuvert); setCompteOuvert(e.compteOuvert); setDemandeCompte(e.demandeCompte); setMessageRecommande('');
@@ -290,7 +290,7 @@ export function CatalogueReel() {
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
-      apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
+      apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setTimeout(() => enCours.recharger(), 2000); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />

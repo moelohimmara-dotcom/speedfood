@@ -4,9 +4,8 @@ import { gestion } from '../connexion/gestion';
 import type { ResumeSuivi } from '../connexion/commandes';
 import { phraseProchaineEtape } from '../connexion/suivi-acteur';
 import { libelleStatutSuivi } from '../connexion/suivi-affichage';
-import { aRelirePourAccueil, choisirCommandeEnCours, type CommandeEnCours } from './accueil-vivant';
-/** Relecture de l'accueil : toutes les 45 secondes, seulement au premier plan, et seulement s'il existe une commande récente à relire (sinon aucun appel réseau). */
-export const DELAI_ACCUEIL_MS = 45000;
+import { aRelirePourAccueil, choisirCommandeEnCours, delaiRelectureAccueil, type CommandeEnCours } from './accueil-vivant';
+/** Relecture seulement au premier plan, et seulement s'il existe une commande récente à relire (sinon aucun appel réseau) ; le délai se raccourcit tant qu'une commande est en cours (`delaiRelectureAccueil`). */
 export interface CommandeEnCoursVue extends CommandeEnCours { libelle: string; phrase: string | null }
 /**
  * Commande encore en cours, lue depuis les commandes de CET appareil (aucune connexion exigée). Une panne ou une lecture impossible garde le dernier état connu :
@@ -34,11 +33,12 @@ export function useCommandeEnCours(): { commande: CommandeEnCoursVue | null; rec
     } catch { /* garde le dernier état connu */ }
     finally { enCours.current = false; }
   }
+  const commandeConnue = commande !== null;
   useEffect(() => {
     actif.current = true;
     void lire();
-    const minuterie = setInterval(() => { if (AppState.currentState === 'active') void lire(); }, DELAI_ACCUEIL_MS);
+    const minuterie = setInterval(() => { if (AppState.currentState === 'active') void lire(); }, delaiRelectureAccueil(commandeConnue));
     return () => { actif.current = false; clearInterval(minuterie); };
-  }, []);
+  }, [commandeConnue]);
   return { commande, recharger: () => { void lire(); } };
 }

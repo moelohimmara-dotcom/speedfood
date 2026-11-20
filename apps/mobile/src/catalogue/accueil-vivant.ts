@@ -28,6 +28,10 @@ export function enteteAccueil(e: { maintenant: Date; restaurants: ReadonlyArray<
 export const FENETRE_COMMANDE_EN_COURS_MS = 24 * 3600 * 1000;
 /** Au plus ce nombre de statuts relus pour l'accueil (chaque relecture est un appel réseau). */
 export const RELECTURES_ACCUEIL_MAX = 3;
+/** Relecture de l'accueil : toutes les 45 secondes en général, toutes les 15 secondes (comme l'écran de suivi) tant qu'une commande est en cours, pour que la carte et le point de l'onglet suivent un changement d'état ou une annulation. */
+export const DELAI_ACCUEIL_MS = 45000;
+export const DELAI_COMMANDE_EN_COURS_MS = 15000;
+export const delaiRelectureAccueil = (commandeEnCours: boolean): number => commandeEnCours ? DELAI_COMMANDE_EN_COURS_MS : DELAI_ACCUEIL_MS;
 export interface EtatLu { statut: string; etatDerive: string }
 export interface CommandeEnCours { cle: string; reference: string; restaurantNom: string; creeLe: number }
 /** Les commandes assez récentes pour être relues, les plus récentes d'abord, au plus `RELECTURES_ACCUEIL_MAX`. */
