@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ETAPES_LIVRAISON_PROPRE, ETAPES_LIVRAISON_SPEEDFOOD, estLivraisonFinale, etapeCouranteLivraison, etapesLivraison, etiquetteCodeRemise, lireLivraisonSuivi, phraseLivraison, texteArrivee,
-  texteFraisLivraison, type LivraisonSuivi,
+  texteFraisLivraison, carteVisible, peutSeSituer, type LivraisonSuivi,
 } from '../src/connexion/livraison-suivi.ts';
 import { TAILLE_TUILE, ZOOM_MAX, ZOOM_MIN, composerCarte, pixelMonde, urlTuile } from '../src/connexion/carte-tuiles.ts';
 
@@ -133,4 +133,18 @@ test('suivi : le bloc livraison de la réponse est lu avec le suivi ; absent ou 
   assert.equal(lireSuivi({ ok: true, suivi }).livraison, null);
   assert.equal(lireSuivi({ ok: true, suivi, livraison: { ...brut(), code: 'abcd' } }).livraison, null);
   assert.equal(lireSuivi({ ok: true, suivi, livraison: 'texte' }).reference, 'SF-4KVB9');
+});
+test('carte et bouton « Me situer » : visibles tant que la livraison n’est pas finie et qu’un point existe ; en mode propre, la carte attend un livreur localisé ou le choix du client', () => {
+  const vous = { latitude: 9.52, longitude: -13.7 };
+  const propre = (o: Record<string, unknown> = {}) => lu({ mode: 'propre', statut: 'vers_client', etape: 2, livreurPoint: null, arriveePoint: null, ...o });
+  assert.equal(peutSeSituer(lu()), true);
+  assert.equal(peutSeSituer(lu({ statut: 'livree' })), false);
+  assert.equal(peutSeSituer(lu({ restaurantPoint: null, arriveePoint: null })), false);
+  assert.equal(peutSeSituer(lu({ restaurantPoint: null })), true);
+  assert.equal(carteVisible(lu(), null), true);
+  assert.equal(carteVisible(propre(), null), false);
+  assert.equal(carteVisible(propre({ livreurPoint: { latitude: 9.5, longitude: -13.7 } }), null), true);
+  assert.equal(carteVisible(propre(), vous), true);
+  assert.equal(carteVisible(propre({ restaurantPoint: null, arriveePoint: null }), vous), false);
+  assert.equal(carteVisible(lu({ statut: 'annulee' }), vous), false);
 });

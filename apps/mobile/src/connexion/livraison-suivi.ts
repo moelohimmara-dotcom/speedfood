@@ -59,6 +59,11 @@ export function etapeCouranteLivraison(l: LivraisonSuivi): number {
   return l.statut === 'livree' ? 3 : l.statut === 'vers_client' ? 2 : l.statut === 'assignee' ? 1 : 0;
 }
 
+/** Le client peut se situer sur la carte tant que la livraison n'est pas terminée et qu'au moins un point (restaurant ou adresse) permet de dessiner une carte. */
+export const peutSeSituer = (l: LivraisonSuivi): boolean => !estLivraisonFinale(l) && (l.restaurantPoint !== null || l.arriveePoint !== null);
+/** Carte affichée : comme sur le site (livreur de la plateforme, ou livreur du restaurant dont la position est connue), et aussi quand le client a choisi de se situer. */
+export const carteVisible = (l: LivraisonSuivi, vous: PointCarte | null): boolean => peutSeSituer(l) && (l.mode !== 'propre' || l.livreurPoint !== null || vous !== null);
+
 /** Une phrase qui dit où en est la course et ce que le client doit faire. */
 export function phraseLivraison(l: LivraisonSuivi): string | null {
   switch (l.statut) {
