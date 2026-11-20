@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 107,
-    nom: "3.1.4",
-    notes: "Panier allégé : prix indicatifs dits en une phrase courte, et « Disponibilité à confirmer » mieux visible en ambre. Fraîcheur des plats affichée au plus juste, jusqu’à 7 jours pile.",
+    code: 108,
+    nom: "3.1.5",
+    notes: "Accessibilité renforcée : les erreurs de saisie sont annoncées, la confirmation du panier aussi, et les explications du suivi de position se parcourent par titres.",
     obligatoire: false,
-    apkSha256: "05b9277fc79053ef47a991f4d58023de122eee97bfd7f8e1de49563c21f9dd41",
+    apkSha256: "f7a4863901ad08d54d3453335b8d7a5841cae998b7b2976b3de8c152364b23e5",
     apkTaille: 65894499,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.4.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.5.apk",
   },
 };
