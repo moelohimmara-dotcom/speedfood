@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  FENETRE_COMMANDE_EN_COURS_MS, RELECTURES_ACCUEIL_MAX, TITRE_PAR_DEFAUT, aRelirePourAccueil, choisirCommandeEnCours, heureConakry, libelleHeure, titreAccueil,
+  FENETRE_COMMANDE_EN_COURS_MS, RELECTURES_ACCUEIL_MAX, TITRE_PAR_DEFAUT, aRelirePourAccueil, choisirCommandeEnCours, heureConakry, libelleHeure, enteteAccueil,
 } from '../src/catalogue/accueil-vivant.ts';
 import {
   PHRASE_ATTENTE_RESTAURANT, PHRASE_A_REGLER, PHRASE_EN_PREPARATION, PHRASE_PROPOSITION, phraseProchaineEtape, type EtatPourPhrase,
@@ -23,27 +23,29 @@ test('titre d’accueil : l’heure de Conakry est l’heure GMT, minuit et midi
   assert.equal(libelleHeure(7), '7 h');
 });
 
-test('titre d’accueil : compte seulement les restaurants ouverts qui prennent des commandes', () => {
-  const t = titreAccueil({ maintenant: NUIT, restaurants: [ouvert, ouvert, ferme, pauseCommandes], listeComplete: true });
-  assert.equal(t, 'Il est 19 h à Conakry : 2 restaurants prennent des commandes.');
+test('en-tête d’accueil : compte seulement les restaurants ouverts qui prennent des commandes, sur deux niveaux', () => {
+  const e = enteteAccueil({ maintenant: NUIT, restaurants: [ouvert, ouvert, ferme, pauseCommandes], listeComplete: true });
+  assert.deepEqual(e, { titre: 'Il est 19 h à Conakry', ligne: '2 restaurants prennent des commandes.' });
 });
 
-test('titre d’accueil : singulier pour un seul restaurant', () => {
-  assert.equal(titreAccueil({ maintenant: NUIT, restaurants: [ouvert, ferme], listeComplete: true }), 'Il est 19 h à Conakry : 1 restaurant prend des commandes.');
+test('en-tête d’accueil : singulier pour un seul restaurant', () => {
+  assert.deepEqual(enteteAccueil({ maintenant: NUIT, restaurants: [ouvert, ferme], listeComplete: true }), { titre: 'Il est 19 h à Conakry', ligne: '1 restaurant prend des commandes.' });
 });
 
-test('titre d’accueil : aucun restaurant ouvert est dit seulement quand toute la liste est connue', () => {
-  assert.equal(titreAccueil({ maintenant: new Date('2026-11-19T03:00:00Z'), restaurants: [ferme, pauseCommandes], listeComplete: true }), 'Il est 3 h à Conakry : aucun restaurant ne prend de commandes pour le moment.');
-  assert.equal(titreAccueil({ maintenant: new Date('2026-11-19T03:00:00Z'), restaurants: [ferme], listeComplete: false }), 'Il est 3 h à Conakry.');
+test('en-tête d’accueil : aucun restaurant ouvert est dit seulement quand toute la liste est connue', () => {
+  const nuit = new Date('2026-11-19T03:00:00Z');
+  assert.deepEqual(enteteAccueil({ maintenant: nuit, restaurants: [ferme, pauseCommandes], listeComplete: true }), { titre: 'Il est 3 h à Conakry', ligne: 'Aucun restaurant ne prend de commandes pour le moment.' });
+  assert.deepEqual(enteteAccueil({ maintenant: nuit, restaurants: [ferme], listeComplete: false }), { titre: 'Il est 3 h à Conakry', ligne: null });
 });
 
-test('titre d’accueil : liste incomplète donne « au moins N », jamais un total inventé', () => {
-  assert.equal(titreAccueil({ maintenant: new Date('2026-11-19T12:00:00Z'), restaurants: [ouvert, ouvert], listeComplete: false }), 'Il est midi à Conakry : au moins 2 restaurants prennent des commandes.');
-  assert.equal(titreAccueil({ maintenant: NUIT, restaurants: [ouvert], listeComplete: false }), 'Il est 19 h à Conakry : au moins 1 restaurant prend des commandes.');
+test('en-tête d’accueil : liste incomplète donne « Au moins N », jamais un total inventé', () => {
+  assert.deepEqual(enteteAccueil({ maintenant: new Date('2026-11-19T12:00:00Z'), restaurants: [ouvert, ouvert], listeComplete: false }), { titre: 'Il est midi à Conakry', ligne: 'Au moins 2 restaurants prennent des commandes.' });
+  assert.equal(enteteAccueil({ maintenant: NUIT, restaurants: [ouvert], listeComplete: false }).ligne, 'Au moins 1 restaurant prend des commandes.');
 });
 
-test('titre d’accueil : liste vide garde le titre d’origine', () => {
-  assert.equal(titreAccueil({ maintenant: NUIT, restaurants: [], listeComplete: true }), TITRE_PAR_DEFAUT);
+test('en-tête d’accueil : le titre reste court (une ligne) et la liste vide garde le titre d’origine', () => {
+  assert.deepEqual(enteteAccueil({ maintenant: NUIT, restaurants: [], listeComplete: true }), { titre: TITRE_PAR_DEFAUT, ligne: null });
+  assert.ok(enteteAccueil({ maintenant: NUIT, restaurants: [ouvert], listeComplete: true }).titre.length <= 30);
 });
 
 const maintenant = Date.parse('2026-11-19T20:00:00Z');
@@ -131,7 +133,7 @@ test('qui agit : aucun tiret long dans les textes ajoutés', () => {
 
 test('accueil : le titre vivant, la carte et le point de l’onglet sont branchés', () => {
   const accueil = lire('../src/catalogue/CatalogueReel.tsx');
-  assert.match(accueil, /titreAccueil\(\{ maintenant: new Date\(\)/);
+  assert.match(accueil, /enteteAccueil\(\{ maintenant: new Date\(\)/);
   assert.match(accueil, /<CarteCommandeEnCours commande=\{enCours\.commande\} suivre=\{voirCommandeEnCours\} \/>/);
   assert.match(accueil, /commandeEnCours=\{enCours\.commande !== null\}/);
   assert.match(lire('../src/catalogue/BarreOnglets.tsx'), /Commandes, une commande en cours/);

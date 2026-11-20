@@ -33,7 +33,7 @@ import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en
 import { VisiteGuidee } from '../connexion/VisiteReel';
 import { LEGENDE_A_CONFIRMER, commandabilite, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants } from './parcours-client';
 import { CandidatureReel } from '../connexion/CandidatureReel';
-import { titreAccueil } from './accueil-vivant';
+import { enteteAccueil } from './accueil-vivant';
 import { useCommandeEnCours } from './useCommandeEnCours';
 import { CarteCommandeEnCours } from './CarteCommandeEnCours';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
@@ -202,6 +202,7 @@ export function CatalogueReel() {
     </View>
   </Pressable>; };
   const titreRestaurant = menu?.restaurant ?? selection;
+  const entete = enteteAccueil({ maintenant: new Date(), restaurants: restaurantsDansZone(restaurants, zone), listeComplete: suivant === null });
   const nombreArticles = panier.panier.lignes.reduce((total, ligne) => total + ligne.quantite, 0);
   const sousTotal = panier.menu ? chiffrer(panier.panier, panier.menu.plats).total : null;
   // Barre d'onglets (G18) : l'onglet actif se déduit de l'état des écrans ; un appui donne l'état voulu. Panier et Compte s'affichent DANS la page, sous la barre.
@@ -240,7 +241,8 @@ export function CatalogueReel() {
     </View>}
     <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
-      <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? titreAccueil({ maintenant: new Date(), restaurants: restaurantsDansZone(restaurants, zone), listeComplete: suivant === null })}</Text>
+      <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? entete.titre}</Text>
+      {!selection && entete.ligne !== null && <Text style={[s.texte, { fontWeight: '700' }]}>{entete.ligne}</Text>}
       {!selection && <Text style={s.texte}>Commandez en retrait ou en livraison. Vous réglez le restaurant après sa confirmation.</Text>}
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       {panier.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>}

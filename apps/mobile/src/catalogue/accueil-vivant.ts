@@ -9,18 +9,19 @@ export const TITRE_PAR_DEFAUT = 'Une envie. Un bon repas.';
 /** Heure de Conakry : GMT toute l'année, sans changement d'heure (comme `heureLisible`). */
 export const heureConakry = (maintenant: Date): number => maintenant.getUTCHours();
 export const libelleHeure = (h: number): string => h === 0 ? 'minuit' : h === 12 ? 'midi' : `${h} h`;
+export interface EnteteAccueil { titre: string; ligne: string | null }
 /**
- * « Il est 19 h à Conakry : 12 restaurants prennent des commandes. » Compte seulement les restaurants ouverts qui acceptent des commandes (la règle du filtre « On peut commander »).
- * Liste incomplète (d'autres pages restent à charger) : « au moins N », jamais un total inventé, et jamais « aucun ». Liste vide : le titre d'origine.
+ * En-tête de l'accueil sur deux niveaux : le titre dit l'heure (« Il est 19 h à Conakry »), la ligne dessous dit le nombre de restaurants (« 12 restaurants prennent des commandes. »).
+ * Compte seulement les restaurants ouverts qui acceptent des commandes (la règle du filtre « On peut commander »).
+ * Liste incomplète (d'autres pages restent à charger) : « Au moins N », jamais un total inventé, et jamais « Aucun ». Liste vide : le titre d'origine, sans ligne.
  */
-export function titreAccueil(e: { maintenant: Date; restaurants: ReadonlyArray<Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes'>>; listeComplete: boolean }): string {
-  if (e.restaurants.length === 0) return TITRE_PAR_DEFAUT;
+export function enteteAccueil(e: { maintenant: Date; restaurants: ReadonlyArray<Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes'>>; listeComplete: boolean }): EnteteAccueil {
+  if (e.restaurants.length === 0) return { titre: TITRE_PAR_DEFAUT, ligne: null };
   const n = e.restaurants.filter(r => r.ouvert && r.accepteCommandes).length;
-  const debut = `Il est ${libelleHeure(heureConakry(e.maintenant))} à Conakry`;
-  if (n === 0) return e.listeComplete ? `${debut} : aucun restaurant ne prend de commandes pour le moment.` : `${debut}.`;
-  const pluriel = n > 1;
-  const quantite = e.listeComplete ? String(n) : `au moins ${n}`;
-  return `${debut} : ${quantite} ${pluriel ? 'restaurants prennent' : 'restaurant prend'} des commandes.`;
+  const titre = `Il est ${libelleHeure(heureConakry(e.maintenant))} à Conakry`;
+  if (n === 0) return { titre, ligne: e.listeComplete ? 'Aucun restaurant ne prend de commandes pour le moment.' : null };
+  const quantite = e.listeComplete ? String(n) : `Au moins ${n}`;
+  return { titre, ligne: `${quantite} ${n > 1 ? 'restaurants prennent' : 'restaurant prend'} des commandes.` };
 }
 
 /** Une commande envoyée il y a plus de 24 h et jamais terminée n'est plus « en cours » sur l'accueil (elle reste dans l'onglet Commandes). */
