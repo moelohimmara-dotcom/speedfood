@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 const RESPONSABLE = "Mo elohim";
 const CONTACT = "moelohimmara@gmail.com";
-const DERNIERE_MISE_A_JOUR = "4 octobre 2026";
+const DERNIERE_MISE_A_JOUR = "19 novembre 2026";
 const DUREE_PAR_DEFAUT = 90;
 
 async function lireDureeConservation(): Promise<number> {
@@ -49,6 +49,19 @@ export default async function ConfidentialitePage() {
         la partage. Elle sert uniquement à retrouver votre commune ou votre quartier : elle est arrondie (environ 100 mètres),
         envoyée au service de cartographie libre OpenStreetMap (Nominatim) qui renvoie le nom du lieu, puis oubliée. Speedfood ne
         l&apos;enregistre pas. Vous pouvez toujours choisir votre zone à la main.
+      </p>
+
+      <h2>Si vous êtes livreur : votre position</h2>
+      <p>
+        Si vous êtes livreur, Speedfood collecte votre position précise (GPS) seulement quand vous êtes en ligne. Cette
+        position sert à vous proposer les courses proches de vous et à permettre au client de suivre sa livraison en cours.
+        Si vous choisissez « Autoriser le suivi », votre position peut être collectée même écran éteint ou application
+        fermée, et une notification reste affichée pendant le suivi. Le suivi s&apos;arrête dès que vous vous mettez hors
+        ligne, et votre dernière position est alors effacée. Speedfood ne garde que votre dernière position : elle est
+        remplacée à chaque nouvel envoi, sans historique de vos déplacements, et toute position de plus de 24 heures est
+        effacée par un nettoyage régulier. Pendant une livraison en cours, votre position peut être vue par le client qui
+        suit sa commande et par le restaurant concerné. L&apos;équipe Speedfood peut aussi y accéder pour vous aider ou
+        traiter un litige.
       </p>
 
       <h2>Liste d&apos;attente d&apos;une zone (facultatif)</h2>
