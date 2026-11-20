@@ -1091,5 +1091,20 @@ verifier("position : un délai de 0 heure est refusé", (await (async () => {
 verifier("position : anon ne peut pas exécuter le nettoyage (droit d'exécution)", (await db.query(`select has_function_privilege('anon', 'public.fn_effacer_positions_anciennes(integer)', 'execute') as ok`)).rows[0].ok === false);
 verifier("position : authenticated ne peut pas exécuter le nettoyage (droit d'exécution)", (await db.query(`select has_function_privilege('authenticated', 'public.fn_effacer_positions_anciennes(integer)', 'execute') as ok`)).rows[0].ok === false);
 
+// Livreurs de démonstration (migration du 20 novembre 2026) : le passage hors ligne leur garde leur position, sans quoi le dispatch ne leur donnerait plus jamais de course.
+const POS_F = "00000000-0000-4000-8000-00000000aa08";
+const POS_G = "00000000-0000-4000-8000-00000000aa09";
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le, simule) values
+  (${U(POS_F)}, 'Position Test F (démo)', 'disponible', 9.55, -13.65, now(), true),
+  (${U(POS_G)}, 'Position Test G', 'disponible', 9.56, -13.66, now(), false)`);
+await db.exec(`update livreurs set statut = 'hors_ligne' where id in (${U(POS_F)}, ${U(POS_G)})`);
+const posF = await positionDe(POS_F);
+verifier("position : un livreur simulé passé hors ligne garde sa position (démonstration)", posF.latitude === 9.55 && posF.longitude === -13.65 && posF.position_le !== null && posF.statut === "hors_ligne");
+const posG = await positionDe(POS_G);
+verifier("position : un vrai livreur passé hors ligne n'a toujours aucune position", posG.latitude === null && posG.longitude === null && posG.position_le === null);
+await db.exec(`update livreurs set statut = 'disponible' where id = ${U(POS_F)}`);
+const posFRetour = await positionDe(POS_F);
+verifier("position : un livreur simulé remis en ligne a toujours sa position, donc reste attribuable par le dispatch", posFRetour.latitude === 9.55 && posFRetour.statut === "disponible");
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);
