@@ -33,6 +33,9 @@ import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en
 import { VisiteGuidee } from '../connexion/VisiteReel';
 import { LEGENDE_A_CONFIRMER, commandabilite, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants } from './parcours-client';
 import { CandidatureReel } from '../connexion/CandidatureReel';
+import { enteteAccueil } from './accueil-vivant';
+import { useCommandeEnCours } from './useCommandeEnCours';
+import { CarteCommandeEnCours } from './CarteCommandeEnCours';
 import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
@@ -40,6 +43,7 @@ const lecteur = creerLecteurCatalogue();
 const Action = ({ titre, agir, disabled = false, secondaire = false, icone, libelleCourt, iconeSeule = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; icone?: NomIcone; libelleCourt?: string; iconeSeule?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} icone={icone} libelleCourt={libelleCourt} iconeSeule={iconeSeule} />;
 export function CatalogueReel() {
   const panier = usePanierReel();
+  const enCours = useCommandeEnCours();
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [compteOuvert, setCompteOuvert] = useState(false);
   const [commandeOuverte, setCommandeOuverte] = useState(false);
@@ -198,12 +202,19 @@ export function CatalogueReel() {
     </View>
   </Pressable>; };
   const titreRestaurant = menu?.restaurant ?? selection;
+  const entete = enteteAccueil({ maintenant: new Date(), restaurants: restaurantsDansZone(restaurants, zone), listeComplete: suivant === null });
   const nombreArticles = panier.panier.lignes.reduce((total, ligne) => total + ligne.quantite, 0);
   const sousTotal = panier.menu ? chiffrer(panier.panier, panier.menu.plats).total : null;
   // Barre d'onglets (G18) : l'onglet actif se déduit de l'état des écrans ; un appui donne l'état voulu. Panier et Compte s'affichent DANS la page, sous la barre.
   const onglet = ongletActif({ panierOuvert, compteOuvert, demandeCompte });
   const surRestaurants = onglet === 'restaurants';
   const barrePanierVisible = nombreArticles > 0 && surRestaurants;
+  // « Commande en cours » : le bouton de la carte ouvre le suivi de cette commande ; chaque changement d'onglet relit son état (la carte et le point de l'onglet Commandes restent justes).
+  function voirCommandeEnCours() {
+    if (enCours.commande === null) return;
+    setPanierOuvert(false); setDemandeCompte({ reference: enCours.commande.reference }); setCompteOuvert(true);
+  }
+  useEffect(() => { enCours.recharger(); }, [onglet]);
   function choisirOnglet(id: IdOnglet) {
     const e = etatPourOnglet(id);
     setPanierOuvert(e.panierOuvert); setCompteOuvert(e.compteOuvert); setDemandeCompte(e.demandeCompte); setMessageRecommande('');
@@ -230,7 +241,8 @@ export function CatalogueReel() {
     </View>}
     <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
-      <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? 'Une envie. Un bon repas.'}</Text>
+      <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? entete.titre}</Text>
+      {!selection && entete.ligne !== null && <Text style={[s.texte, { fontWeight: '700' }]}>{entete.ligne}</Text>}
       {!selection && <Text style={s.texte}>Commandez en retrait ou en livraison. Vous réglez le restaurant après sa confirmation.</Text>}
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       {panier.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>}
@@ -239,6 +251,7 @@ export function CatalogueReel() {
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
+      {!selection && enCours.commande !== null && <CarteCommandeEnCours commande={enCours.commande} suivre={voirCommandeEnCours} />}
       {!selection && <>
         <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher un restaurant, un quartier ou une cuisine" placeholder="Un restaurant, un quartier, une cuisine…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
@@ -273,11 +286,11 @@ export function CatalogueReel() {
     </View>}
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
     <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
-    <BarreOnglets actif={onglet} articles={nombreArticles} choisir={choisirOnglet} />
+    <BarreOnglets actif={onglet} articles={nombreArticles} commandeEnCours={enCours.commande !== null} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
-      apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
+      apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setTimeout(() => enCours.recharger(), 2000); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
