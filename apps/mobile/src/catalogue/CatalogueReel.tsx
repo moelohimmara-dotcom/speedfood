@@ -22,6 +22,7 @@ import { AideReelle } from '../connexion/AideReelle';
 import { FavoriFiche } from '../connexion/FavoriFiche';
 import { verrouPro } from '../connexion/verrou-natif';
 import { CommandeReelle } from './CommandeReelle';
+import { PHRASE_MODES_COMMANDE } from './commande-reelle';
 import { Vignette } from './Vignette';
 import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
@@ -243,7 +244,7 @@ export function CatalogueReel() {
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? entete.titre}</Text>
       {!selection && entete.ligne !== null && <Text style={[s.texte, { fontWeight: '700' }]}>{entete.ligne}</Text>}
-      {!selection && <Text style={s.texte}>Commandez en retrait ou en livraison. Vous réglez le restaurant après sa confirmation.</Text>}
+      {!selection && <Text style={s.texte}>Commandez {PHRASE_MODES_COMMANDE}. Vous réglez le restaurant après sa confirmation.</Text>}
       {selection && <FavoriFiche restaurantId={selection.id} nom={titreRestaurant?.nom ?? selection.nom ?? 'ce restaurant'} version={compteOuvert ? 1 : 0} ouvrirCompte={() => setCompteOuvert(true)} />}
       {panier.statut !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{panier.statut}</Text>}
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer l’enregistrement du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}

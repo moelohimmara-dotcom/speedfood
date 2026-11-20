@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { chiffrer, type PanierReel } from './panier-reel';
-import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, totalEstime, validerSaisie } from './commande-reelle';
+import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, LIVRAISON_CLIENT_DISPONIBLE, totalEstime, validerSaisie } from './commande-reelle';
 import { EnvoiCommande } from './envoi-commande';
 import { COMMENTAIRE_PLATS_A_CONFIRMER, TEXTE_CONSENTEMENT, TITRE_PARCOURS, commandabilite, etapesParcours, nombreAConfirmer, phraseARegler } from './parcours-client';
 import { creerLecteurCatalogue } from './client';
@@ -36,7 +36,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
 }) {
   const [, redessiner] = useReducer((n: number) => n + 1, 0);
   const machine = useRef<EnvoiCommande | null>(null);
-  if (!machine.current) { machine.current = new EnvoiCommande({ envoyer: p => gestion.creerCommande(p), estimer: (r, q, t) => gestion.estimerLivraison(r, q, t) }); machine.current.surChangement = redessiner; }
+  if (!machine.current) { machine.current = new EnvoiCommande({ envoyer: p => gestion.creerCommande(p), estimer: (r, q, t) => gestion.estimerLivraison(r, q, t), livraisonDisponible: LIVRAISON_CLIENT_DISPONIBLE }); machine.current.surChangement = redessiner; }
   const m = machine.current;
   m.lierCompte(gestion.identifiant, gestion.deconnexions);
   const [quartiers, setQuartiers] = useState<Quartiers>({ etat: 'aucun', liste: [] });
@@ -82,10 +82,10 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     <Action titre="Retour au panier" variante="texte" icone="retour" iconeSeule agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
     <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'} · {livraison ? 'livraison' : 'retrait au restaurant'}</Text>
-    <View accessibilityRole="radiogroup" style={s.rangee}>
+    {LIVRAISON_CLIENT_DISPONIBLE ? <View accessibilityRole="radiogroup" style={s.rangee}>
       <Choix moitie titre="Retrait" actif={!livraison} desactive={verrouille} agir={() => m.saisir('mode', 'retrait')} />
       <Choix moitie titre="Livraison" actif={livraison} desactive={verrouille} agir={() => m.saisir('mode', 'livraison')} />
-    </View>
+    </View> : <Text style={s.secondaire}>La livraison n’est pas encore disponible dans l’application : vous retirez votre commande au restaurant.</Text>}
     <View style={s.carte}>
       {chiffrer(etat.panier, plats).lignes.map(l => <Text key={l.cle} style={s.texte}>{l.quantite} × {l.plat?.nom ?? 'Plat à vérifier'}{l.options.length > 0 ? ' (' + l.options.map(o => o.nom).join(', ') + ')' : ''}{l.prixUnitaire !== null ? ' · ' + gnf(l.prixUnitaire * l.quantite) : ''}</Text>)}
       <Text accessibilityRole="header" style={s.nom}>{bilan.total === null ? 'Total à vérifier' : `Sous-total : ${gnf(bilan.total)}`}</Text>

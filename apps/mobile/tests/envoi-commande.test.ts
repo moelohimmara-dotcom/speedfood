@@ -160,3 +160,25 @@ test('N3 : après un succès sans panier vidé, le message reste affiché (rien 
   await m.envoyer(panier1, plats, () => { throw Error('stockage'); }, true, true);
   assert.equal(m.phase, 'succes'); assert.match(m.message ?? '', /vid/);
 });
+
+test('livraison retirée de l’application : le mode livraison ne peut pas être choisi, la commande part en retrait', async () => {
+  const envoyes: CreationCommandePayload[] = [];
+  const m = new EnvoiCommande({ generer, livraisonDisponible: false, envoyer: async p => { envoyes.push(p); return { reference: 'SF-ABCDE', idempotent: false }; } });
+  m.lierCompte('A'); remplir(m);
+  m.saisir('mode', 'livraison'); m.saisir('quartierId', 'q1'); m.saisir('adresse', 'Rue 12, Kaloum');
+  assert.equal(m.mode, 'retrait');
+  assert.deepEqual(await go(m), { type: 'succes', reference: 'SF-ABCDE', panierVide: true });
+  assert.equal(envoyes.length, 1); assert.equal(envoyes[0].mode, 'retrait');
+});
+
+test('livraison : sans interrupteur éteint, le mode livraison reste choisissable (la machine ne change pas, seul l’écran la retire)', () => {
+  const m = new EnvoiCommande({ generer, envoyer: async () => ({ reference: 'SF-ABCDE', idempotent: false }) });
+  m.saisir('mode', 'livraison');
+  assert.equal(m.mode, 'livraison');
+});
+
+test('interrupteur livraison de l’application : éteint le 20/11/2026, les textes d’accueil ne parlent que de retrait', async () => {
+  const { LIVRAISON_CLIENT_DISPONIBLE, PHRASE_MODES_COMMANDE } = await import('../src/catalogue/commande-reelle.ts');
+  assert.equal(LIVRAISON_CLIENT_DISPONIBLE, false);
+  assert.equal(PHRASE_MODES_COMMANDE, 'en retrait au restaurant');
+});

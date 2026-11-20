@@ -9,6 +9,7 @@ import { DELAI_RELECTURE_MS, doitRelire, estFinal, etapeActuelle, libelleStatutS
 import { FriseSuivi } from './FriseSuivi';
 import { phraseProchaineEtape } from './suivi-acteur';
 import { Pastille } from '../catalogue/FicheRestaurant';
+import { PHRASE_MODES_COMMANDE } from '../catalogue/commande-reelle';
 import { CommandesAppareilReel } from './CommandesAppareilReel';
 import { lireCodeRetourSocial, preparerVerificateur, urlConnexionSociale, versBase64Url, type FournisseurSocial } from './reseaux-sociaux';
 import { gestion } from './gestion';
@@ -281,7 +282,7 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     </>}
     {erreur&&<Action titre="Effacer la session de cet appareil" variante="danger" disabled={attente} agir={()=>{setProfil(null);void executer(async()=>{const r=await gestion.deconnecter();setMessage(r.distanteConfirmee?'Session locale effacée.':'Session locale effacée ; révocation distante non confirmée.');});}}/>}
     {vue==='compte'&&parametres&&<ParametresReel connectee={connectee} ouvrirVisite={parametres.ouvrirVisite} oublierCommandes={parametres.oublierCommandes} sessionTerminee={()=>{setConnectee(gestion.connectee);setProfil(null);effacerLectures();setErreur('Votre session a pris fin. Reconnectez-vous.');}}/>}
-    <Text style={s.secondaire}>Vous pouvez commander en retrait ou en livraison depuis le panier lorsque vous êtes connecté.</Text>
+    <Text style={s.secondaire}>Vous pouvez commander {PHRASE_MODES_COMMANDE} depuis le panier lorsque vous êtes connecté.</Text>
   </ScrollView>;
   if(enModal)return <Modal visible={ouvert} onRequestClose={fermerFormulaire} animationType="slide"><SafeAreaView style={{flex:1,backgroundColor:c.fond}}>{corps}</SafeAreaView></Modal>;
   return ouvert?corps:null;
