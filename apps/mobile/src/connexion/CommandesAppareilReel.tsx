@@ -6,6 +6,7 @@ import { RELECTURES_APPAREIL_MAX, type VueCommandeAppareil } from './commandes-a
 import type { ResumeSuivi } from './commandes';
 import { DELAI_RELECTURE_MS, doitRelire, estFinal, etapeActuelle, libelleStatutSuivi, previsionPreparation, tonStatut } from './suivi-affichage';
 import { FriseSuivi } from './FriseSuivi';
+import { BlocLivraisonSuivi } from './BlocLivraisonSuivi';
 import { phraseProchaineEtape } from './suivi-acteur';
 import { Pastille } from '../catalogue/FicheRestaurant';
 import { couleurs as c, polices } from '../design/tokens';
@@ -92,6 +93,7 @@ export function CommandesAppareilReel({ oublier, apresOubli }: { oublier(): Prom
       {previsionPreparation(suivi.valeur) !== null && <Text style={s.texte}>{previsionPreparation(suivi.valeur)}</Text>}
       {etapeActuelle(suivi.valeur.statut) !== null && <FriseSuivi etape={etapeActuelle(suivi.valeur.statut) as number} />}
       {phraseProchaineEtape(suivi.valeur) !== null && <Text style={s.nom}>{phraseProchaineEtape(suivi.valeur)}</Text>}
+      {suivi.valeur.livraison != null && <BlocLivraisonSuivi livraison={suivi.valeur.livraison} />}
       {suivi.valeur.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}
       {suivi.valeur.fraisLivraisonGnf > 0 && <Text style={s.texte}>Livraison estimée : {suivi.valeur.fraisLivraisonGnf.toLocaleString('fr-FR')} GNF</Text>}
       <Text style={s.nom}>Total : {suivi.valeur.totalGnf.toLocaleString('fr-FR')} GNF</Text>

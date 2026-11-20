@@ -15,6 +15,7 @@ import { executerCreationCoeur } from "@/lib/commande/creation-coeur";
 import { listerMesCommandes } from "@/lib/client/mes-commandes";
 import { actionAdresseClient, basculerFavoriClient, enregistrerProfilClient, lireEspaceClient, supprimerCompteClient } from "@/lib/client/espace-service";
 import { estimerPourClient } from "@/lib/livraison/estimation-service";
+import { chargerLivraisonClientParJeton } from "@/lib/livraison/vues";
 import { creerApp } from "./app.ts";
 import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } from "./identite/jeton.ts";
 import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
@@ -61,6 +62,7 @@ const app = creerApp({
     jetonValide: estJetonValide,
     limiterLecture: limiterLectureSuivi,
     lire: chargerSuiviParJeton,
+    livraison: chargerLivraisonClientParJeton,
     limiterAnnulation: limiterAnnulationClient,
     annuler: annulerParClient,
     limiterReponseProposition,

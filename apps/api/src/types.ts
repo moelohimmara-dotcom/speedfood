@@ -1,6 +1,7 @@
 import type { VersionApplication } from "@speedfood/shared/application/version";
 import type { CreationCommandePayload, ResultatActionCommande, ResultatCreationCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
 import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
+import type { SourceLivraisonClient } from "@speedfood/shared/contracts/livraison-suivi";
 import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { ActionLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
@@ -73,6 +74,8 @@ export interface Deps {
     jetonValide(jeton: unknown): jeton is string;
     limiterLecture(jeton: string): Promise<void>;
     lire(jeton: string): Promise<object | null>;
+    /** Livraison de la commande (vue du site), pour les commandes en livraison seulement ; absent = jamais de bloc livraison. Une panne ne casse jamais le suivi. */
+    livraison?(jeton: string): Promise<SourceLivraisonClient | null>;
     limiterAnnulation(): Promise<void>;
     annuler(jeton: string): Promise<{ reference: string }>;
     limiterReponseProposition(): Promise<void>;

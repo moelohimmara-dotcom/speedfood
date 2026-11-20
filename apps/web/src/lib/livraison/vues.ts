@@ -117,3 +117,13 @@ export async function vueLivraisonPourClient(commandeId: string): Promise<(VueLi
   // Le téléphone du livreur n'est jamais envoyé au navigateur du client.
   return { ...vue, livreurTelephone: null, code: enCours ? ((ligneCode?.code as string | undefined) ?? null) : null };
 }
+
+/**
+ * Livraison d'une commande retrouvée par son jeton de suivi, pour l'API de l'application (même vue que `/suivi/[jeton]` du site). `null` : pas de livraison pour cette commande.
+ * Le jeton est la clé d'accès (il a déjà été validé et plafonné par l'appelant) ; l'appelant filtre ensuite champ par champ (`versLivraisonSuiviApplication`).
+ */
+export async function chargerLivraisonClientParJeton(jeton: string): Promise<(VueLivraison & { code: string | null }) | null> {
+  const { data: ligne } = await clientLivraison().from("orders").select("id").eq("jeton_suivi", jeton).maybeSingle();
+  if (!ligne) return null;
+  return vueLivraisonPourClient(ligne.id as string);
+}
