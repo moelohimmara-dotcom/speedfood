@@ -333,6 +333,12 @@
   margin-top: var(--space-4);
 }
 .squelette-decouverte .squelette-carte { height: 260px; border-radius: var(--radius-lg); }
+.squelette-decouverte .squelette-fiche-plats {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.squelette-decouverte .squelette-plat { height: 96px; border-radius: var(--radius-lg); }
 
 /* ===== Zone de sécurité entre le contenu et le pied de page ===== */
 /* Les dernières cartes (et leur ombre décalée) ne touchent plus le pied de page : un espace dégagé les en sépare, sur toutes les pages

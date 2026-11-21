@@ -323,6 +323,9 @@
   padding-left: var(--space-5);
 }
 .conditions-sommaire a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--encre);
 }
 .conditions-corps {

@@ -27,8 +27,10 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <div className="u-mt-s3-pt-s3-bt-1px-solid-bordure">
-      <p className="u-m-0-0-6px-fs-0-85rem-fw-700">Suppléments</p>
+    <details className="u-mt-s3-pt-s3-bt-1px-solid-bordure option-repli" open={options.length > 0}>
+      <summary className="u-m-0-0-6px-fs-0-85rem-fw-700 option-repli-titre">
+        Suppléments{options.length > 0 ? ` (${options.length})` : ""}
+      </summary>
       {options.length > 0 ? (
         <div className="u-d-flex-fwrap-wrap-g-6px-mb-8px">
           {options.map((option) => (
@@ -78,6 +80,6 @@ export function OptionsPlat({ menuItemId, options }: { menuItemId: string; optio
           {etat.erreur}
         </Alert>
       ) : null}
-    </div>
+    </details>
   );
 }

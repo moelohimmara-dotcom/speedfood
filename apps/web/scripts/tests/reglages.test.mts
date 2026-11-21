@@ -22,6 +22,7 @@ import {
   pourcentage,
   tauxAcceptation,
   variation,
+  variationFiable,
   type LigneSerie,
 } from "../../src/lib/system-admin/pilotageCalculs";
 import { fusionnerPromesse, PROMESSE_PAR_DEFAUT } from "../../src/lib/parametres/promesse-defauts";
@@ -158,6 +159,10 @@ verifier("taux d'acceptation sans décision", tauxAcceptation({ total: 2, enAtte
 verifier("variation +200 %", variation(6, 2), 2);
 verifier("variation depuis zéro", variation(5, 0), null);
 verifier("variation zéro sur zéro", variation(0, 0), 0);
+verifier("variation fiable : base de 2, pas de pourcentage", variationFiable(6, 2), null);
+verifier("variation fiable : base de 5, pourcentage calculé", variationFiable(10, 5), 1);
+verifier("variation fiable : zéro sur zéro stable", variationFiable(0, 0), 0);
+verifier("variation fiable : depuis zéro, pas de pourcentage", variationFiable(5, 0), null);
 verifier("statut inconnu ignoré", comparerPeriodes([{ jour: "2026-10-04", statut: "bizarre", nb: 9, montant: 1 }], 3, aujourdhui).courant.total, 0);
 const heures = heuresPleines([{ heure: 12, nb: 3 }, { heure: 12, nb: 2 }, { heure: 19, nb: 4 }, { heure: 30, nb: 9 }]);
 verifier("heures : 24 valeurs, 12 h cumulée, heure invalide ignorée", [heures.length, heures[12], heures[19]], [24, 5, 4]);

@@ -429,7 +429,17 @@
   flex: none;
   min-height: 44px;
 }
+.rappel-securite-court {
+  display: none;
+}
 @media (max-width: 559px) {
+  /* Phrase courte sur téléphone : la version longue prenait quatre lignes. */
+  .rappel-securite-long {
+    display: none;
+  }
+  .rappel-securite-court {
+    display: inline;
+  }
   /* Compact sur téléphone (audit visuel du 15 octobre, VIS-2) : icône, texte et bouton sur UNE rangée au lieu d'un bloc de 125 px (le quart de
      l'écran, répété sur chaque page). Le texte tient sur trois lignes au plus, le bouton garde ses 44 px. */
   .rappel-securite {

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui";
 import { creerClientServeur } from "@/lib/db/server";
 import { retirerFavoriAction } from "@/lib/client/actions-espace";
 
-export const metadata: Metadata = { title: "Mes restaurants favoris" };
+export const metadata: Metadata = { title: { absolute: "Mes restaurants favoris · Speedfood" } };
 export const dynamic = "force-dynamic";
 
 /** Mes restaurants favoris : lus avec la session du client (la RLS ne lui montre que les siens), seuls les restaurants publiés sont proposés. */
