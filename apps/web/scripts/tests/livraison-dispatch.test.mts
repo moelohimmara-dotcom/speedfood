@@ -5,6 +5,8 @@ import {
   etapeLivraison,
   livraisonBloqueLaCloture,
   MESSAGE_LIVRAISON_OUVERTE,
+  MOTIFS_ECHEC_RESTAURANT,
+  motifEchecRestaurantValide,
   libelleLivraison,
   transitionLivraisonAutorisee,
   type ModeLivraison,
@@ -50,6 +52,11 @@ verifier("livreur : ne peut pas annuler", acteurPeut("livreur", "assignee", "ann
 verifier("livreur : ne peut pas s'assigner une course", acteurPeut("livreur", "a_assigner", "assignee", "speedfood"), false);
 verifier("restaurant en mode propre : fait avancer sa livraison", [acteurPeut("restaurant", "assignee", "vers_client", "propre"), acteurPeut("restaurant", "vers_client", "livree", "propre")], [true, true]);
 verifier("restaurant en mode speedfood : peut seulement annuler", [acteurPeut("restaurant", "assignee", "annulee", "speedfood"), acteurPeut("restaurant", "vers_restaurant", "recuperee", "speedfood")], [true, false]);
+verifier("restaurant en mode propre : peut déclarer l'échec une fois parti livrer", acteurPeut("restaurant", "vers_client", "echec", "propre"), true);
+verifier("restaurant en mode speedfood : ne déclare jamais l'échec d'un livreur Speedfood", [acteurPeut("restaurant", "vers_client", "echec", "speedfood"), acteurPeut("restaurant", "recuperee", "echec", "speedfood")], [false, false]);
+verifier("restaurant en mode propre : pas d'échec avant le départ (il peut annuler)", [acteurPeut("restaurant", "assignee", "echec", "propre"), acteurPeut("restaurant", "assignee", "annulee", "propre")], [false, true]);
+verifier("motifs d'échec du restaurant : liste fermée", Object.keys(MOTIFS_ECHEC_RESTAURANT), ["injoignable", "adresse", "refus", "autre"]);
+verifier("motif d'échec : valeurs valides et refus des autres", [motifEchecRestaurantValide("adresse"), motifEchecRestaurantValide(""), motifEchecRestaurantValide("toString"), motifEchecRestaurantValide("__proto__"), motifEchecRestaurantValide(undefined), motifEchecRestaurantValide(3)], [true, false, false, false, false, false]);
 verifier("administrateur : reprend la main (réassignation)", acteurPeut("admin", "vers_restaurant", "a_assigner", "speedfood"), true);
 verifier("administrateur : ne dépasse pas la machine à états", acteurPeut("admin", "livree", "annulee", "speedfood"), false);
 verifier("système : envoie une offre", acteurPeut("systeme", "a_assigner", "offre_envoyee", "speedfood"), true);

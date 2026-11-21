@@ -46,6 +46,23 @@ export function livraisonBloqueLaCloture(statutsDesLivraisons: readonly string[]
 export const MESSAGE_LIVRAISON_OUVERTE =
   "La livraison de cette commande n'est pas terminée : la commande se clôt avec la remise au client, grâce au code de remise. Si la livraison ne peut pas aboutir, contactez l'assistance Speedfood.";
 
+/**
+ * « Livraison non aboutie » déclarée par le restaurant qui livre lui-même (mode « propre », livreur parti) : le motif est choisi dans cette liste, jamais écrit à la main. Le restaurant ne tranche
+ * pas la suite (remboursement ou clôture de la commande) : la livraison passe à « echec » et l'assistance Speedfood reprend. Dans le mode « speedfood », seule l'exploitation ou le livreur
+ * peut déclarer un échec (`acteurPeut`).
+ */
+export const MOTIFS_ECHEC_RESTAURANT = {
+  injoignable: "Client injoignable",
+  adresse: "Adresse introuvable",
+  refus: "Le client a refusé la commande",
+  autre: "Autre problème",
+} as const;
+export type MotifEchecRestaurant = keyof typeof MOTIFS_ECHEC_RESTAURANT;
+
+export function motifEchecRestaurantValide(valeur: unknown): valeur is MotifEchecRestaurant {
+  return typeof valeur === "string" && Object.prototype.hasOwnProperty.call(MOTIFS_ECHEC_RESTAURANT, valeur);
+}
+
 /** Transitions de base du mode « speedfood ». */
 const TRANSITIONS_SPEEDFOOD: Record<StatutLivraison, readonly StatutLivraison[]> = {
   a_assigner: ["offre_envoyee", "assignee", "annulee"],

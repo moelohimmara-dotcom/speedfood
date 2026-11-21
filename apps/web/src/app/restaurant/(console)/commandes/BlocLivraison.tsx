@@ -5,7 +5,7 @@ import Link from "next/link";
 import { agirSurLivraisonAction } from "@/lib/livraison/actions-restaurant";
 import { affecterLivreurAction } from "@/lib/livraison/registre-restaurant";
 import type { VueLivraison } from "@/lib/livraison/vues";
-import { estFinal } from "@/lib/livraison/statuts";
+import { estFinal, MOTIFS_ECHEC_RESTAURANT } from "@/lib/livraison/statuts";
 import { Alert, Button } from "@/components/ui";
 import { CarteLivraison } from "@/components/livraison/CarteLivraison";
 
@@ -20,6 +20,8 @@ export function BlocLivraison({ livraison, commandePrete, livreursRestaurant = [
   const [erreur, setErreur] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [enCours, demarrer] = useTransition();
+  const [echecOuvert, setEchecOuvert] = useState(false);
+  const [motif, setMotif] = useState("");
   const final = estFinal(livraison.statut);
 
   function affecter(livreurId: string) {
@@ -30,12 +32,16 @@ export function BlocLivraison({ livraison, commandePrete, livreursRestaurant = [
     });
   }
 
-  function agir(action: "partir" | "livree" | "annuler") {
+  function agir(action: "partir" | "livree" | "annuler" | "non_aboutie") {
     setErreur(null);
     demarrer(async () => {
-      const r = await agirSurLivraisonAction(livraison.id, action, action === "livree" ? code : undefined);
+      const r = await agirSurLivraisonAction(livraison.id, action, action === "livree" ? code : undefined, action === "non_aboutie" ? motif : undefined);
       if (!r.ok) setErreur(r.message);
-      else setCode("");
+      else {
+        setCode("");
+        setEchecOuvert(false);
+        setMotif("");
+      }
     });
   }
 
@@ -107,10 +113,36 @@ export function BlocLivraison({ livraison, commandePrete, livreursRestaurant = [
               <Button type="button" disabled={enCours || code.length !== 4} onClick={() => agir("livree")}>
                 Livrée
               </Button>
+              <Button type="button" variante="secondary" disabled={enCours} onClick={() => setEchecOuvert((o) => !o)} aria-expanded={echecOuvert}>
+                Livraison non aboutie
+              </Button>
+              {echecOuvert ? (
+                <div className="commande-livraison-echec">
+                  <label>
+                    Motif
+                    <select value={motif} disabled={enCours} onChange={(e) => setMotif(e.target.value)}>
+                      <option value="">Choisir un motif</option>
+                      {Object.entries(MOTIFS_ECHEC_RESTAURANT).map(([cle, libelle]) => (
+                        <option key={cle} value={cle}>
+                          {libelle}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="aide-champ">La commande reste ouverte : l&apos;assistance Speedfood vous contacte pour décider de la suite (remboursement ou clôture).</p>
+                  <Button type="button" variante="danger" disabled={enCours || motif === ""} onClick={() => agir("non_aboutie")}>
+                    Confirmer : livraison non aboutie
+                  </Button>
+                </div>
+              ) : null}
             </>
           ) : null}
           {livraison.statut === "assignee" && !commandePrete ? <p className="aide-champ">Marquez d&apos;abord la commande prête.</p> : null}
         </div>
+      ) : null}
+
+      {livraison.statut === "echec" ? (
+        <Alert ton="danger">Livraison non aboutie. La commande reste ouverte : l&apos;assistance Speedfood décide de la suite avec vous (remboursement ou clôture).</Alert>
       ) : null}
 
       {!final ? (
