@@ -32,6 +32,8 @@ export interface Reglages {
   fournisseur: NomFournisseur;
   tauxMobilePermille: { orange_money: number; mtn_momo: number };
   fraisSpeedfoodCommandeGnf: number;
+  /** Pourcentage de commission Speedfood sur le repas, en pour-mille. */
+  commissionSpeedfoodPermille: number;
   fraisVersementGnf: number;
   /** Partie fixe des frais de paiement mobile, en GNF (s'ajoute au pourcentage). */
   fraisMobileFixeGnf: number;
@@ -240,6 +242,9 @@ export function creerServicePaiement(deps: DependancesService) {
       speedfoodNetGnf: p.speedfoodBrutGnf - p.fraisMobileGnf,
       deficit: p.speedfoodBrutGnf - p.fraisMobileGnf < 0,
       fraisSpeedfoodAppliqueGnf: p.fraisSpeedfoodGnf,
+      // Détail non stocké : le montant gardé est le total appliqué, compté ici en part fixe (les paiements d'avant la commission mixte n'avaient que le fixe).
+      commissionFixeGnf: p.fraisSpeedfoodGnf,
+      commissionVariableGnf: 0,
     };
   }
 
@@ -265,6 +270,7 @@ export function creerServicePaiement(deps: DependancesService) {
       repasGnf: commande.sousTotalGnf,
       fraisLivraisonGnf: livraisonPar === "aucune" ? 0 : commande.fraisLivraisonGnf,
       fraisSpeedfoodGnf: reglages.fraisSpeedfoodCommandeGnf,
+      tauxCommissionPermille: reglages.commissionSpeedfoodPermille,
       tauxFraisMobilePermille: reglages.tauxMobilePermille[entree.operateur],
       livraisonPar,
       fraisVersementGnf: reglages.fraisVersementGnf,

@@ -170,7 +170,7 @@ function entier(valeur: FormDataEntryValue | null, min: number, max: number): nu
   return Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
 
-/** Réglages du paiement en ligne. Allumer l'interrupteur n'est possible que pour la SIMULATION, tant que l'adaptateur réel n'est pas livré. */
+/** Réglages du paiement en ligne. Le réel (Chap Chap) ne s'allume que clés du prestataire configurées sur le serveur et valeurs validées. */
 export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiementAdmin, formulaire: FormData): Promise<EtatActionPaiementAdmin> {
   const contexte = await verifierPermission("parametres.editer");
   const fournisseur = formulaire.get("fournisseur") === "chapchap" ? "chapchap" : "simulation";
@@ -179,6 +179,7 @@ export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiemen
     frais_mobile_permille_orange: entier(formulaire.get("fraisOrange"), 0, 100),
     frais_mobile_permille_mtn: entier(formulaire.get("fraisMtn"), 0, 100),
     frais_speedfood_commande_gnf: entier(formulaire.get("fraisSpeedfood"), 0, 100_000),
+    commission_speedfood_permille: entier(formulaire.get("commissionPermille"), 0, 1000),
     frais_versement_gnf: entier(formulaire.get("fraisVersement"), 0, 100_000),
     frais_mobile_fixe_gnf: entier(formulaire.get("fraisMobileFixe"), 0, 100_000),
     delai_expiration_minutes: entier(formulaire.get("delai"), 1, 120),
@@ -188,10 +189,13 @@ export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiemen
   };
   if (Object.values(valeurs).some((v) => v === null)) return { erreur: "Une valeur est vide ou hors limites. Les taux sont en pour-mille (15 = 1,5 %), les montants en GNF entiers." };
 
-  if (actif && fournisseur === "chapchap") return { erreur: "Le paiement réel (Chap Chap Pay) ne peut pas être activé : l'adaptateur n'est pas encore livré et l'avis juridique n'est pas rendu." };
-  if (actif && (process.env.PAIEMENT_SIMULATION_CLE ?? "").length < 16) return { erreur: "La clé de la démonstration (PAIEMENT_SIMULATION_CLE) n'est pas configurée sur le serveur : activation impossible." };
+  if (actif && fournisseur === "simulation" && (process.env.PAIEMENT_SIMULATION_CLE ?? "").length < 16) return { erreur: "La clé de la démonstration (PAIEMENT_SIMULATION_CLE) n'est pas configurée sur le serveur : activation impossible." };
 
   const valide = formulaire.get("valide") === "on";
+  if (actif && fournisseur === "chapchap") {
+    if ((process.env.CHAPCHAP_CLE_API ?? "").length < 8 || (process.env.CHAPCHAP_CLE_SIGNATURE ?? "").length < 8) return { erreur: "Les clés Chap Chap Pay ne sont pas configurées sur le serveur (CHAPCHAP_CLE_API et CHAPCHAP_CLE_SIGNATURE) : activation impossible." };
+    if (!valide) return { erreur: "Cochez « Ces valeurs sont les valeurs réelles, validées » pour activer le paiement réel." };
+  }
   const { error } = await db()
     .from("parametres_paiement")
     .update({ ...valeurs, fournisseur, paiement_en_ligne_actif: actif, valeurs_validees_le: valide ? new Date().toISOString() : null, mis_a_jour_le: new Date().toISOString() })
@@ -201,7 +205,7 @@ export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiemen
     action: "paiement.reglages_modifies",
     cibleType: "parametres_paiement",
     cibleId: "global",
-    motif: `interrupteur ${actif ? "allumé" : "éteint"}, fournisseur ${fournisseur}, valeurs ${valide ? "validées" : "de simulation"}`,
+    motif: `interrupteur ${actif ? "allumé" : "éteint"}, fournisseur ${fournisseur}, commission ${valeurs.frais_speedfood_commande_gnf} GNF + ${valeurs.commission_speedfood_permille} pour-mille du repas, valeurs ${valide ? "validées" : "de simulation"}`,
   });
   revalidatePath("/system/paiements");
   return { succes: "Réglages enregistrés." };

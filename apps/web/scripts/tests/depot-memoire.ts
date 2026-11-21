@@ -31,6 +31,7 @@ export function reglagesParDefaut(surcharge: Partial<Reglages> = {}): Reglages {
     fournisseur: "simulation",
     tauxMobilePermille: { orange_money: 15, mtn_momo: 17 },
     fraisSpeedfoodCommandeGnf: 1000,
+    commissionSpeedfoodPermille: 0,
     fraisVersementGnf: 0,
     fraisMobileFixeGnf: 0,
     delaiExpirationMinutes: 15,

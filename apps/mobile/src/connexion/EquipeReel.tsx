@@ -133,7 +133,7 @@ function PaiementsEquipeReel() {
       {p.paiements.map(x => <View key={x.id} style={s.carte}>
         <Text style={s.nomPetit}>{x.commandeReference} · {x.restaurantNom}</Text>
         <Text style={s.texte}>{x.etat.replaceAll('_', ' ')} · {x.operateur.replaceAll('_', ' ')} · {formaterGnf(x.totalGnf)} GNF</Text>
-        <Text style={s.secondaire}>Restaurant {formaterGnf(x.restaurantGnf)} GNF · livreur {formaterGnf(x.livreurGnf)} GNF · Speedfood {formaterGnf(x.speedfoodBrutGnf)} GNF · frais mobile {formaterGnf(x.fraisMobileGnf)} GNF{x.rembourseGnf > 0 ? ' · remboursé ' + formaterGnf(x.rembourseGnf) + ' GNF' : ''}</Text>
+        <Text style={s.secondaire}>Restaurant {formaterGnf(x.restaurantGnf)} GNF · livreur {formaterGnf(x.livreurGnf)} GNF · Speedfood {formaterGnf(x.speedfoodBrutGnf)} GNF · frais mobile {formaterGnf(x.fraisMobileGnf)} GNF · net Speedfood {formaterGnf(x.speedfoodNetGnf)} GNF{x.deficit ? ' · en déficit' : ''}{x.rembourseGnf > 0 ? ' · remboursé ' + formaterGnf(x.rembourseGnf) + ' GNF' : ''}</Text>
         {x.versements.map((v, i) => <Text key={i} style={s.secondaire}>Versement {v.beneficiaire} : {v.etat.replaceAll('_', ' ')} · {formaterGnf(v.montantGnf)} GNF{v.erreurCode ? ' · erreur ' + v.erreurCode : ''}</Text>)}
         {x.litiges.map((l, i) => <Text key={i} accessibilityRole="alert" style={s.texte}>Litige : {l.situation} ({l.etat.replaceAll('_', ' ')})</Text>)}
       </View>)}

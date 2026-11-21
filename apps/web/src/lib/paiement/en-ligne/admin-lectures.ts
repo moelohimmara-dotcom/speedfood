@@ -51,6 +51,7 @@ export interface ReglagesAdmin {
   fraisMobilePermilleOrange: number;
   fraisMobilePermilleMtn: number;
   fraisSpeedfoodCommandeGnf: number;
+  commissionSpeedfoodPermille: number;
   fraisVersementGnf: number;
   fraisMobileFixeGnf: number;
   delaiExpirationMinutes: number;
@@ -59,6 +60,8 @@ export interface ReglagesAdmin {
   seuilLitigeHumainGnf: number;
   valeursValideesLe: string | null;
   cleSimulationConfiguree: boolean;
+  /** Vrai si les deux clés Chap Chap Pay sont présentes dans l'environnement du serveur (jamais leur valeur). */
+  clesChapChapConfigurees: boolean;
 }
 
 export interface CompteAdmin {
@@ -85,6 +88,7 @@ export async function lireReglagesAdmin(): Promise<ReglagesAdmin> {
     fraisMobilePermilleOrange: Number(r.frais_mobile_permille_orange ?? 15),
     fraisMobilePermilleMtn: Number(r.frais_mobile_permille_mtn ?? 17),
     fraisSpeedfoodCommandeGnf: Number(r.frais_speedfood_commande_gnf ?? 1000),
+    commissionSpeedfoodPermille: Number(r.commission_speedfood_permille ?? 0),
     fraisVersementGnf: Number(r.frais_versement_gnf ?? 0),
     fraisMobileFixeGnf: Number(r.frais_mobile_fixe_gnf ?? 0),
     delaiExpirationMinutes: Number(r.delai_expiration_minutes ?? 15),
@@ -93,6 +97,7 @@ export async function lireReglagesAdmin(): Promise<ReglagesAdmin> {
     seuilLitigeHumainGnf: Number(r.seuil_litige_humain_gnf ?? 50000),
     valeursValideesLe: typeof r.valeurs_validees_le === "string" ? r.valeurs_validees_le : null,
     cleSimulationConfiguree: (process.env.PAIEMENT_SIMULATION_CLE ?? "").length >= 16,
+    clesChapChapConfigurees: (process.env.CHAPCHAP_CLE_API ?? "").length >= 8 && (process.env.CHAPCHAP_CLE_SIGNATURE ?? "").length >= 8,
   };
 }
 

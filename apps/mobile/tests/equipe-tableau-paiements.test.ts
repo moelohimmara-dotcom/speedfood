@@ -49,6 +49,15 @@ test('paiements equipe : lecture complete, aucun numero de versement retenu', ()
   assert.ok(!texte.includes('622') && !texte.includes('telephone'));
 });
 
+test('paiements equipe : net Speedfood et déficit calculés comme côté serveur', () => {
+  const sain = lirePaiementsEquipe(paiements());
+  assert.equal(sain.paiements[0].speedfoodNetGnf, 4500);
+  assert.equal(sain.paiements[0].deficit, false);
+  const enDeficit = lirePaiementsEquipe(paiements({ paiements: [paiement({ speedfoodBrutGnf: 100, fraisMobileGnf: 500 })] }));
+  assert.equal(enDeficit.paiements[0].speedfoodNetGnf, -400);
+  assert.equal(enDeficit.paiements[0].deficit, true);
+});
+
 test('paiements equipe : paiement invalide ecarte et compte, structure invalide refusee', () => {
   const p = lirePaiementsEquipe(paiements({ paiements: [paiement({ totalGnf: -5 }), paiement({ id: 'p2', versements: [{ beneficiaire: 'x', etat: 'a_verser', montantGnf: 1.5, erreurCode: null }] })] }));
   assert.equal(p.paiements.length, 0);

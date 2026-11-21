@@ -96,6 +96,7 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
         fournisseur: r.fournisseur === "chapchap" ? "chapchap" : "simulation",
         tauxMobilePermille: { orange_money: Number(r.frais_mobile_permille_orange ?? 15), mtn_momo: Number(r.frais_mobile_permille_mtn ?? 17) },
         fraisSpeedfoodCommandeGnf: Number(r.frais_speedfood_commande_gnf ?? 1000),
+        commissionSpeedfoodPermille: Number(r.commission_speedfood_permille ?? 0),
         fraisVersementGnf: Number(r.frais_versement_gnf ?? 0),
         fraisMobileFixeGnf: Number(r.frais_mobile_fixe_gnf ?? 0),
         delaiExpirationMinutes: Number(r.delai_expiration_minutes ?? 15),

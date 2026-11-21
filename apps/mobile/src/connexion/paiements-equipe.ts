@@ -11,6 +11,8 @@ export interface LitigeEquipe { situation: string; etat: string; regle: string |
 export interface PaiementEquipe {
   id: string; commandeReference: string; restaurantNom: string; etat: string; operateur: string; fournisseur: string;
   totalGnf: number; restaurantGnf: number; livreurGnf: number; speedfoodBrutGnf: number; fraisMobileGnf: number; rembourseGnf: number;
+  /** Net Speedfood calculé ici, comme côté serveur : brut moins frais mobile (avant frais de versement, non reçus). Négatif = déficit. */
+  speedfoodNetGnf: number; deficit: boolean;
   creeLe: string; versements: VersementEquipe[]; litiges: LitigeEquipe[];
 }
 export interface PaiementsEquipe {
@@ -35,11 +37,13 @@ function lirePaiement(x: unknown): PaiementEquipe {
   if (!Array.isArray(o.versements) || o.versements.length > 20 || !Array.isArray(o.litiges) || o.litiges.length > 20) return invalide();
   const creeLe = texte(o.creeLe, 40);
   if (!Number.isFinite(Date.parse(creeLe))) return invalide();
+  const speedfoodNetGnf = montant(o.speedfoodBrutGnf) - montant(o.fraisMobileGnf);
   return {
     id: texte(o.id, 80), commandeReference: libre(o.commandeReference, 40), restaurantNom: libre(o.restaurantNom, 200),
     etat: texte(o.etat, 40), operateur: texte(o.operateur, 40), fournisseur: texte(o.fournisseur, 40),
     totalGnf: montant(o.totalGnf), restaurantGnf: montant(o.restaurantGnf), livreurGnf: montant(o.livreurGnf),
-    speedfoodBrutGnf: montant(o.speedfoodBrutGnf), fraisMobileGnf: montant(o.fraisMobileGnf), rembourseGnf: montant(o.rembourseGnf), creeLe,
+    speedfoodBrutGnf: montant(o.speedfoodBrutGnf), fraisMobileGnf: montant(o.fraisMobileGnf), rembourseGnf: montant(o.rembourseGnf),
+    speedfoodNetGnf, deficit: speedfoodNetGnf < 0, creeLe,
     versements: o.versements.map(vx => {
       const v = objet(vx);
       return { beneficiaire: texte(v.beneficiaire, 40), etat: texte(v.etat, 40), montantGnf: montant(v.montantGnf), erreurCode: texteOuNull(v.erreurCode, 80) };
