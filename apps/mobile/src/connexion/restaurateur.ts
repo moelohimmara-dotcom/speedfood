@@ -231,11 +231,15 @@ export function paiementConfirmable(c: Pick<CommandeRestaurateur, 'statut' | 'pa
  */
 export function actionsPossibles(c: Concerne): ActionRestaurateur[] {
   const actions: ActionRestaurateur[] = [];
+  // Une commande en livraison dont la livraison n'est pas finie ne se termine PAS à la main : elle se clôt avec la remise (code du client saisi par le livreur), comme sur le site, et le serveur
+  // refuse « terminée » dans ce cas. Livraison absente ou illisible : le bouton reste, le serveur tranche (il refuse si une livraison ouverte existe).
+  const livraison = c.mode === 'livraison' ? c.livraison : null;
+  const livraisonOuverte = !!livraison && !livraisonTerminee(livraison.statut);
   if (c.statut === 'en_attente') {
     if (!c.propositionEnAttente) actions.push('accepter', 'refuser', 'proposer');
     if (!commandePayee(c.paiementStatut, c.paiementMode)) actions.push('annuler');
   } else if (c.statut === 'acceptee') { actions.push('prete'); if (!commandePayee(c.paiementStatut, c.paiementMode)) actions.push('annuler'); }
-  else if (c.statut === 'prete') actions.push('terminee');
+  else if (c.statut === 'prete' && !livraisonOuverte) actions.push('terminee');
   if (paiementConfirmable(c)) actions.push('paiement_recu', 'paiement_non_recu');
   actions.push(...actionsLivraison(c));
   return actions;

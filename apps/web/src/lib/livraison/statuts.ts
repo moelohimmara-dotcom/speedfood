@@ -35,6 +35,17 @@ export function estFinal(statut: StatutLivraison): boolean {
   return STATUTS_FINAUX.includes(statut);
 }
 
+/**
+ * Le restaurant peut-il terminer la COMMANDE ? Pas tant qu'une livraison de cette commande est encore ouverte : la commande se clôt avec la remise (code du client saisi par le livreur,
+ * voir `avancerLivraison`), jamais à la main. Une commande sans livraison (retrait, sur place) ou dont toutes les livraisons sont finales n'est pas concernée. Un statut inconnu compte comme
+ * ouvert : dans le doute on ne clôt pas.
+ */
+export function livraisonBloqueLaCloture(statutsDesLivraisons: readonly string[]): boolean {
+  return statutsDesLivraisons.some((s) => !(estStatutLivraison(s) && estFinal(s)));
+}
+export const MESSAGE_LIVRAISON_OUVERTE =
+  "La livraison de cette commande n'est pas terminée : la commande se clôt avec la remise au client, grâce au code de remise. Si la livraison ne peut pas aboutir, contactez l'assistance Speedfood.";
+
 /** Transitions de base du mode « speedfood ». */
 const TRANSITIONS_SPEEDFOOD: Record<StatutLivraison, readonly StatutLivraison[]> = {
   a_assigner: ["offre_envoyee", "assignee", "annulee"],

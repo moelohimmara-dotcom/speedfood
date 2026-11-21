@@ -3,6 +3,8 @@ import {
   acteurPeut,
   estFinal,
   etapeLivraison,
+  livraisonBloqueLaCloture,
+  MESSAGE_LIVRAISON_OUVERTE,
   libelleLivraison,
   transitionLivraisonAutorisee,
   type ModeLivraison,
@@ -103,6 +105,15 @@ verifier("code : zéros de tête conservés", normaliserCodeRemise("0042"), "004
 verifier("code : espaces tolérés", normaliserCodeRemise(" 12 34 "), "1234");
 verifier("code : trop court, trop long, lettres refusés", [normaliserCodeRemise("123"), normaliserCodeRemise("12345"), normaliserCodeRemise("12a4")], [null, null, null]);
 verifier("code : bon / mauvais", [codeRemiseCorrect("1234", "1234"), codeRemiseCorrect("1234", "1235"), codeRemiseCorrect("1234", "abcd")], [true, false, false]);
+
+// --- Clôture de la commande : jamais à la main tant qu'une livraison est ouverte
+const ouverts = tous.filter((s) => !estFinal(s));
+verifier("clôture : aucune livraison = la commande peut se terminer (retrait, sur place)", livraisonBloqueLaCloture([]), false);
+verifier("clôture : livraison livrée, non aboutie ou annulée = la commande peut se terminer", ["livree", "echec", "annulee"].map((s) => livraisonBloqueLaCloture([s])), [false, false, false]);
+verifier("clôture : tout statut ouvert bloque", ouverts.map((s) => livraisonBloqueLaCloture([s])), ouverts.map(() => true));
+verifier("clôture : une livraison ouverte parmi des livraisons finales bloque encore", livraisonBloqueLaCloture(["annulee", "vers_client"]), true);
+verifier("clôture : un statut inconnu compte comme ouvert (dans le doute on ne clôt pas)", livraisonBloqueLaCloture(["inconnu"]), true);
+verifier("clôture : le message dit pourquoi et vers qui se tourner", /code de remise/.test(MESSAGE_LIVRAISON_OUVERTE) && /assistance Speedfood/.test(MESSAGE_LIVRAISON_OUVERTE), true);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s)`);

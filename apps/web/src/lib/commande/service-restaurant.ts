@@ -4,6 +4,9 @@ import type { ResultatActionCommande, ValeursProposition } from "@/lib/contracts
 import type { StatutCommande } from "@/lib/contracts/statuts";
 import type { ClientCommandeDb } from "./commun";
 import { estUuid } from "./commun";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { creerClientAdmin } from "@/lib/db/admin";
+import { MESSAGE_LIVRAISON_OUVERTE, livraisonBloqueLaCloture } from "@/lib/livraison/statuts";
 import { lirePropositions, propositionActiveParmi, traiterPropositionEchue, creerPropositionRevisee, cloreSiAnnulee } from "./propositions";
 import { appliquerTransitionStatut, lireCommandeMinimale } from "./transitions";
 
@@ -63,6 +66,11 @@ export async function traiterCommande(
         };
       }
     }
+    // Terminer la commande à la main alors qu'une livraison est ouverte contournerait le code de remise (et libérerait trop tôt un paiement en ligne) : refusé. La livraison, elle, termine la commande
+    // toute seule avec le bon code. Lecture en clé de service, bornée à cette commande dont l'appartenance est DÉJÀ vérifiée ; une panne de lecture refuse (on ne clôt pas dans le doute).
+    if (vers === "terminee" && (await livraisonOuverte(commandeId))) {
+      return { ok: false, erreur: { code: "CONFLIT_ETAT", message: MESSAGE_LIVRAISON_OUVERTE } };
+    }
     await appliquerTransitionStatut(db, commande, vers, `restaurant:${utilisateurId}`);
     // Annulation : la proposition en attente est close dans la foulée (affichage client cohérent) ; sans effet sur le reste, au mieux.
     if (vers === "annulee") await cloreSiAnnulee(db, commandeId);
@@ -71,6 +79,12 @@ export async function traiterCommande(
     if (erreur instanceof ErreurMetier) return { ok: false, erreur: erreur.toApi() };
     return { ok: false, erreur: erreurInattendue() };
   }
+}
+
+async function livraisonOuverte(commandeId: string): Promise<boolean> {
+  const { data, error } = await (creerClientAdmin() as unknown as SupabaseClient).from("livraisons").select("statut").eq("order_id", commandeId).limit(20);
+  if (error) throw new Error("lecture_livraison_echec");
+  return livraisonBloqueLaCloture(((data ?? []) as Array<{ statut: string }>).map((l) => l.statut));
 }
 
 /** Crée une proposition révisée (prix, frais, conditions) : nouvelle version immuable avec échéance de réponse ; la commande reste en attente. */

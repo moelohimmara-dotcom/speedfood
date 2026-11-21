@@ -387,3 +387,32 @@ test("D3 proposition : montants invalides refusés par le service lui-même (VAL
   assert.equal(code(await proposerRevision(CLIENT_JETON(), RESTAURANT_A, COMMANDE_A, { nouveauSousTotal: 10000, nouveauxFraisLivraison: 0, conditionsModifiees: null })), "VALIDATION", "rien à proposer : mêmes montants, pas de conditions");
   assert.deepEqual(ecrituresDuTest(), []);
 });
+// --- Clôture : jamais à la main tant qu'une livraison est ouverte (code de remise) ------------------------------------------------------------------------------------------------
+const livraison = (commandeId: string, statut: string): Ligne => ({ id: "ffffffff-ffff-4fff-8fff-000000000001", order_id: commandeId, statut });
+
+test("terminer une commande prête dont la livraison est ouverte : refusé (CONFLIT_ETAT, message du code de remise), statut inchangé, aucune écriture, aucun effet après transition", async () => {
+  for (const statutLivraison of ["a_assigner", "assignee", "vers_restaurant", "recuperee", "vers_client"]) {
+    g.__fauxCloison = { tables: { orders: [commande(COMMANDE_A, RESTAURANT_A, "prete")], order_proposals: [], order_status_events: [], livraisons: [livraison(COMMANDE_A, statutLivraison)] }, ecritures: [], apres: [] };
+    const r = await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "terminee");
+    assert.equal(r.ok, false, statutLivraison);
+    if (!r.ok) { assert.equal(r.erreur.code, "CONFLIT_ETAT"); assert.match(r.erreur.message, /code de remise/); assert.match(r.erreur.message, /assistance Speedfood/); }
+    assert.equal(statutDe(COMMANDE_A), "prete", statutLivraison);
+    assert.deepEqual(ecrituresDuTest(), [], statutLivraison);
+    assert.deepEqual(g.__fauxCloison.apres, [], statutLivraison);
+  }
+});
+
+test("terminer une commande prête : permis sans livraison (retrait, sur place) et quand toutes ses livraisons sont finales", async () => {
+  for (const livraisons of [[], [livraison(COMMANDE_A, "livree")], [livraison(COMMANDE_A, "echec")], [livraison(COMMANDE_A, "annulee")], [livraison(COMMANDE_B, "vers_client")]]) {
+    g.__fauxCloison = { tables: { orders: [commande(COMMANDE_A, RESTAURANT_A, "prete")], order_proposals: [], order_status_events: [], livraisons }, ecritures: [], apres: [] };
+    assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "terminee"), { ok: true }, JSON.stringify(livraisons.map((l) => l.statut)));
+    assert.equal(statutDe(COMMANDE_A), "terminee");
+    assert.deepEqual(g.__fauxCloison.apres, [[COMMANDE_A, "terminee"]]);
+  }
+});
+
+test("la livraison d'une AUTRE commande (autre restaurant) ne bloque pas la clôture, et accepter une commande ne dépend pas de sa livraison", async () => {
+  g.__fauxCloison = { tables: { orders: [commande(COMMANDE_A, RESTAURANT_A, "en_attente")], order_proposals: [], order_status_events: [], livraisons: [livraison(COMMANDE_A, "vers_client")] }, ecritures: [], apres: [] };
+  assert.deepEqual(await traiterCommande(CLIENT_JETON(), "compte-A", RESTAURANT_A, COMMANDE_A, "accepter"), { ok: true });
+  assert.equal(statutDe(COMMANDE_A), "acceptee");
+});

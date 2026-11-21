@@ -87,7 +87,7 @@ test('D5 boutons : livraison terminée, absente, illisible, commande refusée/an
   assert.deepEqual(possibles(lue({ mode: 'sur_place', livraison: null })), []);
 });
 test('D5 boutons : les boutons de statut et de paiement existants sont inchangés à côté de ceux de la livraison', () => {
-  assert.deepEqual(actionsPossibles(avecLivraison('assignee')), ['terminee', 'livraison_partir', 'livraison_annuler']);
+  assert.deepEqual(actionsPossibles(avecLivraison('assignee')), ['livraison_partir', 'livraison_annuler']);
   assert.deepEqual(actionsPossibles(lue({ statut: 'en_attente', livraison: null, paiementStatut: 'non_demande', paiementMode: null })), ['accepter', 'refuser', 'proposer', 'annuler']);
 });
 test('D5 libellés : l’état de la livraison affiché est celui du serveur, avec les mots du restaurant qui livre lui-même', () => {
@@ -386,4 +386,16 @@ test('D5 commande TERMINÉE : livraison « livrée » = aucun bouton d’action 
   assert.deepEqual(possibles(avecLivraison('vers_client', 'propre', { statut: 'terminee' })), ['livraison_livree']);
   // Remise dont la réponse s'est perdue : la relecture montre la commande terminée avec sa livraison livrée = confirmé.
   assert.equal(parcours('livraison_livree', incertaine(), livree).verdict.genre, 'confirme');
+});
+test('clôture : une commande prête dont la livraison est ouverte ne propose JAMAIS « terminée » (elle se clôt avec le code de remise), quel que soit le mode de livraison', () => {
+  for (const statut of ['a_assigner', 'offre_envoyee', 'assignee', 'vers_restaurant', 'recuperee', 'vers_client']) {
+    for (const mode of ['propre', 'speedfood']) assert.ok(!actionsPossibles(avecLivraison(statut, mode)).includes('terminee'), `${mode} ${statut}`);
+  }
+  assert.deepEqual(actionsPossibles(avecLivraison('vers_client')), ['livraison_livree']);
+});
+test('clôture : livraison terminée, absente ou illisible, retrait et sur place : « terminée » reste proposé (le serveur tranche en cas de doute)', () => {
+  for (const statut of ['livree', 'echec', 'annulee']) assert.ok(actionsPossibles(avecLivraison(statut)).includes('terminee'), statut);
+  assert.ok(actionsPossibles(lue({ livraison: null })).includes('terminee'));
+  assert.ok(actionsPossibles(lue({ mode: 'retrait', livraison: null })).includes('terminee'));
+  assert.ok(actionsPossibles(lue({ mode: 'sur_place', livraison: null })).includes('terminee'));
 });
