@@ -6,7 +6,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { listerMesAvis } from "@/lib/client/mes-commandes";
 import { formaterDateCommande } from "@/lib/client/espace";
 
-export const metadata: Metadata = { title: "Mes avis" };
+export const metadata: Metadata = { title: { absolute: "Mes avis · Speedfood" } };
 export const dynamic = "force-dynamic";
 
 /** Mes avis : ce que ce compte a publié sur des restaurants, avec la réponse éventuelle du restaurant. Un avis se laisse depuis le suivi d'une commande terminée. */

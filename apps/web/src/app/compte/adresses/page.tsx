@@ -7,7 +7,7 @@ import { creerClientServeur } from "@/lib/db/server";
 import { definirAdresseParDefautAction, supprimerAdresseAction } from "@/lib/client/actions-espace";
 import { FormulaireAdresse } from "./FormulaireAdresse";
 
-export const metadata: Metadata = { title: "Mes adresses" };
+export const metadata: Metadata = { title: { absolute: "Mes adresses · Speedfood" } };
 export const dynamic = "force-dynamic";
 
 /** Mes adresses : cinq au plus, une par défaut. Lues avec la session du client (la RLS ne lui montre que les siennes) ; proposées à la commande en livraison. */

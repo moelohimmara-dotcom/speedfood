@@ -125,6 +125,17 @@ export function variation(courant: number, precedent: number): number | null {
   return (courant - precedent) / precedent;
 }
 
+/** En dessous de ce nombre sur la période précédente, un pourcentage trompe (2 commandes puis 6 donnent « + 200 % ») : on ne l'affiche pas. */
+export const BASE_MINIMUM_VARIATION = 5;
+
+/** Comme `variation`, mais `null` (pas de comparaison) quand la période précédente est trop petite pour qu'un pourcentage ait un sens. Zéro sur zéro reste stable. */
+export function variationFiable(courant: number, precedent: number, minimum: number = BASE_MINIMUM_VARIATION): number | null {
+  if (precedent === 0 && courant === 0) {
+    return 0;
+  }
+  return precedent < minimum ? null : variation(courant, precedent);
+}
+
 /** Commandes par heure (24 valeurs, de 0 h à 23 h). */
 export function heuresPleines(lignes: readonly { heure: number; nb: number }[]): number[] {
   const heures = new Array<number>(24).fill(0);

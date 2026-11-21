@@ -15,7 +15,7 @@ import { ListeDemarrage } from "@/components/ListeDemarrage";
 import { RecapitulatifJour } from "@/components/restaurant/RecapitulatifJour";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille, Volet } from "@/components/admin/blocs";
 import { GraphiqueBarresJours, Legende, COULEURS_CATEGORIE, LIBELLES_CATEGORIE, Tendance, Variation } from "@/components/admin/graphiques";
-import { comparerPeriodes, construireJours, tauxAcceptation, variation, type LigneSerie } from "@/lib/system-admin/pilotageCalculs";
+import { comparerPeriodes, construireJours, tauxAcceptation, variationFiable, type LigneSerie } from "@/lib/system-admin/pilotageCalculs";
 import { BasculesStatut } from "./BasculesStatut";
 
 /** Accueil de l'espace restaurateur : le service d'abord (ouvert, pause), puis ce qui attend une réponse, puis les chiffres des 7 derniers jours. */
@@ -187,7 +187,7 @@ export default async function AccueilConsolePage() {
           libelle={`Commandes, ${PERIODE} derniers jours`}
           valeur={courant.total}
           href="/restaurant/commandes"
-          sous={<Variation valeur={variation(courant.total, precedent.total)} />}
+          sous={<Variation valeur={variationFiable(courant.total, precedent.total)} />}
           tendance={<Tendance valeurs={jours.map((j) => j.total)} />}
         />
         <CarteChiffre

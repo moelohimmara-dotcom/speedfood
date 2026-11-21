@@ -22,7 +22,8 @@ import {
   heuresPleines,
   pourcentage,
   tauxAcceptation,
-  variation,
+  variationFiable,
+  BASE_MINIMUM_VARIATION,
 } from "@/lib/system-admin/pilotageCalculs";
 import {
   LIBELLES_PERMISSIONS,
@@ -258,7 +259,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             libelle={`Commandes, ${periode} derniers jours`}
             valeur={courant.total}
             href="/system/commandes"
-            sous={<Variation valeur={variation(courant.total, precedent.total)} />}
+            sous={<Variation valeur={variationFiable(courant.total, precedent.total)} />}
             tendance={<Tendance valeurs={jours.map((j) => j.total)} />}
           />
           <CarteChiffre
@@ -278,7 +279,7 @@ export default async function AccueilCmsSystemePage({ searchParams }: { searchPa
             valeur={formaterGnf(courant.montantRetenu)}
             sous={
               <>
-                <Variation valeur={variation(courant.montantRetenu, precedent.montantRetenu)} />
+                <Variation valeur={precedent.total < BASE_MINIMUM_VARIATION ? null : variationFiable(courant.montantRetenu, precedent.montantRetenu, 0)} />
                 <br />
                 Indicatif : le règlement se fait hors Speedfood.
               </>
