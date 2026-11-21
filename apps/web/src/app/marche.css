@@ -954,6 +954,24 @@
   letter-spacing: 0.3em;
   text-align: center;
 }
+/* « Livraison non aboutie » : motif, aide et confirmation en colonne, sur toute la largeur (le libellé et le champ se chevauchaient dans la rangée des actions). */
+.commande-livraison-echec {
+  display: grid;
+  flex: 1 1 100%;
+  gap: var(--space-2);
+}
+.commande-livraison-echec label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: 0.9rem;
+}
+.commande-livraison-echec select {
+  width: 100%;
+  min-height: 44px;
+}
+.commande-livraison-echec p {
+  margin: 0;
+}
 
 /* ---- Suivi client : code de remise de la livraison ---- */
 .suivi-code-remise {
