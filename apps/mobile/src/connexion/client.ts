@@ -12,7 +12,7 @@ import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRest
 import { corpsDeAction, erreurLocalePhoto, erreurReponseService, erreurReseauPhoto, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
 import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
 import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
-import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
+import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, MESSAGE_MOTIF_ECHEC, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp, type MotifEchecApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
 import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
@@ -852,11 +852,11 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
      * partagé avec le serveur : action de la liste blanche, identifiant de livraison, code de EXACTEMENT 4 chiffres (sinon échec LOCAL : rien ne part). UN SEUL essai. Le corps ne porte que la livraison, l'action
      * et, pour « livree » seulement, le code (jamais le restaurant). Le code n'est ni conservé ni repris dans une erreur.
      */
-    async actionLivraisonRestaurateur(accessToken: string, livraisonId: string, action: ActionLivraisonApp, code?: string): Promise<void> {
+    async actionLivraisonRestaurateur(accessToken: string, livraisonId: string, action: ActionLivraisonApp, code?: string, motif?: MotifEchecApp): Promise<void> {
       if (lireActionLivraisonApp(action) === null) throw erreurLocaleLivraison('Cette action n’est pas disponible dans l’application.');
-      const demande = lireDemandeLivraisonApp({ livraisonId, action, code });
-      if (!demande.ok) throw erreurLocaleLivraison(demande.message === MESSAGE_CODE_LIVRAISON ? MESSAGE_CODE_LIVRAISON : 'Livraison introuvable. Actualisez la liste.');
-      const corps = demande.action === 'livree' ? { livraisonId: demande.livraisonId, action: demande.action, code: demande.code } : { livraisonId: demande.livraisonId, action: demande.action };
+      const demande = lireDemandeLivraisonApp({ livraisonId, action, code, motif });
+      if (!demande.ok) throw erreurLocaleLivraison(demande.message === MESSAGE_CODE_LIVRAISON ? MESSAGE_CODE_LIVRAISON : demande.message === MESSAGE_MOTIF_ECHEC ? MESSAGE_MOTIF_ECHEC : 'Livraison introuvable. Actualisez la liste.');
+      const corps = demande.action === 'livree' ? { livraisonId: demande.livraisonId, action: demande.action, code: demande.code } : demande.action === 'non_aboutie' ? { livraisonId: demande.livraisonId, action: demande.action, motif: demande.motif } : { livraisonId: demande.livraisonId, action: demande.action };
       lireReponseAction(await appelRestaurateur(accessToken, CHEMIN_LIVRAISON_APP, { method:'POST', corps }, false, TEXTES_LIVRAISON));
     },
     /** Réglages du service (GET) : horaires, ouvert, accepte commandes, délai de préparation, plats à reconfirmer (liste du serveur). Lecture seule, un seul essai. */

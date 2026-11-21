@@ -3,7 +3,7 @@
  * des commandes de `GET /api/v1/restaurant/commandes`.
  * Pur : aucun import du site, de Next, de Supabase ni de Node ; l'API et l'application le chargent tel quel.
  *
- * Trois actions seulement : « partir » (la livraison passe à « en route vers le client »), « livree » (avec le code à 4 chiffres que le client donne à la porte) et « annuler ».
+ * Quatre actions seulement : « partir » (la livraison passe à « en route vers le client »), « livree » (avec le code à 4 chiffres que le client donne à la porte), « annuler » et « non_aboutie » (avec un motif d'une liste fermée).
  * Le restaurant n'est JAMAIS un champ : il vient de l'appartenance du compte. L'identifiant de la livraison n'est pas une autorisation : le serveur vérifie qu'elle est à ce restaurant.
  * Le code de remise n'est jamais lu, renvoyé ni journalisé par ce contrat : l'application l'envoie, le serveur le compare (avec son plafond d'essais), et il ne figure dans aucune réponse.
  */
@@ -12,8 +12,25 @@ const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export const CHEMIN_LIVRAISON_APP = "/api/v1/restaurant/livraison/action";
 
-export const ACTIONS_LIVRAISON_APP = ["partir", "livree", "annuler"] as const;
+export const ACTIONS_LIVRAISON_APP = ["partir", "livree", "annuler", "non_aboutie"] as const;
 export type ActionLivraisonApp = (typeof ACTIONS_LIVRAISON_APP)[number];
+
+/**
+ * « Livraison non aboutie » : le motif est choisi dans cette liste fermée (jamais saisi à la main). Libellés recopiés de `lib/livraison/statuts.ts` du site (ce fichier est pur) ;
+ * un test de l'API compare les deux listes. Seul le restaurant qui livre lui-même peut la déclarer (le service du site refuse le mode « speedfood »).
+ */
+export const MOTIFS_ECHEC_APP = {
+  injoignable: "Client injoignable",
+  adresse: "Adresse introuvable",
+  refus: "Le client a refusé la commande",
+  autre: "Autre problème",
+} as const;
+export type MotifEchecApp = keyof typeof MOTIFS_ECHEC_APP;
+export const MESSAGE_MOTIF_ECHEC = "Choisissez le motif de l'échec.";
+
+export function lireMotifEchecApp(valeur: unknown): MotifEchecApp | null {
+  return typeof valeur === "string" && Object.prototype.hasOwnProperty.call(MOTIFS_ECHEC_APP, valeur) ? (valeur as MotifEchecApp) : null;
+}
 
 /** Liste blanche : toute autre valeur (variante de casse, « echec », « recuperee », valeur inconnue) est refusée avant le service. */
 export function lireActionLivraisonApp(valeur: unknown): ActionLivraisonApp | null {
@@ -68,7 +85,7 @@ export function lireCodeLivraisonApp(valeur: unknown): string | null {
 }
 
 export type LectureDemandeLivraison =
-  | { ok: true; livraisonId: string; action: ActionLivraisonApp; code?: string }
+  | { ok: true; livraisonId: string; action: ActionLivraisonApp; code?: string; motif?: MotifEchecApp }
   | { ok: false; message: string };
 
 /**
@@ -76,10 +93,15 @@ export type LectureDemandeLivraison =
  * Pour « partir » et « annuler », un éventuel `code` est ignoré et n'est jamais transmis. Les autres clés, dont `restaurantId`, ne sont jamais lues. Aucun message ne reprend le code reçu.
  */
 export function lireDemandeLivraisonApp(corps: unknown): LectureDemandeLivraison {
-  const o = typeof corps === "object" && corps !== null && !Array.isArray(corps) ? (corps as { livraisonId?: unknown; action?: unknown; code?: unknown }) : {};
+  const o = typeof corps === "object" && corps !== null && !Array.isArray(corps) ? (corps as { livraisonId?: unknown; action?: unknown; code?: unknown; motif?: unknown }) : {};
   const action = lireActionLivraisonApp(o.action);
   if (action === null) return { ok: false, message: "Action invalide." };
   if (typeof o.livraisonId !== "string" || !REGEX_UUID.test(o.livraisonId)) return { ok: false, message: "Livraison invalide." };
+  if (action === "non_aboutie") {
+    const motif = lireMotifEchecApp(o.motif);
+    if (motif === null) return { ok: false, message: MESSAGE_MOTIF_ECHEC };
+    return { ok: true, livraisonId: o.livraisonId, action, motif };
+  }
   if (action !== "livree") return { ok: true, livraisonId: o.livraisonId, action };
   const code = lireCodeLivraisonApp(o.code);
   if (code === null) return { ok: false, message: MESSAGE_CODE_LIVRAISON };

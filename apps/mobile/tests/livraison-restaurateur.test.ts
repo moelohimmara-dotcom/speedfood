@@ -70,8 +70,40 @@ test('D5 boutons : mode propre, prête à partir, commande prête = « Parti liv
 test('D5 boutons : « Parti livrer » exige la commande PRÊTE (comme la console du site)', () => {
   assert.deepEqual(possibles(avecLivraison('assignee', 'propre', { statut: 'acceptee' })), ['livraison_annuler']);
 });
-test('D5 boutons : en route vers le client = « Livrée » (code) seulement ; plus d’annulation (la machine du site la refuse)', () => {
-  assert.deepEqual(possibles(avecLivraison('vers_client')), ['livraison_livree']);
+test('D5 boutons : en route vers le client = « Livrée » (code) et « Livraison non aboutie » ; plus d’annulation (la machine du site la refuse)', () => {
+  assert.deepEqual(possibles(avecLivraison('vers_client')), ['livraison_livree', 'livraison_non_aboutie']);
+});
+test('D5 boutons : « Livraison non aboutie » seulement pour le restaurant qui livre lui-même et seulement une fois parti ; jamais en mode speedfood ni avant le départ', () => {
+  for (const statut of ['a_assigner', 'offre_envoyee', 'assignee', 'vers_restaurant', 'recuperee', 'livree', 'echec', 'annulee']) assert.ok(!possibles(avecLivraison(statut)).includes('livraison_non_aboutie'), `propre ${statut}`);
+  for (const statut of ['a_assigner', 'offre_envoyee', 'assignee', 'vers_restaurant', 'recuperee', 'vers_client', 'livree', 'echec', 'annulee']) assert.ok(!possibles(avecLivraison(statut, 'speedfood')).includes('livraison_non_aboutie'), `speedfood ${statut}`);
+  assert.ok(!possibles(avecLivraison('vers_client', 'propre', { statut: 'annulee' })).includes('livraison_non_aboutie'));
+  assert.ok(!possibles(lue({ livraison: null })).includes('livraison_non_aboutie'));
+  assert.equal(actionLivraisonDe('livraison_non_aboutie'), 'non_aboutie');
+  assert.ok((ACTIONS_A_CONFIRMER as readonly string[]).includes('livraison_non_aboutie'));
+});
+test('D5 « non aboutie » : ne part jamais sans confirmation ni motif de la liste fermée ; la confirmation précède l’envoi', () => {
+  const sur = (etat: Parameters<typeof peutEnvoyer>[0], motifValide?: boolean) => peutEnvoyer(etat, A, 'livraison_non_aboutie', 1, 'non_demande', null, undefined, motifValide);
+  assert.equal(sur(ETAT_REPOS, true), false, 'sans confirmation');
+  const confirmee = evoluer(ETAT_REPOS, { type: 'demander_confirmation', commandeId: A, action: 'livraison_non_aboutie', lecture: 1 });
+  assert.equal(confirmee.phase, 'confirmation');
+  assert.equal(sur(confirmee, undefined), false, 'sans motif');
+  assert.equal(sur(confirmee, false), false, 'motif invalide');
+  assert.equal(sur(confirmee, true), true);
+  assert.equal(peutEnvoyer(confirmee, 'autre-commande', 'livraison_non_aboutie', 1, 'non_demande', null, undefined, true), false, 'autre commande');
+  assert.equal(evoluer(confirmee, { type: 'envoyer', commandeId: A, action: 'livraison_non_aboutie', lecture: 1, motifValide: false }), confirmee, 'état inchangé sans motif');
+  assert.equal(evoluer(confirmee, { type: 'envoyer', commandeId: A, action: 'livraison_non_aboutie', lecture: 1, motifValide: true }).phase, 'envoi');
+  assert.ok(CONFIRMATIONS.livraison_non_aboutie.question.includes('assistance Speedfood'));
+});
+test('D5 « non aboutie » : la commande prête dont la livraison a échoué ne propose PAS « terminée » (l’assistance décide), « livrée » et « annulée » oui', () => {
+  assert.ok(!actionsPossibles(avecLivraison('echec')).includes('terminee'));
+  assert.deepEqual(possibles(avecLivraison('echec')), []);
+  for (const statut of ['livree', 'annulee']) assert.ok(actionsPossibles(avecLivraison(statut)).includes('terminee'), statut);
+});
+test('D5 « non aboutie » : verdict après réponse incertaine d’après la liste relue (échec enregistré = confirmé ; encore en route = réessayer ; livrée entre-temps = refus)', () => {
+  assert.equal(parcours('livraison_non_aboutie', incertaine(), avecLivraison('echec')).verdict.genre, 'confirme');
+  const encore = parcours('livraison_non_aboutie', incertaine(), avecLivraison('vers_client')).verdict;
+  assert.equal(encore.genre, 'incertain');
+  assert.equal(parcours('livraison_non_aboutie', incertaine(), avecLivraison('livree')).verdict.genre, 'refus');
 });
 test('D5 boutons : mode speedfood = « Annuler la livraison » seulement, jamais « Parti livrer » ni « Livrée »', () => {
   for (const statut of ['a_assigner', 'offre_envoyee', 'assignee', 'vers_restaurant']) assert.deepEqual(possibles(avecLivraison(statut, 'speedfood')), ['livraison_annuler'], statut);
@@ -117,7 +149,7 @@ test('D5 code : le clavier ne laisse passer que des chiffres, quatre au plus ; l
 // ---------- machine d'états ----------
 const attente = avecLivraison('assignee');
 const enRoute = avecLivraison('vers_client');
-const envoyerEv = (etat: EtatAction, action: 'livraison_partir' | 'livraison_livree' | 'livraison_annuler', extra: Record<string, unknown> = {}, id = A, lecture = 1) =>
+const envoyerEv = (etat: EtatAction, action: 'livraison_partir' | 'livraison_livree' | 'livraison_annuler' | 'livraison_non_aboutie', extra: Record<string, unknown> = {}, id = A, lecture = 1) =>
   evoluer(etat, { type: 'envoyer', commandeId: id, action, lecture, ...extra } as never);
 
 test('D5 machine : « Parti livrer » = un envoi ; verrouillé pendant l’envoi et la relecture ; le double appui ne produit AUCUN second envoi', () => {
@@ -163,10 +195,10 @@ test('D5 confirmation : texte honnête (livraison annulée, client informé sur 
   assert.equal(actionLivraisonDe('annuler'), null);
 });
 
-function parcours(action: 'livraison_partir' | 'livraison_livree' | 'livraison_annuler', erreur: ErreurRestaurateur | null, relue: CommandeRestaurateur | null | undefined, lectureRelue = 2) {
+function parcours(action: 'livraison_partir' | 'livraison_livree' | 'livraison_annuler' | 'livraison_non_aboutie', erreur: ErreurRestaurateur | null, relue: CommandeRestaurateur | null | undefined, lectureRelue = 2) {
   let e: EtatAction = ETAT_REPOS;
-  if (action === 'livraison_annuler') e = evoluer(e, { type: 'demander_confirmation', commandeId: A, action, lecture: 1 });
-  e = envoyerEv(e, action, { codeValide: true });
+  if (action === 'livraison_annuler' || action === 'livraison_non_aboutie') e = evoluer(e, { type: 'demander_confirmation', commandeId: A, action, lecture: 1 });
+  e = envoyerEv(e, action, { codeValide: true, motifValide: true });
   e = evoluer(e, { type: 'repondre', erreur });
   e = evoluer(e, { type: 'relire', relue, lecture: lectureRelue });
   return e as Extract<EtatAction, { phase: 'verdict' }>;
@@ -234,7 +266,7 @@ test('D5 actions affichées : après une action confirmée sur une liste périm�
   assert.equal(v.verdict.genre, 'confirme');
   assert.deepEqual(actionsAffichees(attente, v).filter(a => a.startsWith('livraison_')), [], 'liste encore à l’état d’avant : la famille livraison est retirée');
   assert.deepEqual(actionsAffichees(attente, ETAT_REPOS).filter(a => a.startsWith('livraison_')), ['livraison_partir', 'livraison_annuler']);
-  assert.deepEqual(actionsAffichees(enRoute, v).filter(a => a.startsWith('livraison_')), ['livraison_livree'], 'liste à jour : l’étape suivante apparaît');
+  assert.deepEqual(actionsAffichees(enRoute, v).filter(a => a.startsWith('livraison_')), ['livraison_livree', 'livraison_non_aboutie'], 'liste à jour : l’étape suivante apparaît');
 });
 
 // ---------- messages du serveur reformulés ----------
@@ -335,7 +367,9 @@ test('D5 session : l’action de livraison passe le jeton d’accès, la livrais
   const g = new GestionSession({ ...base, actionLivraisonRestaurateur: async (...x: unknown[]) => { vus.push(x); } } as never, coffre);
   await g.connecter('essai@example.invalid', 'factice');
   await g.actionLivraisonRestaurateur(LIV, 'livree', CODE);
-  assert.deepEqual(vus, [[ACCES, LIV, 'livree', CODE]]);
+  assert.deepEqual(vus, [[ACCES, LIV, 'livree', CODE, undefined]]);
+  await g.actionLivraisonRestaurateur(LIV, 'non_aboutie', undefined, 'adresse');
+  assert.deepEqual(vus[1], [ACCES, LIV, 'non_aboutie', undefined, 'adresse']);
   const fin = new GestionSession({ ...base, actionLivraisonRestaurateur: async () => { throw new ErreurConnexion('Fin', true); } } as never, coffre);
   await fin.connecter('essai@example.invalid', 'factice');
   await assert.rejects(fin.actionLivraisonRestaurateur(LIV, 'partir'));
@@ -345,6 +379,11 @@ test('D5 session : l’action de livraison passe le jeton d’accès, la livrais
 // ---------- écran (texte source) ----------
 const ecran = readFileSync(cheminDepuisModule('../src/connexion/RestaurateurReel.tsx'), 'utf8').replace(/\r\n/g, '\n');
 const domaine = readFileSync(cheminDepuisModule('../src/connexion/restaurateur.ts'), 'utf8').replace(/\r\n/g, '\n');
+test('D5 écran : « Livraison non aboutie » passe par la confirmation, qui propose un bouton par motif de la liste fermée du contrat', () => {
+  assert.match(ecran, /titre=\{'Livraison non aboutie ' \+ o\.reference\} secondaire disabled=\{bloque\} agir=\{\(\) => appliquer\(\{ type: 'demander_confirmation', commandeId: o\.id, action: 'livraison_non_aboutie', lecture \}\)\}/);
+  assert.match(ecran, /possibles\.includes\('livraison_non_aboutie'\)/);
+  assert.match(ecran, /\(Object\.keys\(MOTIFS_ECHEC_APP\) as MotifEchecApp\[\]\)\.map\(m => <Action key=\{m\} titre=\{MOTIFS_ECHEC_APP\[m\]\}[^\n]*envoyer\(o, 'livraison_non_aboutie', undefined, m\)/);
+});
 test('D5 écran : les trois boutons existent avec leurs libellés, verrouillés par `bloque`, et l’annulation passe par la confirmation', () => {
   assert.match(ecran, /titre=\{'Parti livrer ' \+ o\.reference\} disabled=\{bloque\}/);
   assert.match(ecran, /titre=\{'Livrée ' \+ o\.reference\} disabled=\{bloque\}/);
@@ -365,7 +404,8 @@ test('D5 écran : le code n’entre jamais dans la machine d’états, est effac
   assert.match(ecran, /codeValide: codeLivraison !== undefined/);
   assert.ok(!/type: 'envoyer'[^}]*codeLivraison[^!]/.test(ecran.replace('codeValide: codeLivraison !== undefined', '')), 'le code n’est pas dans l’événement de la machine');
   assert.equal((ecran.match(/gestion\.actionLivraisonRestaurateur\(/g) ?? []).length, 1, 'un seul appel réseau de livraison');
-  assert.match(ecran, /gestion\.actionLivraisonRestaurateur\(livraison\.id, demande, demande === 'livree' \? codeLivraison : undefined\)/);
+  assert.match(ecran, /gestion\.actionLivraisonRestaurateur\(livraison\.id, demande, demande === 'livree' \? codeLivraison : undefined, demande === 'non_aboutie' \? motifEchec : undefined\)/);
+  assert.match(ecran, /motifValide: lireMotifEchecApp\(motifEchec\) !== null/, 'le motif est validé par le contrat avant la machine d’états');
   assert.ok(!/console\./.test(ecran + domaine), 'aucune journalisation');
   assert.ok(!/AsyncStorage|SecureStore|setItem|coffre/i.test(ecran), 'le code n’est stocké nulle part');
   assert.ok(!/\{codes\[o\.id\]\}|\{codeLivraison\}|\+ codes\[|\+ codeLivraison/.test(ecran), 'le code n’est jamais concaténé dans un texte affiché');
@@ -383,7 +423,7 @@ test('D5 commande TERMINÉE : livraison « livrée » = aucun bouton d’action 
   assert.deepEqual(actionsPossibles(livree).filter(a => a.startsWith('livraison_')), []);
   assert.equal(ligneLivraison(livree), 'Livraison : Livrée');
   assert.deepEqual(actionsAffichees(livree, ETAT_REPOS).filter(a => a.startsWith('livraison_')), []);
-  assert.deepEqual(possibles(avecLivraison('vers_client', 'propre', { statut: 'terminee' })), ['livraison_livree']);
+  assert.deepEqual(possibles(avecLivraison('vers_client', 'propre', { statut: 'terminee' })), ['livraison_livree', 'livraison_non_aboutie']);
   // Remise dont la réponse s'est perdue : la relecture montre la commande terminée avec sa livraison livrée = confirmé.
   assert.equal(parcours('livraison_livree', incertaine(), livree).verdict.genre, 'confirme');
 });
@@ -391,10 +431,10 @@ test('clôture : une commande prête dont la livraison est ouverte ne propose JA
   for (const statut of ['a_assigner', 'offre_envoyee', 'assignee', 'vers_restaurant', 'recuperee', 'vers_client']) {
     for (const mode of ['propre', 'speedfood']) assert.ok(!actionsPossibles(avecLivraison(statut, mode)).includes('terminee'), `${mode} ${statut}`);
   }
-  assert.deepEqual(actionsPossibles(avecLivraison('vers_client')), ['livraison_livree']);
+  assert.deepEqual(actionsPossibles(avecLivraison('vers_client')), ['livraison_livree', 'livraison_non_aboutie']);
 });
-test('clôture : livraison terminée, absente ou illisible, retrait et sur place : « terminée » reste proposé (le serveur tranche en cas de doute)', () => {
-  for (const statut of ['livree', 'echec', 'annulee']) assert.ok(actionsPossibles(avecLivraison(statut)).includes('terminee'), statut);
+test('clôture : livraison livrée ou annulée, absente ou illisible, retrait et sur place : « terminée » reste proposé (le serveur tranche en cas de doute) ; pas après un échec de livraison', () => {
+  for (const statut of ['livree', 'annulee']) assert.ok(actionsPossibles(avecLivraison(statut)).includes('terminee'), statut);
   assert.ok(actionsPossibles(lue({ livraison: null })).includes('terminee'));
   assert.ok(actionsPossibles(lue({ mode: 'retrait', livraison: null })).includes('terminee'));
   assert.ok(actionsPossibles(lue({ mode: 'sur_place', livraison: null })).includes('terminee'));

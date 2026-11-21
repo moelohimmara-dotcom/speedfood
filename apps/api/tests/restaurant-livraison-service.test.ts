@@ -81,6 +81,31 @@ test("D5 service : la livraison de CE restaurant avance (partir, livree avec cod
   }
 });
 
+test("D5 service : « non_aboutie » passe à l'échec avec le libellé du motif, acteur « restaurant » imposé, sans code ; sans motif de la liste, rien n'est lu ni avancé", async () => {
+  const MOTIFS = { injoignable: "Client injoignable", adresse: "Adresse introuvable", refus: "Le client a refusé la commande", autre: "Autre problème" } as const;
+  for (const [motif, libelle] of Object.entries(MOTIFS)) {
+    const journal = nouveauJournal();
+    assert.deepEqual(await agirSurLivraisonRestaurant(fauxClient(neuf(BASE)), RESTAURANT_A, LIVRAISON_A, "non_aboutie", "1234", avancement(journal), motif as keyof typeof MOTIFS), { ok: true });
+    assert.deepEqual(journal.demandes, [{ livraisonId: LIVRAISON_A, acteur: "restaurant", vers: "echec", raison: `Non aboutie (restaurant) : ${libelle}` }]);
+  }
+  for (const motif of [undefined, "", "Autre", "constructor", "__proto__", "toString"]) {
+    const journal = nouveauJournal();
+    const etat = neuf(BASE);
+    const r = await agirSurLivraisonRestaurant(fauxClient(etat), RESTAURANT_A, LIVRAISON_A, "non_aboutie", undefined, avancement(journal), motif as never);
+    assert.deepEqual(r, { ok: false, erreur: { code: "VALIDATION", message: "Choisissez le motif de l'échec." } }, String(motif));
+    assert.deepEqual(journal.appels, [], "aucun appel à l'avancement");
+    assert.deepEqual(etat.requetes, [], "aucune lecture : le refus précède tout accès");
+  }
+  // La livraison d'un autre restaurant reste « introuvable », même avec un bon motif.
+  const journal = nouveauJournal();
+  assert.deepEqual(await agirSurLivraisonRestaurant(fauxClient(neuf(BASE)), RESTAURANT_A, LIVRAISON_B, "non_aboutie", undefined, avancement(journal), "autre"), INTROUVABLE);
+  assert.deepEqual(journal.appels, []);
+  // Refus du service du site (mode « speedfood », livraison déjà terminée) : conflit d'état, sans texte brut.
+  const refuse = nouveauJournal();
+  const r = await agirSurLivraisonRestaurant(fauxClient(neuf(BASE)), RESTAURANT_A, LIVRAISON_A, "non_aboutie", undefined, avancement(refuse, { ok: false, message: "Ce changement d'étape n'est pas possible maintenant." }), "autre");
+  assert.deepEqual(r, { ok: false, erreur: { code: "CONFLIT_ETAT", message: "La livraison ne peut pas changer d'étape maintenant. Actualisez la liste." } });
+});
+
 test("D5 service A/B : la livraison d'un AUTRE restaurant est « introuvable », identique à une livraison absente, et l'avancement n'est jamais appelé", async () => {
   for (const action of ["partir", "livree", "annuler"] as const) {
     for (const livraisonId of [LIVRAISON_B, "cccccccc-cccc-4ccc-8ccc-cccccccccccc"]) {

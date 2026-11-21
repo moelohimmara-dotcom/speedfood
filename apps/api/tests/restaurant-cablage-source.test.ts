@@ -154,7 +154,7 @@ const lire = (relatif: string) => readFileSync(fileURLToPath(new URL(relatif, im
 test("cablage D5 : l'avancement de livraison est UNE constante branchée sur `avancerLivraison` du site, passée seule à livraison.ts ; la lecture reçoit le client du jeton", () => {
   unique(/^const AVANCEMENT_LIVRAISON: AvancementLivraison = \(demande\) => avancerLivraison\(demande\);$/, "AVANCEMENT_LIVRAISON");
   unique(/^\s*lireLivraisons:\s*\(client,\s*restaurantId,\s*commandeIds\)\s*=>\s*lireLivraisonsDesCommandes\(client as SupabaseClient,\s*restaurantId,\s*commandeIds\),\s*$/, "lireLivraisons");
-  unique(/^\s*agirSurLivraison:\s*\(client,\s*restaurantId,\s*livraisonId,\s*action,\s*code\)\s*=>\s*agirSurLivraisonRestaurant\(client as SupabaseClient,\s*restaurantId,\s*livraisonId,\s*action,\s*code,\s*AVANCEMENT_LIVRAISON\),\s*$/, "agirSurLivraison");
+  unique(/^\s*agirSurLivraison:\s*\(client,\s*restaurantId,\s*livraisonId,\s*action,\s*code,\s*motif\)\s*=>\s*agirSurLivraisonRestaurant\(client as SupabaseClient,\s*restaurantId,\s*livraisonId,\s*action,\s*code,\s*AVANCEMENT_LIVRAISON,\s*motif\),\s*$/, "agirSurLivraison");
   assert.equal(sansCommentaires.filter((l) => /AVANCEMENT_LIVRAISON/.test(l)).length, 2, "AVANCEMENT_LIVRAISON : déclaration + un seul usage");
   assert.equal((code.match(/avancerLivraison\(/g) ?? []).length, 1, "avancerLivraison appelé une seule fois dans le câblage");
   const importService = source.match(/import \{([^}]*)\} from "@\/lib\/livraison\/service";/);
@@ -177,7 +177,7 @@ test("livraison.ts (API) : aucun client administrateur, aucune écriture directe
   assert.deepEqual(livraison.match(/^import .*$/gm), [
     'import type { SupabaseClient } from "@supabase/supabase-js";',
     'import type { ResultatActionCommande } from "@speedfood/shared/contracts/commande";',
-    'import { lireLivraisonApi, type ActionLivraisonApp, type LivraisonRestaurateurApi } from "@speedfood/shared/contracts/restaurant-livraison";',
+    'import { MOTIFS_ECHEC_APP, lireLivraisonApi, lireMotifEchecApp, type ActionLivraisonApp, type LivraisonRestaurateurApi, type MotifEchecApp } from "@speedfood/shared/contracts/restaurant-livraison";',
   ], "imports figés : aucun import du site (@/), jamais clientLivraison");
   assert.ok(!/clientLivraison|from "@\//.test(livraison));
   assert.ok(/if \(lecture\.etat === "absent"\) return INTROUVABLE;/.test(livraison) && /if \(lecture\.etat === "panne"\) return PANNE;/.test(livraison));
@@ -194,7 +194,7 @@ test("route D5 : contexte, puis corps, puis validation partagée, puis service ;
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "ordre : contexte, corps, validation, service");
   assert.ok(!/restaurantId|restaurant_id/.test(bloc), "aucune lecture d'un restaurant dans la route");
   assert.ok(!/console\.|process\.env/.test(bloc));
-  assert.ok(/deps\.restaurant\.agirSurLivraison\(ctx, demande\.livraisonId, demande\.action, demande\.code\)/.test(bloc), "le service ne reçoit que le contexte, la livraison, l'action et le code");
+  assert.ok(/deps\.restaurant\.agirSurLivraison\(ctx, demande\.livraisonId, demande\.action, demande\.code, demande\.motif\)/.test(bloc), "le service ne reçoit que le contexte, la livraison, l'action, le code et le motif");
 });
 
 test("service de livraison (site) : c'est lui qui écrit avec la clé de service ; ses imports, ses contrôles de machine à états et de plafond d'essais sont figés", () => {

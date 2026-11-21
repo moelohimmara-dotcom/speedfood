@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  ACTIONS_LIVRAISON_APP, MODES_LIVRAISON_APP, STATUTS_LIVRAISON_APP, lireActionLivraisonApp, lireCodeLivraisonApp, lireDemandeLivraisonApp, lireLivraisonApi, livraisonAnnulable, livraisonTerminee,
+  ACTIONS_LIVRAISON_APP, MODES_LIVRAISON_APP, MOTIFS_ECHEC_APP, STATUTS_LIVRAISON_APP, lireActionLivraisonApp, lireCodeLivraisonApp, lireDemandeLivraisonApp, lireLivraisonApi, lireMotifEchecApp, livraisonAnnulable, livraisonTerminee,
 } from "@speedfood/shared/contracts/restaurant-livraison";
-import { STATUTS_LIVRAISON, acteurPeut, estFinal } from "../../web/src/lib/livraison/statuts.ts";
+import { MOTIFS_ECHEC_RESTAURANT, STATUTS_LIVRAISON, acteurPeut, estFinal } from "../../web/src/lib/livraison/statuts.ts";
 
 /**
  * Contrat du lot D5 (pur) et raccord avec les règles du SITE : les statuts, les modes, « annulable » et « terminé » du contrat sont comparés à `statuts.ts` du site (la source), pour qu'une évolution
@@ -11,12 +11,27 @@ import { STATUTS_LIVRAISON, acteurPeut, estFinal } from "../../web/src/lib/livra
  */
 const LIVRAISON = "55555555-5555-4555-8555-555555555555";
 
-test("D5 contrat : trois actions exactement, dans la liste blanche ; tout le reste est refusé", () => {
-  assert.deepEqual([...ACTIONS_LIVRAISON_APP], ["partir", "livree", "annuler"]);
+test("D5 contrat : quatre actions exactement, dans la liste blanche ; tout le reste est refusé", () => {
+  assert.deepEqual([...ACTIONS_LIVRAISON_APP], ["partir", "livree", "annuler", "non_aboutie"]);
   for (const a of ACTIONS_LIVRAISON_APP) assert.equal(lireActionLivraisonApp(a), a);
   for (const mauvaise of ["echec", "recuperee", "vers_client", "annulee", "PARTIR", "Livree", " annuler", "annuler ", "", "accepter", "__proto__", "constructor", 1, null, undefined, {}, ["partir"], true]) {
     assert.equal(lireActionLivraisonApp(mauvaise), null, String(mauvaise));
   }
+});
+
+test("D5 contrat : « non_aboutie » exige un motif de la liste fermée, identique à celle du site ; tout le reste est refusé sans citer la valeur reçue", () => {
+  assert.deepEqual(MOTIFS_ECHEC_APP, MOTIFS_ECHEC_RESTAURANT, "mêmes clés et mêmes libellés que le site (source : lib/livraison/statuts.ts)");
+  for (const motif of Object.keys(MOTIFS_ECHEC_APP)) {
+    assert.equal(lireMotifEchecApp(motif), motif);
+    assert.deepEqual(lireDemandeLivraisonApp({ livraisonId: LIVRAISON, action: "non_aboutie", motif, code: "1234" }), { ok: true, livraisonId: LIVRAISON, action: "non_aboutie", motif }, "un code joint est ignoré");
+  }
+  for (const mauvais of [undefined, null, "", "Autre", "AUTRE", " autre", "autre ", "toString", "__proto__", "constructor", "hasOwnProperty", 3, {}, ["autre"], true]) {
+    assert.equal(lireMotifEchecApp(mauvais), null, String(mauvais));
+    assert.deepEqual(lireDemandeLivraisonApp({ livraisonId: LIVRAISON, action: "non_aboutie", motif: mauvais }), { ok: false, message: "Choisissez le motif de l'échec." }, String(mauvais));
+  }
+  // Un motif joint à une autre action n'est jamais lu ni transmis.
+  assert.deepEqual(lireDemandeLivraisonApp({ livraisonId: LIVRAISON, action: "partir", motif: "autre" }), { ok: true, livraisonId: LIVRAISON, action: "partir" });
+  assert.deepEqual(lireDemandeLivraisonApp({ livraisonId: "x", action: "non_aboutie", motif: "autre" }), { ok: false, message: "Livraison invalide." });
 });
 
 test("D5 contrat : le code est une chaîne de EXACTEMENT 4 chiffres", () => {

@@ -11,11 +11,11 @@ import { MESSAGE_CODE_LIVRAISON, lireCodeLivraisonApp, lireLivraisonApi, livrais
  * la liste n'a pas été relue avec succès ; les messages sont fixes (aucun texte du serveur n'est affiché) ; aucun jeton n'est conservé. Le code de remise n'entre JAMAIS dans cet état :
  * il est tapé dans l'écran, validé ici, envoyé une fois, puis effacé ; aucun message ne le reprend.
  */
-export type ActionRestaurateur = 'accepter' | 'refuser' | 'prete' | 'terminee' | 'annuler' | 'proposer' | 'paiement_recu' | 'paiement_non_recu' | 'livraison_partir' | 'livraison_livree' | 'livraison_annuler';
-export const ACTIONS_RESTAURATEUR: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'annuler', 'proposer', 'paiement_recu', 'paiement_non_recu', 'livraison_partir', 'livraison_livree', 'livraison_annuler'];
+export type ActionRestaurateur = 'accepter' | 'refuser' | 'prete' | 'terminee' | 'annuler' | 'proposer' | 'paiement_recu' | 'paiement_non_recu' | 'livraison_partir' | 'livraison_livree' | 'livraison_annuler' | 'livraison_non_aboutie';
+export const ACTIONS_RESTAURATEUR: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'annuler', 'proposer', 'paiement_recu', 'paiement_non_recu', 'livraison_partir', 'livraison_livree', 'livraison_annuler', 'livraison_non_aboutie'];
 /** Les actions de livraison, envoyées à `/livraison/action` (jamais à `/commandes/action`). */
-export const ACTIONS_LIVRAISON: readonly ActionRestaurateur[] = ['livraison_partir', 'livraison_livree', 'livraison_annuler'];
-export function actionLivraisonDe(action: ActionRestaurateur): ActionLivraisonApp | null { return action === 'livraison_partir' ? 'partir' : action === 'livraison_livree' ? 'livree' : action === 'livraison_annuler' ? 'annuler' : null; }
+export const ACTIONS_LIVRAISON: readonly ActionRestaurateur[] = ['livraison_partir', 'livraison_livree', 'livraison_annuler', 'livraison_non_aboutie'];
+export function actionLivraisonDe(action: ActionRestaurateur): ActionLivraisonApp | null { return action === 'livraison_partir' ? 'partir' : action === 'livraison_livree' ? 'livree' : action === 'livraison_annuler' ? 'annuler' : action === 'livraison_non_aboutie' ? 'non_aboutie' : null; }
 const estLivraison = (a: ActionRestaurateur) => actionLivraisonDe(a) !== null;
 /** Les actions de statut envoyées à `/commandes/action` (liste blanche cliente : « proposer » a sa propre route et ses montants). */
 export const ACTIONS_DE_STATUT: readonly ActionRestaurateur[] = ['accepter', 'refuser', 'prete', 'terminee', 'annuler'];
@@ -23,7 +23,7 @@ export const ACTIONS_DE_STATUT: readonly ActionRestaurateur[] = ['accepter', 're
  * Actions qui demandent une confirmation avant l'envoi (décision difficile à défaire ou qui prévient le client). « proposer » a la sienne : le récapitulatif ancien prix → nouveau
  * prix (phase `recapitulatif`), jamais d'envoi sans lui.
  */
-export const ACTIONS_A_CONFIRMER: readonly ActionRestaurateur[] = ['refuser', 'annuler', 'paiement_non_recu', 'livraison_annuler'];
+export const ACTIONS_A_CONFIRMER: readonly ActionRestaurateur[] = ['refuser', 'annuler', 'paiement_non_recu', 'livraison_annuler', 'livraison_non_aboutie'];
 /** Pour les routes de l'API : les actions de statut vont à `/commandes/action`, les deux décisions de paiement à `/commandes/paiement`, la proposition à `/commandes/proposition`. */
 export function decisionPaiementDe(action: ActionRestaurateur): 'recu' | 'non_recu' | null { return action === 'paiement_recu' ? 'recu' : action === 'paiement_non_recu' ? 'non_recu' : null; }
 
@@ -213,7 +213,7 @@ export function actionsLivraison(c: Concerne): ActionRestaurateur[] {
   if (!l || livraisonTerminee(l.statut) || c.statut === 'refusee' || c.statut === 'annulee') return [];
   const actions: ActionRestaurateur[] = [];
   if (l.mode === 'propre' && l.statut === 'assignee' && c.statut === 'prete') actions.push('livraison_partir');
-  if (l.mode === 'propre' && l.statut === 'vers_client') actions.push('livraison_livree');
+  if (l.mode === 'propre' && l.statut === 'vers_client') actions.push('livraison_livree', 'livraison_non_aboutie');
   if (livraisonAnnulable(l.statut)) actions.push('livraison_annuler');
   return actions;
 }
@@ -239,7 +239,8 @@ export function actionsPossibles(c: Concerne): ActionRestaurateur[] {
     if (!c.propositionEnAttente) actions.push('accepter', 'refuser', 'proposer');
     if (!commandePayee(c.paiementStatut, c.paiementMode)) actions.push('annuler');
   } else if (c.statut === 'acceptee') { actions.push('prete'); if (!commandePayee(c.paiementStatut, c.paiementMode)) actions.push('annuler'); }
-  else if (c.statut === 'prete' && !livraisonOuverte) actions.push('terminee');
+  // Livraison « non aboutie » : comme sur le site (où le bouton de clôture n'existe pas dès qu'une livraison existe), la commande ne se clôt pas à la main : l'assistance Speedfood décide de la suite (remboursement ou clôture).
+  else if (c.statut === 'prete' && !livraisonOuverte && livraison?.statut !== 'echec') actions.push('terminee');
   if (paiementConfirmable(c)) actions.push('paiement_recu', 'paiement_non_recu');
   actions.push(...actionsLivraison(c));
   return actions;
@@ -252,6 +253,7 @@ function etatAvant(action: ActionRestaurateur, c: EtatCommande): boolean {
     case 'livraison_partir': return c.livraison?.statut === 'assignee';
     case 'livraison_livree': return c.livraison?.statut === 'vers_client';
     case 'livraison_annuler': return !!c.livraison && livraisonAnnulable(c.livraison.statut);
+    case 'livraison_non_aboutie': return c.livraison?.statut === 'vers_client';
     case 'accepter': case 'refuser': return c.statut === 'en_attente';
     case 'annuler': return c.statut === 'en_attente' || c.statut === 'acceptee';
     case 'proposer': return c.statut === 'en_attente' && !c.propositionEnAttente;
@@ -266,6 +268,7 @@ function etatApres(action: ActionRestaurateur, c: EtatCommande): boolean {
     case 'livraison_partir': return c.livraison?.statut === 'vers_client' || c.livraison?.statut === 'livree';
     case 'livraison_livree': return c.livraison?.statut === 'livree';
     case 'livraison_annuler': return c.livraison?.statut === 'annulee';
+    case 'livraison_non_aboutie': return c.livraison?.statut === 'echec';
     case 'annuler': return c.statut === 'annulee';
     case 'proposer': return c.statut === 'en_attente' && c.propositionEnAttente;
     case 'accepter': return c.statut === 'acceptee' || c.statut === 'prete' || c.statut === 'terminee';
@@ -407,13 +410,13 @@ export type VerdictAction =
 const MESSAGES_SUCCES: Record<ActionRestaurateur, string> = {
   accepter: 'Commande acceptée.', refuser: 'Commande refusée.', prete: 'Commande marquée prête.', terminee: 'Commande marquée terminée.', annuler: 'Commande annulée.', proposer: 'Proposition envoyée au client.',
   paiement_recu: 'Paiement confirmé comme reçu.', paiement_non_recu: 'Paiement signalé comme non reçu.',
-  livraison_partir: 'Livraison en route vers le client.', livraison_livree: 'Livraison enregistrée comme livrée.', livraison_annuler: 'Livraison annulée.',
+  livraison_partir: 'Livraison en route vers le client.', livraison_livree: 'Livraison enregistrée comme livrée.', livraison_annuler: 'Livraison annulée.', livraison_non_aboutie: 'Livraison enregistrée comme non aboutie. L’assistance Speedfood vous contacte pour la suite.',
 };
 const MESSAGES_ENREGISTRE: Record<ActionRestaurateur, string> = {
   accepter: 'Votre acceptation est bien enregistrée.', refuser: 'Votre refus est bien enregistré.', prete: 'La commande est bien enregistrée comme prête.', terminee: 'La commande est bien enregistrée comme terminée.',
   annuler: 'L’annulation est bien enregistrée.', proposer: 'Votre proposition est bien enregistrée.',
   paiement_recu: 'La confirmation du paiement est bien enregistrée.', paiement_non_recu: 'Le paiement est bien enregistré comme non reçu.',
-  livraison_partir: 'Le départ en livraison est bien enregistré.', livraison_livree: 'La remise de la commande est bien enregistrée.', livraison_annuler: 'L’annulation de la livraison est bien enregistrée.',
+  livraison_partir: 'Le départ en livraison est bien enregistré.', livraison_livree: 'La remise de la commande est bien enregistrée.', livraison_annuler: 'L’annulation de la livraison est bien enregistrée.', livraison_non_aboutie: 'La livraison non aboutie est bien enregistrée. L’assistance Speedfood vous contacte pour la suite.',
 };
 
 /**
@@ -463,7 +466,9 @@ function verdictLivraisonRelue(action: ActionRestaurateur, relue: CommandeRestau
 }
 
 /** Textes fixes des confirmations (question, bouton qui envoie, bouton qui renonce) des actions à confirmer. Aucun texte du serveur, aucun libellé d'espèces. */
-export const CONFIRMATIONS: Record<'refuser' | 'annuler' | 'paiement_non_recu' | 'livraison_annuler', { question: string; oui: string; non: string }> = {
+export const CONFIRMATIONS: Record<'refuser' | 'annuler' | 'paiement_non_recu' | 'livraison_annuler' | 'livraison_non_aboutie', { question: string; oui: string; non: string }> = {
+  // Ici « oui » reste vide : l'écran propose à la place les motifs de `MOTIFS_ECHEC_APP`, un bouton par motif (choisir le motif EST la confirmation).
+  livraison_non_aboutie: { question: 'La livraison n’a pas pu aboutir ? Choisissez le motif. La livraison sera enregistrée comme non aboutie et le client le verra sur son suivi. La commande reste ouverte : l’assistance Speedfood vous contacte pour décider de la suite (remboursement ou clôture).', oui: '', non: 'Non, garder' },
   livraison_annuler: { question: 'Annuler la livraison de cette commande ? La livraison sera annulée et le client verra sur son suivi qu’elle l’est. Elle ne pourra pas être rétablie depuis l’application. La commande elle-même n’est pas annulée : elle reste à traiter séparément.', oui: 'Oui, annuler la livraison', non: 'Non, garder' },
   refuser: { question: 'Refuser définitivement cette commande ? Le client sera prévenu.', oui: 'Oui, refuser', non: 'Non, garder' },
   annuler: { question: 'Annuler cette commande ? Le client sera prévenu et la commande ne pourra plus être traitée.', oui: 'Oui, annuler la commande', non: 'Non, garder' },
@@ -550,7 +555,7 @@ export type EvenementAction =
   | { type: 'saisir'; champ: ChampProposition; valeur: string }
   | { type: 'valider_saisie' }
   | { type: 'modifier_saisie' }
-  | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur; paiementMode?: ModePaiementRestaurateur | null; codeValide?: boolean }
+  | { type: 'envoyer'; commandeId: string; action: ActionRestaurateur; lecture: number; paiementStatut?: StatutPaiementRestaurateur; paiementMode?: ModePaiementRestaurateur | null; codeValide?: boolean; motifValide?: boolean }
   | { type: 'repondre'; erreur: ErreurRestaurateur | null; sessionTerminee?: string | null }
   | { type: 'relire'; relue: CommandeRestaurateur | null | undefined; lecture: number }
   | { type: 'effacer' };
@@ -570,10 +575,12 @@ export function actionVerrouillee(etat: EtatAction, lecture: number): boolean {
  * Un refus, une annulation ou un « paiement non reçu » n'est envoyé qu'après SA confirmation (même commande, même action) ; une proposition de prix, qu'après son récapitulatif
  * (même commande) ; les autres actions, jamais pendant un verrou. Tant qu'un formulaire de proposition est ouvert, rien d'autre que cette proposition ne part.
  */
-export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number, paiementStatut?: StatutPaiementRestaurateur, paiementMode?: ModePaiementRestaurateur | null, codeValide?: boolean): boolean {
+export function peutEnvoyer(etat: EtatAction, commandeId: string, action: ActionRestaurateur, lecture: number, paiementStatut?: StatutPaiementRestaurateur, paiementMode?: ModePaiementRestaurateur | null, codeValide?: boolean, motifValide?: boolean): boolean {
   if (!(ACTIONS_RESTAURATEUR as readonly string[]).includes(action)) return false;
   // « Livrée » ne part jamais sans un code de 4 chiffres déjà validé par l'écran (échec LOCAL sinon : rien n'est envoyé, rien n'est verrouillé).
   if (action === 'livraison_livree' && codeValide !== true) return false;
+  // « Non aboutie » ne part jamais sans un motif de la liste fermée déjà validé par l'écran.
+  if (action === 'livraison_non_aboutie' && motifValide !== true) return false;
   // Garde de la machine (écran contourné ou liste périmée) : « annuler » ne part jamais sans un statut de paiement connu ET non payé.
   if (action === 'annuler' && (paiementStatut === undefined || commandePayee(paiementStatut, paiementMode))) return false;
   if (actionVerrouillee(etat, lecture)) return false;
@@ -603,7 +610,7 @@ export function evoluer(etat: EtatAction, ev: EvenementAction): EtatAction {
     case 'modifier_saisie':
       return etat.phase === 'recapitulatif' ? { phase: 'saisie', commandeId: etat.commandeId, actuel: etat.actuel, brouillon: etat.brouillon, erreurs: {} } : etat;
     case 'envoyer':
-      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture, ev.paiementStatut, ev.paiementMode, ev.codeValide)) return etat;
+      if (!peutEnvoyer(etat, ev.commandeId, ev.action, ev.lecture, ev.paiementStatut, ev.paiementMode, ev.codeValide, ev.motifValide)) return etat;
       return etat.phase === 'recapitulatif' && ev.action === 'proposer' ? { phase: 'envoi', commandeId: ev.commandeId, action: 'proposer', valeurs: etat.valeurs } : { phase: 'envoi', commandeId: ev.commandeId, action: ev.action };
     case 'repondre':
       return etat.phase === 'envoi' ? { phase: 'relecture', commandeId: etat.commandeId, action: etat.action, erreur: ev.erreur, sessionTerminee: ev.sessionTerminee ?? null, ...(etat.valeurs ? { valeurs: etat.valeurs } : {}) } : etat;
