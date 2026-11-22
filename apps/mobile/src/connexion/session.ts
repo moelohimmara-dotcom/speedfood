@@ -4,7 +4,7 @@ import { depuisCompte, referenceDeCle, versVue, type CommandeAppareil, type Memo
 import type {ActionAdresse, ChampsProfil, EspaceComplet} from './espace-client.ts';
 import {essaiNotification, type BilanEssai} from './parametres.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
-import type {ActionLivraisonApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
+import type {ActionLivraisonApp,MotifEchecApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, TypeDocument, ValeursPropositionRestaurateur} from './restaurateur.ts';
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
@@ -611,13 +611,13 @@ export class GestionSession {
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   /** Fait avancer UNE livraison du restaurant (partir, livree avec le code, annuler) : un seul essai, jamais de relance. Le restaurant n'est pas envoyé : le serveur le tire du compte. */
-  async actionLivraisonRestaurateur(livraisonId:string,action:ActionLivraisonApp,code?:string):Promise<void> {
+  async actionLivraisonRestaurateur(livraisonId:string,action:ActionLivraisonApp,code?:string,motif?:MotifEchecApp):Promise<void> {
     const n=this.generation;
     try{
       const acces=await this.jeton();
       if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
       if(!this.api.actionLivraisonRestaurateur)throw new ErreurConnexion('Espace restaurateur indisponible.');
-      await this.api.actionLivraisonRestaurateur(acces,livraisonId,action,code);
+      await this.api.actionLivraisonRestaurateur(acces,livraisonId,action,code,motif);
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   /** Propose un autre prix pour UNE commande (un seul essai, jamais de relance). Le restaurant n'est pas envoyé : le serveur le tire du compte. */

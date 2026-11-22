@@ -4,7 +4,7 @@ import type { ErreurApi } from "@speedfood/shared/contracts/erreurs";
 import type { SourceLivraisonClient } from "@speedfood/shared/contracts/livraison-suivi";
 import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
-import type { ActionLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
+import type { ActionLivraisonApp, MotifEchecApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import type { Planifier } from "@/lib/commande/creation-coeur";
 import type { VerificateurJeton } from "./identite/jeton.ts";
 
@@ -108,7 +108,7 @@ export interface Deps {
     /** Lot D4c : retire la photo d'un plat de CE restaurant (le plat reste en vente, sans image). */
     retirerPhoto(ctx: ContexteRestaurant, platId: string): Promise<ResultatActionCommande>;
     /** Lot D5 : la livraison de CE restaurant avance (partir, livree avec le code à 4 chiffres, annuler). La livraison est filtrée sur le restaurant du compte (« introuvable » sinon, même réponse pour un autre restaurant). */
-    agirSurLivraison(ctx: ContexteRestaurant, livraisonId: string, action: ActionLivraisonApp, code?: string): Promise<ResultatActionCommande>;
+    agirSurLivraison(ctx: ContexteRestaurant, livraisonId: string, action: ActionLivraisonApp, code?: string, motif?: MotifEchecApp): Promise<ResultatActionCommande>;
   };
   /** Lot E1 : appareils des notifications. Plafond par compte (lève `ErreurMetier` TROP_DE_REQUETES), enregistrement (faux = échec) et retrait ; le compte est toujours celui du jeton porteur. Câblage : `appareils/cablage.ts`. */
   appareils: {

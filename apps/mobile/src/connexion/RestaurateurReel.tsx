@@ -23,6 +23,7 @@ import {
   CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, actionLivraisonDe, annulationRefuseePourPaiement, chiffresDuCode, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, documentsDisponibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleDocument, libelleStatut, libellePaiement, ligneClient, ligneLivraison, lignesRecapProposition, preparerCodeLivraison,
   type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur, type TypeDocument,
 } from './restaurateur';
+import { MOTIFS_ECHEC_APP, lireMotifEchecApp, type MotifEchecApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
 import { Icone, type NomIcone } from '../design/Icone';
@@ -174,10 +175,10 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   }, [alerteFermee]);
 
   /** UN SEUL essai. Ensuite la liste est relue pour savoir ce que le serveur a vraiment enregistré ; jamais de relance automatique. */
-  async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string) {
+  async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string, motifEchec?: MotifEchecApp) {
     if (envoiEnCours.current || lectureEnCours.current) return;
     const avant = etatRef.current;
-    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode, codeValide: codeLivraison !== undefined });
+    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode, codeValide: codeLivraison !== undefined, motifValide: lireMotifEchecApp(motifEchec) !== null });
     if (etatRef.current === avant || etatRef.current.phase !== 'envoi') return;
     envoiEnCours.current = true;
     oublierCode(commande.id);
@@ -193,7 +194,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           // Livraison (lot D5) : l'identifiant vient de la livraison que le serveur a donnée pour CETTE commande ; le code, déjà validé, part une seule fois puis est effacé de l'écran.
           const demande = actionLivraisonDe(action); const livraison = commande.livraison;
           if (!demande || !livraison) throw new ErreurRestaurateur('local', 'La livraison de cette commande n’est pas lisible. Actualisez la liste.');
-          await gestion.actionLivraisonRestaurateur(livraison.id, demande, demande === 'livree' ? codeLivraison : undefined);
+          await gestion.actionLivraisonRestaurateur(livraison.id, demande, demande === 'livree' ? codeLivraison : undefined, demande === 'non_aboutie' ? motifEchec : undefined);
         } else await gestion.actionRestaurateur(commande.id, action);
       }
       catch (e) { if (e instanceof ErreurRestaurateur) echec = e; else session = e instanceof ErreurConnexion ? e.message : 'Impossible de terminer cette opération. Réessayez.'; }
@@ -280,7 +281,9 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {paiement && possibles.includes('paiement_recu') && <Text style={s.secondaire}>Comparez avec le SMS de confirmation de votre opérateur avant de valider.</Text>}
           {confirmation && confirmation.action in CONFIRMATIONS && <>
             <Text accessibilityRole="alert" style={s.texte}>{CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].question}</Text>
-            <Action titre={CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].oui} disabled={occupe || verrou} agir={() => { void envoyer(o, confirmation.action); }} />
+            {confirmation.action === 'livraison_non_aboutie'
+              ? (Object.keys(MOTIFS_ECHEC_APP) as MotifEchecApp[]).map(m => <Action key={m} titre={MOTIFS_ECHEC_APP[m]} disabled={occupe || verrou} agir={() => { void envoyer(o, 'livraison_non_aboutie', undefined, m); }} />)
+              : <Action titre={CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].oui} disabled={occupe || verrou} agir={() => { void envoyer(o, confirmation.action); }} />}
             <Action titre={CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].non} secondaire disabled={occupe} agir={() => appliquer({ type: 'annuler_confirmation' })} />
           </>}
           {formulaire && formulaire.phase === 'saisie' && <View style={s.formulaire}>
@@ -328,6 +331,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
               void envoyer(o, 'livraison_livree', p.code);
             }} />
           </View>}
+          {!confirmation && !formulaire && possibles.includes('livraison_non_aboutie') && <Action titre={'Livraison non aboutie ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'livraison_non_aboutie', lecture })} />}
           {!confirmation && !formulaire && possibles.includes('livraison_annuler') && <Action titre={'Annuler la livraison ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'livraison_annuler', lecture })} />}
           {!confirmation && !formulaire && annulationRefuseePourPaiement(o) && <Text accessibilityRole="alert" style={s.texte}>{MESSAGE_DEJA_PAYEE}</Text>}
           {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture, paiementStatut: o.paiementStatut, paiementMode: o.paiementMode })} />}

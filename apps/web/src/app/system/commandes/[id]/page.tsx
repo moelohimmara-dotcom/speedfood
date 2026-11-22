@@ -55,7 +55,7 @@ export default async function CommandeDetailSystemePage({
       <PageHeader
         titre={commande.reference}
         retour={{ href: "/system/commandes", libelle: "Toutes les commandes" }}
-        description={`${commande.restaurantNom} · ${commande.mode === "livraison" ? "livraison" : commande.mode === "sur_place" ? "à table" : "retrait"} · ${commande.sousTotal.toLocaleString("fr-FR")} GNF`}
+        description={`${commande.restaurantNom} · ${commande.mode === "livraison" ? "livraison" : commande.mode === "sur_place" ? "à table" : "retrait"} · ${(commande.sousTotal + commande.fraisLivraisonEstime).toLocaleString("fr-FR")} GNF`}
         actions={<Pastille ton="neutre">{LIBELLES_STATUT[commande.statut] ?? commande.statut}</Pastille>}
       />
 
@@ -70,7 +70,10 @@ export default async function CommandeDetailSystemePage({
               <dt>Mode</dt>
               <dd>{commande.mode === "livraison" ? "Livraison" : commande.mode === "sur_place" ? "À table" : "Retrait"}</dd>
               <dt>Montant</dt>
-              <dd>{commande.sousTotal.toLocaleString("fr-FR")} GNF</dd>
+              <dd>
+                {(commande.sousTotal + commande.fraisLivraisonEstime).toLocaleString("fr-FR")} GNF
+                {commande.fraisLivraisonEstime > 0 ? ` (dont ${commande.fraisLivraisonEstime.toLocaleString("fr-FR")} GNF de livraison)` : ""}
+              </dd>
             </dl>
             <div className="u-mt-s4">
               <RevelerCoordonnees

@@ -19,7 +19,7 @@ const COMMANDE = "33333333-3333-4333-8333-333333333333";
 const CTX: ContexteRestaurant = { supabase: { marqueur: "client-lie-au-jeton" }, utilisateurId: "compte-1", restaurantId: RESTAURANT_A, role: "owner" };
 const URL_ACTION = "/api/v1/restaurant/livraison/action";
 
-interface Appel { ctx: ContexteRestaurant; livraisonId: string; action: ActionLivraisonApp; code: string | undefined; arguments: number }
+interface Appel { ctx: ContexteRestaurant; livraisonId: string; action: ActionLivraisonApp; code: string | undefined; motif: string | undefined; arguments: number }
 interface Journal { appels: string[]; services: Appel[] }
 
 function monter(surcharge: Partial<Deps["restaurant"]> = {}) {
@@ -40,8 +40,8 @@ function monter(surcharge: Partial<Deps["restaurant"]> = {}) {
       definirPhoto: async () => { throw new Error("hors sujet"); },
       retirerPhoto: async () => { throw new Error("hors sujet"); },
       agirSurLivraison: async (...args: unknown[]) => {
-        const [ctx, livraisonId, action, code] = args as [ContexteRestaurant, string, ActionLivraisonApp, string | undefined];
-        journal.appels.push("livraison"); journal.services.push({ ctx, livraisonId, action, code, arguments: args.length }); return { ok: true };
+        const [ctx, livraisonId, action, code, motif] = args as [ContexteRestaurant, string, ActionLivraisonApp, string | undefined, string | undefined];
+        journal.appels.push("livraison"); journal.services.push({ ctx, livraisonId, action, code, motif, arguments: args.length }); return { ok: true };
       },
       ...surcharge,
     },
@@ -144,6 +144,26 @@ test("D5 route : « partir » et « annuler » ne transmettent jamais de code, m
   }
 });
 
+test("D5 route : « non_aboutie » sans motif de la liste = 400 avant le service ; avec un bon motif, le service le reçoit et jamais de code", async () => {
+  for (const motif of [undefined, null, "", "Autre", "constructor", "__proto__", 3, ["autre"], "Le client a refusé la commande"]) {
+    const { app, journal } = monter();
+    const r = await envoyer(app, { livraisonId: LIVRAISON, action: "non_aboutie", motif });
+    assert.equal(r.status, 400, JSON.stringify(motif));
+    assert.equal(JSON.parse(await r.text()).erreur.message, "Choisissez le motif de l'échec.");
+    aucunService(journal);
+  }
+  for (const motif of ["injoignable", "adresse", "refus", "autre"]) {
+    const { app, journal } = monter();
+    const r = await envoyer(app, { livraisonId: LIVRAISON, action: "non_aboutie", motif, code: "1234", restaurantId: RESTAURANT_B });
+    assert.equal(r.status, 200);
+    assert.equal(journal.services.length, 1);
+    assert.equal(journal.services[0].action, "non_aboutie");
+    assert.equal(journal.services[0].motif, motif);
+    assert.equal(journal.services[0].code, undefined, "le code n'est jamais transmis avec « non_aboutie »");
+    assert.equal(journal.services[0].ctx.restaurantId, RESTAURANT_A);
+  }
+});
+
 // ---------- chemin nominal et restaurant du contexte ----------
 test("D5 route : le service reçoit EXACTEMENT le contexte du compte, la livraison, l'action et le code ; un restaurantId du corps est ignoré", async () => {
   for (const [action, codeEnvoye] of [["partir", undefined], ["annuler", undefined], ["livree", "0042"]] as const) {
@@ -157,7 +177,8 @@ test("D5 route : le service reçoit EXACTEMENT le contexte du compte, la livrais
     assert.equal(journal.services[0].livraisonId, LIVRAISON);
     assert.equal(journal.services[0].action, action);
     assert.equal(journal.services[0].code, codeEnvoye);
-    assert.equal(journal.services[0].arguments, 4, "quatre arguments exactement : contexte, livraison, action, code");
+    assert.equal(journal.services[0].arguments, 5, "cinq arguments exactement : contexte, livraison, action, code, motif");
+    assert.equal(journal.services[0].motif, undefined, "aucun motif pour une autre action que « non_aboutie »");
     assert.deepEqual(journal.appels, ["identite", "contexte:compte-1:true", "livraison"], "ordre : identité, contexte, service");
   }
 });

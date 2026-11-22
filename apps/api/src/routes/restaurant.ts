@@ -168,10 +168,10 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     const ctx = await contexte(c);
     const lu = await lireCorpsJson(c);
     if (!lu.ok) return lu.reponse;
-    // LISTE BLANCHE (partir, livree, annuler), UUID de la livraison et code à 4 chiffres exactement (pour « livree ») AVANT tout appel au service. Le code n'est jamais repris dans un message ni journalisé.
+    // LISTE BLANCHE (partir, livree, annuler, non_aboutie), UUID de la livraison, code à 4 chiffres exactement (pour « livree ») et motif de la liste fermée (pour « non_aboutie ») AVANT tout appel au service. Le code n'est jamais repris dans un message ni journalisé.
     const demande = lireDemandeLivraisonApp(lu.corps);
     if (!demande.ok) return reponseErreur(c, { code: "VALIDATION", message: demande.message });
-    const resultat = await deps.restaurant.agirSurLivraison(ctx, demande.livraisonId, demande.action, demande.code);
+    const resultat = await deps.restaurant.agirSurLivraison(ctx, demande.livraisonId, demande.action, demande.code, demande.motif);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 
