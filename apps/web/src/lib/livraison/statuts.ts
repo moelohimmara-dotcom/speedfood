@@ -63,6 +63,33 @@ export function motifEchecRestaurantValide(valeur: unknown): valeur is MotifEche
   return typeof valeur === "string" && Object.prototype.hasOwnProperty.call(MOTIFS_ECHEC_RESTAURANT, valeur);
 }
 
+/**
+ * Issue d'une commande dont la livraison a échoué, décidée par l'assistance (fonction de base `fn_support_resoudre_echec_livraison`, migration 20261122120000) :
+ * « cloturer » termine la commande (le restaurant est payé : le paiement en ligne est libéré), « annuler » l'annule (le client est remboursé).
+ */
+export const ISSUES_ECHEC_LIVRAISON = {
+  cloturer: "Clôturer la commande : le restaurant est payé",
+  annuler: "Annuler la commande : le client est remboursé",
+} as const;
+export type IssueEchecLivraison = keyof typeof ISSUES_ECHEC_LIVRAISON;
+
+export function issueEchecLivraisonValide(valeur: unknown): valeur is IssueEchecLivraison {
+  return typeof valeur === "string" && Object.prototype.hasOwnProperty.call(ISSUES_ECHEC_LIVRAISON, valeur);
+}
+
+/** Une commande attend une issue seulement si elle est « prete » et que sa livraison est en « echec » (la base le revérifie). */
+export function echecLivraisonResoluble(statutCommande: string, statutLivraison: string | null | undefined): boolean {
+  return statutCommande === "prete" && statutLivraison === "echec";
+}
+
+/** Message français fixe pour un refus de la base (aucun texte technique n'est affiché). */
+export function messageRefusIssueEchec(messageBase: string): string {
+  if (/Acces refuse/i.test(messageBase)) return "Cette action est réservée au support Speedfood.";
+  if (/doit etre prete|n'est pas en echec|introuvable/i.test(messageBase)) return "Cette commande n'attend plus d'issue : rechargez la page.";
+  if (/Motif invalide/i.test(messageBase)) return "Le motif doit faire entre 5 et 500 caractères.";
+  return "Impossible d'appliquer l'issue. Réessayez dans un instant.";
+}
+
 /** Transitions de base du mode « speedfood ». */
 const TRANSITIONS_SPEEDFOOD: Record<StatutLivraison, readonly StatutLivraison[]> = {
   a_assigner: ["offre_envoyee", "assignee", "annulee"],

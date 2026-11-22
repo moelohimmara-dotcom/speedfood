@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { creerClientServeur } from "@/lib/db/server";
 import { ErreurMetier } from "@/lib/contracts/erreurs";
 import { STATUTS_COMMANDE, type StatutCommande } from "@/lib/contracts/statuts";
 import type { StatutProposition } from "@/lib/contracts/commande";
 import { versStatutCommande, versStatutProposition } from "@/lib/commande/commun";
+import { issueEchecLivraisonValide, messageRefusIssueEchec } from "@/lib/livraison/statuts";
+import { obtenirServicePaiement } from "@/lib/paiement/en-ligne/fabrique";
 import { verifierPermission } from "./contexte";
 import { revelerCoordonneesCommande } from "./audit";
 import type { CoordonneesAffichees } from "./coordonnees";
@@ -21,6 +24,8 @@ import type { CoordonneesAffichees } from "./coordonnees";
 export interface EtatActionCommandeSupport {
   erreur?: string;
   succes?: boolean;
+  /** Texte de confirmation (issue d'un échec de livraison : dit aussi ce qui s'est passé pour le paiement en ligne). */
+  message?: string;
 }
 
 export interface CommandeApercuAdmin {
@@ -66,6 +71,8 @@ export interface PropositionRevisseeAdmin {
 }
 
 export interface CommandeDetailAdmin extends CommandeApercuAdmin {
+  /** Statut de la livraison de la commande (aucune pour un retrait ou une commande à table). Lu par l'écran de la console web seulement : l'autre lecteur (application d'équipe) ne le renseigne pas. */
+  livraisonStatut?: string | null;
   historique: EvenementStatutAdmin[];
   /** Toutes les versions de proposition, de la plus ancienne à la plus récente. */
   propositions: PropositionRevisseeAdmin[];
@@ -141,6 +148,7 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
     { data: evenements },
     { data: propositions },
     { data: lignes },
+    { data: livraison },
   ] = await Promise.all([
     supabase.rpc("fn_support_lister_commandes", { p_id: id }),
     supabase
@@ -156,6 +164,8 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
       .eq("order_id", id)
       .order("version", { ascending: true }),
     supabase.from("order_items").select("prix, quantite").eq("order_id", id),
+    // Une livraison au plus par commande (clé unique) : la lecture est bornée par construction.
+    (supabase as unknown as SupabaseClient).from("livraisons").select("statut").eq("order_id", id).maybeSingle(),
   ]);
 
   const commande = lignesCommande?.[0];
@@ -194,6 +204,7 @@ export async function obtenirCommandeAdmin(id: string): Promise<CommandeDetailAd
 
   return {
     ...apercu,
+    livraisonStatut: typeof livraison?.statut === "string" ? livraison.statut : null,
     historique: (evenements ?? []).map((e) => ({
       statutPrecedent: e.statut_precedent ? versStatutCommande(e.statut_precedent) : null,
       statutSuivant: versStatutCommande(e.statut_suivant),
@@ -274,4 +285,42 @@ export async function changerStatutSupportAction(
   revalidatePath("/system/commandes");
   revalidatePath(`/system/commandes/${commandeId}`);
   return { succes: true };
+}
+
+/**
+ * Issue d'une commande dont la livraison a échoué (« Livraison non aboutie » déclarée par le restaurant) : « cloturer » (le restaurant est payé) ou « annuler » (le client est remboursé).
+ * La transition, l'historique (acteur `support:<id>`) et l'audit sont faits en UNE transaction par la fonction de base `fn_support_resoudre_echec_livraison`, qui refuse tout autre
+ * compte que le support et toute commande dont la livraison n'est pas en échec. Ensuite, pour un paiement en ligne, le service de paiement réagit comme pour une commande terminée
+ * (libération) ou annulée (remboursement ou escalade) ; un échec de cette réaction n'annule pas l'issue déjà appliquée : il est signalé pour un suivi dans « Paiements ».
+ */
+export async function resoudreEchecLivraisonAction(
+  _etatPrecedent: EtatActionCommandeSupport,
+  formData: FormData
+): Promise<EtatActionCommandeSupport> {
+  const commandeId = String(formData.get("commande_id") ?? "");
+  const issue = formData.get("issue");
+  const motif = String(formData.get("motif") ?? "").trim();
+
+  if (!commandeId) return { erreur: "Commande introuvable." };
+  if (!issueEchecLivraisonValide(issue)) return { erreur: "Choisissez l'issue de la commande." };
+  if (motif.length < 5 || motif.length > 500) return { erreur: "Le motif doit faire entre 5 et 500 caractères." };
+
+  await verifierPermission("commande.support");
+  const supabase = await creerClientServeur();
+  const { error } = await supabase.rpc("fn_support_resoudre_echec_livraison", { p_order_id: commandeId, p_issue: issue, p_motif: motif });
+  if (error) return { erreur: messageRefusIssueEchec(error.message) };
+
+  let message = issue === "cloturer" ? "Commande clôturée, journalisée." : "Commande annulée, journalisée.";
+  try {
+    const paiement = await obtenirServicePaiement();
+    const suite = issue === "cloturer" ? await paiement.surCommandeTerminee(commandeId) : await paiement.surCommandeAnnulee(commandeId);
+    if (suite !== null && !suite.ok) message += " Le paiement en ligne reste à traiter dans « Paiements ».";
+    else if (suite !== null) message += issue === "cloturer" ? " Le paiement en ligne est libéré." : " Le client est remboursé.";
+  } catch {
+    message += " Le paiement en ligne n'a pas pu être traité automatiquement : à vérifier dans « Paiements ».";
+  }
+
+  revalidatePath("/system/commandes");
+  revalidatePath(`/system/commandes/${commandeId}`);
+  return { succes: true, message };
 }
