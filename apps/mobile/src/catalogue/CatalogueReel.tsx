@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, AppState, BackHandler, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PageMenu, PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { creerLecteurCatalogue, validerPageMenu, validerPageRestaurants } from './client';
 import { creerCacheCatalogue, libelleAgeCache, ouvrirCacheOuVide } from './cache-catalogue';
@@ -10,9 +10,10 @@ import * as SecureStore from 'expo-secure-store';
 import { CLE_ZONE_ACCUEIL, FILTRES, filtrerRestaurants, libelleZone, nombreParZone, restaurantsDansZone, sectionsAccueil, zoneEffective, zonesDisponibles, type IdFiltre } from './accueil';
 import { ChoixZone } from './ChoixZone';
 import { ouvrirCommandesEnvoyees } from '../stockage/commandes-envoyees';
-import { couleurs as c, polices } from '../design/tokens';
+import { couleurs as c, dureeMouvement, durees, polices } from '../design/tokens';
+import { useMouvementReduit } from '../design/mouvement';
 import { dateLisible } from '../design/format';
-import { Bouton } from '../design/Composants';
+import { Bouton, Squelette } from '../design/Composants';
 import { Icone, type NomIcone } from '../design/Icone';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
@@ -44,6 +45,9 @@ const lecteur = creerLecteurCatalogue();
 const Action = ({ titre, agir, disabled = false, secondaire = false, icone, libelleCourt, iconeSeule = false }: { titre: string; agir(): void; disabled?: boolean; secondaire?: boolean; icone?: NomIcone; libelleCourt?: string; iconeSeule?: boolean }) => <Bouton titre={titre} onPress={agir} disabled={disabled} secondaire={secondaire} icone={icone} libelleCourt={libelleCourt} iconeSeule={iconeSeule} />;
 export function CatalogueReel() {
   const panier = usePanierReel();
+  const mouvementReduit = useMouvementReduit();
+  const echelleBarrePanier = useRef(new Animated.Value(1)).current;
+  const articlesPrecedents = useRef<number | null>(null);
   const enCours = useCommandeEnCours();
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [compteOuvert, setCompteOuvert] = useState(false);
@@ -65,6 +69,8 @@ export function CatalogueReel() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [recherche, setRecherche] = useState('');
   const generation = useRef(0);
+  const defilementCatalogue = useRef<ScrollView>(null);
+  const positionsSections = useRef<Record<string, number>>({});
   async function charger(r: RestaurantPublic | null, apres: string | null = null) {
     const numero = ++generation.current;
     setCharge(true); setErreur(null);
@@ -194,7 +200,7 @@ export function CatalogueReel() {
   const zone = zoneEffective(zones, choixZone);
   const visibles = ordonnerRestaurants(filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre));
   const sections = sectionsAccueil(visibles, recherche, filtre);
-  const carteRestaurant = (r: RestaurantPublic, cle: string) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }, !r.ouvert && { opacity: 0.72 }]}>
+  const carteRestaurant = (r: RestaurantPublic, cle: string, vedette = false) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }, vedette && s.carteVedette, !r.ouvert && { opacity: 0.72 }]}>
     <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
     <View style={{ flex: 1, gap: 8 }}>
       <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' \u00b7 ') || 'Localisation non renseign\u00e9e'}</Text></View>
@@ -203,6 +209,7 @@ export function CatalogueReel() {
     </View>
   </Pressable>; };
   const titreRestaurant = menu?.restaurant ?? selection;
+  const groupesMenu = menu ? grouperMenu(menu.sections, menu.plats) : [];
   const entete = enteteAccueil({ maintenant: new Date(), restaurants: restaurantsDansZone(restaurants, zone), listeComplete: suivant === null });
   const nombreArticles = panier.panier.lignes.reduce((total, ligne) => total + ligne.quantite, 0);
   const sousTotal = panier.menu ? chiffrer(panier.panier, panier.menu.plats).total : null;
@@ -210,6 +217,20 @@ export function CatalogueReel() {
   const onglet = ongletActif({ panierOuvert, compteOuvert, demandeCompte });
   const surRestaurants = onglet === 'restaurants';
   const barrePanierVisible = nombreArticles > 0 && surRestaurants;
+  // Retour visuel à l'ajout : la barre du panier pulse une fois quand le nombre d'articles change. Mouvement réduit : aucun pulse, l'état final est posé directement.
+  useEffect(() => {
+    const avant = articlesPrecedents.current;
+    articlesPrecedents.current = nombreArticles;
+    if (avant === null || avant === nombreArticles) return;
+    if (mouvementReduit) { echelleBarrePanier.setValue(1); return; }
+    const duree = dureeMouvement(mouvementReduit, durees.base);
+    const pulse = Animated.sequence([
+      Animated.timing(echelleBarrePanier, { toValue: 1.04, duration: duree, useNativeDriver: true }),
+      Animated.timing(echelleBarrePanier, { toValue: 1, duration: duree, useNativeDriver: true }),
+    ]);
+    pulse.start();
+    return () => { pulse.stop(); echelleBarrePanier.setValue(1); };
+  }, [nombreArticles, mouvementReduit, echelleBarrePanier]);
   // « Commande en cours » : le bouton de la carte ouvre le suivi de cette commande ; chaque changement d'onglet relit son état (la carte et le point de l'onglet Commandes restent justes).
   function voirCommandeEnCours() {
     if (enCours.commande === null) return;
@@ -240,7 +261,7 @@ export function CatalogueReel() {
       </View>
       <Action titre="Réessayer" secondaire agir={() => { void charger(selection); }} disabled={charge} />
     </View>}
-    <ScrollView style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={defilementCatalogue} style={surRestaurants ? { flex: 1 } : { display: 'none' }} contentContainerStyle={s.contenu} keyboardShouldPersistTaps="handled">
       {selection && <Action titre="Retour aux restaurants" agir={retour} icone="retour" iconeSeule secondaire />}
       <Text accessibilityRole="header" style={s.titre}>{titreRestaurant?.nom ?? entete.titre}</Text>
       {!selection && entete.ligne !== null && <Text style={[s.texte, { fontWeight: '700' }]}>{entete.ligne}</Text>}
@@ -252,14 +273,15 @@ export function CatalogueReel() {
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
+      {charge && restaurants.length === 0 && !selection && <Squelette lignes={4} />}
       {!selection && enCours.commande !== null && <CarteCommandeEnCours commande={enCours.commande} suivre={voirCommandeEnCours} />}
       {!selection && <>
         <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher un restaurant, un quartier ou une cuisine" placeholder="Un restaurant, un quartier, une cuisine…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
         <Text style={s.secondaire}>{visibles.length} restaurant{visibles.length > 1 ? 's' : ''} sur {restaurants.length} chargé{restaurants.length > 1 ? 's' : ''}.</Text>
         {sections ? <>
-          {sections.ouverts.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Ouverts maintenant</Text>{sections.ouverts.map(r => carteRestaurant(r, 'ouverts-' + r.id))}</>}
-          {sections.mieuxNotes.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Les mieux notés</Text>{sections.mieuxNotes.map(r => carteRestaurant(r, 'notes-' + r.id))}</>}
+          {sections.ouverts.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Ouverts maintenant</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{sections.ouverts.map(r => carteRestaurant(r, 'ouverts-' + r.id, true))}</ScrollView></>}
+          {sections.mieuxNotes.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Les mieux notés</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{sections.mieuxNotes.map(r => carteRestaurant(r, 'notes-' + r.id, true))}</ScrollView></>}
           <Text accessibilityRole="header" style={s.titreSection}>Tous les restaurants</Text>{visibles.map(r => carteRestaurant(r, 'tous-' + r.id))}
         </> : visibles.map(r => carteRestaurant(r, r.id))}
         {!charge && !erreur && visibles.length === 0 && <Text style={s.texte}>{restaurants.length ? 'Aucun restaurant ne correspond à votre recherche.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
@@ -268,7 +290,8 @@ export function CatalogueReel() {
       {menu && <>
         <EnteteFiche restaurant={menu.restaurant} />
         {nombreAConfirmer(menu.plats) > 0 && <Text style={s.secondaire}>{LEGENDE_A_CONFIRMER}</Text>}
-        {grouperMenu(menu.sections, menu.plats).map(g => <View key={'section-' + g.titre} style={{ gap: 12 }}>
+        {groupesMenu.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{groupesMenu.map(g => <Pressable key={'puce-' + g.titre} accessibilityRole="button" accessibilityLabel={`Aller à la section ${g.titre}`} onPress={() => { const y = positionsSections.current[g.titre]; if (y !== undefined) defilementCatalogue.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }); }} style={s.puceZone}><Text style={s.puceTexte}>{g.titre}</Text></Pressable>)}</ScrollView>}
+        {groupesMenu.map(g => <View key={'section-' + g.titre} onLayout={e => { positionsSections.current[g.titre] = e.nativeEvent.layout.y; }} style={{ gap: 12 }}>
           <Text accessibilityRole="header" style={s.titreSection}>{g.titre}</Text>
           {ordonnerPlats(g.plats).map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} commandable={commandabilite(menu.restaurant).commandable} ajouter={() => demanderAjout(p)} />)}
         </View>)}
@@ -278,13 +301,13 @@ export function CatalogueReel() {
       {(selection ? menu?.luLe : lectureLe) && <Text style={s.secondaire}>Mis à jour le {dateLisible((selection ? menu!.luLe : lectureLe)!)}. La disponibilité peut évoluer.</Text>}
       <Action titre={selection ? 'Actualiser le menu' : 'Actualiser les restaurants'} disabled={charge} agir={() => { void charger(selection); }} icone="actualiser" iconeSeule secondaire />
     </ScrollView>
-    {barrePanierVisible && <View style={s.barrePanier} accessibilityRole="summary">
+    {barrePanierVisible && <Animated.View style={[s.barrePanier, { transform: [{ scale: echelleBarrePanier }] }]} accessibilityRole="summary">
       <View style={{ flex: 1, gap: 2 }}>
         <Text accessibilityLabel={`${nombreArticles} article${nombreArticles > 1 ? 's' : ''} dans votre panier`} style={s.barrePanierTitre}>{nombreArticles} article{nombreArticles > 1 ? 's' : ''}</Text>
         <Text style={s.barrePanierSousTitre}>{sousTotal === null ? 'Total à vérifier' : `Sous-total indicatif · ${new Intl.NumberFormat('fr-FR').format(sousTotal)} GNF`}</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
-    </View>}
+    </Animated.View>}
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
     <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} commandeEnCours={enCours.commande !== null} choisir={choisirOnglet} />
@@ -310,7 +333,7 @@ const s = StyleSheet.create({
   surtitre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 11 }, titre: { color: c.encre, fontFamily: polices.titre, fontSize: 32, lineHeight: 37 },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   puceZone: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1.5, borderColor: c.encre, backgroundColor: c.surface }, puceTexte: { color: c.encre, fontFamily: polices.texte, fontSize: 14 },
-  carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },
+  carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, carteVedette: { width: 248 }, rangeeVedette: { gap: 12, paddingVertical: 2 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },
   note: { backgroundColor: c.avertissementFond, borderRadius: 16, padding: 16, gap: 12 }, rechercheBoite: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 18, minHeight: 56, paddingHorizontal: 16 }, rechercheChamp: { flex: 1, minHeight: 54, fontFamily: polices.texte, fontSize: 15, color: c.encre },
   rondEntete: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface },
   action: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, justifyContent: 'center', alignItems: 'center' }, actionTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700', fontSize: 14 },

@@ -8,6 +8,7 @@ import { type NomIcone } from '../design/Icone';
 import { Bouton, type VarianteBouton } from '../design/Composants';
 import { dateLisible } from '../design/format';
 import { COMMENTAIRE_PLATS_A_CONFIRMER, commandabilite } from './parcours-client';
+import { LIVRAISON_CLIENT_DISPONIBLE } from './commande-reelle';
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n)+' GNF';
 /** Bouton rond à icône seule : le nom accessible dit toujours l'action en toutes lettres. */
 function Rond({ nom: titre, icone, onPress, desactive = false, variante = 'texte' }: { nom: string; icone: NomIcone; onPress(): void; desactive?: boolean; variante?: VarianteBouton }) {
@@ -21,7 +22,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
   const bilan = chiffrer(etat.panier, etat.menu?.plats ?? []);
   const dispo = etat.menu ? commandabilite(etat.menu.restaurant) : null;
   const aConfirmer = bilan.lignes.filter(l => l.plat?.disponibilite === 'a_confirmer').length;
-  const corps = <ScrollView contentContainerStyle={s.contenu}>
+  const corps = <View style={{ flex: 1 }}><ScrollView style={{ flex: 1 }} contentContainerStyle={s.contenu}>
     <View style={s.entete}>
       {enModal && <Rond nom="Retour au catalogue" icone="retour" onPress={fermer} />}
       <Text accessibilityRole="header" style={[s.titre, { flex: 1 }]}>Mon panier</Text>
@@ -54,14 +55,15 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
         <Rond nom={`Retirer ${l.plat?.nom ?? 'ce plat'} du panier`} variante="danger" icone="corbeille" onPress={() => etat.quantite(l.cle, 0)} />
       </View>
     </View>)}
-    {!!etat.panier.lignes.length && <>
+  </ScrollView>
+  {!!etat.panier.lignes.length && <View style={s.recap}>
       <Text accessibilityRole="header" style={s.nom}>{etat.lecture || etat.erreurLecture || bilan.total === null ? 'Total à vérifier' : `Sous-total indicatif : ${gnf(bilan.total)}`}</Text>
-      {etat.menu && <Text style={s.secondaire}>Menu actualisé le {dateLisible(etat.menu.luLe)}.</Text>}
+      <Text style={s.secondaire}>{LIVRAISON_CLIENT_DISPONIBLE ? 'Hors frais de livraison, calculés à l’étape suivante.' : 'Retrait au restaurant : pas de frais de livraison.'}{etat.menu ? ` Menu actualisé le ${dateLisible(etat.menu.luLe)}.` : ''}</Text>
       {aConfirmer > 0 && <Text style={s.secondaire}>{COMMENTAIRE_PLATS_A_CONFIRMER(aConfirmer)}</Text>}
       <Bouton titre="Commander" icone="coche" disabled={etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null || (dispo !== null && !dispo.commandable)} onPress={commander} />
-    </>}
-  </ScrollView>;
+    </View>}
+  </View>;
   if (enModal) return <Modal visible={ouvert} onRequestClose={fermer} animationType="slide"><SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}>{corps}</SafeAreaView></Modal>;
   return ouvert ? <View style={{ flex: 1, backgroundColor: c.fond }}>{corps}</View> : null;
 }
-const s=StyleSheet.create({entete:{flexDirection:'row',alignItems:'center',gap:10},contenu:{padding:22,gap:18,width:'100%',maxWidth:760,alignSelf:'center'},titre:{fontFamily:polices.titre,fontSize:34,color:c.encre},nom:{fontFamily:polices.titre,fontSize:21,color:c.encre},texte:{fontFamily:polices.texte,fontSize:15,lineHeight:23,color:c.encre},secondaire:{fontFamily:polices.texte,fontSize:12,lineHeight:19,color:c.secondaire},carte:{padding:20,gap:12,backgroundColor:c.surface,borderRadius:22,borderWidth:1,borderColor:c.bordure},alerte:{padding:16,gap:4,backgroundColor:c.avertissementFond,borderRadius:16},alerteTitre:{fontFamily:polices.texte,fontSize:16,fontWeight:'700',color:c.avertissement},alerteTexte:{fontFamily:polices.texte,fontSize:14,lineHeight:20,color:c.avertissement},bouton:{backgroundColor:c.action,minHeight:48,padding:14,borderRadius:26,alignItems:'center',justifyContent:'center'},boutonTexte:{fontFamily:polices.texte,color:c.surface,fontWeight:'700'},inactif:{opacity:.5},touche:{minWidth:48,minHeight:48,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:c.bordure,borderRadius:24,backgroundColor:c.surface}});
+const s=StyleSheet.create({entete:{flexDirection:'row',alignItems:'center',gap:10},recap:{gap:8,paddingHorizontal:22,paddingTop:12,paddingBottom:16,borderTopWidth:1,borderTopColor:c.bordure,backgroundColor:c.surface,width:'100%',maxWidth:760,alignSelf:'center'},contenu:{padding:22,gap:18,width:'100%',maxWidth:760,alignSelf:'center'},titre:{fontFamily:polices.titre,fontSize:34,color:c.encre},nom:{fontFamily:polices.titre,fontSize:21,color:c.encre},texte:{fontFamily:polices.texte,fontSize:15,lineHeight:23,color:c.encre},secondaire:{fontFamily:polices.texte,fontSize:12,lineHeight:19,color:c.secondaire},carte:{padding:20,gap:12,backgroundColor:c.surface,borderRadius:22,borderWidth:1,borderColor:c.bordure},alerte:{padding:16,gap:4,backgroundColor:c.avertissementFond,borderRadius:16},alerteTitre:{fontFamily:polices.texte,fontSize:16,fontWeight:'700',color:c.avertissement},alerteTexte:{fontFamily:polices.texte,fontSize:14,lineHeight:20,color:c.avertissement},bouton:{backgroundColor:c.action,minHeight:48,padding:14,borderRadius:26,alignItems:'center',justifyContent:'center'},boutonTexte:{fontFamily:polices.texte,color:c.surface,fontWeight:'700'},inactif:{opacity:.5},touche:{minWidth:48,minHeight:48,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:c.bordure,borderRadius:24,backgroundColor:c.surface}});
