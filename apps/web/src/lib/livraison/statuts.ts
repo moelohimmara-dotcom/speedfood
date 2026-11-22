@@ -64,7 +64,7 @@ export function motifEchecRestaurantValide(valeur: unknown): valeur is MotifEche
 }
 
 /**
- * Issue d'une commande dont la livraison a échoué, décidée par l'assistance (fonction de base `fn_support_resoudre_echec_livraison`, migration 20261122120000) :
+ * Issue d'une commande dont la livraison a échoué, décidée par l'assistance (fonction de base `fn_support_resoudre_echec_livraison`, migration 20261122062252) :
  * « cloturer » termine la commande (le restaurant est payé : le paiement en ligne est libéré), « annuler » l'annule (le client est remboursé).
  */
 export const ISSUES_ECHEC_LIVRAISON = {

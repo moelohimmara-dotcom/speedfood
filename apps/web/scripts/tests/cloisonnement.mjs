@@ -766,7 +766,7 @@ await serveur("paiement : la référence interne ne se modifie pas", `update pai
 await serveur("paiement : transition interdite cree → libere", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : transition interdite cree → confirme", `update paiements set etat = 'confirme' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : cree → en_attente → confirme acceptés dans l'ordre", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}; update paiements set etat = 'confirme', reference_externe = 'EXT-C' where id = ${U(PAY_C)}`, false);
-// Verrou sur l'argent (migration 20261122120000) : libérer exige une commande terminée (voir aussi echec-livraison-base.mjs).
+// Verrou sur l'argent (migration 20261122062252) : libérer exige une commande terminée (voir aussi echec-livraison-base.mjs).
 await serveur("paiement : confirme → libere refusé tant que la commande n'est pas terminée", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : confirme → libere accepté une fois la commande terminée", `update orders set statut = 'prete' where id = '${CMD_C}'; update orders set statut = 'terminee' where id = '${CMD_C}'; update paiements set etat = 'libere' where id = ${U(PAY_C)}`, false);
 await serveur("paiement : libere → en_attente refusé (pas de retour en arrière)", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}`, true);
