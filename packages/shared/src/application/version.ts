@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 110,
-    nom: "3.1.7",
-    notes: "La livraison est suspendue dans l'application le temps d'y ajouter son suivi complet (étape, livreur et code de remise) : vous commandez en retrait au restaurant. Le reste du parcours ne change pas.",
+    code: 111,
+    nom: "3.1.8",
+    notes: "La livraison revient dans l'application : choisissez votre quartier, voyez les frais avant d'envoyer, puis suivez votre commande avec l'étape, le livreur et le code à donner à la remise. Le retrait au restaurant ne change pas.",
     obligatoire: false,
-    apkSha256: "bf8d799cc5f8bb4a9c55ca528b05ca46fb9b2a162be9b607568605557885ee86",
-    apkTaille: 65902691,
+    apkSha256: "69c400678e6888aa9d1913b4a8839d5f6db8add729f8b9e72a4de9c5e2b940e4",
+    apkTaille: 66070706,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.7.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.8.apk",
   },
 };
