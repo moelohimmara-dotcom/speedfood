@@ -1911,6 +1911,10 @@ export type Database = {
         Args: { p_motif: string; p_order_id: string; p_vers: string }
         Returns: undefined
       }
+      fn_support_resoudre_echec_livraison: {
+        Args: { p_issue: string; p_motif: string; p_order_id: string }
+        Returns: undefined
+      }
       fn_support_commandes_par_heure: {
         Args: { p_jours: number }
         Returns: {

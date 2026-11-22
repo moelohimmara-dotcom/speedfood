@@ -7,6 +7,10 @@ import {
   MESSAGE_LIVRAISON_OUVERTE,
   MOTIFS_ECHEC_RESTAURANT,
   motifEchecRestaurantValide,
+  ISSUES_ECHEC_LIVRAISON,
+  issueEchecLivraisonValide,
+  echecLivraisonResoluble,
+  messageRefusIssueEchec,
   libelleLivraison,
   transitionLivraisonAutorisee,
   type ModeLivraison,
@@ -57,6 +61,10 @@ verifier("restaurant en mode speedfood : ne déclare jamais l'échec d'un livreu
 verifier("restaurant en mode propre : pas d'échec avant le départ (il peut annuler)", [acteurPeut("restaurant", "assignee", "echec", "propre"), acteurPeut("restaurant", "assignee", "annulee", "propre")], [false, true]);
 verifier("motifs d'échec du restaurant : liste fermée", Object.keys(MOTIFS_ECHEC_RESTAURANT), ["injoignable", "adresse", "refus", "autre"]);
 verifier("motif d'échec : valeurs valides et refus des autres", [motifEchecRestaurantValide("adresse"), motifEchecRestaurantValide(""), motifEchecRestaurantValide("toString"), motifEchecRestaurantValide("__proto__"), motifEchecRestaurantValide(undefined), motifEchecRestaurantValide(3)], [true, false, false, false, false, false]);
+verifier("issues d'un échec de livraison : deux seulement, clôturer ou annuler", Object.keys(ISSUES_ECHEC_LIVRAISON), ["cloturer", "annuler"]);
+verifier("issue d'échec : valeurs valides et refus des autres", [issueEchecLivraisonValide("annuler"), issueEchecLivraisonValide("cloturer"), issueEchecLivraisonValide("rembourser"), issueEchecLivraisonValide(""), issueEchecLivraisonValide("toString"), issueEchecLivraisonValide("__proto__"), issueEchecLivraisonValide(null), issueEchecLivraisonValide(2)], [true, true, false, false, false, false, false, false]);
+verifier("une issue n'est attendue que pour une commande prête dont la livraison est en échec", [echecLivraisonResoluble("prete", "echec"), echecLivraisonResoluble("prete", "livree"), echecLivraisonResoluble("prete", "vers_client"), echecLivraisonResoluble("prete", null), echecLivraisonResoluble("terminee", "echec"), echecLivraisonResoluble("acceptee", "echec"), echecLivraisonResoluble("annulee", "echec")], [true, false, false, false, false, false, false]);
+verifier("messages de refus de l'issue : fixes, sans texte technique", [messageRefusIssueEchec("Acces refuse"), messageRefusIssueEchec("La commande doit etre prete"), messageRefusIssueEchec("La livraison de cette commande n'est pas en echec"), messageRefusIssueEchec("Motif invalide"), messageRefusIssueEchec("ERROR: relation orders blah")], ["Cette action est réservée au support Speedfood.", "Cette commande n'attend plus d'issue : rechargez la page.", "Cette commande n'attend plus d'issue : rechargez la page.", "Le motif doit faire entre 5 et 500 caractères.", "Impossible d'appliquer l'issue. Réessayez dans un instant."]);
 verifier("administrateur : reprend la main (réassignation)", acteurPeut("admin", "vers_restaurant", "a_assigner", "speedfood"), true);
 verifier("administrateur : ne dépasse pas la machine à états", acteurPeut("admin", "livree", "annulee", "speedfood"), false);
 verifier("système : envoie une offre", acteurPeut("systeme", "a_assigner", "offre_envoyee", "speedfood"), true);

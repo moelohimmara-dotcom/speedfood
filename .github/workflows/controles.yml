@@ -50,6 +50,9 @@ jobs:
       - name: Tests de cloisonnement
         run: npm run test:cloisonnement
 
+      - name: Simulation de l'issue d'un échec de livraison et du verrou sur l'argent
+        run: npm run test:echec-livraison
+
       - name: Tests de l'API
         run: npm run test:api
 

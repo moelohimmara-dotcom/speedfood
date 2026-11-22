@@ -622,12 +622,18 @@ const definerConnu = new Set([
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
   "fn_quarts_prendre", "fn_quarts_liberer", "fn_motifs_restaurants",
+  // Issue d'une commande dont la livraison a échoué : réservée au support (contrôle dans la fonction), testée à fond dans echec-livraison-base.mjs.
+  "fn_support_resoudre_echec_livraison",
 ]);
 const definerAuth = (await db.query(`
   select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef and has_function_privilege('authenticated', p.oid, 'execute')`)).rows.map((r) => r.proname);
 const nouvelles = definerAuth.filter((n) => !definerConnu.has(n));
 verifier("aucune nouvelle fonction privilégiée n'est apparue sans être déclarée et testée ici", nouvelles.length === 0, nouvelles.join(", "));
+for (const [qui, nom] of [[ID.user_a, "un restaurateur"], [ID.client, "un client connecté"], [null, "un visiteur anonyme"]]) {
+  const r = await ecrire(qui, `select public.fn_support_resoudre_echec_livraison('${CMD_A}', 'annuler', 'Essai non autorise')`);
+  verifier(`${nom} ne peut pas résoudre l'échec d'une livraison (réservé au support)`, r.erreur !== null, r.erreur ?? "aucune erreur !");
+}
 
 // ---------------------------------------------------------------- 7. revue du 19 octobre 2026 : jeton de suivi, réinitialisation, avis
 console.log("\n--- Jeton de suivi, réinitialisation, avis (revue du 19 octobre 2026)");
@@ -759,7 +765,10 @@ await serveur("paiement : la répartition ne se modifie pas", `update paiements 
 await serveur("paiement : la référence interne ne se modifie pas", `update paiements set reference_interne = 'SF-AUTRE-XXXX' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : transition interdite cree → libere", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : transition interdite cree → confirme", `update paiements set etat = 'confirme' where id = ${U(PAY_C)}`, true);
-await serveur("paiement : cree → en_attente → confirme → libere acceptés dans l'ordre", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}; update paiements set etat = 'confirme', reference_externe = 'EXT-C' where id = ${U(PAY_C)}; update paiements set etat = 'libere' where id = ${U(PAY_C)}`, false);
+await serveur("paiement : cree → en_attente → confirme acceptés dans l'ordre", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}; update paiements set etat = 'confirme', reference_externe = 'EXT-C' where id = ${U(PAY_C)}`, false);
+// Verrou sur l'argent (migration 20261122062252) : libérer exige une commande terminée (voir aussi echec-livraison-base.mjs).
+await serveur("paiement : confirme → libere refusé tant que la commande n'est pas terminée", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : confirme → libere accepté une fois la commande terminée", `update orders set statut = 'prete' where id = '${CMD_C}'; update orders set statut = 'terminee' where id = '${CMD_C}'; update paiements set etat = 'libere' where id = ${U(PAY_C)}`, false);
 await serveur("paiement : libere → en_attente refusé (pas de retour en arrière)", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : la référence du prestataire, une fois posée, ne change pas", `update paiements set reference_externe = 'EXT-AUTRE' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : un remboursement ne diminue pas", `update paiements set rembourse_gnf = 5000 where id = ${U(PAY_C)}; update paiements set rembourse_gnf = 1000 where id = ${U(PAY_C)}`, true);

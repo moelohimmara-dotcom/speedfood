@@ -8,6 +8,8 @@ import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { formaterDateCourte, formaterEcheance } from "../../formatage";
 import { RevelerCoordonnees } from "./RevelerCoordonnees";
 import { ActionSupportStatut } from "./ActionSupportStatut";
+import { ResoudreEchecLivraison } from "./ResoudreEchecLivraison";
+import { echecLivraisonResoluble } from "@/lib/livraison/statuts";
 import { FilSupportCommande } from "./FilSupport";
 
 export const metadata = { title: "Commande (administration)" };
@@ -125,6 +127,16 @@ export default async function CommandeDetailSystemePage({
           <Panneau titre="Fil de support">
             <FilSupportCommande fil={filSupport} telephoneMasque={commande.telephoneAffiche} />
           </Panneau>
+
+          {echecLivraisonResoluble(commande.statut, commande.livraisonStatut) ? (
+            <Panneau titre="Livraison non aboutie : issue de la commande">
+              <p className="u-fs-0-85rem-c-secondaire-mt-0">
+                Le restaurateur a déclaré que la livraison n&apos;a pas abouti. La commande reste prête tant que vous n&apos;avez pas décidé. Clôturer paie le restaurant (client injoignable ou qui
+                refuse, plat déjà préparé). Annuler rembourse le client. Motif obligatoire, journalisé.
+              </p>
+              <ResoudreEchecLivraison commandeId={commande.id} />
+            </Panneau>
+          ) : null}
 
           <Panneau titre="Action de support">
             <p className="u-fs-0-85rem-c-secondaire-mt-0">
