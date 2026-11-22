@@ -71,6 +71,12 @@ const worker = {
       headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
     });
     ctx.waitUntil(handler.fetch(annonce, env, ctx).then(() => undefined, () => undefined));
+    // File d'événements de commande : reprise des alertes au restaurant non livrées (délais espacés, abandon après 5 essais).
+    const evenements = new Request("https://entretien.interne/api/application/evenements", {
+      method: "POST",
+      headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
+    });
+    ctx.waitUntil(handler.fetch(evenements, env, ctx).then(() => undefined, () => undefined));
     // Alertes e-mail de l'équipe (inscriptions suspendues pour doublon) par le SMTP de Google. Sans les secrets GOOGLE_SMTP_USER et GOOGLE_SMTP_APP_PASSWORD, rien n'est envoyé : l'alerte reste
     // visible dans la console (/system/acces/doublons). Destinataire : EQUIPE_ALERTE_EMAIL, à défaut l'adresse d'envoi elle-même. Un message n'est confirmé (donc plus renvoyé) qu'une fois parti.
     if (env.GOOGLE_SMTP_USER && env.GOOGLE_SMTP_APP_PASSWORD) {
