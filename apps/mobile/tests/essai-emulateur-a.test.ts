@@ -70,7 +70,7 @@ test('hors ligne : la bannière est sous l’en-tête, avant la liste, avec « R
   const t = lire('../src/catalogue/CatalogueReel.tsx');
   const bandeau = t.indexOf('style={s.bandeauHorsLigne}');
   assert.ok(bandeau > 0, 'bannière présente');
-  assert.ok(bandeau < t.indexOf('<ScrollView style={surRestaurants'), 'avant la liste défilante : toujours visible');
+  assert.ok(bandeau < t.indexOf('<ScrollView ref={defilementCatalogue}'), 'avant la liste défilante : toujours visible');
   const bloc = t.slice(bandeau, bandeau + 900);
   assert.ok(bloc.includes('Vous êtes hors ligne') && bloc.includes('titre="Réessayer"'), 'message et bouton de reprise');
   assert.equal(t.split('Vous êtes hors ligne').length - 1, 1, 'une seule bannière (plus de texte caché en bas de la liste)');

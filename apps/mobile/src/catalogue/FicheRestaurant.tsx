@@ -1,10 +1,12 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 import { Vignette } from './Vignette';
 import { enPromo, libelleNote, libelleStatut, libelleSupplements, titreEtatRestaurant } from './menu-groupes';
 import { commandabilite, etatPlat, moyensAffichables } from './parcours-client';
+import { PHRASE_MODES_COMMANDE } from './commande-reelle';
 /** Affichage riche du catalogue (parité Kotlin, tranche 10.1) : en-tête de la fiche et carte d'un plat. Les montants affichés sont indicatifs : le serveur recalcule tout à la commande. */
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
 const COULEUR_TON = { succes: '#1E7A46', neutre: c.secondaire, danger: '#B3261E', attention: c.avertissement } as const;
@@ -15,8 +17,10 @@ export function Pastille({ texte, ton }: { texte: string; ton: 'succes' | 'neutr
 
 /** En-tête de la fiche : logo ou photo, lieu, état, note, fraîcheur du statut, horaires, consignes et moyens de paiement (seulement ceux que le serveur a transmis). */
 export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic }) {
+  const [photoEchouee, setPhotoEchouee] = useState<string | null>(null);
   const etat = titreEtatRestaurant(r); const note = libelleNote(r); const statut = libelleStatut(r); const dispo = commandabilite(r); const moyens = moyensAffichables(r.moyensPaiement);
   return <View style={s.carte}>
+    {r.photoUrl && photoEchouee !== r.photoUrl ? <Image source={{ uri: r.photoUrl }} accessible={false} accessibilityIgnoresInvertColors resizeMode="cover" onError={() => setPhotoEchouee(r.photoUrl ?? null)} style={s.photo} /> : null}
     <View style={{ flexDirection: 'row', gap: 14 }}>
       <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={84} />
       <View style={{ flex: 1, gap: 6 }}>
@@ -25,6 +29,7 @@ export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic })
         {statut && <Text style={s.secondaire}>{statut}</Text>}
       </View>
     </View>
+    {dispo.commandable && <Text style={s.texte}>Commande {PHRASE_MODES_COMMANDE}.</Text>}
     {!dispo.commandable && <View accessibilityRole="alert" style={s.bandeau}><Text style={s.bandeauTitre}>{dispo.titre}</Text><Text style={s.bandeauTexte}>{dispo.message}</Text></View>}
     {r.horaires && dispo.raison !== 'ferme' ? <Text style={s.texte}>Horaires : {r.horaires}</Text> : null}
     {r.consignes ? <Text style={s.secondaire}>{r.consignes}</Text> : null}
@@ -56,6 +61,7 @@ export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date()
 }
 const s = StyleSheet.create({
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 16, gap: 12 },
+  photo: { width: '100%', height: 168, borderRadius: 16, backgroundColor: c.bordure },
   nom: { color: c.encre, fontFamily: polices.titre, fontSize: 19 }, prix: { color: c.encre, fontFamily: polices.texte, fontSize: 15, fontWeight: '700' },
   barre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 13, textDecorationLine: 'line-through' },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 22 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
