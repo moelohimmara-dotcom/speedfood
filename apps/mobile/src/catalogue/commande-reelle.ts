@@ -99,8 +99,9 @@ export function genererCleIdempotence(sources: SourcesCle = sourcesParDefaut()):
 
 export type ModeCommande = 'retrait' | 'livraison';
 /**
- * Livraison commandée depuis l'application : RETIRÉE le 20/11/2026. Essai à l'écran : le suivi du client ne montre ni l'étape de la livraison, ni le livreur, ni le code de remise
- * que le livreur doit saisir pour terminer la course (le site, lui, les montre). À remettre à `true` quand le suivi de l'application les affichera. Le site garde la livraison.
+ * Livraison commandée depuis l'application : retirée le 20/11/2026 (version 3.1.7), RALLUMÉE dans la 3.1.8. Raison du retrait : le suivi du client ne montrait ni l'étape de la livraison, ni le livreur,
+ * ni le code de remise que le livreur doit saisir pour terminer la course. Depuis : le suivi les affiche (bloc `livraison`, API en ligne), le restaurateur ne peut plus clore une commande en livraison
+ * sans le code (21/11), les frais de livraison sont calculés (interrupteur `frais_actifs` allumé le 21/11) et le restaurateur peut déclarer une livraison non aboutie.
  */
 export const LIVRAISON_CLIENT_DISPONIBLE = true;
 /** Les modes annoncés au client, dans les textes de l'accueil et du compte. */
