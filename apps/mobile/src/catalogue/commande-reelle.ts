@@ -102,7 +102,7 @@ export type ModeCommande = 'retrait' | 'livraison';
  * Livraison commandée depuis l'application : RETIRÉE le 20/11/2026. Essai à l'écran : le suivi du client ne montre ni l'étape de la livraison, ni le livreur, ni le code de remise
  * que le livreur doit saisir pour terminer la course (le site, lui, les montre). À remettre à `true` quand le suivi de l'application les affichera. Le site garde la livraison.
  */
-export const LIVRAISON_CLIENT_DISPONIBLE = false;
+export const LIVRAISON_CLIENT_DISPONIBLE = true;
 /** Les modes annoncés au client, dans les textes de l'accueil et du compte. */
 export const PHRASE_MODES_COMMANDE = LIVRAISON_CLIENT_DISPONIBLE ? 'en retrait ou en livraison' : 'en retrait au restaurant';
 /** Réponse du serveur à l'estimation (`ok`) ou calcul éteint (`non_calcule`). Une réponse `erreur` n'est jamais conservée comme estimation. */

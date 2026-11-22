@@ -177,8 +177,8 @@ test('livraison : sans interrupteur éteint, le mode livraison reste choisissabl
   assert.equal(m.mode, 'livraison');
 });
 
-test('interrupteur livraison de l’application : éteint le 20/11/2026, les textes d’accueil ne parlent que de retrait', async () => {
+test('interrupteur livraison de l’application : rallumé pour la 3.1.8 (éteint du 20/11/2026 jusqu’à la 3.1.7), les textes d’accueil annoncent retrait ET livraison', async () => {
   const { LIVRAISON_CLIENT_DISPONIBLE, PHRASE_MODES_COMMANDE } = await import('../src/catalogue/commande-reelle.ts');
-  assert.equal(LIVRAISON_CLIENT_DISPONIBLE, false);
-  assert.equal(PHRASE_MODES_COMMANDE, 'en retrait au restaurant');
+  assert.equal(LIVRAISON_CLIENT_DISPONIBLE, true);
+  assert.equal(PHRASE_MODES_COMMANDE, 'en retrait ou en livraison');
 });
