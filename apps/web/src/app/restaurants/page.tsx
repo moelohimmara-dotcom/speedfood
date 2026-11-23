@@ -45,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: { canonical: `${origine}/restaurants` },
     openGraph: {
-      title: "Speedfood · Restaurants de Conakry",
+      title: "Speedfood · Restaurants en Guinée",
       description,
       type: "website",
       siteName: "Speedfood",
@@ -116,13 +116,20 @@ export default async function CataloguePage({
     href: lien(etat, { categorie: categorie === c.id ? undefined : c.id }),
     actif: categorie === c.id,
   }));
-  const optionsQuartier: OptionFiltre[] = (quartiers ?? []).map((x) => ({
-    cle: x.id,
-    libelle: x.nom,
-    n: compter(base.resultats.filter((r) => r.restaurant.quartier === x.nom && (!categorie || r.restaurant.categorieId === categorie))),
-    href: lien(etat, { quartier: quartier === x.id ? undefined : x.id }),
-    actif: quartier === x.id,
-  }));
+  // Un quartier sans aucun restaurant (la Guinée en compte des centaines, ajoutés à l'avance) n'est pas proposé : sauf s'il est déjà choisi.
+  const optionsQuartier: OptionFiltre[] = (quartiers ?? []).flatMap((x) => {
+    const sansFiltreCuisine = base.resultats.filter((r) => r.restaurant.quartier === x.nom);
+    if (sansFiltreCuisine.length === 0 && quartier !== x.id) return [];
+    return [
+      {
+        cle: x.id,
+        libelle: x.nom,
+        n: compter(sansFiltreCuisine.filter((r) => !categorie || r.restaurant.categorieId === categorie)),
+        href: lien(etat, { quartier: quartier === x.id ? undefined : x.id }),
+        actif: quartier === x.id,
+      },
+    ];
+  });
   const effacerFiltres = categorie || quartier ? lien(etat, { categorie: undefined, quartier: undefined }) : null;
   const nbConfirmes = vedettes.filter((v) => v.etat.type === "disponible").length;
 

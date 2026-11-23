@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const origine = await origineDuSite();
   return {
-    title: `Restaurants à ${quartier.nom}, Conakry`,
+    title: `Restaurants à ${quartier.nom}${quartier.regionNom ? `, ${quartier.regionNom}` : ""}`,
     description: `${quartier.restaurants} restaurant${quartier.restaurants > 1 ? "s" : ""} à ${quartier.nom} sur Speedfood : cartes, prix et disponibilité confirmée par chaque restaurant.`,
     alternates: { canonical: `${origine}/quartiers/${quartier.slug}` },
   };

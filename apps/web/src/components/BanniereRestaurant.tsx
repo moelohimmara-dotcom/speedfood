@@ -49,6 +49,7 @@ export function BanniereRestaurant({
   nom,
   categorie,
   quartier,
+  ville,
   horaires,
   consignes,
   statut,
@@ -63,6 +64,8 @@ export function BanniereRestaurant({
   nom: string;
   categorie: string;
   quartier: string;
+  /** Ville ou préfecture où se trouve le restaurant (« Conakry », « Kankan ») ; vide, rien n'est ajouté après le quartier. */
+  ville?: string;
   horaires: string;
   consignes?: string | null;
   statut: { texte: string; ton: TonEtat };
@@ -132,7 +135,7 @@ export function BanniereRestaurant({
           {quartier ? (
             <li>
               <Icone nom="lieu" />
-              {quartier}, Conakry
+              {ville && ville !== quartier ? `${quartier}, ${ville}` : quartier}
             </li>
           ) : null}
           {horaires.trim() ? (
