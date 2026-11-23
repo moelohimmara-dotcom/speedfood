@@ -2,13 +2,14 @@
 -- Tout est fictif : noms, numéros (préfixe 60000 réservé à la démonstration), adresses. Les restaurants portent `donnees_demo` et
 -- `demo_lot` ; fn_demo_visibilite / fn_demo_supprimer (migration 20261123090000) les masquent ou les suppriment.
 -- Échelle « moyenne » : 60 restaurants, ~600 plats, 3 000 commandes d'historique sur 90 jours, ~2 000 avis, 40 livreurs.
+-- Répartition : 37 restaurants et 28 livreurs sur 10 communes de Conakry, 23 restaurants et 12 livreurs dans les chefs-lieux des 7 autres
+-- régions (Kindia, Coyah, Boké, Kamsar, Labé, Mamou, Faranah, Kankan, Siguiri, N'Zérékoré, Guéckédou) ; ~86 % des commandes à Conakry.
 -- Déterministe (graine fixe). Refuse de recharger un lot déjà présent.
 do $demo$
 declare
   v_lot constant text := 'presentation-2026-11';
   n_hist constant int := 3000;
   n_livreurs constant int := 40;
-  quartiers uuid[];
   cats uuid[];
 begin
   if exists (select 1 from public.restaurants where demo_lot = v_lot) then
@@ -17,30 +18,74 @@ begin
   perform set_config('speedfood.chargement_demo', 'on', true);
   perform setseed(0.2611);
 
-  -- Dix quartiers de Conakry avec coordonnées (préférence aux plus connus, complétés par ordre alphabétique).
-  select array_agg(id) into quartiers from (
-    select id from public.neighborhoods
-    where actif and not generique and latitude between 9.4 and 9.75 and longitude between -13.8 and -13.5
-    order by (nom = any (array['Kipé','Taouyah','Nongo','Lambanyi','Hamdallaye','Matam','Camayenne','Coléah Centre','Dixinn Gare','Bonfi'])) desc, nom
-    limit 10) q;
   select array_agg(id order by ordre) into cats from public.menu_categories;
-  if quartiers is null or cardinality(quartiers) < 5 or cats is null or cardinality(cats) < 4 then
-    raise exception 'Quartiers ou catégories introuvables : chargement annulé.';
+  if cats is null or cardinality(cats) < 4 then
+    raise exception 'Catégories introuvables : chargement annulé.';
   end if;
+
+  -- ------------------------------------------------------------------ zones : Conakry (10 communes) et les chefs-lieux des 7 autres régions
+  -- Conakry : un quartier par commune (préférence aux plus connus, avec coordonnées ; à défaut, celles de la commune). Régions : le quartier générique « Centre » de la ville
+  -- (positionné sur les coordonnées de la commune). nb_resto / nb_livreurs : combien de restaurants et de livreurs simulés dans la zone.
+  create temp table t_zones on commit drop as
+  with poids(cle, nb_resto, nb_livreurs) as (values
+    ('Ratoma', 6, 5), ('Matoto', 5, 4), ('Dixinn', 4, 3), ('Matam', 4, 3), ('Kaloum', 4, 3),
+    ('Gbessia', 3, 2), ('Lambanyi', 3, 2), ('Sonfonia', 3, 2), ('Tombolia', 3, 2), ('Kassa', 2, 2),
+    ('Kindia Centre', 3, 2), ('Coyah Centre', 1, 0), ('Boké Centre', 3, 2), ('Centre de Kamsar', 2, 1), ('Labé Centre', 3, 2),
+    ('Mamou Centre', 2, 1), ('Faranah Centre', 2, 1), ('Kankan Centre', 3, 2), ('Siguiri Centre', 1, 0),
+    ('N''Zérékoré Centre', 2, 1), ('Guéckédou Centre', 1, 0)),
+  conakry as (
+    select distinct on (n.commune_id) n.id as quartier_id, c.nom as cle, 'Conakry'::text as region, 'Quartier ' || n.nom as libelle,
+           coalesce(n.latitude, c.latitude)::float as lat, coalesce(n.longitude, c.longitude)::float as lng
+    from public.neighborhoods n
+      join public.communes c on c.id = n.commune_id
+      join public.prefectures p on p.id = c.prefecture_id
+      join public.regions r on r.id = p.region_id
+    where r.nom = 'Conakry' and n.actif and not n.generique and coalesce(n.latitude, c.latitude) is not null
+    order by n.commune_id, (n.latitude is not null) desc,
+             (n.nom = any (array['Kipé','Taouyah','Nongo','Lambanyi','Hamdallaye','Matam','Camayenne','Coléah Centre','Dixinn Gare','Bonfi','Sonfonia Gare','Gbessia Centre','Kaloum Centre'])) desc,
+             n.nom),
+  regions_ as (
+    select distinct on (n.nom) n.id as quartier_id, n.nom as cle, r.nom as region, n.nom as libelle,
+           c.latitude::float as lat, c.longitude::float as lng
+    from public.neighborhoods n
+      join public.communes c on c.id = n.commune_id
+      join public.prefectures p on p.id = c.prefecture_id
+      join public.regions r on r.id = p.region_id
+    where r.nom <> 'Conakry' and n.actif and n.generique and c.latitude is not null
+      and n.nom in (select cle from poids)
+    order by n.nom, c.nom)
+  select row_number() over (order by (z.region <> 'Conakry'), p.nb_resto desc, z.cle) as z, z.*, p.nb_resto, p.nb_livreurs
+  from (select * from conakry union all select * from regions_) z join poids p on p.cle = z.cle;
+  if (select coalesce(sum(nb_resto), 0) from t_zones) <> 60 or (select coalesce(sum(nb_livreurs), 0) from t_zones) <> 40
+     or (select count(distinct region) from t_zones) <> 8 then
+    raise exception 'Zones de démonstration incomplètes (communes ou villes introuvables dans la géographie) : chargement annulé.';
+  end if;
+
+  -- Emplacements : chaque zone reçoit ses restaurants et ses livreurs, intercalés pour qu'aucune catégorie ne se concentre au même endroit.
+  create temp table t_slots on commit drop as
+  select row_number() over (order by (k - 0.5) / z.nb_resto, z.z) as s, z.z
+  from t_zones z cross join lateral generate_series(1, z.nb_resto) k where z.nb_resto > 0;
+  create temp table t_lslots on commit drop as
+  select row_number() over (order by (k - 0.5) / z.nb_livreurs, z.z) as s, z.z
+  from t_zones z cross join lateral generate_series(1, z.nb_livreurs) k where z.nb_livreurs > 0;
 
   -- ------------------------------------------------------------------ restaurants
   create temp table t_resto on commit drop as
   with noms(cat, nom) as (values
-    (1,'Chez Mariama'),(1,'La Table de Kaloum'),(1,'Saveurs de Foutah'),(1,'Chez Tante Fanta'),(1,'Le Riz du Marché'),(1,'Maison Soumah'),(1,'Chez Aïssatou'),(1,'Le Grenier Peul'),(1,'Cuisine de Maman Kadi'),(1,'Chez Oumou Sangaré'),(1,'Le Plat du Jour'),(1,'La Marmite Dorée'),(1,'Chez Kadiatou'),(1,'Les Délices de Hawa'),(1,'Chez Nènè'),
-    (2,'Le Braiseur de Nongo'),(2,'Grill Conakry'),(2,'Chez Boubacar Grillades'),(2,'Poulet Braisé du Rond-Point'),(2,'La Flamme de Matam'),(2,'Brochettes de la Corniche'),(2,'Chez Sory le Griot'),(2,'Maquis du Carrefour'),(2,'Le Feu de Bois'),(2,'Grillades Ratoma'),(2,'Chez Mamadou Braise'),(2,'La Braise Dorée'),(2,'Le Capitaine Grillé'),(2,'Brochettes Express'),(2,'Maquis Étoile'),
-    (3,'Burger Palace Conakry'),(3,'Speed Burger'),(3,'Pizza Kipé'),(3,'Le Roi du Shawarma'),(3,'Fast Corner'),(3,'Tacos & Co'),(3,'Burger Station'),(3,'Pizza Express Ratoma'),(3,'Chicken House'),(3,'Le Sandwich Doré'),(3,'Urban Burger'),(3,'Pizza della Nonna'),(3,'Crispy Chicken Taouyah'),(3,'Snack 224'),(3,'Le Kebab de Hamdallaye'),
-    (4,'Petit Matin'),(4,'Le Pain Chaud'),(4,'Café de la Gare'),(4,'Chez Néné Déjeuner'),(4,'Les Beignets de Maman'),(4,'La Boulangerie du Port'),(4,'Café Bonjour'),(4,'Le Croissant Doré'),(4,'Omelette Express'),(4,'Chez Fatoumata Petit-Déj'),(4,'La Bouillie Dorée'),(4,'Le Coin du Matin'),(4,'Pain & Café Nongo'),(4,'Les Crêpes de Kipé'),(4,'Aube Gourmande')),
+    (1,'Chez Mariama'),(1,'La Table Centrale'),(1,'Saveurs de Foutah'),(1,'Chez Tante Fanta'),(1,'Le Riz du Marché'),(1,'Maison Soumah'),(1,'Chez Aïssatou'),(1,'Le Grenier Peul'),(1,'Cuisine de Maman Kadi'),(1,'Chez Oumou Sangaré'),(1,'Le Plat du Jour'),(1,'La Marmite Dorée'),(1,'Chez Kadiatou'),(1,'Les Délices de Hawa'),(1,'Chez Nènè'),
+    (2,'Le Braiseur du Marché'),(2,'Grill Central'),(2,'Chez Boubacar Grillades'),(2,'Poulet Braisé du Rond-Point'),(2,'La Flamme d''Or'),(2,'Brochettes du Grand Marché'),(2,'Chez Sory le Griot'),(2,'Maquis du Carrefour'),(2,'Le Feu de Bois'),(2,'Grillades du Soir'),(2,'Chez Mamadou Braise'),(2,'La Braise Dorée'),(2,'Le Capitaine Grillé'),(2,'Brochettes Express'),(2,'Maquis Étoile'),
+    (3,'Burger Palace'),(3,'Speed Burger'),(3,'Pizza Corner'),(3,'Le Roi du Shawarma'),(3,'Fast Corner'),(3,'Tacos & Co'),(3,'Burger Station'),(3,'Pizza Express'),(3,'Chicken House'),(3,'Le Sandwich Doré'),(3,'Urban Burger'),(3,'Pizza della Nonna'),(3,'Crispy Chicken Express'),(3,'Snack 224'),(3,'Le Kebab du Centre'),
+    (4,'Petit Matin'),(4,'Le Pain Chaud'),(4,'Café de la Gare'),(4,'Chez Néné Déjeuner'),(4,'Les Beignets de Maman'),(4,'La Boulangerie Centrale'),(4,'Café Bonjour'),(4,'Le Croissant Doré'),(4,'Omelette Express'),(4,'Chez Fatoumata Petit-Déj'),(4,'La Bouillie Dorée'),(4,'Le Coin du Matin'),(4,'Pain & Café'),(4,'Les Crêpes Gourmandes'),(4,'Aube Gourmande')),
   num as (select cat, nom, row_number() over (order by cat, nom) as i from noms)
-  select gen_random_uuid() as id, i, cat, nom,
-         quartiers[1 + (i * 7) % cardinality(quartiers)] as quartier_id,
-         (select latitude + (random() - 0.5) * 0.004 from public.neighborhoods where id = quartiers[1 + (i * 7) % cardinality(quartiers)]) as lat,
-         (select longitude + (random() - 0.5) * 0.004 from public.neighborhoods where id = quartiers[1 + (i * 7) % cardinality(quartiers)]) as lng
-  from num;
+  select gen_random_uuid() as id, num.i, num.cat, num.nom, z.quartier_id, z.region, z.libelle as adresse,
+         z.lat + (random() - 0.5) * (case when z.region = 'Conakry' then 0.004 else 0.01 end) as lat,
+         z.lng + (random() - 0.5) * (case when z.region = 'Conakry' then 0.004 else 0.01 end) as lng,
+         8000 + 1000 * (num.i % 5) as frais,
+         -- Popularité : les restaurants de Conakry occupent les premiers rangs (ordre fixe), ceux des régions les derniers.
+         row_number() over (order by (z.region <> 'Conakry'), hashtext(num.nom)) as rang
+  from num
+    join t_slots s on s.s = 1 + (num.i * 7) % 60
+    join t_zones z on z.z = s.z;
 
   insert into public.restaurants (id, nom, categorie_id, quartier_id, horaires, ouvert, accepte_commandes, publie, donnees_demo, demo_lot,
                                   latitude, longitude, delai_preparation_minutes, moyens_paiement, mode_vente, livraison_mode, accepte_sur_place, cree_le)
@@ -54,6 +99,11 @@ begin
          false,
          now() - ((60 + (i * 11) % 200) || ' days')::interval
   from t_resto;
+
+  -- Chaque restaurant livre dans sa commune (sans zone déclarée, un restaurant ne propose que le retrait).
+  insert into public.restaurant_zones_desservies (restaurant_id, commune_id, frais_gnf, delai_minutes)
+  select r.id, n.commune_id, r.frais, 25 + (r.i * 3) % 25
+  from t_resto r join public.neighborhoods n on n.id = r.quartier_id;
 
   -- ------------------------------------------------------------------ plats (10 par restaurant, tirés du catalogue de leur catégorie)
   create temp table t_catalogue (cat int, section text, nom text, description text, prix int) on commit drop;
@@ -139,31 +189,35 @@ begin
        noms(n) as (values ('Diallo'),('Camara'),('Bah'),('Sylla'),('Barry'),('Condé'),('Soumah'),('Keïta'),('Touré'),('Sow'),('Traoré'),('Bangoura'))
   select gen_random_uuid() as id, g,
          (select p from prenoms offset (g * 5) % 12 limit 1) || ' ' || (select n from noms offset (g * 7 + g / 12) % 12 limit 1) as nom,
-         quartiers[1 + g % cardinality(quartiers)] as quartier_id
-  from generate_series(1, n_livreurs) g;
+         z.region, z.lat, z.lng
+  from generate_series(1, n_livreurs) g
+    join t_lslots s on s.s = g
+    join t_zones z on z.z = s.z;
 
   insert into public.livreurs (id, nom, telephone, vehicule, statut, latitude, longitude, position_le, simule, donnees_demo, demo_lot, cycle, approuve_le, verifie_speedfood, derniere_course_le, cree_le)
   select l.id, l.nom, '+22460000' || lpad((1000 + l.g * 13)::text, 4, '0'),
          case when l.g % 8 = 0 then 'velo' when l.g % 11 = 0 then 'voiture' else 'moto' end,
          case when l.g % 3 = 0 then 'hors_ligne' else 'disponible' end,
-         case when l.g % 3 = 0 then null else n.latitude + (random() - 0.5) * 0.006 end,
-         case when l.g % 3 = 0 then null else n.longitude + (random() - 0.5) * 0.006 end,
+         case when l.g % 3 = 0 then null else l.lat + (random() - 0.5) * 0.006 end,
+         case when l.g % 3 = 0 then null else l.lng + (random() - 0.5) * 0.006 end,
          case when l.g % 3 = 0 then null else now() end,
          true, true, v_lot, 'actif', now() - interval '40 days', true, now() - (random() * interval '2 days'), now() - interval '60 days'
-  from t_livreurs l join public.neighborhoods n on n.id = l.quartier_id;
+  from t_livreurs l;
 
   -- ------------------------------------------------------------------ commandes d'historique (90 jours)
   create temp table t_cmd on commit drop as
   with base as (
     select g, gen_random_uuid() as id,
-           1 + least(59, floor(60 * power(random(), 1.6))::int) as k,
+           -- 86 % des commandes à Conakry (rangs 1 à 37), le reste dans les régions (rangs 38 à 60), popularité décroissante dans chaque groupe.
+           case when random() < 0.86 then 1 + least(36, floor(37 * power(random(), 1.5))::int)
+                else 38 + least(22, floor(23 * power(random(), 1.3))::int) end as k,
            random() as r_mode, random() as r_statut, random() as r_heure, random() as r_jour
     from generate_series(1, n_hist) g)
-  select b.g, b.id, r.id as resto_id, b.r_mode, b.r_statut, b.r_heure, b.r_jour,
+  select b.g, b.id, r.id as resto_id, r.lat, r.lng, r.adresse, r.frais, b.r_mode, b.r_statut, b.r_heure, b.r_jour,
          date_trunc('day', now() - interval '35 minutes' - (b.r_jour * interval '90 days'))
            + (case when b.r_heure < 0.35 then 12 + floor(random() * 3) when b.r_heure < 0.75 then 19 + floor(random() * 4) else 8 + floor(random() * 14) end) * interval '1 hour'
            + floor(random() * 60) * interval '1 minute' as cree_le
-  from base b join t_resto r on r.i = b.k;
+  from base b join t_resto r on r.rang = b.k;
   -- Pas de commande dans le futur (jour courant, heures pas encore arrivées).
   update t_cmd set cree_le = cree_le - interval '1 day' where cree_le > now() - interval '35 minutes';
 
@@ -183,14 +237,14 @@ begin
          (array['Aminata','Fatoumata','Mariama','Kadiatou','Hawa','Aïssatou','Ibrahima','Mamadou','Sékou','Alpha','Boubacar','Ousmane','Mohamed','Lansana','Oumou','Nènè'])[1 + c.g % 16]
            || ' ' || (array['Diallo','Camara','Bah','Sylla','Barry','Condé','Soumah','Keïta','Touré','Sow','Traoré','Bangoura'])[1 + (c.g / 16) % 12],
          '+22460' || lpad((10000 + c.g * 7)::text, 5, '0'),
-         case when c.r_mode < 0.65 then (select 'Quartier ' || n.nom from public.neighborhoods n where n.id = quartiers[1 + c.g % cardinality(quartiers)]) end,
+         case when c.r_mode < 0.65 then c.adresse end,
          case when c.r_mode < 0.65 then 'livraison' else 'retrait' end,
          (select sum(l.prix * l.quantite) from t_lignes l where l.order_id = c.id),
-         case when c.r_mode < 0.65 then 8000 + 500 * (c.g % 8) else 0 end,
+         case when c.r_mode < 0.65 then c.frais else 0 end,
          case when c.r_statut < 0.90 then 'terminee' when c.r_statut < 0.96 then 'annulee' else 'refusee' end,
          'non_demande', false,
-         case when c.r_mode < 0.65 then (select n.latitude + (random() - 0.5) * 0.004 from public.neighborhoods n where n.id = quartiers[1 + c.g % cardinality(quartiers)]) end,
-         case when c.r_mode < 0.65 then (select n.longitude + (random() - 0.5) * 0.004 from public.neighborhoods n where n.id = quartiers[1 + c.g % cardinality(quartiers)]) end,
+         case when c.r_mode < 0.65 then c.lat + (random() - 0.5) * 0.016 end,
+         case when c.r_mode < 0.65 then c.lng + (random() - 0.5) * 0.016 end,
          case when c.r_mode < 0.65 then 1200 + (c.g * 37) % 6800 end,
          c.cree_le, c.cree_le + interval '45 minutes'
   from t_cmd c;
@@ -202,10 +256,11 @@ begin
   insert into public.livraisons (order_id, restaurant_id, mode, statut, livreur_id, depart_latitude, depart_longitude, arrivee_latitude, arrivee_longitude, distance_m, frais_gnf,
                                  assignee_le, recuperee_le, livree_le, cree_le, mis_a_jour_le)
   select o.id, o.restaurant_id, r.livraison_mode, 'livree',
-         case when r.livraison_mode = 'speedfood' then (select l.id from t_livreurs l where l.g = 1 + (hashtext(o.id::text) & 2147483647) % n_livreurs) end,
+         -- Livreur de la même région que le restaurant.
+         case when r.livraison_mode = 'speedfood' then (select l.id from t_livreurs l where l.region = tr.region order by hashtext(o.id::text || l.g::text) limit 1) end,
          r.latitude, r.longitude, o.livraison_latitude, o.livraison_longitude, o.livraison_distance_m, o.frais_livraison_estime,
          o.cree_le + interval '8 minutes', o.cree_le + interval '28 minutes', o.cree_le + interval '45 minutes', o.cree_le, o.cree_le + interval '45 minutes'
-  from public.orders o join public.restaurants r on r.id = o.restaurant_id
+  from public.orders o join public.restaurants r on r.id = o.restaurant_id join t_resto tr on tr.id = r.id
   where r.demo_lot = v_lot and o.mode = 'livraison' and o.statut = 'terminee';
 
   -- ------------------------------------------------------------------ avis (≈ les deux tiers des commandes terminées)

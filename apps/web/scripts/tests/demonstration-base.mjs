@@ -147,6 +147,20 @@ verifier("les compteurs d'avis des restaurants égalent les avis publiés", lot.
 verifier("40 livreurs simulés marqués, des livraisons terminées existent", lot.livreurs === 40 && lot.livraisons > 1000, JSON.stringify(lot));
 const prix = await un("select min(prix)::int mn, max(prix)::int mx from menu_items where restaurant_id in (select id from restaurants where demo_lot is not null)");
 verifier("prix plausibles en GNF (de 1 000 à 150 000)", prix.mn >= 1000 && prix.mx <= 150000, JSON.stringify(prix));
+// Répartition géographique : Conakry et les 7 autres régions administratives.
+const geo = (await db.query(`select r.nom region, count(distinct x.id)::int restos, count(distinct c.id)::int communes,
+    (select count(*)::int from orders o where o.restaurant_id in (select id from restaurants where demo_lot is not null and quartier_id in (select n2.id from neighborhoods n2 join communes c2 on c2.id = n2.commune_id join prefectures p2 on p2.id = c2.prefecture_id where p2.region_id = r.id))) commandes
+  from restaurants x join neighborhoods n on n.id = x.quartier_id join communes c on c.id = n.commune_id join prefectures p on p.id = c.prefecture_id join regions r on r.id = p.region_id
+  where x.demo_lot is not null group by r.id, r.nom order by 2 desc`)).rows;
+const conakry = geo.find((g) => g.region === "Conakry");
+const autresRegions = geo.filter((g) => g.region !== "Conakry");
+verifier("les restaurants couvrent les 8 régions administratives", geo.length === 8 && autresRegions.every((g) => g.restos >= 2), JSON.stringify(geo));
+verifier("Conakry : 37 restaurants répartis sur 10 communes", conakry && conakry.restos === 37 && conakry.communes === 10, JSON.stringify(conakry));
+verifier("les régions comptent 23 restaurants, avec 10 à 16 % des commandes", autresRegions.reduce((s, g) => s + g.restos, 0) === 23 && autresRegions.reduce((s, g) => s + g.commandes, 0) >= 300 && autresRegions.reduce((s, g) => s + g.commandes, 0) <= 480, JSON.stringify(autresRegions));
+const zones = await un(`select count(*)::int n, count(distinct restaurant_id)::int restos from restaurant_zones_desservies where restaurant_id in (select id from restaurants where demo_lot is not null)`);
+verifier("chaque restaurant déclare la commune où il livre", zones.n === 60 && zones.restos === 60, JSON.stringify(zones));
+const dehors = await un(`select count(*)::int n from livreurs where demo_lot is not null and latitude is not null and (latitude < 9.4 or latitude > 9.8)`);
+verifier("des livreurs simulés se trouvent hors de Conakry", dehors.n >= 3, JSON.stringify(dehors));
 const rejeu = await db.exec(fs.readFileSync(path.join(racine, "..", "..", "supabase", "demo", "charger-demonstration.sql"), "utf8")).then(() => null, (e) => e.message);
 verifier("recharger un lot déjà présent est refusé", rejeu !== null && rejeu.includes("déjà chargé"), String(rejeu));
 
