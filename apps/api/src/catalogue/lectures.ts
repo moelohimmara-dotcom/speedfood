@@ -32,7 +32,7 @@ function projeter(r: LigneRestaurant, fiche = false): RestaurantPublic {
   return { ...base, consignes: texteFacultatif(r.consignes, 1000), moyensPaiement: moyens };
 }
 export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>): Promise<PageRestaurants> {
-  let q = db.from('restaurants').select(COLONNES_LISTE as string).eq('publie', true).is('suspendu_le', null).eq('donnees_demo', false).order('id').limit(51);
+  let q = db.from('restaurants').select(COLONNES_LISTE as string).eq('publie', true).is('suspendu_le', null).order('id').limit(51);
   if (apres) q = q.gt('id', apres);
   const { data: brut, error } = await q;
   if (error || !brut) throw new Error('catalogue_indisponible');
@@ -43,7 +43,7 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
 type LigneOption = { id: string; nom: string; prix: number; disponible: boolean };
 type LignePlat = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url?: string | null; section_id?: string | null; menu_item_options?: LigneOption[] | null };
 export async function lireMenu(id: string, apres: string | null, db: SupabaseClient<Database>, parametres: () => Promise<{ disponibiliteFraicheurHeures: number }>): Promise<PageMenu | null> {
-  const { data: brutRestaurant, error: erreurRestaurant } = await db.from('restaurants').select(COLONNES_FICHE as string).eq('id', id).eq('publie', true).is('suspendu_le', null).eq('donnees_demo', false).maybeSingle();
+  const { data: brutRestaurant, error: erreurRestaurant } = await db.from('restaurants').select(COLONNES_FICHE as string).eq('id', id).eq('publie', true).is('suspendu_le', null).maybeSingle();
   if (erreurRestaurant) throw new Error('catalogue_indisponible');
   const restaurant = brutRestaurant as unknown as LigneRestaurant | null;
   if (!restaurant) return null;

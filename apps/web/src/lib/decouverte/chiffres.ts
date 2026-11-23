@@ -10,7 +10,8 @@ export const FENETRE_CONFIRMATION_HEURES = 1;
 
 /**
  * Chiffres de la page d'accueil (lot C), calculés à chaque affichage dans la base : jamais saisis à la main.
- * Les restaurants de démonstration (`donnees_demo`) ne comptent jamais : ce serait une fausse preuve.
+ * Le contenu de démonstration (`donnees_demo`) compte comme le reste tant qu'il est affiché (23 novembre 2026) : le masquer
+ * depuis la console le retire des chiffres comme du catalogue.
  * La RLS ne laisse voir que les restaurants publiés et non suspendus. En cas d'erreur, on renvoie `null` et la page
  * n'affiche aucun chiffre plutôt qu'un chiffre faux.
  */
@@ -18,11 +19,10 @@ export async function lireChiffresEnDirect(maintenant: Date = new Date()): Promi
   const supabase = creerClientPublic();
   const depuis = new Date(maintenant.getTime() - FENETRE_CONFIRMATION_HEURES * 3600_000).toISOString();
   const [ouverts, confirmes] = await Promise.all([
-    supabase.from("restaurants").select("id", { count: "exact", head: true }).eq("ouvert", true).eq("accepte_commandes", true).eq("donnees_demo", false),
+    supabase.from("restaurants").select("id", { count: "exact", head: true }).eq("ouvert", true).eq("accepte_commandes", true),
     supabase
       .from("menu_items")
-      .select("id, restaurants!inner(donnees_demo)", { count: "exact", head: true })
-      .eq("restaurants.donnees_demo", false)
+      .select("id", { count: "exact", head: true })
       .eq("disponible", true)
       .is("archive_le", null)
       .gte("disponibilite_confirmee_le", depuis),

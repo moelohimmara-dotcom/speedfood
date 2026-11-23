@@ -53,6 +53,9 @@ jobs:
       - name: Simulation de l'issue d'un échec de livraison et du verrou sur l'argent
         run: npm run test:echec-livraison
 
+      - name: Simulation du contenu de démonstration (chargement, masquage, suppression, commandes de test)
+        run: npm run test:demonstration
+
       - name: Tests de l'API
         run: npm run test:api
 

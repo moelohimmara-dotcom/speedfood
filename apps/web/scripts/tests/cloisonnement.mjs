@@ -624,6 +624,8 @@ const definerConnu = new Set([
   "fn_quarts_prendre", "fn_quarts_liberer", "fn_motifs_restaurants",
   // Issue d'une commande dont la livraison a échoué : réservée au support (contrôle dans la fonction), testée à fond dans echec-livraison-base.mjs.
   "fn_support_resoudre_echec_livraison",
+  // Contenu de démonstration : lecture pour l'équipe, masquer et supprimer réservés au super administrateur (contrôle dans la fonction), testés à fond dans demonstration-base.mjs.
+  "fn_demo_etat", "fn_demo_visibilite", "fn_demo_supprimer",
 ]);
 const definerAuth = (await db.query(`
   select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -633,6 +635,10 @@ verifier("aucune nouvelle fonction privilégiée n'est apparue sans être décla
 for (const [qui, nom] of [[ID.user_a, "un restaurateur"], [ID.client, "un client connecté"], [null, "un visiteur anonyme"]]) {
   const r = await ecrire(qui, `select public.fn_support_resoudre_echec_livraison('${CMD_A}', 'annuler', 'Essai non autorise')`);
   verifier(`${nom} ne peut pas résoudre l'échec d'une livraison (réservé au support)`, r.erreur !== null, r.erreur ?? "aucune erreur !");
+  for (const appel of ["fn_demo_etat()", "fn_demo_visibilite(false)", "fn_demo_supprimer('Essai non autorise par ce compte')"]) {
+    const d = await ecrire(qui, `select public.${appel}`);
+    verifier(`${nom} ne peut pas appeler public.${appel.split("(")[0]} (équipe ou super administrateur seulement)`, d.erreur !== null, d.erreur ?? "aucune erreur !");
+  }
 }
 
 // ---------------------------------------------------------------- 7. revue du 19 octobre 2026 : jeton de suivi, réinitialisation, avis

@@ -12,7 +12,7 @@ const parametres = async () => ({ disponibiliteFraicheurHeures: 6, commandePropo
 test('source catalogue : projections, exclusions réelles et pagination stable explicite', async () => {
   const page = await lireRestaurants(id, db(u => {
     assert.equal(u.searchParams.get('publie'), 'eq.true'); assert.equal(u.searchParams.get('suspendu_le'), 'is.null');
-    assert.equal(u.searchParams.get('donnees_demo'), 'eq.false'); assert.equal(u.searchParams.get('order'), 'id.asc');
+    assert.equal(u.searchParams.get('donnees_demo'), null); assert.equal(u.searchParams.get('order'), 'id.asc');
     assert.equal(u.searchParams.get('limit'), '51'); assert.equal(u.searchParams.get('id'), 'gt.'+id);
     assert.ok(!u.searchParams.get('select')?.includes('*'));
     return Array.from({ length: 51 }, (_, i) => ({ ...r, id: `00000000-0000-4000-8000-${String(i+2).padStart(12, '0')}` }));
@@ -22,7 +22,7 @@ test('source catalogue : projections, exclusions réelles et pagination stable e
 });
 test('source menu : parent public obligatoire, archives exclues, prix et disponibilité partagés', async () => {
   const page = await lireMenu(id, null, db(u => {
-    if (u.pathname.endsWith('/restaurants')) { assert.equal(u.searchParams.get('publie'), 'eq.true'); assert.equal(u.searchParams.get('donnees_demo'), 'eq.false'); assert.equal(u.searchParams.get('suspendu_le'), 'is.null'); return r; }
+    if (u.pathname.endsWith('/restaurants')) { assert.equal(u.searchParams.get('publie'), 'eq.true'); assert.equal(u.searchParams.get('donnees_demo'), null); assert.equal(u.searchParams.get('suspendu_le'), 'is.null'); return r; }
     if (u.pathname.endsWith('/menu_sections')) return [];
     assert.equal(u.searchParams.get('restaurant_id'), 'eq.'+id); assert.equal(u.searchParams.get('archive_le'), 'is.null'); assert.equal(u.searchParams.get('limit'), '101'); assert.equal(u.searchParams.get('order'), 'id.asc');
     return [

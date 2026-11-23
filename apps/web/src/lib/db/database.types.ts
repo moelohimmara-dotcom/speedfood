@@ -1896,6 +1896,9 @@ export type Database = {
         }
         Returns: number
       }
+      fn_demo_etat: { Args: never; Returns: Json }
+      fn_demo_supprimer: { Args: { p_motif: string }; Returns: Json }
+      fn_demo_visibilite: { Args: { p_visible: boolean }; Returns: number }
       fn_reinitialisation_simuler: { Args: never; Returns: Json }
       fn_reinitialiser_application: {
         Args: { p_jeton: string; p_motif: string }
