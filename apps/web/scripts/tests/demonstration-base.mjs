@@ -137,7 +137,7 @@ const lot = (await un(`select
   (select count(*)::int from livraisons l join restaurants r on r.id = l.restaurant_id where r.demo_lot is not null and l.statut = 'livree') livraisons,
   (select count(*)::int from restaurants r where r.demo_lot is not null and r.avis_total <> (select count(*) from avis a where a.restaurant_id = r.id and not a.est_test)) compteurs_faux`));
 verifier("60 restaurants, tous visibles et distincts", lot.restos === 60 && lot.restos_visibles === 60 && lot.noms === 60, JSON.stringify(lot));
-verifier("600 plats répartis en sections, aucun plat sans section", lot.plats === 600 && lot.sections >= 120 && lot.plats_sans_section === 0, JSON.stringify(lot));
+verifier("environ 1 250 plats répartis en rubriques, aucun plat sans rubrique", lot.plats >= 960 && lot.plats <= 1560 && lot.sections >= 300 && lot.plats_sans_section === 0, JSON.stringify(lot));
 verifier("3 000 commandes d'historique, aucune marquée test (elles comptent dans les chiffres)", lot.commandes === 3000 && lot.commandes_test === 0, JSON.stringify(lot));
 verifier("les commandes se répartissent sur la plupart des restaurants", lot.restos_avec_commandes >= 50, String(lot.restos_avec_commandes));
 verifier("références uniques, aucune commande dans le futur, totaux égaux aux lignes", lot.refs === 3002 && lot.futur === 0 && lot.totaux_faux === 0, JSON.stringify(lot));
@@ -146,7 +146,7 @@ verifier("note moyenne plausible (entre 4,0 et 4,8)", lot.note_moyenne >= 4.0 &&
 verifier("les compteurs d'avis des restaurants égalent les avis publiés", lot.compteurs_faux === 0, String(lot.compteurs_faux));
 verifier("40 livreurs simulés marqués, des livraisons terminées existent", lot.livreurs === 40 && lot.livraisons > 1000, JSON.stringify(lot));
 const prix = await un("select min(prix)::int mn, max(prix)::int mx from menu_items where restaurant_id in (select id from restaurants where demo_lot is not null)");
-verifier("prix plausibles en GNF (de 1 000 à 150 000)", prix.mn >= 1000 && prix.mx <= 150000, JSON.stringify(prix));
+verifier("prix plausibles en GNF (de 1 000 à 160 000)", prix.mn >= 1000 && prix.mx <= 160000, JSON.stringify(prix));
 // Répartition géographique : Conakry et les 7 autres régions administratives.
 const geo = (await db.query(`select r.nom region, count(distinct x.id)::int restos, count(distinct c.id)::int communes,
     (select count(*)::int from orders o where o.restaurant_id in (select id from restaurants where demo_lot is not null and quartier_id in (select n2.id from neighborhoods n2 join communes c2 on c2.id = n2.commune_id join prefectures p2 on p2.id = c2.prefecture_id where p2.region_id = r.id))) commandes
@@ -161,6 +161,16 @@ const zones = await un(`select count(*)::int n, count(distinct restaurant_id)::i
 verifier("chaque restaurant déclare la commune où il livre", zones.n === 60 && zones.restos === 60, JSON.stringify(zones));
 const dehors = await un(`select count(*)::int n from livreurs where demo_lot is not null and latitude is not null and (latitude < 9.4 or latitude > 9.8)`);
 verifier("des livreurs simulés se trouvent hors de Conakry", dehors.n >= 3, JSON.stringify(dehors));
+// Menus riches et variés : chaque restaurant a son propre menu.
+const menus = await un(`select count(*)::int restos, min(n)::int mini, max(n)::int maxi, min(rub)::int rub_mini, count(distinct empreinte)::int distincts,
+    (select count(*)::int from menu_item_options o where o.menu_item_id in (select id from menu_items where restaurant_id in (select id from restaurants where demo_lot is not null))) options
+  from (select r.id, count(*) n, count(distinct i.section_id) rub, md5(string_agg(i.nom, '|' order by i.nom)) empreinte
+        from restaurants r join menu_items i on i.restaurant_id = r.id where r.demo_lot is not null group by r.id) t(id, n, rub, empreinte)`.replace("min(rub)","min(rub)"));
+verifier("chaque restaurant a de 16 à 26 plats et au moins 5 rubriques", menus.restos === 60 && menus.mini >= 16 && menus.maxi <= 26 && menus.rub_mini >= 5, JSON.stringify(menus));
+verifier("les 60 menus sont tous différents, avec des options sur les plats", menus.distincts === 60 && menus.options > 300, JSON.stringify(menus));
+const reg = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id join neighborhoods q on q.id = r.quartier_id join communes c on c.id = q.commune_id join prefectures p on p.id = c.prefecture_id join regions g on g.id = p.region_id
+  where r.demo_lot is not null and g.nom in ('Labé', 'Mamou') and (i.nom in ('Fonio sauce gombo', 'Poulet du Fouta aux oignons', 'Brochettes de mouton du Fouta') or i.nom like 'Haricots à l%huile rouge')`);
+verifier("les restaurants du Fouta proposent des plats du Fouta", reg.n >= 3, JSON.stringify(reg));
 const rejeu = await db.exec(fs.readFileSync(path.join(racine, "..", "..", "supabase", "demo", "charger-demonstration.sql"), "utf8")).then(() => null, (e) => e.message);
 verifier("recharger un lot déjà présent est refusé", rejeu !== null && rejeu.includes("déjà chargé"), String(rejeu));
 
