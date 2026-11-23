@@ -77,6 +77,12 @@ const worker = {
       headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
     });
     ctx.waitUntil(handler.fetch(evenements, env, ctx).then(() => undefined, () => undefined));
+    // Scores qualité mensuels des restaurants : le calcul du mois écoulé est idempotent, le relancer réécrit les mêmes lignes.
+    const scores = new Request("https://entretien.interne/api/application/score-qualite", {
+      method: "POST",
+      headers: { "x-entretien-secret": env.PAIEMENT_ENTRETIEN_SECRET },
+    });
+    ctx.waitUntil(handler.fetch(scores, env, ctx).then(() => undefined, () => undefined));
     // Alertes e-mail de l'équipe (inscriptions suspendues pour doublon) par le SMTP de Google. Sans les secrets GOOGLE_SMTP_USER et GOOGLE_SMTP_APP_PASSWORD, rien n'est envoyé : l'alerte reste
     // visible dans la console (/system/acces/doublons). Destinataire : EQUIPE_ALERTE_EMAIL, à défaut l'adresse d'envoi elle-même. Un message n'est confirmé (donc plus renvoyé) qu'une fois parti.
     if (env.GOOGLE_SMTP_USER && env.GOOGLE_SMTP_APP_PASSWORD) {
