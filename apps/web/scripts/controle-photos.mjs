@@ -39,8 +39,15 @@ for (const f of fichiers) {
   const buf = readFileSync(join(dossier, f));
   const d = dimensions(buf);
   if (!d) { erreurs.push(`${f} : ni PNG ni JPEG valide`); continue; }
-  if (d.l < 1200 || d.h < 900) erreurs.push(`${f} : ${d.l}x${d.h}, minimum 1200x900`);
-  if (Math.abs(d.l / d.h - 4 / 3) > 0.02) erreurs.push(`${f} : ${d.l}x${d.h}, format 4:3 attendu`);
+  const source = parFichier.get(f)?.source;
+  if (source === "banque") {
+    // Photo de banque : on garde le cadrage d'origine (Speedfood recadre en 4:3 à l'affichage), mais en paysage et assez large.
+    if (d.l < 1200) erreurs.push(`${f} : ${d.l}x${d.h}, largeur minimale 1200`);
+    if (d.l / d.h < 1.2 || d.l / d.h > 1.8) erreurs.push(`${f} : ${d.l}x${d.h}, cadrage paysage entre 6:5 et 16:9 attendu`);
+  } else {
+    if (d.l < 1200 || d.h < 900) erreurs.push(`${f} : ${d.l}x${d.h}, minimum 1200x900`);
+    if (Math.abs(d.l / d.h - 4 / 3) > 0.02) erreurs.push(`${f} : ${d.l}x${d.h}, format 4:3 attendu`);
+  }
   if (statSync(join(dossier, f)).size > 8 * 1024 * 1024) erreurs.push(`${f} : plus de 8 Mo`);
   const hash = createHash("sha256").update(buf).digest("hex");
   if (vus.has(hash)) erreurs.push(`${f} : doublon exact de ${vus.get(hash)}`);

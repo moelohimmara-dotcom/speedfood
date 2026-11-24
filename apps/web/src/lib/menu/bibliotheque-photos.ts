@@ -13,6 +13,13 @@ export interface PhotoDeBibliotheque extends PhotoBibliotheque {
 
 const ia = (type: string, fichier = type): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot3/${fichier}.png` });
 
+const banque = (type: string, idPexels: string): PhotoDeBibliotheque => ({
+  id: `px-${idPexels}`,
+  type,
+  source: "banque",
+  fichier: `pexels-lot3/${type}-${idPexels}.jpg`,
+});
+
 export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
   // Formules, menus et plateaux (plusieurs éléments)
   ia("formule-grillade"),
@@ -57,4 +64,18 @@ export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
   ia("lahmacun"),
   ia("pide"),
   ia("iskender"),
+  // Photos de banque (Pexels, licence libre, vraies photos : elles passent avant l'IA)
+  banque("curry-vert", "31029754"),
+  banque("nachos", "12557544"),
+  banque("pad-thai", "2827263"),
+  banque("ramen", "12984979"),
+  banque("ramen", "6249221"),
+  banque("raviolis-vapeur", "15915267"),
+  banque("raviolis-vapeur", "32393811"),
+  banque("riz-cantonais", "19969203"),
+  banque("rouleaux-printemps", "4001867"),
+  banque("sushi", "7245465"),
+  banque("tacos", "28895960"),
+  banque("tacos", "3264572"),
+  banque("tacos", "5848703"),
 ];
