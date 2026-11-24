@@ -183,4 +183,9 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-26225563", type: "beignets-sesame", source: "banque", fichier: "pexels-lot19/beignets-sesame-26225563.jpg", licence: "Pexels License", auteur: "Theodore Nguyen", page: "https://www.pexels.com/photo/26225563/" },
   { id: "px-16569555", type: "donburi-boeuf", source: "banque", fichier: "pexels-lot19/donburi-boeuf-16569555.jpg", licence: "Pexels License", auteur: "Cohesion Singapore", page: "https://www.pexels.com/photo/16569555/" },
   { id: "px-16569552", type: "donburi-boeuf", source: "banque", fichier: "pexels-lot19/donburi-boeuf-16569552.jpg", licence: "Pexels License", auteur: "Cohesion Singapore", page: "https://www.pexels.com/photo/16569552/" },
+  { id: "px-37294501", type: "gulab-jamun", source: "banque", fichier: "pexels-lot20/gulab-jamun-37294501.jpg", licence: "Pexels License", auteur: "Swapnali Khaire", page: "https://www.pexels.com/photo/37294501/" },
+  { id: "px-11887844", type: "gulab-jamun", source: "banque", fichier: "pexels-lot20/gulab-jamun-11887844.jpg", licence: "Pexels License", auteur: "kailash kumar", page: "https://www.pexels.com/photo/11887844/" },
+  { id: "px-40000020", type: "gulab-jamun", source: "banque", fichier: "pexels-lot20/gulab-jamun-40000020.jpg", licence: "Pexels License", auteur: "Jahra Tasfia Reza", page: "https://www.pexels.com/photo/40000020/" },
+  { id: "px-14610769", type: "gulab-jamun", source: "banque", fichier: "pexels-lot20/gulab-jamun-14610769.jpg", licence: "Pexels License", auteur: "sarayu P", page: "https://www.pexels.com/photo/14610769/" },
+  { id: "px-7776552", type: "kofte", source: "banque", fichier: "pexels-lot20/kofte-7776552.jpg", licence: "Pexels License", auteur: "Engin Akyurt", page: "https://www.pexels.com/photo/7776552/" },
 ];

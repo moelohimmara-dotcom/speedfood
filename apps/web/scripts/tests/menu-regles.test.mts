@@ -118,6 +118,7 @@ verifier("lot Pexels 16 : types reconnus", types(["Punch sans alcool", "Gâteau 
 verifier("lot Pexels 17 : types reconnus", types(["Rouleaux frais aux crevettes (3)", "Chiftele sauce tomate", "Salade de betteraves"]), ["rouleaux-frais", "boulettes-tomate", "salade-betteraves"]);
 verifier("lot Pexels 18 : types reconnus", types(["Chaat de pois chiches", "Perles de tapioca au coco", "Salade du berger (Çoban)", "Mücver", "Pani puri (6)", "Samoussa chaat"]), ["chaat", "perles-tapioca", "salade-berger", "mucver", "pani-puri", null]);
 verifier("lot Pexels 19 : types reconnus", types(["Beignets de sésame (4)", "Donburi au bœuf", "Bento et donburi", "Salade de concombre au sésame"]), ["beignets-sesame", "donburi-boeuf", "bento", null]);
+verifier("lot Pexels 20 : types reconnus", types(["Köfte grillées", "Gulab jamun (3)"]), ["kofte", "gulab-jamun"]);
 // Les formules reçoivent une photo de formule (plusieurs éléments), jamais la photo d'un seul plat ; un plat ne reçoit jamais une photo de formule.
 const bibF: PhotoBibliotheque[] = [{ id: "f-doner", type: "formule-doner", source: "ia" }, { id: "p-shawarma", type: "shawarma", source: "banque" }];
 const formules = attribuerPhotos("r", [art("1", "Menu shawarma", "formule-doner"), art("2", "Shawarma poulet", "shawarma"), art("3", "Menu pizza", "pizza"), art("4", "Shawarma mixte", "formule-doner")], bibF);
