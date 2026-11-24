@@ -54,7 +54,7 @@ export function hachage(texte: string): number {
 /**
  * Attribue une photo (ou aucune) à chaque article, dans l'ordre du menu : les articles placés en premier (entrées, plats) choisissent d'abord.
  */
-export function attribuerPhotos(restaurantId: string, articles: ArticleMenu[], bibliotheque: PhotoBibliotheque[]): AttributionPhoto[] {
+export function attribuerPhotos(restaurantId: string, articles: ArticleMenu[], bibliotheque: readonly PhotoBibliotheque[]): AttributionPhoto[] {
   const utilisees = new Set<string>();
   const resultat: AttributionPhoto[] = [];
   for (const article of articles) {
