@@ -6,6 +6,9 @@ import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
 import type { Illustration } from "@/lib/illustrations/modele";
 import { motifPourPlat } from "@/lib/illustrations/automatique";
 import { slugQuartier } from "./quartiers";
+import { platRepresentatif } from "./rangees";
+
+export { composerRangees, platRepresentatif, type RangeeAccueil } from "./rangees";
 
 /**
  * Données de l'accueil et des pages de quartier, lues dans la base publique (restaurants publiés seulement : la RLS le garantit).
@@ -101,7 +104,7 @@ export function choisirSuggestions(restaurants: RestaurantCatalogue[], plats: Ma
   for (const { cle } of FAMILLES_ENVIE) {
     for (const r of restaurants.filter(estOuvert)) {
       if (familleDepuisCategorie(r.categorie) !== cle) continue;
-      const plat = (plats.get(r.id) ?? []).find((p) => p.disponible);
+      const plat = platRepresentatif(cle, plats.get(r.id) ?? []);
       if (!plat) continue;
       suggestions.push({
         famille: cle,

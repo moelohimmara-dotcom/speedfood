@@ -5,7 +5,9 @@ import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
 import { lireAccueil } from "@/lib/site/accueil";
 import { libelleLivraison, statutLivraison } from "@/lib/site/livraison";
 import { cibleDeZone, communesDesQuartiers, lireLivraisonDesRestaurants } from "@/lib/site/livraison-lecture";
+import { composerRangees } from "@/lib/site/rangees";
 import { lienRestaurantsZone, lienZone, lireHierarchieZones, restaurantsDeLaZone, type ZoneChoisie } from "@/lib/site/zones";
+import { AccueilFil } from "./AccueilFil";
 import { AlerteZone } from "./AlerteZone";
 import { FLECHE } from "./commun";
 
@@ -25,6 +27,9 @@ export async function AccueilRestaurants({ zone = null }: { zone?: ZoneChoisie |
     fonctionnaliteActive("zone_liste_attente"),
     fonctionnaliteActive("zones_livraison"),
   ]);
+  // Sans zone choisie : le fil de rangées (comme les marketplaces de livraison). Repli sur l'aperçu de trois cartes s'il n'y a pas
+  // assez de restaurants ouverts pour faire une rangée.
+  if (!zone && composerRangees(restaurants).length > 0) return <AccueilFil />;
   const zones = hierarchie.flatMap((r) => r.prefectures.flatMap((p) => p.communes));
 
   const dansLaZone = restaurantsDeLaZone(restaurants, zone);
