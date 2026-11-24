@@ -150,4 +150,10 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-39852585", type: "jalebi", source: "banque", fichier: "pexels-lot14/jalebi-39852585.jpg", licence: "Pexels License", auteur: "Jahra Tasfia Reza", page: "https://www.pexels.com/photo/39852585/" },
   { id: "px-6522658", type: "kebab-seekh", source: "banque", fichier: "pexels-lot14/kebab-seekh-6522658.jpg", licence: "Pexels License", auteur: "Ahmad No More", page: "https://www.pexels.com/photo/6522658/" },
   { id: "px-7340982", type: "kebab-seekh", source: "banque", fichier: "pexels-lot14/kebab-seekh-7340982.jpg", licence: "Pexels License", auteur: "Pure Punjabi", page: "https://www.pexels.com/photo/7340982/" },
+  { id: "px-18142603", type: "ayran", source: "banque", fichier: "pexels-lot15/ayran-18142603.jpg", licence: "Pexels License", auteur: "Denys Gromov", page: "https://www.pexels.com/photo/18142603/" },
+  { id: "px-2124699", type: "poulet-65", source: "banque", fichier: "pexels-lot15/poulet-65-2124699.jpg", licence: "Pexels License", auteur: "Chait Goli", page: "https://www.pexels.com/photo/2124699/" },
+  { id: "px-31953510", type: "legumes-farcis", source: "banque", fichier: "pexels-lot15/legumes-farcis-31953510.jpg", licence: "Pexels License", auteur: "Nur Tok", page: "https://www.pexels.com/photo/31953510/" },
+  { id: "px-31953512", type: "legumes-farcis", source: "banque", fichier: "pexels-lot15/legumes-farcis-31953512.jpg", licence: "Pexels License", auteur: "Nur Tok", page: "https://www.pexels.com/photo/31953512/" },
+  { id: "px-37417602", type: "pain-ail", source: "banque", fichier: "pexels-lot15/pain-ail-37417602.jpg", licence: "Pexels License", auteur: "Husien Bisky", page: "https://www.pexels.com/photo/37417602/" },
+  { id: "px-7159284", type: "pain-ail", source: "banque", fichier: "pexels-lot15/pain-ail-7159284.jpg", licence: "Pexels License", auteur: "Ahmed Bhutta", page: "https://www.pexels.com/photo/7159284/" },
 ];
