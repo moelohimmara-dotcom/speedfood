@@ -90,7 +90,6 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-13823350", type: "cuisse-poulet", source: "banque", fichier: "pexels-lot11/cuisse-poulet-13823350.jpg", licence: "Pexels License", auteur: "素材王国 Footage Kingdom", page: "https://www.pexels.com/photo/13823350/" },
   { id: "px-37081053", type: "cuisse-poulet", source: "banque", fichier: "pexels-lot11/cuisse-poulet-37081053.jpg", licence: "Pexels License", auteur: "Teguh S", page: "https://www.pexels.com/photo/37081053/" },
   { id: "px-27556970", type: "plantain-frit", source: "banque", fichier: "pexels-lot11/plantain-frit-27556970.jpg", licence: "Pexels License", auteur: "Snappr", page: "https://www.pexels.com/photo/27556970/" },
-  { id: "px-27556971", type: "plantain-frit", source: "banque", fichier: "pexels-lot11/plantain-frit-27556971.jpg", licence: "Pexels License", auteur: "Snappr", page: "https://www.pexels.com/photo/27556971/" },
   { id: "px-27643041", type: "merguez", source: "banque", fichier: "pexels-lot11/merguez-27643041.jpg", licence: "Pexels License", auteur: "Nano Erdozain", page: "https://www.pexels.com/photo/27643041/" },
   { id: "px-27643042", type: "merguez", source: "banque", fichier: "pexels-lot11/merguez-27643042.jpg", licence: "Pexels License", auteur: "Nano Erdozain", page: "https://www.pexels.com/photo/27643042/" },
   { id: "px-33753896", type: "merguez", source: "banque", fichier: "pexels-lot11/merguez-33753896.jpg", licence: "Pexels License", auteur: "Vitaliy Haiduk", page: "https://www.pexels.com/photo/33753896/" },
