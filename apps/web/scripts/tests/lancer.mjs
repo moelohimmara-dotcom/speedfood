@@ -112,6 +112,7 @@ copier("src/lib/menu/affichage.ts");
 copier("src/lib/menu/photos.ts");
 copier("src/lib/menu/types-plats.ts");
 copier("src/lib/menu/bibliotheque-photos.ts");
+copier("src/lib/menu/bibliotheque-banques-lot1.ts");
 copier("src/lib/menu/boissons.ts");
 copier("scripts/tests/menu-regles.test.mts");
 copier("scripts/tests/editeur.test.mts");

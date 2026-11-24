@@ -1,4 +1,5 @@
 import type { PhotoBibliotheque } from "./photos";
+import { BIBLIOTHEQUE_BANQUES_LOTS_1 } from "./bibliotheque-banques-lot1";
 
 /**
  * Bibliothèque des photos de démonstration, par type de plat (clé commune avec `typeDePlat`).
@@ -9,6 +10,10 @@ import type { PhotoBibliotheque } from "./photos";
 export interface PhotoDeBibliotheque extends PhotoBibliotheque {
   /** Fichier d'origine, relatif au dossier des images de démonstration. */
   fichier: string;
+  /** Licence et auteur d'une photo de banque (crédit à afficher quand la licence l'exige, comme CC BY et CC BY-SA). */
+  licence?: string;
+  auteur?: string | null;
+  page?: string;
 }
 
 const ia = (type: string, fichier = type): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot3/${fichier}.png` });
@@ -22,7 +27,7 @@ const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheq
   fichier: `pexels-${lot}/${type}-${idPexels}.jpg`,
 });
 
-export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
+const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
   // Formules, menus et plateaux (plusieurs éléments)
   ia("formule-grillade"),
   ia("formule-partage-africain"),
@@ -131,3 +136,6 @@ export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
   banque("steak-frites", "1352262", "lot4"),
   banque("steak-frites", "1352264", "lot4"),
 ];
+
+/** Toute la bibliothèque : images IA, photos de banque des lots 3 et 4, puis photos de banque retenues des premiers lots. */
+export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [...BIBLIOTHEQUE_BASE, ...BIBLIOTHEQUE_BANQUES_LOTS_1];

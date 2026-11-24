@@ -63,6 +63,9 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["riz-sauce-kansiye", /^riz sauce kansiye\b/],
   ["sauce-feuilles-manioc", /^(sauce feuilles de manioc|saka saka)\b/],
   ["tripes", /^tripes\b/],
+  ["beignets-sucres", /^beignets sucres\b/],
+  ["eau-citronnee", /^eau citronnee\b/],
+  ["mini-pizza", /^mini pizzas?\b/],
   // Plats ajoutés avec la vague d'images 3
   ["riz-poisson", /^(riz au poisson|thieboudienne|thiebou)\b/],
   ["salade-crudites", /^salade (de )?(crudites|verte)\b/],
