@@ -77,7 +77,21 @@ begin
   create temp table t_monde (n int, cuisine text, poids int, cum int) on commit drop;
   insert into t_monde
   select row_number() over (order by ord), cuisine, poids, sum(poids) over (order by ord)
-  from (values (1,'americaine',18),(2,'italienne',14),(3,'libanaise',14),(4,'turque',8),(5,'indienne',10),(6,'chinoise',10),(7,'japonaise',8),(8,'francaise',10),(9,'mexicaine',8)) v(ord, cuisine, poids);
+  from (values (1,'americaine',14),(2,'italienne',11),(3,'libanaise',11),(4,'turque',6),(5,'indienne',8),(6,'chinoise',7),(7,'japonaise',6),(8,'francaise',9),(9,'mexicaine',6),
+               (10,'grecque',5),(11,'marocaine',7),(12,'thailandaise',5),(13,'antillaise',3),(14,'roumaine',2)) v(ord, cuisine, poids);
+
+  -- Catégorie de chaque cuisine (une cuisine du monde = sa propre catégorie ; plusieurs cuisines différentes = « Cuisine du monde »),
+  -- et catégorie de repli si la migration des catégories n'est pas encore appliquée.
+  create temp table t_cuisine_cat (cuisine text, categorie text) on commit drop;
+  insert into t_cuisine_cat values
+    ('guineenne','Riz & sauces'),('africaine','Africain'),('libanaise','Libanais et oriental'),('turque','Libanais et oriental'),('italienne','Italien et pizzas'),
+    ('indienne','Indien'),('chinoise','Asiatique'),('japonaise','Asiatique'),('thailandaise','Asiatique'),('americaine','Fast-food'),('mexicaine','Mexicain'),
+    ('francaise','Français'),('grecque','Méditerranéen'),('marocaine','Maghrébin'),('antillaise','Antillais et créole'),('roumaine','Européen');
+  create temp table t_categorie_repli (categorie text, repli text) on commit drop;
+  insert into t_categorie_repli values
+    ('Africain','Riz & sauces'),('Libanais et oriental','Grillades'),('Italien et pizzas','Fast-food'),('Indien','Riz & sauces'),('Asiatique','Fast-food'),
+    ('Mexicain','Fast-food'),('Français','Petit-déjeuner'),('Méditerranéen','Grillades'),('Maghrébin','Riz & sauces'),('Antillais et créole','Riz & sauces'),
+    ('Européen','Riz & sauces'),('Cuisine du monde','Riz & sauces');
 
   create temp table t_noms (pool text, nom text) on commit drop;
   insert into t_noms values
@@ -115,10 +129,22 @@ begin
     ('chinoise','La Muraille'),('chinoise','Le Lotus Rouge'),('chinoise','Pékin Gourmand'),('chinoise','Shanghai Express'),('chinoise','Soie d''Orient'),
     ('japonaise','Sakura Sushi'),('japonaise','Tokyo Bento'),('japonaise','Ramen Ya'),('japonaise','Kyoto Maki'),('japonaise','Nippon Corner'),
     ('japonaise','Sushi Zen'),('japonaise','Osaka Kitchen'),('japonaise','Le Bol de Riz'),('japonaise','Fuji Sushi'),('japonaise','Matcha & Sushi'),
-    ('francaise','Petit Matin'),('francaise','Le Pain Chaud'),('francaise','Café de la Gare'),('francaise','Chez Néné Déjeuner'),('francaise','Les Beignets de Maman'),
-    ('francaise','La Boulangerie Centrale'),('francaise','Café Bonjour'),('francaise','Le Croissant Doré'),('francaise','Omelette Express'),
-    ('francaise','Chez Fatoumata Petit-Déj'),('francaise','La Bouillie Dorée'),('francaise','Le Coin du Matin'),('francaise','Pain & Café'),
-    ('francaise','Les Crêpes Gourmandes'),('francaise','Aube Gourmande'),('francaise','Bistrot du Coin'),('francaise','Brasserie Centrale'),('francaise','Crêperie Bretonne'),
+    ('francaise_matin','Petit Matin'),('francaise_matin','Le Pain Chaud'),('francaise_matin','Café de la Gare'),('francaise_matin','Chez Néné Déjeuner'),('francaise_matin','Les Beignets de Maman'),
+    ('francaise_matin','La Boulangerie Centrale'),('francaise_matin','Café Bonjour'),('francaise_matin','Le Croissant Doré'),('francaise_matin','Omelette Express'),
+    ('francaise_matin','Chez Fatoumata Petit-Déj'),('francaise_matin','La Bouillie Dorée'),('francaise_matin','Le Coin du Matin'),('francaise_matin','Pain & Café'),
+    ('francaise_matin','Les Crêpes Gourmandes'),('francaise_matin','Aube Gourmande'),
+    ('francaise','Bistrot du Coin'),('francaise','Brasserie Centrale'),('francaise','Crêperie Bretonne'),('francaise','Le Petit Bistrot'),('francaise','La Table Parisienne'),
+    ('francaise','Chez Maurice'),('francaise','Le Comptoir Français'),('francaise','Café de Paris Bistro'),('francaise','La Fourchette d''Or'),('francaise','Brasserie des Halles'),
+    ('grecque','Athènes Grill'),('grecque','Le Parthénon'),('grecque','Souvlaki House'),('grecque','Taverne Grecque'),('grecque','Olympe Grill'),
+    ('grecque','Mykonos Kitchen'),('grecque','Santorin'),('grecque','Zorba Grill'),('grecque','Gyros Corner'),('grecque','Le Péloponnèse'),
+    ('marocaine','Le Riad'),('marocaine','Tajine d''Or'),('marocaine','Marrakech Saveurs'),('marocaine','Le Palais Marocain'),('marocaine','Casablanca Grill'),
+    ('marocaine','Atlas Cuisine'),('marocaine','Couscous Royal'),('marocaine','Fès Gourmand'),('marocaine','La Médina'),('marocaine','Le Souk'),
+    ('thailandaise','Bangkok Express'),('thailandaise','Thaï Orchid'),('thailandaise','Le Siam'),('thailandaise','Pad Thaï House'),('thailandaise','Lotus Thaï'),
+    ('thailandaise','Phuket Kitchen'),('thailandaise','Chiang Mai Saveurs'),('thailandaise','Bangkok Street'),('thailandaise','Thaï Basil'),('thailandaise','Le Palais Thaï'),
+    ('antillaise','Case Créole'),('antillaise','Chez Tantie Colombo'),('antillaise','Saveurs des Îles'),('antillaise','Le Ti Bokit'),('antillaise','Îles en Fête'),
+    ('antillaise','Cuisine Créole'),('antillaise','Karukera Saveurs'),('antillaise','Soleil des Antilles'),('antillaise','Case à Colombo'),('antillaise','Madinina Gourmand'),
+    ('roumaine','Les Carpates'),('roumaine','Chez Ion'),('roumaine','Maison Roumaine'),('roumaine','Transylvanie Saveurs'),('roumaine','Le Danube'),
+    ('roumaine','Bucarest Cuisine'),('roumaine','Sarmale Maison'),('roumaine','Le Petit Bucarest'),('roumaine','Brașov Gourmand'),('roumaine','Maramureș Table'),
     ('mexicaine','Tacos & Co'),('mexicaine','El Sombrero'),('mexicaine','Casa Mexicana'),('mexicaine','Burrito Station'),('mexicaine','Fiesta Tacos'),
     ('mexicaine','Taqueria Latina'),('mexicaine','Cantina Rio'),('mexicaine','El Paso Grill'),('mexicaine','Mariachi Corner'),('mexicaine','Tex & Mex');
 
@@ -129,8 +155,8 @@ begin
            else case when g.u < .42 then 'guineen' when g.u < .56 then 'africain' when g.u < .64 then 'afro' when g.u < .86 then 'mixte' when g.u < .98 then 'monde' else 'intl' end
          end as profil,
          (select m.n from t_monde m where m.cum > g.u1 * 100 order by m.cum limit 1) as n1,
-         1 + floor(g.u2 * 8)::int as d2,
-         1 + floor(g.u3 * 8)::int as d3,
+         1 + floor(g.u2 * 13)::int as d2,
+         1 + floor(g.u3 * 13)::int as d3,
          g.u4
   from (select i, random() as u, random() as u1, random() as u2, random() as u3, random() as u4 from generate_series(1, 60) i) g
     join t_slots s on s.s = 1 + (g.i * 7) % 60
@@ -140,15 +166,17 @@ begin
   select p.*,
          (p.profil = 'guineen' and p.u4 < 0.35) as grill,
          (select m.cuisine from t_monde m where m.n = p.n1) as w1,
-         (select m.cuisine from t_monde m where m.n = ((p.n1 - 1 + p.d2) % 9) + 1) as w2,
-         (select m.cuisine from t_monde m where m.n = ((p.n1 - 1 + case when p.d3 = p.d2 then p.d2 % 8 + 1 else p.d3 end) % 9) + 1) as w3
+         (select m.cuisine from t_monde m where m.n = ((p.n1 - 1 + p.d2) % 14) + 1) as w2,
+         (select m.cuisine from t_monde m where m.n = ((p.n1 - 1 + case when p.d3 = p.d2 then p.d2 % 13 + 1 else p.d3 end) % 14) + 1) as w3,
+         -- Un restaurant 100 % français sur deux est un café-boulangerie du matin, l'autre un bistrot.
+         (p.profil = 'monde' and p.u4 < 0.5 and (select m.cuisine from t_monde m where m.n = p.n1) = 'francaise') as matin
   from t_profil p;
 
   create temp table t_resto2 on commit drop as
   select r.*,
          case r.profil when 'guineen' then array['guineenne'] when 'africain' then array['africaine'] when 'afro' then array['guineenne','africaine']
                        when 'mixte' then array['guineenne', r.w1] when 'monde' then array[r.w1] else array[r.w1, r.w2, r.w3] end as cuisines,
-         case when r.grill then 'guineen_grill' when r.profil = 'monde' then r.w1 else r.profil end as pool
+         case when r.grill then 'guineen_grill' when r.matin then 'francaise_matin' when r.profil = 'monde' then r.w1 else r.profil end as pool
   from t_resto1 r;
 
   create temp table t_resto on commit drop as
@@ -158,16 +186,16 @@ begin
   select gen_random_uuid() as id, n.i, n.cuisines, n.profil,
          (select t.nom from t_noms t where t.pool = n.pool order by t.nom offset ((n.rk - 1) % n.nb_noms) limit 1)
            || case when n.rk > n.nb_noms then ' ' || n.libelle else '' end as nom,
-         case when n.grill then array['Grillades et brochettes','Poissons et fruits de mer'] end as restr,
-         case n.cuisines[1]
-           when 'guineenne' then case when n.grill then 'Grillades' else 'Riz & sauces' end
-           when 'africaine' then 'Africain' when 'libanaise' then 'Libanais et oriental' when 'turque' then 'Libanais et oriental'
-           when 'italienne' then 'Italien et pizzas' when 'indienne' then 'Indien' when 'chinoise' then 'Asiatique' when 'japonaise' then 'Asiatique'
-           when 'americaine' then 'Fast-food' when 'mexicaine' then 'Fast-food' when 'francaise' then 'Petit-déjeuner' end as categorie,
-         case n.cuisines[1]
-           when 'africaine' then 'Riz & sauces' when 'libanaise' then 'Grillades' when 'turque' then 'Grillades'
-           when 'italienne' then 'Fast-food' when 'indienne' then 'Riz & sauces' when 'chinoise' then 'Fast-food' when 'japonaise' then 'Fast-food' end as categorie_repli,
-         (n.profil = 'monde' and n.cuisines[1] = 'francaise') as matin,
+         case when n.grill then array['Grillades et brochettes','Poissons et fruits de mer']
+              when n.matin then array['Sandwichs et croques','Quiches et salades repas','Crêpes salées'] end as restr,
+         -- Règle de catégorie : maison de grillades ou café du matin = leur catégorie ; une seule catégorie parmi les cuisines = cette catégorie ;
+         -- guinéen + africain = « Africain » ; plusieurs cuisines différentes (mixte, international) = « Cuisine du monde » (jamais la première cuisine).
+         case when n.grill then 'Grillades' when n.matin then 'Petit-déjeuner'
+              else (select case when count(distinct k.categorie) = 1 then min(k.categorie)
+                                when bool_and(u.c in ('guineenne', 'africaine')) then 'Africain'
+                                else 'Cuisine du monde' end
+                    from unnest(n.cuisines) as u(c) join t_cuisine_cat k on k.cuisine = u.c) end as categorie,
+         n.matin,
          n.quartier_id, n.region, n.libelle as adresse,
          n.lat + (random() - 0.5) * (case when n.region = 'Conakry' then 0.004 else 0.01 end) as lat,
          n.lng + (random() - 0.5) * (case when n.region = 'Conakry' then 0.004 else 0.01 end) as lng,
@@ -180,7 +208,9 @@ begin
   insert into public.restaurants (id, nom, categorie_id, quartier_id, horaires, ouvert, accepte_commandes, publie, donnees_demo, demo_lot,
                                   latitude, longitude, delai_preparation_minutes, moyens_paiement, mode_vente, livraison_mode, accepte_sur_place, cree_le)
   select id, nom,
-         coalesce((select c.id from public.menu_categories c where c.nom = r.categorie), (select c.id from public.menu_categories c where c.nom = r.categorie_repli), cats[1]),
+         coalesce((select c.id from public.menu_categories c where c.nom = r.categorie),
+                  (select c.id from public.menu_categories c join t_categorie_repli x on x.repli = c.nom where x.categorie = r.categorie),
+                  cats[1]),
          quartier_id,
          (array['Tous les jours, 11h-23h','Lundi au samedi, 10h-22h','Tous les jours, 12h-00h','Tous les jours, 7h-15h','Tous les jours, 18h-02h'])[case when matin then 4 when i % 5 = 0 then 3 else 1 + i % 3 end],
          true, true, true, true, v_lot, lat, lng,
@@ -787,7 +817,215 @@ begin
     ('mexicaine',800,'Menus et formules','Menu burrito','Un burrito, chips et une boisson.',50000,null),
     ('mexicaine',800,'Menus et formules','Plateau fiesta (4 personnes)','Tacos, quesadillas, nachos et boissons.',190000,null),
     ('mexicaine',920,'Jus et smoothies','Agua de jamaica','Infusion d''hibiscus glacée, citron vert.',10000,null),
-    ('mexicaine',930,'Boissons lactées','Horchata','Boisson de riz à la cannelle.',10000,null);
+    ('mexicaine',930,'Boissons lactées','Horchata','Boisson de riz à la cannelle.',10000,null),
+    -- ===== GRECQUE
+    ('grecque',101,'Entrées chaudes','Spanakopita (3)','Trois feuilletés aux épinards et à la feta.',20000,null),
+    ('grecque',101,'Entrées chaudes','Keftédès (6)','Six boulettes de bœuf aux herbes, sauce yaourt.',24000,null),
+    ('grecque',101,'Entrées chaudes','Saganaki','Fromage grec poêlé, citron.',24000,null),
+    ('grecque',101,'Entrées chaudes','Soupe de lentilles grecque','Lentilles, tomate, vinaigre et origan.',16000,null),
+    ('grecque',201,'Entrées froides','Salade grecque (Horiatiki)','Tomate, concombre, olives, feta, origan.',24000,null),
+    ('grecque',201,'Entrées froides','Tzatziki','Yaourt, concombre, ail et menthe.',14000,null),
+    ('grecque',201,'Entrées froides','Houmous grec','Pois chiches, tahini, huile d''olive.',16000,null),
+    ('grecque',201,'Entrées froides','Feuilles de vigne farcies (6)','Six dolmadès au riz et aux herbes.',20000,null),
+    ('grecque',301,'Souvlaki et gyros','Souvlaki de poulet','Brochettes de poulet, pita, tzatziki, frites.',42000,null),
+    ('grecque',301,'Souvlaki et gyros','Souvlaki d''agneau','Brochettes d''agneau, pita, tzatziki.',52000,null),
+    ('grecque',301,'Souvlaki et gyros','Gyros de poulet en pita','Poulet à la broche, tomate, oignon, tzatziki.',34000,null),
+    ('grecque',301,'Souvlaki et gyros','Gyros d''agneau en pita','Agneau à la broche, tomate, oignon, tzatziki.',38000,null),
+    ('grecque',302,'Grillades grecques','Côtelettes d''agneau grillées','Côtelettes d''agneau, citron et origan.',75000,null),
+    ('grecque',302,'Grillades grecques','Bifteki farci à la feta','Steak haché grillé farci à la feta.',48000,null),
+    ('grecque',302,'Grillades grecques','Poulet grillé au citron','Demi-poulet grillé, pommes de terre au citron.',50000,null),
+    ('grecque',302,'Grillades grecques','Assiette mixte grecque','Souvlaki, bifteki et poulet, pita, salade.',85000,null),
+    ('grecque',303,'Plats mijotés et four','Moussaka à l''agneau','Aubergines, pommes de terre, agneau haché, béchamel.',52000,null),
+    ('grecque',303,'Plats mijotés et four','Pastitsio','Gratin de pâtes, bœuf haché, béchamel.',46000,null),
+    ('grecque',303,'Plats mijotés et four','Légumes farcis (Yemista)','Tomates et poivrons farcis au riz.',38000,null),
+    ('grecque',303,'Plats mijotés et four','Agneau au four et pommes de terre','Agneau rôti au citron et à l''origan.',68000,null),
+    ('grecque',304,'Poissons et calamars','Dorade grillée à la grecque','Dorade grillée, huile d''olive et citron.',72000,null),
+    ('grecque',304,'Poissons et calamars','Calamars frits','Anneaux de calamars frits, citron.',48000,null),
+    ('grecque',304,'Poissons et calamars','Crevettes saganaki','Crevettes, tomate et feta gratinée.',60000,null),
+    ('grecque',400,'Accompagnements','Pommes de terre au citron','Pommes de terre rôties au citron.',14000,null),
+    ('grecque',400,'Accompagnements','Riz aux herbes','Riz parfumé aux herbes.',12000,null),
+    ('grecque',400,'Accompagnements','Pain pita (2)','Deux pains pita chauds.',6000,null),
+    ('grecque',500,'En-cas','Pita au gyros de poulet','Petit pita garni, à emporter.',20000,null),
+    ('grecque',500,'En-cas','Tyropita (2)','Deux petits feuilletés au fromage.',14000,null),
+    ('grecque',500,'En-cas','Olives marinées','Petite coupe d''olives.',8000,null),
+    ('grecque',600,'Desserts','Yaourt grec au miel et aux noix','Yaourt épais, miel, noix.',14000,null),
+    ('grecque',600,'Desserts','Loukoumades (8)','Huit beignets au miel et à la cannelle.',16000,null),
+    ('grecque',600,'Desserts','Riz au lait grec','Riz au lait à la cannelle.',12000,null),
+    ('grecque',700,'Pâtisseries','Baklava grec (3)','Trois baklavas au miel et aux noix.',18000,null),
+    ('grecque',700,'Pâtisseries','Galaktoboureko','Feuilleté à la crème de semoule, sirop.',16000,null),
+    ('grecque',700,'Pâtisseries','Koulourakia (6)','Six biscuits au beurre en forme de tresse.',10000,null),
+    ('grecque',800,'Menus et formules','Menu souvlaki','Un souvlaki, frites et une boisson.',50000,null),
+    ('grecque',800,'Menus et formules','Menu gyros','Un gyros, frites et une boisson.',45000,null),
+    ('grecque',800,'Menus et formules','Plateau grec à partager (4 personnes)','Grillades, mezzés, pita et boissons.',210000,null),
+    ('grecque',910,'Boissons chaudes','Thé grec de montagne','Infusion de plantes de montagne.',7000,null),
+    ('grecque',940,'Sodas et rafraîchissements','Frappé grec','Café glacé mousseux.',14000,null),
+    -- ===== MAROCAINE
+    ('marocaine',101,'Entrées chaudes','Harira','Soupe de tomate, lentilles, pois chiches et coriandre.',16000,null),
+    ('marocaine',101,'Entrées chaudes','Briouates au poulet (4)','Quatre feuilletés frits au poulet épicé.',22000,null),
+    ('marocaine',101,'Entrées chaudes','Briouates au fromage (4)','Quatre feuilletés frits au fromage.',20000,null),
+    ('marocaine',101,'Entrées chaudes','Bissara','Soupe de fèves à l''huile d''olive et au cumin.',14000,null),
+    ('marocaine',201,'Entrées froides','Zaalouk','Aubergines cuites aux tomates et au cumin.',16000,null),
+    ('marocaine',201,'Entrées froides','Salade marocaine','Tomate, concombre, oignon, coriandre.',12000,null),
+    ('marocaine',201,'Entrées froides','Taktouka','Poivrons et tomates grillés, ail.',16000,null),
+    ('marocaine',201,'Entrées froides','Carottes à la chermoula','Carottes cuites, chermoula, cumin.',14000,null),
+    ('marocaine',301,'Tajines','Tajine de poulet aux olives et citron confit','Poulet mijoté, olives vertes, citron confit.',52000,null),
+    ('marocaine',301,'Tajines','Tajine d''agneau aux pruneaux','Agneau mijoté, pruneaux, amandes, miel.',65000,null),
+    ('marocaine',301,'Tajines','Tajine de bœuf aux légumes','Bœuf mijoté, carottes, pommes de terre, courgettes.',56000,null),
+    ('marocaine',301,'Tajines','Tajine de kefta aux œufs','Boulettes de bœuf, sauce tomate, œufs.',44000,null),
+    ('marocaine',301,'Tajines','Tajine de poisson','Poisson, tomate, poivrons, chermoula.',60000,null),
+    ('marocaine',302,'Couscous','Couscous royal','Semoule, agneau, poulet, merguez de bœuf, légumes.',70000,null),
+    ('marocaine',302,'Couscous','Couscous aux sept légumes','Semoule, légumes, pois chiches, bouillon.',46000,null),
+    ('marocaine',302,'Couscous','Couscous au poulet','Semoule, poulet, légumes, bouillon.',52000,null),
+    ('marocaine',302,'Couscous','Couscous à l''agneau','Semoule, agneau tendre, légumes.',62000,null),
+    ('marocaine',303,'Grillades marocaines','Brochettes de kefta (3)','Trois brochettes de bœuf haché aux herbes.',40000,null),
+    ('marocaine',303,'Grillades marocaines','Brochettes de poulet (3)','Trois brochettes de poulet marinées.',38000,null),
+    ('marocaine',303,'Grillades marocaines','Côtelettes d''agneau','Côtelettes grillées, cumin, citron.',72000,null),
+    ('marocaine',304,'Plats traditionnels','Pastilla au poulet','Feuilleté au poulet, amandes et cannelle.',50000,null),
+    ('marocaine',304,'Plats traditionnels','Rfissa','Poulet, lentilles, fenugrec, msemen.',55000,null),
+    ('marocaine',304,'Plats traditionnels','Tanjia d''agneau','Agneau confit longuement, citron confit.',68000,null),
+    ('marocaine',400,'Accompagnements','Semoule aux raisins','Semoule douce aux raisins secs.',12000,null),
+    ('marocaine',400,'Accompagnements','Pain marocain (khobz)','Pain rond maison.',5000,null),
+    ('marocaine',400,'Accompagnements','Olives et citron confit','Petite assiette d''olives.',8000,null),
+    ('marocaine',500,'En-cas','Msemen au miel','Galette feuilletée au miel.',10000,null),
+    ('marocaine',500,'En-cas','Batbout farci au poulet','Petit pain farci au poulet.',18000,null),
+    ('marocaine',500,'En-cas','Bricks aux œufs (2)','Deux feuilletés à l''œuf.',16000,null),
+    ('marocaine',600,'Desserts','Salade d''oranges à la cannelle','Oranges, cannelle, eau de fleur d''oranger.',12000,null),
+    ('marocaine',600,'Desserts','Pastilla au lait','Feuilleté à la crème, amandes.',16000,null),
+    ('marocaine',600,'Desserts','Dattes fourrées aux amandes','Dattes et pâte d''amande.',14000,null),
+    ('marocaine',700,'Pâtisseries','Cornes de gazelle (4)','Quatre biscuits à la pâte d''amande.',14000,null),
+    ('marocaine',700,'Pâtisseries','Chebakia (4)','Quatre pâtisseries frites au miel et au sésame.',12000,null),
+    ('marocaine',700,'Pâtisseries','Baklawa marocaine (3)','Trois baklawas aux amandes.',16000,null),
+    ('marocaine',800,'Menus et formules','Menu tajine','Un tajine, semoule, dessert et boisson.',68000,null),
+    ('marocaine',800,'Menus et formules','Menu couscous','Un couscous, un dessert et une boisson.',70000,null),
+    ('marocaine',800,'Menus et formules','Plateau marocain (4 personnes)','Couscous, tajine, brochettes et boissons.',230000,null),
+    ('marocaine',910,'Boissons chaudes','Thé à la menthe marocain','Thé vert, menthe fraîche, sucre.',7000,null),
+    ('marocaine',910,'Boissons chaudes','Café aux épices','Café parfumé aux épices.',8000,null),
+    ('marocaine',920,'Jus et smoothies','Jus d''orange pressé à la cannelle','Orange pressée, cannelle.',10000,null),
+    -- ===== THAÏLANDAISE
+    ('thailandaise',101,'Entrées chaudes','Soupe Tom Yum aux crevettes','Soupe piquante-acide, citronnelle, crevettes.',24000,null),
+    ('thailandaise',101,'Entrées chaudes','Soupe Tom Kha au poulet','Soupe de lait de coco, galanga, poulet.',22000,null),
+    ('thailandaise',101,'Entrées chaudes','Satay de poulet (4)','Quatre brochettes, sauce aux cacahuètes.',22000,null),
+    ('thailandaise',101,'Entrées chaudes','Rouleaux de printemps frits (4)','Quatre rouleaux croustillants, sauce douce.',18000,null),
+    ('thailandaise',201,'Entrées froides','Salade de papaye verte (Som Tam)','Papaye verte, tomate, cacahuètes, piment.',20000,null),
+    ('thailandaise',201,'Entrées froides','Salade de poulet (Larb)','Poulet haché, menthe, citron vert, riz grillé.',24000,null),
+    ('thailandaise',201,'Entrées froides','Rouleaux frais aux crevettes (3)','Trois rouleaux de riz, crevettes, herbes.',20000,null),
+    ('thailandaise',201,'Entrées froides','Salade de vermicelles aux crevettes','Vermicelles, crevettes, citron vert, piment.',24000,null),
+    ('thailandaise',301,'Currys thaïs','Curry vert au poulet','Poulet, lait de coco, aubergines, basilic thaï.',46000,null),
+    ('thailandaise',301,'Currys thaïs','Curry rouge au bœuf','Bœuf, lait de coco, poivrons, piment rouge.',50000,null),
+    ('thailandaise',301,'Currys thaïs','Curry Massaman au poulet','Poulet, pommes de terre, cacahuètes, lait de coco.',48000,null),
+    ('thailandaise',301,'Currys thaïs','Curry Panang aux crevettes','Crevettes, sauce Panang crémeuse.',58000,null),
+    ('thailandaise',302,'Pad et nouilles','Pad thaï au poulet','Nouilles de riz, poulet, œuf, cacahuètes, citron vert.',42000,null),
+    ('thailandaise',302,'Pad et nouilles','Pad thaï aux crevettes','Nouilles de riz, crevettes, germes de soja.',50000,null),
+    ('thailandaise',302,'Pad et nouilles','Pad see ew au bœuf','Larges nouilles sautées, bœuf, brocoli.',46000,null),
+    ('thailandaise',302,'Pad et nouilles','Nouilles aux légumes','Nouilles sautées aux légumes et au tofu.',38000,null),
+    ('thailandaise',303,'Riz thaï','Riz sauté à l''ananas','Riz sauté, ananas, poulet, noix de cajou.',40000,null),
+    ('thailandaise',303,'Riz thaï','Riz sauté aux crevettes','Riz sauté, crevettes, œuf, ciboule.',46000,null),
+    ('thailandaise',303,'Riz thaï','Riz sauté au basilic et poulet','Riz, poulet, basilic thaï, piment.',40000,null),
+    ('thailandaise',304,'Woks et grillades','Poulet au basilic thaï (Pad kra pao)','Poulet sauté, basilic, piment, œuf au plat.',44000,null),
+    ('thailandaise',304,'Woks et grillades','Bœuf sauté aux poivrons','Bœuf, poivrons et oignons, sauce huître.',50000,null),
+    ('thailandaise',304,'Woks et grillades','Poisson frit sauce piquante','Filet de poisson croustillant, sauce thaï.',58000,null),
+    ('thailandaise',400,'Accompagnements','Riz jasmin','Riz parfumé vapeur.',8000,null),
+    ('thailandaise',400,'Accompagnements','Riz gluant','Riz gluant vapeur.',10000,null),
+    ('thailandaise',400,'Accompagnements','Légumes sautés à l''ail','Légumes de saison sautés.',14000,null),
+    ('thailandaise',500,'En-cas','Galettes de poisson thaï (4)','Quatre galettes de poisson épicées.',20000,null),
+    ('thailandaise',500,'En-cas','Brochette de poulet satay','Une brochette, sauce cacahuète.',8000,null),
+    ('thailandaise',500,'En-cas','Beignets de maïs (4)','Quatre beignets de maïs croustillants.',14000,null),
+    ('thailandaise',600,'Desserts','Riz gluant à la mangue','Riz gluant, lait de coco, mangue.',20000,null),
+    ('thailandaise',600,'Desserts','Perles de tapioca au coco','Tapioca, lait de coco, fruits.',14000,null),
+    ('thailandaise',600,'Desserts','Banane au lait de coco','Banane mijotée dans du lait de coco.',14000,null),
+    ('thailandaise',700,'Pâtisseries','Beignets de banane (4)','Quatre beignets de banane croustillants.',12000,null),
+    ('thailandaise',700,'Pâtisseries','Kanom krok (6)','Six petites crêpes au coco.',12000,null),
+    ('thailandaise',700,'Pâtisseries','Flan à la noix de coco','Part de flan à la noix de coco.',14000,null),
+    ('thailandaise',800,'Menus et formules','Menu pad thaï','Un pad thaï, un rouleau et une boisson.',55000,null),
+    ('thailandaise',800,'Menus et formules','Menu curry','Un curry, riz jasmin et une boisson.',55000,null),
+    ('thailandaise',800,'Menus et formules','Plateau thaï à partager (2 personnes)','Deux plats, riz, entrées et boissons.',125000,null),
+    ('thailandaise',940,'Sodas et rafraîchissements','Thé glacé thaï','Thé noir, lait et sucre, glaçons.',12000,null),
+    ('thailandaise',940,'Sodas et rafraîchissements','Limonade à la citronnelle','Citron, citronnelle, eau pétillante.',10000,null),
+    ('thailandaise',920,'Jus et smoothies','Eau de coco','Eau de coco fraîche.',10000,null),
+    -- ===== ANTILLAISE (créole)
+    ('antillaise',101,'Entrées chaudes','Accras de morue (6)','Six beignets de morue, piment antillais.',16000,null),
+    ('antillaise',101,'Entrées chaudes','Boudin de poisson créole','Boudin de poisson épicé, sauce chien.',20000,null),
+    ('antillaise',101,'Entrées chaudes','Bouillon de poisson créole','Bouillon de poisson aux légumes-racines.',18000,null),
+    ('antillaise',101,'Entrées chaudes','Pâtés créoles au poulet (3)','Trois chaussons feuilletés au poulet épicé.',18000,null),
+    ('antillaise',201,'Entrées froides','Féroce d''avocat','Avocat écrasé, morue, piment, farine de manioc.',20000,null),
+    ('antillaise',201,'Entrées froides','Salade de christophine','Christophine, ciboulette, citron vert.',14000,null),
+    ('antillaise',201,'Entrées froides','Salade de crudités créole','Tomate, concombre, avocat, vinaigrette citron vert.',14000,null),
+    ('antillaise',301,'Colombo','Colombo de poulet','Poulet mijoté, poudre de colombo, légumes.',46000,null),
+    ('antillaise',301,'Colombo','Colombo de cabri','Chèvre mijotée, colombo, pommes de terre.',60000,null),
+    ('antillaise',301,'Colombo','Colombo de légumes','Christophine, aubergine, banane verte, colombo.',34000,null),
+    ('antillaise',301,'Colombo','Colombo de crevettes','Crevettes, lait de coco, colombo.',56000,null),
+    ('antillaise',302,'Poissons créoles','Court-bouillon de poisson','Poisson mijoté, tomates, piment, épices.',58000,null),
+    ('antillaise',302,'Poissons créoles','Poisson grillé sauce chien','Poisson grillé, sauce citron, ail et piment.',62000,null),
+    ('antillaise',302,'Poissons créoles','Crevettes sautées sauce créole','Crevettes sautées, tomate, piment et thym.',60000,null),
+    ('antillaise',302,'Poissons créoles','Brochette de poisson et légumes','Poisson mariné aux épices créoles.',52000,null),
+    ('antillaise',303,'Viandes créoles','Poulet boucané','Poulet fumé au bois, sauce créole.',50000,null),
+    ('antillaise',303,'Viandes créoles','Poulet rôti épicé (Jerk)','Poulet mariné aux épices, rôti.',48000,null),
+    ('antillaise',303,'Viandes créoles','Ragoût de bœuf créole','Bœuf mijoté, thym, piment, légumes.',54000,null),
+    ('antillaise',303,'Viandes créoles','Cabri en sauce','Chèvre en sauce brune épicée.',60000,null),
+    ('antillaise',304,'Plats complets créoles','Riz créole au poulet','Riz, poulet, poivrons, tomate et épices.',42000,null),
+    ('antillaise',304,'Plats complets créoles','Riz et pois rouges au poulet','Riz, pois rouges, poulet grillé.',44000,null),
+    ('antillaise',304,'Plats complets créoles','Plat complet de légumes-racines','Igname, patate douce, banane verte et sauce.',34000,null),
+    ('antillaise',400,'Accompagnements','Riz et pois rouges','Riz parfumé aux pois rouges.',12000,null),
+    ('antillaise',400,'Accompagnements','Bananes plantains frites','Plantains mûrs frits.',12000,null),
+    ('antillaise',400,'Accompagnements','Gratin de christophine','Christophine gratinée.',14000,null),
+    ('antillaise',400,'Accompagnements','Frites de patate douce','Patates douces frites.',14000,null),
+    ('antillaise',500,'En-cas','Bokit au poulet','Pain frit garni de poulet, salade, sauce.',22000,null),
+    ('antillaise',500,'En-cas','Accras de légumes (6)','Six beignets de légumes.',12000,null),
+    ('antillaise',500,'En-cas','Chips de banane verte','Fines tranches de banane verte frites.',7000,null),
+    ('antillaise',600,'Desserts','Flan coco','Flan à la noix de coco.',14000,null),
+    ('antillaise',600,'Desserts','Blanc-manger coco','Crème de coco et vanille.',14000,null),
+    ('antillaise',600,'Desserts','Salade de fruits exotiques','Mangue, ananas, papaye, goyave.',14000,null),
+    ('antillaise',600,'Desserts','Banane flambée','Banane flambée, sucre roux.',14000,null),
+    ('antillaise',700,'Pâtisseries','Gâteau coco','Part de gâteau à la noix de coco.',10000,null),
+    ('antillaise',700,'Pâtisseries','Tourment d''amour','Tartelette à la confiture de coco.',12000,null),
+    ('antillaise',700,'Pâtisseries','Gâteau patate douce','Part de gâteau à la patate douce.',10000,null),
+    ('antillaise',800,'Menus et formules','Menu colombo','Un colombo, riz et une boisson.',55000,null),
+    ('antillaise',800,'Menus et formules','Menu bokit','Un bokit, frites et une boisson.',40000,null),
+    ('antillaise',800,'Menus et formules','Plateau créole (4 personnes)','Colombo, poulet boucané, riz et boissons.',220000,null),
+    ('antillaise',920,'Jus et smoothies','Jus de goyave','Goyave fraîche pressée.',9000,null),
+    ('antillaise',920,'Jus et smoothies','Jus de fruit de la passion','Fruit de la passion, sucre de canne.',10000,null),
+    ('antillaise',920,'Jus et smoothies','Jus de canne','Canne à sucre pressée.',9000,null),
+    ('antillaise',940,'Sodas et rafraîchissements','Punch sans alcool','Jus de fruits tropicaux, citron vert, sirop de canne.',12000,null),
+    -- ===== ROUMAINE (européenne)
+    ('roumaine',101,'Entrées chaudes','Ciorbă de perișoare','Soupe aigre aux boulettes de bœuf et au riz.',18000,null),
+    ('roumaine',101,'Entrées chaudes','Soupe de légumes aux herbes','Soupe de légumes frais, aneth.',14000,null),
+    ('roumaine',101,'Entrées chaudes','Papanași salés au fromage (3)','Trois beignets au fromage frais.',18000,null),
+    ('roumaine',101,'Entrées chaudes','Bâtonnets de fromage frit','Fromage pané et frit, confiture d''airelles.',20000,null),
+    ('roumaine',201,'Entrées froides','Salade d''aubergine (Salată de vinete)','Aubergine grillée, oignon, huile.',16000,null),
+    ('roumaine',201,'Entrées froides','Zacuscă et pain','Tartinade d''aubergine et de poivron.',14000,null),
+    ('roumaine',201,'Entrées froides','Salade de betteraves','Betteraves, ail, huile.',12000,null),
+    ('roumaine',201,'Entrées froides','Salade de bœuf','Bœuf, légumes, mayonnaise.',24000,null),
+    ('roumaine',301,'Plats traditionnels roumains','Sarmale','Feuilles de chou farcies au bœuf et au riz.',42000,null),
+    ('roumaine',301,'Plats traditionnels roumains','Mămăligă au fromage et crème','Polenta, fromage frais, crème aigre.',30000,null),
+    ('roumaine',301,'Plats traditionnels roumains','Sarmale de feuilles de vigne','Feuilles de vigne farcies, crème aigre.',42000,null),
+    ('roumaine',301,'Plats traditionnels roumains','Tochitură de poulet','Poulet mijoté, polenta, œuf.',46000,null),
+    ('roumaine',302,'Grillades roumaines','Mici (mititei) (5)','Cinq rouleaux de viande hachée grillés, moutarde.',42000,null),
+    ('roumaine',302,'Grillades roumaines','Brochettes de poulet','Brochettes de poulet, légumes grillés.',40000,null),
+    ('roumaine',302,'Grillades roumaines','Côtelettes d''agneau','Côtelettes d''agneau grillées.',70000,null),
+    ('roumaine',302,'Grillades roumaines','Poulet à la roumaine','Poulet rôti, ail et herbes.',46000,null),
+    ('roumaine',303,'Soupes repas','Ciorbă de pui','Soupe aigre au poulet et aux légumes.',24000,null),
+    ('roumaine',303,'Soupes repas','Ciorbă de burtă','Soupe aigre de tripes à la crème.',26000,null),
+    ('roumaine',303,'Soupes repas','Soupe de haricots et fumé','Soupe de haricots blancs.',22000,null),
+    ('roumaine',304,'Plats mijotés','Goulash roumain','Bœuf mijoté au paprika, pommes de terre.',46000,null),
+    ('roumaine',304,'Plats mijotés','Chiftele sauce tomate','Boulettes de viande, sauce tomate, purée.',38000,null),
+    ('roumaine',304,'Plats mijotés','Ghiveci de légumes','Ragoût de légumes au four.',30000,null),
+    ('roumaine',400,'Accompagnements','Purée de pommes de terre','Purée maison.',12000,null),
+    ('roumaine',400,'Accompagnements','Polenta (mămăligă)','Polenta chaude.',10000,null),
+    ('roumaine',400,'Accompagnements','Pain de maïs','Pain rustique de maïs.',8000,null),
+    ('roumaine',500,'En-cas','Plăcintă au fromage','Chausson au fromage frais.',12000,null),
+    ('roumaine',500,'En-cas','Covrigi (3)','Trois petits pains en anneau.',8000,null),
+    ('roumaine',500,'En-cas','Gogoși (4)','Quatre beignets salés à emporter.',10000,null),
+    ('roumaine',600,'Desserts','Papanași','Beignets de fromage, crème aigre, confiture.',24000,null),
+    ('roumaine',600,'Desserts','Crêpes à la confiture (3)','Trois crêpes fines, confiture.',14000,null),
+    ('roumaine',600,'Desserts','Crème de semoule','Semoule au lait et aux fruits.',12000,null),
+    ('roumaine',700,'Pâtisseries','Cozonac','Brioche aux noix et au cacao.',14000,null),
+    ('roumaine',700,'Pâtisseries','Gâteau Joffre','Gâteau à la crème et au chocolat.',16000,null),
+    ('roumaine',700,'Pâtisseries','Gogoși sucrés (4)','Quatre beignets sucrés.',10000,null),
+    ('roumaine',800,'Menus et formules','Menu du jour roumain','Soupe, plat du jour et boisson.',52000,null),
+    ('roumaine',800,'Menus et formules','Menu mici','Cinq mici, frites, moutarde et boisson.',50000,null),
+    ('roumaine',800,'Menus et formules','Plateau roumain (4 personnes)','Sarmale, mici, polenta et boissons.',200000,null),
+    ('roumaine',920,'Jus et smoothies','Compote de fruits','Boisson de fruits cuits, sucrée.',9000,null),
+    ('roumaine',940,'Sodas et rafraîchissements','Limonade roumaine à la menthe','Citron, menthe, eau pétillante.',9000,null);
 
   create temp table t_plats on commit drop as
   with rc as (
@@ -811,7 +1049,8 @@ begin
     from ranked)
   select gen_random_uuid() as id, resto_id, i, pos, section, nom, description,
          greatest(1000, (round(prix * (0.85 + ((i * 37) % 36) / 100.0) * (case when region = 'Conakry' then 1.0 else 0.92 end) * (0.95 + random() * 0.10) / 500.0) * 500))::int as prix
-  from classe where rang <= 30 + (i * 5) % 11 + 6 * (nb_cuisines - 1);
+  -- Règle de taille : de 30 à 45 articles par menu (un menu plus long fatigue le choix), un peu plus pour les restaurants à plusieurs cuisines.
+  from classe where rang <= least(45, 30 + (i * 5) % 11 + 4 * (nb_cuisines - 1));
 
   insert into public.menu_sections (restaurant_id, nom, position)
   select resto_id, section, row_number() over (partition by resto_id order by minpos, section)

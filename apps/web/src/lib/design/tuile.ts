@@ -17,13 +17,20 @@ export function classeTuile(categorie: string): string {
     case "Africain":
     case "Indien":
     case "Asiatique":
+    case "Antillais et créole":
+    case "Maghrébin":
       return "tuile-riz";
     case "Grillades":
     case "Libanais et oriental":
+    case "Méditerranéen":
+    case "Européen":
       return "tuile-grill";
     case "Fast-food":
     case "Italien et pizzas":
+    case "Mexicain":
       return "tuile-fast";
+    case "Français":
+      return "tuile-cafe";
     case "Petit-déjeuner":
       return "tuile-cafe";
     default:

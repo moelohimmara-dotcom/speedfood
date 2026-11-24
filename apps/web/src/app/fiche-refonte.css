@@ -417,3 +417,65 @@
     font-size: 0.9rem;
   }
 }
+
+/* Règles des longs menus (voir src/lib/menu/affichage.ts) : barre de rubriques défilante et collée, recherche, rubriques longues repliées. */
+.theme-public .fm-chips-barre {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--creme);
+  border-bottom: 1.5px solid var(--bordure);
+}
+.theme-public .fm-chips-barre::-webkit-scrollbar {
+  display: none;
+}
+.theme-public .fm-chips-barre .fm-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.theme-public .fm-chip-n {
+  font-weight: 600;
+  opacity: 0.7;
+}
+.theme-public .fm-recherche {
+  display: block;
+  margin: 0 0 var(--space-4);
+}
+.theme-public .fm-recherche input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 2px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+.theme-public .fm-aucun {
+  margin: var(--space-5) 0;
+  color: var(--secondaire);
+}
+.theme-public .fm-voir-plus {
+  display: block;
+  min-height: 44px;
+  margin: var(--space-3) auto 0;
+  padding: 0 var(--space-5);
+  border: 1.5px solid var(--encre);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+/* Noms très longs : deux lignes au plus, jamais de débordement horizontal. */
+.theme-public .fm-plat {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

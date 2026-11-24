@@ -12,7 +12,14 @@ insert into menu_categories (nom, ordre) values
   ('Libanais et oriental', 6),
   ('Italien et pizzas', 7),
   ('Indien', 8),
-  ('Asiatique', 9)
+  ('Asiatique', 9),
+  ('Mexicain', 10),
+  ('Français', 11),
+  ('Méditerranéen', 12),
+  ('Maghrébin', 13),
+  ('Antillais et créole', 14),
+  ('Européen', 15),
+  ('Cuisine du monde', 16)
 on conflict (nom) do nothing;
 
 insert into neighborhoods (nom, ordre) values

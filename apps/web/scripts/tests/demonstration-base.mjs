@@ -198,7 +198,14 @@ const CUISINES_MONDE = {
   americaine: ["Burgers", "Poulet frit et tenders", "Hot-dogs et sandwichs", "Salades repas"],
   francaise: ["Plats du jour", "Sandwichs et croques", "Quiches et salades repas", "Crêpes salées"],
   mexicaine: ["Tacos", "Burritos et bowls", "Quesadillas et fajitas", "Plats mexicains"],
+  grecque: ["Souvlaki et gyros", "Grillades grecques", "Plats mijotés et four", "Poissons et calamars"],
+  marocaine: ["Tajines", "Couscous", "Grillades marocaines", "Plats traditionnels"],
+  thailandaise: ["Currys thaïs", "Pad et nouilles", "Riz thaï", "Woks et grillades"],
+  antillaise: ["Colombo", "Poissons créoles", "Viandes créoles", "Plats complets créoles"],
+  roumaine: ["Plats traditionnels roumains", "Grillades roumaines", "Soupes repas", "Plats mijotés"],
 };
+// Catégorie attendue d'un restaurant à une seule cuisine ; plusieurs cuisines différentes : « Cuisine du monde » (jamais la première cuisine) ; guinéen + africain : « Africain ».
+const CATEGORIE_DE = { guineenne: ["Riz & sauces", "Grillades"], africaine: ["Africain"], libanaise: ["Libanais et oriental"], turque: ["Libanais et oriental"], italienne: ["Italien et pizzas"], indienne: ["Indien"], chinoise: ["Asiatique"], japonaise: ["Asiatique"], thailandaise: ["Asiatique"], americaine: ["Fast-food"], mexicaine: ["Mexicain"], francaise: ["Français", "Petit-déjeuner"], grecque: ["Méditerranéen"], marocaine: ["Maghrébin"], antillaise: ["Antillais et créole"], roumaine: ["Européen"] };
 const W = Object.values(CUISINES_MONDE).flat();
 const aSection = (liste) => `exists (select 1 from menu_sections s where s.restaurant_id = r.id and s.nom in (${listeSql(liste)}))`;
 const variete = await un(`select
@@ -215,7 +222,24 @@ for (const [cuisine, sections] of Object.entries(CUISINES_MONDE)) {
   const n = (await un(`select count(*)::int n from restaurants r where r.demo_lot is not null and ${aSection(sections)}`)).n;
   if (n > 0) couvertes.push(cuisine);
 }
-verifier("les 9 cuisines du monde sont toutes représentées", couvertes.length === 9, couvertes.join(", "));
+verifier("au moins 12 des 14 cuisines du monde sont représentées", couvertes.length >= 12, couvertes.join(", "));
+// Règle de catégorie, vérifiée sur chaque restaurant à partir de ses rubriques.
+const SECTIONS_PAR_CUISINE = { guineenne: G, africaine: A, ...CUISINES_MONDE };
+const lignesResto = (await db.query(`select r.nom, c.nom as categorie, array_agg(s.nom) as rubriques from restaurants r join menu_categories c on c.id = r.categorie_id
+  join menu_sections s on s.restaurant_id = r.id where r.demo_lot is not null group by r.nom, c.nom`)).rows;
+const erreursCategorie = [];
+const profilsVus = new Set();
+for (const l of lignesResto) {
+  const cuisines = Object.entries(SECTIONS_PAR_CUISINE).filter(([, secs]) => secs.some((x) => l.rubriques.includes(x))).map(([k]) => k);
+  if (cuisines.length === 0) { erreursCategorie.push(`${l.nom}: aucune cuisine reconnue`); continue; }
+  let attendu;
+  if (cuisines.length === 1) attendu = CATEGORIE_DE[cuisines[0]];
+  else if (cuisines.every((k) => k === "guineenne" || k === "africaine")) attendu = ["Africain"];
+  else attendu = ["Cuisine du monde"];
+  profilsVus.add(cuisines.length === 1 ? "une cuisine" : attendu[0] === "Africain" ? "guinéen+africain" : "plusieurs cuisines");
+  if (!attendu.includes(l.categorie)) erreursCategorie.push(`${l.nom} (${cuisines.join("+")}): ${l.categorie}, attendu ${attendu.join(" ou ")}`);
+}
+verifier("la catégorie d'un restaurant suit la règle (plusieurs cuisines différentes = « Cuisine du monde », jamais la première cuisine)", erreursCategorie.length === 0 && profilsVus.size === 3, erreursCategorie.slice(0, 5).join(" ; ") + " | " + [...profilsVus].join(", "));
 const regions = await un(`select count(*) filter (where ${aSection(G)})::int guineens, count(*)::int total
   from restaurants r join neighborhoods q on q.id = r.quartier_id join communes c on c.id = q.commune_id join prefectures p on p.id = c.prefecture_id join regions g on g.id = p.region_id
   where r.demo_lot is not null and g.nom <> 'Conakry'`);

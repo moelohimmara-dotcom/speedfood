@@ -11,7 +11,14 @@ export type CategorieRestaurant =
   | "Libanais et oriental"
   | "Italien et pizzas"
   | "Indien"
-  | "Asiatique";
+  | "Asiatique"
+  | "Mexicain"
+  | "Français"
+  | "Méditerranéen"
+  | "Maghrébin"
+  | "Antillais et créole"
+  | "Européen"
+  | "Cuisine du monde";
 
 /**
  * Vue publique d'un restaurant — les seuls champs exposables au catalogue non authentifié.
