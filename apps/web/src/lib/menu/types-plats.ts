@@ -73,6 +73,15 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["vin-rouge", /^vin rouge\b/],
   ["vin-blanc", /^vin blanc\b/],
   ["vin-effervescent", /^vin effervescent\b/],
+  // Photos Pexels, lot 6 (plats régionaux)
+  ["riz-pois-rouges", /^riz et pois rouges( au poulet)?$/],
+  ["couscous-agneau", /^couscous (a l agneau|royal)$/],
+  ["ragout-boeuf", /^ragout de boeuf creole$/],
+  ["soupe-africaine", /^(ndole au poisson|poulet moambe|domoda)\b/],
+  ["puff-puff", /^puff puff\b/],
+  ["tochitura", /^(tochitura|mamaliga|polenta)\b/],
+  ["poisson-frit", /^poisson frit\b/],
+  ["tilapia", /^tilapia braise$/],
   // Photos Pixabay, lot 2
   ["arancini", /^arancini\b/],
   ["borek", /^(borek|sigara boregi)\b/],

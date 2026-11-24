@@ -116,6 +116,7 @@ copier("src/lib/menu/bibliotheque-banques-lot1.ts");
 copier("src/lib/menu/bibliotheque-banques-lot2.ts");
 copier("src/lib/menu/bibliotheque-banques-pixabay.ts");
 copier("src/lib/menu/bibliotheque-banques-pixabay-2.ts");
+copier("src/lib/menu/bibliotheque-banques-pexels-6.ts");
 copier("src/lib/menu/boissons.ts");
 copier("scripts/tests/menu-regles.test.mts");
 copier("scripts/tests/editeur.test.mts");
