@@ -114,6 +114,7 @@ copier("src/lib/menu/types-plats.ts");
 copier("src/lib/menu/bibliotheque-photos.ts");
 copier("src/lib/menu/bibliotheque-banques-lot1.ts");
 copier("src/lib/menu/bibliotheque-banques-lot2.ts");
+copier("src/lib/menu/bibliotheque-banques-lot3.ts");
 copier("src/lib/menu/bibliotheque-banques-pixabay.ts");
 copier("src/lib/menu/bibliotheque-banques-pixabay-2.ts");
 copier("src/lib/menu/bibliotheque-banques-pexels-6.ts");
