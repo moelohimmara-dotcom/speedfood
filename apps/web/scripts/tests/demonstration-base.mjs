@@ -172,6 +172,7 @@ verifier("les 60 menus sont tous différents, avec des options sur les plats", m
 const sqlGenerateur = fs.readFileSync(path.join(racine, "..", "..", "supabase", "demo", "charger-demonstration.sql"), "utf8");
 const SECTIONS_CATALOGUE = [...new Set([...sqlGenerateur.matchAll(/\('[a-z*]+',\d+,'((?:[^']|'')+)'/g)].map((m) => m[1].replace(/''/g, "'")))];
 const OBLIGATOIRES = ["Entrées chaudes", "Entrées froides", "En-cas", "Desserts", "Pâtisseries", "Boissons chaudes", "Jus et smoothies", "Boissons lactées", "Sodas et rafraîchissements", "Eaux"];
+const RUBRIQUES_ALCOOL = ["Bières", "Vins", "Cocktails", "Spiritueux et digestifs"];
 const listeSql = (a) => a.map((x) => `'${x.replace(/'/g, "''")}'`).join(", ");
 verifier("le catalogue compte au moins 40 rubriques différentes", SECTIONS_CATALOGUE.length >= 40, String(SECTIONS_CATALOGUE.length));
 const incompletes = await un(`select count(*)::int n from restaurants r where r.demo_lot is not null
@@ -181,10 +182,27 @@ const inconnues = await un(`select count(*)::int n from menu_sections s join res
 verifier("aucune rubrique en dehors du catalogue", inconnues.n === 0, JSON.stringify(inconnues));
 const ordre = await un(`select count(*)::int n from restaurants r where r.demo_lot is not null and (
     (select s.position from menu_sections s where s.restaurant_id = r.id and s.nom = 'Entrées chaudes') <> 1
-    or (select s.position from menu_sections s where s.restaurant_id = r.id and s.nom = 'Eaux') <> (select max(s.position) from menu_sections s where s.restaurant_id = r.id))`);
-verifier("les rubriques sont toujours dans le même ordre (entrées d'abord, eaux en dernier)", ordre.n === 0, JSON.stringify(ordre));
-const marques = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id where r.demo_lot is not null and i.nom ~* 'coca|fanta|sprite|pepsi|heineken|nescaf|porc|bière|\\mvin\\M|whisky|rhum'`);
-verifier("aucune marque, aucun porc ni alcool dans les noms d'articles", marques.n === 0, JSON.stringify(marques));
+    or (select s.position from menu_sections s where s.restaurant_id = r.id and s.nom = 'Eaux') <> (select max(s.position) from menu_sections s where s.restaurant_id = r.id and s.nom not in (${listeSql(RUBRIQUES_ALCOOL)})))`);
+verifier("les rubriques sont toujours dans le même ordre (entrées d'abord, boissons sans alcool, eaux en dernier avant l'alcool)", ordre.n === 0, JSON.stringify(ordre));
+const marques = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id where r.demo_lot is not null and i.nom ~* 'coca|fanta|sprite|pepsi|heineken|nescaf|red ?bull|monster|guinness|jack daniel|hennessy|smirnoff|moët|porc'`);
+verifier("aucune marque commerciale ni porc dans les noms d'articles", marques.n === 0, JSON.stringify(marques));
+// Boissons avec alcool : classées à part (rubriques Bières, Vins, Cocktails, Spiritueux), seulement dans les restaurants qui en servent.
+const MOTS_ALCOOL = String.raw`bière|\mvin\M|whisky|rhum|vodka|\mgin\M|cognac|tequila|liqueur|mojito|margarita|caïpirinha|daiquiri|cosmopolitan|spritz|piña|champagne`;
+const alcoolHorsRubrique = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id left join menu_sections s on s.id = i.section_id
+  where r.demo_lot is not null and i.nom ~* '${MOTS_ALCOOL}' and i.nom !~* 'sans alcool' and s.nom not in (${listeSql(RUBRIQUES_ALCOOL)})`);
+verifier("tout article alcoolisé est dans une rubrique « avec alcool » (jamais mélangé aux boissons sans alcool)", alcoolHorsRubrique.n === 0, JSON.stringify(alcoolHorsRubrique));
+const sansAlcoolDansRubriqueAlcool = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id join menu_sections s on s.id = i.section_id
+  where r.demo_lot is not null and s.nom in (${listeSql(RUBRIQUES_ALCOOL)}) and (i.nom !~* '${MOTS_ALCOOL}' or i.nom ~* 'sans alcool')`);
+verifier("les rubriques « avec alcool » ne contiennent que de l'alcool", sansAlcoolDansRubriqueAlcool.n === 0, JSON.stringify(sansAlcoolDansRubriqueAlcool));
+const alcool = await un(`select count(*) filter (where a > 0)::int servent, count(*) filter (where a > 0 and a < 4)::int partiels,
+    count(*) filter (where a > 0 and categorie in ('Grillades', 'Petit-déjeuner'))::int interdits, count(*)::int total
+  from (select r.id, (select c.nom from menu_categories c where c.id = r.categorie_id) categorie,
+          (select count(distinct s.nom) from menu_sections s where s.restaurant_id = r.id and s.nom in (${listeSql(RUBRIQUES_ALCOOL)})) a
+        from restaurants r where r.demo_lot is not null) t`);
+verifier("25 à 60 % des restaurants servent de l'alcool, toujours avec les 4 rubriques, jamais une maison de grillades ni un café du matin", alcool.total === 60 && alcool.servent >= 15 && alcool.servent <= 36 && alcool.partiels === 0 && alcool.interdits === 0, JSON.stringify(alcool));
+const nouvellesSansAlcool = await un(`select count(*)::int n from restaurants r where r.demo_lot is not null
+  and (select count(distinct s.nom) from menu_sections s where s.restaurant_id = r.id and s.nom in ('Boissons énergisantes', 'Mocktails')) < 2`);
+verifier("chaque restaurant propose boissons énergisantes et mocktails (sans alcool)", nouvellesSansAlcool.n === 0, JSON.stringify(nouvellesSansAlcool));
 // Variété des cuisines : des restaurants 100 % guinéens, 100 % africains, mixtes, 100 % cuisine du monde, et toutes les cuisines représentées.
 const G = ["Riz et sauces", "Spécialités et viandes", "Poissons et fruits de mer", "Grillades et brochettes"];
 const A = ["Riz et plats du Sénégal", "Plats d'Afrique de l'Ouest", "Soupes et fufu", "Grillades et suya"];

@@ -479,3 +479,9 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Boissons sans alcool et avec alcool : deux groupes à part, avertissement pour l'alcool */
+.fm-groupe { margin: 1.6rem 0 0.6rem; padding-top: 0.9rem; border-top: 3px solid var(--encre, #111); }
+.fm-groupe-titre { margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: 0.01em; }
+.fm-groupe-alcool .fm-groupe-titre::before { content: "18+ "; display: inline-block; margin-right: 0.4rem; padding: 0 0.4rem; border: 2px solid var(--encre, #111); border-radius: 4px; font-size: 0.8rem; vertical-align: middle; }
+.fm-groupe-note { margin: 0.3rem 0 0; font-size: 0.85rem; opacity: 0.8; overflow-wrap: anywhere; }

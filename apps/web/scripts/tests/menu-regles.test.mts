@@ -1,4 +1,5 @@
 import { APERCU_RUBRIQUE, RUBRIQUE_LONGUE, SEUIL_BARRE_RUBRIQUES, SEUIL_RECHERCHE, correspondRecherche, decisionMenu, platsMontres } from "../../src/lib/menu/affichage";
+import { AVERTISSEMENT_ALCOOL, RUBRIQUES_AVEC_ALCOOL, RUBRIQUES_SANS_ALCOOL, classeBoisson, titresDeGroupe } from "../../src/lib/menu/boissons";
 import { BIBLIOTHEQUE_PHOTOS } from "../../src/lib/menu/bibliotheque-photos";
 import { TYPES_RECONNUS, typeDePlat } from "../../src/lib/menu/types-plats";
 import { attribuerPhotos, couverturePhotos, estFormule, type ArticleMenu, type PhotoBibliotheque } from "../../src/lib/menu/photos";
@@ -80,6 +81,15 @@ verifier("les photos de banque passent avant l'IA dans la bibliothèque réelle"
 verifier("banques lot 4 : types reconnus", types(["Croissant", "Cookie aux pépites de chocolat", "Couscous au poulet", "Hot-dog classique", "Lasagnes au bœuf", "Steak frites"]), ["croissant", "cookie", "couscous", "hot-dog", "lasagnes", "steak-frites"]);
 verifier("banques lot 4 : faux amis sans type", types(["Couscous royal", "Hot-dog au fromage", "Croissant aux amandes", "Steak frites sauce poivre"]), [null, null, null, null]);
 verifier("cinq croissants dans un menu : cinq photos différentes, jamais deux fois la même", (() => { const a = attribuerPhotos("z", Array.from({ length: 6 }, (_, i) => art(String(i), "Croissant", "croissant")), BIBLIOTHEQUE_PHOTOS); const ids = a.map((x) => x.photoId).filter(Boolean); return [new Set(ids).size === ids.length, ids.length]; })(), [true, 5]);
+// --- Boissons avec et sans alcool, classées à part
+verifier("classe des rubriques de boissons", [classeBoisson("Eaux"), classeBoisson("Boissons énergisantes"), classeBoisson("Mocktails"), classeBoisson("Bières"), classeBoisson("Vins"), classeBoisson("Cocktails"), classeBoisson("Spiritueux et digestifs"), classeBoisson("Desserts"), classeBoisson("")], ["sans-alcool", "sans-alcool", "sans-alcool", "avec-alcool", "avec-alcool", "avec-alcool", "avec-alcool", null, null]);
+verifier("accents et majuscules ignorés pour les rubriques", [classeBoisson("BIERES"), classeBoisson("boissons energisantes")], ["avec-alcool", "sans-alcool"]);
+verifier("titres de groupe : un titre avant la première rubrique de chaque famille, jamais répété", titresDeGroupe(["Entrées chaudes", "Desserts", "Boissons chaudes", "Jus et smoothies", "Eaux", "Bières", "Vins"]), [null, null, "sans-alcool", null, null, "avec-alcool", null]);
+verifier("restaurant sans alcool : un seul titre, aucun avertissement d'alcool", titresDeGroupe(["Desserts", "Boissons chaudes", "Eaux"]).filter(Boolean), ["sans-alcool"]);
+verifier("recherche filtrée : le titre suit la première rubrique visible", titresDeGroupe(["Vins", "Cocktails"]), ["avec-alcool", null]);
+verifier("aucune rubrique : aucun titre", titresDeGroupe([]), []);
+verifier("les deux familles n'ont aucune rubrique en commun", RUBRIQUES_AVEC_ALCOOL.filter((r) => RUBRIQUES_SANS_ALCOOL.includes(r)), []);
+verifier("avertissement d'alcool : majeurs et modération", /majeures/.test(AVERTISSEMENT_ALCOOL) && /mod[ée]ration/.test(AVERTISSEMENT_ALCOOL), true);
 // Les formules reçoivent une photo de formule (plusieurs éléments), jamais la photo d'un seul plat ; un plat ne reçoit jamais une photo de formule.
 const bibF: PhotoBibliotheque[] = [{ id: "f-doner", type: "formule-doner", source: "ia" }, { id: "p-shawarma", type: "shawarma", source: "banque" }];
 const formules = attribuerPhotos("r", [art("1", "Menu shawarma", "formule-doner"), art("2", "Shawarma poulet", "shawarma"), art("3", "Menu pizza", "pizza"), art("4", "Shawarma mixte", "formule-doner")], bibF);

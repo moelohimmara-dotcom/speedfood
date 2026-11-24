@@ -165,6 +165,8 @@ begin
   create temp table t_resto1 on commit drop as
   select p.*,
          (p.profil = 'guineen' and p.u4 < 0.35) as grill,
+         -- Tirage propre à l'alcool (stable, indépendant des autres tirages) : sert à décider si le restaurant sert des boissons alcoolisées.
+         ((hashtext(p.i::text || 'alcool') & 1023) / 1024.0) as ua,
          (select m.cuisine from t_monde m where m.n = p.n1) as w1,
          (select m.cuisine from t_monde m where m.n = ((p.n1 - 1 + p.d2) % 14) + 1) as w2,
          (select m.cuisine from t_monde m where m.n = ((p.n1 - 1 + case when p.d3 = p.d2 then p.d2 % 13 + 1 else p.d3 end) % 14) + 1) as w3,
@@ -196,6 +198,11 @@ begin
                                 else 'Cuisine du monde' end
                     from unnest(n.cuisines) as u(c) join t_cuisine_cat k on k.cuisine = u.c) end as categorie,
          n.matin,
+         -- Boissons alcoolisées : jamais dans une maison de grillades ni un café du matin ; rares dans les restaurants guinéens ou africains,
+         -- plus fréquentes dans les restaurants du monde, surtout à Conakry. Elles forment des rubriques à part (Bières, Vins, Cocktails, Spiritueux).
+         case when n.grill or n.matin then false
+              when n.profil in ('guineen', 'africain') then n.ua < 0.08
+              else n.ua < (case when n.region = 'Conakry' then 0.55 else 0.25 end) end as alcool,
          n.quartier_id, n.region, n.libelle as adresse,
          n.lat + (random() - 0.5) * (case when n.region = 'Conakry' then 0.004 else 0.01 end) as lat,
          n.lng + (random() - 0.5) * (case when n.region = 'Conakry' then 0.004 else 0.01 end) as lng,
@@ -426,6 +433,44 @@ begin
     ('*',950,'Eaux','Eau minérale 50 cl','Petite bouteille de 50 cl.',3000,null),
     ('*',950,'Eaux','Eau gazeuse 33 cl','Eau pétillante, 33 cl.',6000,null),
     ('*',950,'Eaux','Eau citronnée','Eau fraîche au citron, 50 cl.',7000,null),
+    ('*',940,'Sodas et rafraîchissements','Bière sans alcool','Bière blonde sans alcool, 33 cl.',10000,null),
+    ('*',945,'Boissons énergisantes','Boisson énergisante 25 cl','Boisson énergisante gazeuse, canette de 25 cl.',15000,null),
+    ('*',945,'Boissons énergisantes','Boisson énergisante 50 cl','Boisson énergisante gazeuse, grande canette de 50 cl.',22000,null),
+    ('*',945,'Boissons énergisantes','Boisson énergisante sans sucre','Boisson énergisante sans sucre, 25 cl.',16000,null),
+    ('*',945,'Boissons énergisantes','Boisson isotonique','Boisson de l''effort aux électrolytes, 50 cl.',14000,null),
+    ('*',947,'Mocktails','Mojito sans alcool','Citron vert, menthe, sucre de canne et eau pétillante.',30000,null),
+    ('*',947,'Mocktails','Piña colada sans alcool','Ananas, lait de coco et glace pilée.',32000,null),
+    ('*',947,'Mocktails','Sunrise sans alcool','Jus d''orange, grenadine et glace.',28000,null),
+    ('*',947,'Mocktails','Cocktail de fruits frais','Mangue, ananas, passion et menthe.',30000,null),
+    ('*',947,'Mocktails','Gingembre citron vert','Gingembre, citron vert et eau pétillante.',26000,null),
+    ('*a',960,'Bières','Bière blonde 33 cl','Bière blonde fraîche, bouteille de 33 cl.',22000,null),
+    ('*a',960,'Bières','Bière blonde 65 cl','Bière blonde fraîche, grande bouteille de 65 cl.',35000,null),
+    ('*a',960,'Bières','Bière brune 33 cl','Bière brune aux notes de caramel, 33 cl.',25000,null),
+    ('*a',960,'Bières','Bière pression 25 cl','Bière blonde servie à la pression.',18000,null),
+    ('*a',960,'Bières','Bière de blé 50 cl','Bière blanche légère, notes d''agrumes.',32000,null),
+    ('*a',970,'Vins','Vin rouge (verre)','Un verre de vin rouge, 15 cl.',35000,null),
+    ('*a',970,'Vins','Vin blanc (verre)','Un verre de vin blanc sec, 15 cl.',35000,null),
+    ('*a',970,'Vins','Vin rosé (verre)','Un verre de vin rosé frais, 15 cl.',35000,null),
+    ('*a',970,'Vins','Vin rouge (bouteille)','Bouteille de vin rouge, 75 cl.',180000,null),
+    ('*a',970,'Vins','Vin blanc (bouteille)','Bouteille de vin blanc sec, 75 cl.',180000,null),
+    ('*a',970,'Vins','Vin rosé (bouteille)','Bouteille de vin rosé, 75 cl.',170000,null),
+    ('*a',970,'Vins','Vin effervescent (bouteille)','Vin mousseux brut, 75 cl.',250000,null),
+    ('*a',980,'Cocktails','Mojito','Rhum blanc, citron vert, menthe, sucre de canne et eau pétillante.',55000,null),
+    ('*a',980,'Cocktails','Piña colada','Rhum blanc, ananas et lait de coco.',60000,null),
+    ('*a',980,'Cocktails','Margarita','Tequila, triple sec et citron vert.',60000,null),
+    ('*a',980,'Cocktails','Caïpirinha','Cachaça, citron vert et sucre de canne.',55000,null),
+    ('*a',980,'Cocktails','Daiquiri fraise','Rhum blanc, fraise et citron vert.',58000,null),
+    ('*a',980,'Cocktails','Cosmopolitan','Vodka, liqueur d''orange, jus de canneberge et citron vert.',65000,null),
+    ('*a',980,'Cocktails','Spritz','Vin effervescent, liqueur amère et eau pétillante.',55000,null),
+    ('*a',980,'Cocktails','Gin tonic','Gin, tonic et zeste de citron.',50000,null),
+    ('*a',990,'Spiritueux et digestifs','Whisky (4 cl)','Whisky, servi nature ou avec glaçons.',45000,null),
+    ('*a',990,'Spiritueux et digestifs','Rhum ambré (4 cl)','Rhum vieilli, servi nature.',40000,null),
+    ('*a',990,'Spiritueux et digestifs','Vodka (4 cl)','Vodka, servie glacée.',40000,null),
+    ('*a',990,'Spiritueux et digestifs','Gin (4 cl)','Gin, servi avec glaçons.',40000,null),
+    ('*a',990,'Spiritueux et digestifs','Cognac (4 cl)','Cognac, servi nature.',60000,null),
+    ('*a',990,'Spiritueux et digestifs','Tequila (4 cl)','Tequila, citron et sel.',45000,null),
+    ('*a',990,'Spiritueux et digestifs','Liqueur de café (4 cl)','Liqueur de café, servie glacée.',40000,null),
+    ('*a',990,'Spiritueux et digestifs','Liqueur d''amande (4 cl)','Liqueur d''amande, servie nature.',40000,null),
     -- ===== LIBANAISE
     ('libanaise',101,'Entrées chaudes','Mezzé de falafels (6)','Six falafels croustillants, sauce tarator.',20000,null),
     ('libanaise',101,'Entrées chaudes','Kebbé frit (4)','Quatre kebbés de bœuf et de boulgour.',24000,null),
@@ -1029,14 +1074,14 @@ begin
 
   create temp table t_plats on commit drop as
   with rc as (
-    select r.id as resto_id, r.i, r.region, r.groupe, r.restr, k.cuisine, (k.rk - 1)::int as rang_cuisine, cardinality(r.cuisines) as nb_cuisines
+    select r.id as resto_id, r.i, r.region, r.groupe, r.restr, r.alcool, k.cuisine, (k.rk - 1)::int as rang_cuisine, cardinality(r.cuisines) as nb_cuisines
     from t_resto r cross join lateral unnest(r.cuisines) with ordinality as k(cuisine, rk)),
   pool as (
     select distinct on (rc.resto_id, c.nom)
            rc.resto_id, rc.i, rc.region, rc.nb_cuisines, rc.rang_cuisine,
            c.pos + (case when c.pos between 300 and 399 then rc.rang_cuisine * 10 else 0 end) as pos,
            c.section, c.nom, c.description, c.prix, c.reg
-    from rc join t_catalogue c on (c.cuisine = rc.cuisine or c.cuisine = '*') and (c.reg is null or c.reg = rc.groupe)
+    from rc join t_catalogue c on (c.cuisine = rc.cuisine or c.cuisine = '*' or (c.cuisine = '*a' and rc.alcool)) and (c.reg is null or c.reg = rc.groupe)
     where rc.restr is null or c.pos < 300 or c.pos >= 400 or c.section = any(rc.restr)
     order by rc.resto_id, c.nom, rc.rang_cuisine),
   ranked as (

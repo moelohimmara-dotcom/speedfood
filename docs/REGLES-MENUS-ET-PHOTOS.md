@@ -23,7 +23,7 @@ Les profils de la démonstration sont tirés au sort avec des poids différents 
 
 - **Taille :** de 30 à 45 articles pour un restaurant, un peu plus s'il propose plusieurs cuisines (jamais plus de 45 dans la démonstration). Un menu plus long fatigue le choix : StoreKit conseille « 20 articles excellents plutôt que 50 moyens », ChowNow parle de « fatigue de décision ».
 - **Rubriques :** de 6 à 20, des noms courts (1 à 4 mots), jamais de rubrique vide, et toujours le même ordre : entrées chaudes, entrées froides, plats principaux (rubriques propres à la cuisine, comme « Pizzas » ou « Currys »), accompagnements, en-cas, desserts, pâtisseries, menus et formules, puis les boissons (chaudes, jus et smoothies, lactées, sodas, eaux). Les meilleures ventes ne sont pas enterrées au milieu : les premiers et derniers articles d'une liste sont les plus regardés.
-- **Halal :** ni porc ni alcool dans le catalogue de démonstration.
+- **Porc et marques :** aucun porc dans le catalogue de démonstration, aucune marque commerciale dans un nom d'article (voir la section 8 pour l'alcool, classé à part).
 - **Suppléments :** peu et utiles (fromage, frites, boisson). Les longues listes d'options ralentissent la commande et augmentent les erreurs.
 - **Noms :** aucune marque commerciale dans le nom d'un article.
 
@@ -77,3 +77,18 @@ Plusieurs sources se complètent : photo du restaurant, banques libres (Pexels, 
 
 - Démonstration (`npm run test:demonstration`, 49 contrôles) : 10 rubriques de base dans chaque menu, rubriques toutes issues du catalogue, ordre constant, aucune marque ni porc ni alcool, tailles de menu, variété des profils, couverture des cuisines, **règle de catégorie vérifiée sur chacun des 60 restaurants**.
 - Règles de menu et de photos (`menu-regles.test.mts`) : seuils d'affichage, recherche, repli, unicité des photos, exactitude, variété, priorité des sources, formules, cas limites.
+
+## 8. Boissons avec et sans alcool, classées à part
+
+**Deux familles, jamais mélangées**, chacune avec son titre de groupe dans le menu (`src/lib/menu/boissons.ts`, `MenuFiltre`) :
+
+| Famille | Rubriques | Dans le menu |
+|---|---|---|
+| **Boissons sans alcool** | Boissons chaudes, Jus et smoothies, Boissons lactées, Sodas et rafraîchissements, Boissons énergisantes, Mocktails, Eaux | Titre « Boissons sans alcool » avant la première |
+| **Boissons avec alcool** | Bières, Vins, Cocktails, Spiritueux et digestifs | Titre « Boissons avec alcool », pastille 18+, avertissement « Réservé aux personnes majeures. L'abus d'alcool est dangereux pour la santé » |
+
+- **Qui en sert :** pas tous les restaurants. Jamais une maison de grillades ni un café du matin ; rare chez les restaurants guinéens ou africains (environ 8 %) ; plus fréquent chez les restaurants du monde (55 % à Conakry, 25 % dans les régions). Un restaurant qui en sert propose les 4 rubriques, pas une seule.
+- **Rien d'alcoolisé hors des rubriques « avec alcool »** et ces rubriques ne contiennent que de l'alcool. Une bière sans alcool ou un mocktail (« Mojito sans alcool ») est classé avec les boissons sans alcool.
+- **Sans marque :** « Boisson énergisante 25 cl », « Soda cola », « Whisky (4 cl) », jamais le nom d'une marque. Les cocktails portent le nom de leur recette (Mojito, Piña colada).
+- **Photos :** un cocktail, un vin ou une bière ont chacun leur type de photo ; aucun n'est affiché sans photo contrôlée du bon type (voir sections 5 et 6).
+- **À décider avant une vraie mise en ligne :** la vente d'alcool par livraison est réglementée. Avant d'ouvrir ces rubriques à de vrais restaurants, il faut : une case « sert de l'alcool » activée par Speedfood après vérification de l'autorisation du restaurant, une confirmation de majorité du client à la commande, et une vérification de l'âge à la livraison. Sans ces trois garde-fous, ces rubriques restent réservées à la démonstration.

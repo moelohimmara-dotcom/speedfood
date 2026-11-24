@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { APERCU_RUBRIQUE, correspondRecherche, decisionMenu, platsMontres } from "@/lib/menu/affichage";
+import { AVERTISSEMENT_ALCOOL, TITRE_AVEC_ALCOOL, TITRE_SANS_ALCOOL, titresDeGroupe } from "@/lib/menu/boissons";
 
 export interface PlatDuMenu {
   id: string;
@@ -95,12 +96,19 @@ export function MenuFiltre({ groupes, niveauSection }: { groupes: GroupeDuMenu[]
 
       {rechercheEnCours && total === 0 ? <p className="fm-aucun">Aucun article ne correspond à « {recherche.trim()} ».</p> : null}
 
-      {visibles.map((g) => {
+      {visibles.map((g, indexGroupe) => {
+        const titreGroupe = niveauSection ? titresDeGroupe(visibles.map((v) => v.nom))[indexGroupe] : null;
         const replie = pret && actif === "tout" && decision.repliees.includes(g.id) && !etendues.includes(g.id);
         const nb = platsMontres(g.plats.length, replie, rechercheEnCours);
         const liste = ordonner(g.plats);
         return (
           <section key={g.id} id={`section-${g.id}`} className="fm-section">
+            {titreGroupe ? (
+              <div className={`fm-groupe${titreGroupe === "avec-alcool" ? " fm-groupe-alcool" : ""}`}>
+                <h3 className="fm-groupe-titre">{titreGroupe === "avec-alcool" ? TITRE_AVEC_ALCOOL : TITRE_SANS_ALCOOL}</h3>
+                {titreGroupe === "avec-alcool" ? <p className="fm-groupe-note">{AVERTISSEMENT_ALCOOL}</p> : null}
+              </div>
+            ) : null}
             {niveauSection && g.nom ? <h3 className="fm-section-titre">{g.nom}</h3> : null}
             <div className="vignettes">
               {liste.slice(0, nb).map((p, i) => (
