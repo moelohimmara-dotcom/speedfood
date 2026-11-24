@@ -1,4 +1,5 @@
 import { APERCU_RUBRIQUE, RUBRIQUE_LONGUE, SEUIL_BARRE_RUBRIQUES, SEUIL_RECHERCHE, correspondRecherche, decisionMenu, platsMontres } from "../../src/lib/menu/affichage";
+import { TYPES_RECONNUS, typeDePlat } from "../../src/lib/menu/types-plats";
 import { attribuerPhotos, couverturePhotos, estFormule, type ArticleMenu, type PhotoBibliotheque } from "../../src/lib/menu/photos";
 
 /** Tests des règles d'affichage des longs menus et d'attribution des photos. */
@@ -60,6 +61,15 @@ verifier("déterminisme : mêmes données, même résultat", JSON.stringify(attr
 verifier("menu vide ou bibliothèque vide : aucune erreur", [attribuerPhotos("r", [], bib), attribuerPhotos("r", [art("1", "Pizza", "pizza")], [])[0].raison], [[], "aucune-photo-libre"]);
 verifier("couverture : part des articles avec photo", couverturePhotos(trois), 0.75);
 verifier("couverture d'un menu vide", couverturePhotos([]), 0);
+
+// --- Reconnaissance du type de plat (exactitude : dans le doute, aucun type)
+const types = (noms: string[]) => noms.map(typeDePlat);
+verifier("types reconnus : plats courants", types(["Pizza margherita", "Burger classique", "Mafé de bœuf", "Riz sauce gombo", "Jus de bissap", "Brochettes de mouton (5)"]), ["pizza", "burger", "mafe", "riz-sauce", "jus-bissap", "brochette"]);
+verifier("accents et majuscules ignorés", types(["CAFÉ AU LAIT", "Thé à la menthe", "Tô de maïs sauce gombo"]), ["cafe-lait", "the-menthe", "to-couscous"]);
+verifier("faux amis : aucun type", types(["Gâteau au gingembre", "Haricots verts", "Gingembre mariné", "Eau de coco", "Eau citronnée", "Salade de pâtes", "Sandwich falafel", "Petit pain au chocolat chaud", "Kebbé au yaourt", "Latte matcha"]), Array(10).fill(null));
+verifier("nom inconnu ou vide : aucun type", types(["Plat du jour", "", "   "]), [null, null, null]);
+verifier("les formules gardent leur type mais estFormule les écarte", [typeDePlat("Menu shawarma"), estFormule("Menu shawarma")], [null, true]);
+verifier("chaque type reconnu est unique et non vide", TYPES_RECONNUS.length > 40 && new Set(TYPES_RECONNUS).size === TYPES_RECONNUS.length, true);
 
 if (ko) {
   console.log(`\n${ko} ECHEC(S)`);
