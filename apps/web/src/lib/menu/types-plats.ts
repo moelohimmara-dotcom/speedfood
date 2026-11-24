@@ -13,6 +13,8 @@ export function normaliserNom(nom: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
@@ -71,6 +73,25 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["vin-rouge", /^vin rouge\b/],
   ["vin-blanc", /^vin blanc\b/],
   ["vin-effervescent", /^vin effervescent\b/],
+  // Photos Pixabay
+  ["boeuf-saute", /^boeuf (aux oignons|sauce poivre noir|saute aux poivrons)\b/],
+  ["burrito", /^burrito\b/],
+  ["caipirinha", /^caipirinha$/],
+  ["cognac", /^cognac\b/],
+  ["cosmopolitan", /^cosmopolitan$/],
+  ["gaufre", /^gaufres?\b/],
+  ["maki", /^makis\b/],
+  ["mici", /^mici\b/],
+  ["mocktail", /^(cocktail de fruits frais|sunrise sans alcool|gingembre citron vert)$/],
+  ["nouilles-sautees", /^nouilles sautees\b/],
+  ["poulet-aigre-doux", /^poulet aigre doux\b/],
+  ["riz-saute", /^riz saute aux crevettes\b/],
+  ["sarmale", /^sarmale$/],
+  ["sashimi", /^sashimi\b/],
+  ["satay", /^satay\b/],
+  ["tequila", /^tequila\b/],
+  ["vin-rose", /^vin rose\b/],
+  ["whisky", /^whisky\b/],
   ["brioche", /^brioche$/],
   ["bubble-tea", /^bubble tea\b/],
   ["carbonara", /^(tagliatelles|spaghetti) carbonara\b/],
