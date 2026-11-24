@@ -42,6 +42,27 @@ const FORMULES: Array<[type: string, motif: RegExp]> = [
 const DEBUT_FORMULE = /^(menu|formule|plateau|banquet|duo|pack|thali)\b/;
 
 const REGLES: Array<[type: string, motif: RegExp]> = [
+  // Plats guinéens et africains (images du lot 2) : les rubriques précises avant les règles générales
+  ["attieke-poisson", /^attieke poisson\b/],
+  ["beignets-sales", /^beignets de (haricots|poisson)\b/],
+  ["boisson-maltee", /^boisson maltee\b/],
+  ["bouillie", /^bouillie\b/],
+  ["capitaine-citron", /^poisson capitaine sauce citron\b/],
+  ["couscous-mil", /^couscous de mil\b/],
+  ["fonio-gombo", /^fonio sauce\b/],
+  ["frites-igname", /^frites d igname\b/],
+  ["galettes-mil", /^galettes de mil\b/],
+  ["gigot", /^(gigot|mechoui)\b/],
+  ["igname-poisson", /^ignames? sauce poisson\b/],
+  ["pintade", /^pintade\b/],
+  ["poulet-pistache", /^(poulet )?sauce pistache\b/],
+  ["ragout-chevre", /^(ragout de chevre|cabri en sauce)\b/],
+  ["riz-sauce-feuilles", /^riz sauce feuilles\b/],
+  ["riz-sauce-aubergine", /^riz sauce aubergine\b/],
+  ["riz-sauce-gombo", /^riz sauce gombo\b/],
+  ["riz-sauce-kansiye", /^riz sauce kansiye\b/],
+  ["sauce-feuilles-manioc", /^(sauce feuilles de manioc|saka saka)\b/],
+  ["tripes", /^tripes\b/],
   // Plats ajoutés avec la vague d'images 3
   ["riz-poisson", /^(riz au poisson|thieboudienne|thiebou)\b/],
   ["salade-crudites", /^salade (de )?(crudites|verte)\b/],

@@ -12,6 +12,8 @@ export interface PhotoDeBibliotheque extends PhotoBibliotheque {
 }
 
 const ia = (type: string, fichier = type): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot3/${fichier}.png` });
+/** Images IA du lot 2 (plats guinéens et africains), fichiers nommés d'après le plat. */
+const ia2 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot2/${fichier}.png` });
 
 const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheque => ({
   id: `px-${idPexels}`,
@@ -64,6 +66,41 @@ export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
   ia("lahmacun"),
   ia("pide"),
   ia("iskender"),
+  // Plats guinéens et africains (lot 2)
+  ia2("attieke-poisson", "attieke-poisson-braise"),
+  ia2("beignets-sales", "beignets-haricots-poisson"),
+  ia2("boisson-maltee", "boisson-maltee"),
+  ia2("bouillie", "bouillie-mil"),
+  ia2("capitaine-citron", "capitaine-sauce-citron"),
+  ia2("couscous-mil", "couscous-mil-sauce-legumes"),
+  ia2("crevettes", "crevettes-piment"),
+  ia2("croque", "croque-monsieur"),
+  ia2("fataya", "fataya"),
+  ia2("fonio-gombo", "fonio-sauce-gombo"),
+  ia2("foutou", "foutou"),
+  ia2("frites-igname", "frites-igname"),
+  ia2("galettes-mil", "galettes-mil"),
+  ia2("gigot", "gigot-mechoui"),
+  ia2("jus-gingembre", "gingembre-petillant"),
+  ia2("haricots", "haricots-huile-rouge"),
+  ia2("igname-poisson", "igname-sauce-poisson"),
+  ia2("jus-baobab", "jus-baobab"),
+  ia2("lait-caille", "lait-caille"),
+  ia2("mafe", "mafe"),
+  ia2("mafe", "poulet-sauce-arachide"),
+  ia2("pintade", "pintade-mijotee"),
+  ia2("poulet-braise", "poulet-braise"),
+  ia2("poulet-braise", "poulet-fume"),
+  ia2("poulet-pistache", "poulet-sauce-pistache"),
+  ia2("ragout-chevre", "ragout-chevre"),
+  ia2("riz-poisson", "riz-au-poisson"),
+  ia2("riz-sauce-feuilles", "riz-feuilles-patate"),
+  ia2("riz-sauce-aubergine", "riz-sauce-aubergine"),
+  ia2("riz-sauce-gombo", "riz-sauce-gombo"),
+  ia2("riz-sauce-kansiye", "riz-sauce-kansiye"),
+  ia2("sauce-feuilles-manioc", "sauce-feuilles-manioc"),
+  ia2("to-couscous", "to"),
+  ia2("tripes", "tripes-sauce-tomate"),
   // Photos de banque (Pexels, licence libre, vraies photos : elles passent avant l'IA)
   banque("curry-vert", "31029754"),
   banque("nachos", "12557544"),

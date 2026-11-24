@@ -66,7 +66,7 @@ verifier("couverture d'un menu vide", couverturePhotos([]), 0);
 
 // --- Reconnaissance du type de plat (exactitude : dans le doute, aucun type)
 const types = (noms: string[]) => noms.map(typeDePlat);
-verifier("types reconnus : plats courants", types(["Pizza margherita", "Burger classique", "Mafé de bœuf", "Riz sauce gombo", "Jus de bissap", "Brochettes de mouton (5)"]), ["pizza", "burger", "mafe", "riz-sauce", "jus-bissap", "brochette"]);
+verifier("types reconnus : plats courants", types(["Pizza margherita", "Burger classique", "Mafé de bœuf", "Riz sauce gombo", "Jus de bissap", "Brochettes de mouton (5)"]), ["pizza", "burger", "mafe", "riz-sauce-gombo", "jus-bissap", "brochette"]);
 verifier("accents et majuscules ignorés", types(["CAFÉ AU LAIT", "Thé à la menthe", "Tô de maïs sauce gombo"]), ["cafe-lait", "the-menthe", "to-couscous"]);
 verifier("faux amis : aucun type", types(["Gâteau au gingembre", "Haricots verts", "Gingembre mariné", "Eau de coco", "Eau citronnée", "Salade de pâtes", "Sandwich falafel", "Petit pain au chocolat chaud", "Kebbé au yaourt", "Latte matcha"]), Array(10).fill(null));
 verifier("nom inconnu ou vide : aucun type", types(["Plat du jour", "", "   "]), [null, null, null]);
@@ -90,6 +90,9 @@ verifier("recherche filtrée : le titre suit la première rubrique visible", tit
 verifier("aucune rubrique : aucun titre", titresDeGroupe([]), []);
 verifier("les deux familles n'ont aucune rubrique en commun", RUBRIQUES_AVEC_ALCOOL.filter((r) => RUBRIQUES_SANS_ALCOOL.includes(r)), []);
 verifier("avertissement d'alcool : majeurs et modération", /majeures/.test(AVERTISSEMENT_ALCOOL) && /mod[ée]ration/.test(AVERTISSEMENT_ALCOOL), true);
+verifier("lot 2 guinéen et africain : types reconnus", types(["Riz sauce gombo", "Riz sauce kansiyé", "Riz sauce feuilles de patate", "Tripes sauce tomate", "Pintade mijotée", "Galettes de mil (4)", "Gigot de mouton braisé", "Frites d'igname", "Attiéké poisson braisé", "Saka-saka et riz", "Tô de mil sauce kansiyé", "Beignets de haricots (5)"]), ["riz-sauce-gombo", "riz-sauce-kansiye", "riz-sauce-feuilles", "tripes", "pintade", "galettes-mil", "gigot", "frites-igname", "attieke-poisson", "sauce-feuilles-manioc", "to-couscous", "beignets-sales"]);
+verifier("lot 2 : faux amis sans type", types(["Attiéké", "Beignets de banane plantain (5)", "Riz sauce piquante maison", "Sauce pimentée maison"]), [null, null, "riz-sauce", null]);
+verifier("deux mafés dans un menu : deux photos différentes, la troisième sans photo", (() => { const a = attribuerPhotos("m", ["Mafé de bœuf", "Mafé poulet", "Riz sauce arachide"].map((n, i) => art(String(i), n, "mafe")), BIBLIOTHEQUE_PHOTOS); return [a[0].photoId !== a[1].photoId, a[2].raison]; })(), [true, "aucune-photo-libre"]);
 // Les formules reçoivent une photo de formule (plusieurs éléments), jamais la photo d'un seul plat ; un plat ne reçoit jamais une photo de formule.
 const bibF: PhotoBibliotheque[] = [{ id: "f-doner", type: "formule-doner", source: "ia" }, { id: "p-shawarma", type: "shawarma", source: "banque" }];
 const formules = attribuerPhotos("r", [art("1", "Menu shawarma", "formule-doner"), art("2", "Shawarma poulet", "shawarma"), art("3", "Menu pizza", "pizza"), art("4", "Shawarma mixte", "formule-doner")], bibF);
