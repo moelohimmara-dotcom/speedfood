@@ -2,6 +2,7 @@ import type { PhotoBibliotheque } from "./photos";
 import { BIBLIOTHEQUE_BANQUES_LOTS_1 } from "./bibliotheque-banques-lot1";
 import { BIBLIOTHEQUE_BANQUES_LOT2 } from "./bibliotheque-banques-lot2";
 import { BIBLIOTHEQUE_BANQUES_PIXABAY } from "./bibliotheque-banques-pixabay";
+import { BIBLIOTHEQUE_BANQUES_PIXABAY_2 } from "./bibliotheque-banques-pixabay-2";
 
 /**
  * Bibliothèque des photos de démonstration, par type de plat (clé commune avec `typeDePlat`).
@@ -154,4 +155,4 @@ const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
 ];
 
 /** Toute la bibliothèque : images IA, photos de banque des lots 3 et 4, puis photos de banque retenues des premiers lots. */
-export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [...BIBLIOTHEQUE_BASE, ...BIBLIOTHEQUE_BANQUES_LOTS_1, ...BIBLIOTHEQUE_BANQUES_LOT2, ...BIBLIOTHEQUE_BANQUES_PIXABAY];
+export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [...BIBLIOTHEQUE_BASE, ...BIBLIOTHEQUE_BANQUES_LOTS_1, ...BIBLIOTHEQUE_BANQUES_LOT2, ...BIBLIOTHEQUE_BANQUES_PIXABAY, ...BIBLIOTHEQUE_BANQUES_PIXABAY_2];
