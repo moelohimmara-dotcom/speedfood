@@ -166,4 +166,11 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-37859853", type: "galettes-poisson", source: "banque", fichier: "pexels-lot16/galettes-poisson-37859853.jpg", licence: "Pexels License", auteur: "Ball CooleR", page: "https://www.pexels.com/photo/37859853/" },
   { id: "px-35215468", type: "beignets-banane", source: "banque", fichier: "pexels-lot16/beignets-banane-35215468.jpg", licence: "Pexels License", auteur: "UNDO KIM", page: "https://www.pexels.com/photo/35215468/" },
   { id: "px-35215476", type: "beignets-banane", source: "banque", fichier: "pexels-lot16/beignets-banane-35215476.jpg", licence: "Pexels License", auteur: "UNDO KIM", page: "https://www.pexels.com/photo/35215476/" },
+  { id: "px-12386446", type: "rouleaux-frais", source: "banque", fichier: "pexels-lot17/rouleaux-frais-12386446.jpg", licence: "Pexels License", auteur: "Quang Nguyen Vinh", page: "https://www.pexels.com/photo/12386446/" },
+  { id: "px-12386450", type: "rouleaux-frais", source: "banque", fichier: "pexels-lot17/rouleaux-frais-12386450.jpg", licence: "Pexels License", auteur: "Quang Nguyen Vinh", page: "https://www.pexels.com/photo/12386450/" },
+  { id: "px-34623149", type: "rouleaux-frais", source: "banque", fichier: "pexels-lot17/rouleaux-frais-34623149.jpg", licence: "Pexels License", auteur: "Caleb Oquendo", page: "https://www.pexels.com/photo/34623149/" },
+  { id: "px-34314421", type: "boulettes-tomate", source: "banque", fichier: "pexels-lot17/boulettes-tomate-34314421.jpg", licence: "Pexels License", auteur: "ERIVELTO Martins", page: "https://www.pexels.com/photo/34314421/" },
+  { id: "px-10165790", type: "salade-betteraves", source: "banque", fichier: "pexels-lot17/salade-betteraves-10165790.jpg", licence: "Pexels License", auteur: "Vladimír Sládek", page: "https://www.pexels.com/photo/10165790/" },
+  { id: "px-3774598", type: "salade-betteraves", source: "banque", fichier: "pexels-lot17/salade-betteraves-3774598.jpg", licence: "Pexels License", auteur: "tomateoignons", page: "https://www.pexels.com/photo/3774598/" },
+  { id: "px-7994668", type: "salade-betteraves", source: "banque", fichier: "pexels-lot17/salade-betteraves-7994668.jpg", licence: "Pexels License", auteur: "Odeani Baker", page: "https://www.pexels.com/photo/7994668/" },
 ];
