@@ -74,6 +74,12 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["rouleaux-printemps", /^(rouleaux de printemps( frits)?|nems)\b/],
   ["sushi", /^sushis\b/],
   ["tacos", /^tacos\b/],
+  ["cookie", /^cookies?\b/],
+  ["couscous", /^couscous (au poulet|aux sept legumes)$/],
+  ["croissant", /^croissants?$/],
+  ["hot-dog", /^hot dog classique$/],
+  ["lasagnes", /^lasagnes?\b/],
+  ["steak-frites", /^steak frites$/],
   ["tajine", /^tajine (de|d) (poulet|agneau|boeuf|kefta|poisson)\b/],
   // Boissons
   ["jus-bissap", /\b(bissap|hibiscus)\b/],

@@ -13,11 +13,11 @@ export interface PhotoDeBibliotheque extends PhotoBibliotheque {
 
 const ia = (type: string, fichier = type): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot3/${fichier}.png` });
 
-const banque = (type: string, idPexels: string): PhotoDeBibliotheque => ({
+const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheque => ({
   id: `px-${idPexels}`,
   type,
   source: "banque",
-  fichier: `pexels-lot3/${type}-${idPexels}.jpg`,
+  fichier: `pexels-${lot}/${type}-${idPexels}.jpg`,
 });
 
 export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
@@ -78,4 +78,19 @@ export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [
   banque("tacos", "28895960"),
   banque("tacos", "3264572"),
   banque("tacos", "5848703"),
+  banque("cookie", "8081574", "lot4"),
+  banque("cookie", "1020585", "lot4"),
+  banque("couscous", "1618952", "lot4"),
+  banque("couscous", "1618955", "lot4"),
+  banque("croissant", "14411697", "lot4"),
+  banque("croissant", "1775034", "lot4"),
+  banque("croissant", "32802342", "lot4"),
+  banque("croissant", "6202223", "lot4"),
+  banque("croissant", "6207315", "lot4"),
+  banque("hot-dog", "4113456", "lot4"),
+  banque("lasagnes", "13823542", "lot4"),
+  banque("lasagnes", "4079520", "lot4"),
+  banque("lasagnes", "5949892", "lot4"),
+  banque("steak-frites", "1352262", "lot4"),
+  banque("steak-frites", "1352264", "lot4"),
 ];
