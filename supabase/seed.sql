@@ -7,7 +7,12 @@ insert into menu_categories (nom, ordre) values
   ('Riz & sauces', 1),
   ('Grillades', 2),
   ('Fast-food', 3),
-  ('Petit-déjeuner', 4)
+  ('Petit-déjeuner', 4),
+  ('Africain', 5),
+  ('Libanais et oriental', 6),
+  ('Italien et pizzas', 7),
+  ('Indien', 8),
+  ('Asiatique', 9)
 on conflict (nom) do nothing;
 
 insert into neighborhoods (nom, ordre) values

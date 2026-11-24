@@ -137,7 +137,7 @@ const lot = (await un(`select
   (select count(*)::int from livraisons l join restaurants r on r.id = l.restaurant_id where r.demo_lot is not null and l.statut = 'livree') livraisons,
   (select count(*)::int from restaurants r where r.demo_lot is not null and r.avis_total <> (select count(*) from avis a where a.restaurant_id = r.id and not a.est_test)) compteurs_faux`));
 verifier("60 restaurants, tous visibles et distincts", lot.restos === 60 && lot.restos_visibles === 60 && lot.noms === 60, JSON.stringify(lot));
-verifier("environ 1 250 plats répartis en rubriques, aucun plat sans rubrique", lot.plats >= 960 && lot.plats <= 1560 && lot.sections >= 300 && lot.plats_sans_section === 0, JSON.stringify(lot));
+verifier("environ 2 000 plats répartis en rubriques, aucun plat sans rubrique", lot.plats >= 1680 && lot.plats <= 2400 && lot.sections >= 700 && lot.plats_sans_section === 0, JSON.stringify(lot));
 verifier("3 000 commandes d'historique, aucune marquée test (elles comptent dans les chiffres)", lot.commandes === 3000 && lot.commandes_test === 0, JSON.stringify(lot));
 verifier("les commandes se répartissent sur la plupart des restaurants", lot.restos_avec_commandes >= 50, String(lot.restos_avec_commandes));
 verifier("références uniques, aucune commande dans le futur, totaux égaux aux lignes", lot.refs === 3002 && lot.futur === 0 && lot.totaux_faux === 0, JSON.stringify(lot));
@@ -146,7 +146,7 @@ verifier("note moyenne plausible (entre 4,0 et 4,8)", lot.note_moyenne >= 4.0 &&
 verifier("les compteurs d'avis des restaurants égalent les avis publiés", lot.compteurs_faux === 0, String(lot.compteurs_faux));
 verifier("40 livreurs simulés marqués, des livraisons terminées existent", lot.livreurs === 40 && lot.livraisons > 1000, JSON.stringify(lot));
 const prix = await un("select min(prix)::int mn, max(prix)::int mx from menu_items where restaurant_id in (select id from restaurants where demo_lot is not null)");
-verifier("prix plausibles en GNF (de 1 000 à 160 000)", prix.mn >= 1000 && prix.mx <= 160000, JSON.stringify(prix));
+verifier("prix plausibles en GNF (de 1 000 à 330 000, plateaux familiaux compris)", prix.mn >= 1000 && prix.mx <= 330000, JSON.stringify(prix));
 // Répartition géographique : Conakry et les 7 autres régions administratives.
 const geo = (await db.query(`select r.nom region, count(distinct x.id)::int restos, count(distinct c.id)::int communes,
     (select count(*)::int from orders o where o.restaurant_id in (select id from restaurants where demo_lot is not null and quartier_id in (select n2.id from neighborhoods n2 join communes c2 on c2.id = n2.commune_id join prefectures p2 on p2.id = c2.prefecture_id where p2.region_id = r.id))) commandes
@@ -166,8 +166,62 @@ const menus = await un(`select count(*)::int restos, min(n)::int mini, max(n)::i
     (select count(*)::int from menu_item_options o where o.menu_item_id in (select id from menu_items where restaurant_id in (select id from restaurants where demo_lot is not null))) options
   from (select r.id, count(*) n, count(distinct i.section_id) rub, md5(string_agg(i.nom, '|' order by i.nom)) empreinte
         from restaurants r join menu_items i on i.restaurant_id = r.id where r.demo_lot is not null group by r.id) t(id, n, rub, empreinte)`.replace("min(rub)","min(rub)"));
-verifier("chaque restaurant a de 16 à 26 plats et au moins 5 rubriques", menus.restos === 60 && menus.mini >= 16 && menus.maxi <= 26 && menus.rub_mini >= 5, JSON.stringify(menus));
+verifier("chaque restaurant a de 30 à 52 articles répartis en au moins 12 rubriques", menus.restos === 60 && menus.mini >= 30 && menus.maxi <= 52 && menus.rub_mini >= 12, JSON.stringify(menus));
 verifier("les 60 menus sont tous différents, avec des options sur les plats", menus.distincts === 60 && menus.options > 300, JSON.stringify(menus));
+// Rubriques : toutes proviennent du catalogue, le socle commun (entrées, en-cas, desserts, pâtisseries, 5 familles de boissons) est dans chaque menu.
+const sqlGenerateur = fs.readFileSync(path.join(racine, "..", "..", "supabase", "demo", "charger-demonstration.sql"), "utf8");
+const SECTIONS_CATALOGUE = [...new Set([...sqlGenerateur.matchAll(/\('[a-z*]+',\d+,'((?:[^']|'')+)'/g)].map((m) => m[1].replace(/''/g, "'")))];
+const OBLIGATOIRES = ["Entrées chaudes", "Entrées froides", "En-cas", "Desserts", "Pâtisseries", "Boissons chaudes", "Jus et smoothies", "Boissons lactées", "Sodas et rafraîchissements", "Eaux"];
+const listeSql = (a) => a.map((x) => `'${x.replace(/'/g, "''")}'`).join(", ");
+verifier("le catalogue compte au moins 40 rubriques différentes", SECTIONS_CATALOGUE.length >= 40, String(SECTIONS_CATALOGUE.length));
+const incompletes = await un(`select count(*)::int n from restaurants r where r.demo_lot is not null
+  and (select count(distinct s.nom) from menu_sections s where s.restaurant_id = r.id and s.nom in (${listeSql(OBLIGATOIRES)})) < ${OBLIGATOIRES.length}`);
+verifier("chaque restaurant a les 10 rubriques de base (entrées chaudes et froides, en-cas, desserts, pâtisseries, 5 familles de boissons)", incompletes.n === 0, JSON.stringify(incompletes));
+const inconnues = await un(`select count(*)::int n from menu_sections s join restaurants r on r.id = s.restaurant_id where r.demo_lot is not null and s.nom not in (${listeSql(SECTIONS_CATALOGUE)})`);
+verifier("aucune rubrique en dehors du catalogue", inconnues.n === 0, JSON.stringify(inconnues));
+const ordre = await un(`select count(*)::int n from restaurants r where r.demo_lot is not null and (
+    (select s.position from menu_sections s where s.restaurant_id = r.id and s.nom = 'Entrées chaudes') <> 1
+    or (select s.position from menu_sections s where s.restaurant_id = r.id and s.nom = 'Eaux') <> (select max(s.position) from menu_sections s where s.restaurant_id = r.id))`);
+verifier("les rubriques sont toujours dans le même ordre (entrées d'abord, eaux en dernier)", ordre.n === 0, JSON.stringify(ordre));
+const marques = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id where r.demo_lot is not null and i.nom ~* 'coca|fanta|sprite|pepsi|heineken|nescaf|porc|bière|\\mvin\\M|whisky|rhum'`);
+verifier("aucune marque, aucun porc ni alcool dans les noms d'articles", marques.n === 0, JSON.stringify(marques));
+// Variété des cuisines : des restaurants 100 % guinéens, 100 % africains, mixtes, 100 % cuisine du monde, et toutes les cuisines représentées.
+const G = ["Riz et sauces", "Spécialités et viandes", "Poissons et fruits de mer", "Grillades et brochettes"];
+const A = ["Riz et plats du Sénégal", "Plats d'Afrique de l'Ouest", "Soupes et fufu", "Grillades et suya"];
+const CUISINES_MONDE = {
+  libanaise: ["Shawarma et wraps", "Grillades et plateaux", "Spécialités libanaises", "Manakish et pains"],
+  turque: ["Döner et kebabs", "Iskender et plats", "Pides et lahmacun", "Grillades turques"],
+  italienne: ["Pizzas", "Pâtes", "Risottos et gnocchis", "Viandes et poissons"],
+  indienne: ["Tandoor", "Currys", "Biryanis et riz", "Pains (naan)"],
+  chinoise: ["Dim sum", "Riz sauté et nouilles", "Plats de viande", "Poissons et crevettes"],
+  japonaise: ["Sushis et makis", "Sashimi et chirashi", "Ramen et plats chauds", "Bento et donburi"],
+  americaine: ["Burgers", "Poulet frit et tenders", "Hot-dogs et sandwichs", "Salades repas"],
+  francaise: ["Plats du jour", "Sandwichs et croques", "Quiches et salades repas", "Crêpes salées"],
+  mexicaine: ["Tacos", "Burritos et bowls", "Quesadillas et fajitas", "Plats mexicains"],
+};
+const W = Object.values(CUISINES_MONDE).flat();
+const aSection = (liste) => `exists (select 1 from menu_sections s where s.restaurant_id = r.id and s.nom in (${listeSql(liste)}))`;
+const variete = await un(`select
+    count(*) filter (where ${aSection(G)} and not ${aSection(A)} and not ${aSection(W)})::int guineen_seul,
+    count(*) filter (where ${aSection(A)} and not ${aSection(G)} and not ${aSection(W)})::int africain_seul,
+    count(*) filter (where ${aSection(G)} and ${aSection(A)} and not ${aSection(W)})::int afro,
+    count(*) filter (where ${aSection(G)} and ${aSection(W)})::int mixte,
+    count(*) filter (where ${aSection(W)} and not ${aSection(G)} and not ${aSection(A)})::int monde,
+    count(*) filter (where not ${aSection(G)} and not ${aSection(A)} and not ${aSection(W)})::int sans_plat
+  from restaurants r where r.demo_lot is not null`);
+verifier("les restaurants se répartissent entre guinéens, africains, mixtes et cuisines du monde", variete.guineen_seul >= 8 && variete.africain_seul >= 2 && variete.mixte >= 4 && variete.monde >= 8 && variete.sans_plat === 0 && variete.afro >= 0, JSON.stringify(variete));
+const couvertes = [];
+for (const [cuisine, sections] of Object.entries(CUISINES_MONDE)) {
+  const n = (await un(`select count(*)::int n from restaurants r where r.demo_lot is not null and ${aSection(sections)}`)).n;
+  if (n > 0) couvertes.push(cuisine);
+}
+verifier("les 9 cuisines du monde sont toutes représentées", couvertes.length === 9, couvertes.join(", "));
+const regions = await un(`select count(*) filter (where ${aSection(G)})::int guineens, count(*)::int total
+  from restaurants r join neighborhoods q on q.id = r.quartier_id join communes c on c.id = q.commune_id join prefectures p on p.id = c.prefecture_id join regions g on g.id = p.region_id
+  where r.demo_lot is not null and g.nom <> 'Conakry'`);
+verifier("hors Conakry, la moitié des restaurants au moins propose de la cuisine guinéenne", regions.total === 23 && regions.guineens >= 12, JSON.stringify(regions));
+const categories = await un(`select count(distinct categorie_id)::int n from restaurants where demo_lot is not null`);
+verifier("les restaurants se répartissent dans au moins 6 catégories", categories.n >= 6, JSON.stringify(categories));
 const reg = await un(`select count(*)::int n from menu_items i join restaurants r on r.id = i.restaurant_id join neighborhoods q on q.id = r.quartier_id join communes c on c.id = q.commune_id join prefectures p on p.id = c.prefecture_id join regions g on g.id = p.region_id
   where r.demo_lot is not null and g.nom in ('Labé', 'Mamou') and (i.nom in ('Fonio sauce gombo', 'Poulet du Fouta aux oignons', 'Brochettes de mouton du Fouta') or i.nom like 'Haricots à l%huile rouge')`);
 verifier("les restaurants du Fouta proposent des plats du Fouta", reg.n >= 3, JSON.stringify(reg));

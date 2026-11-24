@@ -60,8 +60,8 @@ export function motifPourPlat(nom: string): string {
 /** Famille d'un restaurant d'après le nom de sa catégorie (« Riz & sauces », « Grillades »…). */
 export function familleDepuisCategorie(categorie: string): keyof typeof PALETTES {
   const c = sansAccent(categorie);
-  if (/riz|sauce|traditionnel|local/.test(c)) return "riz";
-  if (/grill|braise|rotisserie/.test(c)) return "grill";
+  if (/riz|sauce|traditionnel|local|africain|indien|asiatique/.test(c)) return "riz";
+  if (/grill|braise|rotisserie|libanais|oriental/.test(c)) return "grill";
   if (/fast|burger|snack|sandwich|pizza/.test(c)) return "fast";
   if (/cafe|the|boulanger|patisserie|petit/.test(c)) return "cafe";
   return "defaut";

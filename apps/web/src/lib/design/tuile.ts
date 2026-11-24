@@ -14,10 +14,15 @@ export function initialePlat(nom: string): string {
 export function classeTuile(categorie: string): string {
   switch (categorie) {
     case "Riz & sauces":
+    case "Africain":
+    case "Indien":
+    case "Asiatique":
       return "tuile-riz";
     case "Grillades":
+    case "Libanais et oriental":
       return "tuile-grill";
     case "Fast-food":
+    case "Italien et pizzas":
       return "tuile-fast";
     case "Petit-déjeuner":
       return "tuile-cafe";

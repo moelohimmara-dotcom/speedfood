@@ -26,7 +26,7 @@ export async function rafraichirConfirmationsDemonstration(maintenant = Date.now
     .in("restaurant_id", ids)
     .eq("disponible", true)
     .or(`disponibilite_confirmee_le.is.null,disponibilite_confirmee_le.lt.${limite}`)
-    .limit(2000);
+    .limit(5000);
   const aRenouveler = [...new Set(((perimes ?? []) as { restaurant_id: string }[]).map((p) => p.restaurant_id))];
 
   let renouveles = 0;
