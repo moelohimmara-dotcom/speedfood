@@ -173,4 +173,10 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-10165790", type: "salade-betteraves", source: "banque", fichier: "pexels-lot17/salade-betteraves-10165790.jpg", licence: "Pexels License", auteur: "Vladimír Sládek", page: "https://www.pexels.com/photo/10165790/" },
   { id: "px-3774598", type: "salade-betteraves", source: "banque", fichier: "pexels-lot17/salade-betteraves-3774598.jpg", licence: "Pexels License", auteur: "tomateoignons", page: "https://www.pexels.com/photo/3774598/" },
   { id: "px-7994668", type: "salade-betteraves", source: "banque", fichier: "pexels-lot17/salade-betteraves-7994668.jpg", licence: "Pexels License", auteur: "Odeani Baker", page: "https://www.pexels.com/photo/7994668/" },
+  { id: "px-16171917", type: "chaat", source: "banque", fichier: "pexels-lot18/chaat-16171917.jpg", licence: "Pexels License", auteur: "Vinit Jain", page: "https://www.pexels.com/photo/16171917/" },
+  { id: "px-23285946", type: "chaat", source: "banque", fichier: "pexels-lot18/chaat-23285946.jpg", licence: "Pexels License", auteur: "Hamza Awan", page: "https://www.pexels.com/photo/23285946/" },
+  { id: "px-37013458", type: "perles-tapioca", source: "banque", fichier: "pexels-lot18/perles-tapioca-37013458.jpg", licence: "Pexels License", auteur: "Sokat Rachman", page: "https://www.pexels.com/photo/37013458/" },
+  { id: "px-37206681", type: "salade-berger", source: "banque", fichier: "pexels-lot18/salade-berger-37206681.jpg", licence: "Pexels License", auteur: "Mavi Yıldız Restoran Cumalıkızık Bursa", page: "https://www.pexels.com/photo/37206681/" },
+  { id: "px-40000023", type: "pani-puri", source: "banque", fichier: "pexels-lot18/pani-puri-40000023.jpg", licence: "Pexels License", auteur: "Jahra Tasfia Reza", page: "https://www.pexels.com/photo/40000023/" },
+  { id: "px-6911885", type: "mucver", source: "banque", fichier: "pexels-lot18/mucver-6911885.jpg", licence: "Pexels License", auteur: "Morena Vw", page: "https://www.pexels.com/photo/6911885/" },
 ];
