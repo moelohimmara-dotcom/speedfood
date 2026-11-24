@@ -1,4 +1,5 @@
 import { APERCU_RUBRIQUE, RUBRIQUE_LONGUE, SEUIL_BARRE_RUBRIQUES, SEUIL_RECHERCHE, correspondRecherche, decisionMenu, platsMontres } from "../../src/lib/menu/affichage";
+import { BIBLIOTHEQUE_PHOTOS } from "../../src/lib/menu/bibliotheque-photos";
 import { TYPES_RECONNUS, typeDePlat } from "../../src/lib/menu/types-plats";
 import { attribuerPhotos, couverturePhotos, estFormule, type ArticleMenu, type PhotoBibliotheque } from "../../src/lib/menu/photos";
 
@@ -68,7 +69,17 @@ verifier("types reconnus : plats courants", types(["Pizza margherita", "Burger c
 verifier("accents et majuscules ignorés", types(["CAFÉ AU LAIT", "Thé à la menthe", "Tô de maïs sauce gombo"]), ["cafe-lait", "the-menthe", "to-couscous"]);
 verifier("faux amis : aucun type", types(["Gâteau au gingembre", "Haricots verts", "Gingembre mariné", "Eau de coco", "Eau citronnée", "Salade de pâtes", "Sandwich falafel", "Petit pain au chocolat chaud", "Kebbé au yaourt", "Latte matcha"]), Array(10).fill(null));
 verifier("nom inconnu ou vide : aucun type", types(["Plat du jour", "", "   "]), [null, null, null]);
-verifier("les formules gardent leur type mais estFormule les écarte", [typeDePlat("Menu shawarma"), estFormule("Menu shawarma")], [null, true]);
+verifier("les formules ont un type « formule-… » propre à leur cuisine", types(["Menu shawarma", "Plateau mezzé et grillades (4 personnes)", "Menu grillade et alloco", "Thali végétarien", "Formule petit-déjeuner", "Plateau familial (4 personnes)", "Menu thiéb et boisson", "Menu sushi", "Menu poulet et nouilles"]), ["formule-doner", "formule-mezze", "formule-grillade", "formule-indien", "formule-petitdej", "formule-partage-africain", "formule-partage-africain", "formule-sushi", "formule-chinois"]);
+verifier("formule ambiguë (« Plateau à partager ») : aucune photo plutôt qu'une photo fausse", types(["Plateau à partager (2 personnes)", "Menu du jour"]), [null, null]);
+verifier("plats ajoutés : types reconnus", types(["Tajine de poulet aux olives et citron confit", "Thiéboudienne (riz au poisson)", "Houmous", "Biryani d'agneau", "Poulet au beurre (Butter chicken)", "Baklava (4)"]), ["tajine", "riz-poisson", "houmous", "biryani", "butter-chicken", "baklava"]);
+// Les formules reçoivent une photo de formule (plusieurs éléments), jamais la photo d'un seul plat ; un plat ne reçoit jamais une photo de formule.
+const bibF: PhotoBibliotheque[] = [{ id: "f-doner", type: "formule-doner", source: "ia" }, { id: "p-shawarma", type: "shawarma", source: "banque" }];
+const formules = attribuerPhotos("r", [art("1", "Menu shawarma", "formule-doner"), art("2", "Shawarma poulet", "shawarma"), art("3", "Menu pizza", "pizza"), art("4", "Shawarma mixte", "formule-doner")], bibF);
+verifier("formule : photo de formule", [formules[0].photoId, formules[0].source], ["f-doner", "ia"]);
+verifier("plat : photo de plat", formules[1].photoId, "p-shawarma");
+verifier("formule sans photo de formule : aucune photo (jamais un seul plat)", [formules[2].photoId, formules[2].raison], [null, "formule"]);
+verifier("un plat ne prend jamais une photo de formule", [formules[3].photoId, formules[3].raison], [null, "type-inconnu"]);
+verifier("bibliothèque : identifiants uniques, types reconnus, formules à part", [new Set(BIBLIOTHEQUE_PHOTOS.map((p) => p.id)).size === BIBLIOTHEQUE_PHOTOS.length, BIBLIOTHEQUE_PHOTOS.every((p) => TYPES_RECONNUS.includes(p.type)), BIBLIOTHEQUE_PHOTOS.filter((p) => p.type.startsWith("formule-")).length >= 18], [true, true, true]);
 verifier("chaque type reconnu est unique et non vide", TYPES_RECONNUS.length > 40 && new Set(TYPES_RECONNUS).size === TYPES_RECONNUS.length, true);
 
 if (ko) {

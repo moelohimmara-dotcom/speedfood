@@ -17,7 +17,41 @@ export function normaliserNom(nom: string): string {
     .trim();
 }
 
+/** Formules, menus, plateaux : leur photo montre plusieurs éléments (types « formule-… »), jamais un seul plat. */
+const FORMULES: Array<[type: string, motif: RegExp]> = [
+  ["formule-mezze", /\bmezze\b/],
+  ["formule-grillade", /\b(grillades?|grillade mixte)\b/],
+  ["formule-doner", /\b(shawarma|doner|iskender)\b/],
+  ["formule-pates", /\bpates\b/],
+  ["formule-indien", /\b(thali|duo)\b/],
+  ["formule-chinois", /\b(riz cantonais|poulet et nouilles)\b|^banquet\b/],
+  ["formule-sushi", /\b(sushis?|ramen)\b/],
+  ["formule-mexicain", /\b(tacos|burrito|fiesta)\b/],
+  ["formule-grec", /\b(souvlaki|gyros|grec)\b/],
+  ["formule-marocain", /\b(tajine|couscous|marocain)\b/],
+  ["formule-thai", /\b(pad thai|curry|thai)\b/],
+  ["formule-creole", /\b(colombo|bokit|creole)\b/],
+  ["formule-roumain", /\b(mici|roumain)\b/],
+  ["formule-burger", /^(menu )?(poulet|enfant|burger)\b|^menu (poulet|enfant|burger)\b/],
+  ["formule-petitdej", /\bpetit dejeuner\b/],
+  ["formule-dejeuner", /\bdejeuner\b/],
+  ["formule-gouter", /\bgouter\b/],
+  ["formule-partage-africain", /\b(familial|thieb)\b/],
+];
+
+const DEBUT_FORMULE = /^(menu|formule|plateau|banquet|duo|pack|thali)\b/;
+
 const REGLES: Array<[type: string, motif: RegExp]> = [
+  // Plats ajoutés avec la vague d'images 3
+  ["riz-poisson", /^(riz au poisson|thieboudienne|thiebou)\b/],
+  ["salade-crudites", /^salade (de )?(crudites|verte)\b/],
+  ["houmous", /^houmous\b/],
+  ["kafta", /^(kafta|kofta|kefta)\b/],
+  ["grillade-mixte", /^(grillade mixte|assiette mixte)\b/],
+  ["baklava", /^baklava\b/],
+  ["butter-chicken", /^poulet (au beurre|tikka masala)\b/],
+  ["biryani", /^biryani\b/],
+  ["tajine", /^tajine (de|d) (poulet|agneau|boeuf|kefta|poisson)\b/],
   // Boissons
   ["jus-bissap", /\b(bissap|hibiscus)\b/],
   ["jus-gingembre", /^(jus (de )?gingembre|gingembre petillant)( piquant)?$/],
@@ -91,9 +125,13 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
 export function typeDePlat(nom: string): string | null {
   const n = normaliserNom(nom);
   if (!n) return null;
+  if (DEBUT_FORMULE.test(n)) {
+    for (const [type, motif] of FORMULES) if (motif.test(n)) return type;
+    return null;
+  }
   for (const [type, motif] of REGLES) if (motif.test(n)) return type;
   return null;
 }
 
 /** Tous les types que `typeDePlat` sait reconnaître. */
-export const TYPES_RECONNUS: readonly string[] = [...new Set(REGLES.map(([t]) => t))];
+export const TYPES_RECONNUS: readonly string[] = [...new Set([...REGLES, ...FORMULES].map(([t]) => t))];

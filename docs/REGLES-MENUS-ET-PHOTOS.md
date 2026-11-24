@@ -55,7 +55,7 @@ Repères communs aux plateformes (certains chiffres varient selon la source et l
 2. **Unicité :** une même photo n'apparaît **jamais deux fois dans un même menu** (règle de DoorDash). Si un menu compte plus d'articles d'un type que de photos de ce type, les derniers restent sans photo.
 3. **Variété :** deux restaurants qui servent le même plat ne montrent pas forcément la même photo (point de départ propre à chaque restaurant).
 4. **Source, par ordre de priorité :** (a) la photo du restaurant, authentique ; (b) les banques libres de droits (Wikimedia Commons avec crédit, Pexels sans crédit obligatoire) ; (c) en dernier recours l'image générée par IA.
-5. **Formules, menus et plateaux :** jamais la photo d'un seul plat.
+5. **Formules, menus et plateaux :** jamais la photo d'un seul plat. Ils reçoivent une photo de formule (plusieurs éléments, propre à leur cuisine : mezzé, grillades, thali, sushis, burger, petit-déjeuner…), de type `formule-…`. À l'inverse un plat ne reçoit jamais une photo de formule. Une formule ambiguë (« Plateau à partager ») n'a pas de photo plutôt qu'une photo fausse.
 6. **Couverture :** les articles placés en premier (entrées, plats) choisissent d'abord, les boissons et pâtisseries ensuite.
 
 ### Photos de banque et images IA : attention
@@ -65,7 +65,15 @@ Repères communs aux plateformes (certains chiffres varient selon la source et l
 - Une image IA est signalée « Image illustrative » (fiche et page de crédits). Une photo Wikimedia sous licence CC BY ou CC BY-SA est créditée (auteur, licence, lien) sur une page de crédits publique ; la photo modifiée reste sous la même licence pour le CC BY-SA.
 - Conditions d'usage commercial du modèle IA utilisé : **à vérifier avant tout usage en production** (non lues à ce jour).
 
-## 6. Contrôles automatiques
+## 6. Contrôler chaque image avant de la retenir
+
+Plusieurs sources se complètent : photo du restaurant, banques libres (Pexels, Wikimedia), image IA pour les plats sans photo. Aucune image n'entre dans la bibliothèque (`bibliotheque-photos.ts`) sans ces trois contrôles :
+
+1. **Contrôle automatique** (`node scripts/controle-photos.mjs <dossier>`) : vrai PNG ou JPEG, format 4:3, 1200 × 900 minimum, moins de 8 Mo, aucun doublon exact, fichier décrit dans le manifeste, aucun fichier sans description.
+2. **Contrôle visuel en grand format** (planche de contrôle, pas la vignette de 256 px qui cache le texte et les marques) : le bon plat, un seul plat (ou plusieurs éléments pour une formule), aucun texte, logo, marque, main ni personne, rien de coupé, rien de dégoûtant ou d'irréaliste. Une image douteuse est refaite ou écartée.
+3. **Manifeste** (`manifeste.json`) : pour chaque image, le type de plat, la source, le modèle et la consigne (IA) ou l'auteur, la licence et la page (banque), la date, la mention « image illustrative » pour l'IA, le verdict visuel et sa note. Le contrôle automatique refuse tout verdict autre que « valide ».
+
+## 7. Contrôles automatiques
 
 - Démonstration (`npm run test:demonstration`, 49 contrôles) : 10 rubriques de base dans chaque menu, rubriques toutes issues du catalogue, ordre constant, aucune marque ni porc ni alcool, tailles de menu, variété des profils, couverture des cuisines, **règle de catégorie vérifiée sur chacun des 60 restaurants**.
 - Règles de menu et de photos (`menu-regles.test.mts`) : seuils d'affichage, recherche, repli, unicité des photos, exactitude, variété, priorité des sources, formules, cas limites.

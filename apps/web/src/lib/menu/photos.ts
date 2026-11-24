@@ -63,8 +63,14 @@ export function attribuerPhotos(restaurantId: string, articles: ArticleMenu[], b
       utilisees.add(article.photoRestaurant);
       continue;
     }
-    if (estFormule(article.nom)) {
+    // Une formule n'accepte que les photos « formule-… » (plusieurs éléments) ; un plat ne les accepte jamais.
+    const formule = estFormule(article.nom);
+    if (formule && !article.type?.startsWith("formule-")) {
       resultat.push({ articleId: article.id, photoId: null, source: null, raison: "formule" });
+      continue;
+    }
+    if (!formule && article.type?.startsWith("formule-")) {
+      resultat.push({ articleId: article.id, photoId: null, source: null, raison: "type-inconnu" });
       continue;
     }
     if (!article.type) {
