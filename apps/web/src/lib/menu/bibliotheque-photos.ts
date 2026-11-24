@@ -135,6 +135,20 @@ const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
   banque("lasagnes", "5949892", "lot4"),
   banque("steak-frites", "1352262", "lot4"),
   banque("steak-frites", "1352264", "lot4"),
+  // Boissons avec alcool (Pexels lot 5) : seules les photos en paysage, nettes, sans marque lisible ni personne ont été retenues
+  banque("biere", "19106394", "lot5"),
+  banque("biere", "2707972", "lot5"),
+  banque("biere", "5538223", "lot5"),
+  banque("biere", "995686", "lot5"),
+  banque("margarita", "1590151", "lot5"),
+  banque("margarita", "2260281", "lot5"),
+  banque("mojito", "30591638", "lot5"),
+  banque("mojito", "7259040", "lot5"),
+  banque("pina-colada", "10986581", "lot5"),
+  banque("vin-blanc", "2584451", "lot5"),
+  banque("vin-effervescent", "11976218", "lot5"),
+  banque("vin-rouge", "2059471", "lot5"),
+  banque("vin-rouge", "6058230", "lot5"),
 ];
 
 /** Toute la bibliothèque : images IA, photos de banque des lots 3 et 4, puis photos de banque retenues des premiers lots. */
