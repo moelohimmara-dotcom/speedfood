@@ -73,6 +73,16 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["vin-rouge", /^vin rouge\b/],
   ["vin-blanc", /^vin blanc\b/],
   ["vin-effervescent", /^vin effervescent\b/],
+  // Photos Pexels, lot 8
+  ["bowl-mexicain", /^bowl mexicain\b/],
+  ["minestrone", /^minestrone$/],
+  ["taquitos", /^taquitos\b/],
+  ["focaccia", /^pain focaccia$/],
+  ["frites-cheddar", /^frites cheddar$/],
+  ["korma", /^korma de poulet$/],
+  ["mini-burgers", /^mini burgers\b/],
+  ["taiyaki", /^taiyaki\b/],
+  ["chirashi", /^chirashi\b/],
   // Photos Pexels, lot 7
   ["basilic-poulet", /^(poulet au basilic thai|riz saute au basilic)\b/],
   ["katsu", /^poulet katsu\b/],
