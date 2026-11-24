@@ -73,6 +73,9 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["vin-rouge", /^vin rouge\b/],
   ["vin-blanc", /^vin blanc\b/],
   ["vin-effervescent", /^vin effervescent\b/],
+  // Photos Pexels, lot 19
+  ["beignets-sesame", /^beignets de sesame/],
+  ["donburi-boeuf", /^donburi au boeuf/],
   // Photos Pexels, lot 18
   ["chaat", /^chaat/],
   ["perles-tapioca", /^perles de tapioca/],

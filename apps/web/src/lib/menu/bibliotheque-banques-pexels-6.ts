@@ -179,4 +179,8 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-37206681", type: "salade-berger", source: "banque", fichier: "pexels-lot18/salade-berger-37206681.jpg", licence: "Pexels License", auteur: "Mavi Yıldız Restoran Cumalıkızık Bursa", page: "https://www.pexels.com/photo/37206681/" },
   { id: "px-40000023", type: "pani-puri", source: "banque", fichier: "pexels-lot18/pani-puri-40000023.jpg", licence: "Pexels License", auteur: "Jahra Tasfia Reza", page: "https://www.pexels.com/photo/40000023/" },
   { id: "px-6911885", type: "mucver", source: "banque", fichier: "pexels-lot18/mucver-6911885.jpg", licence: "Pexels License", auteur: "Morena Vw", page: "https://www.pexels.com/photo/6911885/" },
+  { id: "px-5949005", type: "beignets-sesame", source: "banque", fichier: "pexels-lot19/beignets-sesame-5949005.jpg", licence: "Pexels License", auteur: "Hải Nguyễn", page: "https://www.pexels.com/photo/5949005/" },
+  { id: "px-26225563", type: "beignets-sesame", source: "banque", fichier: "pexels-lot19/beignets-sesame-26225563.jpg", licence: "Pexels License", auteur: "Theodore Nguyen", page: "https://www.pexels.com/photo/26225563/" },
+  { id: "px-16569555", type: "donburi-boeuf", source: "banque", fichier: "pexels-lot19/donburi-boeuf-16569555.jpg", licence: "Pexels License", auteur: "Cohesion Singapore", page: "https://www.pexels.com/photo/16569555/" },
+  { id: "px-16569552", type: "donburi-boeuf", source: "banque", fichier: "pexels-lot19/donburi-boeuf-16569552.jpg", licence: "Pexels License", auteur: "Cohesion Singapore", page: "https://www.pexels.com/photo/16569552/" },
 ];
