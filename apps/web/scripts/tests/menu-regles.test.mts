@@ -4,6 +4,7 @@ import { BIBLIOTHEQUE_PHOTOS } from "../../src/lib/menu/bibliotheque-photos";
 import { TYPES_RECONNUS, typeDePlat } from "../../src/lib/menu/types-plats";
 import { cheminStockage, creditObligatoire, planifierPhotosDemo } from "../../src/lib/menu/plan-photos-demo";
 import { construireCredits, libelleDuType, urlLicence } from "../../src/lib/menu/credits-photos";
+import { estImageIllustrative } from "../../src/lib/menu/image-illustrative";
 import { attribuerPhotos, couverturePhotos, estFormule, type ArticleMenu, type PhotoBibliotheque } from "../../src/lib/menu/photos";
 
 /** Tests des règles d'affichage des longs menus et d'attribution des photos. */
@@ -147,6 +148,13 @@ verifier("chemin de stockage : sous demo/photos", cheminStockage("wikimedia-lot3
   verifier("plan : un crédit par photo utilisée de banque, jamais pour l'IA", plan.credits.every((c) => c.fichier.length > 0 && c.licence.length > 0) && new Set(plan.credits.map((c) => c.photoId)).size === plan.credits.length, true);
   verifier("plan : plats illustratifs = photos IA seulement", plan.platsIllustratifs.length, plan.statistiques.parSource.ia);
   verifier("plan : démonstration vide", planifierPhotosDemo([], BIBLIOTHEQUE_PHOTOS, "https://x.test").statistiques, { plats: 0, avecPhoto: 0, sansPhoto: 0, parSource: { banque: 0, ia: 0 } });
+}
+// Mention « image illustrative » : seules les images IA (rangées sous demo/photos/ia/) la portent, jamais une photo de banque ni celle d'un restaurant.
+verifier("stockage : une image IA est rangée sous demo/photos/ia/", [cheminStockage("lot3/formule-grillade.png"), cheminStockage("lot2/sauce-graine.png"), cheminStockage("pexels-lot21/puree-30635680.jpg")], ["demo/photos/ia/lot3/formule-grillade.png", "demo/photos/ia/lot2/sauce-graine.png", "demo/photos/pexels-lot21/puree-30635680.jpg"]);
+verifier("image illustrative : reconnue à son adresse", [estImageIllustrative("https://x.test/storage/v1/object/public/medias/demo/photos/ia/lot3/formule-grillade.png"), estImageIllustrative("https://x.test/storage/v1/object/public/medias/demo/photos/pexels-lot21/puree-30635680.jpg"), estImageIllustrative("https://x.test/storage/v1/object/public/medias/plats/r1/photo.jpg"), estImageIllustrative(null), estImageIllustrative(undefined)], [true, false, false, false, false]);
+{
+  const plan = planifierPhotosDemo([{ id: "rIA", plats: [{ id: "q1", nom: "Menu gyros" }, { id: "q2", nom: "Poulet yassa" }] }], BIBLIOTHEQUE_PHOTOS, "https://x.test/storage/v1/object/public/medias");
+  verifier("plan : les plats à image IA sont exactement ceux dont l'adresse est illustrative", plan.lignes.filter((l) => estImageIllustrative(l.url)).map((l) => l.platId).sort(), [...plan.platsIllustratifs].sort());
 }
 // Page de crédits : toutes les photos sous CC BY / CC BY-SA sont listées, avec auteur, licence et lien.
 verifier("licence : adresses Creative Commons", [urlLicence("CC BY-SA 4.0"), urlLicence("CC BY 2.0"), urlLicence("CC0"), urlLicence("Pexels License")], ["https://creativecommons.org/licenses/by-sa/4.0/", "https://creativecommons.org/licenses/by/2.0/", "https://creativecommons.org/publicdomain/zero/1.0/", null]);

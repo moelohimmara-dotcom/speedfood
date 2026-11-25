@@ -108,3 +108,10 @@ La bibliothèque (types de plat vers fichiers) n'apparaît à l'écran qu'une fo
 - **Crédits :** `credits.json` liste les photos utilisées avec auteur, licence et lien. Celles sous CC BY ou CC BY-SA (`obligatoire: true`) doivent figurer sur une page de crédits publique **avant** toute mise en ligne.
 - **Images IA :** les plats concernés sont listés dans `platsIllustratifs` ; le mot « image illustrative » doit s'afficher sur leur fiche.
 - **Suppression de la démo :** `fn_demo_supprimer` retire les restaurants et plats du lot ; les fichiers de `demo/photos/` restent dans le bucket et se vident à part.
+
+## 10. Mention « Image illustrative » (survol, désactivable depuis la console)
+
+- **Quoi :** une image générée par ordinateur porte un petit repère « i » discret (55 % d'opacité) qui se déplie en « Image illustrative » au survol de l'image ou au focus clavier (`MentionIllustrative`, CSS dans `marche.css`). Elle apparaît sur les fiches de plats (`VignettePlat`) et dans « Plats à découvrir » (page `/restaurants`). Une photo de banque ou propre au restaurant n'en porte jamais.
+- **Reconnaissance :** par l'adresse. Le plan de rattachement range les images IA sous `demo/photos/ia/` (`cheminStockage`), et `estImageIllustrative` ne regarde que cela. Aucune colonne en base n'est nécessaire.
+- **Console :** interrupteur `mention_image_illustrative` (écran « Mises à jour », réservé au super administrateur), actif par défaut ; coupé, la mention disparaît et les images restent. Il faut d'abord appliquer la migration `20261125090000_mention_image_illustrative.sql` pour que la ligne existe ; tant qu'elle n'existe pas, la mention est active (état inconnu = actif).
+- **Restant :** sur téléphone, le survol n'existe pas : le repère « i » reste visible et se déplie au toucher (focus). Les cartes de restaurants et l'accueil n'affichent pas de photos de plats, donc rien à y marquer.

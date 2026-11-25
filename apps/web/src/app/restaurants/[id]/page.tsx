@@ -121,6 +121,8 @@ export default async function FicheRestaurantPage({
   const urlRestaurant = urlAbsolue(origine, cheminRestaurant(restaurant.id));
   // Zones où le restaurant déclare livrer (rien n'est affirmé s'il n'en a déclaré aucune).
   const livraisonActive = await fonctionnaliteActive("zones_livraison");
+  // Interrupteur de la console : mention « Image illustrative » (au survol) sur les images générées par ordinateur.
+  const mentionIllustrative = await fonctionnaliteActive("mention_image_illustrative");
   const { data: zonesLivraison } = await supabase
     .from("restaurant_zones_desservies")
     .select("frais_gnf, delai_minutes, communes(nom), neighborhoods(nom, communes(nom))")
@@ -211,6 +213,7 @@ export default async function FicheRestaurantPage({
         }}
         disponibilite={disponibilite}
         masquerAConfirmer={aucunConfirme}
+        mentionIllustrative={mentionIllustrative}
         commandable={commandable}
         options={optionsParPlat.get(item.id) ?? []}
         lienPartage={lienWhatsApp(textePlat(item.nom, restaurantSur.nom, lien))}

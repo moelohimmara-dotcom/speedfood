@@ -1076,3 +1076,58 @@
   font-weight: 700;
   padding: 0 var(--space-2);
 }
+
+/* Mention « Image illustrative » (images générées par ordinateur) : un repère « i » très léger qui se déplie au survol de l'image ou au focus
+   clavier. Interrupteur `mention_image_illustrative` dans la console. Sans animation si l'utilisateur préfère moins de mouvement. */
+.carte-vedette-media {
+  position: relative;
+  display: block;
+}
+.mention-illustrative {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 16px);
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.55);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.55;
+  cursor: help;
+  transition: opacity var(--duration-base, 0.2s) var(--ease, ease);
+}
+.mention-illustrative-repere {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+}
+.mention-illustrative-texte {
+  display: none;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.vignette-media:hover .mention-illustrative,
+.carte-vedette-media:hover .mention-illustrative,
+.mention-illustrative:hover,
+.mention-illustrative:focus-visible {
+  opacity: 1;
+}
+.vignette-media:hover .mention-illustrative-texte,
+.carte-vedette-media:hover .mention-illustrative-texte,
+.mention-illustrative:hover .mention-illustrative-texte,
+.mention-illustrative:focus-visible .mention-illustrative-texte {
+  display: inline;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mention-illustrative { transition: none; }
+}

@@ -18,6 +18,9 @@ import { lirePromesse } from "@/lib/parametres/promesse";
 import { lireChiffresEnDirect } from "@/lib/decouverte/chiffres";
 import { origineDuSite } from "@/lib/partage/origine";
 import { lireTout } from "@/lib/db/lecture-complete";
+import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
+import { MentionIllustrative } from "@/components/MentionIllustrative";
+import { estImageIllustrative } from "@/lib/menu/image-illustrative";
 
 interface Recherche {
   q?: string;
@@ -62,6 +65,8 @@ export default async function CataloguePage({
 }) {
   const params = await searchParams;
   const promesse = await lirePromesse();
+  // Interrupteur de la console : mention « Image illustrative » sur les images générées par ordinateur (plats à découvrir).
+  const mentionIllustrative = await fonctionnaliteActive("mention_image_illustrative");
   const q = (params.q ?? "").trim().slice(0, 100);
   const { categorie, quartier } = params;
   const filtres = {
@@ -248,8 +253,11 @@ export default async function CataloguePage({
           <CarrouselVedettes key={lien(etat, {})} libelle="Plats à découvrir, défilement horizontal">
             {vedettes.map((vedette) => (
               <Link key={vedette.platId} href={`/restaurants/${vedette.restaurantId}#plat-${vedette.platId}`} className="carte-vedette">
-                {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
-                <img src={vedette.photoUrl} alt="" loading="lazy" />
+                <span className="carte-vedette-media">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage dynamique, pas un asset local. */}
+                  <img src={vedette.photoUrl} alt="" loading="lazy" />
+                  {mentionIllustrative && estImageIllustrative(vedette.photoUrl) ? <MentionIllustrative focusable={false} /> : null}
+                </span>
                 <span className="carte-vedette-corps">
                   <span className="carte-vedette-nom">{vedette.nom}</span>
                   <span className="carte-vedette-resto">
