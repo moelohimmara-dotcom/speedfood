@@ -433,6 +433,16 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["pancakes", /^(pancakes?|crepe (sucre|au chocolat|au citron|nature))\b/],
   ["glace", /^(glace (vanille|italienne|au chocolat|a la fraise)|sorbet)\b/],
   ["gateau", /^(gateau au chocolat|fondant au chocolat|brownie)\b/],
+  // Lot 11 (photos libres du 25/11/2026) : desserts, boisson sans alcool et deux plats
+  ["gateau-mais", /^gateau (de|au) mais$/],
+  ["gateau-banane", /^gateau (a la |de )?banane$/],
+  ["gateau-gingembre", /^gateau (au |de )?gingembre$/],
+  ["sables-coco", /^sables? (au |a la )?(noix de )?coco$/],
+  ["banane-caramelisee", /^bananes? caramelisees?$/],
+  ["pina-colada-sans-alcool", /^pina colada sans alcool$/],
+  ["jus-citron", /^jus (de )?citron$/],
+  ["poisson-four", /^poisson au four\b/],
+  ["agneau-mijote", /^agneau mijote\b/],
 ];
 
 /** Type de plat reconnu d'après le nom, ou `null` si on n'est pas sûr (alors aucune photo). */
