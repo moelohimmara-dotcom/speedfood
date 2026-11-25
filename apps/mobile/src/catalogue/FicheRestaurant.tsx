@@ -15,6 +15,12 @@ export function Pastille({ texte, ton }: { texte: string; ton: 'succes' | 'neutr
   return <View style={[s.pastille, { borderColor: COULEUR_TON[ton] }]}><Text style={[s.pastilleTexte, { color: COULEUR_TON[ton] }]}>{texte}</Text></View>;
 }
 
+/** Badge du score qualité : seulement le palier excellent, pour ne pas transformer chaque carte en tableau de bord. */
+export function BadgeScore({ palier }: { palier?: string }) {
+  if (palier !== 'excellent') return null;
+  return <Pastille texte="Excellent" ton="succes" />;
+}
+
 /** En-tête de la fiche : logo ou photo, lieu, état, note, fraîcheur du statut, horaires, consignes et moyens de paiement (seulement ceux que le serveur a transmis). */
 export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic }) {
   const [photoEchouee, setPhotoEchouee] = useState<string | null>(null);

@@ -16,6 +16,9 @@ import {
   type PlatRefuse,
 } from "./chefMenu";
 import { limiterChefIa } from "@/lib/securite/limitation-debit";
+import { promotionsSuspenduesPour } from "@/lib/restaurant/score-lectures";
+
+const PROMOTIONS_SUSPENDUES = "Les promotions sont suspendues pour votre restaurant ce mois-ci (score qualité au palier le plus bas). Retirez le prix promotionnel ou attendez le prochain calcul.";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
@@ -145,6 +148,9 @@ export async function creerPlatAction(
   if (!prixPromoResultat.ok) {
     return { erreur: prixPromoResultat.erreur };
   }
+  if (prixPromoResultat.prixPromo !== null && (await promotionsSuspenduesPour(membership.restaurant_id))) {
+    return { erreur: PROMOTIONS_SUSPENDUES };
+  }
 
   const supabase = await creerClientServeur();
 
@@ -213,6 +219,9 @@ export async function modifierPlatAction(
   const prixPromoResultat = lireEtValiderPrixPromo(formData, prix);
   if (!prixPromoResultat.ok) {
     return { erreur: prixPromoResultat.erreur };
+  }
+  if (prixPromoResultat.prixPromo !== null && (await promotionsSuspenduesPour(membership.restaurant_id))) {
+    return { erreur: PROMOTIONS_SUSPENDUES };
   }
 
   const supabase = await creerClientServeur();

@@ -34,6 +34,8 @@ export interface Reglages {
   fraisSpeedfoodCommandeGnf: number;
   /** Pourcentage de commission Speedfood sur le repas, en pour-mille. */
   commissionSpeedfoodPermille: number;
+  /** Réduction de commission pour le palier excellent, en pour-mille de la commission. */
+  commissionReductionExcellentPermille: number;
   fraisVersementGnf: number;
   /** Partie fixe des frais de paiement mobile, en GNF (s'ajoute au pourcentage). */
   fraisMobileFixeGnf: number;
@@ -158,6 +160,8 @@ export interface DepotPaiement {
   enregistrerEvenement(e: EvenementRecu): Promise<boolean>;
   /** Reflète le paiement en ligne sur la commande (mode « speedfood », statut de paiement) : en cours, payée, ou abandonnée (retour aux autres modes). */
   synchroniserCommande(orderId: string, situation: "en_cours" | "payee" | "abandonnee"): Promise<void>;
+  /** Palier du dernier score calculé du restaurant, ou `null` sans score. Seulement la lecture : la réduction ne s'applique qu'au palier excellent. */
+  palierScoreRestaurant?(restaurantId: string): Promise<"excellent" | "tres_bon" | "bon" | "moyen" | "mauvais" | null>;
   /** Paiements « en attente » dont le délai est passé (entretien périodique). */
   paiementsAExpirer(avant: string, limite: number): Promise<{ id: string; fournisseur: NomFournisseur }[]>;
   /** Paiements libérés dont un versement reste à faire ou a échoué (moins de `maxTentatives` essais). */
@@ -245,6 +249,7 @@ export function creerServicePaiement(deps: DependancesService) {
       // Détail non stocké : le montant gardé est le total appliqué, compté ici en part fixe (les paiements d'avant la commission mixte n'avaient que le fixe).
       commissionFixeGnf: p.fraisSpeedfoodGnf,
       commissionVariableGnf: 0,
+      commissionReductionGnf: 0,
     };
   }
 
@@ -266,6 +271,15 @@ export function creerServicePaiement(deps: DependancesService) {
 
     const livraisonPar: LivraisonPar =
       commande.mode !== "livraison" || commande.livraisonMode === "aucune" ? "aucune" : commande.livraisonMode === "speedfood" ? "livreur_independant" : "restaurant";
+    // Palier excellent uniquement : réduction réglable, lue dans le dernier score calculé. Tout autre palier, l'absence du dépôt optionnel ou une lecture qui échoue laisse la commission entière : une remise facultative ne bloque jamais l'encaissement.
+    let reductionPermille = 0;
+    if (reglages.commissionReductionExcellentPermille > 0 && depot.palierScoreRestaurant) {
+      try {
+        if ((await depot.palierScoreRestaurant(commande.restaurantId)) === "excellent") reductionPermille = reglages.commissionReductionExcellentPermille;
+      } catch {
+        reductionPermille = 0;
+      }
+    }
     const calcul = calculerRepartition({
       repasGnf: commande.sousTotalGnf,
       fraisLivraisonGnf: livraisonPar === "aucune" ? 0 : commande.fraisLivraisonGnf,
@@ -275,6 +289,7 @@ export function creerServicePaiement(deps: DependancesService) {
       livraisonPar,
       fraisVersementGnf: reglages.fraisVersementGnf,
       fraisMobileFixeGnf: reglages.fraisMobileFixeGnf,
+      commissionReductionPermille: reductionPermille,
     });
     if (!calcul.ok) return { ok: false, raison: "montant_invalide", detail: calcul.raison };
     const r = calcul.repartition;
