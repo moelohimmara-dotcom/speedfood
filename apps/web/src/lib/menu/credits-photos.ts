@@ -26,9 +26,35 @@ export interface CreditsPhotos {
   imagesIa: number;
 }
 
-/** « salade-chou » → « Salade chou » : libellé de secours pour un type de plat, sans accents ni invention. */
+/** Les types de plat s'écrivent sans accents (« creme-caramel ») : on rend leur accent ou leur majuscule aux mots courants. */
+const MOTS_AFFICHES: Readonly<Record<string, string>> = {
+  creme: "crème",
+  flambee: "flambée",
+  nicoise: "niçoise",
+  eclair: "éclair",
+  the: "thé",
+  gateau: "gâteau",
+  kedjenou: "kédjenou",
+  dg: "DG",
+  pates: "pâtes",
+  cafe: "café",
+  boeuf: "bœuf",
+  oeuf: "œuf",
+  oeufs: "œufs",
+  legumes: "légumes",
+  epice: "épicé",
+  grille: "grillé",
+  braise: "braisé",
+  sale: "salé",
+};
+
+/** « salade-chou » → « Salade chou », « poulet-dg » → « Poulet DG », « creme-caramel » → « Crème caramel » : libellé d'un type de plat. */
 export function libelleDuType(type: string): string {
-  const texte = type.replace(/-/g, " ").trim();
+  const mots = type
+    .split("-")
+    .filter(Boolean)
+    .map((m) => MOTS_AFFICHES[m] ?? m);
+  const texte = mots.join(" ");
   return texte.charAt(0).toUpperCase() + texte.slice(1);
 }
 

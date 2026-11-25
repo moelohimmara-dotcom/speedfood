@@ -150,7 +150,7 @@ verifier("chemin de stockage : sous demo/photos", cheminStockage("wikimedia-lot3
 }
 // Page de crédits : toutes les photos sous CC BY / CC BY-SA sont listées, avec auteur, licence et lien.
 verifier("licence : adresses Creative Commons", [urlLicence("CC BY-SA 4.0"), urlLicence("CC BY 2.0"), urlLicence("CC0"), urlLicence("Pexels License")], ["https://creativecommons.org/licenses/by-sa/4.0/", "https://creativecommons.org/licenses/by/2.0/", "https://creativecommons.org/publicdomain/zero/1.0/", null]);
-verifier("libellé d'un type de plat", [libelleDuType("rfissa"), libelleDuType("poulet-yassa")], ["Rfissa", "Poulet yassa"]);
+verifier("libellé d'un type de plat", [libelleDuType("rfissa"), libelleDuType("poulet-yassa"), libelleDuType("poulet-dg"), libelleDuType("creme-caramel"), libelleDuType("glace")], ["Rfissa", "Poulet yassa", "Poulet DG", "Crème caramel", "Glace"]);
 {
   const credits = construireCredits(BIBLIOTHEQUE_PHOTOS);
   const attendus = BIBLIOTHEQUE_PHOTOS.filter((p) => p.source === "banque" && creditObligatoire(p.licence));
