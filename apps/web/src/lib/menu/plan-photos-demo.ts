@@ -57,7 +57,7 @@ export function creditObligatoire(licence: string | undefined): boolean {
 
 /** Les images IA (dossiers `lot2/` et `lot3/` de la bibliothèque) sont rangées sous `demo/photos/ia/` : l'adresse suffit alors à les reconnaître (`image-illustrative.ts`). */
 export function cheminStockage(fichier: string): string {
-  return /^lot[234]\//.test(fichier) ? `${DOSSIER_STOCKAGE_DEMO}/ia/${fichier}` : `${DOSSIER_STOCKAGE_DEMO}/${fichier}`;
+  return /^lot[2345]\//.test(fichier) ? `${DOSSIER_STOCKAGE_DEMO}/ia/${fichier}` : `${DOSSIER_STOCKAGE_DEMO}/${fichier}`;
 }
 
 export function planifierPhotosDemo(restaurants: readonly RestaurantDemo[], bibliotheque: readonly PhotoDeBibliotheque[], baseUrlPublique: string): PlanPhotosDemo {
