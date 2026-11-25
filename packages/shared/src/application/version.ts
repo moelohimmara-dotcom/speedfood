@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 112,
-    nom: "3.1.9",
-    notes: "Accueil plus vivant : restaurants ouverts et mieux notés en rangées, fiche avec grande photo et accès direct aux sections du menu, panier toujours visible en bas de l'écran. La livraison de la 3.1.8 ne change pas.",
+    code: 113,
+    nom: "3.1.10",
+    notes: "Votre score qualité est maintenant visible dans votre espace restaurateur, les meilleurs restaurants portent un badge et sont mis en avant, et les restaurants excellents paient une commission réduite.",
     obligatoire: false,
-    apkSha256: "ea5ed92d0c7e81ef00b8b51ed1ce66dda84a0373ad944b8e6fdf6e51a4b5204e",
-    apkTaille: 66070706,
+    apkSha256: "7ccb40d6b032468657ea86c9b2d1c15c7468c5377306a9ed22b766cdee1db5b4",
+    apkTaille: 66078898,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.9.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.10.apk",
   },
 };
