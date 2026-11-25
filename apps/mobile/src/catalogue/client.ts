@@ -96,7 +96,10 @@ const DISPOS = ['disponible', 'epuise', 'a_confirmer'];
 function restaurantIndex(x: unknown): RestaurantIndexPublic {
   const r = objet(x);
   if (typeof r.ouvert !== 'boolean' || typeof r.accepteCommandes !== 'boolean') throw Error('CATALOGUE_INVALIDE');
-  return { id: identifiant(r.id), nom: texte(r.nom, 256), lieu: texte(r.lieu, 256), categorie: texte(r.categorie, 256), ouvert: r.ouvert, accepteCommandes: r.accepteCommandes };
+  const lu: RestaurantIndexPublic = { id: identifiant(r.id), nom: texte(r.nom, 256), lieu: texte(r.lieu, 256), categorie: texte(r.categorie, 256), ouvert: r.ouvert, accepteCommandes: r.accepteCommandes };
+  if (r.note !== undefined) { if (r.note !== null && (typeof r.note !== 'number' || !Number.isFinite(r.note) || r.note < 0 || r.note > 5)) throw Error('CATALOGUE_INVALIDE'); lu.note = r.note as number | null; }
+  if (r.avisTotal !== undefined) lu.avisTotal = entier(r.avisTotal);
+  return lu;
 }
 function articleIndex(x: unknown, nombreRestaurants: number): ArticleIndexPublic {
   const a = objet(x);

@@ -10,7 +10,7 @@ import type { EtatRecherche } from './useRechercheArticles';
 
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
 /** Restaurants affichés avant « Voir plus » : la liste reste courte, la recherche reste complète. */
-const PREMIERS = 8;
+const PREMIERS = 10;
 
 /**
  * Résultats de la recherche de plats sous la zone de recherche de l'accueil : les restaurants qui proposent l'article tapé (ou un article proche ou similaire), du meilleur au moins bon,
@@ -39,7 +39,10 @@ export function ResultatsRecherche({ etat, resultat, saisie, ouvrir }: { etat: E
   </View>;
 }
 
+const PLATS_VISIBLES = 4;
 function BlocRestaurant({ r, ouvrir }: { r: RestaurantTrouve; ouvrir(restaurant: RestaurantIndexPublic): void }) {
+  const [tousLesPlats, setTousLesPlats] = useState(false);
+  const plats = tousLesPlats ? r.articles : r.articles.slice(0, PLATS_VISIBLES);
   const lieu = [r.restaurant.categorie, r.restaurant.lieu].filter(Boolean).join(' · ');
   return <View style={s.carte}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.restaurant.nom}`} onPress={() => ouvrir(r.restaurant)} style={{ gap: 4 }}>
@@ -47,7 +50,7 @@ function BlocRestaurant({ r, ouvrir }: { r: RestaurantTrouve; ouvrir(restaurant:
       <View style={s.ligne}>{lieu !== '' && <Text style={[s.secondaire, { flexShrink: 1 }]}>{lieu}</Text>}<Pastille texte={r.restaurant.ouvert ? 'Ouvert' : 'Fermé'} ton={r.restaurant.ouvert ? 'succes' : 'neutre'} /></View>
     </Pressable>
     {/* La vignette et son repère « i » restent HORS du bouton : un bouton ne contient jamais un autre bouton (invalide sur le web, ambigu au toucher). */}
-    {r.articles.map(a => <View key={a.id} style={s.article}>
+    {plats.map(a => <View key={a.id} style={s.article}>
       <VignettePlat url={a.photoUrl} nom={a.nom} taille={56} illustrative={a.illustrative} />
       <Pressable accessibilityRole="button" accessibilityLabel={`${a.nom}, ${gnf(a.prixGnf)}, chez ${r.restaurant.nom}`} onPress={() => ouvrir(r.restaurant)} style={{ flex: 1, gap: 2, minHeight: 56, justifyContent: 'center' }}>
         <Text style={s.nomArticle}>{a.nom}</Text>
@@ -56,6 +59,7 @@ function BlocRestaurant({ r, ouvrir }: { r: RestaurantTrouve; ouvrir(restaurant:
         {a.disponibilite === 'a_confirmer' && <Text style={s.secondaire}>Disponibilité à confirmer</Text>}
       </Pressable>
     </View>)}
+    {!tousLesPlats && r.articles.length > PLATS_VISIBLES && <Bouton titre={`Voir les ${r.articles.length - PLATS_VISIBLES} autres plats`} secondaire icone="plus" onPress={() => setTousLesPlats(true)} />}
   </View>;
 }
 const s = StyleSheet.create({

@@ -42,6 +42,8 @@ export interface ArticleTrouve {
 export interface RestaurantTrouve {
   restaurant: RestaurantIndexPublic;
   niveau: NiveauArticle;
+  /** Qualité de correspondance de son meilleur article (0 à 1) : sert au classement. */
+  score: number;
   articles: ArticleTrouve[];
 }
 export interface ResultatRecherche {
@@ -58,11 +60,32 @@ function adresseImage(donnees: IndexArticlesPublic, photo: string | undefined): 
 }
 
 /** Cherche dans l'index. `null` : saisie trop courte ou sans lettre. Aucune erreur possible : une saisie bizarre donne simplement « aucun résultat ». */
-export function chercherArticles(saisie: string, index: IndexRecherche, maxRestaurants = 30, parRestaurant = 4): ResultatRecherche | null {
+const RANG_NIVEAU: Record<NiveauArticle, number> = { exact: 0, proche: 1, similaire: 2 };
+/**
+ * Classement des restaurants d'un résultat, par critères successifs :
+ *  1. la pertinence du meilleur article (exact, puis proche, puis similaire) : jamais dépassée par un autre critère ;
+ *  2. un restaurant qui prend des commandes maintenant avant un restaurant fermé ;
+ *  3. la qualité de correspondance (par paliers de 0,05, pour ne pas départager sur un détail) ;
+ *  4. la note des clients (un restaurant sans avis passe après ceux qui ont une bonne note, jamais pénalisé par une note inventée) ;
+ *  5. le nombre d'articles correspondants, puis l'ordre alphabétique (résultat toujours stable).
+ */
+export function comparerRestaurants(a: RestaurantTrouve, b: RestaurantTrouve): number {
+  const commande = (r: RestaurantTrouve) => (r.restaurant.ouvert && r.restaurant.accepteCommandes ? 0 : 1);
+  const palier = (r: RestaurantTrouve) => Math.round(r.score * 20);
+  return RANG_NIVEAU[a.niveau] - RANG_NIVEAU[b.niveau]
+    || commande(a) - commande(b)
+    || palier(b) - palier(a)
+    || (b.restaurant.note ?? -1) - (a.restaurant.note ?? -1)
+    || b.articles.length - a.articles.length
+    || a.restaurant.nom.localeCompare(b.restaurant.nom, 'fr');
+}
+
+export function chercherArticles(saisie: string, index: IndexRecherche, maxRestaurants = Number.POSITIVE_INFINITY, parRestaurant = Number.POSITIVE_INFINITY): ResultatRecherche | null {
   if (saisie.trim().length < LETTRES_MINIMUM) return null;
   const requete = preparerRequete(saisie);
   if (!requete) return null;
-  const trouves = rechercherArticles(requete, index.moteur, 400);
+  // Aucun plafond : tous les articles qui correspondent, chez tous les restaurants (la liste est seulement repliée à l'écran, jamais amputée).
+  const trouves = rechercherArticles(requete, index.moteur, Number.POSITIVE_INFINITY);
   const groupes = grouperParRestaurant(trouves, parRestaurant, maxRestaurants);
   const restaurants: RestaurantTrouve[] = [];
   for (const g of groupes) {
@@ -71,12 +94,14 @@ export function chercherArticles(saisie: string, index: IndexRecherche, maxResta
     restaurants.push({
       restaurant,
       niveau: g.niveau,
+      score: g.score,
       articles: g.articles.map(x => {
         const source = index.parId.get(x.article.id)!;
         return { id: source.id, nom: source.nom, description: source.description ?? '', prixGnf: source.prixGnf, disponibilite: source.disponibilite, photoUrl: adresseImage(index.donnees, source.photo), illustrative: source.illustrative === true, niveau: x.niveau };
       }),
     });
   }
+  restaurants.sort(comparerRestaurants);
   return { restaurants, total: trouves.length };
 }
 

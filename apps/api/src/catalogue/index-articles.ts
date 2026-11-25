@@ -10,20 +10,26 @@ import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative'
  */
 const PAGE = 1000;
 const PLAFOND_PAGES = 30;
-type LigneRestaurant = { id: string; nom: string; ouvert: boolean; accepte_commandes: boolean; menu_categories: { nom: string } | null; neighborhoods: { nom: string; generique: boolean; communes: { nom: string } | null } | null };
+type LigneRestaurant = { id: string; nom: string; ouvert: boolean; accepte_commandes: boolean; avis_somme?: number | null; avis_total?: number | null; menu_categories: { nom: string } | null; neighborhoods: { nom: string; generique: boolean; communes: { nom: string } | null } | null };
 type LigneArticle = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url: string | null; restaurant_id: string };
 
+/** Même formule que la liste des restaurants : note au dixième, `null` sans avis ou si la donnée est incohérente. */
+function noteMoyenne(somme: unknown, total: unknown): number | null {
+  if (!Number.isSafeInteger(somme) || !Number.isSafeInteger(total) || (total as number) <= 0 || (somme as number) < 0) return null;
+  const note = Math.floor(((somme as number) * 10) / (total as number)) / 10;
+  return note <= 5 ? note : null;
+}
 function urlImage(v: unknown): string | null { return typeof v === 'string' && v.length <= 2000 && /^https:\/\/[^\s\x00-\x1f]+$/.test(v) ? v : null; }
 
 export async function lireIndexArticles(db: SupabaseClient<Database>, parametres: () => Promise<{ disponibiliteFraicheurHeures: number }>, illustrative: boolean): Promise<IndexArticlesPublic> {
   const restaurants: RestaurantIndexPublic[] = [];
   const rang = new Map<string, number>();
   for (let p = 0; p < PLAFOND_PAGES; p++) {
-    const { data, error } = await db.from('restaurants').select('id, nom, ouvert, accepte_commandes, menu_categories(nom), neighborhoods(nom, generique, communes(nom))' as string).eq('publie', true).is('suspendu_le', null).order('id').range(p * PAGE, (p + 1) * PAGE - 1);
+    const { data, error } = await db.from('restaurants').select('id, nom, ouvert, accepte_commandes, avis_somme, avis_total, menu_categories(nom), neighborhoods(nom, generique, communes(nom))' as string).eq('publie', true).is('suspendu_le', null).order('id').range(p * PAGE, (p + 1) * PAGE - 1);
     if (error || !data) throw new Error('catalogue_indisponible');
     for (const r of data as unknown as LigneRestaurant[]) {
       rang.set(r.id, restaurants.length);
-      restaurants.push({ id: r.id, nom: r.nom, lieu: (r.neighborhoods?.generique ? r.neighborhoods.communes?.nom : r.neighborhoods?.nom) ?? '', categorie: r.menu_categories?.nom ?? '', ouvert: r.ouvert, accepteCommandes: r.accepte_commandes });
+      restaurants.push({ id: r.id, nom: r.nom, lieu: (r.neighborhoods?.generique ? r.neighborhoods.communes?.nom : r.neighborhoods?.nom) ?? '', categorie: r.menu_categories?.nom ?? '', ouvert: r.ouvert, accepteCommandes: r.accepte_commandes, note: noteMoyenne(r.avis_somme, r.avis_total), avisTotal: Number.isSafeInteger(r.avis_total) && (r.avis_total as number) > 0 ? (r.avis_total as number) : 0 });
     }
     if (data.length < PAGE) break;
     if (p === PLAFOND_PAGES - 1) throw new Error('catalogue_trop_volumineux');

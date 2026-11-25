@@ -32,7 +32,7 @@ export interface PlatCataloguePublic {
  * Compact : les restaurants sont listés une fois, chaque article y renvoie par son rang (`r`) ; `photo` est relative à `baseImages` quand l'adresse en commence par elle, sinon complète.
  * Aucun article d'un restaurant non publié ou suspendu, aucun article archivé.
  */
-export interface RestaurantIndexPublic { id: string; nom: string; lieu: string; categorie: string; ouvert: boolean; accepteCommandes: boolean }
+export interface RestaurantIndexPublic { id: string; nom: string; lieu: string; categorie: string; ouvert: boolean; accepteCommandes: boolean; /** Note moyenne au dixième, `null` sans avis : sert au classement des résultats. */ note?: number | null; avisTotal?: number }
 export interface ArticleIndexPublic { id: string; r: number; nom: string; description?: string; prixGnf: number; disponibilite: 'disponible' | 'epuise' | 'a_confirmer'; photo?: string; illustrative?: true }
 export interface IndexArticlesPublic { restaurants: RestaurantIndexPublic[]; articles: ArticleIndexPublic[]; baseImages: string; luLe: string }
 export interface PageRestaurants { restaurants: RestaurantPublic[]; suivant: string | null; luLe: string }

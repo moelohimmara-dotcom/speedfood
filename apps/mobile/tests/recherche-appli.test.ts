@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { IndexArticlesPublic } from '../../../packages/shared/src/contracts/catalogue.ts';
 import { validerIndexArticles } from '../src/catalogue/client.ts';
-import { CLE_INDEX_ARTICLES, FRAICHEUR_INDEX_MS, chargerIndexRecherche, chercherArticles, echaufferTypes, preparerIndex } from '../src/catalogue/recherche-appli.ts';
+import { CLE_INDEX_ARTICLES, FRAICHEUR_INDEX_MS, chargerIndexRecherche, chercherArticles, comparerRestaurants, echaufferTypes, preparerIndex } from '../src/catalogue/recherche-appli.ts';
 import type { StockageCache } from '../src/catalogue/cache-catalogue.ts';
 
 const U = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -125,4 +125,27 @@ test('échauffement : calcule le type de chaque article par tranches sans change
   await echaufferTypes(neuf.moteur, 2);
   assert.ok(neuf.moteur.articles.every(a => a.type !== undefined));
   assert.deepEqual(chercherArticles('pizza', neuf)!.restaurants.map(r => r.articles.map(a => a.id)), avant);
+});
+
+test('aucun plafond : 120 restaurants qui proposent des crêpes sont TOUS retrouvés, avec tous leurs plats', () => {
+  const restaurants = Array.from({ length: 120 }, (_, i) => ({ id: U(1000 + i), nom: 'Resto ' + String(i).padStart(3, '0'), lieu: 'Kaloum', categorie: 'Français', ouvert: true, accepteCommandes: true }));
+  const articles = restaurants.flatMap((_, i) => Array.from({ length: 7 }, (__, k) => ({ id: U(5000 + i * 10 + k), r: i, nom: 'Crêpe ' + ['nature', 'sucre', 'chocolat', 'miel', 'banane', 'citron', 'confiture'][k], prixGnf: 10000, disponibilite: 'disponible' as const })));
+  const gros = preparerIndex({ restaurants, articles, baseImages: '', luLe: '2026-11-25T08:00:00.000Z' });
+  const r = chercherArticles('crêpe', gros)!;
+  assert.equal(r.restaurants.length, 120);
+  assert.ok(r.restaurants.every(x => x.articles.length === 7));
+  assert.equal(r.total, 840);
+});
+
+test('classement : pertinence en premier, puis ouvert, puis qualité, puis note ; stable', () => {
+  const mk = (nom: string, niveau: 'exact' | 'proche' | 'similaire', ouvert: boolean, score: number, note: number | null) => ({ restaurant: { id: nom, nom, lieu: '', categorie: '', ouvert, accepteCommandes: ouvert, note }, niveau, score, articles: [] });
+  const liste = [
+    mk('F-ferme-exact', 'exact', false, 0.95, 5),
+    mk('B-ouvert-exact-note3', 'exact', true, 0.95, 3),
+    mk('A-ouvert-exact-note5', 'exact', true, 0.95, 5),
+    mk('C-ouvert-exact-sans-avis', 'exact', true, 0.95, null),
+    mk('D-ouvert-similaire', 'similaire', true, 0.9, 5),
+    mk('E-ouvert-proche', 'proche', true, 0.5, 4),
+  ];
+  assert.deepEqual([...liste].sort(comparerRestaurants).map(r => r.restaurant.nom), ['A-ouvert-exact-note5', 'B-ouvert-exact-note3', 'C-ouvert-exact-sans-avis', 'F-ferme-exact', 'E-ouvert-proche', 'D-ouvert-similaire']);
 });
