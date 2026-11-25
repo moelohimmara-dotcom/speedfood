@@ -38,21 +38,36 @@ export const libelleZone = (zone: ZoneLivraison | null): string => `Zone : ${zon
 export const normaliser = (texte: string): string => texte.toLowerCase().replace(/œ/g, 'o').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 export type IdFiltre = 'tous' | 'ouverts' | 'commandables';
 export const FILTRES: ReadonlyArray<{ id: IdFiltre; libelle: string }> = [{ id: 'tous', libelle: 'Tous' }, { id: 'ouverts', libelle: 'Ouverts' }, { id: 'commandables', libelle: 'On peut commander' }];
-/** Recherche locale (nom, quartier, cuisine ; tous les mots) et filtre (ouverts, ou ouverts qui prennent des commandes maintenant). */
-export function filtrerRestaurants(restaurants: readonly RestaurantPublic[], requete: string, filtre: IdFiltre): RestaurantPublic[] {
+/** Les cuisines réellement présentes dans la liste chargée (catégories non vides, de A à Z) : les filtres proposés viennent des données, jamais d'une liste inventée. Graphies équivalentes fusionnées ; la forme affichée est la plus fréquente, à égalité la première par ordre alphabétique, jamais un hasard d'ordre de chargement. */
+export function categoriesDisponibles(restaurants: readonly RestaurantPublic[]): string[] {
+  const formes = new Map<string, Map<string, number>>();
+  for (const r of restaurants) {
+    const c = r.categorie.trim();
+    if (c === '') continue;
+    const cle = normaliser(c);
+    const variantes = formes.get(cle) ?? new Map<string, number>();
+    variantes.set(c, (variantes.get(c) ?? 0) + 1);
+    formes.set(cle, variantes);
+  }
+  const commenceMajuscule = (s: string) => (/^[A-ZÀ-Ý]/.test(s) ? 1 : 0);
+  const accents = (s: string) => (s.match(/[À-ÖØ-öø-ÿ]/g) ?? []).length;
+  return [...formes.values()].map(variantes => [...variantes.entries()].sort((a, b) => b[1] - a[1] || commenceMajuscule(b[0]) - commenceMajuscule(a[0]) || accents(b[0]) - accents(a[0]) || a[0].localeCompare(b[0], 'fr'))[0][0]).sort((a, b) => a.localeCompare(b, 'fr'));
+}
+/** Recherche locale (nom, quartier, cuisine ; tous les mots) et filtre (ouverts, ou ouverts qui prennent des commandes maintenant). `cuisine` : catégorie exacte choisie, ou null. */
+export function filtrerRestaurants(restaurants: readonly RestaurantPublic[], requete: string, filtre: IdFiltre, cuisine: string | null = null): RestaurantPublic[] {
   const mots = normaliser(requete).split(' ').filter(m => m !== '');
   return restaurants.filter(r => {
     const etat = filtre === 'tous' ? true : filtre === 'ouverts' ? r.ouvert : r.ouvert && r.accepteCommandes;
     const cible = normaliser([r.nom, r.lieu, r.categorie].filter(Boolean).join(' '));
-    return etat && mots.every(m => cible.includes(m));
+    return etat && (cuisine === null || normaliser(r.categorie.trim()) === normaliser(cuisine)) && mots.every(m => cible.includes(m));
   });
 }
 /** En dessous de ce nombre, une liste simple vaut mieux que des sections qui répéteraient les mêmes cartes. */
 export const SEUIL_SECTIONS = 4;
-export interface SectionsAccueil { ouverts: RestaurantPublic[]; mieuxNotes: RestaurantPublic[] }
-/** Sections seulement sans recherche ni filtre et avec assez de restaurants ; `null` sinon (liste simple). « Les mieux notés » : trois au plus, tous avec une vraie note. */
+export interface SectionsAccueil { offres: RestaurantPublic[]; ouverts: RestaurantPublic[]; mieuxNotes: RestaurantPublic[] }
+/** Sections seulement sans recherche ni filtre et avec assez de restaurants ; `null` sinon (liste simple). « Les mieux notés » : trois au plus, tous avec une vraie note. « Offres » : les restaurants dont un plat au moins est en promotion. */
 export function sectionsAccueil(visibles: readonly RestaurantPublic[], requete: string, filtre: IdFiltre): SectionsAccueil | null {
   if (requete.trim() !== '' || filtre !== 'tous' || visibles.length < SEUIL_SECTIONS) return null;
   const notes = visibles.filter(r => typeof r.note === 'number').sort((a, b) => (b.note as number) - (a.note as number)).slice(0, 3);
-  return { ouverts: visibles.filter(r => r.ouvert && r.accepteCommandes), mieuxNotes: notes };
+  return { offres: visibles.filter(r => r.aDesPromos === true), ouverts: visibles.filter(r => r.ouvert && r.accepteCommandes), mieuxNotes: notes };
 }

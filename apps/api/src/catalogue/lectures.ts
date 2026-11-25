@@ -37,7 +37,27 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
   const { data: brut, error } = await q;
   if (error || !brut) throw new Error('catalogue_indisponible');
   const data = brut as unknown as LigneRestaurant[];
-  const page = data.slice(0, 50).map(r => projeter(r));
+  const pageBrute = data.slice(0, 50);
+  // Offres de l'accueil : un plat disponible en promotion suffit. Lecture bornée aux identifiants affichés, paginée par identifiant
+  // pour ne jamais évincer une vraie promotion derrière un plafond ; une erreur de lecture rend le catalogue indisponible, jamais de fausses offres.
+  const avecPromos = new Set<string>();
+  if (pageBrute.length > 0) {
+    const ids = pageBrute.map(r => r.id);
+    const TAILLE_PAGE_PROMOS = 500;
+    const PAGES_MAX_PROMOS = 20;
+    for (let page = 0; page < PAGES_MAX_PROMOS && avecPromos.size < ids.length; page++) {
+      const debut = page * TAILLE_PAGE_PROMOS;
+      const { data: promos, error: erreurPromos } = await db.from('menu_items').select('restaurant_id, prix, prix_promo').in('restaurant_id', ids).eq('disponible', true).is('archive_le', null).not('prix_promo', 'is', null).order('id').range(debut, debut + TAILLE_PAGE_PROMOS - 1);
+      if (erreurPromos || !promos) throw new Error('catalogue_indisponible');
+      const lignes = promos as unknown as Array<{ restaurant_id: string; prix: number; prix_promo: number | null }>;
+      for (const p of lignes) {
+        if (p.prix_promo !== null && p.prix_promo < p.prix) avecPromos.add(p.restaurant_id);
+      }
+      if (lignes.length < TAILLE_PAGE_PROMOS) break;
+      if (page === PAGES_MAX_PROMOS - 1) throw new Error('catalogue_indisponible');
+    }
+  }
+  const page = pageBrute.map(r => ({ ...projeter(r), aDesPromos: avecPromos.has(r.id) }));
   return { restaurants: page, suivant: data.length > 50 ? page.at(-1)!.id : null, luLe: new Date().toISOString() };
 }
 type LigneOption = { id: string; nom: string; prix: number; disponible: boolean };

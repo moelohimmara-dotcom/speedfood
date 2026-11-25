@@ -7,7 +7,7 @@ import { ouvrirStockageCacheCatalogue } from './cache-catalogue-natif';
 import { chiffrer, type PanierReel } from './panier-reel';
 import { libelleRecommande, trouverMemo, type MemoCommande } from './recommande';
 import * as SecureStore from 'expo-secure-store';
-import { CLE_ZONE_ACCUEIL, FILTRES, filtrerRestaurants, libelleZone, nombreParZone, restaurantsDansZone, sectionsAccueil, zoneEffective, zonesDisponibles, type IdFiltre } from './accueil';
+import { CLE_ZONE_ACCUEIL, FILTRES, categoriesDisponibles, filtrerRestaurants, libelleZone, nombreParZone, restaurantsDansZone, sectionsAccueil, zoneEffective, zonesDisponibles, type IdFiltre } from './accueil';
 import { ChoixZone } from './ChoixZone';
 import { ouvrirCommandesEnvoyees } from '../stockage/commandes-envoyees';
 import { couleurs as c, dureeMouvement, durees, polices } from '../design/tokens';
@@ -165,6 +165,27 @@ export function CatalogueReel() {
     try { panier.remplacerEtAjouter(r, demande.plat, demande.optionIds); setMessagePanier(`${demande.plat.nom} ajouté à votre panier.`); } catch { setMessagePanier('Ajout impossible. Vérifiez votre panier puis réessayez.'); }
   }
   // « Commander à nouveau » (G13) : mémoire locale des commandes envoyées d'ici ; le panier est rebâti sur le menu actuel (changement de restaurant confirmé avant d'être vidé).
+  const [favorisIds, setFavorisIds] = useState<ReadonlySet<string>>(new Set());
+  const [favorisSeulement, setFavorisSeulement] = useState(false);
+  // Changement de compte : effacement pendant le rendu même, avant tout affichage des favoris du compte précédent.
+  const [compteFavorisVu, setCompteFavorisVu] = useState(gestion.identifiant);
+  if (compteFavorisVu !== gestion.identifiant) {
+    setCompteFavorisVu(gestion.identifiant);
+    setFavorisIds(new Set());
+    setFavorisSeulement(false);
+  }
+  const relireFavoris = () => {
+    if (!gestion.connectee) return;
+    void gestion.espaceComplet().then(e => setFavorisIds(new Set(e.favoris.map(f => f.restaurantId))), () => undefined);
+  };
+  useEffect(() => {
+    // Changement de compte : les favoris du compte précédent sont effacés avant toute relecture, jamais montrés entre-temps.
+    setFavorisIds(new Set()); setFavorisSeulement(false);
+    if (!gestion.connectee) return;
+    let actif = true;
+    void gestion.espaceComplet().then(e => { if (actif) setFavorisIds(new Set(e.favoris.map(f => f.restaurantId))); }, () => undefined);
+    return () => { actif = false; };
+  }, [compteOuvert, gestion.connectee, gestion.identifiant]);
   const [memos, setMemos] = useState<MemoCommande[]>([]);
   const [recommandeEnAttente, setRecommandeEnAttente] = useState<MemoCommande | null>(null);
   const [messageRecommande, setMessageRecommande] = useState('');
@@ -184,7 +205,7 @@ export function CatalogueReel() {
     if (panier.panier.lignes.length > 0 && panier.panier.restaurantId !== memo.restaurantId) setRecommandeEnAttente(memo); else void recommander(memo);
   }
   function ouvrir(r: RestaurantPublic) { setSelection(r); setMenu(null); void charger(r); }
-  function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
+  function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); relireFavoris(); }
   useEffect(() => {
     if (!selection || Platform.OS === 'web') return;
     const abonnement = BackHandler.addEventListener('hardwareBackPress', () => { retour(); return true; });
@@ -194,17 +215,21 @@ export function CatalogueReel() {
   const [choixZone, setChoixZone] = useState<string | null>(null);
   const [zoneOuverte, setZoneOuverte] = useState(false);
   const [filtre, setFiltre] = useState<IdFiltre>('tous');
+  const [cuisineChoisie, setCuisineChoisie] = useState<string | null>(null);
   useEffect(() => { void SecureStore.getItemAsync(CLE_ZONE_ACCUEIL).then(v => setChoixZone(v), () => undefined); }, []);
-  function choisirZone(id: string) { setChoixZone(id); setZoneOuverte(false); void SecureStore.setItemAsync(CLE_ZONE_ACCUEIL, id).catch(() => undefined); }
+  function choisirZone(id: string) { setChoixZone(id); setCuisineChoisie(null); setZoneOuverte(false); void SecureStore.setItemAsync(CLE_ZONE_ACCUEIL, id).catch(() => undefined); }
   const zones = zonesDisponibles(restaurants);
   const zone = zoneEffective(zones, choixZone);
-  const visibles = ordonnerRestaurants(filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre));
-  const sections = sectionsAccueil(visibles, recherche, filtre);
+  const cuisines = categoriesDisponibles(restaurantsDansZone(restaurants, zone));
+  const filtrees = ordonnerRestaurants(filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre, cuisineChoisie));
+  const visibles = favorisSeulement ? filtrees.filter(r => favorisIds.has(r.id)) : filtrees;
+  const sections = cuisineChoisie === null && !favorisSeulement ? sectionsAccueil(visibles, recherche, filtre) : null;
   const carteRestaurant = (r: RestaurantPublic, cle: string, vedette = false) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }, vedette && s.carteVedette, !r.ouvert && { opacity: 0.72 }]}>
     <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
     <View style={{ flex: 1, gap: 8 }}>
       <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' \u00b7 ') || 'Localisation non renseign\u00e9e'}</Text></View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
+      {r.aDesPromos ? <Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Plats en promotion</Text> : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
     </View>
   </Pressable>; };
@@ -277,9 +302,12 @@ export function CatalogueReel() {
       {!selection && enCours.commande !== null && <CarteCommandeEnCours commande={enCours.commande} suivre={voirCommandeEnCours} />}
       {!selection && <>
         <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher un restaurant, un quartier ou une cuisine" placeholder="Un restaurant, un quartier, une cuisine…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}{favorisIds.size > 0 && <Pressable accessibilityRole="button" accessibilityLabel="Mes favoris" accessibilityState={{ selected: favorisSeulement }} onPress={() => setFavorisSeulement(v => !v)} style={[s.puceZone, favorisSeulement && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>Mes favoris</Text></Pressable>}</View>
+        {memos.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Vos habitudes</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{memos.map(m => { const resto = restaurants.find(r => r.id === m.restaurantId); return <Pressable key={m.reference} accessibilityRole="button" accessibilityLabel={`Commander à nouveau ${resto?.nom ?? m.reference}`} onPress={() => lancerRecommande(m.reference)} style={[s.carte, s.carteVedette]}><Text style={s.nom}>{resto?.nom ?? 'Ancienne commande'}</Text><Text style={s.texte}>{m.reference} · {m.lignes.reduce((t, l) => t + l.quantite, 0)} article{m.lignes.reduce((t, l) => t + l.quantite, 0) > 1 ? 's' : ''}</Text><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Commander à nouveau</Text></Pressable>; })}</ScrollView></>}
+        {cuisines.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}><Pressable accessibilityRole="button" accessibilityLabel="Toutes les cuisines" accessibilityState={{ selected: cuisineChoisie === null }} onPress={() => setCuisineChoisie(null)} style={[s.puceZone, cuisineChoisie === null && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>Toutes</Text></Pressable>{cuisines.map(cuisine => <Pressable key={cuisine} accessibilityRole="button" accessibilityLabel={`Cuisine ${cuisine}`} accessibilityState={{ selected: cuisineChoisie === cuisine }} onPress={() => setCuisineChoisie(cuisineChoisie === cuisine ? null : cuisine)} style={[s.puceZone, cuisineChoisie === cuisine && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{cuisine}</Text></Pressable>)}</ScrollView>}
         <Text style={s.secondaire}>{visibles.length} restaurant{visibles.length > 1 ? 's' : ''} sur {restaurants.length} chargé{restaurants.length > 1 ? 's' : ''}.</Text>
         {sections ? <>
+          {sections.offres.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Offres du moment</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{sections.offres.map(r => carteRestaurant(r, 'offres-' + r.id, true))}</ScrollView></>}
           {sections.ouverts.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Ouverts maintenant</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{sections.ouverts.map(r => carteRestaurant(r, 'ouverts-' + r.id, true))}</ScrollView></>}
           {sections.mieuxNotes.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Les mieux notés</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{sections.mieuxNotes.map(r => carteRestaurant(r, 'notes-' + r.id, true))}</ScrollView></>}
           <Text accessibilityRole="header" style={s.titreSection}>Tous les restaurants</Text>{visibles.map(r => carteRestaurant(r, 'tous-' + r.id))}

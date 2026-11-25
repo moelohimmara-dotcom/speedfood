@@ -8,6 +8,8 @@ export interface RestaurantPublic {
   ouvert: boolean; accepteCommandes: boolean; statutMisAJourLe: string | null;
   photoUrl?: string | null; logoUrl?: string | null;
   note?: number | null; avisTotal?: number;
+  /** Vrai si au moins un plat disponible est en promotion (prix promo inférieur au prix normal). Sert à la section « Offres » de l'accueil. */
+  aDesPromos?: boolean;
   horaires?: string | null; consignes?: string | null; moyensPaiement?: string[];
 }
 /** Supplément facultatif d'un plat (par exemple « Piment »). Seuls les suppléments disponibles sont transmis. `prixGnf` est un montant entier ≥ 0. */

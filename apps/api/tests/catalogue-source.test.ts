@@ -11,6 +11,7 @@ function db(repondre: (u: URL) => unknown) {
 const parametres = async () => ({ disponibiliteFraicheurHeures: 6, commandePropositionDelaiMinutes: 30, prixPlatMaxGnf: 5000000 });
 test('source catalogue : projections, exclusions réelles et pagination stable explicite', async () => {
   const page = await lireRestaurants(id, db(u => {
+    if (u.pathname.endsWith('/menu_items')) { assert.equal(u.searchParams.get('disponible'), 'eq.true'); assert.equal(u.searchParams.get('archive_le'), 'is.null'); assert.equal(u.searchParams.get('order'), 'id.asc'); return []; }
     assert.equal(u.searchParams.get('publie'), 'eq.true'); assert.equal(u.searchParams.get('suspendu_le'), 'is.null');
     assert.equal(u.searchParams.get('donnees_demo'), 'eq.false'); assert.equal(u.searchParams.get('order'), 'id.asc');
     assert.equal(u.searchParams.get('limit'), '51'); assert.equal(u.searchParams.get('id'), 'gt.'+id);

@@ -17,6 +17,7 @@ function restaurant(x: unknown): RestaurantPublic {
   if (r.logoUrl !== undefined) lu.logoUrl = urlImage(r.logoUrl);
   if (r.note !== undefined) { if (r.note !== null && (typeof r.note !== 'number' || !Number.isFinite(r.note) || r.note < 0 || r.note > 5)) throw Error('CATALOGUE_INVALIDE'); lu.note = r.note as number | null; }
   if (r.avisTotal !== undefined) lu.avisTotal = entier(r.avisTotal);
+  if (r.aDesPromos !== undefined) { if (typeof r.aDesPromos !== 'boolean') throw Error('CATALOGUE_INVALIDE'); lu.aDesPromos = r.aDesPromos; }
   if (r.horaires !== undefined) lu.horaires = r.horaires === null ? null : texte(r.horaires, 300);
   if (r.consignes !== undefined) lu.consignes = r.consignes === null ? null : texte(r.consignes, 1000);
   if (r.moyensPaiement !== undefined) { if (!Array.isArray(r.moyensPaiement) || r.moyensPaiement.length > 12) throw Error('CATALOGUE_INVALIDE'); lu.moyensPaiement = r.moyensPaiement.map(m => texte(m, 60)); }
