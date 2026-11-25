@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 113,
-    nom: "3.1.10",
-    notes: "Votre score qualité est maintenant visible dans votre espace restaurateur, les meilleurs restaurants portent un badge et sont mis en avant, et les restaurants excellents paient une commission réduite.",
+    code: 114,
+    nom: "3.1.11",
+    notes: "Tapez un plat et trouvez tous les restaurants qui le proposent, même avec une faute. Réglez vos préférences et allergies pour des résultats adaptés, triez par distance, voyez les allergènes de chaque plat, la cote et les horaires des restaurants.",
     obligatoire: false,
-    apkSha256: "7ccb40d6b032468657ea86c9b2d1c15c7468c5377306a9ed22b766cdee1db5b4",
-    apkTaille: 66078898,
+    apkSha256: "2838d6052824bd96dc919d651cebbbc061bf04c08de94a6bd3c064e540fc2bf1",
+    apkTaille: 66209970,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.10.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.11.apk",
   },
 };
