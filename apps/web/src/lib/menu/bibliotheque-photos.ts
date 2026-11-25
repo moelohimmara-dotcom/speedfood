@@ -27,6 +27,9 @@ const ia = (type: string, fichier = type): PhotoDeBibliotheque => ({ id: `ia-${f
 /** Images IA du lot 2 (plats guinéens et africains), fichiers nommés d'après le plat. */
 const ia2 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot2/${fichier}.png` });
 
+/** Images IA du lot 4 (25/11/2026) : boissons sans marque et plats guinéens, fichiers nommés d'après le plat. */
+const ia4 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot4/${fichier}.png` });
+
 const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheque => ({
   id: `px-${idPexels}`,
   type,
@@ -113,6 +116,24 @@ const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
   ia2("sauce-feuilles-manioc", "sauce-feuilles-manioc"),
   ia2("to-couscous", "to"),
   ia2("tripes", "tripes-sauce-tomate"),
+  // Images IA du lot 4 (boissons sans marque et plats guinéens ; les photos de banque passent toujours avant)
+  ia4("boisson-energisante", "boisson-energisante"),
+  ia4("boisson-energisante", "boisson-energisante-sans-sucre"),
+  ia4("biere-sans-alcool", "biere-sans-alcool"),
+  ia4("lait-chaud", "lait-chaud-sucre"),
+  ia4("eau-gazeuse", "eau-gazeuse"),
+  ia4("the-au-lait", "the-au-lait"),
+  ia4("boisson-isotonique", "boisson-isotonique"),
+  ia4("capitaine-fume-sauce", "capitaine-fume-sauce"),
+  ia4("sauce-pimentee", "sauce-pimentee"),
+  ia4("riz-sauce-tomate-poisson-fume", "riz-sauce-tomate-poisson-fume"),
+  ia4("soupe-legumes-poulet", "soupe-legumes-poulet"),
+  ia4("attieke", "attieke"),
+  ia4("poisson-fume-braise", "poisson-fume-braise"),
+  ia4("brochettes-gesiers", "brochettes-gesiers"),
+  ia4("riz-sauce-poulet-legumes", "riz-sauce-poulet-legumes"),
+  ia4("riz-yassa", "riz-yassa-poulet"),
+  ia4("beignets-banane-plantain", "beignets-banane-plantain"),
   // Photos de banque (Pexels, licence libre, vraies photos : elles passent avant l'IA)
   banque("curry-vert", "31029754"),
   banque("nachos", "12557544"),

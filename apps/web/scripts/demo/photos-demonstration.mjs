@@ -57,9 +57,9 @@ async function lire(chemin) {
   }
 }
 
-/** Dossier d'origine d'un fichier de la bibliothèque : images IA (lot2, lot3) ou photos de banques. */
+/** Dossier d'origine d'un fichier de la bibliothèque : images IA (lot2, lot3, lot4) ou photos de banques. */
 function cheminLocal(fichier) {
-  const dossier = /^lot[23]\//.test(fichier) ? "images-ia" : "images-banques";
+  const dossier = /^lot[234]\//.test(fichier) ? "images-ia" : "images-banques";
   return join(RACINE_IMAGES, dossier, fichier);
 }
 
