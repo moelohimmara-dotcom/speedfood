@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 114,
-    nom: "3.1.11",
-    notes: "Tapez un plat et trouvez tous les restaurants qui le proposent, même avec une faute. Réglez vos préférences et allergies pour des résultats adaptés, triez par distance, voyez les allergènes de chaque plat, la cote et les horaires des restaurants.",
+    code: 115,
+    nom: "3.1.12",
+    notes: "L'accueil s'enrichit : filtrez par cuisine, découvrez les offres du moment, retrouvez vos habitudes pour commander à nouveau en un geste, et n'affichez que vos restaurants favoris.",
     obligatoire: false,
-    apkSha256: "2838d6052824bd96dc919d651cebbbc061bf04c08de94a6bd3c064e540fc2bf1",
-    apkTaille: 66209970,
+    apkSha256: "339647555beab5ebf9a68538b81e0f8d6d3c11c77d20e038dcf232874a9e96a8",
+    apkTaille: 66218162,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.11.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.12.apk",
   },
 };
