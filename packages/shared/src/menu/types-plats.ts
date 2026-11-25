@@ -65,6 +65,22 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["riz-sauce-kansiye", /^riz sauce kansiye\b/],
   ["sauce-feuilles-manioc", /^(sauce feuilles de manioc|saka saka)\b/],
   ["tripes", /^tripes\b/],
+  // Lot 11 IA (25/11/2026) : plats guinéens précis avant les règles générales riz-sauce, soupe et poisson
+  ["riz-sauce-tomate-poisson-fume", /^riz sauce tomate au poisson fume$/],
+  ["riz-sauce-poulet-legumes", /^riz sauce poulet et legumes$/],
+  ["riz-yassa", /^riz yassa\b/],
+  ["soupe-legumes-poulet", /^soupe de legumes au poulet$/],
+  ["poisson-fume-braise", /^poisson fume\b.*\bbraise$/],
+  ["capitaine-fume-sauce", /^capitaine fume\b/],
+  ["brochettes-gesiers", /^brochettes de gesiers\b/],
+  ["attieke", /^attieke$/],
+  ["sauce-pimentee", /^sauce pimentee\b/],
+  ["beignets-banane-plantain", /^beignets de banane plantain\b/],
+  ["boisson-energisante", /^boisson energisante\b/],
+  ["boisson-isotonique", /^boisson isotonique$/],
+  ["biere-sans-alcool", /^biere sans alcool$/],
+  ["lait-chaud", /^lait chaud\b/],
+  ["the-au-lait", /^the au lait$/],
   // Boissons avec alcool : un type par boisson, jamais pour une version « sans alcool »
   ["biere", /^biere (blonde|brune|pression|de ble)\b/],
   ["margarita", /^margarita$/],
@@ -433,6 +449,16 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["pancakes", /^(pancakes?|crepe (sucre|au chocolat|au citron|nature))\b/],
   ["glace", /^(glace (vanille|italienne|au chocolat|a la fraise)|sorbet)\b/],
   ["gateau", /^(gateau au chocolat|fondant au chocolat|brownie)\b/],
+  // Lot 11 (photos libres du 25/11/2026) : desserts, boisson sans alcool et deux plats
+  ["gateau-mais", /^gateau (de|au) mais$/],
+  ["gateau-banane", /^gateau (a la |de )?banane$/],
+  ["gateau-gingembre", /^gateau (au |de )?gingembre$/],
+  ["sables-coco", /^sables? (au |a la )?(noix de )?coco$/],
+  ["banane-caramelisee", /^bananes? caramelisees?$/],
+  ["pina-colada-sans-alcool", /^pina colada sans alcool$/],
+  ["jus-citron", /^jus (de )?citron$/],
+  ["poisson-four", /^poisson au four\b/],
+  ["agneau-mijote", /^agneau mijote\b/],
 ];
 
 /** Type de plat reconnu d'après le nom, ou `null` si on n'est pas sûr (alors aucune photo). */
