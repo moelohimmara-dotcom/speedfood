@@ -3,11 +3,15 @@
 //   --envoyer      ENVOI     : envoie dans le bucket `medias` (demo/photos/…) les fichiers du plan. Écrit dans le stockage.
 //   --appliquer    ÉCRITURE  : renseigne photo_url des plats du lot qui n'en ont pas encore. Écrit dans la base.
 //   --retirer      RETOUR    : remet à vide les photo_url du lot qui pointent vers demo/photos/ (retour arrière).
-// Environnement : SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY (clé de service : à ne jamais enregistrer dans le dépôt).
+//   --sans-cc      FILTRE    : (avec le plan ou --appliquer) écarte les photos CC BY / CC BY-SA, qui exigent un crédit public, tant que la page de crédits n'est pas en ligne.
+//   --bibliotheque ENVOI COMPLET : avec --envoyer, envoie TOUTES les photos de la bibliothèque (pas seulement celles du plan) ; sans --envoyer,
+//                  affiche seulement le décompte (fichiers, taille, fichiers manquants). Ne lit pas la base.
+// Environnement : SUPABASE_URL (ou NEXT_PUBLIC_SUPABASE_URL) et SUPABASE_SERVICE_ROLE_KEY (clé de service : à ne jamais enregistrer dans le dépôt ;
+// on peut les charger avec `node --env-file=.env.local …` sans les afficher).
 // Options : --lot presentation-2026-11  --racine-images <dossier contenant images-banques et images-ia>  --sortie <dossier>
 // Jamais d'écrasement : un plat qui a déjà sa propre photo n'est pas touché. Usage :
 //   node scripts/demo/photos-demonstration.mjs --racine-images ../../../speedfood
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -24,7 +28,7 @@ const drapeau = (nom) => args.includes(nom);
 const LOT = option("--lot", "presentation-2026-11");
 const RACINE_IMAGES = option("--racine-images", join(racine, "..", "..", ".."));
 const SORTIE = option("--sortie", mkdtempSync(join(tmpdir(), "photos-demo-")));
-const URL_SUPABASE = (process.env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+const URL_SUPABASE = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
 const CLE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 if (!URL_SUPABASE || !CLE) {
   console.error("Définir SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY dans l'environnement (jamais dans le dépôt).");
@@ -39,7 +43,7 @@ const copier = creerCopieur({ tmp, racine, paquets: {} });
 for (const f of ["photos", "types-plats", "plan-photos-demo", "bibliotheque-photos", "bibliotheque-banques-lot1", "bibliotheque-banques-lot2", "bibliotheque-banques-lot3", "bibliotheque-banques-lot4", "bibliotheque-banques-lot5", "bibliotheque-banques-pixabay", "bibliotheque-banques-pixabay-2", "bibliotheque-banques-pexels-6"]) {
   copier(`src/lib/menu/${f}.ts`);
 }
-const { planifierPhotosDemo, DOSSIER_STOCKAGE_DEMO } = await import(pathToFileURL(join(tmp, "src/lib/menu/plan-photos-demo.ts")).href);
+const { planifierPhotosDemo, creditObligatoire, cheminStockage, DOSSIER_STOCKAGE_DEMO } = await import(pathToFileURL(join(tmp, "src/lib/menu/plan-photos-demo.ts")).href);
 const { BIBLIOTHEQUE_PHOTOS } = await import(pathToFileURL(join(tmp, "src/lib/menu/bibliotheque-photos.ts")).href);
 
 async function lire(chemin) {
@@ -59,6 +63,51 @@ function cheminLocal(fichier) {
   return join(RACINE_IMAGES, dossier, fichier);
 }
 
+const TYPES = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+
+/** Envoie les fichiers dans le bucket `medias` (remplace un fichier déjà présent au même chemin : relance sans danger), 6 à la fois. S'arrête au premier refus. */
+async function envoyerFichiers(fichiers) {
+  let ok = 0;
+  let echec = null;
+  const file = [...fichiers];
+  await Promise.all(
+    Array.from({ length: 6 }, async () => {
+      for (let f = file.shift(); f && !echec; f = file.shift()) {
+        const r = await fetch(`${URL_SUPABASE}/storage/v1/object/medias/${f.chemin.split("/").map(encodeURIComponent).join("/")}`, {
+          method: "POST",
+          headers: { ...enTetes, "Content-Type": TYPES[extname(f.fichier).toLowerCase()] ?? "application/octet-stream", "x-upsert": "true", "cache-control": "31536000" },
+          body: readFileSync(cheminLocal(f.fichier)),
+        });
+        if (!r.ok) echec = `Envoi refusé (${r.status}) pour ${f.chemin}`;
+        else ok++;
+      }
+    }),
+  );
+  if (echec) {
+    console.error(`${echec} — ${ok} fichiers envoyés avant l'arrêt.`);
+    process.exit(1);
+  }
+  return ok;
+}
+
+// Envoi complet : toute la bibliothèque, sans lire la base (les menus de démonstration changent à chaque rechargement du lot).
+if (drapeau("--bibliotheque")) {
+  const fichiers = [...new Map(BIBLIOTHEQUE_PHOTOS.map((p) => [p.fichier, { fichier: p.fichier, chemin: cheminStockage(p.fichier) }])).values()].sort((a, b) => a.chemin.localeCompare(b.chemin));
+  const absents = fichiers.filter((f) => !existsSync(cheminLocal(f.fichier)));
+  const octets = fichiers.filter((f) => existsSync(cheminLocal(f.fichier))).reduce((t, f) => t + statSync(cheminLocal(f.fichier)).size, 0);
+  console.log(`Bibliothèque : ${fichiers.length} fichiers, ${(octets / 1048576).toFixed(0)} Mo, ${absents.length} introuvables en local${absents.length ? " (" + absents.slice(0, 5).map((a) => a.fichier).join(", ") + "…)" : ""}.`);
+  if (!drapeau("--envoyer")) {
+    console.log("Décompte seul : ajouter --envoyer pour envoyer ces fichiers dans le bucket medias.");
+  } else if (absents.length) {
+    console.error("Envoi annulé : des fichiers de la bibliothèque manquent en local.");
+    process.exit(1);
+  } else {
+    const ok = await envoyerFichiers(fichiers);
+    console.log(`Envoi terminé : ${ok} fichiers dans le bucket medias (${DOSSIER_STOCKAGE_DEMO}/…).`);
+  }
+  process.exit(0);
+}
+
 const restaurants = await lire(`restaurants?demo_lot=eq.${encodeURIComponent(LOT)}&select=id,nom`);
 if (restaurants.length === 0) {
   console.error(`Aucun restaurant dans le lot « ${LOT} » : rien à faire.`);
@@ -71,7 +120,9 @@ for (let i = 0; i < ids.length; i += 20) {
 }
 const parResto = new Map(ids.map((id) => [id, []]));
 for (const p of plats) if (!p.photo_url) parResto.get(p.restaurant_id)?.push({ id: p.id, nom: p.nom });
-const plan = planifierPhotosDemo([...parResto].map(([id, ps]) => ({ id, plats: ps })), BIBLIOTHEQUE_PHOTOS, BASE_PUBLIQUE);
+// --sans-cc : écarte les photos qui exigent un crédit (CC BY, CC BY-SA) tant que la page de crédits n'est pas en ligne ; d'autres photos les remplacent.
+const bibliotheque = drapeau("--sans-cc") ? BIBLIOTHEQUE_PHOTOS.filter((p) => !(p.source === "banque" && creditObligatoire(p.licence))) : BIBLIOTHEQUE_PHOTOS;
+const plan = planifierPhotosDemo([...parResto].map(([id, ps]) => ({ id, plats: ps })), bibliotheque, BASE_PUBLIQUE);
 
 mkdirSync(SORTIE, { recursive: true });
 writeFileSync(join(SORTIE, "plan.json"), JSON.stringify(plan, null, 1));
@@ -84,26 +135,12 @@ console.log(`Crédits : ${plan.credits.length} photos, dont ${plan.credits.filte
 console.log(`Fichiers du plan introuvables en local : ${manquants.length}${manquants.length ? " (" + manquants.slice(0, 5).map((m) => m.fichier).join(", ") + "…)" : ""}`);
 console.log(`Écrit dans ${SORTIE} : plan.json, credits.json`);
 
-const TYPES = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
-
 if (drapeau("--envoyer")) {
   if (manquants.length) {
     console.error("Envoi annulé : des fichiers du plan manquent en local.");
     process.exit(1);
   }
-  let ok = 0;
-  for (const f of plan.fichiers) {
-    const r = await fetch(`${URL_SUPABASE}/storage/v1/object/medias/${f.chemin.split("/").map(encodeURIComponent).join("/")}`, {
-      method: "POST",
-      headers: { ...enTetes, "Content-Type": TYPES[extname(f.fichier).toLowerCase()] ?? "application/octet-stream", "x-upsert": "true", "cache-control": "31536000" },
-      body: readFileSync(cheminLocal(f.fichier)),
-    });
-    if (!r.ok) {
-      console.error(`Envoi refusé (${r.status}) pour ${f.chemin}`);
-      process.exit(1);
-    }
-    ok++;
-  }
+  const ok = await envoyerFichiers(plan.fichiers);
   console.log(`Envoi terminé : ${ok} fichiers dans le bucket medias (${DOSSIER_STOCKAGE_DEMO}/…).`);
 }
 

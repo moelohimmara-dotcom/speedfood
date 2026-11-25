@@ -137,6 +137,8 @@ const lot = (await un(`select
   (select count(*)::int from livraisons l join restaurants r on r.id = l.restaurant_id where r.demo_lot is not null and l.statut = 'livree') livraisons,
   (select count(*)::int from restaurants r where r.demo_lot is not null and r.avis_total <> (select count(*) from avis a where a.restaurant_id = r.id and not a.est_test)) compteurs_faux`));
 verifier("60 restaurants, tous visibles et distincts", lot.restos === 60 && lot.restos_visibles === 60 && lot.noms === 60, JSON.stringify(lot));
+const nomsCopies = await un("select count(*)::int n from restaurants where demo_lot is not null and (nom like '%Quartier %' or nom like '% Centre')");
+verifier("chaque restaurant a son propre nom de la liste (aucun nom repris avec le quartier en suffixe)", nomsCopies.n === 0, String(nomsCopies.n));
 verifier("environ 2 000 plats répartis en rubriques, aucun plat sans rubrique", lot.plats >= 1680 && lot.plats <= 2400 && lot.sections >= 700 && lot.plats_sans_section === 0, JSON.stringify(lot));
 verifier("3 000 commandes d'historique, aucune marquée test (elles comptent dans les chiffres)", lot.commandes === 3000 && lot.commandes_test === 0, JSON.stringify(lot));
 verifier("les commandes se répartissent sur la plupart des restaurants", lot.restos_avec_commandes >= 50, String(lot.restos_avec_commandes));
