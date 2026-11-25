@@ -33,6 +33,9 @@ const ia4 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-$
 /** Images IA du lot 5 (25/11/2026) : plats uniques et boissons, fichiers nommés d'après le plat. */
 const ia5 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot5/${fichier}.png` });
 
+/** Images IA du lot 6 (25/11/2026) : derniers plats, fichiers nommés d'après le plat. */
+const ia6 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot6/${fichier}.png` });
+
 const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheque => ({
   id: `px-${idPexels}`,
   type,
@@ -188,6 +191,13 @@ const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
   ia5("batbout-poulet", "batbout-poulet"),
   ia5("pain-au-lait", "pain-au-lait"),
   ia5("soupe-lentilles-dal", "soupe-lentilles-dal"),
+  // Images IA du lot 6 (derniers plats)
+  ia6("crepe-poulet", "crepe-poulet"),
+  ia6("olives-cornichons", "olives-cornichons"),
+  ia6("kebbe-yaourt", "kebbe-yaourt"),
+  ia6("iskender-poulet", "iskender-poulet"),
+  ia6("manioc-pile-sauce-graine", "manioc-pile-sauce-graine"),
+  ia6("sauce-graine-poulet-fume", "sauce-graine-poulet-fume"),
   // Photos de banque (Pexels, licence libre, vraies photos : elles passent avant l'IA)
   banque("curry-vert", "31029754"),
   banque("nachos", "12557544"),
