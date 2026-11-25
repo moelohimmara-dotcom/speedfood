@@ -17,6 +17,8 @@ const copier = creerCopieur({ tmp, racine, paquets });
 
 copier("src/lib/disponibilite/etat.ts");
 copier("src/lib/decouverte/classement.ts");
+copier("src/lib/decouverte/recherche-plats.ts");
+copier("src/lib/menu/types-plats.ts");
 copier("src/lib/auth/redirection.ts");
 copier("scripts/tests/decouverte.test.mts");
 copier("scripts/tests/securite.test.mts");

@@ -8,6 +8,7 @@ import {
   libelleEtatRestaurant,
 } from "../../src/lib/disponibilite/etat";
 import { normaliser, qualiteCorrespondance, classerResultats } from "../../src/lib/decouverte/classement";
+import { distanceEdition, forceMot } from "../../src/lib/decouverte/recherche-plats";
 
 let ko = 0;
 let total = 0;
@@ -134,6 +135,36 @@ verifier("determinisme (deux appels identiques)", ids(classerResultats({ ...base
 const sansTerme = classerResultats({ ...base, terme: "", filtres: aucun });
 verifier("sans terme: tous les restaurants, groupe restaurant", [sansTerme.length, new Set(sansTerme.map((x) => x.groupe)).size], [6, 1]);
 verifier("plats correspondants tries disponible d'abord", classerResultats({ ...base, terme: "riz gras", filtres: aucun }).every((x) => x.platsCorrespondants.length >= 1), true);
+
+// --- recherche d'articles les mêmes ou similaires (pizza, pizza pollo, piza…) ---
+const restosPizza = [resto("P1", "Pizza Palace"), resto("P2", "Chez Mario"), resto("P3", "Grill Express"), resto("P4", "Burger House"), resto("P5", "Maison Calzone")];
+const platsPizza = new Map([
+  ["P1", [plat("p1a", "Pizza poulet", true, 1), plat("p1b", "Pizza reine", true, 1)]],
+  ["P2", [plat("p2a", "Pizza reine", true, 2), plat("p2b", "Pizza margherita", true, 2)]],
+  ["P3", [plat("p3a", "Poulet braisé entier", true, 1)]],
+  ["P4", [plat("p4a", "Burger poulet", true, 1)]],
+  ["P5", [plat("p5a", "Calzone jambon", true, 1)]],
+]);
+const basePizza = { restaurants: restosPizza, platsParRestaurant: platsPizza, fraicheurHeures: 6, maintenant: T };
+const idsPizza = (terme: string) => ids(classerResultats({ ...basePizza, terme, filtres: aucun }));
+
+verifier("« pizza » : recherche directe inchangée (tous les restaurants à pizza, même article)", idsPizza("pizza").filter((x) => x.endsWith("exact_confirme")).sort(), ["P1:exact_confirme", "P2:exact_confirme"]);
+verifier("« pizza pollo » : « Pizza poulet » est le même article (équivalent de langue)", idsPizza("pizza pollo")[0], "P1:exact_confirme");
+verifier("« pizza pollo » : les autres pizzas sont des articles similaires, après", idsPizza("pizza pollo"), ["P1:exact_confirme", "P2:similaire"]);
+verifier("« pizza pollo » : ni burger poulet ni poulet braisé (le plat n'est pas une pizza)", idsPizza("pizza pollo").some((x) => x.startsWith("P3") || x.startsWith("P4")), false);
+verifier("« pizza pollo » : P1 ne montre que l'article identique, pas la pizza reine", classerResultats({ ...basePizza, terme: "pizza pollo", filtres: aucun })[0].platsCorrespondants.map((p) => p.plat.nom), ["Pizza poulet"]);
+verifier("« pizza pollo » : P2 montre ses pizzas similaires", classerResultats({ ...basePizza, terme: "pizza pollo", filtres: aucun }).find((x) => x.restaurant.id === "P2")?.platsCorrespondants.map((p) => p.plat.nom), ["Pizza margherita", "Pizza reine"]);
+verifier("« piza » (faute) trouve les pizzas", idsPizza("piza").map((x) => x.split(":")[0]).sort(), ["P1", "P2"]);
+verifier("« pizzas » (pluriel) trouve les pizzas", idsPizza("pizzas").map((x) => x.split(":")[0]).sort(), ["P1", "P2"]);
+verifier("« pollo » seul : poulet braisé, burger poulet et pizza poulet", idsPizza("pollo").map((x) => x.split(":")[0]).sort(), ["P1", "P3", "P4"]);
+verifier("« chicken burger » : « Burger poulet » est le même article", idsPizza("chicken burger")[0], "P4:exact_confirme");
+verifier("« pizza jambon » : calzone jambon n'est pas une pizza (premier mot absent)", idsPizza("pizza jambon").some((x) => x.startsWith("P5")), false);
+verifier("filtre « disponible » : pas d'articles similaires", classerResultats({ ...basePizza, terme: "pizza pollo", filtres: { ...aucun, dispo: true } }).map((x) => x.restaurant.id), ["P1"]);
+verifier("mots vides ignorés : « pizza au poulet »", idsPizza("pizza au poulet")[0], "P1:exact_confirme");
+verifier("mot de 3 lettres : aucune faute tolérée (« riz » ne trouve pas « rix »)", forceMot("rix", "riz"), 0);
+verifier("force : identique, début, équivalent, faute", [forceMot("pizza", "pizza"), forceMot("pizz", "pizza"), forceMot("pollo", "poulet"), forceMot("poullet", "poulet")], [1, 0.9, 0.85, 0.7]);
+verifier("distance d'édition : échange de deux lettres = 1", [distanceEdition("pizaz", "pizza"), distanceEdition("poulet", "poulet"), distanceEdition("chat", "chien")], [1, 0, 3]);
+verifier("recherche sans rapport : toujours vide", idsPizza("sushi"), []);
 
 console.log(`\n${total - ko}/${total} tests passes`);
 process.exit(ko === 0 ? 0 : 1);
