@@ -113,6 +113,15 @@ async function sectionValide(db: SupabaseClient, restaurantId: string, sectionId
   return data ? { ok: true, id: sectionId } : { ok: false };
 }
 
+/**
+ * Promotions réservées par le score qualité : l'appelant peut fournir un contrôle qui dit si les promotions sont suspendues
+ * pour ce restaurant (palier le plus bas du mois le plus récent). Ce service ne lit jamais les scores lui-même ; sans contrôle
+ * fourni, aucun prix promo n'est bloqué ici.
+ */
+export type ControlePromotions = () => Promise<boolean>;
+
+const PROMOTIONS_SUSPENDUES = "Les promotions sont suspendues pour votre restaurant ce mois-ci (score qualité au palier le plus bas). Retirez le prix promotionnel ou attendez le prochain calcul.";
+
 export interface BrutPlat {
   nom?: unknown;
   description?: unknown;
@@ -121,10 +130,11 @@ export interface BrutPlat {
   sectionId?: unknown;
 }
 
-export async function creerPlat(db: SupabaseClient, restaurantId: string, brut: BrutPlat): Promise<ResultatMenu> {
+export async function creerPlat(db: SupabaseClient, restaurantId: string, brut: BrutPlat, promotionsSuspendues?: ControlePromotions): Promise<ResultatMenu> {
   const { prixPlatMaxGnf } = await obtenirParametresApplication();
   const v = validerPlat({ nom: brut.nom, description: brut.description ?? "", prix: brut.prix, prixPromo: brut.prixPromo }, prixPlatMaxGnf);
   if (!v.ok) return echec(v.erreur);
+  if (v.valeurs.prixPromo !== null && promotionsSuspendues && (await promotionsSuspendues())) return echec(PROMOTIONS_SUSPENDUES);
   const section = await sectionValide(db, restaurantId, brut.sectionId);
   if (!section.ok) return echec("Section introuvable.");
   const { error } = await db.from("menu_items").insert({
@@ -138,11 +148,12 @@ export async function creerPlat(db: SupabaseClient, restaurantId: string, brut: 
   return error ? echec("Impossible d'ajouter le plat. Réessayez dans un instant.") : { ok: true };
 }
 
-export async function modifierPlat(db: SupabaseClient, restaurantId: string, id: unknown, brut: BrutPlat): Promise<ResultatMenu> {
+export async function modifierPlat(db: SupabaseClient, restaurantId: string, id: unknown, brut: BrutPlat, promotionsSuspendues?: ControlePromotions): Promise<ResultatMenu> {
   if (typeof id !== "string" || !estUuid(id)) return echec("Plat introuvable.");
   const { prixPlatMaxGnf } = await obtenirParametresApplication();
   const v = validerPlat({ nom: brut.nom, description: brut.description ?? "", prix: brut.prix, prixPromo: brut.prixPromo }, prixPlatMaxGnf);
   if (!v.ok) return echec(v.erreur);
+  if (v.valeurs.prixPromo !== null && promotionsSuspendues && (await promotionsSuspendues())) return echec(PROMOTIONS_SUSPENDUES);
   const section = await sectionValide(db, restaurantId, brut.sectionId);
   if (!section.ok) return echec("Section introuvable.");
   const { data, error } = await db

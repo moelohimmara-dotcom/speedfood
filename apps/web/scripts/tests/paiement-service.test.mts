@@ -31,8 +31,8 @@ const commande = (id: string, surcharge: Partial<CommandePourPaiement> = {}): Co
 });
 
 /** Banc d'essai : un service, un dépôt en mémoire, une passerelle de simulation dont on peut compter les appels et provoquer des pannes. */
-function banc(options: { commandes?: CommandePourPaiement[]; reglages?: ReturnType<typeof reglagesParDefaut>; capacites?: { versement: boolean; remboursement: boolean } } = {}) {
-  const { depot, etat } = creerDepotMemoire({ commandes: options.commandes ?? [commande("cmd-1")], reglages: options.reglages });
+function banc(options: { commandes?: CommandePourPaiement[]; reglages?: ReturnType<typeof reglagesParDefaut>; capacites?: { versement: boolean; remboursement: boolean }; paliers?: Record<string, "excellent" | "tres_bon" | "bon" | "moyen" | "mauvais" | null> } = {}) {
+  const { depot, etat } = creerDepotMemoire({ commandes: options.commandes ?? [commande("cmd-1")], reglages: options.reglages, paliers: options.paliers });
   const base = creerPasserelleSimulation({ cle: "cle-test" });
   const appels = { verser: 0, rembourser: 0, encaisser: 0 };
   const pannes = { verser: false, rembourser: false, encaisser: false };
@@ -95,6 +95,38 @@ async function ouvrirEtPayer(b: ReturnType<typeof banc>, orderId = "cmd-1", oper
   const encore = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "mtn_momo" });
   verifier("ouverture : la commande est marquée « paiement en ligne en cours »", b.etat.commandesSync.get("cmd-1"), "en_cours");
   verifier("ouverture rejouée : renvoie le même paiement, sans second appel au prestataire", [encore.ok && encore.deja, b.etat.paiements.size, b.appels.encaisser], [true, 1, 1]);
+}
+{
+  const b = banc({ paliers: { "resto-1": "excellent" } });
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = o.ok ? await b.depot.paiementParId(o.paiementId) : null;
+  verifier("palier excellent : commission fixe de 1 000 réduite de moitié, le restaurant touche le reste de la commission", [p?.fraisSpeedfoodGnf, p?.restaurantGnf, p?.speedfoodBrutGnf], [500, 24_500, 500]);
+}
+{
+  const b = banc({ paliers: { "resto-1": "tres_bon" }, reglages: reglagesParDefaut({ commissionReductionExcellentPermille: 500 }) });
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = o.ok ? await b.depot.paiementParId(o.paiementId) : null;
+  verifier("palier très bon : aucune réduction, commission entière", [p?.fraisSpeedfoodGnf, p?.restaurantGnf], [1_000, 24_000]);
+}
+{
+  const b = banc({ paliers: { "resto-1": "excellent" }, reglages: reglagesParDefaut({ commissionReductionExcellentPermille: 0 }) });
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = o.ok ? await b.depot.paiementParId(o.paiementId) : null;
+  verifier("réduction réglée à 0 : aucune réduction même au palier excellent", [p?.fraisSpeedfoodGnf, p?.restaurantGnf], [1_000, 24_000]);
+}
+{
+  const b = banc({ paliers: { "resto-1": "excellent" } });
+  (b.depot as { palierScoreRestaurant?: unknown }).palierScoreRestaurant = undefined;
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = o.ok ? await b.depot.paiementParId(o.paiementId) : null;
+  verifier("dépôt sans lecture de palier : commission entière, ouverture normale", [o.ok, p?.fraisSpeedfoodGnf, p?.restaurantGnf], [true, 1_000, 24_000]);
+}
+{
+  const b = banc({ paliers: { "resto-1": "excellent" } });
+  (b.depot as { palierScoreRestaurant?: unknown }).palierScoreRestaurant = async () => { throw new Error("score illisible"); };
+  const o = await b.service.ouvrirPaiement({ orderId: "cmd-1", operateur: "orange_money" });
+  const p = o.ok ? await b.depot.paiementParId(o.paiementId) : null;
+  verifier("lecture du palier qui échoue : commission entière, l'encaissement n'est pas bloqué", [o.ok, p?.fraisSpeedfoodGnf, p?.restaurantGnf], [true, 1_000, 24_000]);
 }
 {
   const b = banc({ commandes: [commande("cmd-1", { mode: "retrait", livraisonMode: "speedfood", fraisLivraisonGnf: 5_000 })] });

@@ -12,6 +12,7 @@ export const CHEMINS_RESTAURATEUR_SUR_LE_SITE: ReadonlySet<string> = new Set([
   '/api/v1/restaurant/activite',
   '/api/v1/restaurant/commandes/document',
   '/api/v1/restaurant/etat',
+  '/api/v1/restaurant/score',
 ]);
 
 export const origineRestaurateur = (chemin: string): string => (CHEMINS_RESTAURATEUR_SUR_LE_SITE.has(chemin) ? SITE_WEB : ORIGINE_CATALOGUE);

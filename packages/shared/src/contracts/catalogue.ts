@@ -8,6 +8,8 @@ export interface RestaurantPublic {
   ouvert: boolean; accepteCommandes: boolean; statutMisAJourLe: string | null;
   photoUrl?: string | null; logoUrl?: string | null;
   note?: number | null; avisTotal?: number;
+  /** Palier du score qualité mensuel le plus récent, quand il existe : sert au badge et à la mise en avant à l'accueil. */
+  scorePalier?: 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais';
   horaires?: string | null; consignes?: string | null; moyensPaiement?: string[];
 }
 /** Supplément facultatif d'un plat (par exemple « Piment »). Seuls les suppléments disponibles sont transmis. `prixGnf` est un montant entier ≥ 0. */

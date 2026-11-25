@@ -25,7 +25,7 @@ import { verrouPro } from '../connexion/verrou-natif';
 import { CommandeReelle } from './CommandeReelle';
 import { PHRASE_MODES_COMMANDE } from './commande-reelle';
 import { Vignette } from './Vignette';
-import { CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
+import { BadgeScore, CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { BarreOnglets } from './BarreOnglets';
@@ -204,7 +204,7 @@ export function CatalogueReel() {
     <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
     <View style={{ flex: 1, gap: 8 }}>
       <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' \u00b7 ') || 'Localisation non renseign\u00e9e'}</Text></View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} /><BadgeScore palier={r.scorePalier} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
     </View>
   </Pressable>; };

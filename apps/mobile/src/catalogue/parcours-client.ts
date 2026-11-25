@@ -19,8 +19,13 @@ export function commandabilite(r: Pick<RestaurantPublic, 'ouvert' | 'accepteComm
 }
 const RANG_RESTAURANT = (r: Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes'>): number => r.ouvert ? (r.accepteCommandes ? 0 : 1) : 2;
 /** Ceux où l'on peut commander d'abord, puis ceux en pause, puis les fermés. L'ordre d'origine est gardé à l'intérieur de chaque groupe (tri stable). */
-export function ordonnerRestaurants<T extends Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes'>>(liste: readonly T[]): T[] {
-  return liste.map((r, i) => ({ r, i })).sort((a, b) => RANG_RESTAURANT(a.r) - RANG_RESTAURANT(b.r) || a.i - b.i).map(x => x.r);
+/** Bonus de mise en avant du score qualité : excellent d'abord, puis très bon ; les autres paliers ne changent rien. */
+function bonusPalier(r: Pick<RestaurantPublic, 'scorePalier'>): number {
+  return r.scorePalier === 'excellent' ? 0 : r.scorePalier === 'tres_bon' ? 1 : 2;
+}
+
+export function ordonnerRestaurants<T extends Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes' | 'scorePalier'>>(liste: readonly T[]): T[] {
+  return liste.map((r, i) => ({ r, i })).sort((a, b) => RANG_RESTAURANT(a.r) - RANG_RESTAURANT(b.r) || bonusPalier(a.r) - bonusPalier(b.r) || a.i - b.i).map(x => x.r);
 }
 
 // ---------------------------------------------------------------- Plat « à confirmer »

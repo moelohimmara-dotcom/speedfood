@@ -97,6 +97,8 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
         tauxMobilePermille: { orange_money: Number(r.frais_mobile_permille_orange ?? 15), mtn_momo: Number(r.frais_mobile_permille_mtn ?? 17) },
         fraisSpeedfoodCommandeGnf: Number(r.frais_speedfood_commande_gnf ?? 1000),
         commissionSpeedfoodPermille: Number(r.commission_speedfood_permille ?? 0),
+        // 0 tant que la colonne est absente (migration non appliquée) : aucune réduction inventée.
+        commissionReductionExcellentPermille: Number(r.commission_reduction_excellent_permille ?? 0),
         fraisVersementGnf: Number(r.frais_versement_gnf ?? 0),
         fraisMobileFixeGnf: Number(r.frais_mobile_fixe_gnf ?? 0),
         delaiExpirationMinutes: Number(r.delai_expiration_minutes ?? 15),
@@ -127,6 +129,19 @@ export function creerDepotSupabase(db: SupabaseClient = creerClientAdmin() as un
         paiementMode: typeof o.paiement_mode === "string" ? o.paiement_mode : null,
         paiementStatut: typeof o.paiement_statut === "string" ? o.paiement_statut : "non_demande",
       };
+    },
+
+    async palierScoreRestaurant(restaurantId) {
+      const { data, error } = await db
+        .from("scores_qualite_mensuels")
+        .select("palier")
+        .eq("restaurant_id", restaurantId)
+        .order("mois", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error || !data) return null;
+      const p = (data as Ligne).palier;
+      return p === "excellent" || p === "tres_bon" || p === "bon" || p === "moyen" || p === "mauvais" ? p : null;
     },
 
     paiementParId: (id) => un("paiements", "id", id),

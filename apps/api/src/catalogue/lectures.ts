@@ -31,13 +31,33 @@ function projeter(r: LigneRestaurant, fiche = false): RestaurantPublic {
   const moyens = Array.isArray(r.moyens_paiement) ? r.moyens_paiement.filter(m => typeof m === 'string' && m.trim().length > 0 && m.length <= 60).slice(0, 12) : [];
   return { ...base, consignes: texteFacultatif(r.consignes, 1000), moyensPaiement: moyens };
 }
-export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>): Promise<PageRestaurants> {
+export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>, admin?: SupabaseClient<Database>): Promise<PageRestaurants> {
   let q = db.from('restaurants').select(COLONNES_LISTE as string).eq('publie', true).is('suspendu_le', null).order('id').limit(51);
   if (apres) q = q.gt('id', apres);
   const { data: brut, error } = await q;
   if (error || !brut) throw new Error('catalogue_indisponible');
   const data = brut as unknown as LigneRestaurant[];
-  const page = data.slice(0, 50).map(r => projeter(r));
+  const pageBrute = data.slice(0, 50);
+  // Score qualité : le palier du mois le plus récent de chaque restaurant de la page (une lecture bornée, triée du plus récent au plus ancien).
+  // La table est réservée au serveur (aucune policy) : la lecture passe par le client de service quand il est fourni, jamais par le client public.
+  const paliers = new Map<string, string>();
+  if (admin && pageBrute.length > 0) {
+    const { data: scores, error: erreurScores } = await admin
+      .from('scores_qualite_mensuels' as never)
+      .select('restaurant_id, palier, mois')
+      .in('restaurant_id', pageBrute.map(r => r.id))
+      .order('mois', { ascending: false })
+      .limit(500);
+    if (erreurScores) console.error("catalogue_paliers_scores_illisibles");
+    for (const s of (scores ?? []) as Array<{ restaurant_id: string; palier: string }>) {
+      if (!paliers.has(s.restaurant_id)) paliers.set(s.restaurant_id, s.palier);
+    }
+  }
+  const page = pageBrute.map(r => {
+    const projete = projeter(r);
+    const palier = paliers.get(r.id);
+    return palier ? { ...projete, scorePalier: palier as 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais' } : projete;
+  });
   return { restaurants: page, suivant: data.length > 50 ? page.at(-1)!.id : null, luLe: new Date().toISOString() };
 }
 type LigneOption = { id: string; nom: string; prix: number; disponible: boolean };

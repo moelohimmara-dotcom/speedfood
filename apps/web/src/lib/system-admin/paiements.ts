@@ -180,6 +180,7 @@ export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiemen
     frais_mobile_permille_mtn: entier(formulaire.get("fraisMtn"), 0, 100),
     frais_speedfood_commande_gnf: entier(formulaire.get("fraisSpeedfood"), 0, 100_000),
     commission_speedfood_permille: entier(formulaire.get("commissionPermille"), 0, 1000),
+    commission_reduction_excellent_permille: entier(formulaire.get("commissionReductionExcellent"), 0, 1000),
     frais_versement_gnf: entier(formulaire.get("fraisVersement"), 0, 100_000),
     frais_mobile_fixe_gnf: entier(formulaire.get("fraisMobileFixe"), 0, 100_000),
     delai_expiration_minutes: entier(formulaire.get("delai"), 1, 120),
@@ -205,7 +206,7 @@ export async function enregistrerReglagesPaiementAction(_etat: EtatActionPaiemen
     action: "paiement.reglages_modifies",
     cibleType: "parametres_paiement",
     cibleId: "global",
-    motif: `interrupteur ${actif ? "allumé" : "éteint"}, fournisseur ${fournisseur}, commission ${valeurs.frais_speedfood_commande_gnf} GNF + ${valeurs.commission_speedfood_permille} pour-mille du repas, valeurs ${valide ? "validées" : "de simulation"}`,
+    motif: `interrupteur ${actif ? "allumé" : "éteint"}, fournisseur ${fournisseur}, commission ${valeurs.frais_speedfood_commande_gnf} GNF + ${valeurs.commission_speedfood_permille} pour-mille du repas, réduction excellent ${valeurs.commission_reduction_excellent_permille} pour-mille, valeurs ${valide ? "validées" : "de simulation"}`,
   });
   revalidatePath("/system/paiements");
   return { succes: "Réglages enregistrés." };
