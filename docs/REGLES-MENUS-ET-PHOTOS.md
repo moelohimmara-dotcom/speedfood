@@ -92,3 +92,19 @@ Plusieurs sources se complètent : photo du restaurant, banques libres (Pexels, 
 - **Sans marque :** « Boisson énergisante 25 cl », « Soda cola », « Whisky (4 cl) », jamais le nom d'une marque. Les cocktails portent le nom de leur recette (Mojito, Piña colada).
 - **Photos :** un cocktail, un vin ou une bière ont chacun leur type de photo ; aucun n'est affiché sans photo contrôlée du bon type (voir sections 5 et 6).
 - **À décider avant une vraie mise en ligne :** la vente d'alcool par livraison est réglementée. Avant d'ouvrir ces rubriques à de vrais restaurants, il faut : une case « sert de l'alcool » activée par Speedfood après vérification de l'autorisation du restaurant, une confirmation de majorité du client à la commande, et une vérification de l'âge à la livraison. Sans ces trois garde-fous, ces rubriques restent réservées à la démonstration.
+
+## 9. Brancher les photos sur la démonstration (procédure en trois temps)
+
+La bibliothèque (types de plat vers fichiers) n'apparaît à l'écran qu'une fois les fichiers hébergés et `menu_items.photo_url` renseigné. Le plan est calculé par `src/lib/menu/plan-photos-demo.ts` (fonction pure, testée) et appliqué par `apps/web/scripts/demo/photos-demonstration.mjs`. Chaque étape est séparée et rien n'est écrit sans option explicite :
+
+| Étape | Commande (depuis `apps/web`, avec `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` dans l'environnement) | Effet |
+|---|---|---|
+| 1. Plan | `node scripts/demo/photos-demonstration.mjs --racine-images <dossier>` | Lit le lot (`demo_lot`), calcule quelle photo va sur quel plat, écrit `plan.json` et `credits.json`. **Ne modifie rien.** |
+| 2. Envoi | `… --envoyer` | Envoie les fichiers dans le bucket `medias` sous `demo/photos/…`. Écrit dans le stockage. |
+| 3. Écriture | `… --appliquer` | Renseigne `photo_url` des seuls plats qui n'en ont pas (jamais d'écrasement d'une photo propre au restaurant). |
+| Retour arrière | `… --retirer` | Remet à vide les `photo_url` du lot qui pointent vers `demo/photos/`. |
+
+- **Ordre obligatoire :** envoi avant écriture, sinon les plats pointent vers des fichiers absents.
+- **Crédits :** `credits.json` liste les photos utilisées avec auteur, licence et lien. Celles sous CC BY ou CC BY-SA (`obligatoire: true`) doivent figurer sur une page de crédits publique **avant** toute mise en ligne.
+- **Images IA :** les plats concernés sont listés dans `platsIllustratifs` ; le mot « image illustrative » doit s'afficher sur leur fiche.
+- **Suppression de la démo :** `fn_demo_supprimer` retire les restaurants et plats du lot ; les fichiers de `demo/photos/` restent dans le bucket et se vident à part.

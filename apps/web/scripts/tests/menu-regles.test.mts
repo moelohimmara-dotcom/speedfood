@@ -2,6 +2,7 @@ import { APERCU_RUBRIQUE, RUBRIQUE_LONGUE, SEUIL_BARRE_RUBRIQUES, SEUIL_RECHERCH
 import { AVERTISSEMENT_ALCOOL, RUBRIQUES_AVEC_ALCOOL, RUBRIQUES_SANS_ALCOOL, classeBoisson, titresDeGroupe } from "../../src/lib/menu/boissons";
 import { BIBLIOTHEQUE_PHOTOS } from "../../src/lib/menu/bibliotheque-photos";
 import { TYPES_RECONNUS, typeDePlat } from "../../src/lib/menu/types-plats";
+import { cheminStockage, creditObligatoire, planifierPhotosDemo } from "../../src/lib/menu/plan-photos-demo";
 import { attribuerPhotos, couverturePhotos, estFormule, type ArticleMenu, type PhotoBibliotheque } from "../../src/lib/menu/photos";
 
 /** Tests des règles d'affichage des longs menus et d'attribution des photos. */
@@ -123,6 +124,29 @@ verifier("lot Wikimedia 3 : plats locaux reconnus", types(["Colombo de poulet", 
 verifier("lot Wikimedia 4 : plats locaux reconnus", types(["Banane flambée", "Bissara", "Chebakia (4)", "Court-bouillon de poisson", "Féroce d'avocat", "Gogoși (4)", "Kédjenou de poulet", "Gâteau patate douce", "Plăcintă au fromage", "Poulet DG", "Rfissa", "Tourment d'amour", "Covrigi (3)"]), ["banane-flambee", "bissara", "chebakia", "court-bouillon", "feroce-avocat", "gogosi", "kedjenou-poulet", "gateau-patate-douce", "placinta-fromage", "poulet-dg", "rfissa", "tourment-amour", "covrigi"]);
 verifier("lot Wikimedia 5 : plats locaux reconnus", types(["Soupe de haricots et fumé", "Crème de semoule", "Chips de plantain", "Salade de bœuf"]), ["soupe-haricots-fume", "creme-semoule", "chips-plantain", "salade-boeuf"]);
 verifier("lot Pexels 21 : types reconnus", types(["Salade d'avocat aux crevettes", "Salade de chou et crudités", "Côte de bœuf grillée", "Purée de pommes de terre", "Crêpes à la confiture (3)", "Salade d'avocat"]), ["salade-avocat-crevettes", "salade-chou", "cote-boeuf", "puree", "crepes-confiture", "salade-avocat"]);
+// Plan de rattachement des photos de la démonstration (fonction pure, sans réseau).
+verifier("crédit obligatoire : CC BY et CC BY-SA seulement", [creditObligatoire("CC BY-SA 4.0"), creditObligatoire("CC BY 2.0"), creditObligatoire("CC0"), creditObligatoire("Pexels License"), creditObligatoire("Pixabay Content License"), creditObligatoire("Public domain"), creditObligatoire(undefined)], [true, true, false, false, false, false, false]);
+verifier("chemin de stockage : sous demo/photos", cheminStockage("wikimedia-lot3/rfissa-001.jpg"), "demo/photos/wikimedia-lot3/rfissa-001.jpg");
+{
+  const plan = planifierPhotosDemo(
+    [
+      { id: "r1", plats: [{ id: "p1", nom: "Poulet yassa" }, { id: "p2", nom: "Menu gyros" }, { id: "p3", nom: "Plat introuvable xyz" }, { id: "p4", nom: "Rfissa" }] },
+      { id: "r2", plats: [{ id: "p5", nom: "Poulet yassa" }, { id: "p6", nom: "Rfissa" }] },
+    ],
+    BIBLIOTHEQUE_PHOTOS,
+    "https://x.test/storage/v1/object/public/medias/",
+  );
+  const ids = plan.lignes.map((l) => l.platId);
+  verifier("plan : plats reconnus avec photo, type inconnu sans photo", ids.includes("p1") && ids.includes("p4") && !ids.includes("p3"), true);
+  verifier("plan : une formule n'a qu'une photo de formule", plan.lignes.filter((l) => l.platId === "p2").every((l) => l.photoId.startsWith("ia-formule-")), true);
+  verifier("plan : adresse publique sans double barre", plan.lignes.every((l) => l.url.startsWith("https://x.test/storage/v1/object/public/medias/demo/photos/") && !l.url.includes("medias//")), true);
+  verifier("plan : statistiques cohérentes", plan.statistiques.plats === 6 && plan.statistiques.avecPhoto + plan.statistiques.sansPhoto === 6 && plan.statistiques.avecPhoto === plan.lignes.length, true);
+  verifier("plan : fichiers à envoyer sans doublon", new Set(plan.fichiers.map((f) => f.chemin)).size === plan.fichiers.length, true);
+  verifier("plan : pas deux fois la même photo dans un menu", new Set(plan.lignes.filter((l) => ["p1", "p2", "p3", "p4"].includes(l.platId)).map((l) => l.photoId)).size, plan.lignes.filter((l) => ["p1", "p2", "p3", "p4"].includes(l.platId)).length);
+  verifier("plan : un crédit par photo utilisée de banque, jamais pour l'IA", plan.credits.every((c) => c.fichier.length > 0 && c.licence.length > 0) && new Set(plan.credits.map((c) => c.photoId)).size === plan.credits.length, true);
+  verifier("plan : plats illustratifs = photos IA seulement", plan.platsIllustratifs.length, plan.statistiques.parSource.ia);
+  verifier("plan : démonstration vide", planifierPhotosDemo([], BIBLIOTHEQUE_PHOTOS, "https://x.test").statistiques, { plats: 0, avecPhoto: 0, sansPhoto: 0, parSource: { banque: 0, ia: 0 } });
+}
 // Les formules reçoivent une photo de formule (plusieurs éléments), jamais la photo d'un seul plat ; un plat ne reçoit jamais une photo de formule.
 const bibF: PhotoBibliotheque[] = [{ id: "f-doner", type: "formule-doner", source: "ia" }, { id: "p-shawarma", type: "shawarma", source: "banque" }];
 const formules = attribuerPhotos("r", [art("1", "Menu shawarma", "formule-doner"), art("2", "Shawarma poulet", "shawarma"), art("3", "Menu pizza", "pizza"), art("4", "Shawarma mixte", "formule-doner")], bibF);

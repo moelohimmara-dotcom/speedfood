@@ -111,6 +111,7 @@ copier("scripts/tests/rangees.test.mts");
 copier("src/lib/menu/affichage.ts");
 copier("src/lib/menu/photos.ts");
 copier("src/lib/menu/types-plats.ts");
+copier("src/lib/menu/plan-photos-demo.ts");
 copier("src/lib/menu/bibliotheque-photos.ts");
 copier("src/lib/menu/bibliotheque-banques-lot1.ts");
 copier("src/lib/menu/bibliotheque-banques-lot2.ts");
