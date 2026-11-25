@@ -8,6 +8,13 @@ function date(x: unknown): string { const s = texte(x, 40); if (!Number.isFinite
 /** Adresse d'image : HTTPS seulement, sans espace ni caractère de contrôle (le serveur filtre déjà ; la lecture revérifie, une image n'est jamais chargée depuis une autre adresse). */
 function urlImage(x: unknown): string | null { if (x === null) return null; const s = texte(x, 2000); if (!/^https:\/\/[^\s\x00-\x1f]+$/.test(s)) throw Error('CATALOGUE_INVALIDE'); return s; }
 function entier(x: unknown, min = 0): number { if (typeof x !== 'number' || !Number.isSafeInteger(x) || x < min) throw Error('CATALOGUE_INVALIDE'); return x; }
+/** Cote Speedfood, fiabilité et badges (facultatifs, additifs) : présents mais douteux = refus en bloc. */
+const FIABILITES = ['nouveau', 'en_cours', 'fiable'];
+function coteLue(r: Record<string, unknown>, lu: { cote?: number | null; fiabiliteCote?: 'nouveau' | 'en_cours' | 'fiable'; badges?: string[] }) {
+  if (r.cote !== undefined) { if (r.cote !== null && (typeof r.cote !== 'number' || !Number.isFinite(r.cote) || r.cote < 0 || r.cote > 5)) throw Error('CATALOGUE_INVALIDE'); lu.cote = r.cote as number | null; }
+  if (r.fiabiliteCote !== undefined) { if (typeof r.fiabiliteCote !== 'string' || !FIABILITES.includes(r.fiabiliteCote)) throw Error('CATALOGUE_INVALIDE'); lu.fiabiliteCote = r.fiabiliteCote as 'nouveau' | 'en_cours' | 'fiable'; }
+  if (r.badges !== undefined) { if (!Array.isArray(r.badges) || r.badges.length > 8 || r.badges.some(b => typeof b !== 'string' || b.length > 40)) throw Error('CATALOGUE_INVALIDE'); lu.badges = r.badges as string[]; }
+}
 /** Champs facultatifs : ajoutés seulement s'ils sont présents (un ancien serveur donne exactement l'ancienne lecture) ; présents mais douteux = refus en bloc. */
 function restaurant(x: unknown): RestaurantPublic {
   const r = objet(x);
@@ -17,6 +24,7 @@ function restaurant(x: unknown): RestaurantPublic {
   if (r.logoUrl !== undefined) lu.logoUrl = urlImage(r.logoUrl);
   if (r.note !== undefined) { if (r.note !== null && (typeof r.note !== 'number' || !Number.isFinite(r.note) || r.note < 0 || r.note > 5)) throw Error('CATALOGUE_INVALIDE'); lu.note = r.note as number | null; }
   if (r.avisTotal !== undefined) lu.avisTotal = entier(r.avisTotal);
+  coteLue(r, lu);
   if (r.scorePalier !== undefined) { if (typeof r.scorePalier !== 'string' || !['excellent', 'tres_bon', 'bon', 'moyen', 'mauvais'].includes(r.scorePalier)) throw Error('CATALOGUE_INVALIDE'); lu.scorePalier = r.scorePalier as RestaurantPublic['scorePalier']; }
   if (r.horaires !== undefined) lu.horaires = r.horaires === null ? null : texte(r.horaires, 300);
   if (r.consignes !== undefined) lu.consignes = r.consignes === null ? null : texte(r.consignes, 1000);
@@ -100,6 +108,8 @@ function restaurantIndex(x: unknown): RestaurantIndexPublic {
   const lu: RestaurantIndexPublic = { id: identifiant(r.id), nom: texte(r.nom, 256), lieu: texte(r.lieu, 256), categorie: texte(r.categorie, 256), ouvert: r.ouvert, accepteCommandes: r.accepteCommandes };
   if (r.note !== undefined) { if (r.note !== null && (typeof r.note !== 'number' || !Number.isFinite(r.note) || r.note < 0 || r.note > 5)) throw Error('CATALOGUE_INVALIDE'); lu.note = r.note as number | null; }
   if (r.avisTotal !== undefined) lu.avisTotal = entier(r.avisTotal);
+  coteLue(r, lu);
+  if (r.horaires !== undefined) lu.horaires = texte(r.horaires, 300);
   if (r.latitude !== undefined || r.longitude !== undefined) {
     if (typeof r.latitude !== 'number' || typeof r.longitude !== 'number' || !(r.latitude >= -90 && r.latitude <= 90) || !(r.longitude >= -180 && r.longitude <= 180)) throw Error('CATALOGUE_INVALIDE');
     lu.latitude = r.latitude; lu.longitude = r.longitude;

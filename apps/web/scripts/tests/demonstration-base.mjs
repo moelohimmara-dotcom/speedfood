@@ -119,7 +119,7 @@ try {
 }
 const lot = (await un(`select
   (select count(*)::int from restaurants where demo_lot is not null) restos,
-  (select count(*)::int from restaurants where demo_lot is not null and publie and donnees_demo and ouvert and accepte_commandes) restos_visibles,
+  (select count(*)::int from restaurants where demo_lot is not null and publie and donnees_demo) restos_visibles,
   (select count(distinct nom)::int from restaurants where demo_lot is not null) noms,
   (select count(*)::int from menu_items i join restaurants r on r.id = i.restaurant_id where r.demo_lot is not null) plats,
   (select count(*)::int from menu_sections s join restaurants r on r.id = s.restaurant_id where r.demo_lot is not null) sections,
@@ -136,7 +136,46 @@ const lot = (await un(`select
   (select count(*)::int from livreurs where demo_lot is not null and simule and donnees_demo) livreurs,
   (select count(*)::int from livraisons l join restaurants r on r.id = l.restaurant_id where r.demo_lot is not null and l.statut = 'livree') livraisons,
   (select count(*)::int from restaurants r where r.demo_lot is not null and r.avis_total <> (select count(*) from avis a where a.restaurant_id = r.id and not a.est_test)) compteurs_faux`));
-verifier("60 restaurants, tous visibles et distincts", lot.restos === 60 && lot.restos_visibles === 60 && lot.noms === 60, JSON.stringify(lot));
+verifier("60 restaurants, tous publiés et distincts", lot.restos === 60 && lot.restos_visibles === 60 && lot.noms === 60, JSON.stringify(lot));
+
+// ---------------------------------------------------------------- variété : horaires, disponibilité, cotes, allergènes (25-26/11/2026)
+const HORAIRES_CONNUS = ["Tous les jours, 11h-23h", "Lundi au samedi, 10h-22h", "Tous les jours, 12h-00h", "Tous les jours, 7h-15h", "Tous les jours, 6h30-14h", "Tous les jours, 18h-02h", "Lundi au samedi, 11h-15h et 18h-23h", "Mardi au dimanche, 11h-22h", "Lundi au vendredi, 8h-18h ; Samedi, 9h-14h", "Jeudi au dimanche, 18h-01h"];
+const hex2 = "('x' || right(r.id::text, 2))::bit(8)::int";
+const varie = await un(`select
+  (select count(distinct horaires)::int from restaurants where demo_lot is not null) horaires_distincts,
+  (select count(*)::int from restaurants where demo_lot is not null and not (horaires = any($1))) horaires_inconnus,
+  (select count(*)::int from restaurants where demo_lot is not null and accepte_commandes and not ouvert) accepte_ferme,
+  (select count(*)::int from restaurants r where r.demo_lot is not null and ${hex2} % 17 = 0 and r.ouvert) fermeture_exceptionnelle_ouverte`, [HORAIRES_CONNUS]);
+verifier("horaires variés : au moins 6 horaires différents, tous de la liste lisible par l'appli", varie.horaires_distincts >= 6 && varie.horaires_inconnus === 0, JSON.stringify(varie));
+verifier("jamais « prend des commandes » pour un restaurant fermé ; une fermeture exceptionnelle reste fermée", varie.accepte_ferme === 0 && varie.fermeture_exceptionnelle_ouverte === 0, JSON.stringify(varie));
+
+const dispo = await un(`with p as (
+    select r.id, ${hex2} as h, avg(case when m.disponible then 0 else 1 end) as rupture, min(m.disponibilite_confirmee_le) as plus_ancienne, max(m.disponibilite_confirmee_le) as plus_recente
+    from restaurants r join menu_items m on m.restaurant_id = r.id where r.demo_lot is not null group by r.id)
+  select (select max(rupture) from p) rupture_max, (select min(rupture) from p) rupture_min,
+         (select count(*)::int from p where h % 11 = 0 and plus_recente > now() - interval '6 hours') negligents_frais,
+         (select count(*)::int from p where h % 11 <> 0 and plus_recente < now() - interval '6 hours') attentifs_perimes`);
+verifier("disponibilité variée : des maisons à peu de ruptures et d'autres à beaucoup", Number(dispo.rupture_max) >= 0.1 && Number(dispo.rupture_min) <= 0.06, JSON.stringify(dispo));
+verifier("maisons négligentes (une sur 11) : plats à confirmer ; les autres : confirmations fraîches", dispo.negligents_frais === 0 && dispo.attentifs_perimes === 0, JSON.stringify(dispo));
+
+const cotes = await un(`with c as (select avg(note)::numeric as moy, count(*) n from avis where cible = 'restaurant' and restaurant_id in (select id from restaurants where demo_lot is not null) group by restaurant_id)
+  select (select max(moy) - min(moy) from c where n >= 25) ecart, (select count(*)::int from c where n >= 25) nb,
+         (select count(*)::int from avis where cardinality(etiquettes) > 0) avec_etiquettes,
+         (select count(*)::int from avis a where a.note >= 4 and a.etiquettes && array['plat_froid','petites_portions','emballage_abime','erreur_commande','long_a_preparer']) positives_avec_negatives,
+         (select count(*)::int from avis a where a.note <= 2 and a.etiquettes && array['plat_chaud','bonnes_portions','emballage_soigne','prete_a_l_heure','bon_rapport']) negatives_avec_positives`);
+verifier("cotes variées : l'écart de note moyenne entre restaurants dépasse 0,4", Number(cotes.ecart) > 0.4 && cotes.nb >= 10, JSON.stringify(cotes));
+verifier("étiquettes d'avis posées, positives pour les bonnes notes et négatives pour les mauvaises", cotes.avec_etiquettes > 100 && cotes.positives_avec_negatives === 0 && cotes.negatives_avec_positives === 0, JSON.stringify(cotes));
+
+const alg = await un(`select
+  (select count(*)::int from menu_items m join restaurants r on r.id = m.restaurant_id where r.demo_lot is not null and ${hex2} % 6 = 0 and m.allergenes is not null) declares_chez_muets,
+  (select count(*)::int from menu_items m join restaurants r on r.id = m.restaurant_id where r.demo_lot is not null and ${hex2} % 6 <> 0) items_declarants,
+  (select count(*)::int from menu_items m join restaurants r on r.id = m.restaurant_id where r.demo_lot is not null and ${hex2} % 6 <> 0 and m.allergenes is not null) items_declares,
+  (select count(*)::int from menu_items where allergenes is not null and allergenes_declares_le is null) sans_date,
+  (select count(*)::int from menu_items m where m.restaurant_id in (select id from restaurants where demo_lot is not null) and m.allergenes is not null and m.nom ~* 'crevette' and not ('crustaces' = any(m.allergenes))) crevettes_sans_crustaces,
+  (select count(*)::int from menu_items m where m.restaurant_id in (select id from restaurants where demo_lot is not null) and m.allergenes is not null and m.nom ~* 'cr[eê]pe' and not (m.allergenes @> array['gluten','lait','oeuf'])) crepes_incompletes,
+  (select count(*)::int from menu_items m where m.restaurant_id in (select id from restaurants where demo_lot is not null) and m.allergenes = '{}') plats_sans_allergene`);
+verifier("allergènes fictifs : une maison sur six ne déclare rien (plats « non renseignés »), les autres déclarent presque tout", alg.declares_chez_muets === 0 && alg.items_declares >= 0.9 * alg.items_declarants, JSON.stringify(alg));
+verifier("allergènes : toute déclaration est datée ; crevettes = crustacés ; crêpes = gluten, lait et œuf ; des plats déclarés sans aucun allergène existent", alg.sans_date === 0 && alg.crevettes_sans_crustaces === 0 && alg.crepes_incompletes === 0 && alg.plats_sans_allergene > 50, JSON.stringify(alg));
 const nomsCopies = await un("select count(*)::int n from restaurants where demo_lot is not null and (nom like '%Quartier %' or nom like '% Centre')");
 verifier("chaque restaurant a son propre nom de la liste (aucun nom repris avec le quartier en suffixe)", nomsCopies.n === 0, String(nomsCopies.n));
 verifier("environ 2 000 plats répartis en rubriques, aucun plat sans rubrique", lot.plats >= 1680 && lot.plats <= 2400 && lot.sections >= 700 && lot.plats_sans_section === 0, JSON.stringify(lot));

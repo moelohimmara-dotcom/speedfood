@@ -30,7 +30,7 @@ import { useRechercheArticles } from './useRechercheArticles';
 import { usePersonnalisation } from './usePersonnalisation';
 import { personnaliser } from './recherche-perso';
 import { BadgeScore, CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
-import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
+import { badgesAffichables, grouperMenu, libelleCoteRestaurant, libelleHoraire, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { BarreOnglets } from './BarreOnglets';
 import { etatPourOnglet, ongletActif, type IdOnglet } from './onglets';
@@ -209,11 +209,12 @@ export function CatalogueReel() {
   const zone = zoneEffective(zones, choixZone);
   const visibles = ordonnerRestaurants(filtrerRestaurants(restaurantsDansZone(restaurants, zone), recherche, filtre));
   const sections = sectionsAccueil(visibles, recherche, filtre);
-  const carteRestaurant = (r: RestaurantPublic, cle: string, vedette = false) => { const etat = titreEtatRestaurant(r); const note = libelleNote(r); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }, vedette && s.carteVedette, !r.ouvert && { opacity: 0.72 }]}>
+  const carteRestaurant = (r: RestaurantPublic, cle: string, vedette = false) => { const etat = titreEtatRestaurant(r); const note = libelleCoteRestaurant(r); const horaire = libelleHoraire(r, new Date()); return <Pressable key={cle} accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.nom}`} onPress={() => ouvrir(r)} style={[s.carte, { flexDirection: 'row', gap: 14 }, vedette && s.carteVedette, !r.ouvert && { opacity: 0.72 }]}>
     <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={72} />
     <View style={{ flex: 1, gap: 8 }}>
       <Text style={s.nom}>{r.nom}</Text><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icone nom="position" taille={16} couleur={c.secondaire} /><Text style={[s.texte, { flex: 1 }]}>{[r.categorie, r.lieu].filter(Boolean).join(' \u00b7 ') || 'Localisation non renseign\u00e9e'}</Text></View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} /><BadgeScore palier={r.scorePalier} />{note && <Text style={s.secondaire}>{note}</Text>}</View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} /><BadgeScore palier={r.scorePalier} />{badgesAffichables(r.badges).map(b => <Pastille key={b} texte={b} ton="neutre" />)}{note && <Text style={s.secondaire}>{note}</Text>}</View>
+      {horaire && <Text style={s.secondaire}>{horaire}</Text>}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ color: c.action, fontFamily: polices.texte, fontWeight: '700' }}>Voir le menu</Text><Icone nom="fleche" taille={16} couleur={c.action} /></View>
     </View>
   </Pressable>; };

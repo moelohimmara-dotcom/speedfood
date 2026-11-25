@@ -4,6 +4,7 @@ import type { Database } from '../../../web/src/lib/db/database.types';
 import { etatDisponibilite } from '@speedfood/shared/disponibilite/etat';
 import type { RestaurantPublic, PageRestaurants, PageMenu, ListeQuartiers } from '@speedfood/shared/contracts/catalogue';
 import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative';
+import { cotation } from '@speedfood/shared/notation/cotation';
 
 // Colonnes de la liste (légère) et de la fiche (liste + consignes et moyens de paiement). `avis_somme` et `avis_total` existent en base (migration notation) mais pas encore dans
 // les types générés : les requêtes sont donc typées à la main (`LigneRestaurant`) au lieu de s'appuyer sur l'inférence.
@@ -23,10 +24,15 @@ function noteMoyenne(somme: unknown, total: unknown): number | null {
   const note = Math.floor(((somme as number) * 10) / (total as number)) / 10;
   return note <= 5 ? note : null;
 }
+/** Cote Speedfood (lissée), fiabilité et badges d'après la somme et le nombre d'avis de la base ; rien sans avis exploitable. */
+function coteDe(r: { avis_somme?: number | null; avis_total?: number | null }): { cote?: number | null; fiabiliteCote?: 'nouveau' | 'en_cours' | 'fiable'; badges?: string[] } {
+  const c = cotation({ somme: Number(r.avis_somme ?? 0), total: Number(r.avis_total ?? 0) });
+  return { cote: c.cote, fiabiliteCote: c.fiabilite, badges: c.badges };
+}
 function projeter(r: LigneRestaurant, fiche = false): RestaurantPublic {
   const base: RestaurantPublic = {
     id: r.id, nom: r.nom, lieu: (r.neighborhoods?.generique ? r.neighborhoods.communes?.nom : r.neighborhoods?.nom) ?? '', categorie: r.menu_categories?.nom ?? '', ouvert: r.ouvert, accepteCommandes: r.accepte_commandes, statutMisAJourLe: r.statut_mis_a_jour_le,
-    photoUrl: urlImage(r.photo_url), logoUrl: urlImage(r.logo_url), note: noteMoyenne(r.avis_somme, r.avis_total), avisTotal: Number.isSafeInteger(r.avis_total) && (r.avis_total as number) > 0 ? (r.avis_total as number) : 0, horaires: texteFacultatif(r.horaires, 300),
+    photoUrl: urlImage(r.photo_url), logoUrl: urlImage(r.logo_url), ...coteDe(r), note: noteMoyenne(r.avis_somme, r.avis_total), avisTotal: Number.isSafeInteger(r.avis_total) && (r.avis_total as number) > 0 ? (r.avis_total as number) : 0, horaires: texteFacultatif(r.horaires, 300),
   };
   if (!fiche) return base;
   const moyens = Array.isArray(r.moyens_paiement) ? r.moyens_paiement.filter(m => typeof m === 'string' && m.trim().length > 0 && m.length <= 60).slice(0, 12) : [];

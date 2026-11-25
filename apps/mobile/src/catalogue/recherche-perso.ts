@@ -11,7 +11,7 @@ export const CONTEXTE_NEUTRE: ContextePerso = { profil: PROFIL_VIDE, habitudes: 
 
 export function personnaliser(resultat: ResultatRecherche, contexte: ContextePerso): ResultatRecherche {
   const aClasser: RestaurantAClasser[] = resultat.restaurants.map(r => ({
-    id: r.restaurant.id, categorie: r.restaurant.categorie, ouvert: r.restaurant.ouvert, accepteCommandes: r.restaurant.accepteCommandes, note: r.restaurant.note,
+    id: r.restaurant.id, categorie: r.restaurant.categorie, ouvert: r.restaurant.ouvert, accepteCommandes: r.restaurant.accepteCommandes, note: r.restaurant.cote ?? r.restaurant.note,
     latitude: r.restaurant.latitude ?? null, longitude: r.restaurant.longitude ?? null, niveau: r.niveau, score: r.score,
     articles: r.articles.map(a => ({ id: a.id, nom: a.nom, description: a.description, prixGnf: a.prixGnf, allergenes: a.allergenes, disponibilite: a.disponibilite })),
   }));

@@ -1121,5 +1121,19 @@ await db.exec(`update livreurs set statut = 'disponible' where id = ${U(POS_F)}`
 const posFRetour = await positionDe(POS_F);
 verifier("position : un livreur simulé remis en ligne a toujours sa position, donc reste attribuable par le dispatch", posFRetour.latitude === 9.55 && posFRetour.statut === "disponible");
 
+// ---------------------------------------------------------------- 25-26/11/2026 : préférences alimentaires et ALLERGIES (données de santé)
+console.log("\n--- Préférences alimentaires et allergies du client");
+await db.exec(`insert into preferences_clients (utilisateur_id, allergies, consentement_sante_le) values (${U(ID.client)}, array['arachide'], now()), (${U(ID.user_b)}, array['lait'], now())`);
+verifier("préférences : chacun lit les siennes seulement", (await nb(ID.client, "preferences_clients")) === 1 && (await nb(ID.user_b, "preferences_clients")) === 1);
+verifier("préférences : ni un autre client, ni l'exploitation, ni un anonyme n'en lisent aucune", VIDE(await nb(ID.user_a, "preferences_clients")) && VIDE(await nb(ID.admin, "preferences_clients")) && VIDE(await nb(ID.support, "preferences_clients")) && VIDE(await nb(null, "preferences_clients")));
+await autorise("préférences : le client règle ses propres préférences", ID.client, `update preferences_clients set piment = 'doux', budget_max_gnf = 60000 where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : on ne modifie pas celles d'un autre", ID.user_a, `update preferences_clients set allergies = '{}' where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : on ne se crée pas de préférences au nom d'un autre", ID.user_a, `insert into preferences_clients (utilisateur_id) values (${U(ID.admin)})`);
+await interdit("préférences : on ne supprime pas celles d'un autre", ID.user_a, `delete from preferences_clients where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : les allergies sans consentement sont refusées par la base", ID.user_a, `insert into preferences_clients (utilisateur_id, allergies) values (${U(ID.user_a)}, array['lait'])`);
+await interdit("préférences : un allergène hors de la liste des 14 est refusé", ID.user_a, `insert into preferences_clients (utilisateur_id, allergies, consentement_sante_le) values (${U(ID.user_a)}, array['pizza'], now())`);
+await autorise("préférences : le client efface les siennes (droit à l'effacement)", ID.user_b, `delete from preferences_clients where utilisateur_id = ${U(ID.user_b)}`);
+verifier("préférences : après effacement, plus rien pour ce client", VIDE(await nb(ID.user_b, "preferences_clients")) && (await nb(ID.client, "preferences_clients")) === 1);
+
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);

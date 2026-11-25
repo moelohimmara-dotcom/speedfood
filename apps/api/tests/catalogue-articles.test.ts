@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../web/src/lib/db/database.types';
-import { lireMenu } from '../src/catalogue/lectures.ts';
+import { lireMenu, lireRestaurants } from '../src/catalogue/lectures.ts';
 import { lireIndexArticles } from '../src/catalogue/index-articles.ts';
 import { creerApp } from '../src/app.ts';
 import { depsEssai } from './deps-essai.ts';
@@ -124,4 +124,23 @@ test('menu : base pas encore migrée (colonne allergenes absente) = menu lu sans
   const client = createClient<Database>('https://base-essai.invalid', 'anon-essai', { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: fetcher as typeof fetch } });
   const m = await lireMenu(R1, null, client, parametres);
   assert.equal(m!.plats.length, 1); assert.equal(m!.plats[0].allergenes, undefined); assert.equal(selects.length, 2);
+});
+
+test('index des articles : cote lissée, badges et horaires des restaurants ; « Menu frais » seulement avec des plats confirmés', async () => {
+  const resto = (id: string, nom: string, extra: Record<string, unknown>) => ({ ...restaurant(id, nom), ...extra });
+  const plats = (rid: string, n: number, dispo: boolean) => Array.from({ length: n }, (_, i) => article(`${rid.slice(-2)}-${i}`, rid, `Plat ${i}`, { disponible: dispo }));
+  const index = await lireIndexArticles(db(u => u.pathname.endsWith('/restaurants')
+    ? [resto(R1, 'Très aimé', { avis_somme: 1960, avis_total: 400, horaires: ' Tous les jours, 11h-23h ' }), resto(R2, 'Tout neuf', { avis_somme: 5, avis_total: 1 })]
+    : [...plats(R1, 12, true), ...plats(R2, 12, false)]), parametres, true);
+  const [aime, neuf] = index.restaurants;
+  assert.equal(aime.cote, 4.9); assert.deepEqual(aime.badges, ['tres_apprecie', 'menu_frais']); assert.equal(aime.horaires, 'Tous les jours, 11h-23h');
+  assert.equal(neuf.cote, 4.3, '5,0 sur un seul avis : tiré vers la moyenne'); assert.deepEqual(neuf.badges, ['nouveau']); assert.equal(neuf.horaires, undefined);
+});
+
+test('liste des restaurants : cote lissée, fiabilité et badges ajoutés sans retirer la note brute', async () => {
+  const page = await lireRestaurants(null, db(() => [{ id: R1, nom: 'A', ouvert: true, accepte_commandes: true, statut_mis_a_jour_le: maintenant, avis_somme: 20, avis_total: 4, menu_categories: null, neighborhoods: null }]));
+  const r = page.restaurants[0];
+  assert.deepEqual([r.note, r.cote, r.fiabiliteCote, r.badges], [5, 4.5, 'nouveau', ['nouveau']]);
+  const sans = await lireRestaurants(null, db(() => [{ id: R1, nom: 'A', ouvert: true, accepte_commandes: true, statut_mis_a_jour_le: maintenant, avis_somme: 0, avis_total: 0, menu_categories: null, neighborhoods: null }]));
+  assert.deepEqual([sans.restaurants[0].note, sans.restaurants[0].cote], [null, null]);
 });

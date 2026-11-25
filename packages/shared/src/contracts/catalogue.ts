@@ -10,6 +10,12 @@ export interface RestaurantPublic {
   note?: number | null; avisTotal?: number;
   /** Palier du score qualité mensuel le plus récent, quand il existe : sert au badge et à la mise en avant à l'accueil. */
   scorePalier?: 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais';
+  /** Cote Speedfood lissée (voir `notation/cotation`) : c'est elle qu'on montre et qui classe ; `note` reste la moyenne brute. Absente sans avis. */
+  cote?: number | null;
+  /** « nouveau » sous 5 avis, « en_cours » sous 30, « fiable » au-delà. */
+  fiabiliteCote?: 'nouveau' | 'en_cours' | 'fiable';
+  /** Badges de confiance : tres_apprecie, valeur_sure, nouveau (menu_frais n'est calculé que dans l'index de recherche). */
+  badges?: string[];
   horaires?: string | null; consignes?: string | null; moyensPaiement?: string[];
 }
 /** Supplément facultatif d'un plat (par exemple « Piment »). Seuls les suppléments disponibles sont transmis. `prixGnf` est un montant entier ≥ 0. */
@@ -34,7 +40,7 @@ export interface PlatCataloguePublic {
  * Compact : les restaurants sont listés une fois, chaque article y renvoie par son rang (`r`) ; `photo` est relative à `baseImages` quand l'adresse en commence par elle, sinon complète.
  * Aucun article d'un restaurant non publié ou suspendu, aucun article archivé.
  */
-export interface RestaurantIndexPublic { id: string; nom: string; lieu: string; categorie: string; ouvert: boolean; accepteCommandes: boolean; /** Note moyenne au dixième, `null` sans avis : sert au classement des résultats. */ note?: number | null; avisTotal?: number; /** Coordonnées publiques du restaurant (distance au client) ; absentes si non renseignées. */ latitude?: number; longitude?: number }
+export interface RestaurantIndexPublic { id: string; nom: string; lieu: string; categorie: string; ouvert: boolean; accepteCommandes: boolean; /** Note moyenne au dixième, `null` sans avis : sert au classement des résultats. */ note?: number | null; avisTotal?: number; /** Cote lissée et badges (voir `RestaurantPublic`) ; `menu_frais` y est calculé d'après les plats. */ cote?: number | null; badges?: string[]; /** Horaires en texte libre, tels que saisis par le restaurateur (« Tous les jours, 11h-23h ») : l'appli en tire « Ouvre à 18h ». */ horaires?: string; /** Coordonnées publiques du restaurant (distance au client) ; absentes si non renseignées. */ latitude?: number; longitude?: number }
 export interface ArticleIndexPublic { id: string; r: number; nom: string; description?: string; prixGnf: number; disponibilite: 'disponible' | 'epuise' | 'a_confirmer'; photo?: string; illustrative?: true; /** Allergènes DÉCLARÉS par le restaurant : absent = non renseigné ; liste vide = aucun allergène déclaré. */ allergenes?: string[] }
 export interface IndexArticlesPublic { restaurants: RestaurantIndexPublic[]; articles: ArticleIndexPublic[]; baseImages: string; luLe: string }
 export interface PageRestaurants { restaurants: RestaurantPublic[]; suivant: string | null; luLe: string }

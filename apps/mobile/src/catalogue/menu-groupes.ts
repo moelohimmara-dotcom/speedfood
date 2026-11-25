@@ -1,3 +1,5 @@
+import { LIBELLES_BADGES, fiabiliteDe, libelleCote, type Badge } from '../../../../packages/shared/src/notation/cotation.ts';
+import { etatDepuisTexte } from '../../../../packages/shared/src/horaires/horaires.ts';
 import { ALLERGENES } from '../../../../packages/shared/src/menu/classement-personnalise.ts';
 import type { OptionPlatPublic, PlatCataloguePublic, RestaurantPublic, SectionMenuPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
@@ -29,6 +31,29 @@ export function enPromo(p: Pick<PlatCataloguePublic, 'prixGnf' | 'prixNormalGnf'
 export function libelleNote(r: Pick<RestaurantPublic, 'note' | 'avisTotal'>): string | null {
   if (r.note === null || r.note === undefined || !r.avisTotal || r.avisTotal <= 0) return null;
   return `★ ${String(r.note).replace('.', ',')} (${r.avisTotal})`;
+}
+/**
+ * Cote Speedfood affichée (« 4,6 ★ (230) », « 4,8 ★ (500+) », « Nouveau ») quand le serveur la donne ; sinon l'ancienne note (« ★ 4,5 (12) »). Jamais de note inventée.
+ * Une cote lissée sur peu d'avis ne se montre pas comme une note solide : sous 5 avis, c'est « Nouveau ».
+ */
+export function libelleCoteRestaurant(r: Pick<RestaurantPublic, 'note' | 'avisTotal' | 'cote' | 'fiabiliteCote'>): string | null {
+  if (r.cote !== undefined && r.cote !== null && r.avisTotal !== undefined && r.avisTotal > 0) return libelleCote({ cote: r.cote, avis: r.avisTotal, fiabilite: r.fiabiliteCote ?? fiabiliteDe(r.avisTotal) });
+  return libelleNote(r);
+}
+const ORDRE_BADGES: readonly Badge[] = ['tres_apprecie', 'valeur_sure', 'menu_frais', 'nouveau'];
+/** Badges de confiance à montrer (deux au plus, dans l'ordre de valeur) ; ceux que l'appli ne connaît pas sont ignorés. */
+export function badgesAffichables(badges: readonly string[] | undefined, max = 2): string[] {
+  if (!badges) return [];
+  return ORDRE_BADGES.filter(b => badges.includes(b)).slice(0, max).map(b => LIBELLES_BADGES[b]);
+}
+/**
+ * Ligne d'horaire (« Ouvert jusqu'à 23h », « Ferme bientôt (22h) », « Ouvre à 18h ») d'après le texte des horaires du restaurateur. L'interrupteur « Ouvert » du restaurateur l'emporte toujours :
+ * jamais « Ouvert jusqu'à » pour un restaurant fermé, jamais « Ouvre à » pour un restaurant qui s'est déclaré ouvert. Horaires non compris : rien.
+ */
+export function libelleHoraire(r: Pick<RestaurantPublic, 'ouvert' | 'horaires'>, maintenant: Date): string | null {
+  const e = etatDepuisTexte(r.horaires, maintenant);
+  if (e === null) return null;
+  return e.ouvert === r.ouvert ? e.libelle : null;
 }
 /** « En supplément : Piment (+500 GNF), Sauce » ; `null` sans supplément. */
 export function libelleSupplements(options: OptionPlatPublic[] | undefined): string | null {

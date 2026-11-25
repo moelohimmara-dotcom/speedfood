@@ -3,6 +3,7 @@ import type { Database } from '../../../web/src/lib/db/database.types';
 import { etatDisponibilite } from '@speedfood/shared/disponibilite/etat';
 import type { ArticleIndexPublic, IndexArticlesPublic, RestaurantIndexPublic } from '@speedfood/shared/contracts/catalogue';
 import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative';
+import { cotation } from '@speedfood/shared/notation/cotation';
 
 /**
  * Index de recherche d'articles pour l'appli : tous les articles publiés, en lecture publique, par pages de 1000 (la base plafonne chaque réponse).
@@ -10,7 +11,7 @@ import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative'
  */
 const PAGE = 1000;
 const PLAFOND_PAGES = 30;
-type LigneRestaurant = { latitude?: number | null; longitude?: number | null; id: string; nom: string; ouvert: boolean; accepte_commandes: boolean; avis_somme?: number | null; avis_total?: number | null; menu_categories: { nom: string } | null; neighborhoods: { nom: string; generique: boolean; communes: { nom: string } | null } | null };
+type LigneRestaurant = { horaires?: string | null; latitude?: number | null; longitude?: number | null; id: string; nom: string; ouvert: boolean; accepte_commandes: boolean; avis_somme?: number | null; avis_total?: number | null; menu_categories: { nom: string } | null; neighborhoods: { nom: string; generique: boolean; communes: { nom: string } | null } | null };
 type LigneArticle = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url: string | null; restaurant_id: string; allergenes?: string[] | null };
 
 /** Même formule que la liste des restaurants : note au dixième, `null` sans avis ou si la donnée est incohérente. */
@@ -24,12 +25,14 @@ function urlImage(v: unknown): string | null { return typeof v === 'string' && v
 export async function lireIndexArticles(db: SupabaseClient<Database>, parametres: () => Promise<{ disponibiliteFraicheurHeures: number }>, illustrative: boolean): Promise<IndexArticlesPublic> {
   const restaurants: RestaurantIndexPublic[] = [];
   const rang = new Map<string, number>();
+  const bruts: { somme: number; total: number }[] = [];
   for (let p = 0; p < PLAFOND_PAGES; p++) {
-    const { data, error } = await db.from('restaurants').select('id, nom, ouvert, accepte_commandes, latitude, longitude, avis_somme, avis_total, menu_categories(nom), neighborhoods(nom, generique, communes(nom))' as string).eq('publie', true).is('suspendu_le', null).order('id').range(p * PAGE, (p + 1) * PAGE - 1);
+    const { data, error } = await db.from('restaurants').select('id, nom, ouvert, accepte_commandes, horaires, latitude, longitude, avis_somme, avis_total, menu_categories(nom), neighborhoods(nom, generique, communes(nom))' as string).eq('publie', true).is('suspendu_le', null).order('id').range(p * PAGE, (p + 1) * PAGE - 1);
     if (error || !data) throw new Error('catalogue_indisponible');
     for (const r of data as unknown as LigneRestaurant[]) {
       rang.set(r.id, restaurants.length);
-      restaurants.push({ id: r.id, nom: r.nom, lieu: (r.neighborhoods?.generique ? r.neighborhoods.communes?.nom : r.neighborhoods?.nom) ?? '', categorie: r.menu_categories?.nom ?? '', ouvert: r.ouvert, accepteCommandes: r.accepte_commandes, ...(Number.isFinite(r.latitude) && Number.isFinite(r.longitude) ? { latitude: r.latitude as number, longitude: r.longitude as number } : {}), note: noteMoyenne(r.avis_somme, r.avis_total), avisTotal: Number.isSafeInteger(r.avis_total) && (r.avis_total as number) > 0 ? (r.avis_total as number) : 0 });
+      bruts.push({ somme: Number(r.avis_somme ?? 0), total: Number(r.avis_total ?? 0) });
+      restaurants.push({ id: r.id, nom: r.nom, lieu: (r.neighborhoods?.generique ? r.neighborhoods.communes?.nom : r.neighborhoods?.nom) ?? '', categorie: r.menu_categories?.nom ?? '', ouvert: r.ouvert, accepteCommandes: r.accepte_commandes, ...(typeof r.horaires === 'string' && r.horaires.trim() !== '' && r.horaires.length <= 300 ? { horaires: r.horaires.trim() } : {}), ...(Number.isFinite(r.latitude) && Number.isFinite(r.longitude) ? { latitude: r.latitude as number, longitude: r.longitude as number } : {}), note: noteMoyenne(r.avis_somme, r.avis_total), avisTotal: Number.isSafeInteger(r.avis_total) && (r.avis_total as number) > 0 ? (r.avis_total as number) : 0 });
     }
     if (data.length < PAGE) break;
     if (p === PLAFOND_PAGES - 1) throw new Error('catalogue_trop_volumineux');
@@ -66,6 +69,20 @@ export async function lireIndexArticles(db: SupabaseClient<Database>, parametres
     if (photo) lu.photo = baseImages && photo.startsWith(baseImages) ? photo.slice(baseImages.length) : photo;
     if (illustrative && estImageIllustrative(photo)) lu.illustrative = true;
     return lu;
+  });
+  // Cote Speedfood : cote lissée, badges de confiance et « Menu frais » (part des plats disponibles dont la confirmation date de moins de 6 h, la promesse de fraîcheur de la marque).
+  const parRestaurant = new Map<number, { dispo: number; frais: number; total: number }>();
+  for (const a of articles) {
+    const x = parRestaurant.get(a.r) ?? { dispo: 0, frais: 0, total: 0 };
+    x.total++;
+    if (a.disponibilite !== 'epuise') { x.dispo++; if (a.disponibilite === 'disponible') x.frais++; }
+    parRestaurant.set(a.r, x);
+  }
+  restaurants.forEach((r, i) => {
+    const x = parRestaurant.get(i);
+    const brut = bruts[i];
+    const c = cotation({ somme: brut.somme, total: brut.total, fraicheur: x && x.dispo > 0 ? x.frais / x.dispo : null, nombrePlats: x?.dispo ?? 0 });
+    r.cote = c.cote; r.badges = c.badges;
   });
   return { restaurants, articles, baseImages, luLe: maintenant.toISOString() };
 }

@@ -5,6 +5,7 @@ import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 import { Pastille } from './FicheRestaurant';
 import { VignettePlat } from './MentionIllustrative';
+import { badgesAffichables, libelleCoteRestaurant, libelleHoraire } from './menu-groupes';
 import { LIBELLE_NIVEAU, type RestaurantTrouve, type ResultatRecherche } from './recherche-appli';
 import type { EtatRecherche } from './useRechercheArticles';
 import type { EtatPersonnalisation } from './usePersonnalisation';
@@ -58,6 +59,8 @@ function BlocRestaurant({ r, ouvrir }: { r: RestaurantTrouve; ouvrir(restaurant:
     <Pressable accessibilityRole="button" accessibilityLabel={`Voir le menu de ${r.restaurant.nom}`} onPress={() => ouvrir(r.restaurant)} style={{ gap: 4 }}>
       <Text style={s.nom}>{r.restaurant.nom}</Text>
       <View style={s.ligne}>{lieu !== '' && <Text style={[s.secondaire, { flexShrink: 1 }]}>{lieu}</Text>}<Pastille texte={r.restaurant.ouvert ? 'Ouvert' : 'Fermé'} ton={r.restaurant.ouvert ? 'succes' : 'neutre'} /></View>
+      {(libelleCoteRestaurant(r.restaurant) || badgesAffichables(r.restaurant.badges).length > 0) && <View style={s.ligne}>{libelleCoteRestaurant(r.restaurant) && <Text style={s.secondaire}>{libelleCoteRestaurant(r.restaurant)}</Text>}{badgesAffichables(r.restaurant.badges).map(b => <Pastille key={b} texte={b} ton="neutre" />)}</View>}
+      {libelleHoraire(r.restaurant, new Date()) && <Text style={s.secondaire}>{libelleHoraire(r.restaurant, new Date())}</Text>}
       {r.raisons.length > 0 && <Text style={s.raisons}>{r.raisons.join(' · ')}</Text>}
     </Pressable>
     {r.articles.length === 0 && r.nombreEcartes > 0 && <Text style={s.secondaire}>Tous les plats de ce restaurant correspondant à votre recherche contiennent un de vos allergènes.</Text>}

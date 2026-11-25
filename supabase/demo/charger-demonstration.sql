@@ -236,7 +236,10 @@ begin
                   (select c.id from public.menu_categories c join t_categorie_repli x on x.repli = c.nom where x.categorie = r.categorie),
                   cats[1]),
          quartier_id,
-         (array['Tous les jours, 11h-23h','Lundi au samedi, 10h-22h','Tous les jours, 12h-00h','Tous les jours, 7h-15h','Tous les jours, 18h-02h'])[case when matin then 4 when i % 5 = 0 then 3 else 1 + i % 3 end],
+         -- Horaires variés (lisibles par l'appli : « Ouvert jusqu'à 23h », « Ouvre à 18h »), selon le genre de maison : café du matin, soirées, deux services, fermé un jour par semaine.
+         (case when matin then (array['Tous les jours, 7h-15h','Tous les jours, 6h30-14h','Lundi au vendredi, 8h-18h ; Samedi, 9h-14h'])[1 + (hashtext(i::text || 'h') & 1023) % 3]
+               when i % 5 = 0 then (array['Tous les jours, 12h-00h','Tous les jours, 18h-02h','Jeudi au dimanche, 18h-01h'])[1 + (hashtext(i::text || 'h') & 1023) % 3]
+               else (array['Tous les jours, 11h-23h','Lundi au samedi, 10h-22h','Lundi au samedi, 11h-15h et 18h-23h','Mardi au dimanche, 11h-22h'])[1 + (hashtext(i::text || 'h') & 1023) % 4] end),
          true, true, true, true, v_lot, lat, lng,
          15 + (i * 3) % 26,
          case i % 4 when 0 then array['especes','orange_money'] when 1 then array['especes','orange_money','mtn_momo'] when 2 then array['especes'] else array['orange_money','mtn_momo'] end,
@@ -245,6 +248,42 @@ begin
          false,
          now() - ((60 + (i * 11) % 200) || ' days')::interval
   from t_resto r;
+
+  -- État d'ouverture au moment du chargement, d'après les horaires (heure de Conakry = UTC) : des restaurants ouverts, d'autres fermés selon l'heure, quelques fermetures
+  -- exceptionnelles (une maison sur 17) et des pauses « commandes suspendues » quand la cuisine est débordée (une maison sur 9, qui change chaque heure). Le renouvellement
+  -- régulier de la démonstration applique les mêmes règles (apps/web/src/lib/demonstration/horaires.ts) pour que cela vive toute la journée.
+  create temp table t_plage (texte text, jour int, debut int, fin int) on commit drop;
+  insert into t_plage
+  select h.texte, j, h.debut, h.fin
+  from (values
+    ('Tous les jours, 11h-23h', array[0,1,2,3,4,5,6], 660, 1380),
+    ('Lundi au samedi, 10h-22h', array[0,1,2,3,4,5], 600, 1320),
+    ('Tous les jours, 12h-00h', array[0,1,2,3,4,5,6], 720, 1440),
+    ('Tous les jours, 7h-15h', array[0,1,2,3,4,5,6], 420, 900),
+    ('Tous les jours, 6h30-14h', array[0,1,2,3,4,5,6], 390, 840),
+    ('Tous les jours, 18h-02h', array[0,1,2,3,4,5,6], 1080, 1560),
+    ('Lundi au samedi, 11h-15h et 18h-23h', array[0,1,2,3,4,5], 660, 900),
+    ('Lundi au samedi, 11h-15h et 18h-23h', array[0,1,2,3,4,5], 1080, 1380),
+    ('Mardi au dimanche, 11h-22h', array[1,2,3,4,5,6], 660, 1320),
+    ('Lundi au vendredi, 8h-18h ; Samedi, 9h-14h', array[0,1,2,3,4], 480, 1080),
+    ('Lundi au vendredi, 8h-18h ; Samedi, 9h-14h', array[5], 540, 840),
+    ('Jeudi au dimanche, 18h-01h', array[3,4,5,6], 1080, 1500)
+  ) as h(texte, jours, debut, fin), unnest(h.jours) as j;
+
+  update public.restaurants r
+  set ouvert = ('x' || right(r.id::text, 2))::bit(8)::int % 17 <> 0 and exists (
+        select 1 from t_plage p
+        where p.texte = r.horaires
+          and ((p.jour = extract(isodow from now() at time zone 'UTC')::int - 1
+                and p.debut <= extract(hour from now() at time zone 'UTC')::int * 60 + extract(minute from now() at time zone 'UTC')::int
+                and extract(hour from now() at time zone 'UTC')::int * 60 + extract(minute from now() at time zone 'UTC')::int < p.fin)
+            or (p.jour = (extract(isodow from now() at time zone 'UTC')::int + 5) % 7
+                and p.fin > 1440
+                and extract(hour from now() at time zone 'UTC')::int * 60 + extract(minute from now() at time zone 'UTC')::int < p.fin - 1440)))
+  where r.demo_lot = v_lot;
+  update public.restaurants r
+  set accepte_commandes = r.ouvert and (('x' || right(r.id::text, 2))::bit(8)::int + extract(hour from now() at time zone 'UTC')::int) % 9 <> 0
+  where r.demo_lot = v_lot;
 
   -- Chaque restaurant livre dans sa commune (sans zone déclarée, un restaurant ne propose que le retrait).
   insert into public.restaurant_zones_desservies (restaurant_id, commune_id, frais_gnf, delai_minutes)
@@ -1120,7 +1159,10 @@ begin
 
   insert into public.menu_items (id, restaurant_id, nom, description, prix, disponible, disponibilite_confirmee_le, section_id, cree_le)
   select p.id, p.resto_id, p.nom, p.description, p.prix,
-         (random() > 0.04), now() - (random() * interval '40 minutes'),
+         -- Disponibilité variée : un taux de rupture propre à chaque maison (2 %, 5 %, 12 % ou 25 % des plats épuisés) et quelques maisons négligentes (une sur 11) qui ne
+         -- reconfirment pas leurs plats : leur menu affiche « à confirmer » (le renouvellement de la démonstration les laisse tels quels).
+         (random() > (array[0.02, 0.05, 0.12, 0.25])[1 + ('x' || right(p.resto_id::text, 2))::bit(8)::int % 4]),
+         case when ('x' || right(p.resto_id::text, 2))::bit(8)::int % 11 = 0 then now() - ((7 + random() * 10) * interval '1 hour') else now() - (random() * interval '40 minutes') end,
          (select s.id from public.menu_sections s where s.restaurant_id = p.resto_id and s.nom = p.section),
          now() - interval '30 days'
   from t_plats p;
@@ -1235,15 +1277,58 @@ begin
   from public.orders o join public.restaurants r on r.id = o.restaurant_id join t_resto tr on tr.id = r.id
   where r.demo_lot = v_lot and o.mode = 'livraison' and o.statut = 'terminee';
 
+  -- ------------------------------------------------------------------ allergènes déclarés (données FICTIVES de démonstration)
+  -- Seulement si la colonne existe (migration 20261126091000) : sans elle, le chargement reste celui d'avant. Les allergènes sont déduits du nom et de la description du plat
+  -- (mêmes mots que le moteur de classement : packages/shared/src/menu/classement-personnalise.ts, vérifié par le test de démonstration). Cinq maisons sur six DÉCLARENT leurs plats
+  -- (dont 3 % de plats laissés sans déclaration) ; une sur six ne déclare rien : ses plats restent « non renseignés », pour montrer les trois états.
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'menu_items' and column_name = 'allergenes') then
+    create temp table t_allergene (id text, motif text) on commit drop;
+    insert into t_allergene values
+    ('arachide', '\m(?:arachide|cacahuete|cacahouete|mafe|tigadege)(?:s|x)?\M'),
+    ('fruits_a_coque', '\m(?:noi|amande|noisette|pistache|cajou|pecan|macadamia)(?:s|x)?\M'),
+    ('lait', '\m(?:lait|fromage|creme|beurre|yaourt|yogourt|mozzarella|cheddar|parmesan|emmental|chevre|gorgonzola|paneer|lassi|ayran|glace|bechamel|crepe|cheese|cheeseburger|latte)(?:s|x)?\M'),
+    ('oeuf', '\m(?:oeuf|omelette|mayonnaise|mayo|quiche|flan|meringue|crepe|carbonara)(?:s|x)?\M'),
+    ('gluten', '\m(?:ble|pain|pizza|pate|spaghetti|penne|nouille|couscou|semoule|farine|baguette|croissant|brioche|burger|sandwich|naan|tortilla|taco|crepe|gateau|biscuit|beignet|chapati|samoussa|nem|ravioli|lasagne|calzone|pita|shawarma|kebab|tartine|ramen|udon|mie)(?:s|x)?\M'),
+    ('poisson', '\m(?:poisson|thon|saumon|capitaine|carpe|sardine|dorade|tilapia|maquereau|morue|anchoi|sushi|maki|nuoc)(?:s|x)?\M'),
+    ('crustaces', '\m(?:crevette|gamba|crabe|homard|langouste|langoustine)(?:s|x)?\M'),
+    ('mollusques', '\m(?:moule|huitre|calamar|poulpe|seiche|escargot)(?:s|x)?\M'),
+    ('soja', '\m(?:soja|tofu|edamame|miso|teriyaki)(?:s|x)?\M'),
+    ('sesame', '\m(?:sesame|tahini|tahin|houmou|hummu)(?:s|x)?\M'),
+    ('moutarde', '\m(?:moutarde)(?:s|x)?\M'),
+    ('celeri', '\m(?:celeri)(?:s|x)?\M'),
+    ('lupin', '\m(?:lupin)(?:s|x)?\M'),
+    ('sulfites', '\m(?:vin|champagne|cidre)(?:s|x)?\M');
+    update public.menu_items m
+    set allergenes = coalesce((select array_agg(a.id order by a.id)
+                               from t_allergene a
+                               where translate(replace(replace(lower(m.nom || ' ' || coalesce(m.description, '')), 'œ', 'oe'), 'æ', 'ae'), 'àâäçéèêëîïôöùûüÿ', 'aaaceeeeiioouuuy') ~ a.motif),
+                              '{}'::text[]),
+        allergenes_declares_le = now() - ((1 + random() * 20) * interval '1 day')
+    from public.restaurants r
+    where r.id = m.restaurant_id and r.demo_lot = v_lot and ('x' || right(r.id::text, 2))::bit(8)::int % 6 <> 0 and random() > 0.03;
+  end if;
+
   -- ------------------------------------------------------------------ avis (≈ les deux tiers des commandes terminées)
-  insert into public.avis (order_id, cible, auteur, restaurant_id, note, commentaire, prenom_affiche, est_test, cree_le, modifie_le)
+  insert into public.avis (order_id, cible, auteur, restaurant_id, note, etiquettes, commentaire, prenom_affiche, est_test, cree_le, modifie_le)
   with src as (
     select o.id, o.restaurant_id, o.client_nom, o.cree_le, random() as x
     from public.orders o join public.restaurants r on r.id = o.restaurant_id
     where r.demo_lot = v_lot and o.statut = 'terminee' and random() < 0.74),
   notes as (
-    select s.*, case when x < 0.50 then 5 when x < 0.80 then 4 when x < 0.92 then 3 when x < 0.97 then 2 else 1 end as note from src s)
+    -- Qualité propre à chaque restaurant (de 0 à 1, stable) : les bonnes maisons reçoivent surtout des 5, les moyennes des 3 et 4, quelques-unes des 1 et 2 ; la cote affichée varie donc d'une maison à l'autre.
+    -- q est tiré vers le haut (racine à la puissance 0,4) : la plupart des maisons sont bonnes, quelques-unes moyennes, pour une note moyenne d'environ 4,2.
+    select s.*, case when x < 0.05 * (1 - q) + 0.004 then 1
+                     when x < 0.15 * (1 - q) + 0.012 then 2
+                     when x < 0.36 * (1 - q) + 0.040 then 3
+                     when x < 0.95 - 0.55 * q then 4 else 5 end as note
+    from (select s0.*, power(((hashtext(s0.restaurant_id::text || 'q') & 1023) / 1023.0), 0.4) as q from src s0) s)
   select o.id, 'restaurant', 'client', o.restaurant_id, o.note,
+         -- Étiquettes de la liste fermée du site : positives pour les bonnes notes, négatives pour les mauvaises.
+         case when o.note >= 4 then array_remove(array[case when random() < 0.45 then 'plat_chaud' end, case when random() < 0.30 then 'bonnes_portions' end, case when random() < 0.20 then 'emballage_soigne' end,
+                                                         case when random() < 0.25 then 'prete_a_l_heure' end, case when random() < 0.20 then 'bon_rapport' end]::text[], null)
+              when o.note <= 2 then array_remove(array[case when random() < 0.50 then 'plat_froid' end, case when random() < 0.30 then 'petites_portions' end, case when random() < 0.20 then 'emballage_abime' end,
+                                                         case when random() < 0.25 then 'erreur_commande' end, case when random() < 0.35 then 'long_a_preparer' end]::text[], null)
+              else '{}'::text[] end,
          case when random() < 0.6 then
            (case o.note
               when 5 then (array['Excellent, livré chaud et dans les temps.','Un régal, je recommande sans hésiter.','Très bon, portions généreuses.','Le meilleur du quartier, merci !','Rapide et délicieux.'])[1 + floor(random() * 5)::int]

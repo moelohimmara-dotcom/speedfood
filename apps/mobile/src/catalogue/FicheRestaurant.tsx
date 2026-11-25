@@ -5,7 +5,7 @@ import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 import { Vignette } from './Vignette';
 import { VignettePlat } from './MentionIllustrative';
-import { enPromo, libelleAllergenesPlat, libelleNote, libelleStatut, libelleSupplements, titreEtatRestaurant } from './menu-groupes';
+import { badgesAffichables, enPromo, libelleAllergenesPlat, libelleCoteRestaurant, libelleHoraire, libelleStatut, libelleSupplements, titreEtatRestaurant } from './menu-groupes';
 import { commandabilite, etatPlat, moyensAffichables } from './parcours-client';
 import { PHRASE_MODES_COMMANDE } from './commande-reelle';
 /** Affichage riche du catalogue (parité Kotlin, tranche 10.1) : en-tête de la fiche et carte d'un plat. Les montants affichés sont indicatifs : le serveur recalcule tout à la commande. */
@@ -25,14 +25,16 @@ export function BadgeScore({ palier }: { palier?: string }) {
 /** En-tête de la fiche : logo ou photo, lieu, état, note, fraîcheur du statut, horaires, consignes et moyens de paiement (seulement ceux que le serveur a transmis). */
 export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic }) {
   const [photoEchouee, setPhotoEchouee] = useState<string | null>(null);
-  const etat = titreEtatRestaurant(r); const note = libelleNote(r); const statut = libelleStatut(r); const dispo = commandabilite(r); const moyens = moyensAffichables(r.moyensPaiement);
+  const etat = titreEtatRestaurant(r); const note = libelleCoteRestaurant(r); const horaire = libelleHoraire(r, new Date()); const statut = libelleStatut(r); const dispo = commandabilite(r); const moyens = moyensAffichables(r.moyensPaiement);
   return <View style={s.carte}>
     {r.photoUrl && photoEchouee !== r.photoUrl ? <Image source={{ uri: r.photoUrl }} accessible={false} accessibilityIgnoresInvertColors resizeMode="cover" onError={() => setPhotoEchouee(r.photoUrl ?? null)} style={s.photo} /> : null}
     <View style={{ flexDirection: 'row', gap: 14 }}>
       <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={84} />
       <View style={{ flex: 1, gap: 6 }}>
         {[r.categorie, r.lieu].filter(Boolean).length > 0 && <Text style={s.texte}>{[r.categorie, r.lieu].filter(Boolean).join(' · ')}</Text>}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text accessibilityLabel={`Note ${note.slice(2)}`} style={s.secondaire}>{note}</Text>}</View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{note && <Text accessibilityLabel={`Note ${note.replace('★', '').trim()}`} style={s.secondaire}>{note}</Text>}</View>
+        {badgesAffichables(r.badges).length > 0 && <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>{badgesAffichables(r.badges).map(b => <Pastille key={b} texte={b} ton="neutre" />)}</View>}
+        {horaire && <Text style={s.texte}>{horaire}</Text>}
         {statut && <Text style={s.secondaire}>{statut}</Text>}
       </View>
     </View>
