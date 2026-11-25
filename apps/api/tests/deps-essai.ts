@@ -28,6 +28,7 @@ export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
   return {
     configurationConnexion: () => null,
     catalogue: { restaurants: ECHEC, menu: ECHEC, quartiers: ECHEC },
+    preferences: { lire: ECHEC, ecrire: ECHEC, effacer: ECHEC, habitudes: ECHEC },
     version: { code: 51, nom: "2.47.0", notes: "essai", obligatoire: false, apkSha256: "a".repeat(64), apkTaille: 1 },
     lireAssistance: async () => ({ whatsapp: null }),
     connexionClientActive: ECHEC,

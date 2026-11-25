@@ -81,3 +81,26 @@ test('route /articles : donnée publique avec cache court, introuvable si la dé
   const sans = creerApp(depsEssai({ catalogue: { restaurants: async () => { throw Error(); }, menu: async () => null, quartiers: async () => ({ quartiers: [], luLe: '2026-11-25T00:00:00Z' }) } }));
   assert.equal((await sans.request('/api/v1/catalogue/articles')).status, 404);
 });
+
+test('index des articles : coordonnées des restaurants et allergènes déclarés (trois états distincts)', async () => {
+  const index = await lireIndexArticles(db(u => u.pathname.endsWith('/restaurants') ? [{ ...restaurant(R1, 'A'), latitude: 9.51, longitude: -13.71 }, restaurant(R2, 'B')] : [
+    article('a1', R1, 'Crêpe', { allergenes: ['lait', 'oeuf', 'gluten'] }), article('a2', R1, 'Riz', { allergenes: [] }), article('a3', R2, 'Café', { allergenes: null }), article('a4', R2, 'Thé'),
+  ]), parametres, true);
+  assert.deepEqual([index.restaurants[0].latitude, index.restaurants[0].longitude, index.restaurants[1].latitude], [9.51, -13.71, undefined]);
+  assert.deepEqual(index.articles.map(a => a.allergenes), [['lait', 'oeuf', 'gluten'], [], undefined, undefined]);
+});
+
+test('index des articles : base pas encore migrée (colonne allergenes absente) = index lu sans allergènes, jamais une panne', async () => {
+  const selects: string[] = [];
+  const fetcher = async (url: unknown) => {
+    const u = new URL(String(url)); const sel = u.searchParams.get('select') ?? '';
+    if (u.pathname.endsWith('/restaurants')) return new Response(JSON.stringify([restaurant(R1, 'A')]), { headers: { 'content-type': 'application/json' } });
+    selects.push(sel);
+    if (sel.includes('allergenes')) return new Response(JSON.stringify({ code: '42703', message: 'column menu_items.allergenes does not exist' }), { status: 400, headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify([article('a1', R1, 'Crêpe')]), { headers: { 'content-type': 'application/json' } });
+  };
+  const client = createClient<Database>('https://base-essai.invalid', 'anon-essai', { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: fetcher as typeof fetch } });
+  const index = await lireIndexArticles(client, parametres, true);
+  assert.equal(index.articles.length, 1); assert.equal(index.articles[0].allergenes, undefined);
+  assert.equal(selects.length, 2); assert.ok(selects[0].includes('allergenes') && !selects[1].includes('allergenes'));
+});

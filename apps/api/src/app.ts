@@ -6,6 +6,7 @@ import { enteteRelaisDeConfiance } from "./identite/relais.ts";
 import { routeAppareils } from "./routes/appareils.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeCatalogue } from "./routes/catalogue.ts";
+import { routePreferences } from "./routes/preferences.ts";
 import { routeClient } from "./routes/client.ts";
 import { routeCommandes } from "./routes/commandes.ts";
 import { routeEstimation } from "./routes/estimation.ts";
@@ -63,6 +64,7 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/catalogue", routeCatalogue(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
   app.route("/api/v1/moi", routeMoi(deps));
+  app.route("/api/v1/preferences", routePreferences(deps));
   app.route("/api/v1/livreur", routeLivreur(deps));
   app.route("/api/v1/client", routeClient(deps));
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));

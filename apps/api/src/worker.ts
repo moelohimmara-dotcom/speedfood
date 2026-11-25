@@ -21,6 +21,7 @@ import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } 
 import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
 import { fournirAlerteSite } from "./commandes/alerte-site.ts";
 import { lireRestaurants, lireMenu, lireQuartiers, lireArticles } from './catalogue/service';
+import { servicePreferences } from './preferences/cablage';
 import { configurationPublique } from './identite/configuration-publique';
 import { serviceRestaurant } from './restaurant/cablage.ts';
 import { serviceAppareils } from './appareils/cablage.ts';
@@ -31,6 +32,7 @@ let local: ReturnType<typeof creerVerificateurLocal> | undefined;
 
 const app = creerApp({
   configurationConnexion: () => { return configurationPublique(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); },
+  preferences: servicePreferences,
   catalogue: { restaurants: lireRestaurants, menu: lireMenu, quartiers: lireQuartiers, articles: lireArticles },
   version: VERSION_APPLICATION,
   lireAssistance: async () => {

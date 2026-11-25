@@ -69,6 +69,13 @@ export interface Deps {
     actionAdresse(utilisateurId: string, corps: Record<string, unknown>): Promise<ResultatEspace>;
     supprimerCompte(utilisateurId: string, confirmation: unknown): Promise<ResultatEspace>;
   };
+  /** Préférences alimentaires du client (goûts, régimes, allergies) et habitudes tirées de ses commandes : toujours celles du compte du jeton. */
+  preferences: {
+    lire(jeton: string, utilisateurId: string): Promise<import('@speedfood/shared/contracts/preferences').PreferencesClientPublic | null>;
+    ecrire(jeton: string, utilisateurId: string, preferences: import('@speedfood/shared/contracts/preferences').PreferencesAEcrire): Promise<{ ok: true } | { ok: false; message: string }>;
+    effacer(jeton: string, utilisateurId: string): Promise<void>;
+    habitudes(utilisateurId: string): Promise<import('@speedfood/shared/contracts/preferences').HabitudesClientPublic>;
+  };
   estimerPourClient(restaurantId: unknown, destination: unknown, sousTotalGnf: unknown): Promise<object>;
   /** Secret partagé avec le site pour le relais (Tâche 7) ; lu au moment de l'appel, `undefined` tant qu'il n'est pas posé. */
   secretRelais(): string | undefined;

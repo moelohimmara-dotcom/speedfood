@@ -99,6 +99,10 @@ function restaurantIndex(x: unknown): RestaurantIndexPublic {
   const lu: RestaurantIndexPublic = { id: identifiant(r.id), nom: texte(r.nom, 256), lieu: texte(r.lieu, 256), categorie: texte(r.categorie, 256), ouvert: r.ouvert, accepteCommandes: r.accepteCommandes };
   if (r.note !== undefined) { if (r.note !== null && (typeof r.note !== 'number' || !Number.isFinite(r.note) || r.note < 0 || r.note > 5)) throw Error('CATALOGUE_INVALIDE'); lu.note = r.note as number | null; }
   if (r.avisTotal !== undefined) lu.avisTotal = entier(r.avisTotal);
+  if (r.latitude !== undefined || r.longitude !== undefined) {
+    if (typeof r.latitude !== 'number' || typeof r.longitude !== 'number' || !(r.latitude >= -90 && r.latitude <= 90) || !(r.longitude >= -180 && r.longitude <= 180)) throw Error('CATALOGUE_INVALIDE');
+    lu.latitude = r.latitude; lu.longitude = r.longitude;
+  }
   return lu;
 }
 function articleIndex(x: unknown, nombreRestaurants: number): ArticleIndexPublic {
@@ -109,6 +113,7 @@ function articleIndex(x: unknown, nombreRestaurants: number): ArticleIndexPublic
   if (a.description !== undefined) lu.description = texte(a.description, 400);
   if (a.photo !== undefined) { const p = texte(a.photo, 2000); if (/[\s\x00-\x1f]/.test(p)) throw Error('CATALOGUE_INVALIDE'); lu.photo = p; }
   if (a.illustrative !== undefined) { if (a.illustrative !== true) throw Error('CATALOGUE_INVALIDE'); lu.illustrative = true; }
+  if (a.allergenes !== undefined) { if (!Array.isArray(a.allergenes) || a.allergenes.length > 14 || a.allergenes.some(x => typeof x !== 'string' || x.length > 40)) throw Error('CATALOGUE_INVALIDE'); lu.allergenes = a.allergenes as string[]; }
   return lu;
 }
 /** Lecture stricte de l'index d'articles (réponse du serveur ou cache de l'appareil) : tout écart refuse l'index entier, jamais un index amputé ou inventé. */
