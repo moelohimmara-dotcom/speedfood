@@ -188,4 +188,11 @@ export const BIBLIOTHEQUE_BANQUES_PEXELS_6: readonly PhotoDeBibliotheque[] = [
   { id: "px-40000020", type: "gulab-jamun", source: "banque", fichier: "pexels-lot20/gulab-jamun-40000020.jpg", licence: "Pexels License", auteur: "Jahra Tasfia Reza", page: "https://www.pexels.com/photo/40000020/" },
   { id: "px-14610769", type: "gulab-jamun", source: "banque", fichier: "pexels-lot20/gulab-jamun-14610769.jpg", licence: "Pexels License", auteur: "sarayu P", page: "https://www.pexels.com/photo/14610769/" },
   { id: "px-7776552", type: "kofte", source: "banque", fichier: "pexels-lot20/kofte-7776552.jpg", licence: "Pexels License", auteur: "Engin Akyurt", page: "https://www.pexels.com/photo/7776552/" },
+  { id: "px-19859334", type: "salade-avocat-crevettes", source: "banque", fichier: "pexels-lot21/salade-avocat-crevettes-19859334.jpg", licence: "Pexels License", auteur: "Valeria Boltneva", page: "https://www.pexels.com/photo/19859334/" },
+  { id: "px-7362673", type: "salade-chou", source: "banque", fichier: "pexels-lot21/salade-chou-7362673.jpg", licence: "Pexels License", auteur: "Engin Akyurt", page: "https://www.pexels.com/photo/7362673/" },
+  { id: "px-27643030", type: "cote-boeuf", source: "banque", fichier: "pexels-lot21/cote-boeuf-27643030.jpg", licence: "Pexels License", auteur: "Nano Erdozain", page: "https://www.pexels.com/photo/27643030/" },
+  { id: "px-27643017", type: "cote-boeuf", source: "banque", fichier: "pexels-lot21/cote-boeuf-27643017.jpg", licence: "Pexels License", auteur: "Nano Erdozain", page: "https://www.pexels.com/photo/27643017/" },
+  { id: "px-30635680", type: "puree", source: "banque", fichier: "pexels-lot21/puree-30635680.jpg", licence: "Pexels License", auteur: "IARA MELO", page: "https://www.pexels.com/photo/30635680/" },
+  { id: "px-13427907", type: "crepes-confiture", source: "banque", fichier: "pexels-lot21/crepes-confiture-13427907.jpg", licence: "Pexels License", auteur: "Mateusz Feliksik", page: "https://www.pexels.com/photo/13427907/" },
+  { id: "px-8601522", type: "crepes-confiture", source: "banque", fichier: "pexels-lot21/crepes-confiture-8601522.jpg", licence: "Pexels License", auteur: "Polina Tankilevitch", page: "https://www.pexels.com/photo/8601522/" },
 ];

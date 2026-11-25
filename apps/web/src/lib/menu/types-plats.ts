@@ -73,6 +73,11 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["vin-rouge", /^vin rouge\b/],
   ["vin-blanc", /^vin blanc\b/],
   ["vin-effervescent", /^vin effervescent\b/],
+  // Photos Pexels, lot 21
+  ["salade-avocat-crevettes", /^salade d avocat aux crevettes/],
+  ["cote-boeuf", /^cote de boeuf grillee/],
+  ["puree", /^puree de pommes de terre/],
+  ["crepes-confiture", /^crepes? a la confiture/],
   // Photos Wikimedia, lot 5 (plats locaux, suite)
   ["soupe-haricots-fume", /^soupe de haricots/],
   ["creme-semoule", /^creme de semoule/],
@@ -334,7 +339,7 @@ const REGLES: Array<[type: string, motif: RegExp]> = [
   ["salade-tomate-oignon", /^salade de tomates?( a l| et)? ?oignon/],
   ["salade-avocat", /^salade d avocat$/],
   ["salade-concombre", /^salade de concombre( a la menthe)?$/],
-  ["salade-chou", /^(salade de chou( et carottes)?|coleslaw|salade coleslaw)$/],
+  ["salade-chou", /^(salade de chou( et carottes| et crudites)?|coleslaw|salade coleslaw)$/],
   ["salade-cesar", /\bcesar\b/],
   ["salade-grecque", /^salade grecque\b/],
   ["falafel", /^(mezze de )?falafels?( \d+)?$/],
