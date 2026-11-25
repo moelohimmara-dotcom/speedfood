@@ -53,6 +53,18 @@ export default async function MenuPage() {
     restaurantFamille?.menu_categories?.nom ?? "",
   );
 
+  // Allergènes déclarés : lecture à part et TOLÉRANTE (colonne absente avant la migration = tous « non renseignés », la page reste là).
+  const allergenesParPlat = new Map<string, string[] | null>();
+  {
+    const { data: lignes, error } = await supabase
+      .from("menu_items")
+      .select("id, allergenes" as string)
+      .eq("restaurant_id", membership.restaurant_id)
+      .is("archive_le", null)
+      .limit(500);
+    if (!error) for (const l of (lignes ?? []) as unknown as Array<{ id: string; allergenes: string[] | null }>) allergenesParPlat.set(l.id, Array.isArray(l.allergenes) ? l.allergenes : null);
+  }
+
   const sectionsListe = sections ?? [];
   const maintenant = new Date();
   const platsListe = (plats ?? []).map((plat) => {
@@ -67,6 +79,7 @@ export default async function MenuPage() {
     return {
       ...plat,
       options: plat.menu_item_options ?? [],
+      allergenes: allergenesParPlat.get(plat.id) ?? null,
       illustration: validerIllustration(plat.illustration),
       disponibilite: libelleDisponibilite(etat, maintenant),
       aReconfirmer: etat.type === "a_confirmer",

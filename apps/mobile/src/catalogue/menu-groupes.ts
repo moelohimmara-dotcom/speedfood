@@ -1,3 +1,4 @@
+import { ALLERGENES } from '../../../../packages/shared/src/menu/classement-personnalise.ts';
 import type { OptionPlatPublic, PlatCataloguePublic, RestaurantPublic, SectionMenuPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
 import { ageStatutAffichable } from './parcours-client.ts';
@@ -53,4 +54,11 @@ export function libelleStatut(r: Pick<RestaurantPublic, 'ouvert' | 'accepteComma
   const lisible = ancienneteLisible(date, maintenant);
   if (age <= FRAICHEUR_HEURES * 3_600_000) return `Statut confirmé ${lisible}`;
   return ageStatutAffichable(date, maintenant) === null ? 'Statut à confirmer' : `Statut à confirmer (dernière confirmation ${lisible})`;
+}
+
+/** Allergènes d'un plat côté client : jamais « sans allergène » sans déclaration du restaurant. */
+export function libelleAllergenesPlat(a: string[] | undefined): string {
+  if (a === undefined) return 'Allergènes non renseignés par le restaurant';
+  if (a.length === 0) return 'Aucun allergène déclaré par le restaurant';
+  return 'Allergènes : ' + a.map(x => ALLERGENES.find(d => d.id === x)?.libelle.toLowerCase() ?? x).join(', ');
 }

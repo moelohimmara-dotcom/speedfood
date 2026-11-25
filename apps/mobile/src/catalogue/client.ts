@@ -32,6 +32,7 @@ function plat(x: unknown): PlatCataloguePublic {
   if (p.prixNormalGnf !== undefined) { const n = entier(p.prixNormalGnf); if (n < p.prixGnf) throw Error('CATALOGUE_INVALIDE'); lu.prixNormalGnf = n; }
   if (p.photoUrl !== undefined) lu.photoUrl = urlImage(p.photoUrl);
   if (p.imageIllustrative !== undefined) { if (typeof p.imageIllustrative !== 'boolean') throw Error('CATALOGUE_INVALIDE'); lu.imageIllustrative = p.imageIllustrative; }
+  if (p.allergenes !== undefined) { if (!Array.isArray(p.allergenes) || p.allergenes.length > 14 || p.allergenes.some(x => typeof x !== 'string' || x.length > 40)) throw Error('CATALOGUE_INVALIDE'); lu.allergenes = p.allergenes as string[]; }
   if (p.sectionId !== undefined) lu.sectionId = p.sectionId === null ? null : identifiant(p.sectionId);
   if (p.options !== undefined) lu.options = liste(p.options, 30, optionPlat);
   return lu;

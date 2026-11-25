@@ -104,3 +104,24 @@ test('index des articles : base pas encore migrée (colonne allergenes absente) 
   assert.equal(index.articles.length, 1); assert.equal(index.articles[0].allergenes, undefined);
   assert.equal(selects.length, 2); assert.ok(selects[0].includes('allergenes') && !selects[1].includes('allergenes'));
 });
+
+test('menu : allergènes déclarés transmis tels quels (liste, liste vide), absents si non renseignés', async () => {
+  const ligne = (id: string, allergenes?: unknown) => ({ id, nom: id, description: null, prix: 1000, prix_promo: null, disponible: true, disponibilite_confirmee_le: maintenant, photo_url: null, section_id: null, menu_item_options: [], ...(allergenes === undefined ? {} : { allergenes }) });
+  const m = await lireMenu(R1, null, db(u => u.pathname.endsWith('/restaurants') ? { ...restaurant(R1, 'A'), statut_mis_a_jour_le: maintenant } : u.pathname.endsWith('/menu_sections') ? [] : [ligne('p1', ['lait']), ligne('p2', []), ligne('p3', null), ligne('p4')]), parametres, false);
+  assert.deepEqual(m!.plats.map(p => p.allergenes), [['lait'], [], undefined, undefined]);
+});
+
+test('menu : base pas encore migrée (colonne allergenes absente) = menu lu sans allergènes, jamais une panne', async () => {
+  const selects: string[] = [];
+  const fetcher = async (url: unknown) => {
+    const u = new URL(String(url));
+    if (u.pathname.endsWith('/restaurants')) return new Response(JSON.stringify({ ...restaurant(R1, 'A'), statut_mis_a_jour_le: maintenant }), { headers: { 'content-type': 'application/json' } });
+    if (u.pathname.endsWith('/menu_sections')) return new Response('[]', { headers: { 'content-type': 'application/json' } });
+    const sel = u.searchParams.get('select') ?? ''; selects.push(sel);
+    if (sel.includes('allergenes')) return new Response(JSON.stringify({ code: '42703', message: 'column menu_items.allergenes does not exist' }), { status: 400, headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify([{ id: 'p1', nom: 'Crêpe', description: null, prix: 1000, prix_promo: null, disponible: true, disponibilite_confirmee_le: maintenant, photo_url: null, section_id: null, menu_item_options: [] }]), { headers: { 'content-type': 'application/json' } });
+  };
+  const client = createClient<Database>('https://base-essai.invalid', 'anon-essai', { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: fetcher as typeof fetch } });
+  const m = await lireMenu(R1, null, client, parametres);
+  assert.equal(m!.plats.length, 1); assert.equal(m!.plats[0].allergenes, undefined); assert.equal(selects.length, 2);
+});

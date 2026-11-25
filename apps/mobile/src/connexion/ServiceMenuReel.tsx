@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ALLERGENES, type Allergene } from '../../../../packages/shared/src/menu/classement-personnalise';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import { ErreurRestaurateur } from './restaurateur';
@@ -7,7 +8,7 @@ import { Action } from './BoutonAction';
 import { choisirPhoto, type SourcePhoto } from './photoPlat';
 import { depsPhotoNatives } from './photoPlatNatif';
 import {
-  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionPhotoDefinir, actionPhotoRetirer, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
+  actionAllergenes, libelleAllergenesDeclares, BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionPhotoDefinir, actionPhotoRetirer, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
   formaterPrix, libelleDisponibilitePlat, lecturePourAction, lecturePourEtat, photoPeutPartir, preparerOption, preparerPlat, preparerReglages, serviceVerrouille,
   type ActionService, type BrouillonOption, type BrouillonPlat, type BrouillonReglages, type ErreursOption, type ErreursPlat, type ErreursReglages, type EtatService, type EvenementService, type Lectures, type MenuRestaurateur, type PlatRestaurateur,
   type ReglagesRestaurateur, type RelectureService,
@@ -44,6 +45,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
   const [brouillonOption, setBrouillonOption] = useState<BrouillonOption>(BROUILLON_OPTION_VIDE);
   const [erreursOption, setErreursOption] = useState<ErreursOption>({});
   const [choixPhoto, setChoixPhoto] = useState<string | null>(null);
+  const [editionAllergenes, setEditionAllergenes] = useState<{ platId: string; choix: Allergene[]; aucun: boolean } | null>(null);
   const [selection, setSelection] = useState(false);
   const [messagePhoto, setMessagePhoto] = useState<{ platId: string; texte: string } | null>(null);
   const [imagesEnErreur, setImagesEnErreur] = useState<Record<string, string>>({});
@@ -275,6 +277,19 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
           {prix && <Text style={s.texte}>{prix}</Text>}
           <Text style={s.texte}>{lib.etat}</Text>
           {lib.confirmation && <Text style={s.secondaire}>{lib.confirmation}</Text>}
+          <View style={{ gap: 8 }}>
+            <Text style={s.secondaire}>{libelleAllergenesDeclares(p.allergenes)}</Text>
+            {editionAllergenes?.platId !== p.id
+              ? <Action titre={'Déclarer les allergènes de ' + p.nom} libelle="Déclarer les allergènes" secondaire icone="crayon" disabled={bloque} agir={() => setEditionAllergenes({ platId: p.id, choix: p.allergenes ?? [], aucun: p.allergenes !== null && p.allergenes.length === 0 })} />
+              : <View style={s.formulaire}>
+                <Text style={s.texte}>Cochez les allergènes présents dans {p.nom}, ou « Aucun allergène ». Une déclaration fausse peut mettre un client en danger : en cas de doute, cochez l’allergène.</Text>
+                <View style={s.puces}>{ALLERGENES.map(a => { const choisi = editionAllergenes.choix.includes(a.id); return <Pressable key={a.id} accessibilityRole="button" accessibilityState={{ selected: choisi, disabled: editionAllergenes.aucun }} disabled={editionAllergenes.aucun} onPress={() => setEditionAllergenes({ ...editionAllergenes, choix: choisi ? editionAllergenes.choix.filter(x => x !== a.id) : [...editionAllergenes.choix, a.id] })} style={[s.puce, choisi && s.puceChoisie, editionAllergenes.aucun && { opacity: 0.4 }]}><Text style={s.texte}>{a.libelle}</Text></Pressable>; })}</View>
+                <View style={s.ligneSwitch}><Switch accessibilityLabel="Aucun allergène dans ce plat" value={editionAllergenes.aucun} onValueChange={v => setEditionAllergenes({ ...editionAllergenes, aucun: v, choix: v ? [] : editionAllergenes.choix })} /><Text style={[s.texte, { flex: 1 }]}>Aucun allergène dans ce plat</Text></View>
+                <Action titre={'Enregistrer les allergènes de ' + p.nom} libelle="Enregistrer" icone="coche" disabled={bloque || (!editionAllergenes.aucun && editionAllergenes.choix.length === 0)} agir={() => { const e = editionAllergenes; setEditionAllergenes(null); void envoyer(actionAllergenes(p, e.aucun ? [] : e.choix)); }} />
+                {p.allergenes !== null && <Action titre={'Retirer la déclaration d’allergènes de ' + p.nom} libelle="Retirer la déclaration" variante="danger" icone="corbeille" disabled={bloque} agir={() => { setEditionAllergenes(null); void envoyer(actionAllergenes(p, null)); }} />}
+                <Action titre="Annuler" variante="texte" disabled={bloque} agir={() => setEditionAllergenes(null)} />
+              </View>}
+          </View>
           <View style={s.blocPhoto}>
             {p.photoUrl !== null && imagesEnErreur[p.id] !== p.photoUrl
               ? <Image source={{ uri: p.photoUrl }} accessibilityLabel={'Photo de ' + p.nom} style={s.photo} resizeMode="cover" onError={() => setImagesEnErreur(x => ({ ...x, [p.id]: p.photoUrl as string }))} />
@@ -325,6 +340,10 @@ const s = StyleSheet.create({
   ligneOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   ligneLecture: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blocPhoto: { gap: 8 },
+  puces: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  puce: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1.5, borderColor: c.contour, backgroundColor: c.surface, justifyContent: 'center' },
+  puceChoisie: { backgroundColor: c.mangue, borderColor: c.encre },
+  ligneSwitch: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: c.bordure },
   champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.champBordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 110, textAlignVertical: 'top' },

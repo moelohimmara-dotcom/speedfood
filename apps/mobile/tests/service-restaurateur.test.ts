@@ -57,7 +57,7 @@ test('réglages : aucun jeton ni champ inconnu n’est retenu', () => {
 // ---------- lecture du menu ----------
 test('menu : plats lus (nom, prix, disponibilité, dernière confirmation), seuls les champs affichés sont retenus', () => {
   const m = menu([platBrut(P1, { nom: 'Poulet braisé', prix: 45000 }), platBrut(P2, { disponible: false, confirmeLe: null, description: 'secret', photoUrl: 'https://x/y.jpg' })]);
-  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null }, photoRef: null, photoUrl: null });
+  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null }, photoRef: null, photoUrl: null, allergenes: null });
   assert.equal(m.plats[1].disponible, false);
   assert.equal(m.plats[1].edition?.description, 'secret', 'la description sert à la modification (jamais affichée dans la liste)');
   assert.deepEqual([m.plats[1].photoRef, m.plats[1].photoUrl], ['https://x/y.jpg', 'https://x/y.jpg'], 'depuis D4c, l’adresse de la photo est retenue (aperçu et comparaison)');

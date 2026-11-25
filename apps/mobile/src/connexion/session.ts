@@ -3,6 +3,8 @@ import type {CommandeCompte, ResumeSuivi} from './commandes.ts';
 import { depuisCompte, referenceDeCle, versVue, type CommandeAppareil, type MemoireAppareil, type VueCommandeAppareil } from './commandes-appareil.ts';
 import type {ActionAdresse, ChampsProfil, EspaceComplet} from './espace-client.ts';
 import {essaiNotification, type BilanEssai} from './parametres.ts';
+import {effacerPreferences, enregistrerPreferences, lireHabitudes, lirePreferences} from './preferences-client.ts';
+import type {HabitudesClientPublic, PreferencesAEcrire, PreferencesClientPublic} from '../../../../packages/shared/src/contracts/preferences.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
 import type {ActionLivraisonApp,MotifEchecApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, TypeDocument, ValeursPropositionRestaurateur} from './restaurateur.ts';
@@ -204,6 +206,11 @@ export class GestionSession {
   espaceComplet(): Promise<EspaceComplet> {
     return this.espaceClient(a => this.api.espaceComplet ? this.api.espaceComplet(a) : Promise.reject(new ErreurConnexion('Espace client indisponible.')), 'Lecture annulée.');
   }
+  /** Préférences alimentaires (goûts, régimes, allergies) du compte de la session : lecture, remplacement, effacement, et habitudes tirées des commandes. Un seul essai chacun. */
+  preferencesClient(): Promise<PreferencesClientPublic | null> { return this.espaceClient(a => lirePreferences(a), 'Lecture annulée.'); }
+  enregistrerPreferences(p: PreferencesAEcrire): Promise<void> { return this.espaceClient(a => enregistrerPreferences(a, p), 'Envoi annulé.'); }
+  effacerPreferences(): Promise<void> { return this.espaceClient(a => effacerPreferences(a), 'Envoi annulé.'); }
+  habitudesClient(): Promise<HabitudesClientPublic> { return this.espaceClient(a => lireHabitudes(a), 'Lecture annulée.'); }
   /** Notification d'essai vers les appareils de CE compte (G16) : un seul essai, `null` si l'essai n'a pas pu être lancé. */
   essaiNotification(): Promise<BilanEssai | null> {
     return this.espaceClient(a => essaiNotification(a), 'Essai annulé.');

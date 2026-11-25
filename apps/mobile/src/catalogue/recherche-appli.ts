@@ -1,5 +1,6 @@
 import type { ArticleIndexPublic, IndexArticlesPublic, RestaurantIndexPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { construireIndex, grouperParRestaurant, preparerRequete, rechercherArticles, type IndexArticles, type NiveauArticle } from '../../../../packages/shared/src/menu/recherche-articles.ts';
+import type { StatutAllergie } from '../../../../packages/shared/src/menu/classement-personnalise.ts';
 import { typeDePlat } from '../../../../packages/shared/src/menu/types-plats.ts';
 import type { StockageCache } from './cache-catalogue.ts';
 
@@ -38,6 +39,12 @@ export interface ArticleTrouve {
   photoUrl: string | null;
   illustrative: boolean;
   niveau: NiveauArticle;
+  /** Allergènes déclarés par le restaurant : `null` = non renseigné. */
+  allergenes: string[] | null;
+  /** Phrases à afficher à côté du plat (allergies, régime, budget, mots évités) ; vides sans personnalisation. */
+  alertes: string[];
+  statutAllergie: StatutAllergie;
+  dejaCommande: boolean;
 }
 export interface RestaurantTrouve {
   restaurant: RestaurantIndexPublic;
@@ -45,6 +52,11 @@ export interface RestaurantTrouve {
   /** Qualité de correspondance de son meilleur article (0 à 1) : sert au classement. */
   score: number;
   articles: ArticleTrouve[];
+  /** Pourquoi ce restaurant est là (« À 450 m », « Vous avez déjà commandé ici ») ; vide sans personnalisation. */
+  raisons: string[];
+  /** Plats écartés parce qu'ils contiennent une allergie du client (déclarée par le restaurant). */
+  nombreEcartes: number;
+  distanceKm: number | null;
 }
 export interface ResultatRecherche {
   /** Restaurants qui proposent des articles correspondants, du meilleur au moins bon. */
@@ -95,9 +107,12 @@ export function chercherArticles(saisie: string, index: IndexRecherche, maxResta
       restaurant,
       niveau: g.niveau,
       score: g.score,
+      raisons: [],
+      nombreEcartes: 0,
+      distanceKm: null,
       articles: g.articles.map(x => {
         const source = index.parId.get(x.article.id)!;
-        return { id: source.id, nom: source.nom, description: source.description ?? '', prixGnf: source.prixGnf, disponibilite: source.disponibilite, photoUrl: adresseImage(index.donnees, source.photo), illustrative: source.illustrative === true, niveau: x.niveau };
+        return { id: source.id, nom: source.nom, description: source.description ?? '', prixGnf: source.prixGnf, disponibilite: source.disponibilite, photoUrl: adresseImage(index.donnees, source.photo), illustrative: source.illustrative === true, niveau: x.niveau, allergenes: source.allergenes ?? null, alertes: [], statutAllergie: 'aucun_profil' as StatutAllergie, dejaCommande: false };
       }),
     });
   }

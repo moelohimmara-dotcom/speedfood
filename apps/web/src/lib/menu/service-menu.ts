@@ -28,6 +28,8 @@ export interface PlatMenu {
   sectionId: string | null;
   /** Adresse publique de la photo ; null = pas de photo. */
   photoUrl: string | null;
+  /** Allergènes DÉCLARÉS par le restaurant : `null` = non renseigné ; liste vide = aucun allergène déclaré. */
+  allergenes: string[] | null;
   options: OptionMenu[];
 }
 
@@ -44,20 +46,25 @@ const echec = (message: string): ResultatMenu => ({ ok: false, message });
 const INDISPONIBLE = "Impossible d'enregistrer le changement. Réessayez dans un instant.";
 
 export async function lireMenu(db: SupabaseClient, restaurantId: string): Promise<{ sections: SectionMenu[]; plats: PlatMenu[] }> {
-  const [sections, plats] = await Promise.all([
-    db.from("menu_sections").select("id, nom, position").eq("restaurant_id", restaurantId).order("position", { ascending: true }).limit(PLAFOND_SECTIONS),
+  const lirePlats = (avecAllergenes: boolean) =>
     db
       .from("menu_items")
-      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, section_id, photo_url, menu_item_options(id, nom, prix, disponible)")
+      .select((`id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, section_id, photo_url${avecAllergenes ? ", allergenes" : ""}, menu_item_options(id, nom, prix, disponible)`) as string)
       .eq("restaurant_id", restaurantId)
       .is("archive_le", null)
       .order("cree_le", { ascending: true })
-      .limit(PLAFOND_PLATS),
+      .limit(PLAFOND_PLATS);
+  const [sections, platsAvec] = await Promise.all([
+    db.from("menu_sections").select("id, nom, position").eq("restaurant_id", restaurantId).order("position", { ascending: true }).limit(PLAFOND_SECTIONS),
+    lirePlats(true),
   ]);
+  // Base pas encore migrée (colonne `allergenes` absente) : le menu se lit sans elle, tous les plats « non renseignés » ; jamais une console de menu en panne.
+  const plats = platsAvec.error && /allergenes/.test(String(platsAvec.error.message ?? "")) ? await lirePlats(false) : platsAvec;
   if (sections.error || plats.error) throw new Error("menu_illisible");
+  const lignes = (plats.data ?? []) as unknown as Array<Record<string, unknown> & { menu_item_options?: unknown }>;
   return {
     sections: (sections.data ?? []).map((s) => ({ id: s.id as string, nom: s.nom as string })),
-    plats: (plats.data ?? []).map((p) => {
+    plats: lignes.map((p) => {
       const options = (p.menu_item_options ?? []) as { id: string; nom: string; prix: number; disponible: boolean }[];
       return {
         id: p.id as string,
@@ -69,6 +76,7 @@ export async function lireMenu(db: SupabaseClient, restaurantId: string): Promis
         confirmeLe: (p.disponibilite_confirmee_le as string | null) ?? null,
         sectionId: (p.section_id as string | null) ?? null,
         photoUrl: (p.photo_url as string | null) ?? null,
+        allergenes: Array.isArray(p.allergenes) ? (p.allergenes as unknown[]).filter((x): x is string => typeof x === "string") : null,
         options: options.map((o) => ({ id: o.id, nom: o.nom, prix: o.prix, disponible: o.disponible })),
       };
     }),

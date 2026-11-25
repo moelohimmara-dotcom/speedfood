@@ -26,6 +26,8 @@ export interface PlatCataloguePublic {
   prixNormalGnf?: number; photoUrl?: string | null; sectionId?: string | null; options?: OptionPlatPublic[];
   /** Vrai seulement quand la photo est une image générée par ordinateur ET que l'interrupteur « Image illustrative » de la console est allumé : l'appli affiche alors la mention. Absent sinon. */
   imageIllustrative?: boolean;
+  /** Allergènes DÉCLARÉS par le restaurant : absent = non renseigné ; liste vide = aucun allergène déclaré. */
+  allergenes?: string[];
 }
 /**
  * Index léger de TOUS les articles publiés, lu par l'appli pour chercher un plat sans appeler le serveur à chaque lettre tapée (recherche intelligente sur l'appareil).

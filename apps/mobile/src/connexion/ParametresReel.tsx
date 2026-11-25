@@ -8,6 +8,7 @@ import { gestion } from './gestion';
 import { ErreurConnexion } from './client';
 import { messageEssai, messageMiseAJour } from './parametres';
 import { LIENS_AIDE } from './aide';
+import { PreferencesReel } from './PreferencesReel';
 /**
  * Paramètres (parité Kotlin, tranche 10.5, G16) : essai des notifications, version et vérification de mise à jour, visite guidée, oubli des commandes mémorisées sur l'appareil.
  * Rien n'est affiché qui ne fonctionne pas : la vérification de mise à jour n'existe que sur Android (l'iPhone passe par l'App Store ou TestFlight).
@@ -17,6 +18,7 @@ export function ParametresReel({ connectee, ouvrirVisite, oublierCommandes, sess
   const [occupe, setOccupe] = useState(false);
   const [telechargeable, setTelechargeable] = useState(false);
   const [confirmerOubli, setConfirmerOubli] = useState(false);
+  const [preferencesOuvertes, setPreferencesOuvertes] = useState(false);
   const verrou = useRef(false);
   const nom = Constants.expoConfig?.version ?? 'inconnue';
   const code = Number(Constants.expoConfig?.android?.versionCode ?? 0);
@@ -36,6 +38,7 @@ export function ParametresReel({ connectee, ouvrirVisite, oublierCommandes, sess
     try { await oublierCommandes(); setMessage('Les commandes mémorisées sur cet appareil ont été oubliées.'); } catch { setMessage('Impossible d’oublier les commandes de cet appareil pour le moment. Réessayez.'); }
   });
   return <View style={s.bloc}>
+    <PreferencesReel ouvert={preferencesOuvertes} fermer={() => setPreferencesOuvertes(false)} sessionTerminee={() => { setPreferencesOuvertes(false); sessionTerminee(); }} />
     <Text accessibilityRole="header" style={s.titre}>Paramètres</Text>
     {message !== '' && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.texte}>{message}</Text>}
     <Text style={s.secondaire}>Speedfood vous prévient à chaque étape de votre commande. Si rien n’arrive, vérifiez que les notifications de Speedfood sont autorisées dans les réglages du téléphone.</Text>
@@ -44,6 +47,7 @@ export function ParametresReel({ connectee, ouvrirVisite, oublierCommandes, sess
       {connectee && <LigneNavigation premiere titre="Tester les notifications" sousTitre="Envoie une notification d’essai à ce téléphone" icone="cloche" disabled={occupe} onPress={() => { void essayer(); }} />}
       {Platform.OS === 'android' && <LigneNavigation premiere={!connectee} titre="Vérifier les mises à jour" sousTitre={'Version installée : ' + nom} icone="actualiser" disabled={occupe} onPress={() => { void verifier(); }} />}
       <LigneNavigation premiere={!connectee && Platform.OS !== 'android'} titre="Revoir la visite guidée" sousTitre="Un tour rapide de l’application" icone="aide" disabled={occupe} onPress={ouvrirVisite} />
+      {connectee && <LigneNavigation titre="Mes préférences et allergies" sousTitre="Adaptent les résultats de recherche à vos goûts" icone="aide" disabled={occupe} onPress={() => setPreferencesOuvertes(true)} />}
       <LigneNavigation titre="Crédits photos" sousTitre="Auteurs et licences des photos de plats" icone="externe" disabled={occupe} onPress={() => { void Linking.openURL(LIENS_AIDE.credits).catch(() => setMessage('Impossible d’ouvrir la page des crédits sur cet appareil.')); }} />
     </GroupeLignes>
     {Platform.OS !== 'android' && <Text style={s.secondaire}>Version installée : {nom}</Text>}

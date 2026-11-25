@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, BackHandler, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PageMenu, PlatCataloguePublic, RestaurantIndexPublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { creerLecteurCatalogue, validerPageMenu, validerPageRestaurants } from './client';
@@ -27,6 +27,8 @@ import { PHRASE_MODES_COMMANDE } from './commande-reelle';
 import { Vignette } from './Vignette';
 import { ResultatsRecherche } from './ResultatsRecherche';
 import { useRechercheArticles } from './useRechercheArticles';
+import { usePersonnalisation } from './usePersonnalisation';
+import { personnaliser } from './recherche-perso';
 import { BadgeScore, CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { grouperMenu, libelleNote, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
@@ -189,6 +191,8 @@ export function CatalogueReel() {
   // Un résultat de la recherche de plats ouvre le restaurant : la fiche connue si elle est déjà chargée, sinon une amorce construite avec l'index (le menu réel la remplace dès qu'il arrive).
   function ouvrirDepuisRecherche(i: RestaurantIndexPublic) { ouvrir(restaurantsRef.current.find(r => r.id === i.id) ?? { id: i.id, nom: i.nom, lieu: i.lieu, categorie: i.categorie, ouvert: i.ouvert, accepteCommandes: i.accepteCommandes, statutMisAJourLe: null }); }
   const rechercheArticles = useRechercheArticles(recherche);
+  const personnalisation = usePersonnalisation(recherche.trim().length >= 2);
+  const resultatPerso = useMemo(() => (rechercheArticles.resultat ? personnaliser(rechercheArticles.resultat, personnalisation.contexte) : null), [rechercheArticles.resultat, personnalisation.contexte]);
   function retour() { generation.current++; setCharge(false); setErreur(null); setSelection(null); setMenu(null); }
   useEffect(() => {
     if (!selection || Platform.OS === 'web') return;
@@ -283,7 +287,7 @@ export function CatalogueReel() {
       {!selection && <>
         <View style={s.rechercheBoite}><Icone nom="recherche" taille={20} couleur={c.secondaire} /><TextInput accessibilityLabel="Rechercher un plat, un restaurant, un quartier ou une cuisine" placeholder="Un plat, un restaurant, un quartier…" placeholderTextColor={c.secondaire} value={recherche} onChangeText={setRecherche} style={s.rechercheChamp} /></View>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{zones.length >= 2 && <Pressable accessibilityRole="button" accessibilityLabel={libelleZone(zone)} onPress={() => setZoneOuverte(true)} style={s.puceZone}><Icone nom="position" taille={16} couleur={c.encre} /><Text style={s.puceTexte}>{libelleZone(zone)}</Text></Pressable>}{FILTRES.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filtre === f.id }} onPress={() => setFiltre(f.id)} style={[s.puceZone, filtre === f.id && { backgroundColor: c.mangue }]}><Text style={s.puceTexte}>{f.libelle}</Text></Pressable>)}</View>
-        {recherche.trim().length >= 2 && <ResultatsRecherche etat={rechercheArticles.etat} resultat={rechercheArticles.resultat} saisie={rechercheArticles.saisieRetenue} ouvrir={ouvrirDepuisRecherche} />}
+        {recherche.trim().length >= 2 && <ResultatsRecherche etat={rechercheArticles.etat} resultat={resultatPerso} saisie={rechercheArticles.saisieRetenue} ouvrir={ouvrirDepuisRecherche} perso={personnalisation} />}
         {recherche.trim().length >= 2 && visibles.length > 0 && <Text accessibilityRole="header" style={s.titreSection}>Restaurants</Text>}
         <Text style={s.secondaire}>{visibles.length} restaurant{visibles.length > 1 ? 's' : ''} sur {restaurants.length} chargé{restaurants.length > 1 ? 's' : ''}.</Text>
         {sections ? <>
@@ -291,7 +295,7 @@ export function CatalogueReel() {
           {sections.mieuxNotes.length > 0 && <><Text accessibilityRole="header" style={s.titreSection}>Les mieux notés</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{sections.mieuxNotes.map(r => carteRestaurant(r, 'notes-' + r.id, true))}</ScrollView></>}
           <Text accessibilityRole="header" style={s.titreSection}>Tous les restaurants</Text>{visibles.map(r => carteRestaurant(r, 'tous-' + r.id))}
         </> : visibles.map(r => carteRestaurant(r, r.id))}
-        {!charge && !erreur && visibles.length === 0 && !(rechercheArticles.resultat?.restaurants.length) && <Text style={s.texte}>{restaurants.length ? 'Aucun restaurant ne correspond à votre recherche.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
+        {!charge && !erreur && visibles.length === 0 && !(resultatPerso?.restaurants.length) && <Text style={s.texte}>{restaurants.length ? 'Aucun restaurant ne correspond à votre recherche.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
         {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
       </>}
       {menu && <>

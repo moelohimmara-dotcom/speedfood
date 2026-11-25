@@ -138,7 +138,7 @@ test('aucun plafond : 120 restaurants qui proposent des crêpes sont TOUS retrou
 });
 
 test('classement : pertinence en premier, puis ouvert, puis qualité, puis note ; stable', () => {
-  const mk = (nom: string, niveau: 'exact' | 'proche' | 'similaire', ouvert: boolean, score: number, note: number | null) => ({ restaurant: { id: nom, nom, lieu: '', categorie: '', ouvert, accepteCommandes: ouvert, note }, niveau, score, articles: [] });
+  const mk = (nom: string, niveau: 'exact' | 'proche' | 'similaire', ouvert: boolean, score: number, note: number | null) => ({ restaurant: { id: nom, nom, lieu: '', categorie: '', ouvert, accepteCommandes: ouvert, note }, niveau, score, articles: [], raisons: [], nombreEcartes: 0, distanceKm: null });
   const liste = [
     mk('F-ferme-exact', 'exact', false, 0.95, 5),
     mk('B-ouvert-exact-note3', 'exact', true, 0.95, 3),

@@ -3,6 +3,8 @@ import type { ResultatActionCommande, ValeursProposition } from "@speedfood/shar
 import type { ActionMenuApp, OptionAEcrire, PlatAEcrire, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type DecisionPaiementApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import { lireLivraisonApi, type ActionLivraisonApp, type MotifEchecApp } from "@speedfood/shared/contracts/restaurant-livraison";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { definirAllergenesPlat } from "./allergenes.ts";
 import type { ContexteRestaurant, Deps } from "../types.ts";
 import type { LecturesLivraisons } from "./livraison.ts";
 
@@ -190,6 +192,9 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     },
     async definirPhoto(ctx, platId: string, fichier: File) {
       return d.definirPhoto(ctx.supabase, ctx.restaurantId, platId, fichier);
+    },
+    async definirAllergenes(ctx, platId: string, allergenes) {
+      return definirAllergenesPlat(ctx.supabase as SupabaseClient, ctx.restaurantId, platId, allergenes);
     },
     async retirerPhoto(ctx, platId: string) {
       return d.retirerPhoto(ctx.supabase, ctx.restaurantId, platId);

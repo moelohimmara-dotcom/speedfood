@@ -62,17 +62,22 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
   return { restaurants: page, suivant: data.length > 50 ? page.at(-1)!.id : null, luLe: new Date().toISOString() };
 }
 type LigneOption = { id: string; nom: string; prix: number; disponible: boolean };
-type LignePlat = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url?: string | null; section_id?: string | null; menu_item_options?: LigneOption[] | null };
+type LignePlat = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url?: string | null; section_id?: string | null; allergenes?: string[] | null; menu_item_options?: LigneOption[] | null };
 export async function lireMenu(id: string, apres: string | null, db: SupabaseClient<Database>, parametres: () => Promise<{ disponibiliteFraicheurHeures: number }>, illustrative = false): Promise<PageMenu | null> {
   const { data: brutRestaurant, error: erreurRestaurant } = await db.from('restaurants').select(COLONNES_FICHE as string).eq('id', id).eq('publie', true).is('suspendu_le', null).maybeSingle();
   if (erreurRestaurant) throw new Error('catalogue_indisponible');
   const restaurant = brutRestaurant as unknown as LigneRestaurant | null;
   if (!restaurant) return null;
-  let q = db.from('menu_items').select('id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, menu_item_options(id, nom, prix, disponible)').eq('restaurant_id', id).is('archive_le', null).order('id').order('nom', { referencedTable: 'menu_item_options' }).limit(101);
-  if (apres) q = q.gt('id', apres);
+  // Allergènes déclarés : lus quand la colonne existe ; sinon (base pas encore migrée) le menu se lit sans eux, tous « non renseignés ».
+  const lirePlats = (avecAllergenes: boolean) => {
+    let q = db.from('menu_items').select((`id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id${avecAllergenes ? ', allergenes' : ''}, menu_item_options(id, nom, prix, disponible)`) as string).eq('restaurant_id', id).is('archive_le', null).order('id').order('nom', { referencedTable: 'menu_item_options' }).limit(101);
+    if (apres) q = q.gt('id', apres);
+    return q;
+  };
   // Les sections ne sont lues et envoyées qu'avec la première page : les pages suivantes n'en refont ni la lecture ni le transport (l'appli garde celles de la première page).
   const sectionsRequete = apres ? Promise.resolve({ data: null, error: null }) : db.from('menu_sections').select('id, nom, position').eq('restaurant_id', id).order('position', { ascending: true }).limit(50);
-  const [{ data: brut, error }, { data: lignesSections, error: erreurSections }, { disponibiliteFraicheurHeures }] = await Promise.all([q, sectionsRequete, parametres()]);
+  const [reponseAvec, { data: lignesSections, error: erreurSections }, { disponibiliteFraicheurHeures }] = await Promise.all([lirePlats(true), sectionsRequete, parametres()]);
+  const { data: brut, error } = reponseAvec.error && /allergenes/.test(String(reponseAvec.error.message ?? '')) ? await lirePlats(false) : reponseAvec;
   if (error || !brut || erreurSections || (!apres && !lignesSections)) throw new Error('catalogue_indisponible');
   const data = brut as unknown as LignePlat[];
   const maintenant = new Date();
@@ -83,7 +88,7 @@ export async function lireMenu(id: string, apres: string | null, db: SupabaseCli
       if (!Number.isSafeInteger(o.prix) || o.prix < 0) throw new Error('prix_catalogue_invalide');
       return { id: o.id, nom: o.nom, prixGnf: o.prix };
     });
-    return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: urlImage(p.photo_url), ...(illustrative && estImageIllustrative(urlImage(p.photo_url)) ? { imageIllustrative: true } : {}), sectionId: p.section_id ?? null, options };
+    return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: urlImage(p.photo_url), ...(illustrative && estImageIllustrative(urlImage(p.photo_url)) ? { imageIllustrative: true } : {}), ...(Array.isArray(p.allergenes) ? { allergenes: p.allergenes.filter((x): x is string => typeof x === 'string') } : {}), sectionId: p.section_id ?? null, options };
   });
   const sections = apres ? undefined : [...(lignesSections ?? [])].sort((a, b) => a.position - b.position).map(s => ({ id: s.id, nom: s.nom, position: s.position }));
   return { restaurant: projeter(restaurant, true), plats, suivant: data.length > 100 ? plats.at(-1)!.id : null, luLe: maintenant.toISOString(), ...(sections ? { sections } : {}) };

@@ -116,6 +116,8 @@ export interface Deps {
     definirPhoto(ctx: ContexteRestaurant, platId: string, fichier: File): Promise<ResultatActionCommande>;
     /** Lot D4c : retire la photo d'un plat de CE restaurant (le plat reste en vente, sans image). */
     retirerPhoto(ctx: ContexteRestaurant, platId: string): Promise<ResultatActionCommande>;
+    /** Allergènes d'un plat, DÉCLARÉS par le restaurant : liste, liste vide (aucun) ou `null` (retire la déclaration). Plat filtré sur le restaurant du compte. */
+    definirAllergenes?(ctx: ContexteRestaurant, platId: string, allergenes: readonly import('@speedfood/shared/menu/classement-personnalise').Allergene[] | null): Promise<ResultatActionCommande>;
     /** Lot D5 : la livraison de CE restaurant avance (partir, livree avec le code à 4 chiffres, annuler). La livraison est filtrée sur le restaurant du compte (« introuvable » sinon, même réponse pour un autre restaurant). */
     agirSurLivraison(ctx: ContexteRestaurant, livraisonId: string, action: ActionLivraisonApp, code?: string, motif?: MotifEchecApp): Promise<ResultatActionCommande>;
   };

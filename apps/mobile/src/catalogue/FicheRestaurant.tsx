@@ -5,7 +5,7 @@ import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 import { Vignette } from './Vignette';
 import { VignettePlat } from './MentionIllustrative';
-import { enPromo, libelleNote, libelleStatut, libelleSupplements, titreEtatRestaurant } from './menu-groupes';
+import { enPromo, libelleAllergenesPlat, libelleNote, libelleStatut, libelleSupplements, titreEtatRestaurant } from './menu-groupes';
 import { commandabilite, etatPlat, moyensAffichables } from './parcours-client';
 import { PHRASE_MODES_COMMANDE } from './commande-reelle';
 /** Affichage riche du catalogue (parité Kotlin, tranche 10.1) : en-tête de la fiche et carte d'un plat. Les montants affichés sont indicatifs : le serveur recalcule tout à la commande. */
@@ -59,6 +59,7 @@ export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date()
           {promo && <Text accessibilityLabel={`au lieu de ${gnf(p.prixNormalGnf!)}`} style={s.barre}>{gnf(p.prixNormalGnf!)}</Text>}
         </View>
         {supp && <Text style={s.secondaire}>{supp}</Text>}
+        <Text style={s.secondaire}>{libelleAllergenesPlat(p.allergenes)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{detail && <Text style={s.secondaire}>{detail}</Text>}</View>
       </View>
       {/* « + » rond à droite de la ligne, comme dans les applis de commande : le nom accessible dit « Ajouter X au panier » ; un plat épuisé est grisé. */}

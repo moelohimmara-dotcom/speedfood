@@ -1,6 +1,8 @@
 import { HORAIRES_MAX, lireActionMenuApp, lireReglagesApp, lireStatutApp, type ChampStatutApp, type OptionAEcrire, type PlatAEcrire, type ReglagesAEcrire } from '../../../../packages/shared/src/contracts/restaurant-service.ts';
 import { DESCRIPTION_PLAT_MAX, NOM_OPTION_MAX, NOM_PLAT_MAX, PRIX_PLAT_PLAFOND_GNF, REGLES_MENU_PLAFONNEES } from '../../../../packages/shared/src/menu/regles-plat.ts';
 import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS, lireDemandePhotoApp } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
+import { lireDemandeAllergenes } from '../../../../packages/shared/src/contracts/restaurant-allergenes.ts';
+import { ALLERGENES, estAllergene, type Allergene } from '../../../../packages/shared/src/menu/classement-personnalise.ts';
 import { lireDelaiPreparation } from '../../../../packages/shared/src/commande/estimation.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
 import type { RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
@@ -100,6 +102,8 @@ export interface PlatRestaurateur {
   edition: EditionPlat | null;
   /** Lot D4c. `photoRef` = ce que le serveur a (une adresse, ou null = pas de photo) : sert à COMPARER avant/après, jamais affichée. `photoUrl` = l'adresse à afficher (https seulement) ; null si absente ou illisible. */
   photoRef: string | null; photoUrl: string | null;
+  /** Allergènes DÉCLARÉS par le restaurant : `null` = non renseignés ; liste vide = « aucun allergène » déclaré. Une valeur illisible vaut « non renseignés » (jamais une déclaration inventée). */
+  allergenes: Allergene[] | null;
 }
 export interface MenuRestaurateur {
   plats: PlatRestaurateur[];
@@ -118,10 +122,15 @@ export function lireMenuRestaurateur(v: Record<string, unknown>): MenuRestaurate
       ids.add(o.id);
       const prixGnf = entierGnf(o.prix);
       const { options, illisibles: optionsIllisibles } = lireOptions(o.options);
-      plats.push({ id: o.id, nom, prixGnf, disponible: o.disponible, confirmeLe: dateOuNull(o.confirmeLe), options, optionsIllisibles, edition: lireEdition(o, prixGnf), ...lirePhoto(o.photoUrl) });
+      plats.push({ id: o.id, nom, prixGnf, disponible: o.disponible, confirmeLe: dateOuNull(o.confirmeLe), options, optionsIllisibles, edition: lireEdition(o, prixGnf), ...lirePhoto(o.photoUrl), allergenes: lireAllergenes(o.allergenes) });
     } catch { illisibles++; }
   }
   return { plats, illisibles };
+}
+/** Allergènes déclarés : une liste d'allergènes connus (éventuellement vide), sinon `null` (non renseignés). */
+function lireAllergenes(v: unknown): Allergene[] | null {
+  if (!Array.isArray(v) || v.length > 14 || !v.every(estAllergene) || new Set(v).size !== v.length) return null;
+  return v as Allergene[];
 }
 /** Photo d'un plat : une valeur absente, non textuelle ou illisible n'invalide JAMAIS le plat (pas de photo affichée). Seule une adresse https sans espace ni contrôle est affichée. */
 function lirePhoto(v: unknown): { photoRef: string | null; photoUrl: string | null } {
@@ -205,7 +214,9 @@ export type ActionService =
   | { type: 'option_retirer'; optionId: string; platId: string; nom: string }
   /** Lot D4c. `avant` = la photo que le serveur avait (`photoRef`) : l'envoi est confirmé quand la relecture montre une photo DIFFÉRENTE ; le retrait, quand elle montre « aucune ». */
   | { type: 'photo_definir'; platId: string; avant: string | null; fichier: FichierPhotoPrete }
-  | { type: 'photo_retirer'; platId: string; nom: string };
+  | { type: 'photo_retirer'; platId: string; nom: string }
+  /** Allergènes d'un plat : une liste, une liste vide (« aucun allergène ») ou `null` (retire la déclaration). `avant` = ce que le serveur avait, pour confirmer le changement à la relecture. */
+  | { type: 'allergenes'; platId: string; allergenes: Allergene[] | null; avant: Allergene[] | null };
 
 /** Les actions qui demandent une confirmation avant l'envoi : les deux interrupteurs (dans les deux sens), « Tout confirmer », l'archivage d'un plat, le retrait d'un supplément et le retrait d'une photo. */
 export function actionAConfirmer(a: ActionService): boolean { return a.type === 'statut' || a.type === 'confirmer_tout' || a.type === 'archiver' || a.type === 'option_retirer' || a.type === 'photo_retirer'; }
@@ -221,6 +232,7 @@ export function fichierPhotoPret(f: unknown): f is FichierPhotoPrete {
     && typeof x.size === 'number' && Number.isSafeInteger(x.size) && x.size > 0 && x.size <= PHOTO_TAILLE_MAX_OCTETS;
 }
 export function actionPhotoDefinir(p: Pick<PlatRestaurateur, 'id' | 'photoRef'>, fichier: FichierPhotoPrete): ActionService { return { type: 'photo_definir', platId: p.id, avant: p.photoRef, fichier }; }
+export function actionAllergenes(p: Pick<PlatRestaurateur, 'id' | 'allergenes'>, allergenes: Allergene[] | null): ActionService { return { type: 'allergenes', platId: p.id, allergenes, avant: p.allergenes }; }
 export function actionPhotoRetirer(p: Pick<PlatRestaurateur, 'id' | 'nom'>): ActionService { return { type: 'photo_retirer', platId: p.id, nom: p.nom }; }
 
 /** Quel état du serveur une action change : les réglages (interrupteurs, horaires, délai) ou le menu (plats, suppléments). Sert à verrouiller sur la relecture de CET état-là. */
@@ -350,7 +362,7 @@ export function confirmationDe(a: ActionService): { question: string; oui: strin
 export const LIBELLES_ACTION: Record<ActionService['type'], string> = {
   statut: 'ce changement', reglages: 'vos réglages', disponibilite: 'ce changement de disponibilité', confirmer: 'cette confirmation', confirmer_tout: 'cette confirmation',
   creer: 'l’ajout de ce plat', modifier: 'la modification de ce plat', archiver: 'l’archivage de ce plat', option_ajouter: 'l’ajout de ce supplément', option_retirer: 'le retrait de ce supplément',
-  photo_definir: 'l’envoi de cette photo', photo_retirer: 'le retrait de cette photo',
+  photo_definir: 'l’envoi de cette photo', photo_retirer: 'le retrait de cette photo', allergenes: 'la déclaration des allergènes',
 };
 
 /** Lecture du contrat partagé (API et application refusent les mêmes saisies) : l'action normalisée, ou `null`. */
@@ -358,7 +370,7 @@ function lireMenu(corps: unknown) { const lu = lireActionMenuApp(corps, REGLES_M
 function champsPlat(p: PlatAEcrire | undefined) { return { nom: p?.nom, description: p?.description, prix: p?.prix, prixPromo: p?.prixPromo, sectionId: p?.sectionId }; }
 
 /** Corps de la requête, SEULEMENT les champs prévus (jamais de restaurant) : la machine et le client n'envoient que ce que cette fonction produit. */
-export interface EnvoiService { chemin: '/api/v1/restaurant/statut' | '/api/v1/restaurant/reglages' | '/api/v1/restaurant/menu/action' | typeof CHEMIN_PHOTO_APP; corps: object; /** Photo seulement : le fichier préparé, envoyé en formulaire multipart avec `corps` (le plat). */ fichier?: FichierPhotoPrete }
+export interface EnvoiService { chemin: '/api/v1/restaurant/statut' | '/api/v1/restaurant/reglages' | '/api/v1/restaurant/menu/action' | '/api/v1/restaurant/menu/allergenes' | typeof CHEMIN_PHOTO_APP; corps: object; /** Photo seulement : le fichier préparé, envoyé en formulaire multipart avec `corps` (le plat). */ fichier?: FichierPhotoPrete }
 export function corpsDeAction(a: ActionService): EnvoiService | null {
   if (a === null || typeof a !== 'object') return null;
   switch (a.type) {
@@ -380,6 +392,8 @@ export function corpsDeAction(a: ActionService): EnvoiService | null {
       return lu.ok && lu.demande.action === 'definir' ? { chemin: CHEMIN_PHOTO_APP, corps: { platId: lu.demande.platId }, fichier: a.fichier } : null;
     }
     case 'photo_retirer': { const lu = lireDemandePhotoApp({ platId: a.platId, photo: undefined, retirer: '1' }); return lu.ok && lu.demande.action === 'retirer' ? { chemin: CHEMIN_PHOTO_APP, corps: { platId: lu.demande.platId, retirer: '1' } } : null; }
+    // Les allergènes sont validés par le contrat partagé (le même que le serveur) AVANT tout appel réseau.
+    case 'allergenes': { const lu = lireDemandeAllergenes({ platId: a.platId, allergenes: a.allergenes }); return lu.ok ? { chemin: '/api/v1/restaurant/menu/allergenes', corps: { platId: lu.platId, allergenes: lu.allergenes } } : null; }
     default: return null;
   }
 }
@@ -416,7 +430,7 @@ const MESSAGES_SUCCES = {
   reglages: 'Réglages enregistrés.',
   disponible: 'Plat marqué disponible.', indisponible: 'Plat marqué indisponible.', confirmer: 'Disponibilité confirmée.', confirmer_tout: 'Disponibilité confirmée pour tous les plats disponibles.',
   creer: 'Plat ajouté.', modifier: 'Plat modifié.', archiver: 'Plat archivé : il n’apparaît plus sur la carte.', option_ajouter: 'Supplément ajouté.', option_retirer: 'Supplément retiré.',
-  photo_definir: 'Photo enregistrée.', photo_retirer: 'Photo retirée : le plat reste en vente, sans image.',
+  photo_definir: 'Photo enregistrée.', photo_retirer: 'Photo retirée : le plat reste en vente, sans image.', allergenes: 'Allergènes enregistrés.',
 };
 const MESSAGES_ENREGISTRE = {
   ouvert: { true: 'La réouverture est bien enregistrée.', false: 'La fermeture est bien enregistrée.' },
@@ -425,6 +439,7 @@ const MESSAGES_ENREGISTRE = {
   disponible: 'Le plat est bien enregistré comme disponible.', indisponible: 'Le plat est bien enregistré comme indisponible.', confirmer: 'La confirmation est bien enregistrée.', confirmer_tout: 'La confirmation est bien enregistrée pour tous les plats.',
   creer: 'Le nouveau plat est bien enregistré.', modifier: 'Les modifications du plat sont bien enregistrées.', archiver: 'Le plat est bien archivé.', option_ajouter: 'Le supplément est bien enregistré.', option_retirer: 'Le supplément est bien retiré.',
   photo_definir: 'Une photo différente est maintenant enregistrée pour ce plat (la vôtre, sauf si elle a été changée depuis un autre appareil : vérifiez l’aperçu).', photo_retirer: 'La photo est bien retirée.',
+  allergenes: 'Les allergènes sont bien enregistrés.',
 };
 function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof MESSAGES_ENREGISTRE): string {
   switch (a.type) {
@@ -440,6 +455,7 @@ function messageSucces(a: ActionService, table: typeof MESSAGES_SUCCES | typeof 
     case 'option_retirer': return table.option_retirer;
     case 'photo_definir': return table.photo_definir;
     case 'photo_retirer': return table.photo_retirer;
+    case 'allergenes': return table.allergenes;
   }
 }
 
@@ -477,7 +493,20 @@ export function etatCorrespond(a: ActionService, relue: RelectureService): boole
     // Lot D4c : une photo envoyée est enregistrée quand le serveur a une photo DIFFÉRENTE de celle d'avant (le serveur donne à chaque fichier un nom nouveau) ; retirée quand il n'en a plus. Plat disparu : inconnu (null) pour le retrait, jamais « bien retirée ».
     case 'photo_definir': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p !== undefined && p.photoRef !== null && p.photoRef !== a.avant; }
     case 'photo_retirer': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p === undefined ? null : p.photoRef === null; }
+    // Allergènes : le serveur a exactement la déclaration demandée (même ensemble, ou « non renseignés » pour un retrait). Plat disparu : inconnu, jamais « enregistré ».
+    case 'allergenes': { if (!relue.menu) return null; const p = relue.menu.plats.find(x => x.id === a.platId); return p === undefined ? null : memesAllergenes(p.allergenes, a.allergenes); }
   }
+}
+/** Ce que l'écran dit des allergènes d'un plat : trois états distincts, jamais confondus. */
+export function libelleAllergenesDeclares(a: Allergene[] | null): string {
+  if (a === null) return 'Allergènes non renseignés : déclarez-les pour que vos clients allergiques puissent commander en confiance.';
+  if (a.length === 0) return 'Aucun allergène déclaré pour ce plat.';
+  return 'Contient : ' + a.map(x => ALLERGENES.find(d => d.id === x)!.libelle.toLowerCase()).join(', ') + '.';
+}
+/** Deux déclarations d'allergènes sont identiques : toutes deux « non renseignées », ou le même ensemble (l'ordre ne compte pas). */
+export function memesAllergenes(a: Allergene[] | null, b: Allergene[] | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.length === b.length && a.every(x => b.includes(x));
 }
 /** « Réessayer » seulement quand le bouton qui renverrait l'action existe encore (leçon D2-M4). */
 export function boutonExiste(a: ActionService, relue: RelectureService): boolean {
@@ -494,6 +523,7 @@ export function boutonExiste(a: ActionService, relue: RelectureService): boolean
     // Lot D4c : le bouton « Ajouter / Changer la photo » existe tant que le plat est là ; « Retirer la photo », tant que le plat a une photo.
     case 'photo_definir': return relue.menu?.plats.some(x => x.id === a.platId) === true;
     case 'photo_retirer': return relue.menu?.plats.some(x => x.id === a.platId && x.photoRef !== null) === true;
+    case 'allergenes': return relue.menu?.plats.some(x => x.id === a.platId) === true;
   }
 }
 
