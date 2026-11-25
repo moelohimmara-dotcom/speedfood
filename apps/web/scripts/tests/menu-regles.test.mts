@@ -3,6 +3,7 @@ import { AVERTISSEMENT_ALCOOL, RUBRIQUES_AVEC_ALCOOL, RUBRIQUES_SANS_ALCOOL, cla
 import { BIBLIOTHEQUE_PHOTOS } from "../../src/lib/menu/bibliotheque-photos";
 import { TYPES_RECONNUS, typeDePlat } from "../../src/lib/menu/types-plats";
 import { cheminStockage, creditObligatoire, planifierPhotosDemo } from "../../src/lib/menu/plan-photos-demo";
+import { construireCredits, libelleDuType, urlLicence } from "../../src/lib/menu/credits-photos";
 import { attribuerPhotos, couverturePhotos, estFormule, type ArticleMenu, type PhotoBibliotheque } from "../../src/lib/menu/photos";
 
 /** Tests des règles d'affichage des longs menus et d'attribution des photos. */
@@ -146,6 +147,19 @@ verifier("chemin de stockage : sous demo/photos", cheminStockage("wikimedia-lot3
   verifier("plan : un crédit par photo utilisée de banque, jamais pour l'IA", plan.credits.every((c) => c.fichier.length > 0 && c.licence.length > 0) && new Set(plan.credits.map((c) => c.photoId)).size === plan.credits.length, true);
   verifier("plan : plats illustratifs = photos IA seulement", plan.platsIllustratifs.length, plan.statistiques.parSource.ia);
   verifier("plan : démonstration vide", planifierPhotosDemo([], BIBLIOTHEQUE_PHOTOS, "https://x.test").statistiques, { plats: 0, avecPhoto: 0, sansPhoto: 0, parSource: { banque: 0, ia: 0 } });
+}
+// Page de crédits : toutes les photos sous CC BY / CC BY-SA sont listées, avec auteur, licence et lien.
+verifier("licence : adresses Creative Commons", [urlLicence("CC BY-SA 4.0"), urlLicence("CC BY 2.0"), urlLicence("CC0"), urlLicence("Pexels License")], ["https://creativecommons.org/licenses/by-sa/4.0/", "https://creativecommons.org/licenses/by/2.0/", "https://creativecommons.org/publicdomain/zero/1.0/", null]);
+verifier("libellé d'un type de plat", [libelleDuType("rfissa"), libelleDuType("poulet-yassa")], ["Rfissa", "Poulet yassa"]);
+{
+  const credits = construireCredits(BIBLIOTHEQUE_PHOTOS);
+  const attendus = BIBLIOTHEQUE_PHOTOS.filter((p) => p.source === "banque" && creditObligatoire(p.licence));
+  verifier("crédits : aucune photo CC BY / CC BY-SA oubliée", credits.obligatoires.length, attendus.length);
+  verifier("crédits : chaque ligne a auteur, licence et page d'origine", credits.obligatoires.every((c) => c.auteur.length > 0 && c.licence.length > 0 && c.page !== null && c.page.startsWith("https://")), true);
+  verifier("crédits : chaque licence a son adresse", credits.obligatoires.every((c) => c.urlLicence !== null), true);
+  verifier("crédits : le total des photos est cohérent", credits.obligatoires.length + credits.libres.reduce((t, l) => t + l.nombre, 0) + credits.imagesIa, BIBLIOTHEQUE_PHOTOS.length);
+  verifier("crédits : images IA comptées à part", credits.imagesIa, BIBLIOTHEQUE_PHOTOS.filter((p) => p.source === "ia").length);
+  verifier("crédits : triés par auteur", credits.obligatoires.map((c) => c.auteur).join("|"), [...credits.obligatoires.map((c) => c.auteur)].sort((a, b) => a.localeCompare(b, "fr")).join("|"));
 }
 // Les formules reçoivent une photo de formule (plusieurs éléments), jamais la photo d'un seul plat ; un plat ne reçoit jamais une photo de formule.
 const bibF: PhotoBibliotheque[] = [{ id: "f-doner", type: "formule-doner", source: "ia" }, { id: "p-shawarma", type: "shawarma", source: "banque" }];
