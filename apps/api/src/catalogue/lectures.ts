@@ -60,8 +60,27 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
       if (!paliers.has(s.restaurant_id)) paliers.set(s.restaurant_id, s.palier);
     }
   }
+  // Offres de l'accueil : un plat disponible en promotion suffit. Lecture bornée aux identifiants affichés, paginée par identifiant
+  // pour ne jamais évincer une vraie promotion derrière un plafond ; une erreur de lecture rend le catalogue indisponible, jamais de fausses offres.
+  const avecPromos = new Set<string>();
+  if (pageBrute.length > 0) {
+    const ids = pageBrute.map(r => r.id);
+    const TAILLE_PAGE_PROMOS = 500;
+    const PAGES_MAX_PROMOS = 20;
+    for (let page = 0; page < PAGES_MAX_PROMOS && avecPromos.size < ids.length; page++) {
+      const debut = page * TAILLE_PAGE_PROMOS;
+      const { data: promos, error: erreurPromos } = await db.from('menu_items').select('restaurant_id, prix, prix_promo').in('restaurant_id', ids).eq('disponible', true).is('archive_le', null).not('prix_promo', 'is', null).order('id').range(debut, debut + TAILLE_PAGE_PROMOS - 1);
+      if (erreurPromos || !promos) throw new Error('catalogue_indisponible');
+      const lignes = promos as unknown as Array<{ restaurant_id: string; prix: number; prix_promo: number | null }>;
+      for (const p of lignes) {
+        if (p.prix_promo !== null && p.prix_promo < p.prix) avecPromos.add(p.restaurant_id);
+      }
+      if (lignes.length < TAILLE_PAGE_PROMOS) break;
+      if (page === PAGES_MAX_PROMOS - 1) throw new Error('catalogue_indisponible');
+    }
+  }
   const page = pageBrute.map(r => {
-    const projete = projeter(r);
+    const projete = { ...projeter(r), aDesPromos: avecPromos.has(r.id) };
     const palier = paliers.get(r.id);
     return palier ? { ...projete, scorePalier: palier as 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais' } : projete;
   });

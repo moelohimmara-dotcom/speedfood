@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FILTRES, SEUIL_SECTIONS, TOUTES_ZONES, filtrerRestaurants, libelleZone, nombreParZone, normaliser, restaurantsDansZone, sectionsAccueil, zoneEffective, zonesDisponibles } from '../src/catalogue/accueil.ts';
+import { FILTRES, SEUIL_SECTIONS, TOUTES_ZONES, categoriesDisponibles, filtrerRestaurants, libelleZone, nombreParZone, normaliser, restaurantsDansZone, sectionsAccueil, zoneEffective, zonesDisponibles } from '../src/catalogue/accueil.ts';
 import type { RestaurantPublic } from '../../../packages/shared/src/contracts/catalogue.ts';
 // Parité Kotlin (tranche 10.3, `Zone.kt`, `Accueil.kt`, `RechercheEtListe`) : zones où il y a vraiment des restaurants, filtre, recherche sans accents, sections de l'accueil.
 let n = 0;
@@ -49,6 +49,19 @@ test('recherche : nom, quartier ou cuisine, tous les mots, sans casse ni accents
   assert.deepEqual(filtrerRestaurants([a, b], 'pizza matam', 'tous'), [b]);
   assert.deepEqual(filtrerRestaurants([a, b], 'introuvable', 'tous'), []);
   assert.deepEqual(filtrerRestaurants([a, b], '   ', 'tous'), [a, b]);
+});
+test('cuisines : catégories présentes triées et dédoublonnées, filtre par catégorie exacte, offres = restaurants avec un plat en promotion', () => {
+  const a = r('Kipé', { categorie: 'Pizzas', aDesPromos: true }); const b = r('Matam', { categorie: 'Cuisine guinéenne' }); const c = r('Kaloum', { categorie: ' pizzas ' });
+  assert.deepEqual(categoriesDisponibles([a, b, c]), ['Cuisine guinéenne', 'Pizzas']);
+  assert.deepEqual(categoriesDisponibles([r('X', { categorie: '  ' })]), []);
+  assert.deepEqual(filtrerRestaurants([a, b, c], '', 'tous', 'Pizzas'), [a, c]);
+  assert.deepEqual(filtrerRestaurants([a, b, c], '', 'tous', null), [a, b, c]);
+  const liste = [a, b, c, r('Kipé', { categorie: 'Grillades', aDesPromos: true })];
+  assert.deepEqual(sectionsAccueil(liste, '', 'tous')!.offres.map(x => x.id), [a.id, liste[3].id]);
+  const g1 = r('Kipé', { categorie: 'Cuisine guineenne' }); const g2 = r('Matam', { categorie: 'Cuisine guinéenne' });
+  assert.deepEqual(categoriesDisponibles([g1, g2]), ['Cuisine guinéenne']);
+  assert.deepEqual(filtrerRestaurants([g1, g2], '', 'tous', categoriesDisponibles([g1, g2])[0]), [g1, g2]);
+  assert.deepEqual(categoriesDisponibles([r('X', { categorie: 'pizzas' }), r('Y', { categorie: 'Pizzas' }), r('Z', { categorie: 'Pizzas' })]), ['Pizzas']);
 });
 test('sections : seulement sans recherche ni filtre et avec au moins 4 restaurants ; « Ouverts maintenant » puis « Les mieux notés » (3 au plus, avec une note)', () => {
   assert.equal(SEUIL_SECTIONS, 4);

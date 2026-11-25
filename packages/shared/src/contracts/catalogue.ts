@@ -16,6 +16,8 @@ export interface RestaurantPublic {
   fiabiliteCote?: 'nouveau' | 'en_cours' | 'fiable';
   /** Badges de confiance : tres_apprecie, valeur_sure, nouveau (menu_frais n'est calculé que dans l'index de recherche). */
   badges?: string[];
+  /** Vrai si au moins un plat disponible est en promotion (prix promo inférieur au prix normal). Sert à la section « Offres » de l'accueil. */
+  aDesPromos?: boolean;
   horaires?: string | null; consignes?: string | null; moyensPaiement?: string[];
 }
 /** Supplément facultatif d'un plat (par exemple « Piment »). Seuls les suppléments disponibles sont transmis. `prixGnf` est un montant entier ≥ 0. */
