@@ -34,6 +34,14 @@ test('liste des restaurants : on peut commander d’abord, puis en pause, puis f
   assert.deepEqual(liste.map(r => r.id), ['a', 'b', 'c', 'd', 'e'], 'la liste d’origine n’est pas modifiée');
 });
 
+test('liste des restaurants : à statut égal, les bons paliers du score qualité passent devant, sans jamais passer devant un restaurant qui prend des commandes', () => {
+  const liste = [
+    { id: 'a', ouvert: true, accepteCommandes: true, scorePalier: 'bon' as const }, { id: 'b', ouvert: true, accepteCommandes: true, scorePalier: 'excellent' as const },
+    { id: 'c', ouvert: true, accepteCommandes: true, scorePalier: 'tres_bon' as const }, { id: 'd', ouvert: true, accepteCommandes: false, scorePalier: 'excellent' as const },
+  ];
+  assert.deepEqual(ordonnerRestaurants(liste).map(r => r.id), ['b', 'c', 'a', 'd']);
+});
+
 test('menu : disponibles d’abord, puis à confirmer, puis épuisés ; l’ordre du restaurant est gardé dans chaque groupe', () => {
   const plats = [
     { id: '1', disponibilite: 'epuise' as const }, { id: '2', disponibilite: 'a_confirmer' as const }, { id: '3', disponibilite: 'disponible' as const },

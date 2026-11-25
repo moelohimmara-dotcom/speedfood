@@ -84,7 +84,7 @@ test('câblage : route du site, session, bandeau de l’espace restaurateur, fil
   assert.match(client, /async etatRestaurant\(accessToken: string\)[\s\S]{0,300}\/api\/v1\/restaurant\/etat/, 'client : appel GET de la route /restaurant/etat');
   assert.match(client, /lireEtatPublication\(corps as Record<string, unknown>\)/, 'client : réponse relue strictement');
   const session = lire('../src/connexion/session.ts');
-  assert.ok(session.includes("'activiteRestaurant'|'etatRestaurant'|'emettreDocumentRestaurateur'"), 'session : la méthode est dans la liste des appels');
+  assert.ok(session.includes("'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'"), 'session : la méthode est dans la liste des appels');
   assert.match(session, /async etatRestaurant\(\)[\s\S]{0,400}this\.api\.etatRestaurant\(acces\)/, 'session : jeton porteur, aucun identifiant de restaurant envoyé');
   assert.match(lire('../src/connexion/RestaurateurReel.tsx'), /<EtatPublicationReel \/>/, 'l’espace restaurateur affiche le bandeau');
   assert.match(lire('../src/connexion/EtatPublicationReel.tsx'), /gestion\.etatRestaurant\(\)/, 'le bandeau lit l’état par la session');

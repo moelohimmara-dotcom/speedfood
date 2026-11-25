@@ -71,6 +71,11 @@ export function FormulaireReglagesPaiement({ reglages: r }: { reglages: Reglages
           <Aide>Part variable de la commission, en pour-mille du repas : 20 = 2 %. Le total fixe plus variable reste plafonné au repas. À 0, seule la part fixe s’applique.</Aide>
         </div>
         <div className="field">
+          <label htmlFor="pay-reduction-excellent">Réduction de commission au palier excellent (‰)</label>
+          <input id="pay-reduction-excellent" name="commissionReductionExcellent" inputMode="numeric" defaultValue={r.commissionReductionExcellentPermille} required />
+          <Aide>En pour-mille de la commission elle-même : 500 = moitié moins. Ne s’applique qu’aux restaurants dont le dernier score calculé est au palier excellent. À 0, aucune réduction.</Aide>
+        </div>
+        <div className="field">
           <label htmlFor="pay-versement">Frais par versement (GNF)</label>
           <input id="pay-versement" name="fraisVersement" inputMode="numeric" defaultValue={r.fraisVersementGnf} required />
           <Aide>À renseigner quand le prestataire aura communiqué ses frais de transfert. Supportés par Speedfood.</Aide>

@@ -52,6 +52,7 @@ export interface ReglagesAdmin {
   fraisMobilePermilleMtn: number;
   fraisSpeedfoodCommandeGnf: number;
   commissionSpeedfoodPermille: number;
+  commissionReductionExcellentPermille: number;
   fraisVersementGnf: number;
   fraisMobileFixeGnf: number;
   delaiExpirationMinutes: number;
@@ -89,6 +90,7 @@ export async function lireReglagesAdmin(): Promise<ReglagesAdmin> {
     fraisMobilePermilleMtn: Number(r.frais_mobile_permille_mtn ?? 17),
     fraisSpeedfoodCommandeGnf: Number(r.frais_speedfood_commande_gnf ?? 1000),
     commissionSpeedfoodPermille: Number(r.commission_speedfood_permille ?? 0),
+    commissionReductionExcellentPermille: Number(r.commission_reduction_excellent_permille ?? 0),
     fraisVersementGnf: Number(r.frais_versement_gnf ?? 0),
     fraisMobileFixeGnf: Number(r.frais_mobile_fixe_gnf ?? 0),
     delaiExpirationMinutes: Number(r.delai_expiration_minutes ?? 15),
