@@ -8,7 +8,7 @@ import {
   libelleEtatRestaurant,
 } from "../../src/lib/disponibilite/etat";
 import { normaliser, qualiteCorrespondance, classerResultats } from "../../src/lib/decouverte/classement";
-import { distanceEdition, forceMot } from "../../src/lib/decouverte/recherche-plats";
+import { distanceEdition, forceMot } from "../../src/lib/menu/recherche-plats";
 
 let ko = 0;
 let total = 0;

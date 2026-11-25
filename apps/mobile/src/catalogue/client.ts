@@ -1,4 +1,4 @@
-import type { PageRestaurants, PageMenu, RestaurantPublic, PlatCataloguePublic, ListeQuartiers, QuartierPublic, OptionPlatPublic, SectionMenuPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
+import type { PageRestaurants, PageMenu, RestaurantPublic, PlatCataloguePublic, ListeQuartiers, QuartierPublic, OptionPlatPublic, SectionMenuPublic, IndexArticlesPublic, ArticleIndexPublic, RestaurantIndexPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 export const ORIGINE_CATALOGUE = 'https://speedfood-api.moelohimmara.workers.dev';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function objet(x: unknown): Record<string, unknown> { if (!x || typeof x !== 'object' || Array.isArray(x)) throw Error('CATALOGUE_INVALIDE'); return x as Record<string, unknown>; }
@@ -31,6 +31,7 @@ function plat(x: unknown): PlatCataloguePublic {
   const lu: PlatCataloguePublic = { id: identifiant(p.id), nom: texte(p.nom, 256), description: texte(p.description), prixGnf: p.prixGnf, disponibilite: p.disponibilite as PlatCataloguePublic['disponibilite'], confirmeLe: p.confirmeLe === null ? null : date(p.confirmeLe) };
   if (p.prixNormalGnf !== undefined) { const n = entier(p.prixNormalGnf); if (n < p.prixGnf) throw Error('CATALOGUE_INVALIDE'); lu.prixNormalGnf = n; }
   if (p.photoUrl !== undefined) lu.photoUrl = urlImage(p.photoUrl);
+  if (p.imageIllustrative !== undefined) { if (typeof p.imageIllustrative !== 'boolean') throw Error('CATALOGUE_INVALIDE'); lu.imageIllustrative = p.imageIllustrative; }
   if (p.sectionId !== undefined) lu.sectionId = p.sectionId === null ? null : identifiant(p.sectionId);
   if (p.options !== undefined) lu.options = liste(p.options, 30, optionPlat);
   return lu;
@@ -42,14 +43,14 @@ function liste<T extends { id: string }>(x: unknown, max: number, lire: (v: unkn
 }
 /** Seulement des GET publics ; ni identité, ni cookie, ni relance automatique. */
 export function creerLecteurCatalogue(fetcher: typeof fetch = fetch, delai = 15000) {
-  async function lire(chemin: string) {
+  async function lire(chemin: string, limiteOctets = 524288) {
     const controle = new AbortController(); const minuterie = setTimeout(() => controle.abort(), delai);
     try {
       const r = await fetcher(ORIGINE_CATALOGUE + '/api/v1/catalogue/' + chemin, { method: 'GET', credentials: 'omit', signal: controle.signal, headers: { Accept: 'application/json' } });
       if (!r.ok) throw Error(r.status === 404 ? 'CATALOGUE_INTROUVABLE' : 'CATALOGUE_INDISPONIBLE');
       if (!(r.headers.get('content-type') ?? '').includes('application/json')) throw Error('CATALOGUE_INVALIDE');
-      if (Number(r.headers.get('content-length')) > 524288) throw Error('CATALOGUE_INVALIDE');
-      const brut = await r.text(); if (brut.length > 524288) throw Error('CATALOGUE_INVALIDE');
+      if (Number(r.headers.get('content-length')) > limiteOctets) throw Error('CATALOGUE_INVALIDE');
+      const brut = await r.text(); if (brut.length > limiteOctets) throw Error('CATALOGUE_INVALIDE');
       const v = objet(JSON.parse(brut)); if (v.ok !== true) throw Error('CATALOGUE_INVALIDE');
       return v;
     } finally { clearTimeout(minuterie); }
@@ -66,6 +67,8 @@ export function creerLecteurCatalogue(fetcher: typeof fetch = fetch, delai = 150
       const v = await lire('quartiers');
       return { quartiers: liste(v.quartiers, 2000, quartier), luLe: date(v.luLe) };
     },
+    /** Index de tous les articles publiés (recherche sur l'appareil) : une seule lecture publique, jusqu'à 4 Mo décompressés. */
+    async articles(): Promise<IndexArticlesPublic> { return validerIndexArticles(await lire('articles', 4 * 1024 * 1024)); },
     async menu(id: string, apres: string | null = null): Promise<PageMenu> {
       const v = await lire('restaurants/'+identifiant(id)+'/menu'+suite(apres));
       const r = restaurant(v.restaurant); if (r.id !== id) throw Error('CATALOGUE_INVALIDE');
@@ -88,6 +91,30 @@ export function validerPageMenu(v: unknown): PageMenu {
   const page: PageMenu = { restaurant: restaurant(o.restaurant), plats: liste(o.plats, 100, plat), suivant: curseurCache(o.suivant), luLe: date(o.luLe) };
   if (o.sections !== undefined) page.sections = liste(o.sections, 50, sectionMenu);
   return page;
+}
+const DISPOS = ['disponible', 'epuise', 'a_confirmer'];
+function restaurantIndex(x: unknown): RestaurantIndexPublic {
+  const r = objet(x);
+  if (typeof r.ouvert !== 'boolean' || typeof r.accepteCommandes !== 'boolean') throw Error('CATALOGUE_INVALIDE');
+  return { id: identifiant(r.id), nom: texte(r.nom, 256), lieu: texte(r.lieu, 256), categorie: texte(r.categorie, 256), ouvert: r.ouvert, accepteCommandes: r.accepteCommandes };
+}
+function articleIndex(x: unknown, nombreRestaurants: number): ArticleIndexPublic {
+  const a = objet(x);
+  const rang = entier(a.r);
+  if (rang >= nombreRestaurants || !DISPOS.includes(a.disponibilite as string)) throw Error('CATALOGUE_INVALIDE');
+  const lu: ArticleIndexPublic = { id: identifiant(a.id), r: rang, nom: texte(a.nom, 256), prixGnf: entier(a.prixGnf), disponibilite: a.disponibilite as ArticleIndexPublic['disponibilite'] };
+  if (a.description !== undefined) lu.description = texte(a.description, 400);
+  if (a.photo !== undefined) { const p = texte(a.photo, 2000); if (/[\s\x00-\x1f]/.test(p)) throw Error('CATALOGUE_INVALIDE'); lu.photo = p; }
+  if (a.illustrative !== undefined) { if (a.illustrative !== true) throw Error('CATALOGUE_INVALIDE'); lu.illustrative = true; }
+  return lu;
+}
+/** Lecture stricte de l'index d'articles (réponse du serveur ou cache de l'appareil) : tout écart refuse l'index entier, jamais un index amputé ou inventé. */
+export function validerIndexArticles(v: unknown): IndexArticlesPublic {
+  const o = objet(v);
+  if (!Array.isArray(o.restaurants) || o.restaurants.length > 5000 || !Array.isArray(o.articles) || o.articles.length > 60000) throw Error('CATALOGUE_INVALIDE');
+  const restaurants = o.restaurants.map(restaurantIndex);
+  const base = o.baseImages === '' ? '' : urlImage(o.baseImages) as string;
+  return { restaurants, articles: o.articles.map(a => articleIndex(a, restaurants.length)), baseImages: base, luLe: date(o.luLe) };
 }
 /** Revalidation des quartiers gardés dans le cache hors ligne. */
 export function validerListeQuartiers(v: unknown): ListeQuartiers {

@@ -39,7 +39,13 @@ export function creerCopieur({ tmp, racine, paquets, retirerServerOnly = false }
     if (dejaCopies.has(dest)) return;
     dejaCopies.add(dest);
     mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, transformer(readFileSync(join(racinePartage, `${chemin}.ts`), "utf8"), dest));
+    const source = readFileSync(join(racinePartage, `${chemin}.ts`), "utf8");
+    writeFileSync(dest, transformer(source, dest));
+    // Imports relatifs entre fichiers partagés (« ./recherche-plats.ts ») : le voisin est copié lui aussi, au même endroit relatif.
+    for (const [, spec] of source.matchAll(/from\s+"(\.{1,2}\/[^"]+?)(?:\.ts)?"/g)) {
+      const voisin = join(dirname(chemin), spec).split("\\").join("/");
+      copierPartage(voisin);
+    }
   }
 
   function copier(rel) {

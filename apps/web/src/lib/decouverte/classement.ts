@@ -6,7 +6,7 @@ import {
   type EtatDisponibilite,
 } from "../disponibilite/etat";
 import { typeDePlat } from "../menu/types-plats";
-import { analyserRequete, evaluerPlat } from "./recherche-plats";
+import { analyserRequete, evaluerPlat } from "../menu/recherche-plats";
 
 /**
  * Recherche et classement explicables (SPEC-PILOTE section 4), SANS dépendance

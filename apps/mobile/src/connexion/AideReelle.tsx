@@ -46,6 +46,7 @@ export function AideReelle({ ouvert, fermer, restaurateur = false }: { ouvert: b
     <Bouton titre="Qui sommes-nous" secondaire onPress={() => ouvrirLien(LIENS_AIDE.apropos)} />
     <Bouton titre="Conditions" secondaire onPress={() => ouvrirLien(LIENS_AIDE.conditions)} />
     <Bouton titre="Confidentialité" secondaire onPress={() => ouvrirLien(LIENS_AIDE.confidentialite)} />
+    <Bouton titre="Crédits photos" secondaire onPress={() => ouvrirLien(LIENS_AIDE.credits)} />
   </ScrollView></SafeAreaView></Modal>;
 }
 const s = StyleSheet.create({

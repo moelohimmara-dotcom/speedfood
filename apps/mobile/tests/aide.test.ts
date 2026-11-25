@@ -45,7 +45,7 @@ test('la lecture de l\'aide est publique : aucun jeton ni cookie, un seul essai'
 
 test('liens du site : tous en HTTPS sur le site de Speedfood', () => {
   for (const lien of Object.values(LIENS_AIDE)) assert.match(lien, /^https:\/\/speedfood-app\.moelohimmara\.workers\.dev\/[a-z-]+$/);
-  assert.deepEqual(Object.keys(LIENS_AIDE).sort(), ['apropos', 'centre', 'conditions', 'confidentialite']);
+  assert.deepEqual(Object.keys(LIENS_AIDE).sort(), ['apropos', 'centre', 'conditions', 'confidentialite', 'credits']);
 });
 
 test('questions fréquentes : renseignées, sans doublon, et fidèles à CETTE application', () => {

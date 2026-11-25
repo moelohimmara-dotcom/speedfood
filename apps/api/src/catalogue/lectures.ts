@@ -3,6 +3,7 @@ import type { Database } from '../../../web/src/lib/db/database.types';
 
 import { etatDisponibilite } from '@speedfood/shared/disponibilite/etat';
 import type { RestaurantPublic, PageRestaurants, PageMenu, ListeQuartiers } from '@speedfood/shared/contracts/catalogue';
+import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative';
 
 // Colonnes de la liste (légère) et de la fiche (liste + consignes et moyens de paiement). `avis_somme` et `avis_total` existent en base (migration notation) mais pas encore dans
 // les types générés : les requêtes sont donc typées à la main (`LigneRestaurant`) au lieu de s'appuyer sur l'inférence.
@@ -62,7 +63,7 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
 }
 type LigneOption = { id: string; nom: string; prix: number; disponible: boolean };
 type LignePlat = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url?: string | null; section_id?: string | null; menu_item_options?: LigneOption[] | null };
-export async function lireMenu(id: string, apres: string | null, db: SupabaseClient<Database>, parametres: () => Promise<{ disponibiliteFraicheurHeures: number }>): Promise<PageMenu | null> {
+export async function lireMenu(id: string, apres: string | null, db: SupabaseClient<Database>, parametres: () => Promise<{ disponibiliteFraicheurHeures: number }>, illustrative = false): Promise<PageMenu | null> {
   const { data: brutRestaurant, error: erreurRestaurant } = await db.from('restaurants').select(COLONNES_FICHE as string).eq('id', id).eq('publie', true).is('suspendu_le', null).maybeSingle();
   if (erreurRestaurant) throw new Error('catalogue_indisponible');
   const restaurant = brutRestaurant as unknown as LigneRestaurant | null;
@@ -82,7 +83,7 @@ export async function lireMenu(id: string, apres: string | null, db: SupabaseCli
       if (!Number.isSafeInteger(o.prix) || o.prix < 0) throw new Error('prix_catalogue_invalide');
       return { id: o.id, nom: o.nom, prixGnf: o.prix };
     });
-    return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: urlImage(p.photo_url), sectionId: p.section_id ?? null, options };
+    return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: urlImage(p.photo_url), ...(illustrative && estImageIllustrative(urlImage(p.photo_url)) ? { imageIllustrative: true } : {}), sectionId: p.section_id ?? null, options };
   });
   const sections = apres ? undefined : [...(lignesSections ?? [])].sort((a, b) => a.position - b.position).map(s => ({ id: s.id, nom: s.nom, position: s.position }));
   return { restaurant: projeter(restaurant, true), plats, suivant: data.length > 100 ? plats.at(-1)!.id : null, luLe: maintenant.toISOString(), ...(sections ? { sections } : {}) };

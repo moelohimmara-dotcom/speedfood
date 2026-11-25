@@ -4,6 +4,7 @@ import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
 import { Vignette } from './Vignette';
+import { VignettePlat } from './MentionIllustrative';
 import { enPromo, libelleNote, libelleStatut, libelleSupplements, titreEtatRestaurant } from './menu-groupes';
 import { commandabilite, etatPlat, moyensAffichables } from './parcours-client';
 import { PHRASE_MODES_COMMANDE } from './commande-reelle';
@@ -49,7 +50,7 @@ export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date()
   const { detail, ...etat } = etatPlat(p, maintenant);
   return <View style={s.carte}>
     <View style={{ flexDirection: 'row', gap: 12 }}>
-      <Vignette url={p.photoUrl} nom={p.nom} taille={64} />
+      <VignettePlat url={p.photoUrl} nom={p.nom} taille={64} illustrative={p.imageIllustrative === true} />
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={s.nom}>{p.nom}</Text>
         {p.description !== '' && <Text style={s.texte} numberOfLines={3}>{p.description}</Text>}

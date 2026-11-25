@@ -7,6 +7,7 @@ import { adresseInstallation, lireVersionPubliee, miseAJourDisponible } from '..
 import { gestion } from './gestion';
 import { ErreurConnexion } from './client';
 import { messageEssai, messageMiseAJour } from './parametres';
+import { LIENS_AIDE } from './aide';
 /**
  * Paramètres (parité Kotlin, tranche 10.5, G16) : essai des notifications, version et vérification de mise à jour, visite guidée, oubli des commandes mémorisées sur l'appareil.
  * Rien n'est affiché qui ne fonctionne pas : la vérification de mise à jour n'existe que sur Android (l'iPhone passe par l'App Store ou TestFlight).
@@ -43,6 +44,7 @@ export function ParametresReel({ connectee, ouvrirVisite, oublierCommandes, sess
       {connectee && <LigneNavigation premiere titre="Tester les notifications" sousTitre="Envoie une notification d’essai à ce téléphone" icone="cloche" disabled={occupe} onPress={() => { void essayer(); }} />}
       {Platform.OS === 'android' && <LigneNavigation premiere={!connectee} titre="Vérifier les mises à jour" sousTitre={'Version installée : ' + nom} icone="actualiser" disabled={occupe} onPress={() => { void verifier(); }} />}
       <LigneNavigation premiere={!connectee && Platform.OS !== 'android'} titre="Revoir la visite guidée" sousTitre="Un tour rapide de l’application" icone="aide" disabled={occupe} onPress={ouvrirVisite} />
+      <LigneNavigation titre="Crédits photos" sousTitre="Auteurs et licences des photos de plats" icone="externe" disabled={occupe} onPress={() => { void Linking.openURL(LIENS_AIDE.credits).catch(() => setMessage('Impossible d’ouvrir la page des crédits sur cet appareil.')); }} />
     </GroupeLignes>
     {Platform.OS !== 'android' && <Text style={s.secondaire}>Version installée : {nom}</Text>}
     {telechargeable && <Bouton titre="Télécharger la nouvelle version" icone="externe" disabled={occupe} onPress={() => { void Linking.openURL(adresseInstallation()).catch(() => setMessage('Impossible d’ouvrir la page de téléchargement.')); }} />}

@@ -12,6 +12,7 @@ export const LIENS_AIDE = {
   apropos: SITE_WEB + '/a-propos',
   conditions: SITE_WEB + '/conditions',
   confidentialite: SITE_WEB + '/confidentialite',
+  credits: SITE_WEB + '/credits-photos',
 } as const;
 
 /** Chiffres seuls, indicatif inclus, de 8 à 15 chiffres (comme l'appli Kotlin) ; sinon `null`. */

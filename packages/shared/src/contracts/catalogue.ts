@@ -24,7 +24,17 @@ export interface PlatCataloguePublic {
   id: string; nom: string; description: string; prixGnf: number;
   disponibilite: 'disponible' | 'epuise' | 'a_confirmer'; confirmeLe: string | null;
   prixNormalGnf?: number; photoUrl?: string | null; sectionId?: string | null; options?: OptionPlatPublic[];
+  /** Vrai seulement quand la photo est une image générée par ordinateur ET que l'interrupteur « Image illustrative » de la console est allumé : l'appli affiche alors la mention. Absent sinon. */
+  imageIllustrative?: boolean;
 }
+/**
+ * Index léger de TOUS les articles publiés, lu par l'appli pour chercher un plat sans appeler le serveur à chaque lettre tapée (recherche intelligente sur l'appareil).
+ * Compact : les restaurants sont listés une fois, chaque article y renvoie par son rang (`r`) ; `photo` est relative à `baseImages` quand l'adresse en commence par elle, sinon complète.
+ * Aucun article d'un restaurant non publié ou suspendu, aucun article archivé.
+ */
+export interface RestaurantIndexPublic { id: string; nom: string; lieu: string; categorie: string; ouvert: boolean; accepteCommandes: boolean }
+export interface ArticleIndexPublic { id: string; r: number; nom: string; description?: string; prixGnf: number; disponibilite: 'disponible' | 'epuise' | 'a_confirmer'; photo?: string; illustrative?: true }
+export interface IndexArticlesPublic { restaurants: RestaurantIndexPublic[]; articles: ArticleIndexPublic[]; baseImages: string; luLe: string }
 export interface PageRestaurants { restaurants: RestaurantPublic[]; suivant: string | null; luLe: string }
 export interface PageMenu { restaurant: RestaurantPublic; plats: PlatCataloguePublic[]; suivant: string | null; luLe: string; sections?: SectionMenuPublic[] }
 /** Quartier proposé pour la livraison : `libelle` = « Quartier, Commune » ; `id` est le `quartierId` attendu par l'estimation et la création de commande. */

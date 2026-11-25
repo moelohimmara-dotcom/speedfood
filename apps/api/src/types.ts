@@ -52,6 +52,8 @@ export interface Deps {
     restaurants(apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageRestaurants>;
     menu(id: string, apres: string | null): Promise<import('@speedfood/shared/contracts/catalogue').PageMenu | null>;
     quartiers(): Promise<import('@speedfood/shared/contracts/catalogue').ListeQuartiers>;
+    /** Index de TOUS les articles publiés pour la recherche de l'appli (absent dans les anciens essais : la route répond alors « introuvable »). */
+    articles?(): Promise<import('@speedfood/shared/contracts/catalogue').IndexArticlesPublic>;
   };
   version: VersionApplication;
   lireAssistance(): Promise<{ whatsapp: string | null }>;
