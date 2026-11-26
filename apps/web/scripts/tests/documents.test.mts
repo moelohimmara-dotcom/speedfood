@@ -1,5 +1,5 @@
 import { lireIdentiteDocuments, mentionRegime, texteDocumentWhatsApp, titreDocument, tvaIncluse } from "../../src/lib/paiement/documents-regles";
-import { libelleMode, lireNumeroTable, versModeCommande } from "../../src/lib/commande/mode";
+import { libelleModeClient, lireNumeroTable, versModeCommande } from "../../src/lib/commande/mode";
 import { estRobotApercu, lienCourt, lireSourceScan } from "../../src/lib/partage/scans";
 
 let ko = 0;
@@ -63,8 +63,12 @@ verifier("table vide", lireNumeroTable(""), null);
 verifier("table trop longue", lireNumeroTable("12345678901"), null);
 verifier("table avec balise", lireNumeroTable("<b>1"), null);
 verifier("table non texte", lireNumeroTable(7), null);
-verifier("libellé à table", libelleMode("sur_place", "7"), "À table, table 7");
-verifier("libellé retrait", libelleMode("retrait"), "Retrait sur place");
+verifier("libellé sur place avec table", libelleModeClient("sur_place", "7"), "Sur place · table 7");
+verifier("libellé sur place sans table (absente, nulle, vide, blanche)", [libelleModeClient("sur_place"), libelleModeClient("sur_place", null), libelleModeClient("sur_place", ""), libelleModeClient("sur_place", "   ")], ["Sur place", "Sur place", "Sur place", "Sur place"]);
+verifier("libellé livraison (la table n'y change rien)", [libelleModeClient("livraison"), libelleModeClient("livraison", "7")], ["Livraison", "Livraison"]);
+verifier("libellé retrait = « À emporter » (la table n'y change rien)", [libelleModeClient("retrait"), libelleModeClient("retrait", "7")], ["À emporter", "À emporter"]);
+verifier("libellé d'une valeur inconnue retombe sur « À emporter », comme versModeCommande", [libelleModeClient("x"), libelleModeClient(""), libelleModeClient("Retrait sur place")], ["À emporter", "À emporter", "À emporter"]);
+verifier("la valeur du mode ne change jamais (réseau et base)", [versModeCommande("retrait"), versModeCommande("livraison"), versModeCommande("sur_place")], ["retrait", "livraison", "sur_place"]);
 verifier("mode inconnu retombe sur retrait", versModeCommande("x"), "retrait");
 verifier("mode sur_place conservé", versModeCommande("sur_place"), "sur_place");
 verifier("lien court avec table", lienCourt("https://s.test", "ab12cd", "table", "A 12"), "https://s.test/r/ab12cd?s=table&t=A%2012");

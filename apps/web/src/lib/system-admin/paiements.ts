@@ -7,6 +7,8 @@ import { creerClientAdmin } from "@/lib/db/admin";
 import { obtenirServicePaiement } from "@/lib/paiement/en-ligne/fabrique";
 import { estOperateur } from "@/lib/paiement/en-ligne/types";
 import { LIBELLE_MOYEN, validerRemboursementManuel, type SaisieRemboursementManuel } from "@/lib/paiement/en-ligne/remboursement-manuel";
+import { verifierExecutionAutorisee, type ActionExecution } from "@/lib/paiement/en-ligne/remboursement-decision";
+import { lireDecisionCourante, lireEspecesAutorise } from "@/lib/paiement/en-ligne/remboursement-lecture";
 import { roleAPermission } from "./permissions";
 import { journaliserActionSysteme } from "./audit";
 import { verifierPermission } from "./contexte";
@@ -25,6 +27,22 @@ export interface EtatActionPaiementAdmin {
 }
 
 const db = () => creerClientAdmin() as unknown as SupabaseClient;
+
+/**
+ * Lot R2 : la décision humaine enregistrée AUTORISE l'étape suivante, elle ne l'exécute pas. Avant tout mouvement d'argent sur un paiement,
+ * on relit côté serveur la décision courante et le réglage des espèces, puis on vérifie que l'action en est la suite. Le navigateur ne fournit
+ * rien de tout cela. Une décision illisible fait REFUSER l'action (jamais d'argent déplacé sur une décision qu'on n'a pas pu lire).
+ */
+async function gardeDecision(paiementId: string, action: ActionExecution): Promise<{ erreur: string } | { decisionId: string | null }> {
+  const { data: p } = await db().from("paiements").select("order_id").eq("id", paiementId).maybeSingle();
+  const orderId = (p as { order_id?: string } | null)?.order_id;
+  if (!orderId) return { erreur: "Paiement introuvable." };
+  const [lecture, especesAutorise] = await Promise.all([lireDecisionCourante(orderId), lireEspecesAutorise()]);
+  if (!lecture.ok) return { erreur: "La décision enregistrée n'a pas pu être lue. Rien n'a été modifié." };
+  const d = lecture.decision;
+  const r = verifierExecutionAutorisee({ decision: d ? { id: d.id, issue: d.issue, moyen: d.moyen, montantGnf: d.montantGnf } : null, action, especesAutorise });
+  return r.ok ? { decisionId: r.decisionId } : { erreur: r.erreur };
+}
 
 /** Relance les versements d'un paiement libéré (compte absent ou vérifié depuis, panne du prestataire). */
 export async function reprendreVersementsAction(paiementId: string): Promise<EtatActionPaiementAdmin> {
@@ -48,6 +66,9 @@ export async function trancherLitigeAction(paiementId: string, litigeId: string,
   if (!estUuid(paiementId) || !estUuid(litigeId) || (decision !== "rembourser" && decision !== "liberer" && decision !== "rembourser_manuel")) return { erreur: "Demande invalide." };
   const motifNet = motif.trim();
   if (motifNet.length < 5) return { erreur: "Indiquez le motif de la décision (5 caractères au moins)." };
+  if (decision === "rembourser_manuel") return { erreur: "Pour un remboursement fait à la main, utilisez « Remboursé à la main » : le moyen et la référence sont obligatoires." };
+  const garde = await gardeDecision(paiementId, decision === "liberer" ? { type: "liberer" } : { type: "rembourser_prestataire" });
+  if ("erreur" in garde) return { erreur: garde.erreur };
   try {
     const service = await obtenirServicePaiement();
     const r = await service.trancherLitige({ paiementId, litigeId, decision, motif: motifNet });
@@ -85,6 +106,8 @@ export async function rembourserALaMainAction(paiementId: string, litigeId: stri
   const { data: paiement } = await db().from("paiements").select("total_gnf").eq("id", paiementId).maybeSingle();
   const montant = Number((paiement as { total_gnf?: number } | null)?.total_gnf ?? 0);
   if (!paiement || !(montant > 0)) return { erreur: "Paiement introuvable." };
+  const garde = await gardeDecision(paiementId, { type: "rembourser_manuel", moyenManuel: moyen });
+  if ("erreur" in garde) return { erreur: garde.erreur };
   try {
     const service = await obtenirServicePaiement();
     const r = await service.trancherLitige({ paiementId, litigeId, decision: "rembourser_manuel", motif });
@@ -109,6 +132,8 @@ export async function rembourserALaMainAction(paiementId: string, litigeId: stri
     recu_par: recuPar,
     motif,
     effectue_par: contexte.utilisateurId,
+    // Lien avec la décision qui autorisait ce remboursement (absent si aucune décision n'avait été enregistrée).
+    ...(garde.decisionId ? { decision_id: garde.decisionId } : {}),
   });
   // Le journal d'audit garde le moyen et la référence (jamais le nom du receveur) même si la table de trace est indisponible.
   await journaliserActionSysteme(contexte, {

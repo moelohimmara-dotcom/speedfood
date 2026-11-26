@@ -16,13 +16,20 @@ function fichiers(url: URL): URL[] {
 const chemins = new Set<string>();
 for (const f of fichiers(dossier)) for (const m of readFileSync(f, 'utf8').matchAll(/['"`](\/api\/v1\/restaurant\/[a-z][a-z/]*)['"`]/g)) chemins.add(m[1]);
 
+/** Routes de l’API : celles de `routes/restaurant.ts` et les sous-arbres montés dans `app.ts` (réservations), avec et sans barre finale. */
+function routesDeLApi(): Set<string> {
+  const routes = new Set([...lire('apps/api/src/routes/restaurant.ts').matchAll(/route\.(?:get|post)\(\s*["']([^"']+)["']/g)].map(m => '/api/v1/restaurant' + m[1]));
+  for (const m of lire('apps/api/src/app.ts').matchAll(/app\.route\(\s*["'](\/api\/v1\/restaurant\/[a-z][a-z/]*)["']/g)) { routes.add(m[1]); routes.add(m[1] + '/'); }
+  return routes;
+}
+
 test('chemins restaurateur : l’application en appelle plusieurs, tous relevés', () => {
   assert.ok(chemins.size >= 12, 'au moins les douze chemins connus : ' + [...chemins].join(', '));
   for (const attendu of ['/api/v1/restaurant/historique', '/api/v1/restaurant/activite', '/api/v1/restaurant/commandes/document', '/api/v1/restaurant/etat']) assert.ok(chemins.has(attendu), attendu);
 });
 
 test('chemins restaurateur : chaque chemin existe sur l’hôte vers lequel l’application l’envoie', () => {
-  const routesApi = new Set([...lire('apps/api/src/routes/restaurant.ts').matchAll(/route\.(?:get|post)\(\s*["']([^"']+)["']/g)].map(m => '/api/v1/restaurant' + m[1]));
+  const routesApi = routesDeLApi();
   assert.ok(routesApi.size >= 8, 'routes de l’API relevées : ' + [...routesApi].join(', '));
   const manquants: string[] = [];
   for (const chemin of chemins) {
@@ -37,7 +44,7 @@ test('chemins restaurateur : chaque chemin existe sur l’hôte vers lequel l’
 });
 
 test('chemins restaurateur : seuls les chemins absents de l’API vont vers le site', () => {
-  const routesApi = new Set([...lire('apps/api/src/routes/restaurant.ts').matchAll(/route\.(?:get|post)\(\s*["']([^"']+)["']/g)].map(m => '/api/v1/restaurant' + m[1]));
+  const routesApi = routesDeLApi();
   for (const chemin of CHEMINS_RESTAURATEUR_SUR_LE_SITE) assert.ok(!routesApi.has(chemin), chemin + ' existe sur l’API : inutile de le dérouter vers le site');
   assert.equal(origineRestaurateur('/api/v1/restaurant/statut'), ORIGINE_CATALOGUE);
   assert.equal(origineRestaurateur('/api/v1/restaurant/etat'), SITE_WEB);

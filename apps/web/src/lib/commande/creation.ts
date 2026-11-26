@@ -157,7 +157,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   let reglageValidation: "aucune" | "premiere" | "toutes" = "premiere";
   if (payload.mode === "sur_place") {
     if (!(await fonctionnaliteActive("commande_a_table"))) {
-      throw new ErreurMetier("VALIDATION", "La commande à table est momentanément indisponible. Choisissez le retrait ou la livraison.");
+      throw new ErreurMetier("VALIDATION", "La commande à table est momentanément indisponible. Choisissez « À emporter » ou « Livraison ».");
     }
     const { data: resto } = await clientLivraison()
       .from("restaurants")
@@ -166,7 +166,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
       .maybeSingle();
     const r = resto as { accepte_sur_place: boolean; service_table?: string; table_sans_compte?: boolean; table_validation?: string } | null;
     if (!r?.accepte_sur_place) {
-      throw new ErreurMetier("VALIDATION", "Ce restaurant ne prend pas les commandes à table. Choisissez le retrait ou la livraison.", {
+      throw new ErreurMetier("VALIDATION", "Ce restaurant ne prend pas les commandes à table. Choisissez « À emporter » ou « Livraison ».", {
         mode: "Service à table indisponible.",
       });
     }

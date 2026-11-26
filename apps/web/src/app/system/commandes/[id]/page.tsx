@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { obtenirCommandeAdmin, type PropositionRevisseeAdmin } from "@/lib/system-admin/commandes";
 import { lireFilSupport } from "@/lib/system-admin/support-service";
+import { libelleModeClient } from "@/lib/commande/mode";
 import type { StatutProposition } from "@/lib/contracts/commande";
 import { Badge } from "@/components/ui";
 import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
@@ -70,7 +71,7 @@ export default async function CommandeDetailSystemePage({
               <dt>Client</dt>
               <dd>{commande.clientNom}</dd>
               <dt>Mode</dt>
-              <dd>{commande.mode === "livraison" ? "Livraison" : commande.mode === "sur_place" ? "À table" : "Retrait"}</dd>
+              <dd>{libelleModeClient(commande.mode)}</dd>
               <dt>Montant</dt>
               <dd>
                 {(commande.sousTotal + commande.fraisLivraisonEstime).toLocaleString("fr-FR")} GNF

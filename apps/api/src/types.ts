@@ -6,10 +6,14 @@ import type { ActionMenuApp, ReglagesAEcrire, ReponseMenuRestaurant, ReponseRegl
 import type { ActionRestaurantApp, DecisionPaiementApp, ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
 import type { ActionLivraisonApp, MotifEchecApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import type { Planifier } from "@/lib/commande/creation-coeur";
+import type { DecisionReservation, DemandeReservation, ReglageReservation, ReservationClient, ReservationRestaurant, ValeursReglageReservation } from "@speedfood/shared/contracts/reservation";
 import type { VerificateurJeton } from "./identite/jeton.ts";
 
 /** Lecture d'une ressource du restaurateur : la valeur, ou l'erreur au contrat uniforme. */
 export type ResultatLecture<T> = { ok: true; valeur: T } | { ok: false; erreur: ErreurApi };
+
+/** Résultat d'un service de réservation : la valeur, ou le refus au contrat uniforme (jamais un texte de la base). */
+export type ResultatReservation<T> = ({ ok: true } & T) | { ok: false; erreur: ErreurApi };
 
 export type ResultatEspace = { ok: true; message: string; favori?: boolean } | { ok: false; message: string };
 
@@ -61,6 +65,8 @@ export interface Deps {
   /** Un vérificateur par mode de la décision du 31 octobre 2026 ; chaque route déclare le sien, `strict` par défaut. */
   verificateurs: { strict: VerificateurJeton; local: VerificateurJeton };
   limiterClientApplication(utilisateurId: string): Promise<void>;
+  /** Lot M5 : plafond PAR ADRESSE de la lecture publique « ce restaurant accepte-t-il les réservations ? » (aucune identité). Lève `ErreurMetier` TROP_DE_REQUETES. */
+  limiterDisponibiliteReservation(): Promise<void>;
   lireRoles(utilisateurId: string): Promise<RolesCompte>;
   client: {
     lireEspace(utilisateurId: string): Promise<object>;
@@ -126,6 +132,32 @@ export interface Deps {
     limiter(utilisateurId: string): Promise<void>;
     enregistrer(utilisateurId: string, jeton: string, plateforme: import("@speedfood/shared/contracts/appareils").PlateformeAppareil, versionApp: string | null, sessionId: string | null): Promise<boolean>;
     retirer(utilisateurId: string, jeton: string, sessionId: string | null): Promise<void>;
+  };
+  /**
+   * Lot M3 : réservation de table, côté CLIENT. Le compte est TOUJOURS celui du jeton (paramètre `utilisateurId`, jamais le corps). Câblage : `reservation/cablage.ts` (clé de service, colonnes listées,
+   * toutes les lectures et écritures filtrées sur le compte). Le plafond par compte est `limiterClientApplication`, posé par la route.
+   */
+  reservations: {
+    /** Lot M4c : `apres` (planificateur de la requête) et `environnement` servent à l'alerte du restaurant, pour une réservation NOUVELLE seulement. Facultatifs : sans eux, aucune alerte. */
+    creer(utilisateurId: string, demande: DemandeReservation, apres?: Planifier, environnement?: unknown): Promise<ResultatReservation<{ reservation: ReservationClient; idempotent: boolean }>>;
+    lister(utilisateurId: string): Promise<ResultatReservation<{ reservations: ReservationClient[] }>>;
+    /** Une réservation du compte ; celle d'un autre compte est « introuvable », comme une réservation inexistante. */
+    lire(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
+    annuler(utilisateurId: string, id: string): Promise<ResultatReservation<{ reservation: ReservationClient }>>;
+    /** Lot M4-0 : ce restaurant accepte-t-il les réservations ? `true` seulement s'il existe, est publié, non suspendu ET accepte les réservations ; sinon `false` (jamais d'erreur qui révélerait un restaurant non publié). Rien d'autre n'est rendu (ni capacité ni réglage). */
+    disponibilite(restaurantId: string): Promise<ResultatReservation<{ accepteReservation: boolean }>>;
+  };
+  /**
+   * Lot M3 : réservation de table, côté RESTAURATEUR. `ctx` vient de `restaurant.contexte` (plafond, second facteur, questions, appartenance) : le restaurant est celui de l'appartenance du compte,
+   * jamais un identifiant reçu. Lectures et écritures avec le client lié au jeton du membre (RLS appliquée), en filtrant en plus sur le restaurant du contexte.
+   */
+  reservationsRestaurant: {
+    /** `jour` : `AAAA-MM-JJ` (heure de Conakry = UTC) ou `null` pour aujourd'hui. Les réservations de ce jour, plus toutes les demandes à venir. */
+    lister(ctx: ContexteRestaurant, jour: string | null): Promise<ResultatReservation<{ jour: string; reservations: ReservationRestaurant[] }>>;
+    /** Lot M4c : `apres` et `environnement` servent au message au client après une décision RÉUSSIE (confirmer, refuser, annuler). Facultatifs : sans eux, aucun message. */
+    decider(ctx: ContexteRestaurant, id: string, decision: DecisionReservation, apres?: Planifier, environnement?: unknown): Promise<ResultatReservation<{ reservation: ReservationRestaurant }>>;
+    lireReglage(ctx: ContexteRestaurant): Promise<ResultatReservation<ReglageReservation>>;
+    ecrireReglage(ctx: ContexteRestaurant, valeurs: ValeursReglageReservation): Promise<ResultatReservation<ReglageReservation>>;
   };
   commandes: {
     valider(corps: unknown): { ok: true; valeurs: CreationCommandePayload } | { ok: false; erreur: ErreurApi };

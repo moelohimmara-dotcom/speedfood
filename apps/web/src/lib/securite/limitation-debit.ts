@@ -326,6 +326,14 @@ export async function limiterAideChoix(): Promise<void> {
   await appliquerLimite(LIMITE_AIDE_CHOIX_PAR_IP, await adresseClient());
 }
 
+// Réservation de table, lecture PUBLIQUE de la disponibilité d'un restaurant (lot M5, sans identité) : une lecture par fiche restaurant ouverte, jamais en rafale ; 120 par 10 minutes et par adresse
+// laissent passer plusieurs clients derrière le même Wi-Fi, et bornent un robot qui énumère des identifiants.
+export const LIMITE_DISPONIBILITE_RESERVATION_PAR_IP: RegleLimite = { nom: "reservation-dispo-ip", max: 120, fenetreSecondes: 600 };
+
+export async function limiterDisponibiliteReservation(): Promise<void> {
+  await appliquerLimite(LIMITE_DISPONIBILITE_RESERVATION_PAR_IP, await adresseClient());
+}
+
 // Appels au serveur et demandes d'addition depuis une table : le délai par table est dans le service ; ce plafond limite le martèlement par adresse.
 export const LIMITE_APPEL_TABLE_PAR_IP: RegleLimite = { nom: "appel-table-ip", max: 120, fenetreSecondes: 600 };
 

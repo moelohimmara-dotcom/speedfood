@@ -499,7 +499,7 @@ test('écran parent : sélecteur Commandes | Service | Menu en haut ; l’écran
   assert.ok(parent.includes('SECTIONS_RESTAURATEUR.map(x =>'));
   assert.ok(parent.includes("{section === 'commandes' && <>"), 'les commandes sont rendues dans la section Commandes');
   for (const bouton of ["'Accepter ' + o.reference", "'Refuser ' + o.reference", "'Marquer prête ' + o.reference", "'Marquer terminée ' + o.reference", "'Paiement reçu ' + o.reference", "'Proposer un autre prix ' + o.reference", "'Annuler la commande ' + o.reference"]) assert.ok(parent.includes(bouton), bouton);
-  assert.ok(parent.includes('peutChangerDeSection(envoiOuRelecture, serviceOccupe)'), 'pas de changement de section pendant un envoi');
+  assert.ok(parent.includes('peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe)'), 'pas de changement de section pendant un envoi');
   assert.ok(parent.includes('envoiOuRelecture || serviceOccupe'), 'le parent est signalé occupé pendant un envoi du service');
 });
 

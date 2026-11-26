@@ -58,7 +58,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
   </ScrollView>
   {!!etat.panier.lignes.length && <View style={s.recap}>
       <Text accessibilityRole="header" style={s.nom}>{etat.lecture || etat.erreurLecture || bilan.total === null ? 'Total à vérifier' : `Sous-total indicatif : ${gnf(bilan.total)}`}</Text>
-      <Text style={s.secondaire}>{LIVRAISON_CLIENT_DISPONIBLE ? 'Hors frais de livraison, calculés à l’étape suivante.' : 'Retrait au restaurant : pas de frais de livraison.'}{etat.menu ? ` Menu actualisé le ${dateLisible(etat.menu.luLe)}.` : ''}</Text>
+      <Text style={s.secondaire}>{LIVRAISON_CLIENT_DISPONIBLE ? 'Hors frais de livraison, calculés à l’étape suivante.' : 'À emporter : pas de frais de livraison.'}{etat.menu ? ` Menu actualisé le ${dateLisible(etat.menu.luLe)}.` : ''}</Text>
       {aConfirmer > 0 && <Text style={s.secondaire}>{COMMENTAIRE_PLATS_A_CONFIRMER(aConfirmer)}</Text>}
       <Bouton titre="Commander" icone="coche" disabled={etat.lecture || !!etat.erreurLecture || !!etat.erreur || bilan.total === null || (dispo !== null && !dispo.commandable)} onPress={commander} />
     </View>}

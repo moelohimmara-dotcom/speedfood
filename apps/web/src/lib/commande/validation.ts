@@ -143,7 +143,7 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
 
   const mode = payload.mode;
   if (mode !== "retrait" && mode !== "livraison" && mode !== "sur_place") {
-    champs.mode = "Choisissez le retrait, la livraison ou le service à table.";
+    champs.mode = "Choisissez « Livraison », « À emporter » ou « Sur place ».";
   }
 
   let table: string | null = null;

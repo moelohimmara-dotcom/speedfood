@@ -1,4 +1,5 @@
 // Pur, sans dépendance serveur : testable seul (npm run test:unit). Espace client : « Mes commandes ».
+import { libelleModeClient } from "@speedfood/shared/commande/mode";
 
 /** Ce que le client lit sur une de ses commandes passées : des mots simples, jamais le vocabulaire technique. */
 export interface LibelleStatutClient {
@@ -57,10 +58,11 @@ export function lireModePrefere(brut: unknown): ModePrefere | null | undefined {
   return typeof brut === "string" && (MODES_PREFERES as readonly string[]).includes(brut) ? (brut as ModePrefere) : undefined;
 }
 
+/** Les trois mots du client, les mêmes partout (voir `libelleModeClient`) : « À emporter », « Livraison », « Sur place ». */
 export const LIBELLES_MODE_PREFERE: Record<ModePrefere, string> = {
-  retrait: "Retrait sur place",
-  livraison: "Livraison",
-  sur_place: "Sur place, à table",
+  retrait: libelleModeClient("retrait"),
+  livraison: libelleModeClient("livraison"),
+  sur_place: libelleModeClient("sur_place"),
 };
 
 const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];

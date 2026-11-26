@@ -22,7 +22,7 @@ export async function PiedSite() {
           <p className="site-pied-titre">Speedfood</p>
           <p>
             Speedfood aide les clients à découvrir les restaurants référencés dans leur localité, à consulter leurs menus et à
-            leur transmettre une commande. La livraison, le retrait et le paiement sont organisés directement avec chaque
+            leur transmettre une commande. La livraison, l&apos;option à emporter et le paiement sont organisés directement avec chaque
             restaurant.
           </p>
         </div>

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { ApercuCommandeRestaurant } from "@/lib/contracts/commande";
+import { libelleModeClient } from "@/lib/commande/mode";
 
 /**
  * Récapitulatif imprimable de la journée du restaurateur.
@@ -91,7 +92,7 @@ export function RecapitulatifJour({
                 <th scope="col">Journée</th>
                 <th scope="col">Référence</th>
                 <th scope="col">Client</th>
-                <th scope="col">Retrait</th>
+                <th scope="col">Mode</th>
                 <th scope="col" className="recap-num">
                   Montant
                 </th>
@@ -104,7 +105,7 @@ export function RecapitulatifJour({
                   <td>{jourCourt(c.creeLe)}</td>
                   <td>{c.reference}</td>
                   <td>{c.clientNom}</td>
-                  <td>{c.mode === "livraison" ? "Livraison" : c.mode === "sur_place" ? "Sur place" : "Retrait"}</td>
+                  <td>{libelleModeClient(c.mode, c.tableNumero)}</td>
                   <td className="recap-num">{formaterGNF(c.sousTotal + c.fraisLivraisonEstime)}</td>
                 </tr>
               ))}

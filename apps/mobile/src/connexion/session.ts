@@ -11,6 +11,7 @@ import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, TypeDocument, V
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
+import type { DecisionReservation, DemandeReservation, DisponibiliteReservation, ReglageReservation, ReservationClient, ReservationRestaurant, ValeursReglageReservation } from './reservation.ts';
 import type { PageHistorique } from './historique-restaurateur.ts';
 import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
 import type { EtatPublication } from './etat-restaurateur.ts';
@@ -30,7 +31,7 @@ import type { AuditEquipe, CompteEquipe, MisesAJourEquipe, ZoneAttenteEquipe } f
 import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'dossierLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'fournisseursActifs'|'connecterAvecCode'|'connecterAvecGoogle'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'lirePhotoMenuEquipe'|'importerMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'dossierLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'fournisseursActifs'|'connecterAvecCode'|'connecterAvecGoogle'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'lirePhotoMenuEquipe'|'importerMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'dossierLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'fournisseursActifs'|'connecterAvecCode'|'connecterAvecGoogle'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'lirePhotoMenuEquipe'|'importerMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'|'disponibiliteReservation'|'creerReservation'|'listerReservations'|'lireReservation'|'annulerReservation'|'reservationsRestaurateur'|'deciderReservation'|'reglageReservation'|'ecrireReglageReservation'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'dossierLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'fournisseursActifs'|'connecterAvecCode'|'connecterAvecGoogle'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'lirePhotoMenuEquipe'|'importerMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'|'disponibiliteReservation'|'creerReservation'|'listerReservations'|'lireReservation'|'annulerReservation'|'reservationsRestaurateur'|'deciderReservation'|'reglageReservation'|'ecrireReglageReservation'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -680,6 +681,109 @@ export class GestionSession {
       if(!this.api.ecrireService)throw new ErreurConnexion('Espace restaurateur indisponible.');
       await this.api.ecrireService(acces,action);
     }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Ce restaurant accepte-t-il les réservations de table ? Lecture, annulée si la session change. */
+  async disponibiliteReservation(restaurantId: string): Promise<DisponibiliteReservation> {
+    const n = this.generation;
+    try {
+      // Lecture PUBLIQUE (lot M5) : aucun jeton, même connecté ; un visiteur sans compte voit lui aussi le bouton.
+      if (!this.api.disponibiliteReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.disponibiliteReservation(null, restaurantId);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Création d'une réservation : un seul essai, jamais de relance ; le compte vient du jeton, jamais d'un paramètre. */
+  async creerReservation(demande: DemandeReservation): Promise<{ reservation: ReservationClient; idempotent: boolean }> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Envoi annulé.');
+      if (!this.api.creerReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.creerReservation(acces, demande);
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Mes réservations (50 au plus) : lecture, annulée si la session change. */
+  async listerReservations(): Promise<ReservationClient[]> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.listerReservations) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.listerReservations(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Une de mes réservations : lecture, annulée si la session change. */
+  async lireReservation(id: string): Promise<ReservationClient> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.lireReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.lireReservation(acces, id);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Annulation par le client : un seul essai, jamais de relance. */
+  async annulerReservation(id: string): Promise<ReservationClient> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Envoi annulé.');
+      if (!this.api.annulerReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.annulerReservation(acces, id);
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Réservations du restaurant de ce compte pour un jour (ou aujourd'hui) : lecture, annulée si la session change. */
+  async reservationsRestaurateur(jour: string | null): Promise<{ jour: string; reservations: ReservationRestaurant[] }> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.reservationsRestaurateur) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.reservationsRestaurateur(acces, jour);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Décision du restaurateur sur une réservation : un seul essai, jamais de relance ; le restaurant est tiré du compte par le serveur. */
+  async deciderReservation(id: string, decision: DecisionReservation): Promise<ReservationRestaurant> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Envoi annulé.');
+      if (!this.api.deciderReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.deciderReservation(acces, id, decision);
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Réglage de réservation de ce restaurant : lecture, annulée si la session change. */
+  async reglageReservation(): Promise<ReglageReservation> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.reglageReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.reglageReservation(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Écriture du réglage de réservation : un seul essai, jamais de relance. */
+  async ecrireReglageReservation(valeurs: ValeursReglageReservation): Promise<ReglageReservation> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Envoi annulé.');
+      if (!this.api.ecrireReglageReservation) throw new ErreurConnexion('Réservation indisponible.');
+      const r = await this.api.ecrireReglageReservation(acces, valeurs);
+      return r;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
   }
   deconnecter(): Promise<{ distanteConfirmee: boolean }> {
     if (this.deconnexionEnCours) return this.deconnexionEnCours;

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { libelleMode } from "@/lib/commande/mode";
+import { libelleModeClient } from "@/lib/commande/mode";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { origineDuSite } from "@/lib/partage/origine";
 import { LIBELLES_MODE, formaterMontantGnf, texteRecuWhatsApp } from "@/lib/paiement/regles";
@@ -103,7 +103,7 @@ export async function renderRecuPage(jeton: string, docDemande?: string, liens?:
         </div>
 
         <p className="recu-intro">
-          {libelleMode(suivi.mode, suivi.tableNumero)}
+          {libelleModeClient(suivi.mode, suivi.tableNumero)}
         </p>
 
         {suivi.lignes.map((ligne, i) => (

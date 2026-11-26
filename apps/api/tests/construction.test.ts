@@ -23,7 +23,7 @@ async function construireDans(entree: string): Promise<{ interdits: string[]; oc
 
 // Plafonds du Worker de PRODUCTION (même construction que `build:api`) : 1 193 032 octets bruts / ~238 000 gzip au 31/10/2026 (Tâche 10 de 1c-1).
 // Brut : ~+17 % de marge, pour qu'une dépendance lourde tirée par erreur se voie. Gzip : limite Cloudflare du plan gratuit, 3 Mio compressés.
-const PLAFOND_WORKER_OCTETS = 1_400_000;
+const PLAFOND_WORKER_OCTETS = 1_500_000; // relevé à 1 414 723 avec les routes de réservation (26/11/2026) : plafond rehaussé, marge ~6 %
 const PLAFOND_WORKER_GZIP = 3 * 1024 * 1024;
 
 test("le Worker de production se construit sans aucun fichier de Next.js, sous ses plafonds de taille", async () => {

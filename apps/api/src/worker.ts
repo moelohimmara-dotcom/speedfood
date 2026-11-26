@@ -4,7 +4,7 @@ import { lireReglagesAssistance } from "@/lib/parametres/assistance";
 import { connexionClientActive } from "@/lib/client/reglage";
 import { lireRolesCompte } from "@/lib/api/moi-service";
 import { creerClientAdmin } from "@/lib/db/admin";
-import { limiterAnnulationClient, limiterClientApplication, limiterLectureSuivi, limiterReponseProposition } from "@/lib/securite/limitation-debit";
+import { limiterAnnulationClient, limiterClientApplication, limiterDisponibiliteReservation, limiterLectureSuivi, limiterReponseProposition } from "@/lib/securite/limitation-debit";
 import { estJetonValide } from "@/lib/commande/jetons";
 import { chargerSuiviParJeton } from "@/lib/commande/requetes";
 import { annulerParClient } from "@/lib/commande/annulation-client";
@@ -26,6 +26,7 @@ import { configurationPublique } from './identite/configuration-publique';
 import { serviceRestaurant } from './restaurant/cablage.ts';
 import { serviceAppareils } from './appareils/cablage.ts';
 import { serviceLivreur } from './livreur/cablage.ts';
+import { serviceReservations, serviceReservationsRestaurant } from './reservation/cablage.ts';
 
 // Câblage de PRODUCTION : les routes reçoivent les services du site, jamais une copie de leurs règles. Les secrets sont lus à l'APPEL (jamais au chargement du module).
 let local: ReturnType<typeof creerVerificateurLocal> | undefined;
@@ -49,6 +50,7 @@ const app = creerApp({
     },
   },
   limiterClientApplication,
+  limiterDisponibiliteReservation,
   lireRoles: lireRolesCompte,
   client: {
     lireEspace: lireEspaceClient,
@@ -74,6 +76,8 @@ const app = creerApp({
   restaurant: serviceRestaurant,
   appareils: serviceAppareils,
   livreur: serviceLivreur,
+  reservations: serviceReservations,
+  reservationsRestaurant: serviceReservationsRestaurant,
   commandes: {
     valider: validerCreationCommande,
     // antiRobot: false : l'application native ne produit pas de jeton Turnstile ; la protection est le jeton porteur strict + les plafonds.

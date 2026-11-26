@@ -256,7 +256,7 @@ export default async function RestaurantDetailSystemePage({
         <div className="ad-zones-desservies">
           <h3 className="ad-sous-titre">Zones de livraison déclarées</h3>
           {zonesDesservies.length === 0 ? (
-            <p className="ad-aide-champ">Aucune zone déclarée : les clients voient que la livraison n&apos;est pas déclarée (le retrait reste possible).</p>
+            <p className="ad-aide-champ">Aucune zone déclarée : les clients voient que la livraison n&apos;est pas déclarée (l&apos;option à emporter reste possible).</p>
           ) : (
             <ul className="ad-liste-simple">
               {zonesDesservies.map((z) => (

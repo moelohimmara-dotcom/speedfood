@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { secretAlerteValide, traiterAlerteInterne } from "../../src/lib/api/alerte-interne";
+import { secretAlerteValide, traiterAlerteInterne, traiterMessageReservationInterne } from "../../src/lib/api/alerte-interne";
 import { cheminInterneRefuse } from "../../src/lib/worker/garde-interne";
 
 let ko = 0;
@@ -90,6 +90,78 @@ verifier("route : ni cookie ni journal", /cookies|console\./.test(route), false)
 const cle = readFileSync(join(racine, "src/lib/worker/cle-alerte-interne.ts"), "utf8");
 verifier("clé du jeton d'isolat définie UNE seule fois (module partagé), importée par worker-jetons.js et par alerte-interne.ts", [/Symbol\.for\("speedfood\.alerte-interne"\)/.test(cle), /Symbol\.for/.test(jetons), /Symbol\.for/.test(pur), /from "\.\/src\/lib\/worker\/cle-alerte-interne\.ts"/.test(jetons), /cle-alerte-interne"/.test(pur)], [true, false, false, true, true]);
 verifier("worker-jetons : journaux à code fixe (statut non ok, échec), sans donnée", [/console\.error\("alerte_interne_statut", r\.status\)/.test(jetons), /console\.error\("alerte_interne_echec"\)/.test(jetons)], [true, true]);
+
+// ---------- Lot M4c : alerte « nouvelle demande de réservation » (même traitement que l'alerte de commande, autre notifieur) et message au client ----------
+const RES = "aaaaaaaa-0000-4000-8000-000000000001";
+
+async function essaiMessage(attendu: string | undefined, recu: string | null, corps: unknown, notifierPanne = false) {
+  const notifies: Array<[string, string]> = [];
+  const taches: Array<() => Promise<void>> = [];
+  let corpsLu = 0;
+  const reponse = await traiterMessageReservationInterne(
+    { attendu, recu, lireCorps: async () => { corpsLu++; if (corps instanceof Error) throw corps; return corps; } },
+    (t) => { taches.push(t); },
+    async (id, statut) => { if (notifierPanne) throw new Error(`fcm ${id} ${statut}`); notifies.push([id, statut]); }
+  );
+  return { reponse, notifies, corpsLu, taches };
+}
+
+{
+  for (const statut of ["confirmee", "refusee", "annulee_restaurant"]) {
+    const r = await essaiMessage(SECRET, SECRET, { reservationId: RES, statut });
+    verifier(`message client « ${statut} » : bon jeton + uuid : 200 rendu AVANT l'envoi (une tâche planifiée, rien notifié encore)`, [r.reponse, r.taches.length, r.notifies], [{ statut: 200, corps: { ok: true } }, 1, []]);
+    await r.taches[0]();
+    verifier(`message client « ${statut} » : la tâche notifie une fois, avec l'identifiant et le statut`, r.notifies, [[RES, statut]]);
+  }
+}
+for (const [nom, recu] of [["sans secret", null], ["mauvais secret", "T".repeat(40)]] as const) {
+  const r = await essaiMessage(SECRET, recu, { reservationId: RES, statut: "confirmee" });
+  verifier(`message client, ${nom} : 401 sans corps, corps jamais lu, rien planifié`, [r.reponse, r.notifies, r.corpsLu, r.taches.length], [{ statut: 401, corps: null }, [], 0, 0]);
+}
+for (const [attendu, recu] of [["court", "court"], [undefined, "court"]] as const) {
+  const r = await essaiMessage(attendu, recu, { reservationId: RES, statut: "confirmee" });
+  verifier("message client, secret du site absent ou trop court : 401, rien planifié", [r.reponse.statut, r.taches.length], [401, 0]);
+}
+for (const [nom, corps] of [
+  ["uuid invalide", { reservationId: "pas-un-uuid", statut: "confirmee" }], ["reservationId absent", { statut: "confirmee" }], ["reservationId non texte", { reservationId: 7, statut: "confirmee" }],
+  ["uuid avec suffixe", { reservationId: `${RES}x`, statut: "confirmee" }], ["statut absent", { reservationId: RES }], ["statut honoree", { reservationId: RES, statut: "honoree" }],
+  ["statut non_honoree", { reservationId: RES, statut: "non_honoree" }], ["statut demandee", { reservationId: RES, statut: "demandee" }], ["statut annulee_client", { reservationId: RES, statut: "annulee_client" }],
+  ["statut inconnu", { reservationId: RES, statut: "x" }], ["statut non texte", { reservationId: RES, statut: 1 }], ["corps null", null], ["corps texte", "x"], ["JSON illisible", new Error()],
+  ["un restaurant à la place (corps de l'alerte)", { restaurantId: RESTO }],
+] as const) {
+  const r = await essaiMessage(SECRET, SECRET, corps);
+  verifier(`message client, ${nom} : 400, rien planifié`, [r.reponse, r.taches.length], [{ statut: 400, corps: { ok: false } }, 0]);
+}
+{
+  const r = await essaiMessage(SECRET, SECRET, { reservationId: RES, statut: "confirmee" }, true);
+  const lignes: string[] = [];
+  const origine = console.error;
+  console.error = (...a: unknown[]) => { lignes.push(a.map(String).join(" ")); };
+  let leve = false;
+  try { await r.taches[0](); } catch { leve = true; } finally { console.error = origine; }
+  verifier("message client, panne d'envoi : la tâche ne lève jamais, seul le code fixe est journalisé (jamais l'identifiant ni le statut)", [r.reponse.statut, leve, lignes], [200, false, ["alerte_site_echec"]]);
+}
+{
+  // L'alerte du restaurant pour une réservation réutilise le traitement de l'alerte de commande avec un autre notifieur : mêmes garanties (401 sans jeton, 400 sans uuid).
+  const notifies: string[] = [];
+  const taches: Array<() => Promise<void>> = [];
+  const ok = await traiterAlerteInterne({ attendu: SECRET, recu: SECRET, lireCorps: async () => ({ restaurantId: RESTO }) }, (t) => { taches.push(t); }, async (id) => { notifies.push(`reservation:${id}`); });
+  await taches[0]();
+  verifier("alerte réservation : 200 puis notifieur de réservation appelé une fois pour ce restaurant", [ok.statut, notifies], [200, [`reservation:${RESTO}`]]);
+}
+const routeAlerteReservation = readFileSync(join(racine, "src/app/api/v1/interne/alerte-reservation/route.ts"), "utf8");
+const routeMessageReservation = readFileSync(join(racine, "src/app/api/v1/interne/message-reservation/route.ts"), "utf8");
+verifier("route alerte-reservation : jeton interne, after + notifierRestaurantReservation, force-dynamic, aucun RELAIS_SECRET, ni cookie ni journal", [/CLE_JETON_ALERTE/.test(routeAlerteReservation), /headers\.get\("x-alerte-interne"\)/.test(routeAlerteReservation), /traiterAlerteInterne\([\s\S]*after,\s*notifierRestaurantReservation\s*\)/.test(routeAlerteReservation), /export const dynamic = "force-dynamic"/.test(routeAlerteReservation), /RELAIS_SECRET|cookies|console\./.test(routeAlerteReservation)], [true, true, true, true, false]);
+verifier("route message-reservation : jeton interne, after + notifierClientReservation, force-dynamic, aucun RELAIS_SECRET, ni cookie ni journal", [/CLE_JETON_ALERTE/.test(routeMessageReservation), /headers\.get\("x-alerte-interne"\)/.test(routeMessageReservation), /traiterMessageReservationInterne\([\s\S]*after,\s*notifierClientReservation\s*\)/.test(routeMessageReservation), /export const dynamic = "force-dynamic"/.test(routeMessageReservation), /RELAIS_SECRET|cookies|console\./.test(routeMessageReservation)], [true, true, true, true, false]);
+verifier("les deux routes de réservation sont sous /api/v1/interne/ : refusées de l'extérieur par la garde 404 existante", ["/api/v1/interne/alerte-reservation", "/api/v1/interne/message-reservation", "/api/v1/%69nterne/message-reservation", "/api/v1/interne%2Fmessage-reservation"].map((c) => cheminInterneRefuse(base + c)), [true, true, true, true]);
+verifier("worker-jetons : alerterReservation et prevenirClientReservation valident leurs uuid, planifient par waitUntil, appellent les bonnes routes ; alerter reste intact", [
+  /alerterReservation\(restaurantId\)/.test(jetons), /prevenirClientReservation\(reservationId, statut\)/.test(jetons),
+  /UUID\.test\(restaurantId\)/.test(jetons), /UUID\.test\(reservationId\)/.test(jetons),
+  /api\/v1\/interne\/alerte-reservation/.test(jetons), /api\/v1\/interne\/message-reservation/.test(jetons),
+  /alerte\.interne\/api\/v1\/interne\/alerte-commande/.test(jetons), (jetons.match(/ctx\.waitUntil\(/g) ?? []).length >= 2,
+], [true, true, true, true, true, true, true, true]);
+verifier("worker-jetons : la liste des statuts acceptés est exactement confirmee, refusee, annulee_restaurant", /\["confirmee", "refusee", "annulee_restaurant"\]/.test(jetons), true);
+verifier("worker-jetons : journaux à code fixe seulement (aucune valeur dans console.error)", (jetons.match(/console\.error\(([^)]*)\)/g) ?? []).every((l) => /^console\.error\("[a-z_]+"(, r\.status)?\)$/.test(l)), true);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s).`);

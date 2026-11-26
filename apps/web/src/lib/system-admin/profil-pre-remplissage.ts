@@ -9,20 +9,21 @@ export const MODELES_HORAIRES = [
 export const MODELES_CONSIGNES = [
   { valeur: "", libelle: "Saisie libre / conserver le texte actuel" },
   { valeur: "Règlement directement au restaurant. Merci de vérifier votre commande à la réception.", libelle: "Paiement et vérification" },
-  { valeur: "Retrait sur place uniquement. Appelez le restaurant à votre arrivée.", libelle: "Retrait sur place" },
+  { valeur: "À emporter uniquement. Appelez le restaurant à votre arrivée.", libelle: "À emporter" },
   { valeur: "Livraison disponible dans un rayon proche du restaurant. Le restaurant vous confirme les conditions.", libelle: "Livraison locale" },
 ] as const;
 
 export const PROFILS_PAIEMENT = [
   { valeur: "", libelle: "Sélection manuelle" },
-  { valeur: "especes", libelle: "Espèces uniquement" },
   { valeur: "mobile", libelle: "Orange Money + MTN MoMo" },
   { valeur: "tous", libelle: "Tous les moyens" },
 ] as const;
 
+/**
+ * Moyens qu'un profil pré-remplit : jamais les espèces (règle du 3 novembre 2026), « tous » = mobile money seulement. Un ancien profil enregistré avec
+ * « especes » est toléré à la lecture : valeur inconnue, rien n'est imposé (`null`), aucune exception.
+ */
 export function moyensDuProfil(valeur: string): string[] | null {
-  if (valeur === "especes") return ["especes"];
-  if (valeur === "mobile") return ["orange_money", "mtn_momo"];
-  if (valeur === "tous") return ["especes", "orange_money", "mtn_momo"];
+  if (valeur === "mobile" || valeur === "tous") return ["orange_money", "mtn_momo"];
   return null;
 }

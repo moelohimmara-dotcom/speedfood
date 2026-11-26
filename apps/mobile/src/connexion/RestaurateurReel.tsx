@@ -3,6 +3,7 @@ import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable,
 import { Action } from './BoutonAction';
 import { OngletsIcones } from '../design/Composants';
 import { ServiceMenuReel } from './ServiceMenuReel';
+import { ReservationsRestaurateurReel } from './ReservationsRestaurateurReel';
 import { HistoriqueReel } from './HistoriqueReel';
 import { ActiviteReel } from './ActiviteReel';
 import { EtatPublicationReel } from './EtatPublicationReel';
@@ -27,6 +28,7 @@ import {
 import { MOTIFS_ECHEC_APP, lireMotifEchecApp, type MotifEchecApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
+import { libelleModeClient } from '../domaine/libelle-mode';
 import { Icone, type NomIcone } from '../design/Icone';
 
 /** Icône de chaque onglet de l'espace restaurateur (même famille visuelle que l'accueil client). */
@@ -49,7 +51,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [etat, setEtat] = useState<EtatAction>(ETAT_REPOS);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
-  const [section, setSection] = useState<SectionRestaurateur>('commandes');
+  const [section, setSection] = useState<SectionRestaurateur | 'reservations'>('commandes');
   // Codes de remise TAPÉS (par commande) : uniquement dans l'écran, jamais dans la machine d'états ni dans un message ; effacés dès l'envoi et dès que la commande n'est plus « en route ».
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [erreursCode, setErreursCode] = useState<Record<string, string>>({});
@@ -72,6 +74,8 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const [activiteOuverte, setActiviteOuverte] = useState(false);
   const [visiteOuverte, setVisiteOuverte] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
+  const [reservationsOuvert, setReservationsOuvert] = useState(false);
+  const [reservationsOccupe, setReservationsOccupe] = useState(false);
   const etatRef = useRef<EtatAction>(ETAT_REPOS);
   const lectureRef = useRef(0);
   const actif = useRef(true);
@@ -213,7 +217,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   const occupe = chargement || etat.phase === 'envoi' || etat.phase === 'relecture';
   // Le parent ignore le retour Android pendant l'envoi : l'écran ne doit pas être démonté avant le verdict.
   const envoiOuRelecture = etat.phase === 'envoi' || etat.phase === 'relecture';
-  useEffect(() => { signalerOccupe?.(envoiOuRelecture || serviceOccupe); return () => signalerOccupe?.(false); }, [envoiOuRelecture, serviceOccupe]);
+  useEffect(() => { signalerOccupe?.(envoiOuRelecture || serviceOccupe || reservationsOccupe); return () => signalerOccupe?.(false); }, [envoiOuRelecture, serviceOccupe, reservationsOccupe]);
   const verdict = etat.phase === 'verdict' ? etat : null;
 
   const bloque = occupe || verrou || formulaireOuvert(etat);
@@ -222,20 +226,20 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
     <View style={s.entete}>
-      <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe} />
+      <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe || reservationsOccupe} />
       <Action titre="Visite guidée" variante="texte" icone="aide" iconeSeule agir={() => setVisiteOuverte(true)} />
     </View>
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
     <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
     <EtatPublicationReel />
     <ScoreRestaurateurReel />
-    <OngletsIcones desactive={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} actif={section} onglets={SECTIONS_RESTAURATEUR.map(x => ({ id: x, libelle: LIBELLES_SECTIONS[x], icone: ICONES_SECTIONS[x] }))}
-      choisir={x => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); }} />
+    <OngletsIcones desactive={!peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe)} actif={section} onglets={[...SECTIONS_RESTAURATEUR.map(x => ({ id: x as SectionRestaurateur | 'reservations', libelle: LIBELLES_SECTIONS[x], icone: ICONES_SECTIONS[x] })), { id: 'reservations' as const, libelle: 'Réservations', icone: 'horloge' as const }]}
+      choisir={x => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); if (x === 'reservations') setReservationsOuvert(true); }} />
     <View style={s.ligneTitre}>
-      <Text accessibilityRole="header" style={[s.nom, { flex: 1 }]}>{LIBELLES_SECTIONS[section]}</Text>
+      <Text accessibilityRole="header" style={[s.nom, { flex: 1 }]}>{section === 'reservations' ? 'Réservations' : LIBELLES_SECTIONS[section]}</Text>
       {section === 'commandes' && <Action titre="Actualiser les commandes" variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />}
     </View>
-    {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'commandes' ? s.masque : undefined}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'menu' || section === 'service' ? undefined : s.masque}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
     {section === 'service' && <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
       { cle: 'son', libelle: LIBELLE_SON, aide: AIDE_SON, actif: sonActif, changer: changerSon },
       { cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_RESTAURATEUR, aide: AIDE_POSTE_FIXE_RESTAURATEUR, actif: posteFixe, changer: changerPosteFixe },
@@ -243,6 +247,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     ]} />}
     {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
     {section === 'activite' && activiteOuverte && <ActiviteReel />}
+    {reservationsOuvert && <View style={section === 'reservations' ? undefined : s.masque}><ReservationsRestaurateurReel session={gestion} clavier={{ reference, auFocus, auBlur }} signalerOccupe={setReservationsOccupe} /></View>}
     {section === 'commandes' && <>
     {doitPoserQuestionAlerte(alerteFermee, choixAlerteLu) && <View style={s.invite}>
       <Text accessibilityRole="header" style={s.nom}>{TITRE_QUESTION_ALERTE}</Text>
@@ -270,7 +275,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
         return <View key={o.id} style={s.carte}>
           <Text style={s.nom}>{o.reference}{o.estTest ? ' · TEST' : ''}</Text>
           <Text style={s.texte}>{libelleStatut(o)}</Text>
-          <Text style={s.texte}>{o.mode === 'livraison' ? 'Livraison' : o.mode === 'retrait' ? 'Retrait' : 'Sur place' + (o.tableNumero ? ' · table ' + o.tableNumero : '')} · {new Date(o.creeLe).toLocaleString('fr-FR')}</Text>
+          <Text style={s.texte}>{libelleModeClient(o.mode, o.tableNumero)} · {new Date(o.creeLe).toLocaleString('fr-FR')}</Text>
           <Text selectable style={s.texte}>{ligneClient(o)}</Text>
           {o.clientAdresse && <Text style={s.texte}>{o.clientAdresse}</Text>}
           {o.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}

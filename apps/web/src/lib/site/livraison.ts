@@ -67,7 +67,7 @@ export function libelleLivraison(statut: StatutLivraison, zoneNom: string): stri
     case "partielle":
       return `Livre dans certains quartiers de ${zoneNom}`;
     case "non":
-      return `Ne livre pas à ${zoneNom} (retrait possible, selon le restaurant)`;
+      return `Ne livre pas à ${zoneNom} (à emporter possible, selon le restaurant)`;
     case "non-declaree":
       return null;
   }

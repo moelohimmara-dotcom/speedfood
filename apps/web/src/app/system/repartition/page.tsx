@@ -3,14 +3,13 @@ import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { listerCommandesARepartir, type CommandeARepartir } from "@/lib/system-admin/repartition-lecture";
 import { traiterCommandeEquipeAction } from "@/lib/system-admin/repartition";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
+import { libelleModeClient } from "@/lib/commande/mode";
 import { CarteChiffre, EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { ActualisationAuto } from "./ActualisationAuto";
 import { AlerteEquipe } from "./AlerteEquipe";
 
 export const metadata = { title: "Poste de répartition (administration)" };
 export const dynamic = "force-dynamic";
-
-const LIBELLES_MODE: Record<string, string> = { livraison: "Livraison", retrait: "Retrait", sur_place: "Sur place", table: "À table" };
 
 function formaterGnf(montant: number): string {
   return `${montant.toLocaleString("fr-FR")} GNF`;
@@ -36,7 +35,7 @@ function CarteCommande({ c, maintenant }: { c: CommandeARepartir; maintenant: Da
       <div className="repartition-entete">
         <strong>{c.reference}</strong>
         <span>{c.restaurantNom}</span>
-        <span className="ad-aide-champ">{LIBELLES_MODE[c.mode] ?? c.mode} · reçue {attente}</span>
+        <span className="ad-aide-champ">{libelleModeClient(c.mode)} · reçue {attente}</span>
         {c.estTest ? <Pastille ton="neutre">Test</Pastille> : null}
       </div>
       <ul className="repartition-lignes">

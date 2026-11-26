@@ -2,6 +2,7 @@ import Link from "next/link";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { sousSectionsAccessibles } from "@/lib/system-admin/permissions";
 import { listerPaiementsAdmin, lireReglagesAdmin } from "@/lib/paiement/en-ligne/admin-lectures";
+import { lireEspecesAutorise } from "@/lib/paiement/en-ligne/remboursement-lecture";
 import { formaterMontantGnf } from "@/lib/paiement/regles";
 import { Alert } from "@/components/ui";
 import { CarteChiffre, EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
@@ -47,7 +48,7 @@ function tonEtat(etat: string): "neutre" | "danger" | "succes" | "attention" {
 /** Paiements en ligne (Speedfood encaisse puis verse). Permission `commande.support`. Réglages et comptes : `/system/parametres/paiement`. */
 export default async function PaiementsAdminPage() {
   const contexte = await exigerPermissionPage("commande.support");
-  const [paiements, reglages] = await Promise.all([listerPaiementsAdmin(), lireReglagesAdmin()]);
+  const [paiements, reglages, especesAutorise] = await Promise.all([listerPaiementsAdmin(), lireReglagesAdmin(), lireEspecesAutorise()]);
   const versementsATraiter = paiements.flatMap((p) => p.versements).filter((v) => v.etat === "a_verser" || v.etat === "echoue").length;
   const litigesAHumain = paiements.flatMap((p) => p.litiges).filter((l) => l.etat === "a_humain").length;
   const enAttente = paiements.filter((p) => p.etat === "en_attente").length;
@@ -157,6 +158,9 @@ export default async function PaiementsAdminPage() {
                       {formaterDateCourte(p.creeLe)}
                     </td>
                     <td data-label="Actions">
+                      <Link href={`/system/paiements/dossier/${p.id}`} className="lien-texte u-d-block-fs-0-8rem">
+                        Dossier du remboursement
+                      </Link>
                       {contexte.role === "super_admin"
                         ? p.versements
                             .filter((v) => (v.etat === "a_verser" || v.etat === "echoue") && p.etat === "libere")
@@ -168,6 +172,7 @@ export default async function PaiementsAdminPage() {
                         versementsEnAttente={p.versements.some((v) => v.etat === "a_verser" || v.etat === "echoue")}
                         litigeAHumain={litige?.id ?? null}
                         peutEspeces={contexte.role === "super_admin"}
+                        especesAutorise={especesAutorise}
                       />
                     </td>
                   </tr>

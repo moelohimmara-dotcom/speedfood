@@ -24,6 +24,8 @@ import { libellesMoyensPaiement } from "@/lib/restaurant/paiement";
 import { origineDuSite } from "@/lib/partage/origine";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { fonctionnaliteActive } from "@/lib/fonctionnalites/lire";
+import { lireDisponibiliteReservation } from "@/lib/reservation/api-serveur";
+import { BlocReservation } from "./BlocReservation";
 import {
   ancienneteLisible,
   estCommandable,
@@ -104,6 +106,9 @@ export default async function FicheRestaurantPage({
     notFound();
   }
   const restaurantSur = restaurant;
+  // « Réserver une table » : lu auprès de l'API par le serveur, seulement pour une personne connectée (l'API exige une session) et hors aperçu. Lancé tout de suite pour se
+  // faire en même temps que les autres lectures ; ne lève jamais. Service éteint, en panne ou visiteur anonyme : le bloc n'apparaît pas, la page reste intacte.
+  const reservationPromesse = apercu ? null : lireDisponibiliteReservation(restaurant.id);
   const maintenant = new Date();
   const origine = await origineDuSite();
   // Position affichée seulement si l'administrateur a activé la fonction et si le restaurant l'a renseignée.
@@ -134,6 +139,8 @@ export default async function FicheRestaurantPage({
     }))
     .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
   const { disponibiliteFraicheurHeures } = await obtenirParametresApplication();
+  const reservation = reservationPromesse ? await reservationPromesse : null;
+  const reservationOuverte = reservation !== null && reservation.ok && reservation.donnees.accepteReservation;
   const etatResto = etatRestaurant({ ouvert: restaurant.ouvert, accepteCommandes: restaurant.accepte_commandes });
   const libelleResto = libelleEtatRestaurant(etatResto);
 
@@ -322,11 +329,11 @@ export default async function FicheRestaurantPage({
       {livraisonActive ? (
       <section className="fiche-livraison" aria-labelledby="fiche-livraison-titre">
         <h2 id="fiche-livraison-titre" className="fiche-livraison-titre">
-          Livraison et retrait
+          Livraison et à emporter
         </h2>
         {lignesLivraison.length > 0 ? (
           <>
-            <p className="fiche-livraison-texte">Ce restaurant déclare livrer dans les zones suivantes. Le retrait et les conditions se confirment avec lui.</p>
+            <p className="fiche-livraison-texte">Ce restaurant déclare livrer dans les zones suivantes. L&apos;option à emporter et les conditions se confirment avec lui.</p>
             <ul className="fiche-livraison-liste">
               {lignesLivraison.map((l) => (
                 <li key={l.libelle}>
@@ -337,10 +344,12 @@ export default async function FicheRestaurantPage({
             </ul>
           </>
         ) : (
-          <p className="fiche-livraison-texte">Ce restaurant n&apos;a pas déclaré de zones de livraison. Retrait ou livraison : à confirmer avec lui au moment de la commande.</p>
+          <p className="fiche-livraison-texte">Ce restaurant n&apos;a pas déclaré de zones de livraison. À emporter ou livraison : à confirmer avec lui au moment de la commande.</p>
         )}
       </section>
       ) : null}
+
+      {reservationOuverte ? <BlocReservation restaurantId={restaurant.id} /> : null}
 
       <AvisPublics restaurantId={restaurant.id} />
 

@@ -11,13 +11,22 @@ export function lireNumeroTable(brut: unknown): string | null {
   return FORME_TABLE.test(v) ? v : null;
 }
 
-export function libelleMode(mode: ModeCommande, table?: string | null): string {
-  if (mode === "livraison") return "Livraison";
-  if (mode === "sur_place") return table ? `À table, table ${table}` : "À table";
-  return "Retrait sur place";
-}
-
 /** Le mode de la base vers le type : toute valeur inconnue retombe sur le retrait. */
 export function versModeCommande(valeur: string): ModeCommande {
   return valeur === "livraison" || valeur === "sur_place" ? valeur : "retrait";
+}
+
+/**
+ * Le nom du mode TEL QUE LE CLIENT LE LIT, partout (site, appli, suivi, reçu, espace client) : « Livraison », « À emporter » ou « Sur place »
+ * (suivi de « · table X » quand la table est connue). « À emporter » est l'affichage de la valeur `retrait` : la valeur du mode ne change pas
+ * (réseau, base). Toute valeur inconnue retombe sur « À emporter », comme `versModeCommande`.
+ */
+export function libelleModeClient(mode: string, table?: string | null): string {
+  const m = versModeCommande(mode);
+  if (m === "livraison") return "Livraison";
+  if (m === "sur_place") {
+    const numero = typeof table === "string" ? table.trim() : "";
+    return numero ? `Sur place · table ${numero}` : "Sur place";
+  }
+  return "À emporter";
 }

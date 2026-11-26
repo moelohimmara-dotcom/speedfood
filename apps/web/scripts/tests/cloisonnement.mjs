@@ -1134,6 +1134,708 @@ await interdit("préférences : les allergies sans consentement sont refusées p
 await interdit("préférences : un allergène hors de la liste des 14 est refusé", ID.user_a, `insert into preferences_clients (utilisateur_id, allergies, consentement_sante_le) values (${U(ID.user_a)}, array['pizza'], now())`);
 await autorise("préférences : le client efface les siennes (droit à l'effacement)", ID.user_b, `delete from preferences_clients where utilisateur_id = ${U(ID.user_b)}`);
 verifier("préférences : après effacement, plus rien pour ce client", VIDE(await nb(ID.user_b, "preferences_clients")) && (await nb(ID.client, "preferences_clients")) === 1);
+// ---------------------------------------------------------------- 20. réservations de table (lot M2)
+console.log("\n--- Réservations de table");
+const RESTO_C = "00000000-0000-4000-8000-0000000000c2";
+const RESTO_D = "00000000-0000-4000-8000-0000000000d2";
+// Le compte de A a été supprimé plus haut (essai de cascade des favoris) : un nouveau restaurateur du restaurant A.
+const RESTAURATEUR_A = "00000000-0000-4000-8000-00000000a0a1";
+await db.exec(`
+  insert into auth.users (id, email) values (${U(RESTAURATEUR_A)}, 'a2@test.invalid');
+  insert into restaurant_memberships (restaurant_id, utilisateur_id, role) values (${U(ID.resto_a)}, ${U(RESTAURATEUR_A)}, 'owner');
+  insert into restaurants (id, nom, categorie_id, quartier_id, publie) values ('${RESTO_D}', 'RESTO-D-NONPUBLIE', '${CAT}', '${QUA}', false);
+`);
+await db.exec(`
+  insert into restaurants (id, nom, categorie_id, quartier_id, publie) values ('${RESTO_C}', 'RESTO-C-SANS-RESERVATION', '${CAT}', '${QUA}', true);
+  update restaurants set accepte_reservation = true where id in (${U(ID.resto_a)}, ${U(ID.resto_b)}, '${RESTO_D}');
+`);
+verifier("restaurants : la réservation est désactivée par défaut", (await db.query(`select accepte_reservation from restaurants where id = '${RESTO_C}'`)).rows[0].accepte_reservation === false);
+verifier("restaurants : pas de plafond de couverts par défaut", (await db.query(`select reservation_capacite_couverts c from restaurants where id = '${RESTO_C}'`)).rows[0].c === null);
+
+/** Rôle du serveur (clé de service) : contourne la RLS, sans identité ; les triggers et contraintes s'appliquent. */
+async function commeServeur(sql, params = []) {
+  await db.exec("set role service_role");
+  try {
+    const r = await db.query(sql, params);
+    return { touchees: r.affectedRows ?? r.rows.length, erreur: null, lignes: r.rows };
+  } catch (e) {
+    return { touchees: 0, erreur: e.message, lignes: [] };
+  } finally {
+    await db.exec("reset role");
+  }
+}
+const H = (c) => c.repeat(64);
+/** Crée une réservation « comme le serveur » ; `dans` est un intervalle (négatif = créneau passé, refusé par la garde). */
+const creerResa = (o = {}) => {
+  const d = { resto: ID.resto_a, client: null, hash: H("0"), nom: "Mamadou Diallo", tel: "+224620000001", nb: 2, dans: "3 days", note: null, statut: "demandee", ...o };
+  return commeServeur(
+    `insert into reservations_table (restaurant_id, client_user_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau, note, statut)
+     values ($1, $2, $3, $4, $5, $6, now() + $7::interval, $8, $9) returning id, reference`,
+    [d.resto, d.client, d.hash, d.nom, d.tel, d.nb, d.dans, d.note, d.statut],
+  );
+};
+let compteurHash = 0;
+const hashNeuf = () => (++compteurHash).toString(16).padStart(64, "0");
+const neuve = async (o = {}) => {
+  const r = await creerResa({ hash: hashNeuf(), ...o });
+  if (r.erreur) throw new Error("création de réservation d'essai impossible : " + r.erreur);
+  return r.lignes[0].id;
+};
+/** Réservation DÉJÀ passée ou limite : insérée en superutilisateur avec les triggers coupés (la garde de création les refuserait). */
+async function neuveHorsGarde(statut, dans, motif = null) {
+  await db.exec("set session_replication_role = replica");
+  try {
+    const r = await db.query(
+      `insert into reservations_table (restaurant_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau, statut, motif_refus, traitee_le)
+       values ($1, $2, 'Client Passe', '+224620000009', 2, now() + $3::interval, $4, $5, case when $4 = 'demandee' then null else now() end) returning id`,
+      [ID.resto_a, hashNeuf(), dans, statut, motif],
+    );
+    return r.rows[0].id;
+  } finally {
+    await db.exec("set session_replication_role = origin");
+  }
+}
+const statutDe = async (id) => (await db.query(`select statut from reservations_table where id = $1`, [id])).rows[0].statut;
+const motifDe = (r, fragment) => r.erreur !== null && r.erreur.includes(fragment);
+const refuseSv = async (nom, sql, params = [], fragment = "") => {
+  const r = await commeServeur(sql, params);
+  verifier(nom, r.erreur !== null && r.erreur.includes(fragment), `erreur : ${r.erreur ?? "aucune"}`);
+};
+const autoriseSv = async (nom, sql, params = []) => {
+  const r = await commeServeur(sql, params);
+  verifier(nom, r.erreur === null && r.touchees >= 1, `touchées : ${r.touchees}, erreur : ${r.erreur ?? "aucune"}`);
+};
+
+// Données de départ : deux réservations chez A (une liée à un compte, une d'invité), une d'un AUTRE compte chez A, une chez B.
+const R_A1 = await neuve({ client: ID.client });
+const R_A2 = await neuve();
+const R_A3 = await neuve({ client: ID.support, hash: null });
+const R_B1 = await neuve({ resto: ID.resto_b });
+verifier("création par le serveur : la référence est lisible (SF-R- + 5 caractères)", /^SF-R-[2-9A-HJKMNP-Z]{5}$/.test((await db.query(`select reference from reservations_table where id = '${R_A1}'`)).rows[0].reference));
+verifier("création par le serveur : l'état de départ est « demandée »", (await statutDe(R_A1)) === "demandee");
+
+console.log("--- Réservations : lecture");
+const RA = `restaurant_id = ${U(ID.resto_a)}`;
+const RB = `restaurant_id = ${U(ID.resto_b)}`;
+verifier("réservations : le restaurant A voit ses 3 réservations", (await nb(RESTAURATEUR_A, "reservations_table", RA)) === 3);
+verifier("réservations : le restaurant A ne voit aucune réservation de B", VIDE(await nb(RESTAURATEUR_A, "reservations_table", RB)));
+verifier("réservations : le restaurant B voit sa réservation", (await nb(ID.user_b, "reservations_table", RB)) === 1);
+verifier("réservations : le restaurant B ne voit aucune réservation de A", VIDE(await nb(ID.user_b, "reservations_table", RA)));
+verifier("réservations : le client voit la sienne et seulement la sienne", (await nb(ID.client, "reservations_table")) === 1 && (await nb(ID.client, "reservations_table", `id = '${R_A1}'`)) === 1);
+verifier("réservations : le client ne voit pas celle d'un autre compte", VIDE(await nb(ID.client, "reservations_table", `id = '${R_A3}'`)));
+verifier("réservations : un visiteur anonyme ne voit rien", VIDE(await nb(null, "reservations_table")));
+verifier("réservations : le support lit toutes les réservations", (await nb(ID.support, "reservations_table")) === 4);
+verifier("réservations : le super administrateur lit toutes les réservations", (await nb(ID.admin, "reservations_table")) === 4);
+const lectureHash = await lire(RESTAURATEUR_A, `select jeton_suivi_hash from reservations_table`);
+verifier("réservations : le restaurateur ne lit pas le condensé du jeton de suivi", lectureHash.erreur !== undefined && lectureHash.lignes.length === 0, `erreur : ${lectureHash.erreur ?? "aucune"}`);
+verifier("réservations : le client ne lit pas le condensé du jeton de suivi", (await lire(ID.client, `select jeton_suivi_hash from reservations_table`)).erreur !== undefined);
+verifier("réservations : `select *` est refusé à un compte connecté (colonnes listées par le code)", (await lire(RESTAURATEUR_A, `select * from reservations_table`)).erreur !== undefined);
+verifier("réservations : le restaurateur lit les colonnes utiles (nom, téléphone, créneau, état)", (await lire(RESTAURATEUR_A, `select reference, nom_client, telephone, nb_personnes, creneau, note, statut, motif_refus from reservations_table`)).lignes.length === 3);
+verifier("réservations : un visiteur anonyme ne peut pas lire une colonne", (await lire(null, `select statut from reservations_table`)).erreur !== undefined);
+
+console.log("--- Réservations : écriture par les comptes");
+const corpsInsert = (resto, extra = "") =>
+  `insert into reservations_table (restaurant_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau${extra ? ", " + extra.split("=")[0] : ""}) values (${U(resto)}, '${hashNeuf()}', 'Intrus Test', '+224620000002', 2, now() + interval '2 days'${extra ? ", " + extra.split("=")[1] : ""})`;
+await interdit("aucun INSERT direct : le restaurateur ne crée pas de réservation", RESTAURATEUR_A, corpsInsert(ID.resto_a));
+await interdit("aucun INSERT direct : le client connecté ne crée pas de réservation", ID.client, corpsInsert(ID.resto_a));
+await interdit("aucun INSERT direct : un visiteur anonyme ne crée pas de réservation", null, corpsInsert(ID.resto_a));
+await interdit("aucun INSERT direct : le super administrateur non plus", ID.admin, corpsInsert(ID.resto_a));
+await interdit("aucun DELETE par le restaurateur", RESTAURATEUR_A, `delete from reservations_table where id = '${R_A2}'`);
+await interdit("aucun DELETE par le client", ID.client, `delete from reservations_table where id = '${R_A1}'`);
+await interdit("aucun DELETE par un anonyme", null, `delete from reservations_table`);
+await interdit("anonyme : aucune modification", null, `update reservations_table set statut = 'confirmee'`);
+await interdit("le client ne modifie pas directement sa réservation (annulation par le serveur)", ID.client, `update reservations_table set statut = 'annulee_client' where id = '${R_A1}'`);
+await interdit("le client ne confirme pas sa propre réservation", ID.client, `update reservations_table set statut = 'confirmee' where id = '${R_A1}'`);
+await interdit("le support ne modifie pas une réservation (lecture seule)", ID.support, `update reservations_table set statut = 'confirmee' where id = '${R_A2}'`);
+await interdit("le restaurateur B ne modifie pas la réservation de A", ID.user_b, `update reservations_table set statut = 'confirmee' where id = '${R_A2}'`);
+await interdit("le restaurateur A ne modifie pas la réservation de B", RESTAURATEUR_A, `update reservations_table set statut = 'confirmee' where id = '${R_B1}'`);
+verifier("la réservation de B est restée « demandée » après les tentatives de A", (await statutDe(R_B1)) === "demandee");
+await interdit("le restaurateur ne modifie pas le nom du client", RESTAURATEUR_A, `update reservations_table set nom_client = 'Autre' where id = '${R_A2}'`);
+await interdit("le restaurateur ne modifie pas le créneau", RESTAURATEUR_A, `update reservations_table set creneau = now() + interval '5 days' where id = '${R_A2}'`);
+await interdit("le restaurateur ne déplace pas la réservation vers un autre restaurant", RESTAURATEUR_A, `update reservations_table set restaurant_id = ${U(ID.resto_b)} where id = '${R_A2}'`);
+await interdit("le restaurateur ne falsifie pas « traitée par »", RESTAURATEUR_A, `update reservations_table set traitee_par = ${U(ID.user_b)} where id = '${R_A2}'`);
+await interdit("le restaurateur ne modifie pas le condensé du jeton", RESTAURATEUR_A, `update reservations_table set jeton_suivi_hash = '${H("f")}' where id = '${R_A2}'`);
+await autorise("le restaurateur A confirme la réservation de son restaurant", RESTAURATEUR_A, `update reservations_table set statut = 'confirmee' where id = '${R_A2}'`);
+const traitee = (await db.query(`select traitee_par, traitee_le, mis_a_jour_le, cree_le from reservations_table where id = '${R_A2}'`)).rows[0];
+verifier("la confirmation consigne qui a traité (le restaurateur connecté)", traitee.traitee_par === RESTAURATEUR_A);
+verifier("la confirmation consigne quand", traitee.traitee_le !== null);
+await autorise("le restaurateur A refuse une demande avec un motif", RESTAURATEUR_A, `update reservations_table set statut = 'refusee', motif_refus = 'Complet ce soir-là' where id = '${R_A1}'`);
+
+console.log("--- Réservations : transitions imposées par la base");
+{
+  const dem = await neuve();
+  const conf = await neuve();
+  await autoriseSv("transition demandee -> confirmee (serveur)", `update reservations_table set statut = 'confirmee' where id = '${conf}'`);
+  await refuseSv("demandee -> honoree refusée", `update reservations_table set statut = 'honoree' where id = '${dem}'`, [], "Changement d'état impossible");
+  await refuseSv("demandee -> non_honoree refusée", `update reservations_table set statut = 'non_honoree' where id = '${dem}'`, [], "Changement d'état impossible");
+  await refuseSv("demandee -> annulee_restaurant refusée", `update reservations_table set statut = 'annulee_restaurant', motif_refus = 'Fermeture' where id = '${dem}'`, [], "Changement d'état impossible");
+  await refuseSv("confirmee -> demandee refusée", `update reservations_table set statut = 'demandee' where id = '${conf}'`, [], "Changement d'état impossible");
+  await refuseSv("confirmee -> refusee refusée", `update reservations_table set statut = 'refusee', motif_refus = 'Trop tard' where id = '${conf}'`, [], "Changement d'état impossible");
+  await refuseSv("un état inconnu est refusé par la base", `update reservations_table set statut = 'peut_etre' where id = '${dem}'`, [], "Changement d'état impossible");
+  // États terminaux : plus aucun changement, même par le serveur.
+  const refusee = await neuve();
+  await autoriseSv("transition demandee -> refusee avec motif (serveur)", `update reservations_table set statut = 'refusee', motif_refus = 'Complet' where id = '${refusee}'`);
+  for (const vers of ["confirmee", "demandee", "annulee_client", "honoree"]) {
+    await refuseSv(`refusee (terminal) -> ${vers} refusée`, `update reservations_table set statut = '${vers}' where id = '${refusee}'`, [], "Changement d'état impossible");
+  }
+  verifier("un état terminal garde son motif : modification refusée", motifDe(await commeServeur(`update reservations_table set motif_refus = 'Autre motif' where id = '${refusee}'`), "terminée"));
+  const annuleeClient = await neuve();
+  await autoriseSv("transition demandee -> annulee_client (serveur, créneau futur)", `update reservations_table set statut = 'annulee_client' where id = '${annuleeClient}'`);
+  await refuseSv("annulee_client (terminal) -> confirmee refusée", `update reservations_table set statut = 'confirmee' where id = '${annuleeClient}'`, [], "Changement d'état impossible");
+  verifier("annulation client sans compte connecté : « traitée par » reste vide", (await db.query(`select traitee_par from reservations_table where id = '${annuleeClient}'`)).rows[0].traitee_par === null);
+  const annuleeResto = await neuve();
+  await autoriseSv("confirmee -> annulee_restaurant avec motif (serveur)", `update reservations_table set statut = 'confirmee' where id = '${annuleeResto}'`);
+  await autorise("le restaurateur annule une réservation confirmée avec un motif", RESTAURATEUR_A, `update reservations_table set statut = 'annulee_restaurant', motif_refus = 'Panne d''électricité' where id = '${annuleeResto}'`);
+  await refuseSv("annulee_restaurant (terminal) -> honoree refusée", `update reservations_table set statut = 'honoree' where id = '${annuleeResto}'`, [], "Changement d'état impossible");
+  // L'annulation « par le client » est réservée au serveur.
+  const pourAnnulation = await neuve();
+  await interdit("un restaurateur ne pose pas l'annulation « par le client » à sa place", RESTAURATEUR_A, `update reservations_table set statut = 'annulee_client' where id = '${pourAnnulation}'`);
+  verifier("… et le message est clair", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'annulee_client' where id = '${pourAnnulation}'`), "par le serveur"));
+  // Règles de temps.
+  const passeeDemandee = await neuveHorsGarde("demandee", "-3 hours");
+  verifier("une demande dont le créneau est passé ne se confirme plus", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'confirmee' where id = '${passeeDemandee}'`), "Le créneau est passé"));
+  await refuseSv("une demande dont le créneau est passé ne s'annule plus par le client", `update reservations_table set statut = 'annulee_client' where id = '${passeeDemandee}'`, [], "Le créneau est passé");
+  await autorise("… mais le restaurant peut la refuser, avec un motif", RESTAURATEUR_A, `update reservations_table set statut = 'refusee', motif_refus = 'Demande trop tardive' where id = '${passeeDemandee}'`);
+  const loin = await neuve();
+  await autoriseSv("réservation lointaine confirmée (serveur)", `update reservations_table set statut = 'confirmee' where id = '${loin}'`);
+  verifier("« honorée » refusée plus d'une heure avant le créneau", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'honoree' where id = '${loin}'`), "dans l'heure"));
+  verifier("« non honorée » refusée avant le créneau", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'non_honoree' where id = '${loin}'`), "créneau passé"));
+  const proche = await neuve({ dans: "45 minutes" });
+  await autoriseSv("réservation proche confirmée (serveur)", `update reservations_table set statut = 'confirmee' where id = '${proche}'`);
+  verifier("« non honorée » toujours refusée avant le créneau, même à moins d'une heure", motifDe(await ecrire(RESTAURATEUR_A, `update reservations_table set statut = 'non_honoree' where id = '${proche}'`), "créneau passé"));
+  await autorise("« honorée » permise dans l'heure qui précède le créneau", RESTAURATEUR_A, `update reservations_table set statut = 'honoree' where id = '${proche}'`);
+  const passeeConf = await neuveHorsGarde("confirmee", "-2 hours");
+  await autorise("« non honorée » permise une fois le créneau passé", RESTAURATEUR_A, `update reservations_table set statut = 'non_honoree' where id = '${passeeConf}'`);
+  const passeeConf2 = await neuveHorsGarde("confirmee", "-1 hour");
+  await autorise("« honorée » permise après le créneau", RESTAURATEUR_A, `update reservations_table set statut = 'honoree' where id = '${passeeConf2}'`);
+  const traiteeParServeur = (await db.query(`select traitee_par, traitee_le from reservations_table where id = '${passeeConf2}'`)).rows[0];
+  verifier("les états honoree/non_honoree gardent « traitée le » de la confirmation", traiteeParServeur.traitee_le !== null);
+}
+
+console.log("--- Réservations : colonnes immuables");
+{
+  const id = await neuve({ client: ID.client });
+  const immuables = [
+    ["reference", `reference = 'SF-R-ZZZZZ'`],
+    ["restaurant_id", `restaurant_id = ${U(ID.resto_b)}`],
+    ["creneau", `creneau = now() + interval '9 days'`],
+    ["nb_personnes", `nb_personnes = 5`],
+    ["nom_client", `nom_client = 'Autre Nom'`],
+    ["telephone", `telephone = '+224650000000'`],
+    ["jeton_suivi_hash", `jeton_suivi_hash = '${H("e")}'`],
+    ["client_user_id (vers un autre compte)", `client_user_id = ${U(ID.user_b)}`],
+    ["cree_le", `cree_le = now() - interval '10 days'`],
+    ["id", `id = gen_random_uuid()`],
+  ];
+  for (const [nom, set] of immuables) {
+    await refuseSv(`la colonne ${nom} est immuable, même pour le serveur`, `update reservations_table set ${set} where id = '${id}'`, [], "ne peut plus être modifiée");
+  }
+  const sansLien = await neuve({ client: ID.client, hash: null });
+  await db.exec(`insert into auth.users (id, email) values ('00000000-0000-4000-8000-00000000f0e1', 'ephemere@test.invalid')`);
+  const lie = await neuve({ client: "00000000-0000-4000-8000-00000000f0e1" });
+  await db.exec(`delete from auth.users where id = '00000000-0000-4000-8000-00000000f0e1'`);
+  const survivante = (await db.query(`select client_user_id from reservations_table where id = '${lie}'`)).rows;
+  verifier("la suppression d'un compte laisse la réservation, sans compte lié (set null autorisé malgré l'immuabilité)", survivante.length === 1 && survivante[0].client_user_id === null);
+  verifier("(contrôle) une réservation sans jeton mais avec compte est acceptée", typeof sansLien === "string");
+}
+
+console.log("--- Réservations : garde de création et contraintes (rôle du serveur)");
+{
+  const r0 = await creerResa({ hash: hashNeuf() });
+  verifier("création valide acceptée (garde-fou contre un test creux)", r0.erreur === null, r0.erreur ?? "");
+  verifier("restaurant sans réservation activée : refusé", motifDe(await creerResa({ resto: RESTO_C, hash: hashNeuf() }), "n'accepte pas les réservations"));
+  verifier("restaurant non publié : refusé", motifDe(await creerResa({ resto: RESTO_D, hash: hashNeuf() }), "n'est pas disponible"));
+  verifier("restaurant inexistant : refusé", (await creerResa({ resto: "00000000-0000-4000-8000-0000000000ff", hash: hashNeuf() })).erreur !== null);
+  await db.exec(`update restaurants set suspendu_le = now(), suspendu_motif = 'essai' where id = ${U(ID.resto_b)}`);
+  verifier("restaurant suspendu : refusé", motifDe(await creerResa({ resto: ID.resto_b, hash: hashNeuf() }), "n'est pas disponible"));
+  await db.exec(`update restaurants set suspendu_le = null, suspendu_motif = null where id = ${U(ID.resto_b)}`);
+  verifier("créneau passé : refusé", motifDe(await creerResa({ dans: "-1 hour", hash: hashNeuf() }), "plus de 30 minutes"));
+  verifier("créneau dans 10 minutes : refusé", motifDe(await creerResa({ dans: "10 minutes", hash: hashNeuf() }), "plus de 30 minutes"));
+  verifier("créneau dans 29 minutes : refusé", motifDe(await creerResa({ dans: "29 minutes", hash: hashNeuf() }), "plus de 30 minutes"));
+  verifier("créneau dans 31 minutes : accepté", (await creerResa({ dans: "31 minutes", hash: hashNeuf() })).erreur === null);
+  verifier("créneau dans 59 jours : accepté", (await creerResa({ dans: "59 days", hash: hashNeuf() })).erreur === null);
+  verifier("créneau dans 61 jours : refusé", motifDe(await creerResa({ dans: "61 days", hash: hashNeuf() }), "60 jours"));
+  verifier("nombre de personnes 0 : refusé", motifDe(await creerResa({ nb: 0, hash: hashNeuf() }), "nb_personnes"));
+  verifier("nombre de personnes 13 : refusé", motifDe(await creerResa({ nb: 13, hash: hashNeuf() }), "nb_personnes"));
+  verifier("nombre de personnes 1 : accepté", (await creerResa({ nb: 1, hash: hashNeuf() })).erreur === null);
+  verifier("nombre de personnes 12 : accepté", (await creerResa({ nb: 12, hash: hashNeuf() })).erreur === null);
+  verifier("nom d'un caractère : refusé", motifDe(await creerResa({ nom: "A", hash: hashNeuf() }), "nom_client"));
+  verifier("nom fait d'espaces : refusé", motifDe(await creerResa({ nom: "      ", hash: hashNeuf() }), "nom_client"));
+  verifier("nom de 61 caractères : refusé", motifDe(await creerResa({ nom: "N".repeat(61), hash: hashNeuf() }), "nom_client"));
+  verifier("téléphone non guinéen : refusé", motifDe(await creerResa({ tel: "0612345678", hash: hashNeuf() }), "telephone"));
+  verifier("téléphone non normalisé : refusé", motifDe(await creerResa({ tel: "620000001", hash: hashNeuf() }), "telephone"));
+  verifier("note de 201 caractères : refusée", motifDe(await creerResa({ note: "n".repeat(201), hash: hashNeuf() }), "note"));
+  verifier("note de 200 caractères : acceptée", (await creerResa({ note: "n".repeat(200), hash: hashNeuf() })).erreur === null);
+  verifier("sans compte ni jeton : refusé", motifDe(await creerResa({ client: null, hash: null }), "compte ou à un jeton"));
+  verifier("condensé de jeton mal formé : refusé", motifDe(await creerResa({ hash: "pas-un-condense" }), "jeton_suivi_hash"));
+  const dupli = hashNeuf();
+  verifier("premier condensé de jeton accepté", (await creerResa({ hash: dupli })).erreur === null);
+  verifier("même condensé de jeton deux fois : refusé (unicité)", motifDe(await creerResa({ hash: dupli }), "unique"));
+  verifier("création directement à l'état « confirmée » : refusée", motifDe(await creerResa({ statut: "confirmee", hash: hashNeuf() }), "commence toujours"));
+  verifier("référence mal formée : refusée", motifDe(await commeServeur(`insert into reservations_table (reference, restaurant_id, jeton_suivi_hash, nom_client, telephone, nb_personnes, creneau) values ('SF-R-0O1IL', ${U(ID.resto_a)}, '${hashNeuf()}', 'Test Test', '+224620000001', 2, now() + interval '2 days')`), "reference"));
+  verifier("les références générées sont toutes distinctes", (await db.query(`select count(distinct reference)::int d, count(*)::int n from reservations_table`)).rows.every((l) => l.d === l.n));
+  // Motif : obligatoire au refus et à l'annulation par le restaurant.
+  const pourMotif = await neuve();
+  verifier("refus sans motif : refusé par la base", motifDe(await commeServeur(`update reservations_table set statut = 'refusee' where id = '${pourMotif}'`), "reservations_table_motif_obligatoire"));
+  verifier("refus avec motif trop court : refusé", motifDe(await commeServeur(`update reservations_table set statut = 'refusee', motif_refus = 'ab' where id = '${pourMotif}'`), "motif_refus"));
+  verifier("refus avec motif de 201 caractères : refusé", motifDe(await commeServeur(`update reservations_table set statut = 'refusee', motif_refus = '${"m".repeat(201)}' where id = '${pourMotif}'`), "motif_refus"));
+  const pourMotif2 = await neuve();
+  await autoriseSv("(contrôle) la confirmation n'exige pas de motif", `update reservations_table set statut = 'confirmee' where id = '${pourMotif2}'`);
+  verifier("annulation par le restaurant sans motif : refusée par la base", motifDe(await commeServeur(`update reservations_table set statut = 'annulee_restaurant' where id = '${pourMotif2}'`), "reservations_table_motif_obligatoire"));
+  await interdit("le restaurateur ne peut pas refuser sans motif", RESTAURATEUR_A, `update reservations_table set statut = 'refusee' where id = '${pourMotif}'`);
+  // « Traitée le » : toujours renseignée dès que la demande n'est plus « demandée » (contrainte).
+  verifier("la contrainte « traitée le renseignée » existe", (await db.query(`select 1 from pg_constraint where conname = 'reservations_table_traitee_le_renseignee'`)).rows.length === 1);
+  // Mise à jour automatique de mis_a_jour_le.
+  const ancien = (await db.query(`select mis_a_jour_le from reservations_table where id = '${pourMotif2}'`)).rows[0].mis_a_jour_le;
+  await db.exec(`update reservations_table set mis_a_jour_le = now() - interval '1 day' where id = '${pourMotif2}'`);
+  verifier("`mis_a_jour_le` est recalculé par la base (valeur imposée ignorée)", (await db.query(`select mis_a_jour_le >= now() - interval '1 minute' ok from reservations_table where id = '${pourMotif2}'`)).rows[0].ok === true && ancien !== undefined);
+}
+
+console.log("--- Réservations : structure de la sécurité");
+{
+  verifier("réservations : la RLS est activée", (await db.query(`select relrowsecurity from pg_class where relname = 'reservations_table' and relnamespace = 'public'::regnamespace`)).rows[0].relrowsecurity === true);
+  const pol = (await db.query(`select policyname, cmd, array_to_string(roles, ',') roles from pg_policies where tablename = 'reservations_table' order by policyname`)).rows;
+  verifier("réservations : quatre policies exactement", pol.map((p) => `${p.policyname}:${p.cmd}`).join("|"), "clients_lecture_leurs_reservations:SELECT|membres_lecture_leurs_reservations:SELECT|membres_maj_leurs_reservations:UPDATE|support_lecture_reservations:SELECT");
+  verifier("réservations : chaque policy est réservée au rôle `authenticated` (jamais sans restriction de rôle)", pol.every((p) => p.roles === "authenticated"), JSON.stringify(pol));
+  verifier("réservations : aucune policy INSERT ni DELETE", pol.every((p) => p.cmd !== "INSERT" && p.cmd !== "DELETE"));
+  const droits = (await db.query(`select grantee, privilege_type from information_schema.role_table_grants where table_name = 'reservations_table' and table_schema = 'public' and grantee in ('anon', 'authenticated')`)).rows;
+  verifier("réservations : `anon` n'a aucun droit sur la table", droits.filter((d) => d.grantee === "anon").length === 0, JSON.stringify(droits));
+  verifier("réservations : `authenticated` n'a ni INSERT ni DELETE sur la table", droits.filter((d) => d.grantee === "authenticated" && ["INSERT", "DELETE", "TRUNCATE"].includes(d.privilege_type)).length === 0);
+  const colonnesLisibles = (await db.query(`select column_name from information_schema.column_privileges where table_name = 'reservations_table' and grantee = 'authenticated' and privilege_type = 'SELECT'`)).rows.map((c) => c.column_name);
+  verifier("réservations : `jeton_suivi_hash` n'est lisible par aucun compte connecté", !colonnesLisibles.includes("jeton_suivi_hash") && colonnesLisibles.includes("statut"), JSON.stringify(colonnesLisibles));
+  const colonnesModifiables = (await db.query(`select column_name from information_schema.column_privileges where table_name = 'reservations_table' and grantee = 'authenticated' and privilege_type = 'UPDATE' order by column_name`)).rows.map((c) => c.column_name);
+  verifier("réservations : un compte connecté ne modifie que le statut et le motif", colonnesModifiables.join(","), "motif_refus,statut");
+  const fonctions = (await db.query(`select p.proname, p.prosecdef, p.proconfig from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_reference_reservation', 'fn_garde_creation_reservation', 'fn_valider_reservation')`)).rows;
+  verifier("réservations : trois fonctions, aucune SECURITY DEFINER, chemin de recherche fixé", fonctions.length === 3 && fonctions.every((f) => f.prosecdef === false && JSON.stringify(f.proconfig).includes("search_path")), JSON.stringify(fonctions));
+  const triggers = (await db.query(`select tgname from pg_trigger where tgrelid = 'public.reservations_table'::regclass and not tgisinternal order by tgname`)).rows.map((t) => t.tgname);
+  verifier("réservations : triggers attendus", triggers.join(","), "trg_reservations_table_garde_creation,trg_reservations_table_valider");
+}
+
+console.log("--- Réservations : réglages du restaurant");
+await autorise("A active la réservation de son restaurant", RESTAURATEUR_A, `update restaurants set accepte_reservation = false where id = ${U(ID.resto_a)}`);
+await autorise("A règle le plafond de couverts de son restaurant", RESTAURATEUR_A, `update restaurants set accepte_reservation = true, reservation_capacite_couverts = 40 where id = ${U(ID.resto_a)}`);
+await autorise("A retire le plafond de couverts (null = pas de plafond)", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = null where id = ${U(ID.resto_a)}`);
+await interdit("A ne règle pas la réservation du restaurant de B", RESTAURATEUR_A, `update restaurants set accepte_reservation = false where id = ${U(ID.resto_b)}`);
+await interdit("un client ne règle pas la réservation d'un restaurant", ID.client, `update restaurants set accepte_reservation = true where id = ${U(ID.resto_a)}`);
+await interdit("un anonyme ne règle pas la réservation d'un restaurant", null, `update restaurants set accepte_reservation = true where id = ${U(ID.resto_a)}`);
+await interdit("plafond de couverts à 0 : refusé", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = 0 where id = ${U(ID.resto_a)}`);
+await interdit("plafond de couverts à 501 : refusé", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = 501 where id = ${U(ID.resto_a)}`);
+await autorise("plafond de couverts à 500 : accepté", RESTAURATEUR_A, `update restaurants set reservation_capacite_couverts = 500 where id = ${U(ID.resto_a)}`);
+await db.exec(`update restaurants set reservation_capacite_couverts = null where id = ${U(ID.resto_a)}`);
+verifier("A désactive la réservation : la garde refuse alors toute création chez lui", await (async () => {
+  await db.exec(`update restaurants set accepte_reservation = false where id = ${U(ID.resto_a)}`);
+  const r = await creerResa({ hash: hashNeuf() });
+  await db.exec(`update restaurants set accepte_reservation = true where id = ${U(ID.resto_a)}`);
+  return motifDe(r, "n'accepte pas les réservations");
+})());
+
+// ---------------------------------------------------------------- 21. création ATOMIQUE d'une réservation (lot M5, fonction fn_creer_reservation_atomique)
+// Jouée sur la vraie logique SQL (PGlite). Limite connue, dite telle quelle : PGlite n'a QU'UNE session ; on prouve donc ici les règles, les droits, la présence et l'ordre des verrous
+// (verrous réellement pris dans la transaction, relâchés à la fin), mais PAS l'attente réelle entre deux connexions simultanées (voir le rapport du lot M5).
+console.log("\n--- Création atomique d'une réservation (lot M5)");
+const FN = "public.fn_creer_reservation_atomique";
+const RESTO_ATOM_NOM = "RESTO-A";
+const compteNeuf = async () => {
+  const id = globalThis.crypto.randomUUID();
+  await db.exec(`insert into auth.users (id, email) values ('${id}', '${id.slice(0, 8)}@test.invalid')`);
+  return id;
+};
+/** Créneau « jour J + heure HH:MM (UTC) » en expression SQL ; `jours` peut être négatif (créneau passé). */
+const creneauAu = (jours, heure) => {
+  const [h, m] = heure.split(":").map(Number);
+  return `((date_trunc('day', now() at time zone 'UTC') + interval '${jours} days ${h} hours ${m} minutes') at time zone 'UTC')`;
+};
+const atom = async (o = {}) => {
+  const d = { compte: null, resto: ID.resto_a, nom: "Aminata Camara", tel: "+224620000001", nb: 2, creneau: creneauAu(5, "19:00"), note: null, ...o };
+  d.compte ??= await compteNeuf();
+  const r = await commeServeur(`select ${FN}($1::uuid, $2::uuid, $3, $4, $5::int, ${d.creneau}, $6) as r`, [d.compte, d.resto, d.nom, d.tel, d.nb, d.note]);
+  return { ...r, compte: d.compte, rep: r.lignes[0]?.r ?? null };
+};
+const nbResa = async (where = "true") => (await db.query(`select count(*)::int n from reservations_table where ${where}`)).rows[0].n;
+const etat = (r) => (r.erreur !== null ? "erreur : " + r.erreur : r.rep?.etat === "refus" ? "refus:" + r.rep.code : r.rep?.etat);
+
+// --- droits et structure
+{
+  const infos = (await db.query(`select p.oid, p.proname, p.prosecdef, p.proconfig, p.prosrc from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_creer_reservation_atomique', 'fn_reservation_pour_client') order by p.proname`)).rows;
+  verifier("atomique : deux fonctions créées (création et lecture de la réponse)", infos.length === 2);
+  const creation = infos.find((f) => f.proname === "fn_creer_reservation_atomique");
+  const lecture = infos.find((f) => f.proname === "fn_reservation_pour_client");
+  verifier("atomique : SECURITY DEFINER", creation.prosecdef === true && lecture.prosecdef === true);
+  verifier("atomique : chemin de recherche fixé (search_path=public) sur les deux fonctions", [creation, lecture].every((f) => JSON.stringify(f.proconfig).includes("search_path=public")), JSON.stringify([creation.proconfig, lecture.proconfig]));
+  for (const f of [creation, lecture]) {
+    const droit = async (role) => (await db.query(`select has_function_privilege('${role}', ${f.oid}, 'EXECUTE') ok`)).rows[0].ok;
+    verifier(`atomique ${f.proname} : le rôle de service peut l'exécuter`, (await droit("service_role")) === true);
+    verifier(`atomique ${f.proname} : \`anon\` ne peut PAS l'exécuter`, (await droit("anon")) === false);
+    verifier(`atomique ${f.proname} : \`authenticated\` ne peut PAS l'exécuter`, (await droit("authenticated")) === false);
+    const publics = (await db.query(`select count(*)::int n from aclexplode(coalesce((select proacl from pg_proc where oid = ${f.oid}), '{}')) where grantee = 0`)).rows[0].n;
+    verifier(`atomique ${f.proname} : aucun droit accordé à PUBLIC`, publics === 0);
+  }
+  verifier("atomique : le code contient les deux verrous consultatifs de transaction", (creation.prosrc.match(/pg_advisory_xact_lock/g) ?? []).length === 2);
+  verifier("atomique : aucun verrou de session ni `select *` ni condensé de jeton dans le code", !/pg_advisory_lock\(|select\s+\*|returning\s+\*|jeton_suivi_hash/i.test(creation.prosrc + lecture.prosrc));
+  const compte = await compteNeuf();
+  const args = `'${compte}'::uuid, ${U(ID.resto_a)}, 'Aminata Camara', '+224620000001', 2, ${creneauAu(40, "19:00")}, null`;
+  const parAnon = await ecrire(null, `select ${FN}(${args})`);
+  verifier("atomique : un visiteur anonyme ne peut pas l'appeler", parAnon.erreur !== null && /permission denied/i.test(parAnon.erreur), parAnon.erreur ?? "aucune erreur");
+  const parConnecte = await ecrire(ID.client, `select ${FN}(${args})`);
+  verifier("atomique : un compte connecté ne peut pas l'appeler (même pour son propre compte)", parConnecte.erreur !== null && /permission denied/i.test(parConnecte.erreur), parConnecte.erreur ?? "aucune erreur");
+  const lectureConnecte = await ecrire(ID.client, `select public.fn_reservation_pour_client('${R_A1}')`);
+  verifier("atomique : un compte connecté ne peut pas lire une réservation par la fonction de réponse", lectureConnecte.erreur !== null && /permission denied/i.test(lectureConnecte.erreur));
+  verifier("atomique : aucune réservation n'a été créée par ces appels refusés", (await nbResa(`client_user_id = '${compte}'`)) === 0);
+}
+
+// --- chemin heureux, forme de la réponse
+{
+  const r = await atom({ note: "Près de la fenêtre" });
+  verifier("atomique : une demande valide est créée", etat(r) === "creee", etat(r));
+  const res = r.rep?.reservation ?? {};
+  verifier(
+    "atomique : la réponse porte exactement les clés attendues par l'API (aucun compte, aucun jeton, aucun horodatage de traitement)",
+    Object.keys(res).sort().join(",") === "cree_le,creneau,id,motif_refus,nb_personnes,nom_client,note,reference,restaurant_id,restaurants,statut,telephone",
+    Object.keys(res).sort().join(","),
+  );
+  verifier("atomique : la réservation est « demandée », avec le nom du restaurant et la note", res.statut === "demandee" && res.restaurants?.nom === RESTO_ATOM_NOM && res.note === "Près de la fenêtre");
+  verifier("atomique : la référence est lisible (SF-R- + 5 caractères)", /^SF-R-[2-9A-HJKMNP-Z]{5}$/.test(res.reference));
+  const ligne = (await db.query(`select client_user_id, jeton_suivi_hash, statut, traitee_le, traitee_par from reservations_table where id = $1`, [res.id])).rows[0];
+  verifier("atomique : le compte écrit est celui reçu, aucun jeton de suivi, rien de « traité »", ligne.client_user_id === r.compte && ligne.jeton_suivi_hash === null && ligne.statut === "demandee" && ligne.traitee_le === null && ligne.traitee_par === null);
+}
+
+// --- plage horaire : 10:00 à 22:45
+{
+  for (const [heure, attendu] of [["09:45", "refus:HORS_PLAGE"], ["09:59", "refus:HORS_PLAGE"], ["10:00", "creee"], ["10:15", "creee"], ["22:45", "creee"], ["22:46", "refus:HORS_PLAGE"], ["23:00", "refus:HORS_PLAGE"], ["23:45", "refus:HORS_PLAGE"], ["00:00", "refus:HORS_PLAGE"], ["03:00", "refus:HORS_PLAGE"]]) {
+    const avant = await nbResa();
+    const r = await atom({ creneau: creneauAu(6, heure) });
+    verifier(`atomique plage : ${heure} → ${attendu}`, etat(r) === attendu, etat(r));
+    if (attendu !== "creee") verifier(`atomique plage : ${heure} refusé n'écrit rien`, (await nbResa()) === avant);
+  }
+  const jourSuivant = await atom({ creneau: creneauAu(7, "00:00") });
+  verifier("atomique plage : minuit du jour suivant refusé (changement de jour)", etat(jourSuivant) === "refus:HORS_PLAGE", etat(jourSuivant));
+  const lendemain = await atom({ creneau: creneauAu(7, "10:00") });
+  verifier("atomique plage : 10:00 du jour suivant accepté", etat(lendemain) === "creee", etat(lendemain));
+  const horsPlageEtInconnu = await atom({ creneau: creneauAu(6, "09:45"), resto: "00000000-0000-4000-8000-0000000000ff" });
+  verifier("atomique plage : la plage est jugée AVANT le restaurant (même ordre que le serveur)", etat(horsPlageEtInconnu) === "refus:HORS_PLAGE", etat(horsPlageEtInconnu));
+}
+
+// --- fenêtre
+{
+  const passe = await atom({ creneau: creneauAu(-1, "19:00") });
+  verifier("atomique fenêtre : un créneau passé (dans la plage) est refusé : FENETRE_PROCHE", etat(passe) === "refus:FENETRE_PROCHE", etat(passe));
+  const loin = await atom({ creneau: creneauAu(62, "19:00") });
+  verifier("atomique fenêtre : un créneau à plus de 60 jours est refusé : FENETRE_LOIN", etat(loin) === "refus:FENETRE_LOIN", etat(loin));
+  const limite = await atom({ creneau: creneauAu(58, "19:00") });
+  verifier("atomique fenêtre : un créneau à 58 jours est accepté", etat(limite) === "creee", etat(limite));
+}
+
+// --- restaurant
+{
+  const inconnu = await atom({ resto: "00000000-0000-4000-8000-0000000000fe" });
+  verifier("atomique restaurant : inconnu → RESTAURANT_INTROUVABLE", etat(inconnu) === "refus:RESTAURANT_INTROUVABLE", etat(inconnu));
+  const nonPublie = await atom({ resto: RESTO_D });
+  verifier("atomique restaurant : non publié → RESTAURANT_INDISPONIBLE", etat(nonPublie) === "refus:RESTAURANT_INDISPONIBLE", etat(nonPublie));
+  await db.exec(`update restaurants set suspendu_le = now(), suspendu_motif = 'essai m5' where id = ${U(ID.resto_b)}`);
+  const suspendu = await atom({ resto: ID.resto_b });
+  await db.exec(`update restaurants set suspendu_le = null, suspendu_motif = null where id = ${U(ID.resto_b)}`);
+  verifier("atomique restaurant : suspendu → RESTAURANT_INDISPONIBLE", etat(suspendu) === "refus:RESTAURANT_INDISPONIBLE", etat(suspendu));
+  const ferme = await atom({ resto: RESTO_C });
+  verifier("atomique restaurant : qui n'accepte pas les réservations → RESERVATION_FERMEE", etat(ferme) === "refus:RESERVATION_FERMEE", etat(ferme));
+  verifier("atomique restaurant : les refus n'écrivent rien", (await nbResa(`client_user_id in ('${inconnu.compte}', '${nonPublie.compte}', '${suspendu.compte}', '${ferme.compte}')`)) === 0);
+}
+
+// --- capacité
+{
+  await db.exec(`update restaurants set reservation_capacite_couverts = 10 where id = ${U(ID.resto_b)}`);
+  const cr = creneauAu(9, "20:00");
+  const a = await atom({ resto: ID.resto_b, creneau: cr, nb: 3 });
+  const b = await atom({ resto: ID.resto_b, creneau: cr, nb: 3 });
+  await commeServeur(`update reservations_table set statut = 'confirmee' where id = $1`, [b.rep.reservation.id]);
+  verifier("atomique capacité : 3 + 3 acceptés (une demandée, une confirmée)", etat(a) === "creee" && etat(b) === "creee");
+  const depasse = await atom({ resto: ID.resto_b, creneau: cr, nb: 5 });
+  verifier("atomique capacité : 6 + 5 > 10 refusé : CAPACITE", etat(depasse) === "refus:CAPACITE", etat(depasse));
+  const exact = await atom({ resto: ID.resto_b, creneau: cr, nb: 4 });
+  verifier("atomique capacité : 6 + 4 = 10 pile accepté", etat(exact) === "creee", etat(exact));
+  const plein = await atom({ resto: ID.resto_b, creneau: cr, nb: 1 });
+  verifier("atomique capacité : 10 + 1 refusé", etat(plein) === "refus:CAPACITE", etat(plein));
+  const autreCreneau = await atom({ resto: ID.resto_b, creneau: creneauAu(9, "20:15"), nb: 10 });
+  verifier("atomique capacité : un AUTRE créneau a sa propre capacité", etat(autreCreneau) === "creee", etat(autreCreneau));
+  // Les réservations refusées ou annulées libèrent la place.
+  await commeServeur(`update reservations_table set statut = 'annulee_client' where id = $1`, [a.rep.reservation.id]);
+  const apresAnnulation = await atom({ resto: ID.resto_b, creneau: cr, nb: 3 });
+  verifier("atomique capacité : une réservation annulée libère ses places", etat(apresAnnulation) === "creee", etat(apresAnnulation));
+  await commeServeur(`update reservations_table set statut = 'refusee', motif_refus = 'Complet ce soir' where id = $1`, [exact.rep.reservation.id]);
+  const apresRefus = await atom({ resto: ID.resto_b, creneau: cr, nb: 4 });
+  verifier("atomique capacité : une réservation refusée libère ses places", etat(apresRefus) === "creee", etat(apresRefus));
+  const autreResto = await atom({ resto: ID.resto_a, creneau: cr, nb: 12 });
+  verifier("atomique capacité : la capacité d'un restaurant ne touche pas un autre restaurant", etat(autreResto) === "creee", etat(autreResto));
+  await db.exec(`update restaurants set reservation_capacite_couverts = null where id = ${U(ID.resto_b)}`);
+  const sansPlafond = await atom({ resto: ID.resto_b, creneau: cr, nb: 12 });
+  verifier("atomique capacité : sans plafond (null), aucune limite de couverts", etat(sansPlafond) === "creee", etat(sansPlafond));
+}
+
+// --- plafond de 3 réservations actives par compte, doublon, rejeu
+{
+  const compte = await compteNeuf();
+  const un = await atom({ compte, creneau: creneauAu(11, "19:00") });
+  const deux = await atom({ compte, creneau: creneauAu(12, "19:00"), resto: ID.resto_b });
+  const trois = await atom({ compte, creneau: creneauAu(13, "19:00") });
+  verifier("atomique plafond : trois réservations actives acceptées (tous restaurants confondus)", [un, deux, trois].every((r) => etat(r) === "creee"), [un, deux, trois].map(etat).join(" | "));
+  const quatre = await atom({ compte, creneau: creneauAu(14, "19:00") });
+  verifier("atomique plafond : la quatrième est refusée : PLAFOND", etat(quatre) === "refus:PLAFOND", etat(quatre));
+  verifier("atomique plafond : le refus n'écrit rien (3 réservations seulement)", (await nbResa(`client_user_id = '${compte}'`)) === 3);
+  // Rejeu : passe AVANT le plafond (la même demande rejouée n'est jamais refusée à tort).
+  const rejeu = await atom({ compte, creneau: creneauAu(11, "19:00") });
+  verifier("atomique rejeu : la même demande, plafond atteint, renvoie la réservation existante", etat(rejeu) === "rejeu" && rejeu.rep.reservation.id === un.rep.reservation.id, etat(rejeu));
+  verifier("atomique rejeu : rien n'est écrit (toujours 3)", (await nbResa(`client_user_id = '${compte}'`)) === 3);
+  // Terminée, annulée ou passée : ne compte plus.
+  await commeServeur(`update reservations_table set statut = 'annulee_client' where id = $1`, [un.rep.reservation.id]);
+  const apresAnnulation = await atom({ compte, creneau: creneauAu(14, "19:00") });
+  verifier("atomique plafond : une réservation annulée ne compte plus", etat(apresAnnulation) === "creee", etat(apresAnnulation));
+  const rejeuApresAnnulation = await atom({ compte, creneau: creneauAu(11, "19:00") });
+  verifier("atomique rejeu : une réservation ANNULÉE n'est pas rejouée (le plafond s'applique de nouveau)", etat(rejeuApresAnnulation) === "refus:PLAFOND", etat(rejeuApresAnnulation));
+  // Réservation passée (insérée hors garde) : ne compte pas.
+  const compte2 = await compteNeuf();
+  await db.exec("set session_replication_role = replica");
+  await db.query(`insert into reservations_table (restaurant_id, client_user_id, nom_client, telephone, nb_personnes, creneau, statut, traitee_le) values ($1, $2, 'Client Passe', '+224620000009', 2, now() - interval '2 days', 'confirmee', now() - interval '3 days')`, [ID.resto_a, compte2]);
+  await db.exec("set session_replication_role = origin");
+  const troisAvecPassee = [await atom({ compte: compte2, creneau: creneauAu(15, "19:00") }), await atom({ compte: compte2, creneau: creneauAu(16, "19:00") }), await atom({ compte: compte2, creneau: creneauAu(17, "19:00") })];
+  verifier("atomique plafond : une réservation PASSÉE ne compte pas (trois nouvelles acceptées)", troisAvecPassee.every((r) => etat(r) === "creee"), troisAvecPassee.map(etat).join(" | "));
+  // Les réservations des autres comptes ne comptent pas.
+  const compte3 = await compteNeuf();
+  const autre = await atom({ compte: compte3, creneau: creneauAu(15, "19:00") });
+  verifier("atomique plafond : les réservations d'un AUTRE compte ne comptent ni dans le plafond ni dans le doublon", etat(autre) === "creee", etat(autre));
+
+  // Doublon : même compte, même créneau, autre restaurant ou autre nombre de personnes.
+  const compteD = await compteNeuf();
+  const premiere = await atom({ compte: compteD, creneau: creneauAu(18, "19:00"), nb: 2 });
+  const memeCreneauAilleurs = await atom({ compte: compteD, creneau: creneauAu(18, "19:00"), resto: ID.resto_b, nb: 2 });
+  verifier("atomique doublon : même créneau dans un autre restaurant → DOUBLON", etat(premiere) === "creee" && etat(memeCreneauAilleurs) === "refus:DOUBLON", etat(memeCreneauAilleurs));
+  const autreNombre = await atom({ compte: compteD, creneau: creneauAu(18, "19:00"), nb: 4 });
+  verifier("atomique doublon : même restaurant, même créneau, autre nombre → DOUBLON (ce n'est pas un rejeu)", etat(autreNombre) === "refus:DOUBLON", etat(autreNombre));
+  const rejeuExact = await atom({ compte: compteD, creneau: creneauAu(18, "19:00"), nb: 2, nom: "Autre Nom" });
+  verifier("atomique rejeu : même compte, restaurant, créneau, nombre → l'existante, même avec un autre nom (clé de rejeu = les quatre valeurs)", etat(rejeuExact) === "rejeu" && rejeuExact.rep.reservation.id === premiere.rep.reservation.id, etat(rejeuExact));
+  verifier("atomique rejeu : la réponse rejouée est la réservation d'origine (nom d'origine conservé)", rejeuExact.rep.reservation.nom_client === "Aminata Camara");
+  // Capacité pleine : le rejeu passe quand même.
+  await db.exec(`update restaurants set reservation_capacite_couverts = 2 where id = ${U(ID.resto_a)}`);
+  const rejeuCapacitePleine = await atom({ compte: compteD, creneau: creneauAu(18, "19:00"), nb: 2 });
+  await db.exec(`update restaurants set reservation_capacite_couverts = null where id = ${U(ID.resto_a)}`);
+  verifier("atomique rejeu : passe AVANT la capacité (la réservation existante y est déjà comptée)", etat(rejeuCapacitePleine) === "rejeu", etat(rejeuCapacitePleine));
+  // La même demande d'un autre compte est une nouvelle réservation, jamais celle d'un autre compte.
+  const memeDemandeAutreCompte = await atom({ creneau: creneauAu(18, "19:00"), nb: 2 });
+  verifier("atomique rejeu : la même demande d'un AUTRE compte est une nouvelle réservation (jamais celle d'un autre compte)", etat(memeDemandeAutreCompte) === "creee" && memeDemandeAutreCompte.rep.reservation.id !== premiere.rep.reservation.id, etat(memeDemandeAutreCompte));
+  verifier("atomique rejeu : la réponse ne contient aucune clé de compte", !JSON.stringify(rejeuExact.rep).includes(compteD));
+}
+
+// --- collision de référence : nouveaux tirages dans la base
+{
+  const remettre = async () => db.exec(`alter table reservations_table alter column reference set default public.fn_reference_reservation()`);
+  try {
+    await db.exec(`alter table reservations_table alter column reference set default 'SF-R-AAAAA'`);
+    const premiere = await atom({ creneau: creneauAu(20, "19:00") });
+    verifier("atomique référence : première réservation avec la référence imposée", etat(premiere) === "creee" && premiere.rep.reservation.reference === "SF-R-AAAAA", etat(premiere));
+    await db.exec(`create sequence if not exists seq_test_collision_m5 minvalue 1`);
+    await db.exec(`select setval('seq_test_collision_m5', 1, false)`);
+    await db.exec(`alter table reservations_table alter column reference set default (case when nextval('seq_test_collision_m5') <= 2 then 'SF-R-AAAAA' else 'SF-R-BBBBB' end)`);
+    const apresDeuxCollisions = await atom({ creneau: creneauAu(21, "19:00") });
+    verifier("atomique référence : deux collisions puis un nouveau tirage = succès (un seul appel)", etat(apresDeuxCollisions) === "creee" && apresDeuxCollisions.rep.reservation.reference === "SF-R-BBBBB", etat(apresDeuxCollisions));
+    await db.exec(`alter table reservations_table alter column reference set default 'SF-R-AAAAA'`);
+    const avant = await nbResa();
+    const toujoursPrise = await atom({ creneau: creneauAu(22, "19:00") });
+    verifier("atomique référence : quatre collisions de suite = REFERENCE_INDISPONIBLE, sans exception brute", etat(toujoursPrise) === "refus:REFERENCE_INDISPONIBLE", etat(toujoursPrise));
+    verifier("atomique référence : rien n'est écrit après l'abandon", (await nbResa()) === avant);
+  } finally {
+    await remettre();
+    await db.exec(`drop sequence if exists seq_test_collision_m5`);
+  }
+  const retour = await atom({ creneau: creneauAu(23, "19:00") });
+  verifier("atomique référence : le tirage d'origine est rétabli et fonctionne", etat(retour) === "creee" && /^SF-R-[2-9A-HJKMNP-Z]{5}$/.test(retour.rep.reservation.reference) && !["SF-R-AAAAA", "SF-R-BBBBB"].includes(retour.rep.reservation.reference));
+}
+
+// --- erreurs de contrainte et de garde : remontent telles quelles (l'API les traduit)
+{
+  const nb13 = await atom({ nb: 13, creneau: creneauAu(24, "19:00") });
+  verifier("atomique contraintes : 13 personnes = erreur de contrainte (pas un refus deviné)", nb13.erreur !== null && /nb_personnes/.test(nb13.erreur), etat(nb13));
+  const nb0 = await atom({ nb: 0, creneau: creneauAu(24, "19:00") });
+  verifier("atomique contraintes : 0 personne = erreur de contrainte", nb0.erreur !== null && /nb_personnes/.test(nb0.erreur), etat(nb0));
+  const nomCourt = await atom({ nom: "A", creneau: creneauAu(24, "19:00") });
+  verifier("atomique contraintes : nom d'un caractère = erreur de contrainte", nomCourt.erreur !== null && /nom_client/.test(nomCourt.erreur), etat(nomCourt));
+  const telMauvais = await atom({ tel: "0612345678", creneau: creneauAu(24, "19:00") });
+  verifier("atomique contraintes : téléphone non guinéen = erreur de contrainte", telMauvais.erreur !== null && /telephone/.test(telMauvais.erreur), etat(telMauvais));
+  const noteLongue = await atom({ note: "n".repeat(201), creneau: creneauAu(24, "19:00") });
+  verifier("atomique contraintes : note de 201 caractères = erreur de contrainte", noteLongue.erreur !== null && /note/.test(noteLongue.erreur), etat(noteLongue));
+  const compteInconnu = await atom({ compte: "00000000-0000-4000-8000-0000000000aa", creneau: creneauAu(24, "19:00") });
+  verifier("atomique contraintes : un compte qui n'existe pas est refusé par la clé étrangère (aucune réservation orpheline)", compteInconnu.erreur !== null, etat(compteInconnu));
+  const sansCompte = await commeServeur(`select ${FN}(null, ${U(ID.resto_a)}, 'Aminata Camara', '+224620000001', 2, ${creneauAu(24, "19:00")}, null)`);
+  verifier("atomique contraintes : compte nul = erreur (jamais une réservation sans compte par cette fonction)", sansCompte.erreur !== null);
+  const sansCreneau = await commeServeur(`select ${FN}('${ID.client}'::uuid, ${U(ID.resto_a)}, 'Aminata Camara', '+224620000001', 2, null, null)`);
+  verifier("atomique contraintes : créneau nul = erreur", sansCreneau.erreur !== null);
+}
+
+// --- verrous : réellement pris dans la transaction, distincts par compte et par restaurant+créneau, relâchés à la fin
+{
+  const compteL = await compteNeuf();
+  const compteM = await compteNeuf();
+  const cles = async () => (await db.query(`select classid, objid from pg_locks where locktype = 'advisory' and pid = pg_backend_pid() order by classid, objid`)).rows.map((l) => `${l.classid}:${l.objid}`);
+  const appeler = (compte, resto, creneau) => db.query(`select ${FN}('${compte}'::uuid, ${U(resto)}, 'Aminata Camara', '+224620000001', 1, ${creneau}, null) as r`);
+  await db.exec("begin");
+  let verrous;
+  try {
+    await db.exec("set local role service_role");
+    await appeler(compteL, ID.resto_a, creneauAu(30, "19:00"));
+    const apresUn = await cles();
+    await appeler(compteL, ID.resto_a, creneauAu(30, "19:15"));
+    const memeCompteAutreCreneau = await cles();
+    await appeler(compteL, ID.resto_b, creneauAu(30, "19:15"));
+    const memeCompteAutreResto = await cles();
+    await appeler(compteM, ID.resto_b, creneauAu(30, "19:15"));
+    const autreCompteMemeCreneau = await cles();
+    verrous = { apresUn, memeCompteAutreCreneau, memeCompteAutreResto, autreCompteMemeCreneau };
+  } finally {
+    await db.exec("commit");
+  }
+  verifier("atomique verrous : un appel prend DEUX verrous (compte, restaurant+créneau) dans la transaction", verrous.apresUn.length === 2, JSON.stringify(verrous.apresUn));
+  verifier("atomique verrous : même compte, autre créneau = un seul verrou de plus (le verrou du compte est partagé)", verrous.memeCompteAutreCreneau.length === 3, JSON.stringify(verrous.memeCompteAutreCreneau));
+  verifier("atomique verrous : même compte et même créneau mais AUTRE restaurant = un verrou de plus (le verrou du créneau est propre au restaurant)", verrous.memeCompteAutreResto.length === 4, JSON.stringify(verrous.memeCompteAutreResto));
+  verifier("atomique verrous : un autre compte sur le MÊME restaurant et créneau partage le verrou du créneau (capacité) mais pas celui du compte", verrous.autreCompteMemeCreneau.length === 5, JSON.stringify(verrous.autreCompteMemeCreneau));
+  verifier("atomique verrous : tous relâchés à la fin de la transaction (aucune fuite)", (await cles()).length === 0);
+}
+
+
+// ---------------------------------------------------------------- lot R2 : décisions de remboursement et réglage des espèces
+console.log("\n--- Remboursement : décisions humaines et réglage des espèces (lot R2)");
+{
+  const TABLES_R2 = ["remboursement_decisions", "parametres_remboursement", "parametres_remboursement_journal"];
+  // Commandes propres à ce bloc (CMD_C a été supprimée plus haut : une clé étrangère cassée ferait « réussir » un refus pour une mauvaise raison).
+  const CMD_RC = "00000000-0000-4000-8000-00000000a0c2";
+  const CMD_RD = "00000000-0000-4000-8000-00000000a0d2";
+  const CMD_RE = "00000000-0000-4000-8000-00000000a0e2";
+  await db.exec(`insert into orders (id, reference, jeton_suivi, restaurant_id, client_nom, client_telephone, client_adresse, mode, sous_total, statut) values
+    ('${CMD_RC}', 'SF-RRC22', 'jeton-rc', ${U(ID.resto_a)}, 'Client RC', '620000008', 'Adresse RC', 'retrait', 25000, 'acceptee'),
+    ('${CMD_RD}', 'SF-RRD22', 'jeton-rd', ${U(ID.resto_a)}, 'Client RD', '620000009', 'Adresse RD', 'retrait', 25000, 'acceptee'),
+    ('${CMD_RE}', 'SF-RRE22', 'jeton-re', ${U(ID.resto_a)}, 'Client RE', '620000010', 'Adresse RE', 'retrait', 25000, 'acceptee')`);
+  // Écriture « côté serveur » (superutilisateur : la RLS ne s'applique pas, mais les triggers et contraintes oui).
+  const echoue = async (sql) => {
+    try {
+      await db.exec(sql);
+      return null;
+    } catch (e) {
+      return e.message;
+    }
+  };
+  const refusee = async (nom, sql, fragment) => {
+    const e = await echoue(sql);
+    verifier(nom, e !== null && (fragment === undefined || e.includes(fragment)), `erreur : ${e ?? "aucune (acceptée à tort)"}`);
+  };
+  const acceptee = async (nom, sql) => {
+    const e = await echoue(sql);
+    verifier(nom, e === null, `erreur : ${e}`);
+  };
+  const q = async (sql) => (await db.query(sql)).rows;
+  const colonnes = "order_id, paiement_id, litige_id, mode_paiement_origine, issue, montant_gnf, moyen, motif, reference_avis, ecart_regle, argent_chez_restaurant_reconnu, decide_par, remplace_id";
+  const ligne = (o) => {
+    const v = { order: CMD_A, paiement: PAY_A, litige: LITIGE_A, mode: "simulation", issue: "rembourser_total", montant: 30000, moyen: "mobile_money_manuel", motif: "Annulation par le restaurant", avis: null, ecart: "conforme", reconnu: false, par: ID.admin, remplace: null, ...o };
+    const t = (x) => (x === null ? "null" : `'${x}'`);
+    return `insert into remboursement_decisions (${colonnes}) values ('${v.order}', ${v.paiement === null ? "null" : `'${v.paiement}'`}, ${v.litige === null ? "null" : `'${v.litige}'`}, '${v.mode}', '${v.issue}', ${v.montant}, '${v.moyen}', '${v.motif}', ${t(v.avis)}, '${v.ecart}', ${v.reconnu}, ${v.par === null ? "null" : `'${v.par}'`}, ${v.remplace === null ? "null" : `'${v.remplace}'`})`;
+  };
+
+  // Structure de la sécurité
+  for (const t of TABLES_R2) verifier(`${t} : la RLS est activée`, (await q(`select relrowsecurity from pg_class where relname = '${t}' and relnamespace = 'public'::regnamespace`))[0]?.relrowsecurity === true);
+  const pol = await q(`select tablename, policyname, cmd, array_to_string(roles, ',') roles, qual from pg_policies where tablename in ('remboursement_decisions', 'parametres_remboursement', 'parametres_remboursement_journal') order by tablename`);
+  verifier("remboursement : trois policies, toutes SELECT", pol.length === 3 && pol.every((p) => p.cmd === "SELECT"), JSON.stringify(pol));
+  verifier("remboursement : chaque policy est réservée au rôle `authenticated` (jamais sans restriction de rôle)", pol.every((p) => p.roles === "authenticated"), JSON.stringify(pol));
+  verifier("remboursement : chaque policy est réservée au super administrateur", pol.every((p) => /super_admin/.test(p.qual) && !/support/.test(p.qual)), JSON.stringify(pol.map((p) => p.qual)));
+  const droits = await q(`select grantee, privilege_type, table_name from information_schema.role_table_grants where table_schema = 'public' and table_name in ('remboursement_decisions', 'parametres_remboursement', 'parametres_remboursement_journal') and grantee in ('anon', 'authenticated')`);
+  verifier("remboursement : `anon` n'a aucun droit", droits.filter((d) => d.grantee === "anon").length === 0, JSON.stringify(droits));
+  verifier("remboursement : `authenticated` n'a que SELECT", droits.filter((d) => d.grantee === "authenticated").every((d) => d.privilege_type === "SELECT") && droits.filter((d) => d.grantee === "authenticated").length === 3, JSON.stringify(droits));
+  const fonctions = await q(`select proname, prosecdef, proconfig from pg_proc where pronamespace = 'public'::regnamespace and proname in ('fn_remboursement_decisions_ajout_seul', 'fn_remboursement_decisions_creation', 'fn_parametres_remboursement_garde', 'fn_parametres_remboursement_journal_ajout_seul', 'fn_remboursements_manuels_especes_reglage')`);
+  verifier("remboursement : cinq fonctions, aucune SECURITY DEFINER, chemin de recherche fixé", fonctions.length === 5 && fonctions.every((f) => f.prosecdef === false && JSON.stringify(f.proconfig).includes("search_path")), JSON.stringify(fonctions));
+  verifier("remboursement : le montant est un entier (jamais un flottant)", (await q(`select data_type from information_schema.columns where table_name = 'remboursement_decisions' and column_name = 'montant_gnf'`))[0]?.data_type === "integer");
+  verifier("réglage des espèces : FAUX par défaut", (await q(`select remboursement_especes_autorise v from parametres_remboursement`))[0]?.v === false);
+
+  // Lecture : super administrateur seulement
+  await acceptee("(préparation) une première décision, côté serveur", ligne({}));
+  verifier("décisions : le super administrateur les lit", (await nb(ID.admin, "remboursement_decisions")) === 1);
+  verifier("décisions : le support, un restaurateur, un client et un anonyme ne les lisent pas", VIDE(await nb(ID.support, "remboursement_decisions")) && VIDE(await nb(ID.user_a, "remboursement_decisions")) && VIDE(await nb(ID.client, "remboursement_decisions")) && VIDE(await nb(null, "remboursement_decisions")));
+  verifier("réglage : le super administrateur le lit, pas le support ni un restaurateur", (await nb(ID.admin, "parametres_remboursement")) === 1 && VIDE(await nb(ID.support, "parametres_remboursement")) && VIDE(await nb(ID.user_a, "parametres_remboursement")) && VIDE(await nb(null, "parametres_remboursement")));
+  await interdit("personne n'écrit une décision par l'API (même le super administrateur)", ID.admin, ligne({ moyen: "aucun", issue: "ne_pas_rembourser", montant: 0, order: CMD_B, paiement: PAY_B, litige: null, ecart: "ecart", avis: "Avis du conseil" }));
+  await interdit("personne ne change le réglage des espèces par l'API", ID.admin, `update parametres_remboursement set remboursement_especes_autorise = true, mis_a_jour_par = '${ID.admin}', dernier_motif = 'Avis du conseil'`);
+  await interdit("personne n'écrit dans le journal des réglages par l'API", ID.admin, `insert into parametres_remboursement_journal (reglage, ancienne_valeur, nouvelle_valeur, motif) values ('remboursement_especes_autorise', false, true, 'Avis du conseil')`);
+
+  // Ajout seul
+  await refusee("décision : aucune modification (même côté serveur)", `update remboursement_decisions set motif = 'Autre motif modifié'`, "ajout seul" === "" ? undefined : "ne se modifie ni ne se supprime");
+  await refusee("décision : aucune suppression (même côté serveur)", `delete from remboursement_decisions`, "ne se modifie ni ne se supprime");
+  await refusee("décision : pas de vidage de la table, même en cascade", `truncate remboursement_decisions cascade`, "ne se modifie ni ne se supprime");
+  await refusee("décision : le montant ne se corrige pas en place", `update remboursement_decisions set montant_gnf = 1`, "ne se modifie ni ne se supprime");
+  await refusee("une commande qui a une décision ne peut pas être supprimée", `delete from orders where id = '${CMD_A}'`);
+
+  // Chaîne de corrections
+  const tete = (await q(`select id from remboursement_decisions where order_id = '${CMD_A}'`))[0].id;
+  await refusee("une seconde décision « de tête » sur la même commande est refusée (il faut remplacer la précédente)", ligne({}));
+  await acceptee("une correction remplace la précédente", ligne({ issue: "ne_pas_rembourser", moyen: "aucun", montant: 0, ecart: "ecart", avis: "Avis du conseil du 14 novembre", remplace: tete }));
+  await refusee("la même décision ne peut pas être remplacée deux fois (pas de bifurcation)", ligne({ issue: "ne_pas_rembourser", moyen: "aucun", montant: 0, ecart: "ecart", avis: "Autre avis du conseil", remplace: tete }));
+  await refusee("une décision d'une autre commande ne peut pas être « remplacée »", ligne({ order: CMD_B, paiement: PAY_B, litige: null, remplace: tete }));
+  verifier("l'historique garde les deux décisions", (await q(`select count(*)::int n from remboursement_decisions where order_id = '${CMD_A}'`))[0].n === 2);
+  const horodatage = ligne({ order: CMD_B, paiement: PAY_B, litige: null }).replace("insert into remboursement_decisions (", "insert into remboursement_decisions (decide_le, ").replace("values (", "values ('2000-01-01T00:00:00Z', ");
+  await acceptee("la date envoyée par le client est ignorée", horodatage);
+  verifier("la date de la décision est posée par la base", (await q(`select decide_le > now() - interval '1 hour' ok from remboursement_decisions where order_id = '${CMD_B}'`))[0].ok === true);
+
+  // Valeurs fermées, montants entiers, cohérences
+  await refusee("issue inconnue refusée", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, issue: "tout_rembourser", ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("moyen inconnu refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, moyen: "virement", ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("mode d'origine inconnu refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "carte", reconnu: true, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("remboursement à zéro GNF refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, montant: 0, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("« ne pas rembourser » avec un montant refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, issue: "ne_pas_rembourser", moyen: "aucun", montant: 5, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("remboursement avec le moyen « aucun » refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, moyen: "aucun", ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("« ne pas rembourser » avec un vrai moyen refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, issue: "ne_pas_rembourser", montant: 0, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("montant négatif refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, montant: -5, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("motif trop court refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, motif: "non", ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("référence d'avis trop courte refusée", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, ecart: "sans_regle", avis: "oui" }));
+  await refusee("chapchap réservé : refusé hors d'un paiement Chap Chap Pay", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, moyen: "chapchap", ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("chapchap réservé : refusé sur un paiement de démonstration", ligne({ order: CMD_RD, paiement: null, litige: null, mode: "simulation", moyen: "chapchap" }));
+
+  // Référence de l'avis juridique
+  await refusee("écart avec la règle sans référence d'avis : refusé par la base", ligne({ order: CMD_B, paiement: PAY_B, litige: null, ecart: "ecart" }).replace(/'conforme'|'ecart'/, "'ecart'"));
+  await refusee("aucune règle applicable sans référence d'avis : refusé par la base", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, ecart: "sans_regle" }));
+  await refusee("code marchand : la décision doit reconnaître que l'argent est chez le restaurant", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: false, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("code marchand avec un paiement en ligne : refusé", ligne({ order: CMD_RC, paiement: PAY_A, litige: null, mode: "code_marchand", reconnu: true, ecart: "sans_regle", avis: "Avis du conseil" }));
+  await refusee("paiement en ligne sans paiement : refusé", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "chapchap" }));
+  await refusee("le paiement d'une autre commande est refusé", ligne({ order: CMD_RC, paiement: PAY_A, litige: null }));
+  await refusee("le litige d'un autre paiement est refusé", ligne({ order: CMD_B, paiement: PAY_B, litige: LITIGE_A }));
+  await acceptee("code marchand reconnu, avec référence d'avis : accepté", ligne({ order: CMD_RC, paiement: null, litige: null, mode: "code_marchand", reconnu: true, ecart: "sans_regle", avis: "Avis du conseil du 14 novembre, point 8" }));
+
+  // Espèces : le réglage est lu EN BASE
+  await refusee("espèces : refusées par la base tant que le réglage est faux", ligne({ order: CMD_RD, paiement: null, litige: null, mode: "code_marchand", reconnu: true, moyen: "especes_dernier_recours", ecart: "sans_regle", avis: "Avis du conseil du 14 novembre" }), "espèces" === "" ? undefined : "desactive");
+  await refusee("réglage : un changement sans auteur ni motif est refusé", `update parametres_remboursement set remboursement_especes_autorise = true`, "auteur et un motif");
+  await refusee("réglage : un changement sans motif est refusé", `update parametres_remboursement set remboursement_especes_autorise = true, mis_a_jour_par = '${ID.admin}'`, "auteur et un motif");
+  verifier("réglage : toujours faux après les refus", (await q(`select remboursement_especes_autorise v from parametres_remboursement`))[0].v === false);
+  await refusee("réglage : motif trop court refusé", `update parametres_remboursement set remboursement_especes_autorise = true, mis_a_jour_par = '${ID.admin}', dernier_motif = 'non'`);
+  await acceptee("réglage : activé avec un auteur et un motif", `update parametres_remboursement set remboursement_especes_autorise = true, mis_a_jour_par = '${ID.admin}', dernier_motif = 'Avis du conseil du 14 novembre'`);
+  const j1 = await q(`select ancienne_valeur, nouvelle_valeur, motif, change_par from parametres_remboursement_journal`);
+  verifier("réglage : le changement est journalisé par la base (ancienne et nouvelle valeur, motif, auteur)", j1.length === 1 && j1[0].ancienne_valeur === false && j1[0].nouvelle_valeur === true && j1[0].motif === "Avis du conseil du 14 novembre" && j1[0].change_par === ID.admin, JSON.stringify(j1));
+  await acceptee("espèces : acceptées par la base une fois le réglage vrai (avec référence d'avis)", ligne({ order: CMD_RD, paiement: null, litige: null, mode: "code_marchand", reconnu: true, moyen: "especes_dernier_recours", ecart: "sans_regle", avis: "Avis du conseil du 14 novembre" }));
+  await refusee("espèces, même réglage vrai : une référence d'avis reste exigée (conforme + espèces sans avis)", ligne({ order: CMD_RE, paiement: null, litige: null, mode: "code_marchand", reconnu: true, moyen: "especes_dernier_recours", ecart: "conforme" }));
+  await acceptee("réglage : remis à faux avec un auteur et un motif", `update parametres_remboursement set remboursement_especes_autorise = false, mis_a_jour_par = '${ID.admin}', dernier_motif = 'Retour à la règle sans espèces'`);
+  verifier("réglage : deux lignes de journal, la plus récente remet à faux", (await q(`select nouvelle_valeur from parametres_remboursement_journal order by change_le, nouvelle_valeur desc`)).map((r) => r.nouvelle_valeur).join(",") === "true,false");
+  await acceptee("réglage : un changement qui ne change pas la valeur ne crée pas de journal", `update parametres_remboursement set dernier_motif = 'Simple précision'`);
+  verifier("réglage : toujours deux lignes de journal", (await q(`select count(*)::int n from parametres_remboursement_journal`))[0].n === 2);
+  await refusee("réglage : suppression refusée", `delete from parametres_remboursement`, "ne se supprime pas");
+  await refusee("réglage : vidage refusé", `truncate parametres_remboursement`, "ne se supprime pas");
+  await refusee("réglage : une seconde ligne est refusée", `insert into parametres_remboursement (id) values (false)`);
+  await refusee("journal : aucune modification", `update parametres_remboursement_journal set motif = 'Motif réécrit après coup'`, "ajout seul");
+  await refusee("journal : aucune suppression", `delete from parametres_remboursement_journal`, "ajout seul");
+  await refusee("journal : pas de vidage", `truncate parametres_remboursement_journal`, "ajout seul");
+
+  // Remboursement fait à la main : lien avec la décision, espèces fermées en base
+  await refusee("remboursement à la main en espèces : refusé par la base tant que le réglage est faux", `insert into remboursements_manuels (paiement_id, moyen, montant_gnf, recu_par, motif) values (${U(PAY_A)}, 'especes', 30000, 'Mariam Camara', 'Client sans mobile money, remise en main propre')`, "desactive");
+  await acceptee("remboursement à la main par mobile money, lié à la décision courante", `insert into remboursements_manuels (paiement_id, moyen, montant_gnf, reference, motif, decision_id) values (${U(PAY_B)}, 'orange_money', 30000, 'OM2411140001', 'Annulation par le restaurant', (select id from remboursement_decisions where order_id = '${CMD_B}'))`);
+  await refusee("le lien de décision d'un remboursement doit exister", `insert into remboursements_manuels (paiement_id, moyen, montant_gnf, reference, motif, decision_id) values (${U(PAY_A)}, 'mtn_momo', 30000, 'MP2411140002', 'Annulation par le restaurant', gen_random_uuid())`);
+  await refusee("une décision liée à un remboursement ne peut plus être supprimée", `delete from remboursement_decisions where order_id = '${CMD_B}'`);
+
+  // Suppression du compte de l'auteur : la décision reste, l'auteur devient inconnu (seule modification admise)
+  const AUTEUR = "00000000-0000-4000-8000-0000000000f1";
+  await db.exec(`insert into auth.users (id, email) values ('${AUTEUR}', 'auteur@test.invalid')`);
+  await db.exec(`update parametres_remboursement set remboursement_especes_autorise = false, mis_a_jour_par = '${AUTEUR}'`);
+  await acceptee("(préparation) une décision signée par un compte temporaire", ligne({ order: CMD_RE, paiement: null, litige: null, mode: "code_marchand", reconnu: true, ecart: "sans_regle", avis: "Avis du conseil du 14 novembre", par: AUTEUR }));
+  await acceptee("la suppression d'un compte auteur n'est pas bloquée par l'ajout seul", `delete from auth.users where id = '${AUTEUR}'`);
+  verifier("la décision survit, auteur effacé", (await q(`select decide_par from remboursement_decisions where order_id = '${CMD_RE}'`))[0]?.decide_par === null);
+}
 
 console.log(echecs === 0 ? `\nCLOISONNEMENT VÉRIFIÉ : ${reussis} contrôles réussis.` : `\n${echecs} échec(s) sur ${reussis + echecs}.`);
 process.exit(echecs === 0 ? 0 : 1);

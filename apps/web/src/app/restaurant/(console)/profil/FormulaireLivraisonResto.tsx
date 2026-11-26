@@ -56,7 +56,7 @@ export function FormulaireLivraisonResto({ mode, latitude, longitude, speedfoodD
             <input type="radio" name="livraison_mode" value="aucune" checked={choix === "aucune"} onChange={() => setChoix("aucune")} />
             <span className="choix-texte">
               <strong>Pas de livraison</strong>
-              <small>Retrait sur place seulement.</small>
+              <small>À emporter seulement.</small>
             </span>
           </label>
           <label className="choix-carte">

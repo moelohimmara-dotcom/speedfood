@@ -41,4 +41,49 @@ export class JetonsCommande extends WorkerEntrypoint {
       // Meilleur effort : rien ne remonte à l'API.
     }
   }
+
+  /**
+   * Alerte « nouvelle demande de réservation » (lot M4c) : même mécanisme que `alerter`, route interne distincte. N'altère pas `alerter` (commandes). Valide l'uuid ; rend toujours `undefined`.
+   */
+  alerterReservation(restaurantId) {
+    try {
+      if (typeof restaurantId !== "string" || !UUID.test(restaurantId)) return;
+      relayerVersRouteInterne(this, "/api/v1/interne/alerte-reservation", { restaurantId });
+    } catch {
+      // Meilleur effort : rien ne remonte à l'API.
+    }
+  }
+
+  /**
+   * Message au client après la réponse du restaurant (lot M4c). Valide l'uuid de la réservation et le statut (trois réponses seulement) ; le compte du client n'est jamais transmis, la route le relit.
+   * Rend toujours `undefined`.
+   */
+  prevenirClientReservation(reservationId, statut) {
+    try {
+      if (typeof reservationId !== "string" || !UUID.test(reservationId)) return;
+      if (typeof statut !== "string" || !["confirmee", "refusee", "annulee_restaurant"].includes(statut)) return;
+      relayerVersRouteInterne(this, "/api/v1/interne/message-reservation", { reservationId, statut });
+    } catch {
+      // Meilleur effort : rien ne remonte à l'API.
+    }
+  }
+}
+
+/**
+ * Appel direct du gestionnaire OpenNext (comme `alerter`) pour les routes internes de la réservation. Fonction de MODULE et non méthode de la classe : une méthode serait appelable par la liaison de service
+ * avec un chemin au choix ; ici le chemin est fixé par les deux entrées ci-dessus. Journaux : codes fixes seulement.
+ */
+function relayerVersRouteInterne(entree, chemin, corps) {
+  const jeton = (globalThis[CLE_JETON_ALERTE] ??= `${crypto.randomUUID()}${crypto.randomUUID()}`);
+  const requete = new Request(`https://alerte.interne${chemin}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-alerte-interne": jeton },
+    body: JSON.stringify(corps),
+  });
+  entree.ctx.waitUntil(
+    handler.fetch(requete, entree.env, entree.ctx).then(
+      (r) => { if (!r.ok) console.error("alerte_interne_statut", r.status); },
+      () => { console.error("alerte_interne_echec"); }
+    )
+  );
 }

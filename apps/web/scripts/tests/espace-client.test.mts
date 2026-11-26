@@ -40,7 +40,7 @@ verifier("adresse : nom trop court ou trop long, adresse trop courte ou trop lon
 ], [false, false, false, false]);
 verifier("adresse : les messages d'erreur disent quoi faire", [validerAdresseClient("X", "Kaloum, près du marché"), validerAdresseClient("Maison", "abc")].map((r) => (r.ok ? "" : r.erreur.includes("Donnez") || r.erreur.includes("Décrivez"))), [true, true]);
 verifier("mode préféré : trois modes, vide = aucune préférence, inconnu refusé", [lireModePrefere("livraison"), lireModePrefere(""), lireModePrefere(null), lireModePrefere("drone"), lireModePrefere(42)], ["livraison", null, null, undefined, undefined]);
-verifier("chaque mode préféré a son libellé", MODES_PREFERES.map((m) => typeof LIBELLES_MODE_PREFERE[m]), ["string", "string", "string"]);
+verifier("chaque mode préféré a son libellé, le même partout : À emporter, Livraison, Sur place", MODES_PREFERES.map((m) => LIBELLES_MODE_PREFERE[m]), ["À emporter", "Livraison", "Sur place"]);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s).`);

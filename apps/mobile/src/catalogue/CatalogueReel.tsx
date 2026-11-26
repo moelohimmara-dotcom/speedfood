@@ -18,6 +18,7 @@ import { Icone, type NomIcone } from '../design/Icone';
 import { usePanierReel } from './usePanierReel';
 import { PanierReelVue } from './PanierReelVue';
 import { CompteReel } from '../connexion/CompteReel';
+import { ReserverTableReel } from '../connexion/ReserverTableReel';
 import { gestion } from '../connexion/gestion';
 import { AideReelle } from '../connexion/AideReelle';
 import { FavoriFiche } from '../connexion/FavoriFiche';
@@ -42,7 +43,7 @@ import { CandidatureReel } from '../connexion/CandidatureReel';
 import { enteteAccueil } from './accueil-vivant';
 import { useCommandeEnCours } from './useCommandeEnCours';
 import { CarteCommandeEnCours } from './CarteCommandeEnCours';
-import { brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
+import { brancherOuvertureReservations, brancherOuvertureRestaurateur, brancherOuvertureSuivi, notifications } from '../notifications';
 import { creerOuvertureDifferee } from '../notifications/ouverture';
 import { MESSAGES_ETAT } from '../notifications/autorisation';
 const lecteur = creerLecteurCatalogue();
@@ -134,11 +135,14 @@ export function CatalogueReel() {
   const commandeVerrouillee = useRef(false);
   const ouvertureSuivi = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); } })).current;
   const ouvertureResto = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference: null, espaceRestaurateur: true }); setCompteOuvert(true); } })).current;
+  // Réponse du restaurant à une réservation (M4c) : « Mon compte » s'ouvre, SANS demande de lecture (la section « Mes réservations » est en dessous ; la personne appuie sur « Actualiser »).
+  const ouvertureReservations = useRef(creerOuvertureDifferee({ verrouille: () => commandeVerrouillee.current, ouvrir: () => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte(null); setCompteOuvert(true); } })).current;
   useEffect(() => {
     const debrancherSuivi = brancherOuvertureSuivi(() => ouvertureSuivi.demander());
     const debrancherResto = brancherOuvertureRestaurateur(() => ouvertureResto.demander());
+    const debrancherReservations = brancherOuvertureReservations(() => ouvertureReservations.demander());
     const arreter = notifications.demarrer();
-    return () => { arreter(); debrancherSuivi(); debrancherResto(); };
+    return () => { arreter(); debrancherSuivi(); debrancherResto(); debrancherReservations(); };
   }, []);
   // Verrou des espaces professionnels : départ et retour au premier plan (délai de 2 minutes mesuré par le verrou lui-même).
   useEffect(() => {
@@ -306,6 +310,7 @@ export function CatalogueReel() {
       {panier.erreur && <><Text accessibilityRole="alert" style={s.texte}>{panier.erreur}</Text><Action titre="Réessayer l’enregistrement du panier" agir={panier.reessayer} icone="actualiser" secondaire /></>}
       {messagePanier !== '' && <Text accessibilityRole="alert" style={s.texte}>{messagePanier}</Text>}
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
+      {selection && <ReserverTableReel key={selection.id} session={gestion} restaurantId={selection.id} restaurantNom={titreRestaurant?.nom ?? selection.nom} relireQuand={String(compteOuvert) + '|' + (menu?.luLe ?? '')} ouvrirConnexion={() => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte(null); setCompteOuvert(true); }} />}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
       {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {charge && restaurants.length === 0 && !selection && <Squelette lignes={4} />}
@@ -351,7 +356,7 @@ export function CatalogueReel() {
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
     <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} commandeEnCours={enCours.commande !== null} choisir={choisirOnglet} />
-    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
+    <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); ouvertureReservations.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setTimeout(() => enCours.recharger(), 2000); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />

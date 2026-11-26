@@ -34,6 +34,7 @@ export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
     connexionClientActive: ECHEC,
     verificateurs: { strict: refus, local: refus },
     limiterClientApplication: async () => {},
+    limiterDisponibiliteReservation: async () => {},
     lireRoles: ECHEC,
     client: { lireEspace: ECHEC, basculerFavori: ECHEC, enregistrerProfil: ECHEC, actionAdresse: ECHEC, supprimerCompte: ECHEC },
     estimerPourClient: ECHEC,
@@ -51,6 +52,8 @@ export function depsEssai(surcharge: Partial<Deps> = {}): Deps {
     restaurant: { contexte: ECHEC, lister: ECHEC, traiter: ECHEC, confirmerPaiement: ECHEC, proposer: ECHEC, modifierStatut: ECHEC, lireReglages: ECHEC, enregistrerReglages: ECHEC, lireMenu: ECHEC, actionMenu: ECHEC, definirPhoto: ECHEC, retirerPhoto: ECHEC, agirSurLivraison: ECHEC },
     appareils: { limiter: async () => {}, enregistrer: ECHEC, retirer: ECHEC },
     livreur: { limiter: async () => {}, lireFiche: ECHEC, lireEtat: ECHEC, basculer: ECHEC, avancerOffres: ECHEC, repondreOffre: ECHEC, avancerCourse: ECHEC },
+    reservations: { creer: ECHEC, lister: ECHEC, lire: ECHEC, annuler: ECHEC, disponibilite: ECHEC },
+    reservationsRestaurant: { lister: ECHEC, decider: ECHEC, lireReglage: ECHEC, ecrireReglage: ECHEC },
     commandes: { valider: () => { throw new Error("ECHEC : dépendance non prévue dans ce test"); }, creer: ECHEC, lister: ECHEC },
     ...surcharge,
   };

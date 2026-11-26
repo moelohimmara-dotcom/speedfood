@@ -61,9 +61,9 @@ const ETAPES = [
   },
   {
     titre: "Suivez et recevez votre commande",
-    texte: "Les mises à jour du restaurant, puis retrait ou livraison.",
+    texte: "Les mises à jour du restaurant, puis à emporter ou livraison.",
     detail:
-      "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord. Le restaurant précise les options de retrait ou de livraison ; son mode de règlement s'affiche sur votre page de suivi après son acceptation (le paiement en ligne via Chap Chap Pay arrive bientôt). Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
+      "Votre lien de suivi indique si la commande est en attente, acceptée, prête ou terminée. Si le restaurant doit changer un prix, il vous le propose : rien ne part en préparation sans votre accord. Le restaurant précise les options à emporter ou en livraison ; son mode de règlement s'affiche sur votre page de suivi après son acceptation (le paiement en ligne via Chap Chap Pay arrive bientôt). Speedfood n'encaisse rien et ne promet aucun délai de livraison.",
     motif: "emporter",
   },
 ];

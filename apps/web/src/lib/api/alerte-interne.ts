@@ -47,5 +47,39 @@ export async function traiterAlerteInterne(
   return { statut: 200, corps: { ok: true } };
 }
 
+/** Les trois réponses du restaurant qui préviennent le client (lot M4c). Rien d'autre n'est accepté : ni « honorée », ni « non honorée », ni l'annulation faite par le client. */
+const STATUTS_REPONSE_RESERVATION = ["confirmee", "refusee", "annulee_restaurant"];
+
+/**
+ * Message au client après la réponse du restaurant à sa réservation (lot M4c), demandé par l'API par `prevenirClientReservation`. Même garde que l'alerte : 401 sans corps si le jeton est faux
+ * (corps jamais lu), 400 si le corps n'est pas {"reservationId":"<uuid>","statut":"confirmee"|"refusee"|"annulee_restaurant"}, sinon l'envoi est PLANIFIÉ après la réponse (200). Une panne
+ * n'écrit que le code fixe `alerte_site_echec` (jamais l'identifiant ni le statut).
+ */
+export async function traiterMessageReservationInterne(
+  entree: { attendu: string | undefined; recu: string | null; lireCorps: () => Promise<unknown> },
+  planifier: (tache: () => Promise<void>) => void,
+  notifier: (reservationId: string, statut: string) => Promise<unknown>
+): Promise<ReponseAlerte> {
+  if (!secretAlerteValide(entree.recu, entree.attendu)) return { statut: 401, corps: null };
+  let corps: unknown;
+  try {
+    corps = await entree.lireCorps();
+  } catch {
+    return { statut: 400, corps: { ok: false } };
+  }
+  const brut = typeof corps === "object" && corps !== null ? (corps as { reservationId?: unknown; statut?: unknown }) : {};
+  const id = brut.reservationId;
+  const statut = brut.statut;
+  if (typeof id !== "string" || !UUID.test(id) || typeof statut !== "string" || !STATUTS_REPONSE_RESERVATION.includes(statut)) return { statut: 400, corps: { ok: false } };
+  planifier(async () => {
+    try {
+      await notifier(id, statut);
+    } catch {
+      console.error("alerte_site_echec");
+    }
+  });
+  return { statut: 200, corps: { ok: true } };
+}
+
 /** Clé du jeton interne partagé, dans l'isolat, entre l'entrée RPC (`worker-jetons.js`) et la route : définie UNE fois (module sans dépendance). */
 export { CLE_JETON_ALERTE } from "../worker/cle-alerte-interne";
