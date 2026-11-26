@@ -36,6 +36,9 @@ const ia5 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-$
 /** Images IA du lot 6 (25/11/2026) : derniers plats, fichiers nommés d'après le plat. */
 const ia6 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot6/${fichier}.png` });
 
+/** Images IA du lot 7 (26/11/2026) : derniers plats uniques, fichiers nommés d'après le plat. */
+const ia7 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot7/${fichier}.png` });
+
 const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheque => ({
   id: `px-${idPexels}`,
   type,
@@ -198,6 +201,24 @@ const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
   ia6("iskender-poulet", "iskender-poulet"),
   ia6("manioc-pile-sauce-graine", "manioc-pile-sauce-graine"),
   ia6("sauce-graine-poulet-fume", "sauce-graine-poulet-fume"),
+  // Images IA du lot 7 (derniers plats uniques)
+  ia7("oeuf-cocotte", "oeuf-cocotte"),
+  ia7("dibi-agneau", "dibi-agneau"),
+  ia7("tanjia-agneau", "tanjia-agneau"),
+  ia7("blanquette-volaille", "blanquette-volaille"),
+  ia7("baguette-beurre-confiture", "baguette-beurre-confiture"),
+  ia7("piyaz", "piyaz"),
+  ia7("the-montagne-grec", "the-montagne-grec"),
+  ia7("frappe-grec", "frappe-grec"),
+  ia7("koulourakia", "koulourakia"),
+  ia7("zaalouk", "zaalouk"),
+  ia7("papanasi-sales", "papanasi-sales"),
+  ia7("compote-fruits", "compote-fruits"),
+  ia7("riz-coriandre", "riz-coriandre"),
+  ia7("olives-citron-confit", "olives-citron-confit"),
+  ia7("salade-niebe", "salade-niebe"),
+  ia7("flan-coco", "flan-coco"),
+  ia7("bricks-oeufs", "bricks-oeufs"),
   // Photos de banque (Pexels, licence libre, vraies photos : elles passent avant l'IA)
   banque("curry-vert", "31029754"),
   banque("nachos", "12557544"),
