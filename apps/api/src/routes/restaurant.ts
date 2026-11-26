@@ -5,6 +5,7 @@ import { lireDelaiPreparation } from "@speedfood/shared/commande/estimation";
 import { lireActionMenuApp, lireReglagesApp, lireStatutApp } from "@speedfood/shared/contracts/restaurant-service";
 import { REGLES_MENU_PLAFONNEES } from "@speedfood/shared/menu/regles-plat";
 import { PHOTO_CORPS_MAX_OCTETS, lireDemandePhotoApp } from "@speedfood/shared/contracts/restaurant-photo";
+import { lireDemandeAllergenes } from "@speedfood/shared/contracts/restaurant-allergenes";
 import { lireActionRestaurantApp, lireDecisionPaiementApp, lireValeursPropositionApp } from "@speedfood/shared/contracts/restaurant-commandes";
 import { lireDemandeLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
 import { identifier } from "../controles/chaine.ts";
@@ -161,6 +162,19 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 
+  // ---------- allergènes d'un plat (déclaration du restaurant) ----------
+  route.post("/menu/allergenes", identite, async (c) => {
+    // Même ordre que les autres écritures : le contexte (plafond, second facteur, appartenance) AVANT le corps ; le restaurant vient du compte, jamais du corps.
+    const ctx = await contexte(c);
+    const lu = await lireCorpsJson(c);
+    if (!lu.ok) return lu.reponse;
+    const demande = lireDemandeAllergenes(lu.corps);
+    if (!demande.ok) return reponseErreur(c, { code: "VALIDATION", message: demande.message });
+    if (!deps.restaurant.definirAllergenes) return reponseErreur(c, { code: "INTROUVABLE", message: "Ressource introuvable." });
+    const resultat = await deps.restaurant.definirAllergenes(ctx, demande.platId, demande.allergenes);
+    return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
+  });
+
   // ---------- lot D5 : livraison par le restaurant ----------
   route.post("/livraison/action", identite, async (c) => {
     // Même ordre que les autres écritures : le contexte (plafond par compte, second facteur, questions, appartenance) AVANT le corps et la validation. Le restaurant vient de l'appartenance du compte ;
@@ -168,10 +182,10 @@ export function routeRestaurant(deps: Pick<Deps, "verificateurs" | "restaurant">
     const ctx = await contexte(c);
     const lu = await lireCorpsJson(c);
     if (!lu.ok) return lu.reponse;
-    // LISTE BLANCHE (partir, livree, annuler), UUID de la livraison et code à 4 chiffres exactement (pour « livree ») AVANT tout appel au service. Le code n'est jamais repris dans un message ni journalisé.
+    // LISTE BLANCHE (partir, livree, annuler, non_aboutie), UUID de la livraison, code à 4 chiffres exactement (pour « livree ») et motif de la liste fermée (pour « non_aboutie ») AVANT tout appel au service. Le code n'est jamais repris dans un message ni journalisé.
     const demande = lireDemandeLivraisonApp(lu.corps);
     if (!demande.ok) return reponseErreur(c, { code: "VALIDATION", message: demande.message });
-    const resultat = await deps.restaurant.agirSurLivraison(ctx, demande.livraisonId, demande.action, demande.code);
+    const resultat = await deps.restaurant.agirSurLivraison(ctx, demande.livraisonId, demande.action, demande.code, demande.motif);
     return resultat.ok ? repondre(c, { ok: true }) : reponseErreur(c, resultat.erreur);
   });
 

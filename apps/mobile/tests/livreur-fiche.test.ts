@@ -113,7 +113,7 @@ test('G1 lecture : 401 qui termine la session affiche le retour au compte, pas u
 test('G1 câblage écran : rôle livreur branche la vraie session, aucun coffre implicite dans le composant injectable', () => {
   const compte = readFileSync(cheminDepuisModule('../src/connexion/CompteReel.tsx'), 'utf8');
   assert.ok(compte.includes('setLivreur(r.livreur)'));
-  assert.ok(compte.includes('{livreur&&<Action titre="Espace livreur"'));
+  assert.ok(compte.includes('{livreur&&<LigneNavigation titre="Espace livreur"'));
   assert.ok(compte.includes('<LivreurReel session={gestion}'));
   const vue = readFileSync(cheminDepuisModule('../src/connexion/LivreurReel.tsx'), 'utf8');
   assert.doesNotMatch(vue, /from ['"].*(?:gestion|coffre|notifications)['"]/);

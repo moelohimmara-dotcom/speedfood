@@ -10,7 +10,7 @@ import { SuppressionCompte } from "./SuppressionCompte";
 import { FormulaireQuartierClient } from "./FormulaireQuartierClient";
 import { grouperParCommune, lireQuartiersActifs } from "@/lib/geographie/quartiers";
 
-export const metadata: Metadata = { title: "Mon compte" };
+export const metadata: Metadata = { title: { absolute: "Mon compte · Speedfood" } };
 
 /**
  * Accueil du compte : avatar, pseudo, modification et suppression. Un compte restaurateur ou système y trouve un lien

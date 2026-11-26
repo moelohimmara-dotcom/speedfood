@@ -18,6 +18,16 @@ test("GET /api/v1/version : même corps et même cache que la route du site", as
   assert.deepEqual(await reponse.json(), { ok: true, version });
 });
 
+test("GET /api/v1/version : le bloc mobile (nouvelle appli) passe tel quel, les champs historiques restent inchangés", async () => {
+  const mobile = { code: 100, nom: "3.0.0", notes: "Nouvelle application", obligatoire: false, apkSha256: "b".repeat(64), apkTaille: 20000000, apkChemin: "/speedfood-mobile.apk", apkUrl: "https://pub-essai.r2.dev/speedfood-mobile-3.0.0.apk" };
+  const reponse = await app({ version: { ...version, mobile } }).request("/api/v1/version");
+  const corps = (await reponse.json()) as { ok: boolean; version: Record<string, unknown> };
+  assert.deepEqual(corps.version.mobile, mobile);
+  const { mobile: _retire, ...historique } = corps.version;
+  assert.deepEqual(historique, version, "l'ancienne appli lit toujours exactement les mêmes champs");
+  assert.deepEqual(Object.keys(historique).sort(), ["apkSha256", "apkTaille", "code", "nom", "notes", "obligatoire"]);
+});
+
 test("GET /api/v1/aide : numéro WhatsApp renseigné", async () => {
   const reponse = await app().request("/api/v1/aide");
   assert.equal(reponse.status, 200);

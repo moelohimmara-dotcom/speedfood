@@ -15,11 +15,13 @@ import { executerCreationCoeur } from "@/lib/commande/creation-coeur";
 import { listerMesCommandes } from "@/lib/client/mes-commandes";
 import { actionAdresseClient, basculerFavoriClient, enregistrerProfilClient, lireEspaceClient, supprimerCompteClient } from "@/lib/client/espace-service";
 import { estimerPourClient } from "@/lib/livraison/estimation-service";
+import { chargerLivraisonClientParJeton } from "@/lib/livraison/vues";
 import { creerApp } from "./app.ts";
 import { configJetonSupabase, creerVerificateurLocal, creerVerificateurStrict } from "./identite/jeton.ts";
 import { fournirJetonInterne } from "./commandes/jeton-interne.ts";
 import { fournirAlerteSite } from "./commandes/alerte-site.ts";
-import { lireRestaurants, lireMenu, lireQuartiers } from './catalogue/service';
+import { lireRestaurants, lireMenu, lireQuartiers, lireArticles } from './catalogue/service';
+import { servicePreferences } from './preferences/cablage';
 import { configurationPublique } from './identite/configuration-publique';
 import { serviceRestaurant } from './restaurant/cablage.ts';
 import { serviceAppareils } from './appareils/cablage.ts';
@@ -31,7 +33,8 @@ let local: ReturnType<typeof creerVerificateurLocal> | undefined;
 
 const app = creerApp({
   configurationConnexion: () => { return configurationPublique(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); },
-  catalogue: { restaurants: lireRestaurants, menu: lireMenu, quartiers: lireQuartiers },
+  preferences: servicePreferences,
+  catalogue: { restaurants: lireRestaurants, menu: lireMenu, quartiers: lireQuartiers, articles: lireArticles },
   version: VERSION_APPLICATION,
   lireAssistance: async () => {
     const { whatsapp } = await lireReglagesAssistance();
@@ -63,6 +66,7 @@ const app = creerApp({
     jetonValide: estJetonValide,
     limiterLecture: limiterLectureSuivi,
     lire: chargerSuiviParJeton,
+    livraison: chargerLivraisonClientParJeton,
     limiterAnnulation: limiterAnnulationClient,
     annuler: annulerParClient,
     limiterReponseProposition,

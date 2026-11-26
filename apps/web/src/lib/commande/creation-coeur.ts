@@ -5,6 +5,7 @@ import { limiterCreationCommande } from "@/lib/securite/limitation-debit";
 import { verifierAntiRobot } from "@/lib/securite/turnstile";
 import { cleDeTableValide } from "@/lib/table/cle";
 import { notifierRestaurant } from "@/lib/push/envoi";
+import { journaliserCommandeNouvelle, marquerCommandeNouvelleEnvoyee } from "@/lib/push/evenements-service";
 import { creerCommande } from "./creation";
 
 /** Planifie une tâche à exécuter après la réponse (`after` de Next côté site, `waitUntil` côté API). */
@@ -31,12 +32,16 @@ export async function executerCreationCoeur(
     await limiterCreationCommande(valeurs.restaurantId, valeurs.client.telephone, { table: tableVerifiee });
     const cree = await creerCommande(valeurs, utilisateurId, { fournirJeton: options.fournirJeton });
     if (!cree.idempotent) {
+      // File d'événements : l'alerte au restaurant devient reprenable par la tâche planifiée (jamais bloquant pour le client).
+      await journaliserCommandeNouvelle(cree.id, valeurs.restaurantId);
       // Alerte « page fermée » du restaurant : après la réponse au client, sans jamais la retarder ni la faire échouer.
       const restaurantId = valeurs.restaurantId;
       options.apres(async () => {
         try {
           // `alerter` (API) : demande au site d'envoyer l'alerte, les secrets d'envoi (FCM, VAPID) restent sur le site. Absent (site) : envoi direct, inchangé.
           await (options.alerter ?? notifierRestaurant)(restaurantId);
+          // L'alerte immédiate est partie : l'événement journalisé ne doit pas être renvoyé par la file.
+          await marquerCommandeNouvelleEnvoyee(cree.id);
         } catch {
           console.error("push_indisponible");
         }

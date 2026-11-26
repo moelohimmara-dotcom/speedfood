@@ -14,7 +14,7 @@ import { creerServiceReservationRestaurant } from "./restaurateur.ts";
  *
  * Côté RESTAURATEUR : aucun client ici. Chaque appel reçoit le client lié au JETON du membre (`ctx.supabase`, RLS appliquée) et le restaurant de l'appartenance du compte (`restaurant.contexte`).
  *
- * L'horloge est celle du Worker. La migration 20261110090000 doit être appliquée en base avant que ces routes ne répondent autre chose qu'une erreur : tant qu'elle ne l'est pas, les lectures échouent
+ * L'horloge est celle du Worker. La migration 20261127090000 doit être appliquée en base avant que ces routes ne répondent autre chose qu'une erreur : tant qu'elle ne l'est pas, les lectures échouent
  * proprement (réponse 500 générique, aucun détail).
  */
 export const serviceReservations: Deps["reservations"] = creerServiceReservationClient({

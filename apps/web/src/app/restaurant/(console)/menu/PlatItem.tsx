@@ -11,6 +11,8 @@ import {
 import type { LibelleDisponibilite } from "@/lib/disponibilite/etat";
 import { Card, Badge, Button, Input, Alert } from "@/components/ui";
 import { OptionsPlat } from "./OptionsPlat";
+import { ALLERGENES } from "@speedfood/shared/menu/classement-personnalise";
+import { modeInitial } from "@/lib/menu/allergenes-formulaire";
 import { useConfirmation } from "@/components/console/ConsoleProviders";
 import { Illustration } from "@/components/illustrations/Illustration";
 import { EditeurIllustration } from "@/components/illustrations/EditeurIllustration";
@@ -33,6 +35,8 @@ interface Plat {
   photo_url: string | null;
   illustration?: ModeleIllustration | null;
   section_id: string | null;
+  /** Allergènes déclarés : `null` = non renseigné ; liste vide = aucun allergène déclaré. */
+  allergenes?: string[] | null;
   options: { id: string; nom: string; prix: number }[];
   /** État de disponibilité tel que les clients le voient (calculé côté serveur). */
   disponibilite: LibelleDisponibilite;
@@ -82,6 +86,27 @@ export function PlatItem({ plat, sections = [], restaurantId, famille = "defaut"
             </p>
           </div>
           <Input label="Nom du plat" name="nom" type="text" required maxLength={120} defaultValue={plat.nom} />
+          <fieldset className="space-y-2 rounded-lg border border-neutral-200 p-3">
+            <legend className="px-1 text-sm font-semibold">Allergènes</legend>
+            <p className="text-xs text-neutral-600">Une déclaration fausse peut mettre un client en danger : en cas de doute, cochez l&apos;allergène. Sans déclaration, le plat est affiché « allergènes non renseignés ».</p>
+            <label className="block text-sm">
+              <span className="mr-2">Déclaration</span>
+              <select name="allergenes_mode" defaultValue="inchange" className="rounded border border-neutral-300 px-2 py-1">
+                <option value="inchange">Ne pas changer ({{ non_renseigne: "non renseignés", aucun: "aucun allergène", liste: "allergènes déclarés" }[modeInitial(plat.allergenes)]})</option>
+                <option value="liste">Ces allergènes sont présents (cases ci-dessous)</option>
+                <option value="aucun">Aucun allergène</option>
+                <option value="non_renseigne">Retirer la déclaration (non renseignés)</option>
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {ALLERGENES.map((a) => (
+                <label key={a.id} className="flex items-center gap-1 text-sm">
+                  <input type="checkbox" name="allergenes" value={a.id} defaultChecked={plat.allergenes?.includes(a.id) ?? false} />
+                  {a.libelle}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <Input
             label="Description"
             name="description"

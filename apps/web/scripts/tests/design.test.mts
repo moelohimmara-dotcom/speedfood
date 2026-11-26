@@ -197,16 +197,33 @@ const NON_COULEUR = ["gradient-marque"];
 // Les variables `--font-*` sont déclarées par `next/font` sur `<html>` (layout.tsx), pas dans le
 // bloc :root de globals.css : ce ne sont pas des jetons de design, ce sont des polices bundlées.
 
+// Variables ajoutées par la refonte du 9 novembre 2026 (docs/REFONTE-DESIGN-2026-11-09.md, section 7 « Tokens proposés (à figer après validation) ») :
+// l'échelle neutre chaude et la durée des animations éditoriales. Elles sont déclarées en dur dans globals.css, mais ce ne sont PAS encore des jetons
+// de design : aucune migration ne les sème, le Studio ne peut donc pas les éditer. En faire des jetons demande une migration (donc un feu vert pour
+// l'appliquer en base) et la validation du design. Cette liste dit qu'elles sont connues et volontairement hors jetons, sans désarmer le contrôle pour
+// toute autre variable : une nouvelle variable CSS sans jeton fait toujours échouer le test. Les deux contrôles ci-dessous empêchent la liste de vieillir.
+const REFONTE_SANS_JETON = [
+  "duration-editoriale",
+  "neutre-50", "neutre-100", "neutre-200", "neutre-300", "neutre-400", "neutre-500", "neutre-600", "neutre-700", "neutre-800", "neutre-900",
+];
+
 // Toute variable CSS du site doit avoir un jeton, sauf les alias dérivés (reconstruits par
-// `cssDepuisJetons`) et les polices bundlées par next/font (hors de globals.css).
-const sansJeton = [...variablesCss.keys()].filter((v) => !DERIVES.includes(v) && !semences.has(cleJetonDe(v)));
+// `cssDepuisJetons`), les variables de la refonte en attente de validation (ci-dessus) et les polices bundlées par next/font (hors de globals.css).
+const sansJeton = [...variablesCss.keys()].filter(
+  (v) => !DERIVES.includes(v) && !REFONTE_SANS_JETON.includes(v) && !semences.has(cleJetonDe(v))
+);
 verifier("aucune variable CSS du site n'est sans jeton", sansJeton, []);
 
 // Et l'inverse : aucune variable CSS ne doit avoir été oubliée dans `attendues`.
 const absentesDeLaListe = [...variablesCss.keys()].filter(
-  (v) => !attendues.includes(v) && !DERIVES.includes(v) && !v.startsWith("font-")
+  (v) => !attendues.includes(v) && !DERIVES.includes(v) && !REFONTE_SANS_JETON.includes(v) && !v.startsWith("font-")
 );
 verifier("aucune variable CSS du site n'a été oubliée dans la liste de contrôle", absentesDeLaListe, []);
+
+// La liste des variables de la refonte reste honnête : chaque entrée existe dans globals.css (sinon la retirer),
+// et aucune n'a déjà un jeton (sinon la retirer de la liste et l'ajouter à `attendues`).
+verifier("refonte sans jeton : chaque variable de la liste existe dans globals.css", REFONTE_SANS_JETON.filter((v) => !variablesCss.has(v)), []);
+verifier("refonte sans jeton : aucune variable de la liste n'a déjà un jeton semé", REFONTE_SANS_JETON.filter((v) => semences.has(cleJetonDe(v))), []);
 
 /** Le groupe d'un jeton, déduit de son PRÉFIXE de clé (`couleur.`, `espace.`…). */
 function groupeDe(cle: string): Groupe {

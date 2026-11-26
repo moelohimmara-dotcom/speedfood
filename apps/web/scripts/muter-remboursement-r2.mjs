@@ -27,7 +27,7 @@ const ACTIONS_UI = W("src/app/system/paiements/ActionsPaiement.tsx");
 const EXPORT = W("src/app/system/paiements/dossier/[id]/export/route.ts");
 const PAGE_DOSSIER = W("src/app/system/paiements/dossier/[id]/page.tsx");
 const ACTIONS_DECISION = W("src/lib/system-admin/remboursement-decisions.ts");
-const SQL = join(depot, "supabase", "migrations", "20261110120000_remboursement_decisions.sql");
+const SQL = join(depot, "supabase", "migrations", "20261127092000_remboursement_decisions.sql");
 
 // suite : "unit" (les trois fichiers de tests R2) | "sql" (cloisonnement sur PGlite)
 // edits : liste de [cible, remplace] ; chaque cible doit exister UNE seule fois dans le fichier.

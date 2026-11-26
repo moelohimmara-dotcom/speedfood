@@ -2,6 +2,7 @@ import type { CreationCommandePayload } from '../../../../packages/shared/src/co
 import type { PlatCataloguePublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { normaliserTelephone } from '../../../../packages/shared/src/commande/telephone.ts';
 import { chiffrer, type PanierReel } from './panier-reel.ts';
+import { ERREUR_CONSENTEMENT } from './parcours-client.ts';
 
 /**
  * Domaine pur de l'envoi d'une commande en RETRAIT (lot A) ou en LIVRAISON (lot B) depuis l'application.
@@ -97,6 +98,14 @@ export function genererCleIdempotence(sources: SourcesCle = sourcesParDefaut()):
 }
 
 export type ModeCommande = 'retrait' | 'livraison';
+/**
+ * Livraison commandée depuis l'application : retirée le 20/11/2026 (version 3.1.7), RALLUMÉE dans la 3.1.8. Raison du retrait : le suivi du client ne montrait ni l'étape de la livraison, ni le livreur,
+ * ni le code de remise que le livreur doit saisir pour terminer la course. Depuis : le suivi les affiche (bloc `livraison`, API en ligne), le restaurateur ne peut plus clore une commande en livraison
+ * sans le code (21/11), les frais de livraison sont calculés (interrupteur `frais_actifs` allumé le 21/11) et le restaurateur peut déclarer une livraison non aboutie.
+ */
+export const LIVRAISON_CLIENT_DISPONIBLE = true;
+/** Les modes annoncés au client, dans les textes de l'accueil et du compte. */
+export const PHRASE_MODES_COMMANDE = LIVRAISON_CLIENT_DISPONIBLE ? 'en retrait ou en livraison' : 'en retrait au restaurant';
 /** Réponse du serveur à l'estimation (`ok`) ou calcul éteint (`non_calcule`). Une réponse `erreur` n'est jamais conservée comme estimation. */
 export type EstimationLivraison =
   | { statut: 'non_calcule' }
@@ -153,7 +162,7 @@ export function validerSaisie(s: SaisieCommande): { erreurs: ErreursSaisie; nom:
   }
   const telephone = normaliserTelephone(s.telephone);
   if (telephone === null) erreurs.telephone = 'Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (ex. 622 12 34 56).';
-  if (s.consentement !== true) erreurs.consentement = 'Cochez la case pour confirmer que vous réglerez au restaurant.';
+  if (s.consentement !== true) erreurs.consentement = ERREUR_CONSENTEMENT;
   return { erreurs, nom, telephone };
 }
 
@@ -170,7 +179,7 @@ export type Tentative = ReturnType<typeof creerTentative>;
 export type PreparationEnvoi = { ok: true; payload: CreationCommandePayload } | { ok: false; erreurs: ErreursSaisie };
 /**
  * Construit le corps de la commande (retrait ou livraison) à partir du panier réel, des prix relus et de la saisie.
- * Aucune option n'est proposée dans l'application : `optionIds` reste vide (le catalogue public ne porte ni option ni supplément).
+ * Les suppléments choisis partent dans `optionIds` de chaque ligne (triés, sans doublon) ; le sous-total affiché les compte, le serveur recalcule tout et le compare au sien.
  */
 export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCataloguePublic[], saisie: SaisieCommande, tentative: Tentative, compteId = ''): PreparationEnvoi {
   const { erreurs, nom, telephone } = validerSaisie(saisie);
@@ -182,7 +191,7 @@ export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCatalogueP
   // Livraison : l'estimation doit dater de CE restaurant, CE quartier et CE sous-total ; sinon elle est périmée et rien ne part.
   if (livraison && !erreurs.quartier && !estimationValable(saisie.estimation, panier.restaurantId, saisie.quartierId, bilan.total)) erreurs.livraison = 'Les frais de livraison doivent être recalculés avant l’envoi.';
   if (erreurs.nom || erreurs.telephone || erreurs.consentement || erreurs.panier || erreurs.adresse || erreurs.quartier || erreurs.livraison || telephone === null || bilan.total === null || !panier.restaurantId) return { ok: false, erreurs };
-  const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [] as string[] }));
+  const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [...(l.optionIds ?? [])] }));
   const base = { restaurantId: panier.restaurantId, lignes, sousTotalAffiche: bilan.total, consentementReglement: true };
   if (!livraison) {
     const empreinte = JSON.stringify([compteId, panier.restaurantId, 'retrait', lignes, nom, telephone, bilan.total]);

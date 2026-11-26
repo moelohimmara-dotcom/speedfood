@@ -247,7 +247,7 @@ verifier("formulaire : la case de reconnaissance du code marchand", formulaire.i
 verifier("formulaire : aucun appel à une action d'argent", /trancherLitigeAction|rembourserALaMainAction|reprendreVersementsAction/.test(formulaire), false);
 
 // ---------------------------------------------------------------------------------------------------------------- migration (source) : le fichier existe, rien n'est appliqué par ces tests
-const sql = lire("../../supabase/migrations/20261110120000_remboursement_decisions.sql");
+const sql = lire("../../supabase/migrations/20261127092000_remboursement_decisions.sql");
 verifier("migration : réglage espèces faux par défaut", /remboursement_especes_autorise boolean not null default false/.test(sql), true);
 verifier("migration : RLS activée sur les trois tables", (sql.match(/enable row level security/g) ?? []).length, 3);
 verifier("migration : toutes les policies sont `to authenticated` et réservées au super administrateur", (sql.match(/create policy [^;]*for select to authenticated using \(public\.fn_est_admin_systeme\(array\['super_admin'\]\)\)/g) ?? []).length, 3);

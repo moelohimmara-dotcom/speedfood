@@ -2,7 +2,9 @@ import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
 import type { ResultatActionCommande, ValeursProposition } from "@speedfood/shared/contracts/commande";
 import type { ActionMenuApp, OptionAEcrire, PlatAEcrire, ReglagesAEcrire, ReponseMenuRestaurant, ReponseReglagesRestaurant, StatutDemande } from "@speedfood/shared/contracts/restaurant-service";
 import { MESSAGE_SECURITE_SUR_LE_SITE, type ActionRestaurantApp, type DecisionPaiementApp, type ReponseCommandesRestaurant } from "@speedfood/shared/contracts/restaurant-commandes";
-import { lireLivraisonApi, type ActionLivraisonApp } from "@speedfood/shared/contracts/restaurant-livraison";
+import { lireLivraisonApi, type ActionLivraisonApp, type MotifEchecApp } from "@speedfood/shared/contracts/restaurant-livraison";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { definirAllergenesPlat } from "./allergenes.ts";
 import type { ContexteRestaurant, Deps } from "../types.ts";
 import type { LecturesLivraisons } from "./livraison.ts";
 
@@ -73,7 +75,7 @@ export interface DepsServiceRestaurant {
    * Lot D5 : fait avancer la livraison de CE restaurant (partir, livree avec le code, annuler). Le client est celui du jeton (contrôle d'appartenance) ; l'avancement lui-même est `avancerLivraison` du site
    * (clé de service, seul usage système du lot, appelé APRÈS le contrôle d'appartenance ; voir `livraison.ts` et `cablage.ts`).
    */
-  agirSurLivraison(client: unknown, restaurantId: string, livraisonId: string, action: ActionLivraisonApp, code: string | undefined): Promise<ResultatActionCommande>;
+  agirSurLivraison(client: unknown, restaurantId: string, livraisonId: string, action: ActionLivraisonApp, code: string | undefined, motif?: MotifEchecApp): Promise<ResultatActionCommande>;
 }
 
 /** Résultat des services du menu du site (`ResultatMenu`). */
@@ -191,11 +193,14 @@ export function creerServiceRestaurant(d: DepsServiceRestaurant): Deps["restaura
     async definirPhoto(ctx, platId: string, fichier: File) {
       return d.definirPhoto(ctx.supabase, ctx.restaurantId, platId, fichier);
     },
+    async definirAllergenes(ctx, platId: string, allergenes) {
+      return definirAllergenesPlat(ctx.supabase as SupabaseClient, ctx.restaurantId, platId, allergenes);
+    },
     async retirerPhoto(ctx, platId: string) {
       return d.retirerPhoto(ctx.supabase, ctx.restaurantId, platId);
     },
-    async agirSurLivraison(ctx, livraisonId: string, action: ActionLivraisonApp, code?: string) {
-      return d.agirSurLivraison(ctx.supabase, ctx.restaurantId, livraisonId, action, code);
+    async agirSurLivraison(ctx, livraisonId: string, action: ActionLivraisonApp, code?: string, motif?: MotifEchecApp) {
+      return d.agirSurLivraison(ctx.supabase, ctx.restaurantId, livraisonId, action, code, motif);
     },
   };
 }

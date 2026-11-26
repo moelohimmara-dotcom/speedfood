@@ -1,11 +1,12 @@
-import { openDatabaseAsync, type SQLiteBindParams } from 'expo-sqlite';
+import { type SQLiteBindParams } from 'expo-sqlite';
+import { ouvrirBaseEnSerie } from './ouverture-serie';
 import { creerDepotDrizzle } from './depot-drizzle';
 import { initialiserBase } from './migrations/0001-etat-demo';
 import { SessionLocale } from './session';
 
 let ouverture: Promise<SessionLocale> | null = null;
 async function ouvrir(): Promise<SessionLocale> {
-  const base = await openDatabaseAsync('speedfood-demo-client.db');
+  const base = await ouvrirBaseEnSerie('speedfood-demo-client.db');
   try {
     await initialiserBase(base);
     return new SessionLocale(creerDepotDrizzle(async (sql, params, lecture) => {

@@ -1,22 +1,56 @@
 import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import { lireCommandes, lireSuivi } from './commandes.ts';
+import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte.ts';
+import { traduireErreurAuth, verifierEmail, verifierInscription } from './auth-publique.ts';
+import { ErreurEspaceClient, estUuid, lireEspaceComplet, validerAdresse, validerPseudo, verifierProfil, type ActionAdresse, type ChampsProfil, type EspaceComplet } from './espace-client.ts';
+import { normaliserTelephone } from '../../../../packages/shared/src/commande/telephone.ts';
+import { SITE_WEB } from './aide.ts';
+import { origineRestaurateur } from './origines-restaurateur.ts';
 import { ADRESSE_MAX, ADRESSE_MIN, ErreurCommande, erreurReseau, lireEstimation, lireReponseCreation, refusServeur, type ResultatEstimation } from '../catalogue/commande-reelle.ts';
 import { ErreurReglement, MODES_REGLEMENT, erreurReponseReglement, erreurReseauReglement, lireReponseDeclaration, refusDeclaration } from './reglement.ts';
-import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type ValeursPropositionRestaurateur } from './restaurateur.ts';
+import { ACTIONS_DE_STATUT, ACTIONS_RESTAURATEUR, decisionPaiementDe, ErreurRestaurateur, erreurLocaleLivraison, erreurReponseLivraison, erreurReseauLivraison, refusLivraisonRestaurateur, erreurReponseRestaurateur, erreurReseauRestaurateur, lireListeRestaurateur, lireRaisonSecurite, lireReponseAction, lireRoles, refusRestaurateur, type ActionRestaurateur, type ListeRestaurateur, type RolesCompte, type TypeDocument, type ValeursPropositionRestaurateur } from './restaurateur.ts';
 import { corpsDeAction, erreurLocalePhoto, erreurReponseService, erreurReseauPhoto, erreurReseauService, lireMenuRestaurateur, lireReglagesRestaurateur, refusService, type ActionService, type MenuRestaurateur, type ReglagesRestaurateur } from './serviceRestaurateur.ts';
 import { CHEMIN_PHOTO_APP, PHOTO_TAILLE_MAX_OCTETS } from '../../../../packages/shared/src/contracts/restaurant-photo.ts';
 import { lireValeursPropositionApp, type RaisonSecuriteCompte } from '../../../../packages/shared/src/contracts/restaurant-commandes.ts';
-import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
+import { CHEMIN_LIVRAISON_APP, MESSAGE_CODE_LIVRAISON, MESSAGE_MOTIF_ECHEC, lireActionLivraisonApp, lireDemandeLivraisonApp, type ActionLivraisonApp, type MotifEchecApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { lireReferencePaiement } from '../../../../packages/shared/src/paiement/regles.ts';
 import { ErreurLivreur, REGEX_UUID_LIVREUR, lireEnLigneLivreur, lireEtatLivreur, lireFicheLivreur, type DemandeCourseLivreur, type EtatLivreur, type FicheLivreur } from './livreur.ts';
+import { lireGainsLivreur, lirePageCoursesLivreur, preparerPageCourses, type GainsLivreur, type PageCoursesLivreur } from './gains-livreur.ts';
+import { fournisseursActifsDepuis } from './reseaux-sociaux.ts';
+import { ErreurCandidature, corpsCandidature as produireCorpsCandidature, lireLectureMenu, lireVueCandidature, type BrouillonCandidature, type LectureMenu, type VueCandidature } from './candidature.ts';
+import { ErreurEquipe } from './equipe.ts';
+import { DEBUT_PERIODE_FINANCES, FIN_PERIODE_FINANCES, lireFinancesEquipe, type FinancesEquipe } from './finances-equipe.ts';
+import { lireTableauEquipe, type TableauEquipe } from './tableau-equipe.ts';
+import {
+  STATUTS_COMMANDE_EQUIPE, estActionRepartitionEquipe, lireAccesEquipe, lireCommandesARepartir, lireCommandesEquipe, lireCoordonneesEquipe, lireDetailCommandeEquipe, preparerMotifEquipe,
+  type AccesEquipe, type ActionRepartitionEquipe, type CommandeARepartir, type CommandeEquipe, type CoordonneesEquipe, type ReponseDetailEquipe, type StatutCommandeEquipe,
+} from './commandes-equipe.ts';
+import { lirePaiementsEquipe, type PaiementsEquipe } from './paiements-equipe.ts';
+import { lireExploitationEquipe, preparerActionLivraisonEquipe, preparerActionLivreurEquipe, type ExploitationEquipe } from './exploitation-equipe.ts';
+import { lireAvisEquipe, lireBannieresEquipe, lireParametresEquipe, preparerModeration, type AvisEquipe, type BanniereEquipe, type ParametresEquipe } from './contenus-equipe.ts';
+import { lireAuditEquipe, lireComptesEquipe, lireMisesAJourEquipe, lireZonesAttente, type AuditEquipe, type CompteEquipe, type MisesAJourEquipe, type ZoneAttenteEquipe } from './admin-equipe.ts';
+import {
+  STATUTS_PARTENARIAT_EQUIPE, STATUTS_REFERENCEMENT_EQUIPE, lireFicheRestaurantEquipe, lireMenusEquipe, lireOptionsReferencement, lirePartenariatsEquipe, preparerImportMenuEquipe,
+  lirePlatsMenuEquipe, lireReferencementsEquipe, lireRestaurantsEquipe, validerProfilSimpleEquipe,
+  type DemandePartenariat, type DemandeReferencement, type FicheRestaurantEquipe, type MenusEquipe, type PlatMenuEquipe, type RestaurantEquipe,
+} from './catalogue-equipe.ts';
+import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
+import { lireFileLivreur, type FileLivreur } from './file-livreur.ts';
+import { lireDossierLivreur, type DossierLivreur } from './dossier-livreur.ts';
 import { lireCorpsCourseLivreur, lireReponseActionLivreur } from '../../../../packages/shared/src/contracts/livreur-course.ts';
 import {
   ErreurReservation, MESSAGES_RESERVATION, REGEX_UUID_RESERVATION, lireJourReservation, lireReponseCreationReservation, lireReponseDecisionReservation, lireReponseDisponibiliteReservation, lireReponseListeReservations,
   lireReponseReglageReservation, lireReponseReservationClient, lireReponseReservationsRestaurant, messageServeurReservation, preparerCreation, preparerDecision, preparerReglage,
   type DecisionReservation, type DemandeReservation, type DisponibiliteReservation, type ReglageReservation, type ReservationClient, type ReservationRestaurant, type ValeursReglageReservation,
 } from './reservation.ts';
+import { lirePageHistorique, preparerPageHistorique, type PageHistorique } from './historique-restaurateur.ts';
+import { lireActiviteRestaurateur, type ActiviteRestaurateur } from './activite-restaurateur.ts';
+import { lireEtatPublication, type EtatPublication } from './etat-restaurateur.ts';
+import { lireScoreRestaurateur, type ScoreRestaurateur } from './score-restaurateur.ts';
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 const SUPABASE = 'https://ggldjdizqrtpetdiohxy.supabase.co';
+/** Base du service d'authentification (adresses de départ des connexions sociales PKCE). */
+export const URL_AUTH_SOCIALE = SUPABASE + '/auth/v1';
 export interface SessionAuth { accessToken: string; refreshToken: string; expiresAt: number; userId: string }
 export interface ResumeCompte { pseudo: string | null; favoris: number; adresses: number }
 export class ErreurConnexion extends Error {
@@ -110,9 +144,29 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
   async function jetons(type: 'password' | 'refresh_token', donnees: object): Promise<SessionAuth> {
     const k = await cle();
     const v = await requete(SUPABASE+'/auth/v1/token?grant_type='+type, { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify(donnees) },true,type==='refresh_token');
+    return sessionDe(v);
+  }
+  /** Lecture stricte d'une réponse qui ouvre une session (connexion, renouvellement, inscription sans confirmation d'e-mail). */
+  function sessionDe(v: Record<string, unknown>): SessionAuth {
     const user = objet(v.user);
     if (typeof user.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(user.id) || typeof v.expires_in !== 'number' || !Number.isSafeInteger(v.expires_in) || v.expires_in < 1 || v.expires_in > 86400) throw new ErreurConnexion('Réponse de connexion invalide.');
     return { accessToken:secret(v.access_token,16384), refreshToken:secret(v.refresh_token,1024), expiresAt:Math.floor(Date.now()/1000)+v.expires_in, userId:user.id };
+  }
+  /**
+   * Appel PUBLIC du service d'authentification (inscription, mot de passe oublié) : clé publique seulement, aucun cookie, UN SEUL essai. Rend le statut et le corps lu (ou `null`) : le texte brut
+   * du serveur n'est jamais affiché, `traduireErreurAuth` en fait un message français. Réseau coupé ou délai dépassé : message neutre.
+   */
+  async function authPublic(chemin: string, parametres: Record<string, string>, corps: object): Promise<{ ok: boolean; statut: number; texte: string; json: Record<string, unknown> | null }> {
+    const k = await cle();
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), 15000);
+    try {
+      let r: Response;
+      try { r = await fetcher(SUPABASE+'/auth/v1/'+chemin+'?'+new URLSearchParams(parametres).toString(), { method:'POST', credentials:'omit', signal:controle.signal, headers:{ apikey:k, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify(corps) }); }
+      catch { throw new ErreurConnexion('Impossible de joindre Speedfood. Vérifiez votre connexion puis réessayez.'); }
+      let texte = ''; let json: Record<string, unknown> | null = null;
+      try { texte = await r.text(); if (texte.length > 262144) texte = ''; const v: unknown = JSON.parse(texte); json = v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null; } catch { json = null; }
+      return { ok: r.ok, statut: r.status, texte, json };
+    } finally { clearTimeout(timer); }
   }
   /** UN SEUL essai, jamais de relance automatique : un envoi incertain se rejoue à la main avec la même clé d'idempotence. */
   async function postCommande(accessToken: string, payload: CreationCommandePayload): Promise<{ reference: string; jeton: string; idempotent: boolean }> {
@@ -179,7 +233,7 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     let r: Response;
     try {
       // Formulaire (photo) : PAS de Content-Type écrit ici, le système y met la frontière du multipart.
-      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps && !options.formulaire ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body:options.formulaire } : options.corps ? { body:JSON.stringify(options.corps) } : {}) });
+      r = await fetcher(origineRestaurateur(chemin)+chemin, { method:options.method, credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps && !options.formulaire ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body:options.formulaire } : options.corps ? { body:JSON.stringify(options.corps) } : {}) });
     } catch (e) {
       const delaiAtteint = controle.signal.aborted; clearTimeout(timer);
       if (lecture) throw new ErreurRestaurateur('reseau', 'Impossible de joindre Speedfood. Vérifiez votre connexion.');
@@ -208,6 +262,85 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     } finally { clearTimeout(timer); }
   }
   /**
+   * Appels candidature (lot 4, B12), routes DU SITE comme l'ancienne appli : un seul essai, jamais de relance. 401 = session terminée ;
+   * refus explicite du serveur (400, 409) = `refus` avec son message court ; réseau, délai, 5xx ou réponse illisible après un envoi = `incertain`.
+   */
+  async function appelCandidature(accessToken: string, chemin: string, options: { method: 'GET' | 'POST'; corps?: object; formulaire?: FormData; ecriture: boolean; defaut: string }): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), options.formulaire ? DELAI_PHOTO_MS : delaiCommandeMs);
+    let r: Response;
+    try {
+      r = await fetcher(SITE_WEB+chemin, { method: options.method, credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(options.corps ? { 'Content-Type':'application/json' } : {}) }, ...(options.formulaire ? { body: options.formulaire } : options.corps ? { body: JSON.stringify(options.corps) } : {}) });
+    } catch { clearTimeout(timer); throw options.ecriture ? new ErreurCandidature('incertain', 'Impossible de joindre Speedfood. Votre envoi a peut-être été enregistré : relisez votre demande avant de réessayer.') : new ErreurCandidature('refus', 'Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 400 || r.status === 409) throw new ErreurCandidature('refus', messageServeurLivreur(corps) ?? options.defaut);
+      if (r.status === 429) throw new ErreurCandidature('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (!r.ok) throw options.ecriture ? new ErreurCandidature('incertain', 'Le service est indisponible. Votre envoi a peut-être été enregistré : relisez votre demande avant de réessayer.') : new ErreurCandidature('refus', 'Le service est indisponible. Réessayez dans un instant.');
+      if (corps === null || typeof corps !== 'object' || Array.isArray(corps)) throw options.ecriture ? new ErreurCandidature('incertain', 'Réponse du service illisible. Relisez votre demande avant de réessayer.') : new ErreurCandidature('refus', 'Réponse du service illisible. Réessayez dans un instant.');
+      return corps as Record<string, unknown>;
+    } finally { clearTimeout(timer); }
+  }
+  /**
+   * Lecture d'un module de l'espace équipe (lots 5 à 8), route DU SITE : un seul essai. Le serveur décide du droit (permission par module) :
+   * 403 = refus rendu avec son message court, sans jamais contourner ; 401 = session terminée.
+   */
+  async function appelEquipeLecture(accessToken: string, chemin: string, defaut: string): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try { r = await fetcher(SITE_WEB+chemin, { method:'GET', credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } }); }
+    catch { clearTimeout(timer); throw new ErreurEquipe('refus', 'Impossible de joindre Speedfood. Vérifiez votre connexion.'); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 403) throw new ErreurEquipe('refus', messageServeurLivreur(corps) ?? 'Votre compte n’a pas le droit d’ouvrir ce module. Vérifiez votre accès sur le site.');
+      if (!r.ok) throw new ErreurEquipe('refus', 'Le service est indisponible. Réessayez dans un instant.');
+      if (corps === null || typeof corps !== 'object' || Array.isArray(corps)) throw new ErreurEquipe('refus', defaut);
+      return corps as Record<string, unknown>;
+    } finally { clearTimeout(timer); }
+  }
+  /**
+   * Écriture sensible de l'espace équipe (statut support, coordonnées, répartition) : un seul essai, jamais de relance (le serveur trace l'action).
+   * Refus explicite (400, 403, 409) = `refus` avec le message court du serveur ; réseau, délai, 5xx ou réponse illisible = `incertain`.
+   */
+  async function appelEquipeEcriture(accessToken: string, chemin: string, corps: object | FormData, defaut: string): Promise<Record<string, unknown>> {
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), corps instanceof FormData ? DELAI_PHOTO_MS : delaiCommandeMs);
+    let r: Response;
+    try { r = await fetcher(SITE_WEB+chemin, { method:'POST', credentials:'omit', signal: controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', ...(corps instanceof FormData ? {} : { 'Content-Type':'application/json' }) }, body: corps instanceof FormData ? corps : JSON.stringify(corps) }); }
+    catch { clearTimeout(timer); throw new ErreurEquipe('incertain', 'Impossible de joindre Speedfood. L’action a peut-être été appliquée : actualisez avant de réessayer.'); }
+    try {
+      let lu: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const texte = await r.text(); if (texte.length <= 262144) lu = JSON.parse(texte); } catch { lu = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 400 || r.status === 403 || r.status === 409) throw new ErreurEquipe('refus', messageServeurLivreur(lu) ?? defaut);
+      if (r.status === 429) throw new ErreurEquipe('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (!r.ok) throw new ErreurEquipe('incertain', 'Le service est indisponible. L’action a peut-être été appliquée : actualisez avant de réessayer.');
+      if (lu === null || typeof lu !== 'object' || Array.isArray(lu) || (lu as { ok?: unknown }).ok !== true) throw new ErreurEquipe('incertain', 'Réponse du service illisible. Actualisez avant de réessayer.');
+      return lu as Record<string, unknown>;
+    } finally { clearTimeout(timer); }
+  }
+  const uuidEquipe = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+  /** Formulaire photo de candidature : les octets sont lus et vérifiés AVANT le réseau (échec local = rien n'est parti). */
+  async function formulairePhotoCandidature(fichier: FichierPhotoPrete, type?: 'logo' | 'photo'): Promise<FormData> {
+    let relu: FichierFormulaire;
+    try {
+      relu = await fichierDeFormulaire({ uri: fichier.uri, nom: fichier.nom, type: fichier.type });
+      if (!octetsDePhotoValides(await relu.bytes())) throw new Error('octets');
+    } catch { throw new ErreurCandidature('refus', 'La photo n’a pas pu être préparée pour l’envoi : rien n’a été enregistré. Choisissez-la à nouveau, ou une autre.'); }
+    const formulaire = new FormData();
+    if (type) formulaire.append('type', type);
+    formulaire.append('fichier', relu as unknown as Blob);
+    return formulaire;
+  }
+  /**
    * Écriture livreur (bascule, offre, course) : un seul essai. 401 = session terminée ; 400 = refus explicite (le message du serveur, s'il est lisible, est rendu par `refus`) ;
    * 429 = refus ; réseau, délai, autre statut ou réponse illisible = INCERTAIN (l'action a pu être appliquée : jamais de relance automatique).
    */
@@ -215,13 +348,16 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
-      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corpsEnvoye) });
+      r = await fetcher(ORIGINE_CATALOGUE+chemin, { method:'POST', redirect:'error', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(corpsEnvoye) });
+      if (controle.signal.aborted) throw new ErreurLivreur('incertain', textes.reseau);
     } catch { clearTimeout(timer); throw new ErreurLivreur('incertain', textes.reseau); }
     try {
       let corps: unknown = null;
       const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
       if (json) { try { const texte = await r.text(); if (texte.length <= 262144) corps = JSON.parse(texte); } catch { corps = null; } }
       else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      // Une fin de lecture arrivée après l’abandon ne confirme jamais une écriture.
+      if (controle.signal.aborted) throw new ErreurLivreur('incertain', textes.illisible);
       if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
       if (r.status === 400) throw new ErreurLivreur('refus', textes.refus(messageServeurLivreur(corps)));
       if (r.status === 429) throw new ErreurLivreur('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
@@ -273,12 +409,386 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     } finally { clearTimeout(timer); }
   }
   const idReservationValide = (id: unknown): id is string => typeof id === 'string' && REGEX_UUID_RESERVATION.test(id);
+  /**
+   * Écriture de l'espace client (profil, adresses, favoris) : UN SEUL essai, jamais rejouée toute seule (un favori se BASCULE, une adresse s'AJOUTE). 401 = session terminée ; 400 (message du serveur,
+   * s'il est lisible) et 429 = `refus` (rien d'enregistré) ; réseau, délai, autre statut ou réponse illisible = `incertain` (l'appelant relit l'espace). Le porteur n'est que dans l'en-tête.
+   */
+  async function ecritureEspace(accessToken: string, chemin: string, corpsEnvoye: object, avecFavori = false): Promise<{ message: string; favori?: boolean }> {
+    const incertain = () => new ErreurEspaceClient('incertain', 'Impossible de confirmer l’enregistrement. Actualisez pour voir l’état réel.');
+    const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
+    let r: Response;
+    try { r = await fetcher(ORIGINE_CATALOGUE+'/api/v1/client/'+chemin, { method:'POST', credentials:'omit', signal:controle.signal, headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body:JSON.stringify(corpsEnvoye) }); }
+    catch { clearTimeout(timer); throw incertain(); }
+    try {
+      let corps: unknown = null;
+      const json = (r.headers.get('content-type') ?? '').includes('application/json') && !(Number(r.headers.get('content-length')) > 262144);
+      if (json) { try { const t = await r.text(); if (t.length <= 262144) corps = JSON.parse(t); } catch { corps = null; } }
+      else { try { await r.body?.cancel(); } catch { /* corps déjà fermé */ } }
+      if (r.status === 401) throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.', true);
+      if (r.status === 429) throw new ErreurEspaceClient('refus', 'Trop de tentatives. Patientez un instant avant de réessayer.');
+      if (r.status === 400) throw new ErreurEspaceClient('refus', messageServeurLivreur(corps) ?? 'La modification n’a pas été enregistrée. Réessayez dans un instant.');
+      if (!r.ok || !corps || typeof corps !== 'object' || (corps as { ok?: unknown }).ok !== true) throw incertain();
+      const o = corps as { message?: unknown; favori?: unknown };
+      if (avecFavori && typeof o.favori !== 'boolean') throw incertain();
+      const message = messageServeurLivreur({ erreur: { message: o.message } }) ?? 'Enregistré.';
+      return avecFavori ? { message, favori: o.favori as boolean } : { message };
+    } finally { clearTimeout(timer); }
+  }
   return {
+    /** Espace client complet (profil, adresses, favoris) : lecture seule, un seul essai. */
+    async espaceComplet(accessToken: string): Promise<EspaceComplet> {
+      const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });
+      try { return lireEspaceComplet(v); } catch { throw new ErreurConnexion('Votre espace est illisible. Réessayez dans un instant.'); }
+    },
+    /** Favori (B9) : bascule ajout/retrait. Le résultat dit l'état voulu par le serveur ; un résultat incertain se règle en relisant l'espace, jamais en rejouant. */
+    async basculerFavori(accessToken: string, restaurantId: string): Promise<{ message: string; favori: boolean }> {
+      if (!estUuid(restaurantId)) throw new ErreurEspaceClient('refus', 'Restaurant introuvable.');
+      const r = await ecritureEspace(accessToken, 'favoris', { restaurantId }, true);
+      return { message: r.message, favori: r.favori === true };
+    },
+    /** Profil (B11) : seuls les champs fournis changent. Règles vérifiées avant le réseau. */
+    async enregistrerProfil(accessToken: string, champs: ChampsProfil): Promise<{ message: string }> {
+      const probleme = verifierProfil(champs);
+      if (probleme !== null) throw new ErreurEspaceClient('refus', probleme);
+      const corps: Record<string, unknown> = {};
+      if (champs.pseudo !== undefined) { const v = validerPseudo(champs.pseudo); if (v.ok) corps.pseudo = v.pseudo; }
+      if (champs.avatar !== undefined) corps.avatar = champs.avatar;
+      if (champs.modePrefere !== undefined) corps.modePrefere = champs.modePrefere;
+      if (champs.notificationsCommande !== undefined) corps.notificationsCommande = champs.notificationsCommande;
+      return ecritureEspace(accessToken, 'profil', corps);
+    },
+    /** Carnet d'adresses (B10) : ajouter, supprimer ou définir la principale. Règles vérifiées avant le réseau. */
+    async actionAdresse(accessToken: string, a: ActionAdresse): Promise<{ message: string }> {
+      if (a.action === 'ajouter') {
+        const v = validerAdresse(a.libelle, a.adresse);
+        if (!v.ok) throw new ErreurEspaceClient('refus', v.erreur);
+        return ecritureEspace(accessToken, 'adresses', { action: 'ajouter', libelle: v.libelle, adresse: v.adresse });
+      }
+      if ((a.action !== 'supprimer' && a.action !== 'defaut') || !estUuid(a.adresseId)) throw new ErreurEspaceClient('refus', 'Adresse inconnue.');
+      return ecritureEspace(accessToken, 'adresses', { action: a.action, adresseId: a.adresseId });
+    },
+    /**
+     * Inscription (parité A2, route `signup` du service d'authentification, mêmes données que l'ancienne appli). Règles vérifiées AVANT le réseau. Rend la session si le service n'exige pas de confirmation
+     * d'e-mail, sinon `null` (un e-mail de confirmation est parti). Une adresse déjà inscrite reçoit la même réponse qu'une nouvelle : on ne révèle pas qui a un compte. Un seul essai.
+     */
+    async inscrire(nom: string, telephone: string, email: string, motDePasse: string): Promise<SessionAuth | null> {
+      const probleme = verifierInscription({ nom, telephone, email, motDePasse });
+      if (probleme !== null) throw new ErreurConnexion(probleme);
+      const r = await authPublic('signup', { redirect_to: SITE_WEB + '/auth/confirmation?suite=%2Fcompte' }, { email: email.trim(), password: motDePasse, data: { nom_commande: nom.trim(), telephone: normaliserTelephone(telephone) } });
+      if (!r.ok) throw new ErreurConnexion(traduireErreurAuth(r.statut, r.texte));
+      if (r.json === null || typeof r.json.access_token !== 'string') return null;
+      try { return sessionDe(r.json); } catch { return null; }
+    },
+    /** Mot de passe oublié (parité A3, route `recover`) : même réponse que le compte existe ou non. Le lien reçu s'ouvre dans le navigateur, sur la page du site. Un seul essai. */
+    async demanderReinitialisation(email: string): Promise<void> {
+      const probleme = verifierEmail(email);
+      if (probleme !== null) throw new ErreurConnexion(probleme);
+      const r = await authPublic('recover', { redirect_to: SITE_WEB + '/auth/confirmation?suite=%2Fconnexion%2Fnouveau-mot-de-passe' }, { email: email.trim() });
+      if (r.ok) return;
+      // Trop de demandes ou panne : message précis ; sinon l'envoi a échoué, sans détail technique.
+      if (r.statut === 429 || r.statut >= 500) throw new ErreurConnexion(traduireErreurAuth(r.statut, r.texte));
+      throw new ErreurConnexion('L’e-mail n’a pas pu être envoyé pour le moment. Réessayez dans quelques minutes.');
+    },
     creerCommande: postCommande,
     declarerPaiement: postDeclaration,
     async ficheLivreur(accessToken: string): Promise<FicheLivreur | null> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livreur/fiche', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
       try { return lireFicheLivreur(v); } catch { throw new ErreurConnexion('La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Accès du compte dans l'équipe (rôle, permissions, menu déjà filtrés par le serveur). */
+    async accesEquipe(accessToken: string): Promise<AccesEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/moi', 'Votre accès équipe reçu est illisible. Réessayez dans un instant.');
+      try { return lireAccesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Votre accès équipe reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Recherche de commandes pour le support (coordonnées déjà masquées par la base). */
+    async commandesEquipe(accessToken: string, recherche: { statut?: string; reference?: string; jour?: boolean }): Promise<{ commandes: CommandeEquipe[]; illisibles: number }> {
+      const q = new URLSearchParams();
+      if (recherche.statut) q.set('statut', recherche.statut);
+      if (recherche.reference) q.set('reference', recherche.reference.slice(0, 40));
+      if (recherche.jour) q.set('jour', '1');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/commandes?' + q.toString(), 'Les commandes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireCommandesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les commandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Détail d'une commande pour le support (historique, propositions, transitions permises). */
+    async detailCommandeEquipe(accessToken: string, commandeId: string): Promise<ReponseDetailEquipe> {
+      if (!uuidEquipe.test(commandeId)) throw new ErreurEquipe('refus', 'Commande introuvable. Actualisez la liste.');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/commandes/' + commandeId, 'Le détail reçu est illisible. Réessayez dans un instant.');
+      try { return lireDetailCommandeEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le détail reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Fait passer une commande à un statut cible (motif obligatoire, tracé par le serveur). Un seul essai. */
+    async changerStatutEquipe(accessToken: string, commandeId: string, vers: StatutCommandeEquipe, motifBrut: string): Promise<void> {
+      if (!uuidEquipe.test(commandeId) || !(STATUTS_COMMANDE_EQUIPE as readonly string[]).includes(vers)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le détail.');
+      const motif = preparerMotifEquipe(motifBrut);
+      if (motif === null) throw new ErreurEquipe('refus', 'Un motif est obligatoire (500 caractères au plus) pour une action de support.');
+      await appelEquipeEcriture(accessToken, '/api/v1/equipe/commandes/' + commandeId + '/statut', { vers, motif }, 'Impossible d’appliquer ce changement de statut.');
+    },
+    /** Révèle les coordonnées d'un client (motif obligatoire, trace d'audit écrite par le serveur avant la réponse). Un seul essai. */
+    async revelerCoordonneesEquipe(accessToken: string, commandeId: string, motifBrut: string): Promise<CoordonneesEquipe> {
+      if (!uuidEquipe.test(commandeId)) throw new ErreurEquipe('refus', 'Commande introuvable. Actualisez la liste.');
+      const motif = preparerMotifEquipe(motifBrut);
+      if (motif === null) throw new ErreurEquipe('refus', 'Un motif est obligatoire (500 caractères au plus) pour révéler les coordonnées.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/commandes/' + commandeId + '/coordonnees', { motif }, 'Les coordonnées n’ont pas pu être révélées.');
+      try { return lireCoordonneesEquipe(v); } catch { throw new ErreurEquipe('incertain', 'Réponse du service illisible. Par prudence, considérez la révélation comme non faite et actualisez.'); }
+    },
+    /** Commandes actives des établissements tenus par l'équipe (poste de répartition). */
+    async commandesARepartir(accessToken: string): Promise<{ commandes: CommandeARepartir[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/repartition', 'Les commandes à répartir reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireCommandesARepartir(v); } catch { throw new ErreurEquipe('refus', 'Les commandes à répartir reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Fait avancer une commande au poste de répartition (action de la liste blanche, tracée par le serveur). Un seul essai. */
+    async actionRepartitionEquipe(accessToken: string, commandeId: string, action: ActionRepartitionEquipe): Promise<StatutCommandeEquipe> {
+      if (!uuidEquipe.test(commandeId) || !estActionRepartitionEquipe(action)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/repartition/action', { commandeId, action }, 'Impossible d’appliquer cette action.');
+      const s = v.statut;
+      if (typeof s !== 'string' || !(STATUTS_COMMANDE_EQUIPE as readonly string[]).includes(s)) throw new ErreurEquipe('incertain', 'Réponse du service illisible. Actualisez la liste avant de réessayer.');
+      return s as StatutCommandeEquipe;
+    },
+    /** Exploitation livreurs (lot 5, E1) : courses en cours et fiches des livreurs (jamais le dossier d'identité, le serveur ne le renvoie pas). */
+    async exploitationEquipe(accessToken: string): Promise<ExploitationEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/livraisons', 'L’exploitation reçue est illisible. Réessayez dans un instant.');
+      try { return lireExploitationEquipe(v); } catch { throw new ErreurEquipe('refus', 'L’exploitation reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Action sur une livraison (corps préparé et vérifié avant le réseau ; le serveur trace). Un seul essai ; renvoie le message du serveur. */
+    async actionLivraisonEquipe(accessToken: string, action: string, livraisonId: string, livreurId?: string): Promise<string> {
+      const corps = preparerActionLivraisonEquipe(action, livraisonId, livreurId);
+      if (corps === null) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez l’exploitation.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/livraisons/action', corps, 'Impossible d’appliquer cette action sur la livraison.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Livraison mise à jour.';
+    },
+    /** Action sur un livreur (motif seulement où le serveur l'exige ; le serveur trace). Un seul essai ; renvoie le message du serveur. */
+    async actionLivreurEquipe(accessToken: string, action: string, livreurId: string, motif?: string): Promise<string> {
+      const corps = preparerActionLivreurEquipe(action, livreurId, motif);
+      if (corps === null) throw new ErreurEquipe('refus', 'Demande invalide : vérifiez l’action et le motif (5 caractères au moins quand il est exigé).');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/livreurs/action', corps, 'Impossible d’appliquer cette action sur le livreur.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Livreur mis à jour.';
+    },
+    /** Établissements vus par l'équipe (lot 6, E4) : état seulement, publication et suspension restent sur le site. */
+    async restaurantsEquipe(accessToken: string): Promise<{ restaurants: RestaurantEquipe[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/restaurants', 'Les établissements reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireRestaurantsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les établissements reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Fiche d'un établissement pour l'équipe (identité, état, menu). */
+    async ficheRestaurantEquipe(accessToken: string, restaurantId: string): Promise<FicheRestaurantEquipe> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/restaurants/' + restaurantId, 'La fiche reçue est illisible. Réessayez dans un instant.');
+      try { return lireFicheRestaurantEquipe(v); } catch { throw new ErreurEquipe('refus', 'La fiche reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Modification simple d'un établissement (horaires + numéro interne, validés avant le réseau comme le serveur). Un seul essai. */
+    async modifierProfilEquipe(accessToken: string, restaurantId: string, horaires: string, telephoneBrut: string): Promise<string> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const validation = validerProfilSimpleEquipe(horaires, telephoneBrut);
+      if (!validation.ok) throw new ErreurEquipe('refus', validation.message);
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/restaurants/' + restaurantId + '/profil', { horaires: validation.horaires, telephone: validation.telephone ?? '' }, 'Impossible d’enregistrer ce profil.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Profil enregistré.';
+    },
+    /** Fraîcheur des menus des établissements tenus par l'équipe (lot 6, E5). */
+    async menusEquipe(accessToken: string): Promise<MenusEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/menus', 'Les menus reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireMenusEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les menus reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Plats du menu d'un établissement tenu par l'équipe. */
+    async platsMenuEquipe(accessToken: string, restaurantId: string): Promise<{ nom: string; plats: PlatMenuEquipe[] }> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/menus/' + restaurantId, 'Le menu reçu est illisible. Réessayez dans un instant.');
+      try { return lirePlatsMenuEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le menu reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Reconfirme un plat disponible, ou tout le menu si aucun plat n'est donné. Un seul essai. */
+    async reconfirmerMenuEquipe(accessToken: string, restaurantId: string, platId?: string): Promise<string> {
+      if (!uuidEquipe.test(restaurantId) || (platId !== undefined && !uuidEquipe.test(platId))) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le menu.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/confirmer', platId ? { restaurantId, platId } : { restaurantId }, 'Impossible de reconfirmer pour le moment.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Menu reconfirmé.';
+    },
+    /** Marque un plat épuisé ou le remet en vente. Un seul essai. */
+    async disponibiliteMenuEquipe(accessToken: string, restaurantId: string, platId: string, disponible: boolean): Promise<string> {
+      if (!uuidEquipe.test(restaurantId) || !uuidEquipe.test(platId) || typeof disponible !== 'boolean') throw new ErreurEquipe('refus', 'Demande invalide. Actualisez le menu.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/disponibilite', { restaurantId, platId, disponible }, 'Impossible d’enregistrer pour le moment.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Plat mis à jour.';
+    },
+    /** Fait lire une photo de menu d'un établissement tenu par l'équipe (rien n'est conservé) : la liste revient pour relecture. */
+    async lirePhotoMenuEquipe(accessToken: string, restaurantId: string, fichier: FichierPhotoPrete): Promise<LectureMenu> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const formulaire = await formulairePhotoCandidature(fichier);
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/' + restaurantId + '/photo', formulaire, 'La photo n’a pas pu être lue.');
+      try { return lireLectureMenu(v); } catch { throw new ErreurEquipe('refus', 'La lecture reçue est illisible. Saisissez les plats à la main.'); }
+    },
+    /** Ajoute au menu les plats relus et cochés (préparés et vérifiés avant le réseau). Un seul essai ; renvoie le nombre ajouté par le serveur. */
+    async importerMenuEquipe(accessToken: string, restaurantId: string, lignes: Array<{ nom: string; prix: string; coche: boolean }>): Promise<{ message: string; ajoutes: number }> {
+      if (!uuidEquipe.test(restaurantId)) throw new ErreurEquipe('refus', 'Établissement introuvable. Actualisez la liste.');
+      const prepare = preparerImportMenuEquipe(lignes);
+      if (prepare.plats === null) throw new ErreurEquipe('refus', prepare.erreur ?? 'Cochez au moins un plat à importer.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/menus/' + restaurantId + '/import', { plats: prepare.plats }, 'Les plats n’ont pas pu être ajoutés.');
+      const ajoutes = typeof v.ajoutes === 'number' && Number.isSafeInteger(v.ajoutes) && v.ajoutes >= 0 ? v.ajoutes : prepare.plats.length;
+      return { message: typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : ajoutes + ' plat(s) ajouté(s) au menu.', ajoutes };
+    },
+    /** Demandes de référencement (le téléphone du responsable est envoyé pour le rappeler ; jamais l'e-mail). */
+    async referencementsEquipe(accessToken: string): Promise<{ demandes: DemandeReferencement[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/referencements', 'Les demandes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireReferencementsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les demandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Catégories et quartiers officiels pour créer l'établissement d'une demande. */
+    async optionsReferencement(accessToken: string): Promise<{ categories: Array<{ id: string; nom: string }>; quartiers: Array<{ id: string; nom: string }> }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/referencements/options', 'Les listes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireOptionsReferencement(v); } catch { throw new ErreurEquipe('refus', 'Les listes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Change le statut d'une demande de référencement (jamais « creee » à la main). Un seul essai. */
+    async statutReferencement(accessToken: string, demandeId: string, statut: string, motif?: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId) || !(STATUTS_REFERENCEMENT_EQUIPE as readonly string[]).includes(statut) || statut === 'creee') throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/referencements/statut', { id: demandeId, statut, ...(motif ? { motif } : {}) }, 'Le statut n’a pas pu être changé.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Statut enregistré.';
+    },
+    /** Crée l'établissement (non publié) d'une demande, catégorie et quartier des listes officielles. Un seul essai. */
+    async creerEtablissementReferencement(accessToken: string, demandeId: string, categorieId: string, quartierId: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId) || !uuidEquipe.test(categorieId) || !uuidEquipe.test(quartierId)) throw new ErreurEquipe('refus', 'Choisissez une catégorie et un quartier des listes proposées.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/referencements/creer-etablissement', { id: demandeId, categorieId, quartierId }, 'L’établissement n’a pas pu être créé.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Établissement créé (non publié).';
+    },
+    /** Rattache le compte du candidat à son établissement créé, comme propriétaire (décision humaine). Un seul essai. */
+    async rattacherReferencement(accessToken: string, demandeId: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/referencements/rattacher', { id: demandeId }, 'Le compte n’a pas pu être rattaché.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Compte rattaché à l’établissement.';
+    },
+    /** Demandes de partenariat reçues par la page « Devenir partenaire ». */
+    async partenariatsEquipe(accessToken: string): Promise<{ partenariats: DemandePartenariat[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/partenariats', 'Les demandes reçues sont illisibles. Réessayez dans un instant.');
+      try { return lirePartenariatsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les demandes reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Change le statut d'une demande de partenariat (suppression laissée au site, irréversible). Un seul essai. */
+    async statutPartenariat(accessToken: string, demandeId: string, statut: string): Promise<string> {
+      if (!uuidEquipe.test(demandeId) || !(STATUTS_PARTENARIAT_EQUIPE as readonly string[]).includes(statut)) throw new ErreurEquipe('refus', 'Demande invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/partenariats/statut', { id: demandeId, statut }, 'Le statut n’a pas pu être changé.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Statut enregistré.';
+    },
+    /** Avis à modérer et alertes de qualité (lot 7, E8). */
+    async avisEquipe(accessToken: string): Promise<AvisEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/avis', 'Les avis reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireAvisEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les avis reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Décision de modération d'un avis (motif exigé pour retirer du contenu ; tracée par le serveur). Un seul essai. */
+    async modererAvisEquipe(accessToken: string, avisId: string, action: string, motif?: string): Promise<string> {
+      const corps = preparerModeration(avisId, action, motif);
+      if (corps === null) throw new ErreurEquipe('refus', 'Indiquez le motif (5 caractères au moins) pour retirer du contenu, puis réessayez.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/avis/moderation', corps, 'La décision n’a pas pu être enregistrée.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Décision enregistrée.';
+    },
+    /** Bannières diffusées sur les écrans publics (lot 7, E9, lecture seule : créer et publier restent sur le site). */
+    async bannieresEquipe(accessToken: string, statut?: string): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+      const q = statut === 'publie' || statut === 'brouillon' ? '?statut=' + statut : '';
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/bannieres' + q, 'Les bannières reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireBannieresEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les bannières reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Bibliothèque de médias : les bannières qui ont une image (lecture seule, pas d'envoi ici). */
+    async mediasEquipe(accessToken: string): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/medias', 'Les médias reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireBannieresEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les médias reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Réglages globaux de l'application (lot 7, E10, lecture seule : les modifier reste sur le site). */
+    async parametresEquipe(accessToken: string): Promise<ParametresEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/parametres', 'Les paramètres reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireParametresEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les paramètres reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Annuaire des comptes (lot 8, E11, lecture seule : suppressions et rôles restent sur le site). */
+    async comptesEquipe(accessToken: string, recherche?: { q?: string; type?: string }): Promise<{ comptes: CompteEquipe[]; tronque: boolean; illisibles: number }> {
+      const q = new URLSearchParams();
+      if (recherche?.q) q.set('q', recherche.q.slice(0, 100));
+      if (recherche?.type && ['restaurateur', 'systeme', 'sans_affiliation', 'test'].includes(recherche.type)) q.set('type', recherche.type);
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/comptes?' + q.toString(), 'Les comptes reçus sont illisibles. Réessayez dans un instant.');
+      try { return lireComptesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les comptes reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Journal d'audit et indicateurs (lot 8, E12, lecture seule : le journal est en écriture seule par le serveur). */
+    async auditEquipe(accessToken: string, filtres?: { action?: string; depuis?: number }): Promise<AuditEquipe> {
+      const q = new URLSearchParams();
+      if (filtres?.action) q.set('action', filtres.action.slice(0, 80));
+      if (filtres?.depuis === 1 || filtres?.depuis === 7 || filtres?.depuis === 30) q.set('depuis', String(filtres.depuis));
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/audit?' + q.toString(), 'Le journal reçu est illisible. Réessayez dans un instant.');
+      try { return lireAuditEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le journal reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Zones de la liste d'attente (lot 8, E13) : que des zones et des nombres, aucun contact. */
+    async zonesAttenteEquipe(accessToken: string): Promise<{ zones: ZoneAttenteEquipe[]; illisibles: number }> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/liste-attente', 'Les zones reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireZonesAttente(v); } catch { throw new ErreurEquipe('refus', 'Les zones reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Marque les personnes d'une zone comme prévenues (aucun contact touché ; tracé par le serveur). Un seul essai. */
+    async marquerZonePrevenueEquipe(accessToken: string, niveau: string, zoneId: string): Promise<string> {
+      if (!['region', 'prefecture', 'commune', 'quartier'].includes(niveau) || !uuidEquipe.test(zoneId)) throw new ErreurEquipe('refus', 'Zone invalide. Actualisez la liste.');
+      const v = await appelEquipeEcriture(accessToken, '/api/v1/equipe/liste-attente/prevenue', { niveau, id: zoneId }, 'La zone n’a pas pu être marquée comme prévenue.');
+      return typeof v.message === 'string' && v.message.length > 0 && v.message.length <= 300 ? v.message : 'Zone marquée comme prévenue.';
+    },
+    /** État des mises à jour (lot 8, E14, lecture seule : interrupteurs et annonces restent sur le site). */
+    async misesAJourEquipe(accessToken: string): Promise<MisesAJourEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/mises-a-jour', 'Les mises à jour reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireMisesAJourEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les mises à jour reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Tableau de bord de l'équipe (lot 5, E1/E15) : seuls les blocs permis au rôle sont renvoyés ; un bloc absent n'est jamais inventé. */
+    async tableauEquipe(accessToken: string): Promise<TableauEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/tableau', 'Le tableau de bord reçu est illisible. Réessayez dans un instant.');
+      try { return lireTableauEquipe(v); } catch { throw new ErreurEquipe('refus', 'Le tableau de bord reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /** Paiements en ligne vus par l'équipe (lot 5, E3) : lecture seule, aucun numéro de versement retenu. */
+    async paiementsEquipe(accessToken: string): Promise<PaiementsEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/paiements', 'Les paiements reçus sont illisibles. Réessayez dans un instant.');
+      try { return lirePaiementsEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les paiements reçus sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** Finances de l'équipe (lot 5, E2) : relevé L3 en lecture seule, période par défaut de l'ancienne appli. */
+    async financesEquipe(accessToken: string, debut: string = DEBUT_PERIODE_FINANCES, fin: string = FIN_PERIODE_FINANCES): Promise<FinancesEquipe> {
+      const v = await appelEquipeLecture(accessToken, '/api/v1/equipe/finances?debut=' + encodeURIComponent(debut) + '&fin=' + encodeURIComponent(fin), 'Les finances reçues sont illisibles. Réessayez dans un instant.');
+      try { return lireFinancesEquipe(v); } catch { throw new ErreurEquipe('refus', 'Les finances reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /** La demande de candidature du compte (lot 4, B12), ou `null` s'il n'en a pas. Route du site, un seul essai. */
+    async lireCandidature(accessToken: string): Promise<VueCandidature | null> {
+      const v = await appelCandidature(accessToken, '/api/v1/candidature', { method:'GET', ecriture:false, defaut:'Votre demande n’a pas pu être chargée.' });
+      try { return lireVueCandidature(v); } catch { throw new ErreurCandidature('refus', 'Votre demande reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** Dépose la candidature remplie (corps produit par le domaine, revérifié avant le réseau par l'écran ; le serveur revérifie tout). Un seul essai. */
+    async deposerCandidature(accessToken: string, brouillon: BrouillonCandidature): Promise<VueCandidature> {
+      const v = await appelCandidature(accessToken, '/api/v1/candidature', { method:'POST', corps: produireCorpsCandidature(brouillon), ecriture:true, defaut:'Votre demande n’a pas pu être envoyée.' });
+      try { const vue = lireVueCandidature(v); if (vue === null) throw new Error('vide'); return vue; } catch { throw new ErreurCandidature('incertain', 'Réponse du service illisible. Relisez votre demande avant de réessayer.'); }
+    },
+    /** Envoie le logo ou la photo de la candidature déposée (multipart, un seul essai) ; renvoie la demande relue par le serveur. */
+    async envoyerImageCandidature(accessToken: string, type: 'logo' | 'photo', fichier: FichierPhotoPrete): Promise<VueCandidature> {
+      const formulaire = await formulairePhotoCandidature(fichier, type);
+      const v = await appelCandidature(accessToken, '/api/v1/candidature/image', { method:'POST', formulaire, ecriture:true, defaut:'L’image n’a pas pu être envoyée.' });
+      try { const vue = lireVueCandidature(v); if (vue === null) throw new Error('vide'); return vue; } catch { throw new ErreurCandidature('incertain', 'Réponse du service illisible. Relisez votre demande avant de réessayer.'); }
+    },
+    /** Fait lire une photo de menu par le serveur (rien n'est conservé) : la liste revient pour relecture avant ajout au brouillon. */
+    async lireMenuPhotoCandidature(accessToken: string, fichier: FichierPhotoPrete): Promise<LectureMenu> {
+      const formulaire = await formulairePhotoCandidature(fichier);
+      const v = await appelCandidature(accessToken, '/api/v1/candidature/menu-photo', { method:'POST', formulaire, ecriture:false, defaut:'La photo n’a pas pu être lue. Saisissez les plats à la main.' });
+      try { return lireLectureMenu(v); } catch { throw new ErreurCandidature('refus', 'La lecture reçue est illisible. Saisissez les plats à la main.'); }
+    },
+    /**
+     * File des courses du livreur (lot 3, D5) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/file`, créée pour la parité).
+     * Lecture seule, un seul essai, strictement relue ; `null` = ce compte n'est pas livreur.
+     */
+    async fileLivreur(accessToken: string): Promise<FileLivreur | null> {
+      const v = await requete(SITE_WEB+'/api/v1/livreur/file', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireFileLivreur(v); } catch { throw new ErreurConnexion('Votre file de courses reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * « Mon dossier » du livreur : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/dossier`, créée pour la parité). Lecture seule, un seul essai,
+     * strictement relue ; seul l'état de chaque pièce est lu, jamais son contenu ; `null` = ce compte n'est pas livreur.
+     */
+    async dossierLivreur(accessToken: string): Promise<DossierLivreur | null> {
+      const v = await requete(SITE_WEB+'/api/v1/livreur/dossier', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireDossierLivreur(v); } catch { throw new ErreurConnexion('L’état de votre dossier reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * Gains du livreur (lot 3, D7) : route DU SITE comme l'ancienne appli (`GET /api/v1/livreur/gains`, l'API unique ne l'héberge pas encore).
+     * Lecture seule, un seul essai ; `null` = ce compte n'est pas livreur. Le montant lu est un frais de course, jamais une paie.
+     */
+    async gainsLivreur(accessToken: string): Promise<GainsLivreur | null> {
+      const v = await requete(SITE_WEB+'/api/v1/livreur/gains', { method:'GET', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json' } });
+      try { return lireGainsLivreur(v); } catch { throw new ErreurConnexion('Vos courses reçues sont illisibles. Réessayez dans un instant.'); }
+    },
+    /**
+     * Historique paginé des courses livrées (lot 3, D6) : route DU SITE comme l'ancienne appli (`POST /api/v1/livreur/historique`, corps `{page}`).
+     * La page est vérifiée AVANT le réseau ; un seul essai ; `null` = ce compte n'est pas livreur.
+     */
+    async historiqueLivreur(accessToken: string, page: number): Promise<PageCoursesLivreur | null> {
+      const demandee = preparerPageCourses(page);
+      if (demandee === null) throw new ErreurLivreur('refus', 'Cette page d’historique n’est pas valide. Actualisez vos courses.');
+      const v = await requete(SITE_WEB+'/api/v1/livreur/historique', { method:'POST', headers:{ Authorization:'Bearer '+accessToken, Accept:'application/json', 'Content-Type':'application/json' }, body: JSON.stringify({ page: demandee }) });
+      try { return lirePageCoursesLivreur(v); } catch { throw new ErreurConnexion('Votre historique reçu est illisible. Réessayez dans un instant.'); }
     },
     /** État G2 (fiche + offre) : lecture pure, un seul essai, aucun identifiant de compte dans l'URL ni le corps. */
     async etatLivreur(accessToken: string): Promise<EtatLivreur | null> {
@@ -384,6 +894,41 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       try { return lireListeRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Les commandes reçues sont illisibles. Réessayez dans un instant.'); }
     },
     /**
+     * Historique des commandes finies, page par page (route `/restaurant/historique`, lot 2 / C8). La page demandée est vérifiée AVANT le réseau et portée par le corps :
+     * le serveur répond toujours par la page exactement demandée. Lecture seule, UN SEUL essai. Le restaurant n'est jamais envoyé (le serveur le tire du compte) et
+     * la réponse est relue strictement : aucune coordonnée client n'est retenue.
+     */
+    async historiqueRestaurant(accessToken: string, page: number, taille: number): Promise<PageHistorique> {
+      const demande = preparerPageHistorique(page, taille);
+      if (demande === null) throw new ErreurRestaurateur('refus', 'Cette page d’historique n’est pas valide. Actualisez l’historique.');
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/historique', { method:'POST', corps: demande }, true);
+      try { return lirePageHistorique(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’historique reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /**
+     * Établit le reçu numéroté ou la facture d'UNE commande (route `/commandes/document`, lot 2 / C5). Type de la liste blanche et identifiant vérifiés AVANT le
+     * réseau ; UN SEUL essai (émettre attribue un numéro : jamais de relance automatique, la liste relue montre le document établi). Le corps ne porte que la commande et le type.
+     */
+    async emettreDocumentRestaurateur(accessToken: string, commandeId: string, type: TypeDocument): Promise<void> {
+      if (type !== 'recu' && type !== 'facture') throw new ErreurRestaurateur('refus', 'Ce document n’est pas disponible dans l’application.');
+      if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(commandeId)) throw new ErreurRestaurateur('refus', 'Commande introuvable. Actualisez la liste.');
+      lireReponseAction(await appelRestaurateur(accessToken, '/api/v1/restaurant/commandes/document', { method:'POST', corps:{ commandeId, type } }, false));
+    },
+    /** Activité du restaurant (route `/restaurant/activite`, lot 2 / C10) : bilans du jour et des 7 jours, répartition, dernières terminées. Lecture seule, UN SEUL essai, relue strictement. */
+    async activiteRestaurant(accessToken: string): Promise<ActiviteRestaurateur> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/activite', { method:'GET' }, true);
+      try { return lireActiviteRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’activité reçue est illisible. Réessayez dans un instant.'); }
+    },
+    /** État de publication de CE restaurant (route `/restaurant/etat`) : publié, suspendu, correction demandée avant publication. Lecture seule, UN SEUL essai, relue strictement. */
+    /** Score qualité mensuel de CE restaurant (route `/restaurant/score`) : le mois le plus récent calculé, ou `null` avant le premier calcul. Lecture seule, UN SEUL essai, relu strictement. */
+    async scoreRestaurant(accessToken: string): Promise<ScoreRestaurateur | null> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/score', { method:'GET' }, true);
+      try { return lireScoreRestaurateur(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'Le score reçu est illisible. Réessayez dans un instant.'); }
+    },
+    async etatRestaurant(accessToken: string): Promise<EtatPublication> {
+      const corps = await appelRestaurateur(accessToken, '/api/v1/restaurant/etat', { method:'GET' }, true);
+      try { return lireEtatPublication(corps as Record<string, unknown>); } catch { throw new ErreurRestaurateur('reponse_invalide', 'L’état de publication reçu est illisible. Réessayez dans un instant.'); }
+    },
+    /**
      * Accepter, refuser, marquer prête ou terminée (route `/commandes/action`) ; confirmer ou contester un paiement déclaré (route `/commandes/paiement`). Liste blanche vérifiée AVANT tout
      * appel réseau (jamais la livraison ni une valeur inconnue ; la proposition de prix a sa propre fonction, avec ses montants). UN SEUL essai. Le corps ne porte que l'identifiant de la commande et l'action ou la décision.
      */
@@ -409,11 +954,11 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
      * partagé avec le serveur : action de la liste blanche, identifiant de livraison, code de EXACTEMENT 4 chiffres (sinon échec LOCAL : rien ne part). UN SEUL essai. Le corps ne porte que la livraison, l'action
      * et, pour « livree » seulement, le code (jamais le restaurant). Le code n'est ni conservé ni repris dans une erreur.
      */
-    async actionLivraisonRestaurateur(accessToken: string, livraisonId: string, action: ActionLivraisonApp, code?: string): Promise<void> {
+    async actionLivraisonRestaurateur(accessToken: string, livraisonId: string, action: ActionLivraisonApp, code?: string, motif?: MotifEchecApp): Promise<void> {
       if (lireActionLivraisonApp(action) === null) throw erreurLocaleLivraison('Cette action n’est pas disponible dans l’application.');
-      const demande = lireDemandeLivraisonApp({ livraisonId, action, code });
-      if (!demande.ok) throw erreurLocaleLivraison(demande.message === MESSAGE_CODE_LIVRAISON ? MESSAGE_CODE_LIVRAISON : 'Livraison introuvable. Actualisez la liste.');
-      const corps = demande.action === 'livree' ? { livraisonId: demande.livraisonId, action: demande.action, code: demande.code } : { livraisonId: demande.livraisonId, action: demande.action };
+      const demande = lireDemandeLivraisonApp({ livraisonId, action, code, motif });
+      if (!demande.ok) throw erreurLocaleLivraison(demande.message === MESSAGE_CODE_LIVRAISON ? MESSAGE_CODE_LIVRAISON : demande.message === MESSAGE_MOTIF_ECHEC ? MESSAGE_MOTIF_ECHEC : 'Livraison introuvable. Actualisez la liste.');
+      const corps = demande.action === 'livree' ? { livraisonId: demande.livraisonId, action: demande.action, code: demande.code } : demande.action === 'non_aboutie' ? { livraisonId: demande.livraisonId, action: demande.action, motif: demande.motif } : { livraisonId: demande.livraisonId, action: demande.action };
       lireReponseAction(await appelRestaurateur(accessToken, CHEMIN_LIVRAISON_APP, { method:'POST', corps }, false, TEXTES_LIVRAISON));
     },
     /** Réglages du service (GET) : horaires, ouvert, accepte commandes, délai de préparation, plats à reconfirmer (liste du serveur). Lecture seule, un seul essai. */
@@ -457,6 +1002,35 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
       if (!email.trim() || email.length > 254 || !motDePasse.length || motDePasse.length > 4096) throw new ErreurConnexion('Renseignez votre adresse e-mail et votre mot de passe.');
       return jetons('password',{ email:email.trim(), password:motDePasse });
     },
+    /**
+     * Fournisseurs sociaux activés côté service d'authentification (A4/A5/A6) : lus sur le point public des réglages ; Facebook exige en plus
+     * l'interrupteur de l'équipe lu sur le site. Tout échec vaut « aucun » : jamais un bouton qui échouerait.
+     */
+    async fournisseursActifs(): Promise<Set<'google' | 'facebook'>> {
+      try {
+        const k = await cle();
+        const v = await requete(SUPABASE+'/auth/v1/settings', { method:'GET', headers:{ apikey:k, Accept:'application/json' } });
+        let facebookSite = false;
+        if ((v.external as Record<string, unknown> | undefined)?.facebook === true) {
+          try { const f = await requete(SITE_WEB+'/api/v1/connexion/fournisseurs', { method:'GET' }); facebookSite = f.facebook === true; } catch { facebookSite = false; }
+        }
+        return fournisseursActifsDepuis(v, facebookSite);
+      } catch { return new Set(); }
+    },
+    /** Échange le code à usage unique du retour social (secret PKCE) contre la session, créée si le compte n'existe pas. Un seul essai. */
+    async connecterAvecCode(code: string, verificateur: string) {
+      if (!code || code.length > 512 || !verificateur || verificateur.length < 43 || verificateur.length > 128) throw new ErreurConnexion('Le retour de connexion est invalide. Réessayez.');
+      const k = await cle();
+      const v = await requete(SUPABASE+'/auth/v1/token?grant_type=pkce', { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify({ auth_code: code, code_verifier: verificateur }) }, true);
+      return sessionDe(v);
+    },
+    /** Connexion avec un jeton d'identité Google obtenu sur le téléphone (fournisseur natif futur) : vérifié par le service d'authentification. Un seul essai. */
+    async connecterAvecGoogle(jetonIdentite: string, nonce?: string) {
+      if (!jetonIdentite || jetonIdentite.length > 16384) throw new ErreurConnexion('La connexion Google n’a pas abouti. Réessayez.');
+      const k = await cle();
+      const v = await requete(SUPABASE+'/auth/v1/token?grant_type=id_token', { method:'POST', headers:{ apikey:k, 'Content-Type':'application/json' }, body:JSON.stringify({ provider:'google', id_token: jetonIdentite, ...(nonce ? { nonce } : {}) }) }, true);
+      return sessionDe(v);
+    },
     renouveler: (refreshToken: string) => jetons('refresh_token',{ refresh_token:refreshToken }),
     async commandes(accessToken:string) {
       const v=await requete(ORIGINE_CATALOGUE+'/api/v1/commandes',{method:'GET',headers:{Authorization:'Bearer '+accessToken}});
@@ -471,6 +1045,37 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
         409:'Le restaurant a déjà répondu à votre commande : elle ne peut plus être annulée ici. Appelez l’assistance Speedfood.',404:'Commande introuvable.',400:'Lien de suivi invalide. Actualisez vos commandes.'});
       if(v.ok!==true||typeof v.reference!=='string'||!v.reference.length||v.reference.length>40)throw new ErreurConnexion('Réponse d’annulation invalide.');
       return {reference:v.reference};
+    },
+    /** Réponse du client à la proposition révisée du restaurant (route du site `suivi/proposition`). UN SEUL essai ; le jeton ne va que dans le corps ; seul `ok:true` vaut succès. */
+    async repondreProposition(jeton:string,propositionId:string,accepter:boolean):Promise<void> {
+      if(typeof propositionId!=='string'||!propositionId.length||propositionId.length>64)throw new ErreurConnexion('Proposition invalide. Actualisez le suivi.');
+      const v=await requete(ORIGINE_CATALOGUE+'/api/v1/suivi/proposition',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jeton,propositionId,reponse:accepter?'acceptee':'refusee'})},false,false,{
+        409:'Cette proposition n’est plus valable (expirée ou déjà traitée). Actualisez le suivi.',404:'Proposition introuvable. Actualisez le suivi.',400:'Réponse invalide : lien de suivi ou proposition invalide. Actualisez vos commandes.'});
+      if(v.ok!==true)throw new ErreurConnexion('Réponse invalide du serveur.');
+    },
+    /**
+     * Suppression du compte connecté (route `client/compte`, droit à l'effacement) : IRRÉVERSIBLE, UN SEUL essai, jamais de relance. Le mot SUPPRIMER est vérifié ICI avant le réseau (sinon rien ne part).
+     * `refus` (400 : compte professionnel, mot refusé, panne côté serveur ; 429) = rien n'a été supprimé ; 401 = session terminée ; réseau, délai, autre statut ou réponse illisible = `incertain`
+     * (la suppression a pu être faite : jamais présentée comme un succès). Le porteur n'est que dans l'en-tête, jamais dans l'adresse ni dans un message.
+     */
+    async supprimerCompte(accessToken:string,confirmation:string):Promise<void> {
+      if(!confirmationSuppressionValide(confirmation))throw new ErreurSuppressionCompte('refus','Écrivez SUPPRIMER pour confirmer la suppression.');
+      const incertain=()=>new ErreurSuppressionCompte('incertain','Impossible de confirmer la suppression. Actualisez votre espace : si votre session a pris fin, votre compte est bien supprimé.');
+      const controle=new AbortController();const timer=setTimeout(()=>controle.abort(),delaiCommandeMs);
+      let r:Response;
+      try{r=await fetcher(ORIGINE_CATALOGUE+'/api/v1/client/compte',{method:'POST',credentials:'omit',signal:controle.signal,headers:{Authorization:'Bearer '+accessToken,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify({confirmation:MOT_CONFIRMATION})});}
+      catch{clearTimeout(timer);throw incertain();}
+      try{
+        let corps:unknown=null;
+        const json=(r.headers.get('content-type')??'').includes('application/json')&&!(Number(r.headers.get('content-length'))>262144);
+        if(json){try{const texte=await r.text();if(texte.length<=262144)corps=JSON.parse(texte);}catch{corps=null;}}
+        else{try{await r.body?.cancel();}catch{/* corps déjà fermé */}}
+        if(r.status===401)throw new ErreurConnexion('Votre session a pris fin. Reconnectez-vous.',true);
+        if(r.status===429)throw new ErreurSuppressionCompte('refus','Trop de tentatives. Patientez un instant avant de réessayer.');
+        if(r.status===400)throw new ErreurSuppressionCompte('refus',messageServeurLivreur(corps)??'Le compte n’a pas été supprimé. Écrivez-nous depuis le centre d’aide si le problème persiste.');
+        if(!r.ok)throw incertain();
+        if(!corps||typeof corps!=='object'||(corps as {ok?:unknown}).ok!==true)throw incertain();
+      }finally{clearTimeout(timer);}
     },
     async espace(accessToken: string): Promise<ResumeCompte> {
       const v = await requete(ORIGINE_CATALOGUE+'/api/v1/client/espace', { method:'GET', headers:{ Authorization:'Bearer '+accessToken } });

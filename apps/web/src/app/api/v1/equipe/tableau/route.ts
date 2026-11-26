@@ -55,10 +55,10 @@ export async function GET(request: Request) {
   if (roleAPermission(role, "restaurant.moderer")) {
     // Mêmes définitions que les filtres de `/system/catalogue/restaurants`.
     const [enAttente, publies, suspendus, correction] = await Promise.all([
-      supabase.from("restaurants").select("id", { count: "exact", head: true }).eq("publie", false).is("suspendu_le", null).is("motif_correction", null),
+      supabase.from("restaurants").select("id", { count: "exact", head: true }).eq("publie", false).is("suspendu_le", null).eq("correction_demandee", false),
       supabase.from("restaurants").select("id", { count: "exact", head: true }).eq("publie", true).is("suspendu_le", null),
       supabase.from("restaurants").select("id", { count: "exact", head: true }).not("suspendu_le", "is", null),
-      supabase.from("restaurants").select("id", { count: "exact", head: true }).not("motif_correction", "is", null),
+      supabase.from("restaurants").select("id", { count: "exact", head: true }).eq("correction_demandee", true),
     ]);
     const { menus } = await listerMenusEquipe();
     corps.catalogue = {

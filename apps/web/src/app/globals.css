@@ -126,6 +126,15 @@ a {
   text-decoration: none;
 }
 
+/* Les commandes de formulaire n'héritent pas la police par défaut du navigateur : sans cette règle, un bouton sans police propre
+   s'affichait en Arial (bouton « Voir les restaurants » de la recherche par quartier). */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 /* Anneau de focus plein, 3 px, `--rouge-fonce` (5,8 : 1 sur le crème) avec décalage : l'ancien halo orange à 35 % ne valait que 1,4 : 1
    (audit du 4 octobre 2026, M2 — WCAG 2.4.7 et 1.4.11). Sur fond sombre (pied de page), voir cadre.css. */
 :focus-visible {

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ResultatActionCommande } from "@speedfood/shared/contracts/commande";
-import { lireLivraisonApi, type ActionLivraisonApp, type LivraisonRestaurateurApi } from "@speedfood/shared/contracts/restaurant-livraison";
+import { MOTIFS_ECHEC_APP, lireLivraisonApi, lireMotifEchecApp, type ActionLivraisonApp, type LivraisonRestaurateurApi, type MotifEchecApp } from "@speedfood/shared/contracts/restaurant-livraison";
 
 /**
  * Livraison par le restaurant depuis l'application (lot D5), pour `POST /api/v1/restaurant/livraison/action` et pour le bloc `livraison` de `GET /api/v1/restaurant/commandes`.
@@ -15,7 +15,7 @@ import { lireLivraisonApi, type ActionLivraisonApp, type LivraisonRestaurateurAp
 export interface DemandeAvancementRestaurant {
   livraisonId: string;
   acteur: "restaurant";
-  vers: "vers_client" | "livree" | "annulee";
+  vers: "vers_client" | "livree" | "annulee" | "echec";
   code?: string;
   raison?: string;
 }
@@ -25,7 +25,7 @@ const INTROUVABLE: ResultatActionCommande = { ok: false, erreur: { code: "INTROU
 const PANNE: ResultatActionCommande = { ok: false, erreur: { code: "ERREUR_SERVEUR", message: "Impossible d'enregistrer le changement. Réessayez dans un instant." } };
 
 /** Étape visée par chaque action (celle du site : `agirSurLivraisonAction`). */
-const VERS: Record<ActionLivraisonApp, DemandeAvancementRestaurant["vers"]> = { partir: "vers_client", livree: "livree", annuler: "annulee" };
+const VERS: Record<ActionLivraisonApp, DemandeAvancementRestaurant["vers"]> = { partir: "vers_client", livree: "livree", annuler: "annulee", non_aboutie: "echec" };
 
 type Lecture = { etat: "ok" } | { etat: "absent" } | { etat: "panne" };
 
@@ -61,7 +61,11 @@ export async function agirSurLivraisonRestaurant(
   action: ActionLivraisonApp,
   code: string | undefined,
   avancer: AvancementLivraison,
+  motif?: MotifEchecApp,
 ): Promise<ResultatActionCommande> {
+  // « Non aboutie » sans motif de la liste fermée : refusé avant tout accès (la route le refuse déjà ; défense en profondeur).
+  const motifLu = action === "non_aboutie" ? lireMotifEchecApp(motif) : null;
+  if (action === "non_aboutie" && motifLu === null) return { ok: false, erreur: { code: "VALIDATION", message: "Choisissez le motif de l'échec." } };
   const lecture = await lireAppartenance(db, restaurantId, livraisonId);
   if (lecture.etat === "absent") return INTROUVABLE;
   if (lecture.etat === "panne") return PANNE;
@@ -72,6 +76,7 @@ export async function agirSurLivraisonRestaurant(
       vers: VERS[action],
       ...(action === "livree" ? { code } : {}),
       ...(action === "annuler" ? { raison: "Annulée par le restaurant" } : {}),
+      ...(action === "non_aboutie" && motifLu !== null ? { raison: `Non aboutie (restaurant) : ${MOTIFS_ECHEC_APP[motifLu]}` } : {}),
     });
     return resultat.ok ? { ok: true } : refus(resultat.message);
   } catch {

@@ -621,13 +621,25 @@ const definerConnu = new Set([
   "fn_lister_membres_restaurant", "fn_preparer_suppression_compte", "fn_questions_etat", "fn_est_ce_mon_livreur", "fn_mon_restaurant_a_ce_livreur",
   "fn_statistiques_application", "fn_support_changer_statut", "fn_support_commandes_par_heure", "fn_support_compter_commandes",
   "fn_support_lister_commandes", "fn_support_reveler_coordonnees", "fn_support_serie_commandes", "fn_trouver_utilisateur_par_email",
-  "fn_quarts_prendre", "fn_quarts_liberer",
+  "fn_quarts_prendre", "fn_quarts_liberer", "fn_motifs_restaurants",
+  // Issue d'une commande dont la livraison a échoué : réservée au support (contrôle dans la fonction), testée à fond dans echec-livraison-base.mjs.
+  "fn_support_resoudre_echec_livraison",
+  // Contenu de démonstration : lecture pour l'équipe, masquer et supprimer réservés au super administrateur (contrôle dans la fonction), testés à fond dans demonstration-base.mjs.
+  "fn_demo_etat", "fn_demo_visibilite", "fn_demo_supprimer",
 ]);
 const definerAuth = (await db.query(`
   select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef and has_function_privilege('authenticated', p.oid, 'execute')`)).rows.map((r) => r.proname);
 const nouvelles = definerAuth.filter((n) => !definerConnu.has(n));
 verifier("aucune nouvelle fonction privilégiée n'est apparue sans être déclarée et testée ici", nouvelles.length === 0, nouvelles.join(", "));
+for (const [qui, nom] of [[ID.user_a, "un restaurateur"], [ID.client, "un client connecté"], [null, "un visiteur anonyme"]]) {
+  const r = await ecrire(qui, `select public.fn_support_resoudre_echec_livraison('${CMD_A}', 'annuler', 'Essai non autorise')`);
+  verifier(`${nom} ne peut pas résoudre l'échec d'une livraison (réservé au support)`, r.erreur !== null, r.erreur ?? "aucune erreur !");
+  for (const appel of ["fn_demo_etat()", "fn_demo_visibilite(false)", "fn_demo_supprimer('Essai non autorise par ce compte')"]) {
+    const d = await ecrire(qui, `select public.${appel}`);
+    verifier(`${nom} ne peut pas appeler public.${appel.split("(")[0]} (équipe ou super administrateur seulement)`, d.erreur !== null, d.erreur ?? "aucune erreur !");
+  }
+}
 
 // ---------------------------------------------------------------- 7. revue du 19 octobre 2026 : jeton de suivi, réinitialisation, avis
 console.log("\n--- Jeton de suivi, réinitialisation, avis (revue du 19 octobre 2026)");
@@ -759,7 +771,10 @@ await serveur("paiement : la répartition ne se modifie pas", `update paiements 
 await serveur("paiement : la référence interne ne se modifie pas", `update paiements set reference_interne = 'SF-AUTRE-XXXX' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : transition interdite cree → libere", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : transition interdite cree → confirme", `update paiements set etat = 'confirme' where id = ${U(PAY_C)}`, true);
-await serveur("paiement : cree → en_attente → confirme → libere acceptés dans l'ordre", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}; update paiements set etat = 'confirme', reference_externe = 'EXT-C' where id = ${U(PAY_C)}; update paiements set etat = 'libere' where id = ${U(PAY_C)}`, false);
+await serveur("paiement : cree → en_attente → confirme acceptés dans l'ordre", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}; update paiements set etat = 'confirme', reference_externe = 'EXT-C' where id = ${U(PAY_C)}`, false);
+// Verrou sur l'argent (migration 20261122062252) : libérer exige une commande terminée (voir aussi echec-livraison-base.mjs).
+await serveur("paiement : confirme → libere refusé tant que la commande n'est pas terminée", `update paiements set etat = 'libere' where id = ${U(PAY_C)}`, true);
+await serveur("paiement : confirme → libere accepté une fois la commande terminée", `update orders set statut = 'prete' where id = '${CMD_C}'; update orders set statut = 'terminee' where id = '${CMD_C}'; update paiements set etat = 'libere' where id = ${U(PAY_C)}`, false);
 await serveur("paiement : libere → en_attente refusé (pas de retour en arrière)", `update paiements set etat = 'en_attente' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : la référence du prestataire, une fois posée, ne change pas", `update paiements set reference_externe = 'EXT-AUTRE' where id = ${U(PAY_C)}`, true);
 await serveur("paiement : un remboursement ne diminue pas", `update paiements set rembourse_gnf = 5000 where id = ${U(PAY_C)}; update paiements set rembourse_gnf = 1000 where id = ${U(PAY_C)}`, true);
@@ -1009,6 +1024,116 @@ verifier("affectations : un établissement ne peut avoir qu'un seul titulaire ac
   catch { return true; }
 })()));
 
+// ---------------------------------------------------------------- 8. colonnes internes de restaurants (18 novembre 2026)
+console.log("\n--- Colonnes internes de restaurants : motif de correction et motif de suspension");
+await db.exec(`update restaurants set motif_correction = 'CORRECTION-SECRETE-A', suspendu_motif = 'SUSPENSION-SECRETE-A' where id = ${U(ID.resto_a)}`);
+await db.exec(`update restaurants set motif_correction = 'CORRECTION-SECRETE-B' where id = ${U(ID.resto_b)}`);
+const echoue = (r) => r.erreur !== undefined;
+for (const [libelle, qui] of [["un visiteur anonyme", null], ["un client connecté", ID.client], ["le restaurateur du restaurant", ID.user_b], ["l'équipe (support)", ID.support]]) {
+  verifier(`${libelle} ne lit pas motif_correction directement`, echoue(await lire(qui, `select motif_correction from restaurants where id = ${U(ID.resto_a)}`)));
+  verifier(`${libelle} ne lit pas suspendu_motif directement`, echoue(await lire(qui, `select suspendu_motif from restaurants where id = ${U(ID.resto_a)}`)));
+  verifier(`${libelle} : « select * » sur restaurants échoue (le code liste ses colonnes)`, echoue(await lire(qui, `select * from restaurants where id = ${U(ID.resto_a)}`)));
+  verifier(`${libelle} lit toujours les colonnes publiques d'un restaurant publié`, (await lire(qui, `select nom, ouvert, horaires, latitude, longitude, correction_demandee from restaurants where id = ${U(ID.resto_a)}`)).lignes.length === 1);
+}
+verifier("anonyme : le filtre par correction_demandee marche sans exposer le texte", (await lire(null, `select count(*)::int n from restaurants where correction_demandee`)).lignes[0]?.n === 2);
+verifier("correction_demandee est vraie seulement quand un motif de correction existe", (await db.query(`select count(*)::int n from restaurants where correction_demandee <> (motif_correction is not null)`)).rows[0].n === 0);
+const motifs = async (qui, ids) => (await lire(qui, `select restaurant_id, motif_correction, suspendu_motif from fn_motifs_restaurants(array[${ids.map(U).join(",")}])`));
+const dedans = (r, id) => (r.lignes ?? []).find((l) => l.restaurant_id === id);
+// Le compte du restaurateur A a été supprimé plus haut dans ce fichier : on teste avec le restaurateur B, membre de son restaurant.
+const mB = await motifs(ID.user_b, [ID.resto_a, ID.resto_b]);
+verifier("le restaurateur B lit les motifs de SON restaurant par la fonction", dedans(mB, ID.resto_b)?.motif_correction === "CORRECTION-SECRETE-B");
+verifier("le restaurateur B ne lit PAS les motifs du restaurant A (ni la suspension, ni la correction)", dedans(mB, ID.resto_a) === undefined && mB.lignes.length === 1);
+const mAdmin = await motifs(ID.admin, [ID.resto_a, ID.resto_b]);
+verifier("l'administrateur système lit les motifs des deux restaurants", mAdmin.lignes.length === 2 && dedans(mAdmin, ID.resto_b)?.motif_correction === "CORRECTION-SECRETE-B");
+const mSupport = await motifs(ID.support, [ID.resto_a]);
+verifier("le support (membre de l'équipe) lit les motifs par la fonction", dedans(mSupport, ID.resto_a)?.motif_correction === "CORRECTION-SECRETE-A");
+const mClient = await motifs(ID.client, [ID.resto_a, ID.resto_b]);
+verifier("un client connecté ne reçoit aucun motif par la fonction", mClient.erreur === undefined && mClient.lignes.length === 0);
+verifier("un visiteur anonyme ne peut pas appeler la fonction des motifs", echoue(await motifs(null, [ID.resto_a])));
+verifier("la fonction refuse plus de 5000 identifiants", (await lire(ID.admin, `select count(*)::int n from fn_motifs_restaurants(array(select '00000000-0000-4000-8000-0000000000a1'::uuid from generate_series(1, 5001)))`)).lignes[0]?.n === 0);
+await autorise("l'équipe peut toujours écrire une correction demandée", ID.admin, `update restaurants set motif_correction = 'Corriger les horaires' where id = ${U(ID.resto_b)}`);
+verifier("la correction écrite est lisible par la fonction", dedans(await motifs(ID.admin, [ID.resto_b]), ID.resto_b)?.motif_correction === "Corriger les horaires");
+// Garde contre le piège de ce schéma : une colonne ajoutée plus tard à restaurants n'aurait aucun droit de lecture pour le public.
+const sansDroitPublic = (await db.query(`
+  select column_name from information_schema.columns
+  where table_schema = 'public' and table_name = 'restaurants'
+    and not has_column_privilege('anon', 'public.restaurants', column_name, 'SELECT')
+  order by 1`)).rows.map((r) => r.column_name);
+verifier("seules motif_correction et suspendu_motif n'ont pas de droit de lecture public (toute autre colonne, présente ou future, doit en recevoir un par migration)", sansDroitPublic.join(",") === "motif_correction,suspendu_motif", sansDroitPublic.join(","));
+const sansDroitConnecte = (await db.query(`
+  select column_name from information_schema.columns
+  where table_schema = 'public' and table_name = 'restaurants'
+    and not has_column_privilege('authenticated', 'public.restaurants', column_name, 'SELECT')
+  order by 1`)).rows.map((r) => r.column_name);
+verifier("même règle pour les comptes connectés", sansDroitConnecte.join(",") === "motif_correction,suspendu_motif", sansDroitConnecte.join(","));
+verifier("la fonction des motifs n'est pas exécutable par un visiteur anonyme (droit d'exécution)", (await db.query(`select has_function_privilege('anon', 'public.fn_motifs_restaurants(uuid[])', 'execute') as ok`)).rows[0].ok === false);
+
+// ---------------------------------------------------------------- 9. effacement de la position des livreurs (18 novembre 2026)
+console.log("\n--- Effacement de la position des livreurs : hors ligne, envoi tardif, nettoyage de 24 h");
+const POS_A = "00000000-0000-4000-8000-00000000aa03";
+const POS_B = "00000000-0000-4000-8000-00000000aa04";
+const POS_C = "00000000-0000-4000-8000-00000000aa05";
+const POS_D = "00000000-0000-4000-8000-00000000aa06";
+const POS_E = "00000000-0000-4000-8000-00000000aa07";
+const positionDe = async (id) => (await db.query(`select latitude, longitude, position_le, statut, simule from livreurs where id = ${U(id)}`)).rows[0];
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le) values (${U(POS_A)}, 'Position Test A', 'disponible', 9.5, -13.7, now())`);
+await db.exec(`update livreurs set statut = 'hors_ligne' where id = ${U(POS_A)}`);
+const posApresHorsLigne = await positionDe(POS_A);
+verifier("position : passer hors ligne efface latitude, longitude et position_le", posApresHorsLigne.latitude === null && posApresHorsLigne.longitude === null && posApresHorsLigne.position_le === null);
+await db.exec(`update livreurs set latitude = 9.9, longitude = -13.9, position_le = now() where id = ${U(POS_A)}`);
+const posEnvoiTardif = await positionDe(POS_A);
+verifier("position : un envoi tardif sur une fiche hors ligne ne laisse aucune position", posEnvoiTardif.latitude === null && posEnvoiTardif.longitude === null && posEnvoiTardif.position_le === null);
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le) values (${U(POS_B)}, 'Position Test B', 'disponible', 9.6, -13.6, now())`);
+await db.exec(`update livreurs set telephone = '+224620000099' where id = ${U(POS_B)}`);
+const posIntacte = await positionDe(POS_B);
+verifier("position : un livreur disponible garde sa position après une mise à jour sans changement de statut", posIntacte.latitude === 9.6 && posIntacte.longitude === -13.6 && posIntacte.position_le !== null);
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le, simule) values
+  (${U(POS_C)}, 'Position Test C', 'disponible', 9.7, -13.5, now() - interval '25 hours', false),
+  (${U(POS_D)}, 'Position Test D', 'disponible', 9.8, -13.4, now() - interval '25 hours', true)`);
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le) values (${U(POS_E)}, 'Position Test E', 'disponible', 9.4, -13.8, now() - interval '23 hours')`);
+const nettoyees = (await db.query(`select public.fn_effacer_positions_anciennes() as n`)).rows[0].n;
+verifier("position : le nettoyage de 24 h renvoie le nombre de fiches nettoyées (une seule ici)", nettoyees === 1, `renvoyé : ${nettoyees}`);
+const posC = await positionDe(POS_C);
+verifier("position : une position de 25 h est effacée par le nettoyage", posC.latitude === null && posC.longitude === null && posC.position_le === null);
+const posE = await positionDe(POS_E);
+verifier("position : une position de 23 h est gardée par le nettoyage", posE.latitude === 9.4 && posE.position_le !== null);
+const posD = await positionDe(POS_D);
+verifier("position : un livreur simulé garde sa position de 25 h (démonstration)", posD.latitude === 9.8 && posD.position_le !== null && posD.simule === true);
+verifier("position : un délai de 0 heure est refusé", (await (async () => {
+  try { await db.query(`select public.fn_effacer_positions_anciennes(0)`); return false; }
+  catch { return true; }
+})()));
+verifier("position : anon ne peut pas exécuter le nettoyage (droit d'exécution)", (await db.query(`select has_function_privilege('anon', 'public.fn_effacer_positions_anciennes(integer)', 'execute') as ok`)).rows[0].ok === false);
+verifier("position : authenticated ne peut pas exécuter le nettoyage (droit d'exécution)", (await db.query(`select has_function_privilege('authenticated', 'public.fn_effacer_positions_anciennes(integer)', 'execute') as ok`)).rows[0].ok === false);
+
+// Livreurs de démonstration (migration du 20 novembre 2026) : le passage hors ligne leur garde leur position, sans quoi le dispatch ne leur donnerait plus jamais de course.
+const POS_F = "00000000-0000-4000-8000-00000000aa08";
+const POS_G = "00000000-0000-4000-8000-00000000aa09";
+await db.exec(`insert into livreurs (id, nom, statut, latitude, longitude, position_le, simule) values
+  (${U(POS_F)}, 'Position Test F (démo)', 'disponible', 9.55, -13.65, now(), true),
+  (${U(POS_G)}, 'Position Test G', 'disponible', 9.56, -13.66, now(), false)`);
+await db.exec(`update livreurs set statut = 'hors_ligne' where id in (${U(POS_F)}, ${U(POS_G)})`);
+const posF = await positionDe(POS_F);
+verifier("position : un livreur simulé passé hors ligne garde sa position (démonstration)", posF.latitude === 9.55 && posF.longitude === -13.65 && posF.position_le !== null && posF.statut === "hors_ligne");
+const posG = await positionDe(POS_G);
+verifier("position : un vrai livreur passé hors ligne n'a toujours aucune position", posG.latitude === null && posG.longitude === null && posG.position_le === null);
+await db.exec(`update livreurs set statut = 'disponible' where id = ${U(POS_F)}`);
+const posFRetour = await positionDe(POS_F);
+verifier("position : un livreur simulé remis en ligne a toujours sa position, donc reste attribuable par le dispatch", posFRetour.latitude === 9.55 && posFRetour.statut === "disponible");
+
+// ---------------------------------------------------------------- 25-26/11/2026 : préférences alimentaires et ALLERGIES (données de santé)
+console.log("\n--- Préférences alimentaires et allergies du client");
+await db.exec(`insert into preferences_clients (utilisateur_id, allergies, consentement_sante_le) values (${U(ID.client)}, array['arachide'], now()), (${U(ID.user_b)}, array['lait'], now())`);
+verifier("préférences : chacun lit les siennes seulement", (await nb(ID.client, "preferences_clients")) === 1 && (await nb(ID.user_b, "preferences_clients")) === 1);
+verifier("préférences : ni un autre client, ni l'exploitation, ni un anonyme n'en lisent aucune", VIDE(await nb(ID.user_a, "preferences_clients")) && VIDE(await nb(ID.admin, "preferences_clients")) && VIDE(await nb(ID.support, "preferences_clients")) && VIDE(await nb(null, "preferences_clients")));
+await autorise("préférences : le client règle ses propres préférences", ID.client, `update preferences_clients set piment = 'doux', budget_max_gnf = 60000 where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : on ne modifie pas celles d'un autre", ID.user_a, `update preferences_clients set allergies = '{}' where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : on ne se crée pas de préférences au nom d'un autre", ID.user_a, `insert into preferences_clients (utilisateur_id) values (${U(ID.admin)})`);
+await interdit("préférences : on ne supprime pas celles d'un autre", ID.user_a, `delete from preferences_clients where utilisateur_id = ${U(ID.client)}`);
+await interdit("préférences : les allergies sans consentement sont refusées par la base", ID.user_a, `insert into preferences_clients (utilisateur_id, allergies) values (${U(ID.user_a)}, array['lait'])`);
+await interdit("préférences : un allergène hors de la liste des 14 est refusé", ID.user_a, `insert into preferences_clients (utilisateur_id, allergies, consentement_sante_le) values (${U(ID.user_a)}, array['pizza'], now())`);
+await autorise("préférences : le client efface les siennes (droit à l'effacement)", ID.user_b, `delete from preferences_clients where utilisateur_id = ${U(ID.user_b)}`);
+verifier("préférences : après effacement, plus rien pour ce client", VIDE(await nb(ID.user_b, "preferences_clients")) && (await nb(ID.client, "preferences_clients")) === 1);
 // ---------------------------------------------------------------- 20. réservations de table (lot M2)
 console.log("\n--- Réservations de table");
 const RESTO_C = "00000000-0000-4000-8000-0000000000c2";

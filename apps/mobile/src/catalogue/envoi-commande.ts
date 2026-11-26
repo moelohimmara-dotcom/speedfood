@@ -23,13 +23,15 @@ export interface DependancesEnvoi {
   envoyer(payload: CreationCommandePayload): Promise<{ reference: string; idempotent: boolean }>; generer?: GenerateurCle;
   /** Calcul des frais par le serveur (livraison) ; absent = livraison impossible. */
   estimer?(restaurantId: string, quartierId: string, sousTotal: number): Promise<ResultatEstimation>;
+  /** Faux : le mode livraison ne peut pas être choisi (voir `LIVRAISON_CLIENT_DISPONIBLE`). Absent = vrai. */
+  livraisonDisponible?: boolean;
 }
 const MESSAGE_ESTIMATION_REFUSEE = 'La livraison n’est pas possible vers ce quartier pour le moment (ou trop de calculs ont été demandés). Réessayez dans un instant, choisissez un autre quartier ou commandez en retrait.';
 const MESSAGE_ESTIMATION_ECHEC = 'Impossible de calculer les frais de livraison. Réessayez, ou commandez à emporter.';
 
 const MESSAGE_SESSION = 'Votre session a pris fin. Reconnectez-vous puis réessayez : votre commande n’est pas perdue.';
 const MESSAGE_INCERTAIN = 'Envoi incertain. Votre commande a peut-être été enregistrée : vérifiez vos commandes ou réessayez.';
-const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId === c.restaurantId && p.lignes.length === c.lignes.length && p.lignes.every((l, i) => l.platId === c.lignes[i].menuItemId && l.quantite === c.lignes[i].quantite);
+const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId === c.restaurantId && p.lignes.length === c.lignes.length && p.lignes.every((l, i) => l.platId === c.lignes[i].menuItemId && l.quantite === c.lignes[i].quantite && (l.optionIds ?? []).join(',') === c.lignes[i].optionIds.join(','));
 
 export class EnvoiCommande {
   phase: Phase = 'saisie'; message: string | null = null;
@@ -60,7 +62,7 @@ export class EnvoiCommande {
     if (this.verrouille) return;
     if (this.phase === 'succes') this.phase = 'saisie';
     if (champ === 'consentement') this.consentement = valeur === true;
-    else if (champ === 'mode') { if (valeur === 'retrait' || valeur === 'livraison') { if (valeur !== this.mode) { this.mode = valeur; this.invaliderEstimation(); } } } // `sur_place` et toute autre valeur : ignorés
+    else if (champ === 'mode') { if (valeur === 'retrait' || (valeur === 'livraison' && this.deps.livraisonDisponible !== false)) { if (valeur !== this.mode) { this.mode = valeur; this.invaliderEstimation(); } } } // `sur_place` et toute autre valeur : ignorés
     else if (champ === 'quartierId') { const q = typeof valeur === 'string' && valeur !== '' ? valeur : null; if (q !== this.quartierId) { this.quartierId = q; this.invaliderEstimation(); } }
     else this[champ] = String(valeur);
     this.notifier();

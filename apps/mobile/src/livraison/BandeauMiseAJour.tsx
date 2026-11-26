@@ -33,8 +33,8 @@ const s = StyleSheet.create({
   titre: { color: c.avertissement, fontFamily: polices.titre, fontSize: 16, fontWeight: '700' },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 14, lineHeight: 20 },
   rangee: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  action: { backgroundColor: c.action, borderRadius: 999, minHeight: 44, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
+  action: { backgroundColor: c.action, borderRadius: 999, minHeight: 48, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
   actionTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700' },
-  plusTard: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  plusTard: { minHeight: 48, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   plusTardTexte: { color: c.secondaire, fontFamily: polices.texte, fontWeight: '600' },
 });

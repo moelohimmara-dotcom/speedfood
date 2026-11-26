@@ -90,6 +90,7 @@ try {
       tauxMobilePermille: { orange_money: 15, mtn_momo: 17 },
       fraisMobileFixeGnf: 0,
       fraisSpeedfoodCommandeGnf: 1000,
+      commissionSpeedfoodPermille: 0,
       fraisVersementGnf: 0,
     }),
   };

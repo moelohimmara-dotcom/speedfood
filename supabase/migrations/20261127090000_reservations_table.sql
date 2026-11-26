@@ -28,6 +28,10 @@ alter table public.restaurants add column accepte_reservation boolean not null d
 -- Nombre maximal de couverts (personnes) acceptés par créneau ; `null` = pas de plafond. Le contrôle du quota se fait côté serveur (M3).
 alter table public.restaurants add column reservation_capacite_couverts integer
   check (reservation_capacite_couverts is null or reservation_capacite_couverts between 1 and 500);
+-- Droits de lecture de colonne : depuis la migration 20261118120100, `restaurants` n'est plus lisible en entier par `anon` ni `authenticated` ; une colonne ajoutée
+-- n'a AUCUN droit tant qu'une migration ne le lui donne pas (garde du test de cloisonnement). Ces deux colonnes sont publiques : le bouton « Réserver » est
+-- visible des visiteurs (lot M5) et le quota n'a rien de secret. Les droits d'écriture ne changent pas.
+grant select (accepte_reservation, reservation_capacite_couverts) on public.restaurants to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Référence lisible : « SF-R- » + 5 caractères sans ambiguïté (mêmes caractères que la référence des commandes `SF-4KVB9`)

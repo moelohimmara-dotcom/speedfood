@@ -1,10 +1,11 @@
-import { openDatabaseAsync, type SQLiteBindParams } from 'expo-sqlite';
+import { type SQLiteBindParams } from 'expo-sqlite';
+import { ouvrirBaseEnSerie } from './ouverture-serie';
 import { creerDepotPanier } from './panier-reel-depot';
 import { initialiserPanierReel } from './migrations/0001-panier-reel';
 import { SessionPanierReel } from './panier-reel-session';
 let ouverture: Promise<SessionPanierReel> | null = null;
 async function ouvrir() {
-  const db = await openDatabaseAsync('speedfood-client-reel.db');
+  const db = await ouvrirBaseEnSerie('speedfood-client-reel.db');
   try {
     await initialiserPanierReel(db);
     return new SessionPanierReel(creerDepotPanier(async (sql, params, lecture) => {

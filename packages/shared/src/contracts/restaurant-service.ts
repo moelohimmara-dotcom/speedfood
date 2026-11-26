@@ -85,6 +85,8 @@ export interface PlatMenuApi {
   confirmeLe: string | null;
   sectionId: string | null;
   photoUrl: string | null;
+  /** Allergènes déclarés : `null` ou absent = non renseigné ; liste vide = aucun allergène déclaré. */
+  allergenes?: string[] | null;
   options: OptionMenuApi[];
 }
 export interface SectionMenuApi { id: string; nom: string }

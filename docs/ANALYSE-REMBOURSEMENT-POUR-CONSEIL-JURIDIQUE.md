@@ -521,7 +521,7 @@ Pour qui reprendra le chantier. Les chemins sont donnés depuis la racine du dé
 - `supabase/migrations/20261005171122_paiement_code_marchand.sql` : colonnes de paiement par code marchand sur la commande.
 - `supabase/migrations/20261003121152_conservation_donnees.sql` : anonymisation et purge d'audit.
 - `supabase/migrations/20261024193000_incidents_livraison.sql` : incidents de livraison.
-- `supabase/migrations/20261110090000_reservations_table.sql` : réservation de table (fichier, non appliqué en production).
+- `supabase/migrations/20261127090000_reservations_table.sql` : réservation de table (fichier, non appliqué en production).
 - `supabase/migrations/20260927150000_tables.sql` : commandes, historique des statuts, propositions.
 
 **Code**

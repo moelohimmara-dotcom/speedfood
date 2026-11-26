@@ -9,6 +9,8 @@ import { PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { formaterDateCourte, formaterEcheance } from "../../formatage";
 import { RevelerCoordonnees } from "./RevelerCoordonnees";
 import { ActionSupportStatut } from "./ActionSupportStatut";
+import { ResoudreEchecLivraison } from "./ResoudreEchecLivraison";
+import { echecLivraisonResoluble } from "@/lib/livraison/statuts";
 import { FilSupportCommande } from "./FilSupport";
 
 export const metadata = { title: "Commande (administration)" };
@@ -56,7 +58,7 @@ export default async function CommandeDetailSystemePage({
       <PageHeader
         titre={commande.reference}
         retour={{ href: "/system/commandes", libelle: "Toutes les commandes" }}
-        description={`${commande.restaurantNom} · ${commande.mode === "livraison" ? "livraison" : commande.mode === "sur_place" ? "à table" : "retrait"} · ${commande.sousTotal.toLocaleString("fr-FR")} GNF`}
+        description={`${commande.restaurantNom} · ${commande.mode === "livraison" ? "livraison" : commande.mode === "sur_place" ? "à table" : "retrait"} · ${(commande.sousTotal + commande.fraisLivraisonEstime).toLocaleString("fr-FR")} GNF`}
         actions={<Pastille ton="neutre">{LIBELLES_STATUT[commande.statut] ?? commande.statut}</Pastille>}
       />
 
@@ -71,7 +73,10 @@ export default async function CommandeDetailSystemePage({
               <dt>Mode</dt>
               <dd>{libelleModeClient(commande.mode)}</dd>
               <dt>Montant</dt>
-              <dd>{commande.sousTotal.toLocaleString("fr-FR")} GNF</dd>
+              <dd>
+                {(commande.sousTotal + commande.fraisLivraisonEstime).toLocaleString("fr-FR")} GNF
+                {commande.fraisLivraisonEstime > 0 ? ` (dont ${commande.fraisLivraisonEstime.toLocaleString("fr-FR")} GNF de livraison)` : ""}
+              </dd>
             </dl>
             <div className="u-mt-s4">
               <RevelerCoordonnees
@@ -123,6 +128,16 @@ export default async function CommandeDetailSystemePage({
           <Panneau titre="Fil de support">
             <FilSupportCommande fil={filSupport} telephoneMasque={commande.telephoneAffiche} />
           </Panneau>
+
+          {echecLivraisonResoluble(commande.statut, commande.livraisonStatut) ? (
+            <Panneau titre="Livraison non aboutie : issue de la commande">
+              <p className="u-fs-0-85rem-c-secondaire-mt-0">
+                Le restaurateur a déclaré que la livraison n&apos;a pas abouti. La commande reste prête tant que vous n&apos;avez pas décidé. Clôturer paie le restaurant (client injoignable ou qui
+                refuse, plat déjà préparé). Annuler rembourse le client. Motif obligatoire, journalisé.
+              </p>
+              <ResoudreEchecLivraison commandeId={commande.id} />
+            </Panneau>
+          ) : null}
 
           <Panneau titre="Action de support">
             <p className="u-fs-0-85rem-c-secondaire-mt-0">

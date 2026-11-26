@@ -17,7 +17,7 @@ function dateSaisie(value: string | undefined, secours: Date): Date {
 function montant(n: number) { return `${n.toLocaleString("fr-FR")} GNF`; }
 
 export default async function PaieLivreursPage({ searchParams }: { searchParams: Promise<{ debut?: string; fin?: string; livreur?: string }> }) {
-  const contexte = await exigerPermissionPage("commande.support");
+  const contexte = await exigerPermissionPage("parametres.editer");
   const params = await searchParams;
   const maintenant = new Date();
   const debut = dateSaisie(params.debut, new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth(), 1)));

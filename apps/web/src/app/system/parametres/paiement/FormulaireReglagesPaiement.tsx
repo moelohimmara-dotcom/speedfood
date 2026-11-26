@@ -32,12 +32,15 @@ export function FormulaireReglagesPaiement({ reglages: r }: { reglages: Reglages
           <label htmlFor="pay-fournisseur">Fournisseur</label>
           <select id="pay-fournisseur" name="fournisseur" defaultValue={r.fournisseur}>
             <option value="simulation">Démonstration (aucun argent réel)</option>
-            <option value="chapchap">Chap Chap Pay (réel : non livré, ne peut pas être allumé)</option>
+            <option value="chapchap">Chap Chap Pay (réel)</option>
           </select>
           <Aide>
             {r.cleSimulationConfiguree
               ? "La clé de la démonstration est configurée sur le serveur."
-              : "La clé de la démonstration (PAIEMENT_SIMULATION_CLE) n'est pas configurée sur le serveur : la démonstration ne peut pas être allumée."}
+              : "La clé de la démonstration (PAIEMENT_SIMULATION_CLE) n'est pas configurée sur le serveur : la démonstration ne peut pas être allumée."}{" "}
+            {r.clesChapChapConfigurees
+              ? "Les clés Chap Chap Pay sont configurées sur le serveur : le réel peut être allumé si les valeurs sont validées."
+              : "Les clés Chap Chap Pay (CHAPCHAP_CLE_API, CHAPCHAP_CLE_SIGNATURE) ne sont pas configurées sur le serveur : le réel ne peut pas être allumé."}
           </Aide>
         </div>
       </Panneau>
@@ -60,7 +63,17 @@ export function FormulaireReglagesPaiement({ reglages: r }: { reglages: Reglages
         <div className="field">
           <label htmlFor="pay-speedfood">Frais Speedfood par commande (GNF)</label>
           <input id="pay-speedfood" name="fraisSpeedfood" inputMode="numeric" defaultValue={r.fraisSpeedfoodCommandeGnf} required />
-          <Aide>Prélevé sur la part du restaurant, jamais plus que le repas.</Aide>
+          <Aide>Part fixe de la commission, prélevée sur la part du restaurant.</Aide>
+        </div>
+        <div className="field">
+          <label htmlFor="pay-commission">Commission Speedfood sur le repas (‰)</label>
+          <input id="pay-commission" name="commissionPermille" inputMode="numeric" defaultValue={r.commissionSpeedfoodPermille} required />
+          <Aide>Part variable de la commission, en pour-mille du repas : 20 = 2 %. Le total fixe plus variable reste plafonné au repas. À 0, seule la part fixe s’applique.</Aide>
+        </div>
+        <div className="field">
+          <label htmlFor="pay-reduction-excellent">Réduction de commission au palier excellent (‰)</label>
+          <input id="pay-reduction-excellent" name="commissionReductionExcellent" inputMode="numeric" defaultValue={r.commissionReductionExcellentPermille} required />
+          <Aide>En pour-mille de la commission elle-même : 500 = moitié moins. Ne s’applique qu’aux restaurants dont le dernier score calculé est au palier excellent. À 0, aucune réduction.</Aide>
         </div>
         <div className="field">
           <label htmlFor="pay-versement">Frais par versement (GNF)</label>

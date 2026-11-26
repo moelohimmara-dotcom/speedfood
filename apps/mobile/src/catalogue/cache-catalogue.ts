@@ -1,0 +1,78 @@
+/**
+ * Cache hors ligne du catalogue (parité Kotlin, lot 4, ligne B13) : chaque lecture réussie est gardée sur le téléphone ; quand le réseau
+ * est coupé, la dernière lecture est rendue à la place d'une erreur, avec son ancienneté pour que l'écran dise « hors ligne ».
+ * Rien n'est gardé de personnel (que des données publiques du catalogue) et rien n'est envoyé : commander exige toujours le réseau.
+ * Un cache de plus de 7 jours n'est plus servi — mieux vaut une erreur honnête qu'un menu d'il y a longtemps.
+ */
+import { avecNouveauxEssais } from './nouveaux-essais.ts';
+export interface StockageCache { lire(cle: string): Promise<string | null>; ecrire(cle: string, valeur: string): Promise<void> }
+export interface ResultatCache<T> { donnees: T; ageMs: number | null }
+
+export const VALIDITE_CACHE_MS = 7 * 24 * 3600 * 1000;
+
+/** Cache sans mémoire : rien à relire, rien à garder. Le catalogue se lit alors en frais, sans filet hors ligne. */
+export const STOCKAGE_CACHE_ABSENT: StockageCache = { lire: async () => null, ecrire: async () => undefined };
+
+/**
+ * Ouvre le stockage du cache avec de nouveaux essais silencieux ; s'il reste inutilisable, rend un cache vide (et laisse une trace courte) au lieu de propager l'erreur : le cache n'est qu'un
+ * filet hors ligne, jamais une condition pour afficher le catalogue (essai du 18/11/2026 : « Le catalogue est indisponible » au premier lancement alors que le serveur répondait).
+ */
+export async function ouvrirCacheOuVide(
+  ouvrir: () => Promise<StockageCache>,
+  attendre?: (ms: number) => Promise<void>,
+  delaisMs: readonly number[] = [300, 900],
+): Promise<StockageCache> {
+  try { return await avecNouveauxEssais(ouvrir, delaisMs, attendre); }
+  catch (e) { console.error('cache_catalogue_indisponible', e instanceof Error ? e.message.slice(0, 120) : 'inconnue'); return STOCKAGE_CACHE_ABSENT; }
+}
+
+export function creerCacheCatalogue(stockage: StockageCache, maintenant: () => number = () => Date.now()) {
+  return {
+    /**
+     * Lit en frais, garde, et rend ; si la lecture fraîche échoue, rend le cache encore valable (revalidé par `valider`).
+     * Une écriture du cache qui échoue n'empêche jamais d'afficher les données fraîches. Un cache absent, corrompu,
+     * illisible ou trop vieux relance l'erreur d'origine : rien n'est inventé.
+     */
+    async lire<T>(cle: string, frais: () => Promise<T>, valider: (v: unknown) => T): Promise<ResultatCache<T>> {
+      try {
+        const donnees = await frais();
+        try { await stockage.ecrire(cle, JSON.stringify({ le: maintenant(), donnees })); } catch { /* confort seulement */ }
+        return { donnees, ageMs: null };
+      } catch (e) {
+        let brut: string | null = null;
+        try { brut = await stockage.lire(cle); } catch { brut = null; }
+        if (brut !== null) {
+          try {
+            const parsed = JSON.parse(brut) as { le?: unknown; donnees?: unknown };
+            if (typeof parsed.le === 'number' && Number.isFinite(parsed.le) && 'donnees' in parsed) {
+              const age = Math.max(0, maintenant() - parsed.le);
+              if (age <= VALIDITE_CACHE_MS) return { donnees: valider(parsed.donnees), ageMs: age };
+            }
+          } catch { /* cache illisible ou données invalides : on relance l'erreur d'origine ci-dessous */ }
+        }
+        throw e;
+      }
+    },
+  };
+}
+export type CacheCatalogue = ReturnType<typeof creerCacheCatalogue>;
+
+/**
+ * Valeur relue depuis les lignes brutes du stockage natif : expo-sqlite (`executeForRawResultAsync`) rend chaque ligne
+ * comme un tableau de valeurs (la valeur est à l'indice 0), pas comme un objet. La forme objet est acceptée aussi ;
+ * tout le reste rend null — jamais une valeur inventée.
+ */
+export function valeurDepuisLignesBrutes(lignes: unknown): string | null {
+  if (!Array.isArray(lignes) || lignes.length === 0) return null;
+  const premiere = lignes[0] as unknown;
+  const v = Array.isArray(premiere) ? premiere[0] : (premiere as { valeur?: unknown } | null)?.valeur;
+  return typeof v === 'string' ? v : null;
+}
+
+/** Ancienneté en clair pour l'écran : « à l'instant », « il y a 5 min », « il y a 2 h », « il y a 3 j ». */
+export function libelleAgeCache(ageMs: number): string {
+  if (ageMs < 60_000) return "à l’instant";
+  if (ageMs < 3_600_000) return 'il y a ' + Math.floor(ageMs / 60_000) + ' min';
+  if (ageMs < 24 * 3_600_000) return 'il y a ' + Math.floor(ageMs / 3_600_000) + ' h';
+  return 'il y a ' + Math.floor(ageMs / (24 * 3_600_000)) + ' j';
+}

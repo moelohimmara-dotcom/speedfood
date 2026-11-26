@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Base factice de la réservation (tables `reservations_table` et `restaurants`), sans aucun réseau. Elle IMITE les droits de colonne de la vraie table (migration 20261110090000) :
+ * Base factice de la réservation (tables `reservations_table` et `restaurants`), sans aucun réseau. Elle IMITE les droits de colonne de la vraie table (migration 20261127090000) :
  *  - `select *` (ou `select()` sans colonne) échoue, comme pour un compte connecté ; nommer `jeton_suivi_hash` échoue aussi ;
  *  - seules les colonnes demandées reviennent (un test voit donc ce que le code a réellement demandé) ;
  *  - un UPDATE ne peut toucher que les colonnes permises (`colonnesModifiables`).

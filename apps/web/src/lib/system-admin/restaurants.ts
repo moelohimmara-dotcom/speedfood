@@ -7,6 +7,7 @@ import { journaliserActionSysteme } from "./audit";
 import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 import { estUuid } from "@/lib/commande/commun";
 import { lireTout } from "@/lib/db/lecture-complete";
+import { lireMotifsRestaurants } from "@/lib/restaurant/motifs";
 
 /**
  * Modération des restaurants (bloc 8b). Toute mutation :
@@ -66,7 +67,7 @@ export async function listerRestaurantsAdmin(filtres: {
     let requete = supabase
       .from("restaurants")
       .select(
-        "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, mode_vente, menu_categories(nom), neighborhoods(nom)"
+        "id, nom, publie, ouvert, suspendu_le, correction_demandee, cree_le, mode_vente, menu_categories(nom), neighborhoods(nom)"
       )
       .order("cree_le", { ascending: false })
       .order("id");
@@ -75,13 +76,13 @@ export async function listerRestaurantsAdmin(filtres: {
       requete = requete.ilike("nom", `%${filtres.q}%`);
     }
     if (filtres.statut === "en_attente") {
-      requete = requete.eq("publie", false).is("suspendu_le", null).is("motif_correction", null);
+      requete = requete.eq("publie", false).is("suspendu_le", null).eq("correction_demandee", false);
     } else if (filtres.statut === "publies") {
       requete = requete.eq("publie", true).is("suspendu_le", null);
     } else if (filtres.statut === "suspendus") {
       requete = requete.not("suspendu_le", "is", null);
     } else if (filtres.statut === "correction") {
-      requete = requete.not("motif_correction", "is", null);
+      requete = requete.eq("correction_demandee", true);
     }
     return requete;
   };
@@ -91,6 +92,8 @@ export async function listerRestaurantsAdmin(filtres: {
     return [];
   }
 
+  // Les motifs ne sont plus lisibles directement : seuls l'équipe et les membres les reçoivent, par la fonction de la base.
+  const motifs = await lireMotifsRestaurants(supabase, data.map((r) => r.id));
   return data.map((r) => ({
     id: r.id,
     nom: r.nom,
@@ -99,8 +102,8 @@ export async function listerRestaurantsAdmin(filtres: {
     publie: r.publie,
     ouvert: r.ouvert,
     suspendu_le: r.suspendu_le,
-    suspendu_motif: r.suspendu_motif,
-    motif_correction: r.motif_correction,
+    suspendu_motif: motifs.get(r.id)?.suspenduMotif ?? null,
+    motif_correction: motifs.get(r.id)?.motifCorrection ?? null,
     cree_le: r.cree_le,
     mode_vente: r.mode_vente === "speedfood" ? "speedfood" : "autonome",
   }));
@@ -113,7 +116,7 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
   const { data, error } = await supabase
     .from("restaurants")
     .select(
-      "id, nom, publie, ouvert, suspendu_le, suspendu_motif, motif_correction, cree_le, mode_vente, menu_categories(nom), neighborhoods(nom)"
+      "id, nom, publie, ouvert, suspendu_le, correction_demandee, cree_le, mode_vente, menu_categories(nom), neighborhoods(nom)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -122,6 +125,7 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
     return null;
   }
 
+  const motif = (await lireMotifsRestaurants(supabase, [data.id])).get(data.id);
   return {
     id: data.id,
     nom: data.nom,
@@ -130,8 +134,8 @@ export async function obtenirRestaurantAdmin(id: string): Promise<RestaurantAdmi
     publie: data.publie,
     ouvert: data.ouvert,
     suspendu_le: data.suspendu_le,
-    suspendu_motif: data.suspendu_motif,
-    motif_correction: data.motif_correction,
+    suspendu_motif: motif?.suspenduMotif ?? null,
+    motif_correction: motif?.motifCorrection ?? null,
     cree_le: data.cree_le,
     mode_vente: data.mode_vente === "speedfood" ? "speedfood" : "autonome",
   };

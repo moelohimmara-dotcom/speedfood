@@ -1,4 +1,4 @@
-/** États et règles d'une réservation de table, SANS dépendance (testable seul). Reprend exactement le trigger `fn_valider_reservation` de la migration 20261110090000_reservations_table.sql. */
+/** États et règles d'une réservation de table, SANS dépendance (testable seul). Reprend exactement le trigger `fn_valider_reservation` de la migration 20261127090000_reservations_table.sql. */
 
 export const STATUTS_RESERVATION = ["demandee", "confirmee", "refusee", "annulee_client", "annulee_restaurant", "honoree", "non_honoree"] as const;
 

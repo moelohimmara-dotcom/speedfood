@@ -1,24 +1,63 @@
-import Svg, { Path } from 'react-native-svg';
+import type { ComponentType } from 'react';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import ArrowRight from 'lucide-react-native/icons/arrow-right';
+import Bell from 'lucide-react-native/icons/bell';
+import Bike from 'lucide-react-native/icons/bike';
+import Camera from 'lucide-react-native/icons/camera';
+import Check from 'lucide-react-native/icons/check';
+import ChefHat from 'lucide-react-native/icons/chef-hat';
+import ChevronDown from 'lucide-react-native/icons/chevron-down';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import CircleHelp from 'lucide-react-native/icons/circle-help';
+import Clock from 'lucide-react-native/icons/clock';
+import ExternalLink from 'lucide-react-native/icons/external-link';
+import Eye from 'lucide-react-native/icons/eye';
+import EyeOff from 'lucide-react-native/icons/eye-off';
+import FileText from 'lucide-react-native/icons/file-text';
+import Heart from 'lucide-react-native/icons/heart';
+import House from 'lucide-react-native/icons/house';
+import Info from 'lucide-react-native/icons/info';
+import List from 'lucide-react-native/icons/list';
+import Lock from 'lucide-react-native/icons/lock';
+import LogOut from 'lucide-react-native/icons/log-out';
+import MapPin from 'lucide-react-native/icons/map-pin';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
+import Minus from 'lucide-react-native/icons/minus';
+import Pencil from 'lucide-react-native/icons/pencil';
+import Phone from 'lucide-react-native/icons/phone';
+import Plus from 'lucide-react-native/icons/plus';
+import ReceiptText from 'lucide-react-native/icons/receipt-text';
+import RefreshCw from 'lucide-react-native/icons/refresh-cw';
+import Search from 'lucide-react-native/icons/search';
+import Settings from 'lucide-react-native/icons/settings';
+import Share from 'lucide-react-native/icons/share';
+import ShoppingCart from 'lucide-react-native/icons/shopping-cart';
+import Star from 'lucide-react-native/icons/star';
+import Store from 'lucide-react-native/icons/store';
+import Trash2 from 'lucide-react-native/icons/trash-2';
+import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
+import User from 'lucide-react-native/icons/user';
+import Users from 'lucide-react-native/icons/users';
+import Utensils from 'lucide-react-native/icons/utensils';
+import X from 'lucide-react-native/icons/x';
+import Zap from 'lucide-react-native/icons/zap';
 import { couleurs } from './tokens';
-const traces = {
-  accueil: 'M3 10 12 3l9 7v10H3z M9 20v-7h6v7',
-  coeur: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
-  panier: 'M3 4h2l3 12h11l3-9H6 M9 21h.01 M18 21h.01',
-  compte: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M4 21v-2a8 8 0 0 1 16 0v2',
-  recherche: 'M3 10a7 7 0 1 0 14 0a7 7 0 1 0-14 0 M15 15l6 6',
-  position: 'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0 M9 10a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
-  retour: 'M15 5 8 12l7 7 M8 12h13',
-  fleche: 'M5 12h14 M13 6l6 6-6 6',
-  bas: 'm6 9 6 6 6-6',
-  plus: 'M12 5v14 M5 12h14',
-  moins: 'M5 12h14',
-  coche: 'm5 12 4 4L19 6',
-  horloge: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0 M12 7v5l3 2',
-  fermer: 'm6 6 12 12 M6 18 18 6',
-} as const;
-export type NomIcone = keyof typeof traces;
-export function Icone({ nom, taille = 22, couleur = couleurs.encre, rempli = false }: { nom: NomIcone; taille?: number; couleur?: string; rempli?: boolean }) {
-  return <Svg width={taille} height={taille} viewBox="0 0 24 24" aria-hidden={true}>
-    <Path d={traces[nom]} stroke={couleur} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={rempli ? couleur : 'none'} />
-  </Svg>;
+
+/**
+ * Jeu d'icônes de l'application : Lucide (licence ISC), une grille de 24 px, trait de 2 px, extrémités arrondies : un seul dessin, cohérent partout.
+ * Les noms sont ceux d'avant (français) pour que les écrans ne changent pas ; chaque icône est importée seule, jamais le jeu entier.
+ */
+interface PropsLucide { size?: number; color?: string; strokeWidth?: number; fill?: string; 'aria-hidden'?: boolean }
+const icones = {
+  accueil: House, coeur: Heart, panier: ShoppingCart, compte: User, recherche: Search, position: MapPin,
+  retour: ArrowLeft, fleche: ArrowRight, bas: ChevronDown, chevron: ChevronRight, plus: Plus, moins: Minus, coche: Check, horloge: Clock, fermer: X,
+  cloche: Bell, telephone: Phone, message: MessageCircle, cadenas: Lock, deconnexion: LogOut, corbeille: Trash2, crayon: Pencil, camera: Camera,
+  actualiser: RefreshCw, externe: ExternalLink, document: FileText, engrenage: Settings, eclair: Zap, plat: Utensils, liste: List, info: Info,
+  visible: Eye, masque: EyeOff, alerte: TriangleAlert, partage: Share, etoile: Star,
+  livreur: Bike, restaurateur: ChefHat, equipe: Users, restaurant: Store, recu: ReceiptText, aide: CircleHelp,
+} as const satisfies Record<string, ComponentType<PropsLucide>>;
+export type NomIcone = keyof typeof icones;
+export function Icone({ nom, taille = 24, couleur = couleurs.encre, rempli = false }: { nom: NomIcone; taille?: number; couleur?: string; rempli?: boolean }) {
+  const Dessin: ComponentType<PropsLucide> = icones[nom];
+  return <Dessin size={taille} color={couleur} strokeWidth={2} fill={rempli ? couleur : 'none'} aria-hidden={true} />;
 }

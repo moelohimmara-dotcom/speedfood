@@ -18,6 +18,15 @@ export interface MiseAJour {
 
 export const MISES_A_JOUR: readonly MiseAJour[] = [
   {
+    id: "image-illustrative",
+    date: "2026-11-25",
+    titre: "Mention « Image illustrative »",
+    resume:
+      "Les images générées par ordinateur (et non la photo du plat réellement servi) portent une mention discrète, visible au survol, sur les fiches de plats et dans « Plats à découvrir ». Une photo propre au restaurant n'en porte jamais.",
+    cle: "mention_image_illustrative",
+    verification: "Fiche d'un restaurant de démonstration : survoler l'image d'un plat pour voir « Image illustrative » ; couper l'interrupteur la fait disparaître.",
+  },
+  {
     id: "couverture-admin",
     date: "2026-10-15",
     titre: "Couverture et liste d'attente dans l'administration",

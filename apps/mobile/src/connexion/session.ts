@@ -1,15 +1,37 @@
 import { ErreurConnexion, type ApiAuth, type SessionAuth } from './client.ts';
-import type {CommandeCompte} from './commandes.ts';
+import type {CommandeCompte, ResumeSuivi} from './commandes.ts';
+import { depuisCompte, referenceDeCle, versVue, type CommandeAppareil, type MemoireAppareil, type VueCommandeAppareil } from './commandes-appareil.ts';
+import type {ActionAdresse, ChampsProfil, EspaceComplet} from './espace-client.ts';
+import {essaiNotification, type BilanEssai} from './parametres.ts';
+import {effacerPreferences, enregistrerPreferences, lireHabitudes, lirePreferences} from './preferences-client.ts';
+import type {HabitudesClientPublic, PreferencesAEcrire, PreferencesClientPublic} from '../../../../packages/shared/src/contracts/preferences.ts';
 import {ErreurCommande, type ResultatEstimation} from '../catalogue/commande-reelle.ts';
-import type {ActionLivraisonApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
-import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, ValeursPropositionRestaurateur} from './restaurateur.ts';
+import type {ActionLivraisonApp,MotifEchecApp} from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
+import type {ActionRestaurateur, ListeRestaurateur, RolesCompte, TypeDocument, ValeursPropositionRestaurateur} from './restaurateur.ts';
 import type {ActionService, MenuRestaurateur, ReglagesRestaurateur} from './serviceRestaurateur.ts';
 import type {CreationCommandePayload} from '../../../../packages/shared/src/contracts/commande.ts';
 import type { DemandeCourseLivreur, EtatLivreur, FicheLivreur } from './livreur.ts';
 import type { DecisionReservation, DemandeReservation, DisponibiliteReservation, ReglageReservation, ReservationClient, ReservationRestaurant, ValeursReglageReservation } from './reservation.ts';
+import type { PageHistorique } from './historique-restaurateur.ts';
+import type { ActiviteRestaurateur } from './activite-restaurateur.ts';
+import type { EtatPublication } from './etat-restaurateur.ts';
+import type { ScoreRestaurateur } from './score-restaurateur.ts';
+import type { GainsLivreur, PageCoursesLivreur } from './gains-livreur.ts';
+import type { FileLivreur } from './file-livreur.ts';
+import type { DossierLivreur } from './dossier-livreur.ts';
+import type { BrouillonCandidature, LectureMenu, VueCandidature } from './candidature.ts';
+import type { FinancesEquipe } from './finances-equipe.ts';
+import type { TableauEquipe } from './tableau-equipe.ts';
+import type { PaiementsEquipe } from './paiements-equipe.ts';
+import type { AccesEquipe, ActionRepartitionEquipe, CommandeARepartir, CommandeEquipe, CoordonneesEquipe, ReponseDetailEquipe, StatutCommandeEquipe } from './commandes-equipe.ts';
+import type { ExploitationEquipe } from './exploitation-equipe.ts';
+import type { DemandePartenariat, DemandeReferencement, FicheRestaurantEquipe, MenusEquipe, PlatMenuEquipe, RestaurantEquipe } from './catalogue-equipe.ts';
+import type { AvisEquipe, BanniereEquipe, ParametresEquipe } from './contenus-equipe.ts';
+import type { AuditEquipe, CompteEquipe, MisesAJourEquipe, ZoneAttenteEquipe } from './admin-equipe.ts';
+import type { FichierPhotoPrete } from './serviceRestaurateur.ts';
 export interface CoffreSession { lire(): Promise<string | null>; ecrire(v: string): Promise<void>; effacer(): Promise<void> }
 /** `creerCommande` et `estimerLivraison` sont facultatifs ici : les doublures de test de la connexion n'en ont pas besoin. */
-export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'|'disponibiliteReservation'|'creerReservation'|'listerReservations'|'lireReservation'|'annulerReservation'|'reservationsRestaurateur'|'deciderReservation'|'reglageReservation'|'ecrireReglageReservation'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'moi'|'commandesRestaurant'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'|'disponibiliteReservation'|'creerReservation'|'listerReservations'|'lireReservation'|'annulerReservation'|'reservationsRestaurateur'|'deciderReservation'|'reglageReservation'|'ecrireReglageReservation'>>;
+export type ApiSession = Omit<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'dossierLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'fournisseursActifs'|'connecterAvecCode'|'connecterAvecGoogle'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'lirePhotoMenuEquipe'|'importerMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'|'disponibiliteReservation'|'creerReservation'|'listerReservations'|'lireReservation'|'annulerReservation'|'reservationsRestaurateur'|'deciderReservation'|'reglageReservation'|'ecrireReglageReservation'> & Partial<Pick<ApiAuth,'ficheLivreur'|'etatLivreur'|'gainsLivreur'|'historiqueLivreur'|'fileLivreur'|'dossierLivreur'|'financesEquipe'|'tableauEquipe'|'paiementsEquipe'|'accesEquipe'|'exploitationEquipe'|'actionLivraisonEquipe'|'actionLivreurEquipe'|'fournisseursActifs'|'connecterAvecCode'|'connecterAvecGoogle'|'comptesEquipe'|'auditEquipe'|'zonesAttenteEquipe'|'marquerZonePrevenueEquipe'|'misesAJourEquipe'|'avisEquipe'|'modererAvisEquipe'|'bannieresEquipe'|'mediasEquipe'|'parametresEquipe'|'restaurantsEquipe'|'ficheRestaurantEquipe'|'modifierProfilEquipe'|'menusEquipe'|'platsMenuEquipe'|'lirePhotoMenuEquipe'|'importerMenuEquipe'|'reconfirmerMenuEquipe'|'disponibiliteMenuEquipe'|'referencementsEquipe'|'optionsReferencement'|'statutReferencement'|'creerEtablissementReferencement'|'rattacherReferencement'|'partenariatsEquipe'|'statutPartenariat'|'commandesEquipe'|'detailCommandeEquipe'|'changerStatutEquipe'|'revelerCoordonneesEquipe'|'commandesARepartir'|'actionRepartitionEquipe'|'lireCandidature'|'deposerCandidature'|'envoyerImageCandidature'|'lireMenuPhotoCandidature'|'basculerEnLigneLivreur'|'repondreOffreLivreur'|'avancerCourseLivreur'|'creerCommande'|'estimerLivraison'|'declarerPaiement'|'repondreProposition'|'supprimerCompte'|'inscrire'|'demanderReinitialisation'|'espaceComplet'|'basculerFavori'|'enregistrerProfil'|'actionAdresse'|'moi'|'commandesRestaurant'|'historiqueRestaurant'|'activiteRestaurant'|'etatRestaurant'|'scoreRestaurant'|'emettreDocumentRestaurateur'|'actionRestaurateur'|'proposerRestaurateur'|'actionLivraisonRestaurateur'|'reglagesRestaurateur'|'menuRestaurateur'|'ecrireService'|'disponibiliteReservation'|'creerReservation'|'listerReservations'|'lireReservation'|'annulerReservation'|'reservationsRestaurateur'|'deciderReservation'|'reglageReservation'|'ecrireReglageReservation'>>;
 export class GestionSession {
   private api: ApiSession; private coffre: CoffreSession;
   private session: SessionAuth | null = null;
@@ -23,7 +45,15 @@ export class GestionSession {
   private deconnexionEnCours: Promise<{ distanteConfirmee: boolean }> | null = null;
   /** Appelé (sans attendre) quand une session vient d'être ouverte ou restaurée : l'appli réenregistre alors l'appareil pour les notifications. Ne bloque ni ne fait échouer la connexion. */
   apresOuverture?: () => void;
-  constructor(api: ApiSession, coffre: CoffreSession) { this.api = api; this.coffre = coffre; }
+  /** Commandes gardées sur l'appareil (écart G12) : référence et jeton de suivi (le jeton reste dans le coffre et ici, jamais jusqu'à l'écran). Facultatif : sans dépôt, rien n'est gardé. */
+  private memoire?: MemoireAppareil;
+  private clesAppareil = new Map<string,string>();
+  constructor(api: ApiSession, coffre: CoffreSession, memoire?: MemoireAppareil) { this.api = api; this.coffre = coffre; this.memoire = memoire; }
+  /** Garde des commandes de l'appareil, au mieux et sans attendre : une écriture qui échoue ne gêne ni l'envoi d'une commande ni la lecture de la liste. */
+  private noterCommandes(liste: readonly CommandeAppareil[]) {
+    if (!this.memoire || liste.length === 0) return;
+    try { void this.memoire.enregistrer(liste).catch(() => undefined); } catch { /* sans effet */ }
+  }
   /** Jeton porteur de la session ouverte (renouvelé si besoin), ou `null` : jamais d'exception. Sert aux appels de l'appareil, qui ne doivent rien afficher. */
   async acces(): Promise<string | null> { try { return this.session ? await this.jeton() : null; } catch { return null; } }
   private signaler() { try { this.apresOuverture?.(); } catch { /* sans effet sur la session */ } }
@@ -43,6 +73,30 @@ export class GestionSession {
     if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
     this.session = s;
   }
+  /** Fournisseurs sociaux activés (boutons à afficher) : aucun si la lecture échoue. */
+  async fournisseursActifs(): Promise<Set<'google' | 'facebook'>> {
+    try { return this.api.fournisseursActifs ? await this.api.fournisseursActifs() : new Set(); } catch { return new Set(); }
+  }
+  /** Connexion sociale par le code du retour navigateur (PKCE) : même ouverture de session qu'un mot de passe. */
+  async connecterAvecCode(code: string, verificateur: string) {
+    if (!this.api.connecterAvecCode) throw new ErreurConnexion('Connexion sociale indisponible dans cette version.');
+    this.clesSuivi.clear();
+    const n = ++this.generation; this.session = null;
+    try { await this.ordonner(() => this.coffre.effacer()); } catch { throw new ErreurConnexion('Impossible de fermer la session précédente sur cet appareil.'); }
+    if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
+    await this.appliquer(await this.api.connecterAvecCode(code, verificateur), n);
+    this.signaler();
+  }
+  /** Connexion avec un jeton d'identité Google obtenu sur le téléphone (fournisseur natif futur). */
+  async connecterAvecGoogle(jetonIdentite: string, nonce?: string) {
+    if (!this.api.connecterAvecGoogle) throw new ErreurConnexion('Connexion Google indisponible dans cette version.');
+    this.clesSuivi.clear();
+    const n = ++this.generation; this.session = null;
+    try { await this.ordonner(() => this.coffre.effacer()); } catch { throw new ErreurConnexion('Impossible de fermer la session précédente sur cet appareil.'); }
+    if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
+    await this.appliquer(await this.api.connecterAvecGoogle(jetonIdentite, nonce), n);
+    this.signaler();
+  }
   async connecter(email: string, motDePasse: string) {
     this.clesSuivi.clear();
     const n = ++this.generation; this.session = null;
@@ -50,6 +104,27 @@ export class GestionSession {
     if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
     await this.appliquer(await this.api.connecter(email,motDePasse),n);
     this.signaler();
+  }
+  /**
+   * Inscription (A2). Sans session rendue (e-mail de confirmation envoyé), rien n'est ouvert ni écrit. Avec une session rendue, elle est ouverte et protégée exactement comme une connexion.
+   * Le mot de passe n'est conservé nulle part.
+   */
+  async inscrire(nom: string, telephone: string, email: string, motDePasse: string): Promise<{ sessionOuverte: boolean }> {
+    if (!this.api.inscrire) throw new ErreurConnexion('Inscription indisponible.');
+    const s = await this.api.inscrire(nom, telephone, email, motDePasse);
+    if (s === null) return { sessionOuverte: false };
+    this.clesSuivi.clear();
+    const n = ++this.generation; this.session = null;
+    try { await this.ordonner(() => this.coffre.effacer()); } catch { throw new ErreurConnexion('Impossible de fermer la session précédente sur cet appareil.'); }
+    if (n !== this.generation) throw new ErreurConnexion('Connexion annulée.');
+    await this.appliquer(s, n);
+    this.signaler();
+    return { sessionOuverte: true };
+  }
+  /** Mot de passe oublié (A3) : sans effet sur la session. */
+  async demanderReinitialisation(email: string): Promise<void> {
+    if (!this.api.demanderReinitialisation) throw new ErreurConnexion('Réinitialisation indisponible.');
+    await this.api.demanderReinitialisation(email);
   }
   async restaurer() {
     this.clesSuivi.clear();
@@ -85,6 +160,7 @@ export class GestionSession {
     try {
       const lignes=await this.api.commandes(await this.jeton());
       if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      this.noterCommandes(depuisCompte(lignes));
       this.clesSuivi.clear();
       return lignes.map(({jeton,...commande})=>{if(jeton)this.clesSuivi.set(commande.id,{jeton,reference:commande.reference});return commande;});
     }catch(e){if(e instanceof ErreurConnexion&&e.definitive&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
@@ -109,6 +185,66 @@ export class GestionSession {
     if(r.reference!==cle.reference)throw new ErreurConnexion('La réponse reçue ne correspond pas à cette commande.');
     return r.reference;
   }
+  /** Répond à la proposition révisée de CETTE commande (un seul essai). Le jeton de suivi reste ici ; seule une session ouverte peut répondre. */
+  async repondreProposition(id:string,propositionId:string,accepter:boolean):Promise<void> {
+    const n=this.generation;
+    await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+    const cle=this.clesSuivi.get(id);if(!cle)throw new ErreurConnexion('Actualisez vos commandes pour répondre à cette proposition.');
+    if(!this.api.repondreProposition)throw new ErreurConnexion('Réponse à la proposition indisponible.');
+    await this.api.repondreProposition(cle.jeton,propositionId,accepter);
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+  }
+  /** Appel de l'espace client avec le porteur de la session ouverte : une réponse arrivée après une déconnexion est refusée ; un 401 termine la session. Aucune relance. */
+  private async espaceClient<T>(appel: (acces: string) => Promise<T>, annule: string): Promise<T> {
+    const n = this.generation;
+    const acces = await this.jeton();
+    if (n !== this.generation) throw new ErreurConnexion(annule);
+    try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
+    catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Profil, adresses et favoris complets (B9 à B11). */
+  espaceComplet(): Promise<EspaceComplet> {
+    return this.espaceClient(a => this.api.espaceComplet ? this.api.espaceComplet(a) : Promise.reject(new ErreurConnexion('Espace client indisponible.')), 'Lecture annulée.');
+  }
+  /** Préférences alimentaires (goûts, régimes, allergies) du compte de la session : lecture, remplacement, effacement, et habitudes tirées des commandes. Un seul essai chacun. */
+  preferencesClient(): Promise<PreferencesClientPublic | null> { return this.espaceClient(a => lirePreferences(a), 'Lecture annulée.'); }
+  enregistrerPreferences(p: PreferencesAEcrire): Promise<void> { return this.espaceClient(a => enregistrerPreferences(a, p), 'Envoi annulé.'); }
+  effacerPreferences(): Promise<void> { return this.espaceClient(a => effacerPreferences(a), 'Envoi annulé.'); }
+  habitudesClient(): Promise<HabitudesClientPublic> { return this.espaceClient(a => lireHabitudes(a), 'Lecture annulée.'); }
+  /** Notification d'essai vers les appareils de CE compte (G16) : un seul essai, `null` si l'essai n'a pas pu être lancé. */
+  essaiNotification(): Promise<BilanEssai | null> {
+    return this.espaceClient(a => essaiNotification(a), 'Essai annulé.');
+  }
+  basculerFavori(restaurantId: string): Promise<{ message: string; favori: boolean }> {
+    return this.espaceClient(a => this.api.basculerFavori ? this.api.basculerFavori(a, restaurantId) : Promise.reject(new ErreurConnexion('Favoris indisponibles.')), 'Envoi annulé.');
+  }
+  enregistrerProfil(champs: ChampsProfil): Promise<{ message: string }> {
+    return this.espaceClient(a => this.api.enregistrerProfil ? this.api.enregistrerProfil(a, champs) : Promise.reject(new ErreurConnexion('Profil indisponible.')), 'Envoi annulé.');
+  }
+  actionAdresse(action: ActionAdresse): Promise<{ message: string }> {
+    return this.espaceClient(a => this.api.actionAdresse ? this.api.actionAdresse(a, action) : Promise.reject(new ErreurConnexion('Adresses indisponibles.')), 'Envoi annulé.');
+  }
+  /**
+   * Supprime le compte connecté (un seul essai). Succès : plus rien du compte ne reste sur l'appareil (session, coffre, clés de suivi) et les départs de notification sont fermés SANS jeton
+   * (le compte n'existe plus : aucun appel de révocation distante). Refus, incertitude : la session reste intacte. 401 : session terminée. Le panier n'est pas touché.
+   */
+  async supprimerCompte(confirmation:string):Promise<void> {
+    const n=this.generation;
+    const acces=await this.jeton();
+    if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+    if(!this.api.supprimerCompte)throw new ErreurConnexion('Suppression du compte indisponible.');
+    try{await this.api.supprimerCompte(acces,confirmation);}
+    catch(e){await this.sessionTerminee(e,n);throw e;}
+    // Succès : le compte n'existe plus. Si une déconnexion a eu lieu entre-temps, tout est déjà effacé.
+    if(n!==this.generation)return;
+    const preparation=this.preparerDeconnexion?.();
+    this.nbDeconnexions++;this.clesSuivi.clear();++this.generation;this.session=null;
+    // Le compte n'existe plus : ses commandes gardées sur l'appareil (et leurs jetons) s'effacent aussi.
+    void this.oublierCommandesAppareil().catch(()=>undefined);
+    try{if(preparation)await preparation(null);}catch{/* sans effet sur l'effacement local */}
+    try{await this.ordonner(()=>this.coffre.effacer());}catch{throw new ErreurConnexion('Compte supprimé, mais l’effacement local n’est pas confirmé. Utilisez « Me déconnecter de cet appareil ».');}
+  }
   /** Déclare le règlement de CETTE commande (un seul essai). Le jeton de suivi reste ici ; seule une session ouverte peut déclarer, comme pour l'annulation. */
   async declarerPaiement(id:string,mode:string,reference:string|null):Promise<void> {
     const n=this.generation;
@@ -118,12 +254,38 @@ export class GestionSession {
     if(!this.api.declarerPaiement)throw new ErreurConnexion('Déclaration du règlement indisponible.');
     await this.api.declarerPaiement(cle.jeton,mode,reference);
   }
+  /** Commandes gardées sur cet appareil (sans jeton), les plus récentes d'abord. Lecture seule, SANS session : on les retrouve même déconnecté. */
+  async commandesAppareil():Promise<VueCommandeAppareil[]> {
+    if(!this.memoire)return [];
+    const liste=await this.memoire.lire();
+    this.clesAppareil.clear();for(const c of liste)this.clesAppareil.set(c.reference,c.jeton);
+    return liste.map(versVue);
+  }
+  /**
+   * État en direct d'une commande de l'appareil (lecture seule, SANS session : le jeton de suivi est la clé). Annuler, répondre au restaurant et déclarer un règlement
+   * exigent toujours une session ouverte. Le suivi reçu doit porter la référence attendue, sinon il est refusé.
+   */
+  async suiviAppareil(cle:string):Promise<ResumeSuivi> {
+    const reference=referenceDeCle(cle);
+    if(reference===null)throw new ErreurConnexion('Cette commande n’est plus sur cet appareil.');
+    let jeton=this.clesAppareil.get(reference);
+    if(!jeton){await this.commandesAppareil();jeton=this.clesAppareil.get(reference);}
+    if(!jeton)throw new ErreurConnexion('Cette commande n’est plus sur cet appareil.');
+    const r=await this.api.suivi(jeton);
+    if(r.reference!==reference)throw new ErreurConnexion('Le suivi reçu ne correspond pas à cette commande.');
+    return r;
+  }
+  /** « Oublier les commandes de cet appareil » : efface les références et les jetons gardés ici. Les commandes du compte restent sur le serveur. */
+  async oublierCommandesAppareil():Promise<void> {
+    this.clesAppareil.clear();
+    await this.memoire?.oublier();
+  }
   /** Envoie une commande (un seul essai). Le jeton de suivi reçu est jeté ici : il ne remonte jamais jusqu'à l'écran, le suivi le relit via `commandes()`. */
   async creerCommande(payload:CreationCommandePayload):Promise<{reference:string;idempotent:boolean}> {
     const n=this.generation;
     const acces=await this.jeton();
     if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
-    try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);return {reference:r.reference,idempotent:r.idempotent};}
+    try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);this.noterCommandes([{reference:r.reference,jeton:r.jeton,restaurantNom:'',creeLe:Date.now(),totalGnf:0,mode:payload.mode}]);return {reference:r.reference,idempotent:r.idempotent};}
     catch(e){if(e instanceof ErreurCommande&&e.genre==='session'&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
   }
   /** Frais et durée de livraison calculés par le serveur pour ce quartier et ce sous-total (lecture, jeton porteur du compte connecté). Une session terminée le dit, sans rien effacer d'autre. */
@@ -163,6 +325,192 @@ export class GestionSession {
       const fiche = await this.api.ficheLivreur(acces);
       if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
       return fiche;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Appel candidature avec le porteur de la session ouverte : un 401 termine la session, une réponse après déconnexion est refusée. Aucune relance. */
+  private async appelCandidature<T>(appel: (acces: string) => Promise<T>, annule: string): Promise<T> {
+    const n = this.generation;
+    const acces = await this.jeton();
+    if (n !== this.generation) throw new ErreurConnexion(annule);
+    try { const r = await appel(acces); if (n !== this.generation) throw new ErreurConnexion(annule); return r; }
+    catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  comptesEquipe(recherche?: { q?: string; type?: string }): Promise<{ comptes: CompteEquipe[]; tronque: boolean; illisibles: number }> {
+    return this.appelCandidature(a => this.api.comptesEquipe ? this.api.comptesEquipe(a, recherche) : Promise.reject(new ErreurConnexion('Comptes indisponibles.')), 'Lecture annulée.');
+  }
+  auditEquipe(filtres?: { action?: string; depuis?: number }): Promise<AuditEquipe> {
+    return this.appelCandidature(a => this.api.auditEquipe ? this.api.auditEquipe(a, filtres) : Promise.reject(new ErreurConnexion('Journal indisponible.')), 'Lecture annulée.');
+  }
+  zonesAttenteEquipe(): Promise<{ zones: ZoneAttenteEquipe[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.zonesAttenteEquipe ? this.api.zonesAttenteEquipe(a) : Promise.reject(new ErreurConnexion('Zones indisponibles.')), 'Lecture annulée.');
+  }
+  marquerZonePrevenueEquipe(niveau: string, zoneId: string): Promise<string> {
+    return this.appelCandidature(a => this.api.marquerZonePrevenueEquipe ? this.api.marquerZonePrevenueEquipe(a, niveau, zoneId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  misesAJourEquipe(): Promise<MisesAJourEquipe> {
+    return this.appelCandidature(a => this.api.misesAJourEquipe ? this.api.misesAJourEquipe(a) : Promise.reject(new ErreurConnexion('Mises à jour indisponibles.')), 'Lecture annulée.');
+  }
+  avisEquipe(): Promise<AvisEquipe> {
+    return this.appelCandidature(a => this.api.avisEquipe ? this.api.avisEquipe(a) : Promise.reject(new ErreurConnexion('Avis indisponibles.')), 'Lecture annulée.');
+  }
+  modererAvisEquipe(avisId: string, action: string, motif?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.modererAvisEquipe ? this.api.modererAvisEquipe(a, avisId, action, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  bannieresEquipe(statut?: string): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+    return this.appelCandidature(a => this.api.bannieresEquipe ? this.api.bannieresEquipe(a, statut) : Promise.reject(new ErreurConnexion('Bannières indisponibles.')), 'Lecture annulée.');
+  }
+  mediasEquipe(): Promise<{ bannieres: BanniereEquipe[]; tronque: boolean; illisibles: number }> {
+    return this.appelCandidature(a => this.api.mediasEquipe ? this.api.mediasEquipe(a) : Promise.reject(new ErreurConnexion('Médias indisponibles.')), 'Lecture annulée.');
+  }
+  parametresEquipe(): Promise<ParametresEquipe> {
+    return this.appelCandidature(a => this.api.parametresEquipe ? this.api.parametresEquipe(a) : Promise.reject(new ErreurConnexion('Paramètres indisponibles.')), 'Lecture annulée.');
+  }
+  restaurantsEquipe(): Promise<{ restaurants: RestaurantEquipe[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.restaurantsEquipe ? this.api.restaurantsEquipe(a) : Promise.reject(new ErreurConnexion('Établissements indisponibles.')), 'Lecture annulée.');
+  }
+  ficheRestaurantEquipe(restaurantId: string): Promise<FicheRestaurantEquipe> {
+    return this.appelCandidature(a => this.api.ficheRestaurantEquipe ? this.api.ficheRestaurantEquipe(a, restaurantId) : Promise.reject(new ErreurConnexion('Fiche indisponible.')), 'Lecture annulée.');
+  }
+  modifierProfilEquipe(restaurantId: string, horaires: string, telephone: string): Promise<string> {
+    return this.appelCandidature(a => this.api.modifierProfilEquipe ? this.api.modifierProfilEquipe(a, restaurantId, horaires, telephone) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  menusEquipe(): Promise<MenusEquipe> {
+    return this.appelCandidature(a => this.api.menusEquipe ? this.api.menusEquipe(a) : Promise.reject(new ErreurConnexion('Menus indisponibles.')), 'Lecture annulée.');
+  }
+  lirePhotoMenuEquipe(restaurantId: string, fichier: FichierPhotoPrete): Promise<LectureMenu> {
+    return this.appelCandidature(a => this.api.lirePhotoMenuEquipe ? this.api.lirePhotoMenuEquipe(a, restaurantId, fichier) : Promise.reject(new ErreurConnexion('Lecture indisponible.')), 'Lecture annulée.');
+  }
+  importerMenuEquipe(restaurantId: string, lignes: Array<{ nom: string; prix: string; coche: boolean }>): Promise<{ message: string; ajoutes: number }> {
+    return this.appelCandidature(a => this.api.importerMenuEquipe ? this.api.importerMenuEquipe(a, restaurantId, lignes) : Promise.reject(new ErreurConnexion('Import indisponible.')), 'Envoi annulé.');
+  }
+  platsMenuEquipe(restaurantId: string): Promise<{ nom: string; plats: PlatMenuEquipe[] }> {
+    return this.appelCandidature(a => this.api.platsMenuEquipe ? this.api.platsMenuEquipe(a, restaurantId) : Promise.reject(new ErreurConnexion('Menu indisponible.')), 'Lecture annulée.');
+  }
+  reconfirmerMenuEquipe(restaurantId: string, platId?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.reconfirmerMenuEquipe ? this.api.reconfirmerMenuEquipe(a, restaurantId, platId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  disponibiliteMenuEquipe(restaurantId: string, platId: string, disponible: boolean): Promise<string> {
+    return this.appelCandidature(a => this.api.disponibiliteMenuEquipe ? this.api.disponibiliteMenuEquipe(a, restaurantId, platId, disponible) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  referencementsEquipe(): Promise<{ demandes: DemandeReferencement[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.referencementsEquipe ? this.api.referencementsEquipe(a) : Promise.reject(new ErreurConnexion('Demandes indisponibles.')), 'Lecture annulée.');
+  }
+  optionsReferencement(): Promise<{ categories: Array<{ id: string; nom: string }>; quartiers: Array<{ id: string; nom: string }> }> {
+    return this.appelCandidature(a => this.api.optionsReferencement ? this.api.optionsReferencement(a) : Promise.reject(new ErreurConnexion('Listes indisponibles.')), 'Lecture annulée.');
+  }
+  statutReferencement(demandeId: string, statut: string, motif?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.statutReferencement ? this.api.statutReferencement(a, demandeId, statut, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  creerEtablissementReferencement(demandeId: string, categorieId: string, quartierId: string): Promise<string> {
+    return this.appelCandidature(a => this.api.creerEtablissementReferencement ? this.api.creerEtablissementReferencement(a, demandeId, categorieId, quartierId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  rattacherReferencement(demandeId: string): Promise<string> {
+    return this.appelCandidature(a => this.api.rattacherReferencement ? this.api.rattacherReferencement(a, demandeId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  partenariatsEquipe(): Promise<{ partenariats: DemandePartenariat[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.partenariatsEquipe ? this.api.partenariatsEquipe(a) : Promise.reject(new ErreurConnexion('Demandes indisponibles.')), 'Lecture annulée.');
+  }
+  statutPartenariat(demandeId: string, statut: string): Promise<string> {
+    return this.appelCandidature(a => this.api.statutPartenariat ? this.api.statutPartenariat(a, demandeId, statut) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  exploitationEquipe(): Promise<ExploitationEquipe> {
+    return this.appelCandidature(a => this.api.exploitationEquipe ? this.api.exploitationEquipe(a) : Promise.reject(new ErreurConnexion('Exploitation indisponible.')), 'Lecture annulée.');
+  }
+  actionLivraisonEquipe(action: string, livraisonId: string, livreurId?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.actionLivraisonEquipe ? this.api.actionLivraisonEquipe(a, action, livraisonId, livreurId) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  actionLivreurEquipe(action: string, livreurId: string, motif?: string): Promise<string> {
+    return this.appelCandidature(a => this.api.actionLivreurEquipe ? this.api.actionLivreurEquipe(a, action, livreurId, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  accesEquipe(): Promise<AccesEquipe> {
+    return this.appelCandidature(a => this.api.accesEquipe ? this.api.accesEquipe(a) : Promise.reject(new ErreurConnexion('Accès équipe indisponible.')), 'Lecture annulée.');
+  }
+  commandesEquipe(recherche: { statut?: string; reference?: string; jour?: boolean }): Promise<{ commandes: CommandeEquipe[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.commandesEquipe ? this.api.commandesEquipe(a, recherche) : Promise.reject(new ErreurConnexion('Commandes indisponibles.')), 'Lecture annulée.');
+  }
+  detailCommandeEquipe(commandeId: string): Promise<ReponseDetailEquipe> {
+    return this.appelCandidature(a => this.api.detailCommandeEquipe ? this.api.detailCommandeEquipe(a, commandeId) : Promise.reject(new ErreurConnexion('Détail indisponible.')), 'Lecture annulée.');
+  }
+  changerStatutEquipe(commandeId: string, vers: StatutCommandeEquipe, motif: string): Promise<void> {
+    return this.appelCandidature(a => this.api.changerStatutEquipe ? this.api.changerStatutEquipe(a, commandeId, vers, motif) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  revelerCoordonneesEquipe(commandeId: string, motif: string): Promise<CoordonneesEquipe> {
+    return this.appelCandidature(a => this.api.revelerCoordonneesEquipe ? this.api.revelerCoordonneesEquipe(a, commandeId, motif) : Promise.reject(new ErreurConnexion('Révélation indisponible.')), 'Envoi annulé.');
+  }
+  commandesARepartir(): Promise<{ commandes: CommandeARepartir[]; illisibles: number }> {
+    return this.appelCandidature(a => this.api.commandesARepartir ? this.api.commandesARepartir(a) : Promise.reject(new ErreurConnexion('Répartition indisponible.')), 'Lecture annulée.');
+  }
+  actionRepartitionEquipe(commandeId: string, action: ActionRepartitionEquipe): Promise<StatutCommandeEquipe> {
+    return this.appelCandidature(a => this.api.actionRepartitionEquipe ? this.api.actionRepartitionEquipe(a, commandeId, action) : Promise.reject(new ErreurConnexion('Action indisponible.')), 'Envoi annulé.');
+  }
+  tableauEquipe(): Promise<TableauEquipe> {
+    return this.appelCandidature(a => this.api.tableauEquipe ? this.api.tableauEquipe(a) : Promise.reject(new ErreurConnexion('Tableau de bord indisponible.')), 'Lecture annulée.');
+  }
+  paiementsEquipe(): Promise<PaiementsEquipe> {
+    return this.appelCandidature(a => this.api.paiementsEquipe ? this.api.paiementsEquipe(a) : Promise.reject(new ErreurConnexion('Paiements indisponibles.')), 'Lecture annulée.');
+  }
+  /** Finances de l'équipe (lecture, jeton porteur) : le serveur décide du droit du module. */
+  financesEquipe(): Promise<FinancesEquipe> {
+    return this.appelCandidature(a => this.api.financesEquipe ? this.api.financesEquipe(a) : Promise.reject(new ErreurConnexion('Finances indisponibles.')), 'Lecture annulée.');
+  }
+  lireCandidature(): Promise<VueCandidature | null> {
+    return this.appelCandidature(a => this.api.lireCandidature ? this.api.lireCandidature(a) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Lecture annulée.');
+  }
+  deposerCandidature(brouillon: BrouillonCandidature): Promise<VueCandidature> {
+    return this.appelCandidature(a => this.api.deposerCandidature ? this.api.deposerCandidature(a, brouillon) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Envoi annulé.');
+  }
+  envoyerImageCandidature(type: 'logo' | 'photo', fichier: FichierPhotoPrete): Promise<VueCandidature> {
+    return this.appelCandidature(a => this.api.envoyerImageCandidature ? this.api.envoyerImageCandidature(a, type, fichier) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Envoi annulé.');
+  }
+  lireMenuPhotoCandidature(fichier: FichierPhotoPrete): Promise<LectureMenu> {
+    return this.appelCandidature(a => this.api.lireMenuPhotoCandidature ? this.api.lireMenuPhotoCandidature(a, fichier) : Promise.reject(new ErreurConnexion('Candidature indisponible.')), 'Lecture annulée.');
+  }
+  /** File des courses de ce livreur (lecture, jeton porteur) : la course en cours puis celles qui viennent. */
+  async fileLivreur(): Promise<FileLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.fileLivreur) throw new ErreurConnexion('File des courses indisponible.');
+      const f = await this.api.fileLivreur(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return f;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** « Mon dossier » de ce livreur (lecture, jeton porteur) : l'état des pièces exigées, jamais leur contenu. */
+  async dossierLivreur(): Promise<DossierLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.dossierLivreur) throw new ErreurConnexion('Dossier indisponible.');
+      const d = await this.api.dossierLivreur(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return d;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Gains de ce livreur (lecture, jeton porteur) : frais de course du jour et des 7 jours, jamais une paie. */
+  async gainsLivreur(): Promise<GainsLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.gainsLivreur) throw new ErreurConnexion('Frais de course indisponibles.');
+      const g = await this.api.gainsLivreur(acces);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return g;
+    } catch (e) { await this.sessionTerminee(e, n); throw e; }
+  }
+  /** Une page de l'historique des courses livrées de ce livreur (lecture paginée, jeton porteur). */
+  async historiqueLivreur(page: number): Promise<PageCoursesLivreur | null> {
+    const n = this.generation;
+    try {
+      const acces = await this.jeton();
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      if (!this.api.historiqueLivreur) throw new ErreurConnexion('Historique indisponible.');
+      const p = await this.api.historiqueLivreur(acces, page);
+      if (n !== this.generation) throw new ErreurConnexion('Lecture annulée.');
+      return p;
     } catch (e) { await this.sessionTerminee(e, n); throw e; }
   }
   /** État G2 de ce compte (fiche + offre) : lecture pure, annulée si la session change. */
@@ -218,6 +566,60 @@ export class GestionSession {
       return r;
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
+  /** Historique des commandes finies de CE restaurant (lecture paginée, jeton porteur) : aucun jeton de suivi, aucune coordonnée client. */
+  async historiqueRestaurant(page:number,taille:number):Promise<PageHistorique> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.historiqueRestaurant)throw new ErreurConnexion('Historique indisponible.');
+      const r=await this.api.historiqueRestaurant(acces,page,taille);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Activité de CE restaurant (lecture, jeton porteur) : bilans et dernières commandes terminées, aucune coordonnée client. */
+  async activiteRestaurant():Promise<ActiviteRestaurateur> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.activiteRestaurant)throw new ErreurConnexion('Activité indisponible.');
+      const r=await this.api.activiteRestaurant(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** État de publication de CE restaurant (lecture, jeton porteur) : publié, suspendu, correction demandée. Aucun identifiant de restaurant n'est envoyé. */
+  async etatRestaurant():Promise<EtatPublication> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.etatRestaurant)throw new ErreurConnexion('État de publication indisponible.');
+      const r=await this.api.etatRestaurant(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Score qualité mensuel de CE restaurant (lecture, jeton porteur) : palier et six indicateurs, ou null avant le premier calcul. */
+  async scoreRestaurant():Promise<ScoreRestaurateur|null> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(!this.api.scoreRestaurant)throw new ErreurConnexion('Score qualité indisponible.');
+      const r=await this.api.scoreRestaurant(acces);
+      if(n!==this.generation)throw new ErreurConnexion('Lecture annulée.');
+      return r;
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
+  /** Établit le reçu ou la facture d'UNE commande (un seul essai, jamais de relance : un numéro est attribué). Le restaurant n'est pas envoyé. */
+  async emettreDocumentRestaurateur(commandeId:string,type:TypeDocument):Promise<void> {
+    const n=this.generation;
+    try{
+      const acces=await this.jeton();
+      if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
+      if(!this.api.emettreDocumentRestaurateur)throw new ErreurConnexion('Documents indisponibles.');
+      await this.api.emettreDocumentRestaurateur(acces,commandeId,type);
+    }catch(e){await this.sessionTerminee(e,n);throw e;}
+  }
   /** Accepte ou refuse UNE commande (un seul essai, jamais de relance). Le restaurant n'est pas envoyé : le serveur le tire du compte. */
   async actionRestaurateur(commandeId:string,action:ActionRestaurateur):Promise<void> {
     const n=this.generation;
@@ -229,13 +631,13 @@ export class GestionSession {
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   /** Fait avancer UNE livraison du restaurant (partir, livree avec le code, annuler) : un seul essai, jamais de relance. Le restaurant n'est pas envoyé : le serveur le tire du compte. */
-  async actionLivraisonRestaurateur(livraisonId:string,action:ActionLivraisonApp,code?:string):Promise<void> {
+  async actionLivraisonRestaurateur(livraisonId:string,action:ActionLivraisonApp,code?:string,motif?:MotifEchecApp):Promise<void> {
     const n=this.generation;
     try{
       const acces=await this.jeton();
       if(n!==this.generation)throw new ErreurConnexion('Envoi annulé.');
       if(!this.api.actionLivraisonRestaurateur)throw new ErreurConnexion('Espace restaurateur indisponible.');
-      await this.api.actionLivraisonRestaurateur(acces,livraisonId,action,code);
+      await this.api.actionLivraisonRestaurateur(acces,livraisonId,action,code,motif);
     }catch(e){await this.sessionTerminee(e,n);throw e;}
   }
   /** Propose un autre prix pour UNE commande (un seul essai, jamais de relance). Le restaurant n'est pas envoyé : le serveur le tire du compte. */

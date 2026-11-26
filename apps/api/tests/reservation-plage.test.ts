@@ -101,7 +101,7 @@ test("M5 serveur : le SERVICE refuse aussi un créneau hors plage (même si le c
 test("M5 serveur : la fonction SQL répète la plage (même refus HORS_PLAGE, même message côté client) et la traduction du code est celle de la constante", () => {
   const traduit = traduireRefusCreation("HORS_PLAGE", 4);
   assert.deepEqual(traduit, { code: "VALIDATION", message: MESSAGE_CRENEAU_HORS_PLAGE });
-  const sql = lire("../../../supabase/migrations/20261110110000_reservation_creation_atomique.sql");
+  const sql = lire("../../../supabase/migrations/20261127091000_reservation_creation_atomique.sql");
   assert.match(sql, new RegExp(`c_premier constant integer := ${PREMIER_CRENEAU_MINUTES / 60} \\* 60;`), "10:00 dans le SQL");
   assert.match(sql, new RegExp(`c_dernier constant integer := ${Math.floor(DERNIER_CRENEAU_MINUTES / 60)} \\* 60 \\+ ${DERNIER_CRENEAU_MINUTES % 60};`), "22:45 dans le SQL");
 });

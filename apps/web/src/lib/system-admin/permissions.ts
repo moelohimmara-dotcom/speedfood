@@ -208,6 +208,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
       { href: "/system/livraisons/incidents", libelle: "Incidents", permission: "commande.support" },
       { href: "/system/paiements", libelle: "Paiements", permission: "commande.support" },
       { href: "/system/finances", libelle: "Finances", permission: "parametres.editer" },
+      { href: "/system/scores-qualite", libelle: "Scores qualité", permission: "parametres.editer" },
       { href: "/system/avis", libelle: "Avis", permission: "commande.support" },
       { href: "/system/aide-choix", libelle: "Aide au choix", permission: "commande.support" },
     ],

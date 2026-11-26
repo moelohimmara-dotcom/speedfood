@@ -59,3 +59,24 @@ test('G3c banc : serveur local durci, sans réseau sortant ni secret, README à 
   const readme = lire('../controle-livreur/README.md');
   for (const attendu of ['parcours-g3.mjs', 'g3_offre', 'g3_course_vers_client', 'g3_propre', 'g3_lente', '/__faute', '/__changer-course', 'incertain_applique', 'adb reverse', 'set EXPO_NO_DOTENV=1']) assert.ok(readme.includes(attendu), attendu);
 });
+
+test('transport local : une annulation du client atteint la requête native', async () => {
+  const amont = new AbortController();
+  let transmis: AbortSignal | null = null;
+  const t = creerTransportControle((async (_url: string, init: RequestInit) => {
+    transmis = init.signal as AbortSignal;
+    return Response.json({ ok: true });
+  }) as typeof fetch);
+  const reponse = t.requete(ORIGINE_CONTROLE + '/__etat', { signal: amont.signal });
+  amont.abort();
+  assert.equal((transmis as AbortSignal | null)?.aborted, true, 'le banc ne doit pas masquer le délai du vrai client');
+  await reponse;
+});
+
+test('transport local : une requête déjà annulée ne déclenche aucun appel réseau', async () => {
+  let appels = 0;
+  const t = creerTransportControle((async () => { appels++; return Response.json({ ok: true }); }) as typeof fetch);
+  const amont = new AbortController(); amont.abort();
+  await assert.rejects(() => t.requete(ORIGINE_CONTROLE + '/__etat', { signal: amont.signal }));
+  assert.equal(appels, 0);
+});

@@ -65,7 +65,7 @@ verifier("avance de « honorée »", HONOREE_AVANCE_MINUTES, 60);
 // ---- parité avec la migration SQL (analysée dans son texte)
 const racine = process.env.SPEEDFOOD_RACINE;
 if (racine) {
-  const sql = readFileSync(join(racine, "..", "..", "supabase", "migrations", "20261110090000_reservations_table.sql"), "utf8")
+  const sql = readFileSync(join(racine, "..", "..", "supabase", "migrations", "20261127090000_reservations_table.sql"), "utf8")
     .split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
   const bloc = sql.match(/statut text not null default 'demandee'\s*check \(statut in \(([^)]*)\)\)/);

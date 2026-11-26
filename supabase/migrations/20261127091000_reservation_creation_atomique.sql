@@ -1,5 +1,5 @@
 -- Lot M5 (10 novembre 2026), M2b : création ATOMIQUE d'une réservation de table. Fichier seul : jamais appliqué sans le feu vert de Malika.
--- Dépend de 20261110090000_reservations_table.sql (table, triggers, droits).
+-- Dépend de 20261127090000_reservations_table.sql (table, triggers, droits).
 --
 -- Pourquoi : jusqu'ici l'API vérifiait la capacité du créneau, le plafond de 3 réservations actives par compte, le doublon de créneau et le rejeu en plusieurs requêtes
 -- successives. Deux demandes simultanées pouvaient donc passer ensemble et dépasser la capacité ou le plafond. Cette fonction fait tout dans UNE transaction, derrière deux verrous

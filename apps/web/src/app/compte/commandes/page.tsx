@@ -9,7 +9,7 @@ import { formaterDateCommande, formaterMontantClient, libellePaiementClient, lib
 import { libelleModeClient } from "@/lib/commande/mode";
 import { BoutonRecommander } from "@/components/BoutonRecommander";
 
-export const metadata: Metadata = { title: "Mes commandes" };
+export const metadata: Metadata = { title: { absolute: "Mes commandes · Speedfood" } };
 export const dynamic = "force-dynamic";
 
 /**

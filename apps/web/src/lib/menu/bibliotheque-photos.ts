@@ -1,0 +1,268 @@
+import type { PhotoBibliotheque } from "./photos";
+import { BIBLIOTHEQUE_BANQUES_LOTS_1 } from "./bibliotheque-banques-lot1";
+import { BIBLIOTHEQUE_BANQUES_LOT2 } from "./bibliotheque-banques-lot2";
+import { BIBLIOTHEQUE_BANQUES_LOT3 } from "./bibliotheque-banques-lot3";
+import { BIBLIOTHEQUE_BANQUES_LOT4 } from "./bibliotheque-banques-lot4";
+import { BIBLIOTHEQUE_BANQUES_LOT5 } from "./bibliotheque-banques-lot5";
+import { BIBLIOTHEQUE_BANQUES_PIXABAY } from "./bibliotheque-banques-pixabay";
+import { BIBLIOTHEQUE_BANQUES_PIXABAY_2 } from "./bibliotheque-banques-pixabay-2";
+import { BIBLIOTHEQUE_BANQUES_PEXELS_6 } from "./bibliotheque-banques-pexels-6";
+
+/**
+ * Bibliothèque des photos de démonstration, par type de plat (clé commune avec `typeDePlat`).
+ * Chaque entrée correspond à un fichier contrôlé (voir scripts/controle-photos.mjs et docs/REGLES-MENUS-ET-PHOTOS.md, section 6) :
+ * `ia` = image générée (à signaler « image illustrative »), `banque` = photo libre de droits (crédit selon la licence).
+ * Une entrée n'est ajoutée qu'après contrôle visuel : en cas de doute, on ne l'ajoute pas (donc aucune photo pour ce plat).
+ */
+export interface PhotoDeBibliotheque extends PhotoBibliotheque {
+  /** Fichier d'origine, relatif au dossier des images de démonstration. */
+  fichier: string;
+  /** Licence et auteur d'une photo de banque (crédit à afficher quand la licence l'exige, comme CC BY et CC BY-SA). */
+  licence?: string;
+  auteur?: string | null;
+  page?: string;
+}
+
+const ia = (type: string, fichier = type): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot3/${fichier}.png` });
+/** Images IA du lot 2 (plats guinéens et africains), fichiers nommés d'après le plat. */
+const ia2 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot2/${fichier}.png` });
+
+/** Images IA du lot 4 (25/11/2026) : boissons sans marque et plats guinéens, fichiers nommés d'après le plat. */
+const ia4 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot4/${fichier}.png` });
+
+/** Images IA du lot 5 (25/11/2026) : plats uniques et boissons, fichiers nommés d'après le plat. */
+const ia5 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot5/${fichier}.png` });
+
+/** Images IA du lot 6 (25/11/2026) : derniers plats, fichiers nommés d'après le plat. */
+const ia6 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot6/${fichier}.png` });
+
+/** Images IA du lot 7 (26/11/2026) : derniers plats uniques, fichiers nommés d'après le plat. */
+const ia7 = (type: string, fichier: string): PhotoDeBibliotheque => ({ id: `ia-${fichier}`, type, source: "ia", fichier: `lot7/${fichier}.png` });
+
+const banque = (type: string, idPexels: string, lot = "lot3"): PhotoDeBibliotheque => ({
+  id: `px-${idPexels}`,
+  type,
+  source: "banque",
+  fichier: `pexels-${lot}/${type}-${idPexels}.jpg`,
+});
+
+const BIBLIOTHEQUE_BASE: readonly PhotoDeBibliotheque[] = [
+  // Formules, menus et plateaux (plusieurs éléments)
+  ia("formule-grillade"),
+  ia("formule-partage-africain"),
+  ia("formule-mezze"),
+  ia("formule-doner"),
+  ia("formule-pates"),
+  ia("formule-indien"),
+  ia("formule-chinois"),
+  ia("formule-sushi"),
+  ia("formule-mexicain"),
+  ia("formule-grec"),
+  ia("formule-marocain"),
+  ia("formule-thai"),
+  ia("formule-creole"),
+  ia("formule-roumain"),
+  ia("formule-burger"),
+  ia("formule-petitdej"),
+  ia("formule-dejeuner"),
+  ia("formule-gouter"),
+  // Plats
+  ia("tajine"),
+  ia("riz-poisson"),
+  ia("salade-crudites"),
+  ia("houmous"),
+  ia("kafta"),
+  ia("grillade-mixte"),
+  ia("baklava"),
+  ia("butter-chicken"),
+  ia("biryani"),
+  ia("salade-tomate-oignon"),
+  ia("salade-avocat"),
+  ia("salade-concombre"),
+  ia("salade-chou"),
+  ia("salade-cesar"),
+  ia("salade-grecque"),
+  ia("falafel"),
+  ia("pates-pastry-triangles"),
+  ia("poulet-brochette"),
+  ia("manakish"),
+  ia("pain-plat"),
+  ia("lahmacun"),
+  ia("pide"),
+  ia("iskender"),
+  // Plats guinéens et africains (lot 2)
+  ia2("attieke-poisson", "attieke-poisson-braise"),
+  ia2("beignets-sales", "beignets-haricots-poisson"),
+  ia2("boisson-maltee", "boisson-maltee"),
+  ia2("bouillie", "bouillie-mil"),
+  ia2("capitaine-citron", "capitaine-sauce-citron"),
+  ia2("couscous-mil", "couscous-mil-sauce-legumes"),
+  ia2("crevettes", "crevettes-piment"),
+  ia2("croque", "croque-monsieur"),
+  ia2("fataya", "fataya"),
+  ia2("fonio-gombo", "fonio-sauce-gombo"),
+  ia2("foutou", "foutou"),
+  ia2("frites-igname", "frites-igname"),
+  ia2("galettes-mil", "galettes-mil"),
+  ia2("gigot", "gigot-mechoui"),
+  ia2("jus-gingembre", "gingembre-petillant"),
+  ia2("haricots", "haricots-huile-rouge"),
+  ia2("igname-poisson", "igname-sauce-poisson"),
+  ia2("jus-baobab", "jus-baobab"),
+  ia2("lait-caille", "lait-caille"),
+  ia2("mafe", "mafe"),
+  ia2("mafe", "poulet-sauce-arachide"),
+  ia2("pintade", "pintade-mijotee"),
+  ia2("poulet-braise", "poulet-braise"),
+  ia2("poulet-braise", "poulet-fume"),
+  ia2("poulet-pistache", "poulet-sauce-pistache"),
+  ia2("ragout-chevre", "ragout-chevre"),
+  ia2("riz-poisson", "riz-au-poisson"),
+  ia2("riz-sauce-feuilles", "riz-feuilles-patate"),
+  ia2("riz-sauce-aubergine", "riz-sauce-aubergine"),
+  ia2("riz-sauce-gombo", "riz-sauce-gombo"),
+  ia2("riz-sauce-kansiye", "riz-sauce-kansiye"),
+  ia2("sauce-feuilles-manioc", "sauce-feuilles-manioc"),
+  ia2("to-couscous", "to"),
+  ia2("tripes", "tripes-sauce-tomate"),
+  // Images IA du lot 4 (boissons sans marque et plats guinéens ; les photos de banque passent toujours avant)
+  ia4("boisson-energisante", "boisson-energisante"),
+  ia4("boisson-energisante", "boisson-energisante-sans-sucre"),
+  ia4("biere-sans-alcool", "biere-sans-alcool"),
+  ia4("lait-chaud", "lait-chaud-sucre"),
+  ia4("eau-gazeuse", "eau-gazeuse"),
+  ia4("the-au-lait", "the-au-lait"),
+  ia4("boisson-isotonique", "boisson-isotonique"),
+  ia4("capitaine-fume-sauce", "capitaine-fume-sauce"),
+  ia4("sauce-pimentee", "sauce-pimentee"),
+  ia4("riz-sauce-tomate-poisson-fume", "riz-sauce-tomate-poisson-fume"),
+  ia4("soupe-legumes-poulet", "soupe-legumes-poulet"),
+  ia4("attieke", "attieke"),
+  ia4("poisson-fume-braise", "poisson-fume-braise"),
+  ia4("brochettes-gesiers", "brochettes-gesiers"),
+  ia4("riz-sauce-poulet-legumes", "riz-sauce-poulet-legumes"),
+  ia4("riz-yassa", "riz-yassa-poulet"),
+  ia4("beignets-banane-plantain", "beignets-banane-plantain"),
+  // Images IA du lot 5 (plats uniques, alcools et boissons)
+  ia5("formule-riz-sauce-boisson", "menu-riz-sauce-boisson"),
+  ia5("foie-grille", "foie-grille"),
+  ia5("gin", "gin"),
+  ia5("rhum-ambre", "rhum-ambre"),
+  ia5("liqueur-amande", "liqueur-amande"),
+  ia5("liqueur-cafe", "liqueur-cafe"),
+  ia5("vodka", "vodka"),
+  ia5("salade-haricots-blancs", "salade-haricots-blancs"),
+  ia5("pickles-indiens", "pickles-indiens"),
+  ia5("riz-haricots", "riz-haricots"),
+  ia5("tarte-thon", "tarte-thon"),
+  ia5("riz-sauce-legumes-viande", "riz-sauce-legumes-viande"),
+  ia5("salade-poulet-croustillant", "salade-poulet-croustillant"),
+  ia5("poulet-fouta-oignons", "poulet-fouta-oignons"),
+  ia5("salade-nouilles-froides", "salade-nouilles-froides"),
+  ia5("poulet-pane-entree", "poulet-pane-entree"),
+  ia5("salade-chou-japonaise", "salade-chou-japonaise"),
+  ia5("crevettes-aigre-douces", "crevettes-aigre-douces"),
+  ia5("thiakry", "thiakry"),
+  ia5("crepe-complete", "crepe-complete"),
+  ia5("riz-vermicelle", "riz-vermicelle"),
+  ia5("samoussa-chaat", "samoussa-chaat"),
+  ia5("bhel-puri", "bhel-puri"),
+  ia5("riz-pilaf-cumin", "riz-pilaf-cumin"),
+  ia5("suya-boeuf", "suya-boeuf"),
+  ia5("suya-poulet", "suya-poulet"),
+  ia5("riz-mexicain", "riz-mexicain"),
+  ia5("boisson-energisante", "boisson-energisante-noire"),
+  ia5("boisson-energisante", "boisson-energisante-bleue"),
+  ia5("petit-pain-chocolat", "petit-pain-chocolat"),
+  ia5("yakitori-poulet", "yakitori-poulet"),
+  ia5("mouloukhieh-poulet", "mouloukhieh-poulet"),
+  ia5("chin-chin", "chin-chin"),
+  ia5("fura-da-nono", "fura-da-nono"),
+  ia5("pastels-poisson", "pastels-poisson"),
+  ia5("falafel-pita", "falafel-pita"),
+  ia5("jallab", "jallab"),
+  ia5("cafe-libanais", "cafe-libanais"),
+  ia5("hot-dog-fromage", "hot-dog-fromage"),
+  ia5("jus-tamarin", "jus-tamarin"),
+  ia5("mjadra", "mjadra"),
+  ia5("roule-matcha", "roule-matcha"),
+  ia5("salade-algues-wakame", "salade-algues-wakame"),
+  ia5("gingembre-marine", "gingembre-marine"),
+  ia5("crevettes-tandoori", "crevettes-tandoori"),
+  ia5("salade-marocaine", "salade-marocaine"),
+  ia5("saltimbocca-volaille", "saltimbocca-volaille"),
+  ia5("batbout-poulet", "batbout-poulet"),
+  ia5("pain-au-lait", "pain-au-lait"),
+  ia5("soupe-lentilles-dal", "soupe-lentilles-dal"),
+  // Images IA du lot 6 (derniers plats)
+  ia6("crepe-poulet", "crepe-poulet"),
+  ia6("olives-cornichons", "olives-cornichons"),
+  ia6("kebbe-yaourt", "kebbe-yaourt"),
+  ia6("iskender-poulet", "iskender-poulet"),
+  ia6("manioc-pile-sauce-graine", "manioc-pile-sauce-graine"),
+  ia6("sauce-graine-poulet-fume", "sauce-graine-poulet-fume"),
+  // Images IA du lot 7 (derniers plats uniques)
+  ia7("oeuf-cocotte", "oeuf-cocotte"),
+  ia7("dibi-agneau", "dibi-agneau"),
+  ia7("tanjia-agneau", "tanjia-agneau"),
+  ia7("blanquette-volaille", "blanquette-volaille"),
+  ia7("baguette-beurre-confiture", "baguette-beurre-confiture"),
+  ia7("piyaz", "piyaz"),
+  ia7("the-montagne-grec", "the-montagne-grec"),
+  ia7("frappe-grec", "frappe-grec"),
+  ia7("koulourakia", "koulourakia"),
+  ia7("zaalouk", "zaalouk"),
+  ia7("papanasi-sales", "papanasi-sales"),
+  ia7("compote-fruits", "compote-fruits"),
+  ia7("riz-coriandre", "riz-coriandre"),
+  ia7("olives-citron-confit", "olives-citron-confit"),
+  ia7("salade-niebe", "salade-niebe"),
+  ia7("flan-coco", "flan-coco"),
+  ia7("bricks-oeufs", "bricks-oeufs"),
+  // Photos de banque (Pexels, licence libre, vraies photos : elles passent avant l'IA)
+  banque("curry-vert", "31029754"),
+  banque("nachos", "12557544"),
+  banque("pad-thai", "2827263"),
+  banque("ramen", "12984979"),
+  banque("ramen", "6249221"),
+  banque("raviolis-vapeur", "15915267"),
+  banque("raviolis-vapeur", "32393811"),
+  banque("riz-cantonais", "19969203"),
+  banque("rouleaux-printemps", "4001867"),
+  banque("sushi", "7245465"),
+  banque("tacos", "28895960"),
+  banque("tacos", "3264572"),
+  banque("tacos", "5848703"),
+  banque("cookie", "8081574", "lot4"),
+  banque("cookie", "1020585", "lot4"),
+  banque("couscous", "1618952", "lot4"),
+  banque("couscous", "1618955", "lot4"),
+  banque("croissant", "14411697", "lot4"),
+  banque("croissant", "1775034", "lot4"),
+  banque("croissant", "32802342", "lot4"),
+  banque("croissant", "6202223", "lot4"),
+  banque("croissant", "6207315", "lot4"),
+  banque("hot-dog", "4113456", "lot4"),
+  banque("lasagnes", "13823542", "lot4"),
+  banque("lasagnes", "4079520", "lot4"),
+  banque("lasagnes", "5949892", "lot4"),
+  banque("steak-frites", "1352262", "lot4"),
+  banque("steak-frites", "1352264", "lot4"),
+  // Boissons avec alcool (Pexels lot 5) : seules les photos en paysage, nettes, sans marque lisible ni personne ont été retenues
+  banque("biere", "19106394", "lot5"),
+  banque("biere", "2707972", "lot5"),
+  banque("biere", "5538223", "lot5"),
+  banque("biere", "995686", "lot5"),
+  banque("margarita", "1590151", "lot5"),
+  banque("margarita", "2260281", "lot5"),
+  banque("mojito", "30591638", "lot5"),
+  banque("mojito", "7259040", "lot5"),
+  banque("pina-colada", "10986581", "lot5"),
+  banque("vin-blanc", "2584451", "lot5"),
+  banque("vin-effervescent", "11976218", "lot5"),
+  banque("vin-rouge", "2059471", "lot5"),
+  banque("vin-rouge", "6058230", "lot5"),
+];
+
+/** Toute la bibliothèque : images IA, photos de banque des lots 3 et 4, puis photos de banque retenues des premiers lots. */
+export const BIBLIOTHEQUE_PHOTOS: readonly PhotoDeBibliotheque[] = [...BIBLIOTHEQUE_BASE, ...BIBLIOTHEQUE_BANQUES_LOTS_1, ...BIBLIOTHEQUE_BANQUES_LOT2, ...BIBLIOTHEQUE_BANQUES_LOT3, ...BIBLIOTHEQUE_BANQUES_LOT4, ...BIBLIOTHEQUE_BANQUES_LOT5, ...BIBLIOTHEQUE_BANQUES_PIXABAY, ...BIBLIOTHEQUE_BANQUES_PIXABAY_2, ...BIBLIOTHEQUE_BANQUES_PEXELS_6];

@@ -127,7 +127,7 @@ const s = StyleSheet.create({
   choixTexte: { fontFamily: polices.texte, fontWeight: '700', fontSize: 13, color: c.action },
   choixTexteActif: { color: c.surface },
   nombre: { fontFamily: polices.titre, fontSize: 24, color: c.encre, minWidth: 40, textAlign: 'center' },
-  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
+  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.champBordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 80, textAlignVertical: 'top' },
   titre: { fontFamily: polices.titre, fontSize: 22, color: c.encre },
   nom: { fontFamily: polices.titre, fontSize: 18, color: c.encre },

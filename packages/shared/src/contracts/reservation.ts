@@ -4,7 +4,7 @@ import { DELAI_MIN_MINUTES, HORIZON_MAX_JOURS, NB_PERSONNES_MAX, NB_PERSONNES_MI
 /**
  * Contrat de la réservation de table pour les applications natives (lot M3) : corps stricts des écritures, réponses lues STRICTEMENT par le client.
  * Les états et les bornes du créneau viennent de `reservation/statuts.ts` (aucune constante dupliquée) ; les bornes ci-dessous reprennent les contraintes
- * de la table `reservations_table` (migration 20261110090000).
+ * de la table `reservations_table` (migration 20261127090000).
  *
  * Règles posées par le lot M3 :
  *  - le compte du client vient UNIQUEMENT du jeton : aucune clé « compte » n'existe dans les corps (une clé inconnue refuse le corps) ;

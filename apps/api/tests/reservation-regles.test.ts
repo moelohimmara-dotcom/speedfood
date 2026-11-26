@@ -85,7 +85,7 @@ test("M3 annulation client : demandée ou confirmée avec créneau futur ; pass�
 
 /** Les messages des `raise exception` de la migration M2 : lus dans le fichier, pour que toute nouvelle règle de la base soit forcée d'être traitée ici. */
 function messagesDeLaBase(): string[] {
-  const sql = readFileSync(fileURLToPath(new URL("../../../supabase/migrations/20261110090000_reservations_table.sql", import.meta.url)), "utf8");
+  const sql = readFileSync(fileURLToPath(new URL("../../../supabase/migrations/20261127090000_reservations_table.sql", import.meta.url)), "utf8");
   const messages: string[] = [];
   for (const m of sql.matchAll(/raise exception '((?:[^']|'')*)'/g)) messages.push(m[1].replace(/''/g, "'").replace(/%/g, "x"));
   return messages;

@@ -16,9 +16,15 @@ test("sans variable, la configuration de contrôle est inchangée", () => {
 });
 
 test("identité de production : paquet, code et version", () => {
-  const c = appliquer(base, { SPEEDFOOD_IDENTITE: "production", SPEEDFOOD_CODE: "52", SPEEDFOOD_VERSION: "3.0.0" });
-  assert.equal(c.android.package, "com.speedfood.app");
-  assert.equal(c.android.versionCode, 52);
+  const c = appliquer(base, { SPEEDFOOD_IDENTITE: "production", SPEEDFOOD_CODE: "100", SPEEDFOOD_VERSION: "3.0.0" });
+  // Nouvelle identité (clé de l'ancienne appli perdue le 11 novembre 2026) : jamais l'ancien identifiant, jamais celui de contrôle.
+  assert.equal(c.android.package, "com.speedfood.mobile");
+  assert.notEqual(c.android.package, "com.speedfood.app");
+  assert.notEqual(c.android.package, "com.speedfood.clientdemo");
+  assert.equal(c.ios.bundleIdentifier, "com.speedfood.mobile");
+  assert.equal(c.scheme, "speedfood");
+  assert.equal(c.name, "Speedfood");
+  assert.equal(c.android.versionCode, 100);
   assert.equal(c.version, "3.0.0");
   assert.equal(c.android.adaptiveIcon.backgroundColor, base.android.adaptiveIcon.backgroundColor, "le reste est préservé");
 });

@@ -18,7 +18,7 @@ import {
 
 /**
  * Règles de la réservation, PURES (aucune dépendance à Hono, à la base ni à l'horloge : l'instant est un paramètre). Elles reprennent les triggers `fn_garde_creation_reservation` et
- * `fn_valider_reservation` de la migration 20261110090000 pour donner un message clair AVANT la base ; la base reste le dernier garant (voir `traduireErreurBase`).
+ * `fn_valider_reservation` de la migration 20261127090000 pour donner un message clair AVANT la base ; la base reste le dernier garant (voir `traduireErreurBase`).
  */
 
 const MINUTE = 60_000;

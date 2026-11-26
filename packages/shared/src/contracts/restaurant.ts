@@ -2,7 +2,23 @@
  * Contrats liés au restaurant (TDR.md §5, ADR-004 : le restaurant est le tenant de sécurité).
  */
 
-export type CategorieRestaurant = "Riz & sauces" | "Grillades" | "Fast-food" | "Petit-déjeuner";
+export type CategorieRestaurant =
+  | "Riz & sauces"
+  | "Grillades"
+  | "Fast-food"
+  | "Petit-déjeuner"
+  | "Africain"
+  | "Libanais et oriental"
+  | "Italien et pizzas"
+  | "Indien"
+  | "Asiatique"
+  | "Mexicain"
+  | "Français"
+  | "Méditerranéen"
+  | "Maghrébin"
+  | "Antillais et créole"
+  | "Européen"
+  | "Cuisine du monde";
 
 /**
  * Vue publique d'un restaurant — les seuls champs exposables au catalogue non authentifié.

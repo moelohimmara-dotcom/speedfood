@@ -429,7 +429,17 @@
   flex: none;
   min-height: 44px;
 }
+.rappel-securite-court {
+  display: none;
+}
 @media (max-width: 559px) {
+  /* Phrase courte sur téléphone : la version longue prenait quatre lignes. */
+  .rappel-securite-long {
+    display: none;
+  }
+  .rappel-securite-court {
+    display: inline;
+  }
   /* Compact sur téléphone (audit visuel du 15 octobre, VIS-2) : icône, texte et bouton sur UNE rangée au lieu d'un bloc de 125 px (le quart de
      l'écran, répété sur chaque page). Le texte tient sur trois lignes au plus, le bouton garde ses 44 px. */
   .rappel-securite {
@@ -847,4 +857,28 @@
 .liste-demarrage-aide {
   margin: var(--space-3) 0 0;
   font-size: 0.9rem;
+}
+
+/* Issue d'une commande dont la livraison a échoué (console équipe) : choix de l'issue en colonne, cibles de 44 px. */
+.echec-livraison-formulaire {
+  display: grid;
+  gap: var(--space-3);
+}
+.echec-livraison-issues {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.echec-livraison-issues legend {
+  margin-bottom: var(--space-2);
+  font-weight: 800;
+}
+.echec-livraison-issue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  cursor: pointer;
 }

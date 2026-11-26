@@ -1,7 +1,9 @@
-// Identité du candidat de remplacement de l'APK Kotlin (com.speedfood.app). Par défaut (variable absente) la configuration de contrôle reste INCHANGÉE :
-// com.speedfood.clientdemo, version 0.1.0. Aucune clé, aucun mot de passe ici : la signature de production reste faite par Malika.
-const PAQUET_PRODUCTION = "com.speedfood.app";
-// Dernier code réellement publié sur le site (packages/shared/src/application/version.ts). Le candidat doit le dépasser strictement.
+// Identité de la NOUVELLE appli Speedfood (Expo). Elle ne remplace PAS l'APK Kotlin com.speedfood.app : la clé de signature de celle-ci est perdue (11 novembre 2026),
+// donc la nouvelle appli a un autre identifiant et une autre clé, et s'installe à côté (docs/plans/2026-11-11-nouvelle-identite-android.md).
+// Par défaut (variable absente) la configuration de contrôle reste INCHANGÉE : com.speedfood.clientdemo, version 0.1.0.
+// Aucune clé, aucun mot de passe ici : la signature de production reste faite par Malika.
+const PAQUET_PRODUCTION = "com.speedfood.mobile";
+// Dernier code réellement publié de l'ANCIENNE appli (packages/shared/src/application/version.ts). La nouvelle doit le dépasser strictement (elle démarre à 100).
 const CODE_PUBLIE = 51;
 
 function appliquer(config, env) {
@@ -15,7 +17,9 @@ function appliquer(config, env) {
   return {
     ...config,
     name: "Speedfood",
+    scheme: "speedfood",
     version,
+    ios: { ...config.ios, bundleIdentifier: PAQUET_PRODUCTION },
     android: { ...config.android, package: PAQUET_PRODUCTION, versionCode: code },
   };
 }

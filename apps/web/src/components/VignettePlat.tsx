@@ -4,6 +4,8 @@ import { StampFraicheur } from "@/components/StampFraicheur";
 import type { OptionPanier } from "@/components/panier/panier";
 import type { LibelleDisponibilite } from "@/lib/disponibilite/etat";
 import { Illustration } from "@/components/illustrations/Illustration";
+import { MentionIllustrative } from "@/components/MentionIllustrative";
+import { estImageIllustrative } from "@/lib/menu/image-illustrative";
 import { familleDepuisCategorie, illustrationPlat } from "@/lib/illustrations/automatique";
 import type { Illustration as ModeleIllustration } from "@/lib/illustrations/modele";
 
@@ -29,6 +31,8 @@ interface Props {
   lienPartage: string;
   /** Niveau du titre du plat : 3 sous le h2 « Menu », 4 sous un h3 de section. */
   niveauTitre?: 3 | 4;
+  /** Interrupteur `mention_image_illustrative` (console) : la mention « Image illustrative » ne s'affiche que s'il est actif. */
+  mentionIllustrative?: boolean;
 }
 
 function formaterGNF(montant: number) {
@@ -40,7 +44,7 @@ function formaterGNF(montant: number) {
  * fraîcheur, prix, action. Jamais de bouton d'ajout pour un plat épuisé ni pour un restaurant
  * fermé ou en pause.
  */
-export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirmer = false, commandable, options, lienPartage, niveauTitre = 4 }: Props) {
+export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirmer = false, commandable, options, lienPartage, niveauTitre = 4, mentionIllustrative = false }: Props) {
   const Titre = niveauTitre === 3 ? "h3" : "h4";
   const prixEffectif = plat.prixPromo ?? plat.prix;
   return (
@@ -58,6 +62,7 @@ export function VignettePlat({ restaurant, plat, disponibilite, masquerAConfirme
           />
         )}
         {plat.prixPromo !== null ? <span className="vignette-promo">Promo</span> : null}
+        {mentionIllustrative && estImageIllustrative(plat.photoUrl) ? <MentionIllustrative /> : null}
       </div>
       <div className="vignette-corps">
         <div className="vignette-infos">

@@ -9,7 +9,7 @@ import { FormulairePreferences } from "./FormulairePreferences";
 import { AlertesAppareil } from "./AlertesAppareil";
 import { lireClesVapid } from "@/lib/push/envoi";
 
-export const metadata: Metadata = { title: "Mes préférences" };
+export const metadata: Metadata = { title: { absolute: "Mes préférences · Speedfood" } };
 export const dynamic = "force-dynamic";
 
 export default async function MesPreferencesPage() {

@@ -359,3 +359,60 @@ test("paiement : champs parasites (montant, total, prix) ignorés, le service re
   assert.equal(reponse.status, 200);
   assert.deepEqual(recus, [[JETON, "orange_money", "OM-123456"]]);
 });
+
+// --- Livraison dans le suivi de l’application -------------------------------------------------------------------------------------------------------------------------------
+const SOURCE_LIVRAISON = {
+  id: "liv-secret", commandeId: "cmd-secret", mode: "speedfood", statut: "vers_client", libelle: "En route vers vous", etape: 4,
+  livreurId: "livreur-secret", livreurNom: "Mamadou", livreurTelephone: "+224622000000", fraisGnf: 5000, distanceKm: 2.4,
+  restaurantPoint: { latitude: 9.51, longitude: -13.71, precision: "x" }, arriveePoint: { latitude: 9.55, longitude: -13.68 }, livreurPoint: { latitude: 9.53, longitude: -13.7 },
+  minutesAvantArrivee: 7.4, code: "4821",
+};
+const suiviLivraison = (surcharge: Partial<Deps["suivi"]> = {}, appels: string[] = []) =>
+  app({ lire: async () => ({ reference: "SF-4KVB9", statut: "prete", mode: "livraison" }), livraison: async (j) => { appels.push(`livraison:${j === JETON}`); return SOURCE_LIVRAISON; }, ...surcharge }, appels);
+
+test("suivi livraison : le bloc livraison accompagne le suivi, filtré champ par champ (jamais d’identifiant ni de téléphone du livreur)", async () => {
+  const appels: string[] = [];
+  const corps = await (await suiviLivraison({}, appels).request("/api/v1/suivi", post({ jeton: JETON }))).json();
+  assert.deepEqual(appels, ["limite:true", "livraison:true"]);
+  assert.deepEqual(corps.livraison, {
+    mode: "speedfood", statut: "vers_client", libelle: "En route vers vous", etape: 4, livreurNom: "Mamadou", minutesAvantArrivee: 7, fraisGnf: 5000, distanceKm: 2.4,
+    restaurantPoint: { latitude: 9.51, longitude: -13.71 }, arriveePoint: { latitude: 9.55, longitude: -13.68 }, livreurPoint: { latitude: 9.53, longitude: -13.7 }, code: "4821",
+  });
+  const texte = JSON.stringify(corps);
+  for (const interdit of ["liv-secret", "cmd-secret", "livreur-secret", "622000000", "livreurTelephone", "precision"]) assert.equal(texte.includes(interdit), false, interdit);
+});
+
+test("suivi livraison : une commande qui n’est pas en livraison ne demande rien et garde la réponse d’avant", async () => {
+  const appels: string[] = [];
+  const reponse = await suiviLivraison({ lire: async () => ({ reference: "SF-4KVB9", statut: "prete", mode: "retrait" }) }, appels).request("/api/v1/suivi", post({ jeton: JETON }));
+  assert.deepEqual(await reponse.json(), { ok: true, suivi: { reference: "SF-4KVB9", statut: "prete", mode: "retrait" } });
+  assert.deepEqual(appels, ["limite:true"]);
+});
+
+test("suivi livraison : panne, livraison absente ou mode inconnu : le suivi reste lisible, sans bloc livraison", async () => {
+  const attendu = { ok: true, suivi: { reference: "SF-4KVB9", statut: "prete", mode: "livraison" } };
+  for (const livraison of [async () => { throw new Error("secret interne " + JETON); }, async () => null, async () => ({ ...SOURCE_LIVRAISON, mode: "autre" })]) {
+    const reponse = await suiviLivraison({ livraison }).request("/api/v1/suivi", post({ jeton: JETON }));
+    assert.equal(reponse.status, 200);
+    assert.deepEqual(await reponse.json(), attendu);
+  }
+});
+
+test("suivi livraison : livraison terminée ou annulée : plus de code, plus de position ni de nom du livreur", async () => {
+  for (const statut of ["livree", "echec", "annulee"]) {
+    const corps = await (await suiviLivraison({ livraison: async () => ({ ...SOURCE_LIVRAISON, statut }) }).request("/api/v1/suivi", post({ jeton: JETON }))).json();
+    assert.equal(corps.livraison.code, null);
+    assert.equal(corps.livraison.livreurPoint, null);
+    assert.equal(corps.livraison.livreurNom, null);
+    assert.equal(corps.livraison.minutesAvantArrivee, null);
+  }
+});
+
+test("suivi livraison : code qui n’a pas 4 chiffres et points invalides : ignorés, jamais transmis", async () => {
+  const sale = { ...SOURCE_LIVRAISON, code: "12ab", restaurantPoint: { latitude: 120, longitude: 0 }, arriveePoint: { latitude: Number.NaN, longitude: 0 }, livreurPoint: { latitude: "9.5", longitude: -13 } };
+  const corps = await (await suiviLivraison({ livraison: async () => sale as never }).request("/api/v1/suivi", post({ jeton: JETON }))).json();
+  assert.equal(corps.livraison.code, null);
+  assert.equal(corps.livraison.restaurantPoint, null);
+  assert.equal(corps.livraison.arriveePoint, null);
+  assert.equal(corps.livraison.livreurPoint, null);
+});

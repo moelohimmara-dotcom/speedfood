@@ -79,7 +79,7 @@ test('intégration : bouton sur l’écran du restaurant, section dans le compte
   assert.ok(parent.includes('<ReservationsRestaurateurReel session={gestion} clavier={{ reference, auFocus, auBlur }}'));
   assert.ok(parent.includes("section === 'menu' || section === 'service' ? undefined : s.masque"), 'le service reste masqué quand on affiche les réservations');
   assert.equal((parent.match(/<TextInput [a-z]/g) ?? []).length, (parent.match(/<TextInput ref=/g) ?? []).length);
-  assert.ok(parent.includes('accessibilityLabel="Réservations"'));
+  assert.ok(parent.includes("libelle: 'Réservations'"), 'onglet Réservations dans la barre à icônes');
 });
 
 test('lecture de la disponibilité : à l’ouverture et sur action de l’utilisateur seulement ; un échec masque le bouton sans bloquer l’écran', () => {

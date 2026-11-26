@@ -1,12 +1,16 @@
-// Contrôle de mise à jour du client Expo. Même source que la Kotlin : GET /api/v1/version (code, nom, notes, obligatoire), SANS compte.
+// Contrôle de mise à jour du client Expo. Même route que la Kotlin (GET /api/v1/version, SANS compte) mais canal séparé : le client Expo lit `version.mobile`.
 // Lot 1 : annoncer et envoyer vers la page /installer du site. L'installation en un geste avec contrôle SHA-256 est un lot ultérieur (paquets natifs, essai sur appareil).
 export const SITE = 'https://speedfood-app.moelohimmara.workers.dev';
 export interface VersionPubliee { code: number; nom: string; notes: string; obligatoire: boolean }
 function objet(v: unknown): Record<string, unknown> | null { return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null; }
 
-/** Lit la réponse de la route ; toute forme inattendue donne null (la vérification est un confort, jamais une erreur affichée). */
+/**
+ * Lit la réponse de la route ; toute forme inattendue donne null (la vérification est un confort, jamais une erreur affichée).
+ * CANAL SÉPARÉ : cette appli (com.speedfood.mobile) ne lit que `version.mobile`. Les champs de premier niveau décrivent l'ancienne appli Kotlin
+ * (com.speedfood.app, autre clé de signature) et ne la concernent jamais : sans bloc `mobile`, il n'y a rien à proposer.
+ */
 export function lireReponseVersion(corps: unknown): VersionPubliee | null {
-  const r = objet(corps); const v = r && r.ok === true ? objet(r.version) : null;
+  const r = objet(corps); const global = r && r.ok === true ? objet(r.version) : null; const v = global ? objet(global.mobile) : null;
   if (!v || !Number.isInteger(v.code) || (v.code as number) <= 0 || typeof v.nom !== 'string' || !v.nom || v.nom.length > 40) return null;
   return { code: v.code as number, nom: v.nom, notes: typeof v.notes === 'string' ? v.notes.slice(0, 500) : '', obligatoire: v.obligatoire === true };
 }

@@ -35,6 +35,61 @@ export function estFinal(statut: StatutLivraison): boolean {
   return STATUTS_FINAUX.includes(statut);
 }
 
+/**
+ * Le restaurant peut-il terminer la COMMANDE ? Pas tant qu'une livraison de cette commande est encore ouverte : la commande se clôt avec la remise (code du client saisi par le livreur,
+ * voir `avancerLivraison`), jamais à la main. Une commande sans livraison (retrait, sur place) ou dont toutes les livraisons sont finales n'est pas concernée. Un statut inconnu compte comme
+ * ouvert : dans le doute on ne clôt pas.
+ */
+export function livraisonBloqueLaCloture(statutsDesLivraisons: readonly string[]): boolean {
+  return statutsDesLivraisons.some((s) => !(estStatutLivraison(s) && estFinal(s)));
+}
+export const MESSAGE_LIVRAISON_OUVERTE =
+  "La livraison de cette commande n'est pas terminée : la commande se clôt avec la remise au client, grâce au code de remise. Si la livraison ne peut pas aboutir, contactez l'assistance Speedfood.";
+
+/**
+ * « Livraison non aboutie » déclarée par le restaurant qui livre lui-même (mode « propre », livreur parti) : le motif est choisi dans cette liste, jamais écrit à la main. Le restaurant ne tranche
+ * pas la suite (remboursement ou clôture de la commande) : la livraison passe à « echec » et l'assistance Speedfood reprend. Dans le mode « speedfood », seule l'exploitation ou le livreur
+ * peut déclarer un échec (`acteurPeut`).
+ */
+export const MOTIFS_ECHEC_RESTAURANT = {
+  injoignable: "Client injoignable",
+  adresse: "Adresse introuvable",
+  refus: "Le client a refusé la commande",
+  autre: "Autre problème",
+} as const;
+export type MotifEchecRestaurant = keyof typeof MOTIFS_ECHEC_RESTAURANT;
+
+export function motifEchecRestaurantValide(valeur: unknown): valeur is MotifEchecRestaurant {
+  return typeof valeur === "string" && Object.prototype.hasOwnProperty.call(MOTIFS_ECHEC_RESTAURANT, valeur);
+}
+
+/**
+ * Issue d'une commande dont la livraison a échoué, décidée par l'assistance (fonction de base `fn_support_resoudre_echec_livraison`, migration 20261122062252) :
+ * « cloturer » termine la commande (le restaurant est payé : le paiement en ligne est libéré), « annuler » l'annule (le client est remboursé).
+ */
+export const ISSUES_ECHEC_LIVRAISON = {
+  cloturer: "Clôturer la commande : le restaurant est payé",
+  annuler: "Annuler la commande : le client est remboursé",
+} as const;
+export type IssueEchecLivraison = keyof typeof ISSUES_ECHEC_LIVRAISON;
+
+export function issueEchecLivraisonValide(valeur: unknown): valeur is IssueEchecLivraison {
+  return typeof valeur === "string" && Object.prototype.hasOwnProperty.call(ISSUES_ECHEC_LIVRAISON, valeur);
+}
+
+/** Une commande attend une issue seulement si elle est « prete » et que sa livraison est en « echec » (la base le revérifie). */
+export function echecLivraisonResoluble(statutCommande: string, statutLivraison: string | null | undefined): boolean {
+  return statutCommande === "prete" && statutLivraison === "echec";
+}
+
+/** Message français fixe pour un refus de la base (aucun texte technique n'est affiché). */
+export function messageRefusIssueEchec(messageBase: string): string {
+  if (/Acces refuse/i.test(messageBase)) return "Cette action est réservée au support Speedfood.";
+  if (/doit etre prete|n'est pas en echec|introuvable/i.test(messageBase)) return "Cette commande n'attend plus d'issue : rechargez la page.";
+  if (/Motif invalide/i.test(messageBase)) return "Le motif doit faire entre 5 et 500 caractères.";
+  return "Impossible d'appliquer l'issue. Réessayez dans un instant.";
+}
+
 /** Transitions de base du mode « speedfood ». */
 const TRANSITIONS_SPEEDFOOD: Record<StatutLivraison, readonly StatutLivraison[]> = {
   a_assigner: ["offre_envoyee", "assignee", "annulee"],

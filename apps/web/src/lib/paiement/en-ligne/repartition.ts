@@ -5,9 +5,9 @@ import { estMontantGnf } from "./types";
  *
  *  - total client = repas + frais de livraison ;
  *  - frais de paiement mobile : supportés par Speedfood (décision de Malika), arrondis au GNF SUPÉRIEUR ;
- *  - restaurant : repas − frais fixe Speedfood (+ frais de livraison si c'est le restaurant qui livre) ;
+ *  - restaurant : repas − commission Speedfood (+ frais de livraison si c'est le restaurant qui livre) ;
  *  - livreur indépendant : frais de livraison ;
- *  - Speedfood brut : frais fixe par commande ; net : brut − frais mobile − frais de versement (peut être négatif : déficit signalé).
+ *  - Speedfood brut : commission mixte par commande (un fixe plus un pourcentage du repas, plafonnée au repas) ; net : brut − frais mobile − frais de versement (peut être négatif : déficit signalé).
  *
  * Invariant (testé) : restaurant + livreur + Speedfood brut = total client.
  */
@@ -19,6 +19,10 @@ export interface EntreeRepartition {
   fraisLivraisonGnf: number;
   /** Frais fixe de Speedfood par commande, prélevé sur la part du restaurant. */
   fraisSpeedfoodGnf: number;
+  /** Pourcentage de commission Speedfood sur le repas, en pour-mille (20 = 2 %). Absent ou 0 : commission fixe seulement, comme avant. */
+  tauxCommissionPermille?: number;
+  /** Réduction de la commission totale pour le palier « excellent » du score qualité, en pour-mille de la commission (500 = moitié). Absent ou 0 : aucune réduction. */
+  commissionReductionPermille?: number;
   /** Taux des frais de paiement mobile en pour-mille (15 = 1,5 %). */
   tauxFraisMobilePermille: number;
   livraisonPar: LivraisonPar;
@@ -38,8 +42,14 @@ export interface Repartition {
   speedfoodNetGnf: number;
   /** Vrai si Speedfood perd de l'argent sur cette commande. */
   deficit: boolean;
-  /** Le frais fixe réellement prélevé (plafonné au repas, jamais plus que ce que touche le restaurant). */
+  /** La commission réellement prélevée (plafonnée au repas, jamais plus que ce que touche le restaurant). */
   fraisSpeedfoodAppliqueGnf: number;
+  /** Détail de la commission avant plafond : la part fixe demandée. */
+  commissionFixeGnf: number;
+  /** Détail de la commission avant plafond : la part en pourcentage du repas, arrondie au GNF supérieur. */
+  commissionVariableGnf: number;
+  /** Réduction accordée au palier excellent, en GNF retirés de la commission avant plafond. */
+  commissionReductionGnf: number;
 }
 
 export type ResultatRepartition = { ok: true; repartition: Repartition } | { ok: false; raison: string };
@@ -54,10 +64,14 @@ export function fraisMobile(totalGnf: number, tauxPermille: number): number {
 export function calculerRepartition(e: EntreeRepartition): ResultatRepartition {
   const fraisVersement = e.fraisVersementGnf ?? 0;
   const fraisMobileFixe = e.fraisMobileFixeGnf ?? 0;
+  const tauxCommission = e.tauxCommissionPermille ?? 0;
+  const reductionCommission = e.commissionReductionPermille ?? 0;
   for (const [nom, v] of [
     ["repas", e.repasGnf],
     ["frais de livraison", e.fraisLivraisonGnf],
     ["frais Speedfood", e.fraisSpeedfoodGnf],
+    ["taux de commission Speedfood", tauxCommission],
+    ["réduction de commission excellent", reductionCommission],
     ["taux de frais mobile", e.tauxFraisMobilePermille],
     ["frais de versement", fraisVersement],
     ["frais mobile fixes", fraisMobileFixe],
@@ -65,11 +79,16 @@ export function calculerRepartition(e: EntreeRepartition): ResultatRepartition {
     if (!estMontantGnf(v)) return { ok: false, raison: `Valeur invalide : ${nom}.` };
   }
   if (e.tauxFraisMobilePermille > TAUX_MAX_PERMILLE) return { ok: false, raison: "Taux de frais mobile hors limites." };
+  if (tauxCommission > 1000) return { ok: false, raison: "Taux de commission Speedfood hors limites." };
+  if (reductionCommission > 1000) return { ok: false, raison: "Réduction de commission hors limites." };
   if (e.repasGnf <= 0) return { ok: false, raison: "Le repas doit avoir un montant." };
   if (e.fraisLivraisonGnf > 0 && e.livraisonPar === "aucune") return { ok: false, raison: "Des frais de livraison sans livraison." };
 
   const totalClientGnf = e.repasGnf + e.fraisLivraisonGnf;
-  const fraisSpeedfoodAppliqueGnf = Math.min(e.fraisSpeedfoodGnf, e.repasGnf);
+  const commissionVariableGnf = fraisMobile(e.repasGnf, tauxCommission);
+  const commissionBruteGnf = e.fraisSpeedfoodGnf + commissionVariableGnf;
+  const commissionReductionGnf = reductionCommission === 0 ? 0 : fraisMobile(commissionBruteGnf, reductionCommission);
+  const fraisSpeedfoodAppliqueGnf = Math.min(commissionBruteGnf - commissionReductionGnf, e.repasGnf);
   const livreurGnf = e.livraisonPar === "livreur_independant" ? e.fraisLivraisonGnf : 0;
   const restaurantGnf = e.repasGnf - fraisSpeedfoodAppliqueGnf + (e.livraisonPar === "restaurant" ? e.fraisLivraisonGnf : 0);
   const speedfoodBrutGnf = fraisSpeedfoodAppliqueGnf;
@@ -90,6 +109,9 @@ export function calculerRepartition(e: EntreeRepartition): ResultatRepartition {
       speedfoodNetGnf,
       deficit: speedfoodNetGnf < 0,
       fraisSpeedfoodAppliqueGnf,
+      commissionFixeGnf: e.fraisSpeedfoodGnf,
+      commissionVariableGnf,
+      commissionReductionGnf,
     },
   };
 }

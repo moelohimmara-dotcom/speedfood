@@ -13,7 +13,7 @@ import { CRENEAU, MAINTENANT, RESTO_1, TEL_A, UID_A, baseReservations } from "./
  * M5 (M2b) : création ATOMIQUE. Ici : l'API traduit chaque réponse de la fonction SQL comme avant (mêmes codes, mêmes messages) et le fichier SQL contient bien ce qu'on promet
  * (verrous, droits, chemin de recherche, colonnes listées, mêmes limites que le code). Le COMPORTEMENT du SQL est joué sur une vraie base PostgreSQL jetable par `test:cloisonnement`.
  */
-const SQL = readFileSync(fileURLToPath(new URL("../../../supabase/migrations/20261110110000_reservation_creation_atomique.sql", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
+const SQL = readFileSync(fileURLToPath(new URL("../../../supabase/migrations/20261127091000_reservation_creation_atomique.sql", import.meta.url)), "utf8").replace(/\r\n/g, "\n");
 const sansCommentaires = (t: string) => t.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n");
 const CODE = sansCommentaires(SQL);
 

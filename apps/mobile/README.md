@@ -27,3 +27,8 @@ npx tsc --noEmit
 Compléter avec les contrôles racine, les mutations et les scénarios natifs du guide de reprise. Un export JavaScript Android/iOS n’est ni une APK ni une IPA. Les archives iOS de CI sont pour simulateur, pas pour installation sur téléphone physique. Une compilation verte ne prouve pas la livraison fonctionnelle ni le déploiement.
 
 Ne jamais lire .env*, les fichiers de services/signature ou le coffre réel pour diagnostiquer. Ne pas effacer la session de l’émulateur. Les autorisations de production et d’écriture sont précisées dans la passation.
+
+
+## Veille native (prototype, compilation CI requise)
+
+Le module local `modules/speedfood-veille` porte les deux services de premier plan Android (veille restaurateur : sonnerie et écran allumé ; suivi livreur : positions remontées à la session). Aucun jeton ne passe côté natif. Sa première compilation se fait par la CI Android de contrôle (branche `etape-*` ou lancement manuel) ; tant qu'elle n'est pas verte et essayée sur un vrai téléphone, les lignes C11, C12 et D9 de la matrice de parité restent « prototype écrit », jamais « reprise ».

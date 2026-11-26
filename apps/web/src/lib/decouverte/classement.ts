@@ -5,6 +5,8 @@ import {
   scoreFraicheur,
   type EtatDisponibilite,
 } from "../disponibilite/etat";
+import { typeDePlat } from "../menu/types-plats";
+import { analyserRequete, evaluerPlat } from "../menu/recherche-plats";
 
 /**
  * Recherche et classement explicables (SPEC-PILOTE section 4), SANS dépendance
@@ -22,11 +24,12 @@ import {
  * observations du pilote.
  */
 
-export type Groupe = "exact_confirme" | "exact_a_confirmer" | "restaurant" | "epuise";
+export type Groupe = "exact_confirme" | "exact_a_confirmer" | "similaire" | "restaurant" | "epuise";
 
 export const ORDRE_GROUPES: readonly Groupe[] = [
   "exact_confirme",
   "exact_a_confirmer",
+  "similaire",
   "restaurant",
   "epuise",
 ];
@@ -34,6 +37,7 @@ export const ORDRE_GROUPES: readonly Groupe[] = [
 export const LIBELLES_GROUPES: Record<Groupe, string> = {
   exact_confirme: "Disponible maintenant",
   exact_a_confirmer: "Disponibilité à confirmer",
+  similaire: "Articles similaires",
   restaurant: "Restaurants correspondants",
   epuise: "Épuisé pour le moment",
 };
@@ -135,6 +139,9 @@ export function classerResultats<R extends RestaurantClassable>(args: {
   const { restaurants, platsParRestaurant, fraicheurHeures, maintenant, filtres } = args;
   const terme = normaliser(args.terme);
   const resultats: ResultatClasse<R>[] = [];
+  // Tolérances de la recherche d'articles (équivalents de langue, fautes légères, même famille) : voir recherche-plats.ts.
+  const requete = terme ? analyserRequete(terme) : null;
+  const typeRecherche = terme ? typeDePlat(args.terme) : null;
 
   for (const restaurant of restaurants) {
     const etat = etatRestaurant(restaurant);
@@ -146,13 +153,25 @@ export function classerResultats<R extends RestaurantClassable>(args: {
     }
 
     const plats = platsParRestaurant.get(restaurant.id) ?? [];
-    const platsAvecEtat = plats.map((plat) => ({
-      plat,
-      etat: etatDisponibilite({ disponible: plat.disponible, confirmeLe: plat.confirmeLe }, fraicheurHeures, maintenant),
-      qualite: terme ? qualiteCorrespondance(terme, normaliser(plat.nom)) : 0,
-    }));
+    const platsAvecEtat = plats.map((plat) => {
+      const nom = terme ? normaliser(plat.nom) : "";
+      let qualite = terme ? qualiteCorrespondance(terme, nom) : 0;
+      let similaire = false;
+      // Pas de correspondance directe : équivalent de langue, faute légère ou même famille (plat « similaire »).
+      if (terme && qualite === 0 && requete) {
+        const note = evaluerPlat(requete, nom, typeRecherche, typeRecherche ? typeDePlat(plat.nom) : null);
+        if (note) {
+          qualite = note.qualite;
+          similaire = note.niveau === "similaire";
+        }
+      }
+      return { plat, etat: etatDisponibilite({ disponible: plat.disponible, confirmeLe: plat.confirmeLe }, fraicheurHeures, maintenant), qualite, similaire };
+    });
 
-    const correspondants = terme ? platsAvecEtat.filter((p) => p.qualite > 0) : [];
+    // Les mêmes articles passent avant : les plats seulement similaires ne sont gardés que s'il n'y en a aucun de même.
+    const memes = terme ? platsAvecEtat.filter((p) => p.qualite > 0 && !p.similaire) : [];
+    const correspondants = terme ? (memes.length > 0 ? memes : platsAvecEtat.filter((p) => p.qualite > 0)) : [];
+    const seulementSimilaires = correspondants.length > 0 && memes.length === 0;
     const qualiteNom = terme ? qualiteCorrespondance(terme, normaliser(restaurant.nom)) : 0;
     if (terme && correspondants.length === 0 && qualiteNom === 0) {
       continue;
@@ -164,7 +183,9 @@ export function classerResultats<R extends RestaurantClassable>(args: {
     const aAConfirmer = references.some((p) => p.etat.type === "a_confirmer");
 
     let groupe: Groupe;
-    if (correspondants.length > 0) {
+    if (seulementSimilaires) {
+      groupe = "similaire";
+    } else if (correspondants.length > 0) {
       groupe = aDisponibleFrais ? "exact_confirme" : aAConfirmer ? "exact_a_confirmer" : "epuise";
     } else {
       groupe = "restaurant";

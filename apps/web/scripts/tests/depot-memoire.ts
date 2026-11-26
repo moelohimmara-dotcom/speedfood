@@ -31,6 +31,8 @@ export function reglagesParDefaut(surcharge: Partial<Reglages> = {}): Reglages {
     fournisseur: "simulation",
     tauxMobilePermille: { orange_money: 15, mtn_momo: 17 },
     fraisSpeedfoodCommandeGnf: 1000,
+    commissionSpeedfoodPermille: 0,
+    commissionReductionExcellentPermille: 500,
     fraisVersementGnf: 0,
     fraisMobileFixeGnf: 0,
     delaiExpirationMinutes: 15,
@@ -41,7 +43,7 @@ export function reglagesParDefaut(surcharge: Partial<Reglages> = {}): Reglages {
   };
 }
 
-export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: CommandePourPaiement[] } = {}) {
+export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: CommandePourPaiement[]; paliers?: Record<string, "excellent" | "tres_bon" | "bon" | "moyen" | "mauvais" | null> } = {}) {
   const etat = {
     reglages: initial.reglages ?? reglagesParDefaut(),
     commandes: new Map<string, CommandePourPaiement>((initial.commandes ?? []).map((c) => [c.id, c])),
@@ -128,6 +130,9 @@ export function creerDepotMemoire(initial: { reglages?: Reglages; commandes?: Co
     },
     async synchroniserCommande(orderId, situation) {
       etat.commandesSync.set(orderId, situation);
+    },
+    async palierScoreRestaurant(restaurantId) {
+      return initial.paliers?.[restaurantId] ?? null;
     },
     async ajouterEcritures(paiementId, cle, ecritures) {
       if (etat.cles.has(`${paiementId}|${cle}`)) return false;

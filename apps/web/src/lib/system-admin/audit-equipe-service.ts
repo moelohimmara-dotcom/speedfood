@@ -150,7 +150,7 @@ async function lireIndicateursAudit(contexte: ContexteEquipeApi, maintenant: num
       .select("id", { count: "exact", head: true })
       .eq("publie", false)
       .is("suspendu_le", null)
-      .is("motif_correction", null),
+      .eq("correction_demandee", false),
     contexte.supabase.from("restaurants").select("id", { count: "exact", head: true }).not("suspendu_le", "is", null),
     // Fonction réservée au support (plus d'accès direct à `orders`) : 0 pour les autres rôles.
     contexte.supabase.rpc("fn_support_compter_commandes", { p_statuts: ["en_attente", "acceptee", "prete"] }),

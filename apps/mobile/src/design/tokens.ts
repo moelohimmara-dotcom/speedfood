@@ -5,6 +5,10 @@ export const couleurs = {
   bordure: '#E9DCD2', surfaceAlt: '#FFFAF3', succes: '#2E7D32', succesFond: '#E7F4E8',
   avertissementFond: '#FDF0DE', avertissement: '#8A4B00',
   danger: '#C62828', dangerFond: '#FBEAEA', desactiveFond: '#E9DCD2', desactiveTexte: '#4A4039',
+  // Boutons à cinq niveaux (refonte du 16 novembre 2026) : le teinté et le contour sont des nuances de la même famille, pas de nouvelle palette.
+  actionTeinte: '#FBE6E2', actionTeinteTexte: '#8E1F17', contour: '#CDBFB3',
+  // Contour des champs de saisie et des cases : 4,51:1 sur surface, 4,25:1 sur fond (la bordure décorative ne fait que 1,33:1).
+  champBordure: '#80746A',
 };
 export const polices = { titre: 'Bricolage', texte: 'Manrope' };
 

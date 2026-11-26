@@ -23,7 +23,7 @@ import {
   type Habilitation,
   type Palier,
 } from "../../src/lib/system-admin/paliers";
-import { ROLES_SYSTEME, PERMISSIONS_PAR_ROLE, roleAPermission, groupesNavPourRole, sousSectionsAccessibles, type Permission } from "../../src/lib/system-admin/permissions";
+import { ROLES_SYSTEME, PERMISSIONS_PAR_ROLE, GROUPES_SYSTEME, roleAPermission, groupesNavPourRole, sousSectionsAccessibles, type Permission } from "../../src/lib/system-admin/permissions";
 
 let ko = 0;
 function verifier(nom: string, obtenu: unknown, attendu: unknown) {
@@ -196,7 +196,7 @@ verifier("nav : super_admin voit les 6 familles", groupesNavPourRole("super_admi
   "Paramètres",
   "Audit",
 ]);
-verifier("nav : super_admin voit les 33 sous-sections (dont Répartition, Référencements, Géographie, Couverture, Liste d'attente, Partenariats, Livraisons, Livreurs, Paiements, Avis, Aide au choix et Supervision)", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 33);
+verifier("nav : super_admin voit les 34 sous-sections (dont Répartition, Référencements, Géographie, Couverture, Liste d'attente, Partenariats, Livraisons, Livreurs, Paiements, Scores qualité, Avis, Aide au choix et Supervision)", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 34);
 verifier("nav : operations ne voit ni Commandes ni Paramètres", groupesNavPourRole("operations").map((g) => g.libelle), [
   "Catalogue",
   "Accès",
@@ -275,6 +275,26 @@ verifier(
 
 // Garde-fou explicite : la surface de couverture ne doit pas rétrécir sans qu'on le voie.
 verifier("les 3 espaces Studio restent couverts", ACTIFS_COUVERTS_EN_APPLICATION.length >= ACTIFS_STUDIO.length, true);
+
+// --- Menu contre pages ------------------------------------------------------------
+//
+// Le menu (`GROUPES_SYSTEME`) cache une entrée à un rôle, mais seule la page la lui refuse vraiment. Si les deux ne citent pas la même permission, un rôle
+// qui ne voit pas le lien peut quand même ouvrir l'adresse (constaté le 20 novembre 2026 sur Campagnes et Paie des livreurs). On relit chaque page du menu et
+// on exige que sa première `exigerPermissionPage("...")` soit la permission de son entrée.
+
+const ecartsMenuPages: string[] = [];
+for (const groupe of GROUPES_SYSTEME) {
+  for (const entree of groupe.sousSections) {
+    const fichierPage = path.join(racineSrc, "app", ...entree.href.split("/").filter(Boolean), "page.tsx");
+    if (!fs.existsSync(fichierPage)) {
+      ecartsMenuPages.push(`${entree.href} : aucune page`);
+      continue;
+    }
+    const citee = /exigerPermissionPage\(\s*"([^"]+)"/.exec(fs.readFileSync(fichierPage, "utf8"))?.[1] ?? "(aucune)";
+    if (citee !== entree.permission) ecartsMenuPages.push(`${entree.href} : menu ${entree.permission}, page ${citee}`);
+  }
+}
+verifier("menu : chaque entrée cite la même permission que sa page", ecartsMenuPages, []);
 
 if (ko > 0) {
   console.log(`\n${ko} test(s) des paliers en échec.`);

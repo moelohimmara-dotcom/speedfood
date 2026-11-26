@@ -3,6 +3,14 @@ import {
   acteurPeut,
   estFinal,
   etapeLivraison,
+  livraisonBloqueLaCloture,
+  MESSAGE_LIVRAISON_OUVERTE,
+  MOTIFS_ECHEC_RESTAURANT,
+  motifEchecRestaurantValide,
+  ISSUES_ECHEC_LIVRAISON,
+  issueEchecLivraisonValide,
+  echecLivraisonResoluble,
+  messageRefusIssueEchec,
   libelleLivraison,
   transitionLivraisonAutorisee,
   type ModeLivraison,
@@ -48,6 +56,15 @@ verifier("livreur : ne peut pas annuler", acteurPeut("livreur", "assignee", "ann
 verifier("livreur : ne peut pas s'assigner une course", acteurPeut("livreur", "a_assigner", "assignee", "speedfood"), false);
 verifier("restaurant en mode propre : fait avancer sa livraison", [acteurPeut("restaurant", "assignee", "vers_client", "propre"), acteurPeut("restaurant", "vers_client", "livree", "propre")], [true, true]);
 verifier("restaurant en mode speedfood : peut seulement annuler", [acteurPeut("restaurant", "assignee", "annulee", "speedfood"), acteurPeut("restaurant", "vers_restaurant", "recuperee", "speedfood")], [true, false]);
+verifier("restaurant en mode propre : peut déclarer l'échec une fois parti livrer", acteurPeut("restaurant", "vers_client", "echec", "propre"), true);
+verifier("restaurant en mode speedfood : ne déclare jamais l'échec d'un livreur Speedfood", [acteurPeut("restaurant", "vers_client", "echec", "speedfood"), acteurPeut("restaurant", "recuperee", "echec", "speedfood")], [false, false]);
+verifier("restaurant en mode propre : pas d'échec avant le départ (il peut annuler)", [acteurPeut("restaurant", "assignee", "echec", "propre"), acteurPeut("restaurant", "assignee", "annulee", "propre")], [false, true]);
+verifier("motifs d'échec du restaurant : liste fermée", Object.keys(MOTIFS_ECHEC_RESTAURANT), ["injoignable", "adresse", "refus", "autre"]);
+verifier("motif d'échec : valeurs valides et refus des autres", [motifEchecRestaurantValide("adresse"), motifEchecRestaurantValide(""), motifEchecRestaurantValide("toString"), motifEchecRestaurantValide("__proto__"), motifEchecRestaurantValide(undefined), motifEchecRestaurantValide(3)], [true, false, false, false, false, false]);
+verifier("issues d'un échec de livraison : deux seulement, clôturer ou annuler", Object.keys(ISSUES_ECHEC_LIVRAISON), ["cloturer", "annuler"]);
+verifier("issue d'échec : valeurs valides et refus des autres", [issueEchecLivraisonValide("annuler"), issueEchecLivraisonValide("cloturer"), issueEchecLivraisonValide("rembourser"), issueEchecLivraisonValide(""), issueEchecLivraisonValide("toString"), issueEchecLivraisonValide("__proto__"), issueEchecLivraisonValide(null), issueEchecLivraisonValide(2)], [true, true, false, false, false, false, false, false]);
+verifier("une issue n'est attendue que pour une commande prête dont la livraison est en échec", [echecLivraisonResoluble("prete", "echec"), echecLivraisonResoluble("prete", "livree"), echecLivraisonResoluble("prete", "vers_client"), echecLivraisonResoluble("prete", null), echecLivraisonResoluble("terminee", "echec"), echecLivraisonResoluble("acceptee", "echec"), echecLivraisonResoluble("annulee", "echec")], [true, false, false, false, false, false, false]);
+verifier("messages de refus de l'issue : fixes, sans texte technique", [messageRefusIssueEchec("Acces refuse"), messageRefusIssueEchec("La commande doit etre prete"), messageRefusIssueEchec("La livraison de cette commande n'est pas en echec"), messageRefusIssueEchec("Motif invalide"), messageRefusIssueEchec("ERROR: relation orders blah")], ["Cette action est réservée au support Speedfood.", "Cette commande n'attend plus d'issue : rechargez la page.", "Cette commande n'attend plus d'issue : rechargez la page.", "Le motif doit faire entre 5 et 500 caractères.", "Impossible d'appliquer l'issue. Réessayez dans un instant."]);
 verifier("administrateur : reprend la main (réassignation)", acteurPeut("admin", "vers_restaurant", "a_assigner", "speedfood"), true);
 verifier("administrateur : ne dépasse pas la machine à états", acteurPeut("admin", "livree", "annulee", "speedfood"), false);
 verifier("système : envoie une offre", acteurPeut("systeme", "a_assigner", "offre_envoyee", "speedfood"), true);
@@ -103,6 +120,15 @@ verifier("code : zéros de tête conservés", normaliserCodeRemise("0042"), "004
 verifier("code : espaces tolérés", normaliserCodeRemise(" 12 34 "), "1234");
 verifier("code : trop court, trop long, lettres refusés", [normaliserCodeRemise("123"), normaliserCodeRemise("12345"), normaliserCodeRemise("12a4")], [null, null, null]);
 verifier("code : bon / mauvais", [codeRemiseCorrect("1234", "1234"), codeRemiseCorrect("1234", "1235"), codeRemiseCorrect("1234", "abcd")], [true, false, false]);
+
+// --- Clôture de la commande : jamais à la main tant qu'une livraison est ouverte
+const ouverts = tous.filter((s) => !estFinal(s));
+verifier("clôture : aucune livraison = la commande peut se terminer (retrait, sur place)", livraisonBloqueLaCloture([]), false);
+verifier("clôture : livraison livrée, non aboutie ou annulée = la commande peut se terminer", ["livree", "echec", "annulee"].map((s) => livraisonBloqueLaCloture([s])), [false, false, false]);
+verifier("clôture : tout statut ouvert bloque", ouverts.map((s) => livraisonBloqueLaCloture([s])), ouverts.map(() => true));
+verifier("clôture : une livraison ouverte parmi des livraisons finales bloque encore", livraisonBloqueLaCloture(["annulee", "vers_client"]), true);
+verifier("clôture : un statut inconnu compte comme ouvert (dans le doute on ne clôt pas)", livraisonBloqueLaCloture(["inconnu"]), true);
+verifier("clôture : le message dit pourquoi et vers qui se tourner", /code de remise/.test(MESSAGE_LIVRAISON_OUVERTE) && /assistance Speedfood/.test(MESSAGE_LIVRAISON_OUVERTE), true);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s)`);

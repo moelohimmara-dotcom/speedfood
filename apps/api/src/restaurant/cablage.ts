@@ -70,5 +70,5 @@ export const serviceRestaurant = creerServiceRestaurant({
   definirPhoto: (client, restaurantId, platId, fichier) => definirPhotoPlat(client as SupabaseClient, restaurantId, platId, fichier, STOCKAGE_IMAGES),
   retirerPhoto: (client, restaurantId, platId) => retirerPhotoPlat(client as SupabaseClient, restaurantId, platId, STOCKAGE_IMAGES),
   lireLivraisons: (client, restaurantId, commandeIds) => lireLivraisonsDesCommandes(client as SupabaseClient, restaurantId, commandeIds),
-  agirSurLivraison: (client, restaurantId, livraisonId, action, code) => agirSurLivraisonRestaurant(client as SupabaseClient, restaurantId, livraisonId, action, code, AVANCEMENT_LIVRAISON),
+  agirSurLivraison: (client, restaurantId, livraisonId, action, code, motif) => agirSurLivraisonRestaurant(client as SupabaseClient, restaurantId, livraisonId, action, code, AVANCEMENT_LIVRAISON, motif),
 });

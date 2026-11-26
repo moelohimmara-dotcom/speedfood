@@ -6,6 +6,9 @@ import { familleDepuisCategorie } from "@/lib/illustrations/automatique";
 import type { Illustration } from "@/lib/illustrations/modele";
 import { motifPourPlat } from "@/lib/illustrations/automatique";
 import { slugQuartier } from "./quartiers";
+import { platRepresentatif } from "./rangees";
+
+export { composerRangees, platRepresentatif, type RangeeAccueil } from "./rangees";
 
 /**
  * Données de l'accueil et des pages de quartier, lues dans la base publique (restaurants publiés seulement : la RLS le garantit).
@@ -36,6 +39,8 @@ export interface QuartierResume {
   nom: string;
   slug: string;
   communeNom: string;
+  /** Région où se trouve le quartier (« Conakry », « Kankan »), pour les titres de page. */
+  regionNom: string;
   restaurants: number;
   ouverts: number;
 }
@@ -61,7 +66,7 @@ export function resumerQuartiers(restaurants: RestaurantCatalogue[]): QuartierRe
   for (const r of restaurants) {
     if (!r.quartier) continue;
     const cle = `${r.communeNom}|${r.quartier}`;
-    const q = parCle.get(cle) ?? { nom: r.quartier, slug: slugQuartier(r.quartier), communeNom: r.communeNom, restaurants: 0, ouverts: 0 };
+    const q = parCle.get(cle) ?? { nom: r.quartier, slug: slugQuartier(r.quartier), communeNom: r.communeNom, regionNom: r.regionNom, restaurants: 0, ouverts: 0 };
     q.restaurants += 1;
     if (estOuvert(r)) q.ouverts += 1;
     parCle.set(cle, q);
@@ -99,7 +104,7 @@ export function choisirSuggestions(restaurants: RestaurantCatalogue[], plats: Ma
   for (const { cle } of FAMILLES_ENVIE) {
     for (const r of restaurants.filter(estOuvert)) {
       if (familleDepuisCategorie(r.categorie) !== cle) continue;
-      const plat = (plats.get(r.id) ?? []).find((p) => p.disponible);
+      const plat = platRepresentatif(cle, plats.get(r.id) ?? []);
       if (!plat) continue;
       suggestions.push({
         famille: cle,

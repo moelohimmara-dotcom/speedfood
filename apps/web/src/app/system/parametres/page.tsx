@@ -64,6 +64,15 @@ export default async function ParametresSystemePage() {
       </div>
 
       <div className="u-mt-s6">
+        <Panneau titre="Contenu de démonstration">
+          <p className="u-mt-0">Voir, masquer, réafficher ou supprimer les faux restaurants, avis, commandes et livreurs utilisés pour les présentations.</p>
+          <Link href="/system/parametres/demonstration" className="lien-texte">
+            Gérer la démonstration
+          </Link>
+        </Panneau>
+      </div>
+
+      <div className="u-mt-s6">
         <Panneau titre="Zone dangereuse">
           <p className="u-mt-0">
             Remettre toute l&apos;application à l&apos;état neuf avant la mise en production : restaurants, commandes, clients et comptes sont supprimés

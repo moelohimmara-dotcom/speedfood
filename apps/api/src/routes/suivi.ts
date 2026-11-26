@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { ErreurMetier } from "@speedfood/shared/contracts/erreurs";
+import { versLivraisonSuiviApplication } from "@speedfood/shared/contracts/livraison-suivi";
 import { lireCorpsJson, repondre, reponseErreur } from "../http.ts";
 import type { Deps } from "../types.ts";
 
@@ -27,6 +28,17 @@ export function routeSuivi(deps: Pick<Deps, "suivi">) {
 
     const suivi = await deps.suivi.lire(jeton);
     if (!suivi) return reponseErreur(c, { code: "INTROUVABLE", message: "Commande introuvable." });
+    // Commande en livraison : le bloc `livraison` (étape, livreur, heure d'arrivée, code de remise, positions) en plus du suivi, filtré champ par champ. Une panne ou une
+    // livraison absente ne casse jamais le suivi : le bloc est alors simplement omis. Une commande qui n'est pas en livraison garde la réponse d'avant, sans la clé.
+    if ((suivi as { mode?: unknown }).mode === "livraison" && deps.suivi.livraison) {
+      try {
+        const source = await deps.suivi.livraison(jeton);
+        const livraison = source ? versLivraisonSuiviApplication(source) : null;
+        if (livraison) return repondre(c, { ok: true, suivi, livraison });
+      } catch {
+        /* le suivi reste lisible sans le bloc livraison */
+      }
+    }
     return repondre(c, { ok: true, suivi });
   });
 

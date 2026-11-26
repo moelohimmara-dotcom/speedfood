@@ -1,18 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Action } from './BoutonAction';
+import { OngletsIcones } from '../design/Composants';
 import { ServiceMenuReel } from './ServiceMenuReel';
 import { ReservationsRestaurateurReel } from './ReservationsRestaurateurReel';
+import { HistoriqueReel } from './HistoriqueReel';
+import { ActiviteReel } from './ActiviteReel';
+import { EtatPublicationReel } from './EtatPublicationReel';
+import { ScoreRestaurateurReel } from './ScoreRestaurateurReel';
+import { SurveillanceCommandes } from './surveillance-commandes';
+import { veilleNative } from '../../modules/speedfood-veille/src/index';
+import { ReglagesTelephone } from './ReglagesTelephone';
+import {
+  AIDE_ALERTE_ARRIERE_PLAN, BOUTON_ALERTE_NON, BOUTON_ALERTE_OUI, LIBELLE_ALERTE_ARRIERE_PLAN, TEXTE_QUESTION_ALERTE, TITRE_QUESTION_ALERTE,
+  doitPoserQuestionAlerte, ecrireChoixAlerte, lireChoixAlerte, veilleDoitTourner,
+} from './alerte-arriere-plan';
+import { stockagePreferences } from './stockage-preferences';
+import { AIDE_POSTE_FIXE_RESTAURATEUR, AIDE_SON, CLE_POSTE_FIXE_RESTAURATEUR, CLE_SON_RESTAURATEUR, LIBELLE_POSTE_FIXE_RESTAURATEUR, LIBELLE_SON, doitSonner, ecranRestaurateurAllume, ecrirePreference, lireActifParDefaut } from './preferences-poste';
+import { VisiteGuidee } from './VisiteReel';
 import { LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, peutChangerDeSection, type SectionRestaurateur } from './serviceRestaurateur';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import {
-  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, actionLivraisonDe, annulationRefuseePourPaiement, chiffresDuCode, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleStatut, libellePaiement, ligneClient, ligneLivraison, lignesRecapProposition, preparerCodeLivraison,
-  type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur,
+  CONFIRMATIONS, ETAT_REPOS, MESSAGE_DEJA_PAYEE, actionLivraisonDe, annulationRefuseePourPaiement, chiffresDuCode, ErreurRestaurateur, actionVerrouillee, actionsAffichees, actionsPossibles, documentsDisponibles, evoluer, formaterGnf, formulaireOuvert, grouper, libelleDocument, libelleStatut, libellePaiement, ligneClient, ligneLivraison, lignesRecapProposition, preparerCodeLivraison,
+  type ActionRestaurateur, type ChampProposition, type CommandeRestaurateur, type EtatAction, type EvenementAction, type ListeRestaurateur, type TypeDocument,
 } from './restaurateur';
+import { MOTIFS_ECHEC_APP, lireMotifEchecApp, type MotifEchecApp } from '../../../../packages/shared/src/contracts/restaurant-livraison.ts';
 import { cibleDefilement, margeBasseClavier } from './clavier';
 import { couleurs as c, polices } from '../design/tokens';
 import { libelleModeClient } from '../domaine/libelle-mode';
+import { Icone, type NomIcone } from '../design/Icone';
+
+/** Icône de chaque onglet de l'espace restaurateur (même famille visuelle que l'accueil client). */
+export const ICONES_SECTIONS: Record<SectionRestaurateur, NomIcone> = {
+  commandes: 'liste', service: 'engrenage', menu: 'plat', historique: 'horloge', activite: 'document',
+};
 
 /**
  * Espace restaurateur (lots D1 à D4a), trois sections en haut de l'écran : « Commandes » (ci-dessous), « Service » et « Menu » (voir ServiceMenuReel.tsx). Commandes : les commandes de MON restaurant en trois groupes (À traiter, En cours, Historique), actualisation MANUELLE (aucun rafraîchissement
@@ -33,7 +55,24 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   // Codes de remise TAPÉS (par commande) : uniquement dans l'écran, jamais dans la machine d'états ni dans un message ; effacés dès l'envoi et dès que la commande n'est plus « en route ».
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [erreursCode, setErreursCode] = useState<Record<string, string>>({});
+  // Documents (lot 2, C5) : émission séparée de la machine des commandes — un seul essai, puis la liste est relue pour montrer le numéro attribué.
+  const [docOccupe, setDocOccupe] = useState(false);
+  const [docMessage, setDocMessage] = useState('');
+  const docEnCours = useRef(false);
+  async function emettreDocument(o: CommandeRestaurateur, type: TypeDocument) {
+    if (docEnCours.current || envoiEnCours.current) return;
+    docEnCours.current = true; setDocOccupe(true); setDocMessage('');
+    try {
+      await gestion.emettreDocumentRestaurateur(o.id, type);
+      try { accepterListe(await gestion.commandesRestaurant()); setDocMessage((type === 'recu' ? 'Reçu établi' : 'Facture établie') + ' pour ' + o.reference + ' : la liste a été relue.'); }
+      catch { setDocMessage((type === 'recu' ? 'Reçu établi' : 'Facture établie') + ' pour ' + o.reference + '. Actualisez la liste pour voir son numéro.'); }
+    } catch (e) { setDocMessage(e instanceof ErreurRestaurateur || e instanceof ErreurConnexion ? e.message : 'Impossible d’établir ce document. Réessayez.'); }
+    finally { docEnCours.current = false; if (actif.current) setDocOccupe(false); }
+  }
   const [serviceOuvert, setServiceOuvert] = useState(false);
+  const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
+  const [activiteOuverte, setActiviteOuverte] = useState(false);
+  const [visiteOuverte, setVisiteOuverte] = useState(false);
   const [serviceOccupe, setServiceOccupe] = useState(false);
   const [reservationsOuvert, setReservationsOuvert] = useState(false);
   const [reservationsOccupe, setReservationsOccupe] = useState(false);
@@ -73,7 +112,41 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
   function oublierCode(commandeId: string) { setCodes(x => { if (!(commandeId in x)) return x; const n = { ...x }; delete n[commandeId]; return n; }); setErreursCode(x => { if (!(commandeId in x)) return x; const n = { ...x }; delete n[commandeId]; return n; }); }
   /** Un code tapé pour une commande dont la livraison n'est plus « en route » n'a plus lieu d'être : il est effacé. */
   function purgerCodes(l: ListeRestaurateur) { const enRoute = new Set(l.commandes.filter(x => x.livraison?.statut === 'vers_client').map(x => x.id)); setCodes(x => Object.fromEntries(Object.entries(x).filter(([id]) => enRoute.has(id)))); setErreursCode(x => Object.fromEntries(Object.entries(x).filter(([id]) => enRoute.has(id)))); }
-  function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null); }
+  // Alerte de nouvelle commande (C11, premier plan) : chaque liste lue passe par la surveillance portée de l'ancienne appli ; le bandeau ne parle que sur une vraie alerte.
+  const surveillanceRef = useRef(new SurveillanceCommandes());
+  const [alerteCommande, setAlerteCommande] = useState<string | null>(null);
+  // Réglages du téléphone (G23) : son et poste fixe, actifs tant qu'on ne les coupe pas. Le son passe par une référence : la relecture de 15 s garde la fonction du premier rendu.
+  const sonRef = useRef(true);
+  const [sonActif, setSonActif] = useState(true);
+  const [posteFixe, setPosteFixe] = useState(true);
+  useEffect(() => {
+    let vivant = true;
+    void lireActifParDefaut(stockagePreferences, CLE_SON_RESTAURATEUR).then(v => { if (vivant) { sonRef.current = v; setSonActif(v); } });
+    void lireActifParDefaut(stockagePreferences, CLE_POSTE_FIXE_RESTAURATEUR).then(v => { if (vivant) setPosteFixe(v); });
+    return () => { vivant = false; };
+  }, []);
+  // Poste fixe : l'écran de la console reste allumé tant que l'espace est ouvert ; il est relâché à la fermeture.
+  useEffect(() => {
+    void veilleNative.garderEcranAllume(ecranRestaurateurAllume(posteFixe));
+    return () => { void veilleNative.garderEcranAllume(false); };
+  }, [posteFixe]);
+  const [alerteFermee, setAlerteFermee] = useState<boolean | null>(null);
+  const [choixAlerteLu, setChoixAlerteLu] = useState(false);
+  useEffect(() => { let vivant = true; void lireChoixAlerte(stockagePreferences).then(v => { if (vivant) { setAlerteFermee(v); setChoixAlerteLu(true); } }); return () => { vivant = false; }; }, []);
+  function choisirAlerte(v: boolean) { setAlerteFermee(v); void ecrireChoixAlerte(stockagePreferences, v); }
+  function changerSon(v: boolean) { sonRef.current = v; setSonActif(v); void ecrirePreference(stockagePreferences, CLE_SON_RESTAURATEUR, v); }
+  function changerPosteFixe(v: boolean) { setPosteFixe(v); void ecrirePreference(stockagePreferences, CLE_POSTE_FIXE_RESTAURATEUR, v); }
+  function accepterListe(l: ListeRestaurateur) { lectureRef.current++; if (!actif.current) return; fermerFormulaireSiPerime(l); purgerCodes(l); setLecture(lectureRef.current); setListe(l); setLuLe(new Date().toLocaleTimeString('fr-FR')); setErreur(null);
+    const tour = surveillanceRef.current.tourListe(l, Date.now());
+    if (tour.genre === 'suite') {
+      if (tour.alerter) {
+        setAlerteCommande(tour.aTraiter.length === 1 ? 'Nouvelle commande à traiter : ' + tour.aTraiter[0].reference + '.' : tour.aTraiter.length + ' commandes à traiter, dont ' + tour.aTraiter[0].reference + '.');
+        // Veille native (C11/C12, prototype) : sonnerie et écran allumé quand le module est présent ; sinon le bandeau ci-dessus suffit.
+        if (doitSonner(sonRef.current)) void veilleNative.alerterVeilleRestaurateur(tour.aTraiter.length, tour.aTraiter[0].reference);
+      }
+      else if (tour.aTraiter.length === 0) setAlerteCommande(null);
+    }
+  }
   function messageErreur(e: unknown) { return e instanceof ErreurRestaurateur || e instanceof ErreurConnexion ? e.message : 'Impossible de lire les commandes. Réessayez.'; }
 
   /** Lecture MANUELLE de la liste (ouverture de l'écran et bouton « Actualiser »). Un seul essai ; une panne laisse la liste précédente. */
@@ -84,13 +157,33 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
     catch (e) { if (actif.current) setErreur(messageErreur(e)); }
     finally { lectureEnCours.current = false; if (actif.current) setChargement(false); }
   }
+  /** Relecture silencieuse de la veille : même lecture, sans indicateur ; une panne laisse la liste affichée. */
+  async function chargerSilencieux() {
+    if (lectureEnCours.current || envoiEnCours.current) return;
+    lectureEnCours.current = true;
+    try { accepterListe(await gestion.commandesRestaurant()); } catch { /* la liste affichée reste la vérité de l'écran */ }
+    finally { lectureEnCours.current = false; }
+  }
   useEffect(() => { actif.current = true; void actualiser(); return () => { actif.current = false; }; }, []);
+  // Veille au premier plan (C11/C12, prototype) : service natif démarré à l'ouverture, relecture silencieuse toutes les 15 secondes
+  // (même discipline qu'ailleurs : un seul essai, une panne laisse la liste). Arrêt à la fermeture de l'espace.
+  useEffect(() => {
+    const minuteur = setInterval(() => { void chargerSilencieux(); }, 15_000);
+    return () => { clearInterval(minuteur); void veilleNative.arreterVeilleRestaurateur(); };
+  }, []);
+  // Alerte application fermée (G24) : le service de veille ne tourne en permanence que si le restaurateur l'a demandé (choix gardé sur l'appareil) ;
+  // sans cela, seule une vraie alerte le réveille, application ouverte. Dans tous les cas il s'arrête à la fermeture de l'espace.
+  useEffect(() => {
+    if (!veilleDoitTourner(alerteFermee)) return;
+    void veilleNative.demarrerVeilleRestaurateur();
+    return () => { void veilleNative.arreterVeilleRestaurateur(); };
+  }, [alerteFermee]);
 
   /** UN SEUL essai. Ensuite la liste est relue pour savoir ce que le serveur a vraiment enregistré ; jamais de relance automatique. */
-  async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string) {
+  async function envoyer(commande: CommandeRestaurateur, action: ActionRestaurateur, codeLivraison?: string, motifEchec?: MotifEchecApp) {
     if (envoiEnCours.current || lectureEnCours.current) return;
     const avant = etatRef.current;
-    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode, codeValide: codeLivraison !== undefined });
+    appliquer({ type: 'envoyer', commandeId: commande.id, action, lecture: lectureRef.current, paiementStatut: commande.paiementStatut, paiementMode: commande.paiementMode, codeValide: codeLivraison !== undefined, motifValide: lireMotifEchecApp(motifEchec) !== null });
     if (etatRef.current === avant || etatRef.current.phase !== 'envoi') return;
     envoiEnCours.current = true;
     oublierCode(commande.id);
@@ -106,7 +199,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           // Livraison (lot D5) : l'identifiant vient de la livraison que le serveur a donnée pour CETTE commande ; le code, déjà validé, part une seule fois puis est effacé de l'écran.
           const demande = actionLivraisonDe(action); const livraison = commande.livraison;
           if (!demande || !livraison) throw new ErreurRestaurateur('local', 'La livraison de cette commande n’est pas lisible. Actualisez la liste.');
-          await gestion.actionLivraisonRestaurateur(livraison.id, demande, demande === 'livree' ? codeLivraison : undefined);
+          await gestion.actionLivraisonRestaurateur(livraison.id, demande, demande === 'livree' ? codeLivraison : undefined, demande === 'non_aboutie' ? motifEchec : undefined);
         } else await gestion.actionRestaurateur(commande.id, action);
       }
       catch (e) { if (e instanceof ErreurRestaurateur) echec = e; else session = e instanceof ErreurConnexion ? e.message : 'Impossible de terminer cette opération. Réessayez.'; }
@@ -132,20 +225,45 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
   <ScrollView ref={defilement} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets contentContainerStyle={[s.contenu, { paddingBottom: 22 + margeBasseClavier(hauteurClavier, Platform.OS) }]}>
-    <Action titre="Retour au compte" agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe || reservationsOccupe} />
+    <View style={s.entete}>
+      <Action titre="Retour au compte" variante="texte" icone="retour" iconeSeule agir={fermer} disabled={etat.phase === 'envoi' || etat.phase === 'relecture' || serviceOccupe || reservationsOccupe} />
+      <Action titre="Visite guidée" variante="texte" icone="aide" iconeSeule agir={() => setVisiteOuverte(true)} />
+    </View>
     <Text accessibilityRole="header" style={s.titre}>Espace restaurateur</Text>
-    <View accessibilityRole="tablist" style={s.sections}>{SECTIONS_RESTAURATEUR.map(x => <Pressable key={x} accessibilityRole="tab" accessibilityLabel={LIBELLES_SECTIONS[x]} accessibilityState={{ selected: section === x, disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe)} onPress={() => { setSection(x); if (x !== 'commandes') setServiceOuvert(true); }} style={[s.onglet, section === x && s.ongletActif]}><Text style={[s.ongletTexte, section === x && s.ongletTexteActif]}>{LIBELLES_SECTIONS[x]}</Text></Pressable>)}<Pressable accessibilityRole="tab" accessibilityLabel="Réservations" accessibilityState={{ selected: section === 'reservations', disabled: !peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe) }} disabled={!peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe)} onPress={() => { setSection('reservations'); setReservationsOuvert(true); }} style={[s.onglet, section === 'reservations' && s.ongletActif]}><Text style={[s.ongletTexte, section === 'reservations' && s.ongletTexteActif]}>Réservations</Text></Pressable></View>
-    {serviceOuvert && <View style={section === 'menu' || section === 'service' ? undefined : s.masque}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    <VisiteGuidee ouvert={visiteOuverte} variante="restaurateur" fermer={() => setVisiteOuverte(false)} />
+    <EtatPublicationReel />
+    <ScoreRestaurateurReel />
+    <OngletsIcones desactive={!peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe)} actif={section} onglets={[...SECTIONS_RESTAURATEUR.map(x => ({ id: x as SectionRestaurateur | 'reservations', libelle: LIBELLES_SECTIONS[x], icone: ICONES_SECTIONS[x] })), { id: 'reservations' as const, libelle: 'Réservations', icone: 'horloge' as const }]}
+      choisir={x => { setSection(x); if (x === 'service' || x === 'menu') setServiceOuvert(true); if (x === 'historique') setHistoriqueOuvert(true); if (x === 'activite') setActiviteOuverte(true); if (x === 'reservations') setReservationsOuvert(true); }} />
+    <View style={s.ligneTitre}>
+      <Text accessibilityRole="header" style={[s.nom, { flex: 1 }]}>{section === 'reservations' ? 'Réservations' : LIBELLES_SECTIONS[section]}</Text>
+      {section === 'commandes' && <Action titre="Actualiser les commandes" variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />}
+    </View>
+    {serviceOuvert && section !== 'historique' && section !== 'activite' && <View style={section === 'menu' || section === 'service' ? undefined : s.masque}><ServiceMenuReel section={section === 'menu' ? 'menu' : 'service'} clavier={{ reference, auFocus, auBlur }} allerAuMenu={() => setSection('menu')} signalerOccupe={setServiceOccupe} /></View>}
+    {section === 'service' && <ReglagesTelephone titre="Réglages de ce téléphone" lignes={[
+      { cle: 'son', libelle: LIBELLE_SON, aide: AIDE_SON, actif: sonActif, changer: changerSon },
+      { cle: 'poste-fixe', libelle: LIBELLE_POSTE_FIXE_RESTAURATEUR, aide: AIDE_POSTE_FIXE_RESTAURATEUR, actif: posteFixe, changer: changerPosteFixe },
+      { cle: 'alerte-fermee', libelle: LIBELLE_ALERTE_ARRIERE_PLAN, aide: AIDE_ALERTE_ARRIERE_PLAN, actif: alerteFermee === true, changer: choisirAlerte },
+    ]} />}
+    {section === 'historique' && historiqueOuvert && <HistoriqueReel />}
+    {section === 'activite' && activiteOuverte && <ActiviteReel />}
     {reservationsOuvert && <View style={section === 'reservations' ? undefined : s.masque}><ReservationsRestaurateurReel session={gestion} clavier={{ reference, auFocus, auBlur }} signalerOccupe={setReservationsOccupe} /></View>}
     {section === 'commandes' && <>
+    {doitPoserQuestionAlerte(alerteFermee, choixAlerteLu) && <View style={s.invite}>
+      <Text accessibilityRole="header" style={s.nom}>{TITRE_QUESTION_ALERTE}</Text>
+      <Text style={s.texte}>{TEXTE_QUESTION_ALERTE}</Text>
+      <Action titre={BOUTON_ALERTE_OUI} agir={() => choisirAlerte(true)} />
+      <Action titre={BOUTON_ALERTE_NON} secondaire agir={() => choisirAlerte(false)} />
+    </View>}
     {liste?.restaurant && <Text style={s.texte}>{liste.restaurant.nom}{liste.restaurant.accepteCommandes ? '' : ' · n’accepte pas de commandes pour le moment'}</Text>}
+    {alerteCommande && <Text accessibilityRole="alert" style={s.alerte}>{alerteCommande}</Text>}
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre réponse…' : etat.phase === 'relecture' ? 'Relecture des commandes…' : 'Lecture des commandes…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
     {liste && liste.livraisonsIllisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.livraisonsIllisibles === 1 ? 'La livraison d’une commande est illisible' : 'Les livraisons de ' + liste.livraisonsIllisibles + ' commandes sont illisibles'} : ses boutons de livraison sont masqués. Actualisez la liste ou ouvrez Speedfood sur le site.</Text>}
     {liste && liste.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{liste.illisibles === 1 ? '1 commande est illisible dans l’application' : liste.illisibles + ' commandes sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {liste.illisibles === 1 ? 'la' : 'les'} voir et {liste.illisibles === 1 ? 'la' : 'les'} traiter.</Text>}
-    <Action titre="Actualiser les commandes" agir={() => { void actualiser(); }} disabled={occupe} />
     {luLe && <Text style={s.secondaire}>Liste lue à {luLe}. Elle ne se met pas à jour toute seule : actualisez pour voir les nouvelles commandes.</Text>}
     {verdict && <Text accessibilityRole={verdict.verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.verdict.message}</Text>}
+    {docMessage !== '' && <Text accessibilityLiveRegion="polite" style={s.texte}>{docMessage}</Text>}
     {liste && grouper(liste.commandes).map(g => <View key={g.groupe} style={{ gap: 12 }}>
       <Text accessibilityRole="header" style={s.nom}>{g.titre} ({g.commandes.length})</Text>
       {g.commandes.length === 0 && <Text style={s.secondaire}>Aucune commande.</Text>}
@@ -163,11 +281,16 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
           {o.lignes.map((l, i) => <Text key={i} style={s.texte}>{l.quantite} × {l.nom}{l.options.length > 0 ? ' (' + l.options.join(', ') + ')' : ''} · {(l.prixGnf * l.quantite).toLocaleString('fr-FR')} GNF</Text>)}
           <Text style={s.nom}>{o.totalGnf.toLocaleString('fr-FR')} GNF</Text>
           {ligneLivraison(o) && <Text style={s.texte}>{ligneLivraison(o)}</Text>}
+          {libelleDocument('recu', o.documents.recu) && <Text style={s.texte}>{libelleDocument('recu', o.documents.recu)}</Text>}
+          {libelleDocument('facture', o.documents.facture) && <Text style={s.texte}>{libelleDocument('facture', o.documents.facture)}</Text>}
+          {!confirmation && !formulaire && documentsDisponibles(o).map(t => <Action key={t} titre={(t === 'recu' ? 'Établir le reçu numéroté ' : 'Établir une facture ') + o.reference} secondaire disabled={bloque || docOccupe} icone="document" agir={() => { void emettreDocument(o, t); }} />)}
           {paiement && <Text style={s.texte}>{paiement}</Text>}
           {paiement && possibles.includes('paiement_recu') && <Text style={s.secondaire}>Comparez avec le SMS de confirmation de votre opérateur avant de valider.</Text>}
           {confirmation && confirmation.action in CONFIRMATIONS && <>
             <Text accessibilityRole="alert" style={s.texte}>{CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].question}</Text>
-            <Action titre={CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].oui} disabled={occupe || verrou} agir={() => { void envoyer(o, confirmation.action); }} />
+            {confirmation.action === 'livraison_non_aboutie'
+              ? (Object.keys(MOTIFS_ECHEC_APP) as MotifEchecApp[]).map(m => <Action key={m} titre={MOTIFS_ECHEC_APP[m]} disabled={occupe || verrou} agir={() => { void envoyer(o, 'livraison_non_aboutie', undefined, m); }} />)
+              : <Action titre={CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].oui} disabled={occupe || verrou} agir={() => { void envoyer(o, confirmation.action); }} />}
             <Action titre={CONFIRMATIONS[confirmation.action as keyof typeof CONFIRMATIONS].non} secondaire disabled={occupe} agir={() => appliquer({ type: 'annuler_confirmation' })} />
           </>}
           {formulaire && formulaire.phase === 'saisie' && <View style={s.formulaire}>
@@ -215,6 +338,7 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
               void envoyer(o, 'livraison_livree', p.code);
             }} />
           </View>}
+          {!confirmation && !formulaire && possibles.includes('livraison_non_aboutie') && <Action titre={'Livraison non aboutie ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'livraison_non_aboutie', lecture })} />}
           {!confirmation && !formulaire && possibles.includes('livraison_annuler') && <Action titre={'Annuler la livraison ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'livraison_annuler', lecture })} />}
           {!confirmation && !formulaire && annulationRefuseePourPaiement(o) && <Text accessibilityRole="alert" style={s.texte}>{MESSAGE_DEJA_PAYEE}</Text>}
           {!confirmation && !formulaire && possibles.includes('annuler') && <Action titre={'Annuler la commande ' + o.reference} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', commandeId: o.id, action: 'annuler', lecture, paiementStatut: o.paiementStatut, paiementMode: o.paiementMode })} />}
@@ -227,14 +351,13 @@ export function RestaurateurReel({ fermer, signalerOccupe }: { fermer(): void; s
 }
 
 const s = StyleSheet.create({
-  sections: { flexDirection: 'row', gap: 8 },
-  onglet: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.action, borderRadius: 22, backgroundColor: c.surface },
-  ongletActif: { backgroundColor: c.action },
-  ongletTexte: { fontFamily: polices.texte, fontWeight: '700', color: c.action },
-  ongletTexteActif: { color: c.surface },
+  alerte: { fontFamily: polices.texte, fontSize: 16, lineHeight: 24, fontWeight: '700', color: c.action },
+  entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  ligneTitre: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   masque: { display: 'none' },
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
-  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
+  invite: { gap: 12, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },
+  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.champBordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 90, textAlignVertical: 'top' },
   erreurChamp: { fontFamily: polices.texte, fontSize: 13, lineHeight: 19, color: c.action, fontWeight: '700' },
   carte: { gap: 8, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },

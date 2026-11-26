@@ -1,6 +1,7 @@
 import { ajouterOption, archiverPlat, basculerDisponibilite, confirmerDisponibilite, confirmerToutesDisponibilites, creerPlat, modifierPlat, retirerOption } from "@/lib/menu/service-menu";
 import { lireCorpsJson, repondre, repondreErreur } from "@/lib/api/v1";
 import { restaurantAuthentifie } from "@/lib/api/v1-restaurant";
+import { promotionsSuspenduesPour } from "@/lib/restaurant/score-lectures";
 
 /**
  * Modifications du menu depuis l'application : disponibilité d'un plat, reconfirmation (un plat ou tous), création, modification, archivage d'un plat, ajout et
@@ -26,10 +27,10 @@ export async function POST(request: Request) {
       resultat = await confirmerToutesDisponibilites(supabase, restaurantId);
       break;
     case "creer":
-      resultat = await creerPlat(supabase, restaurantId, c);
+      resultat = await creerPlat(supabase, restaurantId, c, () => promotionsSuspenduesPour(restaurantId));
       break;
     case "modifier":
-      resultat = await modifierPlat(supabase, restaurantId, c.platId, c);
+      resultat = await modifierPlat(supabase, restaurantId, c.platId, c, () => promotionsSuspenduesPour(restaurantId));
       break;
     case "archiver":
       resultat = await archiverPlat(supabase, restaurantId, c.platId);

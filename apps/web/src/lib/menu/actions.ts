@@ -16,6 +16,10 @@ import {
   type PlatRefuse,
 } from "./chefMenu";
 import { limiterChefIa } from "@/lib/securite/limitation-debit";
+import { promotionsSuspenduesPour } from "@/lib/restaurant/score-lectures";
+import { lireAllergenesFormulaire } from "./allergenes-formulaire";
+
+const PROMOTIONS_SUSPENDUES = "Les promotions sont suspendues pour votre restaurant ce mois-ci (score qualité au palier le plus bas). Retirez le prix promotionnel ou attendez le prochain calcul.";
 
 export interface EtatFormulaireMenu {
   erreur?: string;
@@ -145,6 +149,9 @@ export async function creerPlatAction(
   if (!prixPromoResultat.ok) {
     return { erreur: prixPromoResultat.erreur };
   }
+  if (prixPromoResultat.prixPromo !== null && (await promotionsSuspenduesPour(membership.restaurant_id))) {
+    return { erreur: PROMOTIONS_SUSPENDUES };
+  }
 
   const supabase = await creerClientServeur();
 
@@ -214,6 +221,9 @@ export async function modifierPlatAction(
   if (!prixPromoResultat.ok) {
     return { erreur: prixPromoResultat.erreur };
   }
+  if (prixPromoResultat.prixPromo !== null && (await promotionsSuspenduesPour(membership.restaurant_id))) {
+    return { erreur: PROMOTIONS_SUSPENDUES };
+  }
 
   const supabase = await creerClientServeur();
 
@@ -221,6 +231,12 @@ export async function modifierPlatAction(
   if (!sectionResultat.ok) {
     return { erreur: sectionResultat.erreur };
   }
+  // Allergènes : écrits seulement si le restaurateur les a touchés (sinon aucune colonne en plus : la modification d'un plat ne change jamais une déclaration par accident).
+  const allergenesResultat = lireAllergenesFormulaire(formData);
+  if (!allergenesResultat.ok) {
+    return { erreur: allergenesResultat.erreur };
+  }
+  const valeursAllergenes = allergenesResultat.valeurs ?? {};
 
   const fichierPhoto = formData.get("photo");
   const changerPhoto = fichierPhoto instanceof File && fichierPhoto.size > 0;
@@ -250,6 +266,7 @@ export async function modifierPlatAction(
         prix_promo: prixPromoResultat.prixPromo,
         photo_url: photoUrl,
         section_id: sectionResultat.sectionId,
+        ...valeursAllergenes,
       })
       .eq("id", id)
       .eq("restaurant_id", membership.restaurant_id);
@@ -267,6 +284,7 @@ export async function modifierPlatAction(
         prix,
         prix_promo: prixPromoResultat.prixPromo,
         section_id: sectionResultat.sectionId,
+        ...valeursAllergenes,
       })
       .eq("id", id)
       .eq("restaurant_id", membership.restaurant_id);

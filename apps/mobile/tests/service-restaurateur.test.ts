@@ -7,7 +7,7 @@ import { GestionSession } from '../src/connexion/session.ts';
 import { ErreurRestaurateur, MESSAGE_SECURITE } from '../src/connexion/restaurateur.ts';
 import {
   BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, CONFIRMATIONS_STATUT, CONFIRMATION_TOUT_CONFIRMER, actionArchiver, actionRetirerOption, brouillonPlatDe, confirmationArchiver, confirmationRetirerOption, etatConcerne, lecturePourAction, lecturePourEtat, preparerOption, preparerPlat, prixDepuisSaisie, ETAT_SERVICE_REPOS, HORAIRES_MAX, LIBELLES_SECTIONS, SECTIONS_RESTAURATEUR, actionAConfirmer, actionConfirmerTout, actionStatut, boutonExiste, brouillonDe, brouillonModifie, chiffresSeulement,
-  confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, formulaireSeReferme, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
+  actionPhotoRetirer, confirmationDe, corpsDeAction, erreurReponseService, erreurReseauService, etatCorrespond, evoluerService, formaterPrix, formulaireSeReferme, libelleDisponibilitePlat, lireMenuRestaurateur, lireReglagesRestaurateur, peutChangerDeSection, peutEnvoyerService,
   preparerReglages, refusService, serviceVerrouille, verdictService, type ActionService, type EtatService, type MenuRestaurateur, type ReglagesRestaurateur,
 } from '../src/connexion/serviceRestaurateur.ts';
 
@@ -57,7 +57,7 @@ test('réglages : aucun jeton ni champ inconnu n’est retenu', () => {
 // ---------- lecture du menu ----------
 test('menu : plats lus (nom, prix, disponibilité, dernière confirmation), seuls les champs affichés sont retenus', () => {
   const m = menu([platBrut(P1, { nom: 'Poulet braisé', prix: 45000 }), platBrut(P2, { disponible: false, confirmeLe: null, description: 'secret', photoUrl: 'https://x/y.jpg' })]);
-  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null }, photoRef: null, photoUrl: null });
+  assert.deepEqual(m.plats[0], { id: P1, nom: 'Poulet braisé', prixGnf: 45000, disponible: true, confirmeLe: '2026-11-03T08:00:00.000Z', options: [], optionsIllisibles: 0, edition: { description: '', prixPromoGnf: null, sectionId: null }, photoRef: null, photoUrl: null, allergenes: null });
   assert.equal(m.plats[1].disponible, false);
   assert.equal(m.plats[1].edition?.description, 'secret', 'la description sert à la modification (jamais affichée dans la liste)');
   assert.deepEqual([m.plats[1].photoRef, m.plats[1].photoUrl], ['https://x/y.jpg', 'https://x/y.jpg'], 'depuis D4c, l’adresse de la photo est retenue (aperçu et comparaison)');
@@ -234,9 +234,9 @@ test('machine : événements hors contexte laissent l’état inchangé ; efface
   assert.equal(evoluerService(verdict, { type: 'effacer' }), ETAT_SERVICE_REPOS);
   assert.equal(evoluerService(verdict, { type: 'envoyer', action: { type: 'confirmer', platId: P1, avant: null }, lecture: 1 }).phase, 'envoi', 'un verdict confirmé ne verrouille rien');
 });
-test('machine : sections — l’ordre Commandes, Service, Menu ; pas de changement de section pendant un envoi', () => {
-  assert.deepEqual([...SECTIONS_RESTAURATEUR], ['commandes', 'service', 'menu']);
-  assert.deepEqual(SECTIONS_RESTAURATEUR.map(s => LIBELLES_SECTIONS[s]), ['Commandes', 'Service', 'Menu']);
+test('machine : sections — l’ordre Commandes, Service, Menu, Historique, Activité ; pas de changement de section pendant un envoi', () => {
+  assert.deepEqual([...SECTIONS_RESTAURATEUR], ['commandes', 'service', 'menu', 'historique', 'activite']);
+  assert.deepEqual(SECTIONS_RESTAURATEUR.map(s => LIBELLES_SECTIONS[s]), ['Commandes', 'Service', 'Menu', 'Historique', 'Activité']);
   assert.equal(peutChangerDeSection(false, false), true);
   assert.equal(peutChangerDeSection(true, false), false);
   assert.equal(peutChangerDeSection(false, true), false);
@@ -499,7 +499,7 @@ test('écran parent : sélecteur Commandes | Service | Menu en haut ; l’écran
   assert.ok(parent.includes('SECTIONS_RESTAURATEUR.map(x =>'));
   assert.ok(parent.includes("{section === 'commandes' && <>"), 'les commandes sont rendues dans la section Commandes');
   for (const bouton of ["'Accepter ' + o.reference", "'Refuser ' + o.reference", "'Marquer prête ' + o.reference", "'Marquer terminée ' + o.reference", "'Paiement reçu ' + o.reference", "'Proposer un autre prix ' + o.reference", "'Annuler la commande ' + o.reference"]) assert.ok(parent.includes(bouton), bouton);
-  assert.ok(parent.includes('peutChangerDeSection(envoiOuRelecture, serviceOccupe)'), 'pas de changement de section pendant un envoi');
+  assert.ok(parent.includes('peutChangerDeSection(envoiOuRelecture, serviceOccupe || reservationsOccupe)'), 'pas de changement de section pendant un envoi');
   assert.ok(parent.includes('envoiOuRelecture || serviceOccupe'), 'le parent est signalé occupé pendant un envoi du service');
 });
 
@@ -905,7 +905,7 @@ test('D4b écran : l’enregistrement d’un plat et d’un supplément valide A
   assert.ok(!/setFormPlat\(null\)[^\n]*\n[^\n]*envoyer/.test(ecran), 'le formulaire ne se ferme pas avant la réponse');
 });
 test('D4b écran : « Ajouter un plat », « Modifier », « Archiver », « Ajouter un supplément » et « Retirer » existent, verrouillés pendant l’envoi, et archiver / retirer passent par la confirmation', () => {
-  for (const titre of ["titre=\"Ajouter un plat\" disabled={bloque || formPlat !== null}", "'Modifier ' + p.nom} secondaire disabled={bloque}", "'Archiver ' + p.nom} secondaire disabled={bloque}", "'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
+  for (const titre of ["titre=\"Ajouter un plat\" icone=\"plus\" disabled={bloque || formPlat !== null}", "'Modifier ' + p.nom} variante=\"contour\" icone=\"crayon\" iconeSeule disabled={bloque}", "'Archiver ' + p.nom} variante=\"danger\" icone=\"corbeille\" iconeSeule disabled={bloque}", "'Ajouter un supplément à ' + p.nom} libelle=\"Ajouter un supplément\" variante=\"contour\" icone=\"plus\" disabled={bloque}", "'Retirer le supplément ' + o.nom + ' de ' + p.nom} variante=\"danger\" icone=\"corbeille\" iconeSeule disabled={bloque}", "'Ajouter ce plat'", "'Enregistrer les modifications'", "titre=\"Ajouter ce supplément\" disabled={bloque}"]) assert.ok(ecran.includes(titre), titre);
   assert.ok(ecran.includes("action: actionArchiver(p)") && ecran.includes("action: actionRetirerOption(p, o)"));
   assert.ok(!/envoyer\(actionArchiver|envoyer\(actionRetirerOption/.test(ecran), 'jamais d’archivage ni de retrait sans confirmation');
 });
@@ -918,4 +918,41 @@ test('D4b écran : verrou par état (m-1) — compteurs séparés pour les régl
 test('D4b écran : aucun libellé « espèces » ; depuis D4c les photos se gèrent dans l’application (plus de renvoi vers le site)', () => {
   assert.ok(!/esp[eè]ces|cash/i.test(ecran));
   assert.ok(!ecran.includes('Les photos des plats se gèrent sur le site pour l’instant.'));
+});
+
+// ---------- C7 : retrait de la photo d'un plat (parité Kotlin, lot 2) ----------
+test('C7 retrait photo : action, confirmation obligatoire et corps envoye (platId + retirer=1, jamais de fichier)', () => {
+  const plat = menu([platBrut(P1, { photoUrl: 'https://x/y.jpg' })]).plats[0];
+  const action = actionPhotoRetirer(plat);
+  assert.deepEqual(action, { type: 'photo_retirer', platId: P1, nom: plat.nom });
+  assert.equal(actionAConfirmer(action), true);
+  const confirmation = confirmationDe(action);
+  if (confirmation === null) assert.fail('confirmation du retrait de photo absente');
+  assert.equal(confirmation.oui, 'Oui, retirer la photo');
+  const envoi = corpsDeAction(action);
+  if (envoi === null) assert.fail('envoi du retrait de photo refuse a tort');
+  assert.equal(envoi.fichier, undefined);
+  assert.deepEqual(envoi.corps, { platId: P1, retirer: '1' });
+});
+test('C7 retrait photo : correspondance relue — photo absente = retiree, photo presente = pas encore, plat disparu ou pas de relecture = inconnu', () => {
+  const action = { type: 'photo_retirer', platId: P1, nom: 'Plat' } as const;
+  const avecPhoto = menu([platBrut(P1, { photoUrl: 'https://x/y.jpg' })]);
+  const sansPhoto = menu([platBrut(P1, { photoUrl: null })]);
+  assert.equal(etatCorrespond(action, { menu: sansPhoto }), true);
+  assert.equal(etatCorrespond(action, { menu: avecPhoto }), false);
+  assert.equal(etatCorrespond(action, { menu: menu([platBrut(P2)]) }), null, 'plat disparu : jamais « bien retiree »');
+  assert.equal(etatCorrespond(action, {}), null);
+});
+test('C7 retrait photo : le bouton de retrait existe tant que le plat a une photo ; verdict incertain apres echec si la photo est toujours la', () => {
+  const action = { type: 'photo_retirer', platId: P1, nom: 'Plat' } as const;
+  const avecPhoto = menu([platBrut(P1, { photoUrl: 'https://x/y.jpg' })]);
+  const sansPhoto = menu([platBrut(P1, { photoUrl: null })]);
+  assert.equal(boutonExiste(action, { menu: avecPhoto }), true);
+  assert.equal(boutonExiste(action, { menu: sansPhoto }), false);
+  const echec = new ErreurRestaurateur('reseau', 'panne', true);
+  const v = verdictService({ erreur: echec, action, relue: { menu: avecPhoto } });
+  assert.equal(v.genre, 'incertain');
+  assert.equal(v.genre === 'incertain' && v.reessayer, true);
+  const fait = verdictService({ erreur: echec, action, relue: { menu: sansPhoto } });
+  assert.equal(fait.genre, 'confirme');
 });

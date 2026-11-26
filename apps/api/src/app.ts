@@ -6,6 +6,7 @@ import { enteteRelaisDeConfiance } from "./identite/relais.ts";
 import { routeAppareils } from "./routes/appareils.ts";
 import { routeAide } from "./routes/aide.ts";
 import { routeCatalogue } from "./routes/catalogue.ts";
+import { routePreferences } from "./routes/preferences.ts";
 import { routeClient } from "./routes/client.ts";
 import { routeCommandes } from "./routes/commandes.ts";
 import { routeEstimation } from "./routes/estimation.ts";
@@ -22,8 +23,15 @@ export { reponseErreur };
 
 const SANS_CACHE = { "Cache-Control": "no-store" };
 
+/** En-têtes de sécurité de TOUTES les réponses de l'API (le site les pose déjà) : HTTPS imposé et pas de devinette du type de contenu. */
+const ENTETES_SECURITE: Record<string, string> = { "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff" };
+
 export function creerApp(deps: Deps) {
   const app = new Hono();
+  app.use("*", async (c, suivant) => {
+    await suivant();
+    for (const [nom, valeur] of Object.entries(ENTETES_SECURITE)) c.res.headers.set(nom, valeur);
+  });
   // Ces lectures portent une identité explicite, sans cookie. Aucun CORS d'écriture.
   for (const chemin of ['/api/v1/moi', '/api/v1/client/espace', '/api/v1/commandes']) {
     app.use(chemin, async (c, suivant) => {
@@ -57,6 +65,7 @@ export function creerApp(deps: Deps) {
   app.route("/api/v1/catalogue", routeCatalogue(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
   app.route("/api/v1/moi", routeMoi(deps));
+  app.route("/api/v1/preferences", routePreferences(deps));
   app.route("/api/v1/livreur", routeLivreur(deps));
   app.route("/api/v1/client", routeClient(deps));
   app.route("/api/v1/livraison/estimation", routeEstimation(deps));

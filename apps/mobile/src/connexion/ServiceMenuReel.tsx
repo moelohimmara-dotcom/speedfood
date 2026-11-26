@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ALLERGENES, type Allergene } from '../../../../packages/shared/src/menu/classement-personnalise';
 import { ErreurConnexion } from './client';
 import { gestion } from './gestion';
 import { ErreurRestaurateur } from './restaurateur';
@@ -7,7 +8,7 @@ import { Action } from './BoutonAction';
 import { choisirPhoto, type SourcePhoto } from './photoPlat';
 import { depsPhotoNatives } from './photoPlatNatif';
 import {
-  BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionPhotoDefinir, actionPhotoRetirer, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
+  actionAllergenes, libelleAllergenesDeclares, BROUILLON_OPTION_VIDE, BROUILLON_PLAT_VIDE, ETAT_SERVICE_REPOS, HORAIRES_MAX, actionArchiver, actionConfirmerTout, actionPhotoDefinir, actionPhotoRetirer, actionRetirerOption, actionStatut, brouillonDe, brouillonModifie, brouillonPlatDe, chiffresSeulement, confirmationDe, formulaireSeReferme, evoluerService,
   formaterPrix, libelleDisponibilitePlat, lecturePourAction, lecturePourEtat, photoPeutPartir, preparerOption, preparerPlat, preparerReglages, serviceVerrouille,
   type ActionService, type BrouillonOption, type BrouillonPlat, type BrouillonReglages, type ErreursOption, type ErreursPlat, type ErreursReglages, type EtatService, type EvenementService, type Lectures, type MenuRestaurateur, type PlatRestaurateur,
   type ReglagesRestaurateur, type RelectureService,
@@ -44,6 +45,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
   const [brouillonOption, setBrouillonOption] = useState<BrouillonOption>(BROUILLON_OPTION_VIDE);
   const [erreursOption, setErreursOption] = useState<ErreursOption>({});
   const [choixPhoto, setChoixPhoto] = useState<string | null>(null);
+  const [editionAllergenes, setEditionAllergenes] = useState<{ platId: string; choix: Allergene[]; aucun: boolean } | null>(null);
   const [selection, setSelection] = useState(false);
   const [messagePhoto, setMessagePhoto] = useState<{ platId: string; texte: string } | null>(null);
   const [imagesEnErreur, setImagesEnErreur] = useState<Record<string, string>>({});
@@ -158,7 +160,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     const textes = a ? confirmationDe(a) : null;
     return a && textes ? <View style={s.formulaire}>
       <Text accessibilityRole="alert" style={s.texte}>{textes.question}</Text>
-      <Action titre={textes.oui} disabled={bloque} agir={() => { void envoyer(a); }} />
+      <Action titre={textes.oui} variante={a.type === 'archiver' || a.type === 'option_retirer' || a.type === 'photo_retirer' ? 'danger' : undefined} disabled={bloque} agir={() => { void envoyer(a); }} />
       <Action titre={textes.non} secondaire disabled={occupe} agir={() => appliquer({ type: 'annuler_confirmation' })} />
     </View> : null;
   };
@@ -197,7 +199,7 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     {erreursPlat.description && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursPlat.description}</Text>}
     {erreursPlat.general && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursPlat.general}</Text>}
     <Action titre={cible.mode === 'creer' ? 'Ajouter ce plat' : 'Enregistrer les modifications'} disabled={bloque} agir={() => enregistrerPlat(cible)} />
-    <Action titre="Annuler" secondaire disabled={occupe} agir={fermerFormulairePlat} />
+    <Action titre="Annuler" variante="texte" disabled={occupe} agir={fermerFormulairePlat} />
   </View>;
   const formulaireOption = (plat: PlatRestaurateur) => <View style={s.formulaire}>
     <Text accessibilityRole="header" style={s.nomPlat}>{'Nouveau supplément pour ' + plat.nom}</Text>
@@ -209,14 +211,16 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     {erreursOption.prix && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursOption.prix}</Text>}
     {erreursOption.general && <Text accessibilityRole="alert" style={s.erreurChamp}>{erreursOption.general}</Text>}
     <Action titre="Ajouter ce supplément" disabled={bloque} agir={() => enregistrerSupplement(plat)} />
-    <Action titre="Annuler" secondaire disabled={occupe} agir={fermerFormulaireOption} />
+    <Action titre="Annuler" variante="texte" disabled={occupe} agir={fermerFormulaireOption} />
   </View>;
 
   return <View style={{ gap: 14 }}>
     {occupe && <><ActivityIndicator color={c.action} /><Text accessibilityLiveRegion="polite" style={s.texte}>{etat.phase === 'envoi' ? 'Envoi de votre changement…' : etat.phase === 'relecture' ? 'Relecture de l’état du restaurant…' : 'Lecture en cours…'}</Text></>}
     {erreur && <Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}
-    <Action titre={section === 'service' ? 'Actualiser le service' : 'Actualiser le menu'} agir={() => { void actualiser(); }} disabled={occupe} />
-    {luLe && <Text style={s.secondaire}>Lu à {luLe}. L’écran ne se met pas à jour tout seul : actualisez pour voir les changements faits ailleurs.</Text>}
+    <View style={s.ligneLecture}>
+      <Text style={[s.secondaire, { flex: 1 }]}>{luLe ? 'Lu à ' + luLe + '. L’écran ne se met pas à jour tout seul : actualisez pour voir les changements faits ailleurs.' : 'Pas encore lu.'}</Text>
+      <Action titre={section === 'service' ? 'Actualiser le service' : 'Actualiser le menu'} variante="texte" icone="actualiser" iconeSeule agir={() => { void actualiser(); }} disabled={occupe} />
+    </View>
     {verdict && <Text accessibilityRole={verdict.genre === 'confirme' ? undefined : 'alert'} accessibilityLiveRegion="polite" style={s.texte}>{verdict.message}</Text>}
 
     {section === 'service' && reglages && <View style={{ gap: 14 }}>
@@ -260,11 +264,11 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
     {section === 'menu' && menu && <View style={{ gap: 12 }}>
       {menu.illisibles > 0 && <Text accessibilityRole="alert" style={s.texte}>{menu.illisibles === 1 ? '1 plat est illisible dans l’application' : menu.illisibles + ' plats sont illisibles dans l’application'} : ouvrez Speedfood sur le site pour {menu.illisibles === 1 ? 'le' : 'les'} voir et {menu.illisibles === 1 ? 'le' : 'les'} modifier.</Text>}
       <Text accessibilityRole="header" style={s.nom}>Vos plats ({menu.plats.length})</Text>
-      {formPlat?.mode === 'creer' ? formulairePlat({ mode: 'creer' }) : <Action titre="Ajouter un plat" disabled={bloque || formPlat !== null} agir={ouvrirCreation} />}
-      {menu.plats.length === 0 && <Text style={s.texte}>Aucun plat dans le menu.</Text>}
+      {formPlat?.mode === 'creer' ? formulairePlat({ mode: 'creer' }) : <Action titre="Ajouter un plat" icone="plus" disabled={bloque || formPlat !== null} agir={ouvrirCreation} />}
+      {menu.plats.length === 0 && <Text style={s.texte}>Votre menu est vide : ajoutez votre premier plat.</Text>}
       {menu.plats.some(p => p.disponible) && (confirmation?.type === 'confirmer_tout'
         ? bloc(confirmation)
-        : <Action titre="Tout confirmer" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionConfirmerTout(menu), lecture: lectureVerrou })} />)}
+        : <Action titre="Tout confirmer" secondaire icone="coche" disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionConfirmerTout(menu), lecture: lectureVerrou })} />)}
       {menu.plats.map(p => {
         const lib = libelleDisponibilitePlat(p, aReconfirmer, maintenant);
         const prix = formaterPrix(p.prixGnf);
@@ -273,33 +277,45 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
           {prix && <Text style={s.texte}>{prix}</Text>}
           <Text style={s.texte}>{lib.etat}</Text>
           {lib.confirmation && <Text style={s.secondaire}>{lib.confirmation}</Text>}
+          <View style={{ gap: 8 }}>
+            <Text style={s.secondaire}>{libelleAllergenesDeclares(p.allergenes)}</Text>
+            {editionAllergenes?.platId !== p.id
+              ? <Action titre={'Déclarer les allergènes de ' + p.nom} libelle="Déclarer les allergènes" secondaire icone="crayon" disabled={bloque} agir={() => setEditionAllergenes({ platId: p.id, choix: p.allergenes ?? [], aucun: p.allergenes !== null && p.allergenes.length === 0 })} />
+              : <View style={s.formulaire}>
+                <Text style={s.texte}>Cochez les allergènes présents dans {p.nom}, ou « Aucun allergène ». Une déclaration fausse peut mettre un client en danger : en cas de doute, cochez l’allergène.</Text>
+                <View style={s.puces}>{ALLERGENES.map(a => { const choisi = editionAllergenes.choix.includes(a.id); return <Pressable key={a.id} accessibilityRole="button" accessibilityState={{ selected: choisi, disabled: editionAllergenes.aucun }} disabled={editionAllergenes.aucun} onPress={() => setEditionAllergenes({ ...editionAllergenes, choix: choisi ? editionAllergenes.choix.filter(x => x !== a.id) : [...editionAllergenes.choix, a.id] })} style={[s.puce, choisi && s.puceChoisie, editionAllergenes.aucun && { opacity: 0.4 }]}><Text style={s.texte}>{a.libelle}</Text></Pressable>; })}</View>
+                <View style={s.ligneSwitch}><Switch accessibilityLabel="Aucun allergène dans ce plat" value={editionAllergenes.aucun} onValueChange={v => setEditionAllergenes({ ...editionAllergenes, aucun: v, choix: v ? [] : editionAllergenes.choix })} /><Text style={[s.texte, { flex: 1 }]}>Aucun allergène dans ce plat</Text></View>
+                <Action titre={'Enregistrer les allergènes de ' + p.nom} libelle="Enregistrer" icone="coche" disabled={bloque || (!editionAllergenes.aucun && editionAllergenes.choix.length === 0)} agir={() => { const e = editionAllergenes; setEditionAllergenes(null); void envoyer(actionAllergenes(p, e.aucun ? [] : e.choix)); }} />
+                {p.allergenes !== null && <Action titre={'Retirer la déclaration d’allergènes de ' + p.nom} libelle="Retirer la déclaration" variante="danger" icone="corbeille" disabled={bloque} agir={() => { setEditionAllergenes(null); void envoyer(actionAllergenes(p, null)); }} />}
+                <Action titre="Annuler" variante="texte" disabled={bloque} agir={() => setEditionAllergenes(null)} />
+              </View>}
+          </View>
           <View style={s.blocPhoto}>
             {p.photoUrl !== null && imagesEnErreur[p.id] !== p.photoUrl
               ? <Image source={{ uri: p.photoUrl }} accessibilityLabel={'Photo de ' + p.nom} style={s.photo} resizeMode="cover" onError={() => setImagesEnErreur(x => ({ ...x, [p.id]: p.photoUrl as string }))} />
               : <Text style={s.secondaire}>{p.photoRef === null ? 'Aucune photo pour ce plat.' : 'La photo de ce plat ne peut pas être affichée ici.'}</Text>}
-            {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id
-              ? bloc(confirmation)
-              : <>
-                <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} secondaire disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
-                {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} secondaire disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
-              </>}
+            {confirmation?.type === 'photo_retirer' && confirmation.platId === p.id && bloc(confirmation)}
             {choixPhoto === p.id && <View style={s.formulaire}>
               <Text style={s.texte}>D’où vient la photo de {p.nom} ? Elle sera réduite avant l’envoi.</Text>
-              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
-              <Action titre={'Prendre une photo de ' + p.nom} disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
-              <Action titre="Annuler" secondaire disabled={selection} agir={() => setChoixPhoto(null)} />
+              <Action titre={'Choisir dans la galerie une photo de ' + p.nom} libelle="Choisir dans la galerie" secondaire disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'galerie'); }} />
+              <Action titre={'Prendre une photo de ' + p.nom} libelle="Prendre une photo" secondaire icone="camera" disabled={bloque || selection} agir={() => { void prendrePhoto(p, 'camera'); }} />
+              <Action titre="Annuler" variante="texte" disabled={selection} agir={() => setChoixPhoto(null)} />
             </View>}
             {messagePhoto?.platId === p.id && <Text accessibilityRole="alert" style={s.erreurChamp}>{messagePhoto.texte}</Text>}
           </View>
-          <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} secondaire disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
-          {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
-
+          <View style={s.rangeeIcones}>
+            {!(confirmation?.type === 'photo_retirer' && confirmation.platId === p.id) && <>
+              <Action titre={(p.photoRef === null ? 'Ajouter une photo à ' : 'Changer la photo de ') + p.nom} variante="contour" icone="camera" iconeSeule disabled={bloque || selection} agir={() => { setMessagePhoto(null); setChoixPhoto(choixPhoto === p.id ? null : p.id); }} />
+              {p.photoRef !== null && <Action titre={'Retirer la photo de ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque || selection} agir={() => { setChoixPhoto(null); appliquer({ type: 'demander_confirmation', action: actionPhotoRetirer(p), lecture: lectureVerrou }); }} />}
+            </>}
+            <Action titre={(p.disponible ? 'Marquer indisponible ' : 'Marquer disponible ') + p.nom} variante="contour" icone={p.disponible ? 'masque' : 'visible'} iconeSeule disabled={bloque} agir={() => { void envoyer({ type: 'disponibilite', platId: p.id, disponible: !p.disponible }); }} />
+            {p.disponible && <Action titre={'Confirmer la disponibilité ' + p.nom} secondaire icone="coche" iconeSeule disabled={bloque} agir={() => { void envoyer({ type: 'confirmer', platId: p.id, avant: p.confirmeLe }); }} />}
+            {platEnEdition?.id !== p.id && p.edition !== null && <Action titre={'Modifier ' + p.nom} variante="contour" icone="crayon" iconeSeule disabled={bloque} agir={() => ouvrirModification(p)} />}
+            {!(confirmation?.type === 'archiver' && confirmation.platId === p.id) && <Action titre={'Archiver ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
+          </View>
+          {confirmation?.type === 'archiver' && confirmation.platId === p.id && bloc(confirmation)}
           {platEnEdition?.id === p.id && platEnEdition ? formulairePlat({ mode: 'modifier', plat: platEnEdition })
-            : p.edition !== null ? <Action titre={'Modifier ' + p.nom} secondaire disabled={bloque} agir={() => ouvrirModification(p)} />
-              : <Text style={s.secondaire}>Ce plat a des informations illisibles dans l’application : modifiez-le sur le site.</Text>}
-          {confirmation?.type === 'archiver' && confirmation.platId === p.id
-            ? bloc(confirmation)
-            : <Action titre={'Archiver ' + p.nom} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionArchiver(p), lecture: lectureVerrou })} />}
+            : p.edition === null && <Text style={s.secondaire}>Ce plat a des informations illisibles dans l’application : modifiez-le sur le site.</Text>}
 
           <Text accessibilityRole="header" style={s.sousTitre}>Suppléments ({p.options.length})</Text>
           {p.options.length === 0 && <Text style={s.secondaire}>Aucun supplément.</Text>}
@@ -307,10 +323,10 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
             <Text style={s.texte}>{o.nom} · {formaterPrix(o.prixGnf)}</Text>
             {confirmation?.type === 'option_retirer' && confirmation.optionId === o.id
               ? bloc(confirmation)
-              : <Action titre={'Retirer le supplément ' + o.nom + ' de ' + p.nom} secondaire disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionRetirerOption(p, o), lecture: lectureVerrou })} />}
+              : <Action titre={'Retirer le supplément ' + o.nom + ' de ' + p.nom} variante="danger" icone="corbeille" iconeSeule disabled={bloque} agir={() => appliquer({ type: 'demander_confirmation', action: actionRetirerOption(p, o), lecture: lectureVerrou })} />}
           </View>)}
           {p.optionsIllisibles > 0 && <Text accessibilityRole="alert" style={s.secondaire}>{p.optionsIllisibles === 1 ? '1 supplément est illisible' : p.optionsIllisibles + ' suppléments sont illisibles'} dans l’application : voyez-les sur le site.</Text>}
-          {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} secondaire disabled={bloque} agir={() => ouvrirSupplement(p)} />}
+          {formOption === p.id ? formulaireOption(p) : <Action titre={'Ajouter un supplément à ' + p.nom} libelle="Ajouter un supplément" variante="contour" icone="plus" disabled={bloque} agir={() => ouvrirSupplement(p)} />}
         </View>;
       })}
     </View>}
@@ -320,10 +336,16 @@ export function ServiceMenuReel({ section, clavier, allerAuMenu, signalerOccupe 
 const s = StyleSheet.create({
   formulaire: { gap: 8, padding: 12, borderWidth: 1, borderColor: c.action, borderRadius: 14 },
   ligneInterrupteur: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ligneOption: { gap: 6 },
+  rangeeIcones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 },
+  ligneOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  ligneLecture: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blocPhoto: { gap: 8 },
+  puces: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  puce: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1.5, borderColor: c.contour, backgroundColor: c.surface, justifyContent: 'center' },
+  puceChoisie: { backgroundColor: c.mangue, borderColor: c.encre },
+  ligneSwitch: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: c.bordure },
-  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.bordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
+  champ: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.champBordure, borderRadius: 12, backgroundColor: c.surface, color: c.encre, fontFamily: polices.texte, fontSize: 16 },
   champLong: { minHeight: 110, textAlignVertical: 'top' },
   erreurChamp: { fontFamily: polices.texte, fontSize: 13, lineHeight: 19, color: c.action, fontWeight: '700' },
   carte: { gap: 8, padding: 16, borderWidth: 1, borderColor: c.bordure, borderRadius: 18, backgroundColor: c.surface },

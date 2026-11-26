@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { VERSION_APPLICATION } from "@/lib/application/version";
+import { presentationApkMobile } from "@/lib/application/installer-mobile";
 
 export const metadata: Metadata = {
   title: "Télécharger l'application Speedfood",
@@ -18,6 +19,16 @@ const ETAPES_ANDROID = [
   "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
   "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
   "L'icône Speedfood apparaît sur votre écran d'accueil. Ouvrez-la : elle vous guide au premier lancement.",
+];
+
+/** Nouvelle appli (Expo, com.speedfood.mobile), application principale depuis la 3.0.1, à côté de l'ancienne. `null` : rien n'est publié ou le téléchargement n'est pas valide, la section n'apparaît pas. */
+const MOBILE = presentationApkMobile();
+
+const ETAPES_MOBILE = [
+  "Touchez « Télécharger la nouvelle application » ci-dessus.",
+  "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
+  "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
+  "Une deuxième icône Speedfood apparaît, à côté de celle de l'ancienne application. Elle utilise les mêmes comptes et les mêmes restaurants.",
 ];
 
 const ETAPES_IPHONE = [
@@ -52,13 +63,41 @@ export default function InstallerPage() {
         <p className="pub-accueil-lead">Les restaurants de Conakry dans votre poche : commandez, suivez votre livraison, retrouvez vos commandes.</p>
       </div>
 
+      {MOBILE ? (
+        <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-nouvelle">
+          <h2 id="installer-nouvelle" className="pub-titre pub-h3-page">Nouvelle application Speedfood</h2>
+          <p className="installer-note">
+            Gratuite · version {MOBILE.nom}
+            {MOBILE.tailleMo > 0 ? ` · ${MOBILE.tailleMo} Mo` : ""}. C&apos;est désormais l&apos;application Speedfood principale. Elle s&apos;installe <strong>à côté</strong> de
+            l&apos;ancienne, avec les mêmes comptes et les mêmes restaurants : ouvrez-la, vérifiez vos usages, puis supprimez l&apos;ancienne quand vous êtes prêt.
+          </p>
+          <p>
+            <a className="pub-btn" href={MOBILE.chemin} download="speedfood-mobile.apk">
+              Télécharger la nouvelle application
+            </a>
+          </p>
+
+          <h3 className="pub-titre pub-h3-page">Installer en quatre étapes</h3>
+          <Etapes etapes={ETAPES_MOBILE} />
+          <p className="installer-note">
+            Quand une nouvelle version est publiée, l&apos;application vous la propose : touchez le bandeau pour l&apos;installer, sans revenir sur cette page. Comme pour
+            toute application téléchargée hors Google Play, Android affiche un avertissement standard avant l&apos;installation, et les notifications nécessitent les
+            services Google du téléphone.
+          </p>
+          <p className="installer-note">
+            Empreinte SHA-256 du fichier : <code>{MOBILE.sha256}</code>
+          </p>
+        </section>
+      ) : null}
+
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-android">
         <div className="installer-hero">
           <div className="installer-bloc">
-            <h2 id="installer-android" className="pub-titre pub-h3-page">Téléphone Android</h2>
+            <h2 id="installer-android" className="pub-titre pub-h3-page">Ancienne application Android</h2>
             <p className="installer-note">
               Gratuite · version {VERSION}
-              {TAILLE_MO > 0 ? ` · ${TAILLE_MO} Mo` : ""}. Si l&apos;ancienne application Speedfood est déjà installée, installez simplement celle-ci par-dessus : elle la remplace.
+              {TAILLE_MO > 0 ? ` · ${TAILLE_MO} Mo` : ""}. L&apos;ancienne application reste utilisable le temps de passer à la nouvelle ci-dessus. Si elle est déjà installée,
+              installez simplement celle-ci par-dessus : elle la remplace.
             </p>
             <p>
               <a className="pub-btn" href={FICHIER_APK} download="speedfood.apk">

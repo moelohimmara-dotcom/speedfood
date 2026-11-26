@@ -6,6 +6,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:unit": "npm run test:unit --workspace @speedfood/web",
     "test:cloisonnement": "npm run test:cloisonnement --workspace @speedfood/web",
+    "test:echec-livraison": "npm run test:echec-livraison --workspace @speedfood/web",
+    "test:demonstration": "npm run test:demonstration --workspace @speedfood/web",
     "test:api": "npm run test --workspace @speedfood/api",
     "build:api": "npm run build --workspace @speedfood/api"
   }

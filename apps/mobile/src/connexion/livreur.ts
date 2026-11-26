@@ -21,9 +21,9 @@ export const lireEnLigneLivreur = lireReponseEnLigneLivreur;
 export const LIBELLES_STATUT_LIVREUR: Record<FicheLivreur['statut'], string> = { hors_ligne: 'Hors ligne', disponible: 'Disponible', en_course: 'En course' };
 export const LIBELLES_VEHICULE_LIVREUR: Record<FicheLivreur['vehicule'], string> = { moto: 'Moto', velo: 'Vélo', voiture: 'Voiture', pied: 'À pied' };
 export const LIBELLES_CYCLE_LIVREUR: Record<FicheLivreur['cycle'], string> = { cree: 'Fiche créée', invite: 'Invitation en cours', candidat: 'Dossier en cours', actif: 'Compte actif', suspendu: 'Compte suspendu', archive: 'Fiche archivée' };
-/** Distance affichable : une décimale en km, ou « — » quand elle est inconnue (jamais un faux zéro). */
+/** Distance affichable : une décimale en km, ou « non renseignée » quand elle est inconnue (jamais un faux zéro). */
 export function libelleDistanceLivreur(km: number | null): string {
-  return km === null ? '—' : km.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
+  return km === null ? 'non renseignée' : km.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
 }
 /** Échéance affichable de l'offre : heure locale lisible ; la date reçue a déjà été validée par le parseur. */
 export function libelleEcheanceOffre(iso: string): string {

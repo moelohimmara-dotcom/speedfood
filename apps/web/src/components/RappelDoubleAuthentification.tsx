@@ -32,9 +32,12 @@ export async function RappelDoubleAuthentification({
         </svg>
         <p className="rappel-securite-texte">
           <strong>
-            {administrateur
-              ? "Protégez ce compte d'administration : activez la double authentification."
-              : "Protégez votre compte : activez la double authentification."}
+            <span className="rappel-securite-long">
+              {administrateur
+                ? "Protégez ce compte d'administration : activez la double authentification."
+                : "Protégez votre compte : activez la double authentification."}
+            </span>
+            <span className="rappel-securite-court">Activez la double authentification.</span>
           </strong>{" "}
           <span className="rappel-securite-detail">
             {administrateur
