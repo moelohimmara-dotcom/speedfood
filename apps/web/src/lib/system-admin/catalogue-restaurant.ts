@@ -10,6 +10,10 @@ import { journaliserActionSysteme } from "./audit";
 import { verifierPermission, type ContexteSysteme } from "./contexte";
 import { lireModeVente } from "./catalogue-restaurant-lecture";
 import { validerPlat } from "./plat-regles";
+import { lireAllergenesFormulaire } from "@/lib/menu/allergenes-formulaire";
+import { promotionsSuspenduesPour } from "@/lib/restaurant/score-lectures";
+
+const PROMOTIONS_SUSPENDUES = "Les promotions sont suspendues pour ce restaurant ce mois-ci (score qualité au palier le plus bas). Retirez le prix promotionnel ou attendez le prochain calcul.";
 
 /**
  * Catalogue géré par l'équipe (ADR-020, DECISIONS-MODELE.md) : l'équipe Speedfood tient les plats, les prix et les disponibilités des restaurants en
@@ -57,6 +61,10 @@ export async function creerPlatEquipeAction(_etat: EtatCatalogue, formData: Form
   const verifie = validerPlat(lireChamps(formData), prixPlatMaxGnf);
   if (!verifie.ok) return { erreur: verifie.erreur };
   const { plat } = verifie;
+  if (plat.prixPromo !== null && (await promotionsSuspenduesPour(restaurantId))) return { erreur: PROMOTIONS_SUSPENDUES };
+  const allergenesResultat = lireAllergenesFormulaire(formData);
+  if (!allergenesResultat.ok) return { erreur: allergenesResultat.erreur };
+  const valeursAllergenes = allergenesResultat.valeurs ?? {};
 
   let photoUrl: string | null = null;
   const fichier = formData.get("photo");
@@ -70,15 +78,16 @@ export async function creerPlatEquipeAction(_etat: EtatCatalogue, formData: Form
 
   const { data, error } = await garde.admin
     .from("menu_items")
-    .insert({ restaurant_id: restaurantId, nom: plat.nom, description: plat.description, prix: plat.prix, prix_promo: plat.prixPromo, photo_url: photoUrl })
+    .insert({ restaurant_id: restaurantId, nom: plat.nom, description: plat.description, prix: plat.prix, prix_promo: plat.prixPromo, photo_url: photoUrl, ...valeursAllergenes })
     .select("id")
     .single();
   if (error || !data) {
     await supprimerTeleversementOrphelin(photoUrl);
+    if (error && allergenesResultat.valeurs && (error.code === "42703" || error.message.includes("allergenes"))) return { erreur: "La déclaration d'allergènes n'a pas pu être enregistrée : la base n'est pas encore à jour pour les allergènes. Le plat n'a pas été ajouté." };
     return { erreur: MESSAGE_ECHEC };
   }
 
-  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plat_creation", cibleType: "menu_items", cibleId: data.id, motif: `restaurant ${restaurantId}` });
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plat_creation", cibleType: "menu_items", cibleId: data.id, motif: `restaurant ${restaurantId}${allergenesResultat.valeurs ? ", allergènes déclarés" : ""}` });
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
   return { succes: `« ${plat.nom} » ajouté.` };
 }
@@ -94,8 +103,14 @@ export async function modifierPlatEquipeAction(_etat: EtatCatalogue, formData: F
   const verifie = validerPlat(lireChamps(formData), prixPlatMaxGnf);
   if (!verifie.ok) return { erreur: verifie.erreur };
   const { plat } = verifie;
+  if (plat.prixPromo !== null && (await promotionsSuspenduesPour(restaurantId))) return { erreur: PROMOTIONS_SUSPENDUES };
+  const allergenesResultat = lireAllergenesFormulaire(formData);
+  if (!allergenesResultat.ok) return { erreur: allergenesResultat.erreur };
+  const valeursAllergenes = allergenesResultat.valeurs ?? {};
+  const retirerPhoto = formData.get("retirer_photo") === "oui";
 
   const fichier = formData.get("photo");
+  if (retirerPhoto && fichier instanceof File && fichier.size > 0) return { erreur: "Vous avez à la fois coché le retrait de la photo et choisi un nouveau fichier : décochez le retrait pour remplacer, ou retirez le fichier pour supprimer la photo." };
   const changerPhoto = fichier instanceof File && fichier.size > 0;
   let nouvellePhoto: string | undefined;
   if (changerPhoto) {
@@ -112,6 +127,7 @@ export async function modifierPlatEquipeAction(_etat: EtatCatalogue, formData: F
     return { erreur: "Plat introuvable." };
   }
 
+  const photoRetiree = retirerPhoto && !nouvellePhoto && ancien.photo_url !== null;
   const { error } = await garde.admin
     .from("menu_items")
     .update({
@@ -119,17 +135,19 @@ export async function modifierPlatEquipeAction(_etat: EtatCatalogue, formData: F
       description: plat.description,
       prix: plat.prix,
       prix_promo: plat.prixPromo,
-      ...(nouvellePhoto ? { photo_url: nouvellePhoto } : {}),
+      ...valeursAllergenes,
+      ...(nouvellePhoto ? { photo_url: nouvellePhoto } : photoRetiree ? { photo_url: null } : {}),
     })
     .eq("id", platId)
     .eq("restaurant_id", restaurantId);
   if (error) {
     await supprimerTeleversementOrphelin(nouvellePhoto ?? null);
+    if (allergenesResultat.valeurs && (error.code === "42703" || error.message.includes("allergenes"))) return { erreur: "La déclaration d'allergènes n'a pas pu être enregistrée : la base n'est pas encore à jour pour les allergènes. Aucune modification n'a été appliquée." };
     return { erreur: MESSAGE_ECHEC };
   }
-  if (nouvellePhoto) await supprimerImage(ancien.photo_url ?? null);
+  if (nouvellePhoto || photoRetiree) await supprimerImage(ancien.photo_url ?? null);
 
-  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plat_modification", cibleType: "menu_items", cibleId: platId, motif: `restaurant ${restaurantId}` });
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plat_modification", cibleType: "menu_items", cibleId: platId, motif: `restaurant ${restaurantId}${photoRetiree ? ", photo retirée" : ""}${allergenesResultat.valeurs ? ", allergènes mis à jour" : ""}` });
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
   return { succes: "Plat enregistré." };
 }
