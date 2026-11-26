@@ -4,6 +4,7 @@ import type { Database } from '../../../web/src/lib/db/database.types';
 import { etatDisponibilite } from '@speedfood/shared/disponibilite/etat';
 import type { RestaurantPublic, PageRestaurants, PageMenu, ListeQuartiers } from '@speedfood/shared/contracts/catalogue';
 import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative';
+import { choisirCouvertures, type PlatCouverture } from '@speedfood/shared/menu/couverture-restaurant';
 import { cotation } from '@speedfood/shared/notation/cotation';
 
 // Colonnes de la liste (légère) et de la fiche (liste + consignes et moyens de paiement). `avis_somme` et `avis_total` existent en base (migration notation) mais pas encore dans
@@ -38,7 +39,24 @@ function projeter(r: LigneRestaurant, fiche = false): RestaurantPublic {
   const moyens = Array.isArray(r.moyens_paiement) ? r.moyens_paiement.filter(m => typeof m === 'string' && m.trim().length > 0 && m.length <= 60).slice(0, 12) : [];
   return { ...base, consignes: texteFacultatif(r.consignes, 1000), moyensPaiement: moyens };
 }
-export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>, admin?: SupabaseClient<Database>, illustrative = false): Promise<PageRestaurants> {
+/** Lecture directe des couvertures d'une page : plats avec photo, par restaurant puis par prix décroissant, page par page (la base plafonne chaque réponse à 1000 lignes). */
+export async function lireCouverturesDirect(db: SupabaseClient<Database>, ids: readonly string[]): Promise<Map<string, string>> {
+  const TAILLE = 1000, PAGES_MAX = 4;
+  const plats: PlatCouverture[] = [];
+  for (let page = 0; page < PAGES_MAX; page++) {
+    const { data, error } = await db.from('menu_items').select('id, restaurant_id, nom, prix, photo_url, menu_sections(nom)').in('restaurant_id', [...ids]).eq('disponible', true).is('archive_le', null).not('photo_url', 'is', null).order('restaurant_id').order('prix', { ascending: false }).order('id').range(page * TAILLE, (page + 1) * TAILLE - 1);
+    if (error || !data) { console.error('catalogue_couvertures_illisibles'); break; }
+    for (const p of data as unknown as Array<{ id: string; restaurant_id: string; nom: string; prix: number; photo_url: string | null; menu_sections: { nom: string } | { nom: string }[] | null }>) {
+      const adresse = urlImage(p.photo_url);
+      if (!adresse || !Number.isSafeInteger(p.prix)) continue;
+      const section = Array.isArray(p.menu_sections) ? (p.menu_sections[0]?.nom ?? null) : (p.menu_sections?.nom ?? null);
+      plats.push({ restaurantId: p.restaurant_id, id: p.id, nom: p.nom, prix: p.prix, photoUrl: adresse, section });
+    }
+    if (data.length < TAILLE) break;
+  }
+  return choisirCouvertures(plats);
+}
+export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>, admin?: SupabaseClient<Database>, illustrative = false, lireCouvertures: (ids: readonly string[]) => Promise<Map<string, string>> = ids => lireCouverturesDirect(db, ids)): Promise<PageRestaurants> {
   let q = db.from('restaurants').select(COLONNES_LISTE as string).eq('publie', true).is('suspendu_le', null).order('id').limit(51);
   if (apres) q = q.gt('id', apres);
   const { data: brut, error } = await q;
@@ -79,17 +97,8 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
       if (page === PAGES_MAX_PROMOS - 1) throw new Error('catalogue_indisponible');
     }
   }
-  // Couverture de la carte : la photo d'un plat DISPONIBLE (le premier par identifiant, choix stable). Une seule lecture bornée à la page affichée ; une panne ou une adresse douteuse
-  // ne retire rien d'autre : la carte garde alors son logo ou son initiale, et la liste reste lisible.
-  const couvertures = new Map<string, string>();
-  if (pageBrute.length > 0) {
-    const { data: photos, error: erreurPhotos } = await db.from('menu_items').select('restaurant_id, photo_url').in('restaurant_id', pageBrute.map(r => r.id)).eq('disponible', true).is('archive_le', null).not('photo_url', 'is', null).order('id').limit(1000);
-    if (erreurPhotos) console.error('catalogue_couvertures_illisibles');
-    for (const p of (photos ?? []) as unknown as Array<{ restaurant_id: string; photo_url: string | null }>) {
-      const adresse = urlImage(p.photo_url);
-      if (adresse && !couvertures.has(p.restaurant_id)) couvertures.set(p.restaurant_id, adresse);
-    }
-  }
+  // Couverture de la carte : la photo d'un plat principal (voir `choisirCouvertures`). Une panne de lecture ne retire rien d'autre : la carte garde son logo ou son initiale, la liste reste lisible.
+  const couvertures = pageBrute.length > 0 ? await lireCouvertures(pageBrute.map(r => r.id)) : new Map<string, string>();
   const page = pageBrute.map(r => {
     const couverture = couvertures.get(r.id);
     const projete = { ...projeter(r), aDesPromos: avecPromos.has(r.id), ...(couverture ? { couvertureUrl: couverture, ...(illustrative && estImageIllustrative(couverture) ? { couvertureIllustrative: true as const } : {}) } : {}) };
