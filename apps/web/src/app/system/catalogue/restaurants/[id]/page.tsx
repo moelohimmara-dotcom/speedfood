@@ -22,6 +22,7 @@ import { ActionsModeration } from "./ActionsModeration";
 import { EditeurHoraires } from "./EditeurHoraires";
 import { EditeurProfilRestaurant } from "./EditeurProfilRestaurant";
 import { EditeurQuartierRestaurant } from "./EditeurQuartierRestaurant";
+import { ZonesEquipe } from "./ZonesEquipe";
 import { GestionEquipe } from "./GestionEquipe";
 import { definirModeVenteAction } from "@/lib/system-admin/catalogue-restaurant";
 import { definirTelephoneCommandesAction } from "@/lib/system-admin/repartition";
@@ -69,15 +70,18 @@ export default async function RestaurantDetailSystemePage({
     obtenirQuartierIdRestaurant(id),
     creerClientServeur().then((supabase) => lireQuartiersActifs(supabase)),
   ]);
-  // Zones où le restaurant déclare livrer (lecture seule : c'est le restaurateur qui les déclare, dans « Mon restaurant »).
+  // Zones où le restaurant livre : l'équipe peut les déclarer, mettre à jour et retirer (ZonesEquipe), comme le restaurateur.
   const { data: zonesBrutes } = await creerClientAdmin()
     .from("restaurant_zones_desservies")
-    .select("frais_gnf, delai_minutes, communes(nom), neighborhoods(nom, communes(nom))")
+    .select("id, frais_gnf, delai_minutes, communes(nom), neighborhoods(nom, communes(nom))")
     .eq("restaurant_id", id);
   const zonesDesservies = (zonesBrutes ?? [])
     .map((z) => ({
+      id: z.id,
       libelle: z.neighborhoods?.nom ? `${z.neighborhoods.nom}${z.neighborhoods.communes?.nom ? ` (${z.neighborhoods.communes.nom})` : ""}` : `Toute la commune de ${z.communes?.nom ?? ""}`,
       detail: detailLivraison(z.frais_gnf, z.delai_minutes),
+      fraisGnf: z.frais_gnf,
+      delaiMinutes: z.delai_minutes,
     }))
     .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
   const groupesQuartiers = grouperParCommune(quartiers);
@@ -254,20 +258,11 @@ export default async function RestaurantDetailSystemePage({
           quartierActuelValide={quartierValide}
         />
         <div className="ad-zones-desservies">
-          <h3 className="ad-sous-titre">Zones de livraison déclarées</h3>
-          {zonesDesservies.length === 0 ? (
-            <p className="ad-aide-champ">Aucune zone déclarée : les clients voient que la livraison n&apos;est pas déclarée (l&apos;option à emporter reste possible).</p>
-          ) : (
-            <ul className="ad-liste-simple">
-              {zonesDesservies.map((z) => (
-                <li key={z.libelle}>
-                  <strong>{z.libelle}</strong>
-                  {z.detail ? <span> · {z.detail}</span> : null}
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="ad-aide-champ">Le restaurateur les déclare lui-même dans « Mon restaurant ».</p>
+          <ZonesEquipe
+            restaurantId={restaurant.id}
+            groupes={groupesQuartiers}
+            zones={zonesDesservies.map((z) => ({ id: z.id, libelle: z.libelle, fraisGnf: z.fraisGnf, delaiMinutes: z.delaiMinutes }))}
+          />
         </div>
         {dossier ? (
           <EditeurProfilRestaurant
@@ -275,6 +270,14 @@ export default async function RestaurantDetailSystemePage({
             horaires={dossier.horaires}
             consignes={dossier.consignes}
             moyensPaiement={dossier.moyensPaiement}
+            delaiPreparation={dossier.delaiPreparation}
+            couleurAccent={dossier.couleurAccent}
+            codeOrange={dossier.codeOrange}
+            codeMtn={dossier.codeMtn}
+            latitude={dossier.latitude}
+            longitude={dossier.longitude}
+            aPhoto={dossier.photoUrl !== null}
+            aLogo={dossier.logoUrl !== null}
           />
         ) : null}
       </Panneau>
