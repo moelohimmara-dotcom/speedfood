@@ -3,7 +3,7 @@ import { creerClientPublic } from "@/lib/db/public";
 import { validerIllustration, type Illustration } from "@/lib/illustrations/modele";
 import { obtenirParametresApplication } from "@/lib/parametres/lire";
 import { etatDisponibilite, scoreFraicheur, type EtatDisponibilite } from "@/lib/disponibilite/etat";
-import { communeDuQuartier } from "@/lib/geographie/quartiers";
+import { communeDuQuartier, lieuAffiche } from "@/lib/geographie/quartiers";
 import { etatRestaurant } from "@/lib/disponibilite/etat";
 import { lireSignauxClassement } from "./signaux";
 import {
@@ -60,6 +60,8 @@ export interface RestaurantCatalogue extends RestaurantClassable {
   regionSlug: string;
   /** Quartier « Centre de … » d'une commune hors Conakry : il désigne la commune elle-même, on ne l'affiche pas comme quartier. */
   quartierGenerique: boolean;
+  /** Lieu à AFFICHER sur une carte : le quartier, ou la commune quand le quartier est « Centre de … » (même règle que la fiche). Ne sert pas aux filtres : ils utilisent `quartier`. */
+  lieu: string;
 }
 
 export interface RechercheCatalogue {
@@ -89,6 +91,8 @@ export interface PlatVedette {
   restaurantId: string;
   restaurantNom: string;
   quartier: string;
+  /** Lieu à afficher (quartier, ou commune pour un quartier « Centre de … »). */
+  lieu: string;
   etat: EtatDisponibilite;
 }
 
@@ -197,6 +201,7 @@ const lireCatalogueMemorise = cache(async (categorie: string, quartier: string):
     regionNom: r.neighborhoods?.communes?.prefectures?.regions?.nom ?? "",
     regionSlug: r.neighborhoods?.communes?.prefectures?.regions?.slug ?? "",
     quartierGenerique: r.neighborhoods?.generique ?? false,
+    lieu: lieuAffiche(r.neighborhoods),
   }));
 
   const platsParRestaurant = new Map<string, PlatPublic[]>();
@@ -309,6 +314,7 @@ function choisirVedettes(
         restaurantId: restaurant.id,
         restaurantNom: restaurant.nom,
         quartier: restaurant.quartier,
+        lieu: restaurant.lieu,
         etat: choisi.etat,
       });
     }
