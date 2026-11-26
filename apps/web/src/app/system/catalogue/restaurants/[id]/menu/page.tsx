@@ -74,6 +74,7 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
                             {formaterGnf(p.prix)}
                             {p.prixPromo !== null ? ` · promo ${formaterGnf(p.prixPromo)}` : ""}
                           </span>
+                          <span className="ad-aide-champ">{p.allergenes === null ? "Allergènes non renseignés" : p.allergenes.length === 0 ? "Aucun allergène déclaré" : `Allergènes déclarés : ${p.allergenes.length}`}{p.allergenesDeclaresLe ? ` (le ${new Date(p.allergenesDeclaresLe).toLocaleDateString("fr-FR")})` : ""}</span>
                         </div>
                         <div className="catalogue-equipe-etat">
                           <Pastille ton={p.disponible ? "succes" : "neutre"}>{p.disponible ? "Disponible" : "Épuisé"}</Pastille>
@@ -104,7 +105,7 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
                       </div>
                       <details className="catalogue-equipe-edition">
                         <summary>Modifier</summary>
-                        <FormulairePlat restaurantId={restaurant.id} plat={{ id: p.id, nom: p.nom, description: p.description, prix: p.prix, prixPromo: p.prixPromo }} />
+                        <FormulairePlat restaurantId={restaurant.id} plat={{ id: p.id, nom: p.nom, description: p.description, prix: p.prix, prixPromo: p.prixPromo, aPhoto: p.photoUrl !== null, allergenes: p.allergenes }} />
                       </details>
                     </li>
                   );
