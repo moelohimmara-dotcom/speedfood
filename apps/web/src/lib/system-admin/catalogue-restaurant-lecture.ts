@@ -19,11 +19,20 @@ export interface PlatEquipe {
   /** Déclaration d'allergènes du restaurateur ou de l'équipe : `null` = non renseignée, `[]` = aucun, sinon la liste déclarée. */
   allergenes: string[] | null;
   allergenesDeclaresLe: string | null;
+  sectionId: string | null;
+  options: { id: string; nom: string; prix: number; disponible: boolean }[];
+}
+
+export interface SectionEquipe {
+  id: string;
+  nom: string;
+  position: number;
 }
 
 export interface CatalogueEquipe {
   restaurant: { id: string; nom: string; modeVente: ModeVente } | null;
   plats: PlatEquipe[];
+  sections: SectionEquipe[];
 }
 
 /** Au plus 500 plats par établissement (borne volontaire : un catalogue de restaurant de quartier en compte quelques dizaines). */
@@ -31,12 +40,12 @@ export async function lireCatalogueEquipe(restaurantId: string): Promise<Catalog
   const admin = creerClientAdmin();
   const { data: resto } = await admin.from("restaurants").select("id, nom, mode_vente").eq("id", restaurantId).maybeSingle();
   const modeVente = lireModeVente(resto?.mode_vente);
-  if (!resto || !modeVente) return { restaurant: null, plats: [] };
+  if (!resto || !modeVente) return { restaurant: null, plats: [], sections: [] };
 
   // Allergènes : lus quand la colonne existe ; sinon (base pas encore migrée) les plats se lisent sans déclaration, jamais un catalogue en échec.
   const avecAllergenes = await admin
     .from("menu_items")
-    .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, allergenes, allergenes_declares_le")
+    .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, allergenes, allergenes_declares_le, menu_item_options(id, nom, prix, disponible)")
     .eq("restaurant_id", restaurantId)
     .is("archive_le", null)
     .order("cree_le")
@@ -49,7 +58,7 @@ export async function lireCatalogueEquipe(restaurantId: string): Promise<Catalog
     if (!colonneAbsente) throw new Error("catalogue_equipe_illisible");
     const repli = await admin
       .from("menu_items")
-      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url")
+      .select("id, nom, description, prix, prix_promo, disponible, disponibilite_confirmee_le, photo_url, section_id, menu_item_options(id, nom, prix, disponible)")
       .eq("restaurant_id", restaurantId)
       .is("archive_le", null)
       .order("cree_le")
@@ -59,10 +68,14 @@ export async function lireCatalogueEquipe(restaurantId: string): Promise<Catalog
     data = repli.data as unknown as typeof data;
   }
 
-  type LignePlat = { id: string; nom: string; description: string; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url: string | null; allergenes?: string[] | null; allergenes_declares_le?: string | null };
+  const { data: sectionsBrutes, error: erreurSections } = await admin.from("menu_sections").select("id, nom, position").eq("restaurant_id", restaurantId).order("position").order("id").limit(100);
+  if (erreurSections) throw new Error("catalogue_equipe_illisible");
+  type LigneOption = { id: string; nom: string; prix: number; disponible: boolean };
+  type LignePlat = { id: string; nom: string; description: string; prix: number; prix_promo: number | null; disponible: boolean; disponibilite_confirmee_le: string | null; photo_url: string | null; section_id?: string | null; allergenes?: string[] | null; allergenes_declares_le?: string | null; menu_item_options?: LigneOption[] | null };
   const lignes = (data ?? []) as unknown as LignePlat[];
   return {
     restaurant: { id: resto.id, nom: resto.nom, modeVente },
+    sections: ((sectionsBrutes ?? []) as SectionEquipe[]).map((s) => ({ id: s.id, nom: s.nom, position: s.position })),
     plats: lignes.map((p) => {
       const ligne = p;
       return {
@@ -76,6 +89,8 @@ export async function lireCatalogueEquipe(restaurantId: string): Promise<Catalog
         photoUrl: p.photo_url,
         allergenes: Array.isArray(ligne.allergenes) ? ligne.allergenes : null,
         allergenesDeclaresLe: ligne.allergenes_declares_le ?? null,
+        sectionId: ligne.section_id ?? null,
+        options: (ligne.menu_item_options ?? []).map((o) => ({ id: o.id, nom: o.nom, prix: o.prix, disponible: o.disponible })),
       };
     }),
   };

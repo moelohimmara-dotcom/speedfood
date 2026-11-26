@@ -16,10 +16,16 @@ export interface ValeursPlat {
   prixPromo: number | null;
   aPhoto: boolean;
   allergenes: string[] | null;
+  sectionId: string | null;
+}
+
+export interface SectionChoisissable {
+  id: string;
+  nom: string;
 }
 
 /** Ajout ou modification d'un plat par l'équipe (même formulaire ; `plat` absent = ajout). Les montants sont des francs guinéens entiers. */
-export function FormulairePlat({ restaurantId, plat }: { restaurantId: string; plat?: ValeursPlat }) {
+export function FormulairePlat({ restaurantId, plat, sections = [] }: { restaurantId: string; plat?: ValeursPlat; sections?: SectionChoisissable[] }) {
   const [etat, action, enCours] = useActionState(plat ? modifierPlatEquipeAction : creerPlatEquipeAction, etatInitial);
   const cle = plat?.id ?? "nouveau";
   return (
@@ -30,6 +36,15 @@ export function FormulairePlat({ restaurantId, plat }: { restaurantId: string; p
       <div className="field">
         <label htmlFor={`description-${cle}`}>Description (facultatif)</label>
         <textarea id={`description-${cle}`} name="description" rows={2} maxLength={500} defaultValue={plat?.description} />
+      </div>
+      <div className="field">
+        <label htmlFor={`section-${cle}`}>Section du menu</label>
+        <select id={`section-${cle}`} name="section_id" defaultValue={plat?.sectionId ?? ""}>
+          <option value="">Sans section</option>
+          {sections.map((s) => (
+            <option key={s.id} value={s.id}>{s.nom}</option>
+          ))}
+        </select>
       </div>
       <div className="catalogue-equipe-prix">
         <Input label="Prix (GNF)" name="prix" type="text" inputMode="numeric" required defaultValue={plat ? String(plat.prix) : undefined} placeholder="35000" />
