@@ -1,4 +1,6 @@
-# Matrice de permissions du CMS système — v1.3.0
+# Matrice de permissions du CMS système — v1.4.0
+
+Changement v1.4.0 : la navigation de la console expose désormais les écrans autrefois atteignables seulement par adresse tapée (Menus en masse, Confirmation des menus, Fermetures d'établissements, Contacts établissements, Quarts et affectation) et les sous-pages de réglages (Paiement, Livraison, Classement, Aide au choix, Démonstration, Réinitialisation), chacune sous sa permission existante. Aucune permission nouvelle ni aucun changement de rôle.
 
 **Statut :** livrée (blocs 8a-8d) et étendue lors de la refonte de la console
 d'administration (navigation groupée par domaine + `parametres.editer`).

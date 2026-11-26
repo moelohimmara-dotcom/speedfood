@@ -8,6 +8,8 @@ export interface PlatMenuSaisi {
   description: string;
   prix: number;
   prixPromo: number | null;
+  /** Section du menu (colonne CSV facultative) : créée chez le restaurant si elle n'existe pas. Vide = sans section. */
+  section: string;
 }
 export interface LigneImportMenu { ligne: number; valeurs: PlatMenuSaisi | null; erreur: string | null; }
 export interface RapportImportMenu { lignes: LigneImportMenu[]; appliquees: number; rejetees: number; }
@@ -37,7 +39,9 @@ export function validerLigneMenu(brut: Record<string, unknown>, prixMaxGnf = 5_0
   if (prix === "invalide" || prix === null || prix > prixMaxGnf) return { ok: false, erreur: `Prix invalide : entier GNF entre 0 et ${prixMaxGnf.toLocaleString("fr-FR")}.` };
   const promo = brut.prix_promo === "" || brut.prix_promo == null ? null : montant(brut.prix_promo);
   if (promo === "invalide" || (promo !== null && promo > prix)) return { ok: false, erreur: "Prix promo invalide : il doit être inférieur ou égal au prix normal." };
-  return { ok: true, valeurs: { nom, description, prix, prixPromo: promo } };
+  const section = String(brut.section ?? "").replace(/\s+/g, " ").trim();
+  if (section.length > 60) return { ok: false, erreur: "Section trop longue : 60 caractères maximum." };
+  return { ok: true, valeurs: { nom, description, prix, prixPromo: promo, section } };
 }
 
 function separerCsv(ligne: string): string[] {
@@ -55,14 +59,15 @@ export function analyserCsvMenu(contenu: unknown, prixMaxGnf = 5_000_000): Rappo
   if (typeof contenu !== "string" || contenu.trim() === "") return { erreur: "Fichier CSV illisible ou vide : fournissez un fichier UTF-8." };
   const lignes = contenu.replace(/^\uFEFF/, "").split(/\r?\n/);
   const entetes = separerCsv(lignes.shift() ?? "").map((x) => x.toLowerCase());
-  if (entetes.length !== COLONNES_CSV_MENU.length || entetes.some((x, i) => x !== COLONNES_CSV_MENU[i])) return { erreur: `Colonnes invalides : utilisez exactement ${COLONNES_CSV_MENU.join("; ")}.` };
+  const avecSection = entetes.length === COLONNES_CSV_MENU.length + 1 && entetes[COLONNES_CSV_MENU.length] === "section";
+  if ((!avecSection && entetes.length !== COLONNES_CSV_MENU.length) || entetes.slice(0, COLONNES_CSV_MENU.length).some((x, i) => x !== COLONNES_CSV_MENU[i])) return { erreur: `Colonnes invalides : utilisez ${COLONNES_CSV_MENU.join("; ")} (colonne « section » facultative en dernier).` };
   if (lignes.filter((x) => x.trim()).length > LIMITE_LIGNES_IMPORT) return { erreur: `Import limité à ${LIMITE_LIGNES_IMPORT} lignes.` };
   const resultats: LigneImportMenu[] = [];
   let index = 1;
   for (const texte of lignes) {
     if (!texte.trim()) { index += 1; continue; }
     const cellules = separerCsv(texte);
-    const valeurs = Object.fromEntries(COLONNES_CSV_MENU.map((cle, i) => [cle, cellules[i] ?? ""]));
+    const valeurs = { ...Object.fromEntries(COLONNES_CSV_MENU.map((cle, i) => [cle, cellules[i] ?? ""])), section: avecSection ? (cellules[COLONNES_CSV_MENU.length] ?? "") : "" };
     const validation = validerLigneMenu(valeurs, prixMaxGnf);
     resultats.push({ ligne: index + 1, valeurs: validation.ok ? validation.valeurs : null, erreur: validation.ok ? null : validation.erreur });
     index += 1;

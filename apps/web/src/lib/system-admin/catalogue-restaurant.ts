@@ -13,6 +13,8 @@ import { validerPlat } from "./plat-regles";
 import { lireAllergenesFormulaire } from "@/lib/menu/allergenes-formulaire";
 import { promotionsSuspenduesPour } from "@/lib/restaurant/score-lectures";
 import { lirePlatsEnLot, PLATS_MAX_PAR_LISTE } from "@/lib/menu/saisieRapide";
+import { BIBLIOTHEQUE_PHOTOS } from "@/lib/menu/bibliotheque-photos";
+import { originePhoto, typeReconnu, urlPubliqueBibliotheque } from "./photo-bibliotheque";
 
 const PROMOTIONS_SUSPENDUES = "Les promotions sont suspendues pour ce restaurant ce mois-ci (score qualité au palier le plus bas). Retirez le prix promotionnel ou attendez le prochain calcul.";
 
@@ -376,6 +378,42 @@ export async function creerPlatsEnLotEquipeAction(_etat: EtatAjoutEnLotEquipe, f
   await journaliserActionSysteme(garde.contexte, { action: "catalogue.plats_lot_creation", cibleType: "menu_items", cibleId: restaurantId, motif: `${plats.length} plat(s), ${ignorees.length} ligne(s) ignorée(s)` });
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
   return { ajoutes: plats.length, ignorees: ignorees.length };
+}
+
+export interface EtatPhotoBibliotheque {
+  erreur?: string;
+  succes?: string;
+}
+
+/**
+ * Pose une photo de la bibliothèque sur un plat : seulement une photo du même type de plat, déjà hébergée dans le bucket.
+ * La vraie photo du restaurant remplacée est supprimée ; une ancienne photo de bibliothèque ne l'est jamais (elle est partagée).
+ */
+export async function poserPhotoBibliothequeEquipeAction(_etat: EtatPhotoBibliotheque, formData: FormData): Promise<EtatPhotoBibliotheque> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const platId = String(formData.get("plat_id") ?? "");
+  const photoId = String(formData.get("photo_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok) return { erreur: garde.erreur };
+  if (!estUuid(platId)) return { erreur: "Plat introuvable." };
+  const entree = BIBLIOTHEQUE_PHOTOS.find((p) => p.id === photoId);
+  if (!entree) return { erreur: "Photo de bibliothèque introuvable." };
+  const { data: plat } = await garde.admin.from("menu_items").select("nom, photo_url").eq("id", platId).eq("restaurant_id", restaurantId).is("archive_le", null).maybeSingle();
+  if (!plat) return { erreur: "Plat introuvable." };
+  if (typeReconnu(plat.nom) !== entree.type) return { erreur: "Cette photo ne correspond pas au type de ce plat." };
+  const url = urlPubliqueBibliotheque(entree.fichier);
+  if (!url) return { erreur: "Adresse publique des photos non configurée." };
+  const controle = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) }).catch(() => null);
+  const typeContenu = controle?.headers.get("content-type") ?? "";
+  if (!controle || !controle.ok || (typeContenu !== "" && !typeContenu.startsWith("image/"))) return { erreur: "Ce fichier de la bibliothèque n'est pas hébergé comme image : il ne peut pas être posé." };
+  const ancienne = originePhoto(plat.photo_url);
+  const { data: touchees, error } = await garde.admin.from("menu_items").update({ photo_url: url }).eq("id", platId).eq("restaurant_id", restaurantId).is("archive_le", null).select("id");
+  if (error) return { erreur: MESSAGE_ECHEC };
+  if (!touchees || touchees.length === 0) return { erreur: "Plat introuvable." };
+  if (ancienne?.source === "restaurant") await supprimerImage(plat.photo_url);
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plat_photo_bibliotheque", cibleType: "menu_items", cibleId: platId, motif: `photo ${entree.id} (${entree.source}) pour le plat ${platId}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+  return { succes: entree.source === "ia" ? "Image illustrative posée : elle est signalée comme telle aux clients." : "Photo de la bibliothèque posée." };
 }
 
 /** Reconfirme d'un coup tous les plats disponibles du restaurant : l'heure de confirmation repart de maintenant pour chacun. */
