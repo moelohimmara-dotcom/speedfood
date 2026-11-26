@@ -175,33 +175,62 @@ test('source menu riche : les suppléments sont triés par nom, et les sections 
 });
 const R2 = '00000000-0000-4000-8000-000000000002', R3 = '00000000-0000-4000-8000-000000000003', R4 = '00000000-0000-4000-8000-000000000004';
 const BASE_COUV = 'https://base-essai.invalid/storage/v1/object/public/medias/';
-const lireAvecCouvertures = (illustrative: boolean, photos: () => unknown) => lireRestaurants(null, db(u => {
-  if (u.pathname.endsWith('/menu_items')) {
-    if (u.searchParams.get('photo_url') === null) return [];
-    assert.equal(u.searchParams.get('photo_url'), 'not.is.null'); assert.equal(u.searchParams.get('disponible'), 'eq.true'); assert.equal(u.searchParams.get('archive_le'), 'is.null');
-    assert.equal(u.searchParams.get('limit'), '1000'); assert.ok(!u.searchParams.get('select')?.includes('*')); assert.ok(u.searchParams.get('restaurant_id')?.startsWith('in.('));
-    return photos();
-  }
-  return [{ ...r, id }, { ...r, id: R2 }, { ...r, id: R3 }, { ...r, id: R4 }];
-}), undefined, illustrative);
-const photosEssai = () => [
-  { restaurant_id: id, photo_url: BASE_COUV + 'demo/photos/a.jpg' }, { restaurant_id: id, photo_url: BASE_COUV + 'demo/photos/b.jpg' },
-  { restaurant_id: R2, photo_url: BASE_COUV + 'demo/photos/ia/lot2/x.png' }, { restaurant_id: R3, photo_url: 'http://pas-https.invalid/p.jpg' },
+const plat = (restaurant_id: string, id: string, nom: string, prix: number, photo_url: string, section: string | null) => ({ id, restaurant_id, nom, prix, photo_url, menu_sections: section ? { nom: section } : null });
+const platsEssai = () => [
+  plat(id, 'p1', 'Cognac (4 cl)', 90000, BASE_COUV + 'demo/photos/ia/cognac.png', 'Spiritueux et digestifs'),
+  plat(id, 'p2', 'Poulet braisé entier', 45000, BASE_COUV + 'demo/photos/a.jpg', 'Grillades et brochettes'),
+  plat(id, 'p3', 'Poulet braisé demi', 25000, BASE_COUV + 'demo/photos/b.jpg', 'Grillades et brochettes'),
+  plat(R2, 'p4', 'Jus de bissap', 5000, BASE_COUV + 'demo/photos/ia/bissap.png', 'Jus et smoothies'),
+  plat(R3, 'p5', 'Menu à partager', 99000, 'http://pas-https.invalid/p.jpg', null),
+  plat(R3, 'p6', 'Riz au poisson', 30000, BASE_COUV + 'demo/photos/ia/lot3/riz.png', null),
 ];
-test('source catalogue : couverture de carte = photo d’un plat disponible (la première par identifiant), jamais d’adresse non HTTPS', async () => {
-  const page = await lireAvecCouvertures(true, photosEssai);
-  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/photos/a.jpg', 'une seule photo par restaurant, la première');
+const lireAvecCouvertures = (illustrative: boolean, photos: (u: URL) => unknown) => lireRestaurants(null, db(u => {
+  if (u.pathname.endsWith('/menu_items')) return u.searchParams.get('photo_url') === null ? [] : photos(u);
+  return [{ ...r, id }, { ...r, id: R2 }, { ...r, id: R3 }, { ...r, id: R4 }];
+}), undefined, illustrative, undefined);
+test('source catalogue : la couverture est la photo d’un plat principal, jamais un alcool, une boisson ni une photo non HTTPS', async () => {
+  const page = await lireAvecCouvertures(true, () => platsEssai());
+  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/photos/a.jpg', 'le cognac (plus cher) est écarté, le plat principal le plus cher est choisi');
   assert.equal(page.restaurants[0].couvertureIllustrative, undefined, 'une vraie photo ne porte pas la mention');
-  assert.equal(page.restaurants[2].couvertureUrl, undefined, 'une adresse non HTTPS n’est jamais transmise');
+  assert.equal(page.restaurants[1].couvertureUrl, undefined, 'un restaurant dont les seules photos sont des boissons n’a pas de couverture');
+  assert.equal(page.restaurants[2].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot3/riz.png', 'l’adresse non HTTPS est ignorée, le plat suivant est pris');
   assert.equal(page.restaurants[3].couvertureUrl, undefined, 'aucun plat avec photo : pas de couverture');
 });
 test('source catalogue : la mention « image illustrative » de la couverture suit l’interrupteur de la console', async () => {
-  const allume = await lireAvecCouvertures(true, photosEssai);
-  assert.equal(allume.restaurants[1].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot2/x.png'); assert.equal(allume.restaurants[1].couvertureIllustrative, true);
-  const coupe = await lireAvecCouvertures(false, photosEssai);
-  assert.equal(coupe.restaurants[1].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot2/x.png'); assert.equal(coupe.restaurants[1].couvertureIllustrative, undefined);
+  const allume = await lireAvecCouvertures(true, () => platsEssai());
+  assert.equal(allume.restaurants[2].couvertureIllustrative, true);
+  const coupe = await lireAvecCouvertures(false, () => platsEssai());
+  assert.equal(coupe.restaurants[2].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot3/riz.png'); assert.equal(coupe.restaurants[2].couvertureIllustrative, undefined);
+});
+test('source catalogue : lecture des couvertures bornée et ordonnée, page par page au-delà de 1000 lignes', async () => {
+  const demandes: string[] = [];
+  const page = await lireAvecCouvertures(true, u => {
+    demandes.push(u.searchParams.get('offset') + '/' + u.searchParams.get('limit'));
+    assert.equal(u.searchParams.get('disponible'), 'eq.true'); assert.equal(u.searchParams.get('archive_le'), 'is.null'); assert.equal(u.searchParams.get('photo_url'), 'not.is.null');
+    assert.equal(u.searchParams.get('order'), 'restaurant_id.asc,prix.desc,id.asc'); assert.ok(!u.searchParams.get('select')?.includes('*')); assert.ok(u.searchParams.get('restaurant_id')?.startsWith('in.('));
+    if (u.searchParams.get('offset') === '0') return Array.from({ length: 1000 }, (_, k) => plat(id, 'e' + k, 'Eau gazeuse', 1000, BASE_COUV + 'demo/photos/eau.jpg', 'Eaux'));
+    return [plat(id, 'z1', 'Plateau familial', 80000, BASE_COUV + 'demo/photos/plateau.jpg', 'Menus et formules')];
+  });
+  assert.deepEqual(demandes, ['0/1000', '1000/1000']);
+  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/photos/plateau.jpg', 'la deuxième page est lue : la couverture n’est jamais perdue à cause du plafond de 1000 lignes');
 });
 test('source catalogue : une panne de lecture des couvertures ne retire pas les restaurants (cartes sans couverture)', async () => {
   const page = await lireAvecCouvertures(true, () => { throw new Error('panne'); });
   assert.equal(page.restaurants.length, 4); assert.ok(page.restaurants.every(x => x.couvertureUrl === undefined));
+});
+test('choix de la couverture : noms et sections écartés, plus cher d’abord, égalité par identifiant', async () => {
+  const { ecarterPourCouverture, choisirCouvertures } = await import('@speedfood/shared/menu/couverture-restaurant');
+  for (const nom of ['Cognac (4 cl)', 'Margarita', 'Piña colada sans alcool', 'Café au lait', 'Thé à la menthe', 'Bière blonde 65 cl', 'Eau gazeuse 33 cl', 'Boisson énergisante 50 cl', 'Gâteau patate douce', 'Vin rouge (bouteille)'])
+    assert.equal(ecarterPourCouverture({ nom, section: null }), true, nom);
+  for (const nom of ['Burger épicé', 'Poulet au lait de coco', 'Poulet braisé entier', 'Plateau familial (4 personnes)', 'Riz au poisson', 'Gingembre frais en sauce'])
+    assert.equal(ecarterPourCouverture({ nom, section: null }), false, nom);
+  for (const section of ['Boissons chaudes', 'Jus et smoothies', 'Sodas et rafraîchissements', 'Mocktails', 'Spiritueux et digestifs', 'Vins', 'Bières', 'Cocktails', 'Desserts', 'Pâtisseries', 'Entrées froides', 'Accompagnements', 'En-cas', 'Pains (naan)'])
+    assert.equal(ecarterPourCouverture({ nom: 'Plat', section }), true, section);
+  for (const section of ['Menus et formules', 'Grillades et brochettes', 'Riz et sauces', 'Salades repas', 'Spécialités et viandes', 'Burgers', 'Pizzas'])
+    assert.equal(ecarterPourCouverture({ nom: 'Plat', section }), false, section);
+  const choix = choisirCouvertures([
+    { restaurantId: 'a', id: '2', nom: 'X', prix: 100, photoUrl: 'u2', section: null }, { restaurantId: 'a', id: '1', nom: 'Y', prix: 100, photoUrl: 'u1', section: null },
+    { restaurantId: 'a', id: '3', nom: 'Z', prix: 50, photoUrl: 'u3', section: null }, { restaurantId: 'b', id: '4', nom: 'Eau', prix: 10, photoUrl: 'u4', section: 'Eaux' },
+  ]);
+  assert.equal(choix.get('a'), 'u1', 'à prix égal, le plus petit identifiant'); assert.equal(choix.has('b'), false);
 });
