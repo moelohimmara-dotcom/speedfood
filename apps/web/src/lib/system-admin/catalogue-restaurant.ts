@@ -12,6 +12,7 @@ import { lireModeVente } from "./catalogue-restaurant-lecture";
 import { validerPlat } from "./plat-regles";
 import { lireAllergenesFormulaire } from "@/lib/menu/allergenes-formulaire";
 import { promotionsSuspenduesPour } from "@/lib/restaurant/score-lectures";
+import { lirePlatsEnLot, PLATS_MAX_PAR_LISTE } from "@/lib/menu/saisieRapide";
 
 const PROMOTIONS_SUSPENDUES = "Les promotions sont suspendues pour ce restaurant ce mois-ci (score qualité au palier le plus bas). Retirez le prix promotionnel ou attendez le prochain calcul.";
 
@@ -43,6 +44,21 @@ async function garderRestaurantEquipe(
   return { ok: true, contexte, admin };
 }
 
+/** Section choisie dans le formulaire : absente ou vide = plat non classé ; sinon elle doit appartenir au restaurant. */
+async function sectionValideEquipe(admin: ReturnType<typeof creerClientAdmin>, restaurantId: string, sectionId: unknown): Promise<{ ok: true; id: string | null } | { ok: false }> {
+  if (sectionId === null || sectionId === undefined || sectionId === "") return { ok: true, id: null };
+  if (typeof sectionId !== "string" || !estUuid(sectionId)) return { ok: false };
+  const { data } = await admin.from("menu_sections").select("id").eq("id", sectionId).eq("restaurant_id", restaurantId).maybeSingle();
+  return data ? { ok: true, id: sectionId } : { ok: false };
+}
+
+const NOM_SECTION_MAX = 60;
+
+function lireNomSection(formData: FormData): string | null {
+  const nom = String(formData.get("nom") ?? "").trim();
+  return nom && nom.length <= NOM_SECTION_MAX ? nom : null;
+}
+
 function lireChamps(formData: FormData) {
   return {
     nom: formData.get("nom"),
@@ -65,6 +81,8 @@ export async function creerPlatEquipeAction(_etat: EtatCatalogue, formData: Form
   const allergenesResultat = lireAllergenesFormulaire(formData);
   if (!allergenesResultat.ok) return { erreur: allergenesResultat.erreur };
   const valeursAllergenes = allergenesResultat.valeurs ?? {};
+  const section = await sectionValideEquipe(garde.admin, restaurantId, formData.get("section_id"));
+  if (!section.ok) return { erreur: "Section introuvable." };
 
   let photoUrl: string | null = null;
   const fichier = formData.get("photo");
@@ -78,7 +96,7 @@ export async function creerPlatEquipeAction(_etat: EtatCatalogue, formData: Form
 
   const { data, error } = await garde.admin
     .from("menu_items")
-    .insert({ restaurant_id: restaurantId, nom: plat.nom, description: plat.description, prix: plat.prix, prix_promo: plat.prixPromo, photo_url: photoUrl, ...valeursAllergenes })
+    .insert({ restaurant_id: restaurantId, nom: plat.nom, description: plat.description, prix: plat.prix, prix_promo: plat.prixPromo, photo_url: photoUrl, section_id: section.id, ...valeursAllergenes })
     .select("id")
     .single();
   if (error || !data) {
@@ -107,6 +125,8 @@ export async function modifierPlatEquipeAction(_etat: EtatCatalogue, formData: F
   const allergenesResultat = lireAllergenesFormulaire(formData);
   if (!allergenesResultat.ok) return { erreur: allergenesResultat.erreur };
   const valeursAllergenes = allergenesResultat.valeurs ?? {};
+  const section = await sectionValideEquipe(garde.admin, restaurantId, formData.get("section_id"));
+  if (!section.ok) return { erreur: "Section introuvable." };
   const retirerPhoto = formData.get("retirer_photo") === "oui";
 
   const fichier = formData.get("photo");
@@ -121,7 +141,7 @@ export async function modifierPlatEquipeAction(_etat: EtatCatalogue, formData: F
     }
   }
 
-  const { data: ancien } = await garde.admin.from("menu_items").select("photo_url").eq("id", platId).eq("restaurant_id", restaurantId).maybeSingle();
+  const { data: ancien } = await garde.admin.from("menu_items").select("photo_url").eq("id", platId).eq("restaurant_id", restaurantId).is("archive_le", null).maybeSingle();
   if (!ancien) {
     await supprimerTeleversementOrphelin(nouvellePhoto ?? null);
     return { erreur: "Plat introuvable." };
@@ -135,6 +155,7 @@ export async function modifierPlatEquipeAction(_etat: EtatCatalogue, formData: F
       description: plat.description,
       prix: plat.prix,
       prix_promo: plat.prixPromo,
+      section_id: section.id,
       ...valeursAllergenes,
       ...(nouvellePhoto ? { photo_url: nouvellePhoto } : photoRetiree ? { photo_url: null } : {}),
     })
@@ -208,4 +229,162 @@ export async function definirModeVenteAction(formData: FormData): Promise<void> 
   if (error) return;
   await journaliserActionSysteme(contexte, { action: "restaurant.mode_vente", cibleType: "restaurants", cibleId: restaurantId, motif: `mode : ${mode}` });
   revalidatePath(`/system/catalogue/restaurants/${restaurantId}`);
+}
+
+export interface EtatSectionEquipe {
+  erreur?: string;
+  succes?: string;
+}
+
+/** Sections du menu tenues par l'équipe : mêmes règles que la console restaurateur (nom libre, 60 caractères, un seul niveau). */
+export async function creerSectionEquipeAction(_etat: EtatSectionEquipe, formData: FormData): Promise<EtatSectionEquipe> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok) return { erreur: garde.erreur };
+  const nom = lireNomSection(formData);
+  if (!nom) return { erreur: `Le nom de la section est obligatoire (${NOM_SECTION_MAX} caractères maximum).` };
+  const { data: existantes } = await garde.admin.from("menu_sections").select("nom").eq("restaurant_id", restaurantId).limit(100);
+  if ((existantes ?? []).length >= 100) return { erreur: "Ce restaurant a déjà 100 sections : supprimez-en une avant d'en ajouter." };
+  if ((existantes ?? []).some((s) => s.nom.trim().toLowerCase() === nom.toLowerCase())) return { erreur: `Une section « ${nom} » existe déjà pour ce restaurant.` };
+  const { data: derniere } = await garde.admin.from("menu_sections").select("position").eq("restaurant_id", restaurantId).order("position", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await garde.admin.from("menu_sections").insert({ restaurant_id: restaurantId, nom, position: (derniere?.position ?? -1) + 1 }).select("id").single();
+  if (error || !data) return { erreur: MESSAGE_ECHEC };
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.section_creation", cibleType: "menu_sections", cibleId: data.id, motif: `restaurant ${restaurantId} : ${nom}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+  return { succes: `Section « ${nom} » ajoutée.` };
+}
+
+export async function renommerSectionEquipeAction(_etat: EtatSectionEquipe, formData: FormData): Promise<EtatSectionEquipe> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const sectionId = String(formData.get("section_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok) return { erreur: garde.erreur };
+  if (!estUuid(sectionId)) return { erreur: "Section introuvable." };
+  const nom = lireNomSection(formData);
+  if (!nom) return { erreur: `Le nom de la section est obligatoire (${NOM_SECTION_MAX} caractères maximum).` };
+  const { data: touchees, error } = await garde.admin.from("menu_sections").update({ nom }).eq("id", sectionId).eq("restaurant_id", restaurantId).select("id");
+  if (error) return { erreur: MESSAGE_ECHEC };
+  if (!touchees || touchees.length === 0) return { erreur: "Section introuvable." };
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.section_renommage", cibleType: "menu_sections", cibleId: sectionId, motif: `restaurant ${restaurantId} : ${nom}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+  return { succes: "Section renommée." };
+}
+
+/** Les plats de la section ne sont jamais supprimés : ils redeviennent non classés (contrainte on delete set null). */
+export async function supprimerSectionEquipeAction(formData: FormData): Promise<void> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const sectionId = String(formData.get("section_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok || !estUuid(sectionId)) return;
+  const { data: touchees, error } = await garde.admin.from("menu_sections").delete().eq("id", sectionId).eq("restaurant_id", restaurantId).select("id");
+  if (error || !touchees || touchees.length === 0) return;
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.section_suppression", cibleType: "menu_sections", cibleId: sectionId, motif: `restaurant ${restaurantId}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+}
+
+export async function deplacerSectionEquipeAction(formData: FormData): Promise<void> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const sectionId = String(formData.get("section_id") ?? "");
+  const directionBrute = formData.get("direction");
+  if (directionBrute !== "haut" && directionBrute !== "bas") return;
+  const direction = directionBrute;
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok || !estUuid(sectionId)) return;
+  const { data: sections } = await garde.admin.from("menu_sections").select("id, position").eq("restaurant_id", restaurantId).order("position", { ascending: true }).order("id").limit(100);
+  if (!sections) return;
+  const index = sections.findIndex((s) => s.id === sectionId);
+  const voisin = direction === "haut" ? index - 1 : index + 1;
+  if (index === -1 || voisin < 0 || voisin >= sections.length) return;
+  const courante = sections[index];
+  const voisine = sections[voisin];
+  // Échange séquentiel (jamais en parallèle) : si le second échoue, le premier est remis à sa position avant de renoncer.
+  const a = await garde.admin.from("menu_sections").update({ position: voisine.position }).eq("id", courante.id).eq("restaurant_id", restaurantId);
+  if (a.error) return;
+  const b = await garde.admin.from("menu_sections").update({ position: courante.position }).eq("id", voisine.id).eq("restaurant_id", restaurantId);
+  if (b.error) {
+    await garde.admin.from("menu_sections").update({ position: courante.position }).eq("id", courante.id).eq("restaurant_id", restaurantId);
+    return;
+  }
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.section_deplacement", cibleType: "menu_sections", cibleId: sectionId, motif: `restaurant ${restaurantId} : vers le ${direction}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+}
+
+export interface EtatOptionEquipe {
+  erreur?: string;
+  succes?: string;
+}
+
+/** Suppléments d'un plat tenus par l'équipe : mêmes règles que la console restaurateur (nom 80 caractères, prix entier borné). */
+export async function ajouterOptionEquipeAction(_etat: EtatOptionEquipe, formData: FormData): Promise<EtatOptionEquipe> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const platId = String(formData.get("plat_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok) return { erreur: garde.erreur };
+  if (!estUuid(platId)) return { erreur: "Plat introuvable." };
+  const nom = String(formData.get("nom") ?? "").trim();
+  if (!nom || nom.length > 80) return { erreur: "Le nom du supplément est obligatoire (80 caractères maximum)." };
+  const { prixPlatMaxGnf } = await obtenirParametresApplication();
+  const prix = Number.parseInt(String(formData.get("prix") ?? ""), 10);
+  if (!Number.isFinite(prix) || prix < 0 || prix > prixPlatMaxGnf) return { erreur: `Le prix doit être un nombre entier en GNF, entre 0 et ${prixPlatMaxGnf.toLocaleString("fr-FR")}.` };
+  const { data: plat } = await garde.admin.from("menu_items").select("id").eq("id", platId).eq("restaurant_id", restaurantId).is("archive_le", null).maybeSingle();
+  if (!plat) return { erreur: "Plat introuvable." };
+  const { data: optionsExistantes } = await garde.admin.from("menu_item_options").select("nom").eq("menu_item_id", platId).limit(100);
+  if ((optionsExistantes ?? []).some((o) => o.nom.trim().toLowerCase() === nom.toLowerCase())) return { erreur: `Un supplément « ${nom} » existe déjà pour ce plat.` };
+  const { data, error } = await garde.admin.from("menu_item_options").insert({ menu_item_id: platId, nom, prix }).select("id").single();
+  if (error || !data) return { erreur: MESSAGE_ECHEC };
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.option_creation", cibleType: "menu_item_options", cibleId: data.id, motif: `plat ${platId} : ${nom}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+  return { succes: `Supplément « ${nom} » ajouté.` };
+}
+
+export async function retirerOptionEquipeAction(formData: FormData): Promise<void> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const optionId = String(formData.get("option_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok || !estUuid(optionId)) return;
+  const { data: option } = await garde.admin.from("menu_item_options").select("id, menu_items!inner(restaurant_id, archive_le)").eq("id", optionId).maybeSingle();
+  const platArchive = (option as unknown as { menu_items?: { archive_le?: string | null } } | null)?.menu_items?.archive_le;
+  if (platArchive) return;
+  const proprietaire = (option as unknown as { menu_items?: { restaurant_id?: string } } | null)?.menu_items?.restaurant_id;
+  if (!option || proprietaire !== restaurantId) return;
+  const { error } = await garde.admin.from("menu_item_options").delete().eq("id", optionId);
+  if (error) return;
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.option_suppression", cibleType: "menu_item_options", cibleId: optionId, motif: `restaurant ${restaurantId}` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+}
+
+export interface EtatAjoutEnLotEquipe {
+  erreur?: string;
+  ajoutes?: number;
+  ignorees?: number;
+}
+
+/** Ajout en lot par liste collée (une ligne par plat, prix à la fin) : même compréhension que la console restaurateur, section commune facultative. */
+export async function creerPlatsEnLotEquipeAction(_etat: EtatAjoutEnLotEquipe, formData: FormData): Promise<EtatAjoutEnLotEquipe> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok) return { erreur: garde.erreur };
+  const texte = String(formData.get("liste") ?? "");
+  if (texte.length > 6000) return { erreur: "La liste est trop longue. Collez 30 lignes au plus." };
+  const { prixPlatMaxGnf } = await obtenirParametresApplication();
+  const { plats, ignorees } = lirePlatsEnLot(texte, prixPlatMaxGnf);
+  if (plats.length === 0) return { erreur: "Aucun plat reconnu. Écrivez une ligne par plat avec le prix à la fin, par exemple « Riz sauce feuille 25000 »." };
+  const section = await sectionValideEquipe(garde.admin, restaurantId, formData.get("section_id"));
+  if (!section.ok) return { erreur: "Section introuvable." };
+  const { error } = await garde.admin.from("menu_items").insert(plats.slice(0, PLATS_MAX_PAR_LISTE).map((p) => ({ restaurant_id: restaurantId, nom: p.nom, description: "", prix: p.prix, section_id: section.id })));
+  if (error) return { erreur: MESSAGE_ECHEC };
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plats_lot_creation", cibleType: "menu_items", cibleId: restaurantId, motif: `${plats.length} plat(s), ${ignorees.length} ligne(s) ignorée(s)` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
+  return { ajoutes: plats.length, ignorees: ignorees.length };
+}
+
+/** Reconfirme d'un coup tous les plats disponibles du restaurant : l'heure de confirmation repart de maintenant pour chacun. */
+export async function confirmerToutesDisponibilitesEquipeAction(formData: FormData): Promise<void> {
+  const restaurantId = String(formData.get("restaurant_id") ?? "");
+  const garde = await garderRestaurantEquipe(restaurantId);
+  if (!garde.ok) return;
+  const { data, error } = await garde.admin.from("menu_items").update({ disponibilite_confirmee_le: new Date().toISOString() }).eq("restaurant_id", restaurantId).eq("disponible", true).is("archive_le", null).select("id");
+  if (error) return;
+  await journaliserActionSysteme(garde.contexte, { action: "catalogue.plat_disponibilite", cibleType: "menu_items", cibleId: restaurantId, motif: `reconfirmation en masse : ${(data ?? []).length} plat(s)` });
+  revalidatePath(`/system/catalogue/restaurants/${restaurantId}/menu`);
 }

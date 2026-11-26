@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { lireCatalogueEquipe } from "@/lib/system-admin/catalogue-restaurant-lecture";
-import { archiverPlatEquipeAction, basculerDisponibiliteEquipeAction, confirmerDisponibiliteEquipeAction, definirModeVenteAction } from "@/lib/system-admin/catalogue-restaurant";
+import { archiverPlatEquipeAction, basculerDisponibiliteEquipeAction, confirmerDisponibiliteEquipeAction, confirmerToutesDisponibilitesEquipeAction, definirModeVenteAction } from "@/lib/system-admin/catalogue-restaurant";
 import { EtatVide, PageHeader, Panneau, Pastille } from "@/components/admin/blocs";
 import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { FormulairePlat } from "./FormulairePlat";
+import { GestionSections } from "./GestionSections";
+import { OptionsPlatEquipe } from "./OptionsPlatEquipe";
+import { AjoutEnLotEquipe } from "./AjoutEnLotEquipe";
 
 export const metadata = { title: "Catalogue d'un établissement (administration)" };
 export const dynamic = "force-dynamic";
@@ -21,7 +24,7 @@ function formaterGnf(montant: number): string {
 export default async function CatalogueEquipePage({ params }: { params: Promise<{ id: string }> }) {
   await exigerPermissionPage("restaurant.moderer");
   const { id } = await params;
-  const { restaurant, plats } = await lireCatalogueEquipe(id);
+  const { restaurant, plats, sections } = await lireCatalogueEquipe(id);
   if (!restaurant) notFound();
   const maintenant = new Date();
 
@@ -48,11 +51,24 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
         </Panneau>
       ) : (
         <div className="ad-pile">
-          <Panneau titre="Ajouter un plat">
-            <FormulairePlat restaurantId={restaurant.id} />
+          <Panneau titre="Sections du menu">
+            <GestionSections restaurantId={restaurant.id} sections={sections} />
           </Panneau>
 
-          <Panneau titre={`Plats (${plats.length})`}>
+          <Panneau titre="Ajouter un plat">
+            <FormulairePlat restaurantId={restaurant.id} sections={sections} />
+          </Panneau>
+
+          <Panneau titre="Ajouter des plats en lot">
+            <AjoutEnLotEquipe restaurantId={restaurant.id} sections={sections} />
+          </Panneau>
+
+          <Panneau titre={`Plats (${plats.length})`} actions={plats.some((p) => p.disponible) ? (
+            <form action={confirmerToutesDisponibilitesEquipeAction}>
+              <input type="hidden" name="restaurant_id" value={restaurant.id} />
+              <button type="submit" className="btn btn-secondary btn-compact">Tout reconfirmer</button>
+            </form>
+          ) : undefined}>
             {plats.length === 0 ? (
               <EtatVide titre="Aucun plat pour l'instant" texte="Ajoutez les plats du restaurant : le client ne peut rien commander tant que le catalogue est vide." />
             ) : (
@@ -75,6 +91,7 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
                             {p.prixPromo !== null ? ` · promo ${formaterGnf(p.prixPromo)}` : ""}
                           </span>
                           <span className="ad-aide-champ">{p.allergenes === null ? "Allergènes non renseignés" : p.allergenes.length === 0 ? "Aucun allergène déclaré" : `Allergènes déclarés : ${p.allergenes.length}`}{p.allergenesDeclaresLe ? ` (le ${new Date(p.allergenesDeclaresLe).toLocaleDateString("fr-FR")})` : ""}</span>
+                          <span className="ad-aide-champ">{sections.find((s) => s.id === p.sectionId)?.nom ?? "Sans section"}</span>
                         </div>
                         <div className="catalogue-equipe-etat">
                           <Pastille ton={p.disponible ? "succes" : "neutre"}>{p.disponible ? "Disponible" : "Épuisé"}</Pastille>
@@ -105,7 +122,8 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
                       </div>
                       <details className="catalogue-equipe-edition">
                         <summary>Modifier</summary>
-                        <FormulairePlat restaurantId={restaurant.id} plat={{ id: p.id, nom: p.nom, description: p.description, prix: p.prix, prixPromo: p.prixPromo, aPhoto: p.photoUrl !== null, allergenes: p.allergenes }} />
+                        <FormulairePlat restaurantId={restaurant.id} sections={sections} plat={{ id: p.id, nom: p.nom, description: p.description, prix: p.prix, prixPromo: p.prixPromo, aPhoto: p.photoUrl !== null, allergenes: p.allergenes, sectionId: p.sectionId }} />
+                        <OptionsPlatEquipe restaurantId={restaurant.id} platId={p.id} options={p.options} />
                       </details>
                     </li>
                   );
