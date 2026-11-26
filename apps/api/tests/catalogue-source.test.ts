@@ -173,3 +173,35 @@ test('source menu riche : les suppléments sont triés par nom, et les sections 
   assert.ok(!suite.vus.includes('menu_sections'), 'pas de nouvelle lecture des sections'); assert.ok(!('sections' in suite.page!), 'pas de sections renvoyées sur les pages suivantes');
   assert.equal(suite.tri, 'nom.asc'); assert.equal(suite.page?.plats.length, 1);
 });
+const R2 = '00000000-0000-4000-8000-000000000002', R3 = '00000000-0000-4000-8000-000000000003', R4 = '00000000-0000-4000-8000-000000000004';
+const BASE_COUV = 'https://base-essai.invalid/storage/v1/object/public/medias/';
+const lireAvecCouvertures = (illustrative: boolean, photos: () => unknown) => lireRestaurants(null, db(u => {
+  if (u.pathname.endsWith('/menu_items')) {
+    if (u.searchParams.get('photo_url') === null) return [];
+    assert.equal(u.searchParams.get('photo_url'), 'not.is.null'); assert.equal(u.searchParams.get('disponible'), 'eq.true'); assert.equal(u.searchParams.get('archive_le'), 'is.null');
+    assert.equal(u.searchParams.get('limit'), '1000'); assert.ok(!u.searchParams.get('select')?.includes('*')); assert.ok(u.searchParams.get('restaurant_id')?.startsWith('in.('));
+    return photos();
+  }
+  return [{ ...r, id }, { ...r, id: R2 }, { ...r, id: R3 }, { ...r, id: R4 }];
+}), undefined, illustrative);
+const photosEssai = () => [
+  { restaurant_id: id, photo_url: BASE_COUV + 'demo/photos/a.jpg' }, { restaurant_id: id, photo_url: BASE_COUV + 'demo/photos/b.jpg' },
+  { restaurant_id: R2, photo_url: BASE_COUV + 'demo/photos/ia/lot2/x.png' }, { restaurant_id: R3, photo_url: 'http://pas-https.invalid/p.jpg' },
+];
+test('source catalogue : couverture de carte = photo d’un plat disponible (la première par identifiant), jamais d’adresse non HTTPS', async () => {
+  const page = await lireAvecCouvertures(true, photosEssai);
+  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/photos/a.jpg', 'une seule photo par restaurant, la première');
+  assert.equal(page.restaurants[0].couvertureIllustrative, undefined, 'une vraie photo ne porte pas la mention');
+  assert.equal(page.restaurants[2].couvertureUrl, undefined, 'une adresse non HTTPS n’est jamais transmise');
+  assert.equal(page.restaurants[3].couvertureUrl, undefined, 'aucun plat avec photo : pas de couverture');
+});
+test('source catalogue : la mention « image illustrative » de la couverture suit l’interrupteur de la console', async () => {
+  const allume = await lireAvecCouvertures(true, photosEssai);
+  assert.equal(allume.restaurants[1].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot2/x.png'); assert.equal(allume.restaurants[1].couvertureIllustrative, true);
+  const coupe = await lireAvecCouvertures(false, photosEssai);
+  assert.equal(coupe.restaurants[1].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot2/x.png'); assert.equal(coupe.restaurants[1].couvertureIllustrative, undefined);
+});
+test('source catalogue : une panne de lecture des couvertures ne retire pas les restaurants (cartes sans couverture)', async () => {
+  const page = await lireAvecCouvertures(true, () => { throw new Error('panne'); });
+  assert.equal(page.restaurants.length, 4); assert.ok(page.restaurants.every(x => x.couvertureUrl === undefined));
+});

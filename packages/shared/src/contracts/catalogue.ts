@@ -7,6 +7,10 @@ export interface RestaurantPublic {
   id: string; nom: string; lieu: string; categorie: string;
   ouvert: boolean; accepteCommandes: boolean; statutMisAJourLe: string | null;
   photoUrl?: string | null; logoUrl?: string | null;
+  /** Photo d'UN plat disponible du restaurant, choisie par le serveur pour la carte de l'accueil (HTTPS, comme `photoUrl`). Absente quand aucun plat n'a de photo. */
+  couvertureUrl?: string | null;
+  /** Présent (et vrai) seulement quand cette photo est une image générée ET que l'interrupteur « Image illustrative » de la console est allumé : la carte affiche alors la mention. */
+  couvertureIllustrative?: true;
   note?: number | null; avisTotal?: number;
   /** Palier du score qualité mensuel le plus récent, quand il existe : sert au badge et à la mise en avant à l'accueil. */
   scorePalier?: 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais';

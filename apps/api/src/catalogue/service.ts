@@ -6,7 +6,7 @@ import { obtenirParametresApplication } from '../../../web/src/lib/parametres/li
 import { lireRestaurants as restaurants, lireMenu as menu, lireQuartiers as quartiers } from './lectures';
 import { lireIndexArticles } from './index-articles';
 import type { IndexArticlesPublic } from '@speedfood/shared/contracts/catalogue';
-export const lireRestaurants = (apres: string | null) => restaurants(apres, creerClientPublic(), creerClientAdmin() as unknown as SupabaseClient<Database>);
+export const lireRestaurants = async (apres: string | null) => restaurants(apres, creerClientPublic(), creerClientAdmin() as unknown as SupabaseClient<Database>, await mentionImageIllustrative());
 /** Interrupteur « Image illustrative » (console, Mises à jour) : lu avec le client de service, gardé 60 s dans l'isolat. Lecture impossible : allumé (une panne ne coupe pas la mention). */
 let mentionLue: { le: number; active: boolean } | null = null;
 async function mentionImageIllustrative(): Promise<boolean> {

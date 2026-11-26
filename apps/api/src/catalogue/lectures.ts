@@ -38,7 +38,7 @@ function projeter(r: LigneRestaurant, fiche = false): RestaurantPublic {
   const moyens = Array.isArray(r.moyens_paiement) ? r.moyens_paiement.filter(m => typeof m === 'string' && m.trim().length > 0 && m.length <= 60).slice(0, 12) : [];
   return { ...base, consignes: texteFacultatif(r.consignes, 1000), moyensPaiement: moyens };
 }
-export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>, admin?: SupabaseClient<Database>): Promise<PageRestaurants> {
+export async function lireRestaurants(apres: string | null, db: SupabaseClient<Database>, admin?: SupabaseClient<Database>, illustrative = false): Promise<PageRestaurants> {
   let q = db.from('restaurants').select(COLONNES_LISTE as string).eq('publie', true).is('suspendu_le', null).order('id').limit(51);
   if (apres) q = q.gt('id', apres);
   const { data: brut, error } = await q;
@@ -79,8 +79,20 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
       if (page === PAGES_MAX_PROMOS - 1) throw new Error('catalogue_indisponible');
     }
   }
+  // Couverture de la carte : la photo d'un plat DISPONIBLE (le premier par identifiant, choix stable). Une seule lecture bornée à la page affichée ; une panne ou une adresse douteuse
+  // ne retire rien d'autre : la carte garde alors son logo ou son initiale, et la liste reste lisible.
+  const couvertures = new Map<string, string>();
+  if (pageBrute.length > 0) {
+    const { data: photos, error: erreurPhotos } = await db.from('menu_items').select('restaurant_id, photo_url').in('restaurant_id', pageBrute.map(r => r.id)).eq('disponible', true).is('archive_le', null).not('photo_url', 'is', null).order('id').limit(1000);
+    if (erreurPhotos) console.error('catalogue_couvertures_illisibles');
+    for (const p of (photos ?? []) as unknown as Array<{ restaurant_id: string; photo_url: string | null }>) {
+      const adresse = urlImage(p.photo_url);
+      if (adresse && !couvertures.has(p.restaurant_id)) couvertures.set(p.restaurant_id, adresse);
+    }
+  }
   const page = pageBrute.map(r => {
-    const projete = { ...projeter(r), aDesPromos: avecPromos.has(r.id) };
+    const couverture = couvertures.get(r.id);
+    const projete = { ...projeter(r), aDesPromos: avecPromos.has(r.id), ...(couverture ? { couvertureUrl: couverture, ...(illustrative && estImageIllustrative(couverture) ? { couvertureIllustrative: true as const } : {}) } : {}) };
     const palier = paliers.get(r.id);
     return palier ? { ...projete, scorePalier: palier as 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais' } : projete;
   });
