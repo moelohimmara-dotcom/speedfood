@@ -41,12 +41,19 @@ test('finances equipe : ligne ou contrat invalide ecarte et compte, structure in
   assert.throws(() => lireFinancesEquipe(finances({ releve: 'x' })));
 });
 
-test('finances equipe : libelles de versement et taux affiche (developpement)', () => {
+test('finances equipe : libelles de versement et taux effectif affiche', () => {
   assert.equal(libelleStatutVersement('a_verser'), 'À verser');
   assert.equal(libelleStatutVersement('verse'), 'Versé');
   assert.equal(libelleStatutVersement('en_attente'), 'en attente');
-  assert.equal(tauxAffiche(0.1), '10 % (développement)');
-  assert.equal(tauxAffiche(0.075), '7 % (développement)');
+  assert.equal(tauxAffiche(0.1), '10 %');
+  assert.equal(tauxAffiche(0.075), '7 %');
+});
+
+test('finances equipe : releve reel (tauxCommission, sans effectifLe) lu sans etre ecarte', () => {
+  const f = lireFinancesEquipe(finances({ releve: [ligne({ taux: undefined, tauxCommission: 0.08, effectifLe: undefined })] }));
+  assert.equal(f.releve.length, 1);
+  assert.equal(f.releve[0].taux, 0.08);
+  assert.equal(f.illisibles, 0);
 });
 
 test('finances equipe : periode par defaut de l ancienne appli', () => {
