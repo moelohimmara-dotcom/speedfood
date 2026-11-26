@@ -19,7 +19,7 @@
  */
 
 /** Version de la matrice de permissions. À incrémenter à chaque changement. */
-export const VERSION_MATRICE = "1.3.0";
+export const VERSION_MATRICE = "1.4.0";
 
 /** Rôles système MVP (TDR.md §4) — miroir du CHECK de `system_admin_memberships`. */
 export type RoleSysteme = "super_admin" | "operations" | "content_editor" | "support";
@@ -186,6 +186,10 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
         libelle: "Mises en avant",
         permission: "contenu.mettre_en_avant",
       },
+      { href: "/system/catalogue/menus", libelle: "Menus en masse", permission: "restaurant.moderer" },
+      { href: "/system/menus-confirmation", libelle: "Confirmation des menus", permission: "restaurant.consulter" },
+      { href: "/system/etablissements", libelle: "Fermetures d'établissements", permission: "restaurant.consulter" },
+      { href: "/system/contacts", libelle: "Contacts établissements", permission: "restaurant.consulter" },
     ],
   },
   {
@@ -201,6 +205,7 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
     libelle: "Commandes",
     sousSections: [
       { href: "/system/repartition", libelle: "Répartition", permission: "commande.support" },
+      { href: "/system/quarts", libelle: "Quarts et affectation", permission: "commande.support" },
       { href: "/system/commandes", libelle: "Support commandes", permission: "commande.consulter" },
       { href: "/system/livraisons", libelle: "Livraisons", permission: "commande.support" },
       { href: "/system/livraisons/livreurs", libelle: "Livreurs", permission: "commande.support" },
@@ -227,6 +232,12 @@ export const GROUPES_SYSTEME: readonly GroupeSysteme[] = [
     libelle: "Paramètres",
     sousSections: [
       { href: "/system/parametres", libelle: "Paramètres", permission: "parametres.editer" },
+      { href: "/system/parametres/paiement", libelle: "Paiement", permission: "parametres.editer" },
+      { href: "/system/parametres/livraison", libelle: "Livraison", permission: "parametres.editer" },
+      { href: "/system/parametres/classement", libelle: "Classement", permission: "parametres.editer" },
+      { href: "/system/parametres/aide-choix", libelle: "Aide au choix (réglages)", permission: "parametres.editer" },
+      { href: "/system/parametres/demonstration", libelle: "Démonstration", permission: "parametres.editer" },
+      { href: "/system/parametres/reinitialisation", libelle: "Réinitialisation", permission: "parametres.editer" },
       { href: "/system/design", libelle: "Design", permission: "parametres.editer" },
       { href: "/system/mises-a-jour", libelle: "Mises à jour", permission: "parametres.editer" },
       { href: "/system/supervision", libelle: "Supervision", permission: "parametres.editer" },

@@ -196,7 +196,8 @@ verifier("nav : super_admin voit les 6 familles", groupesNavPourRole("super_admi
   "Paramètres",
   "Audit",
 ]);
-verifier("nav : super_admin voit les 34 sous-sections (dont Répartition, Référencements, Géographie, Couverture, Liste d'attente, Partenariats, Livraisons, Livreurs, Paiements, Scores qualité, Avis, Aide au choix et Supervision)", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 34);
+verifier("nav : super_admin voit les 45 sous-sections (dont Répartition, Référencements, Géographie, Couverture, Liste d'attente, Partenariats, Livraisons, Livreurs, Paiements, Scores qualité, Avis, Aide au choix et Supervision)", groupesNavPourRole("super_admin").reduce((n, g) => n + g.entrees.length, 0), 45);
+verifier("nav : les écrans autrefois orphelins sont au menu du super_admin", groupesNavPourRole("super_admin").flatMap((g) => g.entrees.map((e) => e.href)).filter((h) => ["/system/catalogue/menus", "/system/menus-confirmation", "/system/etablissements", "/system/contacts", "/system/quarts", "/system/parametres/paiement", "/system/parametres/demonstration"].includes(h)), ["/system/catalogue/menus", "/system/menus-confirmation", "/system/etablissements", "/system/contacts", "/system/quarts", "/system/parametres/paiement", "/system/parametres/demonstration"]);
 verifier("nav : operations ne voit ni Commandes ni Paramètres", groupesNavPourRole("operations").map((g) => g.libelle), [
   "Catalogue",
   "Accès",
@@ -208,12 +209,16 @@ verifier("nav : operations voit Comptes et la Liste d'attente mais pas Rôles ni
   "Liste d'attente",
   "Partenariats",
   "Mises en avant",
+  "Menus en masse",
+  "Confirmation des menus",
+  "Fermetures d'établissements",
+  "Contacts établissements",
   "Comptes utilisateurs",
   "Doublons d'inscription",
   "Numéros à arbitrer",
   "Journal d'audit",
 ]);
-verifier("nav : support ne voit que Commandes et Audit", groupesNavPourRole("support").map((g) => g.libelle), ["Commandes", "Audit"]);
+verifier("nav : support voit Catalogue (consultation), Commandes et Audit", groupesNavPourRole("support").map((g) => g.libelle), ["Catalogue", "Commandes", "Audit"]);
 verifier("nav : content_editor ne voit ni Commandes ni Accès ni Paramètres", groupesNavPourRole("content_editor").map((g) => g.libelle), [
   "Catalogue",
   "Contenu",

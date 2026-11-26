@@ -1,5 +1,6 @@
 import "server-only";
 import { creerClientAdmin } from "@/lib/db/admin";
+import { candidatsPhoto, originePhoto, typeReconnu, type SourcePhotoPlat } from "./photo-bibliotheque";
 
 export type ModeVente = "autonome" | "speedfood";
 
@@ -21,6 +22,14 @@ export interface PlatEquipe {
   allergenesDeclaresLe: string | null;
   sectionId: string | null;
   options: { id: string; nom: string; prix: number; disponible: boolean }[];
+  /** Origine de la photo : vraie photo du restaurant, photo libre de la bibliothèque, ou image générée (« illustrative »). */
+  photoSource: SourcePhotoPlat | null;
+  photoLicence: string | null;
+  photoAuteur: string | null;
+  photoPage: string | null;
+  /** Type de plat reconnu d'après le nom, et photos de la bibliothèque de ce type que l'équipe peut poser. */
+  typePlat: string | null;
+  photoCandidats: { id: string; source: "banque" | "ia"; licence: string | null }[];
 }
 
 export interface SectionEquipe {
@@ -78,6 +87,7 @@ export async function lireCatalogueEquipe(restaurantId: string): Promise<Catalog
     sections: ((sectionsBrutes ?? []) as SectionEquipe[]).map((s) => ({ id: s.id, nom: s.nom, position: s.position })),
     plats: lignes.map((p) => {
       const ligne = p;
+      const origine = originePhoto(p.photo_url);
       return {
         id: p.id,
         nom: p.nom,
@@ -91,6 +101,12 @@ export async function lireCatalogueEquipe(restaurantId: string): Promise<Catalog
         allergenesDeclaresLe: ligne.allergenes_declares_le ?? null,
         sectionId: ligne.section_id ?? null,
         options: (ligne.menu_item_options ?? []).map((o) => ({ id: o.id, nom: o.nom, prix: o.prix, disponible: o.disponible })),
+        photoSource: origine?.source ?? null,
+        photoLicence: origine?.entree?.licence ?? null,
+        photoAuteur: origine?.entree?.auteur ?? null,
+        photoPage: origine?.entree?.page ?? null,
+        typePlat: typeReconnu(p.nom),
+        photoCandidats: candidatsPhoto(p.nom).map((c) => ({ id: c.id, source: c.source, licence: c.licence ?? null })),
       };
     }),
   };

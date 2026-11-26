@@ -8,6 +8,7 @@ import { ancienneteLisible } from "@/lib/disponibilite/etat";
 import { FormulairePlat } from "./FormulairePlat";
 import { GestionSections } from "./GestionSections";
 import { OptionsPlatEquipe } from "./OptionsPlatEquipe";
+import { PhotoBibliothequeEquipe } from "./PhotoBibliothequeEquipe";
 import { AjoutEnLotEquipe } from "./AjoutEnLotEquipe";
 
 export const metadata = { title: "Catalogue d'un établissement (administration)" };
@@ -92,6 +93,7 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
                           </span>
                           <span className="ad-aide-champ">{p.allergenes === null ? "Allergènes non renseignés" : p.allergenes.length === 0 ? "Aucun allergène déclaré" : `Allergènes déclarés : ${p.allergenes.length}`}{p.allergenesDeclaresLe ? ` (le ${new Date(p.allergenesDeclaresLe).toLocaleDateString("fr-FR")})` : ""}</span>
                           <span className="ad-aide-champ">{sections.find((s) => s.id === p.sectionId)?.nom ?? "Sans section"}</span>
+                          <span className="ad-aide-champ">{p.photoSource === null ? "Aucune photo" : p.photoSource === "restaurant" ? "Photo du restaurant" : p.photoSource === "ia" ? "Image illustrative (générée, signalée aux clients)" : `Photo libre de la bibliothèque${p.photoLicence ? ` · ${p.photoLicence}` : ""}${p.photoAuteur ? ` · ${p.photoAuteur}` : ""}`}{p.photoPage ? <>{" · "}<a href={p.photoPage} target="_blank" rel="noopener noreferrer" className="lien-texte">source</a></> : null}</span>
                         </div>
                         <div className="catalogue-equipe-etat">
                           <Pastille ton={p.disponible ? "succes" : "neutre"}>{p.disponible ? "Disponible" : "Épuisé"}</Pastille>
@@ -124,6 +126,7 @@ export default async function CatalogueEquipePage({ params }: { params: Promise<
                         <summary>Modifier</summary>
                         <FormulairePlat restaurantId={restaurant.id} sections={sections} plat={{ id: p.id, nom: p.nom, description: p.description, prix: p.prix, prixPromo: p.prixPromo, aPhoto: p.photoUrl !== null, allergenes: p.allergenes, sectionId: p.sectionId }} />
                         <OptionsPlatEquipe restaurantId={restaurant.id} platId={p.id} options={p.options} />
+                        <PhotoBibliothequeEquipe restaurantId={restaurant.id} platId={p.id} candidats={p.photoCandidats} />
                       </details>
                     </li>
                   );

@@ -19,3 +19,12 @@ test("prix lot et ligne respectent les bornes et les promos", () => {
   assert.equal(validerLigneMenu({ nom: "Plat", prix: "10000", prix_promo: "11000" }).ok, false);
 });
 test("empreinte change si l'aperçu change", () => { assert.notEqual(creerEmpreinte("a"), creerEmpreinte("b")); });
+test("CSV : colonne section facultative lue, absente = sans section, trop longue = ligne rejetée", () => {
+  const avec = analyserCsvMenu("nom;description;prix;prix_promo;section\nPoulet;;25000;;Grillades\nRiz;;20000;;");
+  assert.equal("erreur" in avec, false); if ("erreur" in avec) return;
+  assert.equal(avec.lignes[0].valeurs?.section, "Grillades"); assert.equal(avec.lignes[1].valeurs?.section, "");
+  const sans = analyserCsvMenu("nom;description;prix;prix_promo\nPoulet;;25000;");
+  assert.equal("erreur" in sans, false); if ("erreur" in sans) return; assert.equal(sans.lignes[0].valeurs?.section, "");
+  const longue = analyserCsvMenu(`nom;description;prix;prix_promo;section\nPoulet;;25000;;${"x".repeat(61)}`);
+  assert.equal("erreur" in longue, false); if ("erreur" in longue) return; assert.match(longue.lignes[0].erreur ?? "", /Section trop longue/);
+});

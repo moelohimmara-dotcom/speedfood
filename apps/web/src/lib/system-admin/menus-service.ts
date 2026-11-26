@@ -4,7 +4,41 @@ import { estUuid } from "@/lib/commande/commun";
 import { analyserCsvMenu, creerEmpreinte, type ApercuMenu, type RapportImportMenu, type PlatMenuSaisi } from "./menus-regles";
 
 const db = () => creerClientAdmin();
-type Plat = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; archive_le: string | null };
+type Plat = { id: string; nom: string; description: string | null; prix: number; prix_promo: number | null; archive_le: string | null; section_id: string | null };
+type SectionMenu = { id: string; nom: string; position: number };
+const nomSection = (nom: string) => nom.trim().toLowerCase();
+
+/** Sections d'un restaurant, par nom normalisé. */
+async function sectionsParNom(restaurantId: string): Promise<Map<string, SectionMenu>> {
+  const { data } = await db().from("menu_sections").select("id, nom, position").eq("restaurant_id", restaurantId).order("position").order("id").limit(100);
+  return new Map(((data ?? []) as SectionMenu[]).map((s) => [nomSection(s.nom), s]));
+}
+
+/** Retrouve ou crée les sections nommées chez le restaurant : la copie et l'import gardent le classement, jamais de plats orphelins de leur rubrique. Renvoie aussi les sections créées ici, pour les retirer si l'écriture des plats échoue ensuite. */
+async function assurerSections(restaurantId: string, noms: string[]): Promise<{ correspondance: Map<string, string>; creees: string[] }> {
+  const existantes = await sectionsParNom(restaurantId);
+  const resultat = new Map<string, string>([...existantes.entries()].map(([cle, s]) => [cle, s.id]));
+  const creees: string[] = [];
+  let position = Math.max(-1, ...[...existantes.values()].map((s) => s.position));
+  for (const nom of [...new Set(noms.map((n) => n.trim()).filter(Boolean))]) {
+    const cle = nomSection(nom);
+    if (resultat.has(cle)) continue;
+    position += 1;
+    const { data, error } = await db().from("menu_sections").insert({ restaurant_id: restaurantId, nom, position }).select("id").single();
+    if (error || !data) {
+      if (creees.length > 0) await db().from("menu_sections").delete().in("id", creees);
+      throw new Error("sections_menus_impossibles");
+    }
+    resultat.set(cle, data.id);
+    creees.push(data.id);
+  }
+  return { correspondance: resultat, creees };
+}
+
+/** Retire les sections créées pour une copie ou un import dont l'écriture des plats a échoué : aucune modification silencieuse ne reste. */
+async function retirerSectionsCreees(creees: string[]): Promise<void> {
+  if (creees.length > 0) await db().from("menu_sections").delete().in("id", creees);
+}
 export type ResultatMenus = { ok: true; message: string; rapport?: RapportImportMenu } | { ok: false; message: string };
 
 async function restaurantValide(id: string) {
@@ -13,7 +47,7 @@ async function restaurantValide(id: string) {
   return Boolean(data && data.mode_vente === "speedfood");
 }
 async function plats(restaurantId: string): Promise<Plat[]> {
-  const { data } = await db().from("menu_items").select("id, nom, description, prix, prix_promo, archive_le").eq("restaurant_id", restaurantId).is("archive_le", null).order("cree_le", { ascending: true }).limit(2000);
+  const { data } = await db().from("menu_items").select("id, nom, description, prix, prix_promo, archive_le, section_id").eq("restaurant_id", restaurantId).is("archive_le", null).order("cree_le", { ascending: true }).limit(2000);
   return (data ?? []) as Plat[];
 }
 export async function apercuPrixLot(restaurantId: string, ids: string[], nouveauPrix: number): Promise<ApercuMenu | null> {
@@ -41,12 +75,36 @@ export async function appliquerPrixLot(restaurantId: string, ids: string[], nouv
 export async function appliquerCopie(sourceId: string, destinationId: string): Promise<ResultatMenus> {
   const apercu = await apercuCopie(sourceId, destinationId); if (!apercu) return { ok: false, message: "Copie invalide : source ou destination inconnue." };
   const source = await plats(sourceId);
-  const { error } = source.length ? await db().from("menu_items").insert(source.map((p) => ({ restaurant_id: destinationId, nom: p.nom, description: p.description ?? "", prix: p.prix, prix_promo: p.prix_promo }))) : { error: null };
-  return error ? { ok: false, message: "La copie a échoué : aucune modification confirmée." } : { ok: true, message: `${source.length} plat(s) copié(s).` };
+  const sectionsSource = await sectionsParNom(sourceId);
+  let correspondance: Map<string, string>;
+  let creees: string[];
+  try {
+    ({ correspondance, creees } = await assurerSections(destinationId, [...sectionsSource.values()].map((s) => s.nom)));
+  } catch {
+    return { ok: false, message: "La copie a échoué : les sections n'ont pas pu être préparées." };
+  }
+  const sectionPour = (p: Plat) => {
+    if (!p.section_id) return null;
+    const nom = [...sectionsSource.values()].find((s) => s.id === p.section_id)?.nom;
+    return nom ? (correspondance.get(nomSection(nom)) ?? null) : null;
+  };
+  const { error } = source.length ? await db().from("menu_items").insert(source.map((p) => ({ restaurant_id: destinationId, nom: p.nom, description: p.description ?? "", prix: p.prix, prix_promo: p.prix_promo, section_id: sectionPour(p) }))) : { error: null };
+  if (error) await retirerSectionsCreees(creees);
+  return error ? { ok: false, message: "La copie a échoué : aucune modification confirmée." } : { ok: true, message: `${source.length} plat(s) copié(s), sections conservées.` };
 }
 export async function appliquerImport(restaurantId: string, rapport: RapportImportMenu): Promise<ResultatMenus> {
-  const valides = rapport.lignes.flatMap((l) => l.valeurs ? [{ restaurant_id: restaurantId, nom: l.valeurs.nom, description: l.valeurs.description, prix: l.valeurs.prix, prix_promo: l.valeurs.prixPromo }] : []);
+  let correspondance: Map<string, string>;
+  let creees: string[];
+  try {
+    ({ correspondance, creees } = await assurerSections(restaurantId, rapport.lignes.flatMap((l) => (l.valeurs?.section ? [l.valeurs.section] : []))));
+  } catch {
+    return { ok: false, message: "Import non appliqué : les sections n'ont pas pu être préparées." };
+  }
+  const valides = rapport.lignes.flatMap((l) => l.valeurs ? [{ restaurant_id: restaurantId, nom: l.valeurs.nom, description: l.valeurs.description, prix: l.valeurs.prix, prix_promo: l.valeurs.prixPromo, section_id: l.valeurs.section ? (correspondance.get(nomSection(l.valeurs.section)) ?? null) : null }] : []);
   const { error } = valides.length ? await db().from("menu_items").insert(valides) : { error: null };
-  if (error) return { ok: false, message: "Import non appliqué : la base a refusé les lignes valides." };
+  if (error) {
+    await retirerSectionsCreees(creees);
+    return { ok: false, message: "Import non appliqué : la base a refusé les lignes valides." };
+  }
   return { ok: true, message: `${valides.length} ligne(s) appliquée(s), ${rapport.rejetees} rejetée(s).`, rapport: { ...rapport, appliquees: valides.length } };
 }
