@@ -57,6 +57,61 @@ export function calculerReleve(ventes: VenteFinance[], debut: Date, fin: Date, t
   });
 }
 
+export interface PaiementLibere {
+  id: string;
+  etablissementId: string;
+  etablissementNom: string;
+  repasGnf: number;
+  fraisLivraisonGnf: number;
+  livraisonPar: string;
+  commissionGnf: number;
+  netRestaurantGnf: number;
+  remboursementGnf: number;
+  libereLe: string | null;
+}
+export interface VersementSimple { paiementId: string; etat: string; operateur: string | null }
+export interface LigneReleveReel extends LigneReleve { paiements: number; statutVersement: "verse" | "partiel" | "a_verser"; operateurVersement: string | null; dernierPaiementLe: string | null }
+
+/**
+ * Agrège les paiements en ligne LIBÉRÉS d'une période par restaurant : montants déjà stockés à l'ouverture du paiement
+ * (commission prélevée, réduction du palier excellent comprise), jamais de recalcul de taux après coup.
+ * Le net est la part du restaurant stockée ; les frais de livraison ne sont comptés que quand le restaurant livre lui-même.
+ */
+export function agregerPaiementsLiberes(paiements: readonly PaiementLibere[], versementsParPaiement: ReadonlyMap<string, readonly VersementSimple[]>): LigneReleveReel[] {
+  const groupes = new Map<string, PaiementLibere[]>();
+  for (const p of paiements) {
+    for (const [nom, v] of [["repas", p.repasGnf], ["frais de livraison", p.fraisLivraisonGnf], ["commission", p.commissionGnf], ["net restaurant", p.netRestaurantGnf], ["remboursement", p.remboursementGnf]] as const) {
+      if (!Number.isSafeInteger(v) || v < 0) throw new Error(`Un paiement contient un montant invalide : ${nom}.`);
+    }
+    const liste = groupes.get(p.etablissementId) ?? [];
+    liste.push(p);
+    groupes.set(p.etablissementId, liste);
+  }
+  return [...groupes.entries()].map(([etablissementId, liste]) => {
+    const ventesGnf = liste.reduce((s, p) => s + p.repasGnf, 0);
+    const commissionGnf = liste.reduce((s, p) => s + p.commissionGnf, 0);
+    const remboursementsGnf = liste.reduce((s, p) => s + p.remboursementGnf, 0);
+    const aVerser = liste.filter((p) => p.netRestaurantGnf - p.remboursementGnf > 0);
+    const confirmes = aVerser.filter((p) => (versementsParPaiement.get(p.id) ?? []).some((v) => v.etat === "confirme")).length;
+    const versements = liste.flatMap((p) => versementsParPaiement.get(p.id) ?? []);
+    return {
+      etablissementId,
+      etablissementNom: liste[0].etablissementNom,
+      ventesGnf,
+      commissionGnf,
+      fraisLivraisonGnf: liste.filter((p) => p.livraisonPar === "restaurant").reduce((s, p) => s + p.fraisLivraisonGnf, 0),
+      remboursementsGnf,
+      // Identité du relevé : ventes − commission + livraison du restaurant − remboursements = net. Un remboursement porté sur un paiement libéré est déduit ici.
+      netAReverserGnf: liste.reduce((s, p) => s + p.netRestaurantGnf, 0) - remboursementsGnf,
+      tauxCommission: ventesGnf > 0 ? commissionGnf / ventesGnf : 0,
+      paiements: liste.length,
+      statutVersement: aVerser.length > 0 && confirmes === aVerser.length ? "verse" as const : confirmes > 0 ? "partiel" as const : "a_verser" as const,
+      operateurVersement: versements[0]?.operateur ?? null,
+      dernierPaiementLe: liste.map((p) => p.libereLe).filter((d): d is string => d !== null).sort().at(-1) ?? null,
+    };
+  }).sort((a, b) => b.netAReverserGnf - a.netAReverserGnf || a.etablissementNom.localeCompare(b.etablissementNom, "fr"));
+}
+
 export function exporterReleveCsv(lignes: LigneReleve[]): string {
   const echapper = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
   const entete = ["Établissement", "Ventes (GNF)", "Commission (GNF)", "Frais de livraison (GNF)", "Remboursements (GNF)", "Net à reverser (GNF)", "Taux"].map(echapper).join(";");

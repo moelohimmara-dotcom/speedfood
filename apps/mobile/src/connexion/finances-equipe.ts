@@ -1,7 +1,7 @@
 /**
- * Finances de l'équipe (parité Kotlin, lot 5, ligne E2) : relevé L3 en LECTURE SEULE (`GET /api/v1/equipe/finances`, route du site).
- * Les taux et versements se modifient sur le site, jamais dans l'application. Montants en GNF entiers ; le taux est un taux (0 à 1),
- * affiché en pourcentage « (développement) » comme l'ancienne appli, car ces paramètres sont encore factices.
+ * Finances de l'équipe (parité Kotlin, lot 5, ligne E2) : relevé RÉEL en LECTURE SEULE (`GET /api/v1/equipe/finances`, route du site) —
+ * les paiements en ligne libérés de la période, commission déjà prélevée comprise.
+ * Les taux se règlent sur le site, jamais dans l'application. Montants en GNF entiers ; le taux effectif est un taux (0 à 1).
  * Lecture stricte : une ligne de relevé ou un contrat illisible est écarté et COMPTÉ ; paramètres ou structure invalides = refus total.
  */
 export const DEBUT_PERIODE_FINANCES = '2026-10-01';
@@ -41,7 +41,7 @@ function lireLigne(x: unknown): LigneFinance {
   return {
     etablissementId: identifiant(o.etablissementId), etablissementNom: texte(o.etablissementNom, 200),
     ventesGnf: montant(o.ventesGnf), commissionGnf: montant(o.commissionGnf), fraisLivraisonGnf: montant(o.fraisLivraisonGnf),
-    remboursementsGnf: montant(o.remboursementsGnf), netAReverserGnf: montant(o.netAReverserGnf), taux: taux(o.taux), effectifLe: dateTexte(o.effectifLe),
+    remboursementsGnf: montant(o.remboursementsGnf), netAReverserGnf: montant(o.netAReverserGnf), taux: taux(o.tauxCommission ?? o.taux), effectifLe: o.effectifLe === undefined || o.effectifLe === null ? "" : dateTexte(o.effectifLe),
     versement: { statut: texte(v.statut, 40), reference: texteOuNull(v.reference, 120), dateVersement: texteOuNull(v.dateVersement, 40) },
   };
 }
@@ -61,8 +61,9 @@ export function lireFinancesEquipe(v: Record<string, unknown>): FinancesEquipe {
 export function libelleStatutVersement(statut: string): string {
   if (statut === 'a_verser') return 'À verser';
   if (statut === 'verse') return 'Versé';
+  if (statut === 'partiel') return 'Partiellement versé';
   return statut.replaceAll('_', ' ');
 }
 
-/** Taux affiché : un pourcentage entier, marqué « (développement) » tant que ces paramètres sont factices. */
-export function tauxAffiche(t: number): string { return Math.trunc(t * 100) + ' % (développement)'; }
+/** Taux effectif affiché : un pourcentage entier. */
+export function tauxAffiche(t: number): string { return Math.trunc(t * 100) + ' %'; }
