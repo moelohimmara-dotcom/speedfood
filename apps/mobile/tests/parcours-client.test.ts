@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   COMMENTAIRE_PLATS_A_CONFIRMER, ERREUR_CONSENTEMENT, LEGENDE_A_CONFIRMER, TEXTE_CONSENTEMENT, ageStatutAffichable, commandabilite, etapesParcours, etatPlat, moyensAffichables,
-  nombreAConfirmer, ordonnerPlats, ordonnerRestaurants, phraseARegler,
+  libelleMoyen, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants, phraseARegler,
 } from '../src/catalogue/parcours-client.ts';
 import { libelleStatut } from '../src/catalogue/menu-groupes.ts';
 import { LIGNES_DIVULGATION, TEXTE_CHOIX_SUIVI } from '../src/connexion/consentement-position.ts';
@@ -85,6 +85,17 @@ test('paiement dit avant l’envoi : trois temps, rien à payer maintenant, jama
   assert.match(sans[2].texte, /Le restaurant vous indique comment le régler/); assert.doesNotMatch(sans[2].texte, /\(/);
   assert.equal(phraseARegler(45000), 'À régler au restaurant après sa confirmation : ' + new Intl.NumberFormat('fr-FR').format(45000) + ' GNF');
   assert.equal(phraseARegler(null), null);
+});
+
+test('moyens de paiement : le client voit des libellés (Orange Money, MTN MoMo), jamais les identifiants de l’API', () => {
+  // Constaté sur l’application (26/11/2026) : « Paiement accepté : orange_money, mtn_momo ».
+  assert.deepEqual(moyensAffichables(['orange_money', 'mtn_momo']), ['Orange Money', 'MTN MoMo']);
+  assert.deepEqual(moyensAffichables(['especes', 'orange_money']), ['Orange Money']);
+  assert.deepEqual(moyensAffichables([' ORANGE_MONEY ', 'Orange Money']), ['Orange Money', 'Orange Money'], 'identifiant en majuscules lu aussi ; aucun dédoublonnage, comme avant');
+  assert.equal(libelleMoyen('airtel_money'), 'Airtel money');
+  assert.equal(libelleMoyen('Wave'), 'Wave');
+  const etapes = etapesParcours(['orange_money', 'mtn_momo']);
+  assert.match(etapes[2].texte, /\(Orange Money, MTN MoMo\)/); assert.doesNotMatch(etapes[2].texte, /orange_money|mtn_momo/);
 });
 
 test('textes du parcours : aucun tiret long, le consentement dit la même chose que l’erreur', () => {

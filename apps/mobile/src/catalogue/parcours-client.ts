@@ -1,5 +1,6 @@
 import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
+import { LIBELLES_MODE } from '../../../../packages/shared/src/paiement/regles.ts';
 /**
  * Règles d'affichage du parcours client (revue du 18/11/2026) : restaurant fermé, plat « à confirmer », paiement dit clairement.
  * Fonctions pures, sans réseau. Elles ne changent AUCUNE règle de produit : l'état d'un plat et du restaurant vient du serveur, la commande est toujours revérifiée côté serveur.
@@ -59,8 +60,19 @@ export const nombreAConfirmer = (plats: ReadonlyArray<Pick<PlatCataloguePublic, 
 
 // ---------------------------------------------------------------- Paiement dit clairement
 /** Speedfood ne manipule pas d'espèces (décision du 3 novembre 2026) : un restaurant qui les liste ne les voit pas affichées comme moyen proposé par l'application. */
+/**
+ * Les moyens arrivent de l'API sous leur IDENTIFIANT (`orange_money`, `mtn_momo`) : on affiche leur LIBELLÉ (« Orange Money », « MTN MoMo », mêmes libellés que le site et la console).
+ * Un libellé déjà lisible passe tel quel ; un identifiant inconnu en snake_case devient « Mon identifiant » plutôt que de montrer le nom technique. Aucun dédoublonnage (comportement conservé, voir le test des cas limites).
+ */
+export function libelleMoyen(moyen: string): string {
+  const m = moyen.trim();
+  const cle = m.toLowerCase();
+  const connu = (LIBELLES_MODE as Record<string, string | undefined>)[cle];
+  if (connu) return connu;
+  return /^[a-z0-9]+(_[a-z0-9]+)+$/.test(cle) ? cle.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : m;
+}
 export function moyensAffichables(moyens: readonly string[] | undefined): string[] {
-  return (moyens ?? []).map(m => m.trim()).filter(m => m !== '' && !/esp[eè]ces?|cash|liquide/i.test(m));
+  return (moyens ?? []).map(m => m.trim()).filter(m => m !== '' && !/esp[eè]ces?|cash|liquide/i.test(m)).map(libelleMoyen);
 }
 export interface EtapeParcours { numero: number; titre: string; texte: string }
 /** Les trois temps d'une commande, dits avant l'envoi. `moyens` : seulement ceux que le restaurant a transmis (hors espèces) ; sinon une phrase neutre. */
