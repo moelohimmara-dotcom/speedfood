@@ -351,8 +351,6 @@ export default async function FicheRestaurantPage({
 
       {reservationOuverte ? <BlocReservation restaurantId={restaurant.id} /> : null}
 
-      <AvisPublics restaurantId={restaurant.id} />
-
       {etatResto === "ferme" ? (
         <Alert ton="info" className="u-mt-s4">
           Ce restaurant est actuellement fermé. Vous pouvez consulter le menu, mais pas commander.
@@ -390,6 +388,9 @@ export default async function FicheRestaurantPage({
           <ResumePanierFiche restaurantId={restaurantSur.id} paiement={textePaiement} />
         )}
       </div>
+
+      {/* Les avis viennent APRÈS le menu : on vient ici pour commander, le menu ne doit pas être enterré sous une dizaine d'avis (surtout sur téléphone). */}
+      <AvisPublics restaurantId={restaurant.id} />
     </main>
   );
 }
