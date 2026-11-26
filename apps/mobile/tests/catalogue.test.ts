@@ -63,6 +63,16 @@ test('catalogue riche : le cache hors ligne revalide les mêmes champs', async (
   assert.equal(validerPageRestaurants({ restaurants: [riche], suivant: null, luLe: page.luLe }).restaurants[0].logoUrl, null);
   assert.throws(() => validerPageRestaurants({ restaurants: [{ ...riche, note: 9 }], suivant: null, luLe: page.luLe }));
 });
+test('couverture de carte : champs facultatifs lus tels quels, douteux = refus en bloc, absents = ancienne lecture', async () => {
+  const { validerPageRestaurants } = await import('../src/catalogue/client.ts');
+  const lu = (r: Record<string, unknown>) => validerPageRestaurants({ restaurants: [{ ...restaurant, ...r }], suivant: null, luLe: page.luLe }).restaurants[0];
+  assert.equal(lu({ couvertureUrl: 'https://exemple.invalid/c.jpg' }).couvertureUrl, 'https://exemple.invalid/c.jpg');
+  const ia = lu({ couvertureUrl: 'https://exemple.invalid/ia/c.png', couvertureIllustrative: true });
+  assert.equal(ia.couvertureUrl, 'https://exemple.invalid/ia/c.png'); assert.equal(ia.couvertureIllustrative, true);
+  assert.equal(lu({ couvertureUrl: null }).couvertureUrl, null);
+  assert.ok(!('couvertureUrl' in lu({})) && !('couvertureIllustrative' in lu({})), 'un ancien serveur donne exactement l’ancienne lecture');
+  for (const m of [{ couvertureUrl: 'http://pas-https.invalid/c.jpg' }, { couvertureUrl: 'javascript:alert(1)' }, { couvertureUrl: 12 }, { couvertureIllustrative: false }, { couvertureIllustrative: 'oui' }]) assert.throws(() => lu(m), Error, JSON.stringify(m));
+});
 test('catalogue mobile : délai borné, aucun second envoi', async () => {
   let appels = 0;
   const client = creerLecteurCatalogue(async (_url, options) => {

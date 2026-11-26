@@ -83,6 +83,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     <Action titre="Retour au panier" variante="texte" icone="retour" iconeSeule agir={fermerSiPossible} disabled={verrouille} />
     <Text accessibilityRole="header" style={s.titre}>Valider ma commande</Text>
     <Text style={s.texte}>{etat.menu?.restaurant.nom ?? 'Votre panier'} · {libelleModeClient(m.mode)}</Text>
+    {!connectee && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Connectez-vous pour envoyer votre commande.</Text><Action titre="Ouvrir mon compte" agir={ouvrirCompte} /></View>}
     {LIVRAISON_CLIENT_DISPONIBLE ? <View accessibilityRole="radiogroup" style={s.rangee}>
       <Choix moitie titre="À emporter" actif={!livraison} desactive={verrouille} agir={() => m.saisir('mode', 'retrait')} />
       <Choix moitie titre="Livraison" actif={livraison} desactive={verrouille} agir={() => m.saisir('mode', 'livraison')} />
@@ -109,7 +110,6 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       {aConfirmer > 0 && <Text style={s.secondaire}>{COMMENTAIRE_PLATS_A_CONFIRMER(aConfirmer)}</Text>}
     </View>
     {!panierPret && !verrouille && <Text accessibilityRole="alert" style={s.texte}>{etat.panier.lignes.length ? 'Les prix doivent être relus avant l’envoi. Retournez au panier et actualisez-le.' : 'Votre panier est vide.'}</Text>}
-    {!connectee && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Connectez-vous pour envoyer votre commande.</Text><Action titre="Ouvrir mon compte" agir={ouvrirCompte} /></View>}
     <Text style={s.texte}>Votre nom</Text>
     <TextInput ref={k.reference('nom')} onFocus={k.auFocus('nom')} onBlur={k.auBlur} accessibilityLabel="Votre nom" value={m.nom} onChangeText={v => m.saisir('nom', v)} editable={!verrouille} autoComplete="name" returnKeyType="next" maxLength={120} style={s.champ} />
     {m.nom !== '' && erreurs.nom && <Text accessibilityRole="alert" style={s.secondaire}>{erreurs.nom}</Text>}

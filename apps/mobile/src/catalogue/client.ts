@@ -22,6 +22,8 @@ function restaurant(x: unknown): RestaurantPublic {
   const lu: RestaurantPublic = { id: identifiant(r.id), nom: texte(r.nom, 256), lieu: texte(r.lieu, 256), categorie: texte(r.categorie, 256), ouvert: r.ouvert, accepteCommandes: r.accepteCommandes, statutMisAJourLe: r.statutMisAJourLe === null ? null : date(r.statutMisAJourLe) };
   if (r.photoUrl !== undefined) lu.photoUrl = urlImage(r.photoUrl);
   if (r.logoUrl !== undefined) lu.logoUrl = urlImage(r.logoUrl);
+  if (r.couvertureUrl !== undefined) lu.couvertureUrl = urlImage(r.couvertureUrl);
+  if (r.couvertureIllustrative !== undefined) { if (r.couvertureIllustrative !== true) throw Error('CATALOGUE_INVALIDE'); lu.couvertureIllustrative = true; }
   if (r.note !== undefined) { if (r.note !== null && (typeof r.note !== 'number' || !Number.isFinite(r.note) || r.note < 0 || r.note > 5)) throw Error('CATALOGUE_INVALIDE'); lu.note = r.note as number | null; }
   if (r.avisTotal !== undefined) lu.avisTotal = entier(r.avisTotal);
   coteLue(r, lu);
