@@ -261,7 +261,7 @@ export default async function CataloguePage({
                 <span className="carte-vedette-corps">
                   <span className="carte-vedette-nom">{vedette.nom}</span>
                   <span className="carte-vedette-resto">
-                    {vedette.restaurantNom} · {vedette.quartier}
+                    {vedette.restaurantNom} · {vedette.lieu}
                   </span>
                   <StampFraicheur disponibilite={libelleDisponibilite(vedette.etat, recherche.maintenant)} />
                   <span className="carte-vedette-prix">{vedette.prixAffiche.toLocaleString("fr-FR")} GNF</span>
@@ -352,7 +352,7 @@ function carte(resultat: ResultatClasse<RestaurantCatalogue>, maintenant: Date, 
       logoIllustration={r.logoIllustration}
       reputation={reputations.get(r.id)}
       categorie={r.categorie}
-      quartier={r.quartier}
+      quartier={r.lieu}
       plats={plats}
       autresPlats={Math.max(0, resultat.platsCorrespondants.length - MAX_PLATS_PAR_CARTE)}
     />

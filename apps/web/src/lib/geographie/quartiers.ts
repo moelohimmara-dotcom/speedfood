@@ -103,3 +103,17 @@ export function communeDuQuartier(
   if (!commune) return "";
   return Array.isArray(commune) ? (commune[0]?.nom ?? "") : commune.nom;
 }
+
+/**
+ * Lieu à AFFICHER pour un restaurant : son quartier, ou le nom de la commune quand le quartier est technique (« Centre de … », `generique`),
+ * ce qui est la règle de la fiche restaurant. Sans cette règle, une carte affichait « Riz & sauces · » avec un lieu vide pour ces restaurants.
+ * Les filtres et les compteurs de quartier n'utilisent pas ce lieu : ils gardent le quartier réel.
+ */
+export function lieuAffiche(
+  quartier: { nom?: string | null; generique?: boolean | null; communes?: { nom: string } | { nom: string }[] | null } | null | undefined
+): string {
+  if (!quartier) return "";
+  const commune = communeDuQuartier(quartier);
+  if (quartier.generique) return commune;
+  return (quartier.nom ?? "").trim() || commune;
+}

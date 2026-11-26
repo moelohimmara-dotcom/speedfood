@@ -109,7 +109,7 @@ export default async function AlternativesPage({
                     couvertureIllustration={a.restaurant.couvertureIllustration}
                     logoIllustration={a.restaurant.logoIllustration}
                     categorie={a.restaurant.categorie}
-                    quartier={a.restaurant.quartier}
+                    quartier={a.restaurant.lieu}
                     plats={[
                       {
                         id: a.plat.id,
