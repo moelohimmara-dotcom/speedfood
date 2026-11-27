@@ -13,7 +13,7 @@ import { chiffrer, type PanierReel } from './panier-reel.ts';
 export type Phase = 'saisie' | 'envoi' | 'incertain' | 'refuse' | 'succes';
 /** État du calcul des frais de livraison : `aucune` = à demander, `calcul` = en cours, `ok` = estimation détenue, `erreur` = refusée ou injoignable (relance explicite). */
 export type EtatEstimation = 'aucune' | 'calcul' | 'ok' | 'erreur';
-export type ChampSaisie = 'nom' | 'telephone' | 'consentement' | 'mode' | 'repere' | 'precisions' | 'quartierId';
+export type ChampSaisie = 'nom' | 'telephone' | 'consentement' | 'mode' | 'repere' | 'precisions' | 'quartierId' | 'codePromo';
 export type ResultatEnvoi =
   | { type: 'ignore' }
   | { type: 'refus' }
@@ -38,7 +38,7 @@ const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId
 export class EnvoiCommande {
   phase: Phase = 'saisie'; message: string | null = null;
   nom = ''; telephone = ''; consentement = false; abandonDemande = false;
-  mode: ModeCommande = 'retrait'; repere = ''; precisions = ''; quartierId: string | null = null;
+  mode: ModeCommande = 'retrait'; repere = ''; precisions = ''; quartierId: string | null = null; codePromo = '';
   /** Position GPS partagée par le client (arrondie à 10 m) : elle REMPLACE le quartier, jamais les deux à la fois. `null` : aucune position partagée. */
   position: PointLivraison | null = null;
   /** Dernière estimation obtenue du serveur (jamais une estimation d'un autre quartier ou d'un autre sous-total : voir `estimationValable`). */
@@ -87,7 +87,7 @@ export class EnvoiCommande {
   }
   /** Oublie l'estimation et rend caduque toute demande en vol : sa réponse tardive sera ignorée. */
   private invaliderEstimation() { this.demandeEstim++; this.estimation = null; this.etatEstimation = 'aucune'; this.messageEstimation = null; this.cleCalcul = null; }
-  private viderFormulaire() { this.nom = ''; this.telephone = ''; this.consentement = false; this.mode = 'retrait'; this.repere = ''; this.precisions = ''; this.quartierId = null; this.position = null; this.invaliderEstimation(); }
+  private viderFormulaire() { this.nom = ''; this.telephone = ''; this.consentement = false; this.mode = 'retrait'; this.repere = ''; this.precisions = ''; this.quartierId = null; this.position = null; this.codePromo = ''; this.invaliderEstimation(); }
   private remettreAZero() { this.epoque++; this.phase = 'saisie'; this.message = null; this.viderFormulaire(); this.abandonDemande = false; this.memo = null; this.enCours = false; this.tentative.oublier(); }
   private deconnexions: number | null = null;
   /**
@@ -153,7 +153,7 @@ export class EnvoiCommande {
     if (this.phase === 'incertain' && this.memo) payload = this.memo; // rejeu à l'identique : même corps, même clé, quel que soit le panier courant
     else {
       try {
-        const prep = preparerEnvoi(panier, plats, { nom: this.nom, telephone: this.telephone, consentement: this.consentement, mode: this.mode, adresse: this.adresse, quartierId: this.quartierId, position: this.position, estimation: this.estimation }, this.tentative, this.compte ?? '');
+        const prep = preparerEnvoi(panier, plats, { nom: this.nom, telephone: this.telephone, consentement: this.consentement, mode: this.mode, adresse: this.adresse, quartierId: this.quartierId, position: this.position, estimation: this.estimation, codePromo: this.codePromo }, this.tentative, this.compte ?? '');
         if (!prep.ok) { this.message = prep.erreurs.panier ?? prep.erreurs.livraison ?? 'Vérifiez les champs du formulaire.'; this.phase = 'refuse'; this.notifier(); return { type: 'refus' }; }
         payload = prep.payload;
       } catch (e) { this.message = e instanceof Error ? e.message : 'Envoi impossible.'; this.phase = 'refuse'; this.notifier(); return { type: 'refus' }; }

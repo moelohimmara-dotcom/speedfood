@@ -201,6 +201,18 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
     champs.sousTotalAffiche = "Total affiché invalide. Rechargez la page.";
   }
 
+  // Code promo facultatif : normalisé ici (majuscules, sans espace ni tiret), revérifié en base à la création.
+  let codePromo: string | undefined;
+  if (payload.codePromo !== undefined && payload.codePromo !== null && payload.codePromo !== "") {
+    if (typeof payload.codePromo !== "string") {
+      champs.codePromo = "Code promo invalide.";
+    } else {
+      const normalise = payload.codePromo.normalize("NFKC").trim().toUpperCase().replace(/[\s-]+/g, "");
+      if (!/^[A-Z0-9]{3,32}$/.test(normalise)) champs.codePromo = "Code promo invalide : 3 à 32 lettres ou chiffres.";
+      else codePromo = normalise;
+    }
+  }
+
   if (payload.consentementReglement !== true) {
     champs.consentement =
       "Vous devez confirmer avoir pris connaissance du règlement directement avec le restaurant.";
@@ -235,6 +247,7 @@ export function validerCreationCommande(brut: unknown): ResultatValidationCreati
       consentementReglement: true,
       ...(destination ? { destination } : {}),
       ...(fraisAffiches !== undefined ? { fraisAffiches } : {}),
+      ...(codePromo ? { codePromo } : {}),
     },
   };
 }

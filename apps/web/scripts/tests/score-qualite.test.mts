@@ -14,6 +14,7 @@ verifier("sans avis : la note absente ne compte ni pour ni contre", calculerScor
 verifier("aucun indicateur : 0", calculerScore({ acceptationDelai: null, preparationTenue: null, exactitude: null, note: null, ficheComplete: null, disponibilite: null }).score, 0);
 verifier("paliers : 80 excellent, 65 très bon, 50 bon, 35 moyen, 34 mauvais", [80, 65, 50, 35, 34].map((s) => calculerScore({ ...plein, acceptationDelai: s, preparationTenue: s, exactitude: s, note: s, ficheComplete: s, disponibilite: s }).palier), ["excellent", "tres_bon", "bon", "moyen", "mauvais"]);
 verifier("pourcentage : dénominateur vide = absent, pas zéro", [pourcentage(3, 4), pourcentage(1, 0)], [75, null]);
+verifier("seuils réglés en console : 70 devient excellent, le score ne bouge pas", (() => { const ind = { ...plein, acceptationDelai: 70, preparationTenue: 70, exactitude: 70, note: 70, ficheComplete: 70, disponibilite: 70 }; const r = calculerScore(ind, { excellent: 70, tresBon: 55, bon: 40, moyen: 25 }); return [r.score, r.palier, calculerScore(ind).palier]; })(), [70, "excellent", "tres_bon"]);
 verifier("dégradation : échelle complète, retrait jamais automatique", [0, 1, 2, 3, 4, 5, 9].map(etapeDegradation), ["aucune", "avertissement_1", "avertissement_2_contact", "retrait_avantages", "suspension", "retrait_decision_humaine", "retrait_decision_humaine"]);
 
 console.log(echecs === 0 ? "\nSCORE QUALITÉ : tous les contrôles passent." : `\n${echecs} échec(s).`);

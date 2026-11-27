@@ -11,6 +11,7 @@ import { estReglageValidation, estServiceTable, prochainNumeroAppel, validationR
 import { cleDeTableValide } from "@/lib/table/cle";
 import { ouvrirOuRejoindreSession } from "@/lib/table/service";
 import { estimerLivraison } from "@/lib/livraison/lecture";
+import { calculerRemise, normaliserCode, type Campagne } from "@/lib/system-admin/campagnes-regles";
 
 /**
  * Création d'une commande invitée (ADR-005).
@@ -122,6 +123,8 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   const jeton = options.fournirJeton ? await options.fournirJeton(payload.cleIdempotence) : genererJetonSuivi(payload.cleIdempotence);
   if (!estJetonValide(jeton)) throw new Error("calcul_jeton_indisponible");
   const db = creerClientAdmin();
+  // Table `campagnes` pas encore dans les types générés : accès libre, colonnes relues et validées à la main ci-dessous.
+  const campagnesDb = db as unknown as { from: (table: string) => any };
   if (saisiePar !== null) {
     if (utilisateurId !== null || payload.mode !== "sur_place") {
       throw new ErreurMetier("VALIDATION", "Commande de salle invalide.");
@@ -185,6 +188,65 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     payload.lignes
   );
 
+  // Code promo : revérifié en base (campagne active, période, minimum, plafond), remise déduite du sous-total stocké.
+  // L'utilisation est comptée par un compare-and-set sur le compteur, avant l'insertion ; tout échec ultérieur la rend.
+  let campagnePromo: Campagne | null = null;
+  let remisePromo = 0;
+  let promoCompte = false;
+  const rendreUtilisationPromo = async () => {
+    if (!campagnePromo || !promoCompte) return;
+    promoCompte = false;
+    for (let essai = 0; essai < 5; essai++) {
+      const { data: actuelle, error: erreurLecture } = await campagnesDb.from("campagnes").select("utilisations").eq("id", campagnePromo.id).maybeSingle();
+      if (erreurLecture || !actuelle || actuelle.utilisations <= 0) {
+        if (erreurLecture) console.error("promo_rendre_echec", { campagne: campagnePromo.id });
+        return;
+      }
+      const { data: touchees, error: erreurMaj } = await campagnesDb.from("campagnes").update({ utilisations: actuelle.utilisations - 1 }).eq("id", campagnePromo.id).eq("utilisations", actuelle.utilisations).select("id");
+      if (erreurMaj) { console.error("promo_rendre_echec", { campagne: campagnePromo.id }); return; }
+      if (touchees && touchees.length > 0) return;
+    }
+    console.error("promo_rendre_echec", { campagne: campagnePromo.id });
+  };
+  if (payload.codePromo) {
+    const code = normaliserCode(payload.codePromo);
+    const { data: ligneCampagne, error: erreurCampagne } = await campagnesDb.from("campagnes").select("id, code, nom, type_remise, valeur, minimum_achat_gnf, plafond_montant_gnf, plafond_utilisations, utilisations, debut, fin, etat, ciblage").eq("code", code).maybeSingle();
+    if (erreurCampagne) throw new ErreurMetier("ERREUR_SERVEUR", "Les codes promo sont momentanément illisibles. Réessayez dans un instant.");
+    if (!ligneCampagne) throw new ErreurMetier("VALIDATION", "Code promo inconnu. Vérifiez le code, ou retirez-le pour commander sans remise.", { codePromo: "Code promo inconnu." });
+    campagnePromo = {
+      id: ligneCampagne.id, code: ligneCampagne.code, nom: ligneCampagne.nom,
+      regle: { type: ligneCampagne.type_remise === "montant" ? "montant" : "pourcentage", valeur: ligneCampagne.valeur, minimumAchatGnf: ligneCampagne.minimum_achat_gnf },
+      plafondMontantGnf: ligneCampagne.plafond_montant_gnf, plafondUtilisations: ligneCampagne.plafond_utilisations, utilisations: ligneCampagne.utilisations,
+      debut: ligneCampagne.debut, fin: ligneCampagne.fin, etat: ligneCampagne.etat === "active" || ligneCampagne.etat === "suspendue" ? ligneCampagne.etat : "brouillon", ciblage: ligneCampagne.ciblage,
+    };
+    const calcul = calculerRemise(campagnePromo, sousTotal, new Date());
+    if (!calcul.ok) throw new ErreurMetier("VALIDATION", `${calcul.erreur} ${calcul.action}`, { codePromo: calcul.erreur });
+    remisePromo = calcul.remiseGnf;
+    // Ciblage « nouveaux clients » : aucune commande antérieure pour ce compte (un invité à table est traité comme nouveau, faute d'historique).
+    if (/nouveaux?\s+clients?/i.test(campagnePromo.ciblage) && utilisateurId !== null) {
+      const { count, error: erreurAnciennete } = await db.from("orders").select("id", { count: "exact", head: true }).eq("client_user_id", utilisateurId);
+      if (erreurAnciennete) throw new ErreurMetier("ERREUR_SERVEUR", "Impossible de vérifier si ce code vous est destiné. Réessayez dans un instant.");
+      if ((count ?? 0) > 0) throw new ErreurMetier("VALIDATION", "Ce code est réservé aux nouveaux clients.", { codePromo: "Code réservé aux nouveaux clients." });
+    }
+  }
+  // Comptage seulement au moment d'insérer (après toutes les validations) : aucun échec de livraison ou de table ne consomme une utilisation.
+  const compterUtilisationPromo = async () => {
+    if (!campagnePromo) return;
+    const maintenantIso = new Date().toISOString();
+    for (let essai = 0; essai < 5 && !promoCompte; essai++) {
+      const { data: actuelle, error: erreurLecture } = await campagnesDb.from("campagnes").select("utilisations, plafond_utilisations").eq("id", campagnePromo.id).maybeSingle();
+      if (erreurLecture) throw new ErreurMetier("ERREUR_SERVEUR", "Les codes promo sont momentanément illisibles. Réessayez dans un instant.");
+      if (!actuelle) throw new ErreurMetier("VALIDATION", "Code promo inconnu. Vérifiez le code, ou retirez-le pour commander sans remise.", { codePromo: "Code promo inconnu." });
+      if (actuelle.utilisations >= actuelle.plafond_utilisations) throw new ErreurMetier("VALIDATION", "Code expiré ou plafond atteint. Choisissez un autre code.", { codePromo: "Code expiré ou plafond atteint." });
+      // Le CAS revérifie l'état et la période au moment même du comptage : une suspension ou l'échéance survenue entre-temps refuse le comptage.
+      const { data: touchees, error: erreurMaj } = await campagnesDb.from("campagnes").update({ utilisations: actuelle.utilisations + 1 }).eq("id", campagnePromo.id).eq("utilisations", actuelle.utilisations).eq("etat", "active").lte("debut", maintenantIso).gt("fin", maintenantIso).select("id");
+      if (erreurMaj) throw new ErreurMetier("ERREUR_SERVEUR", "Les codes promo sont momentanément illisibles. Réessayez dans un instant.");
+      if (touchees && touchees.length > 0) promoCompte = true;
+    }
+    if (!promoCompte) throw new ErreurMetier("VALIDATION", "Code expiré ou plafond atteint. Choisissez un autre code.", { codePromo: "Code expiré ou plafond atteint." });
+  };
+  const sousTotalStocke = sousTotal - remisePromo;
+
   // Le client doit avoir vu le bon total : si un prix a changé entre l'affichage et
   // l'envoi, rien n'est créé et le nouveau total lui est présenté (revue de sécurité,
   // point 8). Le prix utilisé reste TOUJOURS celui du serveur.
@@ -203,7 +265,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   let livraisonGratuite = false;
   let livraisonPoint: { latitude: number; longitude: number } | null = null;
   if (payload.mode === "livraison") {
-    const estimation = await estimerLivraison(payload.restaurantId, payload.destination ?? null, sousTotal);
+    const estimation = await estimerLivraison(payload.restaurantId, payload.destination ?? null, sousTotalStocke);
     if (estimation.statut === "erreur") {
       throw new ErreurMetier("VALIDATION", estimation.message, { livraison: estimation.message });
     }
@@ -246,6 +308,19 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     }
   }
 
+  try {
+    await compterUtilisationPromo();
+  } catch (echecPromo) {
+    // Course entre soumissions jumelles : si la commande de la jumelle existe déjà, c'est un succès idempotent, pas un plafond.
+    const { data: concurrentePromo } = await db.from("orders").select("id, reference, jeton_suivi, restaurant_id, client_user_id, est_test").eq("jeton_suivi", jeton).maybeSingle();
+    if (concurrentePromo) {
+      verifierMemeRestaurant(concurrentePromo.restaurant_id, payload.restaurantId);
+      if (concurrentePromo.client_user_id !== null && concurrentePromo.client_user_id !== utilisateurId) throw new ErreurMetier("VALIDATION", "Cette commande ne peut pas être rejouée. Rechargez la page.");
+      return { id: concurrentePromo.id, reference: concurrentePromo.reference, jeton: concurrentePromo.jeton_suivi, idempotent: true, estTest: concurrentePromo.est_test };
+    }
+    throw echecPromo;
+  }
+
   // Trois tentatives au cas (rare) où la référence aléatoire serait déjà prise.
   for (let tentative = 0; tentative < 3; tentative += 1) {
     const reference = genererReference();
@@ -263,7 +338,9 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
         client_adresse: payload.client.adresse,
         mode: payload.mode,
         table_numero: payload.mode === "sur_place" ? (payload.table ?? null) : null,
-        sous_total: sousTotal,
+        sous_total: sousTotalStocke,
+        // Colonnes ajoutées par la migration des campagnes, pas encore dans les types générés.
+        ...({ code_promo: campagnePromo?.code ?? null, remise_promo_gnf: remisePromo } as Record<string, unknown>),
         // Frais calculés par le serveur (voir plus haut) ; 0 tant que le calcul automatique est éteint (frais à convenir).
         frais_livraison_estime: fraisLivraison,
         ...(livraisonPoint
@@ -331,7 +408,9 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
       } catch (echec) {
         // Pas de transaction Supabase possible ici : on retire la commande
         // orpheline pour ne jamais laisser une commande sans lignes.
-        await db.from("orders").delete().eq("id", inseree.id);
+        const { error: erreurSuppression } = await db.from("orders").delete().eq("id", inseree.id);
+        // Utilisation rendue seulement si la commande orpheline a bien été retirée ; sinon elle existe et la gardera.
+        if (!erreurSuppression) await rendreUtilisationPromo();
         if (echec instanceof ErreurMetier) {
           throw echec;
         }
@@ -355,6 +434,8 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
         .eq("jeton_suivi", jeton)
         .maybeSingle();
       if (concurrente) {
+        // La commande existe (soumission jumelle) : notre utilisation comptée en trop est rendue avant de renvoyer son succès.
+        await rendreUtilisationPromo();
         verifierMemeRestaurant(concurrente.restaurant_id, payload.restaurantId);
         return {
           id: concurrente.id,
@@ -369,6 +450,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
       continue; // deux commandes de comptoir simultanées : nouveau calcul du numéro
     }
     if (error && !estViolationUniqueReference(error)) {
+      await rendreUtilisationPromo();
       throw new ErreurMetier(
         "ERREUR_SERVEUR",
         "Commande non enregistrée. Réessayez dans un instant."
@@ -376,5 +458,6 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
     }
   }
 
+  await rendreUtilisationPromo();
   throw new ErreurMetier("ERREUR_SERVEUR", "Commande non enregistrée. Réessayez dans un instant.");
 }

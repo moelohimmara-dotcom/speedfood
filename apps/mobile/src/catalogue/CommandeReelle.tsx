@@ -162,6 +162,9 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       <TextInput ref={k.reference('precisions')} onFocus={k.auFocus('precisions')} onBlur={k.auBlur} accessibilityLabel="Précisions pour le livreur" placeholder="Couleur du portail, étage, nom sur la porte" value={m.precisions} onChangeText={v => m.saisir('precisions', v)} editable={!verrouille} maxLength={PRECISIONS_MAX} multiline style={s.champ} />
       {m.erreursAdresse.precisions && <Text accessibilityRole="alert" style={s.secondaire}>{m.erreursAdresse.precisions}</Text>}
     </>}
+    <Text style={s.texte}>Code promo (facultatif)</Text>
+    <TextInput ref={k.reference('codePromo')} onFocus={k.auFocus('codePromo')} onBlur={k.auBlur} accessibilityLabel="Code promo" placeholder="Exemple : BIENVENUE10" value={m.codePromo} onChangeText={v => m.saisir('codePromo', v)} editable={!verrouille} autoCapitalize="characters" autoCorrect={false} maxLength={32} style={s.champ} />
+    {m.codePromo.trim() !== '' && <Text style={s.secondaire}>La remise sera calculée et confirmée par le serveur à l’envoi ; un code invalide refuse la commande avec son motif.</Text>}
     <Pressable accessibilityRole="checkbox" accessibilityLabel={TEXTE_CONSENTEMENT} accessibilityState={{ checked: m.consentement, disabled: verrouille }} disabled={verrouille} onPress={() => m.saisir('consentement', !m.consentement)} style={s.consentement}>
       <View style={[s.case, m.consentement && s.caseCochee]}>{m.consentement && <Text style={s.coche}>✓</Text>}</View>
       <Text style={s.consentementTexte}>{TEXTE_CONSENTEMENT}</Text>

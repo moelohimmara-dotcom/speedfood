@@ -121,7 +121,7 @@ export type EstimationLivraison =
 export type ResultatEstimation = EstimationLivraison | { statut: 'erreur' };
 /** Estimation OBTENUE pour un restaurant, un quartier et un sous-total précis : périmée (donc inutilisable) dès que l'un des trois change. */
 export interface EstimationObtenue { restaurantId: string; quartierId: string | null; position?: PointLivraison | null; sousTotal: number; estimation: EstimationLivraison }
-export interface SaisieCommande { nom: string; telephone: string; consentement: boolean; mode?: ModeCommande; adresse?: string; quartierId?: string | null; position?: PointLivraison | null; estimation?: EstimationObtenue | null }
+export interface SaisieCommande { nom: string; telephone: string; consentement: boolean; mode?: ModeCommande; adresse?: string; quartierId?: string | null; position?: PointLivraison | null; estimation?: EstimationObtenue | null; codePromo?: string }
 export interface ErreursSaisie { nom?: string; telephone?: string; consentement?: string; panier?: string; adresse?: string; quartier?: string; livraison?: string }
 
 /** Contrôle strict de la réponse de `POST /api/v1/livraison/estimation` ({ok, estimation}). Le texte brut du serveur n'est jamais conservé. */
@@ -203,15 +203,16 @@ export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCatalogueP
   if (livraison && !erreurs.quartier && !estimationValable(saisie.estimation, panier.restaurantId, saisie.quartierId, bilan.total, position)) erreurs.livraison = 'Les frais de livraison doivent être recalculés avant l’envoi.';
   if (erreurs.nom || erreurs.telephone || erreurs.consentement || erreurs.panier || erreurs.adresse || erreurs.quartier || erreurs.livraison || telephone === null || bilan.total === null || !panier.restaurantId) return { ok: false, erreurs };
   const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [...(l.optionIds ?? [])] }));
-  const base = { restaurantId: panier.restaurantId, lignes, sousTotalAffiche: bilan.total, consentementReglement: true };
+  const codePromo = (saisie.codePromo ?? '').trim().toUpperCase().replace(/[\s-]+/g, '');
+  const base = { restaurantId: panier.restaurantId, lignes, sousTotalAffiche: bilan.total, consentementReglement: true, ...(codePromo ? { codePromo } : {}) };
   if (!livraison) {
-    const empreinte = JSON.stringify([compteId, panier.restaurantId, 'retrait', lignes, nom, telephone, bilan.total]);
+    const empreinte = JSON.stringify([compteId, panier.restaurantId, 'retrait', lignes, nom, telephone, bilan.total, codePromo]);
     return { ok: true, payload: { cleIdempotence: tentative.cle(empreinte), ...base, client: { nom, telephone, adresse: null }, mode: 'retrait' } };
   }
   const adresse = (saisie.adresse ?? '').trim(); const quartierId = position ? null : saisie.quartierId as string; const est = (saisie.estimation as EstimationObtenue).estimation;
   const fraisAffiches = est.statut === 'ok' ? est.fraisGnf : undefined; // calcul éteint : aucun montant exigé ni envoyé
-  // L'empreinte porte tout ce que le client a vu et confirmé : mode, adresse, quartier ou position, frais. Si l'un change, la clé change.
-  const empreinte = JSON.stringify([compteId, panier.restaurantId, 'livraison', lignes, nom, telephone, adresse, quartierId, position ? [position.latitude, position.longitude] : null, fraisAffiches ?? null, bilan.total]);
+  // L'empreinte porte tout ce que le client a vu et confirmé : mode, adresse, quartier ou position, frais, code promo. Si l'un change, la clé change.
+  const empreinte = JSON.stringify([compteId, panier.restaurantId, 'livraison', lignes, nom, telephone, adresse, quartierId, position ? [position.latitude, position.longitude] : null, fraisAffiches ?? null, bilan.total, codePromo]);
   return { ok: true, payload: {
     cleIdempotence: tentative.cle(empreinte), ...base, client: { nom, telephone, adresse }, mode: 'livraison',
     destination: position ? { latitude: position.latitude, longitude: position.longitude } : { quartierId: quartierId as string }, ...(fraisAffiches !== undefined ? { fraisAffiches } : {}),
