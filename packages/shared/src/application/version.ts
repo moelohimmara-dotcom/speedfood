@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 117,
-    nom: "3.1.14",
-    notes: "Pour l'équipe Speedfood : les finances affichent désormais les vrais paiements libérés et l'état réel des versements, par restaurant.",
+    code: 118,
+    nom: "3.1.15",
+    notes: "Un code promo offert par Speedfood ? Saisissez-le au moment de commander : la remise est déduite de votre total, confirmée par le serveur.",
     obligatoire: false,
-    apkSha256: "689c349304e2e1d977f6a4d3d78c0e87ba1dc7e4644886805e784fbd7fac2cc1",
+    apkSha256: "8eab78e9773e9cd7c0be9922178236de7200005839013707546acde42de8002e",
     apkTaille: 66328754,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.14.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.15.apk",
   },
 };
