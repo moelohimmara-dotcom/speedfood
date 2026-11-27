@@ -46,6 +46,20 @@ export function fournisseursActifsDepuis(reglages: unknown, facebookOuvertParLEq
   return actifs;
 }
 
+/** Le retour attendu (page relais ou lien de l'application), qu'il porte un code ou une erreur du fournisseur. */
+export function estRetourSocial(url: string, siteWeb: string): boolean {
+  if (typeof url !== 'string') return false;
+  const valeur = url.trim();
+  return valeur.startsWith(siteWeb.replace(/\/$/, '') + CHEMIN_RETOUR_SOCIAL) || SCHEMES_APP.some(s => valeur.startsWith(s + 'auth/application'));
+}
+/** Le fournisseur a refusé ou la personne a annulé : le retour porte `error`. */
+export function retourEnErreur(url: string, siteWeb: string): boolean {
+  if (!estRetourSocial(url, siteWeb)) return false;
+  const q = url.indexOf('?');
+  return q !== -1 && !!new URLSearchParams(url.slice(q + 1).split('#')[0]).get('error');
+}
+export const MESSAGE_CONNEXION_SOCIALE_REFUSEE = 'La connexion n’a pas été confirmée. Réessayez, ou connectez-vous avec votre e-mail.';
+export const MESSAGE_CONNEXION_SOCIALE_PERDUE = 'Le retour de la connexion est arrivé trop tard (l’application a été fermée entre-temps). Touchez de nouveau le bouton de connexion.';
 /** Code à usage unique lu sur le retour attendu (page relais du site ou lien de l'application), jamais sur une erreur ni un autre hôte. */
 export function lireCodeRetourSocial(url: string, siteWeb: string): string | null {
   if (typeof url !== 'string') return null;

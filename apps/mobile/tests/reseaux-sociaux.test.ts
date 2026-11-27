@@ -45,3 +45,17 @@ test('sociaux : code de retour lu seulement sur le retour attendu, jamais sur un
   assert.equal(lireCodeRetourSocial(SITE + '/auth/application', SITE), null);
   assert.equal(lireCodeRetourSocial('pas une adresse', SITE), null);
 });
+
+test('retour social : reconnu (code ou erreur), refus du fournisseur détecté, autres adresses ignorées', async () => {
+  const { estRetourSocial, retourEnErreur, MESSAGE_CONNEXION_SOCIALE_PERDUE, MESSAGE_CONNEXION_SOCIALE_REFUSEE } = await import('../src/connexion/reseaux-sociaux.ts');
+  assert.equal(estRetourSocial(SITE + '/auth/application?code=C1', SITE), true);
+  assert.equal(estRetourSocial('speedfood://auth/application?code=C1', SITE), true);
+  assert.equal(estRetourSocial('speedfood-demo://auth/application?error=access_denied', SITE), true);
+  assert.equal(estRetourSocial('https://autre.example/auth/application?code=C1', SITE), false);
+  assert.equal(estRetourSocial(SITE + '/restaurants', SITE), false);
+  assert.equal(retourEnErreur(SITE + '/auth/application?error=access_denied&error_description=x', SITE), true);
+  assert.equal(retourEnErreur('speedfood://auth/application?error=server_error', SITE), true);
+  assert.equal(retourEnErreur(SITE + '/auth/application?code=C1', SITE), false);
+  assert.equal(retourEnErreur(SITE + '/restaurants?error=1', SITE), false);
+  assert.match(MESSAGE_CONNEXION_SOCIALE_REFUSEE, /pas été confirmée/); assert.match(MESSAGE_CONNEXION_SOCIALE_PERDUE, /Touchez de nouveau/);
+});
