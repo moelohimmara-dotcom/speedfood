@@ -8,7 +8,7 @@ import type { PointLivraison } from './commande-reelle';
 import { doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, LIVRAISON_CLIENT_DISPONIBLE, TEXTE_PARTAGE_POSITION, totalEstime, validerSaisie } from './commande-reelle';
 import { EXEMPLE_REPERE, PRECISIONS_MAX, REPERE_MAX } from '../../../../packages/shared/src/commande/adresse-livraison';
 import { MESSAGE_POSITION_INDISPONIBLE, MESSAGE_POSITION_REFUSEE, lienCarte, situerClient } from '../connexion/position-client';
-import { positionTelephone } from '../connexion/position-telephone';
+import { positionTelephoneAvecRepli } from '../connexion/position-telephone';
 import { EnvoiCommande } from './envoi-commande';
 import { COMMENTAIRE_PLATS_A_CONFIRMER, TEXTE_CONSENTEMENT, TITRE_PARCOURS, commandabilite, etapesParcours, nombreAConfirmer, phraseARegler } from './parcours-client';
 import { creerLecteurCatalogue } from './client';
@@ -80,7 +80,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   async function utiliserMaPosition() {
     if (lecturePosition || verrouille) return;
     setLecturePosition(true); setMessagePosition(null);
-    const r = await situerClient(positionTelephone);
+    const r = await situerClient(positionTelephoneAvecRepli);
     setLecturePosition(false);
     if (r.genre === 'ok') m.saisirPosition(r.point);
     else setMessagePosition((r.genre === 'refusee' ? MESSAGE_POSITION_REFUSEE : MESSAGE_POSITION_INDISPONIBLE) + ' Vous pouvez aussi choisir votre quartier.');
