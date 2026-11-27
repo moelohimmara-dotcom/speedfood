@@ -33,6 +33,7 @@ import { usePersonnalisation } from './usePersonnalisation';
 import { personnaliser } from './recherche-perso';
 import { BadgeScore, CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
 import { DetailPlat } from './DetailPlat';
+import { adresseWhatsApp, lireAide } from '../connexion/aide';
 import { badgesAffichables, grouperMenu, libelleCoteRestaurant, libelleHoraire, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { BarreOnglets } from './BarreOnglets';
@@ -154,6 +155,7 @@ export function CatalogueReel() {
   // Suppléments (10.2) et changement de restaurant (G8) : un plat avec suppléments ouvre d'abord leur choix ; un panier d'un autre restaurant demande confirmation avant d'être vidé.
   const [platEnChoix, setPlatEnChoix] = useState<PlatCataloguePublic | null>(null);
   const [platDetail, setPlatDetail] = useState<PlatCataloguePublic | null>(null);
+  const [optionsPrechoisies, setOptionsPrechoisies] = useState<string[]>([]);
   const [remplacement, setRemplacement] = useState<{ plat: PlatCataloguePublic; optionIds: string[] } | null>(null);
   function ajouterAuPanier(p: PlatCataloguePublic, optionIds: string[]) {
     const r = menu?.restaurant; if (!r) return;
@@ -168,7 +170,7 @@ export function CatalogueReel() {
   function demanderAjout(p: PlatCataloguePublic) {
     const dispo = menu ? commandabilite(menu.restaurant) : null;
     if (dispo && !dispo.commandable) { setMessagePanier(dispo.titre + '. ' + dispo.message); return; }
-    if ((p.options?.length ?? 0) > 0) setPlatEnChoix(p); else ajouterAuPanier(p, []);
+    if ((p.options?.length ?? 0) > 0) { setOptionsPrechoisies(memos.filter(m => m.restaurantId === menu?.restaurant.id).flatMap(m => m.lignes.filter(l => l.platId === p.id).flatMap(l => l.optionIds ?? []))); setPlatEnChoix(p); } else ajouterAuPanier(p, []);
   }
   function remplacerPanier() {
     const r = menu?.restaurant; const demande = remplacement; setRemplacement(null);
@@ -339,7 +341,7 @@ export function CatalogueReel() {
         {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
       </>}
       {menu && <>
-        <EnteteFiche restaurant={menu.restaurant} />
+        <EnteteFiche key={menu.restaurant.id} restaurant={menu.restaurant} />
         {nombreAConfirmer(menu.plats) > 0 && <Text style={s.secondaire}>{LEGENDE_A_CONFIRMER}</Text>}
         {groupesMenu.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{groupesMenu.map(g => <Pressable key={'puce-' + g.titre} accessibilityRole="button" accessibilityLabel={`Aller à la section ${g.titre}`} onPress={() => { const y = positionsSections.current[g.titre]; if (y !== undefined) defilementCatalogue.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }); }} style={s.puceZone}><Text style={s.puceTexte}>{g.titre}</Text></Pressable>)}</ScrollView>}
         {groupesMenu.map(g => <View key={'section-' + g.titre} onLayout={e => { positionsSections.current[g.titre] = e.nativeEvent.layout.y; }} style={{ gap: 12 }}>
@@ -370,8 +372,8 @@ export function CatalogueReel() {
     <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
     <ChoixZone visible={zoneOuverte} zones={zones} nombres={nombreParZone(restaurants, zones)} total={restaurants.length} courante={zone} choisir={choisirZone} fermer={() => setZoneOuverte(false)} />
-    <ChoixSupplements key={platEnChoix?.id ?? 'aucun'} plat={platEnChoix} annuler={() => setPlatEnChoix(null)} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); if (p) ajouterAuPanier(p, ids); }} />
-    <DetailPlat key={platDetail?.id ?? 'aucun'} plat={platDetail} fermer={() => setPlatDetail(null)} desactive={!panier.pret} commandable={menu ? commandabilite(menu.restaurant).commandable : true} ajouter={(p) => demanderAjout(p)} />
+    <ChoixSupplements key={(platEnChoix?.id ?? 'aucun') + ':' + optionsPrechoisies.join(',')} plat={platEnChoix} selectionInitiale={optionsPrechoisies} annuler={() => { setPlatEnChoix(null); setOptionsPrechoisies([]); }} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); setOptionsPrechoisies([]); if (p) ajouterAuPanier(p, ids); }} />
+    <DetailPlat key={platDetail?.id ?? 'aucun'} plat={platDetail} fermer={() => setPlatDetail(null)} desactive={!panier.pret} commandable={menu ? commandabilite(menu.restaurant).commandable : true} ajouter={(p) => demanderAjout(p)} restaurant={menu ? { id: menu.restaurant.id, nom: menu.restaurant.nom } : undefined} dejaCommande={platDetail !== null && memos.some(m => m.restaurantId === menu?.restaurant.id && m.lignes.some(l => l.platId === platDetail.id))} signalerPhoto={(p) => { setPlatDetail(null); void (async () => { const numero = await lireAide(); const adresse = adresseWhatsApp(numero); if (adresse) { const texte = encodeURIComponent(`Bonjour Speedfood, je signale une photo inexacte : « ${p.nom} » chez ${menu?.restaurant.nom ?? 'un restaurant'} (plat ${p.id}).`); await Linking.openURL(`${adresse}?text=${texte}`).catch(() => { setMessagePanier('Impossible d’ouvrir WhatsApp : signalez cette photo depuis l’aide, en haut de l’écran.'); }); } else { setMessagePanier('Assistance indisponible pour le moment : ouvrez l’aide depuis le bandeau pour signaler cette photo.'); } })(); }} />
     <ChangerRestaurant visible={remplacement !== null} nomPanier={panier.menu?.restaurant.nom ?? null} vider={remplacerPanier} garder={() => setRemplacement(null)} />
     <ChangerRestaurant visible={recommandeEnAttente !== null} titreAction="Vider et recommander" nomPanier={panier.menu?.restaurant.nom ?? null} vider={() => { if (recommandeEnAttente) void recommander(recommandeEnAttente); }} garder={() => setRecommandeEnAttente(null)} />
   </View>;

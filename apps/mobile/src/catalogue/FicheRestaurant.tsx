@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ZoomImage } from './ZoomImage';
 import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
@@ -25,9 +26,11 @@ export function BadgeScore({ palier }: { palier?: string }) {
 /** En-tête de la fiche : logo ou photo, lieu, état, note, fraîcheur du statut, horaires, consignes et moyens de paiement (seulement ceux que le serveur a transmis). */
 export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic }) {
   const [photoEchouee, setPhotoEchouee] = useState<string | null>(null);
+  const [zoomCouverture, setZoomCouverture] = useState(false);
   const etat = titreEtatRestaurant(r); const note = libelleCoteRestaurant(r); const horaire = libelleHoraire(r, new Date()); const statut = libelleStatut(r); const dispo = commandabilite(r); const moyens = moyensAffichables(r.moyensPaiement);
   return <View style={s.carte}>
-    {r.photoUrl && photoEchouee !== r.photoUrl ? <Image source={{ uri: r.photoUrl }} accessible={false} accessibilityIgnoresInvertColors resizeMode="cover" onError={() => setPhotoEchouee(r.photoUrl ?? null)} style={s.photo} /> : null}
+    {r.photoUrl && photoEchouee !== r.photoUrl ? <Pressable accessibilityRole="imagebutton" accessibilityLabel={`Photo de ${r.nom}. Touchez pour agrandir.`} onPress={() => setZoomCouverture(true)}><Image source={{ uri: r.photoUrl }} accessible={false} accessibilityIgnoresInvertColors resizeMode="cover" onError={() => setPhotoEchouee(r.photoUrl ?? null)} style={s.photo} /></Pressable> : null}
+    <ZoomImage url={r.photoUrl} nom={r.nom} visible={zoomCouverture} fermer={() => setZoomCouverture(false)} onErreur={() => setPhotoEchouee(r.photoUrl ?? null)} />
     <View style={{ flexDirection: 'row', gap: 14 }}>
       <Vignette url={r.logoUrl ?? r.photoUrl} nom={r.nom} taille={84} />
       <View style={{ flex: 1, gap: 6 }}>

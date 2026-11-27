@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import type { PlatCataloguePublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
@@ -7,6 +7,7 @@ import { Pastille } from './FicheRestaurant';
 import { enPromo, libelleAllergenesPlat } from './menu-groupes';
 import { etatPlat } from './parcours-client';
 import { ZoomImage } from './ZoomImage';
+import { SITE_WEB } from '../connexion/aide';
 import { DETAIL_IMAGE_ILLUSTRATIVE, LIBELLE_IMAGE_ILLUSTRATIVE } from '../../../../packages/shared/src/menu/image-illustrative.ts';
 
 const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
@@ -16,7 +17,7 @@ const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
  * description entière, prix et promotion, allergènes, suppléments avec prix, disponibilité et ajout au panier.
  * Sans photo, la fiche reste complète et aucun zoom n'est proposé.
  */
-export function DetailPlat({ plat: p, fermer, ajouter, desactive, maintenant = new Date(), commandable = true }: { plat: PlatCataloguePublic | null; fermer(): void; ajouter(plat: PlatCataloguePublic): void; desactive: boolean; maintenant?: Date; commandable?: boolean }) {
+export function DetailPlat({ plat: p, fermer, ajouter, desactive, maintenant = new Date(), commandable = true, restaurant, dejaCommande = false, signalerPhoto }: { plat: PlatCataloguePublic | null; fermer(): void; ajouter(plat: PlatCataloguePublic): void; desactive: boolean; maintenant?: Date; commandable?: boolean; restaurant?: { id: string; nom: string }; dejaCommande?: boolean; signalerPhoto?(plat: PlatCataloguePublic): void }) {
   const [zoom, setZoom] = useState(false);
   const [photoEchouee, setPhotoEchouee] = useState<string | null>(null);
   // À chaque plat, zoom et échec de photo repartent de zéro : rien ne fuit d'une fiche à l'autre.
@@ -63,7 +64,10 @@ export function DetailPlat({ plat: p, fermer, ajouter, desactive, maintenant = n
               </View>
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{detail && <Text style={s.secondaire}>{detail}</Text>}</View>
+            {dejaCommande && <Text style={s.dejaCommande}>Vous avez déjà commandé ce plat : vos suppléments de la dernière fois sont déjà cochés à l’étape suivante, vérifiez-les avant de confirmer.</Text>}
             <Bouton titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : !commandable ? 'Commande indisponible' : `Ajouter ${p.nom} au panier`} disabled={desactive || !commandable || p.disponibilite === 'epuise'} onPress={() => { fermer(); ajouter(p); }} />
+            {restaurant && <Bouton titre="Partager ce plat" secondaire onPress={() => { const lien = `${SITE_WEB}/restaurants/${restaurant.id}#plat-${p.id}`; void Share.share({ message: `${p.nom} chez ${restaurant.nom} sur Speedfood : ${lien}`, url: lien }).catch(() => undefined); }} />}
+            {aPhoto && signalerPhoto && <Bouton titre="Signaler une photo inexacte" secondaire onPress={() => Alert.alert('Signaler cette photo', 'Elle ne montre pas le plat servi, ou ce n’est pas la bonne image ? L’assistance Speedfood la vérifiera et la retirera si besoin.', [{ text: 'Annuler', style: 'cancel' }, { text: 'Signaler à l’assistance', onPress: () => signalerPhoto(p) }])} />}
           </ScrollView>
         </View>
       </View>
@@ -90,4 +94,5 @@ const s = StyleSheet.create({
   secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   sousTitre: { color: c.encre, fontFamily: polices.titre, fontSize: 16 },
   ligneOption: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  dejaCommande: { color: c.action, fontFamily: polices.texte, fontSize: 13, fontWeight: '700', lineHeight: 19 },
 });
