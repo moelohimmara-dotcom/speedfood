@@ -39,6 +39,8 @@ export async function situerClient(d: DependancesPosition, delaiMs: number = DEL
   } catch { return { genre: 'indisponible' }; }
 }
 
+/** Lien qui ouvre un point dans l'application de cartes du téléphone (Google Maps si elle est installée, sinon le navigateur) : aucune clé, aucun quota, aucune tuile à charger. */
+export const lienCarte = (p: PointCarte): string => `https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`;
 /** Distance à vol d'oiseau en mètres (formule de haversine). */
 export function distanceMetres(a: PointCarte, b: PointCarte): number {
   const R = 6371000; const rad = (x: number) => (x * Math.PI) / 180;

@@ -165,7 +165,7 @@ test('livraison retirée de l’application : le mode livraison ne peut pas êtr
   const envoyes: CreationCommandePayload[] = [];
   const m = new EnvoiCommande({ generer, livraisonDisponible: false, envoyer: async p => { envoyes.push(p); return { reference: 'SF-ABCDE', idempotent: false }; } });
   m.lierCompte('A'); remplir(m);
-  m.saisir('mode', 'livraison'); m.saisir('quartierId', 'q1'); m.saisir('adresse', 'Rue 12, Kaloum');
+  m.saisir('mode', 'livraison'); m.saisir('quartierId', 'q1'); m.saisir('repere', 'Rue 12, Kaloum');
   assert.equal(m.mode, 'retrait');
   assert.deepEqual(await go(m), { type: 'succes', reference: 'SF-ABCDE', panierVide: true });
   assert.equal(envoyes.length, 1); assert.equal(envoyes[0].mode, 'retrait');

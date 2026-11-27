@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { estimerLivraisonAction, type EstimationPublique } from "@/lib/livraison/actions";
 import { Alert } from "@/components/ui";
+import { TEXTE_PARTAGE_POSITION } from "@/lib/commande/adresse-livraison";
 import { ListeChoix, type OptionChoix } from "@/components/ui/ListeChoix";
 
 export interface DestinationChoisie {
@@ -93,8 +94,21 @@ export function ChoixLivraison({ restaurantId, sousTotalGnf, quartiers, onChange
         idEtiquette="commande-livraison-titre"
       />
       <button type="button" className="commande-livraison-position" onClick={utiliserMaPosition}>
-        Utiliser ma position
+        {position ? "Actualiser ma position" : "Utiliser ma position"}
       </button>
+      {position ? (
+        <p className="commande-livraison-aide" aria-live="polite">
+          Position partagée : livraison à cet endroit (à environ 10 m près).{" "}
+          <a href={`https://www.openstreetmap.org/?mlat=${position.latitude}&mlon=${position.longitude}#map=17/${position.latitude}/${position.longitude}`} target="_blank" rel="noopener noreferrer">
+            Voir sur la carte
+          </a>{" · "}
+          <button type="button" className="commande-livraison-position" onClick={() => setPosition(null)}>
+            Retirer ma position
+          </button>
+        </p>
+      ) : (
+        <p className="commande-livraison-aide">{TEXTE_PARTAGE_POSITION}</p>
+      )}
       {message ? <p className="commande-livraison-aide">{message}</p> : null}
       <div className="commande-livraison-resultat" aria-live="polite">
         {calcul ? <p className="commande-livraison-aide">Calcul de la livraison…</p> : null}

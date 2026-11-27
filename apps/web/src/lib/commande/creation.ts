@@ -124,6 +124,7 @@ export async function creerCommande(payload: CreationCommandePayload, utilisateu
   if (!estJetonValide(jeton)) throw new Error("calcul_jeton_indisponible");
   const db = creerClientAdmin();
   // Table `campagnes` pas encore dans les types générés : accès libre, colonnes relues et validées à la main ci-dessous.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table absente des types générés (migrations campagnes et score)
   const campagnesDb = db as unknown as { from: (table: string) => any };
   if (saisiePar !== null) {
     if (utilisateurId !== null || payload.mode !== "sur_place") {

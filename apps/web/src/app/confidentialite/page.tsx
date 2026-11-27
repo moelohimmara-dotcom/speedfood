@@ -51,6 +51,14 @@ export default async function ConfidentialitePage() {
         l&apos;enregistre pas. Vous pouvez toujours choisir votre zone à la main.
       </p>
 
+      <h2>Votre position pour une livraison (facultatif)</h2>
+      <p>
+        Quand vous commandez en livraison, vous pouvez partager votre position avec « Utiliser ma position » pour indiquer où vous livrer. Elle n&apos;est
+        envoyée qu&apos;après votre clic et l&apos;accord de votre appareil, pour cette commande seulement. Elle est alors arrondie (environ 10 mètres) et
+        conservée avec la commande, comme l&apos;adresse de livraison : Speedfood s&apos;en sert pour calculer les frais de livraison, et le restaurant et le
+        livreur la voient pour vous trouver. Vous pouvez toujours choisir votre quartier à la place.
+      </p>
+
       <h2>Si vous êtes livreur : votre position</h2>
       <p>
         Si vous êtes livreur, Speedfood collecte votre position précise (GPS) seulement quand vous êtes en ligne. Cette

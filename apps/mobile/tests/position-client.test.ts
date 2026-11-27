@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { distanceMetres, phraseDistanceLivreur, situerClient, texteDistance, type DependancesPosition } from '../src/connexion/position-client.ts';
+import { distanceMetres, lienCarte, phraseDistanceLivreur, situerClient, texteDistance, type DependancesPosition } from '../src/connexion/position-client.ts';
 
 const RESTAURANT = { latitude: 9.51, longitude: -13.71 };
 const ADRESSE = { latitude: 9.55, longitude: -13.68 };
@@ -62,4 +62,8 @@ test('position du client : la phrase de distance exige les deux positions', () =
   assert.equal(phraseDistanceLivreur(null, ADRESSE), null);
   assert.equal(phraseDistanceLivreur(RESTAURANT, null), null);
   assert.match(phraseDistanceLivreur(RESTAURANT, ADRESSE) ?? '', /^Le livreur est à environ .* km de vous\.$/);
+});
+
+test('lienCarte : ouvre le point exact dans l’application de cartes, sans clé', () => {
+  assert.equal(lienCarte({ latitude: 9.5412, longitude: -13.6781 }), 'https://www.google.com/maps/search/?api=1&query=9.5412,-13.6781');
 });

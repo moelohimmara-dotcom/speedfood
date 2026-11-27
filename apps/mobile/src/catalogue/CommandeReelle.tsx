@@ -1,10 +1,14 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { libelleModeClient } from '../domaine/libelle-mode';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { chiffrer, type PanierReel } from './panier-reel';
-import { ADRESSE_MAX, doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, LIVRAISON_CLIENT_DISPONIBLE, totalEstime, validerSaisie } from './commande-reelle';
+import type { PointLivraison } from './commande-reelle';
+import { doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, LIVRAISON_CLIENT_DISPONIBLE, TEXTE_PARTAGE_POSITION, totalEstime, validerSaisie } from './commande-reelle';
+import { EXEMPLE_REPERE, PRECISIONS_MAX, REPERE_MAX } from '../../../../packages/shared/src/commande/adresse-livraison';
+import { MESSAGE_POSITION_INDISPONIBLE, MESSAGE_POSITION_REFUSEE, lienCarte, situerClient } from '../connexion/position-client';
+import { positionTelephone } from '../connexion/position-telephone';
 import { EnvoiCommande } from './envoi-commande';
 import { COMMENTAIRE_PLATS_A_CONFIRMER, TEXTE_CONSENTEMENT, TITRE_PARCOURS, commandabilite, etapesParcours, nombreAConfirmer, phraseARegler } from './parcours-client';
 import { creerLecteurCatalogue } from './client';
@@ -43,16 +47,18 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
   const [quartiers, setQuartiers] = useState<Quartiers>({ etat: 'aucun', liste: [] });
   const [recherche, setRecherche] = useState('');
   const [essaiQuartiers, setEssaiQuartiers] = useState(0);
+  const [lecturePosition, setLecturePosition] = useState(false);
+  const [messagePosition, setMessagePosition] = useState<string | null>(null);
   const plats = etat.menu?.plats ?? [];
   const bilan = chiffrer(etat.panier, plats);
   const connectee = gestion.connectee;
-  const { erreurs } = validerSaisie({ nom: m.nom, telephone: m.telephone, consentement: m.consentement, mode: m.mode, adresse: m.adresse, quartierId: m.quartierId });
+  const { erreurs } = validerSaisie({ nom: m.nom, telephone: m.telephone, consentement: m.consentement, mode: m.mode, adresse: m.adresse, quartierId: m.quartierId, position: m.position });
   const panierPret = !!etat.panier.lignes.length && bilan.total !== null && !etat.lecture && !etat.erreurLecture && !etat.erreur;
   const peutEnvoyer = m.peutEnvoyer(etat.panier, plats, connectee, panierPret);
   const verrouille = m.verrouille;
   useEffect(() => { surVerrou?.(verrouille); }, [verrouille]);
   const livraison = m.mode === 'livraison';
-  const estimation = estimationValable(m.estimation, etat.panier.restaurantId, m.quartierId, bilan.total) ? m.estimation.estimation : null;
+  const estimation = estimationValable(m.estimation, etat.panier.restaurantId, m.quartierId, bilan.total, m.position) ? m.estimation.estimation : null;
   const frais = fraisDeLEstimation(estimation);
   const total = totalEstime(bilan.total, livraison ? frais : 0);
   // Restaurant fermé ou en pause depuis l'ajout au panier : l'écran le dit et ne laisse pas envoyer (le serveur refuserait de toute façon).
@@ -69,7 +75,16 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     return () => { actif = false; setQuartiers(q => q.etat === 'chargement' ? { etat: 'aucun', liste: [] } : q); }; // lecture interrompue (écran fermé, retour au retrait) : à refaire au prochain passage en livraison
   }, [ouvert, livraison, essaiQuartiers]);
   // Frais de livraison : recalculés quand le quartier, le sous-total, le restaurant ou la connexion changent ; la dernière demande remplace les précédentes.
-  useEffect(() => { if (ouvert) void m.actualiserEstimation(etat.panier, plats, connectee, panierPret); }, [ouvert, m.mode, m.quartierId, bilan.total, etat.panier.restaurantId, connectee, panierPret, m.etatEstimation, verrouille]);
+  useEffect(() => { if (ouvert) void m.actualiserEstimation(etat.panier, plats, connectee, panierPret); }, [ouvert, m.mode, m.quartierId, m.position?.latitude, m.position?.longitude, bilan.total, etat.panier.restaurantId, connectee, panierPret, m.etatEstimation, verrouille]);
+  /** Demande la position au téléphone (autorisation « pendant l'utilisation », une seule lecture) : elle remplace le quartier. Refus ou panne : un message, le quartier reste possible. */
+  async function utiliserMaPosition() {
+    if (lecturePosition || verrouille) return;
+    setLecturePosition(true); setMessagePosition(null);
+    const r = await situerClient(positionTelephone);
+    setLecturePosition(false);
+    if (r.genre === 'ok') m.saisirPosition(r.point);
+    else setMessagePosition((r.genre === 'refusee' ? MESSAGE_POSITION_REFUSEE : MESSAGE_POSITION_INDISPONIBLE) + ' Vous pouvez aussi choisir votre quartier.');
+  }
   async function envoyer() {
     const avant = etat.panier; // ce qui part : mémorisé pour « Commander à nouveau » (le panier est vidé juste après)
     const r = await m.envoyer(etat.panier, plats, etat.vider, connectee, panierPret);
@@ -117,20 +132,35 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
     <TextInput ref={k.reference('telephone')} onFocus={k.auFocus('telephone')} onBlur={k.auBlur} accessibilityLabel="Téléphone" placeholder="Exemple : 622 12 34 56" value={m.telephone} onChangeText={v => m.saisir('telephone', v)} editable={!verrouille} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" maxLength={30} style={s.champ} />
     {m.telephone !== '' && erreurs.telephone && <Text accessibilityRole="alert" style={s.secondaire}>{erreurs.telephone}</Text>}
     {livraison && <>
-      <Text style={s.texte}>Adresse de livraison</Text>
-      <TextInput ref={k.reference('adresse')} onFocus={k.auFocus('adresse')} onBlur={k.auBlur} accessibilityLabel="Adresse de livraison" value={m.adresse} onChangeText={v => m.saisir('adresse', v)} editable={!verrouille} autoComplete="street-address" maxLength={ADRESSE_MAX} multiline style={s.champ} />
-      {m.adresse !== '' && erreurs.adresse && <Text accessibilityRole="alert" style={s.secondaire}>{erreurs.adresse}</Text>}
-      <Text style={s.texte}>Quartier</Text>
+      <Text accessibilityRole="header" style={s.nom}>Où livrer ?</Text>
+      <View style={s.carte}>
+        <Action titre={m.position ? 'Actualiser ma position' : 'Utiliser ma position'} secondaire disabled={verrouille || lecturePosition} agir={() => { void utiliserMaPosition(); }} />
+        {lecturePosition && <View accessibilityLiveRegion="polite" style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Recherche de votre position…</Text></View>}
+        {messagePosition && <Text accessibilityRole="alert" style={s.texte}>{messagePosition}</Text>}
+        {m.position ? <>
+          <Text accessibilityLiveRegion="polite" style={s.nom}>Position trouvée</Text>
+          <Text style={s.texte}>Livraison à cet endroit, à environ 10 m près. Ce n’est pas le bon ? Actualisez votre position ou choisissez plutôt votre quartier.</Text>
+          <Action titre="Vérifier sur la carte" secondaire agir={() => { void Linking.openURL(lienCarte(m.position as PointLivraison)).catch(() => undefined); }} />
+          <Action titre="Retirer ma position" variante="texte" disabled={verrouille} agir={() => m.saisirPosition(null)} />
+        </> : <Text style={s.secondaire}>{TEXTE_PARTAGE_POSITION}</Text>}
+      </View>
+      <Text style={s.texte}>{m.position ? 'Ou choisissez plutôt votre quartier' : 'Ou choisissez votre quartier'}</Text>
       {quartierChoisi && <Text accessibilityLiveRegion="polite" style={s.nom}>{quartierChoisi.libelle}</Text>}
       {quartiers.etat === 'chargement' && <View style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement des quartiers…</Text></View>}
-      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez toujours commander à emporter.</Text><Action titre="Réessayer la liste des quartiers" secondaire agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
+      {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez partager votre position ou commander à emporter.</Text><Action titre="Réessayer la liste des quartiers" secondaire agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
       {quartiers.etat === 'ok' && <>
         <TextInput ref={k.reference('quartier')} onFocus={k.auFocus('quartier')} onBlur={k.auBlur} accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
-        {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
+        {(!m.position || recherche.trim() !== '') && propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
         {recherche.trim() !== '' && propositions.length === 0 && <Text accessibilityRole="alert" style={s.secondaire}>Aucun quartier ne correspond. Essayez une autre orthographe.</Text>}
-        {recherche.trim() === '' && !quartierChoisi && <Text style={s.secondaire}>Saisissez le début du nom de votre quartier pour le trouver.</Text>}
+        {recherche.trim() === '' && !quartierChoisi && !m.position && <Text style={s.secondaire}>Saisissez le début du nom de votre quartier pour le trouver.</Text>}
       </>}
-      {m.quartierId && m.etatEstimation === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>{m.messageEstimation}</Text><Action titre="Recalculer les frais de livraison" secondaire disabled={verrouille} agir={() => m.relancerEstimation()} /></View>}
+      {(m.quartierId || m.position) && m.etatEstimation === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>{m.messageEstimation}</Text><Action titre="Recalculer les frais de livraison" secondaire disabled={verrouille} agir={() => m.relancerEstimation()} /></View>}
+      <Text style={s.texte}>{m.position ? 'Repère connu près de chez vous (facultatif)' : 'Repère connu près de chez vous'}</Text>
+      <TextInput ref={k.reference('repere')} onFocus={k.auFocus('repere')} onBlur={k.auBlur} accessibilityLabel="Repère connu près de chez vous" placeholder={'Exemple : ' + EXEMPLE_REPERE} value={m.repere} onChangeText={v => m.saisir('repere', v)} editable={!verrouille} maxLength={REPERE_MAX} multiline style={s.champ} />
+      {m.repere !== '' && m.erreursAdresse.repere ? <Text accessibilityRole="alert" style={s.secondaire}>{m.erreursAdresse.repere}</Text> : <Text style={s.secondaire}>{m.position ? 'Le livreur voit votre position sur la carte ; un repère l’aide à vous trouver plus vite.' : 'Un lieu que tout le monde connaît près de chez vous : c’est ce qui permet au livreur de vous trouver.'}</Text>}
+      <Text style={s.texte}>Précisions (facultatif)</Text>
+      <TextInput ref={k.reference('precisions')} onFocus={k.auFocus('precisions')} onBlur={k.auBlur} accessibilityLabel="Précisions pour le livreur" placeholder="Couleur du portail, étage, nom sur la porte" value={m.precisions} onChangeText={v => m.saisir('precisions', v)} editable={!verrouille} maxLength={PRECISIONS_MAX} multiline style={s.champ} />
+      {m.erreursAdresse.precisions && <Text accessibilityRole="alert" style={s.secondaire}>{m.erreursAdresse.precisions}</Text>}
     </>}
     <Text style={s.texte}>Code promo (facultatif)</Text>
     <TextInput ref={k.reference('codePromo')} onFocus={k.auFocus('codePromo')} onBlur={k.auBlur} accessibilityLabel="Code promo" placeholder="Exemple : BIENVENUE10" value={m.codePromo} onChangeText={v => m.saisir('codePromo', v)} editable={!verrouille} autoCapitalize="characters" autoCorrect={false} maxLength={32} style={s.champ} />

@@ -159,7 +159,7 @@ test('client : gardes avant tout appel réseau (mode, destination, adresse)', as
   const liv = payload(); const ret = payload({ mode: 'retrait' });
   const refus: CreationCommandePayload[] = [
     { ...liv, mode: 'sur_place' }, { ...ret, mode: 'sur_place' },
-    { ...liv, destination: undefined }, { ...liv, destination: {} }, { ...liv, destination: { latitude: 9.5, longitude: -13.7 } }, { ...liv, destination: { quartierId: Q1, latitude: 9.5 } },
+    { ...liv, destination: undefined }, { ...liv, destination: {} }, { ...liv, destination: { quartierId: Q1, latitude: 9.5 } },
     { ...liv, client: { ...liv.client, adresse: null } }, { ...liv, client: { ...liv.client, adresse: 'abcd' } }, { ...liv, client: { ...liv.client, adresse: 'x'.repeat(301) } },
     { ...ret, destination: { quartierId: Q1 } }, { ...ret, fraisAffiches: 0 },
   ];
@@ -219,7 +219,7 @@ const ok = (reference = 'SF-LIV01'): Rep => async () => ({ reference, idempotent
 const incertain: Rep = async () => { throw new ErreurCommande('reseau', 'Impossible de joindre Speedfood.', true); };
 const estOkP = (frais = 8000): Est => async () => estOk(frais);
 function creer(reponses: Rep[], estimations: Est[] = []) {
-  const envoyes: CreationCommandePayload[] = []; const demandes: [string, string, number][] = [];
+  const envoyes: CreationCommandePayload[] = []; const demandes: [string, string | { latitude: number; longitude: number }, number][] = [];
   const m = new EnvoiCommande({
     generer,
     envoyer: async p => { envoyes.push(p); const r = reponses.shift(); if (!r) throw Error('plus de réponse prévue'); return r(); },
@@ -228,7 +228,7 @@ function creer(reponses: Rep[], estimations: Est[] = []) {
   m.lierCompte('A'); m.saisir('nom', 'Mariama Diallo'); m.saisir('telephone', '622123456'); m.saisir('consentement', true);
   return { m, envoyes, demandes };
 }
-const livrer = (m: EnvoiCommande, q = Q1, adresse = ADRESSE) => { m.saisir('mode', 'livraison'); m.saisir('adresse', adresse); m.saisir('quartierId', q); };
+const livrer = (m: EnvoiCommande, q = Q1, adresse = ADRESSE) => { m.saisir('mode', 'livraison'); m.saisir('repere', adresse); m.saisir('quartierId', q); };
 let vides = 0; const vider = () => { vides++; };
 const maj = (m: EnvoiCommande, p = panier1) => m.actualiserEstimation(p, plats, true, true);
 const go = (m: EnvoiCommande, p = panier1) => m.envoyer(p, plats, vider, true, true);
@@ -242,7 +242,7 @@ test('machine : en livraison, l’envoi reste bloqué tant que l’estimation ma
   await maj(m);
   assert.deepEqual(demandes, [[resto, Q1, 25000]]); assert.equal(m.etatEstimation, 'ok'); assert.equal(peut(m), true);
   assert.deepEqual(await go(m), { type: 'succes', reference: 'SF-LIV01', panierVide: true });
-  assert.equal(envoyes[0].mode, 'livraison'); assert.equal(envoyes[0].fraisAffiches, 8000); assert.deepEqual(envoyes[0].destination, { quartierId: Q1 }); assert.equal(envoyes[0].client.adresse, ADRESSE);
+  assert.equal(envoyes[0].mode, 'livraison'); assert.equal(envoyes[0].fraisAffiches, 8000); assert.deepEqual(envoyes[0].destination, { quartierId: Q1 }); assert.equal(envoyes[0].client.adresse, 'Repère : ' + ADRESSE);
   assert.equal(vides, 1); assert.equal(m.mode, 'retrait'); assert.equal(m.adresse, ''); assert.equal(m.quartierId, null); assert.equal(m.estimation, null); // formulaire remis à zéro après succès
 });
 
@@ -354,8 +354,8 @@ test('machine : rejeu incertain à l’identique même si quartier, adresse ou e
   const { m, envoyes } = creer([incertain, ok()], [estOkP(8000)]);
   livrer(m); await maj(m); await go(m);
   assert.equal(m.phase, 'incertain'); assert.equal(m.peutFermer(), false);
-  m.saisir('quartierId', Q2); m.saisir('adresse', 'Ailleurs 42'); m.saisir('mode', 'retrait'); // formulaire verrouillé : sans effet
-  assert.equal(m.mode, 'livraison'); assert.equal(m.quartierId, Q1); assert.equal(m.adresse, ADRESSE);
+  m.saisir('quartierId', Q2); m.saisir('repere', 'Ailleurs 42'); m.saisir('mode', 'retrait'); // formulaire verrouillé : sans effet
+  assert.equal(m.mode, 'livraison'); assert.equal(m.quartierId, Q1); assert.equal(m.adresse, 'Repère : ' + ADRESSE);
   await m.actualiserEstimation(panier3, plats, true, true); // verrouillé : aucune nouvelle demande
   assert.equal(peut(m, panier3), true); await go(m, panier3);
   assert.deepEqual(envoyes[1], envoyes[0]);
@@ -395,4 +395,113 @@ test('M3 : l’écran n’affiche « offerts » que pour des frais nuls (jamais 
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(cheminDepuisModule('../src/catalogue/CommandeReelle.tsx'), 'utf8');
   assert.ok(!/estimation\.gratuite/.test(src)); assert.match(src, /estimation\.fraisGnf === 0 \? 'offerts'/);
+});
+
+// ---------- Adresse de Conakry (repère + précisions) et position partagée (27/11/2026) ----------
+const POINT = { latitude: 9.5412, longitude: -13.6781 };
+const POINT2 = { latitude: 9.6, longitude: -13.6 };
+const ADRESSE_ENVOYEE = 'Repère : ' + ADRESSE;
+
+test('machine : le repère et les précisions sont composés en UNE adresse envoyée au serveur', async () => {
+  const { m, envoyes } = creer([ok()], [estOkP(8000)]);
+  m.saisir('mode', 'livraison'); m.saisir('quartierId', Q1);
+  assert.equal(m.adresse, ''); assert.ok(m.erreursAdresse.repere); assert.equal(peut(m), false); // sans repère : refusé, avec un message
+  m.saisir('repere', 'près de la mosquée Fayçal. '); m.saisir('precisions', 'portail bleu');
+  assert.equal(m.adresse, 'Repère : près de la mosquée Fayçal. Précisions : portail bleu'); assert.deepEqual(m.erreursAdresse, {});
+  await maj(m); await go(m);
+  assert.equal(envoyes[0].client.adresse, 'Repère : près de la mosquée Fayçal. Précisions : portail bleu');
+});
+
+test('machine : position partagée = frais demandés pour le POINT, corps avec latitude et longitude arrondies, sans quartier, repère facultatif', async () => {
+  vides = 0;
+  const { m, envoyes, demandes } = creer([ok('SF-GPS01')], [estOkP(9000)]);
+  m.saisir('mode', 'livraison');
+  m.saisirPosition({ latitude: 9.54123456, longitude: -13.67812345 });
+  assert.deepEqual(m.position, POINT); assert.equal(m.quartierId, null);
+  assert.equal(m.adresse, 'Position partagée sur la carte'); assert.deepEqual(m.erreursAdresse, {}); // pas de repère exigé avec une position
+  assert.equal(peut(m), false); // estimation manquante
+  await maj(m);
+  assert.deepEqual(demandes, [[resto, POINT, 25000]]); assert.equal(m.etatEstimation, 'ok'); assert.equal(peut(m), true);
+  assert.deepEqual(await go(m), { type: 'succes', reference: 'SF-GPS01', panierVide: true });
+  assert.deepEqual(envoyes[0].destination, { latitude: 9.5412, longitude: -13.6781 }); assert.equal(envoyes[0].fraisAffiches, 9000);
+  assert.equal(envoyes[0].client.adresse, 'Position partagée sur la carte');
+  assert.equal(m.position, null); assert.equal(m.repere, ''); assert.equal(m.precisions, ''); // formulaire remis à zéro après succès
+});
+
+test('machine : la position remplace le quartier, et choisir un quartier retire la position (jamais les deux)', async () => {
+  const { m } = creer([], [estOkP(8000), estOkP(8000), estOkP(8000)]);
+  livrer(m); await maj(m); assert.equal(m.quartierId, Q1);
+  m.saisirPosition(POINT); assert.equal(m.quartierId, null); assert.deepEqual(m.position, POINT); assert.equal(m.estimation, null); assert.equal(m.etatEstimation, 'aucune');
+  await maj(m); const e1 = m.estimation as EstimationObtenue | null; assert.equal(e1?.quartierId, null); assert.deepEqual(e1?.position, POINT);
+  m.saisir('quartierId', Q2); assert.equal(m.position, null); assert.equal(m.quartierId, Q2); assert.equal(m.estimation, null);
+  await maj(m); const e2 = m.estimation as EstimationObtenue | null; assert.equal(e2?.quartierId, Q2); assert.equal(e2?.position ?? null, null);
+});
+
+test('machine : une autre position ou le retrait de la position rend l’estimation périmée ; la même position la garde', async () => {
+  const { m } = creer([], [estOkP(8000)]);
+  m.saisir('mode', 'livraison'); m.saisirPosition(POINT); await maj(m); assert.equal(peut(m), true);
+  m.saisirPosition({ latitude: 9.54121, longitude: -13.67811 }); assert.equal(peut(m), true); // même point après arrondi : rien à recalculer
+  m.saisirPosition(POINT2); assert.equal(m.estimation, null); assert.equal(peut(m), false);
+  m.saisirPosition(null); assert.equal(m.position, null); assert.equal(peut(m), false);
+});
+
+test('machine : position invalide ignorée, formulaire verrouillé sans effet, réponse tardive d’une ancienne position ignorée', async () => {
+  let libere!: (r: ResultatEstimation) => void;
+  const { m } = creer([incertain], [() => new Promise(r => { libere = r; }), estOkP(8000)]);
+  m.saisir('mode', 'livraison'); m.saisirPosition({ latitude: NaN, longitude: 1 }); m.saisirPosition({ latitude: 95, longitude: 1 }); assert.equal(m.position, null);
+  m.saisirPosition(POINT); const p = maj(m); assert.equal(m.etatEstimation, 'calcul');
+  m.saisirPosition(POINT2); libere(estOk(5000)); await p;
+  assert.equal(m.estimation, null); assert.deepEqual(m.position, POINT2); // la réponse de POINT est ignorée
+  await maj(m); assert.equal(peut(m), true); await go(m); assert.equal(m.phase, 'incertain');
+  m.saisirPosition(POINT); assert.deepEqual(m.position, POINT2); // verrouillé : sans effet
+});
+
+test('machine : estimation refusée pour une position = message propre à la position (trop éloignée), relance explicite', async () => {
+  const { m } = creer([], [async () => ({ statut: 'erreur' } as ResultatEstimation)]);
+  m.saisir('mode', 'livraison'); m.saisirPosition(POINT); await maj(m);
+  assert.equal(m.etatEstimation, 'erreur'); assert.match(m.messageEstimation ?? '', /position/); assert.match(m.messageEstimation ?? '', /éloignée/);
+});
+
+test('domaine : estimationValable distingue position et quartier ; validerSaisie accepte une position à la place du quartier', () => {
+  const obtPos = { restaurantId: resto, quartierId: null, position: POINT, sousTotal: 25000, estimation: estOk(9000) } as EstimationObtenue;
+  assert.equal(estimationValable(obtPos, resto, null, 25000, POINT), true);
+  assert.equal(estimationValable(obtPos, resto, null, 25000, { latitude: 9.54121, longitude: -13.67811 }), true); // arrondi à 10 m
+  assert.equal(estimationValable(obtPos, resto, null, 25000, POINT2), false);
+  assert.equal(estimationValable(obtPos, resto, Q1, 25000, null), false); // une estimation de position ne sert jamais à un quartier
+  assert.equal(estimationValable(obtenue(), resto, Q1, 25000, POINT), false); // ni l'inverse
+  assert.equal(estimationValable(obtPos, resto, null, 25000, null), false);
+  assert.equal(validerSaisie(saisieLiv({ quartierId: null, position: POINT })).erreurs.quartier, undefined);
+  assert.ok(validerSaisie(saisieLiv({ quartierId: null, position: null })).erreurs.quartier);
+  assert.ok(validerSaisie(saisieLiv({ quartierId: null, position: { latitude: 200, longitude: 0 } })).erreurs.quartier);
+});
+
+test('domaine : preparerEnvoi avec position = destination par point, clé d’idempotence propre au point', () => {
+  const t = creerTentative(generer);
+  const obtPos = { restaurantId: resto, quartierId: null, position: POINT, sousTotal: 25000, estimation: estOk(9000) } as EstimationObtenue;
+  const r = preparerEnvoi(panier1, plats, saisieLiv({ quartierId: null, position: POINT, estimation: obtPos, adresse: 'Position partagée sur la carte' }), t);
+  assert.ok(r.ok); if (!r.ok) return;
+  assert.deepEqual(r.payload.destination, { latitude: 9.5412, longitude: -13.6781 }); assert.equal(r.payload.fraisAffiches, 9000);
+  const autre = preparerEnvoi(panier1, plats, saisieLiv({ quartierId: null, position: POINT2, estimation: { ...obtPos, position: POINT2 }, adresse: 'Position partagée sur la carte' }), t);
+  assert.ok(autre.ok && autre.payload.cleIdempotence !== r.payload.cleIdempotence);
+  const perimee = preparerEnvoi(panier1, plats, saisieLiv({ quartierId: null, position: POINT2, estimation: obtPos }), t); // estimation d'un autre point
+  assert.equal(perimee.ok, false);
+});
+
+test('client : une position partagée part comme destination (latitude + longitude), jamais avec un quartier ; estimation par point', async () => {
+  let appels = 0; const a = creerAuth(async () => { appels++; return json({}, 201); });
+  const liv = payload();
+  const refus: CreationCommandePayload[] = [
+    { ...liv, destination: { latitude: 9.5 } }, { ...liv, destination: { longitude: -13.7 } }, { ...liv, destination: { latitude: NaN, longitude: 1 } },
+    { ...liv, destination: { latitude: 95, longitude: 1 } }, { ...liv, destination: { latitude: 9.5, longitude: -181 } }, { ...liv, destination: { quartierId: Q1, latitude: 9.5, longitude: -13.7 } },
+  ];
+  for (const p of refus) await assert.rejects(a.creerCommande('t', p), (e: unknown) => e instanceof ErreurCommande && e.genre === 'validation');
+  assert.equal(appels, 0);
+  await a.creerCommande('t', { ...liv, destination: { latitude: 9.5412, longitude: -13.6781 } }).catch(() => undefined); assert.equal(appels, 1);
+  const corps: unknown[] = [];
+  const e = creerAuth(async (_u, o) => { corps.push(JSON.parse(String(o!.body))); return json({ ok: true, estimation: estOk(9000) }); });
+  assert.deepEqual(await e.estimerLivraison('acces', resto, POINT, 25000), estOk(9000));
+  assert.deepEqual(corps[0], { restaurantId: resto, destination: { latitude: 9.5412, longitude: -13.6781 }, sousTotal: 25000 });
+  let sans = 0; const f = creerAuth(async () => { sans++; return json({}); });
+  await assert.rejects(f.estimerLivraison('t', resto, { latitude: NaN, longitude: 1 }, 100), ErreurConnexion); await assert.rejects(f.estimerLivraison('t', resto, { latitude: 91, longitude: 1 }, 100), ErreurConnexion);
+  assert.equal(sans, 0); // position invalide : rien n'est demandé
 });

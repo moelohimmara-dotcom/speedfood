@@ -171,10 +171,13 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
   /** UN SEUL essai, jamais de relance automatique : un envoi incertain se rejoue à la main avec la même clé d'idempotence. */
   async function postCommande(accessToken: string, payload: CreationCommandePayload): Promise<{ reference: string; jeton: string; idempotent: boolean }> {
     // Refus AVANT tout appel réseau : `sur_place` n'est jamais envoyé ; la livraison exige adresse et quartier, le retrait n'en porte pas.
+    const d = payload.destination;
+    const destinationOk = !!d && ((typeof d.quartierId === 'string' && d.latitude === undefined && d.longitude === undefined)
+      || (d.quartierId === undefined && typeof d.latitude === 'number' && typeof d.longitude === 'number' && Number.isFinite(d.latitude) && Number.isFinite(d.longitude) && Math.abs(d.latitude) <= 90 && Math.abs(d.longitude) <= 180));
     const modeOk = payload.mode === 'retrait' ? !payload.destination && payload.fraisAffiches === undefined
-      : payload.mode === 'livraison' && typeof payload.destination?.quartierId === 'string' && payload.destination.latitude === undefined && payload.destination.longitude === undefined
+      : payload.mode === 'livraison' && destinationOk
         && typeof payload.client.adresse === 'string' && payload.client.adresse.trim().length >= ADRESSE_MIN && payload.client.adresse.length <= ADRESSE_MAX;
-    if (!modeOk) throw new ErreurCommande('validation', 'Cette application envoie des commandes à emporter, ou en livraison vers un quartier avec une adresse.');
+    if (!modeOk) throw new ErreurCommande('validation', 'Cette application envoie des commandes à emporter, ou en livraison vers un quartier ou une position partagée, avec une adresse.');
     const controle = new AbortController(); const timer = setTimeout(() => controle.abort(), delaiCommandeMs);
     let r: Response;
     try {
@@ -197,9 +200,11 @@ export function creerAuth(fetcher: typeof fetch = fetch, delaiCommandeMs = 20000
     } finally { clearTimeout(timer); }
   }
   /** Frais et durée de livraison calculés par le serveur (un seul essai, délai de `requete`, réponse bornée). Jeton porteur strict ; `non_calcule` = interrupteur éteint. */
-  async function postEstimation(accessToken: string, restaurantId: string, quartierId: string, sousTotal: number): Promise<ResultatEstimation> {
+  async function postEstimation(accessToken: string, restaurantId: string, destination: string | { latitude: number; longitude: number }, sousTotal: number): Promise<ResultatEstimation> {
     if (!Number.isSafeInteger(sousTotal) || sousTotal < 0) throw new ErreurConnexion('Le total doit être vérifié avant de calculer la livraison.');
-    const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livraison/estimation', { method:'POST', headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify({ restaurantId, destination:{ quartierId }, sousTotal }) });
+    if (typeof destination !== 'string' && !(Number.isFinite(destination.latitude) && Number.isFinite(destination.longitude) && Math.abs(destination.latitude) <= 90 && Math.abs(destination.longitude) <= 180)) throw new ErreurConnexion('La position partagée est invalide.');
+    const cible = typeof destination === 'string' ? { quartierId: destination } : { latitude: destination.latitude, longitude: destination.longitude };
+    const v = await requete(ORIGINE_CATALOGUE+'/api/v1/livraison/estimation', { method:'POST', headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json', Accept:'application/json' }, body:JSON.stringify({ restaurantId, destination:cible, sousTotal }) });
     try { return lireEstimation(v); } catch { throw new ErreurConnexion('Réponse du calcul de livraison illisible.'); }
   }
   /**

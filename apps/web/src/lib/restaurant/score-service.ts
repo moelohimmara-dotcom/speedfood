@@ -18,6 +18,7 @@ export interface ReglagesScore {
 
 /** Réglages pilotables du score (console) ; table absente ou illisible = valeurs décidées le 22 novembre 2026, jamais un calcul bloqué. */
 export async function lireReglagesScore(admin: Admin = creerClientAdmin() as unknown as Admin): Promise<ReglagesScore> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table absente des types générés (migrations campagnes et score)
   const db = admin as unknown as { from: (table: string) => any };
   const { data, error } = await db.from("parametres_score").select("seuil_excellent, seuil_tres_bon, seuil_bon, seuil_moyen, delai_acceptation_secondes").eq("id", true).maybeSingle();
   if (error || !data) return { seuils: SEUILS_DEFAUT, delaiAcceptationSecondes: DELAI_ACCEPTATION_DEFAUT_SECONDES };

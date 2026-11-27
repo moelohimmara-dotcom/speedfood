@@ -1,7 +1,8 @@
 import type { CreationCommandePayload } from '../../../../packages/shared/src/contracts/commande.ts';
 import type { PlatCataloguePublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { ErreurConnexion } from '../connexion/client.ts';
-import { ErreurCommande, creerTentative, estimationValable, preparerEnvoi, validerSaisie, type EstimationObtenue, type GenerateurCle, type ModeCommande, type ResultatEstimation, type Tentative } from './commande-reelle.ts';
+import { composerAdresse } from '../../../../packages/shared/src/commande/adresse-livraison.ts';
+import { ErreurCommande, arrondirPoint, creerTentative, estimationValable, pointValide, preparerEnvoi, validerSaisie, type EstimationObtenue, type GenerateurCle, type ModeCommande, type PointLivraison, type ResultatEstimation, type Tentative } from './commande-reelle.ts';
 import { chiffrer, type PanierReel } from './panier-reel.ts';
 
 /**
@@ -12,7 +13,7 @@ import { chiffrer, type PanierReel } from './panier-reel.ts';
 export type Phase = 'saisie' | 'envoi' | 'incertain' | 'refuse' | 'succes';
 /** État du calcul des frais de livraison : `aucune` = à demander, `calcul` = en cours, `ok` = estimation détenue, `erreur` = refusée ou injoignable (relance explicite). */
 export type EtatEstimation = 'aucune' | 'calcul' | 'ok' | 'erreur';
-export type ChampSaisie = 'nom' | 'telephone' | 'consentement' | 'mode' | 'adresse' | 'quartierId' | 'codePromo';
+export type ChampSaisie = 'nom' | 'telephone' | 'consentement' | 'mode' | 'repere' | 'precisions' | 'quartierId' | 'codePromo';
 export type ResultatEnvoi =
   | { type: 'ignore' }
   | { type: 'refus' }
@@ -22,11 +23,12 @@ export type ResultatEnvoi =
 export interface DependancesEnvoi {
   envoyer(payload: CreationCommandePayload): Promise<{ reference: string; idempotent: boolean }>; generer?: GenerateurCle;
   /** Calcul des frais par le serveur (livraison) ; absent = livraison impossible. */
-  estimer?(restaurantId: string, quartierId: string, sousTotal: number): Promise<ResultatEstimation>;
+  estimer?(restaurantId: string, destination: string | PointLivraison, sousTotal: number): Promise<ResultatEstimation>;
   /** Faux : le mode livraison ne peut pas être choisi (voir `LIVRAISON_CLIENT_DISPONIBLE`). Absent = vrai. */
   livraisonDisponible?: boolean;
 }
 const MESSAGE_ESTIMATION_REFUSEE = 'La livraison n’est pas possible vers ce quartier pour le moment (ou trop de calculs ont été demandés). Réessayez dans un instant, choisissez un autre quartier ou commandez en retrait.';
+const MESSAGE_ESTIMATION_REFUSEE_POSITION = 'La livraison n’est pas possible vers cette position pour le moment : elle est peut-être trop éloignée du restaurant (ou trop de calculs ont été demandés). Réessayez, choisissez votre quartier ou commandez à emporter.';
 const MESSAGE_ESTIMATION_ECHEC = 'Impossible de calculer les frais de livraison. Réessayez, ou commandez à emporter.';
 
 const MESSAGE_SESSION = 'Votre session a pris fin. Reconnectez-vous puis réessayez : votre commande n’est pas perdue.';
@@ -36,7 +38,9 @@ const memePanier = (p: PanierReel, c: CreationCommandePayload) => p.restaurantId
 export class EnvoiCommande {
   phase: Phase = 'saisie'; message: string | null = null;
   nom = ''; telephone = ''; consentement = false; abandonDemande = false;
-  mode: ModeCommande = 'retrait'; adresse = ''; quartierId: string | null = null; codePromo = '';
+  mode: ModeCommande = 'retrait'; repere = ''; precisions = ''; quartierId: string | null = null; codePromo = '';
+  /** Position GPS partagée par le client (arrondie à 10 m) : elle REMPLACE le quartier, jamais les deux à la fois. `null` : aucune position partagée. */
+  position: PointLivraison | null = null;
   /** Dernière estimation obtenue du serveur (jamais une estimation d'un autre quartier ou d'un autre sous-total : voir `estimationValable`). */
   estimation: EstimationObtenue | null = null; etatEstimation: EtatEstimation = 'aucune'; messageEstimation: string | null = null;
   private demandeEstim = 0; private cleCalcul: string | null = null;
@@ -47,15 +51,20 @@ export class EnvoiCommande {
   constructor(deps: DependancesEnvoi) { this.deps = deps; this.tentative = creerTentative(deps.generer); }
 
   get verrouille() { return this.phase === 'envoi' || this.phase === 'incertain'; }
+  private get adresseComposee() { return composerAdresse({ repere: this.repere, precisions: this.precisions, position: this.position !== null }); }
+  /** Adresse envoyée au serveur (repère + précisions composés) ; vide tant que le repère manque. */
+  get adresse(): string { return this.adresseComposee.adresse ?? ''; }
+  /** Ce qui manque à l'adresse, par champ (repère, précisions), pour l'affichage. */
+  get erreursAdresse() { return this.adresseComposee.erreurs; }
   /** Fermer l'écran (bouton ou retour matériel) : interdit pendant l'envoi et tant qu'un envoi incertain n'est pas levé. */
   peutFermer() { return !this.verrouille; }
   peutEnvoyer(panier: PanierReel, plats: readonly PlatCataloguePublic[], connecte: boolean, panierPret: boolean) {
     if (!connecte || this.enCours || this.phase === 'envoi') return false;
     if (this.phase === 'incertain') return this.memo !== null;
-    const { erreurs } = validerSaisie({ nom: this.nom, telephone: this.telephone, consentement: this.consentement, mode: this.mode, adresse: this.adresse, quartierId: this.quartierId });
+    const { erreurs } = validerSaisie({ nom: this.nom, telephone: this.telephone, consentement: this.consentement, mode: this.mode, adresse: this.adresse, quartierId: this.quartierId, position: this.position });
     if (!panierPret || erreurs.nom || erreurs.telephone || erreurs.consentement || erreurs.adresse || erreurs.quartier || panier.lignes.length === 0 || plats.length === 0) return false;
     // Livraison : envoi bloqué tant que l'estimation manque, est en cours, en erreur ou périmée (autre quartier ou autre sous-total).
-    return this.mode === 'retrait' || (!!this.deps.estimer && estimationValable(this.estimation, panier.restaurantId, this.quartierId, chiffrer(panier, plats).total));
+    return this.mode === 'retrait' || (!!this.deps.estimer && estimationValable(this.estimation, panier.restaurantId, this.quartierId, chiffrer(panier, plats).total, this.position));
   }
   private notifier() { this.surChangement(); }
   saisir(champ: ChampSaisie, valeur: string | boolean | null) {
@@ -63,13 +72,22 @@ export class EnvoiCommande {
     if (this.phase === 'succes') this.phase = 'saisie';
     if (champ === 'consentement') this.consentement = valeur === true;
     else if (champ === 'mode') { if (valeur === 'retrait' || (valeur === 'livraison' && this.deps.livraisonDisponible !== false)) { if (valeur !== this.mode) { this.mode = valeur; this.invaliderEstimation(); } } } // `sur_place` et toute autre valeur : ignorés
-    else if (champ === 'quartierId') { const q = typeof valeur === 'string' && valeur !== '' ? valeur : null; if (q !== this.quartierId) { this.quartierId = q; this.invaliderEstimation(); } }
+    else if (champ === 'quartierId') { const q = typeof valeur === 'string' && valeur !== '' ? valeur : null; if (q !== this.quartierId) { this.quartierId = q; if (q !== null) this.position = null; this.invaliderEstimation(); } }
     else this[champ] = String(valeur);
+    this.notifier();
+  }
+  /** Partage (ou retire) la position du client : elle remplace le quartier choisi. Une position invalide est ignorée comme un retrait. */
+  saisirPosition(point: PointLivraison | null) {
+    if (this.verrouille) return;
+    if (this.phase === 'succes') this.phase = 'saisie';
+    const n = point !== null && pointValide(point) ? arrondirPoint(point) : null;
+    const identique = n === null ? this.position === null : this.position !== null && n.latitude === this.position.latitude && n.longitude === this.position.longitude;
+    if (!identique || (n !== null && this.quartierId !== null)) { this.position = n; if (n !== null) this.quartierId = null; this.invaliderEstimation(); }
     this.notifier();
   }
   /** Oublie l'estimation et rend caduque toute demande en vol : sa réponse tardive sera ignorée. */
   private invaliderEstimation() { this.demandeEstim++; this.estimation = null; this.etatEstimation = 'aucune'; this.messageEstimation = null; this.cleCalcul = null; }
-  private viderFormulaire() { this.nom = ''; this.telephone = ''; this.consentement = false; this.mode = 'retrait'; this.adresse = ''; this.quartierId = null; this.codePromo = ''; this.invaliderEstimation(); }
+  private viderFormulaire() { this.nom = ''; this.telephone = ''; this.consentement = false; this.mode = 'retrait'; this.repere = ''; this.precisions = ''; this.quartierId = null; this.position = null; this.codePromo = ''; this.invaliderEstimation(); }
   private remettreAZero() { this.epoque++; this.phase = 'saisie'; this.message = null; this.viderFormulaire(); this.abandonDemande = false; this.memo = null; this.enCours = false; this.tentative.oublier(); }
   private deconnexions: number | null = null;
   /**
@@ -101,25 +119,25 @@ export class EnvoiCommande {
   }
 
   /**
-   * Demande au serveur les frais de livraison pour le quartier choisi et le sous-total courant. À rappeler quand le quartier, le sous-total, le restaurant ou la connexion changent.
+   * Demande au serveur les frais de livraison pour la destination choisie (position partagée OU quartier) et le sous-total courant. À rappeler quand le quartier, le sous-total, le restaurant ou la connexion changent.
    * Une seule demande compte : la dernière remplace les précédentes, la réponse d'une demande remplacée (ou d'un autre compte) est ignorée. Aucune relance automatique après une erreur.
    */
   async actualiserEstimation(panier: PanierReel, plats: readonly PlatCataloguePublic[], connecte: boolean, panierPret: boolean): Promise<void> {
-    if (this.verrouille || this.mode !== 'livraison' || !this.quartierId || !connecte || !panierPret || !panier.restaurantId || !this.deps.estimer) return;
+    if (this.verrouille || this.mode !== 'livraison' || (!this.quartierId && !this.position) || !connecte || !panierPret || !panier.restaurantId || !this.deps.estimer) return;
     const total = chiffrer(panier, plats).total; if (total === null) return;
-    if (estimationValable(this.estimation, panier.restaurantId, this.quartierId, total)) return;
+    if (estimationValable(this.estimation, panier.restaurantId, this.quartierId, total, this.position)) return;
     if (this.etatEstimation === 'erreur') return; // relance explicite seulement (relancerEstimation)
-    const cle = JSON.stringify([panier.restaurantId, this.quartierId, total]);
+    const cle = JSON.stringify([panier.restaurantId, this.quartierId, this.position, total]);
     if (this.etatEstimation === 'calcul' && this.cleCalcul === cle) return;
-    const restaurantId = panier.restaurantId; const quartierId = this.quartierId;
+    const restaurantId = panier.restaurantId; const position = this.position; const quartierId = position ? null : this.quartierId;
     const numero = ++this.demandeEstim; const epoque = this.epoque;
     this.estimation = null; this.etatEstimation = 'calcul'; this.messageEstimation = null; this.cleCalcul = cle; this.notifier();
     const perimee = () => numero !== this.demandeEstim || epoque !== this.epoque;
     try {
-      const r = await this.deps.estimer(restaurantId, quartierId, total);
+      const r = await this.deps.estimer(restaurantId, position ?? (quartierId as string), total);
       if (perimee()) return;
-      if (r.statut === 'erreur') { this.etatEstimation = 'erreur'; this.messageEstimation = MESSAGE_ESTIMATION_REFUSEE; }
-      else { this.estimation = { restaurantId, quartierId, sousTotal: total, estimation: r }; this.etatEstimation = 'ok'; }
+      if (r.statut === 'erreur') { this.etatEstimation = 'erreur'; this.messageEstimation = position ? MESSAGE_ESTIMATION_REFUSEE_POSITION : MESSAGE_ESTIMATION_REFUSEE; }
+      else { this.estimation = { restaurantId, quartierId, ...(position ? { position } : {}), sousTotal: total, estimation: r }; this.etatEstimation = 'ok'; }
     } catch (e) {
       if (perimee()) return;
       this.etatEstimation = 'erreur'; this.messageEstimation = e instanceof ErreurConnexion ? e.message : MESSAGE_ESTIMATION_ECHEC;
@@ -135,7 +153,7 @@ export class EnvoiCommande {
     if (this.phase === 'incertain' && this.memo) payload = this.memo; // rejeu à l'identique : même corps, même clé, quel que soit le panier courant
     else {
       try {
-        const prep = preparerEnvoi(panier, plats, { nom: this.nom, telephone: this.telephone, consentement: this.consentement, mode: this.mode, adresse: this.adresse, quartierId: this.quartierId, estimation: this.estimation, codePromo: this.codePromo }, this.tentative, this.compte ?? '');
+        const prep = preparerEnvoi(panier, plats, { nom: this.nom, telephone: this.telephone, consentement: this.consentement, mode: this.mode, adresse: this.adresse, quartierId: this.quartierId, position: this.position, estimation: this.estimation, codePromo: this.codePromo }, this.tentative, this.compte ?? '');
         if (!prep.ok) { this.message = prep.erreurs.panier ?? prep.erreurs.livraison ?? 'Vérifiez les champs du formulaire.'; this.phase = 'refuse'; this.notifier(); return { type: 'refus' }; }
         payload = prep.payload;
       } catch (e) { this.message = e instanceof Error ? e.message : 'Envoi impossible.'; this.phase = 'refuse'; this.notifier(); return { type: 'refus' }; }

@@ -48,7 +48,7 @@
       ["expo-local-authentication", { "faceIDPermission": "Speedfood utilise la reconnaissance faciale pour verrouiller vos espaces professionnels." }],
       "expo-router",
       ["expo-notifications", { "color": "#B82A20" }],
-      ["expo-location", { "locationWhenInUsePermission": "Speedfood utilise votre position, sur votre téléphone seulement, pour vous situer par rapport à votre livraison. Elle n'est envoyée à personne." }],
+      ["expo-location", { "locationWhenInUsePermission": "Speedfood utilise votre position quand vous le demandez : pour vous situer sur la carte de votre livraison, ou pour indiquer où livrer votre commande (elle est alors envoyée avec la commande)." }],
       [
         "expo-image-picker",
         {

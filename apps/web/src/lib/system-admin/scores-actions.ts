@@ -38,6 +38,7 @@ export async function enregistrerReglagesScoreAction(_etat: EtatReglagesScore, f
   const delaiMinutes = entier(formData, "delai_acceptation_minutes", 1, 120, "Délai d'acceptation (minutes)");
   if ("erreur" in delaiMinutes) return delaiMinutes;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table absente des types générés (migrations campagnes et score)
   const admin = creerClientAdmin() as unknown as { from: (table: string) => any };
   const { data: touchees, error } = await admin.from("parametres_score").upsert({
     id: true,
