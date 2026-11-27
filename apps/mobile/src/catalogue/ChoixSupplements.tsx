@@ -11,8 +11,8 @@ const gnf = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' GNF';
  * Choix des suppléments d'un plat avant l'ajout au panier (parité Kotlin, tranche 10.2) : suppléments facultatifs, prix mis à jour au fil des coches.
  * Seuls les suppléments disponibles arrivent ici (le serveur ne transmet pas les autres). Le prix est indicatif : le serveur recalcule à la commande.
  */
-export function ChoixSupplements({ plat, annuler, confirmer }: { plat: PlatCataloguePublic | null; annuler(): void; confirmer(optionIds: string[]): void }) {
-  const [choisis, setChoisis] = useState<string[]>([]);
+export function ChoixSupplements({ plat, annuler, confirmer, selectionInitiale = [] }: { plat: PlatCataloguePublic | null; annuler(): void; confirmer(optionIds: string[]): void; selectionInitiale?: string[] }) {
+  const [choisis, setChoisis] = useState<string[]>(() => selectionInitiale.filter((id) => (plat?.options ?? []).some((o) => o.id === id)));
   const options = plat?.options ?? [];
   const selection = options.filter(o => choisis.includes(o.id));
   function basculer(id: string) { setChoisis(a => a.includes(id) ? a.filter(x => x !== id) : a.length >= OPTIONS_MAX_PAR_LIGNE ? a : [...a, id]); }
