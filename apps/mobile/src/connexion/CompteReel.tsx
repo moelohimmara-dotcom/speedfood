@@ -17,6 +17,7 @@ import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
 import { InscriptionReelle, OubliReel } from './AccesReel';
+import { MESSAGE_PAS_RESTAURATEUR, accesDepuisAction, orienterApresConnexion, type OrientationAccueil } from '../accueil/parcours-accueil';
 import { EspaceClientReel } from './EspaceClientReel';
 import { ParametresReel } from './ParametresReel';
 import { PorteVerrou, ReglageVerrou } from './VerrouProReel';
@@ -35,10 +36,12 @@ import { MESSAGES_ETAT_RESTO } from '../notifications/autorisation';
 import { creerDemandeEspace } from './ouverture-espace';
 import { libelleModeClient } from '../domaine/libelle-mode';
 let restauration: Promise<void> | null = null;
+/** Restauration de la session, faite UNE fois pour toute l'appli (« Mon compte » et le parcours d'accueil partagent la même promesse). */
+export function restaurerSession(): Promise<void> { restauration ??= gestion.restaurer(); return restauration; }
 const Action = ({ titre, agir, disabled = false, icone, iconeSeule = false, secondaire = false, variante }: { titre: string; agir(): void; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; secondaire?: boolean; variante?: VarianteBouton }) => <Bouton titre={titre} onPress={agir} disabled={disabled} icone={icone} iconeSeule={iconeSeule} secondaire={secondaire} variante={variante} />;
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
 /** `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets ; `vue` : onglet « Compte » (profil, espaces, réglages) ou « Commandes » (liste et suivi). Vrai : fenêtre plein écran comme avant. */
-export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null }: { ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
+export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null, orientation=null, orientationTraitee }: { orientation?:OrientationAccueil|null; orientationTraitee?:()=>void; ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -53,6 +56,9 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
   const [confirmerAnnulation,setConfirmerAnnulation]=useState(false);
   const [confirmerProposition,setConfirmerProposition]=useState<'acceptee'|'refusee'|null>(null);
   const [acces,setAcces]=useState<'connexion'|'inscription'|'oubli'>('connexion');
+  // Choix fait à l'accueil : ouvre la création de compte ou la connexion, puis, une fois les rôles lus par le serveur, l'espace du profil (jamais un droit donné par l'accueil).
+  const orientationAppliquee=useRef<OrientationAccueil|null>(null);
+  useEffect(()=>{if(!ouvert||!orientation||orientationAppliquee.current===orientation)return;orientationAppliquee.current=orientation;if(!gestion.connectee){setErreur(null);setAcces(accesDepuisAction(orientation.action));}},[ouvert,orientation]);
   const [espaceOuvert,setEspaceOuvert]=useState(false);
   const [suppressionOuverte,setSuppressionOuverte]=useState(false);const [motSuppression,setMotSuppression]=useState('');
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
@@ -158,8 +164,8 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     finally {if(n===revision.current){setConnectee(gestion.connectee);if(!gestion.connectee){setProfil(null);effacerLectures();}setAttente(false);}}
   }
   useEffect(()=>{
-    let actif=true; restauration??=gestion.restaurer();
-    void restauration.then(async()=>{if(!actif)return;if(gestion.connectee){const p=await gestion.espace();if(actif)setProfil(p);}}).catch(e=>{if(actif)setErreur(e instanceof ErreurConnexion?e.message:'Impossible de restaurer votre session.');}).finally(()=>{if(actif){setConnectee(gestion.connectee);setAttente(false);}});
+    let actif=true;
+    void restaurerSession().then(async()=>{if(!actif)return;if(gestion.connectee){const p=await gestion.espace();if(actif)setProfil(p);}}).catch(e=>{if(actif)setErreur(e instanceof ErreurConnexion?e.message:'Impossible de restaurer votre session.');}).finally(()=>{if(actif){setConnectee(gestion.connectee);setAttente(false);}});
     return()=>{actif=false;revision.current++;};
   },[]);
   const demandeRef=useRef(demande);demandeRef.current=demande;
@@ -186,6 +192,16 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     },()=>{if(actif){setRestaurateur(false);setLivreur(false);setEquipe(false);}});
     return()=>{actif=false;};
   },[connectee]);
+  useEffect(()=>{
+    if(!ouvert||!orientation||!connectee)return;
+    const d=orienterApresConnexion(orientation,{restaurateur,livreur});
+    if(d.genre==='attendre')return;
+    orientationTraitee?.();
+    if(d.genre==='espace'){if(d.espace==='restaurateur')setRestaurateurOuvert(true);else setLivreurOuvert(true);}
+    else if(d.genre==='catalogue')fermer();
+    else if(d.genre==='candidature'){if(ouvrirCandidature)ouvrirCandidature();else setMessage(MESSAGE_PAS_RESTAURATEUR);}
+    else setMessage(d.message);
+  },[ouvert,orientation,connectee,restaurateur,livreur]);
   const lireOuverture=()=>{void executer(async()=>{const demande=demandeRef.current;
     if(demande&&!demande.espaceRestaurateur){const liste=await lireCommandes();const o=demande.reference?liste.find(x=>x.reference===demande.reference):undefined;
       if(o)await lireSuivi(o.id);else if(demande.reference)setMessage('Commande '+demande.reference+' envoyée. Elle n’apparaît pas encore dans la liste : actualisez vos commandes dans un instant.');}
