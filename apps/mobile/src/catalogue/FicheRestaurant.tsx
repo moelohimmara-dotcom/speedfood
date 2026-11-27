@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { Bouton } from '../design/Composants';
 import { couleurs as c, polices } from '../design/tokens';
@@ -47,12 +47,14 @@ export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic })
 }
 
 /** Carte d'un plat : photo, nom, description, prix payé (rouge et prix normal barré en promo), suppléments, disponibilité et ancienneté de la confirmation. */
-export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date(), commandable = true }: { plat: PlatCataloguePublic; ajouter(): void; desactive: boolean; maintenant?: Date; commandable?: boolean }) {
+export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date(), commandable = true, ouvrirDetail }: { plat: PlatCataloguePublic; ajouter(): void; desactive: boolean; maintenant?: Date; commandable?: boolean; ouvrirDetail?: () => void }) {
   const promo = enPromo(p); const supp = libelleSupplements(p.options);
   const { detail, ...etat } = etatPlat(p, maintenant);
   return <View style={s.carte}>
     <View style={{ flexDirection: 'row', gap: 12 }}>
-      <VignettePlat url={p.photoUrl} nom={p.nom} taille={64} illustrative={p.imageIllustrative === true} />
+    <Pressable accessibilityRole={ouvrirDetail ? 'button' : undefined} accessibilityLabel={ouvrirDetail ? `Voir le détail de ${p.nom}${p.photoUrl ? ', photo agrandissable' : ''}` : undefined} disabled={!ouvrirDetail} onPress={ouvrirDetail} style={{ flex: 1 }}>
+    <View style={{ flexDirection: 'row', gap: 12 }}>
+      <VignettePlat url={p.photoUrl} nom={p.nom} taille={64} illustrative={p.imageIllustrative === true} repereInteractif={!ouvrirDetail} />
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={s.nom}>{p.nom}</Text>
         {p.description !== '' && <Text style={s.texte} numberOfLines={3}>{p.description}</Text>}
@@ -64,7 +66,9 @@ export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date()
         <Text style={s.secondaire}>{libelleAllergenesPlat(p.allergenes)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><Pastille texte={etat.texte} ton={etat.ton} />{detail && <Text style={s.secondaire}>{detail}</Text>}</View>
       </View>
-      {/* « + » rond à droite de la ligne, comme dans les applis de commande : le nom accessible dit « Ajouter X au panier » ; un plat épuisé est grisé. */}
+    </View>
+    </Pressable>
+      {/* « + » rond à droite de la ligne, comme dans les applis de commande : le nom accessible dit « Ajouter X au panier » ; un plat épuisé est grisé. Il est HORS de la zone cliquable du détail pour ne jamais être confondu avec elle. */}
       <View style={{ alignSelf: 'center' }}><Bouton titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : !commandable ? `${p.nom} : commande indisponible` : `Ajouter ${p.nom} au panier`} icone="plus" iconeSeule disabled={desactive || !commandable || p.disponibilite === 'epuise'} onPress={ajouter} /></View>
     </View>
   </View>;

@@ -32,6 +32,7 @@ import { useRechercheArticles } from './useRechercheArticles';
 import { usePersonnalisation } from './usePersonnalisation';
 import { personnaliser } from './recherche-perso';
 import { BadgeScore, CartePlat, EnteteFiche, Pastille } from './FicheRestaurant';
+import { DetailPlat } from './DetailPlat';
 import { badgesAffichables, grouperMenu, libelleCoteRestaurant, libelleHoraire, titreEtatRestaurant } from './menu-groupes';
 import { ChangerRestaurant, ChoixSupplements } from './ChoixSupplements';
 import { BarreOnglets } from './BarreOnglets';
@@ -152,6 +153,7 @@ export function CatalogueReel() {
   }, []);
   // Suppléments (10.2) et changement de restaurant (G8) : un plat avec suppléments ouvre d'abord leur choix ; un panier d'un autre restaurant demande confirmation avant d'être vidé.
   const [platEnChoix, setPlatEnChoix] = useState<PlatCataloguePublic | null>(null);
+  const [platDetail, setPlatDetail] = useState<PlatCataloguePublic | null>(null);
   const [remplacement, setRemplacement] = useState<{ plat: PlatCataloguePublic; optionIds: string[] } | null>(null);
   function ajouterAuPanier(p: PlatCataloguePublic, optionIds: string[]) {
     const r = menu?.restaurant; if (!r) return;
@@ -342,7 +344,7 @@ export function CatalogueReel() {
         {groupesMenu.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{groupesMenu.map(g => <Pressable key={'puce-' + g.titre} accessibilityRole="button" accessibilityLabel={`Aller à la section ${g.titre}`} onPress={() => { const y = positionsSections.current[g.titre]; if (y !== undefined) defilementCatalogue.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }); }} style={s.puceZone}><Text style={s.puceTexte}>{g.titre}</Text></Pressable>)}</ScrollView>}
         {groupesMenu.map(g => <View key={'section-' + g.titre} onLayout={e => { positionsSections.current[g.titre] = e.nativeEvent.layout.y; }} style={{ gap: 12 }}>
           <Text accessibilityRole="header" style={s.titreSection}>{g.titre}</Text>
-          {ordonnerPlats(g.plats).map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} commandable={commandabilite(menu.restaurant).commandable} ajouter={() => demanderAjout(p)} />)}
+          {ordonnerPlats(g.plats).map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} commandable={commandabilite(menu.restaurant).commandable} ajouter={() => demanderAjout(p)} ouvrirDetail={() => setPlatDetail(p)} />)}
         </View>)}
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
@@ -369,6 +371,7 @@ export function CatalogueReel() {
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
     <ChoixZone visible={zoneOuverte} zones={zones} nombres={nombreParZone(restaurants, zones)} total={restaurants.length} courante={zone} choisir={choisirZone} fermer={() => setZoneOuverte(false)} />
     <ChoixSupplements key={platEnChoix?.id ?? 'aucun'} plat={platEnChoix} annuler={() => setPlatEnChoix(null)} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); if (p) ajouterAuPanier(p, ids); }} />
+    <DetailPlat key={platDetail?.id ?? 'aucun'} plat={platDetail} fermer={() => setPlatDetail(null)} desactive={!panier.pret} commandable={menu ? commandabilite(menu.restaurant).commandable : true} ajouter={(p) => demanderAjout(p)} />
     <ChangerRestaurant visible={remplacement !== null} nomPanier={panier.menu?.restaurant.nom ?? null} vider={remplacerPanier} garder={() => setRemplacement(null)} />
     <ChangerRestaurant visible={recommandeEnAttente !== null} titreAction="Vider et recommander" nomPanier={panier.menu?.restaurant.nom ?? null} vider={() => { if (recommandeEnAttente) void recommander(recommandeEnAttente); }} garder={() => setRecommandeEnAttente(null)} />
   </View>;

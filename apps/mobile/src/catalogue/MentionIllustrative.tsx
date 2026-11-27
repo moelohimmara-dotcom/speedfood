@@ -7,17 +7,17 @@ import { Vignette } from './Vignette';
  * Vignette d'un plat avec, quand son image est générée par ordinateur, un petit repère « i » discret dans l'angle (le serveur ne le signale que si l'interrupteur
  * « Image illustrative » de la console est allumé). Un appui affiche « Image illustrative » et sa précision : l'appli n'a pas de survol, l'appui est son équivalent.
  */
-export function VignettePlat({ url, nom, taille, illustrative = false }: { url?: string | null; nom: string; taille: number; illustrative?: boolean }) {
+export function VignettePlat({ url, nom, taille, illustrative = false, repereInteractif = true }: { url?: string | null; nom: string; taille: number; illustrative?: boolean; repereInteractif?: boolean }) {
   const visible = illustrative && !!url;
   return <View style={{ width: taille, height: taille }}>
     <Vignette url={url} nom={nom} taille={taille} />
-    {visible && <Pressable
+    {visible && (repereInteractif ? <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${LIBELLE_IMAGE_ILLUSTRATIVE}. Appuyez pour en savoir plus.`}
       hitSlop={12}
       onPress={() => Alert.alert(LIBELLE_IMAGE_ILLUSTRATIVE, DETAIL_IMAGE_ILLUSTRATIVE)}
       style={s.repere}
-    ><Text accessible={false} style={s.lettre}>i</Text></Pressable>}
+    ><Text accessible={false} style={s.lettre}>i</Text></Pressable> : <View accessible={false} style={s.repere}><Text accessible={false} style={s.lettre}>i</Text></View>)}
   </View>;
 }
 const s = StyleSheet.create({
