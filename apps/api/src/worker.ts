@@ -61,6 +61,8 @@ const app = creerApp({
   },
   estimerPourClient,
   secretRelais: () => process.env.RELAIS_SECRET,
+  // Clé MapTiler : secret du Worker (`wrangler secret put MAPTILER_KEY`), lu à l'appel, jamais renvoyé ni journalisé.
+  tuiles: { cle: () => process.env.MAPTILER_KEY, chercher: (url) => fetch(url) },
   // Suivi : le jeton de suivi (dans le corps) est la clé d'accès ; aucun jeton porteur.
   suivi: {
     jetonValide: estJetonValide,

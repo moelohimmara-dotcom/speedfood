@@ -1,6 +1,8 @@
+import { ORIGINE_CATALOGUE } from '../catalogue/client.ts';
 import type { PointCarte } from './livraison-suivi.ts';
 /**
- * Carte de la livraison sans bibliothèque de carte : tuiles OpenStreetMap posées côte à côte (projection Web Mercator, tuiles de 256 pixels) et repères superposés.
+ * Carte de la livraison sans bibliothèque de carte : tuiles posées côte à côte (projection Web Mercator, tuiles de 256 pixels) et repères superposés. Les tuiles viennent de l'API de Speedfood, qui les relaie depuis MapTiler
+ * (les tuiles publiques d'OpenStreetMap refusent les applis mobiles : « Access blocked »).
  * Fonctions pures : l'écran n'a plus qu'à afficher ce qu'elles calculent. Les positions ne sont envoyées nulle part ici : seules les images de tuiles sont demandées
  * (le serveur de tuiles voit une zone de la carte, pas l'identité du client).
  */
@@ -25,10 +27,10 @@ export function pixelMonde(p: PointCarte, zoom: number): { x: number; y: number 
   return { x: ((p.longitude + 180) / 360) * n, y: ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n };
 }
 
-/** Adresse d'une tuile : `x` est ramené dans l'intervalle du monde (la carte se répète à l'horizontale). */
+/** Adresse d'une tuile : `x` est ramené dans l'intervalle du monde (la carte se répète à l'horizontale). Relais de l'API : la clé du fournisseur reste côté serveur. */
 export const urlTuile = (zoom: number, x: number, y: number): string => {
   const n = 2 ** zoom;
-  return `https://tile.openstreetmap.org/${zoom}/${((x % n) + n) % n}/${y}.png`;
+  return `${ORIGINE_CATALOGUE}/api/v1/tuiles/${zoom}/${((x % n) + n) % n}/${y}.png`;
 };
 
 /** `null` : aucun repère à montrer ou zone d'affichage vide (l'écran n'affiche alors pas de carte). */

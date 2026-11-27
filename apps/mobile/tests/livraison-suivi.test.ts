@@ -96,7 +96,7 @@ test('carte : trois repères à Conakry : zoom fort, tous les repères visibles,
   assert.deepEqual(v.reperes.map(r => r.cle), ['restaurant', 'destination', 'livreur']);
   for (const r of v.reperes) { assert.ok(r.gauche >= 0 && r.gauche <= LARGEUR && r.haut >= 0 && r.haut <= HAUTEUR, JSON.stringify(r)); }
   for (const [x, y] of [[0, 0], [LARGEUR - 1, 0], [0, HAUTEUR - 1], [LARGEUR - 1, HAUTEUR - 1], [LARGEUR / 2, HAUTEUR / 2], [LARGEUR / 3, HAUTEUR * 0.7]]) assert.ok(couvert(v, x, y), `pixel ${x},${y}`);
-  for (const t of v.tuiles) assert.match(t.url, /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/);
+  for (const t of v.tuiles) assert.match(t.url, /^https:\/\/speedfood-api\.moelohimmara\.workers\.dev\/api\/v1\/tuiles\/\d+\/\d+\/\d+\.png$/);
 });
 
 test('carte : un seul repère : zoom 16, repère au centre', () => {
@@ -120,9 +120,10 @@ test('carte : le repère « vous » s’ajoute dans l’ordre prévu sans change
 });
 
 test('carte : l’adresse d’une tuile est ramenée dans le monde (la carte se répète à l’horizontale)', () => {
-  assert.equal(urlTuile(2, -1, 1), 'https://tile.openstreetmap.org/2/3/1.png');
-  assert.equal(urlTuile(2, 4, 0), 'https://tile.openstreetmap.org/2/0/0.png');
-  assert.equal(urlTuile(5, 7, 9), 'https://tile.openstreetmap.org/5/7/9.png');
+  assert.equal(urlTuile(2, -1, 1), 'https://speedfood-api.moelohimmara.workers.dev/api/v1/tuiles/2/3/1.png');
+  assert.equal(urlTuile(2, 4, 0), 'https://speedfood-api.moelohimmara.workers.dev/api/v1/tuiles/2/0/0.png');
+  assert.equal(urlTuile(5, 7, 9), 'https://speedfood-api.moelohimmara.workers.dev/api/v1/tuiles/5/7/9.png');
+  assert.doesNotMatch(urlTuile(5, 7, 9), /maptiler|key=|openstreetmap/i, 'aucune clé ni fournisseur dans l’adresse demandée par l’appli');
 });
 
 test('suivi : le bloc livraison de la réponse est lu avec le suivi ; absent ou illisible, le suivi reste lisible sans lui', async () => {

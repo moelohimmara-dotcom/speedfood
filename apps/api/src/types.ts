@@ -83,6 +83,8 @@ export interface Deps {
     habitudes(utilisateurId: string): Promise<import('@speedfood/shared/contracts/preferences').HabitudesClientPublic>;
   };
   estimerPourClient(restaurantId: unknown, destination: unknown, sousTotalGnf: unknown): Promise<object>;
+  /** Fond de carte de l'appli : clé du fournisseur de tuiles (lue à l'appel, `undefined` tant qu'elle n'est pas posée) et appel du fournisseur. Absent = la route répond « indisponible ». */
+  tuiles?: { cle(): string | undefined; chercher(url: string): Promise<Response> };
   /** Secret partagé avec le site pour le relais (Tâche 7) ; lu au moment de l'appel, `undefined` tant qu'il n'est pas posé. */
   secretRelais(): string | undefined;
   suivi: {

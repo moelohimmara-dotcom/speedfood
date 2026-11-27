@@ -3,12 +3,11 @@ import { Image, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-nat
 import { couleurs as c, polices } from '../design/tokens';
 import { TAILLE_TUILE, composerCarte, type CleRepere, type PointsCarte } from './carte-tuiles';
 /**
- * Carte de la livraison : restaurant, adresse de livraison, livreur (et le client lui-même s'il a choisi de se localiser). Tuiles OpenStreetMap posées par `composerCarte`, repères en vues
+ * Carte de la livraison : restaurant, adresse de livraison, livreur (et le client lui-même s'il a choisi de se localiser). Tuiles posées par `composerCarte` (relayées par l'API, fond MapTiler / OpenStreetMap), repères en vues
  * (aucune image de repère). Décorative pour un lecteur d'écran : `description` en dit l'essentiel. Si les tuiles ne se chargent pas (réseau), les repères restent affichés sur un fond uni.
- * Les tuiles publiques d'OpenStreetMap conviennent à un petit volume ; au-delà, prévoir un fournisseur de tuiles.
+ * L'attribution « © MapTiler © OpenStreetMap contributors » est exigée par le fournisseur : elle reste affichée sur la carte.
  */
 const HAUTEUR = 220;
-const AGENT = 'Speedfood/3 (+https://speedfood-app.moelohimmara.workers.dev)';
 const REPERES: Record<CleRepere, { lettre: string; nom: string; fond: string }> = {
   restaurant: { lettre: 'R', nom: 'restaurant', fond: c.encre },
   destination: { lettre: 'A', nom: 'adresse de livraison', fond: c.action },
@@ -24,9 +23,9 @@ export function CarteLivraison({ points, description }: { points: PointsCarte; d
   return <View style={{ gap: 6 }}>
     <View onLayout={mesurer} accessible accessibilityRole="image" accessibilityLabel={description} style={s.cadre}>
       {vue !== null && <View importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
-        {vue.tuiles.map(t => <Image key={`${t.gauche}:${t.haut}`} accessible={false} source={{ uri: t.url, headers: { 'User-Agent': AGENT } }} style={{ position: 'absolute', left: t.gauche, top: t.haut, width: TAILLE_TUILE, height: TAILLE_TUILE }} />)}
+        {vue.tuiles.map(t => <Image key={`${t.gauche}:${t.haut}`} accessible={false} source={{ uri: t.url }} style={{ position: 'absolute', left: t.gauche, top: t.haut, width: TAILLE_TUILE, height: TAILLE_TUILE }} />)}
         {vue.reperes.map(r => <View key={r.cle} style={[s.repere, { left: r.gauche - 13, top: r.haut - 13, backgroundColor: REPERES[r.cle].fond }]}><Text style={s.lettre}>{REPERES[r.cle].lettre}</Text></View>)}
-        <Text style={s.attribution}>© OpenStreetMap</Text>
+        <Text style={s.attribution}>© MapTiler © OpenStreetMap contributors</Text>
       </View>}
     </View>
     <Text style={s.legende}>{presents.map(cle => `${REPERES[cle].lettre} ${REPERES[cle].nom}`).join(' · ')}</Text>
