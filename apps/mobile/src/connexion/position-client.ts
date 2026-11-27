@@ -39,6 +39,25 @@ export async function situerClient(d: DependancesPosition, delaiMs: number = DEL
   } catch { return { genre: 'indisponible' }; }
 }
 
+/** Pour une commande : la position fraîche n'est attendue que ce temps-là, puis on se rabat sur la dernière position connue du téléphone. Reste sous `DELAI_LECTURE_POSITION_MS`. */
+export const DELAI_POSITION_FRAICHE_MS = 8000;
+/** Âge maximal d'une dernière position connue acceptée en repli : au-delà, le client a pu se déplacer, on préfère dire « introuvable ». */
+export const AGE_MAX_DERNIERE_POSITION_MS = 10 * 60 * 1000;
+/** Une lecture de la dernière position connue est locale et instantanée : sans réponse en 3 s, on la tient pour absente. */
+const DELAI_DERNIERE_POSITION_MS = 3000;
+/** Les deux lectures que le téléphone sait faire ; injectées pour que les tests n'aient pas besoin d'un téléphone. */
+export interface SourceLocalisation {
+  positionActuelle(): Promise<PointCarte | null>;
+  derniereConnue(ageMaxMs: number): Promise<PointCarte | null>;
+}
+/**
+ * Position fraîche d'abord (au plus `delaiFraicheMs`) ; si elle manque (pas de signal, GPS à froid, service lent, erreur), la dernière position connue du téléphone si elle a moins de `ageMaxMs`.
+ * Ne lève jamais : `null` quand ni l'une ni l'autre n'est valable. Une position invalide (hors des bornes) n'est jamais renvoyée.
+ */
+export async function lirePositionAvecRepli(source: SourceLocalisation, delaiFraicheMs: number = DELAI_POSITION_FRAICHE_MS, ageMaxMs: number = AGE_MAX_DERNIERE_POSITION_MS): Promise<PointCarte | null> {
+  try { const p = await avecDelai(source.positionActuelle(), delaiFraicheMs); if (valide(p)) return { latitude: p.latitude, longitude: p.longitude }; } catch { /* repli ci-dessous */ }
+  try { const d = await avecDelai(source.derniereConnue(ageMaxMs), DELAI_DERNIERE_POSITION_MS); return valide(d) ? { latitude: d.latitude, longitude: d.longitude } : null; } catch { return null; }
+}
 /** Lien qui ouvre un point dans l'application de cartes du téléphone (Google Maps si elle est installée, sinon le navigateur) : aucune clé, aucun quota, aucune tuile à charger. */
 export const lienCarte = (p: PointCarte): string => `https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`;
 /** Distance à vol d'oiseau en mètres (formule de haversine). */
