@@ -3,6 +3,7 @@ import type { Database } from '../../../web/src/lib/db/database.types';
 import { etatDisponibilite } from '@speedfood/shared/disponibilite/etat';
 import type { ArticleIndexPublic, IndexArticlesPublic, RestaurantIndexPublic } from '@speedfood/shared/contracts/catalogue';
 import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative';
+import { adresseVignette } from '@speedfood/shared/menu/vignette-photo';
 import { cotation } from '@speedfood/shared/notation/cotation';
 
 /**
@@ -66,7 +67,7 @@ export async function lireIndexArticles(db: SupabaseClient<Database>, parametres
     const description = (a.description ?? '').trim();
     if (description !== '') lu.description = description.slice(0, 200);
     if (Array.isArray(a.allergenes)) lu.allergenes = a.allergenes.filter((x): x is string => typeof x === 'string');
-    if (photo) lu.photo = baseImages && photo.startsWith(baseImages) ? photo.slice(baseImages.length) : photo;
+    if (photo) { const servie = adresseVignette(photo); lu.photo = baseImages && servie.startsWith(baseImages) ? servie.slice(baseImages.length) : servie; }
     if (illustrative && estImageIllustrative(photo)) lu.illustrative = true;
     return lu;
   });
