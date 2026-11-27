@@ -37,8 +37,8 @@ test('index d\'articles : restaurants publiés seulement, articles par rang, pho
   assert.equal(index.articles.length, 3, 'l\'article d\'un restaurant non publié est écarté');
   assert.deepEqual(index.articles.map(a => [a.nom, a.r]), [['Pizza poulet', 0], ['Pizza reine', 0], ['Café', 1]]);
   assert.equal(index.baseImages, BASE);
-  assert.equal(index.articles[0].photo, 'demo/photos/pizza.jpg'); assert.equal(index.articles[0].illustrative, undefined);
-  assert.equal(index.articles[1].photo, 'demo/photos/ia/lot2/reine.png'); assert.equal(index.articles[1].illustrative, true);
+  assert.equal(index.articles[0].photo, 'demo/vignettes/pizza.jpg', 'la vignette légère est servie à la recherche, pas l’original'); assert.equal(index.articles[0].illustrative, undefined);
+  assert.equal(index.articles[1].photo, 'demo/vignettes/ia/lot2/reine.jpg'); assert.equal(index.articles[1].illustrative, true, 'la mention reste décidée sur l’original');
   assert.equal(index.articles[1].prixGnf, 35000, 'le prix payé (promo comprise)');
   assert.equal(index.articles[0].description, 'Mozzarella et poulet'); assert.equal(index.articles[2].description, undefined);
   assert.equal(index.articles[2].disponibilite, 'epuise');
@@ -66,6 +66,7 @@ test('menu : imageIllustrative seulement quand l\'interrupteur est allumé et qu
   };
   const allume = await lireMenu(R1, null, db(fournir), parametres, true);
   assert.deepEqual(allume!.plats.map(p => p.imageIllustrative), [true, undefined]);
+  assert.deepEqual(allume!.plats.map(p => p.photoUrl), [BASE + 'demo/vignettes/ia/x.jpg', BASE + 'demo/vignettes/x.jpg'], 'les plats du menu sont servis en vignettes légères (64 px affichés : jamais 1,7 Mo par plat)');
   const coupe = await lireMenu(R1, null, db(fournir), parametres, false);
   assert.deepEqual(coupe!.plats.map(p => p.imageIllustrative), [undefined, undefined]);
   const parDefaut = await lireMenu(R1, null, db(fournir), parametres);

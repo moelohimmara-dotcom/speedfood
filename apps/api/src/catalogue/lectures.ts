@@ -19,6 +19,8 @@ type LigneRestaurant = {
 };
 /** Une adresse d'image n'est transmise qu'en HTTPS, sans espace ni caractère de contrôle, de 2000 caractères au plus ; sinon `null`. */
 function urlImage(v: unknown): string | null { return typeof v === 'string' && v.length <= 2000 && /^https:\/\/[^\s\x00-\x1f]+$/.test(v) ? v : null; }
+/** Photo d'un plat servie à l'appli : la vignette légère d'une photo de démonstration (voir `adresseVignette`), jamais l'original de plusieurs Mo ; `null` sans adresse valable. */
+function photoVignette(v: unknown): string | null { const u = urlImage(v); return u ? adresseVignette(u) : null; }
 function texteFacultatif(v: unknown, max: number): string | null { if (typeof v !== 'string') return null; const t = v.trim(); return t.length > 0 && t.length <= max ? t : null; }
 /** Note moyenne au dixième, formule de l'ancienne appli (division entière puis /10) ; `null` sans avis, et `null` aussi si le résultat sort de l'échelle 0 à 5 (donnée incohérente : jamais une note inventée). */
 function noteMoyenne(somme: unknown, total: unknown): number | null {
@@ -135,7 +137,7 @@ export async function lireMenu(id: string, apres: string | null, db: SupabaseCli
       if (!Number.isSafeInteger(o.prix) || o.prix < 0) throw new Error('prix_catalogue_invalide');
       return { id: o.id, nom: o.nom, prixGnf: o.prix };
     });
-    return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: urlImage(p.photo_url), ...(illustrative && estImageIllustrative(urlImage(p.photo_url)) ? { imageIllustrative: true } : {}), ...(Array.isArray(p.allergenes) ? { allergenes: p.allergenes.filter((x): x is string => typeof x === 'string') } : {}), sectionId: p.section_id ?? null, options };
+    return { id: p.id, nom: p.nom, description: p.description ?? '', prixGnf: prix, disponibilite: etatDisponibilite({ disponible: p.disponible, confirmeLe: p.disponibilite_confirmee_le }, disponibiliteFraicheurHeures, maintenant).type, confirmeLe: p.disponibilite_confirmee_le, prixNormalGnf: p.prix, photoUrl: photoVignette(p.photo_url), ...(illustrative && estImageIllustrative(urlImage(p.photo_url)) ? { imageIllustrative: true } : {}), ...(Array.isArray(p.allergenes) ? { allergenes: p.allergenes.filter((x): x is string => typeof x === 'string') } : {}), sectionId: p.section_id ?? null, options };
   });
   const sections = apres ? undefined : [...(lignesSections ?? [])].sort((a, b) => a.position - b.position).map(s => ({ id: s.id, nom: s.nom, position: s.position }));
   return { restaurant: projeter(restaurant, true), plats, suivant: data.length > 100 ? plats.at(-1)!.id : null, luLe: maintenant.toISOString(), ...(sections ? { sections } : {}) };
