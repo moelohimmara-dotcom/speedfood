@@ -16,6 +16,7 @@ import { routeReservationReglage, routeReservations, routeReservationsRestaurant
 import { routeMoi } from "./routes/moi.ts";
 import { routeLivreur } from "./routes/livreur.ts";
 import { routeSuivi } from "./routes/suivi.ts";
+import { routeTuiles } from "./routes/tuiles.ts";
 import { routeVersion } from "./routes/version.ts";
 import type { Deps } from "./types.ts";
 
@@ -61,6 +62,8 @@ export function creerApp(deps: Deps) {
 
   app.get("/sante", (c) => c.json({ ok: true }, 200, SANS_CACHE));
   app.route("/api/v1/version", routeVersion(deps));
+  // Fond de carte de l'appli (tuiles relayées, clé du fournisseur côté serveur) : images publiques, bornées à la Guinée, sans CORS.
+  app.route("/api/v1/tuiles", routeTuiles(deps));
   app.route("/api/v1/aide", routeAide(deps));
   app.route("/api/v1/catalogue", routeCatalogue(deps));
   app.route("/api/v1/connexion/fournisseurs", routeFournisseurs(deps));
