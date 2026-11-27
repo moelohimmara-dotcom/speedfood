@@ -1,13 +1,13 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { libelleModeClient } from '../domaine/libelle-mode';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QuartierPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { chiffrer, type PanierReel } from './panier-reel';
+import type { PointLivraison } from './commande-reelle';
 import { doitChargerQuartiers, estimationValable, filtrerQuartiers, fraisDeLEstimation, LIVRAISON_CLIENT_DISPONIBLE, TEXTE_PARTAGE_POSITION, totalEstime, validerSaisie } from './commande-reelle';
 import { EXEMPLE_REPERE, PRECISIONS_MAX, REPERE_MAX } from '../../../../packages/shared/src/commande/adresse-livraison';
-import { CarteLivraison } from '../connexion/CarteLivraison';
-import { MESSAGE_POSITION_INDISPONIBLE, MESSAGE_POSITION_REFUSEE, situerClient } from '../connexion/position-client';
+import { MESSAGE_POSITION_INDISPONIBLE, MESSAGE_POSITION_REFUSEE, lienCarte, situerClient } from '../connexion/position-client';
 import { positionTelephone } from '../connexion/position-telephone';
 import { EnvoiCommande } from './envoi-commande';
 import { COMMENTAIRE_PLATS_A_CONFIRMER, TEXTE_CONSENTEMENT, TITRE_PARCOURS, commandabilite, etapesParcours, nombreAConfirmer, phraseARegler } from './parcours-client';
@@ -138,8 +138,9 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
         {lecturePosition && <View accessibilityLiveRegion="polite" style={s.attente}><ActivityIndicator color={c.action} /><Text style={s.texte}>Recherche de votre position…</Text></View>}
         {messagePosition && <Text accessibilityRole="alert" style={s.texte}>{messagePosition}</Text>}
         {m.position ? <>
-          <CarteLivraison points={{ destination: m.position }} description="Carte : le repère A est l’endroit où votre commande sera livrée." />
-          <Text accessibilityLiveRegion="polite" style={s.texte}>Livraison à cet endroit. Ce n’est pas le bon ? Actualisez votre position ou choisissez plutôt votre quartier.</Text>
+          <Text accessibilityLiveRegion="polite" style={s.nom}>Position trouvée</Text>
+          <Text style={s.texte}>Livraison à cet endroit, à environ 10 m près. Ce n’est pas le bon ? Actualisez votre position ou choisissez plutôt votre quartier.</Text>
+          <Action titre="Vérifier sur la carte" secondaire agir={() => { void Linking.openURL(lienCarte(m.position as PointLivraison)).catch(() => undefined); }} />
           <Action titre="Retirer ma position" variante="texte" disabled={verrouille} agir={() => m.saisirPosition(null)} />
         </> : <Text style={s.secondaire}>{TEXTE_PARTAGE_POSITION}</Text>}
       </View>
@@ -149,7 +150,7 @@ export function CommandeReelle({ ouvert, fermer, etat, ouvrirCompte, verifierCom
       {quartiers.etat === 'erreur' && <View style={s.carte}><Text accessibilityRole="alert" style={s.texte}>Impossible de charger la liste des quartiers. Vous pouvez partager votre position ou commander à emporter.</Text><Action titre="Réessayer la liste des quartiers" secondaire agir={() => { setQuartiers({ etat: 'aucun', liste: [] }); setEssaiQuartiers(n => n + 1); }} /></View>}
       {quartiers.etat === 'ok' && <>
         <TextInput ref={k.reference('quartier')} onFocus={k.auFocus('quartier')} onBlur={k.auBlur} accessibilityLabel="Rechercher votre quartier" placeholder="Rechercher votre quartier" value={recherche} onChangeText={setRecherche} editable={!verrouille} autoCorrect={false} style={s.champ} />
-        {propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
+        {(!m.position || recherche.trim() !== '') && propositions.map(q => <Choix key={q.id} titre={q.libelle} actif={q.id === m.quartierId} desactive={verrouille} agir={() => { m.saisir('quartierId', q.id); setRecherche(''); }} />)}
         {recherche.trim() !== '' && propositions.length === 0 && <Text accessibilityRole="alert" style={s.secondaire}>Aucun quartier ne correspond. Essayez une autre orthographe.</Text>}
         {recherche.trim() === '' && !quartierChoisi && !m.position && <Text style={s.secondaire}>Saisissez le début du nom de votre quartier pour le trouver.</Text>}
       </>}
