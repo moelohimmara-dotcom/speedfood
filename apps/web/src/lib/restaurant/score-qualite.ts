@@ -28,18 +28,28 @@ export interface ResultatScore {
   avantages: { miseEnAvant: boolean; badge: boolean; promotions: boolean; commissionReduite: boolean };
 }
 
-const SEUILS: ReadonlyArray<{ palier: PalierScore; min: number }> = [
-  { palier: "excellent", min: 80 },
-  { palier: "tres_bon", min: 65 },
-  { palier: "bon", min: 50 },
-  { palier: "moyen", min: 35 },
-  { palier: "mauvais", min: 0 },
-];
+/** Seuils des paliers : réglables en console, retombées sur les valeurs décidées le 22 novembre 2026. */
+export interface SeuilsScore {
+  excellent: number;
+  tresBon: number;
+  bon: number;
+  moyen: number;
+}
 
-export function calculerScore(indicateurs: IndicateursScore): ResultatScore {
+export const SEUILS_DEFAUT: SeuilsScore = { excellent: 80, tresBon: 65, bon: 50, moyen: 35 };
+export const DELAI_ACCEPTATION_DEFAUT_SECONDES = 690;
+
+export function calculerScore(indicateurs: IndicateursScore, seuils: SeuilsScore = SEUILS_DEFAUT): ResultatScore {
   const presents = Object.values(indicateurs).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
   const score = presents.length === 0 ? 0 : Math.round(presents.reduce((a, b) => a + Math.min(100, Math.max(0, b)), 0) / presents.length);
-  const palier = SEUILS.find((s) => score >= s.min)!.palier;
+  const paliers: ReadonlyArray<{ palier: PalierScore; min: number }> = [
+    { palier: "excellent", min: seuils.excellent },
+    { palier: "tres_bon", min: seuils.tresBon },
+    { palier: "bon", min: seuils.bon },
+    { palier: "moyen", min: seuils.moyen },
+    { palier: "mauvais", min: 0 },
+  ];
+  const palier = paliers.find((s) => score >= s.min)!.palier;
   return {
     score,
     palier,
