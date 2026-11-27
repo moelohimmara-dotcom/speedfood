@@ -6,7 +6,7 @@ import { ERREUR_CONSENTEMENT } from './parcours-client.ts';
 
 /**
  * Domaine pur de l'envoi d'une commande en RETRAIT (lot A) ou en LIVRAISON (lot B) depuis l'application.
- * Livraison : adresse 5 à 300 caractères, quartier obligatoire (`destination.quartierId`), `fraisAffiches` = frais du DERNIER calcul du serveur pour ce quartier et ce sous-total
+ * Livraison : adresse 5 à 300 caractères, destination = position partagée (`destination.latitude/longitude`) OU quartier (`destination.quartierId`), jamais les deux, `fraisAffiches` = frais du DERNIER calcul du serveur pour ce quartier et ce sous-total
  * (absent si le calcul est éteint : `non_calcule`). Le serveur recalcule et refuse (409) si les frais ont changé ; `sur_place` n'est jamais envoyé.
  * Aucun prix par ligne n'est envoyé : le serveur recalcule, on ne transmet que `sousTotalAffiche` pour comparaison.
  * Règles reprises du serveur (apps/web/src/lib/commande/validation.ts) : nom 2 à 120 caractères, téléphone guinéen normalisé en +224…,
@@ -17,6 +17,14 @@ export const NOM_MAX = 120;
 const CLE_IDEMPOTENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const ADRESSE_MIN = 5;
 export const ADRESSE_MAX = 300;
+export { TEXTE_PARTAGE_POSITION } from '../../../../packages/shared/src/commande/adresse-livraison.ts';
+/** Point GPS partagé par le client pour situer sa livraison (facultatif : le quartier reste possible). */
+export interface PointLivraison { latitude: number; longitude: number }
+export function pointValide(p: PointLivraison | null | undefined): p is PointLivraison {
+  return !!p && typeof p.latitude === 'number' && typeof p.longitude === 'number' && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && Math.abs(p.latitude) <= 90 && Math.abs(p.longitude) <= 180;
+}
+/** Arrondi à 4 décimales (environ 10 m) : la même précision que le serveur, qui arrondit aussi à l'envoi. */
+export const arrondirPoint = (p: PointLivraison): PointLivraison => ({ latitude: Math.round(p.latitude * 1e4) / 1e4, longitude: Math.round(p.longitude * 1e4) / 1e4 });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const JETON_SUIVI = /^[A-Za-z0-9_-]{40}$/;
 const REFERENCE = /^[A-Za-z0-9-]{1,40}$/;
@@ -112,8 +120,8 @@ export type EstimationLivraison =
   | { statut: 'ok'; fraisGnf: number; distanceKm: number; gratuite: boolean; dureeMinutes: number; libelle: string };
 export type ResultatEstimation = EstimationLivraison | { statut: 'erreur' };
 /** Estimation OBTENUE pour un restaurant, un quartier et un sous-total précis : périmée (donc inutilisable) dès que l'un des trois change. */
-export interface EstimationObtenue { restaurantId: string; quartierId: string; sousTotal: number; estimation: EstimationLivraison }
-export interface SaisieCommande { nom: string; telephone: string; consentement: boolean; mode?: ModeCommande; adresse?: string; quartierId?: string | null; estimation?: EstimationObtenue | null }
+export interface EstimationObtenue { restaurantId: string; quartierId: string | null; position?: PointLivraison | null; sousTotal: number; estimation: EstimationLivraison }
+export interface SaisieCommande { nom: string; telephone: string; consentement: boolean; mode?: ModeCommande; adresse?: string; quartierId?: string | null; position?: PointLivraison | null; estimation?: EstimationObtenue | null }
 export interface ErreursSaisie { nom?: string; telephone?: string; consentement?: string; panier?: string; adresse?: string; quartier?: string; livraison?: string }
 
 /** Contrôle strict de la réponse de `POST /api/v1/livraison/estimation` ({ok, estimation}). Le texte brut du serveur n'est jamais conservé. */
@@ -132,9 +140,11 @@ export function lireEstimation(v: unknown): ResultatEstimation {
 }
 /** Frais à compter dans le total affiché : 0 si le calcul est éteint, `null` tant qu'aucune estimation n'existe. */
 export function fraisDeLEstimation(e: EstimationLivraison | null): number | null { return e === null ? null : e.statut === 'ok' ? e.fraisGnf : 0; }
-/** L'estimation détenue correspond-elle EXACTEMENT à la demande courante (restaurant, quartier, sous-total) ? */
-export function estimationValable(e: EstimationObtenue | null | undefined, restaurantId: string | null, quartierId: string | null | undefined, sousTotal: number | null): e is EstimationObtenue {
-  return !!e && restaurantId !== null && quartierId != null && sousTotal !== null && e.restaurantId === restaurantId && e.quartierId === quartierId && e.sousTotal === sousTotal;
+/** L'estimation détenue correspond-elle EXACTEMENT à la demande courante (restaurant, destination : position OU quartier, sous-total) ? */
+export function estimationValable(e: EstimationObtenue | null | undefined, restaurantId: string | null, quartierId: string | null | undefined, sousTotal: number | null, position: PointLivraison | null = null): e is EstimationObtenue {
+  if (!e || restaurantId === null || sousTotal === null || e.restaurantId !== restaurantId || e.sousTotal !== sousTotal) return false;
+  if (pointValide(position)) { const p = arrondirPoint(position); return e.quartierId === null && !!e.position && e.position.latitude === p.latitude && e.position.longitude === p.longitude; }
+  return quartierId != null && e.quartierId === quartierId && !e.position;
 }
 /** La liste des quartiers n'est lue qu'au premier passage en LIVRAISON (jamais en retrait), et relue seulement après un échec. */
 export function doitChargerQuartiers(ouvert: boolean, mode: ModeCommande, etat: 'aucun' | 'chargement' | 'ok' | 'erreur'): boolean { return ouvert && mode === 'livraison' && etat === 'aucun'; }
@@ -158,7 +168,7 @@ export function validerSaisie(s: SaisieCommande): { erreurs: ErreursSaisie; nom:
   if (s.mode === 'livraison') {
     const adresse = (s.adresse ?? '').trim();
     if (adresse.length < ADRESSE_MIN || adresse.length > ADRESSE_MAX) erreurs.adresse = `Indiquez votre adresse de livraison (${ADRESSE_MIN} à ${ADRESSE_MAX} caractères).`;
-    if (!s.quartierId || !UUID.test(s.quartierId)) erreurs.quartier = 'Choisissez votre quartier.';
+    if (!pointValide(s.position) && (!s.quartierId || !UUID.test(s.quartierId))) erreurs.quartier = 'Choisissez votre quartier ou partagez votre position.';
   }
   const telephone = normaliserTelephone(s.telephone);
   if (telephone === null) erreurs.telephone = 'Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (ex. 622 12 34 56).';
@@ -189,7 +199,8 @@ export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCatalogueP
   const livraison = saisie.mode === 'livraison';
   if (saisie.mode !== undefined && saisie.mode !== 'retrait' && !livraison) erreurs.livraison = 'Ce mode de commande n’est pas pris en charge.'; // jamais sur_place
   // Livraison : l'estimation doit dater de CE restaurant, CE quartier et CE sous-total ; sinon elle est périmée et rien ne part.
-  if (livraison && !erreurs.quartier && !estimationValable(saisie.estimation, panier.restaurantId, saisie.quartierId, bilan.total)) erreurs.livraison = 'Les frais de livraison doivent être recalculés avant l’envoi.';
+  const position = pointValide(saisie.position) ? arrondirPoint(saisie.position) : null;
+  if (livraison && !erreurs.quartier && !estimationValable(saisie.estimation, panier.restaurantId, saisie.quartierId, bilan.total, position)) erreurs.livraison = 'Les frais de livraison doivent être recalculés avant l’envoi.';
   if (erreurs.nom || erreurs.telephone || erreurs.consentement || erreurs.panier || erreurs.adresse || erreurs.quartier || erreurs.livraison || telephone === null || bilan.total === null || !panier.restaurantId) return { ok: false, erreurs };
   const lignes = panier.lignes.map(l => ({ menuItemId: l.platId, quantite: l.quantite, optionIds: [...(l.optionIds ?? [])] }));
   const base = { restaurantId: panier.restaurantId, lignes, sousTotalAffiche: bilan.total, consentementReglement: true };
@@ -197,12 +208,12 @@ export function preparerEnvoi(panier: PanierReel, plats: readonly PlatCatalogueP
     const empreinte = JSON.stringify([compteId, panier.restaurantId, 'retrait', lignes, nom, telephone, bilan.total]);
     return { ok: true, payload: { cleIdempotence: tentative.cle(empreinte), ...base, client: { nom, telephone, adresse: null }, mode: 'retrait' } };
   }
-  const adresse = (saisie.adresse ?? '').trim(); const quartierId = saisie.quartierId as string; const est = (saisie.estimation as EstimationObtenue).estimation;
+  const adresse = (saisie.adresse ?? '').trim(); const quartierId = position ? null : saisie.quartierId as string; const est = (saisie.estimation as EstimationObtenue).estimation;
   const fraisAffiches = est.statut === 'ok' ? est.fraisGnf : undefined; // calcul éteint : aucun montant exigé ni envoyé
-  // L'empreinte porte tout ce que le client a vu et confirmé : mode, adresse, quartier, frais. Si l'un change, la clé change.
-  const empreinte = JSON.stringify([compteId, panier.restaurantId, 'livraison', lignes, nom, telephone, adresse, quartierId, fraisAffiches ?? null, bilan.total]);
+  // L'empreinte porte tout ce que le client a vu et confirmé : mode, adresse, quartier ou position, frais. Si l'un change, la clé change.
+  const empreinte = JSON.stringify([compteId, panier.restaurantId, 'livraison', lignes, nom, telephone, adresse, quartierId, position ? [position.latitude, position.longitude] : null, fraisAffiches ?? null, bilan.total]);
   return { ok: true, payload: {
     cleIdempotence: tentative.cle(empreinte), ...base, client: { nom, telephone, adresse }, mode: 'livraison',
-    destination: { quartierId }, ...(fraisAffiches !== undefined ? { fraisAffiches } : {}),
+    destination: position ? { latitude: position.latitude, longitude: position.longitude } : { quartierId: quartierId as string }, ...(fraisAffiches !== undefined ? { fraisAffiches } : {}),
   } };
 }

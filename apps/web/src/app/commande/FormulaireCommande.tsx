@@ -18,6 +18,7 @@ import { Turnstile } from "@/components/Turnstile";
 import type { OptionChoix } from "@/components/ui/ListeChoix";
 import type { EstimationPublique } from "@/lib/livraison/actions";
 import { ChoixLivraison, type DestinationChoisie } from "./ChoixLivraison";
+import { EXEMPLE_REPERE, PRECISIONS_MAX, REPERE_MAX, composerAdresse } from "@/lib/commande/adresse-livraison";
 import type { CompteCommande } from "./CommandeClient";
 
 /** Délai au-delà duquel on considère que le défi anti-robot ne sechargera pas (voir la sonde plus bas). */
@@ -48,6 +49,10 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
   const [telephone, setTelephone] = useState(compte.prefill?.telephone ?? "");
   // Adresse de départ : celle mémorisée avec les coordonnées, sinon l'adresse par défaut du carnet de l'espace client.
   const [adresse, setAdresse] = useState(compte.prefill?.adresse || compte.adresses.find((a) => a.parDefaut)?.adresse || "");
+  // Nouvelle adresse : un repère connu (obligatoire sauf position partagée) et des précisions, composés en une ligne. L'adresse enregistrée sert tant que le client ne la remplace pas.
+  const [utiliserCarnet, setUtiliserCarnet] = useState(adresse.trim().length >= 5);
+  const [repere, setRepere] = useState("");
+  const [precisions, setPrecisions] = useState("");
   // Numéro de table du QR scanné (mémoire du navigateur, 6 h) : propose le service à table, sans jamais l'imposer.
   const tableScannee = useTableMemorisee(panier.restaurantId);
   const [modeChoisi, setMode] = useState<ModeRetrait | null>(null);
@@ -108,6 +113,9 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
     estimation: null,
   });
   const fraisCalcules = mode === "livraison" && livraison.estimation?.statut === "ok" ? livraison.estimation.fraisGnf : null;
+  const composee = composerAdresse({ repere, precisions, position: livraison.destination?.latitude !== undefined });
+  // Adresse envoyée : l'adresse enregistrée tant qu'elle est utilisée, sinon le repère et les précisions composés (« » si le repère manque).
+  const adresseFinale = utiliserCarnet && adresse.trim().length >= 5 ? adresse.trim() : (composee.adresse ?? "");
   const totalAffiche = sousTotalAffiche + (fraisCalcules ?? 0);
 
   function soumettre() {
@@ -120,8 +128,11 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
       erreurs.telephone =
         "Numéro guinéen invalide : 9 chiffres commençant par 6 ou 7 (ex. +224 622 12 34 56).";
     }
-    if (mode === "livraison" && adresse.trim().length < 5) {
-      erreurs.adresse = "L'adresse de livraison est obligatoire.";
+    if (mode === "livraison" && adresseFinale.length < 5) {
+      erreurs.adresse = composee.erreurs.repere ?? "L'adresse de livraison est obligatoire.";
+    }
+    if (mode === "livraison" && !(utiliserCarnet && adresse.trim().length >= 5) && composee.erreurs.precisions) {
+      erreurs.precisions = composee.erreurs.precisions;
     }
     if (mode === "livraison" && livraison.estimation?.statut === "erreur") {
       erreurs.livraison = livraison.estimation.message;
@@ -157,7 +168,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         nom: nom.trim() || `Table ${lireNumeroTable(table) ?? ""}`.trim(),
         telephone: telephone.trim(),
         // L'adresse n'est transmise au restaurant qu'en livraison (minimisation des données), même si elle est préremplie.
-        adresse: mode === "livraison" && adresse.trim().length > 0 ? adresse.trim() : null,
+        adresse: mode === "livraison" && adresseFinale.length > 0 ? adresseFinale : null,
       },
       mode,
       table: mode === "sur_place" ? lireNumeroTable(table) : null,
@@ -184,7 +195,7 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
           await memoriserCoordonneesAction({
             nom: nom.trim(),
             telephone: telephone.trim(),
-            adresse: adresse.trim().length > 0 ? adresse.trim() : null,
+            adresse: adresseFinale.length > 0 ? adresseFinale : null,
           }).catch(() => undefined);
         }
         viderPanier();
@@ -320,7 +331,11 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
       {mode === "livraison" && compte.adresses.length > 0 ? (
         <div className="field">
           <label htmlFor="adresse-enregistree">Mes adresses</label>
-          <select id="adresse-enregistree" value={compte.adresses.find((a) => a.adresse === adresse)?.id ?? ""} onChange={(e) => setAdresse(compte.adresses.find((a) => a.id === e.target.value)?.adresse ?? adresse)}>
+          <select id="adresse-enregistree" value={utiliserCarnet ? (compte.adresses.find((a) => a.adresse === adresse)?.id ?? "") : ""} onChange={(e) => {
+              const choisie = compte.adresses.find((a) => a.id === e.target.value);
+              if (choisie) setAdresse(choisie.adresse);
+              setUtiliserCarnet(choisie !== undefined);
+            }}>
             <option value="">Autre adresse (saisie ci-dessous)</option>
             {compte.adresses.map((a) => (
               <option key={a.id} value={a.id}>
@@ -332,18 +347,42 @@ export function FormulaireCommande({ panier, cleSiteTurnstile, compte, quartiers
         </div>
       ) : null}
 
-      {mode === "livraison" ? (
-        <Input
-          label="Adresse de livraison"
-          name="adresse"
-          type="text"
-          required
-          maxLength={300}
-          autoComplete="street-address"
-          value={adresse}
-          onChange={(e) => setAdresse(e.target.value)}
-          erreur={champs.adresse}
-        />
+      {mode === "livraison" && utiliserCarnet && adresse.trim().length >= 5 ? (
+        <div className="field">
+          <p>
+            <strong>Adresse enregistrée :</strong> {adresse.trim()}
+          </p>
+          <button type="button" className="commande-livraison-position" onClick={() => setUtiliserCarnet(false)}>
+            Saisir une autre adresse
+          </button>
+        </div>
+      ) : null}
+      {mode === "livraison" && !(utiliserCarnet && adresse.trim().length >= 5) ? (
+        <>
+          <Input
+            label={livraison.destination?.latitude !== undefined ? "Repère connu près de chez vous (facultatif)" : "Repère connu près de chez vous"}
+            name="repere"
+            type="text"
+            required={livraison.destination?.latitude === undefined}
+            maxLength={REPERE_MAX}
+            autoComplete="off"
+            placeholder={`Exemple : ${EXEMPLE_REPERE}`}
+            value={repere}
+            onChange={(e) => setRepere(e.target.value)}
+            erreur={champs.adresse}
+          />
+          <Input
+            label="Précisions (facultatif)"
+            name="precisions"
+            type="text"
+            maxLength={PRECISIONS_MAX}
+            autoComplete="off"
+            placeholder="Couleur du portail, étage, nom sur la porte"
+            value={precisions}
+            onChange={(e) => setPrecisions(e.target.value)}
+            erreur={champs.precisions}
+          />
+        </>
       ) : null}
 
       <div className="bloc-reglement">

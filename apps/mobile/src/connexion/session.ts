@@ -288,14 +288,14 @@ export class GestionSession {
     try{if(!this.api.creerCommande)throw new ErreurConnexion('Envoi de commande indisponible.');const r=await this.api.creerCommande(acces,payload);this.noterCommandes([{reference:r.reference,jeton:r.jeton,restaurantNom:'',creeLe:Date.now(),totalGnf:0,mode:payload.mode}]);return {reference:r.reference,idempotent:r.idempotent};}
     catch(e){if(e instanceof ErreurCommande&&e.genre==='session'&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
   }
-  /** Frais et durée de livraison calculés par le serveur pour ce quartier et ce sous-total (lecture, jeton porteur du compte connecté). Une session terminée le dit, sans rien effacer d'autre. */
-  async estimerLivraison(restaurantId:string,quartierId:string,sousTotal:number):Promise<ResultatEstimation> {
+  /** Frais et durée de livraison calculés par le serveur pour ce quartier (ou cette position partagée) et ce sous-total (lecture, jeton porteur du compte connecté). Une session terminée le dit, sans rien effacer d'autre. */
+  async estimerLivraison(restaurantId:string,destination:string|{latitude:number;longitude:number},sousTotal:number):Promise<ResultatEstimation> {
     const n=this.generation;
     try{
       const acces=await this.jeton();
       if(n!==this.generation)throw new ErreurConnexion('Calcul annulé.');
       if(!this.api.estimerLivraison)throw new ErreurConnexion('Calcul de livraison indisponible.');
-      const r=await this.api.estimerLivraison(acces,restaurantId,quartierId,sousTotal);
+      const r=await this.api.estimerLivraison(acces,restaurantId,destination,sousTotal);
       if(n!==this.generation)throw new ErreurConnexion('Calcul annulé.');
       return r;
     }catch(e){if(e instanceof ErreurConnexion&&e.definitive&&n===this.generation){this.session=null;this.clesSuivi.clear();await this.ordonner(()=>this.coffre.effacer());}throw e;}
