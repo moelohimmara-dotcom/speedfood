@@ -12,7 +12,7 @@ import { phraseProchaineEtape } from './suivi-acteur';
 import { Pastille } from '../catalogue/FicheRestaurant';
 import { PHRASE_MODES_COMMANDE } from '../catalogue/commande-reelle';
 import { CommandesAppareilReel } from './CommandesAppareilReel';
-import { lireCodeRetourSocial, preparerVerificateur, urlConnexionSociale, versBase64Url, type FournisseurSocial } from './reseaux-sociaux';
+import { MESSAGE_CONNEXION_SOCIALE_PERDUE, MESSAGE_CONNEXION_SOCIALE_REFUSEE, estRetourSocial, lireCodeRetourSocial, preparerVerificateur, retourEnErreur, urlConnexionSociale, versBase64Url, type FournisseurSocial } from './reseaux-sociaux';
 import { gestion } from './gestion';
 import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
@@ -139,7 +139,10 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
   useEffect(()=>{
     if(!ouvert)return;let actifRetour=true;
     const traiter=(url:string|null)=>{
-      if(!actifRetour||!url||socialEnAttente.current===null)return;
+      if(!actifRetour||!url||!estRetourSocial(url,SITE_WEB))return;
+      // Retour sans connexion en attente (appli fermée pendant le passage par le navigateur) ou refusé par le fournisseur : on le dit, au lieu de ne rien faire.
+      if(socialEnAttente.current===null){setErreur(MESSAGE_CONNEXION_SOCIALE_PERDUE);return;}
+      if(retourEnErreur(url,SITE_WEB)){socialEnAttente.current=null;setErreur(MESSAGE_CONNEXION_SOCIALE_REFUSEE);return;}
       const code=lireCodeRetourSocial(url,SITE_WEB);if(code===null)return;
       const attente=socialEnAttente.current;socialEnAttente.current=null;
       void executer(async()=>{await gestion.connecterAvecCode(code,attente.verificateur);setProfil(await gestion.espace());});
