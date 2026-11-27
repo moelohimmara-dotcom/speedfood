@@ -5,6 +5,7 @@ import { etatDisponibilite } from '@speedfood/shared/disponibilite/etat';
 import type { RestaurantPublic, PageRestaurants, PageMenu, ListeQuartiers } from '@speedfood/shared/contracts/catalogue';
 import { estImageIllustrative } from '@speedfood/shared/menu/image-illustrative';
 import { choisirCouvertures, type PlatCouverture } from '@speedfood/shared/menu/couverture-restaurant';
+import { adresseVignette } from '@speedfood/shared/menu/vignette-photo';
 import { cotation } from '@speedfood/shared/notation/cotation';
 
 // Colonnes de la liste (légère) et de la fiche (liste + consignes et moyens de paiement). `avis_somme` et `avis_total` existent en base (migration notation) mais pas encore dans
@@ -101,7 +102,7 @@ export async function lireRestaurants(apres: string | null, db: SupabaseClient<D
   const couvertures = pageBrute.length > 0 ? await lireCouvertures(pageBrute.map(r => r.id)) : new Map<string, string>();
   const page = pageBrute.map(r => {
     const couverture = couvertures.get(r.id);
-    const projete = { ...projeter(r), aDesPromos: avecPromos.has(r.id), ...(couverture ? { couvertureUrl: couverture, ...(illustrative && estImageIllustrative(couverture) ? { couvertureIllustrative: true as const } : {}) } : {}) };
+    const projete = { ...projeter(r), aDesPromos: avecPromos.has(r.id), ...(couverture ? { couvertureUrl: adresseVignette(couverture), ...(illustrative && estImageIllustrative(couverture) ? { couvertureIllustrative: true as const } : {}) } : {}) };
     const palier = paliers.get(r.id);
     return palier ? { ...projete, scorePalier: palier as 'excellent' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais' } : projete;
   });

@@ -190,17 +190,17 @@ const lireAvecCouvertures = (illustrative: boolean, photos: (u: URL) => unknown)
 }), undefined, illustrative, undefined);
 test('source catalogue : la couverture est la photo d’un plat principal, jamais un alcool, une boisson ni une photo non HTTPS', async () => {
   const page = await lireAvecCouvertures(true, () => platsEssai());
-  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/photos/a.jpg', 'le cognac (plus cher) est écarté, le plat principal le plus cher est choisi');
+  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/vignettes/a.jpg', 'la vignette légère est servie, pas l’original ; le cognac (plus cher) est écarté, le plat principal le plus cher est choisi');
   assert.equal(page.restaurants[0].couvertureIllustrative, undefined, 'une vraie photo ne porte pas la mention');
   assert.equal(page.restaurants[1].couvertureUrl, undefined, 'un restaurant dont les seules photos sont des boissons n’a pas de couverture');
-  assert.equal(page.restaurants[2].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot3/riz.png', 'l’adresse non HTTPS est ignorée, le plat suivant est pris');
+  assert.equal(page.restaurants[2].couvertureUrl, BASE_COUV + 'demo/vignettes/ia/lot3/riz.jpg', 'l’adresse non HTTPS est ignorée, le plat suivant est pris');
   assert.equal(page.restaurants[3].couvertureUrl, undefined, 'aucun plat avec photo : pas de couverture');
 });
 test('source catalogue : la mention « image illustrative » de la couverture suit l’interrupteur de la console', async () => {
   const allume = await lireAvecCouvertures(true, () => platsEssai());
   assert.equal(allume.restaurants[2].couvertureIllustrative, true);
   const coupe = await lireAvecCouvertures(false, () => platsEssai());
-  assert.equal(coupe.restaurants[2].couvertureUrl, BASE_COUV + 'demo/photos/ia/lot3/riz.png'); assert.equal(coupe.restaurants[2].couvertureIllustrative, undefined);
+  assert.equal(coupe.restaurants[2].couvertureUrl, BASE_COUV + 'demo/vignettes/ia/lot3/riz.jpg'); assert.equal(coupe.restaurants[2].couvertureIllustrative, undefined);
 });
 test('source catalogue : lecture des couvertures bornée et ordonnée, page par page au-delà de 1000 lignes', async () => {
   const demandes: string[] = [];
@@ -212,7 +212,7 @@ test('source catalogue : lecture des couvertures bornée et ordonnée, page par 
     return [plat(id, 'z1', 'Plateau familial', 80000, BASE_COUV + 'demo/photos/plateau.jpg', 'Menus et formules')];
   });
   assert.deepEqual(demandes, ['0/1000', '1000/1000']);
-  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/photos/plateau.jpg', 'la deuxième page est lue : la couverture n’est jamais perdue à cause du plafond de 1000 lignes');
+  assert.equal(page.restaurants[0].couvertureUrl, BASE_COUV + 'demo/vignettes/plateau.jpg', 'la deuxième page est lue : la couverture n’est jamais perdue à cause du plafond de 1000 lignes');
 });
 test('source catalogue : une panne de lecture des couvertures ne retire pas les restaurants (cartes sans couverture)', async () => {
   const page = await lireAvecCouvertures(true, () => { throw new Error('panne'); });
@@ -233,4 +233,14 @@ test('choix de la couverture : noms et sections écartés, plus cher d’abord, 
     { restaurantId: 'a', id: '3', nom: 'Z', prix: 50, photoUrl: 'u3', section: null }, { restaurantId: 'b', id: '4', nom: 'Eau', prix: 10, photoUrl: 'u4', section: 'Eaux' },
   ]);
   assert.equal(choix.get('a'), 'u1', 'à prix égal, le plus petit identifiant'); assert.equal(choix.has('b'), false);
+});
+test('vignette légère : chemin et adresse suivent la même règle, photo propre au restaurant inchangée', async () => {
+  const { cheminVignette, adresseVignette } = await import('@speedfood/shared/menu/vignette-photo');
+  assert.equal(cheminVignette('demo/photos/ia/lot3/riz.png'), 'demo/vignettes/ia/lot3/riz.jpg');
+  assert.equal(cheminVignette('demo/photos/pexels-lot1/plat-123.JPEG'), 'demo/vignettes/pexels-lot1/plat-123.jpg');
+  assert.equal(cheminVignette('demo/photos/wikimedia-lot2/x.webp'), 'demo/vignettes/wikimedia-lot2/x.jpg');
+  assert.equal(cheminVignette('restaurants/abc/plat.jpg'), null, 'hors de la bibliothèque de démonstration : pas de vignette');
+  assert.equal(adresseVignette(BASE_COUV + 'demo/photos/ia/lot7/zaalouk.png'), BASE_COUV + 'demo/vignettes/ia/lot7/zaalouk.jpg');
+  assert.equal(adresseVignette(BASE_COUV + 'restaurants/abc/plat.jpg'), BASE_COUV + 'restaurants/abc/plat.jpg', 'photo propre au restaurant : adresse inchangée');
+  assert.equal(adresseVignette('https://exemple.invalid/p.jpg'), 'https://exemple.invalid/p.jpg');
 });
