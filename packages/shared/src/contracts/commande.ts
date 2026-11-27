@@ -158,6 +158,8 @@ export interface CreationCommandePayload {
   destination?: { latitude?: number; longitude?: number; quartierId?: string };
   /** Frais de livraison (GNF, entier) que le client a vus à l'écran ; jamais utilisés comme prix, seulement comparés au calcul serveur. */
   fraisAffiches?: number;
+  /** Code promo saisi par le client (facultatif) : le serveur le revérifie et déduit la remise du sous-total ; un code invalide refuse la commande. */
+  codePromo?: string;
 }
 
 /** Réponse de la création : le jeton de suivi est la clé d'accès du client à `/suivi/[jeton]`. */

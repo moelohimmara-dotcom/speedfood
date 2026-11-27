@@ -34,6 +34,21 @@ test('commande : charge utile exacte, retrait, aucun prix par ligne, sous-total 
   for (const l of p.lignes) assert.deepEqual(Object.keys(l).sort(), ['menuItemId', 'optionIds', 'quantite']);
 });
 
+test('commande : code promo normalisé dans la charge utile, absent sans saisie, clé différente selon le code', () => {
+  const t = creerTentative(generateur);
+  const avec = preparerEnvoi(panier, plats, { ...saisie, codePromo: ' bienvenue-10 ' }, t);
+  assert.equal(avec.ok, true);
+  const p = (avec as { ok: true; payload: CreationCommandePayload }).payload;
+  assert.equal(p.codePromo, 'BIENVENUE10');
+  const sans = payloadValide(creerTentative(generateur));
+  assert.equal('codePromo' in sans, false);
+  const t2 = creerTentative(generateur);
+  const premier = preparerEnvoi(panier, plats, { ...saisie, codePromo: 'BIENVENUE10' }, t2);
+  const second = preparerEnvoi(panier, plats, { ...saisie, codePromo: 'AUTRE25' }, t2);
+  assert.equal(premier.ok && second.ok, true);
+  assert.notEqual((premier as { ok: true; payload: CreationCommandePayload }).payload.cleIdempotence, (second as { ok: true; payload: CreationCommandePayload }).payload.cleIdempotence, 'changer de code change la clé d’idempotence');
+});
+
 // Parité Kotlin (tranche 10.2) : les suppléments partent dans `optionIds` de chaque ligne, le sous-total affiché les compte (le serveur le compare au sien).
 const opt1 = '00000000-0000-4000-8000-0000000000b1', opt2 = '00000000-0000-4000-8000-0000000000b2';
 const platO: PlatCataloguePublic = { ...plat(id1, 25000), options: [{ id: opt1, nom: 'Piment', prixGnf: 500 }, { id: opt2, nom: 'Œuf', prixGnf: 2000 }] };

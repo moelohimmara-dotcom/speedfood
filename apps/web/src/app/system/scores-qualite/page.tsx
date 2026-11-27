@@ -3,6 +3,9 @@ import { exigerPermissionPage } from "@/lib/system-admin/contexte";
 import { EtatVide, PageHeader, Pastille } from "@/components/admin/blocs";
 import { lireDerniersScores } from "@/lib/restaurant/score-lectures";
 import type { PalierScore } from "@/lib/restaurant/score-qualite";
+import { lireReglagesScore } from "@/lib/restaurant/score-service";
+import { marquerEtapeDegradationAction, recalculerScoresAction } from "@/lib/system-admin/scores-actions";
+import { ReglagesScoreForm } from "./ReglagesScore";
 
 export const metadata: Metadata = { title: "Scores qualité (administration)" };
 export const dynamic = "force-dynamic";
@@ -36,10 +39,16 @@ function pct(v: number | null | undefined): string {
 
 export default async function ScoresQualitePage() {
   await exigerPermissionPage("parametres.editer");
-  const { mois, lignes } = await lireDerniersScores();
+  const [{ mois, lignes }, reglages] = await Promise.all([lireDerniersScores(), lireReglagesScore()]);
   return (
     <div>
       <PageHeader titre="Scores qualité des restaurants" description="Score mensuel sur six indicateurs, du palier le plus faible au plus fort. Le retrait final reste une décision humaine." />
+      <ReglagesScoreForm reglages={reglages} />
+      <form action={recalculerScoresAction} className="ad-panneau">
+        <h2 className="ad-panneau-titre">Recalculer maintenant</h2>
+        <p className="ad-aide-champ">Relance le calcul du mois écoulé avec les réglages ci-dessus, sans attendre le déclenchement mensuel. Les mois déjà publiés sont réécrits à l’identique si rien n’a changé.</p>
+        <button type="submit" className="btn btn-secondary">Recalculer le mois écoulé</button>
+      </form>
       {mois === null || lignes.length === 0 ? (
         <div className="ad-panneau">
           <EtatVide titre="Aucun score calculé" texte="Le premier calcul aura lieu au début du mois prochain, sur les données du mois écoulé." />
@@ -64,7 +73,7 @@ export default async function ScoresQualitePage() {
                     <td>{pct(l.indicateurs.note)}</td>
                     <td>{pct(l.indicateurs.ficheComplete)}</td>
                     <td>{pct(l.indicateurs.disponibilite)}</td>
-                    <td>{l.moisBasConsecutifs > 0 ? `${LIBELLE_ETAPE[l.etape]} (${l.moisBasConsecutifs} mois bas)` : "Aucune"}</td>
+                    <td>{l.moisBasConsecutifs > 0 ? <>{`${LIBELLE_ETAPE[l.etape]} (${l.moisBasConsecutifs} mois bas)`}{l.etape !== "retrait_decision_humaine" ? <>{" "}<form action={marquerEtapeDegradationAction} style={{ display: "inline" }}><input type="hidden" name="restaurant_id" value={l.restaurantId} /><input type="hidden" name="etape" value={l.etape} /><button type="submit" className="btn btn-secondary btn-compact">Marquer comme prise</button></form></> : null}</> : "Aucune"}</td>
                   </tr>
                 ))}
               </tbody>

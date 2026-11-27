@@ -1,6 +1,6 @@
 import "server-only";
 import { creerClientAdmin } from "@/lib/db/admin";
-import { calculerScore, etapeDegradation, pourcentage, type IndicateursScore } from "./score-qualite";
+import { calculerScore, DELAI_ACCEPTATION_DEFAUT_SECONDES, etapeDegradation, pourcentage, SEUILS_DEFAUT, type IndicateursScore, type SeuilsScore } from "./score-qualite";
 
 /**
  * Calcul mensuel des scores qualité, côté serveur seulement. Lit les commandes du mois écoulé
@@ -10,7 +10,25 @@ import { calculerScore, etapeDegradation, pourcentage, type IndicateursScore } f
  */
 
 type Admin = ReturnType<typeof creerClientAdmin>;
-const DELAI_ACCEPTATION_MS = 11.5 * 60_000;
+
+export interface ReglagesScore {
+  seuils: SeuilsScore;
+  delaiAcceptationSecondes: number;
+}
+
+/** Réglages pilotables du score (console) ; table absente ou illisible = valeurs décidées le 22 novembre 2026, jamais un calcul bloqué. */
+export async function lireReglagesScore(admin: Admin = creerClientAdmin() as unknown as Admin): Promise<ReglagesScore> {
+  const db = admin as unknown as { from: (table: string) => any };
+  const { data, error } = await db.from("parametres_score").select("seuil_excellent, seuil_tres_bon, seuil_bon, seuil_moyen, delai_acceptation_secondes").eq("id", true).maybeSingle();
+  if (error || !data) return { seuils: SEUILS_DEFAUT, delaiAcceptationSecondes: DELAI_ACCEPTATION_DEFAUT_SECONDES };
+  const seuils = { excellent: Number(data.seuil_excellent), tresBon: Number(data.seuil_tres_bon), bon: Number(data.seuil_bon), moyen: Number(data.seuil_moyen) };
+  const valide = [seuils.excellent, seuils.tresBon, seuils.bon, seuils.moyen].every((v) => Number.isInteger(v) && v >= 1 && v <= 100) && seuils.excellent > seuils.tresBon && seuils.tresBon > seuils.bon && seuils.bon > seuils.moyen;
+  const delai = Number(data.delai_acceptation_secondes);
+  return {
+    seuils: valide ? seuils : SEUILS_DEFAUT,
+    delaiAcceptationSecondes: Number.isInteger(delai) && delai >= 30 && delai <= 7200 ? delai : DELAI_ACCEPTATION_DEFAUT_SECONDES,
+  };
+}
 
 interface LigneCommande {
   id: string;
@@ -28,6 +46,8 @@ interface LigneEvenement {
 
 export async function calculerScoresMois(moisConcerne = new Date()): Promise<{ restaurants: number }> {
   const admin = creerClientAdmin() as unknown as Admin;
+  const reglages = await lireReglagesScore(admin);
+  const delaiAcceptationMs = reglages.delaiAcceptationSecondes * 1000;
   const debut = new Date(Date.UTC(moisConcerne.getUTCFullYear(), moisConcerne.getUTCMonth() - 1, 1));
   const fin = new Date(Date.UTC(moisConcerne.getUTCFullYear(), moisConcerne.getUTCMonth(), 1));
   const moisTexte = debut.toISOString().slice(0, 10);
@@ -83,7 +103,7 @@ export async function calculerScoresMois(moisConcerne = new Date()): Promise<{ r
         .sort((a, b) => a.horodatage.localeCompare(b.horodatage))[0];
       if (rep) repondues.push({ cree: new Date(c.cree_le).getTime(), repondu: new Date(rep.horodatage).getTime() });
     }
-    const dansDelai = repondues.filter((r) => r.repondu - r.cree <= DELAI_ACCEPTATION_MS);
+    const dansDelai = repondues.filter((r) => r.repondu - r.cree <= delaiAcceptationMs);
     const aAcceptee = new Set(evenementsDuMois.filter((e) => e.statut_suivant === "acceptee").map((e) => e.order_id));
     const aMenee = new Set(evenementsDuMois.filter((e) => e.statut_suivant === "prete" || e.statut_suivant === "terminee").map((e) => e.order_id));
     const annuleesApresAcceptation = new Set(evenementsDuMois.filter((e) => e.statut_suivant === "annulee" && aAcceptee.has(e.order_id)).map((e) => e.order_id));
@@ -106,7 +126,7 @@ export async function calculerScoresMois(moisConcerne = new Date()): Promise<{ r
       disponibilite: aucuneActivite ? null : resto.ouvert && resto.accepte_commandes ? 100 : resto.ouvert ? 50 : 0,
     };
     if (Object.values(indicateurs).every((v) => v === null)) continue;
-    const resultat = calculerScore(indicateurs);
+    const resultat = calculerScore(indicateurs, reglages.seuils);
     const moisBas = resultat.palier === "mauvais" ? (moisBasAvant.get(resto.id) ?? 0) + 1 : 0;
     const { error } = await admin.from("scores_qualite_mensuels" as never).upsert(
       {
