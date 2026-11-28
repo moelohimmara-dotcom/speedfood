@@ -44,3 +44,13 @@ test('reprise : « Commander » ouvre directement la connexion client et rouvre 
   assert.match(catalogue, /setVisiteOuverte\(false\); setRemonterCompte\(n => n \+ 1\);/);
   assert.deepEqual(orienterApresConnexion({ profil: 'client', action: 'existant', reprise: 'commande' }, { restaurateur: false, livreur: false }), { genre: 'catalogue' });
 });
+
+test('inscription client : « Continuer avec Google » proposé avant le formulaire, quand Google est activé', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const debut = compte.indexOf("acces==='inscription'?<>");
+  assert.ok(debut > 0, 'la branche inscription regroupe les boutons sociaux et le formulaire');
+  const branche = compte.slice(debut, compte.indexOf('<InscriptionReelle ', debut));
+  assert.match(branche, /sociaux\.has\('google'\)&&<Action titre="Continuer avec Google"/);
+  assert.match(branche, /commencerSocial\('google'\)/);
+  assert.match(branche, /TEXTE_INSCRIPTION_SOCIALE/);
+});

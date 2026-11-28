@@ -39,6 +39,11 @@ const formulaire = lire("src/app/entrer/InscriptionCompleteForm.tsx");
 verifier("le lien « conditions » mène aux conditions d'utilisation", /href="\/conditions"/.test(formulaire), true);
 const action = lire("src/lib/auth/actions.ts");
 verifier("l'action de connexion renvoie vers la suite validée", /if \(estCheminInterneSur\(suite\)\) \{\s*redirect\(suite\);/.test(action), true);
+const google = lire("src/components/compte/ContinuerAvecGoogle.tsx");
+verifier("inscription Google : la carte Google vient avant le formulaire complet", entrer.indexOf("<ContinuerAvecGoogle") > 0 && entrer.indexOf("<ContinuerAvecGoogle") < entrer.indexOf("<InscriptionCompleteForm"), true);
+verifier("inscription Google : la suite (ex. /commande) part avec Google", google.includes('name="suite" value={suite}') && google.includes("continuerAvecGoogleAction"), true);
+verifier("inscription Google : la mention de consentement est gardée", google.includes("En continuant, vous acceptez"), true);
+verifier("connexion client : Google proposé, jamais pour le restaurateur", connexion.includes('!estResto && roleFormulaire === "client" && (await connexionGoogleActive())'), true);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s)`);

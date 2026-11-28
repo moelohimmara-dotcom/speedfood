@@ -1327,6 +1327,13 @@
   color: #3c4043;
   background-image: none;
 }
+/* Séparateur « ou » entre le formulaire de connexion client et « Continuer avec Google ». */
+.connexion-ou {
+  margin: var(--space-4, 1rem) 0 var(--space-2, 0.5rem);
+  text-align: center;
+  color: var(--secondaire);
+  font-size: 0.875rem;
+}
 .btn-google:hover {
   background: #f1f3f4;
   border-color: #c6c9cc;

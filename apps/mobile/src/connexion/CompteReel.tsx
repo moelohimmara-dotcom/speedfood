@@ -19,7 +19,7 @@ import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATIO
 import { InscriptionReelle, OubliReel } from './AccesReel';
 import { MESSAGE_PAS_RESTAURATEUR, accesDepuisAction, orienterApresConnexion, type OrientationAccueil } from '../accueil/parcours-accueil';
 import { SelecteurEspace } from './SelecteurEspace';
-import { TEXTE_DEVENIR_LIVREUR, TEXTE_REFERENCEMENT, choixEspace, titreConnexion, type EspaceVisiteur } from './espace-visiteur';
+import { TEXTE_DEVENIR_LIVREUR, TEXTE_INSCRIPTION_SOCIALE, TEXTE_REFERENCEMENT, choixEspace, titreConnexion, type EspaceVisiteur } from './espace-visiteur';
 import { EspaceClientReel } from './EspaceClientReel';
 import { ParametresReel } from './ParametresReel';
 import { PorteVerrou, ReglageVerrou } from './VerrouProReel';
@@ -271,7 +271,14 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     {(connectee?vue==='compte':formulaireOuvert)&&<Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>}
     {attente&&<><ActivityIndicator color={c.action}/><Text accessibilityLiveRegion="polite" style={s.texte}>Connexion à Speedfood…</Text></>}
     {erreur&&<Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}{message!==''&&<Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    {formulaireOuvert&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
+    {formulaireOuvert&&acces==='inscription'?<>
+      {/* Inscription en un geste : Google (ou Facebook) crée le compte client au premier passage, sans mot de passe à retenir. */}
+      {(sociaux.has('google')||sociaux.has('facebook'))&&<View style={{gap:10}}>
+        {sociaux.has('google')&&<Action titre="Continuer avec Google" variante="contour" disabled={attente} agir={()=>{void commencerSocial('google');}}/>}
+        {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" variante="contour" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
+        <Text style={s.secondaire}>{TEXTE_INSCRIPTION_SOCIALE}</Text>
+      </View>}
+      <InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/></>
     :formulaireOuvert&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
     :!connectee?(!formulaireOuvert?null:<>
       {formulaireVisiteur&&<Text accessibilityRole="header" style={s.rubrique}>{titreConnexion(espaceVisiteur)}</Text>}

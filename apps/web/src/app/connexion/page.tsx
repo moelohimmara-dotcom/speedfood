@@ -4,6 +4,8 @@ import { ConnexionForm } from "./ConnexionForm";
 import { Card } from "@/components/ui";
 import { PageCompte } from "@/components/PageCompte";
 import { avecSuite, estCheminInterneSur } from "@/lib/auth/redirection";
+import { connexionGoogleActive } from "@/lib/client/reglage";
+import { ContinuerAvecGoogle } from "@/components/compte/ContinuerAvecGoogle";
 import { lireRoleChoisi, roleDepuisSuite, type RoleChoisi } from "@/lib/auth/acces";
 import type { Metadata } from "next";
 
@@ -53,6 +55,8 @@ export default async function ConnexionPage({
 
   const estResto = piste === "restaurateur";
   const roleFormulaire: RoleChoisi | null = sansPiste ? null : piste;
+  // Google ne sert qu'aux comptes clients ; jamais sur la connexion restaurateur ni sur l'administration.
+  const googleActif = !estResto && roleFormulaire === "client" && (await connexionGoogleActive());
   return (
     <PageCompte
       titre={estResto ? "Connexion restaurateur" : "Connexion client"}
@@ -97,6 +101,12 @@ export default async function ConnexionPage({
     >
       <Card>
         <ConnexionForm suite={suite ?? ""} role={roleFormulaire} />
+        {googleActif ? (
+          <>
+            <p className="connexion-ou">ou</p>
+            <ContinuerAvecGoogle suite={estCheminInterneSur(suite ?? "") ? (suite ?? "") : "/compte"} />
+          </>
+        ) : null}
       </Card>
     </PageCompte>
   );
