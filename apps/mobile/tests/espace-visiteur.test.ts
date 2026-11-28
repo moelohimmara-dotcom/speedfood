@@ -54,3 +54,12 @@ test('inscription client : « Continuer avec Google » proposé avant le formula
   assert.match(branche, /commencerSocial\('google'\)/);
   assert.match(branche, /TEXTE_INSCRIPTION_SOCIALE/);
 });
+
+test('espace client : « Continuer avec Google » dès le choix « Client », avant connexion et inscription', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const choix = compte.indexOf('{choixVisiteur&&!formulaireOuvert&&choixEspace(espaceVisiteur)&&');
+  const google = compte.indexOf("{espaceVisiteur==='client'&&sociaux.has('google')&&", choix);
+  assert.ok(choix > 0 && google > choix && google < compte.indexOf('.actions.map(', choix), 'Google avant « Me connecter » et « Créer un compte »');
+  assert.match(compte.slice(google, google + 400), /commencerSocial\('google'\)/);
+  assert.match(compte, /TEXTE_GOOGLE_RAPIDE/);
+});

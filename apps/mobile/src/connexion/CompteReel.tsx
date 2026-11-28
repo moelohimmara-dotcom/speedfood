@@ -19,7 +19,7 @@ import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATIO
 import { InscriptionReelle, OubliReel } from './AccesReel';
 import { MESSAGE_PAS_RESTAURATEUR, accesDepuisAction, orienterApresConnexion, type OrientationAccueil } from '../accueil/parcours-accueil';
 import { SelecteurEspace } from './SelecteurEspace';
-import { TEXTE_DEVENIR_LIVREUR, TEXTE_INSCRIPTION_SOCIALE, TEXTE_REFERENCEMENT, choixEspace, titreConnexion, type EspaceVisiteur } from './espace-visiteur';
+import { TEXTE_DEVENIR_LIVREUR, TEXTE_GOOGLE_RAPIDE, TEXTE_INSCRIPTION_SOCIALE, TEXTE_REFERENCEMENT, choixEspace, titreConnexion, type EspaceVisiteur } from './espace-visiteur';
 import { EspaceClientReel } from './EspaceClientReel';
 import { ParametresReel } from './ParametresReel';
 import { PorteVerrou, ReglageVerrou } from './VerrouProReel';
@@ -259,6 +259,8 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     <View style={s.ligneTitre}><Text accessibilityRole="header" style={[s.titre,{flex:1}]}>{vue==='commandes'?'Mes commandes':'Mon compte'}</Text>{vue==='commandes'&&connectee&&<Action titre="Actualiser mes commandes" icone="actualiser" iconeSeule variante="texte" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>}</View>
     {choixVisiteur&&<SelecteurEspace key={espaceVisiteur??'aucun'} espace={espaceVisiteur} choisir={choisirEspace}/>}
     {choixVisiteur&&!formulaireOuvert&&choixEspace(espaceVisiteur)&&<View style={{gap:10}}>
+      {/* Client : Google en premier, pour s'inscrire ou se connecter en un geste sans remplir le formulaire (le même compte sert aux deux). */}
+      {espaceVisiteur==='client'&&sociaux.has('google')&&<><Action titre="Continuer avec Google" variante="contour" disabled={attente} agir={()=>{setErreur(null);void commencerSocial('google');}}/><Text style={s.secondaire}>{TEXTE_GOOGLE_RAPIDE}</Text></>}
       {choixEspace(espaceVisiteur)!.actions.map(a=><Action key={a.genre} titre={a.titre} variante={a.principale?undefined:'contour'} disabled={attente} agir={()=>{setErreur(null);
         if(a.genre==='connexion'){setAcces('connexion');setFormulaireVisiteur(true);}
         else if(a.genre==='inscription'){setAcces('inscription');setFormulaireVisiteur(true);}

@@ -32,6 +32,8 @@ export const CHOIX_ESPACES: readonly ChoixEspace[] = [
 
 /** Comment devenir livreur, tel que le service fonctionne réellement (activation par lien d'invitation, pas d'inscription libre). */
 export const TEXTE_DEVENIR_LIVREUR = 'Les livreurs rejoignent Speedfood sur invitation : l’équipe Speedfood, ou un restaurant qui a ses propres livreurs, vous envoie un lien d’activation. Ouvrez-le une fois connecté avec votre compte, puis complétez votre dossier. Pour demander une invitation, contactez l’équipe.';
+/** Sous « Continuer avec Google » dans l’espace client : un seul geste pour créer le compte ou se connecter. */
+export const TEXTE_GOOGLE_RAPIDE = 'Sans formulaire : votre compte Speedfood est créé à la première connexion avec Google, puis vous vous reconnectez en un geste.';
 /** Sous les boutons Google et Facebook de l’inscription : ce que Speedfood reçoit, et l’autre chemin. */
 export const TEXTE_INSCRIPTION_SOCIALE = 'Un geste, pas de mot de passe à retenir : Speedfood reçoit seulement votre nom et votre adresse e-mail. Ou créez votre compte avec le formulaire ci-dessous.';
 export const TEXTE_REFERENCEMENT = 'La demande de référencement se fait dans l’appli : présentez votre restaurant, vos horaires et vos plats. Il faut un compte Speedfood pour l’envoyer ; l’équipe vous recontacte.';
