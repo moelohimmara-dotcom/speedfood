@@ -749,6 +749,15 @@
 /* --- Inscription client : deux chemins proposés côte à côte (formulaire ou Facebook) ---
    Ces classes ne doivent PAS reprendre `.choix-carte` : ce nom appartient déjà aux cartes radio
    de la commande (`src/app/marche.css`), en `display:flex` horizontal, qui écrasait le formulaire. */
+/* Inscription : la connexion d'un client existant est le premier lien de la page, sans traverser le formulaire. */
+.entrer-deja-compte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
 .inscription-choix {
   display: flex;
   flex-direction: column;
@@ -1318,6 +1327,13 @@
   color: #3c4043;
   background-image: none;
 }
+/* Séparateur « ou » entre le formulaire de connexion client et « Continuer avec Google ». */
+.connexion-ou {
+  margin: var(--space-4, 1rem) 0 var(--space-2, 0.5rem);
+  text-align: center;
+  color: var(--secondaire);
+  font-size: 0.875rem;
+}
 .btn-google:hover {
   background: #f1f3f4;
   border-color: #c6c9cc;
@@ -1661,3 +1677,14 @@
   }
 }
 
+
+/* Récapitulatif de commande : « Me connecter » et « Créer un compte » côte à côte, empilés sur mobile. */
+.commande-connexion-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+@media (min-width: 560px) {
+  .commande-connexion-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}

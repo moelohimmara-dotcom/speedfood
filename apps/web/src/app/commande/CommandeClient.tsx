@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { avecSuite } from "@/lib/auth/redirection";
 import { VecteurPanierVide } from "@/components/site/vecteurs/VecteurPanierVide";
 import { usePanier, usePanierPret, sousTotalPanier, nombreArticlesPanier, prixLigne } from "@/components/panier/panier";
 import { useEffect, useState } from "react";
@@ -143,9 +144,14 @@ export function CommandeClient({
             Chaque commande est rattachée à un compte : le restaurant sait qui commande et vous retrouvez votre suivi. Votre
             panier est conservé pendant la connexion.
           </p>
-          <Link href="/entrer?suite=/commande" className="btn btn-primary btn-block">
-            Me connecter ou créer un compte
-          </Link>
+          <div className="commande-connexion-actions">
+            <Link href={avecSuite("/connexion?role=client", "/commande")} className="btn btn-primary btn-block">
+              Me connecter
+            </Link>
+            <Link href={avecSuite("/entrer", "/commande")} className="btn btn-secondary btn-block">
+              Créer un compte
+            </Link>
+          </div>
         </Card>
       )}
 

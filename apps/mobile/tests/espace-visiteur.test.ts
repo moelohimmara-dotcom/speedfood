@@ -1,0 +1,83 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { CHOIX_ESPACES, LIBELLE_MENU_ESPACE, QUESTION_ESPACE, TEXTE_DEVENIR_LIVREUR, choixEspace, libelleMenuEspace, titreConnexion } from '../src/connexion/espace-visiteur.ts';
+import { orienterApresConnexion } from '../src/accueil/parcours-accueil.ts';
+
+/** « Mon compte » en visiteur (audit du 28/11/2026) : l'espace d'abord, le formulaire ensuite ; reprise de la commande après connexion. */
+const lire = (p: string) => readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
+
+test('espaces : trois choix, libellés de l’audit, actions réellement prises en charge', () => {
+  assert.equal(QUESTION_ESPACE, 'Comment souhaitez-vous utiliser Speedfood ?'); assert.equal(LIBELLE_MENU_ESPACE, 'Choisir mon espace');
+  assert.deepEqual(CHOIX_ESPACES.map(c => `${c.titre} | ${c.texte}`), ['Client | Je veux commander un repas', 'Restaurateur | Je gère un restaurant', 'Livreur | Je veux effectuer des livraisons']);
+  assert.deepEqual(choixEspace('client')!.actions.map(a => a.titre), ['Me connecter à mon compte client', 'Créer un compte client']);
+  assert.deepEqual(choixEspace('restaurateur')!.actions.map(a => a.genre), ['connexion', 'referencement']);
+  assert.deepEqual(choixEspace('livreur')!.actions.map(a => a.genre), ['connexion', 'devenir-livreur']);
+  assert.match(TEXTE_DEVENIR_LIVREUR, /invitation/); assert.match(TEXTE_DEVENIR_LIVREUR, /lien d’activation/); assert.doesNotMatch(TEXTE_DEVENIR_LIVREUR, /inscrivez-vous/i);
+  assert.equal(choixEspace(null), null);
+  assert.deepEqual([titreConnexion('client'), titreConnexion('restaurateur'), titreConnexion('livreur'), titreConnexion(null)], ['Connexion client', 'Connexion restaurateur', 'Connexion livreur', 'Connexion client']);
+});
+
+test('menu accessible : TalkBack entend le nom, aucun choix d’avance, puis l’espace sélectionné', () => {
+  assert.equal(libelleMenuEspace(null), 'Choisir mon espace : aucun espace sélectionné');
+  assert.equal(libelleMenuEspace('livreur'), 'Choisir mon espace : Livreur sélectionné');
+  const sel = lire('connexion/SelecteurEspace.tsx');
+  assert.match(sel, /accessibilityState=\{\{ expanded: ouvert \}\}/); assert.match(sel, /accessibilityRole="radio" accessibilityState=\{\{ checked: actif \}\}/);
+  assert.match(sel, /useState\(espace === null\)/, 'sans choix, la liste des trois espaces est déjà ouverte : rien à faire défiler');
+});
+
+test('Mon compte visiteur : sélecteur en tête, formulaire seulement après le choix, retour en haut à chaque entrée', () => {
+  const compte = lire('connexion/CompteReel.tsx');
+  assert.match(compte, /const choixVisiteur=vue==='compte'&&!connectee;/);
+  assert.match(compte, /const formulaireOuvert=!connectee&&\(vue!=='compte'\|\|formulaireVisiteur\);/);
+  assert.match(compte, /:!connectee\?\(!formulaireOuvert\?null:<>/, 'aucun champ e-mail avant le choix d’un espace et d’une action');
+  assert.ok(compte.indexOf('<SelecteurEspace') < compte.indexOf('Votre session est protégée'), 'la question passe avant tout texte de session');
+  assert.match(compte, /Continuer sans compte/); assert.match(compte, /Changer d’espace/); assert.match(compte, /Mot de passe oublié \?/);
+  assert.match(compte, /useEffect\(\(\)=>\{if\(ouvert\)defilement\.current\?\.scrollTo\(\{y:0,animated:false\}\);\},\[ouvert,remonter,vue\]\);/);
+  assert.doesNotMatch(compte, /Linking\.openURL\(SITE_WEB/, 'aucune démarche professionnelle n’ouvre le navigateur sans prévenir');
+});
+
+test('reprise : « Commander » ouvre directement la connexion client et rouvre la commande après connexion', () => {
+  const catalogue = lire('catalogue/CatalogueReel.tsx');
+  assert.match(catalogue, /setOrientation\(\{ profil: 'client', action: 'existant', reprise: 'commande' \}\)/);
+  assert.match(catalogue, /const reprendre = orientation\?\.reprise === 'commande'; setOrientation\(null\); if \(reprendre\) \{ setCompteOuvert\(false\); setDemandeCompte\(null\); setCommandeOuverte\(true\); \}/);
+  assert.match(catalogue, /setVisiteOuverte\(false\); setRemonterCompte\(n => n \+ 1\);/);
+  assert.deepEqual(orienterApresConnexion({ profil: 'client', action: 'existant', reprise: 'commande' }, { restaurateur: false, livreur: false }), { genre: 'catalogue' });
+});
+
+test('inscription client : « Continuer avec Google » proposé avant le formulaire, quand Google est activé', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const debut = compte.indexOf("acces==='inscription'?<>");
+  assert.ok(debut > 0, 'la branche inscription regroupe les boutons sociaux et le formulaire');
+  const branche = compte.slice(debut, compte.indexOf('<InscriptionReelle ', debut));
+  assert.match(branche, /sociaux\.has\('google'\)&&<Action titre="Continuer avec Google"/);
+  assert.match(branche, /commencerSocial\('google'\)/);
+  assert.match(branche, /TEXTE_INSCRIPTION_SOCIALE/);
+});
+
+test('espace client : « Continuer avec Google » dès le choix « Client », avant connexion et inscription', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const choix = compte.indexOf('{choixVisiteur&&!formulaireOuvert&&choixEspace(espaceVisiteur)&&');
+  const google = compte.indexOf("{espaceVisiteur==='client'&&sociaux.has('google')&&", choix);
+  assert.ok(choix > 0 && google > choix && google < compte.indexOf('.actions.map(', choix), 'Google avant « Me connecter » et « Créer un compte »');
+  assert.match(compte.slice(google, google + 400), /commencerSocial\('google'\)/);
+  assert.match(compte, /TEXTE_GOOGLE_RAPIDE/);
+});
+
+test('« Changer d’espace » rouvre le choix en haut de page (essai émulateur du 28/11/2026)', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const f = compte.slice(compte.indexOf('function changerEspace(){'), compte.indexOf('function changerEspace(){') + 260);
+  assert.match(f, /setEspaceVisiteur\(null\)/, 'aucun espace présélectionné : le menu se rouvre avec les trois choix');
+  assert.match(f, /defilement\.current\?\.scrollTo\(\{y:0/, 'la question redevient visible');
+});
+
+test('Retour Android dans Mon compte (visiteur) : un niveau à la fois, pas de sortie directe au catalogue', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const i = compte.indexOf("BackHandler.addEventListener('hardwareBackPress'");
+  assert.ok(i > 0);
+  const bloc = compte.slice(compte.lastIndexOf('useEffect(', i), compte.indexOf('},[', i) + 80);
+  assert.match(bloc, /\(!formulaireVisiteur&&!devenirLivreur\)\)return;/, 'au niveau du choix, Retour garde son effet habituel (catalogue)');
+  assert.match(bloc, /acces==='oubli'\)\{setAcces\('connexion'\);return true;\}/);
+  assert.match(bloc, /setFormulaireVisiteur\(false\);setDevenirLivreur\(false\)/);
+  assert.match(bloc, /abonnement\.remove\(\)/);
+});

@@ -18,6 +18,14 @@
   font-size: 0.875rem;
   color: var(--secondaire);
 }
+/* Audit du 28/11/2026 : l'empreinte SHA-256 (64 caractères sans espace) élargissait la grille à 533 px sur un téléphone de 360 px. */
+.installer-page,
+.installer-bloc {
+  grid-template-columns: minmax(0, 1fr);
+}
+.installer-note code {
+  overflow-wrap: anywhere;
+}
 .installer-detail summary {
   cursor: pointer;
   font-weight: 600;

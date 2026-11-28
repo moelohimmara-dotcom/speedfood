@@ -1,6 +1,7 @@
 import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue.ts';
 import { ancienneteLisible } from '../../../../packages/shared/src/disponibilite/etat.ts';
 import { LIBELLES_MODE } from '../../../../packages/shared/src/paiement/regles.ts';
+import { etatDepuisTexte } from '../../../../packages/shared/src/horaires/horaires.ts';
 /**
  * Règles d'affichage du parcours client (revue du 18/11/2026) : restaurant fermé, plat « à confirmer », paiement dit clairement.
  * Fonctions pures, sans réseau. Elles ne changent AUCUNE règle de produit : l'état d'un plat et du restaurant vient du serveur, la commande est toujours revérifiée côté serveur.
@@ -17,6 +18,18 @@ export function commandabilite(r: Pick<RestaurantPublic, 'ouvert' | 'accepteComm
   }
   if (!r.accepteCommandes) return { commandable: false, raison: 'pause', titre: 'Commandes en pause', message: 'Le restaurant ne prend plus de commandes pour le moment. Vous pouvez parcourir le menu et revenir plus tard.' };
   return { commandable: true, raison: null, titre: '', message: '' };
+}
+/**
+ * Pourquoi on ne peut pas commander ICI (écrit près du « + » grisé et lu par TalkBack), ou `null` si on peut. Restaurant fermé avec horaires connus :
+ * « Commandable dès 10h » (« demain dès 11h »…) ; sinon une phrase simple. La pastille du plat dit, elle, s'il est au menu : deux informations distinctes.
+ */
+export function motifNonCommandable(r: Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes' | 'horaires'>, maintenant: Date): string | null {
+  const d = commandabilite(r);
+  if (d.commandable) return null;
+  if (d.raison === 'pause') return 'Commandes en pause pour le moment';
+  const e = etatDepuisTexte(r.horaires, maintenant);
+  if (e && !e.ouvert && e.libelle.startsWith('Ouvre ')) return 'Commandable ' + e.libelle.slice('Ouvre '.length).replace(/^à /, 'dès ').replace(/ à /, ' dès ');
+  return 'Restaurant fermé : commande impossible pour le moment';
 }
 const RANG_RESTAURANT = (r: Pick<RestaurantPublic, 'ouvert' | 'accepteCommandes'>): number => r.ouvert ? (r.accepteCommandes ? 0 : 1) : 2;
 /** Ceux où l'on peut commander d'abord, puis ceux en pause, puis les fermés. L'ordre d'origine est gardé à l'intérieur de chaque groupe (tri stable). */

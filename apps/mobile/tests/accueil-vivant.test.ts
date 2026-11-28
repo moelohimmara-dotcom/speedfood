@@ -133,7 +133,8 @@ test('qui agit : aucun tiret long dans les textes ajoutés', () => {
 
 test('accueil : le titre vivant, la carte et le point de l’onglet sont branchés', () => {
   const accueil = lire('../src/catalogue/CatalogueReel.tsx');
-  assert.match(accueil, /enteteAccueil\(\{ maintenant: new Date\(\)/);
+  // Audit du 28/11/2026 : l'heure vient de useMaintenant (relue chaque minute et au retour au premier plan).
+  assert.match(accueil, /const maintenant = useMaintenant\(\);/); assert.match(accueil, /enteteAccueil\(\{ maintenant, /);
   assert.match(accueil, /<CarteCommandeEnCours commande=\{enCours\.commande\} suivre=\{voirCommandeEnCours\} \/>/);
   assert.match(accueil, /commandeEnCours=\{enCours\.commande !== null\}/);
   assert.match(lire('../src/catalogue/BarreOnglets.tsx'), /Commandes, une commande en cours/);

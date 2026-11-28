@@ -5,7 +5,8 @@
  */
 export type ProfilAccueil = 'client' | 'restaurateur' | 'livreur';
 export type ActionAccueil = 'nouveau' | 'existant';
-export interface OrientationAccueil { profil: ProfilAccueil; action: ActionAccueil }
+/** `reprise: 'commande'` : la personne venait de « Commander » ; après connexion, l'appli rouvre la validation de la commande avec le panier gardé. */
+export interface OrientationAccueil { profil: ProfilAccueil; action: ActionAccueil; reprise?: 'commande' }
 
 /** Le parcours a été vu (ou passé) sur cet appareil : valeur non secrète. */
 export const CLE_ACCUEIL_VU = 'speedfood.accueil.vu.v1';

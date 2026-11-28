@@ -128,7 +128,7 @@ test('câblage : accueil direct, fiche et commande bloquées si fermé, divulgat
   assert.match(commande, /disabled=\{!peutEnvoyer \|\| bloque\}/);
   assert.ok(commande.includes('{TEXTE_CONSENTEMENT}') && commande.includes('etapesParcours(etat.menu?.restaurant.moyensPaiement)'));
   const compte = lire('../src/connexion/CompteReel.tsx');
-  assert.match(compte, /Restaurateur ou livreur \?/); assert.match(compte, /!restaurateur&&ouvrirCandidature&&<LigneNavigation titre="J’ai un restaurant"/);
+  assert.match(compte, /\{choixVisiteur&&<SelecteurEspace /, 'visiteur : le choix d’espace remplace l’ancienne rubrique « Restaurateur ou livreur ? »'); assert.match(compte, /!restaurateur&&ouvrirCandidature&&<LigneNavigation titre="J’ai un restaurant"/);
   assert.doesNotMatch(compte, /Équipe Speedfood/, 'l’accès équipe n’apparaît que pour un compte qui en a le droit');
   const livreur = lire('../src/connexion/LivreurReel.tsx');
   assert.match(livreur, /<DivulgationPosition ouvert=\{demanderChoix\}/);

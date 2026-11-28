@@ -41,8 +41,9 @@ import { etatPourOnglet, ongletActif, type IdOnglet } from './onglets';
 import { lireLienProfond } from '../connexion/liens-profonds';
 import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en-attente';
 import { VisiteGuidee } from '../connexion/VisiteReel';
-import { LEGENDE_A_CONFIRMER, commandabilite, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants } from './parcours-client';
+import { LEGENDE_A_CONFIRMER, commandabilite, motifNonCommandable, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants } from './parcours-client';
 import { CandidatureReel } from '../connexion/CandidatureReel';
+import { useMaintenant } from './useMaintenant';
 import { abonnerOrientation, prendreOrientation } from '../accueil/orientation';
 import type { OrientationAccueil } from '../accueil/parcours-accueil';
 import { enteteAccueil } from './accueil-vivant';
@@ -67,6 +68,8 @@ export function CatalogueReel() {
   const [candidatureOuverte, setCandidatureOuverte] = useState(false);
   // Orientation choisie à l'accueil (« Qui êtes-vous ? ») : ouvre « Mon compte » sur la création de compte ou la connexion ; gardée jusqu'à ce que « Mon compte » l'ait traitée (confirmation d'e-mail comprise).
   const [orientation, setOrientation] = useState<OrientationAccueil | null>(null);
+  // Chaque retour de la visite guidée ramène « Mon compte » en haut (question et menu d'espace visibles sans défiler).
+  const [remonterCompte, setRemonterCompte] = useState(0);
   useEffect(() => {
     const ouvrir = (o: OrientationAccueil) => { prendreOrientation(); setOrientation(o); setDemandeCompte(null); setCompteOuvert(true); };
     const deja = prendreOrientation(); if (deja) ouvrir(deja);
@@ -80,6 +83,8 @@ export function CatalogueReel() {
   const [suivant, setSuivant] = useState<string | null>(null);
   const [selection, setSelection] = useState<RestaurantPublic | null>(null);
   const [menu, setMenu] = useState<PageMenu | null>(null);
+  // Heure de Conakry relue chaque minute et au retour au premier plan (en-tête, horaires, motif « Commandable dès… »).
+  const maintenant = useMaintenant();
   const [lectureLe, setLectureLe] = useState<string | null>(null);
   const [ageHorsLigne, setAgeHorsLigne] = useState<number | null>(null);
   const [charge, setCharge] = useState(false);
@@ -266,11 +271,13 @@ export function CatalogueReel() {
   </Pressable>; };
   const titreRestaurant = menu?.restaurant ?? selection;
   const groupesMenu = menu ? grouperMenu(menu.sections, menu.plats) : [];
-  const entete = enteteAccueil({ maintenant: new Date(), restaurants: restaurantsDansZone(restaurants, zone), listeComplete: suivant === null });
+  const entete = enteteAccueil({ maintenant, restaurants: restaurantsDansZone(restaurants, zone), listeComplete: suivant === null });
   const nombreArticles = panier.panier.lignes.reduce((total, ligne) => total + ligne.quantite, 0);
   const sousTotal = panier.menu ? chiffrer(panier.panier, panier.menu.plats).total : null;
   // Barre d'onglets (G18) : l'onglet actif se déduit de l'état des écrans ; un appui donne l'état voulu. Panier et Compte s'affichent DANS la page, sous la barre.
   const onglet = ongletActif({ panierOuvert, compteOuvert, demandeCompte });
+  // Chargement de la SUITE de la liste (restaurants déjà affichés, aucune fiche ouverte) : indicateur en bas, jamais au-dessus de la recherche.
+  const chargeSuite = charge && !selection && restaurants.length > 0;
   const surRestaurants = onglet === 'restaurants';
   const barrePanierVisible = nombreArticles > 0 && surRestaurants;
   // Retour visuel à l'ajout : la barre du panier pulse une fois quand le nombre d'articles change. Mouvement réduit : aucun pulse, l'état final est posé directement.
@@ -329,7 +336,8 @@ export function CatalogueReel() {
       {messageNotifications !== '' && <Text accessibilityLiveRegion="polite" style={s.secondaire}>{messageNotifications}</Text>}
       {selection && <ReserverTableReel key={selection.id} session={gestion} restaurantId={selection.id} restaurantNom={titreRestaurant?.nom ?? selection.nom} relireQuand={String(compteOuvert) + '|' + (menu?.luLe ?? '')} ouvrirConnexion={() => { setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte(null); setCompteOuvert(true); }} />}
       {erreur && <View style={s.note}><Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>{!charge && <Action titre="Réessayer" agir={() => { void charger(selection); }} />}</View>}
-      {charge && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
+      {/* Chargement initial ou d'un menu : en haut. La SUITE de la liste se charge en bas, à la place du bouton : la recherche et les filtres ne bougent plus. */}
+      {charge && !chargeSuite && <View accessibilityLiveRegion="polite" style={{ gap: 10, alignItems: 'center' }}><ActivityIndicator color={c.action} /><Text style={s.texte}>Chargement du catalogue…</Text></View>}
       {charge && restaurants.length === 0 && !selection && <Squelette lignes={4} />}
       {!selection && enCours.commande !== null && <CarteCommandeEnCours commande={enCours.commande} suivre={voirCommandeEnCours} />}
       {!selection && <>
@@ -347,15 +355,16 @@ export function CatalogueReel() {
           <Text accessibilityRole="header" style={s.titreSection}>Tous les restaurants</Text>{visibles.map(r => carteRestaurant(r, 'tous-' + r.id))}
         </> : visibles.map(r => carteRestaurant(r, r.id))}
         {!charge && !erreur && visibles.length === 0 && !(resultatPerso?.restaurants.length) && <Text style={s.texte}>{restaurants.length ? 'Aucun restaurant ne correspond à votre recherche.' : 'Aucun restaurant disponible au catalogue pour le moment.'}</Text>}
-        {suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
+        {chargeSuite ? <View accessibilityLiveRegion="polite" style={s.chargeSuite}><ActivityIndicator color={c.action} /><Text style={s.secondaire}>Chargement d’autres restaurants…</Text></View>
+          : suivant && <Action titre="Charger plus de restaurants" disabled={charge} agir={() => { void charger(null, suivant); }} icone="plus" secondaire />}
       </>}
       {menu && <>
-        <EnteteFiche key={menu.restaurant.id} restaurant={menu.restaurant} />
+        <EnteteFiche key={menu.restaurant.id} restaurant={menu.restaurant} maintenant={maintenant} />
         {nombreAConfirmer(menu.plats) > 0 && <Text style={s.secondaire}>{LEGENDE_A_CONFIRMER}</Text>}
         {groupesMenu.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rangeeVedette}>{groupesMenu.map(g => <Pressable key={'puce-' + g.titre} accessibilityRole="button" accessibilityLabel={`Aller à la section ${g.titre}`} onPress={() => { const y = positionsSections.current[g.titre]; if (y !== undefined) defilementCatalogue.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }); }} style={s.puceZone}><Text style={s.puceTexte}>{g.titre}</Text></Pressable>)}</ScrollView>}
         {groupesMenu.map(g => <View key={'section-' + g.titre} onLayout={e => { positionsSections.current[g.titre] = e.nativeEvent.layout.y; }} style={{ gap: 12 }}>
           <Text accessibilityRole="header" style={s.titreSection}>{g.titre}</Text>
-          {ordonnerPlats(g.plats).map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} commandable={commandabilite(menu.restaurant).commandable} ajouter={() => demanderAjout(p)} ouvrirDetail={() => setPlatDetail(p)} />)}
+          {ordonnerPlats(g.plats).map(p => <CartePlat key={p.id} plat={p} desactive={!panier.pret} commandable={commandabilite(menu.restaurant).commandable} motif={motifNonCommandable(menu.restaurant, maintenant)} maintenant={maintenant} ajouter={() => demanderAjout(p)} ouvrirDetail={() => setPlatDetail(p)} />)}
         </View>)}
         {!menu.plats.length && <Text style={s.texte}>Aucun plat publié pour ce restaurant.</Text>}
         {menu.suivant && <Action titre="Charger la suite du menu" disabled={charge} agir={() => { void charger(selection, menu.suivant); }} icone="plus" secondaire />}
@@ -370,15 +379,15 @@ export function CatalogueReel() {
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </Animated.View>}
-    <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CompteReel orientation={orientation} orientationTraitee={() => setOrientation(null)} enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
+    <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} parcourir={() => { choisirOnglet('restaurants'); if (selection) retour(); }} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
+    <CompteReel orientation={orientation} orientationTraitee={() => { const reprendre = orientation?.reprise === 'commande'; setOrientation(null); if (reprendre) { setCompteOuvert(false); setDemandeCompte(null); setCommandeOuverte(true); } }} ouvrirAide={() => setAideOuverte(true)} remonter={remonterCompte} enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} commandeEnCours={enCours.commande !== null} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); ouvertureReservations.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
-      ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
+      ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setOrientation({ profil: 'client', action: 'existant', reprise: 'commande' }); setCompteOuvert(true); }}
       verifierCommandes={() => { setCommandeOuverte(false); setDemandeCompte({ reference: null }); setCompteOuvert(true); }}
       apresSucces={(reference, envoye) => { memoriserEnvoi(reference, envoye); setTimeout(() => enCours.recharger(), 2000); setMessageRecommande(''); setCommandeOuverte(false); setPanierOuvert(false); setDemandeCompte({ reference }); setCompteOuvert(true); void notifications.apresCommande().then(e => setMessageNotifications(e ? MESSAGES_ETAT[e] : '')); }} />
     <AideReelle ouvert={aideOuverte} fermer={() => setAideOuverte(false)} />
-    <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => setVisiteOuverte(false)} />
+    <VisiteGuidee ouvert={visiteOuverte} variante="client" fermer={() => { setVisiteOuverte(false); setRemonterCompte(n => n + 1); }} />
     <CandidatureReel ouvert={candidatureOuverte} fermer={() => setCandidatureOuverte(false)} ouvrirCompte={() => { setDemandeCompte(null); setCompteOuvert(true); }} />
     <ChoixZone visible={zoneOuverte} zones={zones} nombres={nombreParZone(restaurants, zones)} total={restaurants.length} courante={zone} choisir={choisirZone} fermer={() => setZoneOuverte(false)} />
     <ChoixSupplements key={(platEnChoix?.id ?? 'aucun') + ':' + optionsPrechoisies.join(',')} plat={platEnChoix} selectionInitiale={optionsPrechoisies} annuler={() => { setPlatEnChoix(null); setOptionsPrechoisies([]); }} confirmer={ids => { const p = platEnChoix; setPlatEnChoix(null); setOptionsPrechoisies([]); if (p) ajouterAuPanier(p, ids); }} />
@@ -397,6 +406,7 @@ const s = StyleSheet.create({
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 23 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   puceZone: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1.5, borderColor: c.encre, backgroundColor: c.surface }, puceTexte: { color: c.encre, fontFamily: polices.texte, fontSize: 14 },
   carte: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.bordure, borderRadius: 22, padding: 20, gap: 10 }, carteVedette: { width: 248 }, rangeeVedette: { gap: 12, paddingVertical: 2 }, nom: { color: c.encre, fontFamily: polices.titre, fontSize: 22 }, titreSection: { color: c.encre, fontFamily: polices.titre, fontSize: 24, marginTop: 8 },
+  chargeSuite: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 48 },
   note: { backgroundColor: c.avertissementFond, borderRadius: 16, padding: 16, gap: 12 }, rechercheBoite: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.champBordure, borderRadius: 18, minHeight: 56, paddingHorizontal: 16 }, rechercheChamp: { flex: 1, minHeight: 54, fontFamily: polices.texte, fontSize: 15, color: c.encre },
   rondEntete: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.bordure, backgroundColor: c.surface },
   action: { backgroundColor: c.action, minHeight: 48, padding: 14, borderRadius: 26, justifyContent: 'center', alignItems: 'center' }, actionTexte: { color: c.surface, fontFamily: polices.texte, fontWeight: '700', fontSize: 14 },

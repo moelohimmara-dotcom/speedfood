@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VERSION_APPLICATION } from "@/lib/application/version";
+import { applicationRecommandee } from "@/lib/application/installer-mobile";
 import { FLECHE } from "./commun";
 
 /**
@@ -7,7 +7,8 @@ import { FLECHE } from "./commun";
  * sur téléphone, le bouton y mène directement. Textes fixes (pas d'emplacement CMS : ils décrivent l'application publiée).
  */
 export function AccueilApplication() {
-  const mo = Math.round(VERSION_APPLICATION.apkTaille / 1_000_000);
+  // Même source que la page /installer : la version et la taille annoncées sont celles du fichier recommandé.
+  const app = applicationRecommandee();
   return (
     <section className="pub-conteneur pub-rubrique" aria-labelledby="accueil-app">
       <div className="appaccueil">
@@ -23,14 +24,14 @@ export function AccueilApplication() {
           </ul>
           <div className="appaccueil-actions">
             <Link href="/installer" className="pub-btn pub-btn-clair">
-              Télécharger l&apos;application
+              Télécharger Speedfood pour Android
               <span className="pub-btn-point" aria-hidden="true">
                 {FLECHE}
               </span>
             </Link>
             <span className="appaccueil-detail">
-              Gratuite · Android · version {VERSION_APPLICATION.nom}
-              {mo > 0 ? ` · ${mo} Mo` : ""} · iPhone bientôt
+              Gratuite · Android · version {app.nom}
+              {app.tailleMo > 0 ? ` · ${app.tailleMo} Mo` : ""} · iPhone bientôt
             </span>
           </div>
         </div>
