@@ -73,7 +73,17 @@ test('câblage : le layout monte l’accueil après l’intro, le catalogue tran
 
 test('animations : intro et illustrations respectent le mouvement réduit et restent décoratives pour les lecteurs d’écran', () => {
   const intro = lire('design/IntroLogo.tsx'); const illus = lire('accueil/Illustrations.tsx');
-  assert.match(intro, /useMouvementReduit/); assert.match(intro, /setTimeout\(terminer, 3000\)/, 'garde-fou : jamais plus de 3 s de masque');
+  assert.match(intro, /useMouvementReduit/); assert.match(intro, /setTimeout\(terminer, 3500\)/, 'garde-fou : jamais plus de 3,5 s de masque');
+  assert.match(intro, /<LogoAnime /); assert.doesNotMatch(intro, /speedfood\.png/, 'le logo n’est plus une image figée dans son cadre');
   assert.match(illus, /useMouvementReduit/); assert.match(illus, /importantForAccessibility="no-hide-descendants"/);
   assert.doesNotMatch(illus + intro, /useNativeDriver: false/);
+});
+
+test('logo vectoriel : chaque pièce est un calque à part (4 plumes, pains, steak, reflet, 3 vapeurs) et l’écran de démarrage n’a plus de cadre', () => {
+  const logo = lire('design/LogoSpeedfood.tsx');
+  assert.equal((logo.match(/^  'M\d+ \d+ C/gm) ?? []).length, 7, '4 plumes et 3 filets de vapeur');
+  assert.match(logo, /PLUMES\.map/); assert.match(logo, /VAPEURS\.map/); assert.match(logo, /PAIN_HAUT/); assert.match(logo, /PAIN_BAS/); assert.match(logo, /REFLET/);
+  assert.match(logo, /useNativeDriver: true/); assert.doesNotMatch(logo, /useNativeDriver: false/);
+  const config = readFileSync(new URL('../app.json', import.meta.url), 'utf8');
+  assert.match(config, /"image": "\.\/assets\/images\/logo-sans-cadre\.png"/);
 });

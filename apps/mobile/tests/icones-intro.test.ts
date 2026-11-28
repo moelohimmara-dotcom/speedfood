@@ -33,7 +33,7 @@ test('intro logo : animation courte montee dans le layout, mouvement reduit resp
   const intro = lire('../src/design/IntroLogo.tsx');
   assert.match(intro, /useMouvementReduit/, 'l intro respecte le mouvement reduit');
   assert.match(intro, /dureeMouvement/, 'les durees passent par le garde-fou du depot');
-  assert.match(intro, /speedfood\.png/, 'le logo officiel est anime');
+  assert.match(intro, /<LogoAnime /, 'le logo officiel est anime, piece par piece (vectoriel, sans cadre)');
   const layout = lire('../src/app/_layout.tsx');
   assert.match(layout, /IntroLogo/, 'le layout monte l intro');
   assert.match(layout, /<CatalogueReel \/>/, 'le catalogue reste monte sous l intro');
