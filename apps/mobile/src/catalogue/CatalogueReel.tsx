@@ -43,6 +43,8 @@ import { abonnerLienEnAttente, prendreLienEnAttente } from '../connexion/lien-en
 import { VisiteGuidee } from '../connexion/VisiteReel';
 import { LEGENDE_A_CONFIRMER, commandabilite, nombreAConfirmer, ordonnerPlats, ordonnerRestaurants } from './parcours-client';
 import { CandidatureReel } from '../connexion/CandidatureReel';
+import { abonnerOrientation, prendreOrientation } from '../accueil/orientation';
+import type { OrientationAccueil } from '../accueil/parcours-accueil';
 import { enteteAccueil } from './accueil-vivant';
 import { useCommandeEnCours } from './useCommandeEnCours';
 import { CarteCommandeEnCours } from './CarteCommandeEnCours';
@@ -63,6 +65,13 @@ export function CatalogueReel() {
   const [aideOuverte, setAideOuverte] = useState(false);
   const [visiteOuverte, setVisiteOuverte] = useState(false);
   const [candidatureOuverte, setCandidatureOuverte] = useState(false);
+  // Orientation choisie à l'accueil (« Qui êtes-vous ? ») : ouvre « Mon compte » sur la création de compte ou la connexion ; gardée jusqu'à ce que « Mon compte » l'ait traitée (confirmation d'e-mail comprise).
+  const [orientation, setOrientation] = useState<OrientationAccueil | null>(null);
+  useEffect(() => {
+    const ouvrir = (o: OrientationAccueil) => { prendreOrientation(); setOrientation(o); setDemandeCompte(null); setCompteOuvert(true); };
+    const deja = prendreOrientation(); if (deja) ouvrir(deja);
+    return abonnerOrientation(ouvrir);
+  }, []);
   const [demandeCompte, setDemandeCompte] = useState<{ reference: string | null; espaceRestaurateur?: boolean } | null>(null);
   const [messagePanier, setMessagePanier] = useState('');
   const [messageNotifications, setMessageNotifications] = useState('');
@@ -362,7 +371,7 @@ export function CatalogueReel() {
       <Pressable accessibilityRole="button" accessibilityLabel="Voir le panier" onPress={voirPanier} style={s.barrePanierAction}><Text style={s.barrePanierActionTexte}>Voir le panier</Text></Pressable>
     </Animated.View>}
     <PanierReelVue enModal={false} information={messageRecommande} ouvert={onglet === 'panier'} fermer={() => setPanierOuvert(false)} etat={panier} commander={() => { setPanierOuvert(false); setCommandeOuverte(true); }} />
-    <CompteReel enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
+    <CompteReel orientation={orientation} orientationTraitee={() => setOrientation(null)} enModal={false} vue={onglet === 'commandes' ? 'commandes' : 'compte'} ouvert={onglet === 'compte' || onglet === 'commandes'} fermer={() => { setCompteOuvert(false); setDemandeCompte(null); }} demande={demandeCompte} recommander={{ references: new Set(memos.map(m => m.reference)), lancer: lancerRecommande }} ouvrirCandidature={() => setCandidatureOuverte(true)} parametres={{ ouvrirVisite: () => setVisiteOuverte(true), oublierCommandes: async () => { const m = await ouvrirCommandesEnvoyees(); await m.oublier(); setMemos([]); await gestion.oublierCommandesAppareil(); } }} />
     <BarreOnglets actif={onglet} articles={nombreArticles} commandeEnCours={enCours.commande !== null} choisir={choisirOnglet} />
     <CommandeReelle ouvert={commandeOuverte} surVerrou={v => { commandeVerrouillee.current = v; ouvertureSuivi.verrouillageChange(); ouvertureResto.verrouillageChange(); ouvertureReservations.verrouillageChange(); }} fermer={() => { setCommandeOuverte(false); setPanierOuvert(true); void panier.recharger(); }} etat={panier}
       ouvrirCompte={() => { setCommandeOuverte(false); setDemandeCompte(null); setCompteOuvert(true); }}
