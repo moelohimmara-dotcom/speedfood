@@ -32,6 +32,10 @@ const installer = lire("src/app/installer/page.tsx");
 verifier("installer : l'ancienne appli regroupée sous « Vous utilisez l’ancienne application ? »", /Vous utilisez l’ancienne application \?/.test(installer), true);
 verifier("installer : plus de promesse « elle la remplace » (deux applications distinctes)", /elle la remplace/.test(installer), false);
 verifier("installer : le panier et les réglages ne sont pas promis à la migration", /ne sont pas transférés/.test(installer), true);
+verifier("installer : un seul libellé de bouton, plus de « Télécharger l'application Android »", /Télécharger l(&apos;|')application Android/.test(installer + lire("src/components/PiedSite.tsx")), false);
+verifier("installer : les étapes de l'ancienne appli ne s'affichent plus quand la nouvelle est publiée", installer.includes("{MOBILE ? null : ("), true);
+const cssInstaller = lire("src/app/installer.css");
+verifier("installer à 360 px : l'empreinte SHA-256 ne fait plus déborder la grille", cssInstaller.includes("grid-template-columns: minmax(0, 1fr)") && cssInstaller.includes("overflow-wrap: anywhere"), true);
 
 if (ko > 0) {
   console.log(`\n${ko} échec(s)`);

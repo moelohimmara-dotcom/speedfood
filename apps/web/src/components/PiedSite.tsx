@@ -29,7 +29,7 @@ export async function PiedSite() {
         <nav className="site-pied-colonne" aria-label="Clients">
           <p className="site-pied-titre">Clients</p>
           <Link href="/installer" className="pied-app">
-            Télécharger l&apos;application Android
+            Télécharger Speedfood pour Android
           </Link>
           <Link href="/restaurants">Restaurants</Link>
           <Link href="/quartiers">Explorer les localités</Link>

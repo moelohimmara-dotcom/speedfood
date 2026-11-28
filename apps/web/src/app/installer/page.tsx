@@ -15,7 +15,7 @@ const VERSION = VERSION_APPLICATION.nom;
 const TAILLE_MO = Math.round(VERSION_APPLICATION.apkTaille / 1_000_000);
 
 const ETAPES_ANDROID = [
-  "Touchez « Télécharger l'application Android » ci-dessus.",
+  "Touchez « Télécharger Speedfood pour Android » ci-dessus.",
   "Ouvrez le fichier téléchargé (notification ou dossier Téléchargements).",
   "Si Android demande d'autoriser l'installation depuis cette source, acceptez pour ce navigateur seulement, puis revenez en arrière et confirmez l'installation.",
   "L'icône Speedfood apparaît sur votre écran d'accueil. Ouvrez-la : elle vous guide au premier lancement.",
@@ -51,6 +51,19 @@ function Etapes({ etapes }: { etapes: string[] }) {
   );
 }
 
+function Atouts() {
+  return (
+    <>
+      <h3 className="pub-titre pub-h3-page">Ce que vous gagnez</h3>
+      <ul className="installer-atouts">
+        <li>Un formulaire de commande déjà rempli, votre panier conservé même après la fermeture de l&apos;application.</li>
+        <li>Les notifications de votre commande et, pour les restaurateurs et livreurs, les alertes de nouvelles commandes et de courses.</li>
+        <li>Les restaurants consultables même avec une connexion lente ou coupée.</li>
+      </ul>
+    </>
+  );
+}
+
 /**
  * Page de téléchargement de l'application native (Kotlin Multiplatform, ADR-019). Elle remplace l'ancienne enveloppe qui ne faisait qu'afficher le
  * site (« mode webview », supprimée le 21 octobre 2026) : plus d'installation du site sur l'écran d'accueil, plus de bouton d'installation du navigateur.
@@ -80,6 +93,7 @@ export default function InstallerPage() {
             </a>
           </p>
 
+          <Atouts />
           <h3 className="pub-titre pub-h3-page">Installer en quatre étapes</h3>
           <Etapes etapes={ETAPES_MOBILE} />
           <p className="installer-note">
@@ -130,12 +144,10 @@ export default function InstallerPage() {
           </figure>
         </div>
 
-        <h3 className="pub-titre pub-h3-page">Ce que vous gagnez</h3>
-        <ul className="installer-atouts">
-          <li>Un formulaire de commande déjà rempli, votre panier conservé même après la fermeture de l&apos;application.</li>
-          <li>Les notifications de votre commande et, pour les restaurateurs et livreurs, les alertes de nouvelles commandes et de courses.</li>
-          <li>Les restaurants consultables même avec une connexion lente ou coupée.</li>
-        </ul>
+        {/* Nouvelle appli publiée : ses atouts et ses étapes sont dans le bloc principal ; cette section ne parle plus que de l'ancienne. */}
+        {MOBILE ? null : (
+          <>
+        <Atouts />
 
         <h3 className="pub-titre pub-h3-page">Toujours à jour</h3>
         <p>
@@ -153,6 +165,8 @@ export default function InstallerPage() {
           Pour vérifier le fichier, comparez son empreinte avec <a className="lien-texte" href={FICHIER_EMPREINTE}>l&apos;empreinte SHA-256 publiée</a>.
           L&apos;application contrôle elle-même cette empreinte avant chaque mise à jour.
         </p>
+          </>
+        )}
       </section>
 
       <section className="pub-carte pub-carte-pad installer-bloc" aria-labelledby="installer-iphone">
