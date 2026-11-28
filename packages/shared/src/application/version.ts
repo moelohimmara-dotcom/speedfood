@@ -54,13 +54,13 @@ export const VERSION_APPLICATION: VersionApplication = {
   // l'ancienne appli ne peut pas installer cette appli (autre identifiant) et ne lit pas ce bloc. APK hébergée sur R2 (62 Mio > 25 Mio autorisés dans le Worker du site).
   // Plan : docs/plans/2026-11-11-nouvelle-identite-android.md.
   mobile: {
-    code: 124,
-    nom: "3.1.21",
-    notes: "Connexion avec Google réparée, carte de suivi de livraison de nouveau visible, et livraison plus précise avec un repère et votre position.",
+    code: 125,
+    nom: "3.1.22",
+    notes: "Nouvel accueil : le logo Speedfood s'anime à l'ouverture, une courte visite présente l'appli et vous choisissez votre profil (client, restaurateur ou livreur) pour arriver au bon espace.",
     obligatoire: false,
-    apkSha256: "5c94b2c745ca7c202b81197afeb08e6fc61f5a8c0a4f8ae361790892cd809cd6",
-    apkTaille: 66357426,
+    apkSha256: "d71547b5791c4b8bd75b9fa068221df38daa16ca3ec6f1d5819286fefedb7644",
+    apkTaille: 66193586,
     apkChemin: "/speedfood-mobile.apk",
-    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.21.apk",
+    apkUrl: "https://pub-e89d009459984641aa1fe14982503bf4.r2.dev/speedfood-mobile-3.1.22.apk",
   },
 };
