@@ -85,5 +85,6 @@ test('logo vectoriel : chaque pièce est un calque à part (4 plumes, pains, ste
   assert.match(logo, /PLUMES\.map/); assert.match(logo, /VAPEURS\.map/); assert.match(logo, /PAIN_HAUT/); assert.match(logo, /PAIN_BAS/); assert.match(logo, /REFLET/);
   assert.match(logo, /useNativeDriver: true/); assert.doesNotMatch(logo, /useNativeDriver: false/);
   const config = readFileSync(new URL('../app.json', import.meta.url), 'utf8');
-  assert.match(config, /"image": "\.\/assets\/images\/logo-sans-cadre\.png"/);
+  assert.match(config, /"image": "\.\/assets\/images\/demarrage-vide\.png"/, 'écran natif crème seul : c’est l’intro qui construit le logo');
+  assert.match(lire('app/_layout.tsx'), /SplashScreen\.preventAutoHideAsync\(\)/); assert.match(lire('design/IntroLogo.tsx'), /SplashScreen\.hideAsync\(\)/);
 });

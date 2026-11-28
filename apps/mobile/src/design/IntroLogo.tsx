@@ -4,6 +4,7 @@ import { couleurs as c, dureeMouvement, polices } from './tokens';
 import { useMouvementReduit } from './mouvement';
 import { Texte } from './Composants';
 import { LogoAnime } from './LogoSpeedfood';
+import * as SplashScreen from 'expo-splash-screen';
 
 /** Phrase d'accroche sous le nom, à l'ouverture. */
 export const ACCROCHE_INTRO = 'Vos plats préférés, près de chez vous';
@@ -24,6 +25,9 @@ export function IntroLogo({ onTerminee }: { onTerminee(): void }) {
   const fin = useRef(onTerminee); fin.current = onTerminee;
   const fait = useRef(false);
   const terminer = () => { if (fait.current) return; fait.current = true; setVisible(false); fin.current(); };
+
+  // L'intro est montée : l'écran de démarrage natif (crème) s'efface et l'animation commence devant la personne.
+  useEffect(() => { void SplashScreen.hideAsync().catch(() => undefined); }, []);
 
   useEffect(() => {
     if (reduit) {

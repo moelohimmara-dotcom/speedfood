@@ -61,8 +61,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFF6ED",
-          "image": "./assets/images/logo-sans-cadre.png",
-          "imageWidth": 150
+          "image": "./assets/images/demarrage-vide.png",
+          "imageWidth": 1
         }
       ]
     ],
