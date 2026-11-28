@@ -84,8 +84,11 @@ export function LogoAnime({ taille, reduit, fond = c.fond, surFin }: { taille: n
       Animated.timing(ondule, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       Animated.timing(ondule, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
     ]));
-    montage.start(({ finished }) => { if (finished) { onde.start(); fin.current?.(); } });
-    return () => { montage.stop(); onde.stop(); };
+    // Tout est programmé d'avance sur le moteur natif : le montage et le départ de l'ondulation ne dépendent pas d'un fil JavaScript libre.
+    const ondeDifferee = Animated.sequence([Animated.delay(1300), onde]);
+    montage.start(({ finished }) => { if (finished) fin.current?.(); });
+    ondeDifferee.start();
+    return () => { montage.stop(); ondeDifferee.stop(); };
     // Les valeurs animées sont créées une fois par montage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduit]);

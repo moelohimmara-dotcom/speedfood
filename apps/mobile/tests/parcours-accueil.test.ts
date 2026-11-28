@@ -75,6 +75,8 @@ test('animations : intro et illustrations respectent le mouvement réduit et res
   const intro = lire('design/IntroLogo.tsx'); const illus = lire('accueil/Illustrations.tsx');
   assert.match(intro, /useMouvementReduit/); assert.match(intro, /setTimeout\(terminer, 3500\)/, 'garde-fou : jamais plus de 3,5 s de masque');
   assert.match(intro, /<LogoAnime /); assert.doesNotMatch(intro, /speedfood\.png/, 'le logo n’est plus une image figée dans son cadre');
+  assert.match(intro, /pointerEvents="none"/, 'l’intro ne capte jamais les touchers'); assert.match(intro, /apres\(2240, t\(sortie, 0/, 'l’effacement est programmé d’avance sur le moteur natif');
+  assert.doesNotMatch(intro, /surFin=/, 'l’effacement ne dépend plus d’un rappel JavaScript');
   assert.match(illus, /useMouvementReduit/); assert.match(illus, /importantForAccessibility="no-hide-descendants"/);
   assert.doesNotMatch(illus + intro, /useNativeDriver: false/);
 });
