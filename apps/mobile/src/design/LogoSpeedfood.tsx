@@ -62,19 +62,22 @@ export function LogoAnime({ taille, reduit, fond = c.fond, surFin }: { taille: n
   useEffect(() => {
     if (reduit) { fin.current?.(); return; }
     const d = (ms: number) => dureeMouvement(reduit, ms);
-    const ressort = (x: Animated.Value, friction = 6) => Animated.spring(x, { toValue: 1, friction, tension: 80, useNativeDriver: true });
-    const montage = Animated.sequence([
-      Animated.stagger(110, [ressort(painBas, 7), ressort(steak, 7), ressort(painHaut, 4)]),
-      Animated.parallel([
-        Animated.timing(reflet, { toValue: 1, duration: d(260), useNativeDriver: true }),
-        Animated.stagger(70, plumes.map(p => Animated.timing(p, { toValue: 1, duration: d(360), easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }))),
-      ]),
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(battement, { toValue: 1, duration: d(170), easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(battement, { toValue: 0, duration: d(240), easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        ]),
-        Animated.stagger(120, vapeurs.map(p => Animated.timing(p, { toValue: 1, duration: d(420), easing: Easing.out(Easing.cubic), useNativeDriver: true }))),
+    // Durées FIXES (un ressort peut mettre plusieurs secondes à se stabiliser et retarder tout le reste) ; le rebond est dessiné par la courbe `back`.
+    // Les étapes se chevauchent : burger de 0 à 0,56 s, plumes de 0,3 à 0,9 s, vapeur de 0,5 à 1,16 s, battement de 0,9 à 1,3 s.
+    const vers = (x: Animated.Value, apres: number, duree: number, courbe: (t: number) => number) =>
+      Animated.sequence([Animated.delay(apres), Animated.timing(x, { toValue: 1, duration: d(duree), easing: courbe, useNativeDriver: true })]);
+    const rebond = Easing.out(Easing.back(2.2));
+    const montage = Animated.parallel([
+      vers(painBas, 0, 320, Easing.out(Easing.cubic)),
+      vers(steak, 90, 320, Easing.out(Easing.cubic)),
+      vers(painHaut, 180, 380, rebond),
+      vers(reflet, 560, 260, Easing.out(Easing.quad)),
+      ...plumes.map((p, i) => vers(p, 300 + i * 70, 380, Easing.out(Easing.back(1.6)))),
+      ...vapeurs.map((p, i) => vers(p, 500 + i * 120, 420, Easing.out(Easing.cubic))),
+      Animated.sequence([
+        Animated.delay(900),
+        Animated.timing(battement, { toValue: 1, duration: d(170), easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(battement, { toValue: 0, duration: d(240), easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ]),
     ]);
     const onde = Animated.loop(Animated.sequence([

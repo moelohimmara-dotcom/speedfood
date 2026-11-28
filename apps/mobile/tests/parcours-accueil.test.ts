@@ -83,7 +83,7 @@ test('logo vectoriel : chaque pièce est un calque à part (4 plumes, pains, ste
   const logo = lire('design/LogoSpeedfood.tsx');
   assert.equal((logo.match(/^  'M\d+ \d+ C/gm) ?? []).length, 7, '4 plumes et 3 filets de vapeur');
   assert.match(logo, /PLUMES\.map/); assert.match(logo, /VAPEURS\.map/); assert.match(logo, /PAIN_HAUT/); assert.match(logo, /PAIN_BAS/); assert.match(logo, /REFLET/);
-  assert.match(logo, /useNativeDriver: true/); assert.doesNotMatch(logo, /useNativeDriver: false/);
+  assert.match(logo, /useNativeDriver: true/); assert.doesNotMatch(logo, /useNativeDriver: false/); assert.doesNotMatch(logo, /Animated.spring/, 'durées fixes : un ressort lent retardait les ailes et la vapeur au-delà du garde-fou');
   const config = readFileSync(new URL('../app.json', import.meta.url), 'utf8');
   assert.match(config, /"image": "\.\/assets\/images\/demarrage-vide\.png"/, 'écran natif crème seul : c’est l’intro qui construit le logo');
   assert.match(lire('app/_layout.tsx'), /SplashScreen\.preventAutoHideAsync\(\)/); assert.match(lire('design/IntroLogo.tsx'), /SplashScreen\.hideAsync\(\)/);
