@@ -63,3 +63,21 @@ test('espace client : « Continuer avec Google » dès le choix « Client », av
   assert.match(compte.slice(google, google + 400), /commencerSocial\('google'\)/);
   assert.match(compte, /TEXTE_GOOGLE_RAPIDE/);
 });
+
+test('« Changer d’espace » rouvre le choix en haut de page (essai émulateur du 28/11/2026)', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const f = compte.slice(compte.indexOf('function changerEspace(){'), compte.indexOf('function changerEspace(){') + 260);
+  assert.match(f, /setEspaceVisiteur\(null\)/, 'aucun espace présélectionné : le menu se rouvre avec les trois choix');
+  assert.match(f, /defilement\.current\?\.scrollTo\(\{y:0/, 'la question redevient visible');
+});
+
+test('Retour Android dans Mon compte (visiteur) : un niveau à la fois, pas de sortie directe au catalogue', () => {
+  const compte = readFileSync(new URL('../src/connexion/CompteReel.tsx', import.meta.url), 'utf8');
+  const i = compte.indexOf("BackHandler.addEventListener('hardwareBackPress'");
+  assert.ok(i > 0);
+  const bloc = compte.slice(compte.lastIndexOf('useEffect(', i), compte.indexOf('},[', i) + 80);
+  assert.match(bloc, /\(!formulaireVisiteur&&!devenirLivreur\)\)return;/, 'au niveau du choix, Retour garde son effet habituel (catalogue)');
+  assert.match(bloc, /acces==='oubli'\)\{setAcces\('connexion'\);return true;\}/);
+  assert.match(bloc, /setFormulaireVisiteur\(false\);setDevenirLivreur\(false\)/);
+  assert.match(bloc, /abonnement\.remove\(\)/);
+});

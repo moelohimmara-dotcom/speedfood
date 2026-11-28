@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { creerLectureDifferee } from './lecture-differee';
-import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErreurConnexion, URL_AUTH_SOCIALE, type ResumeCompte } from './client';
@@ -64,7 +64,8 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
   const [espaceVisiteur,setEspaceVisiteur]=useState<EspaceVisiteur|null>(null);const [formulaireVisiteur,setFormulaireVisiteur]=useState(false);const [devenirLivreur,setDevenirLivreur]=useState(false);
   useEffect(()=>{if(!ouvert||!orientation||orientationAppliquee.current===orientation)return;orientationAppliquee.current=orientation;if(!gestion.connectee){setErreur(null);setEspaceVisiteur(orientation.profil);setFormulaireVisiteur(true);setDevenirLivreur(false);setAcces(accesDepuisAction(orientation.action));}},[ouvert,orientation]);
   function choisirEspace(e:EspaceVisiteur){setEspaceVisiteur(e);setFormulaireVisiteur(false);setDevenirLivreur(false);setErreur(null);setAcces('connexion');}
-  function changerEspace(){setFormulaireVisiteur(false);setDevenirLivreur(false);setErreur(null);setAcces('connexion');}
+  // « Changer d’espace » : retour au choix (menu rouvert, aucun espace présélectionné) et en haut de page, là où se trouve la question.
+  function changerEspace(){setEspaceVisiteur(null);setFormulaireVisiteur(false);setDevenirLivreur(false);setErreur(null);setAcces('connexion');defilement.current?.scrollTo({y:0,animated:true});}
   const [espaceOuvert,setEspaceOuvert]=useState(false);
   const [suppressionOuverte,setSuppressionOuverte]=useState(false);const [motSuppression,setMotSuppression]=useState('');
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
@@ -176,6 +177,16 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
   },[]);
   const demandeRef=useRef(demande);demandeRef.current=demande;
   useEffect(()=>{if(ouvert)defilement.current?.scrollTo({y:0,animated:false});},[ouvert,remonter,vue]);
+  // Retour Android (visiteur) : on remonte d’un niveau. Mot de passe oublié → formulaire ; formulaire ou carte « Devenir livreur » → choix d’espace (en haut). Ensuite seulement, le catalogue.
+  useEffect(()=>{
+    if(!ouvert||enModal||connectee||Platform.OS==='web'||(!formulaireVisiteur&&!devenirLivreur))return;
+    const abonnement=BackHandler.addEventListener('hardwareBackPress',()=>{
+      setErreur(null);
+      if(formulaireVisiteur&&acces==='oubli'){setAcces('connexion');return true;}
+      setFormulaireVisiteur(false);setDevenirLivreur(false);setAcces('connexion');defilement.current?.scrollTo({y:0,animated:true});return true;
+    });
+    return()=>abonnement.remove();
+  },[ouvert,enModal,connectee,formulaireVisiteur,devenirLivreur,acces]);
   // Appui `commande_nouvelle` (à chaud ou à froid) : chaque nouvelle `demande` arme l'ouverture, consommée UNE fois quand l'écran est ouvert, la session active et le rôle lu comme membre (le serveur revalide chaque route).
   // Tant que l'espace est occupé (action en cours), l'ouverture est différée et rejouée à la fin.
   const demandeEspace=useRef(creerDemandeEspace()).current;
