@@ -72,7 +72,9 @@ test('un « Retour » en bouton texte se place à gauche ; l’icône « plat »
   const catalogue = lire('../src/catalogue/CatalogueReel.tsx');
   // Revue du 18/11/2026 : plus de deux gros boutons sous le titre du catalogue ; « J’ai un restaurant » vit dans « Mon compte ».
   assert.doesNotMatch(catalogue, /Changer d’espace/);
-  assert.match(lire('../src/connexion/CompteReel.tsx'), /titre="J’ai un restaurant" icone="restaurateur" variante="contour"/);
+  // Audit du 28/11/2026 : en visiteur, le référencement passe par le choix d'espace « Restaurateur » (« Faire référencer mon restaurant »), formulaire natif.
+  assert.match(lire('../src/connexion/CompteReel.tsx'), /a\.genre==='referencement'\)\{if\(ouvrirCandidature\)ouvrirCandidature\(\);\}/);
+  assert.match(lire('../src/connexion/espace-visiteur.ts'), /titre: 'Faire référencer mon restaurant'/);
   const parametres = lire('../src/connexion/ParametresReel.tsx');
   assert.match(parametres, /<GroupeLignes>[\s\S]*titre="Revoir la visite guidée"/);
   assert.match(parametres, /titre="Oublier les commandes de cet appareil" variante="danger"/);

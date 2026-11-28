@@ -18,6 +18,8 @@ import type {CommandeCompte,PropositionClient,ResumeSuivi} from './commandes';
 import { confirmationSuppressionValide, ErreurSuppressionCompte, MOT_CONFIRMATION } from './suppression-compte';
 import { InscriptionReelle, OubliReel } from './AccesReel';
 import { MESSAGE_PAS_RESTAURATEUR, accesDepuisAction, orienterApresConnexion, type OrientationAccueil } from '../accueil/parcours-accueil';
+import { SelecteurEspace } from './SelecteurEspace';
+import { TEXTE_DEVENIR_LIVREUR, TEXTE_REFERENCEMENT, choixEspace, titreConnexion, type EspaceVisiteur } from './espace-visiteur';
 import { EspaceClientReel } from './EspaceClientReel';
 import { ParametresReel } from './ParametresReel';
 import { PorteVerrou, ReglageVerrou } from './VerrouProReel';
@@ -41,7 +43,7 @@ export function restaurerSession(): Promise<void> { restauration ??= gestion.res
 const Action = ({ titre, agir, disabled = false, icone, iconeSeule = false, secondaire = false, variante }: { titre: string; agir(): void; disabled?: boolean; icone?: NomIcone; iconeSeule?: boolean; secondaire?: boolean; variante?: VarianteBouton }) => <Bouton titre={titre} onPress={agir} disabled={disabled} icone={icone} iconeSeule={iconeSeule} secondaire={secondaire} variante={variante} />;
 /** `demande` : à l'ouverture, relire les commandes et, si `reference` est donnée, ouvrir le suivi de CETTE commande (le jeton reste dans la session, jamais dans l'écran). `espaceRestaurateur` : ouvrir l'espace après connexion (appui notification `commande_nouvelle`). */
 /** `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets ; `vue` : onglet « Compte » (profil, espaces, réglages) ou « Commandes » (liste et suivi). Vrai : fenêtre plein écran comme avant. */
-export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null, orientation=null, orientationTraitee }: { orientation?:OrientationAccueil|null; orientationTraitee?:()=>void; ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
+export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='compte', recommander=null, parametres=null, ouvrirCandidature=null, orientation=null, orientationTraitee, ouvrirAide=null, remonter=0 }: { ouvrirAide?:(()=>void)|null; remonter?:number; orientation?:OrientationAccueil|null; orientationTraitee?:()=>void; ouvrirCandidature?:(()=>void)|null; parametres?:{ouvrirVisite():void;oublierCommandes():Promise<void>}|null; recommander?:{references:ReadonlySet<string>;lancer(reference:string):void}|null; ouvert:boolean; fermer():void; demande?:{reference:string|null;espaceRestaurateur?:boolean}|null; enModal?:boolean; vue?:'compte'|'commandes' }) {
   const [email,setEmail]=useState(''); const [motDePasse,setMotDePasse]=useState('');
   const [connectee,setConnectee]=useState(false); const [profil,setProfil]=useState<ResumeCompte|null>(null);
   const [attente,setAttente]=useState(true); const [erreur,setErreur]=useState<string|null>(null); const [message,setMessage]=useState('');
@@ -58,7 +60,11 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
   const [acces,setAcces]=useState<'connexion'|'inscription'|'oubli'>('connexion');
   // Choix fait à l'accueil : ouvre la création de compte ou la connexion, puis, une fois les rôles lus par le serveur, l'espace du profil (jamais un droit donné par l'accueil).
   const orientationAppliquee=useRef<OrientationAccueil|null>(null);
-  useEffect(()=>{if(!ouvert||!orientation||orientationAppliquee.current===orientation)return;orientationAppliquee.current=orientation;if(!gestion.connectee){setErreur(null);setAcces(accesDepuisAction(orientation.action));}},[ouvert,orientation]);
+  // Visiteur dans « Mon compte » : d'abord l'espace (client, restaurateur, livreur), puis l'action ; le formulaire n'apparaît qu'après ce choix.
+  const [espaceVisiteur,setEspaceVisiteur]=useState<EspaceVisiteur|null>(null);const [formulaireVisiteur,setFormulaireVisiteur]=useState(false);const [devenirLivreur,setDevenirLivreur]=useState(false);
+  useEffect(()=>{if(!ouvert||!orientation||orientationAppliquee.current===orientation)return;orientationAppliquee.current=orientation;if(!gestion.connectee){setErreur(null);setEspaceVisiteur(orientation.profil);setFormulaireVisiteur(true);setDevenirLivreur(false);setAcces(accesDepuisAction(orientation.action));}},[ouvert,orientation]);
+  function choisirEspace(e:EspaceVisiteur){setEspaceVisiteur(e);setFormulaireVisiteur(false);setDevenirLivreur(false);setErreur(null);setAcces('connexion');}
+  function changerEspace(){setFormulaireVisiteur(false);setDevenirLivreur(false);setErreur(null);setAcces('connexion');}
   const [espaceOuvert,setEspaceOuvert]=useState(false);
   const [suppressionOuverte,setSuppressionOuverte]=useState(false);const [motSuppression,setMotSuppression]=useState('');
   // Entrée « Espace restaurateur » : un simple confort d'affichage (lu sur /api/v1/moi). Chaque route de l'espace revérifie le droit côté serveur.
@@ -169,6 +175,7 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     return()=>{actif=false;revision.current++;};
   },[]);
   const demandeRef=useRef(demande);demandeRef.current=demande;
+  useEffect(()=>{if(ouvert)defilement.current?.scrollTo({y:0,animated:false});},[ouvert,remonter,vue]);
   // Appui `commande_nouvelle` (à chaud ou à froid) : chaque nouvelle `demande` arme l'ouverture, consommée UNE fois quand l'écran est ouvert, la session active et le rôle lu comme membre (le serveur revalide chaque route).
   // Tant que l'espace est occupé (action en cours), l'ouverture est différée et rejouée à la fin.
   const demandeEspace=useRef(creerDemandeEspace()).current;
@@ -244,15 +251,30 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
     const terminee=()=>{setEspaceOuvert(false);setConnectee(gestion.connectee);setProfil(null);effacerLectures();setErreur('Votre session a pris fin. Reconnectez-vous.');};
     return <EspaceClientReel ouvert={ouvert} fermer={retour} sessionTerminee={terminee}/>;
   }
+  // Visiteur sur l'onglet « Compte » : le choix d'espace d'abord ; le formulaire (connexion, création, mot de passe oublié) seulement après ce choix.
+  const choixVisiteur=vue==='compte'&&!connectee;
+  const formulaireOuvert=!connectee&&(vue!=='compte'||formulaireVisiteur);
   const corps=<ScrollView ref={defilement} style={enModal?undefined:{flex:1,backgroundColor:c.fond}} keyboardShouldPersistTaps="handled" contentContainerStyle={s.contenu}>
     {enModal&&<Action titre="Retour au catalogue" icone="retour" iconeSeule secondaire agir={fermerFormulaire}/>}
     <View style={s.ligneTitre}><Text accessibilityRole="header" style={[s.titre,{flex:1}]}>{vue==='commandes'?'Mes commandes':'Mon compte'}</Text>{vue==='commandes'&&connectee&&<Action titre="Actualiser mes commandes" icone="actualiser" iconeSeule variante="texte" disabled={attente} agir={()=>{void executer(async()=>{await lireCommandes();});}}/>}</View>
-    {(vue==='compte'||!connectee)&&<Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>}
+    {choixVisiteur&&<SelecteurEspace key={espaceVisiteur??'aucun'} espace={espaceVisiteur} choisir={choisirEspace}/>}
+    {choixVisiteur&&!formulaireOuvert&&choixEspace(espaceVisiteur)&&<View style={{gap:10}}>
+      {choixEspace(espaceVisiteur)!.actions.map(a=><Action key={a.genre} titre={a.titre} variante={a.principale?undefined:'contour'} disabled={attente} agir={()=>{setErreur(null);
+        if(a.genre==='connexion'){setAcces('connexion');setFormulaireVisiteur(true);}
+        else if(a.genre==='inscription'){setAcces('inscription');setFormulaireVisiteur(true);}
+        else if(a.genre==='referencement'){if(ouvrirCandidature)ouvrirCandidature();}
+        else setDevenirLivreur(true);}}/>)}
+      {espaceVisiteur==='restaurateur'&&<Text style={s.secondaire}>{TEXTE_REFERENCEMENT}</Text>}
+      {espaceVisiteur==='livreur'&&devenirLivreur&&<View style={s.carte}><Text style={s.texte}>{TEXTE_DEVENIR_LIVREUR}</Text>{ouvrirAide&&<Action titre="Contacter l’équipe Speedfood" icone="aide" variante="contour" agir={ouvrirAide}/>}</View>}
+    </View>}
+    {choixVisiteur&&<Action titre="Continuer sans compte" variante="texte" disabled={attente} agir={fermerFormulaire}/>}
+    {(connectee?vue==='compte':formulaireOuvert)&&<Text style={s.texte}>{Platform.OS==='web'?'Dans cet aperçu web, votre session reste en mémoire : recharger ou fermer la page vous déconnecte.':'Votre session est protégée par le coffre du téléphone. Votre mot de passe n’est pas conservé.'}</Text>}
     {attente&&<><ActivityIndicator color={c.action}/><Text accessibilityLiveRegion="polite" style={s.texte}>Connexion à Speedfood…</Text></>}
     {erreur&&<Text accessibilityRole="alert" style={s.texte}>{erreur}</Text>}{message!==''&&<Text accessibilityLiveRegion="polite" style={s.texte}>{message}</Text>}
-    {!connectee&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
-    :!connectee&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
-    :!connectee?<>
+    {formulaireOuvert&&acces==='inscription'?<InscriptionReelle emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}} sessionOuverte={()=>{setAcces('connexion');void executer(async()=>{setProfil(await gestion.espace());});}}/>
+    :formulaireOuvert&&acces==='oubli'?<OubliReel emailInitial={email} retour={e=>{setEmail(e);setAcces('connexion');}}/>
+    :!connectee?(!formulaireOuvert?null:<>
+      {formulaireVisiteur&&<Text accessibilityRole="header" style={s.rubrique}>{titreConnexion(espaceVisiteur)}</Text>}
       {vue==='commandes'&&<CommandesAppareilReel oublier={parametres?parametres.oublierCommandes:()=>gestion.oublierCommandesAppareil()} apresOubli={()=>setMessage('Les commandes de cet appareil ont été oubliées.')}/>}
       <Text style={s.texte}>{vue==='commandes'?'Connectez-vous pour retrouver toutes vos commandes, les annuler ou régler.':'Connectez-vous avec votre compte Speedfood.'}</Text>
       <Text style={s.texte}>Adresse e-mail</Text><TextInput accessibilityLabel="Adresse e-mail" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" editable={!attente} style={s.champ}/>
@@ -262,13 +284,9 @@ export function CompteReel({ ouvert, fermer, demande=null, enModal=true, vue='co
       {sociaux.has('facebook')&&<Action titre="Continuer avec Facebook" variante="contour" disabled={attente} agir={()=>{void commencerSocial('facebook');}}/>}
       <Action titre="Mot de passe oublié ?" variante="texte" disabled={attente} agir={()=>{setErreur(null);setAcces('oubli');}}/>
       <Action titre="Créer un compte" variante="contour" disabled={attente} agir={()=>{setErreur(null);setAcces('inscription');}}/>
-      {vue==='compte'&&<>
-        <Text accessibilityRole="header" style={s.rubrique}>Restaurateur ou livreur ?</Text>
-        <Text style={s.texte}>Connectez-vous avec votre compte professionnel : votre espace apparaît ici après la connexion.</Text>
-        {ouvrirCandidature&&<Action titre="J’ai un restaurant" icone="restaurateur" variante="contour" disabled={attente} agir={ouvrirCandidature}/>}
-      </>}
+      {formulaireVisiteur&&<Action titre="Changer d’espace" variante="texte" disabled={attente} agir={changerEspace}/>}
       {erreur&&<Action titre="Relire la session protégée" secondaire disabled={attente} agir={()=>{restauration=null;void executer(async()=>{await gestion.restaurer();if(gestion.connectee)setProfil(await gestion.espace());});}}/>}
-    </>:<>
+    </>):<>
       {vue==='compte'&&<>
       <Text accessibilityRole="header" style={s.nom}>Compte connecté</Text>
       {profil?<><Text style={s.texte}>{profil.pseudo??'Profil à compléter sur le site'}</Text><Text style={s.texte}>{profil.favoris} favori(s) · {profil.adresses} adresse(s) enregistrée(s)</Text></>:<Text style={s.texte}>Votre espace n’a pas encore pu être lu.</Text>}

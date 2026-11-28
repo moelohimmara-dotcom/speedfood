@@ -17,7 +17,7 @@ function Rond({ nom: titre, icone, onPress, desactive = false, variante = 'texte
 /**
  * Panier. `enModal` faux : l'écran s'affiche DANS la page, sous la barre d'onglets (onglet « Panier ») ; vrai : fenêtre plein écran comme avant.
  */
-export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true, information = '' }: { ouvert: boolean; fermer(): void; etat: ReturnType<typeof usePanierReel>; commander(): void; enModal?: boolean; information?: string }) {
+export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true, information = '', parcourir }: { ouvert: boolean; fermer(): void; etat: ReturnType<typeof usePanierReel>; commander(): void; enModal?: boolean; information?: string; parcourir?: () => void }) {
   const [confirmation, setConfirmation] = useState(false);
   const bilan = chiffrer(etat.panier, etat.menu?.plats ?? []);
   const dispo = etat.menu ? commandabilite(etat.menu.restaurant) : null;
@@ -40,6 +40,7 @@ export function PanierReelVue({ ouvert, fermer, etat, commander, enModal = true,
     {etat.erreurLecture && <Text accessibilityRole="alert" style={s.texte}>{etat.erreurLecture}</Text>}
     {etat.prixModifies && <Text accessibilityRole="alert" style={s.texte}>Les prix ont changé depuis votre dernière lecture. Le montant affiché a été actualisé.</Text>}
     {!etat.panier.lignes.length && <Text style={s.texte}>Votre panier est vide. Choisissez un plat dans un menu.</Text>}
+    {!etat.panier.lignes.length && parcourir && <Bouton titre="Parcourir les restaurants" icone="restaurant" onPress={parcourir} />}
     {bilan.lignes.map(l => <View key={l.cle} style={s.carte}>
       <Text style={s.nom}>{l.plat?.nom ?? 'Plat à vérifier'}</Text>
       {l.options.length > 0 && <Text style={s.texte}>Avec : {l.options.map(o => o.nom).join(', ')}</Text>}

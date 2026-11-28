@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ConnexionForm } from "./ConnexionForm";
 import { Card } from "@/components/ui";
 import { PageCompte } from "@/components/PageCompte";
-import { estCheminInterneSur } from "@/lib/auth/redirection";
+import { avecSuite, estCheminInterneSur } from "@/lib/auth/redirection";
 import { lireRoleChoisi, roleDepuisSuite, type RoleChoisi } from "@/lib/auth/acces";
 import type { Metadata } from "next";
 
@@ -86,7 +86,7 @@ export default async function ConnexionPage({
           </p>
         ) : (
           <p>
-            Pas encore de compte ? <Link href="/entrer" className="lien-texte">Créez votre compte client</Link>
+            Pas encore de compte ? <Link href={avecSuite("/entrer", suite)} className="lien-texte">Créez votre compte client</Link>
             <br />
             Vous tenez un restaurant ? <Link href="/connexion?role=restaurateur" className="lien-texte">Connexion restaurateur</Link>
             {" · "}

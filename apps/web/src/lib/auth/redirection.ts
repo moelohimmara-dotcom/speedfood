@@ -13,6 +13,16 @@ export function estCheminInterneSur(valeur: string): boolean {
 }
 
 /**
+ * Lien vers une page de connexion ou d'inscription qui GARDE la destination de retour (`suite`), si elle est un chemin interne sûr.
+ * Sans cela, passer de « Créer un compte » à « Connexion client » perdait `suite=/commande` et le client ne retrouvait pas sa commande.
+ * `chemin` peut déjà porter des paramètres (`/connexion?role=client`).
+ */
+export function avecSuite(chemin: string, suite: string | null | undefined): string {
+  if (!suite || !estCheminInterneSur(suite)) return chemin;
+  return `${chemin}${chemin.includes("?") ? "&" : "?"}suite=${encodeURIComponent(suite)}`;
+}
+
+/**
  * Lien de bannière : chemin interne sûr OU URL https. Jamais `javascript:`, `data:`,
  * ni `http:` (revue de sécurité, point 14).
  */

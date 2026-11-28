@@ -111,7 +111,7 @@ export function InscriptionCompleteForm({ suite }: { suite: string }) {
       </Button>
 
       <p className="aide-champ inscription-mention-legal">
-        En créant votre compte, vous acceptez nos <Link href="/confidentialite" className="lien-texte">conditions</Link>.
+        En créant votre compte, vous acceptez nos <Link href="/conditions" className="lien-texte">conditions d&apos;utilisation</Link> (voir aussi la <Link href="/confidentialite" className="lien-texte">confidentialité</Link>).
       </p>
     </form>
   );

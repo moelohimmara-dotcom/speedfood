@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ZoomImage } from './ZoomImage';
 import type { PlatCataloguePublic, RestaurantPublic } from '../../../../packages/shared/src/contracts/catalogue';
 import { Bouton } from '../design/Composants';
+import { Icone } from '../design/Icone';
 import { couleurs as c, polices } from '../design/tokens';
 import { Vignette } from './Vignette';
 import { VignettePlat } from './MentionIllustrative';
@@ -24,10 +25,10 @@ export function BadgeScore({ palier }: { palier?: string }) {
 }
 
 /** En-tête de la fiche : logo ou photo, lieu, état, note, fraîcheur du statut, horaires, consignes et moyens de paiement (seulement ceux que le serveur a transmis). */
-export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic }) {
+export function EnteteFiche({ restaurant: r, maintenant = new Date() }: { restaurant: RestaurantPublic; maintenant?: Date }) {
   const [photoEchouee, setPhotoEchouee] = useState<string | null>(null);
   const [zoomCouverture, setZoomCouverture] = useState(false);
-  const etat = titreEtatRestaurant(r); const note = libelleCoteRestaurant(r); const horaire = libelleHoraire(r, new Date()); const statut = libelleStatut(r); const dispo = commandabilite(r); const moyens = moyensAffichables(r.moyensPaiement);
+  const etat = titreEtatRestaurant(r); const note = libelleCoteRestaurant(r); const horaire = libelleHoraire(r, maintenant); const statut = libelleStatut(r, maintenant); const dispo = commandabilite(r); const moyens = moyensAffichables(r.moyensPaiement);
   return <View style={s.carte}>
     {r.photoUrl && photoEchouee !== r.photoUrl ? <Pressable accessibilityRole="imagebutton" accessibilityLabel={`Photo de ${r.nom}. Touchez pour agrandir.`} onPress={() => setZoomCouverture(true)}><Image source={{ uri: r.photoUrl }} accessible={false} accessibilityIgnoresInvertColors resizeMode="cover" onError={() => setPhotoEchouee(r.photoUrl ?? null)} style={s.photo} /></Pressable> : null}
     <ZoomImage url={r.photoUrl} nom={r.nom} visible={zoomCouverture} fermer={() => setZoomCouverture(false)} onErreur={() => setPhotoEchouee(r.photoUrl ?? null)} />
@@ -50,9 +51,11 @@ export function EnteteFiche({ restaurant: r }: { restaurant: RestaurantPublic })
 }
 
 /** Carte d'un plat : photo, nom, description, prix payé (rouge et prix normal barré en promo), suppléments, disponibilité et ancienneté de la confirmation. */
-export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date(), commandable = true, ouvrirDetail }: { plat: PlatCataloguePublic; ajouter(): void; desactive: boolean; maintenant?: Date; commandable?: boolean; ouvrirDetail?: () => void }) {
+export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date(), commandable = true, motif = null, ouvrirDetail }: { plat: PlatCataloguePublic; ajouter(): void; desactive: boolean; maintenant?: Date; commandable?: boolean; motif?: string | null; ouvrirDetail?: () => void }) {
   const promo = enPromo(p); const supp = libelleSupplements(p.options);
-  const { detail, ...etat } = etatPlat(p, maintenant);
+  const { detail, ...etatBrut } = etatPlat(p, maintenant);
+  // Restaurant fermé ou en pause : le plat reste « au menu », mais on ne peut pas le commander ; « Disponible » à côté d'un « + » grisé se contredisait.
+  const etat = !commandable && p.disponibilite === 'disponible' ? { texte: 'Au menu', ton: 'neutre' as typeof etatBrut.ton } : etatBrut;
   return <View style={s.carte}>
     <View style={{ flexDirection: 'row', gap: 12 }}>
     <Pressable accessibilityRole={ouvrirDetail ? 'button' : undefined} accessibilityLabel={ouvrirDetail ? `Voir le détail de ${p.nom}${p.photoUrl ? ', photo agrandissable' : ''}` : undefined} disabled={!ouvrirDetail} onPress={ouvrirDetail} style={{ flex: 1 }}>
@@ -72,8 +75,9 @@ export function CartePlat({ plat: p, ajouter, desactive, maintenant = new Date()
     </View>
     </Pressable>
       {/* « + » rond à droite de la ligne, comme dans les applis de commande : le nom accessible dit « Ajouter X au panier » ; un plat épuisé est grisé. Il est HORS de la zone cliquable du détail pour ne jamais être confondu avec elle. */}
-      <View style={{ alignSelf: 'center' }}><Bouton titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : !commandable ? `${p.nom} : commande indisponible` : `Ajouter ${p.nom} au panier`} icone="plus" iconeSeule disabled={desactive || !commandable || p.disponibilite === 'epuise'} onPress={ajouter} /></View>
+      <View style={{ alignSelf: 'center' }}><Bouton titre={p.disponibilite === 'epuise' ? `${p.nom} épuisé` : !commandable ? `${p.nom} : ${motif ?? 'commande indisponible'}` : `Ajouter ${p.nom} au panier`} icone="plus" iconeSeule disabled={desactive || !commandable || p.disponibilite === 'epuise'} onPress={ajouter} /></View>
     </View>
+    {!commandable && p.disponibilite !== 'epuise' && motif && <View style={s.motif} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Icone nom="horloge" taille={16} couleur={c.avertissement} /><Text style={s.motifTexte}>{motif}</Text></View>}
   </View>;
 }
 const s = StyleSheet.create({
@@ -83,5 +87,6 @@ const s = StyleSheet.create({
   barre: { color: c.secondaire, fontFamily: polices.texte, fontSize: 13, textDecorationLine: 'line-through' },
   texte: { color: c.encre, fontFamily: polices.texte, fontSize: 15, lineHeight: 22 }, secondaire: { color: c.secondaire, fontFamily: polices.texte, fontSize: 12, lineHeight: 19 },
   bandeau: { backgroundColor: c.avertissementFond, borderRadius: 14, padding: 12, gap: 4 }, bandeauTitre: { color: c.avertissement, fontFamily: polices.texte, fontSize: 15, fontWeight: '700' }, bandeauTexte: { color: c.avertissement, fontFamily: polices.texte, fontSize: 14, lineHeight: 20 },
+  motif: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-end' }, motifTexte: { color: c.avertissement, fontFamily: polices.texte, fontSize: 13, fontWeight: '700' },
   pastille: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 , alignSelf: 'flex-start' }, pastilleTexte: { fontFamily: polices.texte, fontSize: 12, fontWeight: '700' },
 });
